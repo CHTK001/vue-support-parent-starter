@@ -22,6 +22,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     root,
     resolve: {
       alias: createAlias(import.meta.url),
+      dedupe: ["vue", "vue-router", "vue-i18n"],
+      preserveSymlinks: false,
     },
     // 服务端渲染
     server: {
@@ -73,18 +75,44 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // https://cn.vitejs.dev/guide/build.html#browser-compatibility
       target: "es2015",
       sourcemap: false,
-      minify: false,
+      minify: "terser",
       // 消除打包大小超过500kb警告
       chunkSizeWarningLimit: 4000,
       terserOptions: {
         compress: {
           drop_console: true,
+          drop_debugger: true,
+          pure_funcs: ["console.log", "console.info", "console.debug", "console.warn", "console.error"],
+          passes: 3,
+          dead_code: true,
+          unused: true,
+          collapse_vars: true,
+          reduce_vars: true,
+          reduce_funcs: true,
+          inline: 2,
+          keep_fargs: false,
+          keep_fnames: false,
+        },
+        mangle: {
+          properties: {
+            regex: /^_/,
+          },
+          toplevel: true,
+          reserved: [],
+          keep_classnames: false,
+          keep_fnames: false,
+        },
+        format: {
+          comments: false,
+          beautify: false,
+          ascii_only: false,
         },
       },
       rollupOptions: {
         input: {
           index: pathResolve("./index.html", import.meta.url),
         },
+        external: ["@element-plus/icons-vue"],
         // 静态资源分类打包
         output: {
           chunkFileNames: "static/js/[name]-[hash].js",

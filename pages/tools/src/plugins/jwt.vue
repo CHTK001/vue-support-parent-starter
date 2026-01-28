@@ -822,11 +822,17 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
     border-radius: 12px;
-    padding: 24px;
+    padding: 30px;
     color: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-primary-rgb), 0.4);
+      transform: translateY(-2px);
+    }
   }
 
   &__header-inner {
@@ -875,9 +881,17 @@ onMounted(() => {
   &__scan-card,
   &__scan-result-card {
     margin-bottom: 24px;
-    border-radius: 8px;
+    border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     height: 100%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-primary-light-7);
+    }
   }
 
   &__input {
@@ -1042,15 +1056,17 @@ onMounted(() => {
   &__history-item {
     flex: 0 0 calc(33.33% - 8px);
     border: 1px solid var(--el-border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 12px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: var(--el-fill-color-lighter);
 
     &:hover {
       border-color: var(--el-color-primary);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      background-color: var(--el-color-primary-light-9);
     }
   }
 
@@ -1091,9 +1107,10 @@ onMounted(() => {
 
   &__encoded-jwt {
     background-color: var(--el-fill-color-light);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 16px;
     overflow-x: auto;
+    border: 1px solid var(--el-border-color-lighter);
   }
 
   &__jwt-parts {
@@ -1105,23 +1122,33 @@ onMounted(() => {
   }
 
   &__jwt-part {
-    padding: 8px;
-    border-radius: 4px;
+    padding: 12px;
+    border-radius: 8px;
     font-size: 14px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+
+    &:hover {
+      transform: translateX(4px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
 
     &-0 {
-      background-color: rgba(var(--el-color-primary-rgb), 0.1);
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1) 0%, rgba(var(--el-color-primary-rgb), 0.15) 100%);
       color: var(--el-color-primary);
+      border-color: var(--el-color-primary-light-7);
     }
 
     &-1 {
-      background-color: rgba(var(--el-color-success-rgb), 0.1);
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1) 0%, rgba(var(--el-color-success-rgb), 0.15) 100%);
       color: var(--el-color-success);
+      border-color: var(--el-color-success-light-7);
     }
 
     &-2 {
-      background-color: rgba(var(--el-color-warning-rgb), 0.1);
+      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1) 0%, rgba(var(--el-color-warning-rgb), 0.15) 100%);
       color: var(--el-color-warning-dark-2);
+      border-color: var(--el-color-warning-light-7);
     }
   }
 
@@ -1137,8 +1164,9 @@ onMounted(() => {
     flex-direction: column;
     gap: 8px;
     background-color: var(--el-fill-color-light);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 12px 16px;
+    border: 1px solid var(--el-border-color-lighter);
   }
 
   &__result-info-item {

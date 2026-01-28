@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="order-page">
+  <div class="system-container order-page">
     <div class="order-header">
       <div class="left">
         <iconifyIconOnline icon="ep:document" width="18" />
@@ -71,7 +71,7 @@
       ref="tableRef"
       :url="fetchPageOrder"
       :params="form"
-      class="order-table"
+      class="modern-table order-table"
       @data-loaded="onLoaded"
       :rowClick="handleRowClick"
     >
@@ -166,6 +166,9 @@
     :title="`订单详情 - ${detail.row?.payMerchantOrderCode || ''}`"
     size="60%"
   >
+    <div class="dialog-header">
+      <h3>订单详情 - {{ detail.row?.payMerchantOrderCode || '' }}</h3>
+    </div>
     <div class="grid grid-cols-5 gap-4">
       <div class="col-span-3">
         <h4>订单流水</h4>

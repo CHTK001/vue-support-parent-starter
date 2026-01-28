@@ -1,5 +1,5 @@
 <template>
-  <div class="card-component">
+  <div class="card-component system-container modern-bg">
     <div class="card-header">
       <div class="card-title">
         <IconifyIconOnline :icon="getIcon()" class="card-icon" />
@@ -288,19 +288,67 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    @include gradient-bg;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
 .card-component {
   height: 100%;
-  background: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
+  @include glass-effect(0.9, 16px);
+  border-radius: $radius-lg;
+  border: 1px solid $border-light;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
+  position: relative;
+  box-shadow: $shadow-md;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: $gradient-line-top;
+    opacity: 0;
+    transition: opacity $duration-normal ease;
+  }
 
   &:hover {
-    border-color: var(--el-color-primary-light-7);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: $border-primary;
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 }
 
@@ -308,28 +356,55 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
+  padding: $spacing-lg $spacing-xl $spacing-md;
+  border-bottom: 1px solid $border-light;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: $spacing-xl;
+    right: $spacing-xl;
+    height: 1px;
+    background: $gradient-line;
+    opacity: 0.5;
+  }
 
   .card-title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
+    gap: $spacing-sm;
+    font-size: $font-md;
+    font-weight: $font-weight-semibold;
     color: var(--el-text-color-primary);
+    transition: all $duration-fast ease;
 
     .card-icon {
-      font-size: 16px;
+      font-size: $icon-lg;
       color: var(--el-color-primary);
+      transition: transform $duration-normal $ease-standard;
+    }
+
+    &:hover .card-icon {
+      transform: scale(1.1) rotate(5deg);
     }
   }
 
   .card-actions {
     display: flex;
-    gap: 4px;
+    gap: $spacing-xs;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity $duration-normal $ease-standard;
+
+    .el-button {
+      border-radius: $radius-sm;
+      transition: all $duration-fast ease;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
   }
 
   &:hover .card-actions {
@@ -339,88 +414,159 @@ onUnmounted(() => {
 
 .card-content {
   flex: 1;
-  padding: 20px;
+  padding: $spacing-2xl;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
+  position: relative;
 
   .metric-value {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+    position: relative;
 
     .value {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--el-color-primary);
+      font-size: 36px;
+      font-weight: $font-weight-bold;
+      background: $gradient-primary;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       line-height: 1;
+      letter-spacing: $letter-spacing-tight;
+      transition: all $duration-normal $ease-standard;
+
+      &:hover {
+        transform: scale(1.05);
+      }
     }
 
     .unit {
-      font-size: 16px;
+      font-size: $font-lg;
       color: var(--el-text-color-regular);
-      font-weight: 500;
+      font-weight: $font-weight-medium;
+      opacity: 0.8;
     }
   }
 
   .metric-progress {
     width: 100%;
-    margin: 12px 0;
+    margin: $spacing-md 0;
+    padding: 0 $spacing-lg;
 
     :deep(.el-progress-bar__outer) {
-      border-radius: 8px;
+      border-radius: $radius-full;
       background-color: var(--el-fill-color-light);
       height: 8px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     :deep(.el-progress-bar__inner) {
-      border-radius: 8px;
-      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: $radius-full;
+      transition: width 0.8s $ease-standard;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
   }
 
   .metric-description {
-    font-size: 12px;
+    font-size: $font-sm;
     color: var(--el-text-color-regular);
-    margin-bottom: 8px;
-    line-height: 1.4;
+    margin-bottom: $spacing-sm;
+    line-height: 1.5;
+    opacity: 0.8;
+    max-width: 90%;
   }
 
   .last-update {
-    font-size: 11px;
+    font-size: $font-xs;
     color: var(--el-text-color-placeholder);
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    margin-top: $spacing-sm;
+
+    &::before {
+      content: "🕐";
+      font-size: $font-xs;
+    }
   }
 }
 
 .card-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--el-border-color-extra-light);
+  padding: $spacing-md $spacing-xl;
+  border-top: 1px solid $border-light;
   display: flex;
   justify-content: center;
+  position: relative;
+  background: rgba(0, 0, 0, 0.02);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: $spacing-xl;
+    right: $spacing-xl;
+    height: 1px;
+    background: $gradient-line;
+    opacity: 0.5;
+  }
+
+  .el-button {
+    border-radius: $radius-md;
+    transition: all $duration-fast ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $shadow-hover-sm;
+    }
+  }
 }
 
 // 响应式设计
-@media (max-width: 768px) {
+@include respond-to(lg) {
   .card-content {
-    padding: 16px;
+    padding: $spacing-xl;
+
+    .metric-value .value {
+      font-size: 32px;
+    }
+  }
+}
+
+@include respond-to(sm) {
+  .card-content {
+    padding: $spacing-lg;
 
     .metric-value {
       .value {
-        font-size: 24px;
+        font-size: 28px;
       }
 
       .unit {
-        font-size: 14px;
+        font-size: $font-md;
       }
     }
   }
 
   .card-header,
   .card-footer {
-    padding: 12px 16px;
+    padding: $spacing-md $spacing-lg;
+  }
+}
+
+@include respond-to(xs) {
+  .card-content {
+    padding: $spacing-md;
+
+    .metric-value .value {
+      font-size: 24px;
+    }
   }
 }
 </style>

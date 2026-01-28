@@ -1,5 +1,5 @@
 <template>
-  <div class="device-container">
+  <div class="device-container system-container modern-bg">
     <div class="device-header-wrapper">
       <el-header class="device-header">
         <div class="device-left-panel">

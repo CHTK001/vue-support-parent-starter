@@ -132,7 +132,11 @@ const env = reactive({
     { name: "优酷", url: "https://www.youku.com/", icon: "ri:youtube-line" },
     { name: "芒果TV", url: "https://www.mgtv.com/", icon: "ri:tv-line" },
     { name: "搜狐视频", url: "https://tv.sohu.com/", icon: "ri:sohu-line" },
-    { name: "哔哩哔哩", url: "https://www.bilibili.com/", icon: "ri:bilibili-line" },
+    {
+      name: "哔哩哔哩",
+      url: "https://www.bilibili.com/",
+      icon: "ri:bilibili-line",
+    },
     // 添加更多热门视频网站
     { name: "西瓜视频", url: "https://www.ixigua.com/", icon: "ri:video-line" },
     { name: "1905电影网", url: "https://www.1905.com/", icon: "ri:movie-line" },
@@ -144,7 +148,9 @@ const env = reactive({
 const currentParseUrl = computed(() => {
   if (!env.inputValue) return "";
   const selectedApi = env.apis.find((api) => api.value === env.selectedApi);
-  return selectedApi ? selectedApi.url.replace("{{input}}", encodeURIComponent(env.inputValue)) : "";
+  return selectedApi
+    ? selectedApi.url.replace("{{input}}", encodeURIComponent(env.inputValue))
+    : "";
 });
 
 // 防抖解析函数
@@ -169,7 +175,9 @@ const debounceParseUrl = (value) => {
  */
 const parseUrl = () => {
   if (!env.inputValue) {
-    message(t("message.inputRequired") || "请输入视频链接", { type: "warning" });
+    message(t("message.inputRequired") || "请输入视频链接", {
+      type: "warning",
+    });
     return;
   }
 
@@ -198,7 +206,9 @@ const parseUrl = () => {
     message(t("message.parseSuccess") || "解析成功", { type: "success" });
   } catch (error) {
     console.error("URL解析错误:", error);
-    message(t("message.parseError") || "解析失败: " + error.message, { type: "error" });
+    message(t("message.parseError") || "解析失败: " + error.message, {
+      type: "error",
+    });
   } finally {
     env.loading = false;
   }
@@ -294,7 +304,9 @@ onMounted(() => {
         <div class="vip-tool__header">
           <div class="vip-tool__header-inner">
             <div class="vip-tool__header-title">VIP视频解析工具</div>
-            <div class="vip-tool__header-subtitle">解析各大视频网站的VIP视频，免费观看</div>
+            <div class="vip-tool__header-subtitle">
+              解析各大视频网站的VIP视频，免费观看
+            </div>
           </div>
           <div class="vip-tool__header-decoration">
             <div class="vip-tool__header-circle"></div>
@@ -310,7 +322,10 @@ onMounted(() => {
           <el-card class="vip-tool__input-card" shadow="hover">
             <template #header>
               <div class="vip-tool__card-header">
-                <IconifyIconOnline icon="ri:video-line" class="vip-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:video-line"
+                  class="vip-tool__card-icon"
+                />
                 <span>视频解析</span>
               </div>
             </template>
@@ -319,24 +334,59 @@ onMounted(() => {
               <el-form-item label="解析接口">
                 <el-select v-model="env.selectedApi" class="vip-tool__select">
                   <el-option-group label="通用接口">
-                    <el-option v-for="item in env.apis.filter((api) => (api.value <= 15 && api.value <= 7) || api.value >= 13)" :key="item.value" :label="item.label" :value="item.value" />
+                    <el-option
+                      v-for="item in env.apis.filter(
+                        (api) =>
+                          (api.value <= 15 && api.value <= 7) || api.value >= 13
+                      )"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
                   </el-option-group>
                   <el-option-group label="专用接口">
                     <el-option-group label="主流视频">
-                      <el-option v-for="item in env.apis.filter((api) => api.value > 7 && api.value <= 12)" :key="item.value" :label="item.label" :value="item.value" />
+                      <el-option
+                        v-for="item in env.apis.filter(
+                          (api) => api.value > 7 && api.value <= 12
+                        )"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
                     </el-option-group>
                     <el-option-group label="B站专用">
-                      <el-option v-for="item in env.apis.filter((api) => api.value >= 16 && api.value <= 18)" :key="item.value" :label="item.label" :value="item.value" />
+                      <el-option
+                        v-for="item in env.apis.filter(
+                          (api) => api.value >= 16 && api.value <= 18
+                        )"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
                     </el-option-group>
                     <el-option-group label="其他平台">
-                      <el-option v-for="item in env.apis.filter((api) => api.value >= 19 && api.value <= 21)" :key="item.value" :label="item.label" :value="item.value" />
+                      <el-option
+                        v-for="item in env.apis.filter(
+                          (api) => api.value >= 19 && api.value <= 21
+                        )"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
                     </el-option-group>
                   </el-option-group>
                 </el-select>
               </el-form-item>
 
               <el-form-item label="视频链接">
-                <el-input v-model="env.inputValue" placeholder="请输入需要解析的视频链接，如：https://v.qq.com/x/cover/xxx.html" clearable class="vip-tool__input" @input="debounceParseUrl">
+                <el-input
+                  v-model="env.inputValue"
+                  placeholder="请输入需要解析的视频链接，如：https://v.qq.com/x/cover/xxx.html"
+                  clearable
+                  class="vip-tool__input"
+                  @input="debounceParseUrl"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="ri:link" />
                   </template>
@@ -344,7 +394,12 @@ onMounted(() => {
               </el-form-item>
 
               <div class="vip-tool__actions">
-                <el-button type="primary" :loading="env.loading" class="vip-tool__parse-btn" @click="parseUrl">
+                <el-button
+                  type="primary"
+                  :loading="env.loading"
+                  class="vip-tool__parse-btn"
+                  @click="parseUrl"
+                >
                   <IconifyIconOnline icon="ri:play-circle-line" />
                   <span>解析播放</span>
                 </el-button>
@@ -354,18 +409,38 @@ onMounted(() => {
                   <span>重置</span>
                 </el-button>
 
-                <el-button v-if="env.currentUrl" type="success" class="vip-tool__fullscreen-btn" @click="toggleFullscreen">
-                  <IconifyIconOnline :icon="env.fullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
+                <el-button
+                  v-if="env.currentUrl"
+                  type="success"
+                  class="vip-tool__fullscreen-btn"
+                  @click="toggleFullscreen"
+                >
+                  <IconifyIconOnline
+                    :icon="
+                      env.fullscreen
+                        ? 'ri:fullscreen-exit-line'
+                        : 'ri:fullscreen-line'
+                    "
+                  />
                   <span>{{ env.fullscreen ? "退出全屏" : "全屏播放" }}</span>
                 </el-button>
               </div>
             </el-form>
 
             <!-- 历史记录 -->
-            <div class="vip-tool__history" v-if="env.history && env.history.length">
+            <div
+              class="vip-tool__history"
+              v-if="env.history && env.history.length"
+            >
               <span class="vip-tool__history-label">历史记录:</span>
               <div class="vip-tool__history-items">
-                <el-tag v-for="(url, index) in env.history" :key="index" class="vip-tool__history-item" @click="selectFromHistory(url)" :effect="env.inputValue === url ? 'dark' : 'plain'">
+                <el-tag
+                  v-for="(url, index) in env.history"
+                  :key="index"
+                  class="vip-tool__history-item"
+                  @click="selectFromHistory(url)"
+                  :effect="env.inputValue === url ? 'dark' : 'plain'"
+                >
                   {{ url.length > 30 ? url.substring(0, 30) + "..." : url }}
                 </el-tag>
               </div>
@@ -375,8 +450,16 @@ onMounted(() => {
             <div class="vip-tool__popular-sites">
               <span class="vip-tool__popular-sites-label">热门视频网站:</span>
               <div class="vip-tool__popular-sites-items">
-                <el-button v-for="site in env.popularSites" :key="site.name" class="vip-tool__popular-site-btn" @click="openVideoSite(site.url)">
-                  <IconifyIconOnline :icon="site.icon" class="vip-tool__popular-site-icon" />
+                <el-button
+                  v-for="site in env.popularSites"
+                  :key="site.name"
+                  class="vip-tool__popular-site-btn"
+                  @click="openVideoSite(site.url)"
+                >
+                  <IconifyIconOnline
+                    :icon="site.icon"
+                    class="vip-tool__popular-site-icon"
+                  />
                   <span>{{ site.name }}</span>
                 </el-button>
               </div>
@@ -389,28 +472,50 @@ onMounted(() => {
           <el-card class="vip-tool__player-card" shadow="hover">
             <template #header>
               <div class="vip-tool__card-header">
-                <IconifyIconOnline icon="ri:movie-line" class="vip-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:movie-line"
+                  class="vip-tool__card-icon"
+                />
                 <span>视频播放</span>
                 <div class="vip-tool__player-controls">
                   <el-button type="primary" link @click="toggleFullscreen">
-                    <IconifyIconOnline :icon="env.fullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
+                    <IconifyIconOnline
+                      :icon="
+                        env.fullscreen
+                          ? 'ri:fullscreen-exit-line'
+                          : 'ri:fullscreen-line'
+                      "
+                    />
                   </el-button>
                 </div>
               </div>
             </template>
 
             <div class="vip-tool__player-container">
-              <iframe id="vip-iframe" :src="env.currentUrl" frameborder="0" allowfullscreen class="vip-tool__player-iframe"></iframe>
+              <iframe
+                id="vip-iframe"
+                :src="env.currentUrl"
+                frameborder="0"
+                allowfullscreen
+                class="vip-tool__player-iframe"
+              ></iframe>
             </div>
           </el-card>
         </el-col>
       </el-row>
 
       <!-- 使用说明 -->
-      <el-card class="vip-tool__tips-card" shadow="hover" v-if="!env.currentUrl">
+      <el-card
+        class="vip-tool__tips-card"
+        shadow="hover"
+        v-if="!env.currentUrl"
+      >
         <template #header>
           <div class="vip-tool__card-header">
-            <IconifyIconOnline icon="ri:information-line" class="vip-tool__card-icon" />
+            <IconifyIconOnline
+              icon="ri:information-line"
+              class="vip-tool__card-icon"
+            />
             <span>使用说明</span>
           </div>
         </template>
@@ -418,23 +523,36 @@ onMounted(() => {
         <div class="vip-tool__tips-content">
           <div class="vip-tool__tip-item">
             <div class="vip-tool__tip-number">1</div>
-            <div class="vip-tool__tip-text">选择合适的解析接口（不同接口解析能力不同，如果一个不行可以尝试其他接口）</div>
+            <div class="vip-tool__tip-text">
+              选择合适的解析接口（不同接口解析能力不同，如果一个不行可以尝试其他接口）
+            </div>
           </div>
           <div class="vip-tool__tip-item">
             <div class="vip-tool__tip-number">2</div>
-            <div class="vip-tool__tip-text">复制需要解析的视频链接，粘贴到输入框中（可以点击下方热门网站直接访问）</div>
+            <div class="vip-tool__tip-text">
+              复制需要解析的视频链接，粘贴到输入框中（可以点击下方热门网站直接访问）
+            </div>
           </div>
           <div class="vip-tool__tip-item">
             <div class="vip-tool__tip-number">3</div>
-            <div class="vip-tool__tip-text">点击"解析播放"按钮，等待解析完成后即可观看视频</div>
+            <div class="vip-tool__tip-text">
+              点击"解析播放"按钮，等待解析完成后即可观看视频
+            </div>
           </div>
           <div class="vip-tool__tip-item">
             <div class="vip-tool__tip-number">4</div>
-            <div class="vip-tool__tip-text">如需全屏观看，可以点击播放器右上角的全屏按钮</div>
+            <div class="vip-tool__tip-text">
+              如需全屏观看，可以点击播放器右上角的全屏按钮
+            </div>
           </div>
           <div class="vip-tool__tip-item vip-tool__tip-item--warning">
-            <IconifyIconOnline icon="ri:alert-line" class="vip-tool__tip-icon" />
-            <div class="vip-tool__tip-text">注意：本工具仅供学习交流使用，请尊重版权，支持正版</div>
+            <IconifyIconOnline
+              icon="ri:alert-line"
+              class="vip-tool__tip-icon"
+            />
+            <div class="vip-tool__tip-text">
+              注意：本工具仅供学习交流使用，请尊重版权，支持正版
+            </div>
           </div>
         </div>
       </el-card>
@@ -450,15 +568,25 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, #eab308 0%, #a16207 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-warning-light-3) 0%,
+      var(--el-color-warning) 100%
+    );
     border-radius: 12px;
     padding: 30px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(var(--el-color-primary-rgb), 0.3);
+    box-shadow: 0 4px 20px rgba(var(--el-color-warning-rgb), 0.3);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-warning-rgb), 0.4);
+      transform: translateY(-2px);
+    }
 
     &-inner {
       position: relative;
@@ -535,10 +663,28 @@ onMounted(() => {
 
   &__input-card {
     margin-bottom: 20px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-warning-light-7);
+    }
   }
 
   &__player-card {
     margin-bottom: 20px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-warning-light-7);
+    }
 
     .vip-tool__card-header {
       display: flex;

@@ -162,62 +162,129 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 .expression-help-dialog {
   :deep(.el-dialog) {
-    border-radius: 12px;
+    border-radius: $radius-lg;
+    @include glass-effect(0.95, 20px);
+    box-shadow: $shadow-xl;
+    border: 1px solid $border-light;
+    overflow: hidden;
+
+    .el-dialog__header {
+      padding: $spacing-lg $spacing-xl;
+      background: $gradient-bg-1;
+      border-bottom: 1px solid $border-light;
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: $gradient-line-top;
+      }
+
+      .el-dialog__title {
+        font-weight: $font-weight-semibold;
+        font-size: $font-lg;
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    .el-dialog__body {
+      padding: $spacing-xl;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .el-dialog__footer {
+      padding: $spacing-lg $spacing-xl;
+      background: rgba(255, 255, 255, 0.6);
+      border-top: 1px solid $border-light;
+    }
+  }
+
+  :deep(.el-tabs) {
+    .el-tabs__header {
+      margin-bottom: $spacing-xl;
+      border-bottom: 2px solid $border-light;
+
+      .el-tabs__item {
+        border-radius: $radius-sm $radius-sm 0 0;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &.is-active {
+          color: var(--el-color-primary);
+        }
+
+        &:hover {
+          color: var(--el-color-primary);
+        }
+      }
+    }
   }
 }
 
 .help-content {
   .help-section {
-    padding: 20px;
+    padding: $spacing-xl;
 
     h3 {
       color: var(--el-color-primary);
-      margin-bottom: 16px;
-      font-size: 18px;
-      font-weight: 600;
+      margin-bottom: $spacing-lg;
+      font-size: $font-xl;
+      font-weight: $font-weight-bold;
     }
 
     h4 {
       color: var(--el-text-color-primary);
-      margin: 20px 0 12px;
-      font-size: 16px;
-      font-weight: 500;
+      margin: $spacing-xl 0 $spacing-md;
+      font-size: $font-lg;
+      font-weight: $font-weight-semibold;
     }
 
     p {
       color: var(--el-text-color-regular);
       line-height: 1.6;
-      margin-bottom: 16px;
+      margin-bottom: $spacing-lg;
     }
 
     ul {
       color: var(--el-text-color-regular);
       line-height: 1.6;
-      padding-left: 20px;
+      padding-left: $spacing-xl;
 
       li {
-        margin-bottom: 8px;
+        margin-bottom: $spacing-sm;
 
         ul {
-          margin-top: 8px;
-          padding-left: 16px;
+          margin-top: $spacing-sm;
+          padding-left: $spacing-lg;
         }
       }
     }
 
     .code-block {
-      background: var(--el-fill-color-extra-light);
-      border-radius: 8px;
-      padding: 16px;
-      margin: 16px 0;
-      border: 1px solid var(--el-border-color-lighter);
+      @include glass-effect(0.9, 16px);
+      border-radius: $radius-md;
+      padding: $spacing-lg;
+      margin: $spacing-lg 0;
+      border: 1px solid $border-light;
+      box-shadow: $shadow-sm;
+      transition: all $duration-normal $ease-standard;
+
+      &:hover {
+        box-shadow: $shadow-md;
+      }
 
       pre {
         margin: 0;
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-        font-size: 13px;
+        font-size: $font-sm;
         line-height: 1.5;
         color: var(--el-text-color-primary);
 
@@ -232,29 +299,36 @@ defineExpose({
 
     .examples {
       .example-item {
-        margin-bottom: 16px;
-        padding: 12px;
-        background: var(--el-fill-color-light);
-        border-radius: 6px;
+        margin-bottom: $spacing-lg;
+        padding: $spacing-md;
+        @include glass-effect(0.85, 16px);
+        border-radius: $radius-sm;
         border-left: 4px solid var(--el-color-primary);
+        transition: all $duration-normal $ease-standard;
+
+        &:hover {
+          transform: translateX(4px);
+          box-shadow: $shadow-sm;
+        }
 
         strong {
           display: block;
           color: var(--el-text-color-primary);
-          margin-bottom: 8px;
-          font-weight: 600;
+          margin-bottom: $spacing-sm;
+          font-weight: $font-weight-semibold;
         }
 
         code {
           display: block;
-          background: var(--el-fill-color-extra-light);
-          padding: 8px 12px;
-          border-radius: 4px;
+          @include glass-effect(0.9, 16px);
+          padding: $spacing-sm $spacing-md;
+          border-radius: $radius-sm;
           font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-          font-size: 12px;
+          font-size: $font-xs;
           color: var(--el-color-primary);
           word-break: break-all;
           white-space: pre-wrap;
+          border: 1px solid $border-light;
         }
       }
     }
@@ -264,29 +338,51 @@ defineExpose({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+
+  .el-button {
+    border-radius: $radius-sm;
+    padding: $button-padding-md;
+    transition: all $duration-fast $ease-standard;
+    font-weight: $font-weight-medium;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
 }
 
 // 响应式设计
-@media (max-width: 768px) {
+@include respond-to(lg) {
+  .help-content .help-section {
+    padding: $spacing-lg;
+  }
+}
+
+@include respond-to(sm) {
   .help-content {
     .help-section {
-      padding: 12px;
+      padding: $spacing-md;
 
       .code-block {
-        padding: 12px;
+        padding: $spacing-md;
 
         pre {
-          font-size: 12px;
+          font-size: $font-xs;
         }
       }
 
       .examples {
         .example-item {
-          padding: 8px;
+          padding: $spacing-sm;
 
           code {
             font-size: 11px;
-            padding: 6px 8px;
+            padding: $spacing-xs $spacing-sm;
           }
         }
       }

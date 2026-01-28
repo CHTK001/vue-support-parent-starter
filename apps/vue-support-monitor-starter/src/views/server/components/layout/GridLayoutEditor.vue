@@ -1,5 +1,5 @@
 <template>
-  <div class="grid-layout-editor">
+  <div class="grid-layout-editor system-container modern-bg">
     <div 
       class="grid-container"
       :class="{ 'edit-mode': editMode }"
@@ -229,30 +229,94 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    @include gradient-bg;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
 .grid-layout-editor {
   width: 100%;
   height: 100%;
   position: relative;
+  padding: $spacing-md;
+  border-radius: $radius-lg;
 
   .grid-container {
     position: relative;
     width: 100%;
     min-height: 400px;
+    padding: $spacing-sm;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.02);
+    transition: all $duration-normal $ease-standard;
 
     &.edit-mode {
+      background: rgba(0, 0, 0, 0.02);
+      border: 2px dashed $border-light;
+      border-radius: $radius-lg;
+
       .grid-item {
         cursor: move;
-        
+        transition: all $duration-fast $ease-standard;
+
         &:hover {
-          box-shadow: 0 0 0 2px var(--el-color-primary);
+          box-shadow: 0 0 0 2px var(--el-color-primary),
+                      0 4px 12px rgba(64, 158, 255, 0.2);
+          transform: translateY(-2px);
+          z-index: 100;
+        }
+
+        &:active {
+          transform: scale(0.98);
+          box-shadow: 0 0 0 3px var(--el-color-primary),
+                      0 6px 16px rgba(64, 158, 255, 0.3);
         }
       }
     }
 
     .grid-item {
-      border-radius: 8px;
+      border-radius: $radius-md;
       overflow: hidden;
       user-select: none;
+      transition: all $duration-normal $ease-standard;
+      position: relative;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: $gradient-line-top;
+        opacity: 0;
+        transition: opacity $duration-normal ease;
+        z-index: 1;
+      }
+
+      &:hover::before {
+        opacity: 1;
+      }
 
       .resize-handles {
         position: absolute;
@@ -261,6 +325,7 @@ onUnmounted(() => {
         right: 0;
         bottom: 0;
         pointer-events: none;
+        z-index: 10;
 
         .resize-handle {
           position: absolute;
@@ -268,21 +333,64 @@ onUnmounted(() => {
           background: var(--el-color-primary);
           border: 2px solid var(--el-bg-color);
           border-radius: 50%;
+          box-shadow: $shadow-md;
+          transition: all $duration-fast $ease-standard;
 
           &.resize-handle-se {
             bottom: -6px;
             right: -6px;
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             cursor: se-resize;
           }
 
           &:hover {
             background: var(--el-color-primary-light-3);
+            transform: scale(1.2);
+            box-shadow: $shadow-hover-md;
+          }
+
+          &:active {
+            transform: scale(1.1);
+            box-shadow: $shadow-lg;
           }
         }
       }
     }
+  }
+}
+
+// 响应式设计
+@include respond-to(lg) {
+  .grid-layout-editor {
+    padding: $spacing-sm;
+
+    .grid-container {
+      min-height: 300px;
+    }
+  }
+}
+
+@include respond-to(sm) {
+  .grid-layout-editor {
+    padding: $spacing-xs;
+
+    .grid-container {
+      min-height: 250px;
+      padding: $spacing-xs;
+
+      &.edit-mode .grid-item {
+        &:hover {
+          box-shadow: 0 0 0 1px var(--el-color-primary);
+        }
+      }
+    }
+  }
+}
+
+@include respond-to(xs) {
+  .grid-layout-editor .grid-container {
+    min-height: 200px;
   }
 }
 </style>

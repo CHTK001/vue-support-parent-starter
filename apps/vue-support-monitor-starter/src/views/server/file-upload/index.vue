@@ -1,5 +1,5 @@
 <template>
-  <div class="server-file-upload-page">
+  <div class="server-file-upload-page system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
@@ -281,18 +281,63 @@ const stopAutoRefresh = () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .server-file-upload-page {
-  padding: 24px;
-  background: var(--el-bg-color-overlay);
+  padding: 32px;
   min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+  padding: 24px 32px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.08),
+      0 4px 12px rgba(0, 0, 0, 0.04);
+  }
 }
 
 .header-content {
@@ -300,63 +345,99 @@ const stopAutoRefresh = () => {
 }
 
 .page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 12px 0;
 }
 
 .page-description {
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 15px;
+  color: var(--el-text-color-regular);
   margin: 0;
+  line-height: 1.6;
 }
 
 .header-actions {
   display: flex;
   gap: 12px;
+  
+  .el-button {
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
 }
 
 .stats-cards {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .stat-card {
-  height: 100px;
+  height: 120px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 4px 8px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+  }
 }
 
 .stat-content {
   display: flex;
   align-items: center;
   height: 100%;
+  padding: 20px;
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 16px;
-  font-size: 24px;
-  color: var(--el-text-color-primary);
+  margin-right: 20px;
+  font-size: 28px;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
 }
 
 .stat-icon.pending {
-  background-color: #3b82f6;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .stat-icon.processing {
-  background-color: #f59e0b;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
 .stat-icon.completed {
-  background-color: #10b981;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
 .stat-icon.failed {
-  background-color: #ef4444;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
 }
 
 .stat-info {
@@ -364,43 +445,66 @@ const stopAutoRefresh = () => {
 }
 
 .stat-value {
-  font-size: 28px;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
 }
 
 .progress-monitoring {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .task-management {
-  background-color: var(--el-bg-color-overlay);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
 }
 
 .header-tabs {
   margin-left: auto;
+  
+  :deep(.el-radio-group) {
+    .el-radio-button__inner {
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+  }
 }
 
 :deep(.el-card__header) {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 :deep(.el-card__body) {
-  padding: 0;
+  padding: 24px;
 }
 </style>

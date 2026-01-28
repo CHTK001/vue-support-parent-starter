@@ -491,9 +491,22 @@ const resetForm = () => {
   }
 
   &__header {
-    margin-bottom: 30px;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-warning-light-3) 0%,
+      var(--el-color-warning) 100%
+    );
+    border-radius: 12px;
+    padding: 30px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(var(--el-color-warning-rgb), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 24px;
     text-align: center;
-    position: relative;
+
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-warning-rgb), 0.4);
+    }
   }
 
   &__title {
@@ -501,12 +514,13 @@ const resetForm = () => {
     align-items: center;
     justify-content: center;
     margin-bottom: 12px;
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--el-color-primary);
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
     &-icon {
-      font-size: 32px;
+      font-size: 36px;
       margin-right: 10px;
       animation: float 3s infinite ease-in-out;
     }
@@ -514,8 +528,8 @@ const resetForm = () => {
 
   &__subtitle {
     font-size: 16px;
-    color: var(--el-text-color-secondary);
-    margin-bottom: 16px;
+    opacity: 0.95;
+    margin: 0;
   }
 
   &__card-header {
@@ -540,13 +554,14 @@ const resetForm = () => {
   &__history-card,
   &__favorites-card {
     margin-bottom: 20px;
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     border-radius: 12px;
-    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
 
     &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-warning-light-7);
     }
   }
 

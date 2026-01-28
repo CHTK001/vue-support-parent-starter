@@ -489,61 +489,134 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 .script-executor {
+  :deep(.el-divider__text) {
+    font-weight: $font-weight-semibold;
+    color: var(--el-text-color-primary);
+  }
+
   .script-panel,
   .result-panel {
     height: 500px;
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--el-border-color-light);
-    border-radius: 6px;
+    border-radius: $radius-md;
     overflow: hidden;
+    @include glass-effect(0.92, 18px);
+    box-shadow: $shadow-md;
+    border: 1px solid $border-light;
+    transition: all $duration-normal $ease-standard;
+
+    &:hover {
+      box-shadow: $shadow-hover-md;
+    }
 
     .panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      background-color: var(--el-fill-color-extra-light);
-      border-bottom: 1px solid var(--el-border-color-light);
+      padding: $spacing-md $spacing-lg;
+      background: $gradient-bg-1;
+      border-bottom: 1px solid $border-light;
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 2px;
+        background: $gradient-line;
+      }
 
       h4 {
         margin: 0;
-        font-size: 14px;
-        font-weight: 500;
+        font-size: $font-md;
+        font-weight: $font-weight-semibold;
+        letter-spacing: $letter-spacing-tight;
+        color: var(--el-text-color-primary);
       }
 
       .script-actions,
       .result-actions {
         display: flex;
-        gap: 8px;
+        gap: $spacing-sm;
+
+        .el-button {
+          border-radius: $radius-sm;
+          transition: all $duration-fast $ease-standard;
+
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: $shadow-sm;
+          }
+
+          &:active {
+            transform: translateY(0);
+          }
+        }
       }
     }
   }
 
   .script-panel {
+    :deep(.el-form) {
+      padding: $spacing-md $spacing-lg $spacing-sm;
+    }
+
     .script-editor {
       flex: 1;
-      padding: 16px;
+      padding: $spacing-md $spacing-lg $spacing-lg;
+      overflow: hidden;
 
       .script-textarea {
         height: 100%;
 
         :deep(.el-textarea__inner) {
           height: 100% !important;
-          font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-          font-size: 13px;
-          line-height: 1.4;
+          border-radius: $radius-sm;
+          @include glass-effect(0.9, 16px);
+          border: 1px solid $border-light;
+          box-shadow: $shadow-inset-light;
+          font-family: "Consolas", "Monaco", "Courier New", monospace;
+          font-size: $font-sm;
+          line-height: 1.5;
+          transition: all $duration-fast $ease-standard;
+          @include custom-scrollbar(8px);
+
+          &:focus {
+            border-color: $border-primary;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+          }
         }
       }
     }
 
     .script-footer {
-      padding: 12px 16px;
-      border-top: 1px solid var(--el-border-color-light);
-      background-color: var(--el-fill-color-extra-light);
+      padding: $spacing-md $spacing-lg;
+      border-top: 1px solid $border-light;
+      background: rgba(255, 255, 255, 0.6);
       display: flex;
-      gap: 8px;
+      gap: $spacing-sm;
+
+      .el-button {
+        border-radius: $radius-sm;
+        padding: $button-padding-sm;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &:hover:not(.is-disabled) {
+          transform: translateY(-1px);
+          box-shadow: $shadow-md;
+        }
+
+        &:active:not(.is-disabled) {
+          transform: translateY(0);
+        }
+      }
     }
   }
 
@@ -551,17 +624,18 @@ defineExpose({
     .execution-status {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 8px 16px;
-      background-color: var(--el-fill-color-light);
-      border-bottom: 1px solid var(--el-border-color-light);
+      gap: $spacing-md;
+      padding: $spacing-sm $spacing-lg;
+      background-color: rgba(99, 102, 241, 0.05);
+      border-bottom: 1px solid $border-light;
 
       .status-tag {
-        font-size: 12px;
+        font-size: $font-xs;
+        border-radius: $radius-full;
       }
 
       .execution-time {
-        font-size: 12px;
+        font-size: $font-xs;
         color: var(--el-text-color-secondary);
       }
     }
@@ -579,6 +653,26 @@ defineExpose({
           flex-direction: column;
         }
 
+        :deep(.el-tabs__header) {
+          margin: 0;
+          padding: 0 $spacing-lg;
+          background: rgba(255, 255, 255, 0.55);
+          border-bottom: 1px solid $border-light;
+        }
+
+        :deep(.el-tabs__item) {
+          transition: all $duration-fast $ease-standard;
+          font-weight: $font-weight-medium;
+
+          &.is-active {
+            color: var(--el-color-primary);
+          }
+
+          &:hover {
+            color: var(--el-color-primary);
+          }
+        }
+
         :deep(.el-tabs__content) {
           flex: 1;
           overflow: hidden;
@@ -591,12 +685,13 @@ defineExpose({
         .output-content {
           height: 100%;
           overflow-y: auto;
-          padding: 12px;
-          font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-          font-size: 12px;
-          line-height: 1.4;
-          background-color: #1e1e1e;
-          color: #d4d4d4;
+          padding: $spacing-md;
+          @include custom-scrollbar(8px);
+          font-family: "Consolas", "Monaco", "Courier New", monospace;
+          font-size: $font-xs;
+          line-height: 1.5;
+          background: #141414;
+          color: #e6e6e6;
 
           pre {
             margin: 0;
@@ -605,11 +700,11 @@ defineExpose({
           }
 
           .error-output {
-            color: #f56c6c;
+            color: #ff8a8a;
           }
 
           .empty-output {
-            color: var(--el-text-color-secondary);
+            color: rgba(230, 230, 230, 0.65);
             text-align: center;
             padding: 40px 20px;
           }
@@ -620,24 +715,24 @@ defineExpose({
             padding: 2px 0;
 
             &.info {
-              color: #409eff;
+              color: #7ab7ff;
             }
 
             &.success {
-              color: #67c23a;
+              color: #9be27a;
             }
 
             &.warning {
-              color: #e6a23c;
+              color: #ffcf6e;
             }
 
             &.error {
-              color: #f56c6c;
+              color: #ff8a8a;
             }
 
             .log-time {
               margin-right: 8px;
-              color: var(--el-text-color-secondary);
+              color: rgba(230, 230, 230, 0.55);
               flex-shrink: 0;
             }
 
@@ -651,17 +746,19 @@ defineExpose({
   }
 
   .server-selection {
-    margin-top: 20px;
+    margin-top: $spacing-xl;
+    @include card-style;
+    padding: $spacing-lg;
 
     .server-checkbox {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: $spacing-sm;
     }
   }
 
   .timeout-unit {
-    margin-left: 8px;
-    font-size: 12px;
+    margin-left: $spacing-sm;
+    font-size: $font-xs;
     color: var(--el-text-color-secondary);
   }
 }
@@ -669,6 +766,49 @@ defineExpose({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: $spacing-md;
+
+  .el-button {
+    border-radius: $radius-sm;
+    padding: $button-padding-md;
+    transition: all $duration-fast $ease-standard;
+    font-weight: $font-weight-medium;
+
+    &:hover:not(.is-disabled) {
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+
+    &:active:not(.is-disabled) {
+      transform: translateY(0);
+    }
+  }
+}
+
+@include respond-to(md) {
+  .script-executor {
+    .script-panel,
+    .result-panel {
+      height: 460px;
+    }
+  }
+}
+
+@include respond-to(sm) {
+  .script-executor {
+    .script-panel,
+    .result-panel {
+      height: auto;
+      min-height: 420px;
+    }
+  }
+
+  .dialog-footer {
+    flex-direction: column-reverse;
+
+    .el-button {
+      width: 100%;
+    }
+  }
 }
 </style>

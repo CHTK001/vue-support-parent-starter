@@ -217,8 +217,12 @@ const convertUnit = () => {
       result = convertTemperature(value, env.fromUnit, env.toUnit);
     } else {
       // 其他单位通过因子转换
-      const fromUnitObj = env.units[env.unitType].find((u) => u.value === env.fromUnit);
-      const toUnitObj = env.units[env.unitType].find((u) => u.value === env.toUnit);
+      const fromUnitObj = env.units[env.unitType].find(
+        (u) => u.value === env.fromUnit
+      );
+      const toUnitObj = env.units[env.unitType].find(
+        (u) => u.value === env.toUnit
+      );
 
       if (!fromUnitObj || !toUnitObj) {
         throw new Error("单位不存在");
@@ -247,8 +251,12 @@ const convertUnit = () => {
     }
 
     // 获取单位显示名称
-    const fromUnitLabel = env.units[env.unitType].find((u) => u.value === env.fromUnit).label;
-    const toUnitLabel = env.units[env.unitType].find((u) => u.value === env.toUnit).label;
+    const fromUnitLabel = env.units[env.unitType].find(
+      (u) => u.value === env.fromUnit
+    ).label;
+    const toUnitLabel = env.units[env.unitType].find(
+      (u) => u.value === env.toUnit
+    ).label;
 
     // 生成结果
     env.outputResults = [
@@ -297,8 +305,12 @@ const loadFromHistory = (item) => {
 
   // 设置单位
   setTimeout(() => {
-    const fromUnitValue = env.units[unitType].find((u) => u.label.startsWith(item.fromUnit.split(" ")[0])).value;
-    const toUnitValue = env.units[unitType].find((u) => u.label.startsWith(item.toUnit.split(" ")[0])).value;
+    const fromUnitValue = env.units[unitType].find((u) =>
+      u.label.startsWith(item.fromUnit.split(" ")[0])
+    ).value;
+    const toUnitValue = env.units[unitType].find((u) =>
+      u.label.startsWith(item.toUnit.split(" ")[0])
+    ).value;
 
     env.fromUnit = fromUnitValue;
     env.toUnit = toUnitValue;
@@ -356,7 +368,9 @@ const getResultIcon = (label) => {
         <div class="unit-tool__header">
           <div class="unit-tool__header-inner">
             <h1 class="unit-tool__header-title">单位换算工具</h1>
-            <p class="unit-tool__header-subtitle">支持长度、面积、体积、质量、温度等多种单位的相互转换</p>
+            <p class="unit-tool__header-subtitle">
+              支持长度、面积、体积、质量、温度等多种单位的相互转换
+            </p>
           </div>
         </div>
       </div>
@@ -368,7 +382,10 @@ const getResultIcon = (label) => {
           <el-card class="unit-tool__input-card" shadow="hover">
             <template #header>
               <div class="unit-tool__card-header">
-                <IconifyIconOnline icon="ri:scales-line" class="unit-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:scales-line"
+                  class="unit-tool__card-icon"
+                />
                 <span>单位转换</span>
               </div>
             </template>
@@ -376,35 +393,75 @@ const getResultIcon = (label) => {
             <el-form label-position="top">
               <!-- 单位类型选择 -->
               <el-form-item label="单位类型">
-                <el-select v-model="env.unitType" placeholder="选择单位类型" class="unit-tool__select" @change="handleUnitTypeChange">
-                  <el-option v-for="item in env.unitTypes" :key="item.value" :label="item.label" :value="item.value" />
+                <el-select
+                  v-model="env.unitType"
+                  placeholder="选择单位类型"
+                  class="unit-tool__select"
+                  @change="handleUnitTypeChange"
+                >
+                  <el-option
+                    v-for="item in env.unitTypes"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
                 </el-select>
               </el-form-item>
 
               <!-- 转换单位选择 -->
               <div class="unit-tool__unit-row">
                 <el-form-item label="从">
-                  <el-select v-model="env.fromUnit" placeholder="选择源单位" class="unit-tool__select">
-                    <el-option v-for="item in env.units[env.unitType]" :key="item.value" :label="item.label" :value="item.value" />
+                  <el-select
+                    v-model="env.fromUnit"
+                    placeholder="选择源单位"
+                    class="unit-tool__select"
+                  >
+                    <el-option
+                      v-for="item in env.units[env.unitType]"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
                   </el-select>
                 </el-form-item>
 
                 <div class="unit-tool__swap-btn-container">
-                  <el-button type="primary" circle @click="swapUnits" class="unit-tool__swap-btn">
+                  <el-button
+                    type="primary"
+                    circle
+                    @click="swapUnits"
+                    class="unit-tool__swap-btn"
+                  >
                     <IconifyIconOnline icon="ri:arrow-left-right-line" />
                   </el-button>
                 </div>
 
                 <el-form-item label="到">
-                  <el-select v-model="env.toUnit" placeholder="选择目标单位" class="unit-tool__select">
-                    <el-option v-for="item in env.units[env.unitType]" :key="item.value" :label="item.label" :value="item.value" />
+                  <el-select
+                    v-model="env.toUnit"
+                    placeholder="选择目标单位"
+                    class="unit-tool__select"
+                  >
+                    <el-option
+                      v-for="item in env.units[env.unitType]"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
                   </el-select>
                 </el-form-item>
               </div>
 
               <!-- 输入值 -->
               <el-form-item label="输入值">
-                <el-input @keyup.stop="convertUnit" v-model="env.inputValue" placeholder="请输入数值" clearable type="number" class="unit-tool__input">
+                <el-input
+                  @keyup.stop="convertUnit"
+                  v-model="env.inputValue"
+                  placeholder="请输入数值"
+                  clearable
+                  type="number"
+                  class="unit-tool__input"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="ri:number-5" />
                   </template>
@@ -413,7 +470,12 @@ const getResultIcon = (label) => {
 
               <!-- 操作按钮 -->
               <div class="unit-tool__actions">
-                <el-button type="primary" :loading="env.loading" class="unit-tool__convert-btn" @click="convertUnit">
+                <el-button
+                  type="primary"
+                  :loading="env.loading"
+                  class="unit-tool__convert-btn"
+                  @click="convertUnit"
+                >
                   <IconifyIconOnline icon="ri:exchange-line" />
                   <span>转换</span>
                 </el-button>
@@ -430,23 +492,43 @@ const getResultIcon = (label) => {
           <el-card class="unit-tool__history-card" shadow="hover">
             <template #header>
               <div class="unit-tool__card-header">
-                <IconifyIconOnline icon="ri:history-line" class="unit-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:history-line"
+                  class="unit-tool__card-icon"
+                />
                 <span>历史记录</span>
               </div>
             </template>
 
-            <el-empty v-if="!env.history.length" description="暂无历史记录" class="unit-tool__empty">
+            <el-empty
+              v-if="!env.history.length"
+              description="暂无历史记录"
+              class="unit-tool__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:history-line" class="unit-tool__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:history-line"
+                  class="unit-tool__empty-icon"
+                />
               </template>
             </el-empty>
 
             <div v-else class="unit-tool__history">
-              <div v-for="(item, index) in env.history" :key="index" class="unit-tool__history-item" @click="loadFromHistory(item)">
+              <div
+                v-for="(item, index) in env.history"
+                :key="index"
+                class="unit-tool__history-item"
+                @click="loadFromHistory(item)"
+              >
                 <div class="unit-tool__history-content">
-                  <div class="unit-tool__history-expression">{{ item.inputValue }} {{ item.fromUnit.split(" ")[0] }} = {{ item.result }} {{ item.toUnit.split(" ")[0] }}</div>
+                  <div class="unit-tool__history-expression">
+                    {{ item.inputValue }} {{ item.fromUnit.split(" ")[0] }} =
+                    {{ item.result }} {{ item.toUnit.split(" ")[0] }}
+                  </div>
                   <div class="unit-tool__history-meta">
-                    <span class="unit-tool__history-type">{{ item.unitType }}</span>
+                    <span class="unit-tool__history-type">{{
+                      item.unitType
+                    }}</span>
                     <span class="unit-tool__history-date">{{ item.date }}</span>
                   </div>
                 </div>
@@ -460,26 +542,50 @@ const getResultIcon = (label) => {
           <el-card class="unit-tool__result-card" shadow="hover">
             <template #header>
               <div class="unit-tool__card-header">
-                <IconifyIconOnline icon="ri:file-list-line" class="unit-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:file-list-line"
+                  class="unit-tool__card-icon"
+                />
                 <span>转换结果</span>
               </div>
             </template>
 
-            <el-empty v-if="!env.outputResults.length" description="请先输入并转换单位" class="unit-tool__empty">
+            <el-empty
+              v-if="!env.outputResults.length"
+              description="请先输入并转换单位"
+              class="unit-tool__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:scales-line" class="unit-tool__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:scales-line"
+                  class="unit-tool__empty-icon"
+                />
               </template>
             </el-empty>
 
             <div v-else class="unit-tool__results">
-              <div v-for="(result, index) in env.outputResults" :key="index" class="unit-tool__result-item" :class="{ 'unit-tool__result-item--highlight': index === 0 }">
+              <div
+                v-for="(result, index) in env.outputResults"
+                :key="index"
+                class="unit-tool__result-item"
+                :class="{ 'unit-tool__result-item--highlight': index === 0 }"
+              >
                 <div class="unit-tool__result-label">
-                  <IconifyIconOnline :icon="getResultIcon(result.label)" class="unit-tool__result-icon" />
+                  <IconifyIconOnline
+                    :icon="getResultIcon(result.label)"
+                    class="unit-tool__result-icon"
+                  />
                   <span>{{ result.label }}</span>
                 </div>
                 <div class="unit-tool__result-value">
                   <span>{{ result.value }}</span>
-                  <el-button type="primary" link size="small" class="unit-tool__copy-btn" @click="copyToClipboard(result.value)">
+                  <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    class="unit-tool__copy-btn"
+                    @click="copyToClipboard(result.value)"
+                  >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </el-button>
                 </div>
@@ -491,7 +597,10 @@ const getResultIcon = (label) => {
           <el-card class="unit-tool__reference-card" shadow="hover">
             <template #header>
               <div class="unit-tool__card-header">
-                <IconifyIconOnline icon="ri:information-line" class="unit-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:information-line"
+                  class="unit-tool__card-icon"
+                />
                 <span>单位参考</span>
               </div>
             </template>
@@ -502,42 +611,62 @@ const getResultIcon = (label) => {
                   <div class="unit-tool__reference-list">
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 米 (m)</span>
-                      <span class="unit-tool__reference-value">= 100 厘米 = 1000 毫米 = 0.001 千米</span>
+                      <span class="unit-tool__reference-value"
+                        >= 100 厘米 = 1000 毫米 = 0.001 千米</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 英寸 (in)</span>
-                      <span class="unit-tool__reference-value">= 2.54 厘米</span>
+                      <span class="unit-tool__reference-value"
+                        >= 2.54 厘米</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 英尺 (ft)</span>
-                      <span class="unit-tool__reference-value">= 30.48 厘米 = 12 英寸</span>
+                      <span class="unit-tool__reference-value"
+                        >= 30.48 厘米 = 12 英寸</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 码 (yd)</span>
-                      <span class="unit-tool__reference-value">= 0.9144 米 = 3 英尺</span>
+                      <span class="unit-tool__reference-value"
+                        >= 0.9144 米 = 3 英尺</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 英里 (mi)</span>
-                      <span class="unit-tool__reference-value">= 1.609344 千米 = 1609.344 米</span>
+                      <span class="unit-tool__reference-value"
+                        >= 1.609344 千米 = 1609.344 米</span
+                      >
                     </div>
                   </div>
                 </el-collapse-item>
                 <el-collapse-item title="体积单位" name="volume">
                   <div class="unit-tool__reference-list">
                     <div class="unit-tool__reference-item">
-                      <span class="unit-tool__reference-name">1 立方米 (m³)</span>
-                      <span class="unit-tool__reference-value">= 1000 升 = 1000000 立方厘米</span>
+                      <span class="unit-tool__reference-name"
+                        >1 立方米 (m³)</span
+                      >
+                      <span class="unit-tool__reference-value"
+                        >= 1000 升 = 1000000 立方厘米</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 升 (l)</span>
-                      <span class="unit-tool__reference-value">= 1000 毫升 = 1 立方分米</span>
+                      <span class="unit-tool__reference-value"
+                        >= 1000 毫升 = 1 立方分米</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
-                      <span class="unit-tool__reference-name">1 加仑(美) (gal)</span>
+                      <span class="unit-tool__reference-name"
+                        >1 加仑(美) (gal)</span
+                      >
                       <span class="unit-tool__reference-value">= 3.785 升</span>
                     </div>
                     <div class="unit-tool__reference-item">
-                      <span class="unit-tool__reference-name">1 加仑(英) (uk_gal)</span>
+                      <span class="unit-tool__reference-name"
+                        >1 加仑(英) (uk_gal)</span
+                      >
                       <span class="unit-tool__reference-value">= 4.546 升</span>
                     </div>
                   </div>
@@ -546,35 +675,55 @@ const getResultIcon = (label) => {
                   <div class="unit-tool__reference-list">
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 千克 (kg)</span>
-                      <span class="unit-tool__reference-value">= 1000 克 = 2.2046 磅</span>
+                      <span class="unit-tool__reference-value"
+                        >= 1000 克 = 2.2046 磅</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 磅 (lb)</span>
-                      <span class="unit-tool__reference-value">= 453.59 克 = 16 盎司</span>
+                      <span class="unit-tool__reference-value"
+                        >= 453.59 克 = 16 盎司</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 吨 (t)</span>
-                      <span class="unit-tool__reference-value">= 1000 千克</span>
+                      <span class="unit-tool__reference-value"
+                        >= 1000 千克</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 斤</span>
-                      <span class="unit-tool__reference-value">= 500 克 = 10 两</span>
+                      <span class="unit-tool__reference-value"
+                        >= 500 克 = 10 两</span
+                      >
                     </div>
                   </div>
                 </el-collapse-item>
                 <el-collapse-item title="温度单位" name="temperature">
                   <div class="unit-tool__reference-list">
                     <div class="unit-tool__reference-item">
-                      <span class="unit-tool__reference-name">摄氏度 (°C) 转 华氏度 (°F)</span>
-                      <span class="unit-tool__reference-value">°F = °C × 9/5 + 32</span>
+                      <span class="unit-tool__reference-name"
+                        >摄氏度 (°C) 转 华氏度 (°F)</span
+                      >
+                      <span class="unit-tool__reference-value"
+                        >°F = °C × 9/5 + 32</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
-                      <span class="unit-tool__reference-name">华氏度 (°F) 转 摄氏度 (°C)</span>
-                      <span class="unit-tool__reference-value">°C = (°F - 32) × 5/9</span>
+                      <span class="unit-tool__reference-name"
+                        >华氏度 (°F) 转 摄氏度 (°C)</span
+                      >
+                      <span class="unit-tool__reference-value"
+                        >°C = (°F - 32) × 5/9</span
+                      >
                     </div>
                     <div class="unit-tool__reference-item">
-                      <span class="unit-tool__reference-name">摄氏度 (°C) 转 开尔文 (K)</span>
-                      <span class="unit-tool__reference-value">K = °C + 273.15</span>
+                      <span class="unit-tool__reference-name"
+                        >摄氏度 (°C) 转 开尔文 (K)</span
+                      >
+                      <span class="unit-tool__reference-value"
+                        >K = °C + 273.15</span
+                      >
                     </div>
                   </div>
                 </el-collapse-item>
@@ -604,11 +753,21 @@ const getResultIcon = (label) => {
   }
 
   &__header {
-    background: linear-gradient(135deg, #84cc16 0%, #4d7c0f 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-success-light-3) 0%,
+      var(--el-color-success) 100%
+    );
     border-radius: 12px;
-    padding: 24px;
+    padding: 30px;
     color: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(var(--el-color-success-rgb), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-success-rgb), 0.4);
+      transform: translateY(-2px);
+    }
   }
 
   &__header-inner {
@@ -643,8 +802,16 @@ const getResultIcon = (label) => {
   &__history-card,
   &__reference-card {
     margin-bottom: 24px;
-    border-radius: 8px;
+    border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-success-light-7);
+    }
   }
 
   &__input,

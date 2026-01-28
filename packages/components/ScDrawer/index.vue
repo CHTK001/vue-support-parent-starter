@@ -307,20 +307,32 @@ defineExpose({
 <style lang="scss" scoped>
 .sc-drawer {
   // 抽屉主体样式
+  :deep(.el-drawer) {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    box-shadow: 
+      -4px 0 24px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(0, 0, 0, 0.06) inset;
+  }
+
   :deep(.el-drawer__header) {
     margin-bottom: 0;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 18px 24px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 0;
   }
 
   :deep(.el-drawer__body) {
     padding: 0;
+    background: rgba(255, 255, 255, 0.5);
   }
 }
 
 .sc-drawer__body {
   flex: 1;
-  padding: 20px;
+  padding: 24px;
   overflow: auto;
 }
 
@@ -328,8 +340,9 @@ defineExpose({
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+  padding: 16px 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.8) 100%);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 </style>

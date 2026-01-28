@@ -129,19 +129,21 @@ export default defineComponent({
 <style lang="scss" scoped>
 .sc-card-media {
   display: flex;
-  border-radius: 4px;
-  border: 1px solid var(--el-border-color-light);
-  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
   overflow: hidden;
   color: var(--el-text-color-primary);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   &::before {
     content: "";
     position: absolute;
-    background-color: var(--el-color-primary);
-    transition: all 0.3s ease;
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1;
   }
 
@@ -150,7 +152,7 @@ export default defineComponent({
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 3px;
     width: 100%;
   }
 
@@ -158,7 +160,7 @@ export default defineComponent({
     top: 0;
     right: 0;
     bottom: 0;
-    width: 4px;
+    width: 3px;
     height: 100%;
   }
 
@@ -166,7 +168,7 @@ export default defineComponent({
     bottom: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 3px;
     width: 100%;
   }
 
@@ -174,7 +176,7 @@ export default defineComponent({
     top: 0;
     left: 0;
     bottom: 0;
-    width: 4px;
+    width: 3px;
     height: 100%;
   }
 
@@ -186,7 +188,7 @@ export default defineComponent({
     flex-direction: row;
 
     .sc-card-media__media {
-      border-right: 1px solid var(--el-border-color-light);
+      border-right: 1px solid rgba(0, 0, 0, 0.06);
     }
   }
 
@@ -194,7 +196,7 @@ export default defineComponent({
     flex-direction: row-reverse;
 
     .sc-card-media__media {
-      border-left: 1px solid var(--el-border-color-light);
+      border-left: 1px solid rgba(0, 0, 0, 0.06);
     }
   }
 
@@ -202,7 +204,7 @@ export default defineComponent({
     flex-direction: column;
 
     .sc-card-media__media {
-      border-bottom: 1px solid var(--el-border-color-light);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
   }
 
@@ -212,28 +214,31 @@ export default defineComponent({
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    background-color: var(--el-fill-color-light);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   &__content {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-width: 0; // 防止内容溢出
+    min-width: 0;
   }
 
   &__header {
-    padding: 16px 20px 0;
+    padding: 20px 24px 0;
   }
 
   &__title {
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.5;
     margin-bottom: 8px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--el-text-color-primary);
+    letter-spacing: 0.3px;
   }
 
   &__subtitle {
@@ -243,12 +248,12 @@ export default defineComponent({
   }
 
   &__body {
-    padding: 12px 20px;
+    padding: 16px 24px;
     flex: 1;
   }
 
   &__footer {
-    padding: 0 20px 16px;
+    padding: 0 24px 20px;
     margin-top: auto;
   }
 
@@ -256,24 +261,29 @@ export default defineComponent({
     cursor: pointer;
 
     &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-      border-color: var(--el-color-primary);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(99, 102, 241, 0.3);
+
+      .sc-card-media__media {
+        transform: scale(1.02);
+      }
     }
   }
 
   &.is-shadow {
     &:hover {
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-      border-color: var(--el-color-primary);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(99, 102, 241, 0.3);
     }
   }
 
   &.is-shadow-always {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
     &:hover {
-      border-color: var(--el-color-primary);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(99, 102, 241, 0.3);
     }
   }
 }

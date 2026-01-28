@@ -206,7 +206,7 @@ async function submit() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .soft-sync-dialog :deep(.el-dialog__body) {
   padding: 0 20px 16px;
 }
@@ -400,5 +400,16 @@ async function submit() {
   justify-content: flex-end;
   gap: 12px;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>
 

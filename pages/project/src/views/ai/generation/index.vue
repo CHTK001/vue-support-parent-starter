@@ -1,5 +1,5 @@
 <template>
-  <div class="ai-generator-layout">
+  <div class="ai-generator-layout system-container modern-bg">
     <!-- 对话框组件 -->
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment" @handleRefreshEnvironmentTemplate="handleRefreshEnvironmentTemplate"></ModuleDialog>

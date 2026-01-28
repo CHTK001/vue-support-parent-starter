@@ -192,7 +192,7 @@ function handleClose() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .address-limit-container {
   max-height: 60vh;
   overflow: hidden;
@@ -326,4 +326,15 @@ function handleClose() {
   border-radius: 8px;
   padding: 10px 24px;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

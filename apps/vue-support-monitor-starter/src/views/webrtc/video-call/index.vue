@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="video-call-container">
+  <div class="video-call-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
       <el-breadcrumb separator="/">
@@ -540,6 +540,60 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 32px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+}
+
+
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .video-call-container {
   padding: 20px;
   height: 100vh;
@@ -786,4 +840,15 @@ onUnmounted(() => {
 :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
   background-color: rgba(255, 255, 255, 0.05) !important;
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

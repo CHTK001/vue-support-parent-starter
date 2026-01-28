@@ -1,5 +1,5 @@
 <template>
-  <div class="tools-container">
+  <div class="tools-container system-container modern-bg">
     <!-- 当没有plugin参数时显示工具列表 -->
     <template v-if="!currentPlugin || currentPlugin == 1">
       <el-card class="tools-header">

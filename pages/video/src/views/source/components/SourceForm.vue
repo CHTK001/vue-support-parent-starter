@@ -478,7 +478,7 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .source-form {
   max-height: 70vh;
   overflow-y: auto;
@@ -491,7 +491,7 @@ defineExpose({
 .form-section {
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .form-section:last-child {
@@ -502,16 +502,20 @@ defineExpose({
 .section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 0 20px 0;
-  font-size: 16px;
+  gap: 12px;
+  margin: 0 0 24px 0;
+  font-size: 18px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  border-radius: 8px;
+  border-left: 4px solid var(--el-color-primary);
 }
 
 .section-icon {
-  color: #409eff;
-  font-size: 18px;
+  color: var(--el-color-primary);
+  font-size: 20px;
 }
 
 .form-tip {
@@ -530,23 +534,25 @@ defineExpose({
 .template-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  gap: 16px;
+  padding: 20px;
+  border: 2px solid var(--el-border-color-lighter);
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
   background: var(--el-bg-color-overlay);
 }
 
 .template-card:hover {
-  border-color: #409eff;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.15);
+  transform: translateY(-2px);
 }
 
 .template-card.active {
-  border-color: #409eff;
-  background: #f0f9ff;
+  border-color: var(--el-color-primary);
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.2);
 }
 
 .template-icon {
@@ -586,12 +592,19 @@ defineExpose({
   justify-content: flex-end;
   gap: 12px;
   padding-top: 24px;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--el-border-color-lighter);
   margin-top: 24px;
 }
 
 .form-actions .el-button {
-  min-width: 80px;
+  min-width: 100px;
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+  transition: all 0.3s ease;
+}
+
+.form-actions .el-button:hover {
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+  transform: translateY(-2px);
 }
 
 /* 表单项样式优化 */

@@ -1,5 +1,5 @@
 <template>
-  <div class="file-manager">
+  <div class="file-manager system-container modern-bg">
     <!-- 页面头部 -->
     <div class="file-manager-header">
       <div class="header-left">
@@ -903,22 +903,19 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/mixins.scss";
+
 .file-manager {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  overflow: hidden;
+  @include system-container;
+  @include modern-bg;
+  @include flex-column;
 
   .file-manager-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: $spacing-lg $spacing-xl;
+    @include glass-card(0.95, 16px);
 
     .header-left {
       display: flex;

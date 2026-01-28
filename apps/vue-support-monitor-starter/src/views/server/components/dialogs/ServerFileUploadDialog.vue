@@ -504,26 +504,34 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 /* 对话框样式 */
-.upload-dialog :deep(.el-dialog) {
-  border-radius: 16px;
-  overflow: hidden;
-}
+.upload-dialog {
+  :deep(.el-dialog) {
+    border-radius: $radius-lg;
+    overflow: hidden;
+    @include glass-effect(0.95, 20px);
+    box-shadow: $shadow-xl;
+    border: 1px solid $border-light;
+  }
 
-.upload-dialog :deep(.el-dialog__header) {
-  padding: 0;
-  margin: 0;
-}
+  :deep(.el-dialog__header) {
+    padding: 0;
+    margin: 0;
+  }
 
-.upload-dialog :deep(.el-dialog__body) {
-  padding: 0 24px 24px;
-}
+  :deep(.el-dialog__body) {
+    padding: 0 $spacing-2xl $spacing-2xl;
+    background: rgba(255, 255, 255, 0.5);
+  }
 
-.upload-dialog :deep(.el-dialog__footer) {
-  padding: 16px 24px;
-  border-top: 1px solid var(--app-border-secondary);
-  background: var(--app-bg-secondary);
+  :deep(.el-dialog__footer) {
+    padding: $spacing-lg $spacing-2xl;
+    border-top: 1px solid var(--app-border-secondary);
+    background: rgba(255, 255, 255, 0.6);
+  }
 }
 
 /* 自定义标题 */
@@ -531,15 +539,26 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, var(--app-primary-light) 0%, var(--app-bg-primary) 100%);
+  padding: $spacing-xl $spacing-2xl;
+  background: $gradient-bg-1, $gradient-bg-2;
   border-bottom: 1px solid var(--app-border-secondary);
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: $gradient-line-top;
+  }
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: $spacing-lg;
 }
 
 .header-icon {
@@ -548,27 +567,35 @@ defineExpose({
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: var(--app-primary);
-  border-radius: 12px;
+  border-radius: $radius-md;
   color: #fff;
+  background: var(--app-primary);
+  box-shadow: $shadow-md;
+  transition: transform $duration-fast $ease-standard, box-shadow $duration-fast $ease-standard;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $shadow-hover-md;
+  }
 }
 
 .header-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $spacing-xs;
 }
 
 .header-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: $font-xl;
+  font-weight: $font-weight-bold;
   color: var(--app-text-primary);
+  letter-spacing: $letter-spacing-tight;
 }
 
 .header-subtitle {
   margin: 0;
-  font-size: 13px;
+  font-size: $font-sm;
   color: var(--app-text-tertiary);
 }
 
@@ -576,81 +603,80 @@ defineExpose({
   border: none;
   background: transparent;
   color: var(--app-text-secondary);
-}
+  transition: all $duration-fast $ease-standard;
 
-.close-btn:hover {
-  background: var(--app-bg-tertiary);
-  color: var(--app-text-primary);
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--app-text-primary);
+    transform: rotate(90deg);
+  }
 }
 
 /* 表单样式 */
 .upload-form {
   max-height: 60vh;
   overflow-y: auto;
-  padding-right: 8px;
-}
-
-.upload-form::-webkit-scrollbar {
-  width: 6px;
-}
-
-.upload-form::-webkit-scrollbar-thumb {
-  background: var(--app-border-secondary);
-  border-radius: 3px;
-}
-
-.upload-form::-webkit-scrollbar-thumb:hover {
-  background: var(--app-border-primary);
+  padding-right: $spacing-sm;
+  @include custom-scrollbar(6px);
 }
 
 /* 表单区块 */
 .form-section {
-  margin-bottom: 20px;
-  background: var(--app-bg-secondary);
-  border-radius: 12px;
+  margin-bottom: $spacing-xl;
+  border-radius: $radius-md;
   border: 1px solid var(--app-border-secondary);
   overflow: hidden;
+  @include glass-effect(0.9, 16px);
+  box-shadow: $shadow-sm;
+  transition: all $duration-normal $ease-standard;
+
+  &:hover {
+    box-shadow: $shadow-md;
+    transform: translateY(-1px);
+  }
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
-  background: var(--app-bg-tertiary);
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+  background: rgba(0, 0, 0, 0.02);
   border-bottom: 1px solid var(--app-border-secondary);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: $font-md;
+  font-weight: $font-weight-semibold;
   color: var(--app-text-primary);
 }
 
 .section-tag {
   margin-left: auto;
+  border-radius: $radius-full;
 }
 
 .section-content {
-  padding: 20px 16px 8px;
+  padding: $spacing-xl $spacing-lg $spacing-sm;
 }
 
 /* 服务器选项样式 */
 .server-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-sm;
 }
 
 .server-name {
-  font-weight: 500;
+  font-weight: $font-weight-medium;
 }
 
 .server-host {
   color: var(--app-text-tertiary);
-  font-size: 12px;
+  font-size: $font-xs;
 }
 
 /* 模式选择器 */
 .mode-radio-group {
   width: 100%;
+  display: flex;
 }
 
 .mode-radio-group :deep(.el-radio-button) {
@@ -661,62 +687,65 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: $spacing-sm;
   width: 100%;
-  padding: 10px 16px;
+  padding: $spacing-sm $spacing-lg;
+  transition: all $duration-fast $ease-standard;
 }
 
 /* 优先级选项 */
 .priority-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-sm;
 }
 
 .priority-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-}
 
-.priority-dot.low {
-  background: var(--app-info);
-}
+  &.low {
+    background: var(--app-info);
+  }
 
-.priority-dot.normal {
-  background: var(--app-success);
-}
+  &.normal {
+    background: var(--app-success);
+  }
 
-.priority-dot.high {
-  background: var(--app-danger);
+  &.high {
+    background: var(--app-danger);
+  }
 }
 
 /* 开关卡片 */
 .switch-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
 }
 
 .switch-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--app-bg-primary);
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-lg;
   border: 1px solid var(--app-border-secondary);
-  border-radius: 10px;
-  transition: all 0.2s ease;
-}
+  border-radius: $radius-sm;
+  transition: all $duration-fast $ease-standard;
+  background: rgba(255, 255, 255, 0.45);
 
-.switch-card:hover {
-  border-color: var(--app-border-primary);
-}
+  &:hover {
+    border-color: var(--app-border-primary);
+    transform: translateY(-1px);
+    box-shadow: $shadow-sm;
+  }
 
-.switch-card.active {
-  border-color: var(--app-primary);
-  background: var(--app-primary-light);
+  &.active {
+    border-color: var(--app-primary);
+    background: rgba(99, 102, 241, 0.08);
+  }
 }
 
 .switch-card-icon {
@@ -725,10 +754,11 @@ defineExpose({
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: var(--app-bg-tertiary);
-  border-radius: 8px;
+  border-radius: $radius-sm;
   color: var(--app-text-secondary);
   flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.03);
+  transition: all $duration-fast $ease-standard;
 }
 
 .switch-card.active .switch-card-icon {
@@ -742,8 +772,8 @@ defineExpose({
 }
 
 .switch-card-title {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: $font-sm;
+  font-weight: $font-weight-semibold;
   color: var(--app-text-primary);
   margin-bottom: 2px;
 }
@@ -758,13 +788,13 @@ defineExpose({
 
 /* 数值配置 */
 .number-config {
-  margin-bottom: 12px;
+  margin-bottom: $spacing-md;
 }
 
 .form-item-tip {
   font-size: 11px;
   color: var(--app-text-tertiary);
-  margin-top: 4px;
+  margin-top: $spacing-xs;
 }
 
 /* 上传区域 */
@@ -780,33 +810,40 @@ defineExpose({
   width: 100%;
   height: auto;
   min-height: 160px;
-  padding: 32px 20px;
+  padding: $spacing-3xl $spacing-xl;
   border: 2px dashed var(--app-border-secondary);
-  border-radius: 12px;
-  background: var(--app-bg-primary);
-  transition: all 0.3s ease;
-}
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all $duration-normal $ease-standard;
 
-.upload-area :deep(.el-upload-dragger:hover) {
-  border-color: var(--app-primary);
-  background: var(--app-primary-light);
+  &:hover {
+    border-color: var(--app-primary);
+    background: rgba(99, 102, 241, 0.06);
+    transform: translateY(-1px);
+    box-shadow: $shadow-sm;
+  }
 }
 
 .upload-area :deep(.el-upload-dragger.is-dragover) {
   border-color: var(--app-primary);
-  background: var(--app-primary-light);
+  background: rgba(99, 102, 241, 0.08);
 }
 
 .upload-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: $spacing-md;
 }
 
 .upload-icon {
   color: var(--app-primary);
-  opacity: 0.8;
+  opacity: 0.9;
+  transition: transform $duration-normal $ease-standard;
+}
+
+.upload-area :deep(.el-upload-dragger:hover) .upload-icon {
+  transform: translateY(-2px) scale(1.04);
 }
 
 .upload-text {
@@ -815,14 +852,14 @@ defineExpose({
 
 .upload-main-text {
   margin: 0;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: $font-lg;
+  font-weight: $font-weight-semibold;
   color: var(--app-text-primary);
 }
 
 .upload-sub-text {
-  margin: 4px 0 0;
-  font-size: 13px;
+  margin: $spacing-xs 0 0;
+  font-size: $font-sm;
   color: var(--app-text-tertiary);
 }
 
@@ -830,30 +867,38 @@ defineExpose({
   color: var(--app-primary);
   font-style: normal;
   cursor: pointer;
+  font-weight: $font-weight-medium;
 }
 
 .upload-hint {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--app-bg-tertiary);
-  border-radius: 6px;
-  font-size: 12px;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-sm;
+  font-size: $font-xs;
   color: var(--app-text-tertiary);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 /* 文件列表 */
 .upload-area :deep(.el-upload-list) {
-  margin-top: 12px;
+  margin-top: $spacing-md;
 }
 
 .upload-area :deep(.el-upload-list__item) {
-  padding: 8px 12px;
-  background: var(--app-bg-tertiary);
-  border-radius: 8px;
-  margin-bottom: 8px;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-sm;
+  margin-bottom: $spacing-sm;
   border: 1px solid var(--app-border-secondary);
+  background: rgba(255, 255, 255, 0.5);
+  transition: all $duration-fast $ease-standard;
+
+  &:hover {
+    border-color: var(--app-border-primary);
+    box-shadow: $shadow-sm;
+  }
 }
 
 .upload-area :deep(.el-upload-list__item-name) {
@@ -865,28 +910,77 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: $spacing-lg;
 }
 
 .footer-info {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: $spacing-sm;
+  font-size: $font-xs;
   color: var(--app-text-tertiary);
 }
 
 .footer-actions {
   display: flex;
-  gap: 12px;
+  gap: $spacing-md;
+
+  .el-button {
+    min-width: 110px;
+    border-radius: $radius-sm;
+    padding: $button-padding-lg;
+    font-weight: $font-weight-medium;
+    transition: all $duration-fast $ease-standard;
+
+    &:hover:not(.is-disabled) {
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+
+    &:active:not(.is-disabled) {
+      transform: translateY(0);
+    }
+  }
+
+  .el-button--primary {
+    @include button-ripple;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
 }
 
-.footer-actions .el-button {
-  min-width: 100px;
-}
+@include respond-to(sm) {
+  .upload-dialog {
+    :deep(.el-dialog__body) {
+      padding: 0 $spacing-lg $spacing-lg;
+    }
 
-.footer-actions .el-button--primary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+    :deep(.el-dialog__footer) {
+      padding: $spacing-md $spacing-lg;
+    }
+  }
+
+  .dialog-header {
+    padding: $spacing-lg $spacing-lg;
+  }
+
+  .switch-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-footer {
+    flex-direction: column;
+    align-items: stretch;
+
+    .footer-actions {
+      width: 100%;
+      flex-direction: column-reverse;
+
+      .el-button {
+        width: 100%;
+      }
+    }
+  }
 }
 </style>

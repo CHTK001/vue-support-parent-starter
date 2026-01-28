@@ -1,5 +1,5 @@
 <template>
-  <div class="debug-container">
+  <div class="debug-container system-container modern-bg">
     <h2>模板逻辑调试</h2>
     
     <div class="controls">
@@ -115,140 +115,253 @@ const toggleServers = () => {
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/mixins.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: $gradient-bg-1, $gradient-bg-2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
 .debug-container {
-  padding: 20px;
-  max-width: 1000px;
+  padding: $spacing-3xl;
+  max-width: 1200px;
   margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  
+  h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+    margin-bottom: $spacing-2xl;
+    @include gradient-text;
+  }
 }
 
 .controls {
-  margin-bottom: 20px;
+  margin-bottom: $spacing-2xl;
+  display: flex;
+  gap: $spacing-md;
+  flex-wrap: wrap;
   
   .el-button {
-    margin-right: 10px;
+    border-radius: $radius-md;
+    padding: $button-padding-lg;
+    font-weight: 500;
+    transition: all $duration-fast $ease-standard;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: $shadow-md;
+    }
   }
 }
 
 .status {
-  background: #f5f5f5;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  padding: $spacing-xl $spacing-2xl;
+  border-radius: $radius-lg;
+  margin-bottom: $spacing-2xl;
+  border: 1px solid $border-light;
+  @include glass-effect(0.92, 16px);
+  box-shadow: $shadow-md;
   
   p {
-    margin: 5px 0;
-    font-weight: bold;
+    margin: $spacing-sm 0;
+    font-weight: $font-weight-semibold;
+    color: var(--el-text-color-primary);
+    font-size: $font-sm;
   }
 }
 
 .server-list-container {
-  border: 2px solid #409eff;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  transition: all 0.3s ease;
+  border: 1px solid $border-primary;
+  padding: $spacing-2xl;
+  border-radius: $radius-lg;
+  margin-bottom: $spacing-2xl;
+  transition: all $duration-normal $ease-standard;
   min-height: 200px;
+  @include glass-effect(0.94, 18px);
+  box-shadow: $shadow-lg;
+  
+  &:hover {
+    border-color: $border-primary;
+    box-shadow: $shadow-hover-lg;
+  }
   
   h3 {
     margin-top: 0;
-    color: #409eff;
+    margin-bottom: $spacing-xl;
+    color: var(--el-color-primary);
+    font-size: $font-xl;
+    font-weight: $font-weight-semibold;
   }
 }
 
 .section-title {
-  font-weight: bold;
+  font-weight: $font-weight-semibold;
   color: var(--el-text-color-primary);
-  margin-bottom: 15px;
-  padding: 8px;
-  background: #e3f2fd;
-  border-radius: 4px;
+  margin-bottom: $spacing-lg;
+  padding: $spacing-md $spacing-lg;
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: $radius-md;
+  border-left: 4px solid var(--el-color-primary);
+  font-size: $font-sm;
 }
 
 .server-mini-empty {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 15px;
-  background: #f9f9f9;
-  border-radius: 8px;
+  gap: 12px;
+  padding: $spacing-xl;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: $radius-md;
   justify-content: center;
+  border: 1px dashed $border-light;
   
   .mini-empty-icon {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #e0e0e0;
-    border-radius: 8px;
-    color: var(--el-text-color-primary);
+    background: rgba(99, 102, 241, 0.08);
+    border-radius: $radius-md;
+    color: var(--el-color-primary);
+    font-size: 24px;
   }
   
   span {
-    font-size: 12px;
-    color: var(--el-text-color-primary);
+    font-size: 14px;
+    color: var(--el-text-color-regular);
+    font-weight: 500;
   }
 }
 
 .server-mini-card {
-  padding: 8px;
-  margin-bottom: 8px;
-  background: #e3f2fd;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-sm;
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: $radius-sm;
+  font-size: 13px;
   text-align: center;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  transition: all $duration-fast $ease-standard;
+  
+  &:hover {
+    background: rgba(99, 102, 241, 0.1);
+    transform: translateX(4px);
+  }
 }
 
 .server-card {
-  padding: 15px;
-  margin-bottom: 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fff;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-lg;
+  border: 1px solid $border-light;
+  border-radius: $radius-md;
+  @include glass-effect(0.9, 14px);
+  box-shadow: $shadow-md;
+  transition: all $duration-normal $ease-standard;
+  
+  &:hover {
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+    border-color: $border-primary;
+  }
   
   .server-name {
-    font-weight: bold;
+    font-weight: 600;
     margin-bottom: 8px;
     color: var(--el-text-color-primary);
+    font-size: 16px;
   }
   
   .server-address {
-    color: var(--el-text-color-primary);
-    margin-bottom: 5px;
+    color: var(--el-text-color-regular);
+    margin-bottom: 6px;
+    font-size: 14px;
   }
   
   .server-protocol {
-    color: #999;
+    color: var(--el-text-color-placeholder);
     font-size: 12px;
+    font-weight: 500;
   }
 }
 
 .template-logic {
-  background: #f0f8ff;
-  padding: 20px;
-  border-radius: 8px;
+  padding: $spacing-2xl;
+  border-radius: $radius-lg;
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  @include glass-effect(0.9, 16px);
+  box-shadow: $shadow-md;
   
   h3 {
     margin-top: 0;
+    margin-bottom: $spacing-xl;
     color: var(--el-text-color-primary);
+    font-size: $font-xl;
+    font-weight: $font-weight-semibold;
   }
   
   .logic-item {
-    margin-bottom: 15px;
+    margin-bottom: $spacing-xl;
+    padding: $spacing-lg;
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: $radius-md;
+    border-left: 4px solid var(--el-color-primary);
     
     strong {
-      color: #409eff;
+      color: var(--el-color-primary);
+      font-size: 15px;
+      display: block;
+      margin-bottom: $spacing-md;
     }
     
     ul {
-      margin-top: 8px;
-      padding-left: 20px;
+      margin-top: $spacing-md;
+      padding-left: $spacing-2xl;
       
       li {
-        margin-bottom: 5px;
-        color: var(--el-text-color-primary);
+        margin-bottom: $spacing-sm;
+        color: var(--el-text-color-regular);
+        line-height: 1.6;
+        font-size: 14px;
+        
+        &::marker {
+          color: var(--el-color-primary);
+        }
       }
     }
+  }
+}
+
+@include respond-to(sm) {
+  .debug-container {
+    padding: $spacing-xl;
+    min-height: 100svh;
+  }
+
+  .server-list-container {
+    padding: $spacing-xl;
   }
 }
 </style>

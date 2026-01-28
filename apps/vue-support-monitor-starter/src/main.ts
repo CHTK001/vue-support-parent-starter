@@ -54,6 +54,8 @@ import ScCard from "@repo/components/ScCard/index.vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
 import ScDrawer from "@repo/components/ScDrawer/index.vue";
 import * as directives from "@repo/core/directives";
+// 字体加密指令
+import { vFontEncryption } from "@layout/default";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
@@ -76,6 +78,8 @@ initializeWasmModule()
     Object.keys(directives).forEach((key) => {
       app.directive(key, (directives as { [key: string]: Directive })[key]);
     });
+    // 注册字体加密指令
+    app.directive("font-encryption", vFontEncryption);
     app.component("IconifyIconOffline", IconifyIconOffline);
     app.component("IconifyIconOnline", IconifyIconOnline);
     app.component("FontIcon", FontIcon);
@@ -133,6 +137,8 @@ initializeWasmModule()
     Object.keys(directives).forEach((key) => {
       app.directive(key, (directives as { [key: string]: Directive })[key]);
     });
+    // 注册字体加密指令
+    app.directive("font-encryption", vFontEncryption);
     app.component("IconifyIconOffline", IconifyIconOffline);
     app.component("IconifyIconOnline", IconifyIconOnline);
     app.component("FontIcon", FontIcon);

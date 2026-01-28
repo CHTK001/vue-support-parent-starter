@@ -2,13 +2,16 @@
 //! 提供 SM2/SM3/SM4/AES/MD5 等加密算法
 
 use std::alloc::{alloc as rust_alloc, dealloc as rust_dealloc, Layout};
+use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 use js_sys::Reflect;
 use sm3::Digest;
 use base64::{engine::general_purpose, Engine};
 use sm2::SecretKey;
 use sm2::elliptic_curve::sec1::ToEncodedPoint;
+use sm2::elliptic_curve::rand_core::{OsRng, RngCore};
 use smcrypto::sm2::{Encrypt, Decrypt};
+use serde_json::json;
 
 // ============ 内存管理 ============
 
@@ -568,4 +571,265 @@ pub fn custom_encrypt_with_codec_keypair(
     let enc_key = str_from_ptr(enc_key_ptr, strlen(enc_key_ptr));
     
     str_to_ptr(&format!(r#"{{"encryptedData":"{}","encryptedKey":"{}","timestamp":"{}"}}"#, enc_data, enc_key, ts))
+}
+
+// ============ 字体加密函数 ============
+
+/// 数字字符列表（0-9）
+const NUMBER_CHARS: &[char] = &['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+/// 数字映射目标字符列表（字母 a-j）
+const NUMBER_TARGET_CHARS: &[char] = &['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
+
+/// 常用汉字列表
+const CHINESE_CHARS: &[&str] = &[
+    "零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "百", "千", "万", "亿",
+    "的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "这", "中", "大", "为", "上",
+    "个", "国", "他", "时", "来", "用", "们", "生", "到", "作", "地", "于",
+    "出", "分", "对", "成", "会", "可", "主", "发", "年", "动", "同", "工", "也", "能", "下",
+    "过", "子", "说", "产", "种", "面", "而", "方", "后", "多", "定", "行", "学", "法", "所",
+    "民", "得",
+    "电", "力", "里", "如", "水", "化", "高", "自", "理", "心", "实", "比", "量", "制", "使",
+    "点", "业", "体", "集", "号", "文", "次", "思", "通", "但", "条", "较", "克", "又", "公",
+    "孔", "领", "军", "流", "入", "接", "席", "位", "情", "运", "器", "并", "习", "原", "油",
+    "放", "立", "题", "质", "指", "建", "区", "验", "活", "众", "很", "教", "决", "特", "此",
+    "常", "石", "强", "极", "少", "根", "共", "直", "团", "统", "式", "转", "别", "造", "切",
+    "你", "取", "西", "持", "总", "料", "连", "任", "志", "观", "调", "么", "山", "程", "报",
+    "更", "见", "必", "真", "保", "热", "委", "手", "改", "管", "处", "已", "修", "支", "识",
+    "病", "象", "先", "老", "光", "专", "几", "什", "型", "具", "示", "复", "安", "带", "每",
+    "东", "增", "则", "完", "风", "回", "南", "广", "劳", "轮", "科", "北", "打", "积", "车",
+    "计", "给", "节", "做", "务", "被", "整", "联", "步", "类", "列", "温", "装",
+];
+
+/// 汉字映射目标字符列表
+const CHINESE_TARGET_CHARS: &[&str] = &[
+    "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y",
+    "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N",
+    "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+    "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_", "=", "+", "[",
+    "]", "{", "}", "|", "\\", ";", ":", "'", "\"", "<", ">", ",", ".", "?", "/",
+    "`", "~",
+    "\u{E000}", "\u{E001}", "\u{E002}", "\u{E003}", "\u{E004}", "\u{E005}", "\u{E006}", "\u{E007}",
+    "\u{E008}", "\u{E009}", "\u{E00A}", "\u{E00B}", "\u{E00C}", "\u{E00D}", "\u{E00E}", "\u{E00F}",
+    "\u{E010}", "\u{E011}", "\u{E012}", "\u{E013}", "\u{E014}", "\u{E015}", "\u{E016}", "\u{E017}",
+    "\u{E018}", "\u{E019}", "\u{E01A}", "\u{E01B}", "\u{E01C}", "\u{E01D}", "\u{E01E}", "\u{E01F}",
+    "\u{E020}", "\u{E021}", "\u{E022}", "\u{E023}", "\u{E024}", "\u{E025}", "\u{E026}", "\u{E027}",
+    "\u{E028}", "\u{E029}", "\u{E02A}", "\u{E02B}", "\u{E02C}", "\u{E02D}", "\u{E02E}", "\u{E02F}",
+    "\u{E030}", "\u{E031}", "\u{E032}", "\u{E033}", "\u{E034}", "\u{E035}", "\u{E036}", "\u{E037}",
+    "\u{E038}", "\u{E039}", "\u{E03A}", "\u{E03B}", "\u{E03C}", "\u{E03D}", "\u{E03E}", "\u{E03F}",
+    "\u{E040}", "\u{E041}", "\u{E042}", "\u{E043}", "\u{E044}", "\u{E045}", "\u{E046}", "\u{E047}",
+    "\u{E048}", "\u{E049}", "\u{E04A}", "\u{E04B}", "\u{E04C}", "\u{E04D}", "\u{E04E}", "\u{E04F}",
+    "\u{E050}", "\u{E051}", "\u{E052}", "\u{E053}", "\u{E054}", "\u{E055}", "\u{E056}", "\u{E057}",
+    "\u{E058}", "\u{E059}", "\u{E05A}", "\u{E05B}", "\u{E05C}", "\u{E05D}", "\u{E05E}", "\u{E05F}",
+    "\u{E060}", "\u{E061}", "\u{E062}", "\u{E063}", "\u{E064}", "\u{E065}", "\u{E066}", "\u{E067}",
+    "\u{E068}", "\u{E069}", "\u{E06A}", "\u{E06B}", "\u{E06C}", "\u{E06D}", "\u{E06E}", "\u{E06F}",
+    "\u{E070}", "\u{E071}", "\u{E072}", "\u{E073}", "\u{E074}", "\u{E075}", "\u{E076}", "\u{E077}",
+    "\u{E078}", "\u{E079}", "\u{E07A}", "\u{E07B}", "\u{E07C}", "\u{E07D}", "\u{E07E}", "\u{E07F}",
+    "\u{E080}", "\u{E081}", "\u{E082}", "\u{E083}", "\u{E084}", "\u{E085}", "\u{E086}", "\u{E087}",
+    "\u{E088}", "\u{E089}", "\u{E08A}", "\u{E08B}", "\u{E08C}", "\u{E08D}", "\u{E08E}", "\u{E08F}",
+    "\u{E090}", "\u{E091}", "\u{E092}", "\u{E093}",
+];
+
+/// 生成随机数种子
+fn generate_seed() -> u64 {
+    let mut bytes = [0u8; 8];
+    OsRng.fill_bytes(&mut bytes);
+    u64::from_le_bytes(bytes)
+}
+
+/// 简单随机数生成器（线性同余生成器）
+struct SimpleRandom {
+    seed: u64,
+}
+
+impl SimpleRandom {
+    fn new(seed: Option<u64>) -> Self {
+        Self {
+            seed: seed.unwrap_or_else(|| generate_seed()),
+        }
+    }
+
+    fn next_int(&mut self, max: usize) -> usize {
+        self.seed = self.seed.wrapping_mul(1664525).wrapping_add(1013904223);
+        ((self.seed as f64 / u64::MAX as f64) * max as f64) as usize
+    }
+}
+
+/// Fisher-Yates 洗牌算法
+fn shuffle<T: Clone>(arr: &mut [T], random: &mut SimpleRandom) {
+    for i in (1..arr.len()).rev() {
+        let j = random.next_int(i + 1);
+        arr.swap(i, j);
+    }
+}
+
+/// 生成映射表（单例，使用 thread_local 存储）
+thread_local! {
+    static FONT_MAPS: std::cell::RefCell<Option<(HashMap<char, char>, HashMap<&'static str, &'static str>, HashMap<char, char>, HashMap<&'static str, &'static str>)>> = std::cell::RefCell::new(None);
+}
+
+/// 生成新的映射表（每次调用都重新生成）
+fn generate_new_maps() -> (HashMap<char, char>, HashMap<&'static str, &'static str>, HashMap<char, char>, HashMap<&'static str, &'static str>) {
+    let mut random = SimpleRandom::new(None);
+    
+    // 复制并打乱数字目标字符
+    let mut shuffled_number_targets = NUMBER_TARGET_CHARS.to_vec();
+    shuffle(&mut shuffled_number_targets, &mut random);
+    
+    // 复制并打乱汉字目标字符
+    let mut shuffled_chinese_targets = CHINESE_TARGET_CHARS.to_vec();
+    shuffle(&mut shuffled_chinese_targets, &mut random);
+    
+    // 生成数字映射表
+    let mut number_map = HashMap::new();
+    for (i, &ch) in NUMBER_CHARS.iter().enumerate() {
+        number_map.insert(ch, shuffled_number_targets[i]);
+    }
+    
+    // 生成汉字映射表
+    let mut chinese_map = HashMap::new();
+    for (i, &ch) in CHINESE_CHARS.iter().enumerate() {
+        chinese_map.insert(ch, shuffled_chinese_targets[i]);
+    }
+    
+    // 生成反向映射表
+    let reverse_number_map: HashMap<char, char> = number_map.iter().map(|(&k, &v)| (v, k)).collect();
+    let reverse_chinese_map: HashMap<&'static str, &'static str> = chinese_map.iter().map(|(&k, &v)| (v, k)).collect();
+    
+    (number_map, chinese_map, reverse_number_map, reverse_chinese_map)
+}
+
+fn get_or_init_maps() -> (HashMap<char, char>, HashMap<&'static str, &'static str>, HashMap<char, char>, HashMap<&'static str, &'static str>) {
+    FONT_MAPS.with(|maps| {
+        let mut maps_ref = maps.borrow_mut();
+        if let Some(ref cached) = *maps_ref {
+            return cached.clone();
+        }
+
+        let result = generate_new_maps();
+        *maps_ref = Some(result.clone());
+        result
+    })
+}
+
+/// 字体加密文本
+#[wasm_bindgen]
+pub fn font_encrypt_text(
+    text_ptr: *const u8, text_len: usize,
+    encrypt_numbers: bool, encrypt_chinese: bool
+) -> *mut u8 {
+    let text = str_from_ptr(text_ptr, text_len);
+    if text.is_empty() {
+        return str_to_ptr("");
+    }
+
+    let (number_map, chinese_map, _, _) = get_or_init_maps();
+    let mut result = text;
+
+    // 加密数字
+    if encrypt_numbers {
+        for (original, mapped) in number_map.iter() {
+            result = result.replace(*original, &mapped.to_string());
+        }
+    }
+
+    // 加密汉字
+    if encrypt_chinese {
+        for (original, mapped) in chinese_map.iter() {
+            result = result.replace(original, mapped);
+        }
+    }
+
+    str_to_ptr(&result)
+}
+
+/// 字体解密文本
+#[wasm_bindgen]
+pub fn font_decrypt_text(text_ptr: *const u8, text_len: usize) -> *mut u8 {
+    let text = str_from_ptr(text_ptr, text_len);
+    if text.is_empty() {
+        return str_to_ptr("");
+    }
+
+    let (_, _, reverse_number_map, reverse_chinese_map) = get_or_init_maps();
+    let mut result = text;
+
+    // 解密汉字（先处理汉字，因为可能包含多字节字符）
+    for (mapped, original) in reverse_chinese_map.iter() {
+        result = result.replace(mapped, original);
+    }
+
+    // 解密数字
+    for (mapped, original) in reverse_number_map.iter() {
+        result = result.replace(*mapped, &original.to_string());
+    }
+
+    str_to_ptr(&result)
+}
+
+/// 检查字符是否为加密字符
+#[wasm_bindgen]
+pub fn font_is_encrypted_char(char_ptr: *const u8, char_len: usize) -> bool {
+    let ch = str_from_ptr(char_ptr, char_len);
+    if ch.is_empty() {
+        return false;
+    }
+    
+    let (_, _, reverse_number_map, reverse_chinese_map) = get_or_init_maps();
+    
+    // 检查是否为单字符（数字）
+    if ch.len() == 1 {
+        if let Some(c) = ch.chars().next() {
+            if reverse_number_map.contains_key(&c) {
+                return true;
+            }
+        }
+    }
+    
+    // 检查是否为汉字
+    reverse_chinese_map.contains_key(ch.as_str())
+}
+
+/// 获取映射的字符数量
+#[wasm_bindgen]
+pub fn font_get_mapped_char_count() -> *mut u8 {
+    let (number_map, chinese_map, _, _) = get_or_init_maps();
+    let result = format!(r#"{{"numbers":{},"chinese":{}}}"#, number_map.len(), chinese_map.len());
+    str_to_ptr(&result)
+}
+
+/// 获取动态映射表（JSON格式，每次调用都重新生成）
+#[wasm_bindgen]
+pub fn font_get_maps() -> *mut u8 {
+    let (number_map, chinese_map, reverse_number_map, reverse_chinese_map) = generate_new_maps();
+    
+    // 转换为 JSON 格式
+    let number_map_json: serde_json::Map<String, serde_json::Value> = number_map
+        .iter()
+        .map(|(k, v)| (k.to_string(), json!(v.to_string())))
+        .collect();
+    
+    let chinese_map_json: serde_json::Map<String, serde_json::Value> = chinese_map
+        .iter()
+        .map(|(k, v)| (k.to_string(), json!(v.to_string())))
+        .collect();
+    
+    let reverse_number_map_json: serde_json::Map<String, serde_json::Value> = reverse_number_map
+        .iter()
+        .map(|(k, v)| (k.to_string(), json!(v.to_string())))
+        .collect();
+    
+    let reverse_chinese_map_json: serde_json::Map<String, serde_json::Value> = reverse_chinese_map
+        .iter()
+        .map(|(k, v)| (k.to_string(), json!(v.to_string())))
+        .collect();
+    
+    let result = json!({
+        "numberMap": number_map_json,
+        "chineseMap": chinese_map_json,
+        "reverseNumberMap": reverse_number_map_json,
+        "reverseChineseMap": reverse_chinese_map_json
+    });
+    
+    str_to_ptr(&result.to_string())
 }

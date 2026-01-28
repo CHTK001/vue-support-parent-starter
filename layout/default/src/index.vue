@@ -15,6 +15,7 @@ import { useLoadingPage } from "./hooks/useLoadingPage";
 import { useResponsiveLayout } from "./hooks/useResponsiveLayout";
 import { useWatermarkSetup } from "./hooks/useWatermarkSetup";
 import { useDebugMode } from "./hooks/useDebugMode";
+import { useFontEncryption } from "./utils/useFontEncryption";
 import { setType } from "./types";
 import ScDebugConsole from "@repo/components/ScDebugConsole/index.vue";
 
@@ -54,6 +55,8 @@ import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 // 导入主题皮肤样式
 import "./themes/christmas.scss";
 import "./themes/spring-festival.scss";
+// 导入字体加密样式
+import "./styles/font-encryption.css";
 
 window.onload = () => {
   registerRequestIdleCallback(() => {
@@ -101,6 +104,16 @@ const { initWatermark } = useWatermarkSetup(watermarkContainerRef);
 // 调试模式
 const { debugMode, setDebugConsoleRef, handleDebugConsoleClose } = useDebugMode();
 setDebugConsoleRef(debugConsoleRef);
+
+// 字体加密
+const fontEncryptionConfig = computed(() => ({
+  enabled: $storage?.configure?.fontEncryptionEnabled ?? true,
+  encryptNumbers: $storage?.configure?.fontEncryptionNumbers ?? true,
+  encryptChinese: $storage?.configure?.fontEncryptionChinese ?? true,
+  applyGlobal: $storage?.configure?.fontEncryptionGlobal ?? true,
+  ocrNoise: $storage?.configure?.fontEncryptionOcrNoise ?? false,
+}));
+useFontEncryption(() => fontEncryptionConfig.value);
 
 // AI 助手皮肤主题
 const aiChatTheme = ref(getConfig().AiChatTheme || "default");

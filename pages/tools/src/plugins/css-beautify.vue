@@ -1,7 +1,26 @@
 <template>
-  <div class="css-beautify-container">
-    <sc-panel class="editor-panel" title="CSS 美化工具" theme="primary">
-      <div class="option-bar">
+  <div class="css-beautify-tool">
+    <!-- 头部区域 -->
+    <div class="css-beautify-tool__header">
+      <div class="css-beautify-tool__header-content">
+        <IconifyIconOnline icon="ri:code-s-slash-line" class="css-beautify-tool__header-icon" />
+        <div>
+          <h2 class="css-beautify-tool__header-title">CSS 美化工具</h2>
+          <p class="css-beautify-tool__header-desc">格式化、美化和优化 CSS 代码，提升代码可读性</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="css-beautify-tool__content">
+      <el-card class="css-beautify-tool__editor-card" shadow="hover">
+        <template #header>
+          <div class="css-beautify-tool__card-header">
+            <IconifyIconOnline icon="ri:code-s-slash-line" class="css-beautify-tool__card-icon" />
+            <span>CSS 编辑器</span>
+          </div>
+        </template>
+
+        <div class="css-beautify-tool__option-bar">
         <el-radio-group v-model="indentType" size="small">
           <el-radio-button label="space">空格缩进</el-radio-button>
           <el-radio-button label="tab">Tab 缩进</el-radio-button>
@@ -16,7 +35,7 @@
           @change="formatCss"
         />
 
-        <el-button-group class="action-buttons">
+          <el-button-group class="css-beautify-tool__action-buttons">
           <el-button type="primary" @click="formatCss">
             <IconifyIconOnline icon="ep:refresh" />
             格式化
@@ -32,10 +51,10 @@
         </el-button-group>
       </div>
 
-      <div class="editor-container">
-        <div class="editor-wrapper">
-          <div class="editor-header">输入 CSS 代码</div>
-          <div class="editor-body">
+          <div class="css-beautify-tool__editor-container">
+            <div class="css-beautify-tool__editor-wrapper">
+              <div class="css-beautify-tool__editor-header">输入 CSS 代码</div>
+              <div class="css-beautify-tool__editor-body">
             <el-input
               v-model="inputCss"
               type="textarea"
@@ -46,32 +65,29 @@
             />
           </div>
         </div>
-        <div class="editor-divider">
-          <IconifyIconOnline icon="ep:d-arrow-right" />
-        </div>
-        <div class="editor-wrapper">
-          <div class="editor-header">格式化结果</div>
-          <div class="editor-body">
-            <pre class="css-result" ref="codeResult">{{ formattedCss }}</pre>
+            <div class="css-beautify-tool__editor-divider">
+              <IconifyIconOnline icon="ri:arrow-right-line" />
+            </div>
+            <div class="css-beautify-tool__editor-wrapper">
+              <div class="css-beautify-tool__editor-header">格式化结果</div>
+              <div class="css-beautify-tool__editor-body">
+                <pre class="css-beautify-tool__css-result" ref="codeResult">{{ formattedCss }}</pre>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="tips">
-          <p>
-            提示：点击格式化按钮或在输入框中输入代码后自动格式化。可调整缩进类型和缩进大小。
-          </p>
-          <p>支持压缩后的 CSS 代码美化。</p>
-        </div>
-      </template>
-    </sc-panel>
+        </el-card>
 
     <el-divider>格式化选项</el-divider>
 
-    <el-row :gutter="20">
-      <el-col :span="12">
-        <sc-panel title="基本设置" theme="info">
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-card class="css-beautify-tool__settings-card" shadow="hover">
+            <template #header>
+              <div class="css-beautify-tool__card-header">
+                <IconifyIconOnline icon="ri:settings-3-line" class="css-beautify-tool__card-icon" />
+                <span>基本设置</span>
+              </div>
+            </template>
           <el-form label-position="top">
             <el-form-item label="换行规则">
               <el-select
@@ -100,12 +116,18 @@
                 @change="formatCss"
               />
             </el-form-item>
-          </el-form>
-        </sc-panel>
-      </el-col>
+            </el-form>
+          </el-card>
+        </el-col>
 
-      <el-col :span="12">
-        <sc-panel title="高级设置" theme="info">
+        <el-col :span="12">
+          <el-card class="css-beautify-tool__settings-card" shadow="hover">
+            <template #header>
+              <div class="css-beautify-tool__card-header">
+                <IconifyIconOnline icon="ri:settings-4-line" class="css-beautify-tool__card-icon" />
+                <span>高级设置</span>
+              </div>
+            </template>
           <el-form label-position="top">
             <el-form-item label="自动修复简单错误">
               <ScSwitch v-model="autoFix" layout="modern" @change="formatCss" />
@@ -135,12 +157,18 @@
                 <el-option label="HSL 格式" value="hsl" />
               </el-select>
             </el-form-item>
-          </el-form>
-        </sc-panel>
-      </el-col>
-    </el-row>
+            </el-form>
+          </el-card>
+        </el-col>
+      </el-row>
 
-    <sc-panel title="使用帮助" theme="warning">
+      <el-card class="css-beautify-tool__help-card" shadow="hover">
+        <template #header>
+          <div class="css-beautify-tool__card-header">
+            <IconifyIconOnline icon="ri:question-line" class="css-beautify-tool__card-icon" />
+            <span>使用帮助</span>
+          </div>
+        </template>
       <h3>如何使用</h3>
       <ol>
         <li>在左侧输入框中粘贴您需要格式化的 CSS 代码。</li>
@@ -173,8 +201,9 @@
         </li>
         <li><strong>属性排序：</strong> 按字母顺序或类型对属性进行排序。</li>
         <li><strong>颜色格式：</strong> 统一颜色值的表示方式。</li>
-      </ul>
-    </sc-panel>
+        </ul>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -453,93 +482,151 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.css-beautify-container {
-  padding: 0;
-}
+<style lang="scss" scoped>
+.css-beautify-tool {
+  padding: 20px;
 
-.editor-panel {
-  margin-bottom: 20px;
-}
+  &__header {
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
-.option-bar {
-  display: flex;
-  align-items: center;
-  margin-bottom: 15px;
-  gap: 12px;
-}
+  &__header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-.action-buttons {
-  margin-left: auto;
-}
+  &__header-icon {
+    font-size: 48px;
+    opacity: 0.9;
+  }
 
-.editor-container {
-  display: flex;
-  flex-direction: row;
-  gap: 16px;
-  height: 350px;
-}
+  &__header-title {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
 
-.editor-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 4px;
-  overflow: hidden;
-}
+  &__header-desc {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+  }
 
-.editor-header {
-  padding: 8px 12px;
-  background-color: var(--el-color-primary-light-9);
-  border-bottom: 1px solid var(--el-border-color-light);
-  font-weight: bold;
-  color: var(--el-color-primary);
-}
+  &__content {
+    background-color: var(--el-bg-color);
+    border-radius: 12px;
+    padding: 24px;
+  }
 
-.editor-body {
-  flex: 1;
-  overflow: auto;
-  background-color: var(--el-bg-color-page);
-}
+  &__card-header {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
 
-.editor-body :deep(.el-textarea__inner) {
-  height: 100%;
-  font-family: "Monaco", "Menlo", "Courier New", monospace;
-  padding: 12px;
-  border: none;
-  border-radius: 0;
-  resize: none;
-  line-height: 1.5;
-  font-size: 14px;
-  background-color: var(--el-bg-color-page);
-}
+  &__card-icon {
+    font-size: 22px;
+    margin-right: 10px;
+    color: var(--el-color-primary);
+  }
 
-.css-result {
-  height: 100%;
-  margin: 0;
-  padding: 12px;
-  overflow: auto;
-  font-family: "Monaco", "Menlo", "Courier New", monospace;
-  white-space: pre-wrap;
-  line-height: 1.5;
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-}
+  &__editor-card,
+  &__settings-card,
+  &__help-card {
+    margin-bottom: 24px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
 
-.editor-divider {
-  display: flex;
-  align-items: center;
-  color: var(--el-color-info);
-}
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-primary-light-7);
+    }
+  }
 
-.tips {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  line-height: 1.5;
-}
+  &__option-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 12px;
+  }
 
-.tips p {
-  margin: 4px 0;
+  &__action-buttons {
+    margin-left: auto;
+  }
+
+  &__editor-container {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    height: 350px;
+  }
+
+  &__editor-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  &__editor-header {
+    padding: 8px 12px;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-color-primary-light-8) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-light);
+    font-weight: 600;
+    color: var(--el-color-primary);
+  }
+
+  &__editor-body {
+    flex: 1;
+    overflow: auto;
+    background-color: var(--el-bg-color-page);
+  }
+
+  &__editor-body :deep(.el-textarea__inner) {
+    height: 100%;
+    font-family: "Monaco", "Menlo", "Courier New", monospace;
+    padding: 12px;
+    border: none;
+    border-radius: 0;
+    resize: none;
+    line-height: 1.5;
+    font-size: 14px;
+    background-color: var(--el-bg-color-page);
+  }
+
+  &__css-result {
+    height: 100%;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    font-family: "Monaco", "Menlo", "Courier New", monospace;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+  }
+
+  &__editor-divider {
+    display: flex;
+    align-items: center;
+    color: var(--el-color-primary);
+    font-size: 24px;
+  }
 }
 </style>

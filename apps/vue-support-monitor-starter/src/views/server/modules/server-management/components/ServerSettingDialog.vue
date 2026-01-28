@@ -563,7 +563,7 @@ const handleSubmit = async () => {
 defineExpose({ open });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .dialog-content {
   display: flex;
   min-height: 500px;
@@ -863,4 +863,15 @@ input:checked + .slider:before {
   background: #dcdfe6;
   border-radius: 3px;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

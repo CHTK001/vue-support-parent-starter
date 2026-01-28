@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="server-management">
+  <div class="server-management system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -189,7 +189,7 @@ import { getServerStatistics, checkRemoteDesktopAvailability } from "@/api/serve
 // 导入组件
 import ServerList from "./components/ServerList.vue";
 import ServerConnectionStatusList from "./components/ServerConnectionStatusList.vue";
-import FileUploadTasks from "./components/FileUploadTasks.vue";
+import FileUploadTasks from "@/views/server/components/ServerFileUploadTasks.vue";
 import ServerScripts from "./components/ServerScripts.vue";
 import ServerLogs from "./components/ServerLogs.vue";
 
@@ -200,8 +200,8 @@ import ServerConfigDialog from "./components/ServerConfigDialog.vue";
 import ServerTerminalDialog from "./components/ServerTerminalDialog.vue";
 import ServerMonitorDialog from "./components/ServerMonitorDialog.vue";
 import FileManager from "../file-management/index.vue";
-import ScriptExecutorDialog from "./components/ScriptExecutorDialog.vue";
-import FileUploadDialog from "./components/FileUploadDialog.vue";
+import ScriptExecutorDialog from "@/views/server/components/dialogs/ScriptExecutorDialog.vue";
+import FileUploadDialog from "@/views/file-manager/components/FileUploadDialog.vue";
 
 // 路由实例
 const router = useRouter();
@@ -535,89 +535,177 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .server-management {
-  padding: 20px;
-  background: var(--el-bg-color-overlay);
+  padding: 32px;
   min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding: 20px;
-    background: var(--el-bg-color-overlay);
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 32px;
+    padding: 24px 32px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.04),
+      0 2px 8px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.04);
+    }
 
     .header-left {
       .page-title {
         display: flex;
         align-items: center;
-        margin: 0 0 8px 0;
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
+        margin: 0 0 12px 0;
+        font-size: 28px;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
 
         .title-icon {
-          margin-right: 8px;
-          color: #409eff;
+          margin-right: 12px;
+          color: var(--el-color-primary);
+          font-size: 32px;
         }
       }
 
       .page-breadcrumb {
-         color: var(--el-text-color-primary);
+        color: var(--el-text-color-regular);
+        font-size: 14px;
+      }
+    }
+    
+    .header-right {
+      .el-button {
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
       }
     }
   }
 
   .stats-cards {
-    margin-bottom: 20px;
+    margin-bottom: 32px;
 
     .stats-card {
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.06),
+        0 1px 2px rgba(0, 0, 0, 0.04);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      height: 120px;
+      
+      &:hover {
+        box-shadow: 
+          0 8px 24px rgba(0, 0, 0, 0.12),
+          0 4px 8px rgba(0, 0, 0, 0.08);
+        transform: translateY(-4px);
+      }
+      
       .stats-content {
         display: flex;
         align-items: center;
+        padding: 20px;
+        height: 100%;
 
         .stats-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 8px;
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-right: 16px;
-          font-size: 24px;
-          color: var(--el-text-color-primary);
+          margin-right: 20px;
+          font-size: 28px;
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          transition: all 0.3s ease;
 
           &.total {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           }
 
           &.online {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
           }
 
           &.offline {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
           }
 
           &.error {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
           }
         }
 
         .stats-info {
+          flex: 1;
+          
           .stats-value {
-            font-size: 28px;
-            font-weight: 600;
+            font-size: 32px;
+            font-weight: 700;
             color: var(--el-text-color-primary);
             line-height: 1;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
           }
 
           .stats-label {
             font-size: 14px;
-             color: var(--el-text-color-primary);
-            margin-top: 4px;
+            color: var(--el-text-color-regular);
+            margin-top: 0;
+            font-weight: 500;
           }
         }
       }
@@ -625,18 +713,41 @@ onMounted(() => {
   }
 
   .main-content {
-    background: var(--el-bg-color-overlay);
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.06),
+      0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    overflow: hidden;
 
     .management-tabs {
       :deep(.el-tabs__header) {
         margin: 0;
-        border-bottom: 1px solid #e4e7ed;
+        padding: 0 24px;
+        background: rgba(255, 255, 255, 0.5);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+      
+      :deep(.el-tabs__nav) {
+        border: none;
+      }
+      
+      :deep(.el-tabs__item) {
+        padding: 16px 24px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border-radius: 8px 8px 0 0;
+        
+        &.is-active {
+          color: var(--el-color-primary);
+        }
       }
 
       :deep(.el-tabs__content) {
-        padding: 20px;
+        padding: 24px;
       }
     }
   }

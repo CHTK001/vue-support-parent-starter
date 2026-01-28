@@ -46,13 +46,44 @@
    全局组件样式（全局选择器版本）
    ======================================== */
 
-/* 导航栏 */
+/* 导航栏 - 增强版 */
 .theme-new-year .modern-navbar,
 .theme-new-year .lay-navbar { 
   background: linear-gradient(135deg, rgba(245, 251, 255, 0.95) 0%, rgba(232, 244, 252, 0.95) 100%);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(124, 194, 232, 0.3);
-  box-shadow: 0 2px 16px rgba(42, 122, 184, 0.08);
+  border-bottom: 3px solid rgba(124, 194, 232, 0.4);
+  box-shadow: 0 4px 20px rgba(42, 122, 184, 0.15),
+    0 0 30px rgba(124, 194, 232, 0.2);
+  position: relative;
+}
+
+.theme-new-year .modern-navbar::before,
+.theme-new-year .lay-navbar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(124, 194, 232, 0.2) 50%,
+    transparent 100%
+  );
+  animation: navbar-ice-glow 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes navbar-ice-glow {
+  0%, 100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(100%);
+    opacity: 1;
+  }
 }
 
 /* 头部容器 */
@@ -193,7 +224,7 @@
 }
 
 /* ========================================
-   顶部冰晶装饰线
+   顶部冰晶装饰线 - 增强版
    ======================================== */
 .theme-new-year::before {
   content: "";
@@ -201,37 +232,91 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 5px;
   background: linear-gradient(
     90deg, 
     transparent 0%,
-    #B8E0F2 15%,
-    #7CC2E8 30%,
-    #4EA8DE 50%,
-    #7CC2E8 70%,
-    #B8E0F2 85%,
+    #B8E0F2 10%,
+    #7CC2E8 25%,
+    #4EA8DE 40%,
+    #2A7AB8 50%,
+    #4EA8DE 60%,
+    #7CC2E8 75%,
+    #B8E0F2 90%,
     transparent 100%
   );
   z-index: 9999;
   pointer-events: none;
-  box-shadow: 0 0 12px rgba(78, 168, 222, 0.4);
+  box-shadow: 0 2px 20px rgba(78, 168, 222, 0.6),
+    0 0 30px rgba(124, 194, 232, 0.5);
+  animation: ice-crystal-shimmer 4s ease-in-out infinite;
+}
+
+@keyframes ice-crystal-shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+    opacity: 1;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.9;
+  }
 }
 
 /* ========================================
-   雪花装饰
+   雪花装饰 - 增强版
    ======================================== */
 .theme-new-year::after {
   content: "❄";
   position: fixed;
   top: 16px;
   right: 24px;
-  font-size: 28px;
+  font-size: 40px;
   color: #7CC2E8;
   animation: snowflake-float 4s ease-in-out infinite;
   z-index: 9998;
   pointer-events: none;
-  text-shadow: 0 0 8px rgba(124, 194, 232, 0.6);
-  filter: drop-shadow(0 0 4px rgba(78, 168, 222, 0.4));
+  text-shadow: 0 0 12px rgba(124, 194, 232, 0.8);
+  filter: drop-shadow(0 0 8px rgba(78, 168, 222, 0.6));
+}
+
+/* 左侧雪花装饰 */
+.theme-new-year body::before {
+  content: "❄";
+  position: fixed;
+  top: 80px;
+  left: 5%;
+  font-size: 36px;
+  color: #B8E0F2;
+  z-index: 9997;
+  pointer-events: none;
+  animation: snowflake-float 5s ease-in-out infinite 1s;
+  text-shadow: 0 0 10px rgba(184, 224, 242, 0.7);
+  filter: drop-shadow(0 0 6px rgba(78, 168, 222, 0.5));
+}
+
+/* 底部新年装饰 */
+.theme-new-year body::after {
+  content: "🎊";
+  position: fixed;
+  bottom: 20px;
+  left: 5%;
+  font-size: 44px;
+  z-index: 9997;
+  pointer-events: none;
+  animation: confetti-burst 2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 16px rgba(78, 168, 222, 0.5));
+}
+
+@keyframes confetti-burst {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+    opacity: 1;
+  }
 }
 
 @keyframes snowflake-float {

@@ -1,5 +1,5 @@
 <template>
-  <div class="merchant-page">
+  <div class="system-container merchant-page">
     <div class="merchant-header">
       <div class="left">
         <iconifyIconOnline icon="ri:store-2-fill" width="18" />
@@ -35,7 +35,7 @@
       :row-size="2"
       :url="fetchPageMerchant"
       :params="form"
-      class="merchant-table"
+      class="modern-table merchant-table"
       @data-loaded="handleDataLoaded"
     >
       <template #default="{ row }">

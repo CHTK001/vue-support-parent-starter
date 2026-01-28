@@ -235,7 +235,7 @@ export default {
   }
 }
 </script>
-<style scoped>
+<style scoped lang="scss">
 .log-view-wrapper {
   background: var(--el-bg-color-page);
   color: var(--el-color-warning);

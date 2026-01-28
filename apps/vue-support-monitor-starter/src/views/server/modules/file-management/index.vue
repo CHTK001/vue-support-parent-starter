@@ -1,5 +1,5 @@
 <template>
-  <div class="file-manager">
+  <div class="file-manager system-container modern-bg">
     <!-- 使用新的文件管理页面组件 -->
     <FileManagerPage
       ref="fileManagerPageRef"
@@ -63,15 +63,20 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@import "@/styles/mixins.scss";
+
 .file-manager {
-  height: 100vh; /* 撑满整个视口高度 */
-  width: 100vw; /* 撑满整个视口宽度 */
-   background: var(--el-bg-color-overlay); /* 设置背景为白色 */
-  position: fixed; /* 固定定位确保撑满页面 */
+  @include system-container;
+  @include modern-bg;
+  position: fixed;
   top: 0;
   left: 0;
-  z-index: 1000; /* 确保在最上层 */
-  overflow: hidden; /* 防止滚动条 */
+  width: 100vw;
+  height: 100vh;
+  background: var(--el-bg-color-overlay);
+  z-index: 1000;
+  overflow: hidden;
 }
+
 </style>

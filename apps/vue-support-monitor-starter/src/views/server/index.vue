@@ -1,5 +1,5 @@
 <template>
-  <div class="server-wrapper">
+  <div class="server-wrapper system-container modern-bg">
     <!-- 使用 server-management 组件，传递数据 -->
     <ServerManagement
       :servers="servers"
@@ -470,14 +470,80 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: $gradient-bg-1, $gradient-bg-2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .server-wrapper {
-  height: 100vh;
+  height: 100%;
   width: 100%;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+
+  // 确保内容在背景之上（背景由 modern-bg 提供）
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
+
 .offline {
-  background-color: red;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
 }
+
 .online {
-  background-color: green;
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
 }
+
+// 深色主题支持
+:root.dark {
+  .server-wrapper {
+    &::before {
+      background:
+        radial-gradient(
+          circle at 20% 30%,
+          rgba(99, 102, 241, 0.15) 0%,
+          transparent 50%
+        ),
+        radial-gradient(
+          circle at 80% 70%,
+          rgba(168, 85, 247, 0.12) 0%,
+          transparent 50%
+        );
+    }
+  }
+}
+
+
+@include respond-to(sm) {
+  .server-wrapper {
+    min-height: 100svh;
+  }
+}
+
 </style>

@@ -1,15 +1,20 @@
 <template>
-  <div class="video-source">
+  <div class="system-container modern-bg">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="page-header-content">
+        <IconifyIconOnline icon="ep:video-camera" class="page-header-icon" />
+        <div>
+          <h2 class="page-header-title">视频源管理</h2>
+          <p class="page-header-desc">管理视频源平台配置和连接状态</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 视频源列表 -->
     <div class="source-list flex flex-col h-full">
       <div class="list-header">
         <div class="list-header-content">
-          <div class="list-title-section">
-            <div class="list-icon">
-              <IconifyIconOnline icon="ep:video-camera" />
-            </div>
-            <h3 class="list-title">视频源管理</h3>
-          </div>
 
           <div class="list-actions">
             <div class="search-input">
@@ -328,22 +333,50 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
-.video-source {
-  padding: 20px;
-  background: var(--el-bg-color-overlay);
+<style scoped lang="scss">
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.page-header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-header-icon {
+  font-size: 48px;
+  opacity: 0.9;
+}
+
+.page-header-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.page-header-desc {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 .source-list {
   background: var(--el-bg-color-overlay);
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
 .list-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--el-border-color);
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color-overlay);
 }
 
@@ -351,35 +384,6 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.list-title-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.list-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-color-white);
-  font-size: 18px;
-}
-
-.list-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
 }
 
 .list-actions {
@@ -393,37 +397,40 @@ onUnmounted(() => {
 }
 
 .filter-select {
-  width: 120px;
+  width: 140px;
 }
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .action-btn {
-  height: 36px;
-  border-radius: 6px;
+  height: 38px;
+  border-radius: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .primary-action {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
-  border: none;
-  color: var(--el-color-white);
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 .secondary-action {
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color);
   color: var(--el-text-color-regular);
+  
+  &:hover {
+    border-color: var(--el-color-primary);
+    color: var(--el-color-primary);
+  }
 }
 
 .list-content {
-  padding: 20px;
+  padding: 24px;
 }
 
 .source-cards {
@@ -432,47 +439,73 @@ onUnmounted(() => {
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: 72px;
   color: var(--el-text-color-placeholder);
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  opacity: 0.6;
 }
 
 .empty-title {
-  font-size: 18px;
+  font-size: 20px;
   color: var(--el-text-color-primary);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  font-weight: 600;
 }
 
 .empty-description {
   font-size: 14px;
-  color: var(--el-text-color-primary);
-  margin-bottom: 24px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 32px;
+  line-height: 1.6;
 }
 
 .empty-action {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
-  border: none;
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+  font-weight: 500;
 }
 
 .source-dialog {
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .source-dialog :deep(.el-dialog__header) {
-  background: var(--el-fill-color-lighter);
+  background: linear-gradient(135deg, var(--el-color-primary-light-5) 0%, var(--el-color-primary-light-3) 100%);
   border-bottom: 1px solid var(--el-border-color-lighter);
   padding: 20px 24px;
+  border-radius: 12px 12px 0 0;
 }
 
 .source-dialog :deep(.el-dialog__body) {
   padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .list-header-content {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .list-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .search-input,
+  .filter-select {
+    width: 100%;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .action-btn {
+    flex: 1;
+  }
 }
 </style>

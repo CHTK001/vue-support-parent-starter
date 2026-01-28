@@ -305,7 +305,7 @@ watch(
 )
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .sync-progress-container {
   max-height: 600px;
   overflow-y: auto;
@@ -489,4 +489,15 @@ watch(
   justify-content: flex-end;
   gap: 12px;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

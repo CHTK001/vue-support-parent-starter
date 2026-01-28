@@ -4,6 +4,7 @@ export default defineBuildConfig({
   entries: ["src/index"],
   clean: true,
   declaration: true,
+  failOnWarn: false,
   rollup: {
     emitCJS: false,
     esbuild: {
@@ -16,6 +17,7 @@ export default defineBuildConfig({
     "element-plus",
     "unbuild",
     "vue-i18n",
-    "@repo/components"
+    "@repo/components",
+    "./index.vue"
   ],
 }); 

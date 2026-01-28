@@ -1,5 +1,5 @@
 <template>
-  <div class="console">
+  <div class="console system-container modern-bg">
     <div class="toolbar">
       <el-input v-model="topic" placeholder="主题" class="w-240" />
       <el-input v-model="payload" placeholder="消息体" class="w-360 ml-2" />
@@ -110,8 +110,54 @@ onBeforeUnmount(() => {
 })
 
 </script>
-<style scoped>
+<style scoped lang="scss">
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  /* 渐变背景 */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .console{ display:flex; flex-direction:column; gap:8px; }
 .toolbar{ display:flex; align-items:center; gap:8px; }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>
 

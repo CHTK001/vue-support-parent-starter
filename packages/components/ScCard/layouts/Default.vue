@@ -66,19 +66,22 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .sc-card-default {
-  border-radius: 4px;
-  border: 1px solid var(--el-border-color-light);
-  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
   overflow: hidden;
   color: var(--el-text-color-primary);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   &::before {
     content: "";
     position: absolute;
-    background-color: var(--el-color-primary);
-    transition: all 0.3s ease;
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
   }
 
   // 边框位置样式
@@ -86,7 +89,7 @@ export default defineComponent({
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 3px;
     width: 100%;
   }
 
@@ -94,7 +97,7 @@ export default defineComponent({
     top: 0;
     right: 0;
     bottom: 0;
-    width: 4px;
+    width: 3px;
     height: 100%;
   }
 
@@ -102,7 +105,7 @@ export default defineComponent({
     bottom: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 3px;
     width: 100%;
   }
 
@@ -110,7 +113,7 @@ export default defineComponent({
     top: 0;
     left: 0;
     bottom: 0;
-    width: 4px;
+    width: 3px;
     height: 100%;
   }
 
@@ -119,47 +122,61 @@ export default defineComponent({
   }
 
   &__header {
-    padding: 18px 20px;
-    border-bottom: 1px solid var(--el-border-color-light);
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), transparent);
   }
 
   &__title {
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.5;
+    color: var(--el-text-color-primary);
+    letter-spacing: 0.3px;
   }
 
   &__body {
-    padding: 20px;
+    padding: 24px;
   }
 
   &__footer {
-    padding: 10px 20px;
-    border-top: 1px solid var(--el-border-color-light);
+    padding: 16px 24px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.5), transparent);
   }
 
   &.is-hoverable {
     cursor: pointer;
 
     &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-      border-color: var(--el-color-primary);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(99, 102, 241, 0.3);
+
+      &::before {
+        height: 4px;
+      }
+
+      &.border-position--right::before,
+      &.border-position--left::before {
+        width: 4px;
+      }
     }
   }
 
   &.is-shadow {
     &:hover {
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-      border-color: var(--el-color-primary);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(99, 102, 241, 0.3);
     }
   }
 
   &.is-shadow-always {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
     &:hover {
-      border-color: var(--el-color-primary);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(99, 102, 241, 0.3);
     }
   }
 }

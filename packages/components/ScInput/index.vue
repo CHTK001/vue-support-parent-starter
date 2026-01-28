@@ -388,17 +388,23 @@ defineExpose({
   position: relative;
 
   // 现代化的过渡效果
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   // 悬停效果
   &:hover {
-    transform: translateY(-1px);
+    :deep(.el-input__wrapper) {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-color: var(--el-color-primary-light-7);
+    }
   }
 
   // 聚焦状态
   &:focus-within {
-    transform: translateY(-2px);
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+    :deep(.el-input__wrapper) {
+      box-shadow: 0 4px 16px rgba(64, 158, 255, 0.2);
+      border-color: var(--el-color-primary);
+      background: rgba(255, 255, 255, 0.95);
+    }
   }
 
   // 深色模式适配

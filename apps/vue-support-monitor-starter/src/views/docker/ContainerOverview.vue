@@ -1,5 +1,5 @@
 <template>
-  <div class="container-overview">
+  <div class="container-overview system-container modern-bg">
     <!-- 页面标题 -->
     <div class="page-header">
       <div class="header-left">
@@ -120,14 +120,14 @@ import { message } from "@repo/utils";
 import { onMounted, reactive, ref } from 'vue'
 
 // 导入组件
-import ContainerAlerts from './components/ContainerAlerts.vue'
-import ContainerDetailDialog from './components/ContainerDetailDialog.vue'
-import ContainerHostMonitor from './components/ContainerHostMonitor.vue'
-import ContainerMonitoringList from './components/ContainerMonitoringList.vue'
-import ContainerPerformanceRanking from './components/ContainerPerformanceRanking.vue'
-import ContainerResourceTrend from './components/ContainerResourceTrend.vue'
-import ContainerStatusStats from './components/ContainerStatusStats.vue'
-import MonitoringOverview from './components/MonitoringOverview.vue'
+import ContainerAlerts from '@/views/docker/detail/components/ContainerAlerts.vue'
+import ContainerDetailDialog from '@/views/docker/containers/components/ContainerDetailDialog.vue'
+import ContainerHostMonitor from '@/views/docker/detail/components/ContainerHostMonitor.vue'
+import ContainerMonitoringList from '@/views/docker/monitoring/components/ContainerMonitoringList.vue'
+import ContainerPerformanceRanking from '@/views/docker/detail/components/ContainerPerformanceRanking.vue'
+import ContainerResourceTrend from '@/views/docker/monitoring/components/ContainerResourceTrend.vue'
+import ContainerStatusStats from '@/views/docker/monitoring/components/ContainerStatusStats.vue'
+import MonitoringOverview from '@/views/docker/monitoring/components/MonitoringOverview.vue'
 
 // 响应式数据
 const loading = ref(false)
@@ -242,7 +242,61 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 32px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+}
+
+
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  /* 渐变背景 */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .container-overview {
   padding: 20px;
   background: #f5f7fa;

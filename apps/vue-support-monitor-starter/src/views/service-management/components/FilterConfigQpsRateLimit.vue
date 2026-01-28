@@ -340,7 +340,7 @@ function removeFromBlacklist(ip: string) {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .qps-config-container {
   max-height: 70vh;
   overflow-y: auto;
@@ -509,4 +509,15 @@ function removeFromBlacklist(ip: string) {
   border-radius: 8px;
   padding: 10px 24px;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

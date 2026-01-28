@@ -580,11 +580,12 @@ onMounted(() => {
   <div class="ip-calculator">
     <div class="ip-calculator__content">
       <!-- 头部信息 -->
-      <div class="ip-calculator__header-container">
-        <div class="ip-calculator__header">
-          <div class="ip-calculator__header-inner">
-            <h1 class="ip-calculator__header-title">IP网络计算器</h1>
-            <p class="ip-calculator__header-subtitle">计算IP地址、子网掩码、网络地址、广播地址和可用主机数</p>
+      <div class="ip-calculator__header">
+        <div class="ip-calculator__header-content">
+          <IconifyIconOnline icon="ri:calculator-line" class="ip-calculator__header-icon" />
+          <div>
+            <h2 class="ip-calculator__header-title">IP网络计算器</h2>
+            <p class="ip-calculator__header-desc">计算IP地址、子网掩码、网络地址、广播地址和可用主机数</p>
           </div>
         </div>
       </div>
@@ -923,30 +924,35 @@ onMounted(() => {
     padding: 20px;
   }
 
-  &__header-container {
-    margin-bottom: 24px;
-  }
-
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-light-5), var(--el-color-primary));
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
     border-radius: 12px;
     padding: 24px;
-    color: #fff;
+    margin-bottom: 20px;
+    color: white;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  &__header-inner {
-    max-width: 800px;
+  &__header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  &__header-icon {
+    font-size: 48px;
+    opacity: 0.9;
   }
 
   &__header-title {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 8px;
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
   }
 
-  &__header-subtitle {
-    font-size: 16px;
+  &__header-desc {
+    margin: 0;
+    font-size: 14px;
     opacity: 0.9;
   }
 

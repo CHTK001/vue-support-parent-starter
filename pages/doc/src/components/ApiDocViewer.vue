@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="api-doc-viewer">
+  <div class="system-container modern-bg api-doc-viewer">
     <!-- 顶部导航栏 -->
     <div class="doc-header" v-if="showHeader">
       <div class="header-left">

@@ -614,15 +614,20 @@ defineExpose({
   width: 100%;
 
   &--border {
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 8px;
-    padding: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   }
 
   &--background {
-    background-color: var(--el-fill-color-lighter);
-    border-radius: 8px;
-    padding: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
+    backdrop-filter: blur(15px);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   }
 
   // ==================== 快捷筛选 ====================
@@ -630,28 +635,32 @@ defineExpose({
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 
     &-label {
       font-size: 13px;
-      color: var(--el-text-color-secondary);
+      font-weight: 500;
+      color: var(--el-text-color-primary);
       white-space: nowrap;
     }
 
     &-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
     }
 
     &-item {
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 8px;
+      overflow: hidden;
 
       &:hover {
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       }
     }
   }
@@ -692,6 +701,11 @@ defineExpose({
     :deep(.el-input-number) {
       width: 100%;
       min-width: 180px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      }
     }
 
     // 日期范围选择器需要更宽
@@ -724,22 +738,33 @@ defineExpose({
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
 
     &-label {
       font-size: 13px;
-      color: var(--el-text-color-secondary);
+      font-weight: 500;
+      color: var(--el-text-color-primary);
       white-space: nowrap;
-      line-height: 24px;
+      line-height: 28px;
     }
 
     &-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
+
+      :deep(.el-tag) {
+        border-radius: 8px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+      }
     }
   }
 

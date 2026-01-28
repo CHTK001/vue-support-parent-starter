@@ -1,5 +1,5 @@
 <template>
-  <div class="limit-configuration-container">
+  <div class="limit-configuration-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
@@ -524,24 +524,24 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .limit-configuration-container {
-  padding: 0;
-  height: 100%;
-  box-sizing: border-box;
-  background-color: var(--el-bg-color-page);
+  padding: clamp(20px, 3vw, 32px);
   display: flex;
   flex-direction: column;
+  gap: clamp(18px, 2vw, 24px);
+  min-height: 100%;
 }
 
 .page-header {
   background: linear-gradient(
     135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-color-primary-light-8) 100%
+    rgba(64, 158, 255, 0.12),
+    rgba(64, 158, 255, 0.06)
   );
-  padding: 24px 32px;
-  border-radius: 8px;
-  margin: 16px 16px 0;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  padding: clamp(20px, 3vw, 28px);
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 70%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(8px);
 
   .header-content {
     display: flex;
@@ -610,20 +610,14 @@ onMounted(() => {
 
 .limit-configuration-card {
   flex: 1;
-  margin: 16px;
-  border-radius: 8px;
-  overflow: hidden;
-  border-radius: 12px;
-}
-
-.limit-configuration-card {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
   overflow: hidden;
+  backdrop-filter: blur(8px);
 
   :deep(.el-card__header) {
     background: linear-gradient(

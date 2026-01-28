@@ -25,6 +25,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
+    "@layout/default": "workspace:^",
     "@ant-design/icons-vue": "catalog:",
     "@antv/g6": "catalog:",
     "@codemirror/lang-javascript": "catalog:",

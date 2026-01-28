@@ -354,7 +354,18 @@ const openInNewWindow = () => {
             max-height: calc(100vh - 120px);
             overflow-y: auto;
           }
-        </style>
+        
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
+</style>
       </head>
       <body>
         <div class="header">
@@ -382,7 +393,7 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .logs-container {
   height: 600px;
   display: flex;

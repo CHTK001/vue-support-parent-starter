@@ -445,10 +445,13 @@ defineExpose({
   position: fixed;
   display: flex;
   align-items: center;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 -4px 24px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible;
 
   // 底部位置
@@ -549,18 +552,21 @@ defineExpose({
   &__item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: var(--el-fill-color-light);
-    border-radius: 6px;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
-    min-width: 36px;
+    min-width: 40px;
     position: relative;
+    border: 1px solid transparent;
 
     &:hover {
-      background: var(--el-fill-color);
+      background: rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
       .sc-dialog-taskbar__item-close {
         opacity: 1;
@@ -568,8 +574,9 @@ defineExpose({
     }
 
     &.is-active {
-      background: var(--el-color-primary-light-9);
-      border-bottom: 2px solid var(--el-color-primary);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.25));
+      border-bottom: 3px solid var(--el-color-primary);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
     }
 
     // 图标

@@ -1,5 +1,5 @@
 <template>
-  <div class="server-file-upload-tasks">
+  <div class="server-file-upload-tasks system-container modern-bg">
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
@@ -478,36 +478,66 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: $gradient-bg-1, $gradient-bg-2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .server-file-upload-tasks {
-  padding: 16px;
+  padding: $spacing-lg;
 }
 
 .toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: $spacing-lg;
+  gap: $spacing-md;
+  flex-wrap: wrap;
 }
 
 .toolbar-left {
   display: flex;
-  gap: 8px;
+  gap: $spacing-sm;
 }
 
 .toolbar-right {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
 }
 
 .action-buttons {
   display: flex;
-  gap: 4px;
+  gap: $spacing-xs;
   flex-wrap: wrap;
 }
 
 .pagination {
-  margin-top: 16px;
+  margin-top: $spacing-lg;
   text-align: right;
 }
 
@@ -517,18 +547,25 @@ defineExpose({
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
+
+  :deep(.el-card) {
+    border-radius: $radius-lg;
+    border: 1px solid $border-light;
+    @include glass-effect(0.95, 18px);
+    box-shadow: $shadow-lg;
+  }
 }
 
 .batch-actions-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: $spacing-lg;
 }
 
 .batch-buttons {
   display: flex;
-  gap: 8px;
+  gap: $spacing-sm;
 }
 
 .font-medium {
@@ -542,4 +579,50 @@ defineExpose({
 .text-sm {
   font-size: 0.875rem;
 }
+
+/* 表格区域做轻量统一（不侵入业务字段） */
+:deep(.el-table) {
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-sm;
+  border: 1px solid $border-light;
+}
+
+:deep(.el-table__header-wrapper) {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+:deep(.el-table__body-wrapper) {
+  @include custom-scrollbar(8px);
+}
+
+@include respond-to(sm) {
+  .toolbar-right {
+    width: 100%;
+  }
+
+  .pagination {
+    text-align: left;
+  }
+
+  .batch-actions {
+    width: calc(100% - 24px);
+    left: 12px;
+    transform: none;
+  }
+
+  .batch-actions-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .batch-buttons {
+    flex-direction: column;
+
+    .el-button {
+      width: 100%;
+    }
+  }
+}
+
 </style>

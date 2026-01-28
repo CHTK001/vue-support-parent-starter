@@ -286,7 +286,7 @@ const getFileIcon = (file: FileInfo) => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .file-detail {
   padding: 0;
 }
@@ -377,4 +377,15 @@ const getFileIcon = (file: FileInfo) => {
 .action-buttons .el-button {
   justify-content: flex-start;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

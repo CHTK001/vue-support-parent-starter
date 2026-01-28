@@ -1,5 +1,5 @@
 <template>
-  <div class="video-detail">
+  <div class="system-container modern-bg">
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="8" animated />
@@ -9,7 +9,7 @@
     <div v-else-if="videoDetail" class="detail-content">
       <!-- 返回按钮 -->
       <div class="detail-header">
-        <el-button @click="goBack" type="primary">
+        <el-button @click="goBack" type="primary" class="back-btn">
           <IconifyIconOnline icon="ep:arrow-left" />
           返回搜索结果
         </el-button>
@@ -319,20 +319,20 @@ const formatViews = (views: number) => {
 };
 </script>
 
-<style scoped>
-.video-detail {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-  min-height: 100vh;
-}
-
+<style scoped lang="scss">
 .loading-container {
   padding: 40px;
 }
 
 .detail-header {
   margin-bottom: 30px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 .main-content {
@@ -350,11 +350,17 @@ const formatViews = (views: number) => {
 .video-poster {
   position: relative;
   width: 100%;
-  height: 400px;
-  border-radius: 12px;
+  height: 450px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  margin-bottom: 24px;
+  transition: transform 0.3s ease;
+}
+
+.video-poster:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
 }
 
 .video-poster img {
@@ -369,14 +375,15 @@ const formatViews = (views: number) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.8) 0%, rgba(102, 126, 234, 0.8) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: all 0.3s ease;
   cursor: pointer;
+  backdrop-filter: blur(2px);
 }
 
 .video-poster:hover .poster-overlay {
@@ -384,22 +391,33 @@ const formatViews = (views: number) => {
 }
 
 .play-icon {
-  font-size: 64px;
-  color: var(--el-text-color-primary);
-  margin-bottom: 10px;
+  font-size: 72px;
+  color: white;
+  margin-bottom: 12px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .play-text {
-  color: var(--el-text-color-primary);
-  font-size: 16px;
-  font-weight: 500;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .rating-section {
-  background: var(--el-bg-color-overlay);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .rating-score {
@@ -498,10 +516,17 @@ const formatViews = (views: number) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 15px;
+  padding: 16px 20px;
   background: var(--el-bg-color-overlay);
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.3s ease;
+}
+
+.download-item:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
+  transform: translateY(-2px);
 }
 
 .download-info {
@@ -527,8 +552,21 @@ const formatViews = (views: number) => {
 
 .action-section {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   flex-wrap: wrap;
+}
+
+.action-section .el-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.action-section .el-button:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .not-found {
