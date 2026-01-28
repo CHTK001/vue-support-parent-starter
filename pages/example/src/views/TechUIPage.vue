@@ -1,5 +1,5 @@
 <template>
-  <div class="techui-page">
+  <div class="system-container modern-bg techui-page">
     <!-- 顶部导航栏 -->
     <div class="page-nav">
       <button class="back-btn" @click="goBack">
@@ -24,6 +24,7 @@
  * @since 2025-12-07
  */
 import { useRouter } from "vue-router";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import TechUIExample from "../components/TechUIExample.vue";
 
 const router = useRouter();

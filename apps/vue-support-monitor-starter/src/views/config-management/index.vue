@@ -1,5 +1,5 @@
 <template>
-  <div class="config-management">
+  <div class="config-management system-container modern-bg">
     <!-- 统计卡片区域 -->
     <div class="stats-row">
       <ScCard
@@ -374,47 +374,50 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@import '@/styles/mixins.scss';
+
 .config-management {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: 100vh;
+  @include system-container;
+  @include modern-bg;
+  @include flex-column;
+  padding: $padding-container;
+  gap: $spacing-lg;
 }
 
 // 统计卡片
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: $spacing-lg;
+
+  @include respond-to(lg) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to(sm) {
+    grid-template-columns: 1fr;
+  }
 }
 
 // 工具栏
 .toolbar-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 32px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  @include toolbar-style;
 
   .toolbar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    @include flex-align-center;
+    gap: $spacing-md;
   }
 
   .toolbar-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    @include flex-align-center;
+    gap: $spacing-md;
   }
 
   .search-input {
     width: 280px;
 
     :deep(.el-input__wrapper) {
-      border-radius: 10px;
+      border-radius: $radius-md;
     }
   }
 
@@ -422,32 +425,25 @@ onMounted(() => {
     width: 140px;
 
     :deep(.el-input__wrapper) {
-      border-radius: 10px;
+      border-radius: $radius-md;
     }
   }
 }
 
 // 表格区域
 .table-section {
-  padding: 24px 32px;
+  padding: $spacing-xl $spacing-4xl;
 }
 
 // 配置卡片
 .config-card {
-  display: flex;
-  flex-direction: column;
-  background: var(--el-bg-color);
-  border-radius: 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-  transition: all 0.25s ease;
-  padding: 18px;
+  @include card-base;
+  @include flex-column;
+  padding: $spacing-lg;
   height: 100%;
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
-    border-color: var(--el-color-primary-light-5);
+    @include card-hover;
   }
 
   &.disabled {
@@ -456,19 +452,17 @@ onMounted(() => {
   }
 
   .card-header {
-    display: flex;
+    @include flex-between;
     align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: $spacing-md;
   }
 
   .config-key {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    @include flex-align-center;
+    gap: $spacing-sm;
 
     .key-text {
-      font-weight: 600;
+      font-weight: $font-weight-semibold;
       font-size: 15px;
       color: var(--el-text-color-primary);
       word-break: break-all;
@@ -476,22 +470,21 @@ onMounted(() => {
   }
 
   .config-badges {
-    display: flex;
-    gap: 6px;
+    @include flex-align-center;
+    gap: $spacing-sm;
     flex-shrink: 0;
   }
 
   .card-body {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    @include flex-column;
+    gap: $spacing-sm;
   }
 
   .config-value {
-    display: flex;
+    @include flex-align-center;
     align-items: flex-start;
-    gap: 8px;
+    gap: $spacing-sm;
 
     .value-icon {
       color: var(--el-color-primary);
@@ -500,27 +493,23 @@ onMounted(() => {
     }
 
     .value-text {
-      font-size: 13px;
+      @include text-ellipsis-multiline(2);
+      font-size: $font-sm;
       color: var(--el-text-color-regular);
       word-break: break-all;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
       font-family: 'Monaco', 'Consolas', monospace;
       background: var(--el-fill-color-light);
-      padding: 4px 8px;
-      border-radius: 4px;
+      padding: 4px $spacing-sm;
+      border-radius: $radius-sm;
       flex: 1;
     }
   }
 
   .config-desc,
   .config-app {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
+    @include flex-align-center;
+    gap: $spacing-sm;
+    font-size: $font-xs;
     color: var(--el-text-color-secondary);
 
     .desc-icon,
@@ -530,80 +519,40 @@ onMounted(() => {
 
     .desc-text,
     .app-text {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      @include text-ellipsis;
     }
   }
 
   .card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 12px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    @include flex-between;
+    padding-top: $spacing-md;
+    border-top: 1px solid $border-light;
     margin-top: auto;
 
     .update-time {
-      display: flex;
-      align-items: center;
+      @include flex-align-center;
       gap: 4px;
-      font-size: 12px;
+      font-size: $font-xs;
       color: var(--el-text-color-secondary);
 
       .time-icon {
-        font-size: 14px;
+        font-size: $font-sm;
       }
     }
 
     .card-actions {
-      display: flex;
-      gap: 6px;
+      @include flex-align-center;
+      gap: $spacing-sm;
     }
   }
 }
 
 // 响应式
-@media (max-width: 1200px) {
-  .stats-section {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .modern-header {
-    padding: 20px;
-
-    .header-content {
-      flex-direction: column;
-      gap: 16px;
-      align-items: flex-start;
-    }
-
-    .header-actions {
-      width: 100%;
-      justify-content: flex-end;
-    }
-  }
-
-  .stats-section {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 16px;
-
-    .stat-card {
-      padding: 16px;
-
-      .stat-info .stat-value {
-        font-size: 24px;
-      }
-    }
-  }
-
+@include respond-to(md) {
   .toolbar-section {
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    gap: $spacing-md;
+    padding: $spacing-lg;
 
     .toolbar-left,
     .toolbar-right {
@@ -622,13 +571,7 @@ onMounted(() => {
   }
 
   .table-section {
-    padding: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-section {
-    grid-template-columns: 1fr;
+    padding: $spacing-lg;
   }
 }
 </style>

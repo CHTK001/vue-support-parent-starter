@@ -76,6 +76,7 @@ const routeMenuMap: Record<string, string> = {
   webrtcVideoCall: '/webrtc/video-call',
   webrtcVideoConference: '/webrtc/video-conference',
   webrtcScreenShare: '/webrtc/screen-share',
+  webrtcRemoteDesktop: '/webrtc/remote-desktop',
   webrtcStatistics: '/webrtc/statistics',
   // 节假日管理路由
   holidayIndex: '/holiday/index',

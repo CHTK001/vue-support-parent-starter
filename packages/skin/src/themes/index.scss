@@ -4,16 +4,16 @@
  */
 
 // 基础重置样式
-@import './base-override.scss';
+@use './base-override.scss';
 
 // 默认主题
-@import './default.scss';
+@use './default.scss';
 
 // 节日主题
-@import './spring-festival.scss';
-@import './christmas.scss';
-@import './mid-autumn.scss';
-@import './new-year.scss';
+@use './spring-festival.scss';
+@use './christmas.scss';
+@use './mid-autumn.scss';
+@use './new-year.scss';
 
 // 内测主题
-@import './cyberpunk.scss';
+@use './cyberpunk.scss';

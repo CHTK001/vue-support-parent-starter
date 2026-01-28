@@ -364,16 +364,12 @@ onMounted(() => {
   <div class="text-diff-tool">
     <div class="text-diff-tool__content">
       <!-- 头部信息 -->
-      <div class="text-diff-tool__header-container">
-        <div class="text-diff-tool__header">
-          <div class="text-diff-tool__header-inner">
-            <h1 class="text-diff-tool__header-title">文本对比工具</h1>
-            <p class="text-diff-tool__header-subtitle">比较两段文本或代码，高亮显示差异，支持多种编程语言</p>
-          </div>
-          <div class="text-diff-tool__header-decoration">
-            <div class="text-diff-tool__header-circle"></div>
-            <div class="text-diff-tool__header-circle"></div>
-            <div class="text-diff-tool__header-circle"></div>
+      <div class="text-diff-tool__header">
+        <div class="text-diff-tool__header-content">
+          <IconifyIconOnline icon="ri:contrast-2-line" class="text-diff-tool__header-icon" />
+          <div>
+            <h2 class="text-diff-tool__header-title">文本对比工具</h2>
+            <p class="text-diff-tool__header-desc">比较两段文本或代码，高亮显示差异，支持多种编程语言</p>
           </div>
         </div>
       </div>
@@ -565,44 +561,36 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-.text-diff-tool__header-container {
-  margin-bottom: 24px;
+.text-diff-tool__header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.text-diff-tool__header {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  border-radius: 8px;
-  padding: 24px;
-  color: var(--el-text-color-primary);
+.text-diff-tool__header-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  position: relative;
-  overflow: hidden;
+  gap: 16px;
+}
+
+.text-diff-tool__header-icon {
+  font-size: 48px;
+  opacity: 0.9;
 }
 
 .text-diff-tool__header-title {
-  font-size: 28px;
   margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
 }
 
-.text-diff-tool__header-subtitle {
-  font-size: 16px;
-  opacity: 0.8;
+.text-diff-tool__header-desc {
   margin: 0;
-}
-
-.text-diff-tool__header-decoration {
-  display: flex;
-  gap: 8px;
-}
-
-.text-diff-tool__header-circle {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 .text-diff-tool__card-header {

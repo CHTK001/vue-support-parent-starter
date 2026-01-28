@@ -377,7 +377,7 @@ const handleDrop = (event: DragEvent) => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .file-upload-dialog {
   --dialog-border-radius: 8px;
 }
@@ -472,4 +472,15 @@ const handleDrop = (event: DragEvent) => {
   color: var(--el-text-color-secondary);
   margin: 0;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

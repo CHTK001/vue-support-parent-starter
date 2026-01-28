@@ -199,21 +199,22 @@ const handleEdit = () => {
 <style scoped>
 .source-card {
   background: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   overflow: hidden;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .source-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+  border-color: var(--el-color-primary);
 }
 
 .source-card.disabled {
-  opacity: 0.6;
-  background: var(--el-bg-color-overlay);
+  opacity: 0.65;
+  background: var(--el-fill-color-lighter);
 }
 
 .card-header {
@@ -232,16 +233,17 @@ const handleEdit = () => {
 }
 
 .platform-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-text-color-primary);
-  font-size: 20px;
+  color: white;
+  font-size: 24px;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 .platform-details {
@@ -347,13 +349,16 @@ const handleEdit = () => {
 .edit-btn {
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color);
-  color: #606266;
+  color: var(--el-text-color-regular);
+  transition: all 0.3s ease;
 }
 
 .edit-btn:hover {
-  background: var(--el-bg-color-overlay);
-  border-color: #409eff;
-  color: var(--el-text-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+  transform: translateY(-2px);
 }
 
 /* 下拉菜单样式 */

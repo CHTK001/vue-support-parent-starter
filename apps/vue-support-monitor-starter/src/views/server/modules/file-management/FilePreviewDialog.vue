@@ -500,7 +500,7 @@ watch(
 );
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .file-preview-dialog {
   --dialog-border-radius: 8px;
 }

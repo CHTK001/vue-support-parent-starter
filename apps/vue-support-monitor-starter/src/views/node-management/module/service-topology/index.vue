@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="service-topology">
+  <div class="service-topology system-container modern-bg">
     <!-- 工具栏 -->
     <el-card class="toolbar-card" shadow="never">
       <div class="toolbar">
@@ -115,7 +115,8 @@ import {
   type TopologyNode,
   type TopologyEdge,
 } from "@/api/server/agent-data";
-import G6, { type Graph, type IEdge } from "@antv/g6";
+import { Graph, register, Quadratic } from "@antv/g6";
+import type { IEdge } from "@antv/g6";
 
 // 数据
 const topologyData = ref<ServiceTopologyData>({
@@ -165,50 +166,50 @@ const loadTopologyData = async () => {
  * 注册线条流动动画
  */
 const registerEdgeAnimation = () => {
-  G6.registerEdge(
-    "flow-line",
-    {
-      afterDraw(cfg, group) {
-        if (!cfg || !group) return;
-        
-        const shape = group.get("children")[0];
-        if (!shape) return;
+  // 创建自定义边类，继承自 Quadratic
+  class FlowLineEdge extends Quadratic {
+    afterDraw(cfg: any, group: any) {
+      if (!cfg || !group) return;
+      
+      const shape = group.get("children")[0];
+      if (!shape) return;
 
-        const startPoint = shape.getPoint(0);
-        const endPoint = shape.getPoint(1);
-        
-        // 创建流动的圆点
-        const circle = group.addShape("circle", {
-          attrs: {
-            x: startPoint.x,
-            y: startPoint.y,
-            fill: "#1890ff",
-            r: 4,
-            shadowColor: "#1890ff",
-            shadowBlur: 10,
-          },
-          name: "flow-circle",
-        });
+      const startPoint = shape.getPoint(0);
+      const endPoint = shape.getPoint(1);
+      
+      // 创建流动的圆点
+      const circle = group.addShape("circle", {
+        attrs: {
+          x: startPoint.x,
+          y: startPoint.y,
+          fill: "#1890ff",
+          r: 4,
+          shadowColor: "#1890ff",
+          shadowBlur: 10,
+        },
+        name: "flow-circle",
+      });
 
-        // 执行动画
-        circle.animate(
-          (ratio: number) => {
-            const point = shape.getPoint(ratio);
-            return {
-              x: point.x,
-              y: point.y,
-            };
-          },
-          {
-            repeat: true,
-            duration: 2000,
-            easing: "easeLinear",
-          }
-        );
-      },
-    },
-    "quadratic"
-  );
+      // 执行动画
+      circle.animate(
+        (ratio: number) => {
+          const point = shape.getPoint(ratio);
+          return {
+            x: point.x,
+            y: point.y,
+          };
+        },
+        {
+          repeat: true,
+          duration: 2000,
+          easing: "easeLinear",
+        }
+      );
+    }
+  }
+
+  // 注册自定义边
+  register("edge", "flow-line", FlowLineEdge);
 };
 
 /**
@@ -256,7 +257,8 @@ const renderGraph = () => {
       stroke: "#91d5ff",
       lineWidth: Math.min(edge.callCount / 10 + 1, 5),
       endArrow: {
-        path: G6.Arrow.triangle(8, 10, 5),
+        type: "triangle",
+        size: 8,
         fill: "#91d5ff",
       },
     },
@@ -280,7 +282,7 @@ const renderGraph = () => {
   }
 
   // 创建 G6 图实例
-  graphInstance = new G6.Graph({
+  graphInstance = new Graph({
     container: graphContainer.value,
     width,
     height,
@@ -437,6 +439,41 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .service-topology {
   padding: 20px;
   background: var(--el-bg-color-overlay);

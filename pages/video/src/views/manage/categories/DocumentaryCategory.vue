@@ -96,10 +96,10 @@ const handleVideoClick = (video: any) => {
 .video-documentary {
   margin-bottom: 24px;
   padding: 20px;
-  background: var(--el-bg-color-page);
   border-radius: 12px;
   min-height: 100vh;
   position: relative;
+  animation: fadeIn 0.6s ease-out;
 
   &::before {
     content: "";
@@ -110,11 +110,20 @@ const handleVideoClick = (video: any) => {
     height: 200px;
     background: linear-gradient(
       135deg,
-      rgba(var(--el-color-success-rgb), 0.05) 0%,
-      rgba(var(--el-color-info-rgb), 0.05) 100%
+      var(--el-color-primary-light-9) 0%,
+      var(--el-color-primary-light-8) 100%
     );
     border-radius: 12px 12px 0 0;
     pointer-events: none;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 </style>

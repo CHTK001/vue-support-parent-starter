@@ -24,7 +24,7 @@ import {
   type ContainerStatsMessage,
   type SoftWebSocketMessage
 } from "@/composables/useSoftWebSocket";
-import ContainerCard from "./components/ContainerCard.vue";
+import ContainerCard from "@/views/docker/containers/components/ContainerCard.vue";
 import ContainerActions from "./components/ContainerActions.vue";
 import LogViewer from "./components/LogViewer.vue";
 import SoftVersionManager from "./components/SoftVersionManager.vue";

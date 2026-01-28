@@ -876,19 +876,18 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+    background: linear-gradient(135deg, var(--el-color-danger-light-3) 0%, var(--el-color-danger) 100%);
     border-radius: 12px;
     padding: 30px;
-    color: var(--el-text-color-primary);
-    box-shadow: 0 10px 30px rgba(var(--el-color-primary-rgb), 0.3);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(var(--el-color-danger-rgb), 0.3);
     position: relative;
     overflow: hidden;
-    transform-style: preserve-3d;
-    transform: rotateX(5deg);
-    transition: transform 0.5s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      transform: rotateX(0deg) scale(1.02);
+      box-shadow: 0 6px 24px rgba(var(--el-color-danger-rgb), 0.4);
+      transform: translateY(-2px);
     }
 
     &-inner {
@@ -928,12 +927,14 @@ onMounted(() => {
   &__history-card,
   &__help-card {
     margin-bottom: 24px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-color: var(--el-color-danger-light-7);
     }
   }
 

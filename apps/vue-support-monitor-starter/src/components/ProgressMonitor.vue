@@ -552,7 +552,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .progress-monitor {
   position: relative;
   z-index: 1000;

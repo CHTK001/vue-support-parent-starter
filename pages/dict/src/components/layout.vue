@@ -177,7 +177,7 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div class="h-full">
+  <div class="h-full system-container modern-bg">
     <SaveDialog
       v-if="visible.save"
       ref="saveDialog"

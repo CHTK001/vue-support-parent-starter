@@ -1,5 +1,5 @@
 <template>
-  <div class="page flex flex-col">
+  <div class="page flex flex-col system-container modern-bg">
     <!-- 页面标题区域 -->
     <div class="page-header">
       <div class="header-content">
@@ -408,21 +408,27 @@ const handleDelete = (item: any) => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@import "@/styles/mixins.scss";
+
+.page {
+  @include system-container;
+  @include modern-bg;
+  @include flex-column;
+  padding: $padding-container;
+  gap: $spacing-lg;
+}
+
 /* 页面头部 */
 .page-header {
-  background: var(--el-bg-color);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  @include glass-card(0.9, 20px);
+  padding: $spacing-lg $spacing-xl;
+  margin-bottom: $spacing-lg;
 }
 
 .header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  @include flex-between;
+  gap: $spacing-2xl;
 }
 
 .title-section {
@@ -430,77 +436,68 @@ const handleDelete = (item: any) => {
 }
 
 .page-title {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: $font-2xl;
+  font-weight: $font-weight-semibold;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @include flex-align-center;
+  gap: $spacing-sm;
   color: var(--el-text-color-primary);
-}
 
-.title-icon {
-  font-size: 22px;
-  color: var(--el-color-primary);
+  .title-icon {
+    font-size: $icon-xl;
+    color: var(--el-color-primary);
+  }
 }
 
 .page-subtitle {
-  font-size: 13px;
+  font-size: $font-sm;
   color: var(--el-text-color-secondary);
-  margin: 4px 0 0 0;
+  margin: $spacing-xs 0 0 0;
 }
 
 .stats-section {
-  display: flex;
-  gap: 12px;
+  @include flex-align-center;
+  gap: $spacing-md;
 }
 
 .stat-card {
+  @include card-base;
   text-align: center;
-  padding: 12px 16px;
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
+  padding: $spacing-md $spacing-lg;
   min-width: 72px;
 }
 
 .stat-number {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: $font-2xl;
+  font-weight: $font-weight-bold;
   color: var(--el-color-primary);
   line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: $font-xs;
   color: var(--el-text-color-secondary);
-  font-weight: 500;
-  margin-top: 2px;
+  font-weight: $font-weight-medium;
+  margin-top: $spacing-xs;
 }
 
 /* 工具栏样式 */
 .modern-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--el-bg-color);
-  padding: 12px 16px;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  gap: 12px;
-  margin-bottom: 16px;
+  @include toolbar-style;
+  border-radius: $radius-md;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
 }
 
 .modern-toolbar .left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  @include flex-align-center;
+  gap: $spacing-md;
   flex: 1;
 }
 
 .modern-toolbar .right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @include flex-align-center;
+  gap: $spacing-sm;
 }
 
 .search-container {
@@ -509,7 +506,7 @@ const handleDelete = (item: any) => {
 }
 
 .search-input :deep(.el-input__wrapper) {
-  border-radius: 8px;
+  border-radius: $radius-md;
   background: var(--el-fill-color-light);
   box-shadow: none;
   border: 1px solid transparent;
@@ -526,9 +523,8 @@ const handleDelete = (item: any) => {
 }
 
 .filter-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @include flex-align-center;
+  gap: $spacing-sm;
 }
 
 .platform-select {
@@ -536,7 +532,7 @@ const handleDelete = (item: any) => {
 }
 
 .platform-select :deep(.el-select__wrapper) {
-  border-radius: 8px;
+  border-radius: $radius-md;
   background: var(--el-fill-color-light);
   box-shadow: none;
   border: 1px solid transparent;
@@ -548,13 +544,12 @@ const handleDelete = (item: any) => {
 }
 
 .option-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  @include flex-align-center;
+  gap: $spacing-sm;
 }
 
 .option-icon {
-  font-size: 14px;
+  font-size: $icon-sm;
 }
 
 .spring-icon {
@@ -567,79 +562,73 @@ const handleDelete = (item: any) => {
 
 .search-btn,
 .create-btn {
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-weight: 500;
+  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-lg;
+  font-weight: $font-weight-medium;
 }
 
 .btn-icon {
-  margin-right: 4px;
+  margin-right: $spacing-xs;
 }
 
 /* 应用卡片 */
 .app-card {
+  @include card-base;
+  @include flex-column;
   height: 100%;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 16px;
   overflow: hidden;
-  background: var(--el-bg-color);
-  position: relative;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
+  position: relative;
 
-.app-card:hover {
-  border-color: var(--el-color-primary-light-3);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  transform: translateY(-6px);
-}
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: $gradient-line-top;
+  }
 
-.app-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  &:hover {
+    @include card-hover;
+    transform: translateY(-6px);
+  }
 }
 
 /* 状态指示器 */
 .status-indicator {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: $spacing-md;
+  right: $spacing-md;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   z-index: 2;
-}
 
-.status-indicator.status-success {
-  background: var(--el-color-success);
-  box-shadow: 0 0 0 2px var(--el-color-success-light-8);
-}
+  &.status-success {
+    background: var(--el-color-success);
+    box-shadow: 0 0 0 2px var(--el-color-success-light-8);
+  }
 
-.status-indicator.status-warning {
-  background: var(--el-color-warning);
-  box-shadow: 0 0 0 2px var(--el-color-warning-light-8);
-}
+  &.status-warning {
+    background: var(--el-color-warning);
+    box-shadow: 0 0 0 2px var(--el-color-warning-light-8);
+  }
 
-.status-indicator.status-error {
-  background: var(--el-color-danger);
-  box-shadow: 0 0 0 2px var(--el-color-danger-light-8);
+  &.status-error {
+    background: var(--el-color-danger);
+    box-shadow: 0 0 0 2px var(--el-color-danger-light-8);
+  }
 }
 
 /* 卡片头部 */
 .card-header {
-  padding: 20px 20px 16px;
-  display: flex;
+  padding: $spacing-xl $spacing-xl $spacing-lg;
+  @include flex-align-center;
   align-items: flex-start;
-  gap: 16px;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
+  gap: $spacing-lg;
+  border-bottom: 1px solid $border-light;
 }
 
 .app-icon-wrapper {
@@ -650,12 +639,10 @@ const handleDelete = (item: any) => {
 .app-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: $radius-md;
+  @include flex-center;
   font-size: 20px;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: #fff;
 }
 
@@ -664,8 +651,8 @@ const handleDelete = (item: any) => {
 }
 
 .app-icon-badge {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: $gradient-primary;
+  box-shadow: $shadow-hover-primary;
 }
 
 .platform-spring {
@@ -704,7 +691,7 @@ const handleDelete = (item: any) => {
 }
 
 .platform-icon {
-  font-size: 24px;
+  font-size: $icon-xl;
 }
 
 .status-badge {
@@ -715,9 +702,7 @@ const handleDelete = (item: any) => {
   height: 16px;
   border-radius: 50%;
   background: var(--el-bg-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include flex-center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -743,57 +728,52 @@ const handleDelete = (item: any) => {
 }
 
 .app-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0 0 6px 0;
+  font-size: $font-lg;
+  font-weight: $font-weight-bold;
+  margin: 0 0 $spacing-xs 0;
   color: var(--el-text-color-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include text-ellipsis;
 }
 
 .app-platform {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  @include flex-align-center;
+  gap: $spacing-xs;
   color: var(--el-text-color-secondary);
-  font-size: 13px;
+  font-size: $font-sm;
 }
 
 .platform-icon-small {
-  font-size: 14px;
+  font-size: $icon-sm;
 }
 
 /* 卡片内容 */
 .card-content {
-  padding: 16px 20px;
+  padding: $spacing-lg $spacing-xl;
   flex: 1;
 }
 
 .metrics-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  @include flex-column;
+  gap: $spacing-sm;
 }
 
 .metric-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  @include flex-align-center;
+  gap: $spacing-md;
+  padding: $spacing-sm $spacing-md;
   background: var(--el-fill-color-lighter);
-  border-radius: 10px;
-  transition: all 0.25s ease;
-}
+  border-radius: $radius-md;
+  transition: all $duration-fast $ease-standard;
 
-.metric-item:hover {
-  background: var(--el-fill-color-light);
-  transform: translateX(2px);
+  &:hover {
+    background: var(--el-fill-color-light);
+    transform: translateX(2px);
+  }
 }
 
 .metric-icon {
-  font-size: 16px;
-  color: #667eea;
+  font-size: $icon-md;
+  color: $primary-color;
   flex-shrink: 0;
 }
 
@@ -804,36 +784,36 @@ const handleDelete = (item: any) => {
 
 .metric-label {
   display: block;
-  font-size: 11px;
+  font-size: $font-xs;
   color: var(--el-text-color-placeholder);
 }
 
 .metric-value {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: $font-sm;
+  font-weight: $font-weight-semibold;
   color: var(--el-text-color-primary);
-}
 
-.metric-value.status-success {
-  color: var(--el-color-success);
-}
+  &.status-success {
+    color: var(--el-color-success);
+  }
 
-.metric-value.status-warning {
-  color: var(--el-color-warning);
-}
+  &.status-warning {
+    color: var(--el-color-warning);
+  }
 
-.metric-value.status-error {
-  color: var(--el-color-danger);
-}
+  &.status-error {
+    color: var(--el-color-danger);
+  }
 
-.metric-value.online-count {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--el-text-color-placeholder);
-}
+  &.online-count {
+    font-size: $font-md;
+    font-weight: $font-weight-bold;
+    color: var(--el-text-color-placeholder);
 
-.metric-value.online-count.has-devices {
-  color: var(--el-color-success);
+    &.has-devices {
+      color: var(--el-color-success);
+    }
+  }
 }
 
 .online-icon {

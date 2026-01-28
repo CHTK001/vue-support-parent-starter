@@ -1,5 +1,5 @@
 <template>
-  <div class="console" :style="gridStyle" @contextmenu.prevent>
+  <div class="console system-container modern-bg" :style="gridStyle" @contextmenu.prevent>
     <!-- 左侧：搜索 + 树（参考 Redis 实现） -->
     <div class="left overflow-auto thin-scrollbar">
       <el-input
@@ -173,6 +173,41 @@ onBeforeUnmount(() => onDragEnd());
 onMounted(loadRoot);
 </script>
 <style scoped lang="scss">
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .console {
   display: grid;
   grid-template-columns: 300px 1fr;
@@ -251,4 +286,15 @@ onMounted(loadRoot);
   padding: 0 8px;
   color: var(--el-text-color-secondary);
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

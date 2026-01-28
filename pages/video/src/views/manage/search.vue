@@ -1,60 +1,81 @@
 <template>
-  <div class="search-content">
+  <div class="system-container modern-bg">
     <!-- 筛选栏 -->
     <div class="filter-bar">
       <div class="filter-group">
-        <span class="filter-label">类型</span>
-        <span
-          v-for="type in displayedTypes"
-          :key="type.value"
-          :class="[
-            'filter-tag',
-            { active: selectedTypes.includes(type.value) },
-          ]"
-          @click="handleTypeClick(type)"
-        >
-          {{ type.label }}
+        <span class="filter-label">
+          <IconifyIconOnline icon="ep:filter" />
+          类型
         </span>
+        <div class="filter-tags">
+          <span
+            v-for="type in displayedTypes"
+            :key="type.value"
+            :class="[
+              'filter-tag',
+              { active: selectedTypes.includes(type.value) },
+            ]"
+            @click="handleTypeClick(type)"
+          >
+            {{ type.label }}
+          </span>
+        </div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">年份</span>
-        <span
-          v-for="year in displayedYears"
-          :key="year.value"
-          :class="[
-            'filter-tag',
-            { active: selectedYears.includes(year.value) },
-          ]"
-          @click="handleYearClick(year)"
-        >
-          {{ year.label }}
+        <span class="filter-label">
+          <IconifyIconOnline icon="ep:calendar" />
+          年份
         </span>
+        <div class="filter-tags">
+          <span
+            v-for="year in displayedYears"
+            :key="year.value"
+            :class="[
+              'filter-tag',
+              { active: selectedYears.includes(year.value) },
+            ]"
+            @click="handleYearClick(year)"
+          >
+            {{ year.label }}
+          </span>
+        </div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">地区</span>
-        <span
-          v-for="district in displayedDistricts"
-          :key="district.value"
-          :class="[
-            'filter-tag',
-            { active: selectedDistricts.includes(district.value) },
-          ]"
-          @click="handleDistrictClick(district)"
-        >
-          {{ district.label }}
+        <span class="filter-label">
+          <IconifyIconOnline icon="ep:location" />
+          地区
         </span>
+        <div class="filter-tags">
+          <span
+            v-for="district in displayedDistricts"
+            :key="district.value"
+            :class="[
+              'filter-tag',
+              { active: selectedDistricts.includes(district.value) },
+            ]"
+            @click="handleDistrictClick(district)"
+          >
+            {{ district.label }}
+          </span>
+        </div>
       </div>
     </div>
 
     <!-- 结果头 -->
     <div class="result-header">
-      <span class="result-count">共 {{ totalResults }} 部</span>
+      <div class="result-info">
+        <IconifyIconOnline icon="ep:video-camera" class="result-icon" />
+        <span class="result-count">共找到 <strong>{{ totalResults }}</strong> 部视频</span>
+      </div>
       <el-select
         v-model="sortBy"
-        size="small"
+        size="default"
         class="sort-select"
         @change="handleSortChange"
       >
+        <template #prefix>
+          <IconifyIconOnline icon="ep:sort" />
+        </template>
         <el-option
           v-for="item in VideoOrderByOptions"
           :key="item.value"
@@ -110,6 +131,7 @@
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { computed, defineExpose, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -384,54 +406,74 @@ defineExpose({
 });
 </script>
 
-<style scoped>
-.search-content {
-  padding: 20px 24px;
-}
-
+<style scoped lang="scss">
 /* 筛选栏 */
 .filter-bar {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .filter-group {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
 
-.filter-group:last-child {
-  margin-bottom: 0;
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .filter-label {
-  font-size: 13px;
-  color: #999;
-  width: 40px;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+  min-width: 60px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+
+  svg {
+    font-size: 16px;
+    color: var(--el-color-primary);
+  }
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
 }
 
 .filter-tag {
   font-size: 13px;
-  color: #666;
-  padding: 4px 12px;
-  border-radius: 4px;
+  color: var(--el-text-color-regular);
+  padding: 6px 14px;
+  border-radius: 20px;
   cursor: pointer;
-  transition: all 0.2s;
-}
+  transition: all 0.3s ease;
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color);
+  font-weight: 500;
 
-.filter-tag:hover {
-  color: #1890ff;
-}
+  &:hover {
+    color: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+    background: rgba(var(--el-color-primary-rgb), 0.1);
+  }
 
-.filter-tag.active {
-  color: #1890ff;
-  background: rgba(24, 144, 255, 0.1);
+  &.active {
+    color: white;
+    background: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+  }
 }
 
 /* 结果头 */
@@ -439,32 +481,54 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.result-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.result-icon {
+  font-size: 20px;
+  color: var(--el-color-primary);
 }
 
 .result-count {
-  font-size: 13px;
-  color: #999;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+
+  strong {
+    color: var(--el-color-primary);
+    font-size: 16px;
+    font-weight: 600;
+  }
 }
 
 .sort-select {
-  width: 140px;
+  width: 160px;
 }
 
 /* 视频卡片 */
 .video-card {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: all 0.3s ease;
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
 }
 
 .video-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-color: var(--el-color-primary);
 }
 
 .poster {
@@ -505,36 +569,41 @@ defineExpose({
 
 .score {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #ffc107;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  color: white;
   font-size: 12px;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1;
 }
 
 .info {
-  padding: 10px 12px;
+  padding: 12px 14px;
+  background: var(--el-bg-color-overlay);
 }
 
 .name {
   font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  margin: 0 0 4px 0;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 6px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.4;
 }
 
 .meta {
   font-size: 12px;
-  color: #999;
+  color: var(--el-text-color-secondary);
   margin: 0;
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 /* ScTable 覆盖 */
@@ -543,25 +612,37 @@ defineExpose({
 }
 
 :deep(.sc-table .el-pagination) {
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  margin-top: 16px;
+  background: var(--el-bg-color-overlay);
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .search-content {
-    padding: 12px 16px;
+  .filter-bar {
+    padding: 16px;
   }
 
-  .filter-bar {
-    padding: 12px 16px;
+  .filter-group {
+    flex-direction: column;
+    gap: 12px;
   }
 
   .filter-label {
     width: 100%;
-    margin-bottom: 4px;
+    padding-top: 0;
+  }
+
+  .result-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .sort-select {
+    width: 100%;
   }
 }
 </style>

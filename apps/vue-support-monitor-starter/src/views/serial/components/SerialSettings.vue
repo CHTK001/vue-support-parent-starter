@@ -1,5 +1,5 @@
 <template>
-  <div class="serial-settings-container">
+  <div class="serial-settings-container system-container modern-bg">
     <el-form :model="form" label-width="100px" label-position="right">
       <h4 class="mb-4 font-medium">串口参数</h4>
 
@@ -191,6 +191,41 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .serial-settings-container {
   max-height: 60vh;
   overflow-y: auto;
@@ -208,4 +243,15 @@ h4 {
   border-radius: 4px;
   background-color: var(--el-fill-color-light);
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

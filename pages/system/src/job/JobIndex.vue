@@ -1,5 +1,5 @@
 <template>
-  <div class="job-management-container">
+  <div class="job-management-container system-container modern-bg">
     <!-- 搜索和筛选 -->
     <div class="search-section">
       <el-card class="search-card" shadow="never">

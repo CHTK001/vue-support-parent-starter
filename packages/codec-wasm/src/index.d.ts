@@ -28,3 +28,20 @@ export function uu2_wasm(request: any): any;
 export function uu1_wasm(response: any): any;
 export function uu3_wasm(value: string): string;
 export function uu4_wasm(response: any): any;
+
+// 字体加密函数（内部 API，供 @repo/font-encryption 使用）
+/** @internal */
+export function fontEncryptText(text: string, encryptNumbers?: boolean, encryptChinese?: boolean): string;
+/** @internal */
+export function fontDecryptText(text: string): string;
+/** @internal */
+export function fontIsEncryptedChar(char: string): boolean;
+/** @internal */
+export function fontGetMappedCharCount(): { numbers: number; chinese: number };
+/** @internal */
+export function fontGetMaps(): {
+  numberMap: Record<string, string>;
+  chineseMap: Record<string, string>;
+  reverseNumberMap: Record<string, string>;
+  reverseChineseMap: Record<string, string>;
+};

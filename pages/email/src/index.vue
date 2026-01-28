@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { message } from '@repo/utils';
 import {
     deleteEmail,
     fetchEmailAccounts,
@@ -544,7 +545,7 @@ const layoutClass = computed(() => {
 </script>
 
 <template>
-  <div class="email-app" :class="layoutClass">
+  <div class="email-app system-container modern-bg" :class="layoutClass">
     <!-- 侧边栏 -->
     <div class="email-app__sidebar" v-show="!isMobileView || (!showEmailDetail && !showComposer)">
       <EmailSidebar
@@ -610,6 +611,8 @@ const layoutClass = computed(() => {
         @send="handleSendEmail"
         @save-draft="handleSaveDraft"
         @discard="handleCloseComposer"
+      />
+    </div>
   </div>
 </template>
 
@@ -618,11 +621,15 @@ const layoutClass = computed(() => {
   display: grid;
   grid-template-columns: 280px 350px 1fr;
   grid-template-rows: 100%;
-  height: 100%;
-  background-color: var(--el-bg-color);
-  border-radius: 12px;
+  gap: 12px;
+  min-height: 640px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: var(--transition-normal);
   
   &__sidebar {
     grid-column: 1;
@@ -686,12 +693,14 @@ const layoutClass = computed(() => {
 @media (max-width: 1200px) {
   .email-app {
     grid-template-columns: 250px 300px 1fr;
+    gap: 8px;
   }
 }
 
 @media (max-width: 992px) {
   .email-app {
     grid-template-columns: 220px 280px 1fr;
+    padding: 8px;
   }
 }
 </style>

@@ -1,0 +1,308 @@
+/**
+ * 公共样式变量
+ * 用于统一管理组件和页面的样式变量
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-01-XX
+ */
+
+// ========== 颜色系统 ==========
+
+// 主色调
+$primary-color: #6366f1;
+$primary-light: rgba(99, 102, 241, 0.1);
+$primary-dark: rgba(99, 102, 241, 0.2);
+
+// 渐变色
+$gradient-primary: linear-gradient(135deg, #6366f1, rgba(168, 85, 247, 0.9));
+$gradient-bg-1: radial-gradient(
+  circle at 20% 30%,
+  rgba(99, 102, 241, 0.08) 0%,
+  transparent 50%
+);
+$gradient-bg-2: radial-gradient(
+  circle at 80% 70%,
+  rgba(168, 85, 247, 0.06) 0%,
+  transparent 50%
+);
+$gradient-line: linear-gradient(
+  90deg,
+  transparent,
+  rgba(99, 102, 241, 0.2),
+  transparent
+);
+$gradient-line-top: linear-gradient(
+  90deg,
+  rgba(99, 102, 241, 0.6),
+  rgba(168, 85, 247, 0.6),
+  rgba(99, 102, 241, 0.6)
+);
+
+// 背景色
+$bg-glass: rgba(255, 255, 255, 0.85);
+$bg-glass-light: rgba(255, 255, 255, 0.7);
+$bg-glass-dark: rgba(255, 255, 255, 0.9);
+$bg-glass-card: rgba(255, 255, 255, 0.8);
+$bg-glass-toolbar: rgba(255, 255, 255, 0.98);
+
+// 边框色
+$border-light: rgba(0, 0, 0, 0.06);
+$border-medium: rgba(0, 0, 0, 0.08);
+$border-primary: rgba(99, 102, 241, 0.2);
+
+// 分隔线
+$divider-gradient: linear-gradient(
+  180deg,
+  transparent,
+  rgba(0, 0, 0, 0.1),
+  transparent
+);
+
+// ========== 间距系统 ==========
+
+// 基础间距（8px 基础单位）
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 20px;
+$spacing-2xl: 24px;
+$spacing-3xl: 32px;
+$spacing-4xl: 40px;
+
+// 组件内边距
+$padding-card: 16px 20px;
+$padding-header: 24px 40px;
+$padding-container: 32px 40px;
+$padding-toolbar: 18px 32px;
+
+// ========== 圆角系统 ==========
+
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 20px;
+$radius-2xl: 24px;
+$radius-3xl: 32px;
+$radius-4xl: 40px;
+$radius-full: 9999px;
+
+// ========== 阴影系统 ==========
+
+// 基础阴影
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+$shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+$shadow-2xl: 0 16px 48px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1);
+
+// 悬停阴影
+$shadow-hover-sm: 0 4px 12px rgba(0, 0, 0, 0.1);
+$shadow-hover-md: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+$shadow-hover-lg: 0 12px 40px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.1);
+$shadow-hover-primary: 0 8px 24px rgba(99, 102, 241, 0.4);
+
+// 内阴影
+$shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+$shadow-inset-light: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+// ========== 模糊效果 ==========
+
+$blur-sm: blur(10px);
+$blur-md: blur(16px);
+$blur-lg: blur(20px);
+$blur-xl: blur(24px);
+
+$backdrop-blur-sm: blur(10px) saturate(180%);
+$backdrop-blur-md: blur(16px) saturate(180%);
+$backdrop-blur-lg: blur(20px) saturate(180%);
+$backdrop-blur-xl: blur(24px) saturate(180%);
+
+// ========== 过渡动画 ==========
+
+// 缓动函数
+$ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+$ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+$ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+$ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+// 动画时长
+$duration-fast: 0.2s;
+$duration-normal: 0.3s;
+$duration-slow: 0.4s;
+
+// ========== 字体系统 ==========
+
+// 字体大小
+$font-xs: 12px;
+$font-sm: 13px;
+$font-md: 14px;
+$font-lg: 16px;
+$font-xl: 18px;
+$font-2xl: 20px;
+$font-3xl: 22px;
+$font-4xl: 24px;
+
+// 字体粗细
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// 字间距
+$letter-spacing-tight: -0.02em;
+
+// ========== 图标尺寸 ==========
+
+$icon-xs: 12px;
+$icon-sm: 14px;
+$icon-md: 16px;
+$icon-lg: 20px;
+$icon-xl: 24px;
+$icon-2xl: 32px;
+$icon-3xl: 48px;
+$icon-4xl: 64px;
+
+// ========== 响应式断点 ==========
+
+$breakpoint-xs: 480px;
+$breakpoint-sm: 768px;
+$breakpoint-md: 992px;
+$breakpoint-lg: 1200px;
+$breakpoint-xl: 1920px;
+
+// ========== Z-index 层级 ==========
+
+$z-index-base: 1;
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+
+// ========== 组件特定变量 ==========
+
+// 按钮
+$button-height-sm: 32px;
+$button-height-md: 40px;
+$button-height-lg: 48px;
+$button-padding-sm: 8px 14px;
+$button-padding-md: 10px 16px;
+$button-padding-lg: 12px 20px;
+
+// 卡片
+$card-padding: 20px;
+$card-header-padding: 16px 20px;
+$card-content-padding: 20px;
+
+// 工具栏
+$toolbar-height: 60px;
+$toolbar-padding: 18px 32px;
+
+// 网格布局
+$grid-margin: 10px;
+$grid-row-height: 60px;
+$grid-cols: 12;
+
+// ========== Mixins ==========
+
+// 毛玻璃效果
+@mixin glass-effect($opacity: 0.85, $blur: 20px) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur($blur) saturate(180%);
+  -webkit-backdrop-filter: blur($blur) saturate(180%);
+}
+
+// 渐变背景
+@mixin gradient-bg {
+  background: $gradient-bg-1, $gradient-bg-2;
+}
+
+// 卡片样式
+@mixin card-style {
+  border-radius: $radius-lg;
+  @include glass-effect(0.9, 16px);
+  box-shadow: $shadow-md;
+  border: 1px solid $border-light;
+  transition: all $duration-normal $ease-standard;
+
+  &:hover {
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+  }
+}
+
+// 按钮涟漪效果
+@mixin button-ripple {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width $duration-normal ease, height $duration-normal ease;
+  }
+
+  &:hover::before {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+// 滚动条样式
+@mixin custom-scrollbar($width: 8px) {
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    transition: background $duration-fast ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+// 响应式媒体查询
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: $breakpoint-xs) {
+      @content;
+    }
+  } @else if $breakpoint == sm {
+    @media (max-width: $breakpoint-sm) {
+      @content;
+    }
+  } @else if $breakpoint == md {
+    @media (max-width: $breakpoint-md) {
+      @content;
+    }
+  } @else if $breakpoint == lg {
+    @media (max-width: $breakpoint-lg) {
+      @content;
+    }
+  } @else if $breakpoint == xl {
+    @media (min-width: $breakpoint-xl) {
+      @content;
+    }
+  }
+}
+

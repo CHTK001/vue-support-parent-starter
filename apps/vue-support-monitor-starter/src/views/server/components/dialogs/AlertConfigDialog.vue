@@ -856,65 +856,163 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 .alert-config {
+  :deep(.el-tabs) {
+    .el-tabs__header {
+      margin-bottom: $spacing-xl;
+      border-bottom: 2px solid $border-light;
+
+      .el-tabs__nav-wrap::after {
+        display: none;
+      }
+
+      .el-tabs__item {
+        border-radius: $radius-sm $radius-sm 0 0;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &.is-active {
+          color: var(--el-color-primary);
+        }
+
+        &:hover {
+          color: var(--el-color-primary);
+        }
+      }
+    }
+
+    .el-tabs__content {
+      padding: $spacing-lg 0;
+    }
+  }
+
   .thresholds-panel {
     .threshold-card {
-      margin-bottom: 20px;
+      margin-bottom: $spacing-xl;
+      @include card-style;
+      transition: all $duration-normal $ease-standard;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
 
       :deep(.el-card__header) {
-        padding: 16px 20px;
-        background-color: var(--el-fill-color-lighter);
+        padding: $spacing-lg $spacing-xl;
+        @include glass-effect(0.9, 16px);
+        border-bottom: 1px solid $border-light;
+        position: relative;
+
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: $gradient-line-top;
+        }
       }
 
       .card-header {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: $spacing-sm;
 
         .metric-icon {
-          font-size: 18px;
+          font-size: $icon-lg;
           color: var(--el-color-primary);
+          transition: transform $duration-fast $ease-standard;
+        }
+
+        &:hover .metric-icon {
+          transform: scale(1.1);
         }
       }
 
       :deep(.el-form-item) {
-        margin-bottom: 16px;
+        margin-bottom: $spacing-lg;
 
         .el-form-item__label {
-          font-weight: 500;
+          font-weight: $font-weight-medium;
+        }
+
+        .el-input-number {
+          .el-input__wrapper {
+            border-radius: $radius-sm;
+            transition: all $duration-fast $ease-standard;
+
+            &:hover {
+              box-shadow: $shadow-sm;
+            }
+          }
         }
       }
 
       .unit {
-        margin-left: 8px;
+        margin-left: $spacing-sm;
         color: var(--el-text-color-regular);
-        font-size: 14px;
+        font-size: $font-md;
+        font-weight: $font-weight-medium;
       }
     }
 
     .threshold-actions {
       display: flex;
       justify-content: center;
-      gap: 16px;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid var(--el-border-color-light);
+      gap: $spacing-lg;
+      margin-top: $spacing-3xl;
+      padding-top: $spacing-xl;
+      border-top: 1px solid $border-light;
+
+      .el-button {
+        border-radius: $radius-sm;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: $shadow-md;
+        }
+      }
     }
   }
 
   .rules-panel {
     .rules-header {
       display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: $spacing-sm;
+      margin-bottom: $spacing-lg;
+
+      .el-button {
+        border-radius: $radius-sm;
+        transition: all $duration-fast $ease-standard;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: $shadow-sm;
+        }
+
+        :deep(.iconify-icon) {
+          transition: transform $duration-fast $ease-standard;
+        }
+
+        &:hover :deep(.iconify-icon) {
+          transform: scale(1.1);
+        }
+      }
     }
 
     .rules-list {
       .rule-item {
-        border: 1px solid var(--el-border-color-light);
-        border-radius: 6px;
-        margin-bottom: 12px;
-        overflow: hidden;
+        @include card-style;
+        margin-bottom: $spacing-md;
+        transition: all $duration-normal $ease-standard;
+
+        &:hover {
+          transform: translateY(-2px);
+        }
 
         &.disabled {
           opacity: 0.6;
@@ -924,17 +1022,17 @@ defineExpose({
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 12px 16px;
-          background-color: var(--el-fill-color-extra-light);
-          border-bottom: 1px solid var(--el-border-color-lighter);
+          padding: $spacing-md $spacing-lg;
+          @include glass-effect(0.85, 16px);
+          border-bottom: 1px solid $border-light;
 
           .rule-info {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: $spacing-sm;
 
             .rule-name {
-              font-weight: 500;
+              font-weight: $font-weight-semibold;
               color: var(--el-text-color-primary);
             }
           }
@@ -942,29 +1040,41 @@ defineExpose({
           .rule-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: $spacing-sm;
+
+            .el-button {
+              border-radius: $radius-sm;
+              transition: all $duration-fast $ease-standard;
+
+              &:hover {
+                transform: scale(1.1);
+              }
+            }
           }
         }
 
         .rule-content {
-          padding: 12px 16px;
+          padding: $spacing-md $spacing-lg;
 
           .rule-condition {
-            margin-bottom: 8px;
+            margin-bottom: $spacing-sm;
 
             .condition-label {
-              font-weight: 500;
+              font-weight: $font-weight-medium;
               color: var(--el-text-color-secondary);
             }
 
             .condition-text {
               color: var(--el-text-color-primary);
               font-family: monospace;
+              background: rgba(0, 0, 0, 0.02);
+              padding: 2px 6px;
+              border-radius: $radius-sm;
             }
           }
 
           .rule-description {
-            font-size: 13px;
+            font-size: $font-sm;
             color: var(--el-text-color-secondary);
           }
         }
@@ -973,55 +1083,75 @@ defineExpose({
   }
 
   .notifications-panel {
-    padding: 16px 0;
+    padding: $spacing-lg 0;
+
+    :deep(.el-form-item) {
+      margin-bottom: $spacing-lg;
+    }
   }
 
   .history-panel {
     .history-filters {
       display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: $spacing-md;
+      margin-bottom: $spacing-lg;
       align-items: center;
+      flex-wrap: wrap;
+
+      .el-button {
+        border-radius: $radius-sm;
+        transition: all $duration-fast $ease-standard;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: $shadow-sm;
+        }
+      }
     }
 
     .history-list {
+      @include custom-scrollbar;
+
       .history-item {
-        border: 1px solid var(--el-border-color-light);
-        border-radius: 6px;
-        margin-bottom: 12px;
-        overflow: hidden;
+        @include card-style;
+        margin-bottom: $spacing-md;
+        transition: all $duration-normal $ease-standard;
+
+        &:hover {
+          transform: translateY(-2px);
+        }
 
         .alert-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 8px 16px;
-          background-color: var(--el-fill-color-extra-light);
-          border-bottom: 1px solid var(--el-border-color-lighter);
+          padding: $spacing-sm $spacing-lg;
+          @include glass-effect(0.85, 16px);
+          border-bottom: 1px solid $border-light;
 
           .alert-time {
-            font-size: 12px;
+            font-size: $font-xs;
             color: var(--el-text-color-secondary);
           }
         }
 
         .alert-content {
-          padding: 12px 16px;
+          padding: $spacing-md $spacing-lg;
 
           .alert-title {
-            font-weight: 500;
-            margin-bottom: 4px;
+            font-weight: $font-weight-semibold;
+            margin-bottom: $spacing-xs;
             color: var(--el-text-color-primary);
           }
 
           .alert-description {
-            font-size: 13px;
+            font-size: $font-sm;
             color: var(--el-text-color-regular);
-            margin-bottom: 4px;
+            margin-bottom: $spacing-xs;
           }
 
           .alert-server {
-            font-size: 12px;
+            font-size: $font-xs;
             color: var(--el-text-color-secondary);
           }
         }
@@ -1031,14 +1161,68 @@ defineExpose({
 }
 
 .duration-unit {
-  margin-left: 8px;
-  font-size: 12px;
+  margin-left: $spacing-sm;
+  font-size: $font-xs;
   color: var(--el-text-color-secondary);
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: $spacing-md;
+
+  .el-button {
+    border-radius: $radius-sm;
+    padding: $button-padding-md;
+    transition: all $duration-fast $ease-standard;
+    font-weight: $font-weight-medium;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// 响应式设计
+@include respond-to(lg) {
+  .alert-config {
+    :deep(.el-tabs__content) {
+      padding: $spacing-md 0;
+    }
+  }
+}
+
+@include respond-to(sm) {
+  .alert-config {
+    .thresholds-panel .threshold-card,
+    .rules-panel .rules-list .rule-item,
+    .history-panel .history-list .history-item {
+      margin-bottom: $spacing-sm;
+    }
+
+    .rules-panel .rules-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .history-panel .history-filters {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  .dialog-footer {
+    flex-direction: column-reverse;
+    width: 100%;
+
+    .el-button {
+      width: 100%;
+    }
+  }
 }
 </style>

@@ -677,8 +677,8 @@ const handleMenuAction = action => {
       z-index: 10;
 
       .card-inner {
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-        border-color: var(--el-color-primary-light-5);
+        box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.3);
       }
 
       .card-drag-handle {
@@ -776,8 +776,9 @@ const handleMenuAction = action => {
   .card-inner {
     height: 100%;
     border-radius: 14px;
-    border: 2px solid var(--el-border-color-lighter);
-    background: var(--el-bg-color);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
     overflow: hidden;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);

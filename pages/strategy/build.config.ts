@@ -1,17 +1,22 @@
 import { defineBuildConfig } from "unbuild";
 
 export default defineBuildConfig({
-  entries: ["src/index", "src/router/index"],
   clean: true,
   declaration: true,
-  externals: [
-    "vue",
-    "vue-router",
-    "element-plus",
-    "@repo/components",
-    "@repo/core",
+  failOnWarn: false,
+  entries: [
+    {
+      builder: "mkdist",
+      input: "./src",
+      loaders: ["vue"],
+      pattern: ["**/*.vue"],
+    },
+    {
+      builder: "mkdist",
+      format: "esm",
+      input: "./src",
+      loaders: ["js"],
+      pattern: ["**/*.ts"],
+    },
   ],
-  rollup: {
-    emitCJS: false,
-  },
 });

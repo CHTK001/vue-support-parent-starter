@@ -68,22 +68,27 @@ const handleAction = (action: string) => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .config-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .quick-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-end;
 }
 
 .primary-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 .secondary-actions {
@@ -93,9 +98,19 @@ const handleAction = (action: string) => {
 
 .config-actions .el-button {
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .config-actions .el-button:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.config-actions .el-button--primary {
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+}
+
+.config-actions .el-button--primary:hover {
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 }
 </style>

@@ -1,5 +1,12 @@
 <script setup>
-import { reactive, ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
+import {
+  reactive,
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+} from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 
@@ -72,7 +79,9 @@ const visibleRows = computed(() => {
 
 const canUndo = computed(() => env.undoStack.length > 0);
 const canRedo = computed(() => env.redoStack.length > 0);
-const hasSelection = computed(() => env.selection.active && env.selection.start !== env.selection.end);
+const hasSelection = computed(
+  () => env.selection.active && env.selection.start !== env.selection.end
+);
 const selectionSize = computed(() => {
   if (!hasSelection.value) return 0;
   return env.selection.end - env.selection.start;
@@ -108,7 +117,9 @@ const handleFileChange = (event) => {
     env.isModified = false;
 
     env.loading = false;
-    message(t("message.fileLoadSuccess") || `文件 ${file.name} 加载成功`, { type: "success" });
+    message(t("message.fileLoadSuccess") || `文件 ${file.name} 加载成功`, {
+      type: "success",
+    });
   };
 
   reader.onerror = () => {
@@ -125,7 +136,9 @@ const saveFile = () => {
     return;
   }
 
-  const blob = new Blob([new Uint8Array(env.hexData)], { type: "application/octet-stream" });
+  const blob = new Blob([new Uint8Array(env.hexData)], {
+    type: "application/octet-stream",
+  });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
@@ -169,7 +182,11 @@ const updateByte = (index, value) => {
   env.textData[index] = byteToChar(value);
   env.isModified = true;
 
-  message(t("message.byteUpdated") || `字节已更新: 0x${oldValue.toString(16).padStart(2, "0")} → 0x${value.toString(16).padStart(2, "0")}`, { type: "success" });
+  message(
+    t("message.byteUpdated") ||
+      `字节已更新: 0x${oldValue.toString(16).padStart(2, "0")} → 0x${value.toString(16).padStart(2, "0")}`,
+    { type: "success" }
+  );
 };
 
 const insertBytes = (index, bytes) => {
@@ -184,7 +201,9 @@ const insertBytes = (index, bytes) => {
   env.totalRows = Math.ceil(env.hexData.length / env.bytesPerRow);
   env.isModified = true;
 
-  message(t("message.bytesInserted") || `已插入 ${bytes.length} 个字节`, { type: "success" });
+  message(t("message.bytesInserted") || `已插入 ${bytes.length} 个字节`, {
+    type: "success",
+  });
 };
 
 const deleteBytes = (start, end) => {
@@ -201,7 +220,9 @@ const deleteBytes = (start, end) => {
   env.selection = { start: -1, end: -1, active: false };
   env.isModified = true;
 
-  message(t("message.bytesDeleted") || `已删除 ${count} 个字节`, { type: "success" });
+  message(t("message.bytesDeleted") || `已删除 ${count} 个字节`, {
+    type: "success",
+  });
 };
 
 const saveUndoState = () => {
@@ -285,7 +306,9 @@ const copySelection = () => {
   const { start, end } = env.selection;
   env.clipboard = env.hexData.slice(start, end);
 
-  message(t("message.copySuccess") || `已复制 ${env.clipboard.length} 个字节`, { type: "success" });
+  message(t("message.copySuccess") || `已复制 ${env.clipboard.length} 个字节`, {
+    type: "success",
+  });
 };
 
 const cutSelection = () => {
@@ -307,7 +330,9 @@ const paste = (index) => {
 // 搜索函数
 const search = () => {
   if (!env.searchQuery) {
-    message(t("message.emptySearchQuery") || "请输入搜索内容", { type: "warning" });
+    message(t("message.emptySearchQuery") || "请输入搜索内容", {
+      type: "warning",
+    });
     return;
   }
 
@@ -346,9 +371,15 @@ const search = () => {
     setSelection(offset, offset + searchBytes.length);
     scrollToOffset(offset);
 
-    message(t("message.searchResultsFound") || `找到 ${env.searchResults.length} 个匹配结果`, { type: "success" });
+    message(
+      t("message.searchResultsFound") ||
+        `找到 ${env.searchResults.length} 个匹配结果`,
+      { type: "success" }
+    );
   } else {
-    message(t("message.noSearchResults") || "未找到匹配结果", { type: "warning" });
+    message(t("message.noSearchResults") || "未找到匹配结果", {
+      type: "warning",
+    });
   }
 };
 
@@ -358,9 +389,12 @@ const findNext = () => {
     return;
   }
 
-  env.currentSearchIndex = (env.currentSearchIndex + 1) % env.searchResults.length;
+  env.currentSearchIndex =
+    (env.currentSearchIndex + 1) % env.searchResults.length;
   const offset = env.searchResults[env.currentSearchIndex];
-  const searchBytes = /^([0-9A-Fa-f]{2}\s*)+$/.test(env.searchQuery) ? env.searchQuery.split(/\s+/).map((hex) => parseInt(hex, 16)).length : env.searchQuery.length;
+  const searchBytes = /^([0-9A-Fa-f]{2}\s*)+$/.test(env.searchQuery)
+    ? env.searchQuery.split(/\s+/).map((hex) => parseInt(hex, 16)).length
+    : env.searchQuery.length;
 
   setSelection(offset, offset + searchBytes);
   scrollToOffset(offset);
@@ -372,9 +406,13 @@ const findPrev = () => {
     return;
   }
 
-  env.currentSearchIndex = (env.currentSearchIndex - 1 + env.searchResults.length) % env.searchResults.length;
+  env.currentSearchIndex =
+    (env.currentSearchIndex - 1 + env.searchResults.length) %
+    env.searchResults.length;
   const offset = env.searchResults[env.currentSearchIndex];
-  const searchBytes = /^([0-9A-Fa-f]{2}\s*)+$/.test(env.searchQuery) ? env.searchQuery.split(/\s+/).map((hex) => parseInt(hex, 16)).length : env.searchQuery.length;
+  const searchBytes = /^([0-9A-Fa-f]{2}\s*)+$/.test(env.searchQuery)
+    ? env.searchQuery.split(/\s+/).map((hex) => parseInt(hex, 16)).length
+    : env.searchQuery.length;
 
   setSelection(offset, offset + searchBytes);
   scrollToOffset(offset);
@@ -388,7 +426,10 @@ const scrollToOffset = (offset) => {
   nextTick(() => {
     const index = offset - env.offset;
     if (index >= 0 && hexCellsRef.value && hexCellsRef.value[index]) {
-      hexCellsRef.value[index].scrollIntoView({ behavior: "smooth", block: "center" });
+      hexCellsRef.value[index].scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
     }
   });
 };
@@ -420,7 +461,11 @@ const formatHexByte = (byte) => {
 };
 
 const isSelected = (offset) => {
-  return env.selection.active && offset >= env.selection.start && offset < env.selection.end;
+  return (
+    env.selection.active &&
+    offset >= env.selection.start &&
+    offset < env.selection.end
+  );
 };
 
 // 事件处理函数
@@ -571,7 +616,9 @@ onBeforeUnmount(() => {
         <div class="hexedit-tool__header">
           <div class="hexedit-tool__header-inner">
             <div class="hexedit-tool__header-title">十六进制编辑器</div>
-            <div class="hexedit-tool__header-subtitle">在线查看和编辑二进制文件</div>
+            <div class="hexedit-tool__header-subtitle">
+              在线查看和编辑二进制文件
+            </div>
           </div>
           <div class="hexedit-tool__header-decoration">
             <div class="hexedit-tool__header-circle"></div>
@@ -593,11 +640,20 @@ onBeforeUnmount(() => {
               <IconifyIconOnline icon="ri:folder-open-line" />
               <span>打开</span>
             </el-button>
-            <el-button type="primary" @click="saveFile" :disabled="!env.hexData.length">
+            <el-button
+              type="primary"
+              @click="saveFile"
+              :disabled="!env.hexData.length"
+            >
               <IconifyIconOnline icon="ri:save-line" />
               <span>保存</span>
             </el-button>
-            <input ref="fileInputRef" type="file" style="display: none" @change="handleFileChange" />
+            <input
+              ref="fileInputRef"
+              type="file"
+              style="display: none"
+              @change="handleFileChange"
+            />
           </div>
 
           <div class="hexedit-tool__toolbar-group">
@@ -624,33 +680,51 @@ onBeforeUnmount(() => {
               <IconifyIconOnline icon="ri:scissors-cut-line" />
               <span>剪切</span>
             </el-button>
-            <el-button @click="paste(env.selection.start)" :disabled="!env.clipboard">
+            <el-button
+              @click="paste(env.selection.start)"
+              :disabled="!env.clipboard"
+            >
               <IconifyIconOnline icon="ri:clipboard-line" />
               <span>粘贴</span>
             </el-button>
           </div>
 
           <div class="hexedit-tool__toolbar-group">
-            <el-input v-model="env.searchQuery" placeholder="搜索十六进制或文本" class="hexedit-tool__search-input">
+            <el-input
+              v-model="env.searchQuery"
+              placeholder="搜索十六进制或文本"
+              class="hexedit-tool__search-input"
+            >
               <template #append>
                 <el-button @click="search">
                   <IconifyIconOnline icon="ri:search-line" />
                 </el-button>
               </template>
             </el-input>
-            <el-button @click="findPrev" :disabled="env.searchResults.length === 0">
+            <el-button
+              @click="findPrev"
+              :disabled="env.searchResults.length === 0"
+            >
               <IconifyIconOnline icon="ri:arrow-up-s-line" />
             </el-button>
-            <el-button @click="findNext" :disabled="env.searchResults.length === 0">
+            <el-button
+              @click="findNext"
+              :disabled="env.searchResults.length === 0"
+            >
               <IconifyIconOnline icon="ri:arrow-down-s-line" />
             </el-button>
           </div>
 
           <div class="hexedit-tool__toolbar-group">
-            <el-input placeholder="跳转到偏移量" class="hexedit-tool__goto-input">
+            <el-input
+              placeholder="跳转到偏移量"
+              class="hexedit-tool__goto-input"
+            >
               <template #prepend>0x</template>
               <template #append>
-                <el-button @click="goToOffset(parseInt($event.target.value, 16))">
+                <el-button
+                  @click="goToOffset(parseInt($event.target.value, 16))"
+                >
                   <IconifyIconOnline icon="ri:arrow-right-line" />
                 </el-button>
               </template>
@@ -672,9 +746,16 @@ onBeforeUnmount(() => {
       </el-card>
 
       <!-- 编辑器区域 -->
-      <el-card class="hexedit-tool__editor-card" shadow="hover" v-loading="env.loading">
+      <el-card
+        class="hexedit-tool__editor-card"
+        shadow="hover"
+        v-loading="env.loading"
+      >
         <div v-if="!env.hexData.length" class="hexedit-tool__empty">
-          <IconifyIconOnline icon="ri:file-code-line" class="hexedit-tool__empty-icon" />
+          <IconifyIconOnline
+            icon="ri:file-code-line"
+            class="hexedit-tool__empty-icon"
+          />
           <div class="hexedit-tool__empty-text">没有打开的文件</div>
           <div class="hexedit-tool__empty-actions">
             <el-button type="primary" @click="createNewFile">
@@ -693,7 +774,11 @@ onBeforeUnmount(() => {
           <div class="hexedit-tool__editor-header">
             <div class="hexedit-tool__offset-header">偏移量</div>
             <div class="hexedit-tool__hex-header">
-              <div v-for="i in env.bytesPerRow" :key="`header-${i}`" class="hexedit-tool__hex-cell-header">
+              <div
+                v-for="i in env.bytesPerRow"
+                :key="`header-${i}`"
+                class="hexedit-tool__hex-cell-header"
+              >
                 {{ (i - 1).toString(16).toUpperCase().padStart(2, "0") }}
               </div>
             </div>
@@ -702,7 +787,11 @@ onBeforeUnmount(() => {
 
           <!-- 数据行 -->
           <div class="hexedit-tool__editor-rows">
-            <div v-for="row in visibleRows" :key="`row-${row.offset}`" class="hexedit-tool__editor-row">
+            <div
+              v-for="row in visibleRows"
+              :key="`row-${row.offset}`"
+              class="hexedit-tool__editor-row"
+            >
               <!-- 偏移量 -->
               <div class="hexedit-tool__offset-cell">
                 {{ formatOffset(row.offset) }}
@@ -721,14 +810,20 @@ onBeforeUnmount(() => {
                   class="hexedit-tool__hex-cell"
                   :class="{
                     'is-selected': isSelected(row.offset + index),
-                    'is-active': env.selection.start === row.offset + index && env.editMode === 'hex',
+                    'is-active':
+                      env.selection.start === row.offset + index &&
+                      env.editMode === 'hex',
                   }"
                   @click="handleHexCellClick(row.offset + index, $event)"
                 >
                   {{ formatHexByte(byte) }}
                 </div>
                 <!-- 填充空白单元格 -->
-                <div v-for="i in env.bytesPerRow - row.hex.length" :key="`empty-${row.offset + row.hex.length + i}`" class="hexedit-tool__hex-cell hexedit-tool__hex-cell--empty"></div>
+                <div
+                  v-for="i in env.bytesPerRow - row.hex.length"
+                  :key="`empty-${row.offset + row.hex.length + i}`"
+                  class="hexedit-tool__hex-cell hexedit-tool__hex-cell--empty"
+                ></div>
               </div>
 
               <!-- 文本区域 -->
@@ -744,14 +839,20 @@ onBeforeUnmount(() => {
                   class="hexedit-tool__text-cell"
                   :class="{
                     'is-selected': isSelected(row.offset + index),
-                    'is-active': env.selection.start === row.offset + index && env.editMode === 'text',
+                    'is-active':
+                      env.selection.start === row.offset + index &&
+                      env.editMode === 'text',
                   }"
                   @click="handleTextCellClick(row.offset + index, $event)"
                 >
                   {{ char }}
                 </div>
                 <!-- 填充空白单元格 -->
-                <div v-for="i in env.bytesPerRow - row.text.length" :key="`empty-text-${row.offset + row.text.length + i}`" class="hexedit-tool__text-cell hexedit-tool__text-cell--empty"></div>
+                <div
+                  v-for="i in env.bytesPerRow - row.text.length"
+                  :key="`empty-text-${row.offset + row.text.length + i}`"
+                  class="hexedit-tool__text-cell hexedit-tool__text-cell--empty"
+                ></div>
               </div>
             </div>
           </div>
@@ -762,38 +863,58 @@ onBeforeUnmount(() => {
       <el-card class="hexedit-tool__tips-card" shadow="hover">
         <template #header>
           <div class="hexedit-tool__card-header">
-            <IconifyIconOnline icon="ri:information-line" class="hexedit-tool__card-icon" />
+            <IconifyIconOnline
+              icon="ri:information-line"
+              class="hexedit-tool__card-icon"
+            />
             <span>使用说明</span>
           </div>
         </template>
         <div class="hexedit-tool__tips-content">
           <div class="hexedit-tool__tip-item">
             <div class="hexedit-tool__tip-number">1</div>
-            <div class="hexedit-tool__tip-text">点击"打开"按钮或拖放文件到编辑器区域来加载二进制文件</div>
+            <div class="hexedit-tool__tip-text">
+              点击"打开"按钮或拖放文件到编辑器区域来加载二进制文件
+            </div>
           </div>
           <div class="hexedit-tool__tip-item">
             <div class="hexedit-tool__tip-number">2</div>
-            <div class="hexedit-tool__tip-text">在十六进制区域点击可以选择字节，按住Shift键可以选择多个字节</div>
+            <div class="hexedit-tool__tip-text">
+              在十六进制区域点击可以选择字节，按住Shift键可以选择多个字节
+            </div>
           </div>
           <div class="hexedit-tool__tip-item">
             <div class="hexedit-tool__tip-number">3</div>
-            <div class="hexedit-tool__tip-text">使用键盘输入十六进制字符(0-9, A-F)可以直接编辑选中的字节</div>
+            <div class="hexedit-tool__tip-text">
+              使用键盘输入十六进制字符(0-9, A-F)可以直接编辑选中的字节
+            </div>
           </div>
           <div class="hexedit-tool__tip-item">
             <div class="hexedit-tool__tip-number">4</div>
-            <div class="hexedit-tool__tip-text">在文本区域点击可以以ASCII文本方式编辑字节</div>
+            <div class="hexedit-tool__tip-text">
+              在文本区域点击可以以ASCII文本方式编辑字节
+            </div>
           </div>
           <div class="hexedit-tool__tip-item">
             <div class="hexedit-tool__tip-number">5</div>
-            <div class="hexedit-tool__tip-text">使用Ctrl+C复制、Ctrl+X剪切和Ctrl+V粘贴选中的字节</div>
+            <div class="hexedit-tool__tip-text">
+              使用Ctrl+C复制、Ctrl+X剪切和Ctrl+V粘贴选中的字节
+            </div>
           </div>
           <div class="hexedit-tool__tip-item">
             <div class="hexedit-tool__tip-number">6</div>
-            <div class="hexedit-tool__tip-text">使用搜索框可以搜索十六进制值(如"48 65 6C 6C 6F")或文本</div>
+            <div class="hexedit-tool__tip-text">
+              使用搜索框可以搜索十六进制值(如"48 65 6C 6C 6F")或文本
+            </div>
           </div>
           <div class="hexedit-tool__tip-item tv-tool__tip-item--warning">
-            <IconifyIconOnline icon="ri:alert-line" class="hexedit-tool__tip-icon" />
-            <div class="hexedit-tool__tip-text">注意：编辑大文件时可能会导致性能下降，建议分割大文件后再编辑</div>
+            <IconifyIconOnline
+              icon="ri:alert-line"
+              class="hexedit-tool__tip-icon"
+            />
+            <div class="hexedit-tool__tip-text">
+              注意：编辑大文件时可能会导致性能下降，建议分割大文件后再编辑
+            </div>
           </div>
         </div>
       </el-card>
@@ -813,15 +934,25 @@ onBeforeUnmount(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-info-light-3) 0%,
+      var(--el-color-info) 100%
+    );
     border-radius: 12px;
     padding: 30px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(var(--el-color-primary-rgb), 0.3);
+    box-shadow: 0 4px 20px rgba(var(--el-color-info-rgb), 0.3);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-info-rgb), 0.4);
+      transform: translateY(-2px);
+    }
 
     &-inner {
       position: relative;

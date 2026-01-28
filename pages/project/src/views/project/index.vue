@@ -1,5 +1,5 @@
 <template>
-  <div class="project-workspace">
+  <div class="project-workspace system-container modern-bg">
     <div class="modern-workspace">
       <div class="project-dashboard">
         <el-container class="dashboard-container">

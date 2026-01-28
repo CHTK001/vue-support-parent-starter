@@ -145,7 +145,7 @@ const handlePreview = async () => {
 };
 </script>
 <template>
-  <div class="h-full">
+  <div class="h-full system-container modern-bg">
     <SaveDialog
       ref="saveDialog"
       :categoryProp="categoryProp"

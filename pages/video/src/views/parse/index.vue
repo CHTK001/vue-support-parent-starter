@@ -1,4 +1,5 @@
 <script setup>
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 import { computed, onMounted, reactive } from "vue";
 
@@ -121,14 +122,26 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="parse-page">
+  <div class="system-container modern-bg">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="page-header-content">
+        <IconifyIconOnline icon="ri:film-line" class="page-header-icon" />
+        <div>
+          <h2 class="page-header-title">视频解析</h2>
+          <p class="page-header-desc">粘贴视频链接，免费观看VIP内容</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 输入区域 -->
     <div class="input-section">
-      <h1 class="page-title">视频解析</h1>
-      <p class="page-desc">粘贴视频链接，免费观看VIP内容</p>
 
       <div class="input-box">
         <el-select v-model="env.selectedApi" class="api-select">
+          <template #prefix>
+            <IconifyIconOnline icon="ep:connection" />
+          </template>
           <el-option
             v-for="item in env.apis"
             :key="item.value"
@@ -142,15 +155,23 @@ onMounted(() => {
           clearable
           class="url-input"
           @keyup.enter="parseUrl"
-        />
+        >
+          <template #prefix>
+            <IconifyIconOnline icon="ep:link" />
+          </template>
+        </el-input>
         <el-button type="primary" :loading="env.loading" @click="parseUrl">
+          <IconifyIconOnline icon="ep:video-play" />
           解析
         </el-button>
       </div>
 
       <!-- 热门网站 -->
       <div class="sites">
-        <span class="sites-label">快捷访问：</span>
+        <span class="sites-label">
+          <IconifyIconOnline icon="ep:star" />
+          快捷访问：
+        </span>
         <span
           v-for="site in env.popularSites"
           :key="site.name"
@@ -163,7 +184,10 @@ onMounted(() => {
 
       <!-- 历史记录 -->
       <div class="history" v-if="env.history.length">
-        <span class="history-label">历史：</span>
+        <span class="history-label">
+          <IconifyIconOnline icon="ep:clock" />
+          历史记录：
+        </span>
         <span
           v-for="(url, index) in env.history"
           :key="index"
@@ -196,45 +220,59 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
-.parse-page {
-  min-height: 100vh;
-  background: #f5f5f5;
-  padding: 40px 20px;
+<style scoped lang="scss">
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.page-header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-header-icon {
+  font-size: 48px;
+  opacity: 0.9;
+}
+
+.page-header-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.page-header-desc {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 /* 输入区域 */
 .input-section {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   text-align: center;
-}
-
-.page-title {
-  font-size: 32px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 8px 0;
-}
-
-.page-desc {
-  font-size: 14px;
-  color: #999;
-  margin: 0 0 32px 0;
 }
 
 /* 输入框 */
 .input-box {
   display: flex;
   gap: 12px;
-  background: #fff;
-  padding: 12px;
+  background: var(--el-bg-color-overlay);
+  padding: 16px;
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .api-select {
-  width: 120px;
+  width: 140px;
   flex-shrink: 0;
 }
 
@@ -244,66 +282,81 @@ onMounted(() => {
 
 /* 热门网站 */
 .sites {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sites-label {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.site-link {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color);
+  font-weight: 500;
+}
+
+.site-link:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background: rgba(var(--el-color-primary-rgb), 0.1);
+}
+
+/* 历史记录 */
+.history {
   margin-top: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 8px;
-}
-
-.sites-label {
-  font-size: 13px;
-  color: #999;
-}
-
-.site-link {
-  font-size: 13px;
-  color: #666;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.site-link:hover {
-  color: #1890ff;
-  background: rgba(24, 144, 255, 0.1);
-}
-
-/* 历史记录 */
-.history {
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .history-label {
-  font-size: 12px;
-  color: #999;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .history-item {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-regular);
   cursor: pointer;
-  padding: 4px 8px;
-  background: #fff;
-  border-radius: 4px;
-  max-width: 200px;
+  padding: 6px 12px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 20px;
+  max-width: 250px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  border: 1px solid var(--el-border-color);
+  font-weight: 500;
 }
 
 .history-item:hover,
 .history-item.active {
-  color: #1890ff;
-  background: rgba(24, 144, 255, 0.1);
+  color: var(--el-color-primary);
+  background: rgba(var(--el-color-primary-rgb), 0.1);
+  border-color: var(--el-color-primary);
 }
 
 /* 播放器 */
@@ -319,7 +372,7 @@ onMounted(() => {
   background: #000;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .player-iframe {
@@ -336,27 +389,34 @@ onMounted(() => {
   max-width: 800px;
   margin: 60px auto 0;
   text-align: center;
-  color: #ccc;
+  color: var(--el-text-color-placeholder);
+  padding: 40px 20px;
 }
 
 .empty-icon {
   font-size: 80px;
   margin-bottom: 16px;
+  opacity: 0.5;
 }
 
 .empty-state p {
   font-size: 14px;
   margin: 0;
+  color: var(--el-text-color-secondary);
 }
 
 /* 响应式 */
 @media (max-width: 640px) {
-  .parse-page {
-    padding: 20px 16px;
+  .page-header {
+    padding: 20px;
   }
 
-  .page-title {
-    font-size: 24px;
+  .page-header-icon {
+    font-size: 36px;
+  }
+
+  .page-header-title {
+    font-size: 20px;
   }
 
   .input-box {

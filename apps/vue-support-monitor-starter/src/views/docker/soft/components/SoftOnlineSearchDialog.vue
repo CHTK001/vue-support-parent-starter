@@ -229,7 +229,7 @@ async function handleImport() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 /* 搜索头部 */
 .search-header {
   margin-bottom: 16px;
@@ -396,4 +396,15 @@ async function handleImport() {
   display: flex;
   justify-content: flex-end;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

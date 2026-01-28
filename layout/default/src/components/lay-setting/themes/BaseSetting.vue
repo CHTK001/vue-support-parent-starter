@@ -127,6 +127,12 @@ const settings = reactive({
   aiChatTheme: $storage.configure.aiChatTheme ?? "default",
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 true）
   enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? (getConfig().EnableFestivalTheme ?? true),
+  // 字体加密设置
+  fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? false,
+  fontEncryptionNumbers: $storage.configure?.fontEncryptionNumbers ?? true,
+  fontEncryptionChinese: $storage.configure?.fontEncryptionChinese ?? true,
+  fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? false,
+  fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? false,
 });
 
 /** 过渡动画类型选项 */
@@ -917,6 +923,73 @@ emitter.on("debugModeChanged", (enabled: boolean) => {
   settings.debugMode = enabled;
   storageConfigureChange("debugMode", enabled);
 });
+
+/**
+ * 字体加密相关函数
+ */
+function fontEncryptionEnabledChange(enabled: boolean) {
+  settings.fontEncryptionEnabled = enabled;
+  storageConfigureChange("fontEncryptionEnabled", enabled);
+  emitter.emit("fontEncryptionChange", {
+    enabled,
+    encryptNumbers: settings.fontEncryptionNumbers,
+    encryptChinese: settings.fontEncryptionChinese,
+    applyGlobal: settings.fontEncryptionGlobal,
+  });
+}
+
+function fontEncryptionNumbersChange(enabled: boolean) {
+  settings.fontEncryptionNumbers = enabled;
+  storageConfigureChange("fontEncryptionNumbers", enabled);
+  if (settings.fontEncryptionEnabled) {
+    emitter.emit("fontEncryptionChange", {
+      enabled: settings.fontEncryptionEnabled,
+      encryptNumbers: enabled,
+      encryptChinese: settings.fontEncryptionChinese,
+      applyGlobal: settings.fontEncryptionGlobal,
+    });
+  }
+}
+
+function fontEncryptionChineseChange(enabled: boolean) {
+  settings.fontEncryptionChinese = enabled;
+  storageConfigureChange("fontEncryptionChinese", enabled);
+  if (settings.fontEncryptionEnabled) {
+    emitter.emit("fontEncryptionChange", {
+      enabled: settings.fontEncryptionEnabled,
+      encryptNumbers: settings.fontEncryptionNumbers,
+      encryptChinese: enabled,
+      applyGlobal: settings.fontEncryptionGlobal,
+    });
+  }
+}
+
+function fontEncryptionGlobalChange(enabled: boolean) {
+  settings.fontEncryptionGlobal = enabled;
+  storageConfigureChange("fontEncryptionGlobal", enabled);
+  if (settings.fontEncryptionEnabled) {
+    emitter.emit("fontEncryptionChange", {
+      enabled: settings.fontEncryptionEnabled,
+      encryptNumbers: settings.fontEncryptionNumbers,
+      encryptChinese: settings.fontEncryptionChinese,
+      applyGlobal: enabled,
+    });
+  }
+}
+
+function fontEncryptionOcrNoiseChange(enabled: boolean) {
+  settings.fontEncryptionOcrNoise = enabled;
+  storageConfigureChange("fontEncryptionOcrNoise", enabled);
+  if (settings.fontEncryptionEnabled) {
+    emitter.emit("fontEncryptionChange", {
+      enabled: settings.fontEncryptionEnabled,
+      encryptNumbers: settings.fontEncryptionNumbers,
+      encryptChinese: settings.fontEncryptionChinese,
+      applyGlobal: settings.fontEncryptionGlobal,
+      ocrNoise: enabled,
+    });
+  }
+}
 
 /** 导入设置 */
 function importSettings() {
@@ -1971,6 +2044,77 @@ onUnmounted(() => {
                   active-icon="ri:terminal-box-line"
                   ribbon-color="var(--el-color-warning)"
                   @change="debugModeChange"
+                />
+              </div>
+            </div>
+
+            <!-- 字体加密设置 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:lock-password-line'"
+                  class="group-icon"
+                />
+                字体加密
+              </h4>
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.fontEncryptionEnabled"
+                  layout="visual-card"
+                  size="small"
+                  label="启用字体加密"
+                  description="通过字符映射防止复制数字和常用汉字"
+                  active-icon="ri:shield-check-line"
+                  ribbon-color="var(--el-color-primary)"
+                  @change="fontEncryptionEnabledChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.fontEncryptionNumbers"
+                  layout="visual-card"
+                  size="small"
+                  label="加密数字"
+                  description="对数字0-9进行字体加密"
+                  active-icon="ri:number-1"
+                  ribbon-color="var(--el-color-info)"
+                  :disabled="!settings.fontEncryptionEnabled"
+                  @change="fontEncryptionNumbersChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.fontEncryptionChinese"
+                  layout="visual-card"
+                  size="small"
+                  label="加密汉字"
+                  description="对常用汉字进行字体加密"
+                  active-icon="ri:translate"
+                  ribbon-color="var(--el-color-success)"
+                  :disabled="!settings.fontEncryptionEnabled"
+                  @change="fontEncryptionChineseChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.fontEncryptionGlobal"
+                  layout="visual-card"
+                  size="small"
+                  label="全局应用"
+                  description="将字体加密应用到整个页面"
+                  active-icon="ri:global-line"
+                  ribbon-color="var(--el-color-warning)"
+                  :disabled="!settings.fontEncryptionEnabled"
+                  @change="fontEncryptionGlobalChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.fontEncryptionOcrNoise"
+                  layout="visual-card"
+                  size="small"
+                  label="OCR 噪点干扰"
+                  description="添加人眼不可见的噪点，干扰 OCR 识别"
+                  active-icon="ri:eye-off-line"
+                  ribbon-color="var(--el-color-danger)"
+                  :disabled="!settings.fontEncryptionEnabled"
+                  @change="fontEncryptionOcrNoiseChange"
                 />
               </div>
             </div>

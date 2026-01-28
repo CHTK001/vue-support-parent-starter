@@ -87,6 +87,210 @@ html.dark {
   }
 }
 
+/* ===== 特殊容器适配：文档页 / 容器管理等 ===== */
+.doc-app {
+  min-height: 100vh;
+  padding: 16px;
+  background: radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.05), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(0, 0, 0, 0.04), transparent 55%),
+    var(--page-bg);
+
+  @media (min-width: 768px) {
+    padding: 20px;
+  }
+
+  @media (min-width: 1200px) {
+    padding: 24px 28px;
+  }
+}
+
+.container-management {
+  padding: 16px;
+  padding-bottom: 32px;
+
+  @media (min-width: 768px) {
+    padding: 20px;
+  }
+
+  @media (min-width: 1200px) {
+    padding: 24px;
+  }
+}
+
+/* 容器管理统计行 */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* ===== 通用页面头部（多项目复用：page-header/header-content/page-title 等）===== */
+:where(.page-container, .management-container, .server-wrapper, .hotspot-container, .monitor-container, .system-container) {
+  .page-header {
+    position: relative;
+    border-radius: var(--card-radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(var(--el-color-primary-rgb), 0.18), transparent 42%),
+      linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.12) 0%,
+        rgba(var(--el-color-primary-rgb), 0.06) 45%,
+        rgba(255, 255, 255, 0.02) 100%
+      );
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    transition: var(--transition-normal);
+
+    &:hover {
+      box-shadow: var(--card-shadow-hover);
+      transform: translateY(-1px);
+    }
+  }
+
+  .header-content {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .title-section {
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .page-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+
+    .title-icon {
+      font-size: 28px;
+      color: var(--el-color-primary);
+    }
+  }
+
+  .page-subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
+    padding: 14px 18px;
+    min-width: 108px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: var(--transition-fast);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.10);
+      border-color: rgba(var(--el-color-primary-rgb), 0.22);
+    }
+  }
+
+  .stat-value {
+    display: block;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+  }
+}
+
+/* ===== 通用卡片网格（feature-grid/feature-card）===== */
+:where(.page-container, .management-container, .server-wrapper, .hotspot-container, .monitor-container, .system-container) {
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .feature-card {
+    position: relative;
+    display: block;
+    padding: 20px;
+    border-radius: var(--card-radius-lg);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: var(--transition-normal);
+    overflow: hidden;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--card-shadow-hover);
+      border-color: rgba(var(--el-color-primary-rgb), 0.22);
+    }
+  }
+}
+
+/* ===== 通用工具栏（toolbar/toolbar-left/toolbar-right）===== */
+:where(.page-container, .management-container, .server-wrapper, .hotspot-container, .monitor-container, .system-container) {
+  .toolbar,
+  .toolbar-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    border-radius: var(--card-radius);
+    background: color-mix(in srgb, var(--card-bg) 92%, transparent);
+    border: 1px solid var(--border-light);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 768px) {
+    .toolbar,
+    .toolbar-section {
+      align-items: stretch;
+    }
+    .toolbar-left,
+    .toolbar-right {
+      width: 100%;
+    }
+  }
+}
+
 /* ===== 现代化卡片 ===== */
 .modern-card,
 .page-card,

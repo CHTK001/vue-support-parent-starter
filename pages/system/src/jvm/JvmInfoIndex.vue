@@ -1,5 +1,5 @@
 <template>
-  <div class="jvm-info-container">
+  <div class="jvm-info-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">

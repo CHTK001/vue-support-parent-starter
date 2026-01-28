@@ -1,4 +1,9 @@
-import { type ConfigEnv, loadEnv, type UserConfigExport, createLogger } from "vite";
+import {
+  type ConfigEnv,
+  loadEnv,
+  type UserConfigExport,
+  createLogger,
+} from "vite";
 import {
   root,
   wrapperEnv,
@@ -15,7 +20,7 @@ import pkg from "./package.json";
 const logger = createLogger();
 const originalWarn = logger.warn;
 logger.warn = (msg, options) => {
-  if (msg.includes('color-adjust')) return;
+  if (msg.includes("color-adjust")) return;
   originalWarn(msg, options);
 };
 
@@ -23,7 +28,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
   const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
-  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
+  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
+    wrapperEnv(env);
 
   return {
     base: VITE_PUBLIC_PATH,
@@ -39,7 +45,12 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
     root,
     resolve: {
-      alias: createAlias(import.meta.url),
+      alias: {
+        ...createAlias(import.meta.url),
+      },
+      dedupe: ["vue", "vue-router", "vue-i18n"],
+      // 确保正确解析 node_modules 中的包路径
+      preserveSymlinks: false,
     },
     // 服务端渲染
     server: {
@@ -104,11 +115,48 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         input: {
           index: pathResolve("./index.html", import.meta.url),
         },
+        external: ["@element-plus/icons-vue"],
         // 静态资源分类打包
         output: {
           chunkFileNames: "static/js/[name]-[hash].js",
           entryFileNames: "static/js/[name]-[hash].js",
           assetFileNames: "static/[ext]/[name]-[hash].[ext]",
+          // 手动分割代码块，优化加载性能
+          manualChunks(id) {
+            // 将 node_modules 中的大依赖单独打包
+            if (id.includes("node_modules")) {
+              // mermaid 相关
+              if (id.includes("mermaid")) {
+                return "vendor-mermaid";
+              }
+              // codemirror 相关
+              if (id.includes("codemirror")) {
+                return "vendor-codemirror";
+              }
+              // xterm 相关
+              if (id.includes("xterm")) {
+                return "vendor-xterm";
+              }
+              // cytoscape 相关
+              if (id.includes("cytoscape")) {
+                return "vendor-cytoscape";
+              }
+              // echarts 相关
+              if (id.includes("echarts") || id.includes("zrender")) {
+                return "vendor-echarts";
+              }
+              // element-plus 相关
+              if (id.includes("element-plus")) {
+                return "vendor-element-plus";
+              }
+              // vue 核心
+              if (id.includes("vue") && !id.includes("node_modules/@vue")) {
+                return "vendor-vue";
+              }
+              // 其他 node_modules 依赖
+              return "vendor";
+            }
+          },
         },
       },
     },

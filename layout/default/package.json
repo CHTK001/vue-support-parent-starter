@@ -38,6 +38,7 @@
     "@pureadmin/utils": "catalog:",
     "@pureadmin/theme": "catalog:",
     "@pureadmin/theme-utils": "catalog:",
+    "@repo/font-encryption": "workspace:*",
     "@vueuse/core": "catalog:",
     "animate.css": "catalog:",
     "pinia": "catalog:",

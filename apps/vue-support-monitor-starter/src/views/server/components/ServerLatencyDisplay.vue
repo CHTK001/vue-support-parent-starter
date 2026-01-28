@@ -1,5 +1,5 @@
 <template>
-  <div class="server-latency-display">
+  <div class="server-latency-display system-container modern-bg">
     <!-- 延迟指示器 -->
     <div class="latency-indicator" :class="latencyClass">
       <el-tooltip :content="latencyTooltip" placement="top" :show-after="300">
@@ -96,6 +96,32 @@ const latencyTooltip = computed(() => {
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: $gradient-bg-1, $gradient-bg-2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .server-latency-display {
   display: inline-flex;
   align-items: center;
@@ -143,7 +169,7 @@ const latencyTooltip = computed(() => {
 .latency-dot {
   border-radius: 50%;
   flex-shrink: 0;
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
 
   &.normal {
     background-color: var(--el-color-success);
@@ -170,7 +196,7 @@ const latencyTooltip = computed(() => {
 .latency-text {
   font-weight: 500;
   font-size: 12px;
-  transition: color 0.3s ease;
+  transition: color $duration-normal $ease-standard;
 
   .normal & {
     color: var(--el-color-success);

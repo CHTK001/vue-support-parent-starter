@@ -406,7 +406,7 @@ export function execContainerCommand(id: number, command: string) {
 }
 
 // 批量操作容器
-export function batchOperateContainers
+export function batchOperateContainers(data: any) {
   return http.request<ReturnResult<{ total: number; success: number; failed: number }>>("post", "/api/monitor/system-soft-container/batch", { data });
 }
 

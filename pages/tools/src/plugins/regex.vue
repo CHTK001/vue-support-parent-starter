@@ -735,15 +735,20 @@ onMounted(() => {
   padding: 20px;
 }
 .regex-tool__header {
-  /* 正则表达式工具专属渐变色 - 绿色调 */
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-radius: 8px;
-  padding: 24px;
-  color: var(--el-text-color-primary);
+  background: linear-gradient(135deg, var(--el-color-success-light-3) 0%, var(--el-color-success) 100%);
+  border-radius: 12px;
+  padding: 30px;
+  color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 4px 20px rgba(var(--el-color-success-rgb), 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    box-shadow: 0 6px 24px rgba(var(--el-color-success-rgb), 0.4);
+    transform: translateY(-2px);
+  }
 }
 .regex-tool__content {
   margin: 0 auto;
@@ -754,14 +759,20 @@ onMounted(() => {
 }
 
 .regex-tool__header {
-  background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
-  border-radius: 8px;
-  padding: 24px;
-  color: var(--el-text-color-primary);
+  background: linear-gradient(135deg, var(--el-color-success-light-3) 0%, var(--el-color-success) 100%);
+  border-radius: 12px;
+  padding: 30px;
+  color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(var(--el-color-success-rgb), 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    box-shadow: 0 6px 24px rgba(var(--el-color-success-rgb), 0.4);
+    transform: translateY(-2px);
+  }
 }
 
 .regex-tool__header-title {
@@ -804,6 +815,15 @@ onMounted(() => {
 .regex-tool__help-card,
 .regex-tool__history-card {
   margin-bottom: 24px;
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--el-border-color-lighter);
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+    border-color: var(--el-color-success-light-7);
+  }
 }
 
 .regex-tool__radio-group {
@@ -886,10 +906,18 @@ onMounted(() => {
 }
 
 .regex-tool__match-item {
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
+  background-color: var(--el-fill-color-lighter);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: var(--el-color-success-light-7);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateX(4px);
+  }
 }
 
 .regex-tool__match-header {
@@ -913,11 +941,12 @@ onMounted(() => {
 }
 
 .regex-tool__match-value {
-  background-color: #f5f7fa;
+  background-color: var(--el-fill-color);
   padding: 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: monospace;
   word-break: break-all;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .regex-tool__match-group {
@@ -928,22 +957,24 @@ onMounted(() => {
 
 .regex-tool__match-group-index {
   font-weight: bold;
-  color: #409eff;
+  color: var(--el-color-success);
 }
 
 .regex-tool__match-context-value {
-  background-color: #f5f7fa;
+  background-color: var(--el-fill-color);
   padding: 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: monospace;
   word-break: break-all;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .regex-tool__match-context-value mark {
-  background-color: #ffeaa7;
-  color: #2c3e50;
-  padding: 0 2px;
-  border-radius: 2px;
+  background: linear-gradient(135deg, var(--el-color-warning-light-5) 0%, var(--el-color-warning-light-3) 100%);
+  color: var(--el-color-warning-dark-2);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 600;
 }
 
 .regex-tool__extracted-list,
@@ -957,16 +988,31 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #f5f7fa;
+  background-color: var(--el-fill-color);
   padding: 8px;
-  border-radius: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background-color: var(--el-color-success-light-9);
+    border-color: var(--el-color-success-light-7);
+    transform: translateX(4px);
+  }
 }
 
 .regex-tool__split-item {
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
   overflow: hidden;
   margin-bottom: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: var(--el-color-success-light-7);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateX(4px);
+  }
 }
 
 .regex-tool__split-item-header {
@@ -974,8 +1020,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  background-color: var(--el-fill-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .regex-tool__common-pattern-title {
@@ -988,15 +1034,16 @@ onMounted(() => {
 
 .regex-tool__common-pattern-description {
   margin-bottom: 8px;
-  color: #606266;
+  color: var(--el-text-color-regular);
 }
 
 .regex-tool__common-pattern-code {
-  background-color: #f5f7fa;
+  background-color: var(--el-fill-color);
   padding: 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   margin-bottom: 16px;
   font-family: monospace;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .regex-tool__more-patterns-btn {

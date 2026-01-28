@@ -1,5 +1,5 @@
 <template>
-  <div class="video-container">
+  <div class="system-container modern-bg video-container">
     <div class="video-page-header">
       <el-space>
         <el-button @click="goBack">
@@ -561,7 +561,6 @@ const handleSelectResource = (resource: VideoItemType) => {
 <style scoped>
 .video-container {
   padding: 24px;
-  background-color: var(--el-bg-color-page, #f5f7fa);
   min-height: 100vh;
 }
 

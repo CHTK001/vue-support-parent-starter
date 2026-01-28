@@ -246,7 +246,7 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <div class="resolution-container h-full w-full overflow-hidden">
+  <div class="resolution-container h-full w-full overflow-hidden system-container modern-bg">
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment" />
     <el-button
       :icon="useRenderIcon('ep:setting')"

@@ -1,5 +1,5 @@
 <template>
-  <div class="sc-layer-example">
+  <div class="sc-layer-example system-container modern-bg">
     <h2>ScLayer 地图组件示例</h2>
 
     <div class="example-content">
@@ -756,7 +756,6 @@
 </template>
 
 <script setup lang="ts">
-console.log(console.track());
 import ScLayer from "@repo/components/ScLayer/index.vue";
 import type {
   HeatmapPoint,

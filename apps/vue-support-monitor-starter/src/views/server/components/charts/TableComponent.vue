@@ -1,5 +1,5 @@
 <template>
-  <div class="table-component">
+  <div class="table-component system-container modern-bg">
     <div class="table-header">
       <div class="table-title">
         <IconifyIconOnline icon="ri:table-line" class="table-icon" />
@@ -82,19 +82,67 @@ const handleDelete = () => emit("delete", props.componentData.monitorSysGenServe
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    @include gradient-bg;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
 .table-component {
   height: 100%;
-  background: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
+  @include glass-effect(0.9, 16px);
+  border-radius: $radius-lg;
+  border: 1px solid $border-light;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
+  position: relative;
+  box-shadow: $shadow-md;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: $gradient-line-top;
+    opacity: 0;
+    transition: opacity $duration-normal ease;
+  }
 
   &:hover {
-    border-color: var(--el-color-primary-light-7);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: $border-primary;
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 }
 
@@ -102,28 +150,55 @@ const handleDelete = () => emit("delete", props.componentData.monitorSysGenServe
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
+  padding: $spacing-lg $spacing-xl $spacing-md;
+  border-bottom: 1px solid $border-light;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: $spacing-xl;
+    right: $spacing-xl;
+    height: 1px;
+    background: $gradient-line;
+    opacity: 0.5;
+  }
 
   .table-title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
+    gap: $spacing-sm;
+    font-size: $font-md;
+    font-weight: $font-weight-semibold;
     color: var(--el-text-color-primary);
+    transition: all $duration-fast ease;
 
     .table-icon {
-      font-size: 16px;
+      font-size: $icon-lg;
       color: var(--el-color-primary);
+      transition: transform $duration-normal $ease-standard;
+    }
+
+    &:hover .table-icon {
+      transform: scale(1.1) rotate(5deg);
     }
   }
 
   .table-actions {
     display: flex;
-    gap: 4px;
+    gap: $spacing-xs;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity $duration-normal $ease-standard;
+
+    .el-button {
+      border-radius: $radius-sm;
+      transition: all $duration-fast ease;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
   }
 
   &:hover .table-actions {
@@ -133,14 +208,86 @@ const handleDelete = () => emit("delete", props.componentData.monitorSysGenServe
 
 .table-content {
   flex: 1;
-  padding: 16px;
+  padding: $spacing-lg;
   overflow: auto;
+  @include custom-scrollbar;
+
+  :deep(.el-table) {
+    border-radius: $radius-md;
+    overflow: hidden;
+
+    .el-table__header {
+      th {
+        background: rgba(0, 0, 0, 0.02);
+        font-weight: $font-weight-semibold;
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    .el-table__body {
+      tr {
+        transition: all $duration-fast ease;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.02);
+          transform: scale(1.01);
+        }
+      }
+    }
+  }
 }
 
 .table-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--el-border-color-extra-light);
+  padding: $spacing-md $spacing-xl;
+  border-top: 1px solid $border-light;
   display: flex;
   justify-content: center;
+  position: relative;
+  background: rgba(0, 0, 0, 0.02);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: $spacing-xl;
+    right: $spacing-xl;
+    height: 1px;
+    background: $gradient-line;
+    opacity: 0.5;
+  }
+
+  .el-button {
+    border-radius: $radius-md;
+    transition: all $duration-fast ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $shadow-hover-sm;
+    }
+  }
+}
+
+// 响应式设计
+@include respond-to(lg) {
+  .table-content {
+    padding: $spacing-md;
+  }
+}
+
+@include respond-to(sm) {
+  .table-header,
+  .table-footer {
+    padding: $spacing-md $spacing-lg;
+  }
+
+  .table-content {
+    padding: $spacing-md;
+  }
+}
+
+@include respond-to(xs) {
+  .table-content {
+    padding: $spacing-sm;
+  }
 }
 </style>

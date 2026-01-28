@@ -24,10 +24,12 @@
     ".": {
       "types": "./src/index.ts",
       "development": "./src/index.ts",
-      "default": "./dist/index.mjs"
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./TechUIPage": {
       "development": "./src/views/TechUIPage.vue",
+      "import": "./src/views/TechUIPage.vue",
       "default": "./src/views/TechUIPage.vue"
     }
   },

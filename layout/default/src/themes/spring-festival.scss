@@ -34,21 +34,48 @@
 // ==================== 春节主题 - 导航栏 ====================
 
 .theme-spring-festival :deep(.lay-navbar) {
-    background: linear-gradient(135deg, #f5222d 0%, #ff6b6b 50%, #ff8787 100%);
-    box-shadow: 0 4px 16px rgba(245, 34, 45, 0.4);
-    border-bottom: 3px solid #ffd700;
+    background: linear-gradient(135deg, #f5222d 0%, #ff4d4f 30%, #ff6b6b 60%, #ff8787 100%);
+    box-shadow: 0 4px 20px rgba(245, 34, 45, 0.5),
+        0 0 40px rgba(255, 215, 0, 0.3);
+    border-bottom: 4px solid #ffd700;
     position: relative;
 
-    // 春节装饰线
+    // 春节装饰线 - 增强版
     &::after {
         content: "";
         position: absolute;
-        bottom: -3px;
+        bottom: -4px;
         left: 0;
         right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #ffd700, #ff6b6b, #ffd700);
+        height: 4px;
+        background: linear-gradient(
+            90deg,
+            #ffd700 0%,
+            #ff6b6b 25%,
+            #ffd700 50%,
+            #ff6b6b 75%,
+            #ffd700 100%
+        );
         animation: spring-festival-shimmer 2s ease-in-out infinite;
+        box-shadow: 0 2px 12px rgba(255, 215, 0, 0.6);
+    }
+    
+    // 导航栏光晕效果
+    &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 215, 0, 0.15) 50%,
+            transparent 100%
+        );
+        animation: navbar-glow 4s ease-in-out infinite;
+        pointer-events: none;
     }
 
     // 导航栏文字和图标
@@ -273,22 +300,31 @@
 // ==================== 春节主题 - 装饰元素 ====================
 
 .theme-spring-festival {
-
-    // 顶部装饰线
+    // 顶部装饰线 - 增强版
     &::before {
         content: "";
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #f5222d, #ff6b6b, #ffd700, #f5222d);
+        height: 4px;
+        background: linear-gradient(
+            90deg,
+            #f5222d 0%,
+            #ff6b6b 20%,
+            #ffd700 40%,
+            #ff6b6b 60%,
+            #f5222d 80%,
+            #ffd700 100%
+        );
         z-index: 9999;
         pointer-events: none;
         animation: spring-festival-gradient 3s ease infinite;
+        box-shadow: 0 2px 16px rgba(245, 34, 45, 0.6),
+            0 0 24px rgba(255, 215, 0, 0.4);
     }
 
-    // 春节灯笼效果（可选）
+    // 春节背景氛围 - 增强版
     &::after {
         content: "";
         position: fixed;
@@ -296,11 +332,50 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-image: radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 90% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.12) 0%, transparent 45%),
+            radial-gradient(circle at 90% 80%, rgba(255, 107, 107, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(245, 34, 45, 0.05) 0%, transparent 60%);
         pointer-events: none;
         z-index: -1;
+        animation: background-pulse 8s ease-in-out infinite;
     }
+}
+
+// 背景脉冲动画
+@keyframes background-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+// 左侧灯笼装饰
+.theme-spring-festival body::before {
+    content: "🏮";
+    position: fixed;
+    top: 60px;
+    left: 5%;
+    font-size: 48px;
+    z-index: 9997;
+    pointer-events: none;
+    animation: lantern-swing 3s ease-in-out infinite;
+    filter: drop-shadow(0 4px 16px rgba(245, 34, 45, 0.6));
+}
+
+// 右侧灯笼装饰
+.theme-spring-festival body::after {
+    content: "🏮";
+    position: fixed;
+    top: 60px;
+    right: 5%;
+    font-size: 48px;
+    z-index: 9997;
+    pointer-events: none;
+    animation: lantern-swing 3s ease-in-out infinite 1.5s;
+    filter: drop-shadow(0 4px 16px rgba(245, 34, 45, 0.6));
 }
 
 // ==================== 春节主题 - 动画 ====================
@@ -334,14 +409,29 @@
 }
 
 @keyframes lantern-swing {
-
-    0%,
-    100% {
-        transform: translateX(0) rotateZ(-5deg);
+    0%, 100% {
+        transform: translateX(0) rotateZ(-8deg) translateY(0);
     }
-
+    25% {
+        transform: translateX(8px) rotateZ(5deg) translateY(-2px);
+    }
     50% {
-        transform: translateX(10px) rotateZ(5deg);
+        transform: translateX(12px) rotateZ(8deg) translateY(0);
+    }
+    75% {
+        transform: translateX(8px) rotateZ(5deg) translateY(-2px);
+    }
+}
+
+// 导航栏光晕动画
+@keyframes navbar-glow {
+    0%, 100% {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    50% {
+        transform: translateX(100%);
+        opacity: 1;
     }
 }
 

@@ -6,16 +6,35 @@
  */
 import smCrypto from "sm-crypto";
 import CryptoJS from "crypto-js";
-import init, * as wasmCodec from "../build/codec_wasm.js";
 
 // ============ 模块状态 ============
 let wasmLoaded = false;
 let wasm = null;
+let wasmInit = null;
+let wasmCodec = null;
+let wasmModuleLoaded = false;
 
 // ============ 工具函数 ============
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const ZERO_IV = CryptoJS.enc.Utf8.parse("\x00".repeat(16));
+
+/**
+ * 按需加载 wasm-pack 生成的 JS 包装层。
+ * 说明：不能使用静态 import，否则在构建期会强制解析 ../build/codec_wasm.js，导致未生成产物时打包失败。
+ *
+ * @returns {Promise<void>}
+ */
+const ensureWasmModuleLoaded = async () => {
+  if (wasmModuleLoaded) return;
+  const mod = await import(
+    /* @vite-ignore */
+    new URL("../build/codec_wasm.js", import.meta.url).href
+  );
+  wasmInit = mod?.default;
+  wasmCodec = mod;
+  wasmModuleLoaded = true;
+};
 
 /** 获取 C 字符串长度 */
 const strlen = (ptr) => {
@@ -78,13 +97,17 @@ export const initializeWasmModule = async () => {
   if (wasmLoaded) return wasm;
   
   try {
-    const exports = await init(new URL("../build/codec_wasm_bg.wasm", import.meta.url));
+    await ensureWasmModuleLoaded();
+    if (typeof wasmInit !== "function") {
+      throw new Error("WASM 初始化函数不存在（codec_wasm.js default export）");
+    }
+    const exports = await wasmInit(new URL("../build/codec_wasm_bg.wasm", import.meta.url));
     wasm = exports || wasmCodec;
     wasmLoaded = true;
-    console.log("✅ WASM 模块加载成功");
+    console.log("[codec-wasm][初始化] WASM 模块加载成功");
     return wasm;
   } catch (e) {
-    console.error("❌ WASM 模块加载失败:", e);
+    console.error("[codec-wasm][初始化] WASM 模块加载失败:", e);
     wasmLoaded = false;
     return null;
   }
@@ -315,6 +338,66 @@ export function jsUu4(responseData) {
 export const uu1_wasm = uu1;
 export const uu3_wasm = uu3;
 export const uu4_wasm = uu4;
+
+// ============ 字体加密函数（内部 API，供 @repo/font-encryption 使用） ============
+
+/**
+ * 字体加密文本（WASM 版本）
+ * @internal 仅供 @repo/font-encryption 模块使用
+ */
+export const fontEncryptText = (text, encryptNumbers = true, encryptChinese = true) => {
+  if (!wasmLoaded) throw new Error("WASM 未加载，无法执行字体加密");
+  const { ptr, len } = toWasm(text);
+  return fromWasm(wasm.font_encrypt_text(ptr, len, encryptNumbers, encryptChinese));
+};
+
+/**
+ * 字体解密文本（WASM 版本）
+ * @internal 仅供 @repo/font-encryption 模块使用
+ */
+export const fontDecryptText = (text) => {
+  if (!wasmLoaded) throw new Error("WASM 未加载，无法执行字体解密");
+  const { ptr, len } = toWasm(text);
+  return fromWasm(wasm.font_decrypt_text(ptr, len));
+};
+
+/**
+ * 检查字符是否为加密字符（WASM 版本）
+ * @internal 仅供 @repo/font-encryption 模块使用
+ */
+export const fontIsEncryptedChar = (char) => {
+  if (!wasmLoaded) throw new Error("WASM 未加载，无法检查加密字符");
+  const { ptr, len } = toWasm(char);
+  return wasm.font_is_encrypted_char(ptr, len);
+};
+
+/**
+ * 获取映射字符数量（WASM 版本）
+ * @internal 仅供 @repo/font-encryption 模块使用
+ */
+export const fontGetMappedCharCount = () => {
+  if (!wasmLoaded) throw new Error("WASM 未加载，无法获取映射字符数量");
+  const result = fromWasm(wasm.font_get_mapped_char_count());
+  try {
+    return JSON.parse(result);
+  } catch {
+    return { numbers: 0, chinese: 0 };
+  }
+};
+
+/**
+ * 获取映射表（WASM 版本）
+ * @internal 仅供 @repo/font-encryption 模块使用
+ */
+export const fontGetMaps = () => {
+  if (!wasmLoaded) throw new Error("WASM 未加载，无法获取映射表");
+  const result = fromWasm(wasm.font_get_maps());
+  try {
+    return JSON.parse(result);
+  } catch {
+    return { numberMap: {}, chineseMap: {}, reverseNumberMap: {}, reverseChineseMap: {} };
+  }
+};
 
 // ============ 全局挂载 ============
 

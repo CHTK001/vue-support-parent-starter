@@ -1,5 +1,5 @@
 <template>
-  <div class="animate relative h-full">
+  <div class="animate relative h-full system-container modern-bg">
     <el-form :form="form">
       <el-form-item label="模型" prop="model">
         <el-select v-model="form.model">

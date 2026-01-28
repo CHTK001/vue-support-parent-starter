@@ -1,0 +1,531 @@
+/**
+ * 公共样式 Mixins
+ * 提取组件中重复使用的样式模式，统一管理
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-01-22
+ */
+
+@import './variables.scss';
+
+// ========== 布局 Mixins ==========
+
+/**
+ * Flexbox 居中
+ */
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/**
+ * Flexbox 垂直居中
+ */
+@mixin flex-align-center {
+  display: flex;
+  align-items: center;
+}
+
+/**
+ * Flexbox 水平分布
+ */
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/**
+ * Flexbox 垂直布局
+ */
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/**
+ * 绝对居中
+ */
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// ========== 文本 Mixins ==========
+
+/**
+ * 文本省略（单行）
+ */
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/**
+ * 多行文本省略
+ * @param {Number} $lines - 行数，默认 2
+ */
+@mixin text-ellipsis-multiline($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/**
+ * 渐变文字
+ * @param {String} $gradient - 渐变值，默认使用主渐变
+ */
+@mixin gradient-text($gradient: $gradient-primary) {
+  background: $gradient;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// ========== 卡片 Mixins ==========
+
+/**
+ * 基础卡片样式
+ */
+@mixin card-base {
+  border-radius: $radius-lg;
+  @include glass-effect(0.9, 16px);
+  box-shadow: $shadow-md;
+  border: 1px solid $border-light;
+  transition: all $duration-normal $ease-standard;
+}
+
+/**
+ * 卡片悬停效果
+ */
+@mixin card-hover {
+  &:hover {
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+  }
+}
+
+/**
+ * 完整卡片样式（包含悬停效果）
+ */
+@mixin card-style {
+  @include card-base;
+  @include card-hover;
+}
+
+/**
+ * 毛玻璃卡片
+ */
+@mixin glass-card($opacity: 0.9, $blur: 16px) {
+  @include glass-effect($opacity, $blur);
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  border: 1px solid $border-light;
+  transition: all $duration-normal $ease-standard;
+
+  &:hover {
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+  }
+}
+
+// ========== 按钮 Mixins ==========
+
+/**
+ * 基础按钮样式
+ */
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $button-padding-md;
+  border-radius: $radius-md;
+  font-weight: $font-weight-semibold;
+  font-size: $font-md;
+  line-height: 1;
+  cursor: pointer;
+  transition: all $duration-normal $ease-standard;
+  border: none;
+  outline: none;
+  user-select: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/**
+ * 主要按钮样式
+ */
+@mixin button-primary {
+  @include button-base;
+  background: $gradient-primary;
+  color: #ffffff;
+  box-shadow: $shadow-primary;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: $shadow-hover-primary;
+    filter: brightness(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+/**
+ * 次要按钮样式
+ */
+@mixin button-secondary {
+  @include button-base;
+  background: $bg-glass-light;
+  color: var(--el-text-color-primary);
+  border: 1px solid $border-medium;
+
+  &:hover:not(:disabled) {
+    background: $bg-glass-dark;
+    border-color: $border-primary;
+    transform: translateY(-1px);
+  }
+}
+
+// ========== 容器 Mixins ==========
+
+/**
+ * 系统容器样式
+ */
+@mixin system-container {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/**
+ * 页面容器样式
+ */
+@mixin page-container {
+  width: 100%;
+  padding: $padding-container;
+  position: relative;
+}
+
+/**
+ * 现代化背景
+ */
+@mixin modern-bg {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    @include gradient-bg;
+    pointer-events: none;
+  }
+}
+
+// ========== 输入框 Mixins ==========
+
+/**
+ * 基础输入框样式
+ */
+@mixin input-base {
+  width: 100%;
+  padding: $spacing-md $spacing-lg;
+  border: 1px solid $border-light;
+  border-radius: $radius-md;
+  font-size: $font-md;
+  color: var(--el-text-color-primary);
+  background: $bg-glass;
+  transition: all $duration-normal $ease-standard;
+
+  &::placeholder {
+    color: var(--el-text-color-placeholder);
+  }
+
+  &:hover {
+    border-color: $border-medium;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px $primary-light;
+  }
+
+  &:disabled {
+    background: $bg-glass-light;
+    color: var(--el-text-color-disabled);
+    cursor: not-allowed;
+  }
+}
+
+// ========== 表格 Mixins ==========
+
+/**
+ * 现代化表格样式
+ */
+@mixin modern-table {
+  background: $bg-glass-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+
+  .el-table__header {
+    background: $bg-glass-toolbar;
+  }
+
+  .el-table__row {
+    transition: all $duration-fast $ease-standard;
+
+    &:hover {
+      background: $primary-light;
+    }
+  }
+}
+
+// ========== 表单 Mixins ==========
+
+/**
+ * 现代化表单样式
+ */
+@mixin modern-form {
+  .el-form-item {
+    margin-bottom: $spacing-xl;
+  }
+
+  .el-form-item__label {
+    font-weight: $font-weight-medium;
+    color: var(--el-text-color-primary);
+  }
+
+  .el-input,
+  .el-select,
+  .el-textarea {
+    @include input-base;
+  }
+}
+
+// ========== 对话框 Mixins ==========
+
+/**
+ * 对话框头部样式
+ */
+@mixin dialog-header {
+  padding: $padding-header;
+  border-bottom: 1px solid $border-light;
+  background: $bg-glass-toolbar;
+  border-radius: $radius-lg $radius-lg 0 0;
+
+  .dialog-title {
+    font-size: $font-xl;
+    font-weight: $font-weight-semibold;
+    @include gradient-text;
+  }
+}
+
+// ========== 工具栏 Mixins ==========
+
+/**
+ * 工具栏样式
+ */
+@mixin toolbar-style {
+  height: $toolbar-height;
+  padding: $padding-toolbar;
+  background: $bg-glass-toolbar;
+  border-bottom: 1px solid $border-light;
+  @include flex-between;
+  box-shadow: $shadow-sm;
+}
+
+// ========== 动画 Mixins ==========
+
+/**
+ * 淡入动画
+ * @param {Number} $duration - 动画时长
+ */
+@mixin fade-in($duration: $duration-normal) {
+  animation: fadeIn $duration $ease-standard;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/**
+ * 滑入动画（向上）
+ * @param {Number} $duration - 动画时长
+ */
+@mixin slide-in-up($duration: $duration-normal) {
+  animation: slideInUp $duration $ease-standard;
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/**
+ * 缩放动画
+ * @param {Number} $duration - 动画时长
+ */
+@mixin scale-in($duration: $duration-normal) {
+  animation: scaleIn $duration $ease-standard;
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+// ========== 工具 Mixins ==========
+
+/**
+ * 清除浮动
+ */
+@mixin clearfix {
+  &::after {
+    content: '';
+    display: table;
+    clear: both;
+  }
+}
+
+/**
+ * 隐藏文本
+ */
+@mixin hide-text {
+  text-indent: -9999px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/**
+ * 背景图片居中覆盖
+ */
+@mixin bg-cover {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/**
+ * 响应式媒体查询
+ * @param {String} $breakpoint - 断点名称 (xs, sm, md, lg, xl)
+ */
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: $breakpoint-xs) {
+      @content;
+    }
+  } @else if $breakpoint == sm {
+    @media (max-width: $breakpoint-sm) {
+      @content;
+    }
+  } @else if $breakpoint == md {
+    @media (max-width: $breakpoint-md) {
+      @content;
+    }
+  } @else if $breakpoint == lg {
+    @media (max-width: $breakpoint-lg) {
+      @content;
+    }
+  } @else if $breakpoint == xl {
+    @media (min-width: $breakpoint-xl) {
+      @content;
+    }
+  }
+}
+
+/**
+ * 响应式 - 小屏幕及以上
+ */
+@mixin sm-up {
+  @media (min-width: $breakpoint-sm) {
+    @content;
+  }
+}
+
+/**
+ * 响应式 - 中等屏幕及以上
+ */
+@mixin md-up {
+  @media (min-width: $breakpoint-md) {
+    @content;
+  }
+}
+
+/**
+ * 响应式 - 大屏幕及以上
+ */
+@mixin lg-up {
+  @media (min-width: $breakpoint-lg) {
+    @content;
+  }
+}
+
+/**
+ * 响应式 - 超大屏幕及以上
+ */
+@mixin xl-up {
+  @media (min-width: $breakpoint-xl) {
+    @content;
+  }
+}
+
+/**
+ * 响应式 - 小屏幕及以下
+ */
+@mixin sm-down {
+  @media (max-width: ($breakpoint-sm - 1)) {
+    @content;
+  }
+}
+
+/**
+ * 响应式 - 中等屏幕及以下
+ */
+@mixin md-down {
+  @media (max-width: ($breakpoint-md - 1)) {
+    @content;
+  }
+}
+

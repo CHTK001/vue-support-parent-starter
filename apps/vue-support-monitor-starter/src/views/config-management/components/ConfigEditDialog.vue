@@ -229,7 +229,7 @@ async function handleSubmit() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .config-edit-dialog :deep(.el-dialog__body) {
   padding: 16px 24px;
 }
@@ -267,4 +267,15 @@ async function handleSubmit() {
   justify-content: flex-end;
   gap: 12px;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

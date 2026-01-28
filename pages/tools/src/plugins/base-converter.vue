@@ -526,19 +526,18 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
     border-radius: 12px;
     padding: 30px;
-    color: var(--el-text-color-primary);
-    box-shadow: 0 10px 30px rgba(var(--el-color-primary-rgb), 0.3);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
     position: relative;
     overflow: hidden;
-    transform-style: preserve-3d;
-    transform: rotateX(5deg);
-    transition: transform 0.5s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      transform: rotateX(0deg) scale(1.02);
+      box-shadow: 0 6px 24px rgba(var(--el-color-primary-rgb), 0.4);
+      transform: translateY(-2px);
     }
 
     &-inner {

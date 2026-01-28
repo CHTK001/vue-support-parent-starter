@@ -374,16 +374,16 @@ const onBeforeUnmount = () => {
     margin-bottom: 30px;
     text-align: center;
     position: relative;
-    &::after {
-      content: "";
-      position: absolute;
-      bottom: -15px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80px;
-      height: 3px;
-      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
-      border-radius: 3px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+    border-radius: 12px;
+    padding: 30px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-primary-rgb), 0.4);
+      transform: translateY(-2px);
     }
   }
 
@@ -393,8 +393,8 @@ const onBeforeUnmount = () => {
     justify-content: center;
     margin-bottom: 12px;
     font-size: 28px;
-    font-weight: 600;
-    color: var(--el-color-primary);
+    font-weight: 700;
+    color: #fff;
 
     &-icon {
       font-size: 32px;
@@ -405,7 +405,7 @@ const onBeforeUnmount = () => {
 
   &__subtitle {
     font-size: 16px;
-    color: var(--el-text-color-secondary);
+    color: rgba(255, 255, 255, 0.9);
     margin-bottom: 16px;
   }
 
@@ -415,6 +415,13 @@ const onBeforeUnmount = () => {
     border-radius: 12px;
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
     padding: 24px;
+    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-color: var(--el-color-primary-light-7);
+    }
   }
 
   /* 时钟容器 */

@@ -80,14 +80,17 @@ export default defineComponent({
   align-items: center;
   gap: 16px;
   padding: 20px 24px;
-  background: var(--el-bg-color);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
   border-radius: 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   &.is-hoverable:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: rgba(99, 102, 241, 0.3);
   }
 
   &__icon {
@@ -100,7 +103,26 @@ export default defineComponent({
     font-size: 24px;
     color: #fff;
     flex-shrink: 0;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: inherit;
+      opacity: 0.9;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover::before {
+      opacity: 1;
+    }
+
+    &:hover {
+      transform: scale(1.05);
+    }
   }
 
   &__info {
@@ -111,7 +133,10 @@ export default defineComponent({
   &__value {
     font-size: 26px;
     font-weight: 700;
-    color: var(--el-text-color-primary);
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     line-height: 1.2;
   }
 

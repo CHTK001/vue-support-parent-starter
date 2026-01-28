@@ -74,79 +74,129 @@ defineProps({
   top: 0;
   right: 0;
   bottom: 80px;
-  width: 350px;
-  background-color: var(--el-bg-color);
-  border-left: 1px solid var(--el-border-color-light);
-  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  width: 380px;
+  background: var(--el-bg-color-overlay);
+  border-left: 1px solid var(--el-border-color-lighter);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+  z-index: 999;
   display: flex;
   flex-direction: column;
+  backdrop-filter: blur(10px);
+  animation: slideInRight 0.3s ease-out;
+  
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
   
   &__header {
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--el-border-color-light);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    background: var(--el-bg-color);
+    flex-shrink: 0;
   }
   
   &__title {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
   }
   
-  &__count {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
-  
-  &__content {
+  &__list {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
+    padding: 12px;
+    
+    // 自定义滚动条
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-border-color);
+      border-radius: 3px;
+      
+      &:hover {
+        background: var(--el-border-color-darker);
+      }
+    }
   }
   
   &__empty {
     height: 100%;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: var(--el-text-color-secondary);
+    color: var(--el-text-color-placeholder);
+    gap: 12px;
+    padding: 40px;
+    
+    &-icon {
+      font-size: 64px;
+      opacity: 0.4;
+    }
+    
+    &-text {
+      font-size: 14px;
+    }
   }
   
   &__item {
     display: flex;
     align-items: center;
-    padding: 10px;
-    border-radius: 6px;
-    margin-bottom: 5px;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
     
     &:hover {
-      background-color: var(--el-color-primary-light-9);
+      background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color));
+      border-color: var(--el-border-color-lighter);
+      transform: translateX(-4px);
     }
     
     &--active {
-      background-color: var(--el-color-primary-light-8);
+      background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color));
+      border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
       color: var(--el-color-primary);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
     }
   }
   
   &__item-index {
-    width: 30px;
+    width: 32px;
     text-align: center;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--el-text-color-secondary);
+    flex-shrink: 0;
   }
   
   &__item-info {
     flex: 1;
-    margin: 0 10px;
-    cursor: pointer;
+    margin: 0 12px;
+    min-width: 0;
   }
   
   &__item-title {
     font-size: 14px;
+    font-weight: 500;
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -164,7 +214,23 @@ defineProps({
   &__item-duration {
     font-size: 12px;
     color: var(--el-text-color-secondary);
-    margin-right: 10px;
+    margin-right: 8px;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  
+  &__item-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    
+    :deep(.el-button) {
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
   }
 }
 </style>
