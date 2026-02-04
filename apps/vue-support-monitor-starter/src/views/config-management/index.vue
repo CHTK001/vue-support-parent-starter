@@ -374,7 +374,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import '@/styles/mixins.scss';
+@use "@/styles/mixins.scss" as *;
 
 .config-management {
   @include system-container;

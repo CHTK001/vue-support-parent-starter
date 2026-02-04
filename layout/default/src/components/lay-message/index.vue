@@ -835,6 +835,6 @@ html.dark .message-center-drawer {
 }
 
 // 导入拆分的主题样式文�?
-@import './themes/index';
+@use './themes/index';
 
 </style>

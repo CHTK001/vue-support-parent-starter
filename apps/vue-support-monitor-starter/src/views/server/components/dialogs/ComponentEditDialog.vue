@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog v-model="visible" :title="mode === 'add' ? '添加组件' : '编辑组件'" width="800px" :close-on-click-modal="false" destroy-on-close class="component-edit-dialog">
     <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px" class="component-form">
       <el-row :gutter="20">
@@ -388,7 +388,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/variables.scss";
+@use "@/styles/variables.scss" as *;
 
 .component-edit-dialog {
   :deep(.el-dialog) {
