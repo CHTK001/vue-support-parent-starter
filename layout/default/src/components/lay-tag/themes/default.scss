@@ -30,7 +30,7 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--el-text-color-primary);
-  @include glass(12px, 0.8);
+  @include glass(0.8, 12px);
   border-bottom: 1px solid var(--app-border-primary, rgba(0,0,0,0.05));
   padding: 0 4px;
   
@@ -155,7 +155,7 @@
     color: var(--el-text-color-primary);
     white-space: nowrap;
     list-style-type: none;
-    @include glass(12px, 0.9);
+    @include glass(0.9, 12px);
     border-radius: 8px;
     outline: 0;
     
@@ -185,7 +185,7 @@
 
 // 下拉菜单样式
 .el-dropdown-menu {
-  @include glass(12px, 0.9);
+  @include glass(0.9, 12px);
   padding: 6px;
   border-radius: 8px;
 }
