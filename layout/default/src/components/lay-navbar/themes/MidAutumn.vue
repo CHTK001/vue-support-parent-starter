@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import BaseNavbar from './BaseNavbar.vue';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted } from 'vue';
+
+// 满月光晕
+const moonPhase = ref(0);
 
 // 星星闪烁动画
-const stars = ref<{ left: string; delay: string; duration: string }[]>([]);
+const stars = ref<{ left: string; top: string; delay: string; duration: string; size: string }[]>([]);
 
 onMounted(() => {
-  // 生成随机星星
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 25; i++) {
     stars.value.push({
-      left: `${10 + Math.random() * 80}%`,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
       delay: `${Math.random() * 3}s`,
-      duration: `${1.5 + Math.random() * 2}s`
+      duration: `${1.5 + Math.random() * 2}s`,
+      size: `${1 + Math.random() * 2}px`
     });
   }
 });
@@ -19,24 +23,32 @@ onMounted(() => {
 
 <template>
   <div class="mid-autumn-wrapper">
+    <!-- 夜空背景层 -->
+    <div class="night-sky-layer"></div>
+    
     <!-- 中秋装饰元素 -->
     <div class="mid-autumn-decorations">
+      <!-- 巨大的月亮背景（模糊） -->
+      <div class="moon-bg"></div>
+      
       <!-- 星星 -->
       <span 
         v-for="(star, index) in stars" 
         :key="index"
         class="star"
-        :style="{ left: star.left, animationDelay: star.delay, animationDuration: star.duration }"
-      >✨</span>
+        :style="{ 
+          left: star.left, 
+          top: star.top,
+          width: star.size,
+          height: star.size,
+          animationDelay: star.delay, 
+          animationDuration: star.duration 
+        }"
+      ></span>
       
-      <!-- 中间装饰组 -->
-      <div class="center-decoration">
-        <span class="moon">🌕</span>
-      </div>
-      
-      <!-- 云朵 -->
-      <span class="cloud cloud-left">☁️</span>
-      <span class="cloud cloud-right">☁️</span>
+      <!-- 飘动的云 -->
+      <div class="cloud cloud-1"></div>
+      <div class="cloud cloud-2"></div>
     </div>
     
     <BaseNavbar theme-class="mid-autumn-navbar" />
@@ -45,13 +57,23 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .mid-autumn-wrapper {
+  --ma-blue-dark: #0a1128;
+  --ma-blue-light: #1c2e4a;
+  --ma-gold: #ffd700;
+  --ma-moon-glow: rgba(255, 215, 0, 0.2);
+  
   width: 100%;
   position: relative;
+  overflow: hidden;
   
-  :deep(.mid-autumn-navbar) {
-    background: linear-gradient(180deg, #0d1b42 0%, #1a237e 50%, #283593 100%) !important;
-    border-bottom: 2px solid rgba(255, 213, 79, 0.4) !important;
-    box-shadow: 0 2px 10px rgba(26, 35, 126, 0.5) !important;
+  .night-sky-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, var(--ma-blue-dark) 0%, var(--ma-blue-light) 100%);
+    z-index: 0;
   }
   
   .mid-autumn-decorations {
@@ -61,85 +83,78 @@ onMounted(() => {
     right: 0;
     bottom: 0;
     pointer-events: none;
-    z-index: 5;
+    z-index: 1;
     overflow: hidden;
     
-    // 星星
+    .moon-bg {
+      position: absolute;
+      right: 10%;
+      top: -20px;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fffbe6, #ffd700);
+      box-shadow: 0 0 40px var(--ma-moon-glow), 0 0 80px var(--ma-moon-glow);
+      opacity: 0.8;
+      filter: blur(2px);
+    }
+    
     .star {
       position: absolute;
-      top: 8px;
-      font-size: 10px;
-      animation: twinkle 2s ease-in-out infinite;
-      opacity: 0.8;
-      filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+      background: #fff;
+      border-radius: 50%;
+      animation: twinkle ease-in-out infinite;
+      box-shadow: 0 0 4px #fff;
     }
     
-    // 中间装饰组
-    .center-decoration {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      
-      .moon {
-        font-size: 32px;
-        animation: glow 3s ease-in-out infinite;
-        filter: drop-shadow(0 0 15px rgba(255, 213, 79, 0.8)) drop-shadow(0 0 30px rgba(255, 213, 79, 0.4));
-      }
-    }
-    
-    // 云朵
     .cloud {
       position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 18px;
-      opacity: 0.4;
-      filter: blur(0.5px);
+      width: 120px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      filter: blur(8px);
       
-      &.cloud-left {
-        left: 20%;
-        animation: drift-left 20s linear infinite;
+      &.cloud-1 { top: 20px; left: 20%; animation: float 20s linear infinite; }
+      &.cloud-2 { top: 60%; right: 30%; width: 180px; animation: float 30s linear infinite reverse; }
+    }
+  }
+
+  :deep(.mid-autumn-navbar) {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.15) !important;
+    position: relative;
+    z-index: 10;
+    
+    // 强制内部颜色
+    .el-button, .el-dropdown, .breadcrumb-item, .breadcrumb-link {
+      color: #e0e0e0 !important;
+      
+      &:hover {
+        color: var(--ma-gold) !important;
       }
+    }
+    
+    .search-wrapper {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      color: #fff;
       
-      &.cloud-right {
-        right: 20%;
-        animation: drift-right 25s linear infinite;
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
       }
     }
   }
 }
 
-// 动画
 @keyframes twinkle {
-  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.2); }
 }
 
-@keyframes glow {
-  0%, 100% { 
-    transform: scale(1); 
-    filter: drop-shadow(0 0 15px rgba(255, 213, 79, 0.8)) drop-shadow(0 0 30px rgba(255, 213, 79, 0.4));
-  }
-  50% { 
-    transform: scale(1.1); 
-    filter: drop-shadow(0 0 20px rgba(255, 213, 79, 1)) drop-shadow(0 0 40px rgba(255, 213, 79, 0.6));
-  }
-}
-
-
-@keyframes drift-left {
-  0% { transform: translateY(-50%) translateX(0); opacity: 0.4; }
-  50% { opacity: 0.6; }
-  100% { transform: translateY(-50%) translateX(-30px); opacity: 0.4; }
-}
-
-@keyframes drift-right {
-  0% { transform: translateY(-50%) translateX(0); opacity: 0.4; }
-  50% { opacity: 0.6; }
-  100% { transform: translateY(-50%) translateX(30px); opacity: 0.4; }
+@keyframes float {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(20px); }
+  100% { transform: translateX(0); }
 }
 </style>

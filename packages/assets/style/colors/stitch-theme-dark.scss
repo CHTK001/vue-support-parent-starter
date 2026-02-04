@@ -1,0 +1,121 @@
+/**
+ * Stitch Theme (Dark / Cyberpunk)
+ * Overrides for html.dark
+ */
+
+@use "sass:color";
+
+html.dark {
+  /* ===== Theme Colors (Blue & Indigo - Cyberpunk Vibe) ===== */
+  --app-primary: #3b82f6; /* blue-500 */
+  --app-primary-rgb: 59, 130, 246;
+  --app-primary-light: #60a5fa; /* blue-400 */
+  --app-primary-lighter: #93c5fd; /* blue-300 */
+  --app-primary-lightest: #dbeafe; /* blue-100 */
+  --app-primary-dark: #2563eb; /* blue-600 */
+  --app-primary-darker: #1d4ed8; /* blue-700 */
+  
+  --app-info: #6366f1; /* indigo-500 */
+  --app-info-light: #818cf8;
+  --app-info-dark: #4f46e5;
+
+  /* ===== Backgrounds (Deep Slate) ===== */
+  --app-bg-primary: #0f172a; /* slate-900 */
+  --app-bg-secondary: #1e293b; /* slate-800 */
+  --app-bg-tertiary: #334155; /* slate-700 */
+  --app-bg-quaternary: #475569; /* slate-600 */
+  --app-bg-overlay: rgba(30, 41, 59, 0.9);
+  --app-bg-page: #0f172a;
+  
+  --app-bg-card: rgba(30, 41, 59, 0.7); /* Glassy dark card */
+  --app-bg-card-hover: rgba(30, 41, 59, 0.9);
+
+  /* ===== Borders ===== */
+  --app-border-primary: rgba(255, 255, 255, 0.08);
+  --app-border-secondary: rgba(255, 255, 255, 0.06);
+  --app-border-focus: #3b82f6;
+
+  /* ===== Text ===== */
+  --app-text-primary: #f1f5f9; /* slate-100 */
+  --app-text-secondary: #94a3b8; /* slate-400 */
+  --app-text-tertiary: #64748b; /* slate-500 */
+  --app-text-disabled: #475569; /* slate-600 */
+
+  /* ===== Glass & Effects ===== */
+  --app-glass-bg: rgba(30, 41, 59, 0.7);
+  --app-glass-border: rgba(255, 255, 255, 0.08);
+  --app-backdrop-blur: 20px;
+  
+  --app-shadow-glow: 0 0 20px rgba(59, 130, 246, 0.2);
+  --app-shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  
+  /* ===== Element Plus Overrides ===== */
+  --el-color-primary: var(--app-primary);
+  --el-bg-color: var(--app-bg-primary);
+  --el-bg-color-page: var(--app-bg-primary);
+  --el-bg-color-overlay: var(--app-bg-secondary);
+  --el-border-color: var(--app-border-primary);
+  --el-border-color-light: var(--app-border-secondary);
+  
+  --el-card-bg-color: var(--app-bg-card);
+  --el-card-border-color: var(--app-border-primary);
+  
+  /* Button overrides */
+  --el-button-bg-color: transparent;
+  --el-button-border-color: var(--app-border-primary);
+  --el-button-hover-bg-color: rgba(59, 130, 246, 0.1);
+  --el-button-hover-border-color: var(--app-primary);
+  --el-button-active-bg-color: rgba(59, 130, 246, 0.2);
+
+  /* ===== Framework/Layout Overrides ===== */
+  --pure-theme-menu-bg: rgba(15, 23, 42, 0.85);
+  --pure-theme-sidebar-logo: rgba(15, 23, 42, 0.9);
+  --pure-theme-sub-menu-bg: rgba(15, 23, 42, 0.6);
+  --pure-theme-menu-text: #94a3b8;
+  --pure-theme-menu-active-text: #3b82f6;
+}
+
+/* Global Component Styles for Stitch Dark */
+html.dark {
+    .el-card {
+        background-color: var(--app-bg-card);
+        backdrop-filter: blur(var(--app-backdrop-blur));
+        border: 1px solid var(--app-border-primary);
+        box-shadow: var(--app-shadow-card);
+        
+        &:hover {
+             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+             border-color: var(--app-border-focus);
+        }
+    }
+
+    /* Input Fields - Dark & Deep */
+    .el-input__wrapper {
+        background-color: rgba(30, 41, 59, 0.5) !important;
+        box-shadow: 0 0 0 1px var(--app-border-primary) inset !important;
+        
+        &.is-focus {
+            background-color: rgba(30, 41, 59, 0.8) !important;
+            box-shadow: 0 0 0 1px var(--app-primary) inset, 0 0 0 3px rgba(59, 130, 246, 0.15) inset !important;
+        }
+    }
+    
+    /* Tables */
+    .el-table {
+        --el-table-bg-color: transparent;
+        --el-table-tr-bg-color: transparent;
+        --el-table-header-bg-color: rgba(30, 41, 59, 0.8);
+        --el-table-row-hover-bg-color: rgba(59, 130, 246, 0.05);
+        background: transparent !important;
+        
+        th.el-table__cell {
+            background: rgba(30, 41, 59, 0.8) !important;
+            color: var(--app-text-secondary);
+        }
+        
+        tr {
+            background: transparent !important;
+        }
+    }
+}
+

@@ -6,9 +6,12 @@
 // ==================== 基础布局 ====================
 .fixed-header {
   padding: 0;
-  background: var(--el-bg-color);
+  background: var(--app-glass-bg, rgba(255, 255, 255, 0.8));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   position: relative;
   z-index: 100;
+  border-bottom: 1px solid var(--app-border-primary, transparent);
 }
 
 .main-container {
@@ -19,7 +22,7 @@
 
   :deep(.el-scrollbar) {
     &.pc {
-      background: var(--el-bg-color-page);
+      background: transparent;
       
       .el-scrollbar__view {
         min-height: 100%;

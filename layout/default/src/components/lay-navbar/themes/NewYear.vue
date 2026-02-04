@@ -4,117 +4,132 @@
  * 设计理念：清透玻璃感、轻盈纯净
  */
 import BaseNavbar from './BaseNavbar.vue';
+import { ref, onMounted } from 'vue';
+
+// 冰晶闪烁效果
+const sparkles = ref<{ left: string; top: string; size: string; delay: string }[]>([]);
+
+onMounted(() => {
+  for (let i = 0; i < 15; i++) {
+    sparkles.value.push({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      size: `${2 + Math.random() * 4}px`,
+      delay: `${Math.random() * 3}s`
+    });
+  }
+});
 </script>
 
 <template>
   <div class="new-year-navbar-wrapper">
+    <!-- 冰霜背景层 -->
+    <div class="ice-bg-layer"></div>
+    
+    <!-- 闪烁冰晶 -->
+    <div class="sparkle-layer">
+      <span 
+        v-for="(s, index) in sparkles" 
+        :key="index"
+        class="sparkle"
+        :style="{ 
+          left: s.left, 
+          top: s.top,
+          width: s.size,
+          height: s.size,
+          animationDelay: s.delay
+        }"
+      ></span>
+    </div>
+
     <BaseNavbar theme-class="new-year-navbar" />
   </div>
 </template>
 
 <style lang="scss" scoped>
-// 冰雪主题颜色变量
-$ice-lightest: #F5FBFF;
-$ice-lighter: #E8F4FC;
-$ice-light: #B8E0F2;
-$ice-medium: #7CC2E8;
-$ice-primary: #4EA8DE;
-$ice-deep: #2A7AB8;
-$ice-darker: #1E5F8C;
-$frost-purple: #E0E7F5;
-
 .new-year-navbar-wrapper {
-  width: 100%;
+  --ice-bg: rgba(245, 251, 255, 0.85);
+  --ice-primary: #4EA8DE;
+  --ice-border: rgba(124, 194, 232, 0.3);
+  --ice-text: #1E5F8C;
   
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  
+  .ice-bg-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--ice-bg);
+    backdrop-filter: blur(15px) saturate(180%);
+    border-bottom: 1px solid var(--ice-border);
+    z-index: 0;
+  }
+  
+  .sparkle-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 1;
+    
+    .sparkle {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 0 4px #fff, 0 0 8px var(--ice-primary);
+      animation: twinkle 3s infinite ease-in-out;
+      opacity: 0;
+    }
+  }
+
   :deep(.new-year-navbar) {
-    background: linear-gradient(135deg, rgba($ice-lightest, 0.95) 0%, rgba($ice-lighter, 0.92) 100%);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba($ice-medium, 0.25);
-    box-shadow: 0 2px 16px rgba($ice-deep, 0.08);
+    background: transparent !important;
+    border-bottom: none !important;
+    position: relative;
+    z-index: 10;
     
-    // 工具栏按钮样式
-    .navbar-btn {
-      color: $ice-deep;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        color: $ice-primary;
-        background: rgba($ice-medium, 0.15);
-      }
+    // 强制内部颜色适配冰雪主题
+    .el-breadcrumb__inner, .breadcrumb-link {
+      color: var(--ice-text) !important;
+      font-weight: 500;
     }
     
-    // 面包屑样式
-    .breadcrumb-link {
-      color: $ice-darker;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        color: $ice-primary;
-      }
-    }
-    
-    .breadcrumb-current {
-      color: $ice-deep;
+    .el-breadcrumb__item:last-child .el-breadcrumb__inner {
+      color: var(--ice-primary) !important;
       font-weight: 600;
     }
     
-    // 工具栏按钮组
-    .vertical-header-right {
-      .tool-item {
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba($ice-medium, 0.2);
-        color: $ice-deep;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        
-        &:hover {
-          background: rgba(255, 255, 255, 0.9);
-          border-color: $ice-primary;
-          color: $ice-primary;
-          box-shadow: 0 4px 12px rgba($ice-primary, 0.15);
-        }
-        
-        svg {
-          color: $ice-primary;
-        }
-      }
-      
-      #header-search, #full-screen {
-        color: $ice-deep;
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba($ice-medium, 0.2);
-        
-        &:hover {
-          background: rgba(255, 255, 255, 0.9);
-          border-color: $ice-primary;
-          
-          svg {
-            color: $ice-primary;
-          }
-        }
-        
-        svg {
-          color: $ice-primary;
-        }
-      }
+    .navbar-btn, .tool-item svg {
+      color: var(--ice-primary) !important;
     }
     
-    // 面包屑容器
-    .breadcrumb-container {
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba($ice-medium, 0.15);
-      border-radius: 8px;
-      backdrop-filter: blur(8px);
+    .search-wrapper {
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid var(--ice-border);
+      color: var(--ice-text);
       
-      :deep(.el-breadcrumb__inner) {
-        color: $ice-deep;
-        font-weight: 500;
-      }
-      
-      :deep(.el-breadcrumb__separator) {
-        color: $ice-medium;
+      &::placeholder {
+        color: rgba(30, 95, 140, 0.5);
       }
     }
   }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 0.8; transform: scale(1.2); }
+}
+
+:global(.dark) .new-year-navbar-wrapper {
+  --ice-bg: rgba(20, 30, 48, 0.85); // 深蓝夜色
+  --ice-text: #B8E0F2;
+  --ice-primary: #7CC2E8;
+  --ice-border: rgba(124, 194, 232, 0.15);
 }
 </style>

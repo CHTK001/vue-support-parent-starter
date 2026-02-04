@@ -1,0 +1,214 @@
+/**
+ * 中秋节主题皮肤
+ * @author CH
+ * @date 2025-12-13
+ * @version 1.0.0
+ */
+
+// ==================== 中秋节主题颜色定义 ====================
+
+:root.theme-mid-autumn {
+    // 主题颜色
+    --theme-primary: #ffd700; // 金黄色
+    --theme-secondary: #00695c; // 玉绿色
+    --theme-accent: #f5f5f5; // 柔和白
+    --theme-background: #1a237e; // 月光蓝
+    --theme-text: #f5f5f5;
+    --theme-border: #283593;
+
+    // Element Plus 颜色覆盖
+    --el-color-primary: #ffd700;
+    --el-color-primary-light-3: #ffe44d;
+    --el-color-primary-light-5: #ffeb80;
+    --el-color-primary-light-7: #fff2b3;
+    --el-color-primary-light-8: #fff6cc;
+    --el-color-primary-light-9: #fffbe6;
+    --el-color-primary-dark-2: #ccac00;
+
+    --el-bg-color: #1a237e;
+    --el-bg-color-overlay: rgba(26, 35, 126, 0.9);
+    --el-border-color: #283593;
+    --el-border-color-light: #3949ab;
+    --el-border-color-lighter: #5c6bc0;
+    --el-text-color-primary: #f5f5f5;
+    --el-text-color-regular: #c5cae9;
+}
+
+// ==================== 中秋节主题 - 导航栏 ====================
+
+.theme-mid-autumn :deep(.lay-navbar) {
+    background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4),
+        0 0 15px rgba(255, 215, 0, 0.2); // 金色微光
+    border-bottom: 2px solid #ffd700;
+    position: relative;
+    
+    // 云纹装饰
+    &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .navbar-item, .navbar-icon, .navbar-text {
+        color: #f5f5f5;
+    }
+
+    :deep(.el-button--text) {
+        color: #f5f5f5;
+        font-family: 'Times New Roman', serif; // 衬线字体增加传统感
+
+        &:hover {
+            color: #ffd700;
+        }
+    }
+}
+
+// ==================== 中秋节主题 - 侧边栏 ====================
+
+.theme-mid-autumn :deep(.nav-vertical),
+.theme-mid-autumn :deep(.nav-horizontal),
+.theme-mid-autumn :deep(.nav-hover),
+.theme-mid-autumn :deep(.nav-double) {
+    background: linear-gradient(180deg, #1a237e 0%, #000051 100%);
+    border-right: 1px solid #283593;
+
+    :deep(.el-menu) {
+        background-color: transparent;
+        border-right: none;
+    }
+
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+        color: #c5cae9;
+
+        &:hover {
+            background-color: rgba(0, 105, 92, 0.2) !important;
+            color: #ffd700 !important;
+        }
+    }
+
+    :deep(.el-menu-item.is-active),
+    :deep(.el-sub-menu__title.is-active) {
+        background-color: rgba(255, 215, 0, 0.1) !important;
+        color: #ffd700 !important;
+        border-left: 3px solid #ffd700;
+    }
+}
+
+// ==================== 中秋节主题 - 卡片 ====================
+
+.theme-mid-autumn :deep(.el-card) {
+    background-color: rgba(26, 35, 126, 0.8);
+    border: 1px solid #283593;
+    border-radius: 12px; // 柔和圆角
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: #f5f5f5;
+    
+    &:hover {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); // 月光晕
+        transform: translateY(-2px);
+        transition: all 0.4s ease;
+    }
+
+    :deep(.el-card__header) {
+        border-bottom: 1px solid #283593;
+        background-color: rgba(0, 105, 92, 0.1); // 玉色微 tint
+    }
+}
+
+// ==================== 中秋节主题 - 按钮 ====================
+
+.theme-mid-autumn :deep(.el-button--primary) {
+    background: linear-gradient(135deg, #ffd700, #ffb300); // 金色渐变
+    border: none;
+    color: #1a237e; // 深色文字对比
+    box-shadow: 0 4px 10px rgba(255, 215, 0, 0.3);
+
+    &:hover {
+        background: linear-gradient(135deg, #ffe066, #ffca28);
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+}
+
+.theme-mid-autumn :deep(.el-button--success) {
+    background: linear-gradient(135deg, #00695c, #004d40); // 玉色渐变
+    border: none;
+    color: #f5f5f5;
+
+    &:hover {
+        background: linear-gradient(135deg, #00796b, #00695c);
+        box-shadow: 0 0 15px rgba(0, 105, 92, 0.4);
+    }
+}
+
+// ==================== 中秋节主题 - 装饰动画 ====================
+
+.theme-mid-autumn {
+    // 背景大月亮
+    &::before {
+        content: "";
+        position: fixed;
+        top: 50px;
+        right: 100px;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%, #fffde7, #ffd700);
+        box-shadow: 0 0 60px rgba(255, 215, 0, 0.4);
+        opacity: 0.8;
+        z-index: -1;
+        pointer-events: none;
+        animation: moon-glow 5s ease-in-out infinite alternate;
+    }
+
+    // 漂浮云朵
+    &::after {
+        content: "☁️";
+        position: fixed;
+        top: 100px;
+        right: 80px;
+        font-size: 60px;
+        opacity: 0.4;
+        z-index: -1;
+        pointer-events: none;
+        animation: cloud-float 20s linear infinite;
+        filter: brightness(10); // 白色云朵
+    }
+}
+
+// 兔子装饰
+.theme-mid-autumn body::before {
+    content: "🐇";
+    position: fixed;
+    bottom: 30px;
+    right: 50px;
+    font-size: 40px;
+    z-index: 9999;
+    pointer-events: none;
+    animation: rabbit-jump 5s ease-in-out infinite;
+}
+
+// ==================== 动画定义 ====================
+
+@keyframes moon-glow {
+    0% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.3); transform: scale(1); }
+    100% { box-shadow: 0 0 80px rgba(255, 215, 0, 0.6); transform: scale(1.02); }
+}
+
+@keyframes cloud-float {
+    0% { transform: translateX(0); opacity: 0.3; }
+    50% { transform: translateX(-50px); opacity: 0.5; }
+    100% { transform: translateX(0); opacity: 0.3; }
+}
+
+@keyframes rabbit-jump {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}

@@ -29,34 +29,57 @@ provide('themeSidebarItem', DefaultSidebarItem);
       :item="item"
       :is-nest="isNest"
       :base-path="basePath"
-    />
+    >
+      <template #activeDecoration>
+        <div class="active-indicator"></div>
+      </template>
+    </BaseSidebarItem>
   </div>
 </template>
 
 <style lang="scss" scoped>
-// CSS 变量管理主题样式
 .default-sidebar-item-wrapper {
   --item-text-color: var(--el-text-color-primary);
-  --item-hover-shadow: rgba(0, 0, 0, 0.05);
-  --item-active-bg: var(--el-color-primary);
-  --item-active-text: #fff;
+  --item-hover-bg: rgba(0, 0, 0, 0.04);
+  --item-active-bg: var(--el-color-primary-light-9);
+  --item-active-text: var(--el-color-primary);
+  --item-border-radius: 8px;
   
   :deep(.sidebar-menu-item) {
     color: var(--item-text-color);
     background-color: transparent;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 4px 8px;
+    border-radius: var(--item-border-radius);
+    height: 48px;
+    line-height: 48px;
     
     &:hover {
-      transform: translateX(2px);
-      box-shadow: 0 2px 8px var(--item-hover-shadow);
+      background-color: var(--item-hover-bg);
+      transform: translateX(4px);
     }
     
     &.is-active {
-      background: var(--item-active-bg);
+      background-color: var(--item-active-bg);
       color: var(--item-active-text);
+      font-weight: 600;
       
       .el-icon, svg, span, div {
         color: var(--item-active-text);
+      }
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 24px;
+        background-color: var(--el-color-primary);
+        border-radius: 0 4px 4px 0;
+        opacity: 0; 
+        // 默认主题使用背景色区分，这里隐藏左侧条，如果需要可以改为1
       }
     }
   }
@@ -64,12 +87,33 @@ provide('themeSidebarItem', DefaultSidebarItem);
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
       color: var(--item-text-color);
-      transition: transform 0.2s ease;
+      margin: 4px 8px;
+      border-radius: var(--item-border-radius);
+      height: 48px;
+      line-height: 48px;
+      transition: all 0.3s ease;
       
       &:hover {
-        transform: translateX(2px);
+        background-color: var(--item-hover-bg);
       }
     }
+
+    &.is-active > .el-sub-menu__title {
+      color: var(--item-active-text);
+      font-weight: 600;
+      
+      .el-icon, svg, span, div {
+        color: var(--item-active-text);
+      }
+    }
+  }
+}
+
+// 暗黑模式适配
+html.dark {
+  .default-sidebar-item-wrapper {
+    --item-hover-bg: rgba(255, 255, 255, 0.05);
+    --item-active-bg: rgba(var(--el-color-primary-rgb), 0.15);
   }
 }
 </style>

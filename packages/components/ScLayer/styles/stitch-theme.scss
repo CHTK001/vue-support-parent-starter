@@ -1,0 +1,156 @@
+@use './variables.scss' as *;
+
+/* Stitch Theme for ScLayer - Futuristic Glassmorphism */
+
+.sc-layer {
+  /* 地图容器背景 */
+  background-color: var(--stitch-bg-dark, #0f172a);
+}
+
+/* 工具栏美化 */
+:deep(.map-toolbar) {
+  .toolbar-item {
+    background-color: rgba(30, 41, 59, 0.7) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1 !important;
+    border-radius: 8px !important;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+
+    &:hover, &.active {
+      background-color: rgba(91, 19, 236, 0.2) !important;
+      border-color: var(--stitch-accent, #00f2ea);
+      color: var(--stitch-accent, #00f2ea) !important;
+      box-shadow: 0 0 10px rgba(0, 242, 234, 0.3);
+      
+      .svg-icon path {
+        fill: var(--stitch-accent, #00f2ea) !important;
+      }
+    }
+  }
+
+  /* 子菜单 */
+  .toolbar-submenu {
+    background-color: rgba(15, 23, 42, 0.9) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    
+    .submenu-item {
+      color: #cbd5e1;
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--stitch-accent, #00f2ea);
+      }
+    }
+  }
+}
+
+/* 弹窗美化 */
+:deep(.sc-map-custom-popup) {
+  background: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 242, 234, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  color: #f8fafc;
+  border-radius: 12px;
+
+  .custom-popup-close-button {
+    color: #94a3b8;
+    &:hover {
+      color: #f8fafc;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+  }
+}
+
+/* 鹰眼地图美化 */
+:deep(.ol-overviewmap) {
+  &:not(.ol-collapsed) {
+    background-color: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 6px !important;
+    border-radius: 8px !important;
+
+    .ol-overviewmap-map {
+      border: 1px solid rgba(0, 242, 234, 0.3) !important;
+    }
+  }
+
+  /* 鹰眼视窗框 */
+  .ol-overviewmap-box {
+    border: 2px solid var(--stitch-accent, #00f2ea) !important;
+    background-color: rgba(0, 242, 234, 0.1);
+  }
+
+  button {
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    color: #cbd5e1 !important;
+    border-radius: 4px !important;
+    
+    &:hover {
+      background-color: var(--stitch-primary, #5b13ec) !important;
+      color: white !important;
+    }
+  }
+}
+
+/* 坐标面板与搜索框美化 */
+:deep(.coordinate-panel), :deep(.search-box) {
+  background: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+  input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+    
+    &:focus {
+      border-color: var(--stitch-accent, #00f2ea);
+    }
+  }
+}
+
+/* 测距 Tooltip */
+:deep(.ol-tooltip) {
+  background: rgba(15, 23, 42, 0.9) !important;
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--stitch-primary, #5b13ec);
+  color: #f8fafc !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  &.ol-tooltip-measure {
+    background: rgba(91, 19, 236, 0.9) !important;
+    border-color: #7c41f2;
+  }
+  
+  &.ol-tooltip-static {
+    background: rgba(15, 23, 42, 0.9) !important;
+    border-color: #00f2ea;
+    color: #00f2ea !important;
+  }
+}
+
+/* 滚动条美化 */
+:deep(::-webkit-scrollbar) {
+  width: 6px;
+  height: 6px;
+}
+:deep(::-webkit-scrollbar-track) {
+  background: rgba(0, 0, 0, 0.1);
+}
+:deep(::-webkit-scrollbar-thumb) {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
