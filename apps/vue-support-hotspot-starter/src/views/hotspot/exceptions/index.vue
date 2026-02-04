@@ -149,7 +149,7 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ wsConnected ? '已连接' : '未连接' }}</div>
+              <div class="stat-value">{{ wsConnected ? "已连接" : "未连接" }}</div>
               <div class="stat-label">WebSocket 状态</div>
             </div>
           </div>
@@ -186,25 +186,13 @@ onUnmounted(() => {
 
       <el-tabs v-model="activeTab" class="modern-tabs">
         <el-tab-pane label="异常列表" name="list">
-          <el-table
-            v-loading="loading"
-            :data="exceptions"
-            stripe
-            max-height="600"
-          >
+          <el-table v-loading="loading" :data="exceptions" stripe max-height="600">
             <el-table-column prop="exceptionType" label="异常类型" width="250">
               <template #default="{ row }">
-                <el-tag type="danger">{{
-                  row.exceptionType.split(".").pop()
-                }}</el-tag>
+                <el-tag type="danger">{{ row.exceptionType.split(".").pop() }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column
-              prop="message"
-              label="异常消息"
-              min-width="300"
-              show-overflow-tooltip
-            />
+            <el-table-column prop="message" label="异常消息" min-width="300" show-overflow-tooltip />
             <el-table-column prop="thread" label="线程" width="150" />
             <el-table-column prop="location" label="位置" width="200" />
             <el-table-column prop="timestamp" label="发生时间" width="180">
@@ -214,13 +202,7 @@ onUnmounted(() => {
             </el-table-column>
             <el-table-column label="操作" width="100">
               <template #default="{ row }">
-                <el-button
-                  type="text"
-                  size="small"
-                  @click="viewException(row)"
-                >
-                  详情
-                </el-button>
+                <el-button type="text" size="small" @click="viewException(row)">详情</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -234,20 +216,12 @@ onUnmounted(() => {
               </template>
             </el-table-column>
             <el-table-column prop="count" label="发生次数" width="120" />
-            <el-table-column
-              prop="firstOccurrence"
-              label="首次发生"
-              width="180"
-            >
+            <el-table-column prop="firstOccurrence" label="首次发生" width="180">
               <template #default="{ row }">
                 {{ formatTime(row.firstOccurrence) }}
               </template>
             </el-table-column>
-            <el-table-column
-              prop="lastOccurrence"
-              label="最后发生"
-              width="180"
-            >
+            <el-table-column prop="lastOccurrence" label="最后发生" width="180">
               <template #default="{ row }">
                 {{ formatTime(row.lastOccurrence) }}
               </template>
@@ -258,12 +232,7 @@ onUnmounted(() => {
     </el-card>
 
     <!-- 异常详情对话框 -->
-    <sc-dialog
-      v-model="dialogVisible"
-      title="异常详情"
-      width="80%"
-      :close-on-click-modal="false"
-    >
+    <sc-dialog v-model="dialogVisible" title="异常详情" width="80%" :close-on-click-modal="false">
       <div v-if="selectedEx" class="exception-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="异常类型">
@@ -327,23 +296,33 @@ onUnmounted(() => {
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      .stat-icon { color: var(--el-color-primary); }
+      .stat-icon {
+        color: var(--el-color-primary);
+      }
     }
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      .stat-icon { color: var(--el-color-success); }
+      .stat-icon {
+        color: var(--el-color-success);
+      }
     }
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-      .stat-icon { color: var(--el-color-warning); }
+      .stat-icon {
+        color: var(--el-color-warning);
+      }
     }
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      .stat-icon { color: var(--el-color-danger); }
+      .stat-icon {
+        color: var(--el-color-danger);
+      }
     }
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
-      .stat-icon { color: var(--el-color-info); }
+      .stat-icon {
+        color: var(--el-color-info);
+      }
     }
 
     .stat-icon {
@@ -434,7 +413,8 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .stat-card, .modern-card {
+  .stat-card,
+  .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }

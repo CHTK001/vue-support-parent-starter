@@ -3050,4 +3050,5 @@ const setupMapClickListener = () => {
 <style lang="scss">
 @use "./styles/index.scss";
 @use "./styles/measure.scss";
+@use "./styles/stitch-theme.scss";
 </style>

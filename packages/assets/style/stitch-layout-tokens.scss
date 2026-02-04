@@ -1,0 +1,65 @@
+/**
+ * Stitch MCP Design Tokens for Layout System (Adaptive Light/Dark)
+ * Defines colors, spacing, radius, and shadows for lay-xx components
+ */
+
+:root {
+  /* ================== Core Colors (Light Default) ================== */
+  /* Primary - Deep Blue/Indigo */
+  --stitch-lay-primary: #3b82f6;
+  --stitch-lay-primary-light: #60a5fa;
+  --stitch-lay-primary-dark: #2563eb;
+  --stitch-lay-primary-alpha: rgba(59, 130, 246, 0.1);
+
+  /* Backgrounds */
+  --stitch-lay-bg-page: #f3f4f6;      /* Page background */
+  --stitch-lay-bg-panel: #ffffff;     /* Card/Panel background */
+  --stitch-lay-bg-overlay: rgba(255, 255, 255, 0.8); /* Glass effect */
+  
+  /* Text */
+  --stitch-lay-text-main: #1e293b;
+  --stitch-lay-text-secondary: #64748b;
+  --stitch-lay-text-inverse: #f8fafc;
+
+  /* Borders */
+  --stitch-lay-border: #e2e8f0;
+  --stitch-lay-border-hover: #cbd5e1;
+
+  /* ================== Dimensions & Radius ================== */
+  --stitch-lay-radius-sm: 8px;
+  --stitch-lay-radius-md: 12px;
+  --stitch-lay-radius-lg: 16px;
+  --stitch-lay-radius-full: 9999px;
+
+  /* ================== Shadows ================== */
+  --stitch-lay-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --stitch-lay-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --stitch-lay-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --stitch-lay-shadow-glow: 0 0 15px rgba(59, 130, 246, 0.3);
+
+  /* ================== Transitions ================== */
+  --stitch-lay-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --stitch-lay-transition-fast: all 0.15s ease-in-out;
+}
+
+/* ================== Dark Mode Mapping ================== */
+html.dark {
+  /* Backgrounds */
+  --stitch-lay-bg-page: #0f172a;
+  --stitch-lay-bg-panel: #1e293b;
+  --stitch-lay-bg-overlay: rgba(30, 41, 59, 0.8);
+
+  /* Text */
+  --stitch-lay-text-main: #f8fafc;
+  --stitch-lay-text-secondary: #94a3b8;
+  --stitch-lay-text-inverse: #1e293b;
+
+  /* Borders */
+  --stitch-lay-border: #334155;
+  --stitch-lay-border-hover: #475569;
+
+  /* Shadows - Adjust for dark mode visibility */
+  --stitch-lay-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --stitch-lay-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --stitch-lay-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}

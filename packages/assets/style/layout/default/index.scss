@@ -9,6 +9,8 @@
 @use "../../colors/index" as colors;
 // 导入Element Plus主题覆盖
 @use "../../element-plus/theme-override";
+// 导入 Stitch Utilities (Modern/Glass)
+@use "../../stitch-utilities";
 
 // sass 混合宏（函数）
 /* 自定义全局 CssVar */
@@ -35,11 +37,11 @@
 
   /** 主题色 */
   --pure-theme-sub-menu-active-text: var(--app-text-primary);
-  --pure-theme-menu-bg: var(--app-bg-primary);
+  --pure-theme-menu-bg: var(--app-glass-bg, var(--app-bg-primary));
   --pure-theme-menu-hover: var(--app-bg-secondary);
-  --pure-theme-sub-menu-bg: var(--app-bg-primary);
+  --pure-theme-sub-menu-bg: var(--app-glass-bg, var(--app-bg-primary));
   --pure-theme-menu-text: var(--app-text-secondary);
-  --pure-theme-sidebar-logo: var(--app-bg-primary);
+  --pure-theme-sidebar-logo: var(--app-glass-bg, var(--app-bg-primary));
   --pure-theme-menu-title-hover: var(--app-text-primary);
   --pure-theme-menu-active-before: var(--app-primary);
 

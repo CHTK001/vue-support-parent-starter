@@ -1,0 +1,84 @@
+@use "glass";
+
+/* Stitch Design System Utilities - Enhanced */
+
+.stitch-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -999;
+  pointer-events: none;
+  background-color: #0f172a; /* Slate-900 */
+  
+  /* Complex gradient background */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.15), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15), transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.1), transparent 40%);
+    
+  html.light & {
+    background-color: #f8fafc; /* Slate-50 */
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(14, 165, 233, 0.1), transparent 30%),
+      radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.1), transparent 30%);
+  }
+}
+
+.glass-panel {
+  @include glass.glass(0.6, 16px, 0.1);
+}
+
+.glass-card {
+  @include glass.glass-card;
+}
+
+.glass-input {
+  @include glass.glass-input;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  font-weight: bold;
+}
+
+.text-glow {
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+}
+
+.border-glow {
+  @include glass.neon-border(var(--el-color-primary));
+}
+
+/* Animations */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}

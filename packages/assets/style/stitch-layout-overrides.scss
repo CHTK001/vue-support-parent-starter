@@ -1,0 +1,166 @@
+@use './stitch-layout-tokens.scss';
+
+/**
+ * Stitch MCP Layout Overrides
+ * Applies Design Tokens to lay-xx components
+ */
+
+/* ================== 1. lay-navbar (Top Navigation) ================== */
+.lay-navbar {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--stitch-lay-border-light);
+  box-shadow: var(--stitch-lay-shadow-sm);
+  transition: var(--stitch-lay-transition);
+  height: 60px; /* Standardize height */
+  
+  html.dark & {
+    background-color: rgba(30, 41, 59, 0.8) !important;
+  }
+
+  /* Floating effect on scroll (optional utility class) */
+  &.is-floating {
+    margin: 10px 20px 0;
+    border-radius: var(--stitch-lay-radius-md);
+    box-shadow: var(--stitch-lay-shadow-md);
+    border: 1px solid var(--stitch-lay-border-light);
+  }
+  
+  /* Search Bar inside Navbar */
+  .search-container, .lay-search {
+    .el-input__wrapper {
+      background-color: var(--stitch-lay-bg-light);
+      border-radius: var(--stitch-lay-radius-full);
+      border: 1px solid transparent;
+      
+      &.is-focus {
+        border-color: var(--stitch-lay-primary);
+        box-shadow: 0 0 0 2px var(--stitch-lay-primary-alpha);
+      }
+    }
+  }
+}
+
+/* ================== 2. lay-sidebar (Side Navigation) ================== */
+.lay-sidebar {
+  background-color: var(--stitch-lay-bg-white);
+  border-right: 1px solid var(--stitch-lay-border-light);
+  transition: var(--stitch-lay-transition);
+
+  /* Menu Items */
+  .el-menu-item, .el-sub-menu__title {
+    margin: 4px 8px;
+    border-radius: var(--stitch-lay-radius-sm);
+    height: 44px;
+    line-height: 44px;
+    
+    &:hover {
+      background-color: var(--stitch-lay-bg-light);
+      color: var(--stitch-lay-primary);
+    }
+  }
+
+  /* Active State - Glowing Border & Fill */
+  .el-menu-item.is-active {
+    background-color: var(--stitch-lay-primary-alpha);
+    color: var(--stitch-lay-primary);
+    font-weight: 600;
+    position: relative;
+    
+    /* Left Glowing Border */
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 20px;
+      width: 3px;
+      background-color: var(--stitch-lay-primary);
+      border-radius: 0 2px 2px 0;
+      box-shadow: 0 0 8px var(--stitch-lay-primary);
+    }
+  }
+}
+
+/* ================== 3. lay-tag (Tabs/Breadcrumbs area) ================== */
+.lay-tag {
+  background-color: var(--stitch-lay-bg-light);
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--stitch-lay-border-light);
+  
+  /* Tab Items */
+  .el-tag, .tags-view-item {
+    border: none;
+    border-radius: var(--stitch-lay-radius-sm);
+    background-color: transparent;
+    color: var(--stitch-lay-text-secondary);
+    transition: var(--stitch-lay-transition-fast);
+    padding: 0 12px;
+    height: 32px;
+    line-height: 32px;
+    margin-right: 6px;
+    
+    &:hover {
+      background-color: rgba(0,0,0,0.05);
+      color: var(--stitch-lay-text-main);
+    }
+    
+    /* Active Tab - Raised Card Look */
+    &.active, &.is-active {
+      background-color: var(--stitch-lay-bg-white);
+      color: var(--stitch-lay-primary);
+      box-shadow: var(--stitch-lay-shadow-sm);
+      font-weight: 500;
+      
+      html.dark & {
+        background-color: var(--stitch-lay-bg-panel-dark);
+      }
+    }
+  }
+}
+
+/* ================== 4. lay-content (Main Content Area) ================== */
+.lay-content {
+  background-color: var(--stitch-lay-bg-light);
+  padding: 20px;
+  min-height: calc(100vh - 100px);
+  
+  /* Panels inside content */
+  .lay-panel, .el-card {
+    border-radius: var(--stitch-lay-radius-md);
+    border: 1px solid var(--stitch-lay-border-light);
+    box-shadow: var(--stitch-lay-shadow-sm);
+    background-color: var(--stitch-lay-bg-white);
+    transition: var(--stitch-lay-transition);
+    
+    &:hover {
+      box-shadow: var(--stitch-lay-shadow-md);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+/* ================== 5. lay-footer ================== */
+.lay-footer {
+  background-color: var(--stitch-lay-bg-white);
+  border-top: 1px solid var(--stitch-lay-border-light);
+  color: var(--stitch-lay-text-secondary);
+  font-size: 13px;
+  text-align: center;
+  padding: 15px 0;
+}
+
+/* ================== Utility: Glassmorphism Card ================== */
+.lay-glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  
+  html.dark & {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}

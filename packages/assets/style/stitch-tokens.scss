@@ -1,0 +1,85 @@
+/**
+ * Stitch MCP Design Tokens
+ * 统一设计规范：色彩、圆角、阴影、间距、字体
+ */
+
+:root {
+  /* ================== Colors ================== */
+  /* Primary */
+  --stitch-color-primary: #3b82f6;
+  --stitch-color-primary-light: #60a5fa;
+  --stitch-color-primary-dark: #2563eb;
+  --stitch-color-primary-bg: rgba(59, 130, 246, 0.1);
+
+  /* Semantic */
+  --stitch-color-success: #10b981;
+  --stitch-color-warning: #f59e0b;
+  --stitch-color-danger: #ef4444;
+  --stitch-color-info: #64748b;
+
+  /* Backgrounds */
+  --stitch-bg-page: #f8fafc;
+  --stitch-bg-card: #ffffff;
+  --stitch-bg-overlay: rgba(255, 255, 255, 0.8);
+  --stitch-bg-input: #f1f5f9;
+
+  /* Text */
+  --stitch-text-primary: #0f172a;
+  --stitch-text-secondary: #475569;
+  --stitch-text-disabled: #94a3b8;
+  --stitch-text-inverse: #ffffff;
+
+  /* Borders */
+  --stitch-border-color: #e2e8f0;
+  --stitch-border-focus: #3b82f6;
+
+  /* ================== Radius ================== */
+  --stitch-radius-sm: 6px;
+  --stitch-radius-md: 12px;
+  --stitch-radius-lg: 16px;
+  --stitch-radius-full: 9999px;
+
+  /* ================== Shadows ================== */
+  --stitch-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --stitch-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --stitch-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --stitch-shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.2);
+
+  /* ================== Spacing ================== */
+  --stitch-spacing-xs: 4px;
+  --stitch-spacing-sm: 8px;
+  --stitch-spacing-md: 16px;
+  --stitch-spacing-lg: 24px;
+  --stitch-spacing-xl: 32px;
+
+  /* ================== Typography ================== */
+  --stitch-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --stitch-font-size-sm: 12px;
+  --stitch-font-size-md: 14px;
+  --stitch-font-size-lg: 16px;
+  --stitch-font-weight-regular: 400;
+  --stitch-font-weight-medium: 500;
+  --stitch-font-weight-bold: 600;
+}
+
+/* ================== Dark Mode ================== */
+html.dark {
+  /* Backgrounds */
+  --stitch-bg-page: #0f172a;
+  --stitch-bg-card: #1e293b;
+  --stitch-bg-overlay: rgba(30, 41, 59, 0.8);
+  --stitch-bg-input: #334155;
+
+  /* Text */
+  --stitch-text-primary: #f8fafc;
+  --stitch-text-secondary: #cbd5e1;
+  --stitch-text-disabled: #64748b;
+  --stitch-text-inverse: #0f172a;
+
+  /* Borders */
+  --stitch-border-color: #334155;
+  
+  /* Shadows */
+  --stitch-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --stitch-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+}

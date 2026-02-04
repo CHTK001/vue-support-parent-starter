@@ -1,0 +1,161 @@
+/* Modern Tech Theme - Compiled CSS */
+
+:root {
+  /* Core Colors */
+  --stitch-primary: #5b13ec;
+  --stitch-primary-light: #7c41f2;
+  --stitch-accent: #00f2ea; /* Cyan neon */
+  --stitch-bg-dark: #0f172a;
+  --stitch-bg-card: rgba(30, 41, 59, 0.7);
+  --stitch-glass-border: rgba(255, 255, 255, 0.1);
+  --stitch-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+
+  /* Element Plus Overrides */
+  --el-color-primary: var(--stitch-primary);
+  --el-color-primary-light-3: var(--stitch-primary-light);
+  --el-color-primary-light-5: #8c5cf5;
+  --el-color-primary-light-7: #bda1f9;
+  --el-color-primary-light-8: #d6c2fc;
+  --el-color-primary-light-9: rgba(91, 19, 236, 0.1);
+  --el-color-primary-dark-2: #460eb8;
+  
+  --el-bg-color: var(--stitch-bg-dark);
+  --el-bg-color-overlay: var(--stitch-bg-card);
+  
+  --el-border-radius-base: 12px;
+  --el-border-radius-small: 8px;
+  
+  --el-box-shadow-light: var(--stitch-shadow);
+}
+
+html.dark {
+  --el-bg-color: #0f172a;
+  --el-bg-color-page: #020617;
+  --el-bg-color-overlay: rgba(30, 41, 59, 0.8);
+  --el-text-color-primary: #f8fafc;
+  --el-text-color-regular: #cbd5e1;
+  --el-border-color: rgba(255,255,255,0.1);
+  --el-border-color-light: rgba(255,255,255,0.05);
+  --el-fill-color-blank: transparent;
+}
+
+/* Glassmorphism Utilities */
+.stitch-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--stitch-glass-border);
+  box-shadow: var(--stitch-shadow);
+}
+
+/* Component Overrides */
+.el-button--primary {
+  background: linear-gradient(135deg, var(--stitch-primary), var(--stitch-primary-light));
+  border: none;
+  box-shadow: 0 4px 15px rgba(91, 19, 236, 0.4);
+  transition: all 0.3s ease;
+}
+
+.el-button--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(91, 19, 236, 0.6);
+}
+
+.el-card {
+  /* @extend .stitch-glass equivalent */
+  background: rgba(30, 41, 59, 0.4) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--stitch-shadow);
+  
+  border-radius: 16px;
+  color: var(--el-text-color-primary);
+}
+
+/* Input Styles */
+.el-input__wrapper {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.el-input__wrapper.is-focus {
+  border-color: var(--stitch-accent);
+  box-shadow: 0 0 0 1px var(--stitch-accent) !important;
+}
+
+.el-input__wrapper:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.el-input__inner {
+  color: var(--el-text-color-primary);
+}
+
+/* Menu/Sidebar Styles */
+.el-menu {
+  background-color: transparent !important;
+  border-right: none;
+}
+
+.el-sub-menu__title:hover, .el-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--stitch-accent) !important;
+}
+
+.el-menu-item.is-active {
+  background: linear-gradient(90deg, rgba(91, 19, 236, 0.2), transparent) !important;
+  border-left: 3px solid var(--stitch-accent);
+  color: var(--stitch-accent) !important;
+}
+
+/* Dialog/Drawer Styles */
+.el-dialog, .el-drawer {
+  /* @extend .stitch-glass equivalent */
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--stitch-glass-border);
+  box-shadow: var(--stitch-shadow);
+}
+
+/* Table Styles */
+.el-table {
+  background-color: transparent !important;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: rgba(255, 255, 255, 0.05);
+  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.05);
+  color: var(--el-text-color-regular);
+}
+
+.el-table th.el-table__cell {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
+
+.el-table td.el-table__cell, .el-table th.el-table__cell {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Loading Mask - Futuristic */
+.el-loading-mask {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(4px);
+}
+
+.el-loading-spinner .path {
+  stroke: var(--stitch-accent);
+  stroke-width: 3;
+}
+
+.el-loading-spinner .el-loading-text {
+  color: var(--stitch-accent);
+  font-size: 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 10px;
+}

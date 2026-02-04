@@ -163,21 +163,27 @@ const getLayerDisplayName = (layerKey: string): string => {
 
 <style lang="scss" scoped>
 // 定义变量
-$layer-panel-bg: #fff;
-$layer-panel-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-$layer-panel-border-radius: 8px;
-$layer-item-border-radius: 4px;
-$layer-item-active-bg: #1890ff;
-$layer-item-active-shadow: 0 0 8px rgba(24, 144, 255, 0.4);
-$layer-item-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-$layer-item-border: 1px solid #eaeaea;
+$layer-panel-bg: rgba(15, 23, 42, 0.9);
+$layer-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+$layer-panel-border: 1px solid rgba(255, 255, 255, 0.1);
+$layer-panel-border-radius: 12px;
+$layer-item-border-radius: 8px;
+$layer-item-active-bg: rgba(91, 19, 236, 0.6);
+$layer-item-active-border: #00f2ea;
+$layer-item-active-shadow: 0 0 15px rgba(0, 242, 234, 0.3);
+$layer-item-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+$layer-item-border: 1px solid rgba(255, 255, 255, 0.1);
+$text-color-primary: #f8fafc;
+$text-color-secondary: #cbd5e1;
 
 .layer-panel {
   position: absolute;
   background-color: $layer-panel-bg;
+  backdrop-filter: blur(12px);
+  border: $layer-panel-border;
   border-radius: $layer-panel-border-radius;
   box-shadow: $layer-panel-shadow;
-  padding: 12px;
+  padding: 16px;
   z-index: 3000;
   transform: scale(0.95);
   opacity: 0;
@@ -189,30 +195,46 @@ $layer-item-border: 1px solid #eaeaea;
     position: absolute;
     width: 14px;
     height: 14px;
-    background-color: #fff;
+    background-color: $layer-panel-bg;
+    border-left: $layer-panel-border;
+    border-top: $layer-panel-border;
     transform: rotate(45deg);
     z-index: 3001;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    box-shadow: -2px -2px 5px rgba(0, 0, 0, 0.1);
   }
 
   .arrow-top-left {
-    top: -7px;
+    top: -8px;
     left: 50px;
+    border-bottom: none;
+    border-right: none;
   }
 
   .arrow-top-right {
-    top: -7px;
+    top: -8px;
     right: 50px;
+    border-bottom: none;
+    border-right: none;
   }
 
   .arrow-bottom-left {
-    bottom: -7px;
+    bottom: -8px;
     left: 50px;
+    border-top: none;
+    border-left: none;
+    border-bottom: $layer-panel-border;
+    border-right: $layer-panel-border;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
   }
 
   .arrow-bottom-right {
-    bottom: -7px;
+    bottom: -8px;
     right: 50px;
+    border-top: none;
+    border-left: none;
+    border-bottom: $layer-panel-border;
+    border-right: $layer-panel-border;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
   }
   
   &.active {
@@ -223,23 +245,23 @@ $layer-item-border: 1px solid #eaeaea;
   
   // 按位置调整面板显示位置，增加距离防止与按钮重叠
   &.position-top-left {
-    top: 50px; // 增加距离
-    left: 15px;
+    top: 60px;
+    left: 20px;
   }
   
   &.position-top-right {
-    top: 50px; // 增加距离
-    right: 15px;
+    top: 60px;
+    right: 20px;
   }
   
   &.position-bottom-left {
-    bottom: 50px; // 增加距离
-    left: 15px;
+    bottom: 60px;
+    left: 20px;
   }
   
   &.position-bottom-right {
-    bottom: 50px; // 增加距离
-    right: 15px;
+    bottom: 60px;
+    right: 20px;
   }
   
   .layer-panel-content {
@@ -247,10 +269,25 @@ $layer-item-border: 1px solid #eaeaea;
     max-height: 550px;
     overflow-y: auto;
     
+    // 自定义滚动条
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
+    
     .layer-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 16px;
       width: 100%;
       justify-content: center;
       
@@ -258,67 +295,91 @@ $layer-item-border: 1px solid #eaeaea;
         display: flex;
         flex-direction: column;
         cursor: pointer;
-        transition: all 0.25s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
+        border-radius: $layer-item-border-radius;
         
         &:hover {
-          transform: translateY(-2px);
+          transform: translateY(-4px);
+          box-shadow: $layer-item-hover-shadow;
+          
+          .layer-preview {
+            border-color: rgba(255, 255, 255, 0.3);
+          }
         }
         
         &.active {
           .layer-preview {
-            border: 2px solid $layer-item-active-bg;
+            border: 2px solid $layer-item-active-border;
             box-shadow: $layer-item-active-shadow;
             
             .layer-selected-indicator {
               display: flex;
+              animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             }
+          }
+          
+          .layer-name {
+            background-color: $layer-item-active-bg;
+            color: #fff;
+            backdrop-filter: blur(4px);
           }
         }
         
         .layer-preview {
           width: 160px;
           height: 105px;
-          border-radius: 2px;
+          border-radius: $layer-item-border-radius;
           overflow: hidden;
-          border: 1px solid #eaeaea;
-          transition: all 0.25s ease;
+          border: $layer-item-border;
+          transition: all 0.3s ease;
           position: relative;
+          background-color: #1e293b;
           
           img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: all 0.25s ease;
+            transition: all 0.5s ease;
+            opacity: 0.8;
+          }
+          
+          &:hover img {
+            transform: scale(1.1);
+            opacity: 1;
           }
           
           .layer-preview-placeholder {
             width: 100%;
             height: 100%;
-            background-color: #f0f0f0;
+            background-color: #1e293b;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #999;
+            color: #64748b;
             font-size: 24px;
           }
           
           .layer-selected-indicator {
             position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 18px;
-            height: 18px;
-            background-color: $layer-item-active-bg;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background-color: $layer-item-active-border;
             border-radius: 50%;
             display: none;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 10;
             
             svg {
               width: 14px;
               height: 14px;
+              stroke: #0f172a; // 深色图标
+              stroke-width: 3;
             }
           }
           
@@ -326,22 +387,31 @@ $layer-item-border: 1px solid #eaeaea;
             position: absolute;
             right: 0;
             bottom: 0;
-            padding: 4px 6px;
-            border-radius: 6px 0 0 0;
-            font-size: 12px;
-            color: var(--el-text-color-primary);
-            background-color: rgba(255, 255, 255, 0.8);
-            text-align: right;
-            transition: all 0.25s ease;
+            left: 0;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: $text-color-primary;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+            text-align: left;
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
             
             &.active {
               background-color: $layer-item-active-bg;
-              color: var(--el-text-color-primary);
+              color: #fff;
+              text-align: center;
             }
           }
         }
       }
     }
   }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style> 

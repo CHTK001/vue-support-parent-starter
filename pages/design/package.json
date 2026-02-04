@@ -1,0 +1,11 @@
+{
+  "name": "@pages/design",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "private": true,
+  "dependencies": {
+    "vue": "^3.4.0",
+    "@repo/tailwind-config": "workspace:*",
+    "@iconify/vue": "^4.1.0"
+  }
+}

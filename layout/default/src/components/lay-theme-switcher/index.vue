@@ -2,9 +2,14 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { layoutThemes, loadThemeStylesheet } from '../../themes';
 import ScRibbon from '@repo/components/ScRibbon/index.vue';
+import { Moon, Sunny } from "@element-plus/icons-vue";
+import { useDark, useToggle } from "@vueuse/core";
 
 // 导入春节标签页样式
 import '../lay-tag/themes/spring-festival.css';
+
+const isDark = useDark();
+const toggleDark = useToggle(isDark);
 
 interface ThemeItem {
   name: string;
@@ -107,6 +112,23 @@ onMounted(() => {
 
 <template>
   <div class="lay-theme-switcher">
+    <!-- 模式切换 -->
+    <div class="theme-mode-toggle">
+      <div class="toggle-label">
+        <IconifyIconOnline :icon="isDark ? 'ri:moon-line' : 'ri:sun-line'" />
+        <span>{{ isDark ? '暗黑模式' : '浅色模式' }}</span>
+      </div>
+      <el-switch
+        v-model="isDark"
+        inline-prompt
+        :active-icon="Moon"
+        :inactive-icon="Sunny"
+        @change="toggleDark"
+      />
+    </div>
+
+    <el-divider />
+
     <!-- 常规主题 -->
     <div class="theme-grid">
       <!-- 默认主题卡片 -->
@@ -304,5 +326,21 @@ onMounted(() => {
 /* 节日主题卡片特殊样式 */
 .theme-card.festival .card-icon {
   color: #f5222d;
+}
+
+/* 模式切换样式 */
+.theme-mode-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  margin-bottom: 12px;
+}
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
 }
 </style>

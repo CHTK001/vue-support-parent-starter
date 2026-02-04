@@ -150,6 +150,11 @@ const handleRemove = async (key) => {
   background: var(--el-color-primary);
   border-radius: 4px;
   opacity: 1;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.2);
+  }
 }
 
 .vgl-layout {
@@ -160,6 +165,7 @@ const handleRemove = async (key) => {
   border: 2px dashed var(--el-color-primary);
   border-radius: 12px;
   background: var(--el-color-primary-light-9) !important;
+  opacity: 0.6 !important;
 }
 
 /* 基础布局 */
@@ -179,12 +185,25 @@ const handleRemove = async (key) => {
   overflow: hidden;
   background: var(--el-bg-color);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, background 0.3s ease;
   will-change: transform;
+  
+  /* Glassmorphism Support */
+  [data-theme='glass'] & {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
 }
 
 .widgets-item:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  
+  [data-theme='glass'] & {
+    background: rgba(255, 255, 255, 0.75);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+  }
 }
 
 /* 部件内容 */
@@ -202,6 +221,10 @@ const handleRemove = async (key) => {
   height: 100%;
   background: linear-gradient(135deg, var(--el-fill-color-light), var(--el-fill-color));
   gap: 12px;
+  
+  [data-theme='glass'] & {
+    background: transparent;
+  }
   
   .placeholder-text {
     font-size: 14px;
@@ -226,6 +249,12 @@ const handleRemove = async (key) => {
   cursor: move;
   border: 2px dashed var(--el-color-primary-light-3);
   border-radius: 12px;
+  backdrop-filter: blur(4px);
+  
+  [data-theme='glass'] & {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
 }
 
 .widgets-item:hover .customize-overlay {
@@ -240,6 +269,9 @@ const handleRemove = async (key) => {
   display: flex;
   gap: 8px;
   z-index: 11;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
   
   :deep(.el-button) {
     width: 32px;
@@ -250,6 +282,11 @@ const handleRemove = async (key) => {
       transform: scale(1.1);
     }
   }
+}
+
+.widgets-item:hover .overlay-actions {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* 拖拽区域 */
@@ -272,6 +309,16 @@ const handleRemove = async (key) => {
   justify-content: center;
   color: var(--el-color-primary);
   margin-bottom: 4px;
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+  transition: transform 0.3s ease;
+  
+  [data-theme='glass'] & {
+    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.2), rgba(var(--el-color-primary-rgb), 0.4));
+  }
+}
+
+.widgets-item:hover .drag-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .drag-info {
@@ -302,6 +349,7 @@ const handleRemove = async (key) => {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
   margin-top: 8px;
+  opacity: 0.8;
 }
 
 /* 调整大小提示 */
@@ -322,19 +370,36 @@ const handleRemove = async (key) => {
 .dark {
   .widgets-item {
     background: var(--el-bg-color);
+    
+    [data-theme='glass'] & {
+      background: rgba(30, 30, 30, 0.6);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
   }
   
   .customize-overlay {
     background: rgba(30, 30, 30, 0.9);
     backdrop-filter: blur(8px);
+    
+    [data-theme='glass'] & {
+      background: rgba(0, 0, 0, 0.5);
+    }
   }
   
   .widgets-item:hover .customize-overlay {
     background: rgba(30, 30, 30, 0.95);
+    
+    [data-theme='glass'] & {
+      background: rgba(0, 0, 0, 0.6);
+    }
   }
   
   .widget-placeholder {
     background: linear-gradient(135deg, var(--el-fill-color), var(--el-fill-color-dark));
+    
+    [data-theme='glass'] & {
+      background: transparent;
+    }
   }
   
   .drag-icon {
