@@ -234,7 +234,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/mixins.scss";
+@use "@/styles/mixins.scss" as *;
 
 .arthas-management {
   @include flex-column;

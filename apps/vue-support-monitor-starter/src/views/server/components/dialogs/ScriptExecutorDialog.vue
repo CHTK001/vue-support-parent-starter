@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visible"
     title="脚本执行器"
@@ -489,7 +489,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/variables.scss";
+@use "@/styles/variables.scss" as *;
 
 .script-executor {
   :deep(.el-divider__text) {

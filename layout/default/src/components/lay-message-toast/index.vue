@@ -520,5 +520,5 @@ html.dark {
 
 <style lang="scss">
 // 引入主题样式
-@import './themes/index';
+@use './themes/index';
 </style>

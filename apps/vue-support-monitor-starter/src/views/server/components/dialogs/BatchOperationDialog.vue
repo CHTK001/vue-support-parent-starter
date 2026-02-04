@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visible"
     title="批量操作"
@@ -368,7 +368,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/variables.scss";
+@use "@/styles/variables.scss" as *;
 
 .batch-operation {
   :deep(.el-alert) {

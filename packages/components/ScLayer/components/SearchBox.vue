@@ -61,7 +61,6 @@
             <button v-if="navEndPoint" class="nav-clear-btn" @click="clearNavEndPoint">×</button>
           </div>
         </div>
-        <<<<<<< HEAD ======= >>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
         <button type="button" class="nav-search-button" @click="handleNavSearch">
           <span class="nav-search-icon" />
           <span>查询</span>
@@ -1204,7 +1203,7 @@ const swapNavPoints = () => {
 
 <style lang="scss" scoped>
 // 导入自定义颜色系统
-@import '../../../assets/style/colors/index.scss';
+@use '../../../assets/style/colors/index.scss' as *;
 
 // 变量定义
 $primary-color: var(--app-primary);

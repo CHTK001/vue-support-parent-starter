@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visible"
     title="表达式语法帮助"
@@ -162,7 +162,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/variables.scss";
+@use "@/styles/variables.scss" as *;
 
 .expression-help-dialog {
   :deep(.el-dialog) {
