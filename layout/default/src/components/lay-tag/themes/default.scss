@@ -2,6 +2,7 @@
  * 默认主题 - 标签页美化样式
  * 现代化设计，精致细腻的视觉效果
  */
+@use '../../../../../../packages/assets/style/glass.scss' as *;
 
 // 动画定义
 @keyframes schedule-in-width {
@@ -19,11 +20,6 @@
   50% { box-shadow: 0 0 0 4px rgba(var(--el-color-primary-rgb), 0); }
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
 // 标签页容器基础样式
 .tags-view {
   position: relative;
@@ -34,17 +30,8 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--el-text-color-primary);
-  background: linear-gradient(180deg, 
-    rgba(255, 255, 255, 0.98) 0%, 
-    rgba(248, 250, 252, 0.95) 100%
-  );
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.06),
-    0 2px 6px rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  @include glass(12px, 0.8);
+  border-bottom: 1px solid var(--app-border-primary, rgba(0,0,0,0.05));
   padding: 0 4px;
   
   .scroll-item {
@@ -52,20 +39,15 @@
     display: inline-flex;
     align-items: center;
     height: 30px;
-    padding: 0 10px;
+    padding: 0 12px;
     margin: 0 3px;
     line-height: 30px;
     cursor: pointer;
     border-radius: 8px;
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.9) 0%, 
-      rgba(248, 250, 252, 0.85) 100%
-    );
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: 
-      0 1px 3px rgba(0, 0, 0, 0.04),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    
     &:not(:first-child) {
       padding-right: 28px;
     }
@@ -95,21 +77,23 @@
       color: var(--el-text-color-secondary);
       cursor: pointer;
       border-radius: 50%;
-      transition: none;
+      transition: all 0.2s;
       transform: translate(0, -50%);
-      opacity: 0.6;
+      opacity: 0;
 
       svg {
-        width: 12px;
-        height: 12px;
+        width: 10px;
+        height: 10px;
       }
 
       &:hover {
         color: #fff;
-        background: var(--el-color-primary);
-        opacity: 1;
-        transform: translate(0, -50%);
+        background: var(--el-color-danger);
       }
+    }
+    
+    &:hover .el-icon-close {
+      opacity: 1;
     }
   }
 
@@ -117,10 +101,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-right: 5px;
+    margin-right: 6px;
     font-size: 14px;
     color: var(--el-text-color-secondary);
-    transition: none;
+    transition: color 0.2s;
   }
 
   .tag-title {
@@ -129,9 +113,8 @@
     text-decoration: none;
     font-size: 13px;
     font-weight: 500;
-    letter-spacing: 0.2px;
     white-space: nowrap;
-    transition: none;
+    transition: color 0.2s;
   }
 
   .scroll-container {
@@ -142,10 +125,7 @@
 
     &.chrome-scroll-container {
       padding-top: 4px;
-
-      .fixed-tag {
-        padding: 0;
-      }
+      .fixed-tag { padding: 0; }
     }
 
     .tab {
@@ -156,20 +136,11 @@
       list-style: none;
 
       .scroll-item {
-        &:nth-child(1) {
-          padding: 0 12px;
-        }
-
-        &.chrome-item {
-          &:nth-child(1) {
-            padding: 0;
-          }
-        }
+        &:nth-child(1) { padding: 0 12px; }
+        &.chrome-item:nth-child(1) { padding: 0; }
       }
 
-      .fixed-tag {
-        padding: 0 12px;
-      }
+      .fixed-tag { padding: 0 12px; }
     }
   }
 
@@ -177,52 +148,36 @@
   .contextmenu {
     position: absolute;
     z-index: 9999;
-    padding: 8px;
+    padding: 6px;
     margin: 0;
     font-size: 13px;
     font-weight: normal;
     color: var(--el-text-color-primary);
     white-space: nowrap;
     list-style-type: none;
-    background: #fff;
+    @include glass(12px, 0.9);
     border-radius: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
     outline: 0;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
-    backdrop-filter: blur(10px);
-    overflow: hidden;
-
+    
     li {
       display: flex;
       align-items: center;
       width: 100%;
-      padding: 10px 14px;
-      padding-right: 16px;
+      padding: 8px 12px;
       margin: 2px 0;
       cursor: pointer;
       border-radius: 6px;
-      transition: none;
-      font-weight: 500;
+      transition: background 0.2s;
 
       &:hover {
         color: var(--el-color-primary);
-        background: rgba(var(--el-color-primary-rgb), 0.08);
-      }
-
-      &:active {
-        transform: none;
+        background: rgba(var(--el-color-primary-rgb), 0.1);
       }
 
       svg {
-        display: block;
-        margin-right: 10px;
-        width: 16px;
-        height: 16px;
-        transition: none;
-      }
-
-      &:hover svg {
-        transform: none;
+        margin-right: 8px;
+        width: 14px;
+        height: 14px;
       }
     }
   }
@@ -230,189 +185,54 @@
 
 // 下拉菜单样式
 .el-dropdown-menu {
-  padding: 8px;
+  @include glass(12px, 0.9);
+  padding: 6px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(10px);
-  overflow: hidden;
-
-  li {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    margin: 0;
-    cursor: pointer;
-
-    svg {
-      display: block;
-      margin-right: 10px;
-      width: 16px;
-      height: 16px;
-      transition: none;
-    }
-  }
 }
 
 .el-dropdown-menu__item {
-  padding: 10px 14px;
-  padding-right: 16px;
-  margin: 2px 0;
   border-radius: 6px;
-  font-weight: 500;
-  transition: none;
-
+  margin: 2px 0;
+  
   &:not(.is-disabled):hover {
+    background: rgba(var(--el-color-primary-rgb), 0.1);
     color: var(--el-color-primary);
-    background: rgba(var(--el-color-primary-rgb), 0.08);
-
-    svg {
-      transform: none;
-    }
   }
-
-  &:active {
-    transform: none;
-  }
-}
-
-:deep(.el-dropdown-menu__item) i {
-  margin-right: 10px;
-  width: 16px;
-  height: 16px;
-}
-
-:deep(.el-dropdown-menu__item--divided) {
-  margin: 1px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  padding-top: 10px;
-}
-
-.el-dropdown-menu__item--divided::before {
-  display: none;
-}
-
-.el-dropdown-menu__item.is-disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 
 // 悬停状态
 .scroll-item:not(.is-active):hover {
-  background: linear-gradient(135deg, 
-    rgba(var(--el-color-primary-rgb), 0.08) 0%, 
-    rgba(var(--el-color-primary-rgb), 0.04) 100%
-  );
-  border-color: rgba(var(--el-color-primary-rgb), 0.2);
-  box-shadow: none;
-  transform: none;
-
-  .tag-icon {
-    color: var(--el-color-primary);
-    transform: none;
-  }
-
+  background: rgba(var(--el-text-color-primary), 0.05);
+  
   .tag-title {
-    color: var(--el-color-primary);
+    color: var(--el-text-color-primary);
   }
 }
 
 // 激活状态
 .scroll-item.is-active {
-  position: relative;
-  background: linear-gradient(135deg, 
-    var(--el-color-primary) 0%, 
-    var(--el-color-primary-light-3) 100%
-  );
-  border-color: transparent;
-  box-shadow: 
-    0 4px 14px rgba(var(--el-color-primary-rgb), 0.35),
-    0 2px 6px rgba(var(--el-color-primary-rgb), 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(180deg, 
-      rgba(255, 255, 255, 0.15) 0%, 
-      rgba(255, 255, 255, 0) 100%
-    );
-    border-radius: 8px 8px 0 0;
-    pointer-events: none;
-  }
-
+  background: rgba(var(--el-color-primary-rgb), 0.1);
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.2);
+  
   .tag-icon {
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--el-color-primary);
   }
 
   .tag-title {
-    color: #fff;
+    color: var(--el-color-primary);
     font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
-
+  
   .el-icon-close {
-    color: rgba(255, 255, 255, 0.85);
-    opacity: 1;
-
+    opacity: 0.6;
+    
     &:hover {
-      color: var(--el-color-primary);
-      background: rgba(255, 255, 255, 0.95);
-      transform: translate(0, -50%);
-    }
-  }
-
-  &:hover {
-    transform: none;
-    box-shadow: none;
-  }
-
-  // Chrome 模式特殊处理
-  &.chrome-item {
-    background: transparent;
-    box-shadow: none;
-    
-    &::before {
-      display: none;
-    }
-    
-    .chrome-tab {
-      z-index: 10;
-    }
-
-    .chrome-tab__bg {
-      color: var(--el-color-primary);
-    }
-
-    .tag-title {
-      color: #fff;
-      text-shadow: none;
-    }
-
-    .tag-icon {
-      color: #fff;
-    }
-
-    .chrome-close-btn {
-      color: rgba(255, 255, 255, 0.85);
-
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.2);
-        color: #fff;
-      }
-    }
-
-    .chrome-tab-divider {
-      opacity: 0;
+        opacity: 1;
     }
   }
 }
 
-// 箭头按钮 - 精致圆形设计
+// 箭头按钮
 .arrow-left,
 .arrow-right,
 .arrow-down {
@@ -423,485 +243,34 @@
   width: 28px;
   height: 28px;
   color: var(--el-text-color-secondary);
-  border-radius: 50%;
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.9) 0%, 
-    rgba(248, 250, 252, 0.8) 100%
-  );
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: none;
+  border-radius: 6px;
   cursor: pointer;
   flex-shrink: 0;
+  transition: all 0.2s;
 
+  &:hover {
+    background: rgba(var(--el-text-color-primary), 0.05);
+    color: var(--el-text-color-primary);
+  }
+  
   svg {
-    width: 16px;
-    height: 16px;
-    transition: none;
-  }
-
-  &:hover {
-    background: linear-gradient(135deg, 
-      var(--el-color-primary) 0%, 
-      var(--el-color-primary-light-3) 100%
-    );
-    border-color: transparent;
-    color: #fff;
-    box-shadow: none;
-    transform: none;
-
-    svg {
-      transform: none;
-    }
-  }
-
-  &:active {
-    transform: none;
-    box-shadow: none;
-  }
-}
-
-.arrow-left {
-  margin-right: 6px;
-  margin-left: 4px;
-}
-
-.arrow-right {
-  margin-left: 6px;
-  margin-right: 6px;
-}
-
-.arrow-down {
-  margin-right: 8px;
-
-  &:hover svg {
-    transform: none;
-  }
-}
-
-/* 卡片风格标签 - 方正简洁 */
-.card-item {
-  border-radius: 4px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.03);
-  
-  &:hover {
-    border-color: var(--el-color-primary-light-5);
-    background: var(--el-color-primary-light-9);
-    
-    .tag-title {
-      color: var(--el-color-primary);
-    }
-  }
-  
-  &.is-active {
-    background: var(--el-color-primary-light-9);
-    border-color: var(--el-color-primary);
-    border-left: 3px solid var(--el-color-primary);
-    box-shadow: 
-      0 3px 10px rgba(var(--el-color-primary-rgb), 0.15),
-      0 1px 3px rgba(var(--el-color-primary-rgb), 0.1);
-    
-    .tag-title {
-      color: var(--el-color-primary);
-      font-weight: 600;
-    }
-    
-    .tag-icon {
-      color: var(--el-color-primary);
-    }
-  }
-}
-
-/* 灵动风格标签 - 简约底部进度条 */
-.smart-item {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
-  
-  &:hover {
-    background: rgba(var(--el-color-primary-rgb), 0.04);
-  }
-  
-  &.is-active {
-    background: transparent;
-    
-    .tag-title {
-      color: var(--el-color-primary);
-      font-weight: 600;
-    }
-    
-    .tag-icon {
-      color: var(--el-color-primary);
-    }
-  }
-}
-
-/* 卡片模式下鼠标移入显示蓝色边框 */
-.card-in {
-  color: var(--el-color-primary);
-
-  .tag-title {
-    color: var(--el-color-primary);
-  }
-}
-
-/* 卡片模式下鼠标移出隐藏蓝色边框 */
-.card-out {
-  color: #666;
-  border: none;
-
-  .tag-title {
-    color: #666;
-  }
-}
-
-/* 灵动模式 */
-.schedule-active {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--el-color-primary);
-}
-
-/* 灵动模式下鼠标移入显示蓝色进度条 */
-.schedule-in {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--el-color-primary);
-  animation: none;
-}
-
-/* 灵动模式下鼠标移出隐藏蓝色进度条 */
-.schedule-out {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: var(--el-color-primary);
-  animation: none;
-}
-
-/* 谷歌风格的页签 */
-.chrome-tab {
-  position: relative;
-  display: inline-flex;
-  gap: 16px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 24px;
-  white-space: nowrap;
-  cursor: pointer;
-
-  .tag-title {
-    padding: 0;
-  }
-
-  .chrome-tab-divider {
-    position: absolute;
-    right: 7px;
-    width: 1px;
+    width: 14px;
     height: 14px;
-    background-color: #2b2d2f;
-  }
-
-  &:hover {
-    z-index: 10;
-
-    .chrome-tab__bg {
-      color: #dee1e6;
-    }
-
-    .tag-title {
-      color: #1f1f1f;
-    }
-
-    .chrome-tab-divider {
-      opacity: 0;
-    }
-  }
-
-  .chrome-tab__bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: -10;
-    width: 100%;
-    height: 100%;
-    color: transparent;
-    pointer-events: none;
-  }
-
-  .chrome-close-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    color: #666;
-    border-radius: 50%;
-
-    &:hover {
-      color: white;
-      background-color: #b1b3b8;
-    }
   }
 }
 
-/* 卡片风格 - 简洁现代 */
-.scroll-item {
-  &:hover {
-    transform: none;
-    box-shadow: none;
-  }
-}
+.arrow-left { margin: 0 4px; }
+.arrow-right { margin: 0 4px; }
+.arrow-down { margin-right: 4px; }
 
-/* 灵动风格 - 底部进度条增强 */
-.scroll-item:not(.chrome-item):not(.modern-item) {
-  position: relative;
-  
-  .schedule-active,
-  .schedule-in,
-  .schedule-out {
-    height: 3px;
-    border-radius: 3px 3px 0 0;
-  }
-}
-
-/* 现代风格标签 - 精致立体 */
-.modern-item {
-  position: relative;
-  margin: 0 5px;
-  padding: 6px 14px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 251, 252, 1) 100%);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 10px;
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    0 1px 3px rgba(0, 0, 0, 0.02),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: none;
-  overflow: visible;
-
-  // 顶部高光
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 10%;
-    right: 10%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
-    pointer-events: none;
-  }
-
-  // 底部高亮条
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: transparent;
-    border-radius: 0 0 10px 10px;
-    transition: none;
-  }
-
-  .tag-title {
-    font-weight: 500;
-    letter-spacing: 0.3px;
-  }
-
-  &:hover {
-    transform: none;
-    box-shadow: none;
-    border-color: rgba(var(--el-color-primary-rgb), 0.15);
-
-    &::after {
-      background: transparent;
-    }
-
-    .tag-title {
-      color: var(--el-color-primary);
-    }
-  }
-
-  &.is-active {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary) 0%,
-      var(--el-color-primary-light-3) 50%,
-      var(--el-color-primary-light-5) 100%
-    );
-    border-color: transparent;
-    box-shadow: 
-      0 6px 20px rgba(var(--el-color-primary-rgb), 0.3),
-      0 3px 10px rgba(var(--el-color-primary-rgb), 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.4),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-
-    &::before {
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-    }
-
-    &::after {
-      background: linear-gradient(90deg, 
-        transparent, 
-        rgba(255, 255, 255, 0.3), 
-        transparent
-      );
-    }
-
-    .tag-title {
-      color: #fff;
-      font-weight: 600;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    }
-
-    .el-icon-close {
-      color: rgba(255, 255, 255, 0.9);
-
-      &:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.25);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-    }
-
-    &:hover {
-      transform: none;
-      box-shadow: none;
-    }
-  }
-
-  .el-icon-close {
-    border-radius: 6px;
-    transition: none;
-
-    &:hover {
-      background: rgba(var(--el-color-primary-rgb), 0.12);
-      transform: none;
-    }
-  }
-}
-
-// 深色主题下的特殊处理
+// 深色模式微调
 html.dark {
-  .scroll-item {
-    background-color: var(--app-bg-overlay);
-    
-    .tag-title {
-      color: var(--el-text-color-primary);
-    }
-    
-  &:hover {
-    background-color: var(--el-bg-color-page);
-    transform: none;
-    box-shadow: none;
-    
-    .tag-title {
-      color: var(--el-text-color-primary);
-    }
-  }
-    
-    &.is-active {
-      background-color: var(--app-bg-overlay);
-      
-      .tag-title {
-        color: var(--el-text-color-primary);
-      }
-      
-      &:hover {
-        background-color: var(--el-bg-color-page);
-        transform: none;
-        box-shadow: none;
-        
-        .tag-title {
-          color: var(--el-text-color-primary);
-        }
-      }
-    }
+  .tags-view {
+      border-bottom-color: rgba(255,255,255,0.05);
   }
   
-  .chrome-item {
-    .tag-title {
-      color: var(--el-text-color-primary);
-    }
-    
-      &:hover {
-      .chrome-tab__bg {
-        filter: none;
-      }
-      
-      .tag-title {
-        color: var(--el-text-color-primary);
-      }
-    }
-    
-    &.is-active {
-      .tag-title {
-        color: #fff;
-      }
-      
-      .tag-icon {
-        color: #fff;
-      }
-      
-      &:hover {
-        .chrome-tab__bg {
-          filter: none;
-        }
-        
-        .tag-title {
-          color: var(--el-text-color-primary);
-        }
-      }
-    }
-  }
-  
-  // 深色主题下的右键菜单和下拉菜单
-  .contextmenu,
-  .el-dropdown-menu {
-    background: rgba(30, 30, 35, 0.95);
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
-    
-    li {
-      &:hover {
-        background: rgba(var(--el-color-primary-rgb), 0.15);
-      }
-    }
-  }
-  
-  .el-dropdown-menu__item {
-    &:not(.is-disabled):hover {
-      background: rgba(var(--el-color-primary-rgb), 0.15);
-    }
-  }
-  
-  // 深色主题下的箭头按钮
-  .arrow-left,
-  .arrow-right,
-  .arrow-down {
-    &:hover {
-      background: rgba(var(--el-color-primary-rgb), 0.12);
-    }
-    
-    &:active {
-      background: rgba(var(--el-color-primary-rgb), 0.18);
-    }
+  .scroll-item.is-active {
+    background: rgba(var(--el-color-primary-rgb), 0.2);
+    border-color: rgba(var(--el-color-primary-rgb), 0.3);
   }
 }

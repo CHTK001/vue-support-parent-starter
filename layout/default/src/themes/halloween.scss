@@ -1,0 +1,232 @@
+/**
+ * 万圣节主题皮肤
+ * @author CH
+ * @date 2025-12-13
+ * @version 1.0.0
+ */
+
+// ==================== 万圣节主题颜色定义 ====================
+
+:root.theme-halloween {
+    // 主题颜色
+    --theme-primary: #ff7518; // 南瓜橙
+    --theme-secondary: #76ff03; // 史莱姆绿
+    --theme-accent: #f8f8ff; // 幽灵白
+    --theme-background: #2c003e; // 深紫色
+    --theme-text: #f8f8ff;
+    --theme-border: #4a0e68;
+
+    // Element Plus 颜色覆盖
+    --el-color-primary: #ff7518;
+    --el-color-primary-light-3: #ff9f5a;
+    --el-color-primary-light-5: #ffb885;
+    --el-color-primary-light-7: #ffd1b0;
+    --el-color-primary-light-8: #ffe0c9;
+    --el-color-primary-light-9: #fff0e3;
+    --el-color-primary-dark-2: #cc5e13;
+
+    // 背景和边框
+    --el-bg-color: #2c003e;
+    --el-bg-color-overlay: rgba(44, 0, 62, 0.9);
+    --el-border-color: #4a0e68;
+    --el-border-color-light: #5d1680;
+    --el-border-color-lighter: #702099;
+    --el-text-color-primary: #f8f8ff;
+    --el-text-color-regular: #dcdcdc;
+}
+
+// ==================== 万圣节主题 - 导航栏 ====================
+
+.theme-halloween :deep(.lay-navbar) {
+    background: linear-gradient(135deg, #2c003e 0%, #3d005e 50%, #1a0026 100%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6),
+        0 0 15px rgba(118, 255, 3, 0.2); // 绿色微光
+    border-bottom: 2px solid #76ff03;
+    position: relative;
+    
+    // 蜘蛛网纹理
+    &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+            radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.1) 0%, transparent 20%),
+            radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.1) 0%, transparent 20%);
+        opacity: 0.3;
+        pointer-events: none;
+    }
+
+    // 导航栏文字和图标
+    .navbar-item,
+    .navbar-icon,
+    .navbar-text {
+        color: #f8f8ff;
+    }
+
+    // 导航栏按钮
+    :deep(.el-button--text) {
+        color: #f8f8ff;
+
+        &:hover {
+            color: #76ff03;
+            text-shadow: 0 0 5px #76ff03;
+        }
+    }
+}
+
+// ==================== 万圣节主题 - 侧边栏 ====================
+
+.theme-halloween :deep(.nav-vertical),
+.theme-halloween :deep(.nav-horizontal),
+.theme-halloween :deep(.nav-hover),
+.theme-halloween :deep(.nav-double) {
+    background: linear-gradient(180deg, #2c003e 0%, #1a0026 100%);
+    border-right: 1px solid #4a0e68;
+
+    :deep(.el-menu) {
+        background-color: transparent;
+        border-right: none;
+    }
+
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+        color: #dcdcdc;
+
+        &:hover {
+            background-color: rgba(118, 255, 3, 0.1) !important;
+            color: #76ff03 !important;
+        }
+    }
+
+    :deep(.el-menu-item.is-active),
+    :deep(.el-sub-menu__title.is-active) {
+        background-color: rgba(255, 117, 24, 0.15) !important;
+        color: #ff7518 !important;
+        border-left: 3px solid #ff7518;
+    }
+}
+
+// ==================== 万圣节主题 - 卡片 ====================
+
+.theme-halloween :deep(.el-card) {
+    background-color: rgba(44, 0, 62, 0.8);
+    border: 1px solid #4a0e68;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    color: #f8f8ff;
+    
+    // 锯齿边框效果（通过 box-shadow 模拟或 clip-path，这里用 glow 代替）
+    &:hover {
+        box-shadow: 0 0 15px rgba(118, 255, 3, 0.3); // 绿色幽灵光晕
+        border-color: #76ff03;
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
+    }
+
+    :deep(.el-card__header) {
+        border-bottom: 1px solid #4a0e68;
+        background-color: rgba(0, 0, 0, 0.2);
+    }
+}
+
+// ==================== 万圣节主题 - 按钮 ====================
+
+.theme-halloween :deep(.el-button--primary) {
+    background: linear-gradient(135deg, #ff7518, #d65a0c);
+    border: none;
+    box-shadow: 0 4px 10px rgba(255, 117, 24, 0.3);
+
+    &:hover {
+        background: linear-gradient(135deg, #ff8f40, #e66b19);
+        box-shadow: 0 0 15px rgba(255, 117, 24, 0.6); // 橙色光晕
+    }
+}
+
+.theme-halloween :deep(.el-button--success) {
+    background: linear-gradient(135deg, #76ff03, #52b202); // 史莱姆绿
+    border: none;
+    color: #2c003e; // 深色文字对比
+
+    &:hover {
+        box-shadow: 0 0 15px rgba(118, 255, 3, 0.6); // 绿色粘液光晕
+    }
+}
+
+// ==================== 万圣节主题 - 装饰动画 ====================
+
+.theme-halloween {
+    // 幽灵漂浮
+    &::before {
+        content: "👻";
+        position: fixed;
+        bottom: 10%;
+        left: 5%;
+        font-size: 40px;
+        z-index: 9998;
+        pointer-events: none;
+        opacity: 0.6;
+        animation: ghost-float 8s ease-in-out infinite;
+        filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+    }
+
+    &::after {
+        content: "🦇";
+        position: fixed;
+        top: 15%;
+        right: 10%;
+        font-size: 30px;
+        z-index: 9998;
+        pointer-events: none;
+        opacity: 0.8;
+        animation: bat-fly 10s linear infinite;
+    }
+}
+
+// 南瓜灯装饰
+.theme-halloween body::before {
+    content: "🎃";
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 48px;
+    z-index: 9999;
+    pointer-events: none;
+    animation: pumpkin-flicker 3s infinite alternate;
+    filter: drop-shadow(0 0 20px rgba(255, 117, 24, 0.4));
+}
+
+// 蜘蛛网背景
+.theme-halloween body::after {
+    content: "🕸️";
+    position: fixed;
+    top: -20px;
+    left: -20px;
+    font-size: 120px;
+    z-index: 9997;
+    pointer-events: none;
+    opacity: 0.1;
+    color: #ffffff;
+    transform: rotate(-15deg);
+}
+
+// ==================== 动画定义 ====================
+
+@keyframes ghost-float {
+    0%, 100% { transform: translateY(0) translateX(0); opacity: 0.4; }
+    50% { transform: translateY(-30px) translateX(20px); opacity: 0.8; }
+}
+
+@keyframes bat-fly {
+    0% { transform: translateX(100vw) translateY(0) rotate(10deg); }
+    25% { transform: translateX(50vw) translateY(50px) rotate(-10deg); }
+    50% { transform: translateX(0) translateY(0) rotate(10deg); }
+    75% { transform: translateX(-50vw) translateY(50px) rotate(-10deg); }
+    100% { transform: translateX(-100vw) translateY(0) rotate(10deg); }
+}
+
+@keyframes pumpkin-flicker {
+    0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 117, 24, 0.2)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 25px rgba(255, 117, 24, 0.8)); transform: scale(1.05); }
+}

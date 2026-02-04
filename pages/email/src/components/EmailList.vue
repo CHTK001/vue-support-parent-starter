@@ -100,7 +100,7 @@ const handleRefresh = () => {
 
     <!-- 分页 -->
     <div class="email-list__pagination" v-if="totalEmails > pageSize">
-      <el-pagination v-model:current-page="currentPage" :page-size="pageSize" layout="prev, pager, next" :total="totalEmails" @current-change="handlePageChange" />
+      <el-pagination :current-page="currentPage" :page-size="pageSize" layout="prev, pager, next" :total="totalEmails" @current-change="handlePageChange" />
     </div>
   </div>
 </template>

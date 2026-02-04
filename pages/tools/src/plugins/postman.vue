@@ -4,7 +4,8 @@ import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { http } from "@repo/utils";
 import { saveAs } from "file-saver";
-import { message } from "@repo/utils";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 // 国际化
 const { t } = useI18n();
@@ -683,7 +684,7 @@ onMounted(() => {
             <p class="postman-tool__header-subtitle">一个简单易用的 API 测试工具</p>
           </div>
           <div class="postman-tool__header-timestamp">
-            <el-icon><IconifyIconOffline icon="ri:time-line" /></el-icon>
+            <el-icon><IconifyIconOnline icon="ri:time-line" /></el-icon>
             <span>{{ new Date().toLocaleString() }}</span>
           </div>
         </div>
@@ -838,7 +839,7 @@ onMounted(() => {
                       <h3 class="postman-tool__binary-title">二进制文件</h3>
                     </div>
                     <el-upload action="" :auto-upload="false" :show-file-list="false" drag @change="uploadBinaryFile">
-                      <el-icon><IconifyIconOffline icon="ri:upload-cloud-line" /></el-icon>
+                      <el-icon><IconifyIconOnline icon="ri:upload-cloud-line" /></el-icon>
                       <div class="el-upload__text">拖拽文件到此处或 <em>点击上传</em></div>
                     </el-upload>
                     <div v-if="env.body.binary" class="postman-tool__binary-info">
@@ -879,11 +880,11 @@ onMounted(() => {
                 <div class="postman-tool__response-status">
                   <el-tag :type="getStatusColor(env.response.status)" size="large"> {{ env.response.status }} {{ env.response.statusText }} </el-tag>
                   <span class="postman-tool__response-time">
-                    <el-icon><IconifyIconOffline icon="ri:time-line" /></el-icon>
+                    <el-icon><IconifyIconOnline icon="ri:time-line" /></el-icon>
                     {{ env.response.time }} ms
                   </span>
                   <span class="postman-tool__response-size">
-                    <el-icon><IconifyIconOffline icon="ri:file-size-line" /></el-icon>
+                    <el-icon><IconifyIconOnline icon="ri:file-size-line" /></el-icon>
                     {{ formatSize(env.response.size) }}
                   </span>
                 </div>
@@ -1005,20 +1006,34 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-danger-light-3) 0%, var(--el-color-danger) 100%);
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-light);
     border-radius: 12px;
     padding: 30px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(var(--el-color-danger-rgb), 0.3);
+    box-shadow: var(--el-box-shadow-light);
     display: flex;
     justify-content: space-between;
     align-items: center;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.05) 0%, rgba(var(--el-color-primary-rgb), 0.02) 100%);
+      z-index: 1;
+      pointer-events: none;
+    }
+    
     &:hover {
-      box-shadow: 0 6px 24px rgba(var(--el-color-danger-rgb), 0.4);
+      box-shadow: var(--el-box-shadow);
       transform: translateY(-2px);
+      border-color: var(--el-color-primary-light-5);
     }
 
     &-inner {
@@ -1029,22 +1044,23 @@ onMounted(() => {
     &-title {
       font-size: 28px;
       font-weight: 600;
-      color: #fff;
+      color: var(--el-text-color-primary);
       margin-bottom: 10px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     &-subtitle {
       font-size: 16px;
-      color: rgba(255, 255, 255, 0.9);
+      color: var(--el-text-color-secondary);
     }
 
     &-timestamp {
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--el-text-color-secondary);
       font-size: 14px;
       display: flex;
       align-items: center;
       gap: 5px;
+      position: relative;
+      z-index: 2;
     }
   }
 
@@ -1073,19 +1089,19 @@ onMounted(() => {
 
   &__method-option {
     &--get {
-      color: #0ea5e9;
+      color: var(--el-color-primary);
     }
 
     &--post {
-      color: #10b981;
+      color: var(--el-color-success);
     }
 
     &--put {
-      color: #f59e0b;
+      color: var(--el-color-warning);
     }
 
     &--delete {
-      color: #ef4444;
+      color: var(--el-color-danger);
     }
 
     &--patch {
@@ -1266,19 +1282,19 @@ onMounted(() => {
     font-weight: bold;
 
     &--get {
-      color: #0ea5e9;
+      color: var(--el-color-primary);
     }
 
     &--post {
-      color: #10b981;
+      color: var(--el-color-success);
     }
 
     &--put {
-      color: #f59e0b;
+      color: var(--el-color-warning);
     }
 
     &--delete {
-      color: #ef4444;
+      color: var(--el-color-danger);
     }
 
     &--patch {
@@ -1623,48 +1639,7 @@ onMounted(() => {
     }
   }
 
-  /* 自定义响应状态颜色 */
-  :deep(.el-tag--success) {
-    background-color: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.2);
-    color: #10b981;
-  }
-
-  :deep(.el-tag--warning) {
-    background-color: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-  }
-
-  :deep(.el-tag--danger) {
-    background-color: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-  }
-
-  :deep(.el-tag--info) {
-    background-color: rgba(107, 114, 128, 0.1);
-    border-color: rgba(107, 114, 128, 0.2);
-    color: #6b7280;
-  }
-
   /* 自定义表单样式 */
-  :deep(.el-form-item__label) {
-    font-weight: 500;
-  }
-
-  :deep(.el-input__wrapper) {
-    box-shadow: 0 0 0 1px var(--el-border-color) inset;
-  }
-
-  :deep(.el-input__wrapper:hover) {
-    box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
-  }
-
-  :deep(.el-input__wrapper.is-focus) {
-    box-shadow: 0 0 0 1px var(--el-color-primary) inset;
-  }
-
   :deep(.el-textarea__inner) {
     font-family: monospace;
   }
@@ -1676,61 +1651,6 @@ onMounted(() => {
 
   :deep(.el-tree-node__content:hover) {
     background-color: var(--el-fill-color-light);
-  }
-
-  /* 自定义标签页样式 */
-  :deep(.el-tabs__item) {
-    font-weight: 500;
-  }
-
-  :deep(.el-tabs__item.is-active) {
-    font-weight: 600;
-  }
-
-  /* 自定义卡片样式 */
-  :deep(.el-card) {
-    border-radius: 8px;
-    overflow: hidden;
-    transition: box-shadow 0.3s;
-  }
-
-  :deep(.el-card:hover) {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  }
-
-  :deep(.el-card__header) {
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    background-color: var(--el-fill-color-light);
-  }
-
-  /* 自定义按钮样式 */
-  :deep(.el-button--primary) {
-    background-color: var(--el-color-primary);
-  }
-
-  :deep(.el-button--primary:hover) {
-    background-color: var(--el-color-primary-light-3);
-  }
-
-  :deep(.el-button--success) {
-    background-color: #10b981;
-    border-color: #10b981;
-  }
-
-  :deep(.el-button--success:hover) {
-    background-color: #34d399;
-    border-color: #34d399;
-  }
-
-  :deep(.el-button--danger) {
-    background-color: #ef4444;
-    border-color: #ef4444;
-  }
-
-  :deep(.el-button--danger:hover) {
-    background-color: #f87171;
-    border-color: #f87171;
   }
 
   /* 自定义上传组件样式 */
@@ -1746,87 +1666,5 @@ onMounted(() => {
   /* 自定义单选按钮组样式 */
   :deep(.el-radio-button__inner) {
     padding: 8px 15px;
-  }
-
-  /* 自定义下拉菜单样式 */
-  :deep(.el-dropdown-menu__item) {
-    padding: 8px 16px;
-    font-size: 14px;
-  }
-
-  :deep(.el-dropdown-menu__item:hover) {
-    background-color: var(--el-fill-color-light);
-    color: var(--el-color-primary);
-  }
-
-  /* 自定义对话框样式 */
-  :deep(.el-dialog) {
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  :deep(.el-dialog__header) {
-    padding: 20px;
-    margin-right: 0;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    background-color: var(--el-fill-color-light);
-  }
-
-  :deep(.el-dialog__title) {
-    font-weight: 600;
-    font-size: 18px;
-  }
-
-  :deep(.el-dialog__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-dialog__footer) {
-    padding: 15px 20px;
-    border-top: 1px solid var(--el-border-color-lighter);
-    background-color: var(--el-fill-color-light);
-  }
-
-  /* 自定义分割线样式 */
-  :deep(.el-divider__text) {
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-  }
-
-  /* 自定义空状态样式 */
-  :deep(.el-empty__description) {
-    margin-top: 15px;
-    color: var(--el-text-color-secondary);
-  }
-
-  /* 自定义复选框样式 */
-  :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-    background-color: var(--el-color-primary);
-    border-color: var(--el-color-primary);
-  }
-
-  :deep(.el-checkbox__label) {
-    font-size: 14px;
-  }
-
-  /* 自定义选择器样式 */
-  :deep(.el-select-dropdown__item.selected) {
-    color: var(--el-color-primary);
-    font-weight: 600;
-  }
-
-  /* 自定义加载状态样式 */
-  :deep(.el-loading-mask) {
-    background-color: rgba(255, 255, 255, 0.8);
-  }
-
-  :deep(.el-loading-spinner .circular) {
-    width: 36px;
-    height: 36px;
-  }
-
-  :deep(.el-loading-spinner .path) {
-    stroke: var(--el-color-primary);
-    stroke-width: 3;
   }
 }

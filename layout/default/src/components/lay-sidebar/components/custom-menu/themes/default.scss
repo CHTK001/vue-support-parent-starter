@@ -4,9 +4,11 @@
 
 // 默认主题弹出层
 .default-custom-popper {
-  background: #fff !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 16px !important;
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.12),
     0 4px 16px rgba(0, 0, 0, 0.08) !important;
@@ -18,7 +20,7 @@
     margin: 3px 0;
     color: var(--el-text-color-primary);
     background: transparent;
-    border-radius: 8px;
+    border-radius: 12px;
     transition: all 0.25s ease;
     
     .menu-icon {
@@ -26,14 +28,14 @@
     }
     
     &:hover:not(.is-disabled) {
-      background: var(--el-color-primary-light-9);
+      background: rgba(var(--el-color-primary-rgb), 0.1);
       color: var(--el-color-primary);
     }
     
     &.is-active {
       background: var(--el-color-primary);
       color: #fff;
-      box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.35);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
       
       .menu-icon, .menu-title {
         color: #fff;
@@ -46,15 +48,16 @@
       height: 40px;
       padding: 0 14px;
       margin: 3px 0;
-      border-radius: 8px;
+      border-radius: 12px;
       color: var(--el-text-color-primary);
+      transition: all 0.25s ease;
       
       .menu-icon {
         color: var(--el-color-primary);
       }
       
       &:hover {
-        background: var(--el-color-primary-light-9);
+        background: rgba(var(--el-color-primary-rgb), 0.1);
         color: var(--el-color-primary);
       }
     }
@@ -62,6 +65,7 @@
     &.is-active > .custom-sub-menu__title {
       background: var(--el-color-primary);
       color: #fff;
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
       
       .menu-icon, .menu-title, .custom-sub-menu__icon-arrow {
         color: #fff;
@@ -70,11 +74,23 @@
   }
 }
 
-// 嵌套弹出层
+// 嵌套弹出层 - 同样应用玻璃拟态
 .default-custom-popper .custom-sub-menu__popper {
-  background: #fff !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
   padding: 6px !important;
+}
+
+// 暗色模式适配
+html.dark {
+  .default-custom-popper,
+  .default-custom-popper .custom-sub-menu__popper {
+    background: rgba(30, 30, 35, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  }
 }

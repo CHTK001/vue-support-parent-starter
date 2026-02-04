@@ -46,7 +46,6 @@
 </template>
 
 <script setup lang="ts">
-import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
 import { getRandomString } from "@repo/utils";
 import { computed, nextTick, ref } from "vue";

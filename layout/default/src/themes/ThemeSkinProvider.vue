@@ -1,15 +1,20 @@
 <template>
-  <div :class="['theme-skin-provider', `theme-${currentTheme}`]">
+  <div
+    :class="['theme-skin-provider', `theme-${currentTheme}`]"
+    :style="providerStyles"
+  >
     <slot />
   </div>
 </template>
 
 <script setup lang="ts">
 /**
- * 主题皮肤提供者组件
+ * 主题皮肤提供者组件 - 增强版
+ * 支持动态 CSS 变量注入、Glassmorphism 效果和响应式主题切换
+ *
  * @author CH
  * @date 2025-12-12
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import { computed, onMounted, ref, watch } from "vue";
@@ -21,6 +26,21 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
  * 当前主题皮肤
  */
 const currentTheme = ref<string>($storage?.configure?.systemTheme ?? "default");
+
+/**
+ * 计算动态样式
+ */
+const providerStyles = computed(() => {
+  const isGlass = currentTheme.value === "glass";
+  
+  return {
+    "--theme-transition": "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    "--glass-opacity": isGlass ? "0.7" : "1",
+    "--glass-blur": isGlass ? "20px" : "0px",
+    "--glass-border-color": isGlass ? "rgba(255, 255, 255, 0.18)" : "transparent",
+    "--glass-shadow": isGlass ? "0 8px 32px 0 rgba(31, 38, 135, 0.37)" : "none",
+  };
+});
 
 /**
  * 监听主题变化
@@ -50,6 +70,8 @@ const applyThemeSkin = (themeKey: string): void => {
     "theme-mid-autumn",
     "theme-national-day",
     "theme-new-year",
+    "theme-glass", // 新增 glass 主题
+    "theme-modern", // 新增 modern 主题
   ];
 
   themeClasses.forEach((cls) => {
@@ -60,6 +82,9 @@ const applyThemeSkin = (themeKey: string): void => {
   if (themeKey !== "default") {
     htmlEl.classList.add(`theme-${themeKey}`);
   }
+  
+  // 设置 data-theme 属性，便于 CSS 选择器使用
+  htmlEl.setAttribute("data-theme", themeKey);
 };
 
 /**
@@ -74,5 +99,16 @@ onMounted(() => {
 .theme-skin-provider {
   width: 100%;
   height: 100%;
+  transition: var(--theme-transition);
+  position: relative;
+  
+  // 基础背景色，可被主题覆盖
+  background-color: var(--el-bg-color-page);
+  color: var(--el-text-color-primary);
+  
+  // 确保子元素能够继承这些变量
+  :deep(*) {
+    transition: inherit;
+  }
 }
 </style>

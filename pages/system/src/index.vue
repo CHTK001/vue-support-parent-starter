@@ -64,7 +64,6 @@
 </template>
 
 <script setup lang="ts">
-import { IconifyIconOnline } from "@repo/components";
 
 type FeatureItem = {
   to: string;

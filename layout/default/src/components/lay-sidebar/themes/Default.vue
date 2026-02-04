@@ -19,7 +19,6 @@ import DefaultSidebarItem from '../components/themes/DefaultSidebarItem.vue';
   --sidebar-bg-start: rgba(255, 255, 255, 0.95);
   --sidebar-bg-end: rgba(255, 255, 255, 0.98);
   --sidebar-border: rgba(0, 0, 0, 0.05);
-  --sidebar-hover-shadow: rgba(0, 0, 0, 0.05);
   
   height: 100%;
   
@@ -39,27 +38,7 @@ import DefaultSidebarItem from '../components/themes/DefaultSidebarItem.vue';
     
     .el-menu {
       background: transparent;
-    }
-    
-    .el-menu-item,
-    .el-sub-menu__title {
-      color: var(--el-text-color-primary);
-      background-color: transparent;
-      transition: all 0.2s ease;
-      
-      &:hover {
-        transform: translateX(2px);
-        box-shadow: 0 2px 8px var(--sidebar-hover-shadow);
-      }
-    }
-    
-    .el-menu-item.is-active {
-      background: var(--el-color-primary);
-      color: #fff;
-      
-      .el-icon, svg, span, div {
-        color: #fff;
-      }
+      border-right: none;
     }
     
     .left-collapse {

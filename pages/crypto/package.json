@@ -1,0 +1,38 @@
+{
+  "name": "@pages/crypto",
+  "version": "1.0.0",
+  "description": "Crypto Dashboard Page",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@repo/components": "workspace:^",
+    "@techui/scifi": "catalog:",
+    "echarts": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "unbuild": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}
+

@@ -37,6 +37,7 @@
   "dependencies": {
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
+    "@element-plus/icons-vue": "catalog:",
     "element-plus": "catalog:",
     "hls.js": "catalog:",
     "socket.io-client": "catalog:",

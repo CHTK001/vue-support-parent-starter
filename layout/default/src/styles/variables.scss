@@ -139,17 +139,32 @@
   --layout-sidebar-active-text: #1b2a47;
 }
 
-// 赛博朋克
+// 赛博朋克 / Stitch Glass
 @include theme-vars('cyberpunk') {
-  --theme-primary: #00ffff;
-  --theme-secondary: #ff00ff;
+  --theme-primary: var(--app-primary, #00ffff);
+  --theme-secondary: var(--app-info, #ff00ff);
   --theme-accent: #ffff00;
-  --layout-sidebar-bg: #0a0a0a;
-  --layout-sidebar-text: #00ffff;
-  --layout-sidebar-active-bg: rgba(0, 255, 255, 0.1);
-  --layout-sidebar-active-text: #00ffff;
-  --layout-navbar-bg: #0a0a0a;
-  --layout-navbar-text: #00ffff;
+  
+  // Sidebar
+  --layout-sidebar-bg: rgba(15, 23, 42, 0.6); // var(--app-bg-primary) with opacity
+  --layout-sidebar-text: var(--app-text-secondary, #94a3b8);
+  --layout-sidebar-hover-bg: rgba(59, 130, 246, 0.1);
+  --layout-sidebar-active-bg: rgba(59, 130, 246, 0.15);
+  --layout-sidebar-active-text: var(--app-primary, #3b82f6);
+  
+  // Navbar
+  --layout-navbar-bg: rgba(15, 23, 42, 0.6);
+  --layout-navbar-text: var(--app-text-primary, #f1f5f9);
+  --layout-navbar-border: rgba(255, 255, 255, 0.05);
+  
+  // Tags
+  --layout-tag-bg: rgba(15, 23, 42, 0.4);
+  --layout-tag-item-bg: rgba(255, 255, 255, 0.05);
+  --layout-tag-item-active-bg: var(--app-primary, #3b82f6);
+  --layout-tag-item-active-text: #fff;
+  
+  // Content
+  --layout-content-bg: transparent; // Let the body background show through
 }
 
 // ==================== 工具类 ====================

@@ -36,6 +36,8 @@ import "@repo/assets/iconfont/iconfont.js";
 // 导入公共样式
 import "@repo/assets/style/layout/default/index.scss";
 import "@repo/assets/style/modern-page.scss";
+import "@repo/assets/style/stitch-global.scss";
+import "@repo/assets/style/stitch-layout-overrides.scss";
 // 自定义指令
 //@ts-ignore
 import * as directives from "@repo/core/directives";

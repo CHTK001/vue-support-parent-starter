@@ -46,6 +46,15 @@ export const layoutThemes: LayoutTheme[] = [
     color: "#00ffff",
   },
   {
+    name: "现代科技",
+    key: "modern-tech",
+    description: "Modern Tech 现代科技主题，深色玻璃拟态风格",
+    stylesheet: "modern-tech.css",
+    icon: "ri:macbook-line",
+    type: "beta",
+    color: "#5b13ec",
+  },
+  {
     name: "新春灯笼",
     key: "lunar-spring-festival",
     description: "深度定制新春主题，灯笼样式标签、烟花粒子、新年装饰",
@@ -55,6 +64,15 @@ export const layoutThemes: LayoutTheme[] = [
     color: "#ff4d4f",
   },
   // === 节日主题 ===
+  {
+    name: "万圣节",
+    key: "halloween",
+    description: "万圣节主题，神秘诡异",
+    stylesheet: "halloween.scss",
+    icon: "noto:jack-o-lantern",
+    type: "festival",
+    color: "#ff7518",
+  },
   {
     name: "春节",
     key: "spring-festival",

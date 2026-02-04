@@ -22,6 +22,13 @@ export const loginThemes: LoginTheme[] = [
     component: () => import("./modern/index.vue"),
   },
   {
+    name: "极光玻璃",
+    key: "glass",
+    description: "极致美感，玻璃拟态风格",
+    // @ts-ignore
+    component: () => import("./glass/index.vue"),
+  },
+  {
     name: "科技未来",
     key: "tech",
     description: "科技感十足，动态效果",

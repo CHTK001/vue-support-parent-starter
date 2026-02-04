@@ -1,0 +1,78 @@
+/* Mid-Autumn Theme - Compiled CSS */
+
+:root.theme-mid-autumn {
+    /* Theme Colors */
+    --theme-primary: #ffd700;
+    --theme-secondary: #00695c;
+    --theme-accent: #f5f5f5;
+    --theme-background: #1a237e;
+    --theme-text: #f5f5f5;
+    --theme-border: #283593;
+
+    /* Element Plus Overrides */
+    --el-color-primary: #ffd700;
+    --el-color-primary-light-3: #ffe44d;
+    --el-color-primary-light-5: #ffeb80;
+    --el-color-primary-light-7: #fff2b3;
+    --el-color-primary-light-8: #fff6cc;
+    --el-color-primary-light-9: #fffbe6;
+    --el-color-primary-dark-2: #ccac00;
+
+    --el-bg-color: #1a237e;
+    --el-bg-color-overlay: rgba(26, 35, 126, 0.9);
+    --el-border-color: #283593;
+    --el-border-color-light: #3949ab;
+    --el-border-color-lighter: #5c6bc0;
+    --el-text-color-primary: #f5f5f5;
+    --el-text-color-regular: #c5cae9;
+}
+
+.theme-mid-autumn .lay-navbar {
+    background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 215, 0, 0.2);
+    border-bottom: 2px solid #ffd700;
+    position: relative;
+}
+
+.theme-mid-autumn .el-card {
+    background-color: rgba(26, 35, 126, 0.8);
+    border: 1px solid #283593;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: #f5f5f5;
+    transition: all 0.4s ease;
+}
+
+.theme-mid-autumn .el-card:hover {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+.theme-mid-autumn .el-button--primary {
+    background: linear-gradient(135deg, #ffd700, #ffb300);
+    border: none;
+    color: #1a237e;
+    box-shadow: 0 4px 10px rgba(255, 215, 0, 0.3);
+}
+
+.theme-mid-autumn .el-button--primary:hover {
+    background: linear-gradient(135deg, #ffe066, #ffca28);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+/* Animations */
+@keyframes moon-glow {
+    0% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.3); transform: scale(1); }
+    100% { box-shadow: 0 0 80px rgba(255, 215, 0, 0.6); transform: scale(1.02); }
+}
+
+@keyframes cloud-float {
+    0% { transform: translateX(0); opacity: 0.3; }
+    50% { transform: translateX(-50px); opacity: 0.5; }
+    100% { transform: translateX(0); opacity: 0.3; }
+}
+
+@keyframes rabbit-jump {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}

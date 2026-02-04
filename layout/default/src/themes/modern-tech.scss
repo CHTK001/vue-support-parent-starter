@@ -1,0 +1,174 @@
+@use './stitch-layout-tokens.scss';
+
+/* Modern Tech Theme - Adaptive Source SCSS */
+
+:root {
+  /* Core Colors - Use Tokens where possible */
+  --stitch-primary: var(--stitch-lay-primary);
+  --stitch-primary-light: var(--stitch-lay-primary-light);
+  --stitch-accent: #00f2ea; /* Cyan neon - Keep unique to this theme */
+  
+  /* Backgrounds - Adaptive */
+  --stitch-bg-dark: var(--stitch-lay-bg-page); 
+  --stitch-bg-card: var(--stitch-lay-bg-panel);
+  --stitch-glass-border: var(--stitch-lay-border);
+  --stitch-shadow: var(--stitch-lay-shadow-lg);
+
+  /* Element Plus Overrides */
+  --el-color-primary: var(--stitch-primary);
+  --el-color-primary-light-3: var(--stitch-primary-light);
+  --el-color-primary-light-5: #8c5cf5;
+  --el-color-primary-light-7: #bda1f9;
+  --el-color-primary-light-8: #d6c2fc;
+  --el-color-primary-light-9: rgba(91, 19, 236, 0.1);
+  --el-color-primary-dark-2: #460eb8;
+  
+  --el-bg-color: var(--stitch-lay-bg-page);
+  --el-bg-color-overlay: var(--stitch-lay-bg-panel);
+  
+  --el-border-radius-base: var(--stitch-lay-radius-md);
+  --el-border-radius-small: var(--stitch-lay-radius-sm);
+  
+  --el-box-shadow-light: var(--stitch-shadow);
+  
+  /* Text Colors */
+  --el-text-color-primary: var(--stitch-lay-text-main);
+  --el-text-color-regular: var(--stitch-lay-text-secondary);
+}
+
+/* Specific Light Mode Overrides for Modern Tech to keep it "Techy" but Light */
+:root:not(.dark) {
+  --stitch-primary: #5b13ec;
+  --stitch-bg-card: rgba(255, 255, 255, 0.9); /* More opaque in light mode */
+  --stitch-accent: #00b8b0; /* Darker cyan for visibility on white */
+}
+
+html.dark {
+  --el-bg-color: var(--stitch-lay-bg-page);
+  --el-bg-color-page: #020617;
+  --el-bg-color-overlay: rgba(30, 41, 59, 0.8);
+  --el-border-color: rgba(255,255,255,0.1);
+  --el-border-color-light: rgba(255,255,255,0.05);
+  --el-fill-color-blank: transparent;
+  
+  /* Restore Neon for Dark Mode */
+  --stitch-accent: #00f2ea; 
+}
+
+/* Glassmorphism Utilities */
+.stitch-glass {
+  background: var(--stitch-lay-bg-overlay);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--stitch-glass-border);
+  box-shadow: var(--stitch-shadow);
+}
+
+/* Component Overrides */
+.el-button--primary {
+  background: linear-gradient(135deg, var(--stitch-primary), var(--stitch-primary-light));
+  border: none;
+  box-shadow: 0 4px 15px rgba(91, 19, 236, 0.4);
+  transition: all 0.3s ease;
+  color: #ffffff; /* Always white text on primary button */
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(91, 19, 236, 0.6);
+  }
+}
+
+.el-card {
+  @extend .stitch-glass;
+  border-radius: 16px;
+  color: var(--el-text-color-primary);
+  /* background-color handled by stitch-glass */
+}
+
+/* Input Styles */
+.el-input__wrapper {
+  background-color: var(--stitch-lay-bg-panel) !important;
+  box-shadow: none !important;
+  border: 1px solid var(--stitch-glass-border);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  
+  &.is-focus {
+    border-color: var(--stitch-accent);
+    box-shadow: 0 0 0 1px var(--stitch-accent) !important;
+  }
+  
+  &:hover {
+    background-color: var(--el-fill-color-light) !important;
+  }
+}
+
+.el-input__inner {
+  color: var(--el-text-color-primary);
+}
+
+/* Menu/Sidebar Styles */
+.el-menu {
+  background-color: transparent !important;
+  border-right: none;
+}
+
+.el-sub-menu__title:hover, .el-menu-item:hover {
+  background-color: var(--stitch-lay-bg-overlay) !important;
+  color: var(--stitch-accent) !important;
+}
+
+.el-menu-item.is-active {
+  background: linear-gradient(90deg, rgba(91, 19, 236, 0.1), transparent) !important;
+  border-left: 3px solid var(--stitch-accent);
+  color: var(--stitch-accent) !important;
+  
+  html.dark & {
+    background: linear-gradient(90deg, rgba(91, 19, 236, 0.2), transparent) !important;
+  }
+}
+
+/* Dialog/Drawer Styles */
+.el-dialog, .el-drawer {
+  @extend .stitch-glass;
+}
+
+/* Table Styles */
+.el-table {
+  background-color: transparent !important;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: var(--stitch-lay-bg-overlay);
+  --el-table-row-hover-bg-color: var(--stitch-lay-bg-overlay);
+  color: var(--el-text-color-regular);
+  
+  th.el-table__cell {
+    background-color: var(--stitch-lay-bg-overlay) !important;
+    color: var(--el-text-color-primary);
+    font-weight: 600;
+  }
+  
+  td.el-table__cell, th.el-table__cell {
+    border-bottom: 1px solid var(--stitch-glass-border);
+  }
+}
+
+/* Loading Mask */
+.el-loading-mask {
+  background-color: var(--stitch-lay-bg-overlay) !important;
+  backdrop-filter: blur(4px);
+  
+  .el-loading-spinner {
+    .path {
+      stroke: var(--stitch-accent);
+      stroke-width: 3;
+    }
+    
+    .el-loading-text {
+      color: var(--stitch-accent);
+      font-size: 16px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+  }
+}

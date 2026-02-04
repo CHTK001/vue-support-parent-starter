@@ -126,7 +126,8 @@ const popperDirection = computed(() => props.isNest ? 'right' : 'bottom');
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  color: var(--el-color-primary);
+  color: var(--el-text-color-primary); // 默认颜色
+  transition: color 0.3s;
   
   :deep(svg) {
     width: 18px;
@@ -138,11 +139,56 @@ const popperDirection = computed(() => props.isNest ? 'right' : 'bottom');
   font-size: 14px;
   white-space: nowrap;
   font-weight: 500;
+  color: var(--el-text-color-primary);
+  transition: color 0.3s;
 }
 
 .default-menu-item,
 .default-sub-menu {
-  margin: 2px 4px;
+  margin: 4px 6px;
   border-radius: 8px;
+  transition: all 0.3s ease;
+  height: 40px;
+  line-height: 40px;
+
+  // 鼠标悬停
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+    
+    .menu-icon, .menu-title {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+// 激活状态（CustomMenuItem 会添加 is-active 类）
+:deep(.is-active) {
+  &.default-menu-item,
+  &.default-sub-menu > .custom-sub-menu__title { // Assuming structure
+    background-color: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+    
+    .menu-icon, .menu-title {
+      color: var(--el-color-primary);
+      font-weight: 600;
+    }
+  }
+}
+
+// 暗色模式
+html.dark {
+  .default-menu-item,
+  .default-sub-menu {
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  :deep(.is-active) {
+    &.default-menu-item,
+    &.default-sub-menu > .custom-sub-menu__title {
+      background-color: rgba(var(--el-color-primary-rgb), 0.15);
+    }
+  }
 }
 </style>

@@ -1,0 +1,180 @@
+@use './stitch-tokens.scss';
+
+/* ================== Stitch MCP Global Overrides ================== */
+
+/* 1. Base Reset */
+body {
+  background-color: var(--stitch-bg-page);
+  color: var(--stitch-text-primary);
+  font-family: var(--stitch-font-family);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 2. Element Plus Component Overrides */
+
+/* Button */
+.el-button {
+  border-radius: var(--stitch-radius-sm);
+  font-weight: var(--stitch-font-weight-medium);
+  height: 36px;
+  padding: 0 var(--stitch-spacing-md);
+  transition: all 0.2s ease;
+  
+  /* Primary Button */
+  &--primary {
+    background-color: var(--stitch-color-primary);
+    border-color: var(--stitch-color-primary);
+    box-shadow: var(--stitch-shadow-sm);
+    
+    &:hover, &:focus {
+      background-color: var(--stitch-color-primary-light);
+      border-color: var(--stitch-color-primary-light);
+      transform: translateY(-1px);
+      box-shadow: var(--stitch-shadow-md);
+    }
+    
+    &:active {
+      background-color: var(--stitch-color-primary-dark);
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Input */
+.el-input__wrapper {
+  background-color: var(--stitch-bg-input) !important;
+  border: 1px solid transparent;
+  border-radius: var(--stitch-radius-sm);
+  box-shadow: none !important;
+  padding: 0 var(--stitch-spacing-sm);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: var(--stitch-bg-input); /* Maintain bg on hover */
+    border-color: var(--stitch-border-color);
+  }
+  
+  &.is-focus {
+    background-color: var(--stitch-bg-card) !important;
+    border-color: var(--stitch-color-primary);
+    box-shadow: var(--stitch-shadow-focus) !important;
+  }
+}
+
+.el-input__inner {
+  color: var(--stitch-text-primary);
+  &::placeholder {
+    color: var(--stitch-text-disabled);
+  }
+}
+
+/* Card */
+.el-card {
+  background-color: var(--stitch-bg-card);
+  border: 1px solid var(--stitch-border-color);
+  border-radius: var(--stitch-radius-md);
+  box-shadow: var(--stitch-shadow-sm);
+  color: var(--stitch-text-primary);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: var(--stitch-shadow-md);
+    transform: translateY(-2px);
+  }
+  
+  /* Header */
+  &__header {
+    border-bottom: 1px solid var(--stitch-border-color);
+    padding: var(--stitch-spacing-md);
+    font-weight: var(--stitch-font-weight-bold);
+    font-size: var(--stitch-font-size-lg);
+  }
+  
+  /* Body */
+  &__body {
+    padding: var(--stitch-spacing-md);
+  }
+}
+
+/* Table */
+.el-table {
+  --el-table-bg-color: var(--stitch-bg-card);
+  --el-table-tr-bg-color: var(--stitch-bg-card);
+  --el-table-header-bg-color: var(--stitch-bg-page);
+  --el-table-row-hover-bg-color: var(--stitch-bg-input);
+  --el-table-border-color: var(--stitch-border-color);
+  --el-table-text-color: var(--stitch-text-primary);
+  --el-table-header-text-color: var(--stitch-text-secondary);
+  
+  border-radius: var(--stitch-radius-md);
+  overflow: hidden;
+  box-shadow: var(--stitch-shadow-sm);
+  
+  th.el-table__cell {
+    font-weight: var(--stitch-font-weight-bold);
+    background-color: var(--stitch-bg-page) !important;
+  }
+}
+
+/* Dialog / Modal */
+.el-dialog {
+  background-color: var(--stitch-bg-card);
+  border-radius: var(--stitch-radius-lg);
+  box-shadow: var(--stitch-shadow-lg);
+  
+  &__header {
+    border-bottom: 1px solid var(--stitch-border-color);
+    margin-right: 0;
+    padding: var(--stitch-spacing-md);
+  }
+  
+  &__title {
+    font-weight: var(--stitch-font-weight-bold);
+    color: var(--stitch-text-primary);
+  }
+  
+  &__body {
+    padding: var(--stitch-spacing-lg);
+    color: var(--stitch-text-secondary);
+  }
+  
+  &__footer {
+    border-top: 1px solid var(--stitch-border-color);
+    padding: var(--stitch-spacing-md);
+  }
+}
+
+/* Tag */
+.el-tag {
+  border-radius: var(--stitch-radius-sm);
+  border: none;
+  font-weight: var(--stitch-font-weight-medium);
+  
+  &--primary {
+    background-color: var(--stitch-color-primary-bg);
+    color: var(--stitch-color-primary);
+  }
+}
+
+/* Pagination */
+.el-pagination {
+  justify-content: flex-end;
+  margin-top: var(--stitch-spacing-md);
+  
+  button, .el-pager li {
+    background-color: var(--stitch-bg-card) !important;
+    border-radius: var(--stitch-radius-sm);
+    border: 1px solid var(--stitch-border-color);
+    
+    &:hover {
+      color: var(--stitch-color-primary);
+      border-color: var(--stitch-color-primary);
+    }
+    
+    &.is-active {
+      background-color: var(--stitch-color-primary) !important;
+      color: white;
+      border-color: var(--stitch-color-primary);
+    }
+  }
+}
