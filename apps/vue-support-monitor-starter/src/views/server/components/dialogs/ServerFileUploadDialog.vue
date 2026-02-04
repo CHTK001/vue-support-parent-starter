@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog 
     v-model="visible" 
     width="900px" 
@@ -505,7 +505,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/variables.scss";
+@use "@/styles/variables.scss" as *;
 
 /* 对话框样式 */
 .upload-dialog {

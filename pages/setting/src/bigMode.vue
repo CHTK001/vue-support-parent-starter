@@ -223,7 +223,7 @@ export default defineComponent({
 });
 </script>
 <style scoped lang="scss">
-@import "highlight.js/styles/github.css";
+@use "highlight.js/styles/github.css";
 
 :deep(.big-model .el-card__body) {
   padding: 5px;

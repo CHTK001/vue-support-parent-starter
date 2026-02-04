@@ -115,7 +115,7 @@ const toggleServers = () => {
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/mixins.scss";
+@use "@/styles/mixins.scss" as *;
 
 .modern-bg {
   position: relative;

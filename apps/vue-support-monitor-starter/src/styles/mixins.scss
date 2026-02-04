@@ -6,7 +6,7 @@
  * @since 2025-01-22
  */
 
-@import './variables.scss';
+@use './variables.scss' as *;
 
 // ========== 布局 Mixins ==========
 

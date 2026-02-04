@@ -64,7 +64,7 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-@import "@/styles/mixins.scss";
+@use "@/styles/mixins.scss" as *;
 
 .file-manager {
   @include system-container;

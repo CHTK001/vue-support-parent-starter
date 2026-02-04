@@ -38,7 +38,7 @@ defineOptions({
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/mixins.scss";
+@use "@/styles/mixins.scss" as *;
 
 .data-sync-container {
   @include page-container;

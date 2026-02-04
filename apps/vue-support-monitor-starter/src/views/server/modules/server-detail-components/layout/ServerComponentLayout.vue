@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="system-container modern-bg server-component-layout h-full" ref="serverLayoutRef">
     <div class="layout-header" v-if="editable">
       <!-- 左侧编辑操作区 -->
@@ -1209,7 +1209,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/variables.scss";
+@use "@/styles/variables.scss" as *;
 
 .modern-bg {
   position: relative;
