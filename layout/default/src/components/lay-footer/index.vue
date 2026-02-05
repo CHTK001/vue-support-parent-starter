@@ -43,7 +43,6 @@ const TITLE = getConfig("Title");
 
 // 春节主题
 :global(html[data-skin="spring-festival"]),
-:global(html[data-skin="lunar-spring-festival"]),
 :global(html[data-skin="new-year"]) {
   .layout-footer {
     color: rgba(198, 40, 40, 0.7) !important;

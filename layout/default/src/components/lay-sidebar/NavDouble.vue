@@ -229,6 +229,8 @@ const defer = useDefer(firstLevelMenus.value.length);
           </el-menu-item>
         </el-menu>
       </el-scrollbar>
+      <!-- 折叠按钮 - 移入左栏内部 -->
+      <LaySidebarLeftCollapse v-if="device !== 'mobile'" :is-active="pureApp?.sidebar?.opened" class="double-nav-collapse-inner" @toggleClick="toggleSideBar" />
     </div>
 
     <!-- 右栏：子菜单 -->
@@ -275,14 +277,16 @@ const defer = useDefer(firstLevelMenus.value.length);
         </el-menu>
       </el-scrollbar>
     </div>
-
-    <!-- 折叠按钮 -->
-    <LaySidebarLeftCollapse v-if="device !== 'mobile'" :is-active="pureApp?.sidebar?.opened" class="double-nav-collapse" @toggleClick="toggleSideBar" />
   </div>
 </template>
 
 <style lang="scss" scoped>
 @use "sass:color";
+
+// Stitch MCP Design System Variables
+$stitch-radius-base: 8px;
+$stitch-spacing-base: 8px;
+$stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
 // 双栏导航容器基础样式
 .double-nav-container {
@@ -325,13 +329,13 @@ const defer = useDefer(firstLevelMenus.value.length);
   // logo区域高度调整
   &.has-logo {
     .scrollbar-wrapper {
-      height: calc(100% - 60px);
+      height: calc(100% - 60px - 40px);
     }
   }
 
   &.no-logo {
     .scrollbar-wrapper {
-      height: 100%;
+      height: calc(100% - 40px);
     }
   }
 
@@ -344,8 +348,8 @@ const defer = useDefer(firstLevelMenus.value.length);
       padding: 0 !important;
       height: 56px;
       color: var(--el-text-color-primary);
-      transition: all 0.25s ease;
-      border-radius: 8px;
+      transition: $stitch-transition;
+      border-radius: $stitch-radius-base;
       margin: 4px 6px;
 
       // 图标容器增强
@@ -355,45 +359,53 @@ const defer = useDefer(firstLevelMenus.value.length);
         justify-content: center;
         width: 40px;
         height: 40px;
-        border-radius: 8px;
-        transition: all 0.25s ease;
+        border-radius: $stitch-radius-base;
+        transition: $stitch-transition;
         
         svg,
         i {
-          font-size: 22px;
-          width: 22px;
-          height: 22px;
-          color: var(--el-text-color-primary);
-          opacity: 0.85;
-          transition: all 0.25s ease;
+          font-size: 24px; // 稍微调大图标以符合 Stitch 风格
+          width: 24px;
+          height: 24px;
+          color: currentColor; // 使用当前颜色，确保一致性
+          opacity: 0.75; // 默认稍微透明
+          transition: $stitch-transition;
         }
       }
 
       &:hover {
         background: var(--el-fill-color-light);
+        color: var(--el-color-primary); // 悬停时使用主色
         
         .menu-icon-only {
+          background: rgba(var(--el-color-primary-rgb), 0.1); // 添加淡淡的背景
+          
           svg,
           i {
             opacity: 1;
             transform: scale(1.1);
+            color: var(--el-color-primary); // 悬停时图标变为主色
           }
         }
         
         /* 深色主题下悬停样式 */
         html.dark & {
           background: rgba(255, 255, 255, 0.08);
+          color: #ffffff;
           
-          .menu-icon-only svg,
-          .menu-icon-only i {
-            color: #ffffff;
+          .menu-icon-only {
+            background: rgba(255, 255, 255, 0.1);
+            svg,
+            i {
+              color: #ffffff;
+            }
           }
         }
       }
 
       &.is-active {
         background: var(--el-color-primary) !important;
-        box-shadow: 0 2px 12px rgba(var(--el-color-primary-rgb), 0.35);
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4); // 增强阴影
         
         .menu-icon-only {
           svg,
@@ -445,12 +457,13 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   // 统一菜单样式
   .sub-menu-list {
-    padding: 8px;
+    padding: $stitch-spacing-base;
 
     .sub-menu-item {
       :deep(.el-menu-item) {
-        border-radius: 6px;
-        margin: 2px 8px;
+        border-radius: $stitch-radius-base;
+        margin: 2px $stitch-spacing-base;
+        transition: $stitch-transition;
         
         /* 确保选中状态为白色 */
         &.is-active {
@@ -466,21 +479,207 @@ const defer = useDefer(firstLevelMenus.value.length);
       }
 
       :deep(.el-sub-menu__title) {
-        border-radius: 6px;
-        margin: 2px 8px;
+        border-radius: $stitch-radius-base;
+        margin: 2px $stitch-spacing-base;
+        transition: $stitch-transition;
       }
     }
   }
 }
 
-// 折叠按钮位置调整
-.double-nav-collapse {
-  position: absolute;
-  left: 0;
-  bottom: 0%;
-  transform: translateY(0%);
-  z-index: 20;
-  transition: all 0.3s ease;
+// ==================== 万圣节主题样式 ====================
+html[data-skin="halloween"] {
+  $hw-pumpkin: #ff7518;
+  $hw-purple: #2c003e;
+  $hw-bg: #1a0026;
+  $hw-border: #4a0e68;
+  $hw-white: #f8f8ff;
+  $hw-green: #76ff03;
+
+  // 双栏导航容器
+  .double-nav-container {
+    // 左栏
+    .double-nav-left {
+      background: linear-gradient(180deg, #2c003e 0%, #1a0026 100%) !important;
+      border-right: 2px solid $hw-pumpkin !important;
+      box-shadow: 4px 0 15px rgba(0, 0, 0, 0.5) !important;
+
+      // Logo区域
+      .sidebar-logo-container {
+        background: linear-gradient(135deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.95)) !important;
+        border-bottom: 1px solid $hw-border !important;
+
+        .sidebar-title {
+          color: $hw-pumpkin !important;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+      }
+
+      // 一级菜单
+      .first-level-menu {
+        .el-menu-item {
+          color: $hw-pumpkin !important;
+          background: transparent !important;
+          border-radius: 8px !important;
+          margin: 4px 6px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          .menu-icon-only {
+            svg,
+            i {
+              color: $hw-pumpkin !important;
+              font-size: 22px;
+              filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+            }
+          }
+
+          &:hover {
+            background: rgba(255, 117, 24, 0.15) !important;
+            transform: translateY(-2px);
+            
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: $hw-green !important;
+              filter: drop-shadow(0 0 5px $hw-green);
+            }
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $hw-pumpkin, #ff9f5a) !important;
+            color: $hw-purple !important;
+            box-shadow: 0 0 15px rgba(255, 117, 24, 0.4) !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: $hw-purple !important;
+              filter: none;
+            }
+          }
+        }
+      }
+    }
+
+    // 右栏
+    .double-nav-right {
+      background: linear-gradient(180deg, #250035 0%, #150020 100%) !important;
+      border-left: 1px solid rgba(74, 14, 104, 0.5) !important;
+
+      // 子菜单列表
+      .sub-menu-list {
+        padding: 8px !important;
+
+        .el-menu {
+          background: transparent !important;
+        }
+
+        .el-menu-item {
+          color: $hw-white !important;
+          border-radius: 8px !important;
+          margin: 4px 8px !important;
+          background: transparent !important;
+          
+          span, div, .el-text {
+             color: $hw-white !important;
+          }
+          
+          .el-icon, svg {
+              color: $hw-pumpkin !important;
+          }
+          
+          &:hover {
+            background: rgba(118, 255, 3, 0.1) !important;
+            color: $hw-green !important;
+            padding-left: 24px !important;
+            
+            span, div, .el-text {
+                color: $hw-green !important;
+            }
+            
+            .el-icon, svg {
+              color: $hw-green !important;
+            }
+          }
+
+          &.is-active {
+            background: rgba(255, 117, 24, 0.2) !important;
+            color: $hw-pumpkin !important;
+            border: 1px solid rgba(255, 117, 24, 0.5) !important;
+            font-weight: bold;
+            
+            span, div, .el-text {
+                color: $hw-pumpkin !important;
+            }
+
+            .el-icon, svg {
+              color: $hw-pumpkin !important;
+            }
+          }
+        }
+        
+        // 父菜单标题
+        .el-sub-menu__title {
+           color: $hw-pumpkin !important;
+           background: transparent !important;
+           
+           span, div, .el-text {
+               color: $hw-pumpkin !important;
+           }
+           
+           .el-icon, svg {
+               color: $hw-pumpkin !important;
+           }
+           
+           &:hover {
+             color: $hw-green !important;
+             background: rgba(118, 255, 3, 0.05) !important;
+             
+             span, div, .el-text {
+                 color: $hw-green !important;
+             }
+             
+             .el-icon, svg {
+                 color: $hw-green !important;
+             }
+           }
+        }
+        
+        .el-sub-menu.is-active > .el-sub-menu__title {
+            color: $hw-white !important;
+            background: linear-gradient(135deg, rgba(255, 117, 24, 0.8), rgba(204, 94, 19, 0.8)) !important;
+            
+            span, div, .el-text {
+                color: $hw-white !important;
+            }
+            
+            .el-icon, svg {
+                color: $hw-white !important;
+            }
+        }
+      }
+    }
+    
+    // 折叠按钮
+    .double-nav-collapse {
+        .left-collapse {
+           background: rgba(44, 0, 62, 0.8) !important;
+           border-top: 1px solid $hw-border !important;
+           color: $hw-pumpkin !important;
+           
+           svg {
+               color: $hw-pumpkin !important;
+           }
+           
+           &:hover {
+             color: $hw-green !important;
+             background: rgba(255, 255, 255, 0.05) !important;
+             
+             svg {
+                 color: $hw-green !important;
+             }
+           }
+        }
+    }
+  }
 }
 </style>
 

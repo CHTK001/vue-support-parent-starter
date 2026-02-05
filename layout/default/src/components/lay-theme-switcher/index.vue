@@ -2,14 +2,10 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { layoutThemes, loadThemeStylesheet } from '../../themes';
 import ScRibbon from '@repo/components/ScRibbon/index.vue';
-import { Moon, Sunny } from "@element-plus/icons-vue";
-import { useDark, useToggle } from "@vueuse/core";
+import { themeManager } from '../../utils/theme-manager';
 
 // 导入春节标签页样式
 import '../lay-tag/themes/spring-festival.css';
-
-const isDark = useDark();
-const toggleDark = useToggle(isDark);
 
 interface ThemeItem {
   name: string;
@@ -19,6 +15,7 @@ interface ThemeItem {
   color?: string;
   icon?: string;
   type?: string; // 主题类型
+  baseStyle?: 'light' | 'dark';
 }
 
 const props = withDefaults(defineProps<{
@@ -57,13 +54,14 @@ const availableThemes = computed<ThemeItem[]>(() => {
     icon: t.icon,
     color: t.color,
     type: t.type,
+    baseStyle: t.baseStyle,
   }));
   // 过滤掉国庆与无效 key
   return mapped.filter(t => !!t.key && t.key !== 'national-day');
 });
 
 // 按类型分组主题
-const regularThemes = computed(() => availableThemes.value.filter(t => t.type === 'regular' && t.key !== 'default'));
+const regularThemes = computed(() => availableThemes.value.filter(t => t.type === 'regular'));
 const betaThemes = computed(() => availableThemes.value.filter(t => t.type === 'beta'));
 const festivalThemes = computed(() => availableThemes.value.filter(t => t.type === 'festival'));
 
@@ -77,6 +75,21 @@ function removeAllThemeClasses() {
 function applyTheme(themeKey: string) {
   const htmlEl = document.documentElement;
   removeAllThemeClasses();
+
+  // 查找主题定义以获取 baseStyle
+  const theme = availableThemes.value.find(t => t.key === themeKey);
+  const baseStyle = theme?.baseStyle || 'light';
+  
+  // 如果是默认主题，使用当前的 activeStyleId
+  // 如果是其他主题，强制使用该主题定义的 baseStyle
+  if (themeKey === 'default') {
+    themeManager.setStyle(themeManager.getActiveStyleId());
+  } else {
+    const styleId = baseStyle === 'dark' ? 'default-dark' : 'default-light';
+    themeManager.setStyle(styleId);
+  }
+
+  // 应用主题特定样式
   if (themeKey !== 'default') {
     const themeClass = `theme-${themeKey}`;
     htmlEl.classList.add(themeClass);
@@ -89,6 +102,7 @@ function applyTheme(themeKey: string) {
 
 function onSelect(themeKey: string) {
   internalTheme.value = themeKey;
+  
   applyTheme(themeKey);
   if (props.persist) {
     try { localStorage.setItem(props.storageKey, themeKey); } catch {}
@@ -105,51 +119,23 @@ watch(() => props.modelValue, (val) => {
 });
 
 onMounted(() => {
-  // 初始应用
-  applyTheme(internalTheme.value);
-});
+    // 初始应用
+    applyTheme(internalTheme.value);
+  });
 </script>
 
 <template>
   <div class="lay-theme-switcher">
-    <!-- 模式切换 -->
-    <div class="theme-mode-toggle">
-      <div class="toggle-label">
-        <IconifyIconOnline :icon="isDark ? 'ri:moon-line' : 'ri:sun-line'" />
-        <span>{{ isDark ? '暗黑模式' : '浅色模式' }}</span>
-      </div>
-      <el-switch
-        v-model="isDark"
-        inline-prompt
-        :active-icon="Moon"
-        :inactive-icon="Sunny"
-        @change="toggleDark"
-      />
-    </div>
-
-    <el-divider />
+    <!-- 主题皮肤 -->
+    <el-divider content-position="left">
+      <span class="divider-text">
+        <IconifyIconOnline icon="ri:shirt-line" class="divider-icon" />
+        主题皮肤
+      </span>
+    </el-divider>
 
     <!-- 常规主题 -->
     <div class="theme-grid">
-      <!-- 默认主题卡片 -->
-      <div
-        class="theme-card default"
-        :class="{ 'is-active': internalTheme === 'default' }"
-        @click="onSelect('default')"
-      >
-        <div class="card-icon">
-          <IconifyIconOnline icon="ri:contrast-2-line" />
-        </div>
-        <div v-if="showMeta" class="card-meta">
-          <div class="card-name">默认主题</div>
-          <div class="card-desc">系统默认配色</div>
-        </div>
-        <div v-if="internalTheme === 'default'" class="card-check">
-          <IconifyIconOnline icon="ep:check" />
-        </div>
-      </div>
-
-      <!-- 其他常规主题 -->
       <div
         v-for="item in regularThemes"
         :key="item.key"
@@ -326,21 +312,5 @@ onMounted(() => {
 /* 节日主题卡片特殊样式 */
 .theme-card.festival .card-icon {
   color: #f5222d;
-}
-
-/* 模式切换样式 */
-.theme-mode-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 4px;
-  margin-bottom: 12px;
-}
-.toggle-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--el-text-color-primary);
 }
 </style>

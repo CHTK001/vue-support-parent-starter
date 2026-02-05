@@ -714,4 +714,103 @@ const deferTag = useDefer(tagsViews?.length);
   overflow: hidden;
   z-index: 0;
 }
+
+// Chrome 风格标签页样式
+.chrome-tab {
+  position: relative;
+  display: inline-flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 24px;
+  white-space: nowrap;
+  cursor: pointer;
+
+  .tag-title {
+    padding: 0;
+    color: var(--el-text-color-primary);
+  }
+
+  .chrome-tab-divider {
+    position: absolute;
+    right: 7px;
+    width: 1px;
+    height: 14px;
+    background-color: var(--el-border-color-lighter);
+  }
+
+  &:hover {
+    z-index: 10;
+    .chrome-tab-divider {
+      opacity: 0;
+    }
+  }
+
+  .chrome-tab__bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -10;
+    width: 100%;
+    height: 100%;
+    color: transparent;
+    pointer-events: none;
+  }
+
+  .chrome-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    color: var(--el-text-color-primary);
+    border-radius: 50%;
+
+    &:hover {
+      color: var(--el-text-color-primary);
+      background-color: var(--el-fill-color-dark);
+    }
+  }
+
+  // 确保SVG在不同主题下正确显示
+  :deep(svg) {
+    fill: currentColor;
+    color: currentColor;
+  }
+  
+  :deep(path), :deep(use) {
+    fill: currentColor;
+    color: currentColor;
+  }
+}
+
+// 激活状态适配
+.scroll-item.is-active .chrome-tab {
+  .tag-title {
+    color: #fff !important;
+  }
+  
+  // 修复选中状态下图标颜色为白色
+  .tag-icon,
+  .chrome-close-btn {
+    color: #fff !important;
+    :deep(svg) {
+      fill: #fff !important;
+      color: #fff !important;
+    }
+  }
+
+  .chrome-tab__bg {
+    color: var(--el-color-primary) !important;
+  }
+}
+
+.scroll-item.is-active:hover .chrome-tab {
+  .chrome-tab__bg {
+    color: var(--el-color-primary) !important;
+  }
+  .tag-title {
+    color: #fff !important;
+  }
+}
 </style>
