@@ -1048,24 +1048,6 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   &:hover {
     transform: translateX(4px);
-
-    /* 深色主题下悬停样式 */
-    html.dark & {
-      .menu-content {
-        color: #ffffff;
-        /* 悬停时保持白色 */
-
-        .menu-icon {
-          color: #ffffff;
-          /* 悬停时保持白色 */
-        }
-
-        .menu-title {
-          color: #ffffff;
-          /* 悬停时保持白色 */
-        }
-      }
-    }
   }
 
   &.is-active {
