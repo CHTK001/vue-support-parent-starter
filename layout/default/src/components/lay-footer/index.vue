@@ -82,4 +82,19 @@ const TITLE = getConfig("Title");
     }
   }
 }
+
+// 万圣节主题
+:global(html[data-skin="halloween"]) .layout-footer {
+  color: rgba(255, 117, 24, 0.7) !important;
+
+  a {
+    color: #ff7518 !important;
+    text-shadow: 0 0 5px rgba(255, 117, 24, 0.3);
+
+    &:hover {
+      color: #76ff03 !important;
+      text-shadow: 0 0 5px rgba(118, 255, 3, 0.5);
+    }
+  }
+}
 </style>

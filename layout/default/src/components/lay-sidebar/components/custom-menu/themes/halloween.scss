@@ -1,0 +1,117 @@
+/**
+ * 万圣节主题 - 自定义弹出菜单样式
+ * 南瓜橙配深紫
+ */
+
+$hw-pumpkin: #ff7518;
+$hw-purple: #2c003e;
+$hw-purple-dark: #1a0026;
+$hw-green: #76ff03;
+$hw-border: #4a0e68;
+
+.halloween-custom-popper {
+  background: linear-gradient(180deg, rgba(44, 0, 62, 0.98), rgba(26, 0, 38, 0.98)) !important;
+  border: 2px solid $hw-pumpkin !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(255, 117, 24, 0.3),
+    inset 0 1px 0 rgba(255, 117, 24, 0.2) !important;
+  padding: 8px !important;
+  
+  // 顶部南瓜色装饰线
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, $hw-pumpkin 30%, $hw-green 50%, $hw-pumpkin 70%, transparent);
+    border-radius: 0 0 2px 2px;
+  }
+  
+  .custom-menu-item {
+    height: 40px;
+    padding: 0 14px;
+    margin: 3px 0;
+    color: rgba(255, 255, 255, 0.95);
+    background: transparent;
+    border-radius: 6px;
+    transition: all 0.25s ease;
+    
+    .menu-icon {
+      color: $hw-pumpkin;
+    }
+    
+    &:hover:not(.is-disabled) {
+      background: rgba(255, 117, 24, 0.15);
+      color: $hw-green;
+      
+      .menu-icon {
+        color: $hw-green;
+      }
+    }
+    
+    &.is-active {
+      background: linear-gradient(135deg, $hw-pumpkin, #ff9f5a);
+      color: $hw-purple;
+      box-shadow: 0 3px 12px rgba(255, 117, 24, 0.4);
+      
+      .menu-icon, .menu-title {
+        color: $hw-purple;
+        font-weight: bold;
+      }
+    }
+  }
+  
+  .custom-sub-menu {
+    .custom-sub-menu__title {
+      height: 40px;
+      padding: 0 14px;
+      margin: 3px 0;
+      border-radius: 6px;
+      color: rgba(255, 255, 255, 0.95);
+      
+      .menu-icon {
+        color: $hw-pumpkin;
+      }
+      
+      .custom-sub-menu__icon-arrow {
+        color: $hw-pumpkin;
+      }
+      
+      &:hover {
+        background: rgba(255, 117, 24, 0.12);
+        color: $hw-green;
+        
+        .menu-icon {
+          color: $hw-green;
+        }
+        
+        .custom-sub-menu__icon-arrow {
+          color: $hw-green;
+        }
+      }
+    }
+    
+    &.is-active > .custom-sub-menu__title {
+      background: linear-gradient(135deg, $hw-pumpkin, #ff9f5a);
+      color: $hw-purple;
+      box-shadow: 0 3px 12px rgba(255, 117, 24, 0.4);
+      
+      .menu-icon, .menu-title, .custom-sub-menu__icon-arrow {
+        color: $hw-purple;
+        font-weight: bold;
+      }
+    }
+  }
+}
+
+.halloween-custom-popper .custom-sub-menu__popper {
+  background: linear-gradient(180deg, rgba(44, 0, 62, 0.98), rgba(26, 0, 38, 0.98)) !important;
+  border: 1px solid $hw-pumpkin !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.8) !important;
+  padding: 6px !important;
+}

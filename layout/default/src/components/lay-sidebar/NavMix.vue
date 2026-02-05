@@ -7,6 +7,7 @@ import DefaultMix from "./themes/mix/Default.vue";
 const themeComponents = {
   'default': DefaultMix,
   'spring-festival': defineAsyncComponent(() => import("./themes/mix/SpringFestival.vue")),
+  'halloween': defineAsyncComponent(() => import("./themes/mix/Halloween.vue")),
   'cyberpunk': defineAsyncComponent(() => import("./themes/mix/Cyberpunk.vue")),
   'mid-autumn': defineAsyncComponent(() => import("./themes/mix/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/mix/Christmas.vue")),
