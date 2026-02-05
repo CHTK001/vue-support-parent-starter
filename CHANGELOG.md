@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
   - **Navigation Modes**: Verified support for all 6 layout modes (Vertical, Horizontal, Mix, Double, Hover, Mobile).
 
 ### Fixed
+- **BaseSetting**: Fixed "Maximum call stack size exceeded" error by removing invalid `require` call in `initializeTheme`.
 - **Halloween Theme**: Removed redundant dark mode styles in `HoverNavigation.vue` to resolve conflicts with theme variables.
 
 ### Changed
