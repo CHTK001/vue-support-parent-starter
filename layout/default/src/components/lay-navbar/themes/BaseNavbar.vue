@@ -115,11 +115,7 @@ onBeforeUnmount(() => {
       }
     }
   }
-}
-</style>
-    z-index: 10;
-  }
-  
+
   .breadcrumb-container {
     margin-left: 20px;
     height: 38px;
