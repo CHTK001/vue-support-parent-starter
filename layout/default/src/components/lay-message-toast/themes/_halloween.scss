@@ -1,0 +1,87 @@
+// ==================== 万圣节主题样式 ====================
+html[data-skin="halloween"] {
+  $hw-pumpkin: #ff7518;
+  $hw-purple: #2c003e;
+  $hw-purple-dark: #1a0026;
+  $hw-green: #76ff03;
+  $hw-border: rgba(255, 117, 24, 0.3);
+  $hw-text: #b39ddb;
+
+  .toast-card {
+    background: linear-gradient(135deg, $hw-purple 0%, $hw-purple-dark 100%) !important;
+    border: 1px solid $hw-border !important;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.8),
+      0 4px 16px rgba(74, 20, 140, 0.2) !important;
+    position: relative;
+    overflow: hidden;
+
+    // 顶部装饰条
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(
+        90deg,
+        $hw-pumpkin 0%,
+        $hw-green 50%,
+        $hw-pumpkin 100%
+      );
+      z-index: 1;
+    }
+
+    &:hover {
+      border-color: $hw-pumpkin !important;
+      box-shadow:
+        0 12px 40px rgba(255, 117, 24, 0.2),
+        0 6px 20px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    // 消息级别样式
+    &.toast-level-warning {
+      border-left: 3px solid $hw-pumpkin !important;
+    }
+
+    &.toast-level-error {
+      border-left: 3px solid #d50000 !important;
+    }
+
+    &.toast-level-success {
+      border-left: 3px solid $hw-green !important;
+    }
+  }
+
+  .toast-default-icon {
+    background: linear-gradient(135deg, $hw-pumpkin 0%, #f57c00 100%) !important;
+    box-shadow: 0 4px 12px rgba(255, 117, 24, 0.3);
+  }
+
+  .toast-title {
+    color: $hw-pumpkin !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .toast-time {
+    color: rgba(179, 157, 219, 0.6) !important;
+  }
+
+  .toast-body {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+
+  .toast-close {
+    background: rgba(255, 117, 24, 0.1) !important;
+    color: $hw-pumpkin !important;
+
+    &:hover {
+      background: rgba(255, 117, 24, 0.2) !important;
+    }
+  }
+
+  .toast-progress {
+    background: linear-gradient(90deg, $hw-pumpkin, $hw-green) !important;
+  }
+}

@@ -105,12 +105,16 @@ const { initWatermark } = useWatermarkSetup(watermarkContainerRef);
 const { debugMode, setDebugConsoleRef, handleDebugConsoleClose } = useDebugMode();
 setDebugConsoleRef(debugConsoleRef);
 
+const pureSetting = useSettingStoreHook();
+const appStore = useAppStoreHook();
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+
 // 字体加密
 const fontEncryptionConfig = computed(() => ({
   enabled: $storage?.configure?.fontEncryptionEnabled ?? true,
-  encryptNumbers: $storage?.configure?.fontEncryptionNumbers ?? true,
-  encryptChinese: $storage?.configure?.fontEncryptionChinese ?? true,
-  applyGlobal: $storage?.configure?.fontEncryptionGlobal ?? true,
+  encryptNumbers: $storage?.configure?.fontEncryptionNumbers ?? false,
+  encryptChinese: $storage?.configure?.fontEncryptionChinese ?? false,
+  applyGlobal: $storage?.configure?.fontEncryptionGlobal ?? false,
   ocrNoise: $storage?.configure?.fontEncryptionOcrNoise ?? false,
 }));
 useFontEncryption(() => fontEncryptionConfig.value);
@@ -122,10 +126,6 @@ const { initStorage } = useLayout();
 const { dataThemeChange } = useDataThemeChange();
 
 initStorage();
-
-const pureSetting = useSettingStoreHook();
-const appStore = useAppStoreHook();
-const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 // 将layout改为字符串形式
 const layout = computed(() => {

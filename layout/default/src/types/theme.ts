@@ -7,12 +7,13 @@
 export type ThemeKey =
   | "default"
   | "spring-festival"
-  | "lunar-spring-festival"
   | "christmas"
   | "mid-autumn"
   | "national-day"
   | "new-year"
-  | "cyberpunk";
+  | "cyberpunk"
+  | "modern-tech"
+  | "halloween";
 
 /** 主题类型分类 */
 export type ThemeType = "regular" | "beta" | "festival";

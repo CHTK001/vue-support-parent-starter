@@ -22,6 +22,9 @@ export { encryptText, decryptText, isEncryptedChar, getMappedCharCount } from ".
 // Stores
 export { useThemeStore, useThemeStoreHook } from "./stores/themeStore";
 
+// Utils
+export { themeManager } from "./utils/theme-manager";
+
 // Types
 export type {
   ThemeKey,

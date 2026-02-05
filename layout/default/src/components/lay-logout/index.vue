@@ -115,7 +115,6 @@ import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 
 // 春节主题
 :global(html[data-skin="spring-festival"]),
-:global(html[data-skin="lunar-spring-festival"]),
 :global(html[data-skin="new-year"]) {
   .logout-btn {
     &::before {

@@ -52,23 +52,32 @@ html.dark {
   --app-info-dark: #722ed1;
   --app-info-darker: #531dab;
 
-  /* ===== 中性色 Neutral Colors ===== */
-  --app-white: #141414;
+  /* ===== 中性色 Neutral Colors - Updated to Slate Blue Scheme ===== */
+  --app-white: #1e293b;
   --app-black: #ffffff;
   
   /* 背景色 */
-  --app-bg-primary: #141414;
-  --app-bg-secondary: #1f1f1f;
-  --app-bg-tertiary: #262626;
-  --app-bg-quaternary: #303030;
-  --app-bg-disabled: #3a3a3a;
-  --app-bg-overlay: #1f1f1f;
-  --app-bg-overlay-transparent: rgba(20, 20, 20, 0.95);
-  --app-bg-page: #0a0a0a;
-  --app-bg-card: #1f1f1f;
-  --app-bg-card-hover: #262626;
+  --app-bg-primary: #0f172a; /* Slate 900 */
+  --app-bg-secondary: #1e293b; /* Slate 800 */
+  --app-bg-tertiary: #334155; /* Slate 700 */
+  --app-bg-quaternary: #475569; /* Slate 600 */
+  --app-bg-disabled: #334155;
+  --app-bg-overlay: #1e293b;
+  --app-bg-overlay-transparent: rgba(15, 23, 42, 0.95);
+  --app-bg-page: #020617; /* Slate 950 */
+  --app-bg-card: #1e293b;
+  --app-bg-card-hover: #334155;
   --app-bg-hover: rgba(22, 119, 255, 0.08);
   --app-bg-active: rgba(22, 119, 255, 0.15);
+
+  /* Element Plus Mappings for Dark Blue Theme */
+  --el-bg-color: var(--app-bg-primary);
+  --el-bg-color-page: var(--app-bg-page);
+  --el-bg-color-overlay: var(--app-bg-overlay);
+  --el-text-color-primary: var(--app-text-primary);
+  --el-text-color-regular: #cbd5e1;
+  --el-border-color: rgba(255, 255, 255, 0.1);
+  --el-border-color-light: rgba(255, 255, 255, 0.05);
   
   /* 文本颜色 */
   --app-text-primary: rgba(255, 255, 255, 0.95);
@@ -176,7 +185,7 @@ html.dark {
 
   .app-main,
   .app-main-nofixed-header {
-    background: #020409 !important;
+    background: var(--app-bg-page) !important;
   }
 
   /* 标签页 */
