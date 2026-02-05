@@ -85,35 +85,34 @@ body {
 
 /* 3. 输入框 Input */
 .el-input__wrapper {
-  @include glass.glass-input;
-  background-color: transparent !important;
-  box-shadow: none !important; // Override Element Plus default shadow
-  border: 1px solid rgba(148, 163, 184, 0.2); // Custom border
+  // @include glass.glass-input;
+  // background-color: transparent !important;
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
   
   &.is-focus {
-    @include glass.neon-border(var(--el-color-primary));
+    box-shadow: 0 0 0 1px var(--el-color-primary) inset;
   }
 }
 
 .el-textarea__inner {
-  @include glass.glass-input;
-  background-color: transparent !important;
+  // @include glass.glass-input;
+  // background-color: transparent !important;
+
 }
 
 /* 4. 对话框 Dialog & 抽屉 Drawer */
 .el-dialog, .el-drawer {
-  @include glass.glass-deep;
-  background-color: transparent !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-dark);
+  border: 1px solid var(--el-border-color-lighter);
 
   &__header {
     margin-right: 0;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
   
   &__footer {
-    border-top: 1px solid rgba(148, 163, 184, 0.1);
+    border-top: 1px solid var(--el-border-color-lighter);
   }
 }
 
