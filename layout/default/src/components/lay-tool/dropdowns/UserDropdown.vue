@@ -2,9 +2,6 @@
 import { router } from "@repo/core";
 import { useNav } from "../../../hooks/useNav";
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
-import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
-import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
-import Restore from "@iconify-icons/line-md/backup-restore";
 
 const { t } = useTranslationLang();
 const { logout, username, userAvatar, avatarsStyle, clickClearRouter } = useNav();
@@ -55,7 +52,7 @@ const gotoAccountSetting = () => {
             @click="gotoAccountSetting"
           >
             <div class="item-icon account-icon">
-              <IconifyIconOffline :icon="AccountSettingsIcon" />
+              <IconifyIconOnline icon="ri:user-settings-line" />
             </div>
             <div class="item-content">
               <span class="item-title">{{ t("buttons.accountSetting") }}</span>
@@ -66,7 +63,7 @@ const gotoAccountSetting = () => {
 
           <el-dropdown-item class="menu-item" @click="clickClearRouter">
             <div class="item-icon cache-icon">
-              <IconifyIconOffline :icon="Restore" />
+              <IconifyIconOnline icon="line-md:backup-restore" />
             </div>
             <div class="item-content">
               <span class="item-title">{{ t("buttons.pureClearRouter") }}</span>
@@ -79,7 +76,7 @@ const gotoAccountSetting = () => {
         <!-- 退出登录 -->
         <div class="menu-footer">
           <el-dropdown-item class="logout-item" @click="logout">
-            <IconifyIconOffline :icon="LogoutCircleRLine" class="logout-icon" />
+            <IconifyIconOnline icon="ri:logout-circle-r-line" class="logout-icon" />
             <span>{{ t("buttons.pureLoginOut") }}</span>
           </el-dropdown-item>
         </div>
@@ -98,6 +95,14 @@ const gotoAccountSetting = () => {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
   padding: 6px 14px 6px 6px;
   border-radius: 28px;
   background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);

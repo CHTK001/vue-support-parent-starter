@@ -20,3 +20,14 @@ All notable changes to this project will be documented in this file.
     - Implemented strictly typed Theme Keys in `types/theme.ts`.
     - Added Unit Tests (`HalloweenTheme.spec.ts`) to verify theme resolution and protocol compliance.
   - **Navigation Modes**: Verified support for all 6 layout modes (Vertical, Horizontal, Mix, Double, Hover, Mobile).
+
+### Fixed
+- **Halloween Theme**: Removed redundant dark mode styles in `HoverNavigation.vue` to resolve conflicts with theme variables.
+
+### Changed
+- **Default Theme Light Style Overhaul**:
+  - **Vertical Layout**: Implemented 8% opacity theme color background for active menu items (`DefaultSidebarItem.vue`).
+  - **Header Styles**: Extracted `lay-header-style` mixin in `mixins.scss` for consistent header styling across layouts.
+  - **Top Visuals**: Optimized `UserDropdown` and top bar elements with better spacing, hover effects, and consistent icon usage (`IconifyIconOnline`).
+  - **Mobile Layout**: Refactored mobile styles into independent `mobile.scss` with `.lay-mobile` namespace to prevent style pollution.
+

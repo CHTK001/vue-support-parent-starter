@@ -300,20 +300,18 @@
 // --- 按钮 ---
 .theme-halloween :deep(.el-button) {
   // 默认按钮
-  &--default {
-    background: rgba(255,255,255,0.05);
-    border-color: var(--hw-witch-purple);
-    color: var(--hw-ghost-white);
-    
-    &:hover {
-      color: var(--hw-pumpkin-orange);
-      border-color: var(--hw-pumpkin-orange);
-      background: rgba(255, 117, 24, 0.1);
-    }
+  background: rgba(255,255,255,0.05);
+  border-color: var(--hw-witch-purple);
+  color: var(--hw-ghost-white);
+  
+  &:hover {
+    color: var(--hw-pumpkin-orange);
+    border-color: var(--hw-pumpkin-orange);
+    background: rgba(255, 117, 24, 0.1);
   }
 
   // 主要按钮 (南瓜橙)
-  &--primary {
+  &.el-button--primary {
     background: var(--hw-pumpkin-orange);
     border-color: var(--hw-pumpkin-orange);
     color: #fff;
@@ -328,7 +326,7 @@
   }
 
   // 成功按钮 (史莱姆绿)
-  &--success {
+  &.el-button--success {
     background: var(--hw-slime-green);
     border-color: var(--hw-slime-green);
     color: #000;
@@ -340,7 +338,7 @@
   }
   
   // 危险按钮 (血红)
-  &--danger {
+  &.el-button--danger {
     background: var(--hw-blood-red);
     border-color: var(--hw-blood-red);
     
@@ -414,13 +412,13 @@
 .theme-halloween :deep(.el-tag) {
   border-radius: 12px 4px 12px 4px;
   
-  &--primary {
+  &.el-tag--primary {
     background: rgba(255, 117, 24, 0.2);
     border-color: var(--hw-pumpkin-orange);
     color: var(--hw-pumpkin-orange);
   }
   
-  &--success {
+  &.el-tag--success {
     background: rgba(118, 255, 3, 0.2);
     border-color: var(--hw-slime-green);
     color: var(--hw-slime-green);
