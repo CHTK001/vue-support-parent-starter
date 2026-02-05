@@ -109,11 +109,11 @@ html.dark {
   color: var(--stitch-accent) !important;
 }
 
-/* Dialog/Drawer Styles */
-.el-dialog, .el-drawer {
+/* Dialog/Drawer Styles - Removed to keep default */
+/* .el-dialog, .el-drawer {
   @extend .stitch-glass;
   background-color: rgba(15, 23, 42, 0.9) !important;
-}
+} */
 
 /* Table Styles */
 .el-table {

@@ -91,7 +91,9 @@ export function getPluginsList(options: PluginsOptions): PluginOption[] {
     VITE_CDN ? cdn : null,
     configCompressPlugin(VITE_COMPRESSION),
     // 线上环境删除console
-    removeConsole({ external: removeConsoleExternal }),
+    lifecycle === "report" || process.env.NODE_ENV === "production"
+      ? removeConsole({ external: removeConsoleExternal })
+      : (null as unknown as PluginOption),
     // 打包分析
     lifecycle === "report"
       ? visualizer({ open: true, brotliSize: true, filename: "report.html" })

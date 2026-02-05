@@ -16,7 +16,8 @@
   height: 60px; /* Standardize height */
   
   html.dark & {
-    background-color: rgba(30, 41, 59, 0.8) !important;
+    background-color: rgba(15, 23, 42, 0.8) !important;
+    border-bottom: 1px solid var(--stitch-lay-border);
   }
 
   /* Floating effect on scroll (optional utility class) */
@@ -44,7 +45,7 @@
 
 /* ================== 2. lay-sidebar (Side Navigation) ================== */
 .lay-sidebar {
-  background-color: var(--stitch-lay-bg-white);
+  background-color: var(--stitch-lay-bg-panel);
   border-right: 1px solid var(--stitch-lay-border-light);
   transition: var(--stitch-lay-transition);
 
@@ -86,9 +87,13 @@
 
 /* ================== 3. lay-tag (Tabs/Breadcrumbs area) ================== */
 .lay-tag {
-  background-color: var(--stitch-lay-bg-light);
+  background-color: var(--stitch-lay-bg-page);
   padding: 6px 12px;
-  border-bottom: 1px solid var(--stitch-lay-border-light);
+  border-bottom: 1px solid var(--stitch-lay-border);
+
+  html.dark & {
+    background-color: var(--app-bg-primary);
+  }
   
   /* Tab Items */
   .el-tag, .tags-view-item {
@@ -104,18 +109,23 @@
     
     &:hover {
       background-color: rgba(0,0,0,0.05);
-      color: var(--stitch-lay-text-main);
+      html.dark & {
+        background-color: rgba(255,255,255,0.05);
+        color: var(--stitch-lay-text-main);
+      }
     }
     
     /* Active Tab - Raised Card Look */
     &.active, &.is-active {
-      background-color: var(--stitch-lay-bg-white);
+      background-color: var(--stitch-lay-bg-panel);
       color: var(--stitch-lay-primary);
       box-shadow: var(--stitch-lay-shadow-sm);
       font-weight: 500;
       
       html.dark & {
-        background-color: var(--stitch-lay-bg-panel-dark);
+        background-color: var(--stitch-lay-bg-panel);
+        color: var(--stitch-lay-primary);
+        border: 1px solid var(--stitch-lay-primary-alpha);
       }
     }
   }
@@ -123,7 +133,7 @@
 
 /* ================== 4. lay-content (Main Content Area) ================== */
 .lay-content {
-  background-color: var(--stitch-lay-bg-light);
+  background-color: var(--stitch-lay-bg-page);
   padding: 20px;
   min-height: calc(100vh - 100px);
   
@@ -132,7 +142,7 @@
     border-radius: var(--stitch-lay-radius-md);
     border: 1px solid var(--stitch-lay-border-light);
     box-shadow: var(--stitch-lay-shadow-sm);
-    background-color: var(--stitch-lay-bg-white);
+    background-color: var(--stitch-lay-bg-panel);
     transition: var(--stitch-lay-transition);
     
     &:hover {
@@ -144,7 +154,7 @@
 
 /* ================== 5. lay-footer ================== */
 .lay-footer {
-  background-color: var(--stitch-lay-bg-white);
+  background-color: var(--stitch-lay-bg-panel);
   border-top: 1px solid var(--stitch-lay-border-light);
   color: var(--stitch-lay-text-secondary);
   font-size: 13px;

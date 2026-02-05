@@ -358,12 +358,13 @@ const {
   selectRow,
   unselectRow,
   toggleRowSelection: toggleSelectionInCache,
-  setPageSelection,
-  getPageSelection,
+  onSelectionChange: setPageSelection,
+  getCurrentSelection: getPageSelection,
   clearSelection: clearSelectionCache,
-  getSelection,
+  getAllSelection: getSelection,
   hasSelection,
 } = useTableSelection({
+  tableRef: scTable,
   rowKey: props.rowKey || 'id',
   crossPageSelection: true,
 });

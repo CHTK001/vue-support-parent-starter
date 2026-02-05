@@ -1094,7 +1094,7 @@ onUnmounted(() => {
         </div>
 
         <!-- 主题色设置区域 -->
-        <div v-if="themeColors && themeColors.length > 0" class="setting-section">
+        <div v-if="!isNonDefaultTheme && themeColors && themeColors.length > 0" class="setting-section">
           <div class="section-header">
             <IconifyIconOffline :icon="'ri:drop-line'" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureThemeColor") }}</h3>
@@ -2048,7 +2048,8 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- 字体加密设置 -->
+            <!-- 字体加密设置 (已移除) -->
+            <!-- 
             <div class="setting-group">
               <h4 class="group-title">
                 <IconifyIconOffline
@@ -2118,6 +2119,7 @@ onUnmounted(() => {
                 />
               </div>
             </div>
+            -->
 
             <!-- 重置选项 -->
             <div class="setting-group">
@@ -2224,7 +2226,9 @@ onUnmounted(() => {
 // 现代化设置容器 - 全新设计语言
 .modern-setting-container {
   padding: 24px;
-  background: var(--el-bg-color-page);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: 20px;
   min-height: 100vh;
   width: 440px;
@@ -2302,7 +2306,7 @@ onUnmounted(() => {
 
   // 暗色主题适配
   .dark & {
-    background: var(--el-bg-color-page);
+    background: rgba(0, 0, 0, 0.5);
     box-shadow:
       0 20px 60px rgba(0, 0, 0, 0.4),
       0 10px 30px rgba(0, 0, 0, 0.35),
@@ -2349,7 +2353,9 @@ onUnmounted(() => {
 // 设置区域 - 现代化玻璃态卡片设计
 .setting-section {
   margin-bottom: 24px;
-  background: var(--el-bg-color-overlay);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 24px;
   box-shadow:
@@ -2435,7 +2441,7 @@ onUnmounted(() => {
 
   // 暗色主题适配
   .dark & {
-    background: var(--el-bg-color-overlay);
+    background: rgba(0, 0, 0, 0.4);
     border-color: var(--el-border-color);
     box-shadow:
       0 12px 40px rgba(0, 0, 0, 0.4),
@@ -2647,11 +2653,17 @@ onUnmounted(() => {
 
 // 导航模式说明卡片
 .layout-description-card {
-  background: var(--el-fill-color-extra-light);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 20px;
   border: 1px solid var(--el-border-color-extra-light);
+
+  .dark & {
+    background: rgba(0, 0, 0, 0.3);
+  }
 
   .description-item {
     display: flex;
@@ -2816,7 +2828,9 @@ onUnmounted(() => {
 
 // 美化 Segmented 组件 - 现代化设计
 :deep(.layui-segmented) {
-  background: var(--el-fill-color-extra-light);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   border-radius: 12px;
   padding: 6px;
   box-shadow:
@@ -2927,7 +2941,7 @@ onUnmounted(() => {
 
   // 暗色主题适配
   .dark & {
-    background: var(--el-fill-color-dark);
+    background: rgba(0, 0, 0, 0.3);
     border-color: var(--el-border-color);
     box-shadow:
       inset 0 1px 3px rgba(0, 0, 0, 0.2),
@@ -2965,7 +2979,9 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--el-border-color-extra-light);
   border-radius: 8px;
   margin-bottom: 6px;
-  background: var(--el-fill-color-extra-light);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   // 优化 transition，避免主题切换延迟
   transition:
     transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -3020,6 +3036,10 @@ onUnmounted(() => {
     text-align: left;
     writing-mode: horizontal-tb;
   }
+
+  .dark & {
+    background: rgba(0, 0, 0, 0.3);
+  }
 }
 
 // 开关网格布局 - 现代化设计
@@ -3034,7 +3054,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: var(--el-fill-color-extra-light);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   border-radius: 10px;
   // 优化 transition，避免主题切换延迟
   transition:
@@ -3092,7 +3114,7 @@ onUnmounted(() => {
 
   // 暗色主题适配
   .dark & {
-    background: var(--el-fill-color-dark);
+    background: rgba(0, 0, 0, 0.3);
     border-color: var(--el-border-color);
     box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.25),
@@ -3112,7 +3134,9 @@ onUnmounted(() => {
 
 // 拉伸按钮样式 - 现代化设计
 .stretch-button {
-  background: var(--el-bg-color-overlay);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   border: 2px solid var(--el-border-color-extra-light);
   border-radius: 12px;
   width: 100%;
@@ -3223,7 +3247,7 @@ onUnmounted(() => {
 
   // 暗色主题适配
   .dark & {
-    background: var(--el-bg-color-overlay);
+    background: rgba(0, 0, 0, 0.3);
     border-color: var(--el-border-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
@@ -3376,7 +3400,7 @@ onUnmounted(() => {
 
   // 暗色主题适配
   .dark & {
-    background: var(--el-bg-color-overlay);
+    background: rgba(0, 0, 0, 0.3);
     border-color: var(--el-border-color);
     box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.25),
@@ -4746,7 +4770,9 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.6) 0%, rgba(248, 250, 252, 0.6) 100%);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 20px;
   cursor: pointer;
@@ -4996,7 +5022,9 @@ onUnmounted(() => {
 // 深色模式适配
 html.dark {
   .layout-mode-item {
-    background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     border-color: rgba(255, 255, 255, 0.08);
     box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.3),

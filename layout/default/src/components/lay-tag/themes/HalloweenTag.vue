@@ -1,9 +1,7 @@
 <script setup lang="ts">
 /**
- * 新春灯笼主题专属标签组件（内测版）
- * 深度定制：灯笼样式标签、烟花粒子、祥云背景、金色装饰
- * @author CH
- * @version 2.0.0
+ * 万圣节主题专属标签组件
+ * 
  */
 import { $t } from "@repo/config";
 import {
@@ -18,7 +16,7 @@ import { useTags } from "../../../hooks/useTag";
 import { routerArrays } from "../../../types";
 import { onClickOutside } from "@vueuse/core";
 import { usePermissionStoreHook } from "@repo/core";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRaw, unref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, toRaw, unref, watch } from "vue";
 import {
   delay,
   isAllEmpty,
@@ -55,7 +53,7 @@ const {
   currentSelect,
   getContextMenuStyle,
   closeMenu,
-  onMounted: onTagMounted,
+  onMounted,
   onMouseenter,
   onMouseleave,
   transformI18n,
@@ -77,27 +75,6 @@ const showTagIcon = ref($storage.configure?.showTagIcon ?? false);
 // 提取 store 到顶层避免重复调用
 const multiTagsStore = useMultiTagsStoreHook();
 const permissionStore = usePermissionStoreHook();
-
-// 烟花粒子状态
-const fireworksParticles = ref<Array<{ id: number; x: number; y: number; color: string; size: number; delay: number }>>([]);
-const lanternSwing = ref(false);
-
-// 生成烟花粒子
-function generateFireworks() {
-  const colors = ['#ff4d4f', '#ffd700', '#ff6b6b', '#ffa940', '#ff85c0'];
-  const particles: typeof fireworksParticles.value = [];
-  for (let i = 0; i < 20; i++) {
-    particles.push({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      size: Math.random() * 4 + 2,
-      delay: Math.random() * 3,
-    });
-  }
-  fireworksParticles.value = particles;
-}
 
 // 监听标签图标设置变化
 emitter.on("showTagIconChange", (val: boolean) => {
@@ -341,12 +318,6 @@ function openMenu(tag: any, e: MouseEvent): void {
 }
 
 function tagOnClick(item) {
-  // 触发灯笼摆动动画
-  lanternSwing.value = true;
-  setTimeout(() => {
-    lanternSwing.value = false;
-  }, 500);
-  
   const { name, path } = item;
   if (name) {
     if (item.query) {
@@ -382,9 +353,6 @@ watch(route, () => {
 onMounted(() => {
   if (!instance) return;
 
-  // 生成烟花粒子
-  generateFireworks();
-
   showMenuModel(route.fullPath);
   emitter.off("tagViewsChange");
   emitter.off("changLayoutRoute");
@@ -414,29 +382,8 @@ const deferTag = useDefer(tagsViews?.length);
 </script>
 
 <template>
-  <div v-if="!showTags" ref="containerDom" class="tags-view lunar-spring-tag">
-    <!-- 烟花粒子背景 -->
-    <div class="fireworks-container">
-      <div 
-        v-for="particle in fireworksParticles" 
-        :key="particle.id"
-        class="firework-particle"
-        :style="{
-          left: particle.x + '%',
-          top: particle.y + '%',
-          backgroundColor: particle.color,
-          width: particle.size + 'px',
-          height: particle.size + 'px',
-          animationDelay: particle.delay + 's',
-        }"
-      />
-    </div>
-    
-    <!-- 祥云装饰 -->
-    <div class="cloud-decoration cloud-left"></div>
-    <div class="cloud-decoration cloud-right"></div>
-    
-    <span v-show="isShowArrow" class="arrow-left lunar-arrow">
+  <div v-if="!showTags" ref="containerDom" class="tags-view halloween-tag">
+    <span v-show="isShowArrow" class="arrow-left">
       <IconifyIconOffline :icon="ArrowLeftSLine" @click="handleScroll(200)" />
     </span>
     <div
@@ -445,38 +392,29 @@ const deferTag = useDefer(tagsViews?.length);
       @wheel.prevent="handleWheel"
     >
       <div ref="tabDom" class="tab select-none" :style="getTabStyle">
-        <!-- 灯笼样式标签 -->
+        <!-- 万圣节风格标签 -->
         <div
           v-for="(item, index) in multiTags"
           :ref="'dynamic' + index"
           :key="index"
           :class="[
-            'scroll-item is-closable lantern-item',
+            'scroll-item is-closable halloween-item',
             linkIsActive(item),
             isFixedTag(item) && 'fixed-tag',
-            lanternSwing && linkIsActive(item) === 'is-active' && 'lantern-swing',
           ]"
           @contextmenu.prevent="openMenu(item, $event)"
           @mouseenter.prevent="onMouseenter(index)"
           @mouseleave.prevent="onMouseleave(index)"
           @click="tagOnClick(item)"
         >
-          <!-- 灯笼顶部装饰 -->
-          <div class="lantern-top"></div>
-          <!-- 灯笼主体 -->
-          <div class="lantern-body">
-            <component
-              v-if="showTagIcon && item.meta?.icon"
-              :is="useRenderIcon(item.meta.icon)"
-              class="tag-icon"
-            />
-            <span class="tag-title">
-              {{ transformI18n(item.meta.title) }}
-            </span>
-          </div>
-          <!-- 灯笼底部流苏 -->
-          <div class="lantern-tassel"></div>
-          <!-- 关闭按钮 -->
+          <component
+            v-if="showTagIcon && item.meta?.icon"
+            :is="useRenderIcon(item.meta.icon)"
+            class="tag-icon"
+          />
+          <span class="tag-title">
+            {{ transformI18n(item.meta.title) }}
+          </span>
           <span
             v-if="
               isFixedTag(item)
@@ -484,7 +422,7 @@ const deferTag = useDefer(tagsViews?.length);
                 : iconIsActive(item, index) ||
                   (index === activeIndex && index !== 0)
             "
-            class="el-icon-close lantern-close"
+            class="el-icon-close"
             @click.stop="deleteMenu(item)"
           >
             <IconifyIconOffline :icon="Close" />
@@ -492,7 +430,7 @@ const deferTag = useDefer(tagsViews?.length);
         </div>
       </div>
     </div>
-    <span v-show="isShowArrow" class="arrow-right lunar-arrow">
+    <span v-show="isShowArrow" class="arrow-right">
       <IconifyIconOffline :icon="ArrowRightSLine" @click="handleScroll(-200)" />
     </span>
     
@@ -502,7 +440,7 @@ const deferTag = useDefer(tagsViews?.length);
       ref="contextmenuRef"
       :key="Math.random()"
       :style="getContextMenuStyle"
-      class="contextmenu lunar-contextmenu"
+      class="contextmenu"
     >
       <div
         v-for="(item, key) in tagsViews.slice(0, 6)"
@@ -520,10 +458,10 @@ const deferTag = useDefer(tagsViews?.length);
     <el-dropdown
       trigger="click"
       placement="bottom-end"
-      popper-class="tag-function-dropdown-popper lunar-dropdown"
+      popper-class="tag-function-dropdown-popper"
       @command="handleCommand"
     >
-      <span class="arrow-down lunar-arrow-down">
+      <span class="arrow-down">
         <IconifyIconOffline :icon="ArrowDown" class="dark:text-white" />
       </span>
       <template #dropdown>
@@ -552,305 +490,9 @@ const deferTag = useDefer(tagsViews?.length);
   overflow: visible !important;
   z-index: 0;
 }
-
-// 烟花粒子容器
-.fireworks-container {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.firework-particle {
-  position: absolute;
-  border-radius: 50%;
-  animation: firework-twinkle 2s ease-in-out infinite;
-  opacity: 0;
-}
-
-@keyframes firework-twinkle {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.2);
-  }
-}
-
-// 祥云装饰
-.cloud-decoration {
-  position: absolute;
-  width: 60px;
-  height: 30px;
-  background: radial-gradient(ellipse at center, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  
-  &::before, &::after {
-    content: '';
-    position: absolute;
-    background: inherit;
-    border-radius: 50%;
-  }
-  
-  &.cloud-left {
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-  
-  &.cloud-right {
-    right: 60px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-}
-
-// 灯笼标签样式
-.lantern-item {
-  position: relative;
-  display: inline-flex !important;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 0 8px !important;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-  z-index: 1;
-  
-  // 灯笼顶部（挂钩）
-  .lantern-top {
-    width: 20px;
-    height: 6px;
-    background: linear-gradient(180deg, #ffd700 0%, #daa520 100%);
-    border-radius: 3px 3px 0 0;
-    position: relative;
-    
-    &::before {
-      content: '';
-      position: absolute;
-      top: -4px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 8px;
-      height: 8px;
-      border: 2px solid #ffd700;
-      border-radius: 50%;
-      background: transparent;
-    }
-  }
-  
-  // 灯笼主体
-  .lantern-body {
-    background: linear-gradient(180deg, #ff4d4f 0%, #cf1322 50%, #a8071a 100%);
-    border: 2px solid #ffd700;
-    border-radius: 8px;
-    padding: 8px 16px;
-    min-width: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    box-shadow: 
-      0 0 10px rgba(255, 77, 79, 0.5),
-      inset 0 0 20px rgba(255, 215, 0, 0.1);
-    position: relative;
-    
-    // 灯笼横条装饰
-    &::before, &::after {
-      content: '';
-      position: absolute;
-      left: 4px;
-      right: 4px;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, #ffd700 20%, #ffd700 80%, transparent);
-    }
-    
-    &::before {
-      top: 4px;
-    }
-    
-    &::after {
-      bottom: 4px;
-    }
-  }
-  
-  // 灯笼流苏
-  .lantern-tassel {
-    width: 4px;
-    height: 12px;
-    background: linear-gradient(180deg, #ffd700 0%, #ff4d4f 100%);
-    border-radius: 0 0 2px 2px;
-    position: relative;
-    
-    &::before {
-      content: '';
-      position: absolute;
-      bottom: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 8px;
-      height: 8px;
-      background: radial-gradient(circle, #ffd700 30%, transparent 70%);
-    }
-  }
-  
-  .tag-title {
-    color: #fff5e6;
-    font-weight: 600;
-    font-size: 13px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  .tag-icon {
-    color: #ffd700;
-    font-size: 14px;
-  }
-  
-  // 关闭按钮
-  .lantern-close {
-    position: absolute;
-    top: 6px;
-    right: -6px;
-    width: 16px;
-    height: 16px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 10px;
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 2;
-    
-    &:hover {
-      background: #ff4d4f;
-    }
-  }
-  
-  &:hover {
-    transform: translateY(-2px);
-    
-    .lantern-close {
-      opacity: 1;
-    }
-    
-    .lantern-body {
-      box-shadow: 
-        0 0 20px rgba(255, 77, 79, 0.7),
-        0 0 40px rgba(255, 215, 0, 0.3),
-        inset 0 0 20px rgba(255, 215, 0, 0.2);
-    }
-  }
-  
-  // 激活状态
-  &.is-active, &.active {
-    .lantern-body {
-      background: linear-gradient(180deg, #ffd700 0%, #faad14 50%, #d48806 100%);
-      border-color: #ff4d4f;
-      box-shadow: 
-        0 0 25px rgba(255, 215, 0, 0.8),
-        0 0 50px rgba(255, 77, 79, 0.4),
-        inset 0 0 30px rgba(255, 255, 255, 0.2);
-    }
-    
-    .tag-title {
-      color: #8b0000;
-      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
-    }
-    
-    .tag-icon {
-      color: #8b0000;
-    }
-  }
-  
-  // 固定标签
-  &.fixed-tag {
-    .lantern-top::after {
-      content: '★';
-      position: absolute;
-      top: -12px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #ffd700;
-      font-size: 10px;
-    }
-  }
-}
-
-// 灯笼摆动动画
-.lantern-swing {
-  animation: lantern-swing 0.5s ease-in-out;
-}
-
-@keyframes lantern-swing {
-  0%, 100% {
-    transform: rotate(0deg);
-  }
-  25% {
-    transform: rotate(-5deg);
-  }
-  75% {
-    transform: rotate(5deg);
-  }
-}
-
-// 箭头按钮
-.lunar-arrow {
-  background: linear-gradient(180deg, #ff4d4f, #cf1322) !important;
-  color: #ffd700 !important;
-  border: 1px solid #ffd700 !important;
-  border-radius: 4px;
-  
-  &:hover {
-    background: linear-gradient(180deg, #ffd700, #faad14) !important;
-    color: #8b0000 !important;
-  }
-}
-
-.lunar-arrow-down {
-  background: linear-gradient(180deg, #ff4d4f, #cf1322) !important;
-  color: #ffd700 !important;
-  border: 1px solid #ffd700 !important;
-  border-radius: 4px;
-  padding: 4px;
-  
-  &:hover {
-    background: linear-gradient(180deg, #ffd700, #faad14) !important;
-    color: #8b0000 !important;
-  }
-}
-
-// 右键菜单
-.lunar-contextmenu {
-  background: linear-gradient(180deg, #fff5e6, #ffe4b5) !important;
-  border: 2px solid #ff4d4f !important;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(255, 77, 79, 0.3) !important;
-  
-  li {
-    cursor: pointer;
-    color: #8b0000;
-    
-    &:hover {
-      background: linear-gradient(90deg, #ff4d4f, #cf1322) !important;
-      color: #ffd700 !important;
-    }
-  }
-}
 </style>
 
 <style lang="scss">
 @use './default.scss';
-@use './lunar-spring-festival.css';
+@use './halloween.css';
 </style>

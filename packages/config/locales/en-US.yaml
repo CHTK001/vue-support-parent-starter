@@ -232,7 +232,7 @@ panel:
   festivalThemeOffTip: Festival decorations will still display but theme styles won't auto-switch
   autoThemeEnabled: Auto Theme Enabled
   autoThemeEnabledDesc: System will automatically apply festival themes based on current date
-  currentThemeLabel: Current Theme:
+  currentThemeLabel: "Current Theme:"
   defaultTheme: Default
   aiChatSkin: AI Assistant Skin
   aiChatSkinDesc: Customize AI assistant appearance

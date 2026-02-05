@@ -1,0 +1,204 @@
+// ==================== 万圣节主题样式 ====================
+html[data-skin="halloween"] {
+  $hw-pumpkin: #ff7518;
+  $hw-purple: #2c003e;
+  $hw-purple-dark: #1a0026;
+  $hw-purple-light: #4a148c;
+  $hw-green: #76ff03;
+  $hw-border: rgba(255, 117, 24, 0.3);
+  $hw-border-hover: rgba(118, 255, 3, 0.5);
+
+  .message-trigger {
+    background: rgba(44, 0, 62, 0.8) !important;
+    border: 1px solid $hw-border !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 117, 24, 0.15) !important;
+    transition: all 0.25s ease !important;
+
+    &:hover {
+      background: rgba(74, 20, 140, 0.8) !important;
+      border-color: $hw-border-hover !important;
+      box-shadow: 0 0 16px rgba(118, 255, 3, 0.35) !important;
+      transform: translateY(-2px);
+
+      .message-icon {
+        color: $hw-green !important;
+        filter: drop-shadow(0 0 8px rgba(118, 255, 3, 0.6));
+      }
+    }
+
+    .message-icon {
+      color: $hw-pumpkin !important;
+      filter: drop-shadow(0 0 4px rgba(255, 117, 24, 0.4));
+    }
+
+    .el-badge__content {
+      background: linear-gradient(135deg, $hw-pumpkin, $hw-green) !important;
+      color: #000 !important;
+      border: none !important;
+      box-shadow: 0 0 10px rgba(118, 255, 3, 0.5);
+    }
+  }
+
+  .message-dropdown-popper {
+    .el-dropdown-menu {
+      background: linear-gradient(180deg, $hw-purple 0%, $hw-purple-dark 100%) !important;
+      border: 2px solid $hw-pumpkin !important;
+      box-shadow:
+        0 0 20px rgba(255, 117, 24, 0.4),
+        0 0 40px rgba(74, 20, 140, 0.2),
+        0 20px 60px rgba(0, 0, 0, 0.8) !important;
+      border-radius: 12px !important;
+      overflow: hidden;
+    }
+  }
+
+  .message-panel {
+    background: transparent !important;
+    position: relative;
+  }
+
+  .panel-header {
+    background: linear-gradient(135deg, rgba(74, 20, 140, 0.3) 0%, rgba(44, 0, 62, 0.4) 100%) !important;
+    border-bottom: 1px solid $hw-border !important;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, $hw-pumpkin 30%, $hw-green 50%, $hw-pumpkin 70%, transparent);
+    }
+
+    .header-title {
+      color: $hw-pumpkin !important;
+      text-shadow: 0 0 5px rgba(255, 117, 24, 0.4);
+      font-weight: 600;
+      font-family: 'Creepster', 'cursive', sans-serif;
+    }
+
+    .el-button {
+      color: #b39ddb !important;
+
+      &:hover {
+        color: $hw-green !important;
+      }
+    }
+  }
+
+  .panel-body {
+    .loading-wrapper {
+      color: $hw-green !important;
+    }
+  }
+
+  .message-item {
+    background: rgba(44, 0, 62, 0.6) !important;
+    border: 1px solid rgba(74, 20, 140, 0.4) !important;
+    border-radius: 10px !important;
+    margin: 4px 0 !important;
+    transition: all 0.3s ease !important;
+
+    &:hover {
+      background: rgba(255, 117, 24, 0.1) !important;
+      border-color: $hw-pumpkin !important;
+      box-shadow: 0 0 15px rgba(255, 117, 24, 0.2) !important;
+      transform: translateX(4px);
+    }
+
+    &.unread {
+      background: linear-gradient(135deg, rgba(255, 117, 24, 0.1) 0%, rgba(44, 0, 62, 0.8) 100%) !important;
+      border-color: rgba(255, 117, 24, 0.3) !important;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(255, 117, 24, 0.2) 0%, rgba(44, 0, 62, 0.9) 100%) !important;
+      }
+    }
+
+    .item-avatar .default-avatar {
+      background: linear-gradient(135deg, $hw-purple-light, $hw-pumpkin) !important;
+      box-shadow: 0 0 12px rgba(255, 117, 24, 0.4);
+    }
+
+    .item-title {
+      color: $hw-green !important;
+    }
+
+    .item-desc {
+      color: #b39ddb !important;
+    }
+
+    .item-time {
+      color: rgba(255, 117, 24, 0.7) !important;
+    }
+
+    .unread-dot {
+      background: $hw-green !important;
+      box-shadow: 0 0 8px rgba(118, 255, 3, 0.6);
+    }
+  }
+
+  .panel-footer {
+    background: linear-gradient(135deg, rgba(74, 20, 140, 0.2) 0%, rgba(44, 0, 62, 0.3) 100%) !important;
+    border-top: 1px solid $hw-border !important;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, $hw-pumpkin 30%, $hw-green 50%, $hw-pumpkin 70%, transparent);
+    }
+
+    .el-button {
+      color: #b39ddb !important;
+
+      &:hover {
+        color: $hw-green !important;
+      }
+
+      &[type="primary"] {
+        color: $hw-pumpkin !important;
+
+        &:hover {
+          color: #fff !important;
+          text-shadow: 0 0 8px rgba(255, 117, 24, 0.6);
+        }
+      }
+    }
+  }
+
+  .message-center-drawer {
+    .el-drawer {
+      background: linear-gradient(180deg, $hw-purple 0%, $hw-purple-dark 100%) !important;
+    }
+
+    .el-drawer__header {
+      background: linear-gradient(135deg, rgba(74, 20, 140, 0.3) 0%, rgba(44, 0, 62, 0.4) 100%) !important;
+      border-bottom: 1px solid $hw-border !important;
+    }
+
+    .drawer-title {
+      color: $hw-pumpkin !important;
+      text-shadow: 0 0 5px rgba(255, 117, 24, 0.4);
+    }
+
+    .el-tabs__item {
+      color: rgba(179, 157, 219, 0.8) !important;
+
+      &.is-active {
+        color: $hw-green !important;
+      }
+
+      &:hover {
+        color: $hw-pumpkin !important;
+      }
+    }
+  }
+}

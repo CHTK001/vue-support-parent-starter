@@ -48,6 +48,8 @@ const themeClassMap: Record<string, string> = {
   'mid-autumn': 'theme-mid-autumn',
   'cyberpunk': 'theme-cyberpunk',
   'default': 'theme-default',
+  'default-light': 'theme-default',
+  'default-dark': 'theme-default',
 };
 
 const themeClass = computed(() => themeClassMap[currentTheme.value] || 'theme-default');
@@ -176,7 +178,7 @@ function resolvePath(routePath: string) {
           "
         />
       </div>
-      <el-text
+      <span
         v-if="
           (!item?.meta?.icon &&
             isCollapse &&
@@ -187,19 +189,18 @@ function resolvePath(routePath: string) {
             layout === 'mix' &&
             item?.pathList?.length === 2)
         "
-        truncated
-        class="!w-full !pl-4"
+        class="!w-full !pl-4 menu-text"
       >
         {{
           transformI18n(
             onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
           )
         }}
-      </el-text>
+      </span>
 
       <template #title>
         <div :style="getDivStyle">
-          <el-text truncated class="!w-full">
+          <span class="!w-full menu-text">
             {{
               transformI18n(
                 onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
@@ -218,7 +219,7 @@ function resolvePath(routePath: string) {
                 onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
               "
             />
-          </el-text>
+          </span>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
       </template>
@@ -240,7 +241,7 @@ function resolvePath(routePath: string) {
           :is="useRenderIcon((item.meta && toRaw(item.meta.icon)) || 'ep:menu')"
         />
       </div>
-      <el-text
+      <span
         v-if="
           layout === 'mix' && toRaw(item.meta.icon)
             ? !isCollapse || item?.pathList?.length !== 2
@@ -251,9 +252,9 @@ function resolvePath(routePath: string) {
                 item.parentId === null
               )
         "
-        truncated
         :class="{
           '!w-full': true,
+          'menu-text': true,
           '!pl-4':
             layout !== 'horizontal' &&
             isCollapse &&
@@ -268,7 +269,7 @@ function resolvePath(routePath: string) {
           :type="item?.meta?.badgeType || 'primary'"
           :customText="item?.meta?.badgeText"
         />
-      </el-text>
+      </span>
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>
 
@@ -286,10 +287,30 @@ function resolvePath(routePath: string) {
 
 <style lang="scss" scoped>
 // 基础菜单项样式
+.menu-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .sidebar-menu-item,
 .sidebar-sub-menu {
   position: relative;
   transition: all 0.3s ease;
+
+  // 修复激活状态下文字颜色不跟随的问题
+  &.is-active {
+    .menu-text {
+      color: var(--el-text-color-primary) !important;
+    }
+    // 深色模式下文字为白色
+    html.dark & .menu-text {
+      color: #fff !important;
+    }
+  }
 }
 
 // ==================== 圣诞主题 ====================

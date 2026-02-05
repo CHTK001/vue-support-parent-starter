@@ -1,0 +1,26 @@
+:root {
+  /* Theme Palette */
+  --theme-palette-primary: #409EFF;
+  --theme-palette-secondary: #64748B;
+  --theme-palette-success: #67C23A;
+  --theme-palette-warning: #E6A23C;
+  --theme-palette-danger: #F56C6C;
+  --theme-palette-info: #909399;
+
+  /* Theme Surface */
+  --theme-surface-primary: #ffffff;
+  --theme-surface-secondary: #f8fafc;
+  --theme-surface-tertiary: #f1f5f9;
+  --theme-surface-navbar: rgba(255, 255, 255, 0.8);
+
+  /* Theme Text */
+  --theme-text-primary: #1e293b;
+  --theme-text-secondary: #64748b;
+  --theme-text-disabled: #cbd5e1;
+  --theme-text-inverse: #ffffff;
+
+  /* Theme Border */
+  --theme-border-base: #e2e8f0;
+  --theme-border-light: #f1f5f9;
+  --theme-border-lighter: #f8fafc;
+}

@@ -11,9 +11,9 @@
 @use './stitch-theme-light';
 
 // 导入深色主题完整样式（整合了颜色变量和组件样式）
-// @use './dark-theme'; 
+@use './dark-theme'; 
 // REPLACED BY STITCH THEME for Modernization
-@use './stitch-theme';
+// @use './stitch-theme';
 
 // 导入全局样式修复
 @use './global-theme';

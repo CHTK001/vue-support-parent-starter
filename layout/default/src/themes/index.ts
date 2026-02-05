@@ -20,6 +20,8 @@ export interface LayoutTheme {
   type: ThemeType;
   /** 主题颜色（用于显示） */
   color?: string;
+  /** 基础风格：light-浅色, dark-深色 */
+  baseStyle?: 'light' | 'dark';
 }
 
 /**
@@ -34,6 +36,7 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "ri:settings-3-line",
     type: "regular",
     color: "#409EFF",
+    // baseStyle 不指定，由外部 ThemeManager 控制
   },
   // === 内测主题 ===
   {
@@ -44,6 +47,7 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "ri:robot-2-line",
     type: "beta",
     color: "#00ffff",
+    baseStyle: "dark",
   },
   {
     name: "现代科技",
@@ -53,6 +57,7 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "ri:macbook-line",
     type: "beta",
     color: "#5b13ec",
+    baseStyle: "dark",
   },
   {
     name: "新春灯笼",
@@ -62,16 +67,18 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "noto:red-paper-lantern",
     type: "beta",
     color: "#ff4d4f",
+    baseStyle: "light",
   },
   // === 节日主题 ===
   {
     name: "万圣节",
     key: "halloween",
-    description: "万圣节主题，神秘诡异",
+    description: "深度定制万圣节主题，包含南瓜、幽灵、蜘蛛网等节日元素",
     stylesheet: "halloween.scss",
     icon: "noto:jack-o-lantern",
     type: "festival",
     color: "#ff7518",
+    baseStyle: "dark",
   },
   {
     name: "春节",
@@ -81,6 +88,7 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "noto:firecracker",
     type: "festival",
     color: "#f5222d",
+    baseStyle: "light",
   },
   {
     name: "圣诞",
@@ -90,6 +98,7 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "noto:christmas-tree",
     type: "festival",
     color: "#722ed1",
+    baseStyle: "light",
   },
   {
     name: "中秋",
@@ -99,6 +108,7 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "noto:full-moon",
     type: "festival",
     color: "#13c2c2",
+    baseStyle: "dark",
   },
   {
     name: "国庆",
@@ -108,6 +118,7 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "twemoji:flag-china",
     type: "festival",
     color: "#fa541c",
+    baseStyle: "light",
   },
   {
     name: "元旦",
@@ -117,6 +128,7 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "noto:party-popper",
     type: "festival",
     color: "#1b2a47",
+    baseStyle: "dark",
   },
 ];
 

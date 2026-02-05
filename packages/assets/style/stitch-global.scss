@@ -1,4 +1,5 @@
 @use './stitch-tokens.scss';
+@use './semantic-tokens.scss';
 
 /* ================== Stitch MCP Global Overrides ================== */
 
@@ -116,33 +117,8 @@ body {
   }
 }
 
-/* Dialog / Modal */
-.el-dialog {
-  background-color: var(--stitch-bg-card);
-  border-radius: var(--stitch-radius-lg);
-  box-shadow: var(--stitch-shadow-lg);
-  
-  &__header {
-    border-bottom: 1px solid var(--stitch-border-color);
-    margin-right: 0;
-    padding: var(--stitch-spacing-md);
-  }
-  
-  &__title {
-    font-weight: var(--stitch-font-weight-bold);
-    color: var(--stitch-text-primary);
-  }
-  
-  &__body {
-    padding: var(--stitch-spacing-lg);
-    color: var(--stitch-text-secondary);
-  }
-  
-  &__footer {
-    border-top: 1px solid var(--stitch-border-color);
-    padding: var(--stitch-spacing-md);
-  }
-}
+/* Dialog / Modal - Removed custom styles to keep default */
+/* .el-dialog { ... } */
 
 /* Tag */
 .el-tag {

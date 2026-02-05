@@ -65,16 +65,25 @@ class FontEncryptionManager {
    * 启用字体加密
    */
   enable(): void {
-    // 添加全局样式类
-    if (this.config.applyGlobal) {
-      document.body.classList.add('font-encryption-global');
-    }
+    // 确保字体已加载后再应用加密，防止显示乱码
+    const font = "1em FontEncryption";
+    document.fonts.load(font).then(() => {
+      // 再次检查是否仍处于启用状态（防止加载过程中被禁用）
+      if (!this.config.enabled) return;
 
-    // 应用加密到现有元素
-    this.applyEncryption();
+      // 添加全局样式类
+      if (this.config.applyGlobal) {
+        document.body.classList.add('font-encryption-global');
+      }
 
-    // 监听 DOM 变化
-    this.startObserving();
+      // 应用加密到现有元素
+      this.applyEncryption();
+
+      // 监听 DOM 变化
+      this.startObserving();
+    }).catch(err => {
+      console.warn('FontEncryption font failed to load:', err);
+    });
   }
 
   /**

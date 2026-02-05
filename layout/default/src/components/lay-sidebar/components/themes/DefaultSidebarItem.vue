@@ -54,6 +54,10 @@ provide('themeSidebarItem', DefaultSidebarItem);
     height: 48px;
     line-height: 48px;
     
+    .el-text {
+      color: inherit;
+    }
+
     &:hover {
       background-color: var(--item-hover-bg);
       transform: translateX(4px);
@@ -64,7 +68,7 @@ provide('themeSidebarItem', DefaultSidebarItem);
       color: var(--item-active-text);
       font-weight: 600;
       
-      .el-icon, svg, span, div {
+      .el-icon, svg, span, div, .el-text {
         color: var(--item-active-text);
       }
 
@@ -93,6 +97,10 @@ provide('themeSidebarItem', DefaultSidebarItem);
       line-height: 48px;
       transition: all 0.3s ease;
       
+      .el-text {
+        color: inherit;
+      }
+
       &:hover {
         background-color: var(--item-hover-bg);
       }

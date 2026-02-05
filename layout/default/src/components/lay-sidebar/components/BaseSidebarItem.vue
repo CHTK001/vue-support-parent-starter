@@ -17,6 +17,8 @@ import {
   useAttrs,
   inject,
   type Component,
+  onMounted,
+  watchEffect
 } from "vue";
 import { useNav } from "../../../hooks/useNav";
 
@@ -98,12 +100,17 @@ const expandCloseIcon = computed(() => {
   };
 });
 
-const onlyOneChild: MenuType = ref(null);
+const onlyOneChild = ref<MenuType>(null);
 
 function hasOneShowingChild(children: MenuType[] = [], parent: MenuType) {
   const showingChildren = children.filter((item: MenuType) => {
-    onlyOneChild.value = item;
-    return true;
+    if (item.meta?.hidden) {
+      return false;
+    } else {
+      // Temp set onlyOneChild, will be overwritten if multiple
+      onlyOneChild.value = item;
+      return true;
+    }
   });
 
   if (showingChildren[0]?.meta?.showParent) {
@@ -129,6 +136,11 @@ function resolvePath(routePath: string) {
     return configResolvePath(props.basePath, routePath);
   }
 }
+
+// Debug logging
+onMounted(() => {
+  // console.log('[BaseSidebarItem] Mounted', props.item.path, props.item.meta?.title);
+});
 </script>
 
 <template>
@@ -156,8 +168,10 @@ function resolvePath(routePath: string) {
           "
         />
       </div>
-      <el-text
+      <span
         v-if="
+          !isCollapse ||
+          item?.parentId ||
           (!item?.meta?.icon &&
             isCollapse &&
             layout === 'vertical' &&
@@ -167,41 +181,15 @@ function resolvePath(routePath: string) {
             layout === 'mix' &&
             item?.pathList?.length === 2)
         "
-        truncated
-        class="!w-full !pl-4"
+        class="!w-full !pl-4 menu-text"
       >
         {{
           transformI18n(
-            onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
+            onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title || item?.meta?.title
           )
         }}
-      </el-text>
+      </span>
 
-      <template #title>
-        <div :style="getDivStyle">
-          <el-text truncated class="!w-full">
-            {{
-              transformI18n(
-                onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
-              )
-            }}
-            <ReMenuNewBadge
-              :createTime="
-                onlyOneChild?.meta?.createTime || item?.meta?.createTime
-              "
-              :type="
-                onlyOneChild?.meta?.badgeType ||
-                item?.meta?.badgeType ||
-                'primary'
-              "
-              :customText="
-                onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
-              "
-            />
-          </el-text>
-          <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
-        </div>
-      </template>
       
       <!-- 主题装饰插槽 -->
       <slot name="activeDecoration" :is-active="isMenuActive" :item-path="resolvePath(onlyOneChild.path)" />
@@ -221,35 +209,35 @@ function resolvePath(routePath: string) {
           :is="useRenderIcon((item.meta && toRaw(item.meta.icon)) || 'ep:menu')"
         />
       </div>
-      <el-text
+      <span
         v-if="
-          layout === 'mix' && toRaw(item.meta.icon)
+          layout === 'mix' && toRaw(item?.meta?.icon)
             ? !isCollapse || item?.pathList?.length !== 2
             : !(
                 layout === 'vertical' &&
                 isCollapse &&
-                toRaw(item.meta.icon) &&
+                toRaw(item?.meta?.icon) &&
                 item.parentId === null
               )
         "
-        truncated
         :class="{
           '!w-full': true,
+          'menu-text': true,
           '!pl-4':
             layout !== 'horizontal' &&
             isCollapse &&
-            !toRaw(item.meta.icon) &&
+            !toRaw(item?.meta?.icon) &&
             item.parentId === null,
         }"
       >
-        {{ transformI18n(onlyOneChild?.meta?.i18nKey || item?.meta?.title) }}
+        {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
         <ReMenuNewBadge
           v-if="!isCollapse"
           :createTime="item?.meta?.createTime"
           :type="item?.meta?.badgeType || 'primary'"
           :customText="item?.meta?.badgeText"
         />
-      </el-text>
+      </span>
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>
 
@@ -267,10 +255,30 @@ function resolvePath(routePath: string) {
 </template>
 
 <style lang="scss" scoped>
+.menu-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .sidebar-menu-item,
 .sidebar-sub-menu {
   position: relative;
   transition: all 0.3s ease;
+
+  // 修复激活状态下文字颜色不跟随的问题
+  &.is-active {
+    .menu-text {
+      color: var(--el-text-color-primary) !important;
+    }
+    // 深色模式下文字为白色
+    html.dark & .menu-text {
+      color: #fff !important;
+    }
+  }
 }
 
 // 子菜单包裹器透明

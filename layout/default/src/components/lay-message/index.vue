@@ -504,6 +504,9 @@ onUnmounted(() => {
 </style>
 
 <style lang="scss">
+// 引入主题样式
+@use './themes/index';
+
 .message-dropdown-popper {
   .el-dropdown-menu {
     padding: 0 !important;
@@ -834,7 +837,6 @@ html.dark .message-center-drawer {
   }
 }
 
-// 导入拆分的主题样式文�?
-@use './themes/index';
+// 导入拆分的主题样式文件
 
 </style>

@@ -123,7 +123,6 @@ export function transformI18n(message: any = "") {
   if (!message) {
     return "";
   }
-
   // 处理存储动态路由的title,格式 {zh:"",en:""}
   if (typeof message === "object") {
     const locale: string | WritableComputedRef<string> | any = i18n.global.locale;
