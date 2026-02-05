@@ -73,6 +73,8 @@ onMounted(() => {
   --hw-orange-light: #ffab40;
   --hw-black: #121212;
   --hw-green: #76ff03;
+  --hw-text: #ffffff;
+  --hw-border: #76ff03;
   
   width: 100%;
   position: relative;
@@ -105,7 +107,8 @@ onMounted(() => {
 
   :deep(.halloween-navbar) {
     background: transparent !important;
-    border-bottom: 1px solid rgba(118, 255, 3, 0.2) !important;
+    // 修复：增强底部分界线 (用户反馈点 2)
+    border-bottom: 2px solid var(--hw-border) !important;
     position: relative;
     z-index: 10;
     
@@ -157,7 +160,7 @@ onMounted(() => {
         box-shadow: 0 0 10px rgba(255, 117, 24, 0.4);
         position: relative;
         z-index: 2;
-
+        
         .eyes {
           position: absolute;
           top: 8px;
@@ -198,6 +201,58 @@ onMounted(() => {
       border-radius: 50%;
       box-shadow: 0 0 5px var(--hw-green);
       animation: drift linear infinite;
+    }
+  }
+}
+
+// 暗黑模式适配 (用户反馈点 3 & 4)
+// 优化深色风格下的配色，避免“反人类”的高饱和度
+:global(html.dark) {
+  .halloween-wrapper {
+    // 降低饱和度，使用更深的背景
+    --hw-purple: #1a1a1a; 
+    --hw-black: #000000;
+    --hw-purple-light: #333333;
+    --hw-orange: #d86b15; // 稍微暗一点的橙色
+    --hw-orange-light: #e0e0e0; // 字体改为浅灰/白，保证可读性
+    --hw-green: #4caf50; // 更自然的绿色
+    --hw-border: #333333; // 边框颜色调暗
+    
+    .hw-bg-layer {
+      // 纯黑/深灰背景，移除过于花哨的渐变
+      background: #121212 !important;
+      
+      &::before {
+        opacity: 0.1; // 纹理更淡
+      }
+    }
+    
+    :deep(.halloween-navbar) {
+      border-bottom: 1px solid #333 !important; // 边框更细
+      
+      .el-button, .el-dropdown, .breadcrumb-item {
+        color: #e0e0e0 !important; // 字体颜色正常化
+        
+        &:hover {
+          color: var(--hw-orange) !important;
+          text-shadow: none; // 移除发光，减少视觉疲劳
+        }
+      }
+      
+      .search-wrapper {
+        background: #222;
+        border-color: #444;
+        color: #fff;
+        
+        &::placeholder {
+          color: #666;
+        }
+      }
+    }
+    
+    // 隐藏过于卡通的装饰，或者调暗
+    .hw-decorations {
+      opacity: 0.3;
     }
   }
 }
