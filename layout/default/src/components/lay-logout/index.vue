@@ -101,6 +101,37 @@ import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 
   &:hover {
     box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+    
+    .logout-icon {
+      color: #ff0055;
+      text-shadow: 0 0 8px rgba(255, 0, 85, 0.6);
+    }
+  }
+}
+
+// 万圣节主题
+:global(html[data-skin="halloween"]) .logout-btn {
+  &::before {
+    background: rgba(255, 117, 24, 0.15);
+  }
+
+  .logout-icon {
+    color: #ff7518; // 南瓜橙
+  }
+
+  &:hover {
+    box-shadow: 0 0 15px rgba(255, 117, 24, 0.4);
+    
+    .logout-icon {
+      color: #76ff03; // 幽灵绿
+      text-shadow: 0 0 8px rgba(118, 255, 3, 0.6);
+    }
+  }
+}
+</style>
+
+  &:hover {
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
 
     &::before {
       background: rgba(255, 0, 85, 0.25);

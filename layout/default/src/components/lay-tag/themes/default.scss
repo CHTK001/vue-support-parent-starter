@@ -98,179 +98,94 @@
   }
 
   .tag-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 6px;
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
-    transition: color 0.2s;
-  }
-
-  .tag-title {
-    padding: 0 2px;
-    color: var(--el-text-color-regular);
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    transition: color 0.2s;
-  }
-
-  .scroll-container {
     position: relative;
-    flex: 1;
-    overflow: hidden;
-    white-space: nowrap;
+    top: 1px;
+    margin-right: 4px;
+    font-size: 14px;
+  }
 
-    &.chrome-scroll-container {
-      padding-top: 4px;
-      .fixed-tag { padding: 0; }
+  // 激活状态
+  .is-active {
+    color: var(--el-color-primary);
+    background: rgba(var(--el-color-primary-rgb), 0.1);
+    border-color: rgba(var(--el-color-primary-rgb), 0.2);
+    font-weight: 600;
+
+    &.chrome-item {
+      background: transparent;
+      border-color: transparent;
     }
 
-    .tab {
-      position: relative;
-      float: left;
-      overflow: visible;
-      white-space: nowrap;
-      list-style: none;
+    .el-icon-close {
+      color: var(--el-color-primary);
+      opacity: 1;
 
-      .scroll-item {
-        &:nth-child(1) { padding: 0 12px; }
-        &.chrome-item:nth-child(1) { padding: 0; }
+      &:hover {
+        color: #fff;
       }
-
-      .fixed-tag { padding: 0 12px; }
     }
   }
 
-  /* 右键菜单 */
+  // 右键菜单
   .contextmenu {
     position: absolute;
-    z-index: 9999;
-    padding: 6px;
+    z-index: 3000;
     margin: 0;
-    font-size: 13px;
-    font-weight: normal;
-    color: var(--el-text-color-primary);
-    white-space: nowrap;
+    padding: 8px;
     list-style-type: none;
-    @include glass(0.9, 12px);
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
-    outline: 0;
-    
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--el-border-color-lighter);
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+
     li {
       display: flex;
       align-items: center;
       width: 100%;
       padding: 8px 12px;
-      margin: 2px 0;
+      margin: 0;
       cursor: pointer;
       border-radius: 6px;
-      transition: background 0.2s;
+      transition: all 0.2s;
 
       &:hover {
         color: var(--el-color-primary);
-        background: rgba(var(--el-color-primary-rgb), 0.1);
+        background: var(--el-fill-color-light);
       }
 
       svg {
         margin-right: 8px;
-        width: 14px;
-        height: 14px;
+        font-size: 14px;
       }
     }
   }
 }
 
-// 下拉菜单样式
-.el-dropdown-menu {
-  @include glass(0.9, 12px);
-  padding: 6px;
-  border-radius: 8px;
-}
-
-.el-dropdown-menu__item {
-  border-radius: 6px;
-  margin: 2px 0;
-  
-  &:not(.is-disabled):hover {
-    background: rgba(var(--el-color-primary-rgb), 0.1);
-    color: var(--el-color-primary);
-  }
-}
-
-// 悬停状态
-.scroll-item:not(.is-active):hover {
-  background: rgba(var(--el-text-color-primary), 0.05);
-  
-  .tag-title {
-    color: var(--el-text-color-primary);
-  }
-}
-
-// 激活状态
-.scroll-item.is-active {
-  background: rgba(var(--el-color-primary-rgb), 0.1);
-  border: 1px solid rgba(var(--el-color-primary-rgb), 0.2);
-  
-  .tag-icon {
-    color: var(--el-color-primary);
-  }
-
-  .tag-title {
-    color: var(--el-color-primary);
-    font-weight: 600;
-  }
-  
-  .el-icon-close {
-    opacity: 0.6;
-    
-    &:hover {
-        opacity: 1;
-    }
-  }
-}
-
-// 箭头按钮
-.arrow-left,
-.arrow-right,
-.arrow-down {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  color: var(--el-text-color-secondary);
-  border-radius: 6px;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(var(--el-text-color-primary), 0.05);
-    color: var(--el-text-color-primary);
-  }
-  
-  svg {
-    width: 14px;
-    height: 14px;
-  }
-}
-
-.arrow-left { margin: 0 4px; }
-.arrow-right { margin: 0 4px; }
-.arrow-down { margin-right: 4px; }
-
-// 深色模式微调
+// 暗色模式适配
 html.dark {
   .tags-view {
-      border-bottom-color: rgba(255,255,255,0.05);
-  }
-  
-  .scroll-item.is-active {
-    background: rgba(var(--el-color-primary-rgb), 0.2);
-    border-color: rgba(var(--el-color-primary-rgb), 0.3);
+    border-bottom: 1px solid var(--el-border-color-darker);
+    
+    .scroll-item.chrome-item {
+      // Chrome风格在暗色模式下的修复
+      .chrome-tab__bg {
+        color: transparent; // 非激活状态保持透明，避免覆盖问题
+      }
+      
+      &.is-active .chrome-tab__bg {
+        color: var(--el-color-primary) !important;
+      }
+      
+      &:hover .chrome-tab__bg {
+        // 悬停时稍微亮一点
+        color: var(--el-fill-color) !important;
+      }
+      
+      &.is-active:hover .chrome-tab__bg {
+        color: var(--el-color-primary) !important;
+      }
+    }
   }
 }

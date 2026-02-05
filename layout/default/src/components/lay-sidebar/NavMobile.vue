@@ -399,6 +399,43 @@ watch(
   }
 }
 
+// 万圣节主题适配
+:global(html[data-skin="halloween"]) .mobile-bottom-nav {
+  background: #2c003e !important;
+  border-top: 1px solid #ff7518 !important;
+  
+  .nav-item {
+    &::before {
+      background: #76ff03 !important;
+    }
+    
+    .nav-icon {
+      color: #ff7518 !important;
+    }
+    
+    .nav-label {
+      color: #b39ddb !important;
+    }
+    
+    &.is-active {
+      background: rgba(255, 117, 24, 0.15) !important;
+      
+      .nav-icon {
+        color: #76ff03 !important;
+        text-shadow: 0 0 5px rgba(118, 255, 3, 0.5);
+      }
+      
+      .nav-label {
+        color: #76ff03 !important;
+      }
+    }
+  }
+  
+  .nav-setting .nav-icon {
+    color: #b39ddb !important;
+  }
+}
+
 /* 抽屉样式 */
 :deep(.mobile-menu-drawer) {
   .el-drawer {

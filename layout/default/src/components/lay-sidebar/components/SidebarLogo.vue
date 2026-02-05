@@ -253,4 +253,21 @@ const envBadgeClass = computed(() => {
     box-shadow: 0 2px 10px rgba(245, 158, 11, 0.6);
   }
 }
+
+// 万圣节主题适配
+:global(html[data-skin="halloween"]) {
+  .sidebar-logo-container {
+    .sidebar-title {
+      color: #ff7518 !important; // 南瓜橙
+      font-family: 'Creepster', 'cursive', sans-serif;
+      text-shadow: 0 0 5px rgba(255, 117, 24, 0.3);
+    }
+    
+    // 暗黑模式下微调
+    &:global(.dark) .sidebar-title {
+      color: #d86b15 !important; // 暗一点的橙色
+      text-shadow: none;
+    }
+  }
+}
 </style>

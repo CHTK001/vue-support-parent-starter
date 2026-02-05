@@ -44,9 +44,15 @@
 
 /* ================== Dark Mode Mapping ================== */
 html.dark {
+  /* Core Colors - Override for Dark Mode */
+  --stitch-lay-primary: #60a5fa; /* Blue 400 - Better visibility on dark */
+  --stitch-lay-primary-light: #93c5fd;
+  --stitch-lay-primary-dark: #3b82f6;
+  --stitch-lay-primary-alpha: rgba(96, 165, 250, 0.1);
+
   /* Backgrounds */
-  --stitch-lay-bg-page: #0f172a;
-  --stitch-lay-bg-panel: #1e293b;
+  --stitch-lay-bg-page: #141414;
+  --stitch-lay-bg-panel: #1d1e1f;
   --stitch-lay-bg-overlay: rgba(30, 41, 59, 0.8);
 
   /* Text */

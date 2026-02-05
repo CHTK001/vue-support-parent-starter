@@ -28,6 +28,19 @@ html.dark {
   --hover-nav-submenu-border: rgba(255, 255, 255, 0.08);
 }
 
+// ==================== 万圣节主题 ====================
+html[data-skin="halloween"] {
+  --hover-nav-bg-start: rgba(44, 0, 62, 0.95);
+  --hover-nav-bg-end: rgba(26, 0, 38, 0.98);
+  --hover-nav-border: rgba(255, 117, 24, 0.3);
+  --hover-nav-menu-color: #ff7518; // 南瓜橙
+  --hover-nav-menu-active-bg: rgba(255, 117, 24, 0.2);
+  --hover-nav-menu-active-color: #76ff03; // 幽灵绿
+  --hover-nav-submenu-bg: rgba(44, 0, 62, 0.98);
+  --hover-nav-submenu-border: rgba(118, 255, 3, 0.3);
+  --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.5);
+}
+
 // ==================== 春节主题 ====================
 html[data-skin="spring-festival"] {
   --hover-nav-bg-start: rgba(139, 0, 0, 0.95);
