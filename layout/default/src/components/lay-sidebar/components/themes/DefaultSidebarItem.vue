@@ -41,7 +41,8 @@ provide('themeSidebarItem', DefaultSidebarItem);
 .default-sidebar-item-wrapper {
   --item-text-color: var(--el-text-color-primary);
   --item-hover-bg: rgba(0, 0, 0, 0.04);
-  --item-active-bg: var(--el-color-primary-light-9);
+  // 修复：使用 8% 透明度的主题色作为激活背景
+  --item-active-bg: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
   --item-active-text: var(--el-color-primary);
   --item-border-radius: 8px;
   
@@ -58,12 +59,16 @@ provide('themeSidebarItem', DefaultSidebarItem);
       color: inherit;
     }
 
-    &:hover {
+    // 统一 hover 状态
+    &:hover,
+    &:focus {
       background-color: var(--item-hover-bg);
       transform: translateX(4px);
     }
     
-    &.is-active {
+    // 兼容 layui 类名 .layui-this
+    &.is-active,
+    &.layui-this {
       background-color: var(--item-active-bg);
       color: var(--item-active-text);
       font-weight: 600;
@@ -89,6 +94,12 @@ provide('themeSidebarItem', DefaultSidebarItem);
   }
   
   :deep(.sidebar-sub-menu) {
+    // 兼容 layui 类名 .layui-nav-itemed
+    &.is-active > .el-sub-menu__title,
+    &.layui-nav-itemed > .el-sub-menu__title {
+       color: var(--item-active-text);
+    }
+
     .el-sub-menu__title {
       color: var(--item-text-color);
       margin: 4px 8px;

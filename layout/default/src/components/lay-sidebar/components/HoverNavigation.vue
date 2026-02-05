@@ -970,11 +970,11 @@ const defer = useDefer(firstLevelMenus.value.length);
   width: 200px;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.95),
-    rgba(255, 255, 255, 0.98)
+    var(--hover-nav-bg-start),
+    var(--hover-nav-bg-end)
   );
   backdrop-filter: blur(12px);
-  border-right: 1px solid rgba(0, 0, 0, 0.05);
+  border-right: 1px solid var(--hover-nav-border);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: visible;
   overflow-y: hidden;
@@ -1069,15 +1069,15 @@ const defer = useDefer(firstLevelMenus.value.length);
   }
 
   &.is-active {
-    background: var(--el-color-primary);
-    color: #ffffff !important;
+    background: var(--hover-nav-menu-active-bg);
+    color: var(--hover-nav-menu-active-color) !important;
     /* 强制设置为白色确保可见性 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
     svg,
     i {
-      color: #ffffff !important;
+      color: var(--hover-nav-menu-active-color) !important;
       /* 强制设置为白色确保可见性 */
     }
   }
@@ -1087,13 +1087,13 @@ const defer = useDefer(firstLevelMenus.value.length);
     align-items: center;
     height: 100%;
     padding: 0 16px;
-    color: var(--el-text-color-primary);
+    color: var(--hover-nav-menu-color);
     /* 未选中状态 */
 
     .menu-icon {
       font-size: 18px;
       margin-right: 12px;
-      color: var(--el-text-color-primary);
+      color: var(--hover-nav-menu-color);
       /* 未选中状态 */
       transition: all 0.3s;
     }
@@ -1108,17 +1108,15 @@ const defer = useDefer(firstLevelMenus.value.length);
   /* 深色主题下的样式 */
   html.dark & {
     .menu-content {
-      color: #ffffff;
-      /* 未选中状态为白色 */
+      /* 未选中状态为白色，但允许主题变量覆盖 */
+      color: var(--hover-nav-menu-color, #ffffff);
 
       .menu-icon {
-        color: #ffffff;
-        /* 未选中状态为白色 */
+        color: var(--hover-nav-menu-color, #ffffff);
       }
 
       .menu-title {
-        color: #ffffff;
-        /* 未选中状态为白色 */
+        color: var(--hover-nav-menu-color, #ffffff);
       }
     }
   }
@@ -1144,24 +1142,20 @@ const defer = useDefer(firstLevelMenus.value.length);
 }
 
 .sub-menu-container {
-  min-width: 320px;
-  max-width: 900px;
-  width: fit-content;
-  max-height: calc(100vh - 60px);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95),
-    rgba(255, 255, 255, 0.98)
-  );
-  border-radius: 16px;
-  box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.08),
-    0 8px 16px rgba(0, 0, 0, 0.04),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  overflow: hidden;
-  backdrop-filter: blur(24px);
-  position: relative;
+    min-width: 320px;
+    max-width: 900px;
+    width: fit-content;
+    max-height: calc(100vh - 60px);
+    background: var(--hover-nav-submenu-bg);
+    border-radius: 16px;
+    box-shadow:
+      0 20px 40px var(--hover-nav-submenu-shadow),
+      0 8px 16px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--hover-nav-submenu-border);
+    overflow: hidden;
+    backdrop-filter: blur(24px);
+    position: relative;
 
   /* 添加光泽效果 */
   &::before {

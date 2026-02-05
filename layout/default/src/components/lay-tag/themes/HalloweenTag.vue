@@ -382,7 +382,7 @@ const deferTag = useDefer(tagsViews?.length);
 </script>
 
 <template>
-  <div v-if="!showTags" ref="containerDom" class="tags-view halloween-tag">
+  <div v-if="showTags" ref="containerDom" class="tags-view halloween-tag">
     <span v-show="isShowArrow" class="arrow-left">
       <IconifyIconOffline :icon="ArrowLeftSLine" @click="handleScroll(200)" />
     </span>
