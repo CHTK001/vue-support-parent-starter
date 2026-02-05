@@ -662,7 +662,6 @@ const initializeTheme = () => {
   
   if (settings.enableFestivalTheme) {
     // 如果开启了自动切换，检测节日主题
-    const { detectFestivalTheme } = require("../../themes");
     const festivalTheme = detectFestivalTheme();
     
     if (festivalTheme) {
