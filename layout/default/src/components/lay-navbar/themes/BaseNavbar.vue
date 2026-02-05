@@ -68,6 +68,8 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
+@import "../../../styles/mixins.scss";
+
 // 基础布局样式 - 所有主题共用
 .base-navbar {
   width: 100%;
@@ -75,7 +77,8 @@ onBeforeUnmount(() => {
   flex-direction: row;
   align-items: center;
   position: relative;
-  height: 48px;
+  // height: 48px; // Removed, used in mixin
+  @include lay-header-style;
   
   .decor-pattern {
     position: absolute;
@@ -95,9 +98,25 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: flex-end;
     min-width: 280px;
-    padding-right: 20px; // 减少右侧 padding
-    gap: 12px;
+    padding-right: 16px; // 调整为 16px
+    gap: 16px; // 调整间距
     margin-left: auto;
+    
+    // 24px 分隔线
+    &::before {
+      content: "";
+      width: 1px;
+      height: 24px;
+      background: #e5e7eb;
+      margin-right: 8px;
+      
+      :global(.dark) & {
+        background: #4c4d4f;
+      }
+    }
+  }
+}
+</style>
     z-index: 10;
   }
   

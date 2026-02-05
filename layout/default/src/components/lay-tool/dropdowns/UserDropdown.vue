@@ -149,11 +149,11 @@ const gotoAccountSetting = () => {
 .avatar-img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: 4px; // 4px 圆角
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.8);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
+  transition: all 0.2s ease; // 0.2s ease 过渡
 }
 
 .status-dot {

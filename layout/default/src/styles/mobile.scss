@@ -1,0 +1,86 @@
+// 手机端布局重构
+.lay-mobile {
+  --mobile-header-height: 52px;
+  --mobile-nav-height: 52px; // 底部导航高度也调整为 52px (如果保留的话)
+  --mobile-drawer-width: 280px;
+  --mobile-icon-size: 20px;
+  --mobile-touch-target: 44px;
+
+  -webkit-tap-highlight-color: transparent;
+
+  // 抽屉样式覆盖
+  :deep(.el-drawer) {
+    width: var(--mobile-drawer-width) !important;
+  }
+
+  // 顶部栏重构
+  .mobile-header {
+    height: var(--mobile-header-height);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    
+    .header-icon {
+      width: var(--mobile-icon-size);
+      height: var(--mobile-icon-size);
+    }
+
+    .touch-target {
+      min-width: var(--mobile-touch-target);
+      min-height: var(--mobile-touch-target);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  // 底部导航项
+  .nav-item {
+    // 移除 hover 依赖，使用 active
+    &:active,
+    &.is-active {
+      color: var(--el-color-primary);
+      background-color: var(--el-color-primary-light-9);
+    }
+    
+    // 确保没有 hover 样式残留
+    &:hover {
+      background-color: transparent;
+      color: inherit;
+    }
+    
+    // active 状态下恢复
+    &:hover.is-active {
+      background-color: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
+    }
+
+    .nav-icon {
+      font-size: var(--mobile-icon-size);
+      
+      svg, img {
+        width: var(--mobile-icon-size);
+        height: var(--mobile-icon-size);
+      }
+    }
+    
+    // 点击热区
+    min-height: var(--mobile-touch-target);
+    min-width: var(--mobile-touch-target);
+  }
+
+  // 菜单列表硬件加速
+  .menu-grid {
+    transform: translateZ(0);
+    will-change: transform;
+    
+    .menu-card {
+      transform: translateZ(0);
+      transition: transform 0.2s ease;
+      
+      &:active {
+        transform: scale(0.98);
+      }
+    }
+  }
+}

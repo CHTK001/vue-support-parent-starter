@@ -55,6 +55,10 @@ import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 // 导入主题皮肤样式
 import "./themes/christmas.scss";
 import "./themes/spring-festival.scss";
+import "./themes/halloween.scss";
+import "./components/lay-sidebar/styles/hover-navigation-themes.scss";
+// 导入移动端独立样式
+import "./styles/mobile.scss";
 // 导入字体加密样式
 import "./styles/font-encryption.css";
 
