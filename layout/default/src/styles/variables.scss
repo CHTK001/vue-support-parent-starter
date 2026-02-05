@@ -46,6 +46,9 @@
   --layout-z-tag: 99;
   --layout-z-panel: 200;
   --layout-z-mask: 2001;
+
+  // 动态主题色
+  --theme-color-opacity-8: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
 }
 
 // ==================== 组件变量 ====================

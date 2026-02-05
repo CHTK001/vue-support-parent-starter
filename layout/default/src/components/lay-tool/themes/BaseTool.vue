@@ -119,11 +119,11 @@ onBeforeUnmount(() => {
   height: 38px;
   border-radius: 12px;
   cursor: pointer;
-  color: var(--el-text-color-regular);
+  color: #595959; // 统一色值
   background: transparent;
   border: 1px solid transparent;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 18px;
+  transition: all 0.2s ease; // 优化过渡
+  font-size: 16px; // 统一图标大小
   z-index: 1;
 
   /* 光泽层 */
@@ -150,7 +150,7 @@ onBeforeUnmount(() => {
       rgba(var(--el-color-primary-rgb), 0.05) 100%
     );
     border-color: rgba(var(--el-color-primary-rgb), 0.2);
-    color: var(--el-color-primary);
+    color: var(--el-color-primary); // hover 时主题色高亮
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
 
