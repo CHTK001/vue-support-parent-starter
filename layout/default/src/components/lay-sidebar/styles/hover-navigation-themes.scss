@@ -11,8 +11,9 @@
   --hover-nav-bg-end: rgba(255, 255, 255, 0.98);
   --hover-nav-border: rgba(0, 0, 0, 0.05);
   --hover-nav-menu-color: var(--el-text-color-primary);
-  --hover-nav-menu-active-bg: var(--el-color-primary);
-  --hover-nav-menu-active-color: #ffffff;
+  // 使用新的 8% 透明度背景风格，与纵向布局保持一致
+  --hover-nav-menu-active-bg: var(--theme-color-opacity-8, rgba(64, 158, 255, 0.08));
+  --hover-nav-menu-active-color: var(--el-color-primary);
   --hover-nav-submenu-bg: rgba(255, 255, 255, 0.98);
   --hover-nav-submenu-border: rgba(0, 0, 0, 0.08);
   --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.15);
