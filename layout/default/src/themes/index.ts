@@ -59,16 +59,6 @@ export const layoutThemes: LayoutTheme[] = [
     color: "#5b13ec",
     baseStyle: "dark",
   },
-  {
-    name: "新春灯笼",
-    key: "lunar-spring-festival",
-    description: "深度定制新春主题，灯笼样式标签、烟花粒子、新年装饰",
-    stylesheet: "lunar-spring-festival.css",
-    icon: "noto:red-paper-lantern",
-    type: "beta",
-    color: "#ff4d4f",
-    baseStyle: "light",
-  },
   // === 节日主题 ===
   {
     name: "万圣节",
@@ -218,11 +208,11 @@ export const detectFestivalTheme = (): LayoutTheme | null => {
   const month = now.getMonth() + 1; // 0-11 -> 1-12
   const date = now.getDate();
   
-  // 春节：农历正月初一（简化处理：公历1-2月）
-  if (month === 1 || month === 2) {
-    // 这里可以添加更精确的农历计算逻辑
-    // 简化处理：1月20日-2月20日视为春节期间
-    if ((month === 1 && date >= 20) || (month === 2 && date <= 20)) {
+  // 春节：农历正月初一（简化处理：适配2026年春节2月17日）
+  if (month === 2) {
+    // 2026年春节是2月17日，设置为前后一周左右
+    // 2月10日-2月24日
+    if (date >= 10 && date <= 24) {
       return getLayoutTheme("spring-festival");
     }
   }

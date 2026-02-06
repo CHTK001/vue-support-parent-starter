@@ -35,8 +35,8 @@ html[data-skin="halloween"] {
   --hover-nav-bg-end: rgba(26, 0, 38, 0.98);
   --hover-nav-border: rgba(255, 117, 24, 0.3);
   --hover-nav-menu-color: #ff7518; // 南瓜橙
-  --hover-nav-menu-active-bg: rgba(255, 117, 24, 0.2);
-  --hover-nav-menu-active-color: #76ff03; // 幽灵绿
+  --hover-nav-menu-active-bg: rgba(255, 117, 24, 0.15);
+  --hover-nav-menu-active-color: #ff7518; // 使用主题色
   --hover-nav-submenu-bg: rgba(44, 0, 62, 0.98);
   --hover-nav-submenu-border: rgba(118, 255, 3, 0.3);
   --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.5);
@@ -48,8 +48,8 @@ html[data-skin="spring-festival"] {
   --hover-nav-bg-end: rgba(100, 0, 0, 0.98);
   --hover-nav-border: rgba(255, 215, 0, 0.4);
   --hover-nav-menu-color: #ffd700;
-  --hover-nav-menu-active-bg: linear-gradient(135deg, #ffd700, #ffc107);
-  --hover-nav-menu-active-color: #8b0000;
+  --hover-nav-menu-active-bg: rgba(255, 215, 0, 0.15);
+  --hover-nav-menu-active-color: #ffd700;
   --hover-nav-submenu-bg: rgba(139, 0, 0, 0.98);
   --hover-nav-submenu-border: rgba(255, 215, 0, 0.3);
   --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.4);
@@ -61,8 +61,8 @@ html[data-skin="cyberpunk"] {
   --hover-nav-bg-end: rgba(18, 18, 31, 0.98);
   --hover-nav-border: rgba(0, 255, 255, 0.3);
   --hover-nav-menu-color: #00ffff;
-  --hover-nav-menu-active-bg: rgba(0, 255, 255, 0.2);
-  --hover-nav-menu-active-color: #ffffff;
+  --hover-nav-menu-active-bg: rgba(0, 255, 255, 0.15);
+  --hover-nav-menu-active-color: #00ffff;
   --hover-nav-submenu-bg: rgba(10, 10, 18, 0.98);
   --hover-nav-submenu-border: rgba(0, 255, 255, 0.3);
   --hover-nav-submenu-shadow: rgba(0, 255, 255, 0.2);
@@ -71,11 +71,11 @@ html[data-skin="cyberpunk"] {
 // ==================== 中秋主题 ====================
 html[data-skin="mid-autumn"] {
   --hover-nav-bg-start: rgba(26, 35, 126, 0.95);
-  --hover-nav-bg-end: rgba(13, 22, 82, 0.98);
+  --hover-nav-bg-end: rgba(13, 16, 82, 0.98);
   --hover-nav-border: rgba(255, 213, 79, 0.4);
   --hover-nav-menu-color: #ffd54f;
-  --hover-nav-menu-active-bg: linear-gradient(135deg, #ffd54f, #ffb300);
-  --hover-nav-menu-active-color: #1a237e;
+  --hover-nav-menu-active-bg: rgba(255, 213, 79, 0.15);
+  --hover-nav-menu-active-color: #ffd54f;
   --hover-nav-submenu-bg: rgba(26, 35, 126, 0.98);
   --hover-nav-submenu-border: rgba(255, 213, 79, 0.3);
   --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.4);
@@ -87,8 +87,8 @@ html[data-skin="christmas"] {
   --hover-nav-bg-end: rgba(13, 61, 18, 0.98);
   --hover-nav-border: rgba(255, 215, 0, 0.3);
   --hover-nav-menu-color: #ffffff;
-  --hover-nav-menu-active-bg: linear-gradient(135deg, #c62828, #e53935);
-  --hover-nav-menu-active-color: #ffffff;
+  --hover-nav-menu-active-bg: rgba(211, 47, 47, 0.2); // 红色背景
+  --hover-nav-menu-active-color: #ffb300; // 金色文字
   --hover-nav-submenu-bg: rgba(27, 94, 32, 0.98);
   --hover-nav-submenu-border: rgba(255, 215, 0, 0.25);
   --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.4);
@@ -100,8 +100,8 @@ html[data-skin="new-year"] {
   --hover-nav-bg-end: rgba(187, 222, 251, 0.98);
   --hover-nav-border: rgba(78, 168, 222, 0.3);
   --hover-nav-menu-color: #2a7ab8;
-  --hover-nav-menu-active-bg: linear-gradient(135deg, #4ea8de, #7cc2e8);
-  --hover-nav-menu-active-color: #ffffff;
+  --hover-nav-menu-active-bg: rgba(78, 168, 222, 0.15);
+  --hover-nav-menu-active-color: #2a7ab8;
   --hover-nav-submenu-bg: rgba(232, 245, 233, 0.98);
   --hover-nav-submenu-border: rgba(78, 168, 222, 0.25);
   --hover-nav-submenu-shadow: rgba(78, 168, 222, 0.2);

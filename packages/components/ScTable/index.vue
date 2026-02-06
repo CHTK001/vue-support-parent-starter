@@ -573,10 +573,14 @@ const memoryStorageKey = computed(() => {
 });
 
 // 计算高度
+const scTableContentWrapper = ref(null);
+
+// 移除 ResizeObserver，直接使用 CSS 控制
 const computedHeight = computed(() => {
-  // 当 height 为 auto 时，传递 'auto' 给子组件，让表格撑满父容器
+  // 当 height 为 auto 时，返回 '100%' 让表格填满父容器
+  // 前提是父容器（scTableContentWrapper）必须有确定高度
   if (props.height === "auto") {
-    return "auto";
+    return "100%";
   }
   
   // 未设置时返回 undefined 让表格自适应内容
@@ -1935,7 +1939,7 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="scTableMain" class="sc-table-container" :class="{ 'auto-height': height === 'auto' }">
+  <div ref="scTableMain" class="sc-table-container">
     <div class="sc-table-wrapper">
       <!-- 拖拽排序操作栏 - 显示在表头上方 -->
       <div v-if="configState.draggable && dragSortPending" class="sc-table-drag-actions">
@@ -1985,7 +1989,7 @@ defineExpose({
       </div>
 
       <!-- 表格内容区域 -->
-      <div class="sc-table-auto-height">
+      <div class="sc-table-auto-height" ref="scTableContentWrapper">
         <component
           :is="componentMap[layout]"
           ref="scTable"
@@ -2080,12 +2084,6 @@ defineExpose({
   display: flex;
   flex-direction: column;
   overflow: hidden;
-
-  &.auto-height {
-    position: relative;
-    flex: 1;
-    min-height: 400px;
-  }
 }
 
 .sc-table-wrapper {
@@ -2096,9 +2094,6 @@ defineExpose({
   flex-direction: column;
   overflow: hidden;
 
-  .auto-height & {
-    min-height: 400px;
-  }
   .sc-table-auto-height {
     flex: 1;
     min-height: 0; /* 关键属性：允许flex子项收缩 */

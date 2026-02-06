@@ -40,38 +40,38 @@ provide('themeSidebarItem', NewYearSidebarItem);
   :deep(.el-sub-menu__title) {
     margin: 4px 8px;
     border-radius: 6px;
-    color: var(--ny-text);
+    color: var(--hover-nav-menu-color);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
 
     &:hover {
-      background: var(--ny-hover-bg);
-      color: var(--ny-primary);
+      background: var(--ny-primary);
+      color: #fff;
       transform: translateX(3px);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       
       .el-icon, .sub-menu-icon svg {
-        color: var(--ny-primary);
+        color: #fff;
         transform: scale(1.1);
       }
     }
 
     .el-icon, .sub-menu-icon svg {
       transition: all 0.3s;
-      color: rgba(78, 168, 222, 0.7);
+      color: var(--hover-nav-menu-color);
     }
   }
 
   // 激活状态
   :deep(.sidebar-menu-item.is-active) {
-    background: var(--ny-active-bg);
-    color: var(--ny-primary);
+    background: var(--ny-primary);
+    color: #fff;
     font-weight: 600;
-    border-left: 3px solid var(--ny-primary);
+    border-left: 3px solid #fff;
     
     .el-icon, .sub-menu-icon svg {
-      color: var(--ny-primary);
-      filter: drop-shadow(0 0 5px rgba(78, 168, 222, 0.4));
+      color: #fff;
+      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.4));
     }
     
     // 冰晶图标

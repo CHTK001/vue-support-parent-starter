@@ -431,11 +431,12 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 // 右栏样式
-.double-nav-right {
-  width: 200px;
-  min-width: 200px;
-  background-color: var(--el-bg-color-page);
-  transition: all 0.3s ease;
+  .double-nav-right {
+    width: 200px;
+    min-width: 200px;
+    background-color: var(--el-bg-color-page);
+    border-right: 1px solid var(--el-border-color-lighter);
+    transition: all 0.3s ease;
 
   // 折叠状态
   &.collapsed {

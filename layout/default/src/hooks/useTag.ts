@@ -6,13 +6,6 @@ import { useRoute, useRouter } from "vue-router";
 import { useMultiTagsStoreHook, useSettingStoreHook } from "@repo/core";
 import { hasClass, isBoolean, isEqual, toggleClass } from "@pureadmin/utils";
 import { localStorageProxy } from "@repo/utils";
-import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
-import CloseAllTags from "@iconify-icons/ri/subtract-line";
-import CloseOtherTags from "@iconify-icons/ri/text-spacing";
-import CloseRightTags from "@iconify-icons/ri/text-direction-l";
-import CloseLeftTags from "@iconify-icons/ri/text-direction-r";
-import RefreshRight from "@iconify-icons/ep/refresh-right";
-import Close from "@iconify-icons/ep/close";
 
 export function useTags() {
   const route = useRoute();
@@ -39,51 +32,53 @@ export function useTags() {
     return multiTagsStore.multiTags || [];
   });
 
+  const Close = "ep:close";
+
   const tagsViews = reactive<Array<tagsViewsType>>([
     {
-      icon: RefreshRight,
+      icon: "ep:refresh-right",
       text: $t("buttons.pureReload"),
       divided: false,
       disabled: false,
       show: true,
     },
     {
-      icon: Close,
+      icon: "ep:close",
       text: $t("buttons.pureCloseCurrentTab"),
       divided: false,
       disabled: multiTags.value.length > 1 ? false : true,
       show: true,
     },
     {
-      icon: CloseLeftTags,
+      icon: "ri:text-direction-r",
       text: $t("buttons.pureCloseLeftTabs"),
       divided: true,
       disabled: multiTags.value.length > 1 ? false : true,
       show: true,
     },
     {
-      icon: CloseRightTags,
+      icon: "ri:text-direction-l",
       text: $t("buttons.pureCloseRightTabs"),
       divided: false,
       disabled: multiTags.value.length > 1 ? false : true,
       show: true,
     },
     {
-      icon: CloseOtherTags,
+      icon: "ri:text-spacing",
       text: $t("buttons.pureCloseOtherTabs"),
       divided: true,
       disabled: multiTags.value.length > 2 ? false : true,
       show: true,
     },
     {
-      icon: CloseAllTags,
+      icon: "ri:subtract-line",
       text: $t("buttons.pureCloseAllTabs"),
       divided: false,
       disabled: multiTags.value.length > 1 ? false : true,
       show: true,
     },
     {
-      icon: Fullscreen,
+      icon: "ri:fullscreen-fill",
       text: $t("buttons.pureContentFullScreen"),
       divided: true,
       disabled: false,

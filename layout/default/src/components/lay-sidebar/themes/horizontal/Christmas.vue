@@ -34,11 +34,11 @@ $xmas-border: rgba(255, 215, 0, 0.4);
     background: linear-gradient(180deg, $xmas-green 0%, color.adjust($xmas-green, $lightness: -5%) 100%) !important;
     border-bottom: 2px solid $xmas-border !important;
     
-    .el-menu {
+    .horizontal-header-menu {
       background: transparent !important;
       
-      .el-menu-item,
-      .el-sub-menu__title {
+      .custom-menu-item,
+      .custom-sub-menu__title {
         color: $xmas-white !important;
         
         &:hover {
@@ -46,18 +46,18 @@ $xmas-border: rgba(255, 215, 0, 0.4);
           color: $xmas-white !important;
         }
         
-        .el-icon, svg {
+        .menu-icon, svg {
           color: $xmas-gold !important;
         }
       }
       
-      .el-menu-item.is-active {
-        background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
-        color: $xmas-white !important;
+      .custom-menu-item.is-active {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: $xmas-gold !important;
         border-bottom: 3px solid $xmas-gold !important;
         
-        .el-icon, svg {
-          color: $xmas-white !important;
+        .menu-icon, svg {
+          color: $xmas-gold !important;
         }
       }
     }

@@ -34,25 +34,25 @@ $hw-text: #ffffff;
     border-bottom: 1px solid rgba($hw-green, 0.3);
     
     // 菜单项样式
-    .el-menu-item, .el-sub-menu__title {
-      color: rgba(255, 255, 255, 0.8) !important;
+    .custom-menu-item, .custom-sub-menu__title {
+      color: var(--hover-nav-menu-color) !important;
       
       &:hover {
-        color: $hw-green !important;
+        color: #fff !important;
         background: rgba($hw-pumpkin, 0.1) !important;
         
-        i, svg {
-          color: $hw-green !important;
+        .menu-icon, svg {
+          color: #fff !important;
         }
       }
       
       &.is-active {
-        color: $hw-pumpkin !important; // 默认深色背景下高亮色
+        color: #fff !important; // 默认深色背景下高亮色
         background: rgba($hw-pumpkin, 0.15) !important;
         border-bottom: 2px solid $hw-pumpkin !important;
         
-        i, svg {
-          color: $hw-pumpkin !important;
+        .menu-icon, svg {
+          color: #fff !important;
         }
       }
     }
@@ -63,12 +63,12 @@ $hw-text: #ffffff;
     &.light, &.is-light {
       background: #ffffff !important;
       
-      .el-menu-item, .el-sub-menu__title {
+      .custom-menu-item, .custom-sub-menu__title {
         color: #333333 !important;
         
         &.is-active {
-          color: #000000 !important; // 黑色
-          background: rgba(0, 0, 0, 0.05) !important;
+          color: $hw-pumpkin !important; // 黑色 -> 南瓜色
+          background: rgba($hw-pumpkin, 0.05) !important;
           border-bottom: 2px solid $hw-pumpkin !important;
           font-weight: bold;
         }
@@ -83,15 +83,15 @@ $hw-text: #ffffff;
     background: #0f0f0f !important; // 更深的黑色背景，减少紫色饱和度
     border-bottom: 1px solid #333;
     
-    .el-menu-item, .el-sub-menu__title {
-      color: #a0a0a0 !important; // 柔和的灰色文字
+    .custom-menu-item, .custom-sub-menu__title {
+      color: var(--hover-nav-menu-color) !important; // 柔和的灰色文字
       
       &:hover {
-        color: $hw-pumpkin !important; // 悬停才显示主题色
+        color: #fff !important; // 悬停才显示主题色
       }
       
       &.is-active {
-        color: $hw-pumpkin !important;
+        color: #fff !important;
         background: rgba(255, 117, 24, 0.1) !important;
       }
     }

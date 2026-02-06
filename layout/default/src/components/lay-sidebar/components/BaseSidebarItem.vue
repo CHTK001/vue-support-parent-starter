@@ -32,7 +32,7 @@ import ArrowRight from "@iconify-icons/ep/arrow-right-bold";
 import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 
 const attrs = useAttrs();
-const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
+const { layout, isCollapse: navCollapse, tooltipEffect, getDivStyle } = useNav();
 
 const route = useRoute();
 
@@ -48,6 +48,14 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  collapse: {
+    type: Boolean,
+    default: undefined,
+  },
+});
+
+const isCollapse = computed(() => {
+  return props.collapse !== undefined ? props.collapse : navCollapse.value;
 });
 
 // 暴露给主题组件的插槽
@@ -248,6 +256,7 @@ onMounted(() => {
         :is-nest="true"
         :item="child"
         :base-path="resolvePath(child.path)"
+        :collapse="collapse"
         class="nest-menu"
       />
     </div>
@@ -259,7 +268,7 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: inherit;
+  color: var(--hover-nav-menu-color);
   display: inline-block;
   vertical-align: middle;
 }
@@ -269,15 +278,8 @@ onMounted(() => {
   position: relative;
   transition: all 0.3s ease;
 
-  // 修复激活状态下文字颜色不跟随的问题
   &.is-active {
-    .menu-text {
-      color: var(--el-text-color-primary) !important;
-    }
-    // 深色模式下文字为白色
-    html.dark & .menu-text {
-      color: #fff !important;
-    }
+    // 移除强制颜色覆盖，允许外部控制
   }
 }
 

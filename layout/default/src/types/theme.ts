@@ -111,6 +111,18 @@ export interface StorageConfig {
   doubleNavAutoExpandAll?: boolean;
   /** 离开确认 */
   confirmOnLeave?: boolean;
+  /** 过渡动画类型 */
+  transitionType?: string;
+  /** 字体加密启用 */
+  fontEncryptionEnabled?: boolean;
+  /** 字体加密-数字 */
+  fontEncryptionNumbers?: boolean;
+  /** 字体加密-中文 */
+  fontEncryptionChinese?: boolean;
+  /** 字体加密-全局 */
+  fontEncryptionGlobal?: boolean;
+  /** 字体加密-OCR干扰 */
+  fontEncryptionOcrNoise?: boolean;
 }
 
 /** Storage 布局配置接口 */

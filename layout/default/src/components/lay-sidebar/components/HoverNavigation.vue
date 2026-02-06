@@ -1051,18 +1051,28 @@ const defer = useDefer(firstLevelMenus.value.length);
   }
 
   &.is-active {
-    background: var(--hover-nav-menu-active-bg);
-    color: var(--hover-nav-menu-active-color) !important;
-    /* 强制设置为白色确保可见性 */
-    font-weight: 600;
-    box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
+      // 默认（亮色）：背景蓝色，文字白色
+      background: var(--el-color-primary) !important;
+      color: #fff !important;
+      font-weight: 600;
+      box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
-    svg,
-    i {
-      color: var(--hover-nav-menu-active-color) !important;
-      /* 强制设置为白色确保可见性 */
+      svg,
+      i,
+      span {
+        color: #fff !important;
+      }
+
+      // 暗色模式适配：使用定义的变量
+      @at-root html.dark & {
+        background: var(--hover-nav-menu-active-bg) !important;
+        color: var(--hover-nav-menu-active-color) !important;
+        
+        svg, i, span {
+          color: var(--hover-nav-menu-active-color) !important;
+        }
+      }
     }
-  }
 
   .menu-content {
     display: flex;
@@ -1401,15 +1411,16 @@ const defer = useDefer(firstLevelMenus.value.length);
   }
 
   &.is-active {
-    background: var(--el-color-primary);
-    color: var(--pure-menu-active-text-color) !important;
-    /* 使用新定义的变量，确保在所有主题下都是白色 */
+    background: var(--hover-nav-menu-active-bg);
+    color: var(--hover-nav-menu-active-color) !important;
+    /* 强制设置为白色确保可见性 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
     /* 浅色风格下激活样式保持白色 */
     html[data-theme="light"] & {
       color: #ffffff !important;
+      background: var(--el-color-primary) !important;
     }
   }
 }

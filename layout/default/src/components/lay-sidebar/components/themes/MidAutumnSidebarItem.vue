@@ -46,8 +46,9 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
   --mid-gold: #{$mid-autumn-gold};
   --mid-navy: #{$mid-autumn-navy};
   
-  :deep(.sidebar-menu-item) {
-    color: var(--mid-gold);
+  :deep(.sidebar-menu-item),
+  :deep(.el-sub-menu__title) {
+    color: var(--hover-nav-menu-color);
     background: $moon-normal;
     background-size: 100% 100%;
     background-repeat: no-repeat;
@@ -62,10 +63,15 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
       transform: translateX(2px);
       filter: brightness(1.1);
       box-shadow: 0 4px 12px rgba($mid-autumn-navy, 0.4);
+      color: #fff;
+      
+      .el-icon, svg, span, div {
+        color: #fff;
+      }
     }
     
     .el-icon, svg {
-      color: var(--mid-gold);
+      color: var(--hover-nav-menu-color);
       position: relative;
       z-index: 2;
     }
@@ -81,14 +87,14 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
       background: $moon-active;
       background-size: 100% 100%;
       background-repeat: no-repeat;
-      color: var(--mid-navy);
+      color: #fff;
       font-weight: 700;
       box-shadow: 
         0 4px 16px rgba($mid-autumn-gold, 0.5),
         0 0 20px rgba($mid-autumn-gold, 0.3);
       
       .el-icon, svg, span, div {
-        color: var(--mid-navy);
+        color: #fff;
         text-shadow: 0 1px 2px rgba($mid-autumn-gold, 0.5);
       }
     }
@@ -96,7 +102,7 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
   
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
-      color: var(--mid-gold);
+      color: var(--hover-nav-menu-color);
       background: $moon-normal;
       background-size: 100% 100%;
       background-repeat: no-repeat;

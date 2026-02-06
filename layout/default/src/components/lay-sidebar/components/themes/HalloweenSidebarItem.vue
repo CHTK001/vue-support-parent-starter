@@ -45,38 +45,38 @@ provide('themeSidebarItem', HalloweenSidebarItem);
   :deep(.el-sub-menu__title) {
     margin: 4px 8px;
     border-radius: 6px;
-    color: var(--hw-text);
+    color: var(--hover-nav-menu-color);
     transition: all 0.3s ease;
     border: 1px solid transparent;
 
     &:hover {
       background: rgba(255, 117, 24, 0.1);
-      color: var(--hw-pumpkin);
+      color: #fff;
       border-color: rgba(255, 117, 24, 0.3);
       box-shadow: 0 0 8px rgba(44, 0, 62, 0.5);
       
       .el-icon, .sub-menu-icon svg {
-        color: var(--hw-pumpkin);
+        color: #fff;
         transform: scale(1.1) rotate(5deg);
       }
     }
 
     .el-icon, .sub-menu-icon svg {
       transition: transform 0.3s;
-      color: rgba(179, 157, 219, 0.7);
+      color: var(--hover-nav-menu-color);
     }
   }
 
   // 激活状态
   :deep(.sidebar-menu-item.is-active) {
     background: linear-gradient(90deg, rgba(255, 117, 24, 0.2), rgba(44, 0, 62, 0.5));
-    color: var(--hw-pumpkin);
+    color: #fff;
     font-weight: 600;
     border: 1px solid var(--hw-pumpkin);
     box-shadow: 0 0 15px rgba(255, 117, 24, 0.2);
     
     .el-icon, .sub-menu-icon svg {
-      color: var(--hw-pumpkin);
+      color: #fff;
     }
     
     // 南瓜装饰
@@ -95,7 +95,7 @@ provide('themeSidebarItem', HalloweenSidebarItem);
   }
 
   :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-    color: var(--hw-pumpkin);
+    color: #fff;
     font-weight: 600;
     text-shadow: 0 0 5px rgba(255, 117, 24, 0.3);
     
