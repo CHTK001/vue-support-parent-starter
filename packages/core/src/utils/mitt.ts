@@ -16,6 +16,21 @@ type Events = {
   systemThemeChange: string;
   /** 消息开关变化事件 */
   showMessageChange: boolean;
+  /** 菜单过渡动画 */
+  menuTransitionChange: boolean;
+  /** 过渡动画类型 */
+  transitionTypeChange: string;
+  /** 显示标签图标 */
+  showTagIconChange: boolean;
+  /** AI 助手主题 */
+  aiChatThemeChange: string;
+  /** 调试模式 */
+  debugModeChange: boolean;
+  debugModeChanged: boolean;
+  /** 字体加密 */
+  fontEncryptionChange: any;
+  /** 离开确认 */
+  confirmOnLeaveChange: boolean;
 };
 
 export const emitter: Emitter<Events> = mitt<Events>();

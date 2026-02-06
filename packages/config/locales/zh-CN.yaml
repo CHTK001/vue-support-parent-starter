@@ -316,6 +316,7 @@ panel:
   festivalThemeAuto: 节日主题自动切换
   festivalThemeAutoDesc: 自动检测并应用节日主题，关闭后需手动切换主题
   festivalThemeOffTip: 关闭自动切换后，节日装饰元素仍会显示，但不会自动切换主题样式
+  festivalThemeAutoDisabled: 已自动关闭节日主题自动切换
   autoThemeEnabled: 自动主题已启用
   autoThemeEnabledDesc: 系统将根据当前日期自动应用节日主题，节日主题已隐藏
   currentThemeLabel: 当前主题：

@@ -41,7 +41,7 @@ provide('themeSidebarItem', ChristmasSidebarItem);
   :deep(.el-sub-menu__title) {
     margin: 4px 8px;
     border-radius: 8px;
-    color: var(--xmas-white);
+    color: var(--hover-nav-menu-color);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
 
@@ -49,28 +49,30 @@ provide('themeSidebarItem', ChristmasSidebarItem);
       background: var(--sidebar-hover-bg);
       transform: translateX(2px);
       border-color: rgba(255, 215, 0, 0.3);
+      color: #fff;
       
       .el-icon, .sub-menu-icon svg {
-        color: var(--xmas-gold);
+        color: #fff;
         transform: scale(1.1);
       }
     }
 
     .el-icon, .sub-menu-icon svg {
       transition: transform 0.3s;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--hover-nav-menu-color);
     }
   }
 
   // 激活状态
   :deep(.sidebar-menu-item.is-active) {
-    background: var(--sidebar-active-bg);
-    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4); // 红色阴影
+    background: linear-gradient(135deg, #c62828, #e53935) !important; 
+    border: 2px solid #ffd700 !important; 
+    box-shadow: 0 4px 16px rgba(198, 40, 40, 0.5) !important;
     font-weight: 600;
-    border: 1px solid var(--xmas-gold);
+    color: #fff !important;
     
     .el-icon, .sub-menu-icon svg {
-      color: var(--xmas-gold);
+      color: #fff;
     }
     
     // 圣诞树装饰图标 (可选)
@@ -86,11 +88,11 @@ provide('themeSidebarItem', ChristmasSidebarItem);
 
   // 子菜单激活时父级标题样式
   :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-    color: var(--xmas-gold);
+    color: #fff;
     font-weight: 600;
     
     .el-icon, .sub-menu-icon svg {
-      color: var(--xmas-gold);
+      color: #fff;
     }
   }
 }

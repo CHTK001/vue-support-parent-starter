@@ -67,8 +67,9 @@ $frost-white: #FFFFFF;
     }
     
     // 自定义菜单项样式
-    .custom-menu-item {
-      color: $ice-darker;
+    .custom-menu-item,
+    .custom-sub-menu__title {
+      color: var(--hover-nav-menu-color);
       background: transparent;
       border-radius: 8px;
       margin: 0 4px;
@@ -92,7 +93,7 @@ $frost-white: #FFFFFF;
       }
       
       .menu-icon {
-        color: $ice-primary;
+        color: var(--hover-nav-menu-color);
       }
       
       .menu-title {
@@ -101,30 +102,30 @@ $frost-white: #FFFFFF;
       
       &:hover {
         background: rgba($ice-medium, 0.15);
-        color: $ice-deep;
+        color: #fff;
         
         &::after {
           width: 80%;
         }
         
         .menu-icon {
-          color: $ice-deep;
+          color: #fff;
         }
       }
       
       &.is-active {
-        background: linear-gradient(135deg, $ice-primary, $ice-medium);
-        color: $frost-white;
-        box-shadow: 0 3px 12px rgba($ice-primary, 0.35);
+        background: $ice-primary;
+        color: #fff;
+        box-shadow: 0 3px 12px rgba($ice-primary, 0.15);
         
         &::after {
           width: 100%;
-          background: rgba($frost-white, 0.6);
-          box-shadow: 0 0 8px rgba($frost-white, 0.4);
+          background: #fff;
+          box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
         
         .menu-icon, .menu-title {
-          color: $frost-white;
+          color: #fff;
         }
       }
     }

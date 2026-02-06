@@ -45,8 +45,9 @@ $cyber-border: rgba(0, 255, 255, 0.4);
   --cyber-white: #{$cyber-white};
   --cyber-dark: #{$cyber-dark};
   
-  :deep(.sidebar-menu-item) {
-    color: var(--cyber-cyan);
+  :deep(.sidebar-menu-item),
+  :deep(.el-sub-menu__title) {
+    color: var(--hover-nav-menu-color);
     background: rgba($cyber-dark, 0.95);
     margin: 4px 8px;
     border-radius: 4px;
@@ -54,6 +55,8 @@ $cyber-border: rgba(0, 255, 255, 0.4);
     font-weight: 500;
     transition: all 0.2s ease;
     position: relative;
+    height: 48px;
+    line-height: 48px;
     
     span, div, .el-text {
       font-size: 14px;
@@ -68,7 +71,7 @@ $cyber-border: rgba(0, 255, 255, 0.4);
     }
     
     .el-icon, svg {
-      color: var(--cyber-cyan);
+      color: var(--hover-nav-menu-color);
     }
     
     &.is-active {

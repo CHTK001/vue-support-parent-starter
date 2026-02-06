@@ -27,8 +27,9 @@ $mid-gold-light: #ffecb3;
     background: linear-gradient(180deg, $mid-blue, $mid-blue-light) !important;
     border-bottom: 2px solid rgba($mid-gold, 0.3) !important;
     
-    .custom-menu-item {
-      color: rgba(255, 255, 255, 0.9);
+    .custom-menu-item,
+    .custom-sub-menu__title {
+      color: var(--hover-nav-menu-color);
       border-radius: 6px;
       margin: 0 4px;
       padding: 0 16px;
@@ -36,32 +37,26 @@ $mid-gold-light: #ffecb3;
       transition: all 0.3s ease;
       
       .menu-icon {
-        color: $mid-gold-light;
+        color: var(--hover-nav-menu-color);
       }
       
       &:hover {
         background: rgba($mid-gold, 0.15);
-        color: $mid-gold;
+        color: #fff;
         
         .menu-icon {
-          color: $mid-gold;
+          color: #fff;
         }
       }
       
       &.is-active {
         background: rgba($mid-gold, 0.2);
-        color: $mid-gold;
+        color: #fff;
         border-bottom: 2px solid $mid-gold;
         
         .menu-icon {
-          color: $mid-gold;
+          color: #fff;
         }
-      }
-    }
-    
-    .custom-sub-menu.more-menu {
-      .custom-sub-menu-title {
-        color: rgba(255, 255, 255, 0.9);
       }
     }
     

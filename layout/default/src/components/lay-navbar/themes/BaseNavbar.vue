@@ -73,6 +73,7 @@ onBeforeUnmount(() => {
 // 基础布局样式 - 所有主题共用
 .base-navbar {
   width: 100%;
+  height: 60px;
   display: flex;
   flex-direction: row;
   align-items: center;

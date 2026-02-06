@@ -18,13 +18,13 @@
     height: 40px;
     padding: 0 14px;
     margin: 3px 0;
-    color: var(--el-text-color-primary);
+    color: var(--hover-nav-menu-color);
     background: transparent;
     border-radius: 12px;
     transition: all 0.25s ease;
     
     .menu-icon {
-      color: var(--el-color-primary);
+      color: var(--hover-nav-menu-color);
     }
     
     &:hover:not(.is-disabled) {
@@ -33,12 +33,23 @@
     }
     
     &.is-active {
-      background: var(--el-color-primary);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+      // 默认（亮色）：背景蓝色，文字白色
+      background: var(--el-color-primary) !important;
+      color: #fff !important;
+      box-shadow: none;
       
       .menu-icon, .menu-title {
-        color: #fff;
+        color: #fff !important;
+      }
+
+      // 暗色模式适配
+      @at-root html.dark & {
+        background: rgba(var(--el-color-primary-rgb), 0.1) !important;
+        color: var(--el-color-primary) !important;
+        
+        .menu-icon, .menu-title {
+          color: var(--el-color-primary) !important;
+        }
       }
     }
   }
@@ -49,11 +60,11 @@
       padding: 0 14px;
       margin: 3px 0;
       border-radius: 12px;
-      color: var(--el-text-color-primary);
+      color: var(--hover-nav-menu-color);
       transition: all 0.25s ease;
       
       .menu-icon {
-        color: var(--el-color-primary);
+        color: var(--hover-nav-menu-color);
       }
       
       &:hover {
@@ -63,12 +74,67 @@
     }
     
     &.is-active > .custom-sub-menu__title {
-      background: var(--el-color-primary);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+      // 默认（亮色）：背景蓝色，文字白色
+      background: var(--el-color-primary) !important;
+      color: #fff !important;
+      box-shadow: none;
       
       .menu-icon, .menu-title, .custom-sub-menu__icon-arrow {
-        color: #fff;
+        color: #fff !important;
+      }
+
+      // 暗色模式适配
+      @at-root html.dark & {
+        background: rgba(var(--el-color-primary-rgb), 0.1) !important;
+        color: var(--el-color-primary) !important;
+        
+        .menu-icon, .menu-title, .custom-sub-menu__icon-arrow {
+          color: var(--el-color-primary) !important;
+        }
+      }
+    }
+  }
+}
+
+// 默认主题 - 横向导航顶栏样式 (非弹出层)
+.default-horizontal,
+.default-mix {
+  // 顶层菜单项
+  .default-menu-item,
+  .mix-menu-item,
+  .custom-sub-menu__title {
+    color: var(--hover-nav-menu-color);
+    border-radius: 8px;
+    margin: 0 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    .menu-icon {
+      color: var(--hover-nav-menu-color);
+    }
+    
+    &:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.08);
+      color: var(--el-color-primary);
+    }
+    
+    &.is-active {
+      // 默认（亮色）：背景蓝色，文字白色
+      background: var(--el-color-primary) !important;
+      color: #fff !important;
+      font-weight: 600;
+      
+      .menu-icon, .menu-title {
+        color: #fff !important;
+      }
+
+      // 暗色模式适配
+      @at-root html.dark & {
+        background: rgba(var(--el-color-primary-rgb), 0.1) !important;
+        color: var(--el-color-primary) !important;
+        
+        .menu-icon, .menu-title {
+          color: var(--el-color-primary) !important;
+        }
       }
     }
   }

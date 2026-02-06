@@ -59,6 +59,34 @@ vue-support-parent-starter/
 - [无障碍测试报告](docs/ACCESSIBILITY_REPORT.md)
 - [交互状态规范文档](docs/INTERACTION_GUIDE.md)
 
+## 主题系统
+
+本项目采用灵活的动态主题架构，支持系统主题、自定义皮肤及节日主题的自动切换。
+
+### 核心特性
+
+- **动态加载**: 使用 `useThemeComponent` Hook 实现主题组件的按需加载，优化首屏性能。
+- **节日主题**: 内置节日检测算法 (`detectFestivalTheme`)，在特定日期（如春节、万圣节）自动激活专属主题。
+- **样式隔离**: 采用 SCSS 变量与 CSS Modules 结合，确保不同主题间的样式互不干扰。
+- **持久化**: 用户的主题偏好会自动保存至本地存储。
+
+### 开发指南
+
+#### 新增主题
+
+1. 在 `layout/default/src/themes` 目录下创建新的主题 SCSS 文件。
+2. 在 `layout/default/src/themes/index.ts` 中注册新主题。
+3. 如果需要专用组件，请在 `layout/default/src/components/lay-sidebar/components/themes` 下创建对应组件。
+
+#### 使用 `useThemeComponent`
+
+```typescript
+import { useThemeComponent } from "/@/hooks/useThemeComponent";
+
+// 动态获取当前主题对应的侧边栏组件
+const { component } = useThemeComponent("SidebarItem");
+```
+
 ## 快速开始
 
 ### 环境要求

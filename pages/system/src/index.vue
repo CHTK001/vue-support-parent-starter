@@ -357,7 +357,7 @@ const featureItems: FeatureItem[] = [
     }
 
     .feature-icon-wrapper {
-      transform: translateY(-2px) scale(1.03);
+      transform: translateY(-2px);
       box-shadow: 0 10px 24px color-mix(in srgb, var(--card-accent) 32%, transparent);
     }
 

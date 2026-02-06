@@ -24,12 +24,6 @@ import {
 import { useDefer } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
-import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
-import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
-import ArrowDown from "@iconify-icons/ri/arrow-down-s-line";
-import ArrowRightSLine from "@iconify-icons/ri/arrow-right-s-line";
-import ArrowLeftSLine from "@iconify-icons/ri/arrow-left-s-line";
-
 // 接收主题类名和背景配置
 const props = defineProps<{
   themeClass?: string;
@@ -240,11 +234,11 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
   const valueIndex: number = multiTags.value.findIndex((item: any) => {
     if (item.query) {
       if (item.path === obj.path) {
-        return item.query === obj.query;
+        return isEqual(item.query, obj.query);
       }
     } else if (item.params) {
       if (item.path === obj.path) {
-        return item.params === obj.params;
+        return isEqual(item.params, obj.params);
       }
     } else {
       return item.path === obj.path;
@@ -354,10 +348,10 @@ function onClickDrop(key, item, selectRoute?: RouteConfigs) {
       onContentFullScreen();
       setTimeout(() => {
         if (pureSetting.hiddenSideBar) {
-          tagsViews[6].icon = ExitFullscreen;
+          tagsViews[6].icon = "ri:fullscreen-exit-fill";
           tagsViews[6].text = $t("buttons.pureContentExitFullScreen");
         } else {
-          tagsViews[6].icon = Fullscreen;
+          tagsViews[6].icon = "ri:fullscreen-fill";
           tagsViews[6].text = $t("buttons.pureContentFullScreen");
         }
       }, 100);
@@ -566,7 +560,7 @@ const deferTag = useDefer(tagsViews?.length);
     </div>
     
     <span v-show="isShowArrow" class="arrow-left">
-      <IconifyIconOffline :icon="ArrowLeftSLine" @click="handleScroll(200)" />
+      <IconifyIconOnline icon="ri:arrow-left-s-line" @click="handleScroll(200)" />
     </span>
     <div
       ref="scrollbarDom"
@@ -574,11 +568,11 @@ const deferTag = useDefer(tagsViews?.length);
       :class="showModel === 'chrome' && 'chrome-scroll-container'"
       @wheel.prevent="handleWheel"
     >
-      <div ref="tabDom" class="tab select-none" :style="getTabStyle">
+      <transition-group ref="tabDom" tag="div" name="tag-fade" class="tab select-none" :style="getTabStyle">
         <div
           v-for="(item, index) in multiTags"
           :ref="'dynamic' + index"
-          :key="index"
+          :key="item.path"
           :class="[
             'scroll-item is-closable',
             linkIsActive(item),
@@ -642,10 +636,10 @@ const deferTag = useDefer(tagsViews?.length);
             <span class="chrome-tab-divider" />
           </div>
         </div>
-      </div>
+      </transition-group>
     </div>
     <span v-show="isShowArrow" class="arrow-right">
-      <IconifyIconOffline :icon="ArrowRightSLine" @click="handleScroll(-200)" />
+      <IconifyIconOnline icon="ri:arrow-right-s-line" @click="handleScroll(-200)" />
     </span>
     
     <!-- 右键菜单（去除过渡动画，直接显示/隐藏） -->
@@ -673,10 +667,11 @@ const deferTag = useDefer(tagsViews?.length);
       trigger="click"
       placement="bottom-end"
       popper-class="tag-function-dropdown-popper"
+      class="tags-options"
       @command="handleCommand"
     >
       <span class="arrow-down">
-        <IconifyIconOffline :icon="ArrowDown" class="dark:text-white" />
+        <IconifyIconOnline icon="ri:arrow-down-s-line" class="dark:text-white" />
       </span>
       <template #dropdown>
         <el-dropdown-menu>
@@ -688,7 +683,7 @@ const deferTag = useDefer(tagsViews?.length);
               :divided="item.divided"
               :disabled="item.disabled"
             >
-              <IconifyIconOffline :icon="item.icon" />
+              <IconifyIconOnline :icon="item.icon" />
               {{ transformI18n(item.text) }}
             </el-dropdown-item>
           </span>

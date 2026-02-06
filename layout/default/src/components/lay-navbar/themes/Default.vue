@@ -13,14 +13,15 @@ import BaseNavbar from './BaseNavbar.vue';
 .default-wrapper {
   // Use semantic tokens from the new theme system
   // The value of these variables is controlled by the global ThemeManager
-  --default-navbar-bg: var(--theme-surface-navbar, rgba(255, 255, 255, 0.8));
-  --default-navbar-border: var(--theme-border-base, rgba(0, 0, 0, 0.05));
+  --default-navbar-bg: var(--stitch-lay-bg-overlay, rgba(255, 255, 255, 0.8));
+  --default-navbar-border: var(--stitch-lay-border, rgba(0, 0, 0, 0.05));
   --default-navbar-backdrop: blur(12px);
   
   width: 100%;
   
   :deep(.default-navbar) {
     background: var(--default-navbar-bg);
+    color: var(--stitch-lay-text-main);
     backdrop-filter: var(--default-navbar-backdrop);
     -webkit-backdrop-filter: var(--default-navbar-backdrop);
     border-bottom: 1px solid var(--default-navbar-border);

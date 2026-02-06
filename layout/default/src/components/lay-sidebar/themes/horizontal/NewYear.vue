@@ -76,13 +76,8 @@ $frost-white: #FFFFFF;
       background: transparent !important;
       border-bottom: none !important;
       
-      &.el-menu {
-        background: transparent !important;
-        --el-menu-bg-color: transparent !important;
-      }
-      
-      .el-menu-item,
-      .el-sub-menu__title {
+      .custom-menu-item,
+      .custom-sub-menu__title {
         color: $ice-darker !important;
         background: transparent !important;
         border-radius: 8px;
@@ -126,12 +121,12 @@ $frost-white: #FFFFFF;
           }
         }
         
-        .el-icon, svg {
+        .menu-icon, svg {
           color: $ice-primary !important;
           transition: all 0.3s ease;
         }
         
-        &:hover .el-icon, &:hover svg {
+        &:hover .menu-icon, &:hover svg {
           color: $ice-deep !important;
         }
         
@@ -141,21 +136,21 @@ $frost-white: #FFFFFF;
       }
       
       // 子菜单样式
-      .el-sub-menu {
-        .el-sub-menu__title {
+      .custom-sub-menu {
+        .custom-sub-menu__title {
           color: $ice-darker !important;
           background: transparent !important;
           
-          .el-sub-menu__icon-arrow {
+          .custom-sub-menu__icon-arrow {
             color: $ice-primary !important;
           }
         }
         
-        &.is-active > .el-sub-menu__title {
+        &.is-active > .custom-sub-menu__title {
           color: $ice-deep !important;
           background: rgba($ice-medium, 0.12) !important;
           
-          .el-sub-menu__icon-arrow {
+          .custom-sub-menu__icon-arrow {
             color: $ice-deep !important;
           }
         }
@@ -165,7 +160,7 @@ $frost-white: #FFFFFF;
     .horizontal-header-right {
       color: $ice-darker;
       
-      .el-icon, svg {
+      .menu-icon, svg {
         color: $ice-primary !important;
         transition: all 0.3s ease;
         

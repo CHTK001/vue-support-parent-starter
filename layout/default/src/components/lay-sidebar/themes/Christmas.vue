@@ -56,7 +56,7 @@ onMounted(() => {
   
   --sidebar-bg-color: linear-gradient(180deg, var(--xmas-green-dark) 0%, var(--xmas-green) 100%);
   --sidebar-text-color: var(--xmas-white);
-  --sidebar-active-bg: linear-gradient(135deg, var(--xmas-red), var(--xmas-red-light));
+  --sidebar-active-bg: rgba(211, 47, 47, 0.15);
   --sidebar-hover-bg: rgba(255, 255, 255, 0.1);
   --sidebar-border-color: rgba(255, 179, 0, 0.2);
 

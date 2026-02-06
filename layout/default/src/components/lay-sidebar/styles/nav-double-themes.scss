@@ -11,11 +11,11 @@
   --nav-double-left-border: var(--el-border-color-lighter);
   --nav-double-right-bg: var(--el-bg-color-page);
   --nav-double-icon-color: var(--el-text-color-primary);
-  --nav-double-icon-active-bg: var(--el-color-primary);
-  --nav-double-icon-active-color: #ffffff;
+  --nav-double-icon-active-bg: var(--theme-color-opacity-8, rgba(64, 158, 255, 0.08));
+  --nav-double-icon-active-color: var(--el-color-primary);
   --nav-double-menu-color: var(--el-text-color-primary);
-  --nav-double-menu-active-bg: var(--el-color-primary);
-  --nav-double-menu-active-color: #ffffff;
+  --nav-double-menu-active-bg: var(--theme-color-opacity-8, rgba(64, 158, 255, 0.08));
+  --nav-double-menu-active-color: var(--el-color-primary);
 }
 
 // ==================== 春节主题 ====================
@@ -24,11 +24,11 @@ html[data-skin="spring-festival"] {
   --nav-double-left-border: rgba(255, 215, 0, 0.4);
   --nav-double-right-bg: linear-gradient(180deg, #a01010 0%, #800000 100%);
   --nav-double-icon-color: rgba(255, 215, 0, 0.85);
-  --nav-double-icon-active-bg: linear-gradient(135deg, #ffd700, #ffc107);
-  --nav-double-icon-active-color: #8b0000;
+  --nav-double-icon-active-bg: rgba(255, 215, 0, 0.15);
+  --nav-double-icon-active-color: #ffd700;
   --nav-double-menu-color: #ffd700;
-  --nav-double-menu-active-bg: linear-gradient(135deg, #ffd700 0%, #FFA500 100%);
-  --nav-double-menu-active-color: #8b0000;
+  --nav-double-menu-active-bg: rgba(255, 215, 0, 0.15);
+  --nav-double-menu-active-color: #ffd700;
 }
 
 // ==================== 赛博朋克主题 ====================
@@ -37,11 +37,11 @@ html[data-skin="cyberpunk"] {
   --nav-double-left-border: rgba(0, 255, 255, 0.3);
   --nav-double-right-bg: linear-gradient(180deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 25, 0.95));
   --nav-double-icon-color: #00ffff;
-  --nav-double-icon-active-bg: rgba(0, 255, 255, 0.2);
-  --nav-double-icon-active-color: #ffffff;
+  --nav-double-icon-active-bg: rgba(0, 255, 255, 0.15);
+  --nav-double-icon-active-color: #00ffff;
   --nav-double-menu-color: #00ffff;
   --nav-double-menu-active-bg: rgba(0, 255, 255, 0.15);
-  --nav-double-menu-active-color: #ffffff;
+  --nav-double-menu-active-color: #00ffff;
 }
 
 // ==================== 中秋主题 ====================
@@ -50,11 +50,11 @@ html[data-skin="mid-autumn"] {
   --nav-double-left-border: rgba(255, 213, 79, 0.4);
   --nav-double-right-bg: linear-gradient(180deg, #1a237e 0%, #141b5a 100%);
   --nav-double-icon-color: #ffd54f;
-  --nav-double-icon-active-bg: linear-gradient(135deg, #ffd54f, #ffb300);
-  --nav-double-icon-active-color: #1a237e;
+  --nav-double-icon-active-bg: rgba(255, 213, 79, 0.15);
+  --nav-double-icon-active-color: #ffd54f;
   --nav-double-menu-color: #ffd54f;
-  --nav-double-menu-active-bg: linear-gradient(135deg, #ffd54f 0%, #ffb300 100%);
-  --nav-double-menu-active-color: #1a237e;
+  --nav-double-menu-active-bg: rgba(255, 213, 79, 0.15);
+  --nav-double-menu-active-color: #ffd54f;
 }
 
 // ==================== 圣诞主题 ====================
@@ -63,11 +63,11 @@ html[data-skin="christmas"] {
   --nav-double-left-border: rgba(255, 215, 0, 0.3);
   --nav-double-right-bg: linear-gradient(180deg, #1b5e20 0%, #145214 100%);
   --nav-double-icon-color: #ffffff;
-  --nav-double-icon-active-bg: linear-gradient(135deg, #c62828, #e53935);
-  --nav-double-icon-active-color: #ffffff;
+  --nav-double-icon-active-bg: rgba(211, 47, 47, 0.2);
+  --nav-double-icon-active-color: #ffb300;
   --nav-double-menu-color: #ffffff;
-  --nav-double-menu-active-bg: linear-gradient(135deg, #c62828, #e53935);
-  --nav-double-menu-active-color: #ffffff;
+  --nav-double-menu-active-bg: rgba(211, 47, 47, 0.2);
+  --nav-double-menu-active-color: #ffb300;
 }
 
 // ==================== 元旦主题 ====================
@@ -76,9 +76,9 @@ html[data-skin="new-year"] {
   --nav-double-left-border: rgba(78, 168, 222, 0.3);
   --nav-double-right-bg: linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%);
   --nav-double-icon-color: #2a7ab8;
-  --nav-double-icon-active-bg: linear-gradient(135deg, #4ea8de, #7cc2e8);
-  --nav-double-icon-active-color: #ffffff;
+  --nav-double-icon-active-bg: rgba(78, 168, 222, 0.15);
+  --nav-double-icon-active-color: #2a7ab8;
   --nav-double-menu-color: #2a7ab8;
-  --nav-double-menu-active-bg: linear-gradient(135deg, #4ea8de, #7cc2e8);
-  --nav-double-menu-active-color: #ffffff;
+  --nav-double-menu-active-bg: rgba(78, 168, 222, 0.15);
+  --nav-double-menu-active-color: #2a7ab8;
 }

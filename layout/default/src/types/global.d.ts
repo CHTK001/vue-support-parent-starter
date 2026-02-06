@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 /**
  * 全局类型声明
  * 用于解决 @ts-ignore 和类型推断问题

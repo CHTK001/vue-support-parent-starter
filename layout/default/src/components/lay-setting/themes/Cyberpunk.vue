@@ -69,7 +69,6 @@ $cyber-border-hover: rgba(0, 255, 255, 0.45);
     background: $cyber-glass !important;
     border: 1px solid $cyber-border !important;
     border-radius: 12px !important;
-    backdrop-filter: blur(16px);
     box-shadow:
       0 0 20px rgba(0, 255, 255, 0.1),
       inset 0 0 30px rgba(0, 255, 255, 0.03) !important;

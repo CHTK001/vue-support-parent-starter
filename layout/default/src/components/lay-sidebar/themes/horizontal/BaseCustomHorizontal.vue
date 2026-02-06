@@ -314,6 +314,7 @@ watch(visibleCount, () => {
   height: 56px;
   background: var(--pure-theme-menu-bg, #fff);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid var(--el-border-color-light);
   padding: 0 16px;
   position: relative;
 }

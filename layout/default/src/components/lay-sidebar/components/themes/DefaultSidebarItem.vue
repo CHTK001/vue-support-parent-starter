@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { provide } from 'vue';
 import type { MenuType } from "@repo/core";
 import type { PropType } from "vue";
 import BaseSidebarItem from '../BaseSidebarItem.vue';
@@ -16,11 +15,11 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  collapse: {
+    type: Boolean,
+    default: undefined,
+  },
 });
-
-// 提供自身作为主题 SidebarItem（用于子菜单递归）
-import DefaultSidebarItem from './DefaultSidebarItem.vue';
-provide('themeSidebarItem', DefaultSidebarItem);
 </script>
 
 <template>
@@ -29,6 +28,7 @@ provide('themeSidebarItem', DefaultSidebarItem);
       :item="item"
       :is-nest="isNest"
       :base-path="basePath"
+      :collapse="collapse"
     >
       <template #activeDecoration>
         <div class="active-indicator"></div>
@@ -39,14 +39,16 @@ provide('themeSidebarItem', DefaultSidebarItem);
 
 <style lang="scss" scoped>
 .default-sidebar-item-wrapper {
-  --item-text-color: var(--el-text-color-primary);
+  --item-text-color: var(--hover-nav-menu-color);
   --item-hover-bg: rgba(0, 0, 0, 0.04);
-  // 修复：使用 8% 透明度的主题色作为激活背景
-  --item-active-bg: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
-  --item-active-text: var(--el-color-primary);
+  // 默认（亮色模式）：使用纯色主题色作为背景，白色文字
+  --item-active-bg: var(--el-color-primary);
+  --item-active-text: #fff;
+  
   --item-border-radius: 8px;
   
-  :deep(.sidebar-menu-item) {
+  :deep(.sidebar-menu-item),
+  :deep(.el-sub-menu__title) {
     color: var(--item-text-color);
     background-color: transparent;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -69,12 +71,12 @@ provide('themeSidebarItem', DefaultSidebarItem);
     // 兼容 layui 类名 .layui-this
     &.is-active,
     &.layui-this {
-      background-color: var(--item-active-bg);
-      color: var(--item-active-text);
+      background-color: var(--item-active-bg) !important;
+      color: var(--item-active-text) !important;
       font-weight: 600;
       
       .el-icon, svg, span, div, .el-text {
-        color: var(--item-active-text);
+        color: var(--item-active-text) !important;
       }
 
       &::before {
@@ -103,6 +105,7 @@ provide('themeSidebarItem', DefaultSidebarItem);
     .el-sub-menu__title {
       color: var(--item-text-color);
       margin: 4px 8px;
+      width: calc(100% - 16px) !important;
       border-radius: var(--item-border-radius);
       height: 48px;
       line-height: 48px;
@@ -118,11 +121,20 @@ provide('themeSidebarItem', DefaultSidebarItem);
     }
 
     &.is-active > .el-sub-menu__title {
-      color: var(--item-active-text);
+      // 默认（亮色）：使用主题色文字
+      color: var(--el-color-primary) !important;
       font-weight: 600;
       
       .el-icon, svg, span, div {
-        color: var(--item-active-text);
+        color: var(--el-color-primary) !important;
+      }
+
+      // 暗色模式适配
+      @at-root html.dark & {
+        color: var(--item-active-text) !important;
+        .el-icon, svg, span, div {
+          color: var(--item-active-text) !important;
+        }
       }
     }
   }
