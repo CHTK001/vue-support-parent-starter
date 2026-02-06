@@ -54,8 +54,9 @@ $cyber-border: rgba(0, 255, 255, 0.25);
       z-index: 10;
     }
     
-    .custom-menu-item {
-      color: $cyber-cyan;
+    .custom-menu-item,
+    .custom-sub-menu__title {
+      color: var(--hover-nav-menu-color);
       border-radius: 4px;
       margin: 0 4px;
       padding: 0 16px;
@@ -76,7 +77,7 @@ $cyber-border: rgba(0, 255, 255, 0.25);
       }
       
       .menu-icon {
-        color: $cyber-cyan;
+        color: var(--hover-nav-menu-color);
         filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
       }
       

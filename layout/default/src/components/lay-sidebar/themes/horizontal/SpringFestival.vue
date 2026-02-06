@@ -71,13 +71,8 @@ $spring-border: rgba(255, 215, 0, 0.3);
       background: transparent !important;
       border-bottom: none !important;
       
-      &.el-menu {
-        background: transparent !important;
-        --el-menu-bg-color: transparent !important;
-      }
-      
-      .el-menu-item,
-      .el-sub-menu__title {
+      .custom-menu-item,
+      .custom-sub-menu__title {
         color: rgba(255, 255, 255, 0.95) !important;
         background: transparent !important;
         border-radius: 4px;
@@ -118,7 +113,7 @@ $spring-border: rgba(255, 215, 0, 0.3);
           }
         }
         
-        .el-icon, svg {
+        .menu-icon, svg {
           color: inherit !important;
         }
         
@@ -128,17 +123,17 @@ $spring-border: rgba(255, 215, 0, 0.3);
       }
       
       // 子菜单样式
-      .el-sub-menu {
-        .el-sub-menu__title {
+      .custom-sub-menu {
+        .custom-sub-menu__title {
           color: rgba(255, 255, 255, 0.95) !important;
           background: transparent !important;
           
-          .el-sub-menu__icon-arrow {
+          .custom-sub-menu__icon-arrow {
             color: inherit !important;
           }
         }
         
-        &.is-active > .el-sub-menu__title {
+        &.is-active > .custom-sub-menu__title {
           color: $spring-gold !important;
           background: rgba(255, 215, 0, 0.2) !important;
         }
@@ -148,7 +143,7 @@ $spring-border: rgba(255, 215, 0, 0.3);
     .horizontal-header-right {
       color: rgba(255, 255, 255, 0.95);
       
-      .el-icon, svg {
+      .menu-icon, svg {
         color: rgba(255, 255, 255, 0.9) !important;
         transition: all 0.3s ease;
         

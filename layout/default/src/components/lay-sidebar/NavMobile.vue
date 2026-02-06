@@ -8,17 +8,15 @@
 import { useRoute, useRouter } from "vue-router";
 import { usePermissionStoreHook } from "@repo/core";
 import { useNav } from "../../hooks/useNav";
-import { transformI18n } from "@repo/config";
 import { isAllEmpty } from "@pureadmin/utils";
-import { computed, ref, toRaw, watch } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { computed, ref, watch } from "vue";
 import type { MenuItem } from "../../types/menu";
-import LaySidebarExtraIcon from "./components/SidebarExtraIcon.vue";
+import DefaultSidebarItem from "./components/themes/DefaultSidebarItem.vue";
 import UserDropdown from "../../components/lay-tool/dropdowns/UserDropdown.vue"; // 引入用户下拉组件
 
 const route = useRoute();
 const router = useRouter();
-const { title } = useNav(); // 获取标题
+const { title, onPanel } = useNav(); // 获取标题
 
 // 提取 store 到顶层避免重复调用
 const permissionStore = usePermissionStoreHook();
@@ -31,9 +29,6 @@ function toggleDrawer() {
   drawerVisible.value = !drawerVisible.value;
 }
 
-// 当前选中的一级菜单索引
-const activeMenuIndex = ref(0);
-
 // 获取菜单数据
 const menuData = computed(() => {
   return permissionStore.wholeMenus || [];
@@ -44,46 +39,17 @@ const defaultActive = computed(() =>
   !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
 );
 
-/**
- * 获取菜单的实际跳转路径
- */
-function getMenuPath(item: MenuItem): string {
-  if (item.redirect && item.redirect !== item.path) {
-    return item.redirect;
-  }
-  if (item.children && item.children.length > 0) {
-    const showingChildren = item.children.filter(
-      (child: MenuItem) => child.meta?.showLink !== false
-    );
-    if (showingChildren.length > 0) {
-      return getMenuPath(showingChildren[0]);
-    }
-  }
-  return item.path;
-}
-
-// 点击菜单项
-function handleMenuClick(item: MenuItem) {
-  const targetPath = getMenuPath(item);
-  router.push(targetPath);
+// 菜单选择事件
+function handleMenuSelect() {
   drawerVisible.value = false; // 关闭抽屉
 }
 
-// 监听路由变化，更新激活状态
-watch(
-  () => route.path,
-  (newPath) => {
-    // 查找当前路由属于哪个一级菜单
-    for (let i = 0; i < menuData.value.length; i++) {
-      const menu = menuData.value[i];
-      if (newPath.startsWith(menu.path)) {
-        activeMenuIndex.value = i;
-        break;
-      }
-    }
-  },
-  { immediate: true }
-);
+// 监听路由变化 (el-menu会自动处理激活状态，这里主要是为了可能的额外逻辑，或者保持原有逻辑)
+// 原有逻辑是更新 activeMenuIndex，但在 el-menu 中不需要了。
+// 我们可以保留监听路由来关闭抽屉？不用，handleMenuSelect 已经处理了点击。
+// 如果用户通过其他方式（如浏览器后退）改变路由，el-menu 会自动更新 defaultActive。
+// 所以原来的 watch 可以移除。
+
 </script>
 
 <template>
@@ -99,6 +65,10 @@ watch(
         <span class="app-title">{{ title }}</span>
       </div>
       <div class="header-right">
+        <!-- 系统设置 -->
+        <div class="setting-trigger" @click="onPanel">
+          <IconifyIconOnline icon="ri:settings-3-line" class="trigger-icon" />
+        </div>
         <!-- 用户头像/下拉 -->
         <UserDropdown class="mobile-user-dropdown" />
       </div>
@@ -125,20 +95,22 @@ watch(
         
         <!-- 菜单列表 -->
         <div class="drawer-menu-list thin-scroller">
-          <template v-for="item in menuData" :key="item.path">
-            <!-- 一级菜单项 (如果有子菜单，简单处理为点击展开或直接跳转，此处简化为直接展示一级或递归展示) -->
-            <!-- 这里简化处理：直接展示一级菜单，点击跳转 -->
-             <div 
-               class="nav-item"
-               :class="{ 'is-active': activeMenuIndex === menuData.indexOf(item) }"
-               @click="handleMenuClick(item)"
-             >
-                <div class="nav-icon">
-                  <component :is="useRenderIcon(item.meta && toRaw(item.meta.icon))" />
-                </div>
-                <span class="nav-label">{{ transformI18n(item.meta?.i18nKey || item.meta?.title) }}</span>
-             </div>
-          </template>
+          <el-menu
+            :default-active="defaultActive"
+            class="mobile-menu"
+            :collapse="false"
+            unique-opened
+            router
+            @select="handleMenuSelect"
+          >
+            <DefaultSidebarItem
+              v-for="route in menuData"
+              :key="route.path"
+              :item="route"
+              :base-path="route.path"
+              :collapse="false"
+            />
+          </el-menu>
         </div>
       </div>
     </el-drawer>
@@ -156,8 +128,8 @@ watch(
 
 .mobile-header {
   height: var(--mobile-header-height, 52px);
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--stitch-lay-bg-panel, #fff);
+  border-bottom: 1px solid var(--stitch-lay-border, #f0f0f0);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -167,11 +139,6 @@ watch(
   left: 0;
   right: 0;
   z-index: 100;
-  
-  :deep(.dark) & {
-    background: var(--el-bg-color);
-    border-bottom: 1px solid var(--el-border-color-light);
-  }
 }
 
 .header-left {
@@ -180,7 +147,14 @@ watch(
   gap: 12px;
 }
 
-.menu-trigger {
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-trigger,
+.setting-trigger {
   width: 44px;
   height: 44px; /* 44px 触控热区 */
   display: flex;
@@ -190,7 +164,7 @@ watch(
   
   .trigger-icon {
     font-size: 24px;
-    color: var(--el-text-color-primary);
+    color: var(--stitch-lay-text-main, var(--el-text-color-primary));
   }
   
   &:active {
@@ -198,10 +172,16 @@ watch(
   }
 }
 
+.mobile-menu {
+  border-right: none;
+  background-color: transparent;
+}
+
+
 .app-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--stitch-lay-text-main, var(--el-text-color-primary));
 }
 
 .mobile-content {
@@ -215,7 +195,7 @@ watch(
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color);
+  background: var(--stitch-lay-bg-panel, var(--el-bg-color));
 }
 
 .drawer-header {
@@ -223,7 +203,7 @@ watch(
   display: flex;
   align-items: center;
   padding: 0 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
   font-size: 16px;
   font-weight: 600;
 }

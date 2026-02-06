@@ -9,6 +9,8 @@
 @use "../../colors/index" as colors;
 // 导入Element Plus主题覆盖
 @use "../../element-plus/theme-override";
+// 导入 Stitch Layout Tokens
+@use "../../stitch-layout-tokens";
 // 导入 Stitch Utilities (Modern/Glass)
 @use "../../stitch-utilities";
 

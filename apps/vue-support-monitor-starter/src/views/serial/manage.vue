@@ -1,9 +1,8 @@
-﻿<template>
+<template>
   <div
     class="serial-manage-container !overflow-hidden h-[100vh] system-container modern-bg"
     :style="{
-      '--layoutRadius': ($storage?.configure.layoutRadius || 10) + 'px',
-      '--layoutBlur': ($storage?.configure.layoutBlur || 4) + 'px'
+      '--layoutRadius': ($storage?.configure.layoutRadius || 10) + 'px'
     }"
   >
     <el-container class="manage-layout rounded">

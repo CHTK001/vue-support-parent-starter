@@ -27,8 +27,9 @@ $xmas-white: #ffffff;
 :deep(.christmas-mix) {
     background: linear-gradient(180deg, $xmas-green 0%, color.adjust($xmas-green, $lightness: -5%) 100%) !important;
     
-    .custom-menu-item {
-      color: $xmas-white;
+    .custom-menu-item,
+    .custom-sub-menu__title {
+      color: var(--hover-nav-menu-color);
       border-radius: 6px;
       margin: 0 4px;
       padding: 0 16px;
@@ -36,30 +37,27 @@ $xmas-white: #ffffff;
       transition: all 0.3s ease;
       
       .menu-icon {
-        color: $xmas-gold;
+        color: var(--hover-nav-menu-color);
       }
       
       &:hover {
         background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7));
+        color: #fff;
         
         .menu-icon {
-          color: $xmas-white;
+          color: #fff;
         }
       }
       
       &.is-active {
-        background: linear-gradient(135deg, $xmas-red, $xmas-red-light);
-        color: $xmas-white;
+        background: linear-gradient(135deg, #c62828, #e53935) !important; 
+        border: 2px solid #ffd700 !important; 
+        box-shadow: 0 4px 16px rgba(198, 40, 40, 0.5) !important;
+        color: #fff !important;
         
         .menu-icon {
-          color: $xmas-white;
+          color: #fff !important;
         }
-      }
-    }
-    
-    .custom-sub-menu.more-menu {
-      .custom-sub-menu-title {
-        color: $xmas-white;
       }
     }
   }

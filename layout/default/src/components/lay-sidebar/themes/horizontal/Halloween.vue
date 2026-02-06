@@ -73,13 +73,8 @@ $hw-border: #4a0e68;
       background: transparent !important;
       border-bottom: none !important;
       
-      &.el-menu {
-        background: transparent !important;
-        --el-menu-bg-color: transparent !important;
-      }
-      
-      .el-menu-item,
-      .el-sub-menu__title {
+      .custom-menu-item,
+      .custom-sub-menu__title {
         color: $hw-pumpkin !important;
         background: transparent !important;
         border-radius: 4px;
@@ -109,7 +104,7 @@ $hw-border: #4a0e68;
             width: 80%;
           }
           
-          .el-icon, svg {
+          .menu-icon, svg {
              color: $hw-green !important;
           }
         }
@@ -123,12 +118,12 @@ $hw-border: #4a0e68;
             box-shadow: 0 0 8px $hw-green;
           }
           
-          .el-icon, svg {
+          .menu-icon, svg {
              color: $hw-green !important;
           }
         }
         
-        .el-icon, svg {
+        .menu-icon, svg {
           color: $hw-pumpkin !important;
         }
         
@@ -138,17 +133,17 @@ $hw-border: #4a0e68;
       }
       
       // 子菜单样式
-      .el-sub-menu {
-        .el-sub-menu__title {
+      .custom-sub-menu {
+        .custom-sub-menu__title {
           color: $hw-pumpkin !important;
           background: transparent !important;
           
-          .el-sub-menu__icon-arrow {
+          .custom-sub-menu__icon-arrow {
             color: inherit !important;
           }
         }
         
-        &.is-active > .el-sub-menu__title {
+        &.is-active > .custom-sub-menu__title {
           color: $hw-green !important;
           background: rgba(255, 117, 24, 0.2) !important;
         }
@@ -158,7 +153,7 @@ $hw-border: #4a0e68;
     .horizontal-header-right {
       color: $hw-pumpkin;
       
-      .el-icon, svg {
+      .menu-icon, svg {
         color: $hw-pumpkin !important;
         transition: all 0.3s ease;
         

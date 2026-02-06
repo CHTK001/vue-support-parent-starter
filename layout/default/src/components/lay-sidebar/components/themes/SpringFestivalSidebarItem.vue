@@ -40,59 +40,46 @@ provide('themeSidebarItem', SpringFestivalSidebarItem);
   :deep(.el-sub-menu__title) {
     margin: 4px 8px;
     border-radius: 6px;
-    color: var(--sf-gold-light);
+    color: var(--hover-nav-menu-color);
     transition: all 0.3s ease;
     border: 1px solid transparent;
 
     &:hover {
       background: var(--sidebar-hover-bg);
-      color: var(--sf-gold);
+      color: #fff;
       border-color: rgba(255, 207, 64, 0.2);
       
       .el-icon, .sub-menu-icon svg {
-        color: var(--sf-gold);
+        color: #fff;
         transform: scale(1.1);
       }
     }
 
     .el-icon, .sub-menu-icon svg {
       transition: transform 0.3s;
-      color: rgba(255, 207, 64, 0.7);
+      color: var(--hover-nav-menu-color);
     }
   }
 
   // 激活状态
   :deep(.sidebar-menu-item.is-active) {
-    background: var(--sidebar-active-bg);
-    color: var(--sf-gold);
+    background: linear-gradient(135deg, #c62828, #e53935) !important;
+    border: 2px solid #ffd700 !important;
+    box-shadow: 0 4px 16px rgba(198, 40, 40, 0.5) !important;
+    color: #fff !important;
     font-weight: 600;
-    border: 1px solid var(--sf-gold);
-    box-shadow: 0 0 10px rgba(255, 207, 64, 0.1);
     
     .el-icon, .sub-menu-icon svg {
-      color: var(--sf-gold);
-    }
-    
-    // 中国结装饰 (使用 CSS 绘制简化版)
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 4px;
-      height: 60%;
-      background: var(--sf-gold);
-      border-radius: 0 2px 2px 0;
+      color: #fff;
     }
   }
 
   :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-    color: var(--sf-gold);
+    color: #fff;
     font-weight: 600;
     
     .el-icon, .sub-menu-icon svg {
-      color: var(--sf-gold);
+      color: #fff;
     }
   }
 }

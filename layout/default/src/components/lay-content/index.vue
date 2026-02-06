@@ -76,10 +76,6 @@ const layoutRadius = computed(() => {
   return $storage?.configure.layoutRadius || 10;
 });
 
-const layoutBlur = computed(() => {
-  return $storage?.configure.layoutBlur || 4;
-});
-
 const hideFooter = ref($storage?.configure.hideFooter ?? false);
 const menuTransition = ref($storage?.configure?.menuTransition ?? false);
 const transitionType = ref($storage?.configure?.transitionType ?? 'fade-slide');
@@ -132,6 +128,10 @@ const getMainWidth = computed(() => {
 // 判断是否为移动导航模式
 const isMobileLayout = computed(() => layoutMode.value === "mobile");
 
+const headerHeight = computed(() => {
+  return hideTabs.value ? 60 : 102;
+});
+
 const getSectionStyle = computed(() => {
   // 移动导航模式下，没有标签页，padding-top 更小
   if (isMobileLayout.value) {
@@ -141,7 +141,7 @@ const getSectionStyle = computed(() => {
   return [
     props.fixedHeader
       ? ""
-      : `padding-top: 0;${hideTabs.value ? "min-height: calc(100vh - 48px);" : "min-height: calc(100vh - 86px);"}`,
+      : `padding-top: 0;min-height: calc(100vh - ${headerHeight.value}px);`,
   ];
 });
 
@@ -157,7 +157,6 @@ onMounted(() => {
       "--layoutRadius",
       layoutRadius.value + "px"
     );
-    document.body.style.setProperty("--layoutBlur", layoutBlur.value + "px");
   });
 });
 
@@ -286,6 +285,9 @@ onBeforeUnmount(() => {
               :style="{
                 'max-width': getMainWidth,
                 margin: '0 auto',
+                height: `calc(100vh - ${headerHeight}px)`,
+                padding: `${contentMargin}px`,
+                boxSizing: 'border-box'
               }"
             >
               <el-backtop
@@ -298,9 +300,8 @@ onBeforeUnmount(() => {
                 class="layout sidebar-custom thin-scroller"
                 shadow="never"
                 :style="{
-                  height: 'calc(100vh - 86px - ' + contentMargin * 2 + 'px)',
-                  'border-radius': layoutRadius + 'px  !important',
-                  margin: contentMargin + 'px'
+                  height: '100%',
+                  'border-radius': layoutRadius + 'px  !important'
                 }"
               >
                 <ContentRenderer
@@ -317,8 +318,7 @@ onBeforeUnmount(() => {
                 v-else
                 class="content-scrollbar no-card-mode"
                 :style="{
-                  margin: contentMargin + 'px',
-                  height: 'calc(100vh - 86px - ' + contentMargin * 2 + 'px)',
+                  height: '100%',
                   'border-radius': layoutRadius + 'px !important',
                 }"
               >
@@ -438,6 +438,16 @@ onBeforeUnmount(() => {
 
 .content-scrollbar {
   background: var(--el-bg-color);
+  
+  // 确保 scrollbar 的视图区域也是满高度，否则内部元素 height: 100% 会失效
+  :deep(.el-scrollbar__wrap) {
+    height: 100%;
+  }
+  :deep(.el-scrollbar__view) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 /* 非卡片内容模式：去除边框和背景 */
@@ -454,8 +464,7 @@ onBeforeUnmount(() => {
   /* 禁止内部内容产生滚动条，统一由外层 el-scrollbar 处理 */
   :deep(.main-content) {
     overflow: visible !important;
-    height: auto !important;
-    min-height: 100%;
+    height: 100% !important;
   }
 
   :deep(.thin-scroller) {

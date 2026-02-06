@@ -204,11 +204,6 @@ const scrollWrapperStyle = computed(() => {
 
 // 计算表格高度，处理各种高度值
 const tableHeight = computed(() => {
-  // 如果 height 为 'auto'，返回 '100%' 让表格撑满父容器
-  if (props.height === "auto") {
-    return "100%";
-  }
-  
   // 如果 height 未定义、为 null、为 undefined，返回 undefined 让表格自适应内容高度
   if (!props.height || props.height === "null") {
     return undefined;

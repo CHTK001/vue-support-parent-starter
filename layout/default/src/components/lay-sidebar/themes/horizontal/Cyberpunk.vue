@@ -80,14 +80,8 @@ $cyber-border: rgba(0, 255, 255, 0.25);
       background: transparent !important;
       border-bottom: none !important;
       
-      // el-menu 本身
-      &.el-menu {
-        background: transparent !important;
-        --el-menu-bg-color: transparent !important;
-      }
-      
-      .el-menu-item,
-      .el-sub-menu__title {
+      .custom-menu-item,
+      .custom-sub-menu__title {
         color: $cyber-cyan !important;
         background: transparent !important;
         border-radius: 4px;
@@ -123,7 +117,7 @@ $cyber-border: rgba(0, 255, 255, 0.25);
         
         &.is-active {
           background: rgba(0, 255, 255, 0.15) !important;
-          color: #fff !important;
+          color: $cyber-cyan !important;
           box-shadow: 
             0 0 20px rgba(0, 255, 255, 0.3),
             inset 0 0 20px rgba(0, 255, 255, 0.08);
@@ -134,7 +128,7 @@ $cyber-border: rgba(0, 255, 255, 0.25);
           }
         }
         
-        .el-icon, svg {
+        .menu-icon, svg {
           color: $cyber-cyan !important;
           filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
         }
@@ -145,18 +139,18 @@ $cyber-border: rgba(0, 255, 255, 0.25);
       }
       
       // 子菜单样式
-      .el-sub-menu {
-        .el-sub-menu__title {
+      .custom-sub-menu {
+        .custom-sub-menu__title {
           color: $cyber-cyan !important;
           background: transparent !important;
           
-          .el-sub-menu__icon-arrow {
+          .custom-sub-menu__icon-arrow {
             color: $cyber-cyan !important;
           }
         }
         
-        &.is-active > .el-sub-menu__title {
-          color: #fff !important;
+        &.is-active > .custom-sub-menu__title {
+          color: $cyber-cyan !important;
           background: rgba(0, 255, 255, 0.15) !important;
         }
       }
@@ -165,7 +159,7 @@ $cyber-border: rgba(0, 255, 255, 0.25);
     .horizontal-header-right {
       color: $cyber-cyan;
       
-      .el-icon, svg {
+      .menu-icon, svg {
         color: $cyber-cyan !important;
         transition: all 0.3s ease;
         

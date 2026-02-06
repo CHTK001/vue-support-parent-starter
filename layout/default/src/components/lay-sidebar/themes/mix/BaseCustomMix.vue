@@ -319,6 +319,7 @@ watch(visibleCount, () => {
   height: 56px;
   background: var(--pure-theme-menu-bg, #fff);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid var(--el-border-color-light);
   padding: 0 16px;
   position: relative;
 }
@@ -330,23 +331,13 @@ watch(visibleCount, () => {
   flex-wrap: nowrap;
   min-width: 0;
   height: 100%;
+  margin: 0 16px;
   overflow: hidden;
   
-  // 确保菜单项不会被压缩，并设置正确高度
+  // 确保菜单项不会被压缩
   :deep(.custom-menu-item),
   :deep(.custom-sub-menu) {
     flex-shrink: 0;
-    height: 56px !important;
-    margin: 0 !important;
-    padding: 0 16px;
-    border-radius: 0;
-  }
-  
-  :deep(.custom-sub-menu__title) {
-    height: 56px !important;
-    margin: 0 !important;
-    padding: 0 16px;
-    border-radius: 0;
   }
 }
 

@@ -94,7 +94,6 @@ const settings = reactive({
   transitionType: $storage.configure.transitionType ?? 'fade-slide',
   contentMargin: $storage.configure.contentMargin,
   layoutRadius: $storage.configure.layoutRadius,
-  layoutBlur: $storage.configure.layoutBlur,
   greyVal: $storage.configure.grey,
   weakVal: $storage.configure.weak,
   invertVal: $storage.configure.invert ?? false,
@@ -125,10 +124,10 @@ const settings = reactive({
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
   // AI 助手设置
   aiChatTheme: $storage.configure.aiChatTheme ?? "default",
-  // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 true）
-  enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? (getConfig().EnableFestivalTheme ?? true),
+  // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 false）
+  enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? (getConfig().EnableFestivalTheme ?? false),
   // 字体加密设置
-  fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? false,
+  fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? true,
   fontEncryptionNumbers: $storage.configure?.fontEncryptionNumbers ?? true,
   fontEncryptionChinese: $storage.configure?.fontEncryptionChinese ?? true,
   fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? false,
@@ -216,6 +215,7 @@ const festivalThemesList = computed(() => {
     description: t.description,
     icon: t.icon || 'ri:palette-line',
     type: t.type,
+    key: t.key,
   }));
 });
 
@@ -243,11 +243,7 @@ const layoutRadiusChange = (value: number): void => {
   storageConfigureChange("layoutRadius", value);
   document.body.style.setProperty("--layoutRadius", value + "px");
 };
-/** 设置内容blur */
-const layoutBlurChange = (value: number): void => {
-  storageConfigureChange("layoutBlur", value);
-  document.body.style.setProperty("--layoutBlur", value + "px");
-};
+// layoutBlurChange removed
 
 /** 切换菜单动画设置 */
 const menuTransitionChange = (value: boolean): void => {
@@ -302,7 +298,8 @@ const festivalThemeChange = (value: boolean): void => {
     if (festivalTheme) {
       switchSystemTheme(festivalTheme.key, true);
     } else {
-      ElMessage.info(t("panel.notInFestivalPeriod"));
+      // 非节日期间，默认使用 Default 主题
+      switchSystemTheme("default", true);
     }
   } else {
     // 关闭自动切换，但不移除当前主题，用户需要手动切换回默认主题
@@ -326,6 +323,14 @@ const switchSystemTheme = (themeKey: string, showMessage: boolean = true): void 
   // 使用 data-skin 属性而不是 class
   htmlEl.setAttribute('data-skin', themeKey);
   
+  // 如果切换到非默认主题，强制切换到浅色模式
+  if (themeKey !== 'default') {
+    dataTheme.value = false;
+    dataThemeChange("light");
+    // 更新 element-plus 主题色为默认蓝色 (避免之前的深色主题色残留)
+    // setLayoutThemeColor("light"); // 可选，视需求而定
+  }
+
   // 不再需要动态加载CSS，所有主题样式已在 @repo/skin 中
   
   // 保存到本地存储
@@ -435,9 +440,7 @@ const adjustValue = (key: string, delta: number): void => {
       case "layoutRadius":
         layoutRadiusChange(newValue);
         break;
-      case "layoutBlur":
-        layoutBlurChange(newValue);
-        break;
+// case layoutBlur removed
     }
   }
 };
@@ -472,9 +475,6 @@ const handleInput = (event: Event, key: string): void => {
         break;
       case "layoutRadius":
         layoutRadiusChange(value);
-        break;
-      case "layoutBlur":
-        layoutBlurChange(value);
         break;
     }
   }
@@ -591,10 +591,10 @@ const markOptions = computed<Array<OptionsType>>(() => {
 
 /** 设置导航模式 */
 function setLayoutModel(layout: string) {
-  layoutTheme.value.layout = layout;
+  layoutTheme.value.layout = layout as any;
   window.document.body.setAttribute("layout", layout);
   $storage.layout = {
-    layout,
+    layout: layout as any,
     theme: layoutTheme.value.theme,
     darkMode: $storage.layout?.darkMode,
     sidebarStatus: $storage.layout?.sidebarStatus,
@@ -677,6 +677,14 @@ const initializeTheme = () => {
 };
 
 onBeforeMount(() => {
+  /* 强制重置节日主题自动切换默认为关闭 (针对旧版本缓存) */
+  const MIGRATION_KEY = "festival_theme_config_reset_v1";
+  if (!localStorage.getItem(MIGRATION_KEY)) {
+    settings.enableFestivalTheme = false;
+    storageConfigureChange("enableFestivalTheme", false);
+    localStorage.setItem(MIGRATION_KEY, "true");
+  }
+
   /* 初始化系统配置 */
   nextTick(() => {
     watchSystemThemeChange();
@@ -846,7 +854,7 @@ function newMenuTimeLimitChange() {
  */
 function newMenuAnimationChange({ option }: { option: OptionsType }) {
   const value = option.value as string;
-  settings.newMenuAnimation = value;
+  settings.newMenuAnimation = value as any;
   storageConfigureChange("newMenuAnimation", value);
 }
 
@@ -1188,7 +1196,15 @@ onUnmounted(() => {
                 :showMeta="true"
                 :persist="false"
                 :modelValue="$storage.configure?.systemTheme || 'default'"
-                @change="(key:string) => switchSystemTheme(key)"
+                @change="(key:string) => {
+                  // 手动切换主题时，自动关闭节日主题自动切换功能
+                  if (settings.enableFestivalTheme) {
+                    settings.enableFestivalTheme = false;
+                    storageConfigureChange('enableFestivalTheme', false);
+                    ElMessage.info(t('panel.festivalThemeAutoDisabled'));
+                  }
+                  switchSystemTheme(key);
+                }"
               />
             </div>
           </div>
@@ -1596,41 +1612,6 @@ onUnmounted(() => {
                     class="number-btn increase"
                     @click="adjustValue('layoutRadius', 1)"
                     :disabled="settings.layoutRadius >= 100"
-                  >
-                    <IconifyIconOffline :icon="'ri:add-line'" />
-                  </button>
-                </div>
-              </div>
-
-              <div class="param-item">
-                <label class="param-label">{{
-                  t("panel.pureLayoutBlur") || "模糊效果"
-                }}</label>
-                <div class="custom-number-input">
-                  <button
-                    class="number-btn decrease"
-                    @click="adjustValue('layoutBlur', -1)"
-                    :disabled="settings.layoutBlur <= 0"
-                  >
-                    <IconifyIconOffline :icon="'ri:subtract-line'" />
-                  </button>
-                  <div class="number-display">
-                    <input
-                      type="number"
-                      v-model.number="settings.layoutBlur"
-                      @input="handleInput($event, 'layoutBlur')"
-                      @keydown="handleKeydown($event, 'layoutBlur')"
-                      :min="0"
-                      :max="100"
-                      class="number-input"
-                      placeholder="0"
-                    />
-                    <span class="number-unit">px</span>
-                  </div>
-                  <button
-                    class="number-btn increase"
-                    @click="adjustValue('layoutBlur', 1)"
-                    :disabled="settings.layoutBlur >= 100"
                   >
                     <IconifyIconOffline :icon="'ri:add-line'" />
                   </button>
@@ -2226,8 +2207,6 @@ onUnmounted(() => {
 .modern-setting-container {
   padding: 24px;
   background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: 20px;
   min-height: 100vh;
   width: 440px;
@@ -2353,8 +2332,6 @@ onUnmounted(() => {
 .setting-section {
   margin-bottom: 24px;
   background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 24px;
   box-shadow:
@@ -2653,8 +2630,6 @@ onUnmounted(() => {
 // 导航模式说明卡片
 .layout-description-card {
   background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 20px;
