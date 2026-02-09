@@ -6,6 +6,7 @@ import { responsiveStorageNameSpace, getConfig } from "@repo/config";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNav } from "../../../hooks/useNav";
+import { useLayout } from "../../../hooks/useLayout";
 import type { MenuItem } from "../../../types/menu";
 import LaySidebarLeftCollapse from "./SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./SidebarLogo.vue";
@@ -74,6 +75,12 @@ function toggleHoverSideBar() {
 // 收藏相关数据
 const favoriteMenus = ref([]);
 const hoveredMenuItem = ref(null);
+const { layoutTheme } = useLayout();
+
+// 判断是否是万圣节主题
+const isHalloween = computed(() => {
+  return layoutTheme.value.theme === "halloween";
+});
 
 // 只获取一级菜单，并添加"我的收藏"菜单
 const firstLevelMenus = computed(() => {
@@ -86,7 +93,7 @@ const firstLevelMenus = computed(() => {
     path: "/favorites",
     meta: {
       title: "我的收藏",
-      icon: "ep:star-filled",
+      icon: isHalloween.value ? "🎃" : "ep:star-filled",
       showLink: true,
     },
     children: favoriteMenus.value,
@@ -1461,7 +1468,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   display: block;
   padding: 8px 12px;
   text-decoration: none;
-  color: var(--el-text-color-regular);
+  color: var(--hover-nav-menu-color, var(--el-text-color-regular));
   font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
@@ -1481,12 +1488,12 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   /* 浅色风格下文字为黑色 */
   html[data-theme="light"] & {
-    color: #1e293b;
+    color: var(--hover-nav-menu-color, #1e293b);
   }
 
   /* 深色模式下文字为白色 */
   html.dark & {
-    color: #ffffff;
+    color: var(--hover-nav-menu-color, #ffffff);
   }
 
   &:hover {
@@ -1518,8 +1525,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 
     /* 浅色风格下激活样式保持白色 */
     html[data-theme="light"] & {
-      color: #ffffff !important;
-      background: var(--el-color-primary) !important;
+      color: var(--hover-nav-menu-active-color, #ffffff) !important;
+      background: var(--hover-nav-menu-active-bg, var(--el-color-primary)) !important;
     }
   }
 }

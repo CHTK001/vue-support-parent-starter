@@ -61,7 +61,7 @@ onMounted(() => {
       ></span>
     </div>
 
-    <BaseNavbar theme-class="halloween-navbar" />
+    <BaseNavbar theme-class="halloween-navbar lay-navbar" />
   </div>
 </template>
 

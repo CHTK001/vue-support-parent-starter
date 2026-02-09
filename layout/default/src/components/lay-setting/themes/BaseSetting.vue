@@ -40,6 +40,13 @@ const { device } = useNav();
 const { isDark } = useDark();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
+// 预览数据
+const previewInput = ref("");
+const previewSwitch = ref(true);
+const previewSlider = ref(50);
+const previewCheck = ref(true);
+const previewRadio = ref("1");
+
 // 判断当前是否为非默认主题（节日主题优先级高于页签风格和整体风格）
 const isNonDefaultTheme = computed(() => {
   const currentTheme = $storage?.configure?.systemTheme || 'default';
@@ -1060,7 +1067,7 @@ function importSettings() {
         // 应用所有变更
         contentMarginChange(settings.contentMargin);
         layoutRadiusChange(settings.layoutRadius);
-        layoutBlurChange(settings.layoutBlur);
+        // layoutBlurChange(settings.layoutBlur);
         greyChange(settings.greyVal);
         weekChange(settings.weakVal);
         tagsChange();
@@ -1096,6 +1103,7 @@ onUnmounted(() => {
   <div>
     <LayPanel>
       <div class="modern-setting-container">
+
         <!-- 主题风格设置区域 - 非默认主题下隐藏（节日主题优先级大于整体风格） -->
         <div v-if="!isNonDefaultTheme" class="setting-section">
           <div class="section-header">
@@ -1189,12 +1197,6 @@ onUnmounted(() => {
                   />
                 </div>
               </el-tooltip>
-            </div>
-            
-            <!-- 节日装饰显示提示 -->
-            <div v-if="!settings.enableFestivalTheme" class="festival-decoration-tip">
-              <IconifyIconOnline icon="ri:information-line" class="tip-icon" />
-              <span>{{ t("panel.festivalThemeOffTip") }}</span>
             </div>
             
             <!-- 开启自动切换时：显示当前生效的主题提示 -->
@@ -2226,23 +2228,57 @@ onUnmounted(() => {
 }
 
 // 现代化设置容器 - 全新设计语言
-.modern-setting-container {
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 20px;
-  min-height: 100vh;
-  width: 440px;
-  max-width: 100%;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.15),
-    0 10px 30px rgba(0, 0, 0, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    var(--el-box-shadow-light);
+  .modern-setting-container {
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    min-height: 100vh;
+    width: 440px;
+    max-width: 100%;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.15),
+      0 10px 30px rgba(0, 0, 0, 0.12),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      var(--el-box-shadow-light);
 
-  // 现代化背景装饰 - 动态渐变
+    // 预览区域样式
+    .setting-section {
+      .preview-container {
+        padding: 16px;
+        background: var(--el-bg-color);
+        border-radius: 12px;
+        border: 1px solid var(--el-border-color-lighter);
+        box-shadow: var(--el-box-shadow-light);
+        margin-top: 8px;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          box-shadow: var(--el-box-shadow);
+          border-color: var(--el-border-color);
+        }
+
+        .preview-row {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-bottom: 16px;
+          
+          &:last-child {
+            margin-bottom: 0;
+          }
+          
+          &.full-width {
+            width: 100%;
+          }
+        }
+      }
+    }
+
+    // 现代化背景装饰 - 动态渐变
   &::before {
     content: "";
     position: absolute;

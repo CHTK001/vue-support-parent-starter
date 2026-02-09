@@ -1,45 +1,78 @@
-import { describe, it, expect } from 'vitest';
-import { defineAsyncComponent } from 'vue';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mount } from '@vue/test-utils';
+import Halloween from '../Halloween.vue';
+import { nextTick } from 'vue';
 
-// Mock the component imports to avoid actual file system reads during unit test execution
-const mockThemeComponents = {
-  'default': 'DefaultSetting',
-  'spring-festival': 'SpringFestival',
-  'halloween': 'Halloween', // This is what we want to verify exists in the map
-  'cyberpunk': 'Cyberpunk',
-  'mid-autumn': 'MidAutumn',
-  'christmas': 'Christmas',
-  'new-year': 'NewYear',
-};
+// Mock vue-i18n
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}));
 
-describe('Halloween Theme MCP Integration', () => {
-  it('should have halloween theme key defined in the theme map', () => {
-    expect(mockThemeComponents).toHaveProperty('halloween');
-  });
+// Mock child components
+vi.mock('../BaseSetting.vue', () => ({
+  default: {
+    name: 'BaseSetting',
+    template: '<div class="base-setting-mock">Base Setting Content</div>'
+  }
+}));
 
-  it('should map halloween key to the correct component name', () => {
-    expect(mockThemeComponents['halloween']).toBe('Halloween');
-  });
+vi.mock('@repo/components/ReIcon/src/iconifyIconOffline', () => ({
+  default: {
+    name: 'IconifyIconOffline',
+    template: '<span class="icon-mock"></span>'
+  }
+}));
 
-  // This test simulates the MCP Context Protocol requirement:
-  // "Ensure that the theme context can resolve the 'halloween' key to a valid component"
-  it('should be resolvable via the Theme Context Protocol', () => {
-    const themeKey = 'halloween';
-    const resolvedComponent = mockThemeComponents[themeKey];
-    expect(resolvedComponent).toBeDefined();
-    expect(resolvedComponent).not.toBeNull();
-  });
+// Mock element-plus components
+const ElButton = { template: '<button class="el-button"><slot /></button>' };
+const ElInput = { template: '<input class="el-input" />' };
+const ElSwitch = { template: '<div class="el-switch"></div>' };
+const ElSlider = { template: '<div class="el-slider"></div>' };
+const ElDivider = { template: '<div class="el-divider"><slot /></div>' };
 
-  // Verify Style Consistency check (Mocked)
-  it('should have consistent style tokens defined', () => {
-    const halloweenTokens = {
-      primary: '#ff7518', // Pumpkin
-      secondary: '#2c003e', // Deep Purple
-      accent: '#76ff03', // Ghost Green
-    };
+describe('Halloween Theme Component', () => {
+  it('should render the wrapper and BaseSetting', () => {
+    const wrapper = mount(Halloween, {
+      global: {
+        components: {
+          ElButton,
+          ElInput,
+          ElSwitch,
+          ElSlider,
+          ElDivider
+        },
+        stubs: {
+          BaseSetting: true,
+          IconifyIconOffline: true
+        }
+      }
+    });
+
+    // Check for specific Halloween wrapper
+    expect(wrapper.find('.halloween-setting-wrapper').exists()).toBe(true);
     
-    expect(halloweenTokens.primary).toBe('#ff7518');
-    expect(halloweenTokens.secondary).toBe('#2c003e');
-    expect(halloweenTokens.accent).toBe('#76ff03');
+    // Check BaseSetting exists
+    expect(wrapper.findComponent({ name: 'BaseSetting' }).exists()).toBe(true);
+  });
+
+  it('should have correct CSS class for styling scope', () => {
+    const wrapper = mount(Halloween, {
+        global: {
+            components: {
+              ElButton,
+              ElInput,
+              ElSwitch,
+              ElSlider,
+              ElDivider
+            },
+            stubs: {
+                BaseSetting: true
+            }
+        }
+    });
+    
+    expect(wrapper.classes()).toContain('halloween-setting-wrapper');
   });
 });
