@@ -13,7 +13,7 @@
   }
 }
 .toolbar-item.active .svg-icon path{
-  fill: #FFF;
+  fill: var(--el-color-white);
 }
 .search-box {
   position: absolute !important;
@@ -98,7 +98,7 @@
 /* 允许比例尺控件显示 */
 .ol-scale-line {
   display: block !important;
-  background-color: rgba(255, 255, 255, 0.8) !important;
+  background-color: var(--el-bg-color-overlay) !important;
   border-radius: 4px !important;
   bottom: 8px !important;
   left: 8px !important;
@@ -106,13 +106,13 @@
   position: absolute !important;
   pointer-events: none !important;
   z-index: 1000 !important;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: var(--el-box-shadow-light) !important;
 }
 
 .ol-scale-line-inner {
-  border: 1px solid #333333 !important;
+  border: 1px solid var(--el-border-color) !important;
   border-top: none !important;
-  color: #333333 !important;
+  color: var(--el-text-color-primary) !important;
   font-size: 12px !important;
   text-align: center !important;
   margin: 1px !important;
@@ -122,16 +122,16 @@
 
 /* 自定义比例尺样式 */
 .custom-scale-line {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid #1890ff !important;
+  background-color: var(--el-bg-color-overlay) !important;
+  border: 1px solid var(--el-color-primary) !important;
   padding: 3px 6px !important;
   font-family: Arial, sans-serif !important;
   font-weight: normal !important;
 }
 
 .custom-scale-line .ol-scale-line-inner {
-  border-color: #1890ff !important;
-  color: #333333 !important;
+  border-color: var(--el-color-primary) !important;
+  color: var(--el-text-color-primary) !important;
   font-weight: 600 !important;
 }
 
@@ -184,7 +184,7 @@
 .sc-map-custom-popup {
   position: absolute;
   z-index: 1000;
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--el-box-shadow);
   background: var(--el-bg-color-overlay);
   border-radius: 4px;
   padding: 10px;

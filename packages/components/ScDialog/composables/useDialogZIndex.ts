@@ -179,4 +179,11 @@ export function useDialogZIndex(options: ZIndexManagerOptions = {}): ZIndexManag
   };
 }
 
+// 导出类型别名以匹配 index.ts 的导出
+export type DialogZIndexOptions = ZIndexManagerOptions;
+export type DialogZIndexReturn = ZIndexManagerReturn;
+
+// 导出全局单例管理器
+export const dialogZIndexManager = useDialogZIndex();
+
 export default useDialogZIndex;

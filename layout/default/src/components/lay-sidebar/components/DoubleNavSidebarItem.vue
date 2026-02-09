@@ -14,8 +14,10 @@ import {
   ref,
   toRaw,
   useAttrs,
+  onMounted,
 } from "vue";
 import { useNav } from "../../../hooks/useNav";
+import { emitter } from "@repo/core";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
 
@@ -26,6 +28,26 @@ import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 
 const attrs = useAttrs();
 const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
+
+const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
+const forceNewMenu = ref(false); // 强制显示所有新菜单 (测试用)
+const menuAnimation = ref(getConfig().MenuAnimation ?? false);
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
+
+onMounted(() => {
+  emitter.on("showNewMenuChange", (val) => {
+    showNewMenu.value = val;
+  });
+  emitter.on("forceNewMenuChange", (val) => {
+    forceNewMenu.value = val;
+  });
+  emitter.on("menuAnimationChange", (val) => {
+    menuAnimation.value = val;
+  });
+  emitter.on("newMenuAnimationChange", (val) => {
+    newMenuAnimation.value = val;
+  });
+});
 
 const props = defineProps({
   item: {
@@ -137,7 +159,7 @@ const isSubMenuOpened = computed(() => {
     >
       <el-menu-item
         :index="resolvePath(onlyOneChild.path)"
-        :class="{ 'submenu-title-noDropdown': !isNest }"
+        :class="{ 'submenu-title-noDropdown': !isNest, 'menu-animation': menuAnimation }"
       >
         <div
           v-if="toRaw(item?.meta?.icon)"
@@ -162,6 +184,7 @@ const isSubMenuOpened = computed(() => {
               )
             }}
             <ReMenuNewBadge
+              v-if="showNewMenu"
               :createTime="
                 onlyOneChild?.meta?.createTime || item?.meta?.createTime
               "
@@ -173,6 +196,12 @@ const isSubMenuOpened = computed(() => {
               :customText="
                 onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
               "
+              :forceShow="
+                forceNewMenu ||
+                onlyOneChild?.meta?.permanentNew ||
+                item?.meta?.permanentNew
+              "
+              :animation="newMenuAnimation"
             />
           </el-text>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
@@ -187,6 +216,7 @@ const isSubMenuOpened = computed(() => {
       :disabled="false"
       popper-class="pure-scrollbar"
       class="auto-expand-submenu"
+      :class="{ 'menu-animation': menuAnimation }"
     >
       <template #title>
         <div v-if="toRaw(item?.meta?.icon)" class="sub-menu-icon">
@@ -196,9 +226,12 @@ const isSubMenuOpened = computed(() => {
           <el-text truncated class="!w-full">
             {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
             <ReMenuNewBadge
+              v-if="showNewMenu"
               :createTime="item?.meta?.createTime"
               :type="item?.meta?.badgeType || 'primary'"
               :customText="item?.meta?.badgeText"
+              :forceShow="forceNewMenu || item?.meta?.permanentNew"
+              :animation="newMenuAnimation"
             />
           </el-text>
           <SidebarExtraIcon :extraIcon="item?.meta?.extraIcon" />
@@ -230,7 +263,7 @@ const isSubMenuOpened = computed(() => {
     >
       <el-menu-item
         :index="resolvePath(onlyOneChild.path)"
-        :class="{ 'submenu-title-noDropdown': !isNest }"
+        :class="{ 'submenu-title-noDropdown': !isNest, 'menu-animation': menuAnimation }"
       >
         <div
           v-if="toRaw(item?.meta?.icon)"
@@ -255,6 +288,7 @@ const isSubMenuOpened = computed(() => {
               )
             }}
             <ReMenuNewBadge
+              v-if="showNewMenu"
               :createTime="
                 onlyOneChild?.meta?.createTime || item?.meta?.createTime
               "
@@ -266,6 +300,12 @@ const isSubMenuOpened = computed(() => {
               :customText="
                 onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
               "
+              :forceShow="
+                forceNewMenu ||
+                onlyOneChild?.meta?.permanentNew ||
+                item?.meta?.permanentNew
+              "
+              :animation="newMenuAnimation"
             />
           </el-text>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
@@ -273,7 +313,7 @@ const isSubMenuOpened = computed(() => {
       </el-menu-item>
     </SidebarLinkItem>
 
-    <el-sub-menu v-else :index="resolvePath(item.path)">
+    <el-sub-menu v-else :index="resolvePath(item.path)" :class="{ 'menu-animation': menuAnimation }">
       <template #title>
         <div
           v-if="toRaw(item?.meta?.icon)"
@@ -286,9 +326,12 @@ const isSubMenuOpened = computed(() => {
           <el-text truncated class="!w-full">
             {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
             <ReMenuNewBadge
+              v-if="showNewMenu"
               :createTime="item?.meta?.createTime"
               :type="item?.meta?.badgeType || 'primary'"
               :customText="item?.meta?.badgeText"
+              :forceShow="forceNewMenu || item?.meta?.permanentNew"
+              :animation="newMenuAnimation"
             />
           </el-text>
           <SidebarExtraIcon :extraIcon="item?.meta?.extraIcon" />
@@ -344,5 +387,19 @@ const isSubMenuOpened = computed(() => {
   .el-sub-menu {
     pointer-events: auto;
   }
+}
+
+// 菜单动画
+.menu-animation {
+  &.is-active > .el-sub-menu__title,
+  &.is-active {
+    animation: menu-bounce 0.5s;
+  }
+}
+
+@keyframes menu-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
 }
 </style>

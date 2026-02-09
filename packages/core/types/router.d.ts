@@ -62,6 +62,10 @@ declare global {
     activePath?: string;
     /** 排序 */
     rank?: number;
+    /** 永久显示新标签 */
+    permanentNew?: boolean;
+    /** 创建时间 */
+    createTime?: string;
   }
 
   /**
@@ -106,6 +110,10 @@ export interface RouteConfigsTable {
     remaining?: boolean;
     /** remaining菜单项是否在当前页面打开（默认`false`，弹出新页面）`可选` */
     remainingSelf?: boolean;
+    /** 永久显示新标签 */
+    permanentNew?: boolean;
+    /** 创建时间 */
+    createTime?: string;
   };
   /** 子路由配置项 */
   children?: Array<RouteChildrenConfigsTable>;

@@ -388,6 +388,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/mixins.scss" as *;
 @use "@/styles/variables.scss" as *;
 
 .component-edit-dialog {

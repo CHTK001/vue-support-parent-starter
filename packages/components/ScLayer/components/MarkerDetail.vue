@@ -4,7 +4,7 @@
     <div class="marker-detail-header">
       <div class="marker-detail-title">{{ title }}</div>
       <el-button class="close-button" type="text" @click="handleClose">
-        <i class="el-icon-close"></i>
+        <IconifyIconOnline icon="ep:close" />
       </el-button>
     </div>
     <div class="marker-detail-content">
@@ -42,6 +42,7 @@
 
 <script setup lang="ts">
 import { ref, computed, useSlots, onMounted, defineExpose } from 'vue';
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type { MarkerOptions } from '../types';
 
 const props = defineProps<{
@@ -104,18 +105,22 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
+
 .marker-detail {
   width: 320px;
   max-height: calc(100% - 20px);
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  background-color: var(--el-bg-color-overlay);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   z-index: 1000;
   transition: all 0.3s;
+  border: 1px solid var(--el-border-color-light);
 }
 
 .marker-detail-arrow {
@@ -127,8 +132,8 @@ defineExpose({
   height: 0;
   border-left: 10px solid transparent;
   border-right: 10px solid transparent;
-  border-top: 10px solid #fff;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+  border-top: 10px solid var(--el-bg-color-overlay);
+  filter: drop-shadow(0 2px 2px var(--el-color-info-light-5));
 }
 
 .marker-detail-header {
@@ -136,18 +141,24 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .marker-detail-title {
-  font-size: 16px;
+  font-size: var(--el-font-size-medium);
   font-weight: bold;
   color: var(--el-text-color-primary);
 }
 
 .close-button {
   padding: 0;
-  font-size: 18px;
+  font-size: var(--el-font-size-large);
+  color: var(--el-text-color-secondary);
+  transition: color 0.3s;
+}
+
+.close-button:hover {
+  color: var(--el-color-primary);
 }
 
 .marker-detail-content {
@@ -162,7 +173,7 @@ defineExpose({
 
 .marker-info .label {
   font-weight: bold;
-  color: #606266;
+  color: var(--el-text-color-regular);
   margin-right: 8px;
 }
 
@@ -175,12 +186,13 @@ defineExpose({
 }
 
 .marker-data pre {
-  background-color: #f5f7fa;
+  background-color: var(--el-fill-color-light);
   padding: 8px;
   border-radius: 4px;
   font-family: monospace;
   overflow: auto;
   margin: 8px 0 0 0;
+  color: var(--el-text-color-regular);
 }
 
 .no-marker-selected {
@@ -192,6 +204,6 @@ defineExpose({
 .marker-detail-footer {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 </style> 

@@ -8,7 +8,8 @@ export default defineComponent({
   props: {
     column: { type: Object, default: () => { } },
     layout: { type: String, default: "table" }, // 添加 layout 属性
-    liveUpdate: { type: Boolean, default: false } // 是否实时更新（不等待保存按钮）
+    liveUpdate: { type: Boolean, default: false }, // 是否实时更新（不等待保存按钮）
+    theme: { type: String, default: "" } // 主题
   },
   data() {
     return {
@@ -113,7 +114,7 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div v-if="usercolumn && usercolumn.length > 0" class="column-setting-container">
+  <div v-if="usercolumn && usercolumn.length > 0" class="column-setting-container" :class="[`theme--${theme}`]">
     <div class="setting-column__header">
       <div class="setting-column__title">
         <span class="move_b">排序</span>
@@ -167,19 +168,50 @@ export default defineComponent({
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+@use "@/styles/mixins.scss" as *;
+
 .column-setting-container {
   border-radius: 8px;
-  background-color: var(--el-bg-color);
+  background-color: var(--stitch-lay-bg-panel);
   display: flex;
   flex-direction: column;
   max-height: 450px;
   position: relative;
+
+  // 主题变体
+  @mixin theme-variant($type) {
+    .ghost {
+      background: var(--stitch-lay-#{$type}-bg);
+    }
+    
+    .setting-column__bottom .el-button--primary {
+      --el-button-bg-color: var(--stitch-lay-#{$type});
+      --el-button-border-color: var(--stitch-lay-#{$type});
+      --el-button-hover-bg-color: var(--stitch-lay-#{$type}-light);
+      --el-button-hover-border-color: var(--stitch-lay-#{$type}-light);
+      --el-button-active-bg-color: var(--stitch-lay-#{$type});
+      --el-button-active-border-color: var(--stitch-lay-#{$type});
+    }
+
+    .feature-switch, .visibility-switch {
+      :deep(.el-switch.is-checked .el-switch__core) {
+        background-color: var(--stitch-lay-#{$type});
+        border-color: var(--stitch-lay-#{$type});
+      }
+    }
+  }
+
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('error'); }
+  &.theme--info { @include theme-variant('info'); }
 }
 
 .setting-column__header {
   margin-bottom: 10px;
-  background-color: var(--el-fill-color-light);
+  background-color: var(--stitch-lay-bg-hover);
   border-radius: 6px;
   padding: 12px 16px;
   position: sticky;
@@ -195,7 +227,7 @@ export default defineComponent({
 .setting-column__title span {
   display: inline-block;
   font-weight: 600;
-  color: var(--el-text-color-secondary);
+  color: var(--stitch-lay-text-sub);
   font-size: 13px;
 }
 
@@ -242,12 +274,12 @@ export default defineComponent({
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: var(--el-border-color-lighter);
+  background-color: var(--stitch-lay-border);
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background-color: var(--el-fill-color-lighter);
+  background-color: var(--stitch-lay-bg-group);
   border-radius: 10px;
 }
 
@@ -261,12 +293,12 @@ export default defineComponent({
   padding: 8px 16px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--stitch-lay-border);
   transition: background-color 0.2s;
 }
 
 .column-item:hover {
-  background-color: var(--el-fill-color-light);
+  background-color: var(--stitch-lay-bg-hover);
 }
 
 .column-item:last-child {
@@ -291,7 +323,7 @@ export default defineComponent({
   min-width: 80px;
   font-size: 14px;
   margin-right: 10px;
-  color: var(--el-text-color-primary);
+  color: var(--stitch-lay-text-normal);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -317,7 +349,7 @@ export default defineComponent({
   display: flex;
   justify-content: flex-end;
   padding: 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  border-top: 1px solid var(--stitch-lay-border);
   margin-top: auto;
 }
 
@@ -336,7 +368,7 @@ export default defineComponent({
 .width-control :deep(.el-input-number__decrease),
 .width-control :deep(.el-input-number__increase) {
   background-color: transparent;
-  border-color: var(--el-border-color-lighter);
+  border-color: var(--stitch-lay-border);
 }
 
 .width-control :deep(.el-input__inner) {
@@ -346,6 +378,6 @@ export default defineComponent({
 /* Ghost class for sortable */
 .ghost {
   opacity: 0.5;
-  background: var(--el-color-primary-light-9);
+  background: var(--stitch-lay-primary-alpha);
 }
 </style> 

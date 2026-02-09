@@ -32,6 +32,7 @@ export const globalSetting: PlatformConfigs = {
   RemoteLayoutSave: false,
   LocationLayout: false,
   RemoteAnimation: true,
+  MenuAnimation: true,
   MenuTransition: false,
   SfcScriptUrl:
     "https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js",

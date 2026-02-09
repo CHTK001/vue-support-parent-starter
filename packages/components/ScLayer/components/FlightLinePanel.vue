@@ -21,11 +21,11 @@
           已选中
         </span>
         <button class="toolbar-btn toolbar-btn-settings" title="飞线设置" @click.stop="toggleSettingsPanel">
-          <i class="settings-icon">⚙</i>
+          <IconifyIconOnline icon="ep:setting" class="settings-icon" />
         </button>
         <button class="minimize-btn" title="最小化/展开面板" @click.stop="toggleCollapse">
-          <span v-if="collapsed">+</span>
-          <span v-else>-</span>
+          <IconifyIconOnline v-if="collapsed" icon="ep:plus" />
+          <IconifyIconOnline v-else icon="ep:minus" />
         </button>
       </div>
     </div>
@@ -77,7 +77,7 @@
           </div>
         </div>
         <div v-if="filteredFlightLines.length > 0 && !selectedId" class="initial-tip">
-          <i class="initial-tip-icon">☝️</i>
+          <IconifyIconOnline icon="ep:pointer" class="initial-tip-icon" />
           <span class="initial-tip-text">点击列表项可以在地图上显示对应飞线</span>
         </div>
         <div
@@ -104,7 +104,9 @@
       <div v-if="showSettingsPanel" class="flight-line-settings-popup thin-scrollbar">
         <div class="settings-popup-header">
           <span class="settings-popup-title">飞线设置</span>
-          <button class="settings-popup-close" @click.stop="showSettingsPanel = false">×</button>
+          <button class="settings-popup-close" @click.stop="showSettingsPanel = false">
+            <IconifyIconOnline icon="ep:close" />
+          </button>
         </div>
         <div class="settings-popup-content thin-scrollbar">
           <div class="settings-section">
@@ -283,7 +285,7 @@
     <!-- 折叠/最小化状态下的图标 -->
     <div v-if="collapsed" class="track-player-minimized" @click.stop="toggleCollapse">
       <div class="minimized-restore-icon">
-        <span v-html="FLIGHT_LINE_ICON" />
+        <IconifyIconOnline :icon="FLIGHT_LINE_ICON" />
       </div>
     </div>
   </div>
@@ -291,11 +293,15 @@
 
 <script lang="ts">
 export default {
-  name: "FlightLinePanel"
+  name: "FlightLinePanel",
+  components: {
+    IconifyIconOnline
+  }
 };
 </script>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { FLIGHT_LINE_ICON } from "../types/icon";
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import type { FlightLineData } from "../types/flightline";
@@ -353,13 +359,13 @@ const lineSettings = ref({
   effectSpeed: 40, // 添加动画速度
 
   // 添加拖尾相关属性
-  trailColor: "#1677ff", // 拖尾颜色
+  trailColor: "var(--el-color-primary)", // 拖尾颜色
   trailOpacity: 0.7, // 拖尾透明度
   trailWidth: 3, // 拖尾宽度
 
   showNodes: true,
   nodeSymbolSize: 12,
-  nodeColor: "#1677ff",
+  nodeColor: "var(--el-color-primary)",
   nodeEffect: true,
 
   rippleEffect: {
@@ -369,7 +375,7 @@ const lineSettings = ref({
   },
 
   shadowBlur: 20,
-  shadowColor: "#1677ff"
+  shadowColor: "var(--el-color-primary)"
 });
 
 // 图标选项
@@ -559,6 +565,20 @@ const clearSelection = () => {
   });
 };
 
+// 解析CSS变量颜色
+const resolveColor = (color: string) => {
+  if (!color) return color;
+  if (typeof color === 'string' && color.startsWith('var(')) {
+    const varName = color.match(/var\(([^)]+)\)/)?.[1];
+    if (varName) {
+      // 尝试从文档根元素获取变量值
+      const resolved = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+      return resolved || color;
+    }
+  }
+  return color;
+};
+
 // 清空飞线图层
 const clearFlightLineLayer = () => {
   if (!props.flightLineObj) return;
@@ -708,7 +728,7 @@ const updateFlightLineHighlight = (id: string) => {
         ? {
             width: 3, // 加粗线条
             opacity: 1,
-            color: "#1890ff" // 蓝色高亮
+            color: resolveColor("var(--el-color-primary)") // 蓝色高亮
           }
         : undefined
     });
@@ -987,13 +1007,13 @@ const toggleSettingsPanel = () => {
       effectSymbolSize: config.effectSymbolSize || 18,
       effectSpeed: config.effectSpeed || 40, // 添加动画速度
 
-      trailColor: config.trailColor || "#1677ff",
+      trailColor: config.trailColor || resolveColor("var(--el-color-primary)"),
       trailOpacity: config.trailOpacity || 0.7,
       trailWidth: config.trailWidth || 3,
 
       showNodes: config.showNodes !== undefined ? config.showNodes : true,
       nodeSymbolSize: config.nodeSymbolSize || 12,
-      nodeColor: config.nodeColor || "#1677ff",
+      nodeColor: config.nodeColor || resolveColor("var(--el-color-primary)"),
       nodeEffect: config.nodeEffect !== undefined ? config.nodeEffect : true,
 
       rippleEffect: {
@@ -1003,7 +1023,7 @@ const toggleSettingsPanel = () => {
       },
 
       shadowBlur: config.shadowBlur || 20,
-      shadowColor: config.shadowColor || "#1677ff"
+      shadowColor: config.shadowColor || resolveColor("var(--el-color-primary)")
     };
   }
 };
@@ -1069,13 +1089,13 @@ const resetToDefault = () => {
       effectSymbolSize: defaultConfig.effectSymbolSize || 18,
       effectSpeed: defaultConfig.effectSpeed || 40, // 添加动画速度
 
-      trailColor: defaultConfig.trailColor || "#1677ff",
+      trailColor: defaultConfig.trailColor || resolveColor("var(--el-color-primary)"),
       trailOpacity: defaultConfig.trailOpacity || 0.7,
       trailWidth: defaultConfig.trailWidth || 3,
 
       showNodes: defaultConfig.showNodes !== undefined ? defaultConfig.showNodes : true,
       nodeSymbolSize: defaultConfig.nodeSymbolSize || 12,
-      nodeColor: defaultConfig.nodeColor || "#1677ff",
+      nodeColor: defaultConfig.nodeColor || resolveColor("var(--el-color-primary)"),
       nodeEffect: defaultConfig.nodeEffect !== undefined ? defaultConfig.nodeEffect : true,
 
       rippleEffect: {
@@ -1085,7 +1105,7 @@ const resetToDefault = () => {
       },
 
       shadowBlur: defaultConfig.shadowBlur || 20,
-      shadowColor: defaultConfig.shadowColor || "#1677ff"
+      shadowColor: defaultConfig.shadowColor || resolveColor("var(--el-color-primary)")
     };
 
     // 应用配置
@@ -1265,14 +1285,17 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
+
 .flight-line-panel {
   position: absolute;
   width: 320px;
   max-height: 600px;
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: var(--el-bg-color-overlay);
   border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--el-box-shadow-light);
   display: flex;
   flex-direction: column;
   z-index: 1000;
@@ -1297,8 +1320,8 @@ defineExpose({
   width: 40px !important;
   height: 40px !important;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  background: linear-gradient(135deg, #1890ff, #096dd9);
+  box-shadow: var(--el-box-shadow-light);
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
   cursor: pointer;
   border-radius: 10px;
 }
@@ -1335,8 +1358,8 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #3498db;
-  color: var(--el-text-color-primary);
+  background-color: var(--el-color-primary);
+  color: var(--el-color-white);
   padding: 8px 12px;
   font-weight: bold;
 }
@@ -1368,14 +1391,14 @@ defineExpose({
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: #1890ff;
+  background-color: var(--el-color-primary);
   margin-right: 5px;
 }
 
 .minimize-btn {
   background: none;
   border: none;
-  color: var(--el-text-color-primary);
+  color: var(--el-color-white);
   font-size: 16px;
   cursor: pointer;
   width: 26px;
@@ -1406,7 +1429,7 @@ defineExpose({
   font-size: 12px;
   color: var(--el-text-color-primary);
   padding: 5px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 
 .flight-line-note {
@@ -1420,7 +1443,7 @@ defineExpose({
 
 .note-icon {
   font-size: 16px;
-  color: #1890ff;
+  color: var(--el-color-primary);
 }
 
 .note-text {
@@ -1451,46 +1474,46 @@ defineExpose({
 }
 
 .toolbar-btn-active {
-  background-color: #e6f7ff;
-  border-color: #1890ff;
-  color: #1890ff;
+  background-color: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
 }
 
 .toolbar-btn-primary {
-  background-color: #3498db;
-  color: var(--el-text-color-primary);
-  border-color: #2980b9;
+  background-color: var(--el-color-primary);
+  color: var(--el-color-white);
+  border-color: var(--el-color-primary-dark-2);
 }
 
 .toolbar-btn-primary:hover {
-  background-color: #2980b9;
+  background-color: var(--el-color-primary-dark-2);
 }
 
 .toolbar-btn-info {
-  background-color: #3498db;
-  color: var(--el-text-color-primary);
-  border-color: #2980b9;
+  background-color: var(--el-color-primary);
+  color: var(--el-color-white);
+  border-color: var(--el-color-primary-dark-2);
 }
 
 .toolbar-btn-info:hover {
-  background-color: #2980b9;
+  background-color: var(--el-color-primary-dark-2);
 }
 
 .toolbar-btn-highlight {
   position: relative;
   animation: pulse 2s infinite;
-  box-shadow: 0 0 5px rgba(24, 144, 255, 0.5);
+  box-shadow: 0 0 5px var(--el-color-primary-light-5);
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 5px rgba(24, 144, 255, 0.5);
+    box-shadow: 0 0 5px var(--el-color-primary-light-5);
   }
   50% {
-    box-shadow: 0 0 10px rgba(24, 144, 255, 0.8);
+    box-shadow: 0 0 10px var(--el-color-primary-light-3);
   }
   100% {
-    box-shadow: 0 0 5px rgba(24, 144, 255, 0.5);
+    box-shadow: 0 0 5px var(--el-color-primary-light-5);
   }
 }
 
@@ -1507,7 +1530,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   height: 100px;
-  color: #999;
+  color: var(--el-text-color-secondary);
   font-size: 14px;
 }
 
@@ -1519,14 +1542,14 @@ defineExpose({
   color: var(--el-text-color-primary);
   margin: 10px 0;
   padding: 10px;
-  background-color: #f0f8ff;
-  border-left: 3px solid #1890ff;
+  background-color: var(--el-color-primary-light-9);
+  border-left: 3px solid var(--el-color-primary);
   border-radius: 4px;
 }
 
 .initial-tip-icon {
   font-size: 16px;
-  color: #1890ff;
+  color: var(--el-color-primary);
 }
 
 .initial-tip-text {
@@ -1570,9 +1593,9 @@ defineExpose({
   position: relative;
   padding: 12px;
   margin-bottom: 10px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
-  background-color: #f9f9f9;
+  background-color: var(--el-bg-color-page);
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -1581,14 +1604,14 @@ defineExpose({
 }
 
 .flight-line-item:hover {
-  background-color: #f0f0f0;
+  background-color: var(--el-fill-color-light);
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-lighter);
 }
 
 .flight-line-item-active {
-  border: 2px solid #1677ff;
-  background-color: #e6f7ff;
+  border: 2px solid var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
 }
 
 .flight-line-content {
@@ -1614,8 +1637,8 @@ defineExpose({
   bottom: 5px;
   right: 5px;
   padding: 2px 8px;
-  background-color: #1677ff;
-  color: #fff;
+  background-color: var(--el-color-primary);
+  color: var(--el-color-white);
   border-radius: 10px;
   font-size: 12px;
   font-weight: bold;
@@ -1630,9 +1653,9 @@ defineExpose({
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--el-text-color-primary);
+  color: var(--el-color-white);
   font-size: 18px;
-  background: linear-gradient(135deg, #1890ff, #096dd9);
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
   /* border-radius: 50%; */
   transition: transform 0.3s;
 }
@@ -1650,8 +1673,8 @@ defineExpose({
 .performance-settings {
   margin: 8px 0;
   padding: 8px 0;
-  border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
+  border-top: 1px solid var(--el-border-color-light);
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 
 .performance-option {
@@ -1669,7 +1692,7 @@ defineExpose({
 /* GL模式提示 */
 .gl-mode-notice {
   font-size: 11px;
-  color: #ff6a00;
+  color: var(--el-color-warning);
   margin-top: 4px;
   line-height: 1.2;
 }
@@ -1684,7 +1707,7 @@ defineExpose({
 /* 图标设置 */
 .icon-settings {
   margin-top: 10px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--el-border-color-lighter);
   padding-top: 10px;
   font-size: 12px;
 }
@@ -1709,8 +1732,10 @@ defineExpose({
 .icon-option select {
   flex: 1;
   padding: 4px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--el-border-color);
   border-radius: 4px;
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
 }
 
 .custom-icon {
@@ -1732,8 +1757,10 @@ defineExpose({
   padding: 4px;
   font-family: monospace;
   font-size: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--el-border-color);
   border-radius: 4px;
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
 }
 
 .icon-preview {
@@ -1750,11 +1777,11 @@ defineExpose({
 .icon-preview-container {
   width: 50px;
   height: 50px;
-  border: 1px dashed #ddd;
+  border: 1px dashed var(--el-border-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f9f9f9;
+  background-color: var(--el-fill-color-lighter);
 }
 
 .icon-preview img {
@@ -1764,7 +1791,7 @@ defineExpose({
 
 .icon-preview-error {
   font-size: 10px;
-  color: #ff6a00;
+  color: var(--el-color-warning);
 }
 
 .icon-size {
@@ -1862,11 +1889,11 @@ defineExpose({
 }
 
 .icon-option:hover {
-  background-color: #e6f7ff;
+  background-color: var(--el-color-primary-light-9);
 }
 
 .icon-option.selected {
-  background-color: #1677ff;
+  background-color: var(--el-color-primary);
 }
 
 .icon-option.selected svg path {
@@ -1939,7 +1966,7 @@ defineExpose({
 
 .selection-tip-icon {
   font-size: 16px;
-  color: #1890ff;
+  color: var(--el-color-primary);
 }
 
 .selection-tip-text {
@@ -1952,8 +1979,8 @@ defineExpose({
 }
 
 .debug-panel {
-  background-color: #f8f8f8;
-  border: 1px dashed #ccc;
+  background-color: var(--el-fill-color-lighter);
+  border: 1px dashed var(--el-border-color);
   padding: 10px;
   border-radius: 4px;
   font-size: 12px;
@@ -1971,7 +1998,7 @@ defineExpose({
 
 .diagnose-info {
   font-size: 12px;
-  color: #ff6a00;
+  color: var(--el-color-warning);
   margin-top: 8px;
 }
 
@@ -1984,7 +2011,7 @@ defineExpose({
   bottom: 10px;
   background-color: var(--el-bg-color-overlay);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--el-box-shadow-dark);
   z-index: 1001; /* 更高的z-index确保在蒙版上方 */
   display: flex;
   flex-direction: column;
@@ -2009,25 +2036,25 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 10px 15px;
-  background-color: #3498db;
-  border-bottom: 1px solid #e4e7ed;
+  background-color: var(--el-color-primary);
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 
 .settings-popup-title {
   font-weight: bold;
-  color: var(--el-text-color-primary);
+  color: var(--el-color-white);
 }
 
 .settings-popup-close {
   background: none;
   border: none;
   font-size: 20px;
-  color: var(--el-text-color-primary);
+  color: var(--el-color-white);
   cursor: pointer;
 }
 
 .settings-popup-close:hover {
-  color: #f0f0f0;
+  color: var(--el-fill-color-light);
 }
 
 .settings-popup-content {
@@ -2039,7 +2066,7 @@ defineExpose({
 .settings-section {
   margin-bottom: 20px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .setting-item {
@@ -2100,7 +2127,7 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--el-overlay-color-light);
   z-index: 1000; /* 确保在面板内容之上，但在设置面板之下 */
   backdrop-filter: blur(2px); /* 添加模糊效果 */
   animation: backdrop-fade-in 0.3s ease;
@@ -2130,7 +2157,7 @@ defineExpose({
   margin-left: 15px;
   margin-top: 5px;
   padding-left: 10px;
-  border-left: 2px solid #eee;
+  border-left: 2px solid var(--el-border-color-lighter);
 }
 
 .subsection-title {

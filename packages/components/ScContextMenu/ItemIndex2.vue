@@ -138,17 +138,17 @@ export default {
 }
 
 .right_item_light:hover {
-  background-color: #ffffff;
-}
-
-.right_item_dark {
-  color: #e2e2e2;
-  font-size: 13px;
-}
-
-.right_item_dark:hover {
-  background-color: #444444;
-}
+    background-color: var(--el-fill-color-light);
+    color: var(--el-color-primary);
+  }
+  .right_item_dark {
+    color: var(--el-text-color-regular);
+    font-size: 13px;
+  }
+  .right_item_dark:hover {
+    background-color: var(--el-fill-color);
+    color: var(--el-color-primary);
+  }
 .right_item_enable_light {
   color: #b6b6b6;
 }

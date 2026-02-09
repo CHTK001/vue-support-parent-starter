@@ -109,11 +109,111 @@ html.dark {
   color: var(--stitch-accent) !important;
 }
 
-/* Dialog/Drawer Styles - Removed to keep default */
-/* .el-dialog, .el-drawer {
+/* Dialog/Drawer Styles */
+.el-drawer {
   @extend .stitch-glass;
-  background-color: rgba(15, 23, 42, 0.9) !important;
-} */
+  background-color: var(--el-bg-color-overlay) !important;
+  border-left: 1px solid var(--stitch-glass-border);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.3);
+  outline: none;
+
+  &__header {
+    margin-bottom: 0 !important;
+    padding: 16px 20px !important;
+    border-bottom: 1px solid var(--stitch-glass-border);
+    /* Glassmorphism header */
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), transparent);
+    color: var(--el-text-color-primary);
+  }
+
+  &__title {
+    font-size: 18px !important;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+
+    /* Decorative indicator */
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: var(--stitch-accent);
+      margin-right: 12px;
+      border-radius: 2px;
+      box-shadow: 0 0 8px var(--stitch-accent);
+    }
+  }
+
+  &__close-btn {
+    transition: all 0.3s;
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: var(--stitch-accent);
+      transform: rotate(90deg);
+    }
+    
+    .el-icon {
+      font-size: 20px;
+    }
+  }
+
+  &__body {
+    padding: 20px !important;
+    overflow-y: auto;
+    
+    /* Scrollbar styling */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+  }
+
+  &__footer {
+    border-top: 1px solid var(--stitch-glass-border);
+    padding: 16px 20px !important;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.02), transparent);
+  }
+}
+
+.el-dialog {
+  @extend .stitch-glass;
+  background-color: var(--el-bg-color-overlay) !important;
+  border-radius: 16px;
+  overflow: hidden;
+
+  &__header {
+    margin-right: 0 !important;
+    padding: 20px !important;
+    border-bottom: 1px solid var(--stitch-glass-border);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), transparent);
+  }
+
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 24px;
+    color: var(--el-text-color-primary);
+    
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 16px;
+      background: var(--stitch-accent);
+      margin-right: 10px;
+      vertical-align: middle;
+      border-radius: 2px;
+    }
+  }
+}
 
 /* Table Styles */
 .el-table {

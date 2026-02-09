@@ -63,25 +63,25 @@ const handleNodeClick = async (data, node, component) => {
 };
 const handleColor = (fileName, fileType) => {
   if (fileType === "DIRECTORY") {
-    return "orange";
+    return "var(--el-color-warning)";
   }
 
   if (fileName.endsWith(".conf") || fileName.endsWith(".xml")) {
-    return "green";
+    return "var(--el-color-success)";
   }
 
   if (fileName.endsWith(".log")) {
-    return "blue";
+    return "var(--el-color-primary)";
   }
 
   if (fileName.endsWith(".zip") || fileName.endsWith(".gz") || fileName.endsWith(".tar") || fileName.endsWith(".jar")) {
-    return "skyblue";
+    return "var(--el-color-info)";
   }
   if (fileName.endsWith(".exe")) {
-    return "grey";
+    return "var(--el-text-color-secondary)";
   }
 
-  return "blue";
+  return "var(--el-color-primary)";
 };
 const handleIcon = (fileName, fileType) => {
   if (fileType === "DIRECTORY") {

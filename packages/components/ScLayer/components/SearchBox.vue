@@ -8,7 +8,9 @@
               {{ typeConfig.label }}
             </option>
           </select>
-          <div class="select-arrow" />
+          <div class="select-arrow-wrapper">
+            <IconifyIconOnline icon="ep:caret-bottom" class="select-arrow-icon" />
+          </div>
         </div>
         <slot name="type-selector" :current-type="currentSearchType" :search-types="searchTypes" :on-change="handleSearchTypeChange" />
       </div>
@@ -33,12 +35,7 @@
         </select>
 
         <button type="button" class="search-button" @click="handleSearch">
-          <svg viewBox="0 0 24 24" width="18" height="18">
-            <path
-              fill="currentColor"
-              d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
-            />
-          </svg>
+          <IconifyIconOnline icon="ep:search" width="18px" height="18px" />
         </button>
       </div>
 
@@ -46,23 +43,29 @@
       <div v-else class="navigation-input-container">
         <div class="navigation-input-group">
           <div class="nav-input start-input">
-            <span class="nav-point-icon start-point-icon" />
+            <span class="nav-point-icon start-point-icon">
+              <IconifyIconOnline icon="ri:map-pin-user-fill" class="text-success" />
+            </span>
             <input v-model="navStartPoint" type="text" placeholder="请输入起点" @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
-            <button v-if="navStartPoint" class="nav-clear-btn" @click="clearNavStartPoint">×</button>
+            <button v-if="navStartPoint" class="nav-clear-btn" @click="clearNavStartPoint">
+              <IconifyIconOnline icon="ep:circle-close" />
+            </button>
           </div>
           <div class="nav-swap-btn" title="交换起终点" @click="swapNavPoints">
-            <svg viewBox="0 0 24 24" width="16" height="16">
-              <path fill="currentColor" d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z" />
-            </svg>
+            <IconifyIconOnline icon="ri:arrow-up-down-line" />
           </div>
           <div class="nav-input end-input">
-            <span class="nav-point-icon end-point-icon" />
+            <span class="nav-point-icon end-point-icon">
+              <IconifyIconOnline icon="ri:map-pin-fill" class="text-danger" />
+            </span>
             <input v-model="navEndPoint" type="text" placeholder="请输入终点" @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
-            <button v-if="navEndPoint" class="nav-clear-btn" @click="clearNavEndPoint">×</button>
+            <button v-if="navEndPoint" class="nav-clear-btn" @click="clearNavEndPoint">
+              <IconifyIconOnline icon="ep:circle-close" />
+            </button>
           </div>
         </div>
         <button type="button" class="nav-search-button" @click="handleNavSearch">
-          <span class="nav-search-icon" />
+          <IconifyIconOnline icon="ep:search" class="nav-search-icon" />
           <span>查询</span>
         </button>
       </div>
@@ -92,7 +95,7 @@
             </div>
             <div class="result-title">{{ result.name }}</div>
             <div class="result-address">
-              <span class="location-icon" />
+              <IconifyIconOnline icon="ep:location" class="location-icon" />
               {{ result.address }}
             </div>
           </div>
@@ -102,11 +105,11 @@
             </div>
             <div class="action-buttons">
               <button class="action-btn start-btn" :class="{ active: startPointId === result.id }" title="从这里出发" @click.stop="setAsStartPoint(result)">
-                <span class="start-icon" />
+                <IconifyIconOnline icon="ri:map-pin-user-fill" class="start-icon" />
                 从这出发
               </button>
               <button class="action-btn end-btn" :class="{ active: endPointId === result.id }" title="到这里去" @click.stop="setAsEndPoint(result)">
-                <span class="end-icon" />
+                <IconifyIconOnline icon="ri:map-pin-fill" class="end-icon" />
                 到这去
               </button>
             </div>
@@ -122,7 +125,7 @@
     <transition name="slide-fade">
       <div v-if="showResults && results.length === 0 && searchText.trim()" class="search-results empty-results">
         <div class="empty-state">
-          <span class="empty-icon" />
+          <IconifyIconOnline icon="ep:folder-delete" class="empty-icon" />
           <p>未找到结果</p>
           <small>请尝试其他关键词或搜索方式</small>
         </div>
@@ -133,12 +136,12 @@
     <div v-if="startPointId && endPointId" class="navigation-panel">
       <div class="route-endpoints">
         <div class="endpoint start-point">
-          <span class="endpoint-icon start-icon" />
+          <IconifyIconOnline icon="ri:map-pin-user-fill" class="endpoint-icon text-success" />
           <span class="endpoint-text">起点：{{ getMarkerTitle(startPointMarkerId) }}</span>
         </div>
         <div class="endpoint-divider" />
         <div class="endpoint end-point">
-          <span class="endpoint-icon end-icon" />
+          <IconifyIconOnline icon="ri:map-pin-fill" class="endpoint-icon text-danger" />
           <span class="endpoint-text">终点：{{ getMarkerTitle(endPointMarkerId) }}</span>
         </div>
       </div>
@@ -152,13 +155,13 @@
           :title="type.label"
           @click="selectTransportType(type.value)"
         >
-          <span :class="['transport-icon', type.value + '-icon']" />
+          <IconifyIconOnline :icon="getTransportIconName(type.value)" class="transport-icon" />
         </div>
       </div>
 
       <div class="navigation-buttons">
         <button class="navigation-button" @click="createRouteNavigation">
-          <span class="navigation-icon" />
+          <IconifyIconOnline icon="ep:promotion" class="navigation-icon" />
           开始导航
         </button>
         <button class="clear-button" @click="clearRoutePoints">清除</button>
@@ -182,8 +185,12 @@
             <span class="route-duration">{{ formatDuration(routeTotalDuration) }}</span>
           </div>
           <div class="route-actions">
+            <button class="toggle-details-button" @click="showRouteDetailsList = !showRouteDetailsList">
+              <span>{{ showRouteDetailsList ? "收起" : "展开" }}</span>
+              <IconifyIconOnline :icon="showRouteDetailsList ? 'ep:caret-top' : 'ep:caret-bottom'" class="arrow-icon" />
+            </button>
             <button class="close-button" title="关闭导航详情" @click="closeRouteDetails">
-              <span class="close-icon">×</span>
+              <IconifyIconOnline icon="ep:close" class="close-icon" />
             </button>
           </div>
         </div>
@@ -211,7 +218,7 @@
           <div v-if="showRouteDetailsList" class="route-steps">
             <div v-for="(step, index) in routeDetails" :key="index" class="route-step">
               <div class="step-icon-container">
-                <div class="step-icon" :class="getStepIconClass(step)" />
+                <IconifyIconOnline :icon="getStepIcon(step)" class="step-icon" />
                 <div v-if="index < routeDetails.length - 1" class="step-line" />
               </div>
               <div class="step-content">
@@ -230,6 +237,7 @@
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 import type { PropType } from "vue";
 import { computed, defineExpose, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -760,6 +768,47 @@ const formatDuration = (duration: number): string => {
   }
 };
 
+// 获取步骤图标名称
+const getStepIcon = (step: any) => {
+  if (step.action === "start") return "ri:map-pin-user-fill";
+  if (step.action === "end") return "ri:map-pin-fill";
+
+  switch (step.action) {
+    case "straight":
+      return "ri:arrow-up-line";
+    case "left":
+      return "ri:arrow-left-line";
+    case "right":
+      return "ri:arrow-right-line";
+    case "slight-left":
+      return "ri:arrow-left-up-line";
+    case "slight-right":
+      return "ri:arrow-right-up-line";
+    case "uturn":
+      return "ri:arrow-go-back-line";
+    default:
+      return "ri:arrow-up-line";
+  }
+};
+
+// 获取交通方式图标名称
+const getTransportIconName = (type: string) => {
+  switch (type) {
+    case "driving":
+      return "ri:car-fill";
+    case "transit":
+      return "ri:bus-fill";
+    case "walking":
+      return "ri:walk-fill";
+    case "bicycling":
+      return "ri:bike-fill";
+    case "ebike":
+      return "ri:motorbike-fill";
+    default:
+      return "ri:car-fill";
+  }
+};
+
 // 在 script setup 部分添加一个辅助函数
 const checkRouteDetailsVisibility = () => {
   console.log("路线详情面板可见性状态:", {
@@ -1202,37 +1251,41 @@ const swapNavPoints = () => {
 </script>
 
 <style lang="scss" scoped>
-// 导入自定义颜色系统
-@use '../../../assets/style/colors/index.scss' as *;
-
 // 变量定义
-$primary-color: var(--app-primary);
-$primary-hover: var(--app-primary-light);
-$primary-active: var(--app-primary-dark);
-$border-color: var(--app-border-primary);
-$border-hover: var(--app-primary-light);
-$text-primary: var(--app-text-primary);
-$text-secondary: var(--app-text-secondary);
-$text-muted: var(--app-text-tertiary);
-$success-color: var(--app-success);
-$error-color: var(--app-danger);
-$border-radius: 6px;
-$box-shadow: var(--app-shadow);
-$transition-time: 0.2s;
+$primary-color: var(--el-color-primary);
+$primary-hover: var(--el-color-primary-light-3);
+$primary-active: var(--el-color-primary-dark-2);
+$border-color: var(--el-border-color);
+$border-hover: var(--el-border-color-hover);
+$text-primary: var(--el-text-color-primary);
+$text-secondary: var(--el-text-color-regular);
+$text-muted: var(--el-text-color-placeholder);
+$success-color: var(--el-color-success);
+$error-color: var(--el-color-danger);
+$border-radius: var(--el-border-radius-base);
+$box-shadow: var(--el-box-shadow-light);
+$transition-time: var(--el-transition-duration);
+
+.text-success {
+  color: var(--el-color-success);
+}
+
+.text-danger {
+  color: var(--el-color-danger);
+}
 
 .search-box {
   position: absolute;
   z-index: 1000;
   width: 340px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   border-radius: $border-radius;
   box-shadow: $box-shadow;
-  background-color: var(--app-bg-primary);
+  background-color: var(--el-bg-color-overlay);
 
   .search-container {
     display: flex;
     padding: 10px;
-    border-bottom: 1px solid rgba($border-color, 0.6);
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
   .search-type-selector {
@@ -1250,7 +1303,7 @@ $transition-time: 0.2s;
         padding: 0 26px 0 10px;
         border: 1px solid $border-color;
         border-radius: $border-radius;
-        background-color: var(--app-bg-primary);
+        background-color: var(--el-bg-color);
         font-size: 14px;
         color: $text-primary;
         cursor: pointer;
@@ -1263,21 +1316,24 @@ $transition-time: 0.2s;
         &:focus {
           outline: none;
           border-color: $primary-color;
-          box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+          box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
         }
       }
 
-      .select-arrow {
+      .select-arrow-wrapper {
         position: absolute;
         top: 50%;
         right: 8px;
         transform: translateY(-50%);
-        width: 0;
-        height: 0;
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-top: 5px solid $text-secondary;
         pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .select-arrow-icon {
+          font-size: 14px;
+          color: $text-secondary;
+        }
       }
     }
   }
@@ -1302,7 +1358,7 @@ $transition-time: 0.2s;
         border: 1px solid $border-color;
         border-radius: $border-radius;
         padding: 0 30px 0 30px;
-        background-color: var(--app-bg-primary);
+        background-color: var(--el-bg-color);
 
         &:hover {
           border-color: $border-hover;
@@ -1310,25 +1366,18 @@ $transition-time: 0.2s;
 
         &:focus-within {
           border-color: $primary-color;
-          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+          box-shadow: 0 0 0 2px var(--el-color-primary-light-9);
         }
 
         .nav-point-icon {
           position: absolute;
           left: 8px;
-          width: 16px;
-          height: 16px;
-          background-size: contain;
-          background-repeat: no-repeat;
-          background-position: center;
-        }
-
-        .start-point-icon {
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
-        }
-
-        .end-point-icon {
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 100%;
+          pointer-events: none;
         }
 
         input {
@@ -1338,6 +1387,7 @@ $transition-time: 0.2s;
           outline: none;
           font-size: 14px;
           color: $text-primary;
+          background-color: transparent;
 
           &::placeholder {
             color: $text-muted;
@@ -1352,7 +1402,7 @@ $transition-time: 0.2s;
           border: none;
           background: none;
           color: $text-muted;
-          font-size: 16px;
+          font-size: 12px;
           line-height: 1;
           display: flex;
           align-items: center;
@@ -1362,7 +1412,7 @@ $transition-time: 0.2s;
 
           &:hover {
             color: $text-secondary;
-            background-color: var(--app-bg-secondary);
+            background-color: var(--el-fill-color-light);
           }
         }
       }
@@ -1372,74 +1422,17 @@ $transition-time: 0.2s;
         height: 24px;
         margin: 0 8px;
         border-radius: 50%;
-        background-color: var(--app-bg-secondary);
+        background-color: var(--el-fill-color-light);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         color: $text-secondary;
+        font-size: 14px;
 
         &:hover {
-          background-color: var(--app-bg-tertiary);
+          background-color: var(--el-fill-color);
           color: $primary-color;
-        }
-      }
-    }
-
-    .transport-mode-selector {
-      display: flex;
-      margin-bottom: 8px;
-
-      .transport-mode {
-        width: 36px;
-        height: 36px;
-        border-radius: $border-radius;
-        margin-right: 8px;
-        background: var(--el-bg-color-overlay);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-
-        &:hover {
-          background-color: #e8e8e8;
-        }
-
-        &.active {
-          background-color: rgba($primary-color, 0.1);
-
-          .transport-icon {
-            opacity: 1;
-          }
-        }
-
-        .transport-icon {
-          width: 20px;
-          height: 20px;
-          background-size: contain;
-          background-repeat: no-repeat;
-          background-position: center;
-          opacity: 0.7;
-
-          &.driving-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
-          }
-
-          &.transit-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2303A9F4'%3E%3Cpath d='M4 16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v8zm4.5-3c-.83 0-1.5-.67-1.5-1.5S7.67 10 8.5 10s1.5.67 1.5 1.5S9.33 13 8.5 13zm7 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3Cpath d='M12 2c-4.42 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h12v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zm0 2c3.71 0 5.13.46 5.67 1H6.43c.6-.52 2.05-1 5.57-1z' fill='%2303A9F4'/%3E%3C/svg%3E");
-          }
-
-          &.walking-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF50'%3E%3Cpath d='M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7'/%3E%3C/svg%3E");
-          }
-
-          &.bicycling-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF9800'%3E%3Cpath d='M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z'/%3E%3C/svg%3E");
-          }
-
-          &.ebike-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239C27B0'%3E%3Cpath d='M19 7h-.82l-1.7-4.68C16.19 1.53 15.44 1 14.6 1H12v2h2.6l1.46 4h-4.81l-.36-1H12V4H7v2h1.75l1.82 5H9.9c-.44-2.23-2.31-3.88-4.65-3.99C2.45 6.87 0 9.2 0 12c0 2.8 2.2 5 5 5 2.46 0 4.45-1.69 4.9-4h4.2c.44 2.23 2.31 3.88 4.65 3.99 2.8.13 5.25-2.19 5.25-5C24 9.2 21.8 7 19 7zM7.82 13c-.4 1.17-1.49 2-2.82 2-1.68 0-3-1.32-3-3s1.32-3 3-3c1.33 0 2.42.83 2.82 2H5v2h2.82zm6.28-2h-1.4l-.73-2H15c-.44.58-.76 1.25-.9 2zm4.9 4c-1.68 0-3-1.32-3-3 0-.93.41-1.73 1.05-2.28l.96 2.64 1.88-.68-.97-2.67c.03 0 .06-.01.09-.01 1.68 0 3 1.32 3 3s-1.33 3-3.01 3z'/%3E%3C/svg%3E");
-          }
         }
       }
     }
@@ -1449,7 +1442,7 @@ $transition-time: 0.2s;
       border: none;
       border-radius: $border-radius;
       background-color: $primary-color;
-      color: var(--el-text-color-primary);
+      color: var(--el-color-white);
       font-size: 14px;
       display: flex;
       align-items: center;
@@ -1466,13 +1459,10 @@ $transition-time: 0.2s;
       }
 
       .nav-search-icon {
-        width: 16px;
-        height: 16px;
         margin-right: 6px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z'/%3E%3C/svg%3E");
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
       }
     }
   }
@@ -1492,6 +1482,7 @@ $transition-time: 0.2s;
       font-size: 14px;
       color: $text-primary;
       transition: all $transition-time;
+      background-color: var(--el-bg-color);
 
       &::placeholder {
         color: $text-muted;
@@ -1504,7 +1495,7 @@ $transition-time: 0.2s;
       &:focus {
         outline: none;
         border-color: $primary-color;
-        box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+        box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
       }
 
       &.coordinate-input {
@@ -1531,7 +1522,7 @@ $transition-time: 0.2s;
 
       &:hover {
         color: $primary-color;
-        background-color: rgba($primary-color, 0.05);
+        background-color: var(--el-color-primary-light-9);
       }
 
       &:active {
@@ -1543,23 +1534,23 @@ $transition-time: 0.2s;
   .search-results {
     max-height: 300px;
     overflow-y: auto;
-    background-color: var(--app-bg-primary);
+    background-color: var(--el-bg-color-overlay);
 
     &::-webkit-scrollbar {
       width: 5px;
     }
 
     &::-webkit-scrollbar-track {
-      background: var(--app-bg-secondary);
+      background: var(--el-fill-color-light);
     }
 
     &::-webkit-scrollbar-thumb {
-      background: var(--app-border-primary);
+      background: var(--el-border-color-lighter);
       border-radius: 3px;
     }
 
     &::-webkit-scrollbar-thumb:hover {
-      background: var(--app-text-tertiary);
+      background: var(--el-text-color-secondary);
     }
 
     &.empty-results {
@@ -1571,31 +1562,31 @@ $transition-time: 0.2s;
     display: flex;
     flex-direction: column;
     padding: 12px;
-    border-bottom: 1px solid rgba($border-color, 0.4);
+    border-bottom: 1px solid var(--el-border-color-lighter);
     transition: background-color $transition-time;
     position: relative;
 
     &:hover {
-      background-color: rgba($primary-color, 0.03);
+      background-color: var(--el-fill-color-light);
     }
 
     &.navigation-origin {
-      background-color: var(--app-success-light);
-      opacity: 0.1;
+      background-color: var(--el-color-success-light-9);
+      opacity: 0.8;
 
       &:hover {
-        background-color: var(--app-success-light);
-        opacity: 0.2;
+        background-color: var(--el-color-success-light-8);
+        opacity: 0.9;
       }
     }
 
     &.navigation-destination {
-      background-color: var(--app-danger-light);
-      opacity: 0.1;
+      background-color: var(--el-color-danger-light-9);
+      opacity: 0.8;
 
       &:hover {
-        background-color: var(--app-danger-light);
-        opacity: 0.2;
+        background-color: var(--el-color-danger-light-8);
+        opacity: 0.9;
       }
     }
 
@@ -1620,7 +1611,7 @@ $transition-time: 0.2s;
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        color: var(--el-text-color-primary);
+        color: var(--el-color-white);
         font-size: 12px;
         font-weight: bold;
         display: flex;
@@ -1628,11 +1619,11 @@ $transition-time: 0.2s;
         justify-content: center;
 
         &.origin-badge {
-          background-color: var(--app-success);
+          background-color: var(--el-color-success);
         }
 
         &.destination-badge {
-          background-color: var(--app-danger);
+          background-color: var(--el-color-danger);
         }
       }
     }
@@ -1659,13 +1650,11 @@ $transition-time: 0.2s;
 
       .location-icon {
         display: inline-block;
-        width: 12px;
-        height: 12px;
+        width: 14px;
+        height: 14px;
         margin-right: 4px;
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23666666' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
-          no-repeat center center;
-        background-size: contain;
         opacity: 0.7;
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -1679,7 +1668,7 @@ $transition-time: 0.2s;
     .result-distance {
       font-size: 12px;
       color: $primary-color;
-      background-color: rgba($primary-color, 0.08);
+      background-color: var(--el-color-primary-light-9);
       padding: 2px 8px;
       border-radius: 10px;
       white-space: nowrap;
@@ -1697,8 +1686,8 @@ $transition-time: 0.2s;
       justify-content: center;
       padding: 3px 8px;
       border-radius: 3px;
-      border: 1px solid rgba($border-color, 0.8);
-      background-color: var(--app-bg-primary);
+      border: 1px solid var(--el-border-color);
+      background-color: var(--el-bg-color);
       font-size: 12px;
       color: $text-secondary;
       cursor: pointer;
@@ -1712,7 +1701,7 @@ $transition-time: 0.2s;
       &.active {
         background-color: $primary-color;
         border-color: $primary-color;
-        color: var(--el-text-color-primary);
+        color: var(--el-color-white);
       }
 
       .start-icon,
@@ -1724,15 +1713,11 @@ $transition-time: 0.2s;
       }
 
       .start-icon {
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
-          no-repeat center center;
-        background-size: contain;
+        color: var(--el-color-success);
       }
 
       .end-icon {
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
-          no-repeat center center;
-        background-size: contain;
+        color: var(--el-color-danger);
       }
     }
   }
@@ -1741,7 +1726,7 @@ $transition-time: 0.2s;
     padding: 12px;
     display: block;
     justify-content: space-between;
-    border-top: 1px solid rgba($border-color, 0.6);
+    border-top: 1px solid var(--el-border-color-light);
 
     .route-endpoints {
       display: flex;
@@ -1749,7 +1734,7 @@ $transition-time: 0.2s;
       flex-direction: row;
       margin-bottom: 10px;
       padding: 8px;
-      background-color: var(--app-bg-secondary);
+      background-color: var(--el-fill-color-light);
       border-radius: $border-radius;
 
       .endpoint {
@@ -1766,15 +1751,11 @@ $transition-time: 0.2s;
         }
 
         .start-icon {
-          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
-            no-repeat center center;
-          background-size: contain;
+          color: var(--el-color-success);
         }
 
         .end-icon {
-          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
-            no-repeat center center;
-          background-size: contain;
+          color: var(--el-color-danger);
         }
 
         .endpoint-text {
@@ -1800,7 +1781,7 @@ $transition-time: 0.2s;
       gap: 8px;
       padding: 8px 0;
       justify-content: space-between;
-      border-bottom: 1px solid rgba($border-color, 0.4);
+      border-bottom: 1px solid var(--el-border-color-lighter);
       margin-bottom: 10px;
 
       .transport-type-option {
@@ -1809,18 +1790,18 @@ $transition-time: 0.2s;
         justify-content: center;
         padding: 8px;
         border-radius: 50%;
-        background: var(--app-bg-secondary);
+        background: var(--el-fill-color-light);
         cursor: pointer;
         transition: all 0.2s;
         width: 40px;
         height: 40px;
 
         &:hover {
-          background-color: var(--app-bg-tertiary);
+          background-color: var(--el-fill-color);
         }
 
         &.active {
-          background-color: rgba($primary-color, 0.1);
+          background-color: var(--el-color-primary-light-9);
 
           .transport-icon {
             transform: scale(1.1);
@@ -1832,31 +1813,10 @@ $transition-time: 0.2s;
           display: block;
           width: 24px;
           height: 24px;
-          background-size: contain;
-          background-repeat: no-repeat;
-          background-position: center;
           transition: transform 0.2s;
           opacity: 0.7;
 
-          &.driving-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
-          }
-
-          &.transit-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2303A9F4'%3E%3Cpath d='M4 16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v8zm4.5-3c-.83 0-1.5-.67-1.5-1.5S7.67 10 8.5 10s1.5.67 1.5 1.5S9.33 13 8.5 13zm7 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3Cpath d='M12 2c-4.42 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h12v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zm0 2c3.71 0 5.13.46 5.67 1H6.43c.6-.52 2.05-1 5.57-1z' fill='%2303A9F4'/%3E%3C/svg%3E");
-          }
-
-          &.walking-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF50'%3E%3Cpath d='M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7'/%3E%3C/svg%3E");
-          }
-
-          &.bicycling-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF9800'%3E%3Cpath d='M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z'/%3E%3C/svg%3E");
-          }
-
-          &.ebike-icon {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239C27B0'%3E%3Cpath d='M19 7h-.82l-1.7-4.68C16.19 1.53 15.44 1 14.6 1H12v2h2.6l1.46 4h-4.81l-.36-1H12V4H7v2h1.75l1.82 5H9.9c-.44-2.23-2.31-3.88-4.65-3.99C2.45 6.87 0 9.2 0 12c0 2.8 2.2 5 5 5 2.46 0 4.45-1.69 4.9-4h4.2c.44 2.23 2.31 3.88 4.65 3.99 2.8.13 5.25-2.19 5.25-5C24 9.2 21.8 7 19 7zM7.82 13c-.4 1.17-1.49 2-2.82 2-1.68 0-3-1.32-3-3s1.32-3 3-3c1.33 0 2.42.83 2.82 2H5v2h2.82zm6.28-2h-1.4l-.73-2H15c-.44.58-.76 1.25-.9 2zm4.9 4c-1.68 0-3-1.32-3-3 0-.93.41-1.73 1.05-2.28l.96 2.64 1.88-.68-.97-2.67c.03 0 .06-.01.09-.01 1.68 0 3 1.32 3 3s-1.33 3-3.01 3z'/%3E%3C/svg%3E");
-          }
+          // Background images removed, using Iconify
         }
 
         .transport-label {
@@ -1878,7 +1838,7 @@ $transition-time: 0.2s;
       align-items: center;
       justify-content: center;
       background-color: $primary-color;
-      color: var(--app-text-inverse);
+      color: var(--el-color-white);
       border: none;
       border-radius: $border-radius;
       padding: 8px 16px;
@@ -1902,9 +1862,6 @@ $transition-time: 0.2s;
         width: 16px;
         height: 16px;
         margin-right: 6px;
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z'/%3E%3C/svg%3E")
-          no-repeat center center;
-        background-size: contain;
       }
     }
 
@@ -1912,7 +1869,7 @@ $transition-time: 0.2s;
       padding: 8px 12px;
       border: 1px solid $border-color;
       border-radius: $border-radius;
-      background-color: var(--app-bg-overlay);
+      background-color: var(--el-bg-color-overlay);
       color: $text-secondary;
       cursor: pointer;
       transition: all $transition-time;
@@ -1923,23 +1880,23 @@ $transition-time: 0.2s;
       }
 
       &:active {
-        background-color: rgba($error-color, 0.05);
+        background-color: var(--el-color-danger-light-9);
       }
     }
   }
 
   // 路线详情样式
   .route-details {
-    border: 1px solid rgba($border-color, 0.6);
+    border: 1px solid var(--el-border-color-light);
     flex-direction: column;
-    background-color: var(--app-bg-primary);
+    background-color: var(--el-bg-color);
     position: absolute;
     top: 0;
     right: 100%;
     margin-right: 10px;
     width: 300px;
     border-radius: $border-radius;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--el-box-shadow-light);
     z-index: 1000;
     height: 100%;
     transition: transform 0.3s ease;
@@ -2018,8 +1975,8 @@ $transition-time: 0.2s;
     // 调试信息样式
     .debug-info {
       padding: 8px;
-      background-color: #f8f8f8;
-      border-bottom: 1px dashed #ccc;
+      background-color: var(--el-fill-color-light);
+      border-bottom: 1px dashed var(--el-border-color);
       font-size: 12px;
       color: var(--el-text-color-primary);
 
@@ -2047,7 +2004,7 @@ $transition-time: 0.2s;
     // 路线选择样式
     .route-options {
       padding: 10px 15px;
-      border-bottom: 1px solid rgba($border-color, 0.6);
+      border-bottom: 1px solid var(--el-border-color-light);
 
       .route-option-title {
         font-size: 14px;
@@ -2069,18 +2026,18 @@ $transition-time: 0.2s;
           align-items: center;
           padding: 8px 12px;
           border-radius: 4px;
-          border: 1px solid rgba($border-color, 0.6);
+          border: 1px solid var(--el-border-color-light);
           cursor: pointer;
           transition: all 0.2s;
 
           &:hover {
             border-color: $primary-color;
-            background-color: rgba($primary-color, 0.03);
+            background-color: var(--el-color-primary-light-9);
           }
 
           &.active {
             border-color: $primary-color;
-            background-color: rgba($primary-color, 0.08);
+            background-color: var(--el-color-primary-light-9);
 
             .route-option-name {
               color: $primary-color;
@@ -2121,31 +2078,27 @@ $transition-time: 0.2s;
             font-weight: 500;
 
             &.traffic-smooth {
-              background-color: var(--app-success-light);
-              opacity: 0.2;
-              color: var(--app-success);
+              background-color: var(--el-color-success-light-9);
+              color: var(--el-color-success);
             }
 
             &.traffic-normal {
-              background-color: var(--app-info-light);
-              opacity: 0.2;
-              color: var(--app-info);
+              background-color: var(--el-color-info-light-9);
+              color: var(--el-color-info);
             }
 
             &.traffic-slow {
-              background-color: var(--app-warning-light);
-              opacity: 0.2;
-              color: var(--app-warning);
+              background-color: var(--el-color-warning-light-9);
+              color: var(--el-color-warning);
             }
 
             &.traffic-congested {
-              background-color: var(--app-danger-light);
-              opacity: 0.2;
-              color: var(--app-danger);
+              background-color: var(--el-color-danger-light-9);
+              color: var(--el-color-danger);
             }
 
             &.traffic-unknown {
-              background-color: rgba($text-secondary, 0.1);
+              background-color: var(--el-fill-color-light);
               color: $text-secondary;
             }
           }
@@ -2158,7 +2111,7 @@ $transition-time: 0.2s;
       justify-content: space-between;
       align-items: center;
       padding: 12px 15px;
-      background: var(--app-bg-overlay);
+      background: var(--el-bg-color-overlay);
       border-top-left-radius: $border-radius;
       border-top-right-radius: $border-radius;
 
@@ -2169,12 +2122,12 @@ $transition-time: 0.2s;
         .route-distance {
           font-size: 16px;
           font-weight: 500;
-          color: var(--app-text-primary);
+          color: var(--el-text-color-primary);
         }
 
         .route-duration {
           font-size: 14px;
-          color: var(--app-text-primary);
+          color: var(--el-text-color-primary);
           margin-top: 4px;
         }
       }
@@ -2193,24 +2146,15 @@ $transition-time: 0.2s;
           display: flex;
           align-items: center;
           margin-right: 8px;
+          transition: color 0.2s;
+
+          &:hover {
+            color: $primary-hover;
+          }
 
           .arrow-icon {
-            display: inline-block;
-            width: 0;
-            height: 0;
+            font-size: 14px;
             margin-left: 4px;
-
-            &.down {
-              border-left: 4px solid transparent;
-              border-right: 4px solid transparent;
-              border-top: 4px solid $primary-color;
-            }
-
-            &.up {
-              border-left: 4px solid transparent;
-              border-right: 4px solid transparent;
-              border-bottom: 4px solid $primary-color;
-            }
           }
         }
 
@@ -2219,15 +2163,15 @@ $transition-time: 0.2s;
           height: 24px;
           border-radius: 50%;
           border: none;
-          background-color: var(--app-bg-secondary);
-          color: var(--app-text-primary);
+          background-color: var(--el-fill-color-light);
+          color: var(--el-text-color-primary);
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
 
           &:hover {
-            background-color: var(--app-bg-tertiary);
+            background-color: var(--el-fill-color);
           }
 
           .close-icon {
@@ -2247,16 +2191,16 @@ $transition-time: 0.2s;
       }
 
       &::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: var(--el-fill-color-lighter);
       }
 
       &::-webkit-scrollbar-thumb {
-        background: #ccc;
+        background: var(--el-border-color);
         border-radius: 3px;
       }
 
       &::-webkit-scrollbar-thumb:hover {
-        background: #aaa;
+        background: var(--el-text-color-secondary);
       }
 
       .route-step {
@@ -2265,7 +2209,7 @@ $transition-time: 0.2s;
         position: relative;
 
         &:hover {
-          background-color: #f9f9f9;
+          background-color: var(--el-fill-color-light);
         }
 
         .step-icon-container {
@@ -2286,46 +2230,26 @@ $transition-time: 0.2s;
             justify-content: center;
             position: relative;
             z-index: 2;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: 14px;
 
             &.icon-start {
               background-color: var(--el-color-success);
               border-color: var(--el-color-success);
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
+              color: var(--el-color-white);
             }
 
             &.icon-end {
               background-color: var(--el-color-danger);
               border-color: var(--el-color-danger);
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
+              color: var(--el-color-white);
             }
 
-            &.icon-straight {
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z'/%3E%3C/svg%3E");
-            }
-
-            &.icon-left {
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z'/%3E%3C/svg%3E");
-            }
-
-            &.icon-right {
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z'/%3E%3C/svg%3E");
-            }
-
-            &.icon-slight-left {
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M14.12 15.88L9.24 11l4.88-4.88L13 5l-6 6 6 6z'/%3E%3C/svg%3E");
-              transform: rotate(-45deg);
-            }
-
-            &.icon-slight-right {
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M9.88 15.88L14.76 11l-4.88-4.88L11 5l6 6-6 6z'/%3E%3C/svg%3E");
-              transform: rotate(45deg);
-            }
-
+            &.icon-straight,
+            &.icon-left,
+            &.icon-right,
+            &.icon-slight-left,
+            &.icon-slight-right,
             &.icon-uturn {
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M7 18v-6c0-3.31 2.69-6 6-6s6 2.69 6 6v7h2v-7c0-4.42-3.58-8-8-8s-8 3.58-8 8v6H3l4 4 4-4H7z'/%3E%3C/svg%3E");
+              color: var(--el-color-primary);
             }
           }
 
@@ -2479,7 +2403,7 @@ $transition-time: 0.2s;
     margin: 0;
     width: calc(100% - 20px);
     max-width: 400px;
-    border: 1px solid rgba($border-color, 0.6);
+    border: 1px solid var(--el-border-color-lighter);
     max-height: 60vh;
     overflow-y: auto;
 

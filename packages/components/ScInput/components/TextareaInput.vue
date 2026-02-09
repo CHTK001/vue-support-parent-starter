@@ -121,19 +121,19 @@ const handleBlur = (event: FocusEvent) => {
     background-color: var(--el-bg-color);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     resize: vertical;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    box-shadow: var(--el-box-shadow-lighter);
 
     &:hover {
       border-color: var(--el-border-color);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: var(--el-box-shadow-light);
       transform: translateY(-1px);
     }
 
     &:focus {
       border-color: var(--el-color-primary);
       box-shadow:
-        0 0 0 4px rgba(var(--el-color-primary-rgb), 0.1),
-        0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+        0 0 0 4px var(--el-color-primary-light-9),
+        0 4px 12px var(--el-color-primary-light-8);
       outline: none;
       transform: translateY(-1px);
     }
@@ -167,13 +167,13 @@ const handleBlur = (event: FocusEvent) => {
 
   // 字数统计样式
   :deep(.el-input__count) {
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     padding: 2px 8px;
     font-size: 12px;
     color: var(--el-text-color-primary);
     backdrop-filter: blur(4px);
-    border: 1px solid rgba(228, 231, 237, 0.6);
+    border: 1px solid var(--el-border-color-lighter);
   }
 
   // 自适应高度动画

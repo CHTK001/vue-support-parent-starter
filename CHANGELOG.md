@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.2] - 2026-02-09
+
+### Fixed
+- **Menu Animation**:
+  - Resolved an issue where menu click animations were disabled by default.
+  - Enabled `MenuAnimation` configuration by default in `PlatformConfigs` and global settings.
+  - Fixed a CSS class selector typo (`.menu-animate` -> `.menu-animation`) in `SidebarItem.vue`.
+  - Added menu animation toggle to `BaseSetting.vue` reset logic.
+- **Lay-Tag**: 
+  - Removed `transition-group` animation (tag-fade) to eliminate the "refresh-like" visual effect when clicking tags.
+  - Removed `useDefer` sequential rendering logic to prevent tags from "appearing one by one" or flashing incorrect styles during load.
+- **Sidebar Menu**: Enforced strict style consistency for subset menus (nested items) to match first-level menu styles. Added `!important` flags to background and text colors for both active and inactive states to prevent style inheritance issues.
+- **ScDialog**: Fixed `dialogZIndexManager` export error in `useDialogZIndex.ts` to ensure proper z-index management for multiple dialogs.
+- **Lay-Tag**: Fixed "Close All" context menu functionality to correctly activate the last remaining fixed tag (e.g., Home) instead of potentially failing to navigate or update the active state.
+- **Menu Animation**: Fixed an issue where the menu content opening animation (Page Transition) was disabled by default due to a configuration mismatch. It now correctly respects the system default (Enabled).
+- **Lay-Tag**: Fixed missing styles for `modern-item`, `card-item`, and `smart-item` theme modes. Added dedicated CSS classes with proper dimensions, hover effects, and close button adaptations to ensure buttons are visible and clickable across all themes (including Dark Mode support).
+- **Fullscreen**: Replaced custom fullscreen implementation with `@vueuse/core`'s `useFullscreen` composable in `SidebarFullScreen.vue` to ensure cross-browser compatibility and fixed click propagation issues where the button was non-functional.
+- **Lay-Navbar**: Resolved flickering issue when switching tabs by optimizing dynamic component rendering logic (removed unnecessary key binding).
+- **Lay-Tag**: 
+  - Fixed an issue where the `chrome-close-btn` was not displaying by correctly importing and using the `CloseIcon` from `@iconify-icons`.
+  - **Chrome Style Beautification**: Enhanced the Chrome tab style with smoother background transitions, improved hover effects (light background on hover), and refined close button interactions (red background on hover for inactive tabs, semi-transparent white for active tabs).
+
+
+### Changed
+- **Message Center**:
+  - **UI Overhaul**: Implemented glass morphism design (backdrop-filter, semi-transparent backgrounds) and hover animations for a modern look.
+  - **Theme Adaptation**: Modularized theme styles into dedicated SCSS files (e.g., `_spring-festival.scss`) and integrated `stitch-lay-*` tokens to ensure adaptability to all festivals, theme styles (Light/Dark), and theme colors.
+  - **Code Quality**: Removed inline style overrides and optimized scoped CSS for better maintainability.
+- **Lay-Tag**:
+  - **Removed Modern Style**: Completely removed the "Modern" tag style (`modern-item`) to streamline the UI options.
+  - **Card Style Enhancement**: Added a theme-colored bottom bar to the active "Card" style tab for better visual indication.
+  - **Chrome Style Beautification**: Added depth to the active "Chrome" tab using `z-index` and `drop-shadow` for a more distinct, layered look.
+- **ScCard**:
+  - **SVG Optimization**: Updated `Tech` layout corner decorations to use high-contrast primary theme colors with glow effects, resolving visibility issues.
+- **Lay-Tag**:
+  - **Fix**: Corrected the close button hover color in `glass-item` style to ensuring consistent theme coloring.
+
+## [2.2.1] - 2026-02-08
+
+### Added
+- **Component Theme Adaptation**:
+  - **ScCard**: Full support for Stitch Design System theme tokens. Adapted all layouts (Default, Compact, Media, Panel-3D, etc.) to support adaptive light/dark modes and semantic colors.
+  - **ScTable**: Adapted table components (TableView, CardView, etc.) and plugins (Pagination, ContextMenu) to use semantic theme tokens, removing hardcoded element-plus variables.
+  - **ScDialog**: Enhanced taskbar and dialog styles with semantic theme tokens and glass morphism effects.
+- **Documentation**:
+  - Created `ScCard/README.md` with detailed usage and layout examples.
+  - Updated `ScTable/README.md` and `ScDialog/README.md` to reflect new theme capabilities.
+
+### Fixed
+- **Style Consistency**: Replaced hardcoded `--el-*` variables with `--stitch-lay-*` tokens in ScCard, ScTable, and ScDialog for better dark mode compatibility.
+- **SASS Compilation**: Fixed syntax errors in `ScCard/layouts/Compact.vue` and `ScTable/components/CardView.vue`.
+- **Theme Variants**: Corrected theme variant mappings (e.g., danger -> error) in ScTable column settings to match the design system.
+
 ## [2.2.0] - 2026-02-05
 
 ### Added

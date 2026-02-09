@@ -3,15 +3,15 @@
   <div class="boundary-selector" :class="{ active: active }" :style="positionStyle">
     <div class="boundary-selector-header">
       <div class="title">
-        <i class="boundary-icon"></i>
+        <IconifyIconOnline icon="ep:map-location" class="boundary-icon" />
         区划选择器
       </div>
       <div class="actions">
         <button class="btn-icon" @click="locateCurrent" title="定位到当前">
-          <i class="location-icon"></i>
+          <IconifyIconOnline icon="ep:aim" class="location-icon" />
         </button>
         <button class="btn-icon" @click="toggleSettings" title="设置">
-          <i class="settings-icon"></i>
+          <IconifyIconOnline icon="ep:setting" class="settings-icon" />
         </button>
       </div>
     </div>
@@ -19,7 +19,7 @@
     <div class="boundary-selector-content">
       <div class="search-container">
         <input type="text" v-model="searchText" placeholder="搜索行政区划..." class="search-input" />
-        <i class="search-icon"></i>
+        <IconifyIconOnline icon="ep:search" class="search-icon" />
       </div>
 
       <div class="tree-container">
@@ -50,7 +50,7 @@
             <span>加载中...</span>
           </div>
           <div v-else class="error-state">
-            <i class="error-icon"></i>
+            <IconifyIconOnline icon="ep:circle-close-filled" class="error-icon" />
             <p>加载失败</p>
             <button class="btn btn-primary" @click="loadDistrictTree">重试</button>
           </div>
@@ -61,7 +61,7 @@
         <div class="selected-boundaries" v-if="selectedBoundaries.length > 0">
           <div class="selected-header">
             <span class="selected-title">
-              <i class="check-icon"></i>
+              <IconifyIconOnline icon="ep:check" class="check-icon" />
               已选区划 ({{ selectedBoundaries.length }})
             </span>
             <div class="actions">
@@ -73,7 +73,7 @@
             <div v-for="item in selectedBoundaries" :key="item.code" class="selected-item">
               <span class="item-name">{{ item.name }}</span>
               <button class="btn-icon remove-btn" @click="removeBoundary(item.code)" title="移除">
-                <i class="delete-icon"></i>
+                <IconifyIconOnline icon="ep:delete" class="delete-icon" />
               </button>
             </div>
           </div>
@@ -85,7 +85,7 @@
       <div class="settings-header">
         <h3>边界显示设置</h3>
         <button class="btn-icon" @click="toggleSettings" title="关闭">
-          <i class="close-icon"></i>
+          <IconifyIconOnline icon="ep:close" class="close-icon" />
         </button>
       </div>
 
@@ -147,6 +147,7 @@ export default {
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from "vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { BoundaryLevel, BoundaryData, BoundaryOptions } from "../types/boundary";
 import { DEFAULT_BOUNDARY_OPTIONS } from "../types/default";
 import { MapType } from "../types/map";
@@ -848,31 +849,22 @@ function getAllNodes(nodes: any[]): any[] {
 
 <style lang="scss" scoped>
 // 变量定义
-$primary-color: #409eff;
-$primary-hover: #66b1ff;
-$primary-active: #3a8ee6;
-$border-color: #dcdfe6;
-$border-hover: #c0c4cc;
-$text-primary: #303133;
-$text-secondary: #606266;
-$text-muted: #909399;
-$success-color: #67c23a;
-$error-color: #f56c6c;
-$warning-color: #e6a23c;
+$primary-color: var(--el-color-primary);
+$primary-hover: var(--el-color-primary-light-3);
+$primary-active: var(--el-color-primary-dark-2);
+$border-color: var(--el-border-color);
+$border-hover: var(--el-border-color-hover);
+$text-primary: var(--el-text-color-primary);
+$text-secondary: var(--el-text-color-regular);
+$text-muted: var(--el-text-color-secondary);
+$success-color: var(--el-color-success);
+$error-color: var(--el-color-danger);
+$warning-color: var(--el-color-warning);
 $info-color: var(--el-text-color-primary);
-$background-color: #ffffff;
-$border-radius: 4px;
-$box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+$background-color: var(--el-bg-color-overlay);
+$border-radius: var(--el-border-radius-base);
+$box-shadow: var(--el-box-shadow-light);
 $transition-time: 0.3s;
-
-// 图标样式
-@mixin icon($url) {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  background: $url no-repeat center center;
-  background-size: contain;
-}
 
 .boundary-selector {
   position: absolute;
@@ -906,8 +898,8 @@ $transition-time: 0.3s;
     align-items: center;
     padding: 12px 16px;
     border-bottom: 1px solid $border-color;
-    background-color: #f5f7fa;
-
+    background-color: var(--el-fill-color-light);
+    
     .title {
       font-weight: 600;
       color: $text-primary;
@@ -916,9 +908,8 @@ $transition-time: 0.3s;
       align-items: center;
 
       .boundary-icon {
-        @include icon(
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23409EFF' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z'/%3E%3C/svg%3E")
-        );
+        font-size: 18px;
+        color: $primary-color;
         margin-right: 8px;
       }
     }
@@ -955,6 +946,7 @@ $transition-time: 0.3s;
         color: $text-primary;
         transition: border-color $transition-time;
         outline: none;
+        background-color: var(--el-input-bg-color);
 
         &:hover {
           border-color: $border-hover;
@@ -970,14 +962,13 @@ $transition-time: 0.3s;
       }
 
       .search-icon {
-        @include icon(
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23909399' d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E")
-        );
         position: absolute;
         right: 12px;
         top: 50%;
         transform: translateY(-50%);
         opacity: 0.7;
+        font-size: 16px;
+        color: $text-muted;
       }
     }
 
@@ -990,7 +981,7 @@ $transition-time: 0.3s;
       border: 1px solid $border-color;
       border-radius: $border-radius;
       padding: 12px;
-      background-color: #fafafa;
+      background-color: var(--el-fill-color-lighter);
       overflow-y: auto;
       margin-bottom: 16px;
 
@@ -1013,12 +1004,12 @@ $transition-time: 0.3s;
           height: 32px;
 
           &:hover {
-            background-color: #f5f7fa;
+            background-color: var(--el-fill-color-light);
           }
         }
 
         :deep(.el-tree-node.is-current > .el-tree-node__content) {
-          background-color: #ecf5ff;
+          background-color: var(--el-color-primary-light-9);
         }
 
         :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
@@ -1069,11 +1060,8 @@ $transition-time: 0.3s;
         }
 
         .error-icon {
-          @include icon(
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23F56C6C' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3E%3C/svg%3E")
-          );
-          width: 40px;
-          height: 40px;
+          font-size: 40px;
+          color: $error-color;
         }
 
         p {
@@ -1104,9 +1092,8 @@ $transition-time: 0.3s;
             align-items: center;
 
             .check-icon {
-              @include icon(
-                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2367C23A' d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
-              );
+              font-size: 16px;
+              color: $success-color;
               margin-right: 6px;
             }
           }
@@ -1128,17 +1115,17 @@ $transition-time: 0.3s;
           }
 
           &::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: var(--el-fill-color-light);
             border-radius: 3px;
           }
 
           &::-webkit-scrollbar-thumb {
-            background: #ccc;
+            background: var(--el-border-color);
             border-radius: 3px;
           }
 
           &::-webkit-scrollbar-thumb:hover {
-            background: #aaa;
+            background: var(--el-text-color-secondary);
           }
 
           .selected-item {
@@ -1154,7 +1141,7 @@ $transition-time: 0.3s;
             }
 
             &:hover {
-              background-color: #f5f7fa;
+              background-color: var(--el-fill-color-light);
             }
 
             .item-name {
@@ -1170,9 +1157,8 @@ $transition-time: 0.3s;
               }
 
               .delete-icon {
-                @include icon(
-                  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23F56C6C' d='M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z'/%3E%3C/svg%3E")
-                );
+                font-size: 16px;
+                color: $error-color;
               }
             }
           }
@@ -1197,7 +1183,7 @@ $transition-time: 0.3s;
     .settings-header {
       padding: 12px 16px;
       border-bottom: 1px solid $border-color;
-      background-color: #f5f7fa;
+      background-color: var(--el-fill-color-light);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -1210,9 +1196,8 @@ $transition-time: 0.3s;
       }
 
       .close-icon {
-        @include icon(
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23303133' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E")
-        );
+        font-size: 18px;
+        color: $text-primary;
       }
     }
 
@@ -1270,12 +1255,12 @@ $transition-time: 0.3s;
   }
 
   &:active {
-    background-color: rgba($primary-color, 0.1);
+    background-color: var(--el-color-primary-light-9);
   }
 
   &.btn-primary {
     background-color: $primary-color;
-    color: var(--el-text-color-primary);
+    color: var(--el-color-white);
     border-color: $primary-color;
 
     &:hover {
@@ -1304,7 +1289,7 @@ $transition-time: 0.3s;
   transition: all $transition-time;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--el-fill-color-darker);
   }
 
   i {
@@ -1314,21 +1299,18 @@ $transition-time: 0.3s;
   }
 
   .location-icon {
-    @include icon(
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23303133' d='M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z'/%3E%3C/svg%3E")
-    );
+    font-size: 18px;
+    color: $text-primary;
   }
 
   .settings-icon {
-    @include icon(
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23303133' d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z'/%3E%3C/svg%3E")
-    );
+    font-size: 18px;
+    color: $text-primary;
   }
 
   .close-icon {
-    @include icon(
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23303133' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E")
-    );
+    font-size: 18px;
+    color: $text-primary;
   }
 }
 

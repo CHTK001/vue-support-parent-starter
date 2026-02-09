@@ -15,6 +15,7 @@ import type { StorageConfigs } from '@repo/config';
 import { useNav } from '../../../../hooks/useNav';
 import { CustomMenu, CustomMenuItem, CustomSubMenu } from '../../components/custom-menu';
 import LayTool from '../../../lay-tool/index.vue';
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 
 const props = defineProps<{
   /** 主题类名 */
@@ -31,6 +32,26 @@ const { resolvePath, device } = useNav();
 
 // 提取 store 到顶层避免重复调用
 const permissionStore = usePermissionStoreHook();
+
+const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
+const forceNewMenu = ref(false);
+const menuAnimation = ref(getConfig().MenuAnimation ?? false);
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
+
+onMounted(() => {
+  emitter.on("showNewMenuChange", (val) => {
+    showNewMenu.value = val;
+  });
+  emitter.on("forceNewMenuChange", (val) => {
+    forceNewMenu.value = val;
+  });
+  emitter.on("menuAnimationChange", (val) => {
+    menuAnimation.value = val;
+  });
+  emitter.on("newMenuAnimationChange", (val) => {
+    newMenuAnimation.value = val;
+  });
+});
 
 // 当前激活路径
 const defaultActive = computed(() => {
@@ -253,7 +274,7 @@ watch(visibleCount, () => {
         v-for="menuItem in visibleMenus"
         :key="menuItem.path"
         :index="resolvePath(menuItem) || menuItem.redirect || menuItem.path"
-        :class="['mix-menu-item', menuItemClass]"
+        :class="['mix-menu-item', menuItemClass, { 'menu-animation': menuAnimation }]"
         @click="handleMenuClick(resolvePath(menuItem) || menuItem.redirect || menuItem.path)"
       >
         <div class="menu-item-content">
@@ -263,6 +284,14 @@ watch(visibleCount, () => {
           <span class="menu-title">
             {{ transformI18n(menuItem.meta?.i18nKey || menuItem.meta?.title) }}
           </span>
+          <ReMenuNewBadge
+            v-if="showNewMenu"
+            :createTime="menuItem.meta?.createTime"
+            :type="menuItem.meta?.badgeType || 'primary'"
+            :customText="menuItem.meta?.badgeText"
+            :forceShow="forceNewMenu || menuItem.meta?.permanentNew"
+            :animation="newMenuAnimation"
+          />
         </div>
       </CustomMenuItem>
       
@@ -273,6 +302,7 @@ watch(visibleCount, () => {
         :popper-class="popperClass"
         popper-direction="bottom"
         class="more-menu"
+        :class="{ 'menu-animation': menuAnimation }"
         hide-arrow
       >
         <template #title>
@@ -284,7 +314,7 @@ watch(visibleCount, () => {
           v-for="menuItem in overflowMenus"
           :key="menuItem.path"
           :index="resolvePath(menuItem) || menuItem.redirect || menuItem.path"
-          :class="['mix-menu-item', menuItemClass]"
+          :class="['mix-menu-item', menuItemClass, { 'menu-animation': menuAnimation }]"
           @click="handleMenuClick(resolvePath(menuItem) || menuItem.redirect || menuItem.path)"
         >
           <div class="menu-item-content">
@@ -294,6 +324,14 @@ watch(visibleCount, () => {
             <span class="menu-title">
               {{ transformI18n(menuItem.meta?.i18nKey || menuItem.meta?.title) }}
             </span>
+            <ReMenuNewBadge
+              v-if="showNewMenu"
+              :createTime="menuItem.meta?.createTime"
+              :type="menuItem.meta?.badgeType || 'primary'"
+              :customText="menuItem.meta?.badgeText"
+              :forceShow="forceNewMenu || menuItem.meta?.permanentNew"
+              :animation="newMenuAnimation"
+            />
           </div>
         </CustomMenuItem>
       </CustomSubMenu>
@@ -388,5 +426,19 @@ watch(visibleCount, () => {
     white-space: nowrap;
     font-weight: 500;
   }
+}
+
+// 菜单动画
+.menu-animation {
+  &.is-active.mix-menu-item,
+  &.is-active.more-menu > .custom-sub-menu__title {
+    animation: menu-bounce 0.5s;
+  }
+}
+
+@keyframes menu-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
 }
 </style>

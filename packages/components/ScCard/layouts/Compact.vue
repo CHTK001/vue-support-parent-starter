@@ -134,19 +134,20 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .sc-card-compact {
-  --compact-radius: 14px;
+  --compact-radius: var(--stitch-lay-radius-lg);
   --compact-icon-size: 46px;
   --compact-padding: 16px;
-  --compact-transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  --compact-transition: var(--stitch-lay-transition);
 
   position: relative;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--stitch-lay-bg-panel);
   backdrop-filter: blur(10px);
   border-radius: var(--compact-radius);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--stitch-lay-border);
+  box-shadow: var(--stitch-lay-shadow-sm);
   transition: var(--compact-transition);
   overflow: hidden;
+  color: var(--stitch-lay-text-main);
 
   // 顶部装饰渐变条
   &::before {
@@ -156,7 +157,7 @@ export default defineComponent({
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary));
+    background: linear-gradient(90deg, var(--stitch-lay-primary), var(--stitch-lay-primary-light), var(--stitch-lay-primary));
     background-size: 200% 100%;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -170,20 +171,53 @@ export default defineComponent({
     right: -50%;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.03) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--stitch-lay-primary-alpha) 0%, transparent 70%);
     opacity: 0;
     transition: opacity 0.4s ease;
     pointer-events: none;
   }
 
+  // 主题变体混合宏
+  @mixin theme-variant($type, $color, $light, $bg) {
+    &::before {
+      background: linear-gradient(90deg, #{$color}, #{$light}, #{$color});
+    }
+
+    &::after {
+      background: radial-gradient(circle, #{$bg} 0%, transparent 70%);
+    }
+
+    &.is-hoverable:hover {
+      border-color: #{$light};
+      
+      .sc-card-compact__icon {
+        box-shadow: 0 8px 24px #{$bg};
+        color: #{$color};
+      }
+      
+      .sc-card-compact__title {
+        color: #{$color};
+      }
+    }
+    
+    .sc-card-compact__icon {
+      color: #{$color};
+      background: #{$bg};
+    }
+  }
+
+  &.theme--primary { @include theme-variant('primary', var(--stitch-lay-primary), var(--stitch-lay-primary-light), var(--stitch-lay-primary-alpha)); }
+  &.theme--success { @include theme-variant('success', var(--stitch-lay-success), var(--stitch-lay-success-light), var(--stitch-lay-success-bg)); }
+  &.theme--warning { @include theme-variant('warning', var(--stitch-lay-warning), var(--stitch-lay-warning-light), var(--stitch-lay-warning-bg)); }
+  &.theme--danger { @include theme-variant('danger', var(--stitch-lay-error), var(--stitch-lay-error-light), var(--stitch-lay-error-bg)); }
+  &.theme--info { @include theme-variant('info', var(--stitch-lay-info), var(--stitch-lay-info-light), var(--stitch-lay-info-bg)); }
+
   &.is-hoverable {
     cursor: pointer;
 
     &:hover {
-      border-color: rgba(99, 102, 241, 0.3);
-      box-shadow:
-        0 12px 32px rgba(99, 102, 241, 0.12),
-        0 4px 12px rgba(0, 0, 0, 0.06);
+      border-color: var(--stitch-lay-primary-light);
+      box-shadow: var(--stitch-lay-shadow-md);
       transform: translateY(-4px);
 
       &::before {
@@ -197,100 +231,34 @@ export default defineComponent({
 
       .sc-card-compact__icon {
         transform: scale(1.1) rotate(-3deg);
-        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+        box-shadow: 0 8px 24px var(--stitch-lay-primary-alpha);
       }
-
-      .sc-card-compact__title {
-        color: var(--el-color-primary);
-      }
-    }
-
-    &:active {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.12);
     }
   }
 
   &.is-active {
-    border-color: var(--el-color-primary);
-    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.03) 0%, rgba(var(--el-color-primary-rgb), 0.01) 100%);
+    border-color: var(--stitch-lay-primary);
+    background: linear-gradient(135deg, var(--stitch-lay-primary-alpha) 0%, rgba(0,0,0,0) 100%);
 
     &::before {
       opacity: 1;
     }
 
     .sc-card-compact__icon {
-      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3);
-    }
-  }
-
-  // 主题色变体 mixin
-  @mixin theme-variant($color-name) {
-    .sc-card-compact__icon {
-      background: linear-gradient(135deg, var(--el-color-#{$color-name}) 0%, var(--el-color-#{$color-name}-light-3) 100%);
-      box-shadow: 0 4px 14px rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.25);
-    }
-
-    &::before {
-      background: linear-gradient(90deg, var(--el-color-#{$color-name}), var(--el-color-#{$color-name}-light-3), var(--el-color-#{$color-name}));
-      background-size: 200% 100%;
-    }
-
-    &::after {
-      background: radial-gradient(circle, rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.04) 0%, transparent 70%);
-    }
-
-    &.is-active {
-      border-color: var(--el-color-#{$color-name});
-      background: linear-gradient(135deg, rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.04) 0%, transparent 100%);
-    }
-
-    &.is-hoverable:hover {
-      border-color: var(--el-color-#{$color-name}-light-5);
-      box-shadow:
-        0 12px 28px rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.15),
-        0 4px 12px rgba(0, 0, 0, 0.04);
-
-      .sc-card-compact__icon {
-        box-shadow: 0 8px 20px rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.35);
-      }
-
-      .sc-card-compact__title {
-        color: var(--el-color-#{$color-name});
-      }
+      box-shadow: 0 6px 16px var(--stitch-lay-primary-alpha);
     }
   }
 
   &.theme--default {
     .sc-card-compact__icon {
-      background: linear-gradient(135deg, var(--el-fill-color-dark) 0%, var(--el-fill-color) 100%);
-      color: var(--el-text-color-primary);
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+      background: linear-gradient(135deg, var(--stitch-lay-primary-light) 0%, var(--stitch-lay-primary) 100%);
+      color: #fff;
+      box-shadow: 0 3px 10px var(--stitch-lay-primary-alpha);
     }
 
     &.is-hoverable:hover .sc-card-compact__icon {
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 6px 16px var(--stitch-lay-primary-alpha);
     }
-  }
-
-  &.theme--primary {
-    @include theme-variant(primary);
-  }
-
-  &.theme--success {
-    @include theme-variant(success);
-  }
-
-  &.theme--warning {
-    @include theme-variant(warning);
-  }
-
-  &.theme--danger {
-    @include theme-variant(danger);
-  }
-
-  &.theme--info {
-    @include theme-variant(info);
   }
 
   // 头部区域
@@ -311,7 +279,7 @@ export default defineComponent({
     justify-content: center;
     font-size: 22px;
     color: #fff;
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    background: linear-gradient(135deg, var(--stitch-lay-primary) 0%, var(--stitch-lay-primary-light) 100%);
     flex-shrink: 0;
     transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     position: relative;
@@ -337,7 +305,7 @@ export default defineComponent({
   &__title {
     font-size: 15px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
+    color: var(--stitch-lay-text-main);
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -349,7 +317,7 @@ export default defineComponent({
   // 副标题
   &__subtitle {
     font-size: 13px;
-    color: var(--el-text-color-secondary);
+    color: var(--stitch-lay-text-sub);
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -369,8 +337,8 @@ export default defineComponent({
   // 内容区域
   &__body {
     padding: var(--compact-padding) calc(var(--compact-padding) + 4px);
-    border-top: 1px solid var(--el-border-color-extra-light);
-    background: linear-gradient(180deg, var(--el-fill-color-lighter) 0%, transparent 100%);
+    border-top: 1px solid var(--stitch-lay-border);
+    background: linear-gradient(180deg, var(--stitch-lay-bg-group) 0%, transparent 100%);
 
     // 信息行样式
     .info-row {
@@ -388,7 +356,7 @@ export default defineComponent({
       }
 
       .info-icon {
-        color: var(--el-text-color-placeholder);
+        color: var(--stitch-lay-text-sub);
         font-size: 15px;
         flex-shrink: 0;
         opacity: 0.8;
@@ -396,24 +364,24 @@ export default defineComponent({
 
       .info-label {
         font-size: 12px;
-        color: var(--el-text-color-secondary);
+        color: var(--stitch-lay-text-secondary);
         min-width: 60px;
       }
 
       .info-text {
         flex: 1;
         font-size: 13px;
-        color: var(--el-text-color-regular);
+        color: var(--stitch-lay-text-normal);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
 
         &.muted {
-          color: var(--el-text-color-placeholder);
+          color: var(--stitch-lay-text-sub);
         }
 
         &.highlight {
-          color: var(--el-color-primary);
+          color: var(--stitch-lay-primary);
           font-weight: 500;
         }
       }
@@ -427,8 +395,8 @@ export default defineComponent({
     justify-content: flex-end;
     gap: 8px;
     padding: 12px calc(var(--compact-padding) + 4px);
-    background: var(--el-fill-color-lighter);
-    border-top: 1px solid var(--el-border-color-extra-light);
+    background: var(--stitch-lay-bg-group);
+    border-top: 1px solid var(--stitch-lay-border);
 
     :deep(.el-button) {
       --el-button-size: 28px;
@@ -450,31 +418,12 @@ export default defineComponent({
 // 暗色模式适配
 :global(html.dark) {
   .sc-card-compact {
-    background: var(--el-bg-color-overlay);
-    border-color: var(--el-border-color-darker);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-    &::after {
-      background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.06) 0%, transparent 70%);
-    }
-
-    &.is-hoverable:hover {
-      box-shadow:
-        0 12px 28px rgba(0, 0, 0, 0.35),
-        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1);
-    }
-
     &__body {
       background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, transparent 100%);
     }
 
     &__footer {
       background: rgba(0, 0, 0, 0.15);
-      border-color: var(--el-border-color-darker);
-    }
-
-    &__icon::before {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
     }
   }
 }

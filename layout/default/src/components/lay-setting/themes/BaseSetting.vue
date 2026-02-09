@@ -25,9 +25,6 @@ import { ElMessage } from "element-plus";
 import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
 import LayThemeSwitcher from "../../lay-theme-switcher/index.vue";
 
-import Check from "@iconify-icons/ep/check";
-import LeftArrow from "@iconify-icons/ri/arrow-left-s-line";
-import RightArrow from "@iconify-icons/ri/arrow-right-s-line";
 import DayIcon from "@repo/assets/svg/day.svg?component";
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
 import SystemIcon from "@repo/assets/svg/system.svg?component";
@@ -101,6 +98,8 @@ const settings = reactive({
   tabsVal: $storage.configure.hideTabs,
   cardBody: $storage.configure.cardBody,
   showLogo: $storage.configure.showLogo,
+  menuAnimation: $storage.configure.MenuAnimation ?? true,
+  forceNewMenu: $storage.configure.ForceNewMenu ?? false,
   showModel: $storage.configure.showModel,
   hideFooter: $storage.configure.hideFooter,
   multiTagsCache: $storage.configure.multiTagsCache ?? true,
@@ -246,9 +245,9 @@ const layoutRadiusChange = (value: number): void => {
 // layoutBlurChange removed
 
 /** 切换菜单动画设置 */
-const menuTransitionChange = (value: boolean): void => {
-  storageConfigureChange("menuTransition", value);
-  emitter.emit("menuTransitionChange", value);
+const menuAnimationChange = (value: boolean): void => {
+  storageConfigureChange("MenuAnimation", value);
+  emitter.emit("menuAnimationChange", value);
 };
 
 /** 切换动画类型 */
@@ -582,9 +581,9 @@ const markOptions = computed<Array<OptionsType>>(() => {
       value: "chrome",
     },
     {
-      label: t("panel.pureTagsStyleModern"),
-      tip: t("panel.pureTagsStyleModernTip"),
-      value: "modern",
+      label: "玻璃",
+      tip: "Glass Style",
+      value: "glass",
     },
   ];
 });
@@ -699,6 +698,16 @@ onBeforeMount(() => {
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
     
+    // 初始化同步配置
+    // 修复：默认值为 true 的配置如果存储中不存在，会导致 UI 显示开启但实际不生效
+    // 手动触发一次变更以同步状态
+    if (settings.showTagIcon) {
+      showTagIconChange();
+    }
+    if (cardBodyVal.value) {
+      cardBodyChange();
+    }
+
     // 初始化主题
     initializeTheme();
   });
@@ -722,6 +731,19 @@ const collectTippyInstances = () => {
     });
   });
 };
+
+// 监听菜单动画设置
+watch(() => settings.menuAnimation, (val) => {
+  storageConfigureChange("MenuAnimation", val);
+  emitter.emit("menuAnimationChange", val);
+});
+
+// 监听强制新菜单设置
+watch(() => settings.forceNewMenu, (val) => {
+  storageConfigureChange("ForceNewMenu", val);
+  // 强制新菜单可能需要触发重渲染，或者组件内部监听
+  emitter.emit("forceNewMenuChange", val);
+});
 
 onMounted(() => {
   collectTippyInstances();
@@ -787,6 +809,7 @@ function resetToDefault() {
     stretch: false,
     keepAlive: true,
     debugMode: false,
+    menuAnimation: true,
   });
 
   // 重置卡片颜色模式
@@ -808,6 +831,10 @@ function resetToDefault() {
   logoChange();
   cardBodyChange();
   multiTagsCacheChange();
+  
+  // 重置菜单动画
+  storageConfigureChange("MenuAnimation", true);
+  emitter.emit("menuAnimationChange", true);
 
   ElMessage.success(t("panel.settingsRestored"));
 }
@@ -834,28 +861,6 @@ function exportSettings() {
 
   URL.revokeObjectURL(url);
   ElMessage.success(t("panel.settingsExported"));
-}
-
-/** 菜单设置变更处理 */
-function showNewMenuChange() {
-  storageConfigureChange("showNewMenu", settings.showNewMenu);
-}
-
-function newMenuTextChange() {
-  storageConfigureChange("newMenuText", settings.newMenuText);
-}
-
-function newMenuTimeLimitChange() {
-  storageConfigureChange("newMenuTimeLimit", settings.newMenuTimeLimit);
-}
-
-/**
- * 新菜单动画变更
- */
-function newMenuAnimationChange({ option }: { option: OptionsType }) {
-  const value = option.value as string;
-  settings.newMenuAnimation = value as any;
-  storageConfigureChange("newMenuAnimation", value);
 }
 
 /**
@@ -998,6 +1003,26 @@ function fontEncryptionOcrNoiseChange(enabled: boolean) {
   }
 }
 
+function showNewMenuChange() {
+  storageConfigureChange("ShowNewMenu", settings.showNewMenu);
+  emitter.emit("showNewMenuChange", settings.showNewMenu);
+}
+
+function newMenuTextChange() {
+  storageConfigureChange("NewMenuText", settings.newMenuText);
+}
+
+function newMenuTimeLimitChange() {
+  storageConfigureChange("NewMenuTimeLimit", settings.newMenuTimeLimit);
+}
+
+function newMenuAnimationChange({ option }: { option: OptionsType }) {
+  const value = option.value as string;
+  settings.newMenuAnimation = value as any;
+  storageConfigureChange("NewMenuAnimation", value);
+  emitter.emit("newMenuAnimationChange", value);
+}
+
 /** 导入设置 */
 function importSettings() {
   const input = document.createElement("input");
@@ -1074,8 +1099,8 @@ onUnmounted(() => {
         <!-- 主题风格设置区域 - 非默认主题下隐藏（节日主题优先级大于整体风格） -->
         <div v-if="!isNonDefaultTheme" class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline
-              :icon="'ri:palette-line'"
+            <IconifyIconOnline
+              icon="ri:palette-line"
               class="section-icon"
             />
             <h3 class="section-title">{{ t("panel.pureOverallStyle") }}</h3>
@@ -1103,7 +1128,7 @@ onUnmounted(() => {
         <!-- 主题色设置区域 -->
         <div v-if="!isNonDefaultTheme && themeColors && themeColors.length > 0" class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline :icon="'ri:drop-line'" class="section-icon" />
+            <IconifyIconOnline icon="ri:drop-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureThemeColor") }}</h3>
           </div>
           <div class="setting-content">
@@ -1127,7 +1152,7 @@ onUnmounted(() => {
                   <!-- 选中状态指示器 -->
                   <div class="selection-indicator">
                     <div class="check-ring">
-                      <IconifyIconOffline :icon="Check" class="check-icon" />
+                      <IconifyIconOnline icon="ep:check" class="check-icon" />
                     </div>
                   </div>
 
@@ -1142,27 +1167,33 @@ onUnmounted(() => {
         <!-- 主题皮肤功能区域 -->
         <div v-if="getConfig().EnableThemeManagement !== false" class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline :icon="'ri:palette-fill'" class="section-icon" />
+            <IconifyIconOnline icon="ri:palette-fill" class="section-icon" />
             <h3 class="section-title">{{ t("panel.themeSkin") }}</h3>
             <div class="section-description">{{ t("panel.themeSkinDesc") }}</div>
           </div>
           <div class="setting-content">
             <!-- 节日主题自动切换开关 -->
             <div class="switch-card-grid">
-              <ScSwitch
-                v-model="settings.enableFestivalTheme"
-                layout="visual-card"
-                size="small"
-                :label="t('panel.festivalThemeAuto')"
-                :description="t('panel.festivalThemeAutoDesc')"
-                active-icon="ri:calendar-event-line"
-                @change="festivalThemeChange"
-              />
+              <el-tooltip
+                :content="t('panel.festivalThemeAutoDesc')"
+                placement="top"
+              >
+                <div>
+                  <ScSwitch
+                    v-model="settings.enableFestivalTheme"
+                    layout="visual-card"
+                    size="small"
+                    :label="t('panel.festivalThemeAuto')"
+                    active-icon="ri:calendar-event-line"
+                    @change="festivalThemeChange"
+                  />
+                </div>
+              </el-tooltip>
             </div>
             
             <!-- 节日装饰显示提示 -->
             <div v-if="!settings.enableFestivalTheme" class="festival-decoration-tip">
-              <IconifyIconOffline :icon="'ri:information-line'" class="tip-icon" />
+              <IconifyIconOnline icon="ri:information-line" class="tip-icon" />
               <span>{{ t("panel.festivalThemeOffTip") }}</span>
             </div>
             
@@ -1170,7 +1201,7 @@ onUnmounted(() => {
             <div v-if="settings.enableFestivalTheme" class="auto-theme-status">
               <div class="status-card">
                 <div class="status-icon">
-                  <IconifyIconOffline :icon="'ri:calendar-check-line'" />
+                  <IconifyIconOnline icon="ri:calendar-check-line" />
                 </div>
                 <div class="status-content">
                   <div class="status-title">{{ t("panel.autoThemeEnabled") }}</div>
@@ -1213,7 +1244,7 @@ onUnmounted(() => {
         <!-- AI 助手皮肤设置区域 -->
         <div v-if="getConfig().ShowAiChat !== false" class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline :icon="'ri:robot-line'" class="section-icon" />
+            <IconifyIconOnline icon="ri:robot-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.aiChatSkin") }}</h3>
             <div class="section-description">{{ t("panel.aiChatSkinDesc") }}</div>
           </div>
@@ -1248,7 +1279,7 @@ onUnmounted(() => {
         <!-- 布局模式设置区域 -->
         <div class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline :icon="'ri:layout-line'" class="section-icon" />
+            <IconifyIconOnline icon="ri:layout-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureLayoutModel") }}</h3>
             <div class="section-description">{{ t("panel.layoutModeDesc") }}</div>
           </div>
@@ -1413,8 +1444,8 @@ onUnmounted(() => {
         <!-- 移动导航设置 -->
         <div v-if="layoutTheme.layout === 'mobile'" class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline
-              :icon="'ri:smartphone-line'"
+            <IconifyIconOnline
+              icon="ri:smartphone-line"
               class="section-icon"
             />
             <h3 class="section-title">{{ t("panel.mobileNavConfig") }}</h3>
@@ -1444,8 +1475,8 @@ onUnmounted(() => {
         <!-- 双栏导航配置区域 -->
         <div v-if="layoutTheme.layout === 'double'" class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline
-              :icon="'ri:layout-column-line'"
+            <IconifyIconOnline
+              icon="ri:layout-column-line"
               class="section-icon"
             />
             <h3 class="section-title">{{ t("panel.doubleNavConfig") }}</h3>
@@ -1488,8 +1519,8 @@ onUnmounted(() => {
           class="setting-section"
         >
           <div class="section-header">
-            <IconifyIconOffline
-              :icon="'ri:fullscreen-line'"
+            <IconifyIconOnline
+              icon="ri:fullscreen-line"
               class="section-icon"
             />
             <h3 class="section-title">{{ t("panel.pureStretch") }}</h3>
@@ -1520,13 +1551,13 @@ onUnmounted(() => {
                 class="stretch-indicator"
                 :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']"
               >
-                <IconifyIconOffline
-                  :icon="settings.stretch ? RightArrow : LeftArrow"
+                <IconifyIconOnline
+                  :icon="settings.stretch ? 'ri:arrow-right-s-line' : 'ri:arrow-left-s-line'"
                   height="20"
                 />
                 <div class="stretch-line" />
-                <IconifyIconOffline
-                  :icon="settings.stretch ? LeftArrow : RightArrow"
+                <IconifyIconOnline
+                  :icon="settings.stretch ? 'ri:arrow-left-s-line' : 'ri:arrow-right-s-line'"
                   height="20"
                 />
               </div>
@@ -1537,8 +1568,8 @@ onUnmounted(() => {
         <!-- 布局参数设置区域 -->
         <div class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline
-              :icon="'ri:settings-3-line'"
+            <IconifyIconOnline
+              icon="ri:settings-3-line"
               class="section-icon"
             />
             <h3 class="section-title">
@@ -1558,7 +1589,7 @@ onUnmounted(() => {
                     @click="adjustValue('contentMargin', -1)"
                     :disabled="settings.contentMargin <= 0"
                   >
-                    <IconifyIconOffline :icon="'ri:subtract-line'" />
+                    <IconifyIconOnline icon="ri:subtract-line" />
                   </button>
                   <div class="number-display">
                     <input
@@ -1578,7 +1609,7 @@ onUnmounted(() => {
                     @click="adjustValue('contentMargin', 1)"
                     :disabled="settings.contentMargin >= 100"
                   >
-                    <IconifyIconOffline :icon="'ri:add-line'" />
+                    <IconifyIconOnline icon="ri:add-line" />
                   </button>
                 </div>
               </div>
@@ -1593,7 +1624,7 @@ onUnmounted(() => {
                     @click="adjustValue('layoutRadius', -1)"
                     :disabled="settings.layoutRadius <= 0"
                   >
-                    <IconifyIconOffline :icon="'ri:subtract-line'" />
+                    <IconifyIconOnline icon="ri:subtract-line" />
                   </button>
                   <div class="number-display">
                     <input
@@ -1613,7 +1644,7 @@ onUnmounted(() => {
                     @click="adjustValue('layoutRadius', 1)"
                     :disabled="settings.layoutRadius >= 100"
                   >
-                    <IconifyIconOffline :icon="'ri:add-line'" />
+                    <IconifyIconOnline icon="ri:add-line" />
                   </button>
                 </div>
               </div>
@@ -1624,8 +1655,8 @@ onUnmounted(() => {
         <!-- 标签页样式设置区域 - 非默认主题下隐藏（节日主题优先级大于页签风格） -->
         <div v-if="!isNonDefaultTheme" class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline
-              :icon="'ri:price-tag-3-line'"
+            <IconifyIconOnline
+              icon="ri:price-tag-3-line"
               class="section-icon"
             />
             <h3 class="section-title">{{ t("panel.pureTagsStyle") }}</h3>
@@ -1643,7 +1674,9 @@ onUnmounted(() => {
                       ? 2
                       : markValue === 'modern'
                         ? 3
-                        : 0
+                        : markValue === 'glass'
+                          ? 4
+                          : 0
               "
               :options="markOptions"
               @change="onChange"
@@ -1651,41 +1684,12 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 过渡动画设置区域 -->
-        <div class="setting-section">
-          <div class="section-header">
-            <IconifyIconOffline :icon="'ri:magic-line'" class="section-icon" />
-            <h3 class="section-title">{{ t("panel.transition") }}</h3>
-            <div class="section-description">配置页面切换动画效果</div>
-          </div>
-          <div class="setting-content">
-            <ScSwitch
-              v-model="settings.menuTransition"
-              layout="visual-card"
-              size="small"
-              :label="t('panel.menuTransitionChange')"
-              description="页面切换时显示过渡动画"
-              active-icon="ri:loader-4-line"
-              ribbon-color="var(--el-color-primary)"
-              @change="menuTransitionChange"
-            />
-            <!-- 动画类型选择器 -->
-            <div v-if="settings.menuTransition" class="transition-type-selector">
-              <div class="selector-label">动画类型</div>
-              <Segmented
-                v-model="settings.transitionType"
-                :options="transitionTypeOptions"
-                size="small"
-                @change="transitionTypeChange"
-              />
-            </div>
-          </div>
-        </div>
+        <!-- 过渡动画设置区域已删除 -->
 
         <!-- 界面显示设置区域 -->
         <div class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline :icon="'ri:eye-line'" class="section-icon" />
+            <IconifyIconOnline icon="ri:eye-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureInterfaceDisplay") }}</h3>
             <div class="section-description">自定义界面显示效果和功能开关</div>
           </div>
@@ -1693,8 +1697,8 @@ onUnmounted(() => {
             <!-- 视觉效果设置 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:palette-line'"
+                <IconifyIconOnline
+                  icon="ri:palette-line"
                   class="group-icon"
                 />
                 视觉效果
@@ -1745,8 +1749,8 @@ onUnmounted(() => {
             <!-- 界面元素设置 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:layout-4-line'"
+                <IconifyIconOnline
+                  icon="ri:layout-4-line"
                   class="group-icon"
                 />
                 界面元素
@@ -1843,8 +1847,8 @@ onUnmounted(() => {
             <!-- 功能设置 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:settings-3-line'"
+                <IconifyIconOnline
+                  icon="ri:settings-3-line"
                   class="group-icon"
                 />
                 功能设置
@@ -1866,16 +1870,48 @@ onUnmounted(() => {
         <!-- 菜单设置区域 -->
         <div class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline :icon="'ri:menu-line'" class="section-icon" />
+            <IconifyIconOnline icon="ri:menu-line" class="section-icon" />
             <h3 class="section-title">菜单设置</h3>
-            <div class="section-description">配置新增菜单的显示方式</div>
+            <div class="section-description">配置菜单显示效果和功能</div>
           </div>
           <div class="setting-content">
+            <!-- 菜单动画设置 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOnline
+                  icon="ri:movie-line"
+                  class="group-icon"
+                />
+                菜单动画
+              </h4>
+              <ScSwitch
+                v-model="settings.menuAnimation"
+                layout="visual-card"
+                size="small"
+                label="开启菜单动画"
+                description="点击激活菜单与打开路由时的动画效果"
+                active-icon="ri:film-line"
+                ribbon-color="var(--el-color-primary)"
+                @change="menuAnimationChange"
+              />
+              
+              <div v-if="settings.menuAnimation" class="mt-3 px-1">
+                <div class="text-xs text-gray-500 mb-2 pl-1">动画效果选择</div>
+                <Segmented
+                  resize
+                  class="select-none modern-segmented"
+                  :modelValue="settings.transitionType"
+                  :options="transitionTypeOptions"
+                  @change="transitionTypeChange"
+                />
+              </div>
+            </div>
+
             <!-- 新菜单显示设置 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:add-circle-line'"
+                <IconifyIconOnline
+                  icon="ri:add-circle-line"
                   class="group-icon"
                 />
                 新菜单显示
@@ -1885,91 +1921,77 @@ onUnmounted(() => {
                 layout="visual-card"
                 size="small"
                 label="显示新增菜单"
-                description="在菜单项上显示新增标识"
+                description="启用新菜单标识功能"
                 active-icon="ri:add-circle-line"
                 ribbon-color="var(--el-color-primary)"
                 @change="showNewMenuChange"
               />
-            </div>
 
-            <!-- 新菜单文本设置 -->
-            <div class="setting-group">
-              <h4 class="group-title">
-                <IconifyIconOffline :icon="'ri:text'" class="group-icon" />
-                显示文本
-              </h4>
-              <div class="input-item">
-                <div class="input-info">
-                  <label class="input-label">新菜单标识文本</label>
-                  <span class="input-desc">自定义新菜单显示的文本内容</span>
+              <!-- 新菜单详细配置 (仅开启时显示) -->
+              <div v-if="settings.showNewMenu" class="sub-settings-container mt-4 pl-3 border-l-2 border-[var(--el-border-color-lighter)]">
+                
+                <!-- 新菜单文本 -->
+                <div class="setting-item mb-4">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-[var(--el-text-color-regular)]">标识文本</span>
+                    <el-input
+                      v-model="settings.newMenuText"
+                      placeholder="NEW"
+                      maxlength="10"
+                      size="small"
+                      show-word-limit
+                      @blur="newMenuTextChange"
+                      style="width: 120px"
+                    />
+                  </div>
                 </div>
-                <el-input
-                  v-model="settings.newMenuText"
-                  placeholder="请输入显示文本"
-                  maxlength="10"
-                  show-word-limit
-                  @blur="newMenuTextChange"
-                  style="width: 120px"
-                />
-              </div>
-            </div>
 
-            <!-- 时间限制设置 -->
-            <div class="setting-group">
-              <h4 class="group-title">
-                <IconifyIconOffline :icon="'ri:time-line'" class="group-icon" />
-                时间控制
-              </h4>
-              <div class="input-item">
-                <div class="input-info">
-                  <label class="input-label">显示时间限制</label>
-                  <span class="input-desc"
-                    >菜单创建后多少小时内显示新标识（小时）</span
-                  >
+                <!-- 时间限制 -->
+                <div class="setting-item mb-4">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-[var(--el-text-color-regular)]">显示时长(小时)</span>
+                    <el-input-number
+                      v-model="settings.newMenuTimeLimit"
+                      :min="1"
+                      :max="8760"
+                      :step="1"
+                      size="small"
+                      @change="newMenuTimeLimitChange"
+                      style="width: 120px"
+                    />
+                  </div>
                 </div>
-                <el-input-number
-                  v-model="settings.newMenuTimeLimit"
-                  :min="1"
-                  :max="8760"
-                  :step="1"
-                  @change="newMenuTimeLimitChange"
-                  style="width: 120px"
-                />
-              </div>
-            </div>
 
-            <!-- 新菜单动画设置 -->
-            <div class="setting-group">
-              <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:magic-line'"
-                  class="group-icon"
-                />
-                {{ t("panel.animationEffect") }}
-              </h4>
-              <div class="setting-content">
-                <Segmented
-                  resize
-                  class="select-none modern-segmented"
-                  :modelValue="
-                    settings.newMenuAnimation === 'none'
-                      ? 0
-                      : settings.newMenuAnimation === 'bounce'
-                        ? 1
-                        : settings.newMenuAnimation === 'pulse'
-                          ? 2
-                          : settings.newMenuAnimation === 'shake'
-                            ? 3
-                            : 1
-                  "
-                  :options="[
-                    { label: t('panel.animNone'), tip: t('panel.animNoneTip'), value: 'none' },
-                    { label: t('panel.animBounce'), tip: t('panel.animBounceTip'), value: 'bounce' },
-                    { label: t('panel.animPulse'), tip: t('panel.animPulseTip'), value: 'pulse' },
-                    { label: t('panel.animShake'), tip: t('panel.animShakeTip'), value: 'shake' },
-                  ]"
-                  @change="newMenuAnimationChange"
-                />
+                <!-- 标识动画 -->
+                <div class="setting-item mb-4">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-[var(--el-text-color-regular)]">动画</span>
+                  </div>
+                  <Segmented
+                    resize
+                    class="select-none modern-segmented w-full"
+                    :modelValue="
+                      settings.newMenuAnimation === 'none'
+                        ? 0
+                        : settings.newMenuAnimation === 'bounce'
+                          ? 1
+                          : settings.newMenuAnimation === 'pulse'
+                            ? 2
+                            : settings.newMenuAnimation === 'shake'
+                              ? 3
+                              : 1
+                    "
+                    :options="[
+                      { label: t('panel.animNone'), value: 'none' },
+                      { label: t('panel.animBounce'), value: 'bounce' },
+                      { label: t('panel.animPulse'), value: 'pulse' },
+                      { label: t('panel.animShake'), value: 'shake' },
+                    ]"
+                    @change="newMenuAnimationChange"
+                  />
+                </div>
+
+                <!-- 强制显示 (测试) - 已移除 -->
               </div>
             </div>
           </div>
@@ -1978,7 +2000,7 @@ onUnmounted(() => {
         <!-- 高级设置区域 -->
         <div class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline :icon="'ri:tools-line'" class="section-icon" />
+            <IconifyIconOnline icon="ri:tools-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.advancedSettings") }}</h3>
             <div class="section-description">{{ t("panel.advancedSettingsDesc") }}</div>
           </div>
@@ -1986,8 +2008,8 @@ onUnmounted(() => {
             <!-- 高级功能开关 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:settings-4-line'"
+                <IconifyIconOnline
+                  icon="ri:settings-4-line"
                   class="group-icon"
                 />
                 {{ t("panel.advancedFeatures") }}
@@ -2032,8 +2054,8 @@ onUnmounted(() => {
             <!-- 
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:lock-password-line'"
+                <IconifyIconOnline
+                  icon="ri:lock-password-line"
                   class="group-icon"
                 />
                 字体加密
@@ -2104,23 +2126,23 @@ onUnmounted(() => {
             <!-- 重置选项 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:refresh-line'"
+                <IconifyIconOnline
+                  icon="ri:refresh-line"
                   class="group-icon"
                 />
                 {{ t("panel.resetOptions") }}
               </h4>
               <div class="reset-actions">
                 <el-button type="warning" plain @click="resetToDefault">
-                  <IconifyIconOffline :icon="'ri:restart-line'" />
+                  <IconifyIconOnline icon="ri:restart-line" />
                   {{ t("panel.restoreDefault") }}
                 </el-button>
                 <el-button type="info" plain @click="exportSettings">
-                  <IconifyIconOffline :icon="'ri:download-line'" />
+                  <IconifyIconOnline icon="ri:download-line" />
                   {{ t("panel.exportConfig") }}
                 </el-button>
                 <el-button type="success" plain @click="importSettings">
-                  <IconifyIconOffline :icon="'ri:upload-line'" />
+                  <IconifyIconOnline icon="ri:upload-line" />
                   {{ t("panel.importConfig") }}
                 </el-button>
               </div>
@@ -6019,7 +6041,6 @@ html.dark {
 
   &:hover {
     border-color: var(--el-border-color);
-    transform: translateY(-2px);
   }
 
   &.is-active {

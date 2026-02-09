@@ -2,40 +2,57 @@
   <div class="list-input">
     <div class="list-items">
       <div v-for="(item, index) in items" :key="index" class="list-item">
-        <el-input v-model="items[index]" :placeholder="placeholder || '请输入内容'" class="item-input" @input="handleInput" />
-        <el-button v-if="items.length > 1" type="danger" circle size="small" class="remove-btn" @click="removeItem(index)">
+        <el-input
+          v-model="items[index]"
+          :placeholder="placeholder || '请输入内容'"
+          class="item-input"
+          :disabled="disabled"
+          :size="size"
+          @input="handleInput"
+        />
+        <el-button
+          v-if="items.length > 1"
+          type="danger"
+          circle
+          :size="size"
+          class="remove-btn"
+          :disabled="disabled"
+          @click="removeItem(index)"
+        >
           <IconifyIconOnline icon="ep:delete" />
         </el-button>
       </div>
-      <el-button type="primary" class="add-btn w-full" size="small" @click="addItem">
+      <el-button type="primary" class="add-btn w-full" :size="size" :disabled="disabled" @click="addItem">
         <IconifyIconOnline icon="ep:plus" />
+        <span style="margin-left: 4px">添加</span>
       </el-button>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from "vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    default: ""
-  },
-  placeholder: {
-    type: String,
-    default: "请输入内容"
-  },
-  disabled: {
-    type: Boolean,
-    default: false
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    size?: "large" | "default" | "small";
+  }>(),
+  {
+    modelValue: "",
+    placeholder: "请输入内容",
+    disabled: false,
+    size: "default"
   }
-});
+);
 
 const emit = defineEmits(["update:modelValue"]);
 
 // 将逗号分隔的字符串转换为数组
-const parseValue = value => {
+const parseValue = (value: string) => {
   if (!value || typeof value !== "string") return [""];
   return value
     .split(",")
@@ -44,7 +61,7 @@ const parseValue = value => {
 };
 
 // 初始化items
-const items = ref(parseValue(props.modelValue) || [""]);
+const items = ref<string[]>(parseValue(props.modelValue) || [""]);
 
 // 监听modelValue变化
 watch(
@@ -54,7 +71,11 @@ watch(
     if (parsed.length === 0) {
       items.value = [""];
     } else {
-      items.value = parsed;
+      // 只有当解析后的值与当前值不同时才更新，避免输入时的光标跳动问题
+      // 这里简单比较长度，更严谨的应该比较内容
+      if (parsed.length !== items.value.length || !parsed.every((val, index) => val === items.value[index])) {
+        items.value = parsed;
+      }
     }
   },
   { immediate: true }
@@ -62,11 +83,14 @@ watch(
 
 // 添加新项
 const addItem = () => {
+  if (props.disabled) return;
   items.value.push("");
+  handleInput();
 };
 
 // 删除项
-const removeItem = index => {
+const removeItem = (index: number) => {
+  if (props.disabled) return;
   if (items.value.length > 1) {
     items.value.splice(index, 1);
     handleInput();
@@ -104,40 +128,19 @@ const handleInput = () => {
 
     .remove-btn {
       flex-shrink: 0;
-      width: 28px;
-      height: 28px;
-
-      :deep(.el-button) {
-        padding: 0;
-      }
+      margin-left: 4px;
     }
   }
 
   .add-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    padding: 6px 12px;
-    height: 28px;
+    justify-content: center;
+    width: 100%;
+    margin-top: 8px;
 
-    :deep(.el-icon) {
-      font-size: 12px;
-    }
-  }
-}
-
-// 响应式设计
-@media (max-width: 768px) {
-  .list-input {
-    .list-item {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 6px;
-
-      .remove-btn {
-        align-self: flex-end;
-      }
+    &.w-full {
+      width: 100%;
     }
   }
 }

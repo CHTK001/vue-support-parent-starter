@@ -61,6 +61,8 @@ export interface PlatformConfigs {
   /** 是否开启远程动画 */
   RemoteAnimation?: boolean;
   /** 是否开启菜单动画 */
+  MenuAnimation?: boolean;
+  /** 是否开启菜单过渡 */
   MenuTransition?: boolean;
   /** vue3-sfc-loader加载地址 */
   SfcScriptUrl?: string;
@@ -180,6 +182,12 @@ export interface PlatformConfigs {
   NewMenuText?: string;
   /** 新菜单显示时间限制（小时） */
   NewMenuTimeLimit?: number;
+  /** 新菜单动画类型 */
+  NewMenuAnimation?: "none" | "bounce" | "pulse" | "shake";
+  /** 是否开启菜单动画 */
+  MenuAnimation?: boolean;
+  /** 强制显示新菜单（测试用） */
+  ForceNewMenu?: boolean;
 
   // ===========================================
   // 会话配置

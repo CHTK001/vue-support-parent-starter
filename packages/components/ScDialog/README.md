@@ -7,7 +7,8 @@
 - **ElementPlus 模式**：使用 `el-dialog` 原生功能
 - **自定义模式**：使用 interact.js 实现拖拽和缩放
 - **任务栏模式**：支持类似 Windows 操作系统的任务栏功能
-- 支持多种类型样式（default/info/success/warning/error）
+- **主题自适应**：全面适配 Stitch Design System，支持浅色/暗黑模式
+- **语义化类型**：支持 default/info/success/warning/error 等语义化类型样式
 - 完整的插槽支持
 
 ## 安装

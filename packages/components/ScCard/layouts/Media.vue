@@ -6,7 +6,8 @@
       'is-shadow': shadow !== 'never',
       'is-shadow-always': shadow === 'always',
       [`media-position--${mediaPosition}`]: true,
-      [`border-position--${borderPosition}`]: true
+      [`border-position--${borderPosition}`]: true,
+      [`theme--${theme}`]: true
     }"
   >
     <div class="sc-card-media__media" :style="mediaStyle">
@@ -100,6 +101,13 @@ export default defineComponent({
     mediaBgColor: {
       type: String,
       default: ""
+    },
+    /**
+     * 主题色
+     */
+    theme: {
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
+      default: "primary"
     }
   },
   setup(props) {
@@ -129,15 +137,15 @@ export default defineComponent({
 <style lang="scss" scoped>
 .sc-card-media {
   display: flex;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.85);
+  border-radius: var(--stitch-lay-radius-md);
+  border: 1px solid var(--stitch-lay-border);
+  background: var(--stitch-lay-bg-panel);
   backdrop-filter: blur(10px);
   overflow: hidden;
-  color: var(--el-text-color-primary);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--stitch-lay-text-main);
+  transition: var(--stitch-lay-transition);
   position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--stitch-lay-shadow-sm);
 
   &::before {
     content: "";
@@ -146,6 +154,23 @@ export default defineComponent({
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1;
   }
+
+  // 主题变体混合宏
+  @mixin theme-variant($type) {
+    &::before {
+      background: linear-gradient(135deg, var(--el-color-#{$type}) 0%, var(--el-color-#{$type}-light-3) 100%);
+    }
+    
+    &.is-hoverable:hover {
+      border-color: var(--el-color-#{$type}-light-5);
+    }
+  }
+
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 
   // 边框位置样式
   &.border-position--top::before {
@@ -188,7 +213,7 @@ export default defineComponent({
     flex-direction: row;
 
     .sc-card-media__media {
-      border-right: 1px solid rgba(0, 0, 0, 0.06);
+      border-right: 1px solid var(--el-border-color-lighter);
     }
   }
 
@@ -196,7 +221,7 @@ export default defineComponent({
     flex-direction: row-reverse;
 
     .sc-card-media__media {
-      border-left: 1px solid rgba(0, 0, 0, 0.06);
+      border-left: 1px solid var(--el-border-color-lighter);
     }
   }
 
@@ -204,7 +229,7 @@ export default defineComponent({
     flex-direction: column;
 
     .sc-card-media__media {
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      border-bottom: 1px solid var(--el-border-color-lighter);
     }
   }
 
@@ -214,7 +239,7 @@ export default defineComponent({
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -262,8 +287,8 @@ export default defineComponent({
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-5);
 
       .sc-card-media__media {
         transform: scale(1.02);
@@ -273,18 +298,55 @@ export default defineComponent({
 
   &.is-shadow {
     &:hover {
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-5);
     }
   }
 
   &.is-shadow-always {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--el-box-shadow-light);
 
     &:hover {
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-5);
     }
+  }
+
+  // 主题色混入
+  @mixin theme-variant($color-name) {
+    &::before {
+      background: linear-gradient(135deg, var(--el-color-#{$color-name}) 0%, var(--el-color-#{$color-name}-light-3) 100%);
+    }
+
+    .sc-card-media__media {
+      background: linear-gradient(135deg, var(--el-color-#{$color-name}-light-9) 0%, var(--el-color-#{$color-name}-light-8) 100%);
+    }
+
+    &.is-hoverable:hover,
+    &.is-shadow:hover,
+    &.is-shadow-always:hover {
+      border-color: var(--el-color-#{$color-name}-light-5);
+    }
+  }
+
+  &.theme--primary {
+    @include theme-variant(primary);
+  }
+
+  &.theme--success {
+    @include theme-variant(success);
+  }
+
+  &.theme--warning {
+    @include theme-variant(warning);
+  }
+
+  &.theme--danger {
+    @include theme-variant(danger);
+  }
+
+  &.theme--info {
+    @include theme-variant(info);
   }
 }
 </style>

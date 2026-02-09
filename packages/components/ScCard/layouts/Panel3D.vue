@@ -138,49 +138,69 @@ export default defineComponent({
      * 主题
      */
     theme: {
-      type: String as PropType<"blue" | "green" | "purple" | "orange" | "custom">,
-      default: "blue",
-      validator: (value: string) => ["blue", "green", "purple", "orange", "custom"].includes(value)
+      type: String as PropType<"default" | "primary" | "blue" | "green" | "purple" | "orange" | "custom">,
+      default: "default",
+      validator: (value: string) => ["default", "primary", "blue", "green", "purple", "orange", "custom"].includes(value)
     }
   },
   setup(props) {
     // 计算主题颜色
     const themeColors = computed(() => {
       switch (props.theme) {
+        case "default":
+        case "primary":
+          return {
+            background: "color-mix(in srgb, var(--stitch-lay-bg-panel) 10%, transparent)",
+            border: "var(--stitch-lay-border)",
+            activeBorder: "var(--stitch-lay-border-hover)",
+            glow: "var(--stitch-lay-shadow-sm)",
+            text: "var(--stitch-lay-text-main)",
+            subText: "var(--stitch-lay-text-sub)"
+          };
         case "blue":
           return {
             background: "rgba(4, 49, 128, 0.6)",
-            border: "rgba(24, 144, 255, 0.8)",
-            activeBorder: "rgba(24, 144, 255, 1)",
-            glow: "rgba(24, 144, 255, 0.6)"
+            border: "var(--el-color-primary)",
+            activeBorder: "var(--el-color-primary)",
+            glow: "var(--el-color-primary-light-5)",
+            text: "#fff",
+            subText: "rgba(255, 255, 255, 0.85)"
           };
         case "green":
           return {
             background: "rgba(0, 82, 73, 0.6)",
-            border: "rgba(0, 184, 148, 0.8)",
-            activeBorder: "rgba(0, 184, 148, 1)",
-            glow: "rgba(0, 184, 148, 0.6)"
+            border: "var(--el-color-success)",
+            activeBorder: "var(--el-color-success)",
+            glow: "var(--el-color-success-light-5)",
+            text: "#fff",
+            subText: "rgba(255, 255, 255, 0.85)"
           };
         case "purple":
           return {
             background: "rgba(76, 0, 112, 0.6)",
-            border: "rgba(155, 89, 182, 0.8)",
-            activeBorder: "rgba(155, 89, 182, 1)",
-            glow: "rgba(155, 89, 182, 0.6)"
+            border: "#9b59b6",
+            activeBorder: "#9b59b6",
+            glow: "rgba(155, 89, 182, 0.6)",
+            text: "#fff",
+            subText: "rgba(255, 255, 255, 0.85)"
           };
         case "orange":
           return {
             background: "rgba(102, 51, 0, 0.6)",
-            border: "rgba(255, 159, 64, 0.8)",
-            activeBorder: "rgba(255, 159, 64, 1)",
-            glow: "rgba(255, 159, 64, 0.6)"
+            border: "var(--el-color-warning)",
+            activeBorder: "var(--el-color-warning)",
+            glow: "var(--el-color-warning-light-5)",
+            text: "#fff",
+            subText: "rgba(255, 255, 255, 0.85)"
           };
         default:
           return {
             background: props.backgroundColor,
             border: props.borderColor,
             activeBorder: props.activeBorderColor,
-            glow: props.borderColor
+            glow: props.borderColor,
+            text: "#fff",
+            subText: "rgba(255, 255, 255, 0.85)"
           };
       }
     });
@@ -197,6 +217,8 @@ export default defineComponent({
         "--panel-border-color": themeColors.value.border,
         "--panel-active-border-color": themeColors.value.activeBorder,
         "--panel-glow-color": themeColors.value.glow,
+        "--panel-text-color": themeColors.value.text,
+        "--panel-sub-text-color": themeColors.value.subText,
         "--panel-depth": `${props.depth}px`
       };
     });
@@ -258,7 +280,7 @@ export default defineComponent({
     align-items: center;
     font-size: 18px;
     font-weight: 500;
-    color: #fff;
+    color: var(--panel-text-color);
     text-shadow: 0 0 10px var(--panel-glow-color);
 
     &-icon {
@@ -275,7 +297,7 @@ export default defineComponent({
   &__content {
     flex: 1;
     overflow: auto;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--panel-sub-text-color);
   }
 
   &__footer {

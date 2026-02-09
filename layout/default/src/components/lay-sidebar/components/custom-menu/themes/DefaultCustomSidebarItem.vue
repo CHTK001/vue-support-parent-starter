@@ -2,12 +2,13 @@
 /**
  * 默认主题 - 自定义菜单项组件
  */
-import { computed, toRaw, inject, provide, type Component } from 'vue';
+import { computed, toRaw, inject, provide, type Component, ref, onMounted } from 'vue';
 import { useRenderIcon } from '@repo/components/ReIcon/src/hooks';
-import { transformI18n, resolvePath as configResolvePath } from '@repo/config';
-import type { MenuType } from '@repo/core';
+import { transformI18n, resolvePath as configResolvePath, getConfig } from '@repo/config';
+import { type MenuType, emitter } from '@repo/core';
 import CustomMenuItem from '../CustomMenuItem.vue';
 import CustomSubMenu from '../CustomSubMenu.vue';
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 
 const props = defineProps<{
   item: MenuType;
@@ -19,6 +20,26 @@ const props = defineProps<{
 // 提供自身组件用于递归
 import DefaultCustomSidebarItem from './DefaultCustomSidebarItem.vue';
 provide('themeSidebarItem', DefaultCustomSidebarItem);
+
+const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
+const forceNewMenu = ref(false);
+const menuAnimation = ref(getConfig().MenuAnimation ?? false);
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
+
+onMounted(() => {
+  emitter.on("showNewMenuChange", (val) => {
+    showNewMenu.value = val;
+  });
+  emitter.on("forceNewMenuChange", (val) => {
+    forceNewMenu.value = val;
+  });
+  emitter.on("menuAnimationChange", (val) => {
+    menuAnimation.value = val;
+  });
+  emitter.on("newMenuAnimationChange", (val) => {
+    newMenuAnimation.value = val;
+  });
+});
 
 // 解析路径
 function resolvePath(routePath: string) {
@@ -74,12 +95,21 @@ const popperDirection = computed(() => props.isNest ? 'right' : 'bottom');
     v-if="showAsMenuItem" 
     :index="menuPath"
     class="default-menu-item"
+    :class="{ 'menu-animation': menuAnimation }"
   >
     <div class="menu-item-content">
       <span class="menu-icon">
         <component :is="useRenderIcon(menuIcon)" />
       </span>
       <span class="menu-title">{{ menuTitle }}</span>
+      <ReMenuNewBadge
+        v-if="showNewMenu"
+        :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime"
+        :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'"
+        :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText"
+        :forceShow="forceNewMenu || onlyOneChild?.meta?.permanentNew || item?.meta?.permanentNew"
+        :animation="newMenuAnimation"
+      />
     </div>
   </CustomMenuItem>
   
@@ -89,6 +119,7 @@ const popperDirection = computed(() => props.isNest ? 'right' : 'bottom');
     :popper-class="`default-custom-popper ${popperClass || ''}`"
     :popper-direction="popperDirection"
     class="default-sub-menu"
+    :class="{ 'menu-animation': menuAnimation }"
   >
     <template #title>
       <div class="menu-item-content">
@@ -96,6 +127,14 @@ const popperDirection = computed(() => props.isNest ? 'right' : 'bottom');
           <component :is="useRenderIcon(menuIcon)" />
         </span>
         <span class="menu-title">{{ menuTitle }}</span>
+        <ReMenuNewBadge
+          v-if="showNewMenu"
+          :createTime="item?.meta?.createTime"
+          :type="item?.meta?.badgeType || 'primary'"
+          :customText="item?.meta?.badgeText"
+          :forceShow="forceNewMenu || item?.meta?.permanentNew"
+          :animation="newMenuAnimation"
+        />
       </div>
     </template>
     
@@ -190,5 +229,19 @@ html.dark {
       background-color: rgba(var(--el-color-primary-rgb), 0.15);
     }
   }
+}
+
+// 菜单动画
+.menu-animation {
+  &.is-active.default-menu-item,
+  &.is-active.default-sub-menu > .custom-sub-menu__title {
+    animation: menu-bounce 0.5s;
+  }
+}
+
+@keyframes menu-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
 }
 </style>

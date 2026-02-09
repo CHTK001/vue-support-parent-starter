@@ -34,7 +34,8 @@ const props = defineProps({
   rowSize: { type: Number, default: 4 }, // 卡片布局行数
   colSize: { type: Number, default: 3 }, // 卡片布局列数
   tableLayout: { type: String, default: "table" }, // 表格布局类型：'table', 'card', 'list', 'virtual', 'canvas'
-  cardLayout: { type: String, default: "card" } // 卡片内部布局类型：'card', 'default'
+  cardLayout: { type: String, default: "card" }, // 卡片内部布局类型：'card', 'default'
+  theme: { type: String, default: "" } // 主题
 });
 
 // 定义组件事件
@@ -322,7 +323,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="pagination-container">
+  <div class="pagination-container" :class="[`theme--${props.theme}`]">
     <!-- 标准分页 -->
     <el-pagination
       v-if="!props.hidePagination && props.paginationType === 'default'"
@@ -493,6 +494,8 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
+@use "@/styles/mixins.scss" as *;
+
 .pagination-container {
   display: flex;
   justify-content: space-between;
@@ -503,8 +506,45 @@ onMounted(() => {
   box-sizing: border-box;
   margin: 0;
   padding: 14px 20px;
-  background: var(--app-bg-overlay);
+  background: var(--stitch-lay-bg-panel);
   border-radius: 10px;
+
+  // 主题变体
+  @mixin theme-variant($type, $color, $light, $bg) {
+    .settings-header {
+      background: linear-gradient(135deg, 
+        #{$bg} 0%, 
+        var(--stitch-lay-bg-panel) 50%,
+        #{$bg} 100%);
+      box-shadow: 0 2px 8px color-mix(in srgb, #{$color}, transparent 90%);
+      
+      .settings-icon {
+        color: #{$color};
+      }
+    }
+    
+    .table-actions .el-button:hover {
+      border-color: #{$color};
+      color: #{$color};
+    }
+
+    .setting-item:hover,
+    .setting-item-with-tooltip:hover {
+      border-color: #{$light};
+      box-shadow: 0 2px 8px color-mix(in srgb, #{$color}, transparent 85%);
+    }
+
+    .setting-control-full :deep(.el-segmented) {
+      --el-segmented-item-selected-bg-color: #{$bg};
+      --el-segmented-item-selected-color: #{$color};
+    }
+  }
+
+  &.theme--primary { @include theme-variant('primary', var(--stitch-lay-primary), var(--stitch-lay-primary-light), var(--stitch-lay-primary-alpha)); }
+  &.theme--success { @include theme-variant('success', var(--stitch-lay-success), var(--stitch-lay-success-light), var(--stitch-lay-success-bg)); }
+  &.theme--warning { @include theme-variant('warning', var(--stitch-lay-warning), var(--stitch-lay-warning-light), var(--stitch-lay-warning-bg)); }
+  &.theme--danger { @include theme-variant('danger', var(--stitch-lay-error), var(--stitch-lay-error-light), var(--stitch-lay-error-bg)); }
+  &.theme--info { @include theme-variant('info', var(--stitch-lay-info), var(--stitch-lay-info-light), var(--stitch-lay-info-bg)); }
 }
 
 .pagination-left {
@@ -553,12 +593,12 @@ onMounted(() => {
     border-radius: 8px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--el-border-color-lighter);
+    border: 1px solid var(--stitch-lay-border);
     
     &:hover {
       transform: translateY(-2px) scale(1.05);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      border-color: var(--el-color-primary);
+      box-shadow: var(--stitch-lay-shadow-sm);
+      border-color: var(--stitch-lay-primary);
     }
     
     &:active {
@@ -579,16 +619,16 @@ onMounted(() => {
   }
   
   &::-webkit-scrollbar-track {
-    background: var(--el-fill-color-lighter);
+    background: var(--stitch-lay-bg-hover);
     border-radius: 3px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: var(--el-fill-color-dark);
+    background: var(--stitch-lay-bg-active);
     border-radius: 3px;
     
     &:hover {
-      background: var(--el-color-primary-light-5);
+      background: var(--stitch-lay-primary-light);
     }
   }
 }
@@ -600,11 +640,11 @@ onMounted(() => {
   padding: 12px 16px;
   margin-bottom: 20px;
   background: linear-gradient(135deg, 
-    var(--el-color-primary-light-9) 0%, 
-    var(--el-color-primary-light-8) 50%,
-    var(--el-color-primary-light-9) 100%);
+    var(--stitch-lay-primary-alpha) 0%, 
+    var(--stitch-lay-bg-panel) 50%,
+    var(--stitch-lay-primary-alpha) 100%);
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--stitch-lay-primary), transparent 90%);
   position: relative;
   overflow: hidden;
   
@@ -621,7 +661,7 @@ onMounted(() => {
 
   .settings-icon {
     font-size: 24px;
-    color: var(--el-color-primary);
+    color: var(--stitch-lay-primary);
     animation: rotate 3s linear infinite;
     position: relative;
     z-index: 1;
@@ -631,7 +671,7 @@ onMounted(() => {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
+    color: var(--stitch-lay-text-main);
     position: relative;
     z-index: 1;
   }
@@ -666,7 +706,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  background: var(--el-fill-color-light);
+  background: var(--stitch-lay-bg-group);
   border-radius: 10px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid transparent;
@@ -674,8 +714,8 @@ onMounted(() => {
   cursor: pointer;
 
   &:hover {
-    background: linear-gradient(135deg, var(--el-fill-color) 0%, var(--el-fill-color-light) 100%);
-    border-color: var(--el-color-primary-light-7);
+    background: linear-gradient(135deg, var(--stitch-lay-bg-hover) 0%, var(--stitch-lay-bg-group) 100%);
+    border-color: var(--stitch-lay-primary-light);
     transform: translateX(4px);
     box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
   }
@@ -690,7 +730,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  background: var(--el-fill-color-light);
+  background: var(--stitch-lay-bg-group);
   border-radius: 10px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid transparent;
@@ -698,8 +738,8 @@ onMounted(() => {
   cursor: pointer;
 
   &:hover {
-    background: linear-gradient(135deg, var(--el-fill-color) 0%, var(--el-fill-color-light) 100%);
-    border-color: var(--el-color-primary-light-7);
+    background: linear-gradient(135deg, var(--stitch-lay-bg-hover) 0%, var(--stitch-lay-bg-group) 100%);
+    border-color: var(--stitch-lay-primary-light);
     transform: translateX(4px);
     box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
   }
@@ -725,7 +765,7 @@ onMounted(() => {
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    color: var(--el-text-color-regular);
+    color: var(--stitch-lay-text-normal);
     font-weight: 500;
   }
 }
@@ -743,25 +783,25 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   font-size: 14px;
-  color: var(--el-text-color-regular);
+  color: var(--stitch-lay-text-normal);
   font-weight: 500;
   flex: 1;
 
   .setting-icon {
     font-size: 18px;
-    color: var(--el-color-primary);
+    color: var(--stitch-lay-primary);
     transition: transform 0.3s ease;
   }
   
   .help-icon {
     font-size: 15px;
-    color: var(--el-text-color-placeholder);
+    color: var(--stitch-lay-text-secondary);
     cursor: help;
     margin-left: 4px;
     transition: all 0.3s ease;
     
     &:hover {
-      color: var(--el-color-primary);
+      color: var(--stitch-lay-primary);
       transform: scale(1.15);
     }
   }
@@ -780,9 +820,9 @@ onMounted(() => {
   height: 2px;
   background: linear-gradient(90deg, 
     transparent 0%, 
-    var(--el-color-primary-light-8) 20%,
-    var(--el-color-primary-light-7) 50%,
-    var(--el-color-primary-light-8) 80%,
+    var(--stitch-lay-primary-alpha) 20%,
+    var(--stitch-lay-primary-light) 50%,
+    var(--stitch-lay-primary-alpha) 80%,
     transparent 100%);
   margin: 12px 0;
   border-radius: 1px;

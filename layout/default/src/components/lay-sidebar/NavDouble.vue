@@ -7,6 +7,8 @@ import { emitter, getParentPaths, usePermissionStoreHook } from "@repo/core";
 import { localStorageProxy, useDefer } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+import { getConfig } from "@repo/config";
 import { useNav } from "../../hooks/useNav";
 import type { MenuItem } from "../../types/menu";
 import DoubleNavSidebarItem from "./components/DoubleNavSidebarItem.vue";
@@ -33,6 +35,11 @@ const emit = defineEmits<Emits>();
 const route = useRoute();
 const isShow = ref(false);
 const showLogo = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.showLogo ?? true);
+
+const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
+const forceNewMenu = ref(false);
+const menuAnimation = ref(getConfig().MenuAnimation ?? false);
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
 
 const { device, pureApp, isCollapse, tooltipEffect, menuSelect, toggleSideBar } = useNav();
 
@@ -192,6 +199,19 @@ onMounted(() => {
   emitter.on("logoChange", (key) => {
     showLogo.value = key;
   });
+  
+  emitter.on("showNewMenuChange", (val) => {
+    showNewMenu.value = val;
+  });
+  emitter.on("forceNewMenuChange", (val) => {
+    forceNewMenu.value = val;
+  });
+  emitter.on("menuAnimationChange", (val) => {
+    menuAnimation.value = val;
+  });
+  emitter.on("newMenuAnimationChange", (val) => {
+    newMenuAnimation.value = val;
+  });
 });
 
 onBeforeUnmount(() => {
@@ -212,7 +232,7 @@ const defer = useDefer(firstLevelMenus.value.length);
             v-for="menu in firstLevelMenus"
             :key="menu.path"
             :index="menu.path"
-            :class="{ 'is-active': selectedFirstLevelMenu?.path === menu.path }"
+            :class="{ 'is-active': selectedFirstLevelMenu?.path === menu.path, 'menu-animation': menuAnimation }"
             @click="handleFirstLevelMenuClick(menu)"
             :title="menu.meta?.title || menu.name || ''"
             v-tippy="{
@@ -225,6 +245,16 @@ const defer = useDefer(firstLevelMenus.value.length);
             <div class="menu-icon-only">
               <component :is="useRenderIcon(menu.meta?.icon)" v-if="menu.meta?.icon" />
               <component :is="useRenderIcon('ep:menu')" v-else />
+              
+              <ReMenuNewBadge
+                v-if="showNewMenu"
+                :createTime="menu.meta?.createTime"
+                :type="menu.meta?.badgeType || 'primary'"
+                :customText="menu.meta?.badgeText"
+                :forceShow="forceNewMenu || menu.meta?.permanentNew"
+                :animation="newMenuAnimation"
+                class="absolute right-0 top-0 scale-75 origin-top-right"
+              />
             </div>
           </el-menu-item>
         </el-menu>
@@ -317,6 +347,12 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
+@keyframes menu-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
 // 左栏样式
 .double-nav-left {
   width: 64px;
@@ -354,6 +390,7 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
       // 图标容器增强
       .menu-icon-only {
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -423,6 +460,15 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
               color: #ffffff !important;
               transform: scale(1.1);
             }
+          }
+        }
+      }
+
+      // 菜单动画
+      &.menu-animation {
+        &.is-active {
+          .menu-icon-only {
+            animation: menu-bounce 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           }
         }
       }

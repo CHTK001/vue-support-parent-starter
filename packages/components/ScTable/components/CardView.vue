@@ -43,10 +43,13 @@
         v-for="(row, index) in currentDataList"
         :key="rowKey ? row[rowKey] : index"
         class="card-item-wrapper"
-        :class="{ 
+        :class="[
+          { 
           'is-selected': isSelected(row),
           'is-dragging': draggingIndex === index
-        }"
+          },
+          `theme--${theme}`
+        ]"
         :data-index="index"
         @contextmenu="handleContextMenu($event, row)"
         @click="onRowClick(row)"
@@ -71,12 +74,12 @@
         <!-- 卡片内容 -->
         <div class="card-content-wrapper">
           <template v-if="layout === 'card'">
-            <ScCard hoverable class="card-inner">
+            <ScCard hoverable class="card-inner" :theme="theme">
               <slot :row="row" :index="index" />
             </ScCard>
           </template>
           <template v-else>
-            <div class="card-inner card-default">
+            <div class="card-inner card-default" :class="`theme--${theme}`">
               <slot :row="row" :index="index" />
             </div>
           </template>
@@ -179,6 +182,11 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: val => ["card", "default"].includes(val)
+  },
+  // 卡片主题
+  theme: {
+    type: String,
+    default: "default"
   },
   // 是否显示序号
   showIndex: {
@@ -677,8 +685,8 @@ const handleMenuAction = action => {
       z-index: 10;
 
       .card-inner {
-        box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15);
-        border-color: rgba(99, 102, 241, 0.3);
+        box-shadow: var(--stitch-lay-shadow-md);
+        border-color: var(--stitch-lay-primary-light);
       }
 
       .card-drag-handle {
@@ -688,14 +696,42 @@ const handleMenuAction = action => {
 
     &.is-selected {
       .card-inner {
-        border-color: var(--el-color-primary);
-        box-shadow: 0 4px 16px var(--el-color-primary-light-7);
-        background: linear-gradient(180deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+        border-color: var(--stitch-lay-primary);
+        box-shadow: 0 4px 16px color-mix(in srgb, var(--stitch-lay-primary), transparent 80%);
+        background: linear-gradient(180deg, color-mix(in srgb, var(--stitch-lay-primary), transparent 95%) 0%, var(--stitch-lay-bg-panel) 100%);
+      }
+    }
+
+    // 主题变体混合宏
+    @mixin theme-variant($type) {
+      &:hover {
+        .card-inner {
+          border-color: var(--el-color-#{$type}-light-5);
+          box-shadow: 0 4px 12px var(--el-color-#{$type}-light-9);
+        }
       }
 
-      .card-index-badge {
-        background: var(--el-color-primary);
+      &.is-selected {
+        .card-inner {
+          border-color: var(--el-color-#{$type});
+          box-shadow: 0 0 0 2px var(--el-color-#{$type}-light-7);
+          background: linear-gradient(135deg, var(--el-color-#{$type}-light-9) 0%, var(--el-bg-color) 100%);
+        }
+
+        .card-index-badge {
+          background: linear-gradient(135deg, var(--el-color-#{$type}), var(--el-color-#{$type}-light-3));
+        }
       }
+    }
+
+    &.theme--primary { @include theme-variant('primary'); }
+    &.theme--success { @include theme-variant('success'); }
+    &.theme--warning { @include theme-variant('warning'); }
+    &.theme--danger { @include theme-variant('danger'); }
+    &.theme--info { @include theme-variant('info'); }
+
+    &.is-dragging {
+        background: var(--stitch-lay-primary);
     }
 
     &.is-dragging {
@@ -712,7 +748,7 @@ const handleMenuAction = action => {
     min-width: 28px;
     height: 28px;
     padding: 0 8px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+    background: linear-gradient(135deg, var(--stitch-lay-primary-light), var(--stitch-lay-primary));
     color: #fff;
     font-size: 12px;
     font-weight: 600;
@@ -721,7 +757,7 @@ const handleMenuAction = action => {
     align-items: center;
     justify-content: center;
     z-index: 20;
-    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.4);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--stitch-lay-primary), transparent 60%);
   }
 
   // 拖拽手柄
@@ -731,8 +767,8 @@ const handleMenuAction = action => {
     right: 8px;
     width: 28px;
     height: 28px;
-    background: var(--el-bg-color);
-    border: 1px solid var(--el-border-color-light);
+    background: var(--stitch-lay-bg-panel);
+    border: 1px solid var(--stitch-lay-border);
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -741,12 +777,12 @@ const handleMenuAction = action => {
     opacity: 0;
     transition: all 0.2s;
     z-index: 20;
-    color: var(--el-text-color-secondary);
+    color: var(--stitch-lay-text-sub);
 
     &:hover {
-      background: var(--el-color-primary-light-9);
-      color: var(--el-color-primary);
-      border-color: var(--el-color-primary-light-5);
+      background: var(--stitch-lay-primary-alpha);
+      color: var(--stitch-lay-primary);
+      border-color: var(--stitch-lay-primary-light);
     }
 
     &:active {
@@ -860,14 +896,14 @@ const handleMenuAction = action => {
 
         .field-label {
           width: 80px;
-          color: var(--el-text-color-secondary);
+          color: var(--stitch-lay-text-sub);
           font-size: 13px;
           flex-shrink: 0;
         }
 
         .field-value {
           flex: 1;
-          color: var(--el-text-color-primary);
+          color: var(--stitch-lay-text-main);
           word-break: break-all;
           font-size: 13px;
         }
@@ -877,7 +913,7 @@ const handleMenuAction = action => {
     .card-actions {
       margin-top: 12px;
       padding: 12px 16px;
-      background: var(--el-fill-color-lighter);
+      background: var(--stitch-lay-bg-group);
       display: flex;
       justify-content: flex-end;
       gap: 8px;
@@ -888,9 +924,9 @@ const handleMenuAction = action => {
   .loading-more {
     margin: 16px 0;
     padding: 12px 0;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    background: linear-gradient(135deg, var(--stitch-lay-primary-alpha), color-mix(in srgb, var(--stitch-lay-primary), transparent 90%));
     border-radius: 10px;
-    color: var(--el-color-primary);
+    color: var(--stitch-lay-primary);
     font-size: 13px;
     font-weight: 500;
 
@@ -909,11 +945,11 @@ const handleMenuAction = action => {
     transition: all 0.3s ease;
     border-radius: 8px;
     font-size: 13px;
-    background: var(--el-fill-color-light);
+    background: var(--stitch-lay-bg-hover);
 
     &:hover {
-      background: var(--el-color-primary-light-9);
-      color: var(--el-color-primary);
+      background: var(--stitch-lay-primary-alpha);
+      color: var(--stitch-lay-primary);
       transform: translateY(-2px);
     }
   }
@@ -928,41 +964,7 @@ const handleMenuAction = action => {
   }
 }
 
-// 暗黑模式适配
-:root[data-theme="dark"] {
-  .card-view-container {
-    .is-always-shadow-item {
-      background: var(--el-bg-color-overlay);
-      border-color: var(--el-border-color-light);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-    }
 
-    .is-always-shadow:hover .is-always-shadow-item {
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
-    }
-
-    .card-item {
-      background: var(--el-bg-color-overlay);
-
-      &.is-selected {
-        box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.3);
-        background: linear-gradient(180deg, rgba(var(--el-color-primary-rgb), 0.1) 0%, var(--el-bg-color-overlay) 100%);
-      }
-
-      .card-actions {
-        background: rgba(0, 0, 0, 0.2);
-      }
-    }
-
-    .loading-more {
-      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15), rgba(var(--el-color-primary-rgb), 0.1));
-    }
-
-    .scroll-tip:hover {
-      background: rgba(var(--el-color-primary-rgb), 0.15);
-    }
-  }
-}
 
 @keyframes rotating {
   0% {

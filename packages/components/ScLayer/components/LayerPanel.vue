@@ -15,9 +15,7 @@
             <img v-if="layer?.image" :src="layer.image" alt="图层图标" />
             <div v-else class="layer-preview-placeholder"></div>
             <div v-if="currentMapType === mapType && currentMapTile === key" class="layer-selected-indicator">
-              <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M7 10L9 12L13 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <IconifyIconOnline icon="ep:check" style="color: white; font-size: 14px;" />
             </div>
             <div class="layer-name" :class="{ active: currentMapType === mapType && currentMapTile === key }">
               {{ getLayerDisplayName(key) }}
@@ -39,6 +37,7 @@ export default {
 import { MapTile, MapType } from '../types';
 import { computed } from 'vue';
 import { DEFAULT_MAP_CONFIG, MapUrlConfig } from '../types/map';
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 // 定义组件属性
 const props = defineProps<{
@@ -162,19 +161,22 @@ const getLayerDisplayName = (layerKey: string): string => {
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
+
 // 定义变量
-$layer-panel-bg: rgba(15, 23, 42, 0.9);
-$layer-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-$layer-panel-border: 1px solid rgba(255, 255, 255, 0.1);
+$layer-panel-bg: var(--el-bg-color-overlay);
+$layer-panel-shadow: var(--el-box-shadow-dark);
+$layer-panel-border: 1px solid var(--el-border-color);
 $layer-panel-border-radius: 12px;
 $layer-item-border-radius: 8px;
-$layer-item-active-bg: rgba(91, 19, 236, 0.6);
-$layer-item-active-border: #00f2ea;
-$layer-item-active-shadow: 0 0 15px rgba(0, 242, 234, 0.3);
-$layer-item-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-$layer-item-border: 1px solid rgba(255, 255, 255, 0.1);
-$text-color-primary: #f8fafc;
-$text-color-secondary: #cbd5e1;
+$layer-item-active-bg: var(--el-color-primary);
+$layer-item-active-border: var(--el-color-primary);
+$layer-item-active-shadow: var(--el-box-shadow);
+$layer-item-hover-shadow: var(--el-box-shadow-light);
+$layer-item-border: 1px solid var(--el-border-color-lighter);
+$text-color-primary: var(--el-text-color-primary);
+$text-color-secondary: var(--el-text-color-secondary);
 
 .layer-panel {
   position: absolute;
@@ -274,13 +276,13 @@ $text-color-secondary: #cbd5e1;
       width: 6px;
     }
     &::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
+      background: transparent;
     }
     &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--el-border-color-darker);
       border-radius: 3px;
       &:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--el-border-color-dark);
       }
     }
     
@@ -305,7 +307,7 @@ $text-color-secondary: #cbd5e1;
           box-shadow: $layer-item-hover-shadow;
           
           .layer-preview {
-            border-color: rgba(255, 255, 255, 0.3);
+            border-color: var(--el-border-color-hover);
           }
         }
         
@@ -322,7 +324,7 @@ $text-color-secondary: #cbd5e1;
           
           .layer-name {
             background-color: $layer-item-active-bg;
-            color: #fff;
+            color: var(--el-color-white);
             backdrop-filter: blur(4px);
           }
         }
@@ -335,7 +337,7 @@ $text-color-secondary: #cbd5e1;
           border: $layer-item-border;
           transition: all 0.3s ease;
           position: relative;
-          background-color: #1e293b;
+          background-color: var(--el-fill-color-darker);
           
           img {
             width: 100%;
@@ -353,11 +355,11 @@ $text-color-secondary: #cbd5e1;
           .layer-preview-placeholder {
             width: 100%;
             height: 100%;
-            background-color: #1e293b;
+            background-color: var(--el-fill-color-darker);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #64748b;
+            color: var(--el-text-color-placeholder);
             font-size: 24px;
           }
           
@@ -372,13 +374,13 @@ $text-color-secondary: #cbd5e1;
             display: none;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-shadow: var(--el-box-shadow-light);
             z-index: 10;
             
             svg {
               width: 14px;
               height: 14px;
-              stroke: #0f172a; // 深色图标
+              stroke: var(--el-color-white);
               stroke-width: 3;
             }
           }
@@ -392,14 +394,14 @@ $text-color-secondary: #cbd5e1;
             font-size: 13px;
             font-weight: 500;
             color: $text-color-primary;
-            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+            background: linear-gradient(to top, var(--el-overlay-color-lighter) 0%, transparent 100%);
             text-align: left;
             transition: all 0.3s ease;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            text-shadow: 0 1px 2px var(--el-color-black);
             
             &.active {
               background-color: $layer-item-active-bg;
-              color: #fff;
+              color: var(--el-color-white);
               text-align: center;
             }
           }

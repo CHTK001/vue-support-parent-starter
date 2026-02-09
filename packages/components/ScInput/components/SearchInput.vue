@@ -161,12 +161,17 @@ const handleSearch = () => {
 
   &__prefix-icon {
     color: var(--el-text-color-placeholder);
-    font-size: 16px;
+    font-size: var(--el-font-size-base);
+    transition: color 0.3s;
   }
 
   :deep(.el-input__wrapper) {
     &:hover {
-      box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+      box-shadow: 0 0 0 1px var(--el-border-color-hover) inset;
+    }
+    
+    &.is-focus .sc-search-input__prefix-icon {
+      color: var(--el-color-primary);
     }
   }
 }

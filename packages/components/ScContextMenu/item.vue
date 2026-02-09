@@ -7,7 +7,7 @@
           :class="[
             'flex flex-1 justify-start',
             {
-              'border-b-[1px] border-b-[#c8c9cc] border-solid w-[80%] ml-[10%] !p-0': item.type == 'LINE'
+              'border-b-[1px] border-b-[var(--el-border-color)] border-solid w-[80%] ml-[10%] !p-0': item.type == 'LINE'
             }
           ]"
           @click="item.handle(data, node)"
@@ -47,12 +47,12 @@ export default {
   position: fixed;
   z-index: 99999999;
   cursor: pointer;
-  border: 1px solid #eee;
-  box-shadow: 0 0.5em 1em 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: var(--el-box-shadow-light);
   border-radius: 6px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   font-size: 14px;
-  background: #fff;
+  background: var(--el-bg-color-overlay);
 }
 
 .rightMenu ul {
@@ -76,11 +76,11 @@ export default {
 
 .rightMenu ul li:hover {
   transition: all 0.5s;
-  background: #ebeef5;
+  background: var(--el-fill-color-light);
 }
 .rightMenu ul li:hover {
   transition: all 0.5s;
-  background: #ebeef5;
+  background: var(--el-fill-color-light);
 }
 
 .rightMenu ul li:first-child {

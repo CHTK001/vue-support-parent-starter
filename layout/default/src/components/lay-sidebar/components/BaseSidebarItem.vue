@@ -21,6 +21,7 @@ import {
   watchEffect
 } from "vue";
 import { useNav } from "../../../hooks/useNav";
+import { emitter } from "@repo/core";
 
 // 注入主题化的 SidebarItem 组件（用于递归渲染子菜单）
 const ThemeSidebarItem = inject<Component>('themeSidebarItem');
@@ -35,6 +36,26 @@ const attrs = useAttrs();
 const { layout, isCollapse: navCollapse, tooltipEffect, getDivStyle } = useNav();
 
 const route = useRoute();
+
+const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
+const forceNewMenu = ref(false); // 强制显示所有新菜单 (测试用)
+const menuAnimation = ref(getConfig().MenuAnimation ?? false);
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
+
+onMounted(() => {
+  emitter.on("showNewMenuChange", (val) => {
+    showNewMenu.value = val;
+  });
+  emitter.on("forceNewMenuChange", (val) => {
+    forceNewMenu.value = val;
+  });
+  emitter.on("menuAnimationChange", (val) => {
+    menuAnimation.value = val;
+  });
+  emitter.on("newMenuAnimationChange", (val) => {
+    newMenuAnimation.value = val;
+  });
+});
 
 const props = defineProps({
   item: {
@@ -161,7 +182,7 @@ onMounted(() => {
   >
     <el-menu-item
       :index="resolvePath(onlyOneChild.path)"
-      :class="['sidebar-menu-item', { 'submenu-title-noDropdown': !isNest }]"
+      :class="['sidebar-menu-item', { 'submenu-title-noDropdown': !isNest, 'menu-animation': menuAnimation }]"
       :style="getNoDropdownStyle"
       v-bind="attrs"
     >
@@ -189,7 +210,7 @@ onMounted(() => {
             layout === 'mix' &&
             item?.pathList?.length === 2)
         "
-        class="!w-full !pl-4 menu-text"
+        class="flex-1 !pl-4 menu-text"
       >
         {{
           transformI18n(
@@ -197,6 +218,15 @@ onMounted(() => {
           )
         }}
       </span>
+      <ReMenuNewBadge
+        v-if="!isCollapse && showNewMenu"
+        :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime"
+        :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'"
+        :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText"
+        :forceShow="forceNewMenu || onlyOneChild?.meta?.permanentNew || item?.meta?.permanentNew"
+        :animation="newMenuAnimation"
+        style="margin-top: 0; align-self: center;"
+      />
 
       
       <!-- 主题装饰插槽 -->
@@ -209,6 +239,7 @@ onMounted(() => {
     teleported
     :index="resolvePath(item.path)"
     class="sidebar-sub-menu"
+    :class="{ 'menu-animation': menuAnimation }"
     v-bind="expandCloseIcon"
   >
     <template #title>
@@ -229,7 +260,7 @@ onMounted(() => {
               )
         "
         :class="{
-          '!w-full': true,
+          'flex-1': true,
           'menu-text': true,
           '!pl-4':
             layout !== 'horizontal' &&
@@ -239,13 +270,16 @@ onMounted(() => {
         }"
       >
         {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
-        <ReMenuNewBadge
-          v-if="!isCollapse"
-          :createTime="item?.meta?.createTime"
-          :type="item?.meta?.badgeType || 'primary'"
-          :customText="item?.meta?.badgeText"
-        />
       </span>
+      <ReMenuNewBadge
+        v-if="!isCollapse && showNewMenu"
+        :createTime="item?.meta?.createTime"
+        :type="item?.meta?.badgeType || 'primary'"
+        :customText="item?.meta?.badgeText"
+        :forceShow="forceNewMenu || item?.meta?.permanentNew"
+        :animation="newMenuAnimation"
+        class="ml-auto"
+      />
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>
 
@@ -287,5 +321,29 @@ onMounted(() => {
 .submenu-item-wrapper {
   background: transparent !important;
   display: block;
+}
+
+// 菜单动画
+.menu-animation {
+  // 点击时的反馈
+  &:not(.is-active):active > .el-sub-menu__title,
+  &:not(.is-active):active {
+    transform: scale(0.96);
+    transition: transform 0.1s;
+  }
+
+  // 激活状态的弹跳动画
+  &.is-active > .el-sub-menu__title,
+  &.is-active {
+    animation: menu-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+@keyframes menu-bounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.92); }
+  60% { transform: scale(1.03); }
+  80% { transform: scale(0.98); }
+  100% { transform: scale(1); }
 }
 </style>

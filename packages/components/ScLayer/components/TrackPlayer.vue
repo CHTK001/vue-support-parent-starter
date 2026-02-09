@@ -128,7 +128,7 @@
     <div class="collapsed-icon" v-if="collapsed">
       <span v-if="playState === 'playing'" class="playing-indicator">▶</span>
       <span v-else>
-        <span v-html="TRACK_PLAYER_ICON" style="color:#000 !important;" />
+        <span v-html="TRACK_PLAYER_ICON" style="color:var(--el-text-color-primary) !important;" />
       </span>
     </div>
 
@@ -237,7 +237,7 @@
               当前速度: {{ (currentSpeed * speedFactor).toFixed(1) }} km/h (实际: {{ currentSpeed.toFixed(1) }} km/h)
             </template>
             <!-- 新增：已行驶路程和距离下一个点 -->
-            <div class="track-current-distance-info" style="margin-top:4px;font-size:12px;color:#1890ff;">
+            <div class="track-current-distance-info" style="margin-top:4px;font-size:12px;color:var(--el-color-primary);">
               <span>已行驶：{{ getDistanceFromStart().toFixed(2) }} 公里</span>
               <span v-if="getDistanceToNextPoint() > 0" style="margin-left: 16px;">距离下个点：{{
                 getDistanceToNextPoint().toFixed(2) }} 公里</span>
@@ -1789,20 +1789,21 @@ const applyAllPerformanceSettings = () => {
   position: absolute;
   top: 20px;
   right: 20px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background-color: var(--el-bg-color-overlay);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-light);
   overflow: hidden;
   z-index: 1000;
   max-height: 60vh;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--el-border-color-light);
 }
 
 /* 设置组样式 */
 .settings-group {
   margin-bottom: 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   padding-bottom: 12px;
 }
 
@@ -1816,7 +1817,7 @@ const applyAllPerformanceSettings = () => {
   font-weight: bold;
   margin-bottom: 8px;
   color: var(--el-text-color-primary);
-  font-size: 14px;
+  font-size: var(--el-font-size-base);
 }
 
 .settings-options {
@@ -1829,19 +1830,21 @@ const applyAllPerformanceSettings = () => {
   align-items: center;
   margin-right: 16px;
   margin-bottom: 8px;
-  font-size: 13px;
+  font-size: var(--el-font-size-small);
   cursor: pointer;
   user-select: none;
+  color: var(--el-text-color-regular);
 }
 
 /* 更新频率选项样式 */
 .settings-option input[type="radio"] {
   margin-right: 5px;
+  accent-color: var(--el-color-primary);
 }
 
 .settings-option input[type="radio"]:checked + span {
   font-weight: bold;
-  color: #1890ff;
+  color: var(--el-color-primary);
 }
 
 /* 其他样式保持不变 */
@@ -1850,9 +1853,9 @@ const applyAllPerformanceSettings = () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 15px;
-  background: linear-gradient(135deg, #1890ff, #096dd9);
-  color: #fff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 
 .track-player.collapsed .track-player-header {
@@ -1868,7 +1871,7 @@ const applyAllPerformanceSettings = () => {
 .track-player-title {
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--el-color-white);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
@@ -1910,7 +1913,7 @@ const applyAllPerformanceSettings = () => {
 
 .setting-icon {
   font-size: 16px;
-  color: #fff;
+  color: var(--el-color-white);
   line-height: 1;
   display: flex;
   align-items: center;
@@ -1939,7 +1942,7 @@ const applyAllPerformanceSettings = () => {
 
 .demo-icon {
   font-size: 16px;
-  color: #fff;
+  color: var(--el-color-white);
   line-height: 1;
   display: flex;
   align-items: center;
@@ -1966,7 +1969,7 @@ const applyAllPerformanceSettings = () => {
 
 .collapse-icon {
   font-size: 16px;
-  color: #fff;
+  color: var(--el-color-white);
   line-height: 1;
   display: flex;
   align-items: center;
@@ -1975,7 +1978,7 @@ const applyAllPerformanceSettings = () => {
 
 .track-player-content {
   padding: 18px;
-  background-color: #fff;
+  background-color: var(--el-bg-color-overlay);
 }
 
 .track-list {
@@ -1983,7 +1986,7 @@ const applyAllPerformanceSettings = () => {
 }
 
 .track-list-header {
-  font-size: 14px;
+  font-size: var(--el-font-size-base);
   font-weight: 600;
   margin-bottom: 10px;
   color: var(--el-text-color-primary);
@@ -1996,7 +1999,7 @@ const applyAllPerformanceSettings = () => {
   display: inline-block;
   width: 4px;
   height: 16px;
-  background: linear-gradient(to bottom, #1890ff, #096dd9);
+  background: var(--el-color-primary);
   margin-right: 8px;
   border-radius: 2px;
 }
@@ -2004,9 +2007,10 @@ const applyAllPerformanceSettings = () => {
 .track-list-content {
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  background-color: var(--el-fill-color-blank);
 }
 
 .track-item {
@@ -2014,11 +2018,12 @@ const applyAllPerformanceSettings = () => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--el-border-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   border-left: 3px solid transparent;
+  background-color: var(--el-bg-color-overlay);
 }
 
 .track-item:last-child {
@@ -2026,15 +2031,15 @@ const applyAllPerformanceSettings = () => {
 }
 
 .track-item:hover {
-  background: var(--el-bg-color-overlay);
+  background: var(--el-fill-color-light);
 }
 
 .track-item.active {
-  background-color: #e6f7ff;
-  border-left: 3px solid #1890ff;
+  background-color: var(--el-color-primary-light-9);
+  border-left: 3px solid var(--el-color-primary);
   padding-left: 11px; /* 补偿左边框的宽度 */
   border-radius: 4px;
-  box-shadow: 0 0 5px rgba(24, 144, 255, 0.3);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--el-color-primary), transparent 70%);
   position: relative;
   animation: highlight-active 0.3s ease;
 }
@@ -2046,28 +2051,28 @@ const applyAllPerformanceSettings = () => {
 
 @keyframes flash-highlight {
   0% { 
-    background-color: rgba(24, 144, 255, 0.5);
-    box-shadow: 0 0 10px rgba(24, 144, 255, 0.8);
+    background-color: color-mix(in srgb, var(--el-color-primary), transparent 50%);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-primary), transparent 20%);
   }
   50% { 
-    background-color: rgba(24, 144, 255, 0.8);
-    box-shadow: 0 0 15px rgba(24, 144, 255, 1);
+    background-color: color-mix(in srgb, var(--el-color-primary), transparent 20%);
+    box-shadow: 0 0 15px var(--el-color-primary);
   }
   100% { 
-  background-color: #e6f7ff;
-    box-shadow: 0 0 5px rgba(24, 144, 255, 0.3);
+    background-color: var(--el-color-primary-light-9);
+    box-shadow: 0 0 5px color-mix(in srgb, var(--el-color-primary), transparent 70%);
   }
 }
 
 @keyframes highlight-active {
   0% { 
-    background-color: rgba(24, 144, 255, 0.1);
+    background-color: color-mix(in srgb, var(--el-color-primary), transparent 90%);
   }
   50% { 
-    background-color: rgba(24, 144, 255, 0.2);
+    background-color: color-mix(in srgb, var(--el-color-primary), transparent 80%);
   }
   100% { 
-    background-color: #e6f7ff; 
+    background-color: var(--el-color-primary-light-9);
   }
 }
 
@@ -2080,7 +2085,7 @@ const applyAllPerformanceSettings = () => {
   left: 0;
   border-radius: 4px;
   pointer-events: none;
-  box-shadow: inset 0 0 0 1px rgba(24, 144, 255, 0.3);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-primary), transparent 70%);
 }
 
 .track-item.disabled {
@@ -2094,7 +2099,7 @@ const applyAllPerformanceSettings = () => {
 }
 
 .track-item-name {
-  font-size: 14px;
+  font-size: var(--el-font-size-base);
   font-weight: 500;
   margin-bottom: 4px;
   white-space: nowrap;
@@ -2104,8 +2109,8 @@ const applyAllPerformanceSettings = () => {
 }
 
 .track-item-detail {
-  font-size: 12px;
-  color: #8c8c8c;
+  font-size: var(--el-font-size-small);
+  color: var(--el-text-color-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2121,7 +2126,7 @@ const applyAllPerformanceSettings = () => {
   border: none;
   cursor: pointer;
   padding: 4px;
-  color: #999;
+  color: var(--el-text-color-secondary);
   border-radius: 4px;
   font-size: 14px;
   line-height: 1;
@@ -2132,21 +2137,21 @@ const applyAllPerformanceSettings = () => {
 }
 
 .track-item-delete-btn:hover {
-  color: #ff4d4f;
-  background-color: rgba(255, 77, 79, 0.1);
+  color: var(--el-color-danger);
+  background-color: var(--el-color-danger-light-9);
   transform: scale(1.1);
 }
 
 .track-item-delete-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  color: #d9d9d9;
+  color: var(--el-text-color-disabled);
   background-color: transparent;
   transform: none;
 }
 
 .track-item-delete-btn:disabled:hover {
-  color: #d9d9d9;
+  color: var(--el-text-color-disabled);
   background-color: transparent;
   transform: none;
 }
@@ -2156,9 +2161,9 @@ const applyAllPerformanceSettings = () => {
   justify-content: center;
   align-items: center;
   height: 100px;
-  color: #999;
-  font-size: 13px;
-  background-color: #f9f9f9;
+  color: var(--el-text-color-secondary);
+  font-size: var(--el-font-size-small);
+  background-color: var(--el-fill-color-light);
   border-radius: 8px;
 }
 
@@ -2166,7 +2171,7 @@ const applyAllPerformanceSettings = () => {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  background-color: #f9f9f9;
+  background-color: var(--el-fill-color-lighter);
   border-radius: 10px;
   padding: 15px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -2176,17 +2181,18 @@ const applyAllPerformanceSettings = () => {
   display: flex;
   gap: 18px;
   margin-bottom: 5px;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .track-option {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  color: #444;
+  font-size: var(--el-font-size-small);
+  color: var(--el-text-color-regular);
   cursor: pointer;
   user-select: none;
 }
@@ -2196,7 +2202,7 @@ const applyAllPerformanceSettings = () => {
   -webkit-appearance: none;
   width: 16px;
   height: 16px;
-  border: 2px solid #1890ff;
+  border: 2px solid var(--el-color-primary);
   border-radius: 3px;
   outline: none;
   cursor: pointer;
@@ -2205,7 +2211,7 @@ const applyAllPerformanceSettings = () => {
 }
 
 .track-option input[type="checkbox"]:checked {
-  background-color: #1890ff;
+  background-color: var(--el-color-primary);
 }
 
 .track-option input[type="checkbox"]:checked:after {
@@ -2228,8 +2234,8 @@ const applyAllPerformanceSettings = () => {
 }
 
 .track-button {
-  background: none;
-  border: 1px solid #d9d9d9;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
   border-radius: 50%;
   width: 44px;
   height: 44px;
@@ -2239,31 +2245,31 @@ const applyAllPerformanceSettings = () => {
   cursor: pointer;
   color: var(--el-text-color-primary);
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .track-button:hover:not(:disabled) {
-  color: #1890ff;
-  border-color: #1890ff;
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
   transform: scale(1.05);
-  box-shadow: 0 4px 10px rgba(24, 144, 255, 0.15);
+  box-shadow: var(--el-box-shadow);
 }
 
 .track-button:disabled {
-  color: #d9d9d9;
+  color: var(--el-text-color-disabled);
   cursor: not-allowed;
   opacity: 0.7;
   box-shadow: none;
 }
 
 .track-play {
-  background-color: #f0f8ff;
+  background-color: var(--el-color-primary-light-9);
   width: 54px;
   height: 54px;
 }
 
 .track-play:hover:not(:disabled) {
-  background-color: #e6f7ff;
+  background-color: var(--el-color-primary-light-8);
 }
 
 .track-progress {
@@ -2272,7 +2278,7 @@ const applyAllPerformanceSettings = () => {
 
 .track-progress-bar {
   height: 6px;
-  background-color: #f0f0f0;
+  background-color: var(--el-fill-color);
   border-radius: 3px;
   position: relative;
   margin-bottom: 8px;
@@ -2286,7 +2292,7 @@ const applyAllPerformanceSettings = () => {
   left: 0;
   top: 0;
   height: 100%;
-  background: linear-gradient(to right, #1890ff, #36cfc9);
+  background: var(--el-color-primary);
   border-radius: 3px;
   transition: width 0.1s linear;
 }
@@ -2297,8 +2303,8 @@ const applyAllPerformanceSettings = () => {
   transform: translate(-50%, -50%);
   width: 12px;
   height: 12px;
-  background-color: #fff;
-  border: 2px solid #1890ff;
+  background-color: var(--el-color-white);
+  border: 2px solid var(--el-color-primary);
   border-radius: 50%;
   cursor: pointer;
   transition: transform 0.1s, box-shadow 0.1s;
@@ -2308,11 +2314,11 @@ const applyAllPerformanceSettings = () => {
 .track-progress-handle:hover,
 .track-progress-handle.active {
   transform: translate(-50%, -50%) scale(1.2);
-  box-shadow: 0 0 0 5px rgba(24, 144, 255, 0.2);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--el-color-primary), transparent 80%);
 }
 
 .track-progress-time {
-  font-size: 12px;
+  font-size: var(--el-font-size-small);
   color: var(--el-text-color-primary);
   text-align: center;
 }
@@ -2326,7 +2332,7 @@ const applyAllPerformanceSettings = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--el-color-white);
   font-size: 20px;
   font-weight: bold;
 }
@@ -2356,13 +2362,14 @@ const applyAllPerformanceSettings = () => {
   flex-direction: column;
   align-items: center;
   margin: 10px 0;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .speed-label {
-  font-size: 14px;
+  font-size: var(--el-font-size-base);
   font-weight: 600;
   color: var(--el-text-color-primary);
   margin-bottom: 5px;
@@ -2373,7 +2380,7 @@ const applyAllPerformanceSettings = () => {
   height: 5px;
   -webkit-appearance: none;
   appearance: none;
-  background: #e0e0e0;
+  background: var(--el-border-color-light);
   outline: none;
   border-radius: 3px;
   margin: 5px 0;
@@ -2385,13 +2392,13 @@ const applyAllPerformanceSettings = () => {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #1890ff;
+  background: var(--el-color-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .speed-slider::-webkit-slider-thumb:hover {
-  background: #40a9ff;
+  background: var(--el-color-primary-light-3);
   transform: scale(1.2);
 }
 
@@ -2404,20 +2411,20 @@ const applyAllPerformanceSettings = () => {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  font-size: 12px;
+  font-size: var(--el-font-size-small);
   color: var(--el-text-color-primary);
   margin-top: 5px;
 }
 
 /* 当前速度显示样式 */
 .track-current-speed {
-  font-size: 12px;
-  color: #1890ff;
+  font-size: var(--el-font-size-small);
+  color: var(--el-color-primary);
   font-weight: 600;
   text-align: center;
   margin-top: 5px;
   padding: 3px 8px;
-  background-color: rgba(24, 144, 255, 0.1);
+  background-color: var(--el-color-primary-light-9);
   border-radius: 4px;
   display: inline-block;
   width: 100%;
@@ -2434,21 +2441,22 @@ const applyAllPerformanceSettings = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--el-overlay-color-lighter);
 }
 
 .track-settings-content {
   width: 280px;
-  background-color: #fff;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 10px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--el-box-shadow-dark);
   overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .track-settings-header {
   padding: 12px 15px;
-  background: linear-gradient(135deg, #1890ff, #096dd9);
-  color: #fff;
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2475,23 +2483,23 @@ const applyAllPerformanceSettings = () => {
 
 .track-settings-footer {
   padding: 10px 15px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--el-border-color-lighter);
   text-align: right;
 }
 
 .settings-apply-btn {
-  background-color: #1890ff;
-  color: #fff;
+  background-color: var(--el-color-primary);
+  color: var(--el-color-white);
   border: none;
   padding: 6px 16px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--el-font-size-small);
   transition: background-color 0.2s;
 }
 
 .settings-apply-btn:hover {
-  background-color: #40a9ff;
+  background-color: var(--el-color-primary-light-3);
 }
 
 .settings-group {
@@ -2503,7 +2511,7 @@ const applyAllPerformanceSettings = () => {
 }
 
 .settings-group-title {
-  font-size: 14px;
+  font-size: var(--el-font-size-base);
   font-weight: 600;
   margin-bottom: 10px;
   color: var(--el-text-color-primary);
@@ -2519,7 +2527,7 @@ const applyAllPerformanceSettings = () => {
   transform: translateY(-50%);
   width: 4px;
   height: 16px;
-  background: linear-gradient(to bottom, #1890ff, #096dd9);
+  background: var(--el-color-primary);
   border-radius: 2px;
 }
 
@@ -2533,8 +2541,8 @@ const applyAllPerformanceSettings = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  color: #444;
+  font-size: var(--el-font-size-small);
+  color: var(--el-text-color-regular);
   cursor: pointer;
   user-select: none;
 }
@@ -2544,7 +2552,7 @@ const applyAllPerformanceSettings = () => {
   -webkit-appearance: none;
   width: 16px;
   height: 16px;
-  border: 2px solid #1890ff;
+  border: 2px solid var(--el-color-primary);
   border-radius: 3px;
   outline: none;
   cursor: pointer;
@@ -2553,7 +2561,7 @@ const applyAllPerformanceSettings = () => {
 }
 
 .settings-option input[type="checkbox"]:checked {
-  background-color: #1890ff;
+  background-color: var(--el-color-primary);
 }
 
 .settings-option input[type="checkbox"]:checked:after {
@@ -2579,19 +2587,19 @@ const applyAllPerformanceSettings = () => {
 
 @keyframes pulse-border {
   0% {
-    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.7);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-primary), transparent 30%);
   }
   70% {
-    box-shadow: 0 0 0 6px rgba(24, 144, 255, 0);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--el-color-primary), transparent 100%);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-primary), transparent 100%);
   }
 }
 
 .track-camera.active {
-  background-color: #e6f7ff;
-  border-left: 3px solid #1890ff;
+  background-color: var(--el-color-primary-light-9);
+  border-left: 3px solid var(--el-color-primary);
 }
 
 .track-camera path{
@@ -2601,26 +2609,26 @@ const applyAllPerformanceSettings = () => {
 /* 双击高亮效果 - 持续时间更长 */
 .track-highlight-double-click {
   animation: double-click-highlight 3s ease !important;
-  border-left: 3px solid #ff6a00 !important;
-  box-shadow: 0 0 8px rgba(255, 106, 0, 0.6) !important;
+  border-left: 3px solid var(--el-color-warning) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-warning), transparent 40%) !important;
 }
 
 @keyframes double-click-highlight {
   0% { 
-    background-color: rgba(255, 106, 0, 0.3);
-    box-shadow: 0 0 10px rgba(255, 106, 0, 0.6);
+    background-color: color-mix(in srgb, var(--el-color-warning), transparent 70%);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-warning), transparent 40%);
   }
   10% { 
-    background-color: rgba(255, 106, 0, 0.5);
-    box-shadow: 0 0 15px rgba(255, 106, 0, 0.8);
+    background-color: color-mix(in srgb, var(--el-color-warning), transparent 50%);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--el-color-warning), transparent 20%);
   }
   30% { 
-    background-color: rgba(255, 106, 0, 0.3);
-    box-shadow: 0 0 10px rgba(255, 106, 0, 0.6);
+    background-color: color-mix(in srgb, var(--el-color-warning), transparent 70%);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-warning), transparent 40%);
   }
   100% { 
-    background-color: #e6f7ff;
-    box-shadow: 0 0 5px rgba(24, 144, 255, 0.3);
+    background-color: var(--el-color-primary-light-9);
+    box-shadow: 0 0 5px color-mix(in srgb, var(--el-color-primary), transparent 70%);
   }
 }
 
@@ -2632,8 +2640,8 @@ const applyAllPerformanceSettings = () => {
 .tooltip {
   visibility: hidden;
   width: 200px;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: #fff;
+  background-color: var(--el-overlay-color-dark);
+  color: var(--el-color-white);
   text-align: center;
   border-radius: 6px;
   padding: 8px;
@@ -2644,7 +2652,7 @@ const applyAllPerformanceSettings = () => {
   margin-left: -100px;
   opacity: 0;
   transition: opacity 0.3s;
-  font-size: 12px;
+  font-size: var(--el-font-size-small);
   pointer-events: none;
 }
 
@@ -2669,7 +2677,7 @@ const applyAllPerformanceSettings = () => {
   transform: translate(-50%, -50%);
   width: 6px;
   height: 6px;
-  background-color: #d9d9d9;
+  background-color: var(--el-border-color);
   border-radius: 50%;
   pointer-events: auto;
   cursor: pointer;
@@ -2683,20 +2691,20 @@ const applyAllPerformanceSettings = () => {
 }
 
 .track-point-marker.static-point {
-  background-color: #ff6b18;
+  background-color: var(--el-color-warning);
   width: 8px;
   height: 8px;
 }
 
 .track-point-marker.passed-point {
-  background-color: #52c41a;
+  background-color: var(--el-color-success);
 }
 
 .track-point-marker.current-point {
-  background-color: #ff6b18;
+  background-color: var(--el-color-warning);
   width: 10px;
   height: 10px;
-  box-shadow: 0 0 0 3px rgba(255, 107, 24, 0.3);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-warning), transparent 70%);
   z-index: 6;
 }
 </style> 

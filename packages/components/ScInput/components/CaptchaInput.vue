@@ -239,19 +239,34 @@ function handleClear() {
 
 .sc-captcha-input {
   flex: 1;
+
+  .sc-captcha-input__prefix-icon {
+    font-size: var(--el-font-size-base);
+    color: var(--el-text-color-placeholder);
+    transition: color 0.3s;
+  }
+
+  &:focus-within .sc-captcha-input__prefix-icon {
+    color: var(--el-color-primary);
+  }
 }
 
 .sc-captcha-image {
-  height: 36px;
+  height: v-bind("size === 'large' ? '40px' : size === 'small' ? '24px' : '32px'");
   min-width: 100px;
   border: 1px solid var(--el-border-color);
-  border-radius: 4px;
+  border-radius: var(--el-border-radius-base);
   overflow: hidden;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: var(--el-fill-color-light);
+  transition: var(--el-transition-border);
+
+  &:hover {
+    border-color: var(--el-border-color-hover);
+  }
 
   img {
     width: 100%;
@@ -271,11 +286,16 @@ function handleClear() {
   align-items: center;
   justify-content: center;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: var(--el-font-size-small);
   gap: 4px;
+  transition: color 0.3s;
+
+  &:hover {
+    color: var(--el-color-primary);
+  }
 
   svg {
-    font-size: 16px;
+    font-size: var(--el-font-size-base);
   }
 }
 
@@ -292,7 +312,7 @@ function handleClear() {
 
 .sc-captcha-input__error {
   color: var(--el-color-danger);
-  font-size: 12px;
+  font-size: var(--el-font-size-extra-small);
   line-height: 1;
   padding-top: 4px;
   margin-left: 1px;

@@ -5,7 +5,8 @@
       'is-hoverable': hoverable,
       'is-shadow': shadow !== 'never',
       'is-shadow-always': shadow === 'always',
-      [`border-position--${borderPosition}`]: true
+      [`border-position--${borderPosition}`]: true,
+      [`theme--${theme}`]: true
     }"
   >
     <div class="sc-card-header-content__header" :style="headerStyle">
@@ -25,7 +26,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from "vue";
+import { defineComponent, computed, PropType } from "vue";
 
 export default defineComponent({
   name: "HeaderContentLayout",
@@ -80,6 +81,13 @@ export default defineComponent({
     headerBgImage: {
       type: String,
       default: ""
+    },
+    /**
+     * 主题色
+     */
+    theme: {
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
+      default: "primary"
     }
   },
   setup(props) {
@@ -110,15 +118,15 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .sc-card-header-content {
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.85);
+  border-radius: var(--stitch-lay-radius-md);
+  border: 1px solid var(--stitch-lay-border);
+  background: var(--stitch-lay-bg-panel);
   backdrop-filter: blur(10px);
   overflow: hidden;
-  color: var(--el-text-color-primary);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--stitch-lay-text-main);
+  transition: var(--stitch-lay-transition);
   position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--stitch-lay-shadow-sm);
 
   &::before {
     content: "";
@@ -170,7 +178,7 @@ export default defineComponent({
     justify-content: center;
     align-items: center;
     padding: 24px 20px;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
     position: relative;
     overflow: hidden;
 
@@ -181,7 +189,7 @@ export default defineComponent({
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(to bottom, rgba(99, 102, 241, 0.15), transparent);
+      background: linear-gradient(to bottom, var(--el-color-primary-light-8), transparent);
       opacity: 0;
       transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -193,9 +201,34 @@ export default defineComponent({
       left: 0;
       right: 0;
       height: 1px;
-      background: linear-gradient(to right, transparent, rgba(99, 102, 241, 0.3), transparent);
+      background: linear-gradient(to right, transparent, var(--el-color-primary-light-5), transparent);
     }
   }
+
+  // 主题变体混合宏
+  @mixin theme-variant($type) {
+    &::before {
+      background: linear-gradient(135deg, var(--el-color-#{$type}) 0%, var(--el-color-#{$type}-light-3) 100%);
+    }
+
+    .sc-card-header-content__header {
+      background: linear-gradient(135deg, var(--el-color-#{$type}-light-9) 0%, var(--el-color-#{$type}-light-8) 100%);
+
+      &::before {
+        background: linear-gradient(to bottom, var(--el-color-#{$type}-light-8), transparent);
+      }
+
+      &::after {
+        background: linear-gradient(to right, transparent, var(--el-color-#{$type}-light-5), transparent);
+      }
+    }
+  }
+
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 
   &__title {
     font-size: 18px;
@@ -224,8 +257,8 @@ export default defineComponent({
 
   &__footer {
     padding: 16px 24px;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
-    background: linear-gradient(to top, rgba(255, 255, 255, 0.5), transparent);
+    border-top: 1px solid var(--el-border-color-lighter);
+    background: linear-gradient(to top, color-mix(in srgb, var(--el-bg-color), transparent 50%), transparent);
   }
 
   &.is-hoverable {
@@ -233,8 +266,8 @@ export default defineComponent({
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-5);
 
       .sc-card-header-content__header {
         &::before {
@@ -250,17 +283,17 @@ export default defineComponent({
 
   &.is-shadow {
     &:hover {
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-5);
     }
   }
 
   &.is-shadow-always {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--el-box-shadow-light);
 
     &:hover {
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-5);
     }
   }
 }

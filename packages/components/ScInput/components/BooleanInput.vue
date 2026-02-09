@@ -167,14 +167,12 @@ defineExpose({
   position: relative;
   width: 36px;
   height: 18px;
-  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+  background: var(--el-fill-color-dark);
   border-radius: 9px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
   margin-right: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--el-border-color);
   flex-shrink: 0;
 
   &::before {
@@ -185,7 +183,7 @@ defineExpose({
     transform: translateY(-50%);
     width: 3px;
     height: 3px;
-    background: rgba(255, 255, 255, 0.6);
+    background: var(--el-color-white);
     border-radius: 50%;
     transition: all 0.3s ease;
   }
@@ -198,7 +196,7 @@ defineExpose({
     transform: translateY(-50%);
     width: 2px;
     height: 2px;
-    background: rgba(255, 255, 255, 0.4);
+    background: var(--el-color-white);
     border-radius: 50%;
     transition: all 0.3s ease;
   }
@@ -210,13 +208,10 @@ defineExpose({
   left: 1px;
   width: 14px;
   height: 14px;
-  background: linear-gradient(135deg, var(--el-bg-color), var(--el-bg-overlay));
+  background: var(--el-bg-color);
   border-radius: 50%;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.15),
-    0 1px 2px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: var(--el-box-shadow-light);
   border: 1px solid var(--el-border-color);
 
   &::before {
@@ -227,7 +222,7 @@ defineExpose({
     transform: translate(-50%, -50%);
     width: 5px;
     height: 5px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.8), transparent);
+    background: var(--el-fill-color-dark);
     border-radius: 50%;
     transition: all 0.3s ease;
   }
@@ -239,7 +234,7 @@ defineExpose({
     left: 50%;
     width: 8px;
     height: 8px;
-    background: linear-gradient(45deg, #64748b, #475569);
+    background: var(--el-text-color-secondary);
     border-radius: 50%;
     transform: translate(-50%, -50%) scale(0);
     transition: all 0.3s ease;
@@ -271,30 +266,23 @@ defineExpose({
 
 // Checked state
 .toggle-input:checked + .toggle-slider {
-  background: linear-gradient(145deg, #10b981, #059669);
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.1),
-    0 2px 12px rgba(16, 185, 129, 0.3);
+  background: var(--el-color-primary);
+  box-shadow: var(--el-box-shadow-light);
 
   &::before {
     transform: translateX(16px) translateY(-50%);
-    background: linear-gradient(145deg, #ffffff, #f0fdf4);
-    box-shadow:
-      0 2px 6px rgba(0, 0, 0, 0.2),
-      0 1px 2px rgba(0, 0, 0, 0.1);
+    background: var(--el-color-white);
+    box-shadow: var(--el-box-shadow-light);
   }
 
   .toggle-button {
     transform: translateX(16px);
-    background: linear-gradient(135deg, #ffffff, #f0f9ff);
-    box-shadow:
-      0 2px 6px rgba(59, 130, 246, 0.3),
-      0 1px 3px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    background: var(--el-color-white);
+    box-shadow: var(--el-box-shadow-light);
 
     &::after {
       transform: translate(-50%, -50%) scale(1);
-      background: linear-gradient(45deg, #10b981, #059669);
+      background: var(--el-color-primary);
     }
   }
 }

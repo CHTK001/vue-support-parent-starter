@@ -340,14 +340,16 @@ export default defineComponent({
             mediaPosition: props.mediaPosition,
             mediaWidth: props.mediaWidth,
             mediaHeight: props.mediaHeight,
-            mediaBgColor: props.mediaBgColor
+            mediaBgColor: props.mediaBgColor,
+            theme: props.theme
           };
         case "header-content":
           return {
             ...baseProps,
             headerHeight: props.headerHeight,
             headerBgColor: props.headerBgColor,
-            headerBgImage: props.headerBgImage
+            headerBgImage: props.headerBgImage,
+            theme: props.theme
           };
         case "panel-3d":
           return {
@@ -395,8 +397,8 @@ export default defineComponent({
         case "tech": {
           // 映射 ScCard 主题到 TechLayout 主题
           const techThemeMap: Record<string, string> = {
-            default: "cyan",
-            primary: "blue",
+            default: "default",
+            primary: "primary",
             success: "green",
             warning: "orange",
             danger: "red",
@@ -422,10 +424,14 @@ export default defineComponent({
         case "custom":
           return {
             ...baseProps,
-            ...props
+            ...props,
+            theme: props.theme
           };
         default:
-          return baseProps;
+          return {
+            ...baseProps,
+            theme: props.theme
+          };
       }
     });
 

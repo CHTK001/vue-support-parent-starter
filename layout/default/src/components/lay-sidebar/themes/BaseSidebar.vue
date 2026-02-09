@@ -142,7 +142,12 @@ onBeforeUnmount(() => {
         :popper-effect="tooltipEffect"
         :default-active="defaultActive"
       >
-        <span v-for="(routes, index) in menuData" :key="index">
+        <span
+          v-for="(routes, index) in menuData"
+          :key="index"
+          :style="{ '--index': index }"
+          class="menu-item-animate-wrapper"
+        >
           <component
             :is="ThemeSidebarItem"
             :key="routes.path"
@@ -196,6 +201,23 @@ onBeforeUnmount(() => {
   .dark & {
     --un-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.menu-item-animate-wrapper {
+  display: block;
+  animation: slide-in-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
+  animation-delay: calc(var(--index) * 0.04s);
 }
 
 :deep(.el-loading-mask) {

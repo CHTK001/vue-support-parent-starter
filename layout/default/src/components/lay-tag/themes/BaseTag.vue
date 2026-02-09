@@ -23,6 +23,7 @@ import {
 } from "@pureadmin/utils";
 import { useDefer } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import CloseIcon from "@iconify-icons/ep/close";
 
 // 接收主题类名和背景配置
 const props = defineProps<{
@@ -119,71 +120,60 @@ const moveToView = async (index: number): Promise<void> => {
 
   const tabItemElOffsetLeft = (tabItemEl as HTMLElement)?.offsetLeft;
   const tabItemOffsetWidth = (tabItemEl as HTMLElement)?.offsetWidth;
-  const scrollbarDomWidth = scrollbarDom.value
-    ? scrollbarDom.value?.offsetWidth
-    : 0;
-  const tabDomWidth = tabDom.value ? tabDom.value?.offsetWidth : 0;
+  const scrollbar = unref(scrollbarDom);
+  const scrollbarDomWidth = scrollbar ? scrollbar.offsetWidth : 0;
+  const scrollbarScrollLeft = scrollbar ? scrollbar.scrollLeft : 0;
 
-  scrollbarDomWidth <= tabDomWidth
-    ? (isShowArrow.value = true)
-    : (isShowArrow.value = false);
-  if (tabDomWidth < scrollbarDomWidth || tabItemElOffsetLeft === 0) {
-    translateX.value = 0;
-  } else if (tabItemElOffsetLeft < -translateX.value) {
-    translateX.value = -tabItemElOffsetLeft + tabNavPadding;
-  } else if (
-    tabItemElOffsetLeft > -translateX.value &&
-    tabItemElOffsetLeft + tabItemOffsetWidth <
-      -translateX.value + scrollbarDomWidth
-  ) {
-    translateX.value = Math.min(
-      0,
-      scrollbarDomWidth -
-        tabItemOffsetWidth -
-        tabItemElOffsetLeft -
-        tabNavPadding
-    );
+  if (scrollbar.scrollWidth > scrollbarDomWidth) {
+    isShowArrow.value = true;
   } else {
-    translateX.value = -(
-      tabItemElOffsetLeft -
-      (scrollbarDomWidth - tabNavPadding - tabItemOffsetWidth)
-    );
+    isShowArrow.value = false;
+  }
+
+  if (tabItemElOffsetLeft < scrollbarScrollLeft) {
+    scrollbar.scrollTo({
+      left: tabItemElOffsetLeft,
+      behavior: "smooth",
+    });
+  } else if (
+    tabItemElOffsetLeft + tabItemOffsetWidth >
+    scrollbarScrollLeft + scrollbarDomWidth
+  ) {
+    scrollbar.scrollTo({
+      left: tabItemElOffsetLeft + tabItemOffsetWidth - scrollbarDomWidth,
+      behavior: "smooth",
+    });
   }
 };
 
 const handleScroll = (offset: number): void => {
-  const scrollbarDomWidth = scrollbarDom.value
-    ? scrollbarDom.value?.offsetWidth
-    : 0;
-  const tabDomWidth = tabDom.value ? tabDom.value.offsetWidth : 0;
-  if (offset > 0) {
-    translateX.value = Math.min(0, translateX.value + offset);
-  } else {
-    if (scrollbarDomWidth < tabDomWidth) {
-      if (translateX.value >= -(tabDomWidth - scrollbarDomWidth)) {
-        translateX.value = Math.max(
-          translateX.value + offset,
-          scrollbarDomWidth - tabDomWidth
-        );
-      }
-    } else {
-      translateX.value = 0;
-    }
-  }
-  isScrolling.value = false;
+  const scrollbar = unref(scrollbarDom);
+  if (!scrollbar) return;
+  
+  const currentScrollLeft = scrollbar.scrollLeft;
+  const targetScrollLeft = currentScrollLeft + offset;
+  
+  scrollbar.scrollTo({
+    left: targetScrollLeft,
+    behavior: "smooth",
+  });
 };
 
 const handleWheel = (event: WheelEvent): void => {
-  // 即时滚动（无过渡动画）
-  isScrolling.value = true;
-  const scrollIntensity = Math.abs(event.deltaX) + Math.abs(event.deltaY);
-  let offset = 0;
-  if (event.deltaX < 0) {
-    offset = scrollIntensity > 0 ? scrollIntensity : 100;
-  } else {
-    offset = scrollIntensity > 0 ? -scrollIntensity : -100;
+  const scrollbar = unref(scrollbarDom);
+  if (!scrollbar) return;
+  
+  const scrollWidth = scrollbar.scrollWidth;
+  const clientWidth = scrollbar.clientWidth;
+  
+  // 只有当内容溢出时才处理滚轮事件
+  if (scrollWidth > clientWidth) {
+     if (Math.abs(event.deltaX) > 0) {
+       scrollbar.scrollLeft += event.deltaX;
+     } else {
+       scrollbar.scrollLeft += event.deltaY;
+     }
   }
-  handleScroll(offset);
 };
 
 // 取消平滑滚动动画，使用即时滚动
@@ -341,7 +331,13 @@ function onClickDrop(key, item, selectRoute?: RouteConfigs) {
         startIndex: fixedTags.length,
         length: multiTags.value.length,
       });
-      router.push(topPath);
+      // 激活最后一个固定标签
+      const lastFixedTag = multiTags.value[multiTags.value.length - 1];
+      if (lastFixedTag) {
+        router.push({ path: lastFixedTag.path, query: lastFixedTag.query });
+      } else {
+        router.push(topPath);
+      }
       handleAliveRoute(route as ToRouteType);
       break;
     case 6:
@@ -482,6 +478,8 @@ function openMenu(tag, e) {
   });
 }
 
+// 滚动逻辑已合并到上方
+
 function tagOnClick(item) {
   const { name, path } = item;
   if (name) {
@@ -548,7 +546,6 @@ onBeforeUnmount(() => {
   emitter.off("showTagIconChange");
 });
 
-const defer = useDefer(multiTags?.length);
 const deferTag = useDefer(tagsViews?.length);
 </script>
 
@@ -559,8 +556,14 @@ const deferTag = useDefer(tagsViews?.length);
       <slot name="background" />
     </div>
     
-    <span v-show="isShowArrow" class="arrow-left">
-      <IconifyIconOnline icon="ri:arrow-left-s-line" @click="handleScroll(200)" />
+    <!-- 增加左侧滚动按钮 -->
+    <span 
+      v-show="isShowArrow" 
+      class="arrow-left" 
+      :class="{ 'glass-arrow': showModel === 'glass' }"
+      @click="handleScroll(-200)"
+    >
+      <IconifyIconOnline icon="ri:arrow-left-s-line" />
     </span>
     <div
       ref="scrollbarDom"
@@ -568,7 +571,7 @@ const deferTag = useDefer(tagsViews?.length);
       :class="showModel === 'chrome' && 'chrome-scroll-container'"
       @wheel.prevent="handleWheel"
     >
-      <transition-group ref="tabDom" tag="div" name="tag-fade" class="tab select-none" :style="getTabStyle">
+      <div ref="tabDom" class="tab select-none">
         <div
           v-for="(item, index) in multiTags"
           :ref="'dynamic' + index"
@@ -577,9 +580,9 @@ const deferTag = useDefer(tagsViews?.length);
             'scroll-item is-closable',
             linkIsActive(item),
             showModel === 'chrome' && 'chrome-item',
-            showModel === 'modern' && 'modern-item',
             showModel === 'card' && 'card-item',
             showModel === 'smart' && 'smart-item',
+            showModel === 'glass' && 'glass-item',
             isFixedTag(item) && 'fixed-tag',
           ]"
           @contextmenu.prevent="openMenu(item, $event)"
@@ -587,7 +590,7 @@ const deferTag = useDefer(tagsViews?.length);
           @mouseleave.prevent="onMouseleave(index)"
           @click="tagOnClick(item)"
         >
-          <template v-if="showModel !== 'chrome' && defer(index)">
+          <template v-if="showModel !== 'chrome'">
             <component
               v-if="showTagIcon && item.meta?.icon"
               :is="useRenderIcon(item.meta.icon)"
@@ -603,13 +606,13 @@ const deferTag = useDefer(tagsViews?.length);
                   : iconIsActive(item, index) ||
                     (index === activeIndex && index !== 0)
               "
-              class="el-icon-close"
+              class="el-icon-close close-size"
               @click.stop="deleteMenu(item)"
             >
-              <IconifyIconOffline :icon="Close" />
+              <IconifyIconOffline :icon="CloseIcon" />
             </span>
             <span
-              v-if="showModel !== 'card'"
+              v-if="showModel !== 'card' && showModel !== 'glass'"
               :ref="'schedule' + index"
               :class="[scheduleIsActive(item)]"
             />
@@ -631,18 +634,25 @@ const deferTag = useDefer(tagsViews?.length);
               class="chrome-close-btn"
               @click.stop="deleteMenu(item)"
             >
-              <IconifyIconOffline :icon="Close" />
+              <IconifyIconOffline :icon="CloseIcon" />
             </span>
             <span class="chrome-tab-divider" />
           </div>
         </div>
-      </transition-group>
+      </div>
     </div>
-    <span v-show="isShowArrow" class="arrow-right">
-      <IconifyIconOnline icon="ri:arrow-right-s-line" @click="handleScroll(-200)" />
+    
+    <!-- 增加右侧滚动按钮 -->
+    <span 
+      v-show="isShowArrow" 
+      class="arrow-right" 
+      :class="{ 'glass-arrow': showModel === 'glass' }"
+      @click="handleScroll(200)"
+    >
+      <IconifyIconOnline icon="ri:arrow-right-s-line" />
     </span>
     
-    <!-- 右键菜单（去除过渡动画，直接显示/隐藏） -->
+    <!-- 右键菜单 -->
     <ul
       v-show="visible"
       ref="contextmenuRef"
@@ -650,18 +660,17 @@ const deferTag = useDefer(tagsViews?.length);
       :style="getContextMenuStyle"
       class="contextmenu"
     >
-      <div
+      <li 
         v-for="(item, key) in tagsViews.slice(0, 6)"
         :key="key"
-        style="display: flex; align-items: center"
+        v-show="item.show"
+        @click="selectTag(key, item)"
       >
-        <li v-if="item.show" @click="selectTag(key, item)">
-          <IconifyIconOffline :icon="item.icon" />
-          {{ transformI18n(item.text) }}
-        </li>
-      </div>
+        <IconifyIconOffline :icon="item.icon" />
+        {{ transformI18n(item.text) }}
+      </li>
     </ul>
-    
+
     <!-- 右侧功能按钮 -->
     <el-dropdown
       trigger="click"
@@ -699,6 +708,41 @@ const deferTag = useDefer(tagsViews?.length);
   position: relative;
   overflow: visible !important;
   z-index: 0;
+  display: flex;
+  align-items: center;
+
+  .close-size {
+    height: 16px;
+    width: 16px;
+    line-height: 16px;
+  }
+  .arrow-left,
+  .arrow-right {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    width: 34px;
+    cursor: pointer;
+    z-index: 10;
+    color: var(--el-text-color-primary);
+    
+    &:hover {
+      background-color: var(--el-fill-color-light);
+    }
+  }
+
+  .scroll-container {
+     flex: 1;
+     overflow-x: auto;
+     overflow-y: hidden;
+     white-space: nowrap;
+     // 隐藏滚动条
+     &::-webkit-scrollbar {
+       display: none;
+     }
+     scrollbar-width: none;
+  }
 }
 
 // 背景装饰层
@@ -739,6 +783,11 @@ const deferTag = useDefer(tagsViews?.length);
     .chrome-tab-divider {
       opacity: 0;
     }
+    
+    // 悬停时背景色
+    .chrome-tab__bg {
+      color: var(--el-fill-color-hover);
+    }
   }
 
   .chrome-tab__bg {
@@ -750,6 +799,7 @@ const deferTag = useDefer(tagsViews?.length);
     height: 100%;
     color: transparent;
     pointer-events: none;
+    transition: color 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
   }
 
   .chrome-close-btn {
@@ -760,10 +810,11 @@ const deferTag = useDefer(tagsViews?.length);
     height: 16px;
     color: var(--el-text-color-primary);
     border-radius: 50%;
+    transition: all 0.2s;
 
     &:hover {
-      color: var(--el-text-color-primary);
-      background-color: var(--el-fill-color-dark);
+      color: #fff;
+      background-color: var(--el-color-danger);
     }
   }
 
@@ -781,6 +832,8 @@ const deferTag = useDefer(tagsViews?.length);
 
 // 激活状态适配
 .scroll-item.is-active .chrome-tab {
+  z-index: 10;
+
   .tag-title {
     color: #fff !important;
   }
@@ -794,9 +847,15 @@ const deferTag = useDefer(tagsViews?.length);
       color: #fff !important;
     }
   }
+  
+  .chrome-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff !important;
+  }
 
   .chrome-tab__bg {
     color: var(--el-color-primary) !important;
+    filter: drop-shadow(0 0 8px rgba(var(--el-color-primary-rgb), 0.3));
   }
 }
 
@@ -806,6 +865,281 @@ const deferTag = useDefer(tagsViews?.length);
   }
   .tag-title {
     color: #fff !important;
+  }
+}
+
+.contextmenu {
+  position: absolute;
+  margin: 0;
+  padding: 5px 0;
+  background: var(--el-bg-color-overlay);
+  z-index: 3000;
+  list-style-type: none;
+  border-radius: 4px;
+  box-shadow: var(--el-box-shadow-light);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-regular);
+  min-width: 100px;
+
+  li {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+    &:hover {
+      background-color: var(--el-fill-color-light);
+      color: var(--el-color-primary);
+    }
+
+    :deep(svg) {
+      margin-right: 8px;
+      font-size: 14px;
+    }
+  }
+}
+
+// 滚动按钮基础样式
+.arrow-left,
+.arrow-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 32px;
+  cursor: pointer;
+  color: var(--el-text-color-secondary);
+  transition: all 0.3s;
+  background: var(--el-bg-color);
+  z-index: 10;
+  
+  &:hover {
+    color: var(--el-color-primary);
+    background: var(--el-fill-color-light);
+  }
+}
+
+// 玻璃拟态样式
+.glass-item {
+  position: relative;
+  margin-right: 6px;
+  padding: 0 12px;
+  height: 32px;
+  line-height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--el-text-color-regular);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+
+  .tag-icon {
+    margin-right: 4px;
+    vertical-align: -2px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    z-index: 1;
+  }
+
+  &.is-active {
+    background: rgba(var(--el-color-primary-rgb), 0.15);
+    border-color: var(--el-color-primary);
+    color: var(--el-color-primary);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+
+    .tag-icon {
+      color: var(--el-color-primary);
+    }
+  }
+  
+  .el-icon-close {
+    margin-left: 6px;
+    padding: 2px;
+    border-radius: 50%;
+    font-size: 12px;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: rgba(var(--el-color-rgb), 0.1);
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+// 玻璃拟态下的滚动按钮
+.glass-arrow {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  margin: 0 2px;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+
+  &:hover {
+    background: rgba(var(--el-color-primary-rgb), 0.1);
+    border-color: var(--el-color-primary);
+    color: var(--el-color-primary);
+  }
+}
+
+// Card 风格
+.card-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  line-height: 32px;
+  padding: 0 12px;
+  margin-right: 6px;
+  border-radius: 4px 4px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  transition: all 0.3s;
+  background-color: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-bottom: none;
+  
+  .tag-icon {
+    margin-right: 4px;
+    vertical-align: -2px;
+  }
+
+  &:hover {
+    color: var(--el-color-primary);
+    background-color: var(--el-fill-color-light);
+  }
+
+  &.is-active {
+    color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
+    border-color: var(--el-border-color-lighter);
+    
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: var(--el-color-primary);
+      z-index: 1;
+      box-shadow: 0 -1px 4px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+  }
+
+  .el-icon-close {
+    margin-left: 6px;
+    padding: 2px;
+    border-radius: 50%;
+    font-size: 12px;
+    transition: all 0.2s;
+    
+    &:hover {
+      background-color: var(--el-color-danger);
+      color: #fff;
+    }
+  }
+}
+
+// Smart 风格 (灵动)
+.smart-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  line-height: 32px;
+  padding: 0 12px;
+  margin-right: 6px;
+  border-radius: 32px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  transition: all 0.3s;
+  background-color: transparent;
+  
+  .tag-icon {
+    margin-right: 4px;
+    vertical-align: -2px;
+  }
+
+  &:hover {
+    color: var(--el-color-primary);
+    background-color: var(--el-fill-color-light);
+  }
+
+  &.is-active {
+    color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
+    font-weight: 600;
+  }
+
+  .el-icon-close {
+    margin-left: 6px;
+    padding: 2px;
+    border-radius: 50%;
+    font-size: 12px;
+    transition: all 0.2s;
+    
+    &:hover {
+      background-color: var(--el-color-danger);
+      color: #fff;
+    }
+  }
+}
+
+// 暗黑模式适配
+html.dark {
+  .glass-item {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.08);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+    
+    &.is-active {
+      background: rgba(var(--el-color-primary-rgb), 0.3);
+      border-color: var(--el-color-primary);
+      color: var(--el-color-primary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .glass-arrow {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #e5e7eb;
+
+    &:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.2);
+      border-color: var(--el-color-primary);
+    }
+  }
+
+  .card-item,
+  .smart-item {
+    &.is-active {
+      background-color: rgba(var(--el-color-primary-rgb), 0.15);
+      color: var(--el-color-primary);
+      border-color: var(--el-border-color-darker);
+    }
   }
 }
 </style>

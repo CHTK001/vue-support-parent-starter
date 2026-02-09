@@ -315,7 +315,7 @@ onUnmounted(() => {
       placement="bottom-end"
       popper-class="message-dropdown-popper"
     >
-      <div class="message-container flex-c cursor-pointer navbar-bg-hover">
+      <div class="message-trigger flex-c cursor-pointer navbar-bg-hover">
         <el-badge
           :value="unreadCount > 0 ? unreadCount : ''"
           :max="99"
@@ -485,20 +485,44 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
-.message-container {
-  width: 38px;
-  height: 38px;
+.message-trigger {
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-}
+  font-size: 20px;
+  transition: all 0.3s ease;
+  color: var(--el-text-color-regular);
+  position: relative;
+  overflow: hidden;
 
-.message-container,
-:deep(.message-container) {
-  svg {
-    background: transparent !important;
+  /* 玻璃拟态光泽 */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  &:hover {
+    background: var(--el-fill-color);
+    color: var(--el-color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  /* 适配不同主题的图标颜色 */
+  :deep(svg) {
+    /* 移除 !important 以允许 hover 颜色生效 */
+    background: transparent;
   }
 }
 </style>
@@ -511,31 +535,47 @@ onUnmounted(() => {
   .el-dropdown-menu {
     padding: 0 !important;
     border-radius: 16px;
-    border: none;
-    box-shadow:
-      0 12px 48px rgba(0, 0, 0, 0.15),
-      0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+    background: var(--stitch-lay-bg-overlay, var(--el-bg-color-overlay));
+    backdrop-filter: blur(20px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
     overflow: hidden;
+  }
+  
+  // 去除箭头
+  .el-popper__arrow {
+    display: none;
   }
 }
 
 .message-panel {
-  width: 360px;
-  background: var(--el-bg-color);
+  width: 380px;
+  background: transparent; // 背景由 dropdown-menu 控制
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-lighter);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+  background: rgba(var(--el-fill-color-lighter-rgb), 0.5);
 
   .header-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
+    color: var(--stitch-lay-text-main, var(--el-text-color-primary));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before {
+      content: "";
+      width: 4px;
+      height: 16px;
+      background: var(--el-color-primary);
+      border-radius: 2px;
+    }
   }
 
   .header-actions {
@@ -546,45 +586,62 @@ onUnmounted(() => {
 
 .panel-body {
   min-height: 200px;
-
+  max-height: 400px;
+  
   .loading-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 0;
+    padding: 60px 0;
     color: var(--el-text-color-secondary);
-    gap: 8px;
+    gap: 12px;
 
     .el-icon {
-      font-size: 24px;
+      font-size: 28px;
+      color: var(--el-color-primary);
+      animation: rotate 1.5s linear infinite;
     }
   }
 }
 
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .message-list {
-  padding: 8px;
+  padding: 12px;
 }
 
 .message-item {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 8px;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  border: 1px solid transparent;
 
   &:hover {
-    background: var(--el-fill-color-light);
+    background: var(--stitch-lay-bg-hover, var(--el-fill-color-light));
+    border-color: var(--stitch-lay-border, var(--el-border-color-lighter));
+    transform: translateX(4px);
   }
 
   &.unread {
-    background: var(--el-color-primary-light-9);
+    background: rgba(var(--el-color-primary-rgb), 0.08);
 
     &:hover {
-      background: var(--el-color-primary-light-8);
+      background: rgba(var(--el-color-primary-rgb), 0.12);
+    }
+    
+    .item-title {
+      color: var(--el-color-primary);
+      font-weight: 600;
     }
   }
 
@@ -592,9 +649,9 @@ onUnmounted(() => {
     flex-shrink: 0;
 
     .default-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
       background: linear-gradient(
         135deg,
         var(--el-color-primary) 0%,
@@ -604,7 +661,8 @@ onUnmounted(() => {
       align-items: center;
       justify-content: center;
       color: #fff;
-      font-size: 18px;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
     }
   }
 
@@ -617,65 +675,77 @@ onUnmounted(() => {
     font-size: 14px;
     font-weight: 500;
     color: var(--el-text-color-primary);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .item-desc {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--el-text-color-secondary);
-    line-height: 1.4;
+    line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    margin-bottom: 8px;
   }
 
   .item-time {
     font-size: 11px;
     color: var(--el-text-color-placeholder);
-    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    
+    &::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--el-border-color);
+    }
   }
 
   .unread-dot {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: 16px;
+    right: 16px;
     width: 8px;
     height: 8px;
     background: var(--el-color-primary);
     border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(var(--el-color-primary-rgb), 0.1);
+    animation: pulse 2s infinite;
   }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(var(--el-color-primary-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0); }
 }
 
 .panel-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-lighter);
+  padding: 12px 24px;
+  border-top: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+  background: rgba(var(--el-fill-color-lighter-rgb), 0.3);
+  backdrop-filter: blur(10px);
 }
 
 // 深色模式适配
 html.dark {
   .message-panel {
-    background: var(--el-bg-color-overlay);
-  }
-
-  .panel-header,
-  .panel-footer {
-    background: var(--el-fill-color-dark);
+    // Variables handled by stitch-layout-tokens usually
+    // But explicit overrides if needed
   }
 
   .message-item.unread {
     background: rgba(var(--el-color-primary-rgb), 0.15);
-
-    &:hover {
-      background: rgba(var(--el-color-primary-rgb), 0.2);
-    }
   }
 }
 
@@ -683,20 +753,22 @@ html.dark {
 .message-center-drawer {
   .el-drawer__header {
     margin-bottom: 0;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+    background: var(--stitch-lay-bg-overlay, var(--el-bg-color));
   }
 
   .el-drawer__body {
     padding: 0;
     display: flex;
     flex-direction: column;
+    background: var(--stitch-lay-bg-base, var(--el-bg-color-page));
   }
 
   .drawer-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 
     .drawer-title {
       font-size: 18px;
@@ -706,52 +778,74 @@ html.dark {
   }
 
   .message-tabs {
-    padding: 0 16px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 0 24px;
+    background: var(--stitch-lay-bg-overlay, var(--el-bg-color));
+    border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
 
     .el-tabs__header {
       margin: 0;
     }
+    
+    .el-tabs__item {
+      height: 48px;
+      font-size: 15px;
+    }
 
     .tab-badge {
       margin-left: 6px;
+      sup {
+        top: 12px;
+      }
     }
   }
 
   .drawer-actions {
     display: flex;
-    gap: 10px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    background: var(--el-fill-color-lighter);
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+    background: var(--stitch-lay-bg-overlay, var(--el-bg-color));
+    
+    .el-button {
+      flex: 1;
+    }
   }
 
   .drawer-content {
     flex: 1;
-    padding: 12px 16px;
+    padding: 16px 24px;
   }
 
   .drawer-message-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
   }
 
   .drawer-message-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 14px;
+    gap: 16px;
+    padding: 16px;
     border-radius: 12px;
-    background: var(--el-fill-color-lighter);
-    border: 1px solid transparent;
+    background: var(--stitch-lay-bg-overlay, var(--el-bg-color));
+    border: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 
     &:hover {
-      border-color: var(--el-border-color);
+      border-color: var(--el-color-primary-light-5);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      
+      .msg-actions {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     &.unread {
-      background: var(--el-color-primary-light-9);
+      background: rgba(var(--el-color-primary-rgb), 0.05);
       border-left: 3px solid var(--el-color-primary);
     }
 
@@ -759,9 +853,9 @@ html.dark {
       flex-shrink: 0;
 
       .default-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
         background: linear-gradient(
           135deg,
           var(--el-color-primary) 0%,
@@ -771,7 +865,8 @@ html.dark {
         align-items: center;
         justify-content: center;
         color: #fff;
-        font-size: 20px;
+        font-size: 24px;
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
       }
     }
 
@@ -785,24 +880,27 @@ html.dark {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .msg-title {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--el-text-color-primary);
     }
 
     .msg-time {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--el-text-color-placeholder);
+      background: var(--el-fill-color);
+      padding: 2px 8px;
+      border-radius: 4px;
     }
 
     .msg-content {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--el-text-color-secondary);
-      line-height: 1.5;
+      line-height: 1.6;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -812,31 +910,12 @@ html.dark {
     .msg-actions {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 8px;
       opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    &:hover .msg-actions {
-      opacity: 1;
+      transform: translateX(10px);
+      transition: all 0.3s ease;
+      justify-content: center;
     }
   }
 }
-
-html.dark .message-center-drawer {
-  .drawer-actions {
-    background: var(--el-fill-color-dark);
-  }
-
-  .drawer-message-item {
-    background: var(--el-fill-color-dark);
-
-    &.unread {
-      background: rgba(var(--el-color-primary-rgb), 0.15);
-    }
-  }
-}
-
-// 导入拆分的主题样式文件
-
 </style>

@@ -36,6 +36,8 @@ const props = defineProps({
   params: { type: Object, default: () => ({}) },
   layout: { type: String, default: "table" }, // 支持 table, card, list, virtual, canvas, waterfall 六种布局
   cardLayout: { type: String, default: "default" }, // 卡片布局类型，可选值：card, default
+  cardTheme: { type: String, default: "default" }, // 卡片主题
+  theme: { type: String, default: "" }, // 通用主题颜色
   filter: {
     type: Object,
     default: () => {
@@ -577,10 +579,9 @@ const scTableContentWrapper = ref(null);
 
 // 移除 ResizeObserver，直接使用 CSS 控制
 const computedHeight = computed(() => {
-  // 当 height 为 auto 时，返回 '100%' 让表格填满父容器
-  // 前提是父容器（scTableContentWrapper）必须有确定高度
+  // 当 height 为 auto 时，返回 'auto' 让表格组件自行处理
   if (props.height === "auto") {
-    return "100%";
+    return "auto";
   }
   
   // 未设置时返回 undefined 让表格自适应内容
@@ -2012,10 +2013,11 @@ defineExpose({
           :toggle-index="renderVersion"
           :empty-text="emptyText"
           :col-size="colSize"
-          :row-size="rowSize"
-          :layout="layout === 'card' ? cardLayout : undefined"
-          :loading="loading"
-          :total="total"
+    :row-size="rowSize"
+    :layout="layout === 'card' ? cardLayout : undefined"
+    :theme="theme || cardTheme"
+    :loading="loading"
+    :total="total"
           :current-page="currentPage"
           :page-size="scPageSize"
           :gap="waterfallGap"

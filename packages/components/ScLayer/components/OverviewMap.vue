@@ -11,8 +11,8 @@
       :style="collapseButtonStyle"
     >
       <div class="collapse-icon">
-        <span v-if="collapsed">+</span>
-        <span v-else>-</span>
+        <IconifyIconOnline v-if="collapsed" icon="ep:plus" />
+        <IconifyIconOnline v-else icon="ep:minus" />
       </div>
     </div>
   </div>
@@ -20,6 +20,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue';
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -98,18 +99,18 @@ const defaultConfig: OverviewMapConfig = {
   width: 200,
   height: 150,
   opacity: 1,
-  borderColor: 'rgba(24, 144, 255, 0.8)',
+  borderColor: 'var(--el-color-primary)',
   borderWidth: 2,
-  backgroundColor: '#f5f5f5',
-  boxColor: 'rgba(24, 144, 255, 0.15)',
+  backgroundColor: 'var(--el-bg-color-overlay)',
+  boxColor: 'var(--el-color-primary-light-8)',
   boxOpacity: 0.15,
-  boxBorderColor: 'rgba(24, 144, 255, 1)',
+  boxBorderColor: 'var(--el-color-primary)',
   boxBorderWidth: 3,
   zoomOffset: 4,
   collapsedSize: 30,
   buttonSize: 30,
-  buttonColor: '#fff',
-  buttonBgColor: 'rgba(24, 144, 255, 0.9)'
+  buttonColor: 'var(--el-color-white)',
+  buttonBgColor: 'var(--el-color-primary)'
 };
 
 // 合并配置
@@ -209,6 +210,20 @@ const getCollapseButtonPosition = () => {
   return `position-${props.position}`;
 };
 
+// 解析CSS变量颜色
+const resolveColor = (color: string) => {
+  if (!color) return color;
+  if (typeof color === 'string' && color.startsWith('var(')) {
+    const varName = color.match(/var\(([^)]+)\)/)?.[1];
+    if (varName) {
+      // 尝试从文档根元素获取变量值
+      const resolved = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+      return resolved || color;
+    }
+  }
+  return color;
+};
+
 // 创建鹰眼地图
 const createOverviewMap = async () => {
   if (collapsed.value) return; // 如果折叠状态，不创建
@@ -250,15 +265,19 @@ const createOverviewMap = async () => {
       features: [viewExtentFeature]
     });
     
+    // 解析颜色变量
+    const boxBorderColor = resolveColor(config.boxBorderColor);
+    const boxColor = resolveColor(config.boxColor);
+    
     viewExtentLayer = new VectorLayer({
       source: vectorSource,
       style: new Style({
         stroke: new Stroke({
-          color: config.boxBorderColor,
+          color: boxBorderColor,
           width: config.boxBorderWidth
         }),
         fill: new Fill({
-          color: config.boxColor
+          color: boxColor
         })
       }),
       // 确保矩形始终显示在顶层
@@ -444,13 +463,17 @@ const updateViewExtentRectangle = () => {
     
     // 更新矩形样式
     if (viewExtentLayer) {
+      // 解析颜色变量
+      const boxBorderColor = resolveColor(config.boxBorderColor);
+      const boxColor = resolveColor(config.boxColor);
+      
       viewExtentLayer.setStyle(new Style({
         stroke: new Stroke({
-          color: config.boxBorderColor, 
+          color: boxBorderColor, 
           width: config.boxBorderWidth
         }),
         fill: new Fill({
-          color: config.boxColor
+          color: boxColor
         })
       }));
     }
@@ -586,14 +609,17 @@ function createTileLayer() {
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
+
 .overview-map {
   position: absolute;
   display: none;
   overflow: hidden;
   z-index: 1001;
   border-style: solid;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  box-shadow: var(--el-box-shadow);
+  border-radius: var(--el-border-radius-base);
   transition: all 0.3s ease-in-out;
   box-sizing: border-box; // 确保尺寸计算包含边框
   padding: 0; // 消除内边距
@@ -655,20 +681,20 @@ function createTileLayer() {
     cursor: pointer;
   }
   
-  // 折叠按钮
   .overview-collapse-btn {
     position: absolute;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
+    border-radius: var(--el-border-radius-base);
     cursor: pointer;
     z-index: 1002;
     transition: all 0.2s ease-in-out;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--el-box-shadow-light);
     
     &:hover {
       transform: scale(1.05);
+      background-color: var(--el-color-primary-light-3);
     }
     
     .collapse-icon {

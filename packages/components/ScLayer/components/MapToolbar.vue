@@ -13,9 +13,14 @@
       @mouseleave="e => handleToolHover(tool, e, false)"
     >
       <span
-        v-if="typeof (isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon) === 'string'"
+        v-if="isSvgString(isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon)"
         class="svg-icon"
         v-html="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon"
+      />
+      <IconifyIconOnline
+        v-else-if="typeof (isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon) === 'string'"
+        :icon="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon"
+        class="icon"
       />
       <component :is="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon" v-else />
     </div>
@@ -24,42 +29,26 @@
       <template v-if="config.direction === 'horizontal'">
         <!-- 左侧工具栏 -->
         <div v-if="config.position.endsWith('left')" class="collapse-icon">
-          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M842.67 512L640 309.33V402.67H384V402.67H213.33V621.33H384V621.33H640V714.67L842.67 512Z" fill="currentColor" />
-          </svg>
-          <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M181.33 512L384 714.67V621.33H640V621.33H810.67V402.67H640V402.67H384V309.33L181.33 512Z" fill="currentColor" />
-          </svg>
+          <IconifyIconOnline v-if="isCollapsed" icon="ep:arrow-right" />
+          <IconifyIconOnline v-else icon="ep:arrow-left" />
         </div>
         <!-- 右侧工具栏 -->
         <div v-else class="collapse-icon">
-          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M181.33 512L384 309.33V402.67H640V402.67H810.67V621.33H640V621.33H384V714.67L181.33 512Z" fill="currentColor" />
-          </svg>
-          <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M842.67 512L640 714.67V621.33H384V621.33H213.33V402.67H384V402.67H640V309.33L842.67 512Z" fill="currentColor" />
-          </svg>
+          <IconifyIconOnline v-if="isCollapsed" icon="ep:arrow-left" />
+          <IconifyIconOnline v-else icon="ep:arrow-right" />
         </div>
       </template>
       <!-- 垂直方向工具栏 -->
       <template v-else>
         <!-- 顶部工具栏 -->
         <div v-if="config.position.startsWith('top')" class="collapse-icon">
-          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z" fill="currentColor" />
-          </svg>
-          <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z" fill="currentColor" />
-          </svg>
+          <IconifyIconOnline v-if="isCollapsed" icon="ep:arrow-down" />
+          <IconifyIconOnline v-else icon="ep:arrow-up" />
         </div>
         <!-- 底部工具栏 -->
         <div v-else class="collapse-icon">
-          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z" fill="currentColor" />
-          </svg>
-          <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z" fill="currentColor" />
-          </svg>
+          <IconifyIconOnline v-if="isCollapsed" icon="ep:arrow-up" />
+          <IconifyIconOnline v-else icon="ep:arrow-down" />
         </div>
       </template>
     </div>
@@ -89,13 +78,19 @@
       @mouseleave="e => handleToolHover(subTool, e, false)"
     >
       <span
-        v-if="typeof (isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon) === 'string'"
+        v-if="isSvgString(isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon)"
         class="svg-icon"
         v-html="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon"
+      />
+      <IconifyIconOnline
+        v-else-if="typeof (isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon) === 'string'"
+        :icon="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon"
+        class="icon"
       />
       <component :is="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon" v-else-if="subTool.icon || (isToolActive(subTool.id) && subTool.activeIcon)" />
     </div>
   </div>
+
 
   <!-- 使用固定定位的工具提示 -->
   <div
@@ -145,7 +140,7 @@ const props = withDefaults(defineProps<Props>(), {
         {
           id: "boundary",
           type: "button",
-          icon: '<svg viewBox="0 0 1024 1024" width="20" height="20"><path d="M128 128h768v768H128z" fill="#e6f7ff"/><path d="M128 128h768v768H128z" fill="none" stroke="#1890ff" stroke-width="48"/><path d="M128 384h768" stroke="#1890ff" stroke-width="32"/><path d="M128 640h768" stroke="#1890ff" stroke-width="32"/><path d="M384 128v768" stroke="#1890ff" stroke-width="32"/><path d="M640 128v768" stroke="#1890ff" stroke-width="32"/></svg>',
+          icon: '<svg viewBox="0 0 1024 1024" width="20" height="20"><path d="M128 128h768v768H128z" fill="var(--el-color-primary-light-9)"/><path d="M128 128h768v768H128z" fill="none" stroke="var(--el-color-primary)" stroke-width="48"/><path d="M128 384h768" stroke="var(--el-color-primary)" stroke-width="32"/><path d="M128 640h768" stroke="var(--el-color-primary)" stroke-width="32"/><path d="M384 128v768" stroke="var(--el-color-primary)" stroke-width="32"/><path d="M640 128v768" stroke="var(--el-color-primary)" stroke-width="32"/></svg>',
           title: "区划",
           show: true
         }
@@ -901,14 +896,14 @@ defineExpose({
   position: absolute;
   width: 28px;
   height: 28px;
-  background-color: #ffffff;
+  background-color: var(--el-bg-color-overlay);
   /* 非隐藏状态恢复为白色背景 */
   border-radius: 4px;
   cursor: pointer !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
   /* 恢复为灰色阴影 */
   transition: all 0.3s ease;
   z-index: 3000;
@@ -917,9 +912,9 @@ defineExpose({
   /* 保留透明度设置 */
 
   &:hover {
-    background-color: #f6f6f6;
+    background-color: var(--el-fill-color-light);
     /* hover时恢复为原来的浅灰色 */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--el-box-shadow);
     opacity: 1;
     /* hover时不透明 */
   }
@@ -938,7 +933,7 @@ defineExpose({
   }
 
   &:hover .collapse-icon {
-    color: #1890ff;
+    color: var(--el-color-primary);
     /* hover时仍然显示蓝色 */
     transform: scale(1.1);
   }
@@ -947,13 +942,13 @@ defineExpose({
 /* 收缩状态下的样式 - 保持蓝色 */
 .map-toolbar[style*="translateX"] .toolbar-collapse,
 .map-toolbar[style*="translateY"] .toolbar-collapse {
-  background-color: #1890ff !important;
+  background-color: var(--el-color-primary) !important;
   /* 使用更醒目的蓝色背景 */
-  box-shadow: 0 2px 10px rgba(24, 144, 255, 0.5) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--el-color-primary), transparent 50%) !important;
   /* 增强阴影效果 */
   opacity: 1 !important;
   /* 完全不透明 */
-  border: 2px solid rgba(255, 255, 255, 0.6) !important;
+  border: 2px solid var(--el-border-color-light) !important;
   /* 添加白色边框 */
   width: 32px !important;
   /* 略微增大尺寸 */
@@ -971,7 +966,7 @@ defineExpose({
 /* 收缩状态下的图标颜色 */
 .map-toolbar[style*="translateX"] .toolbar-collapse .collapse-icon,
 .map-toolbar[style*="translateY"] .toolbar-collapse .collapse-icon {
-  color: white !important;
+  color: var(--el-color-white) !important;
   /* 图标改为白色，与蓝色背景形成鲜明对比 */
   opacity: 1 !important;
   /* 图标不透明 */
@@ -981,9 +976,9 @@ defineExpose({
 
 /* 收缩状态下hover效果增强 - 水平方向 */
 .map-toolbar[style*="translateX"] .toolbar-collapse:hover {
-  background-color: #40a9ff !important;
+  background-color: var(--el-color-primary-light-3) !important;
   /* hover时背景色更亮 */
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.6) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary), transparent 40%) !important;
   /* hover时阴影更突出 */
   transform: translateY(-50%) scale(1.05) !important;
   /* 保持垂直居中并略微放大 */
@@ -991,9 +986,9 @@ defineExpose({
 
 /* 收缩状态下hover效果增强 - 垂直方向 */
 .map-toolbar[style*="translateY"] .toolbar-collapse:hover {
-  background-color: #40a9ff !important;
+  background-color: var(--el-color-primary-light-3) !important;
   /* hover时背景色更亮 */
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.6) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary), transparent 40%) !important;
   /* hover时阴影更突出 */
   transform: translateX(-50%) scale(1.05) !important;
   /* 保持水平居中并略微放大 */
@@ -1066,9 +1061,9 @@ defineExpose({
   width: v-bind(buttonSize + "px");
   height: v-bind(buttonSize + "px");
   margin: v-bind(buttonMargin + "px");
-  background-color: #ffffff;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
   cursor: pointer !important;
   transition: all 0.3s;
   user-select: none;
@@ -1077,9 +1072,9 @@ defineExpose({
   pointer-events: auto !important;
 
   &:hover {
-    background-color: #f6f6f6;
+    background-color: var(--el-fill-color-light);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--el-box-shadow);
   }
 
   &:active {
@@ -1088,60 +1083,60 @@ defineExpose({
   }
 
   &.active {
-    background-color: #1890ff;
-    color: #ffffff;
+    background-color: var(--el-color-primary);
+    color: var(--el-color-white);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--el-color-primary), transparent 70%);
     animation: pulse-border 1.5s infinite;
     position: relative;
     z-index: 10;
   }
 
   &.active:hover {
-    background-color: #40a9ff;
-    box-shadow: 0 6px 12px rgba(24, 144, 255, 0.4);
+    background-color: var(--el-color-primary-light-3);
+    box-shadow: 0 6px 12px color-mix(in srgb, var(--el-color-primary), transparent 60%);
   }
 
   &.active:active {
-    background-color: #096dd9;
+    background-color: var(--el-color-primary-dark-2);
     transform: translateY(0);
     transition: all 0.1s;
   }
 
   @keyframes pulse-border {
     0% {
-      box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.5);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-primary), transparent 50%);
     }
 
     70% {
-      box-shadow: 0 0 0 6px rgba(24, 144, 255, 0);
+      box-shadow: 0 0 0 6px transparent;
     }
 
     100% {
-      box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+      box-shadow: 0 0 0 0 transparent;
     }
   }
 
   /* 删除按钮样式 */
   &.delete-btn {
     &:hover {
-      background-color: #fff1f0;
-      border-color: #ffccc7;
+      background-color: var(--el-color-danger-light-9);
+      border-color: var(--el-color-danger-light-7);
     }
 
     &.active {
-      background-color: #ff4d4f;
-      color: #ffffff;
-      box-shadow: 0 4px 8px rgba(255, 77, 79, 0.3);
+      background-color: var(--el-color-danger);
+      color: var(--el-color-white);
+      box-shadow: 0 4px 8px color-mix(in srgb, var(--el-color-danger), transparent 70%);
     }
 
     &.active:hover {
-      background-color: #ff7875;
-      box-shadow: 0 6px 12px rgba(255, 77, 79, 0.4);
+      background-color: var(--el-color-danger-light-3);
+      box-shadow: 0 6px 12px color-mix(in srgb, var(--el-color-danger), transparent 60%);
     }
 
     &.active:active {
-      background-color: #f5222d;
+      background-color: var(--el-color-danger-dark-2);
     }
   }
 
@@ -1211,8 +1206,8 @@ defineExpose({
 }
 
 .toolbar-item.active .svg-icon svg path {
-  fill: #ffffff !important;
-  stroke: #ffffff !important;
+  fill: var(--el-color-white) !important;
+  stroke: var(--el-color-white) !important;
   transition:
     fill 0.3s ease,
     stroke 0.3s ease;
@@ -1220,24 +1215,24 @@ defineExpose({
 
 /* 确保所有SVG子元素都变成白色 */
 .toolbar-item.active:not(.submenu-item) .svg-icon svg * {
-  fill: #ffffff !important;
-  stroke: #ffffff !important;
+  fill: var(--el-color-white) !important;
+  stroke: var(--el-color-white) !important;
   transition: all 0.3s ease;
 }
 
 /* 修复：子菜单项SVG图标颜色控制 */
 .toolbar-item.active .toolbar-submenu .submenu-item:not(.active) .svg-icon svg * {
-  fill: #666666 !important;
-  stroke: #666666 !important;
+  fill: var(--el-text-color-regular) !important;
+  stroke: var(--el-text-color-regular) !important;
   transition: all 0.3s ease;
 }
 
 /* 激活状态的按钮样式 */
 .toolbar-item.active {
-  background-color: #1890ff;
-  color: #ffffff;
+  background-color: var(--el-color-primary);
+  color: var(--el-color-white);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--el-color-primary), transparent 70%);
   animation: pulse-border 1.5s infinite;
   position: relative;
   z-index: 10;
@@ -1271,10 +1266,10 @@ defineExpose({
 
 /* 激活状态工具的提示框样式 */
 .toolbar-item.active .toolbar-tooltip {
-  background-color: rgba(24, 144, 255, 0.9);
+  background-color: color-mix(in srgb, var(--el-color-primary), transparent 10%);
   font-weight: bold;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary), transparent 70%);
 }
 
 /* 子菜单相关样式 */
@@ -1294,11 +1289,11 @@ defineExpose({
   }
 
   &.active::after {
-    background-color: #fff;
+    background-color: var(--el-color-white);
   }
 
   &:hover::after {
-    background-color: #1890ff;
+    background-color: var(--el-color-primary);
   }
 }
 
@@ -1413,9 +1408,9 @@ defineExpose({
   width: v-bind(buttonSize + "px");
   height: v-bind(buttonSize + "px");
   margin: 0;
-  background-color: #ffffff;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
   cursor: pointer !important;
   transition: all 0.3s;
   user-select: none;
@@ -1424,9 +1419,9 @@ defineExpose({
   pointer-events: auto !important;
 
   &:hover {
-    background-color: #f6f6f6;
+    background-color: var(--el-fill-color-light);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--el-box-shadow);
   }
 
   &:active {
@@ -1435,36 +1430,36 @@ defineExpose({
   }
 
   &.active {
-    background-color: #1890ff;
-    color: #ffffff;
+    background-color: var(--el-color-primary);
+    color: var(--el-color-white);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--el-color-primary), transparent 70%);
     animation: pulse-border 1.5s infinite;
     position: relative;
     z-index: 10;
   }
 
   &.active .svg-icon svg * {
-    fill: #ffffff !important;
-    stroke: #ffffff !important;
+    fill: var(--el-color-white) !important;
+    stroke: var(--el-color-white) !important;
   }
 }
 
 /* 父菜单激活时重置子菜单图标样式 */
 .toolbar-item.active .toolbar-submenu .submenu-item:not(.active) {
   path {
-    fill: #666666 !important;
+    fill: var(--el-text-color-regular) !important;
   }
 
   circle {
-    fill: #666666 !important;
+    fill: var(--el-text-color-regular) !important;
   }
 }
 
 /* 工具提示样式 */
 .toolbar-tooltip {
-  background-color: rgba(0, 0, 0, 0.8);
-  color: #ffffff;
+  background-color: var(--el-overlay-color-dark);
+  color: var(--el-color-white);
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 4px;
@@ -1472,7 +1467,7 @@ defineExpose({
   z-index: 9999;
   /* 增大z-index值，确保比所有其他元素都高 */
   pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--el-box-shadow);
   animation: tooltip-fade-in 0.2s ease;
   transform: translateX(-50%);
   /* 水平居中 */
@@ -1582,7 +1577,7 @@ defineExpose({
 </style>
 <style lang="scss">
 .total-distance {
-  background-color: #91bf8a;
+  background-color: var(--el-color-success);
   border-radius: 4px;
   padding: 8px;
 }
@@ -1590,29 +1585,29 @@ defineExpose({
 /* 修改全局active样式，避免影响子菜单项 */
 .active:not(.submenu-item):not(.color-override) {
   circle {
-    fill: #fff;
+    fill: var(--el-color-white);
   }
 }
 
 /* 单独定义子菜单项激活样式 */
 .submenu-item.active {
   path {
-    fill: #fff !important;
+    fill: var(--el-color-white) !important;
   }
 
   circle {
-    fill: #fff !important;
+    fill: var(--el-color-white) !important;
   }
 }
 
 /* 父菜单激活时重置子菜单图标样式 */
 .toolbar-item.active .toolbar-submenu .submenu-item:not(.active) {
   path {
-    fill: #666666 !important;
+    fill: var(--el-text-color-regular) !important;
   }
 
   circle {
-    fill: #666666 !important;
+    fill: var(--el-text-color-regular) !important;
   }
 }
 </style>

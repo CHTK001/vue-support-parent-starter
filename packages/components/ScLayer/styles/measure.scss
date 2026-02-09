@@ -6,30 +6,30 @@
 // 提示框样式
 .ol-tooltip {
   position: relative;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--el-bg-color-overlay);
   border-radius: $tooltip-border-radius;
-  color: $text-color;
+  color: var(--el-text-color-primary);
   padding: $tooltip-padding;
   font-size: 12px;
   white-space: nowrap;
   pointer-events: none;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--el-box-shadow-light);
   transform: translate3d(0, 0, 0);
   z-index: $popup-z-index;
   max-width: 300px;
   box-sizing: border-box;
-  border: 1px solid $border-color;
+  border: 1px solid var(--el-border-color);
 }
 
 // 测量提示样式
 .ol-tooltip-measure {
   opacity: 1;
-  background-color: rgba($primary-color, 0.9);
-  color: $light-text-color;
+  background-color: var(--el-color-primary);
+  color: var(--el-color-white);
   border: none;
   font-weight: 500;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--el-box-shadow);
   transition: all $transition-time;
   border-radius: 12px;
   padding: 4px 8px;
@@ -43,22 +43,22 @@
     height: 0;
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
-    border-top: 6px solid rgba($primary-color, 0.9);
+    border-top: 6px solid var(--el-color-primary);
     transform: translateX(-50%);
   }
 }
 
 // 静态提示样式（测量完成后）
 .ol-tooltip-static {
-  background-color: rgba(0, 177, 89, 0.9);
-  color: var(--el-text-color-primary);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-color: var(--el-color-success);
+  color: var(--el-color-white);
+  border: 1px solid var(--el-border-color-lighter);
   font-weight: bold;
   font-size: 14px;
   padding: 5px 10px;
   
   &::before {
-    border-top-color: rgba(0, 177, 89, 0.9);
+    border-top-color: var(--el-color-success);
   }
 }
 
@@ -75,31 +75,31 @@
 
 // 中间节点距离标签样式
 .measure-segment-label .segment-distance {
-  background: rgba(24, 144, 255, 0.9);
-  color: var(--el-text-color-primary);
+  background: var(--el-color-primary-light-3);
+  color: var(--el-color-white);
   padding: 3px 6px;
   border-radius: 4px;
   font-size: 12px;
   white-space: nowrap;
   font-weight: normal;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--el-box-shadow-light);
   transform: translateY(0);
   animation: measure-fade-in 0.3s ease-out;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 // 终点总距离标签样式
 .measure-total-label .total-distance-label {
-  background-color: rgba(0, 177, 89, 0.9);
-  color: var(--el-text-color-primary);
+  background-color: var(--el-color-success);
+  color: var(--el-color-white);
   padding: 5px 10px;
   border-radius: 6px;
   font-size: 16px;
   font-weight: bold;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--el-box-shadow);
   white-space: nowrap;
   animation: measure-scale-in 0.3s ease-out;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .total-distance-label::after {
@@ -111,9 +111,9 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background-color: #ffffff;
-  border: 3px solid #1890ff;
-  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.3);
+  background-color: var(--el-color-white);
+  border: 3px solid var(--el-color-primary);
+  box-shadow: 0 0 0 4px var(--el-color-primary-light-5);
   transition: all 0.2s ease;
   pointer-events: all;
   cursor: move;
@@ -123,25 +123,25 @@
 .ol-measure-point-end {
   width: 18px;
   height: 18px;
-  border: 3px solid #00b159;
-  box-shadow: 0 0 0 4px rgba(0, 177, 89, 0.3);
+  border: 3px solid var(--el-color-success);
+  box-shadow: 0 0 0 4px var(--el-color-success-light-5);
 }
 
 // 起点节点样式 - 蓝色
 .ol-measure-point-start {
   width: 18px;
   height: 18px;
-  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.4);
+  box-shadow: 0 0 0 4px var(--el-color-primary-light-5);
 }
 
 .ol-measure-point:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 0 6px rgba(24, 144, 255, 0.4);
+  box-shadow: 0 0 0 6px var(--el-color-primary-light-5);
 }
 
 /* 测量线样式 */
 .ol-measure-line {
-  stroke: #1890ff;
+  stroke: var(--el-color-primary);
   stroke-width: 3px;
   stroke-dasharray: 5, 5;
   stroke-linecap: round;
@@ -195,8 +195,8 @@
   right: -8px;
   width: 16px;
   height: 16px;
-  background-color: $error-color;
-  color: $light-text-color;
+  background-color: var(--el-color-danger);
+  color: var(--el-color-white);
   border-radius: 50%;
   display: flex;
   align-items: center;

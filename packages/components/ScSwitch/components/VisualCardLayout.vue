@@ -215,6 +215,7 @@ const toggleSwitch = () => {
   align-items: center;
   justify-content: center;
   padding: 16px 12px;
+  height: 100%;
   background: var(--inactive-color);
   border: 2px solid transparent;
   border-radius: 12px;
@@ -231,14 +232,19 @@ const toggleSwitch = () => {
   &.is-active {
     background: var(--active-color);
     border-color: var(--active-border-color);
+    box-shadow: 0 8px 20px -4px rgba(var(--el-color-primary-rgb), 0.2), 0 4px 8px -2px rgba(var(--el-color-primary-rgb), 0.1);
+    transform: translateY(-2px);
 
     .sc-switch-visual-card__icon {
       color: var(--el-color-primary);
       background: rgba(var(--el-color-primary-rgb), 0.15);
+      box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
     }
 
     .sc-switch-visual-card__label {
       color: var(--el-color-primary);
+      font-weight: 600;
+      text-shadow: 0 0 1px rgba(var(--el-color-primary-rgb), 0.1);
     }
   }
 
