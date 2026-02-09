@@ -505,6 +505,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/mixins.scss" as *;
 @use "@/styles/variables.scss" as *;
 
 /* 对话框样式 */

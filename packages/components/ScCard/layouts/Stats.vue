@@ -75,7 +75,7 @@ export default defineComponent({
      * 主题色
      */
     theme: {
-      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info" | "blue" | "green" | "purple" | "orange">,
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
       default: "primary"
     },
     /**
@@ -115,73 +115,48 @@ export default defineComponent({
 
   // 主题色定义
   &.theme--default {
-    background: var(--el-bg-color);
-    border: 1px solid var(--el-border-color-lighter);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    background: var(--stitch-lay-bg-panel);
+    border: 1px solid var(--stitch-lay-border);
+    box-shadow: var(--stitch-lay-shadow-sm);
 
     .sc-card-stats__icon {
-      background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-7) 100%);
-      color: var(--el-color-primary);
-      box-shadow: 0 4px 12px var(--el-color-primary-light-7);
+      background: var(--stitch-lay-bg-group);
+      color: var(--stitch-lay-text-main);
+      box-shadow: var(--stitch-lay-shadow-sm);
     }
 
     .sc-card-stats__value {
-      color: var(--el-text-color-primary);
+      color: var(--stitch-lay-text-main);
       text-shadow: none;
     }
 
     .sc-card-stats__label {
-      color: var(--el-text-color-secondary);
+      color: var(--stitch-lay-text-sub);
     }
 
     &.is-hoverable:hover {
-      border-color: var(--el-color-primary-light-5);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-color: var(--stitch-lay-border-hover);
+      box-shadow: var(--stitch-lay-shadow-md);
       transform: translateY(-4px);
 
       .sc-card-stats__icon {
         transform: scale(1.08);
-        box-shadow: 0 6px 16px var(--el-color-primary-light-5);
+        box-shadow: var(--stitch-lay-shadow-md);
       }
     }
   }
 
-  &.theme--blue {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
-    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
+  // 主题变体混合宏
+  @mixin theme-variant($type) {
+    background: linear-gradient(135deg, var(--el-color-#{$type}) 0%, var(--el-color-#{$type}-light-3) 50%, var(--el-color-#{$type}-light-5) 100%);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--el-color-#{$type}), transparent 75%);
   }
-  &.theme--green {
-    background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
-    box-shadow: 0 4px 20px rgba(5, 150, 105, 0.25);
-  }
-  &.theme--purple {
-    background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #a78bfa 100%);
-    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.25);
-  }
-  &.theme--orange {
-    background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
-    box-shadow: 0 4px 20px rgba(234, 88, 12, 0.25);
-  }
-  &.theme--primary {
-    background: linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #a5b4fc 100%);
-    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
-  }
-  &.theme--success {
-    background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
-  }
-  &.theme--warning {
-    background: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%);
-    box-shadow: 0 4px 20px rgba(217, 119, 6, 0.25);
-  }
-  &.theme--danger {
-    background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
-    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.25);
-  }
-  &.theme--info {
-    background: linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #22d3ee 100%);
-    box-shadow: 0 4px 20px rgba(8, 145, 178, 0.25);
-  }
+
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 
   &.is-hoverable:hover {
     transform: translateY(-6px) scale(1.02);

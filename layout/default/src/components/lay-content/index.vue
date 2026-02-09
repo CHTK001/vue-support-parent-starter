@@ -77,7 +77,7 @@ const layoutRadius = computed(() => {
 });
 
 const hideFooter = ref($storage?.configure.hideFooter ?? false);
-const menuTransition = ref($storage?.configure?.menuTransition ?? false);
+const menuTransition = ref($storage?.configure?.MenuAnimation ?? true);
 const transitionType = ref($storage?.configure?.transitionType ?? 'fade-slide');
 const confirmOnLeave = ref($storage?.configure?.confirmOnLeave ?? false);
 
@@ -89,7 +89,7 @@ if (confirmOnLeave.value) {
 // 使用 useLayoutEvents 统一管理所有事件，自动在组件卸载时注销
 useLayoutEvents([
   { name: 'keepAliveChange', handler: (v: boolean) => { isKeepAlive.value = v; } },
-  { name: 'menuTransitionChange', handler: (v: boolean) => { menuTransition.value = v; } },
+  { name: 'menuAnimationChange', handler: (v: boolean) => { menuTransition.value = v; } },
   { name: 'transitionTypeChange', handler: (v: string) => { transitionType.value = v; } },
   { name: 'hideFooterChange', handler: (v: boolean) => { hideFooter.value = v; } },
   {
@@ -141,7 +141,7 @@ const getSectionStyle = computed(() => {
   return [
     props.fixedHeader
       ? ""
-      : `padding-top: 0;min-height: calc(100vh - ${headerHeight.value}px);`,
+      : `padding-top: 0;min-height: calc(100vh - ${headerHeight.value}px);height: calc(100vh - ${headerHeight.value}px);`,
   ];
 });
 
@@ -293,89 +293,59 @@ onBeforeUnmount(() => {
               <el-backtop
                 v-if="cardBody"
                 :title="t('buttons.pureBackTop')"
-                target=".content-area .sidebar-custom"
+                target=".content-area .sidebar-custom .el-scrollbar__wrap"
               />
               <el-card
-                v-if="cardBody"
                 class="layout sidebar-custom thin-scroller"
-                shadow="never"
+                :class="{ 'no-card-mode': !cardBody }"
+                :shadow="cardBody ? 'always' : 'never'"
+                :body-style="{ padding: '0', height: '100%' }"
                 :style="{
                   height: '100%',
                   'border-radius': layoutRadius + 'px  !important'
                 }"
               >
-                <ContentRenderer
-                  :comp="Comp"
-                  :route="route"
-                  :is-keep-alive="isKeepAlive"
-                  :cache-page-list="cachePageList"
-                  :frame-info="frameInfo"
-                  :menu-transition="menuTransition"
-                  :transition-type="transitionType"
-                />
+                <el-scrollbar class="card-scrollbar">
+                  <div style="padding: 20px; min-height: 100%; box-sizing: border-box;">
+                    <ContentRenderer
+                      :comp="Comp"
+                      :route="route"
+                      :is-keep-alive="isKeepAlive"
+                      :cache-page-list="cachePageList"
+                      :frame-info="frameInfo"
+                      :menu-transition="menuTransition"
+                      :transition-type="transitionType"
+                    />
+                  </div>
+                </el-scrollbar>
               </el-card>
-              <el-scrollbar
-                v-else
-                class="content-scrollbar no-card-mode"
-                :style="{
-                  height: '100%',
-                  'border-radius': layoutRadius + 'px !important',
-                }"
-              >
-                <ContentRenderer
-                  :comp="Comp"
-                  :route="route"
-                  :is-keep-alive="isKeepAlive"
-                  :cache-page-list="cachePageList"
-                  :frame-info="frameInfo"
-                  :layout-radius="layoutRadius"
-                  :menu-transition="menuTransition"
-                  :transition-type="transitionType"
-                />
-              </el-scrollbar>
             </div>
             <div v-else class="grow bg-layout">
               <el-card
-                v-if="cardBody"
                 class="h-full layout sidebar-custom"
-                shadow="never"
+                :class="{ 'no-card-mode': !cardBody }"
+                :shadow="cardBody ? 'always' : 'never'"
+                :body-style="{ padding: '0', height: '100%' }"
                 :style="{
                   height: 'calc(100% - ' + contentMargin * 2 + 'px)',
                   'border-radius': layoutRadius + 'px  !important',
                   margin: contentMargin + 'px'
                 }"
               >
-                <ContentRenderer
-                  :comp="Comp"
-                  :route="route"
-                  :is-keep-alive="isKeepAlive"
-                  :cache-page-list="cachePageList"
-                  :frame-info="frameInfo"
-                  :menu-transition="menuTransition"
-                  :transition-type="transitionType"
-                />
+                <el-scrollbar class="card-scrollbar">
+                  <div style="padding: 20px; min-height: 100%; box-sizing: border-box;">
+                    <ContentRenderer
+                      :comp="Comp"
+                      :route="route"
+                      :is-keep-alive="isKeepAlive"
+                      :cache-page-list="cachePageList"
+                      :frame-info="frameInfo"
+                      :menu-transition="menuTransition"
+                      :transition-type="transitionType"
+                    />
+                  </div>
+                </el-scrollbar>
               </el-card>
-              <div
-                v-else
-                class="h-full layout sidebar-custom no-card-mode"
-                shadow="never"
-                :style="{
-                  height: 'calc(100% - ' + contentMargin * 2 + 'px)',
-                  margin: contentMargin + 'px',
-                  'border-radius': layoutRadius + 'px  !important'
-                }"
-              >
-                <ContentRenderer
-                  :comp="Comp"
-                  :route="route"
-                  :is-keep-alive="isKeepAlive"
-                  :cache-page-list="cachePageList"
-                  :frame-info="frameInfo"
-                  :layout-radius="layoutRadius"
-                  :menu-transition="menuTransition"
-                  :transition-type="transitionType"
-                />
-              </div>
             </div>
           </template>
         </LayFrame>
@@ -427,11 +397,12 @@ onBeforeUnmount(() => {
     overflow: hidden;
     height: 100%;
     padding: 0;
+    display: flex;
+    flex-direction: column;
   }
   
   // 内部内容滚动
   :deep(.main-content) {
-    overflow: auto;
     height: 100%;
   }
 }
@@ -455,6 +426,7 @@ onBeforeUnmount(() => {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  position: relative;
 
   :deep(.page-container),
   :deep(.main-content) {
@@ -465,6 +437,7 @@ onBeforeUnmount(() => {
   :deep(.main-content) {
     overflow: visible !important;
     height: 100% !important;
+    flex: 1;
   }
 
   :deep(.thin-scroller) {
@@ -629,6 +602,13 @@ onBeforeUnmount(() => {
 
   :deep(.el-skeleton) {
     padding: 20px;
+  }
+}
+
+.card-scrollbar {
+  height: 100%;
+  :deep(.el-scrollbar__view) {
+    height: 100%;
   }
 }
 </style>

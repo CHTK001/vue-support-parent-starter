@@ -2,13 +2,14 @@
 import { emitter, usePermissionStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { indexedDBProxy, localStorageProxy, useDefer } from "@repo/utils";
 import type { StorageConfigs } from "@repo/config";
-import { responsiveStorageNameSpace } from "@repo/config";
+import { responsiveStorageNameSpace, getConfig } from "@repo/config";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNav } from "../../../hooks/useNav";
 import type { MenuItem } from "../../../types/menu";
 import LaySidebarLeftCollapse from "./SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./SidebarLogo.vue";
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 
 // Props
 interface Props {
@@ -51,6 +52,11 @@ const permissionStore = usePermissionStoreHook();
 
 // 悬浮导航的收缩状态
 const isHoverCollapsed = ref(false);
+
+const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
+const forceNewMenu = ref(false);
+const menuAnimation = ref(getConfig().MenuAnimation ?? false);
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
 
 // 悬浮导航专用的切换函数
 function toggleHoverSideBar() {
@@ -577,6 +583,19 @@ watch(
 );
 
 onMounted(async () => {
+  emitter.on("showNewMenuChange", (val) => {
+    showNewMenu.value = val;
+  });
+  emitter.on("forceNewMenuChange", (val) => {
+    forceNewMenu.value = val;
+  });
+  emitter.on("menuAnimationChange", (val) => {
+    menuAnimation.value = val;
+  });
+  emitter.on("newMenuAnimationChange", (val) => {
+    newMenuAnimation.value = val;
+  });
+
   // 加载收藏菜单
   await loadFavorites();
 
@@ -614,7 +633,7 @@ const defer = useDefer(firstLevelMenus.value.length);
           v-for="(menu, index) in firstLevelMenus"
           :key="menu.path"
           class="first-level-menu-item"
-          :class="{ 'is-active': isMenuActive(menu) }"
+          :class="{ 'is-active': isMenuActive(menu), 'menu-animation': menuAnimation }"
           @mouseenter="handleMenuHover(menu, $event)"
           @mouseleave="handleMenuLeave"
           @click="handleMenuClick(menu)"
@@ -629,6 +648,14 @@ const defer = useDefer(firstLevelMenus.value.length);
             <span v-if="!isHoverCollapsed" class="menu-title">{{
               menu.meta?.title
             }}</span>
+            <ReMenuNewBadge
+              v-if="showNewMenu && !isHoverCollapsed"
+              :createTime="menu.meta?.createTime"
+              :type="menu.meta?.badgeType || 'primary'"
+              :customText="menu.meta?.badgeText"
+              :forceShow="forceNewMenu || menu.meta?.permanentNew"
+              :animation="newMenuAnimation"
+            />
             <!-- 收缩状态下只显示图标 -->
           </div>
         </div>
@@ -727,10 +754,18 @@ const defer = useDefer(firstLevelMenus.value.length);
                           <router-link
                             :to="thirdMenu.path"
                             class="menu-item"
-                            :class="{ 'is-active': defaultActive === thirdMenu.path }"
+                            :class="{ 'is-active': defaultActive === thirdMenu.path, 'menu-animation': menuAnimation }"
                             @click="handleSubMenuClick(thirdMenu, $event)"
                           >
-                            {{ thirdMenu.meta?.title }}
+                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
+                            <ReMenuNewBadge
+                              v-if="showNewMenu"
+                              :createTime="thirdMenu.meta?.createTime"
+                              :type="thirdMenu.meta?.badgeType || 'primary'"
+                              :customText="thirdMenu.meta?.badgeText"
+                              :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
+                              :animation="newMenuAnimation"
+                            />
                           </router-link>
                         </div>
                       </div>
@@ -739,10 +774,18 @@ const defer = useDefer(firstLevelMenus.value.length);
                       <router-link
                         :to="groupInfo.menu.path"
                         class="menu-item"
-                        :class="{ 'is-active': defaultActive === groupInfo.menu.path }"
+                        :class="{ 'is-active': defaultActive === groupInfo.menu.path, 'menu-animation': menuAnimation }"
                         @click="handleSubMenuClick(groupInfo.menu, $event)"
                       >
-                        {{ groupInfo.menu.meta?.title }}
+                        <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ groupInfo.menu.meta?.title }}</span>
+                        <ReMenuNewBadge
+                          v-if="showNewMenu"
+                          :createTime="groupInfo.menu.meta?.createTime"
+                          :type="groupInfo.menu.meta?.badgeType || 'primary'"
+                          :customText="groupInfo.menu.meta?.badgeText"
+                          :forceShow="forceNewMenu || groupInfo.menu.meta?.permanentNew"
+                          :animation="newMenuAnimation"
+                        />
                       </router-link>
                     </div>
                   </template>
@@ -764,10 +807,18 @@ const defer = useDefer(firstLevelMenus.value.length);
                           <router-link
                             :to="thirdMenu.path"
                             class="menu-item"
-                            :class="{ 'is-active': defaultActive === thirdMenu.path }"
+                            :class="{ 'is-active': defaultActive === thirdMenu.path, 'menu-animation': menuAnimation }"
                             @click="handleSubMenuClick(thirdMenu, $event)"
                           >
-                            {{ thirdMenu.meta?.title }}
+                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
+                            <ReMenuNewBadge
+                              v-if="showNewMenu"
+                              :createTime="thirdMenu.meta?.createTime"
+                              :type="thirdMenu.meta?.badgeType || 'primary'"
+                              :customText="thirdMenu.meta?.badgeText"
+                              :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
+                              :animation="newMenuAnimation"
+                            />
                           </router-link>
                         </div>
                       </div>
@@ -793,10 +844,18 @@ const defer = useDefer(firstLevelMenus.value.length);
                         <router-link
                           :to="thirdMenu.path"
                           class="menu-item"
-                          :class="{ 'is-active': defaultActive === thirdMenu.path }"
+                          :class="{ 'is-active': defaultActive === thirdMenu.path, 'menu-animation': menuAnimation }"
                           @click="handleSubMenuClick(thirdMenu, $event)"
                         >
-                          {{ thirdMenu.meta?.title }}
+                          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
+                          <ReMenuNewBadge
+                            v-if="showNewMenu"
+                            :createTime="thirdMenu.meta?.createTime"
+                            :type="thirdMenu.meta?.badgeType || 'primary'"
+                            :customText="thirdMenu.meta?.badgeText"
+                            :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
+                            :animation="newMenuAnimation"
+                          />
                         </router-link>
                         <button
                           v-if="hoveredMenuItem?.path === thirdMenu.path"
@@ -815,10 +874,18 @@ const defer = useDefer(firstLevelMenus.value.length);
                     <router-link
                       :to="subMenu.path"
                       class="menu-item"
-                      :class="{ 'is-active': defaultActive === subMenu.path }"
+                      :class="{ 'is-active': defaultActive === subMenu.path, 'menu-animation': menuAnimation }"
                       @click="handleSubMenuClick(subMenu, $event)"
                     >
-                      {{ subMenu.meta?.title }}
+                      <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ subMenu.meta?.title }}</span>
+                      <ReMenuNewBadge
+                        v-if="showNewMenu"
+                        :createTime="subMenu.meta?.createTime"
+                        :type="subMenu.meta?.badgeType || 'primary'"
+                        :customText="subMenu.meta?.badgeText"
+                        :forceShow="forceNewMenu || subMenu.meta?.permanentNew"
+                        :animation="newMenuAnimation"
+                      />
                     </router-link>
                     <button
                       v-if="hoveredMenuItem?.path === subMenu.path"
@@ -859,15 +926,24 @@ const defer = useDefer(firstLevelMenus.value.length);
                         @mouseleave="handleMenuItemLeave"
                       >
                         <router-link
-                          :to="thirdMenu.path"
-                          class="menu-item"
-                          :class="{
-                            'is-active': defaultActive === thirdMenu.path,
-                          }"
-                          @click="handleSubMenuClick(thirdMenu, $event)"
-                        >
-                          {{ thirdMenu.meta?.title }}
-                        </router-link>
+                            :to="thirdMenu.path"
+                            class="menu-item"
+                            :class="{
+                              'is-active': defaultActive === thirdMenu.path,
+                              'menu-animation': menuAnimation
+                            }"
+                            @click="handleSubMenuClick(thirdMenu, $event)"
+                          >
+                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
+                            <ReMenuNewBadge
+                              v-if="showNewMenu"
+                              :createTime="thirdMenu.meta?.createTime"
+                              :type="thirdMenu.meta?.badgeType || 'primary'"
+                              :customText="thirdMenu.meta?.badgeText"
+                              :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
+                              :animation="newMenuAnimation"
+                            />
+                          </router-link>
                         <!-- 收藏按钮 -->
                         <button
                           v-if="hoveredMenuItem?.path === thirdMenu.path"
@@ -921,10 +997,19 @@ const defer = useDefer(firstLevelMenus.value.length);
                           class="menu-item"
                           :class="{
                             'is-active': defaultActive === subMenu.path,
+                            'menu-animation': menuAnimation
                           }"
                           @click="handleSubMenuClick(subMenu, $event)"
                         >
-                          {{ subMenu.meta?.title }}
+                          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ subMenu.meta?.title }}</span>
+                          <ReMenuNewBadge
+                            v-if="showNewMenu"
+                            :createTime="subMenu.meta?.createTime"
+                            :type="subMenu.meta?.badgeType || 'primary'"
+                            :customText="subMenu.meta?.badgeText"
+                            :forceShow="forceNewMenu || subMenu.meta?.permanentNew"
+                            :animation="newMenuAnimation"
+                          />
                         </router-link>
                         <!-- 收藏按钮 -->
                         <button
@@ -964,6 +1049,20 @@ const defer = useDefer(firstLevelMenus.value.length);
 </template>
 
 <style lang="scss" scoped>
+// 菜单动画
+.menu-animation {
+  &.is-active .menu-content,
+  &.is-active .menu-item {
+    animation: menu-bounce 0.5s;
+  }
+}
+
+@keyframes menu-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
 .sidebar-hover-container {
   position: relative;
   height: 100%;

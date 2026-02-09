@@ -49,22 +49,26 @@ const props = defineProps({
   
   :deep(.sidebar-menu-item),
   :deep(.el-sub-menu__title) {
-    color: var(--item-text-color);
-    background-color: transparent;
+    color: var(--item-text-color) !important;
+    background-color: transparent !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin: 4px 8px;
     border-radius: var(--item-border-radius);
     height: 48px;
     line-height: 48px;
     
-    .el-text {
-      color: inherit;
+    .el-text,
+    span,
+    div,
+    .el-icon,
+    svg {
+      color: inherit !important;
     }
 
     // 统一 hover 状态
     &:hover,
     &:focus {
-      background-color: var(--item-hover-bg);
+      background-color: var(--item-hover-bg) !important;
       transform: translateX(4px);
     }
     

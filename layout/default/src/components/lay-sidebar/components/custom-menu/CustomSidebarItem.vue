@@ -3,11 +3,13 @@
  * 自定义横向导航菜单项
  * 使用 CustomMenuItem 和 CustomSubMenu 替代 el-menu-item 和 el-sub-menu
  */
-import { computed, toRaw, inject, type Component } from 'vue';
+import { computed, toRaw, inject, type Component, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useRenderIcon } from '@repo/components/ReIcon/src/hooks';
-import { transformI18n, resolvePath as configResolvePath } from '@repo/config';
+import { transformI18n, resolvePath as configResolvePath, getConfig } from '@repo/config';
 import type { MenuType } from '@repo/core';
+import { emitter } from '@repo/core';
+import { ReMenuNewBadge } from '@repo/components/MenuNewBadge';
 import CustomMenuItem from './CustomMenuItem.vue';
 import CustomSubMenu from './CustomSubMenu.vue';
 
@@ -19,6 +21,26 @@ const props = defineProps<{
 }>();
 
 const route = useRoute();
+
+const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
+const forceNewMenu = ref(false);
+const menuAnimation = ref(getConfig().MenuAnimation ?? false);
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
+
+onMounted(() => {
+  emitter.on("showNewMenuChange", (val) => {
+    showNewMenu.value = val;
+  });
+  emitter.on("forceNewMenuChange", (val) => {
+    forceNewMenu.value = val;
+  });
+  emitter.on("menuAnimationChange", (val) => {
+    menuAnimation.value = val;
+  });
+  emitter.on("newMenuAnimationChange", (val) => {
+    newMenuAnimation.value = val;
+  });
+});
 
 // 注入主题化组件（用于递归）
 const ThemeSidebarItem = inject<Component>('themeSidebarItem');
@@ -83,12 +105,21 @@ const menuPath = computed(() => {
     v-if="showAsMenuItem" 
     :index="menuPath"
     class="custom-sidebar-item"
+    :class="{ 'menu-animation': menuAnimation }"
   >
     <div class="menu-item-content">
       <span class="menu-icon">
         <component :is="useRenderIcon(menuIcon)" />
       </span>
       <span class="menu-title">{{ menuTitle }}</span>
+      <ReMenuNewBadge
+        v-if="showNewMenu"
+        :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime"
+        :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'"
+        :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText"
+        :forceShow="forceNewMenu || onlyOneChild?.meta?.permanentNew || item?.meta?.permanentNew"
+        :animation="newMenuAnimation"
+      />
     </div>
   </CustomMenuItem>
   
@@ -98,7 +129,8 @@ const menuPath = computed(() => {
     :index="resolvePath(item.path)"
     :popper-class="popperClass"
     popper-direction="bottom"
-    class="custom-sidebar-item"
+    class="custom-sidebar-sub-menu"
+    :class="{ 'menu-animation': menuAnimation }"
   >
     <template #title>
       <div class="menu-item-content">
@@ -106,6 +138,14 @@ const menuPath = computed(() => {
           <component :is="useRenderIcon(menuIcon)" />
         </span>
         <span class="menu-title">{{ menuTitle }}</span>
+        <ReMenuNewBadge
+          v-if="showNewMenu"
+          :createTime="item?.meta?.createTime"
+          :type="item?.meta?.badgeType || 'primary'"
+          :customText="item?.meta?.badgeText"
+          :forceShow="forceNewMenu || item?.meta?.permanentNew"
+          :animation="newMenuAnimation"
+        />
       </div>
     </template>
     
@@ -124,12 +164,10 @@ const menuPath = computed(() => {
 </template>
 
 <style lang="scss" scoped>
-.custom-sidebar-item {
-  .menu-item-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+.menu-item-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
   
   .menu-icon {
     display: flex;
@@ -137,17 +175,39 @@ const menuPath = computed(() => {
     justify-content: center;
     width: 18px;
     height: 18px;
-    flex-shrink: 0;
-    
-    :deep(svg) {
-      width: 18px;
-      height: 18px;
-    }
+    margin-right: 5px;
   }
   
   .menu-title {
-    font-size: 14px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+// 菜单动画
+.menu-animation {
+  :deep(.custom-menu-item-content),
+  :deep(.custom-sub-menu-title) {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: translateX(4px);
+    }
+  }
+  
+  &.is-active {
+    :deep(.custom-menu-item-content),
+    :deep(.custom-sub-menu-title) {
+      animation: menu-bounce 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+}
+
+@keyframes menu-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
 }
 </style>

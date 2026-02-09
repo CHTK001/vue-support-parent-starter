@@ -403,7 +403,7 @@ defineExpose({
     :deep(.el-input__wrapper) {
       box-shadow: 0 4px 16px rgba(64, 158, 255, 0.2);
       border-color: var(--el-color-primary);
-      background: rgba(255, 255, 255, 0.95);
+      background: var(--el-bg-color);
     }
   }
 

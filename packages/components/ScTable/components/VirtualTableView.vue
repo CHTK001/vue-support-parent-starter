@@ -181,6 +181,30 @@ const _height = computed(() => {
     return `${props.height}px`;
   }
 
+  // 如果是百分比字符串
+  if (typeof props.height === "string" && props.height.endsWith("%")) {
+    const percentage = parseInt(props.height) / 100;
+    let pxHeight = 0;
+    
+    // 尝试获取父元素高度
+    if (tableContainer.value && tableContainer.value.parentElement) {
+      const parentHeight = tableContainer.value.parentElement.clientHeight;
+      if (parentHeight > 0) {
+        pxHeight = Math.floor(parentHeight * percentage);
+      }
+    }
+    
+    // 降级方案：使用视窗高度
+    if (pxHeight === 0) {
+       const viewportHeight = (window.innerHeight || document.documentElement.clientHeight);
+       pxHeight = Math.floor(viewportHeight * percentage);
+    }
+    
+    //@ts-ignore
+    tableHeight.value = pxHeight;
+    return props.height; 
+  }
+
   // 如果是字符串（如'500px'），直接使用
   //@ts-ignore
   tableHeight.value = parseInt(props.height);
@@ -233,7 +257,7 @@ const getCellProps = ({ columnIndex, rowIndex }) => {
   return {
     class: "virtual-table-cell",
     style: {
-      borderBottom: props.config.border ? "1px solid var(--el-border-color-lighter)" : "none",
+      borderBottom: props.config.border ? "1px solid var(--stitch-lay-border)" : "none",
       padding: currentSize.value === "large" ? "12px 8px" : currentSize.value === "small" ? "4px 8px" : "8px"
     }
   };
@@ -243,7 +267,7 @@ const getHeaderCellProps = ({ columnIndex }) => {
   return {
     class: "virtual-table-header-cell",
     style: {
-      borderBottom: "1px solid var(--el-border-color-lighter)",
+      borderBottom: "1px solid var(--stitch-lay-border)",
       padding: currentSize.value === "large" ? "12px 8px" : currentSize.value === "small" ? "4px 8px" : "8px"
     }
   };
@@ -477,25 +501,25 @@ defineExpose({
 
 .virtual-table {
   :deep(.el-table-v2__header-row) {
-    background: rgba(var(--el-color-primary-rgb), 0.02);
+    background: var(--stitch-lay-bg-group);
     font-weight: 600;
-    color: var(--el-text-color-primary);
+    color: var(--stitch-lay-text-main);
 
     .el-table-v2__header-cell.sortable:hover {
-      background: rgba(var(--el-color-primary-rgb), 0.04);
+      background: var(--stitch-lay-bg-hover);
     }
   }
 
   :deep(.el-table-v2__row) {
-    transition: all 0.3s;
+    transition: var(--stitch-lay-transition-fast);
 
     &:hover {
-      background: rgba(var(--el-color-primary-rgb), 0.04);
+      background: var(--stitch-lay-bg-hover);
       transform: translateY(-1px);
     }
 
     &.is-striped {
-      background-color: var(--el-fill-color-lighter);
+      background-color: var(--stitch-lay-bg-group);
     }
   }
 
@@ -543,11 +567,11 @@ defineExpose({
 }
 
 .virtual-table-cell {
-  transition: all 0.3s;
+  transition: var(--stitch-lay-transition-fast);
 }
 
 .virtual-table-header-cell {
-  background: rgba(var(--el-color-primary-rgb), 0.02);
+  background: var(--stitch-lay-bg-group);
 }
 
 // 基于size的行高样式

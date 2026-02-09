@@ -95,13 +95,13 @@ export default {
 }
 
 .setting-column__title {
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--stitch-lay-border);
   padding-bottom: 15px;
 }
 .setting-column__title span {
   display: inline-block;
   font-weight: bold;
-  color: var(--el-text-color);
+  color: var(--stitch-lay-text-main);
   font-size: 12px;
 }
 .setting-column__title span.move_b {
@@ -168,15 +168,16 @@ export default {
 }
 
 .setting-column__bottom {
-  border-top: 1px solid var(--el-border-color-lighter);
+  border-top: 1px solid var(--stitch-lay-border);
   padding-top: 15px;
   text-align: right;
 }
 
+/* Removed dark mode overrides as stitch-layout-tokens handles it */
 .dark .setting-column__title {
-  border-color: var(--el-border-color-light);
+  border-color: var(--stitch-lay-border);
 }
 .dark .setting-column__bottom {
-  border-color: var(--el-border-color-light);
+  border-color: var(--stitch-lay-border);
 }
 </style>

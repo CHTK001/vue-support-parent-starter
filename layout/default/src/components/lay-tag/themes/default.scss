@@ -48,6 +48,7 @@
       display: flex;
       align-items: center;
       transition: transform 0.3s ease;
+      flex-shrink: 0;
     }
   }
 
@@ -94,6 +95,7 @@
     position: relative;
     display: inline-flex;
     align-items: center;
+    flex-shrink: 0;
     height: 30px;
     padding: 0 12px;
     margin: 0 3px;

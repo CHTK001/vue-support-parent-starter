@@ -567,6 +567,10 @@ export default {
 
 <style scoped>
 .scTable {
+  background: var(--stitch-lay-bg-panel);
+  border: 1px solid var(--stitch-lay-border);
+  border-radius: var(--stitch-lay-radius-md);
+  overflow: hidden;
 }
 
 .scTable-table {
@@ -579,6 +583,8 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
+  border-top: 1px solid var(--stitch-lay-border);
+  background: var(--stitch-lay-bg-panel);
 }
 
 .scTable-do {
@@ -591,12 +597,12 @@ export default {
 
 .scTable:deep(.el-table__body-wrapper) .el-scrollbar__bar.is-horizontal {
   height: 12px;
-  border-radius: 12px;
+  border-radius: var(--stitch-lay-radius-md);
 }
 
 .scTable:deep(.el-table__body-wrapper) .el-scrollbar__bar.is-vertical {
   width: 12px;
-  border-radius: 12px;
+  border-radius: var(--stitch-lay-radius-md);
 }
 .clampSize {
   width: 100%;

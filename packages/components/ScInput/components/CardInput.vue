@@ -18,9 +18,7 @@
     >
       <div class="sc-card-input__content">
         <div v-if="option.icon" class="sc-card-input__icon">
-          <el-icon>
-            <component :is="option.icon" />
-          </el-icon>
+          <IconifyIconOnline :icon="option.icon" />
         </div>
         <div class="sc-card-input__label">{{ option.label }}</div>
       </div>
@@ -31,6 +29,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { PropType } from 'vue'
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 export interface CardOption {
   label: string

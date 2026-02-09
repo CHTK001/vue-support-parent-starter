@@ -31,7 +31,10 @@
         v-for="(row, index) in currentDataList"
         :key="rowKey ? row[rowKey] : index"
         class="list-item"
-        :class="{ 'is-selected': isSelected(row), 'has-index': showIndex }"
+        :class="[
+          { 'is-selected': isSelected(row), 'has-index': showIndex },
+          `theme--${theme}`
+        ]"
         @click="onRowClick(row)"
         @contextmenu.prevent="handleContextMenu($event, row)"
       >
@@ -99,6 +102,11 @@ const props = defineProps({
   pageSize: {
     type: Number,
     default: 10
+  },
+  theme: {
+    type: String,
+    default: "default",
+    validator: (val) => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
   },
   config: {
     type: Object,
@@ -492,9 +500,9 @@ defineExpose({
     display: flex;
     align-items: center;
     border-radius: 12px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: var(--el-bg-color);
-    border: 2px solid var(--el-border-color-lighter);
+    transition: var(--stitch-lay-transition);
+    background: var(--stitch-lay-bg-panel);
+    border: 2px solid var(--stitch-lay-border);
     position: relative;
     overflow: hidden;
 
@@ -507,15 +515,15 @@ defineExpose({
       transform: translateY(-50%);
       width: 4px;
       height: 0;
-      background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(180deg, var(--stitch-lay-primary), var(--stitch-lay-primary-light));
       border-radius: 0 4px 4px 0;
       transition: height 0.3s ease;
     }
 
     &:hover {
       transform: translateX(4px);
-      border-color: var(--el-color-primary-light-5);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      border-color: var(--stitch-lay-primary-light);
+      box-shadow: var(--stitch-lay-shadow-md);
 
       &::before {
         height: 40%;
@@ -523,14 +531,50 @@ defineExpose({
     }
 
     &.is-selected {
-      border-color: var(--el-color-primary);
-      background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
-      box-shadow: 0 4px 16px var(--el-color-primary-light-7);
+      border-color: var(--stitch-lay-primary);
+      background: linear-gradient(135deg, var(--stitch-lay-primary-alpha) 0%, var(--stitch-lay-bg-panel) 100%);
+      box-shadow: var(--stitch-lay-shadow-glow);
 
       &::before {
         height: 60%;
       }
     }
+
+    // 主题变体混合宏
+    @mixin theme-variant($type) {
+      &::before {
+        background: linear-gradient(180deg, var(--el-color-#{$type}), var(--el-color-#{$type}-light-3));
+      }
+
+      &:hover {
+        border-color: var(--el-color-#{$type}-light-5);
+      }
+
+      &.is-selected {
+        border-color: var(--el-color-#{$type});
+        background: linear-gradient(135deg, var(--el-color-#{$type}-light-9) 0%, var(--el-bg-color) 100%);
+        box-shadow: 0 4px 16px var(--el-color-#{$type}-light-7);
+      }
+
+      .list-item-index .index-number {
+        background: linear-gradient(135deg, var(--el-color-#{$type}), var(--el-color-#{$type}-light-3));
+        box-shadow: 0 2px 6px var(--el-color-#{$type}-light-5);
+      }
+
+      .list-item-selection :deep(.el-checkbox) {
+        &.is-checked .el-checkbox__inner {
+          background: linear-gradient(135deg, var(--el-color-#{$type}), var(--el-color-#{$type}-light-3));
+          border-color: var(--el-color-#{$type});
+          box-shadow: 0 2px 8px var(--el-color-#{$type}-light-5);
+        }
+      }
+    }
+
+    &.theme--primary { @include theme-variant('primary'); }
+    &.theme--success { @include theme-variant('success'); }
+    &.theme--warning { @include theme-variant('warning'); }
+    &.theme--danger { @include theme-variant('danger'); }
+    &.theme--info { @include theme-variant('info'); }
 
     .list-item-index {
       display: flex;
@@ -547,11 +591,11 @@ defineExpose({
         width: 28px;
         height: 28px;
         border-radius: 8px;
-        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+        background: linear-gradient(135deg, var(--stitch-lay-primary), var(--stitch-lay-primary-light));
         color: #fff;
         font-size: 12px;
         font-weight: 600;
-        box-shadow: 0 2px 6px var(--el-color-primary-light-5);
+        box-shadow: var(--stitch-lay-shadow-sm);
       }
     }
 
@@ -572,7 +616,7 @@ defineExpose({
           border-radius: 6px;
           width: 20px;
           height: 20px;
-          transition: all 0.25s ease;
+          transition: var(--stitch-lay-transition-fast);
 
           &::after {
             width: 5px;
@@ -583,9 +627,9 @@ defineExpose({
         }
 
         &.is-checked .el-checkbox__inner {
-          background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-          border-color: var(--el-color-primary);
-          box-shadow: 0 2px 8px var(--el-color-primary-light-5);
+          background: linear-gradient(135deg, var(--stitch-lay-primary), var(--stitch-lay-primary-light));
+          border-color: var(--stitch-lay-primary);
+          box-shadow: var(--stitch-lay-shadow-sm);
         }
       }
     }
@@ -603,17 +647,17 @@ defineExpose({
     justify-content: center;
     padding: 14px;
     gap: 10px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    background: linear-gradient(135deg, var(--stitch-lay-primary-alpha), var(--stitch-lay-bg-hover));
     border-radius: 10px;
     margin: 12px 0;
-    color: var(--el-color-primary);
+    color: var(--stitch-lay-primary);
     font-size: 13px;
     font-weight: 500;
 
     .el-icon {
       animation: rotating 1.5s linear infinite;
       font-size: 18px;
-      color: var(--el-color-primary);
+      color: var(--stitch-lay-primary);
     }
   }
 
@@ -621,17 +665,17 @@ defineExpose({
   .scroll-tip {
     text-align: center;
     padding: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--stitch-lay-text-sub);
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: var(--stitch-lay-transition);
     border-radius: 10px;
     margin: 8px 0;
-    background: var(--el-fill-color-light);
+    background: var(--stitch-lay-bg-group);
 
     &:hover {
-      background: var(--el-color-primary-light-9);
-      color: var(--el-color-primary);
+      background: var(--stitch-lay-primary-alpha);
+      color: var(--stitch-lay-primary);
       transform: translateY(-2px);
     }
   }
@@ -640,48 +684,15 @@ defineExpose({
   .no-more-data {
     text-align: center;
     padding: 14px;
-    color: var(--el-text-color-placeholder);
+    color: var(--stitch-lay-text-sub);
     font-size: 13px;
     margin: 12px 0;
-    background: var(--el-fill-color-lighter);
+    background: var(--stitch-lay-bg-group);
     border-radius: 10px;
   }
 }
 
-// 暗黑模式适配
-:root[data-theme="dark"] {
-  .list-view-container {
-    .list-item {
-      background: var(--el-bg-color-overlay);
-      border-color: var(--el-border-color-light);
 
-      &:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      }
-
-      &.is-selected {
-        background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15) 0%, var(--el-bg-color-overlay) 100%);
-        box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.2);
-      }
-    }
-
-    .loading-indicator {
-      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15), rgba(var(--el-color-primary-rgb), 0.1));
-    }
-
-    .scroll-tip {
-      background: var(--el-fill-color-dark);
-
-      &:hover {
-        background: rgba(var(--el-color-primary-rgb), 0.15);
-      }
-    }
-
-    .no-more-data {
-      background: var(--el-fill-color-darker);
-    }
-  }
-}
 
 @keyframes rotating {
   0% {

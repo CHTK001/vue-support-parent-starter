@@ -445,12 +445,10 @@ defineExpose({
   position: fixed;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--stitch-lay-bg-overlay);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow:
-    0 -4px 24px rgba(0, 0, 0, 0.12),
-    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  border: 1px solid var(--stitch-lay-border);
+  box-shadow: var(--stitch-lay-shadow-lg);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible;
 
@@ -529,7 +527,7 @@ defineExpose({
     }
 
     &::-webkit-scrollbar-thumb {
-      background: var(--el-border-color);
+      background: var(--stitch-lay-border-hover);
       border-radius: 2px;
     }
 
@@ -554,7 +552,7 @@ defineExpose({
     align-items: center;
     gap: 8px;
     padding: 8px 14px;
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--stitch-lay-bg-group);
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -564,9 +562,9 @@ defineExpose({
     border: 1px solid transparent;
 
     &:hover {
-      background: rgba(0, 0, 0, 0.08);
+      background: var(--stitch-lay-bg-hover);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--stitch-lay-shadow-sm);
 
       .sc-dialog-taskbar__item-close {
         opacity: 1;
@@ -574,21 +572,21 @@ defineExpose({
     }
 
     &.is-active {
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.25));
-      border-bottom: 3px solid var(--el-color-primary);
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+      background: color-mix(in srgb, var(--stitch-lay-primary), transparent 85%);
+      border-bottom: 3px solid var(--stitch-lay-primary);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--stitch-lay-primary), transparent 80%);
     }
 
     // 图标
     &-icon {
       font-size: 18px;
-      color: var(--el-text-color-primary);
+      color: var(--stitch-lay-text-main);
     }
 
     // 标题
     &-title {
       font-size: 13px;
-      color: var(--el-text-color-regular);
+      color: var(--stitch-lay-text-normal);
       max-width: 120px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -606,29 +604,29 @@ defineExpose({
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      color: var(--el-text-color-secondary);
+      color: var(--stitch-lay-text-sub);
       opacity: 0;
       transition: all 0.2s ease;
       margin-left: 4px;
 
       &:hover {
-        background: var(--el-color-danger-light-9);
-        color: var(--el-color-danger);
+        background: var(--stitch-lay-error-bg);
+        color: var(--stitch-lay-error);
       }
     }
 
     // 类型样式
     &--info &-icon {
-      color: var(--el-color-info);
+      color: var(--stitch-lay-info);
     }
     &--success &-icon {
-      color: var(--el-color-success);
+      color: var(--stitch-lay-success);
     }
     &--warning &-icon {
-      color: var(--el-color-warning);
+      color: var(--stitch-lay-warning);
     }
     &--error &-icon {
-      color: var(--el-color-danger);
+      color: var(--stitch-lay-error);
     }
   }
 
@@ -646,13 +644,13 @@ defineExpose({
       align-items: center;
       gap: 6px;
       padding: 6px 12px;
-      background: var(--el-fill-color-light);
+      background: var(--stitch-lay-bg-group);
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s ease;
 
       &:hover {
-        background: var(--el-fill-color);
+        background: var(--stitch-lay-bg-hover);
       }
     }
 
@@ -675,8 +673,8 @@ defineExpose({
       justify-content: center;
       width: 24px;
       height: 24px;
-      background: var(--el-bg-color);
-      border: 2px solid var(--el-border-color-lighter);
+      background: var(--stitch-lay-bg-panel);
+      border: 2px solid var(--stitch-lay-border);
       border-radius: 5px;
       position: relative;
       transition: all 0.2s ease;
@@ -684,31 +682,31 @@ defineExpose({
 
       // 类型颜色
       &--info {
-        border-color: var(--el-color-info-light-5);
-        background: var(--el-color-info-light-9);
+        border-color: var(--stitch-lay-info-light);
+        background: var(--stitch-lay-info-bg);
       }
       &--success {
-        border-color: var(--el-color-success-light-5);
-        background: var(--el-color-success-light-9);
+        border-color: var(--stitch-lay-success-light);
+        background: var(--stitch-lay-success-bg);
       }
       &--warning {
-        border-color: var(--el-color-warning-light-5);
-        background: var(--el-color-warning-light-9);
+        border-color: var(--stitch-lay-warning-light);
+        background: var(--stitch-lay-warning-bg);
       }
       &--error {
-        border-color: var(--el-color-danger-light-5);
-        background: var(--el-color-danger-light-9);
+        border-color: var(--stitch-lay-error-light);
+        background: var(--stitch-lay-error-bg);
       }
     }
 
     &-icon {
       font-size: 16px;
-      color: var(--el-text-color-primary);
+      color: var(--stitch-lay-text-main);
     }
 
     &-name {
       font-size: 13px;
-      color: var(--el-text-color-regular);
+      color: var(--stitch-lay-text-normal);
     }
 
     // 通知徽章（预留）
@@ -722,7 +720,7 @@ defineExpose({
       min-width: 16px;
       height: 16px;
       padding: 0 4px;
-      background: var(--el-color-danger);
+      background: var(--stitch-lay-error);
       color: #fff;
       font-size: 10px;
       font-weight: 600;
@@ -734,8 +732,8 @@ defineExpose({
   // 预览弹窗（类似 Windows 任务栏预览）
   &__preview {
     position: absolute;
-    background: var(--el-bg-color);
-    border: 1px solid var(--el-border-color-lighter);
+    background: var(--stitch-lay-bg-panel);
+    border: 1px solid var(--stitch-lay-border);
     border-radius: 8px;
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2);
     min-width: 280px;
@@ -773,16 +771,16 @@ defineExpose({
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      border-bottom: 1px solid var(--el-border-color-lighter);
+      border-bottom: 1px solid var(--stitch-lay-border);
       font-size: 14px;
       font-weight: 500;
-      color: var(--el-text-color-primary);
+      color: var(--stitch-lay-text-main);
     }
 
     &-count {
       font-size: 12px;
       font-weight: normal;
-      color: var(--el-text-color-secondary);
+      color: var(--stitch-lay-text-sub);
     }
 
     &-list {
@@ -798,7 +796,7 @@ defineExpose({
       }
 
       &::-webkit-scrollbar-thumb {
-        background: var(--el-border-color);
+        background: var(--stitch-lay-border-hover);
         border-radius: 2px;
       }
     }
@@ -808,13 +806,13 @@ defineExpose({
       align-items: center;
       justify-content: space-between;
       padding: 12px 14px;
-      background: var(--el-fill-color-light);
+      background: var(--stitch-lay-bg-group);
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
 
       &:hover {
-        background: var(--el-fill-color);
+        background: var(--stitch-lay-bg-hover);
 
         .sc-dialog-taskbar__preview-item-close {
           opacity: 1;
@@ -831,13 +829,13 @@ defineExpose({
 
       &-icon {
         font-size: 22px;
-        color: var(--el-text-color-primary);
+        color: var(--stitch-lay-text-main);
         flex-shrink: 0;
       }
 
       &-title {
         font-size: 14px;
-        color: var(--el-text-color-regular);
+        color: var(--stitch-lay-text-normal);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -854,29 +852,29 @@ defineExpose({
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        color: var(--el-text-color-secondary);
+        color: var(--stitch-lay-text-sub);
         opacity: 0;
         transition: all 0.2s ease;
         flex-shrink: 0;
 
         &:hover {
-          background: var(--el-color-danger-light-9);
-          color: var(--el-color-danger);
+          background: var(--stitch-lay-error-bg);
+          color: var(--stitch-lay-error);
         }
       }
 
       // 类型样式
       &--info .sc-dialog-taskbar__preview-item-icon {
-        color: var(--el-color-info);
+        color: var(--stitch-lay-info);
       }
       &--success .sc-dialog-taskbar__preview-item-icon {
-        color: var(--el-color-success);
+        color: var(--stitch-lay-success);
       }
       &--warning .sc-dialog-taskbar__preview-item-icon {
-        color: var(--el-color-warning);
+        color: var(--stitch-lay-warning);
       }
       &--error .sc-dialog-taskbar__preview-item-icon {
-        color: var(--el-color-danger);
+        color: var(--stitch-lay-error);
       }
     }
   }
@@ -884,7 +882,7 @@ defineExpose({
   // 触发条（自动隐藏时）
   &__trigger {
     position: absolute;
-    background: var(--el-color-primary);
+    background: var(--stitch-lay-primary);
     opacity: 0.5;
     transition: opacity 0.2s ease;
 

@@ -414,12 +414,13 @@ defineExpose({
   position: fixed;
   z-index: 9999;
   border-radius: 10px;
-  box-shadow: var(--el-box-shadow);
-  background-color: var(--el-bg-color-overlay);
+  box-shadow: var(--stitch-lay-shadow-lg);
+  background-color: var(--stitch-lay-bg-overlay);
   padding: 5px 0;
   overflow: hidden;
   font-size: 14px;
   animation: fadeIn 0.15s ease-out;
+  backdrop-filter: blur(20px);
 }
 
 .sc-context-menu--submenu {
@@ -449,22 +450,23 @@ defineExpose({
   padding: 3px 16px;
   cursor: pointer;
   white-space: nowrap;
-  color: var(--el-text-color-primary);
+  color: var(--stitch-lay-text-normal);
   transition: all 0.2s;
   position: relative;
 }
 
 .sc-context-menu__item:hover {
-  background-color: var(--el-fill-color-light);
-  color: var(--el-color-primary);
+  background-color: var(--stitch-lay-bg-hover);
+  color: var(--stitch-lay-primary);
 }
 
 .sc-context-menu__item:active {
-  background-color: var(--el-color-primary-light-9);
+  background-color: var(--stitch-lay-bg-active);
 }
 
 .sc-context-menu__item--disabled {
-  color: var(--el-text-color-disabled);
+  color: var(--stitch-lay-text-sub);
+  opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
   background-color: transparent;
@@ -493,6 +495,6 @@ defineExpose({
 .sc-context-menu__divider {
   height: 1px;
   margin: 5px 0;
-  background-color: var(--el-border-color-lighter);
+  background-color: var(--stitch-lay-border);
 }
 </style>

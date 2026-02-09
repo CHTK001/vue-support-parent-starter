@@ -4,6 +4,12 @@
  */
 <template>
   <div class="coordinate-panel" :class="positionClass">
+    <div class="coordinate-header">
+      <span class="coordinate-title">{{ $t('坐标信息') }}</span>
+      <div class="coordinate-close" @click="handleClose">
+        <IconifyIconOnline icon="ep:close" />
+      </div>
+    </div>
     <div class="coordinate-content">
       <div class="coordinate-item">
         <div class="coordinate-label">{{ $t('经度') }}:</div>
@@ -33,6 +39,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { CoordinateInfo } from '../composables/CoordinateObject';
 
 // 定义组件属性
@@ -64,19 +71,22 @@ const handleClose = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
+
 .coordinate-panel {
   position: absolute;
   min-width: 200px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  padding: 8px;
-  font-size: 12px;
+  background-color: var(--el-bg-color-overlay);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-light);
+  padding: 8px 12px;
+  font-size: var(--el-font-size-extra-small);
   color: var(--el-text-color-primary);
   z-index: 2000;
-  border: 1px solid #e8e8e8;
-  backdrop-filter: blur(4px);
+  border: 1px solid var(--el-border-color-light);
+  backdrop-filter: blur(8px);
 }
 
 .coordinate-panel.position-top-left {
@@ -104,30 +114,31 @@ const handleClose = () => {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 5px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   margin-bottom: 8px;
 }
 
 .coordinate-title {
   font-weight: bold;
-  font-size: 14px;
+  font-size: var(--el-font-size-base);
 }
 
 .coordinate-close {
   cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  color: #999;
-  width: 20px;
-  height: 20px;
-  line-height: 20px;
-  text-align: center;
-  border-radius: 10px;
-  }
+  font-size: var(--el-font-size-medium);
+  color: var(--el-text-color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--el-border-radius-base);
+  transition: all 0.3s;
+}
 
 .coordinate-close:hover {
-  background-color: #f0f0f0;
-  color: var(--el-text-color-primary);
+  background-color: var(--el-fill-color);
+  color: var(--el-color-primary);
 }
 
 .coordinate-content {
@@ -149,19 +160,22 @@ const handleClose = () => {
 
 .coordinate-value {
   font-family: 'Courier New', monospace;
-  color: rgba(24, 144, 255, 0.9);
+  color: var(--el-color-primary);
   font-weight: 500;
 }
 
 .coordinate-projection {
   margin-top: 2px;
-  font-size: 11px;
-  color: #999;
+  font-size: var(--el-font-size-extra-small);
+  color: var(--el-text-color-secondary);
 }
 </style> 
 
 <script lang="ts">
 export default {
-  name: 'CoordinatePanel'
+  name: 'CoordinatePanel',
+  components: {
+    IconifyIconOnline
+  }
 };
 </script> 

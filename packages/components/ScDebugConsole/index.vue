@@ -115,13 +115,8 @@ const initInteract = (): void => {
 
   interactInstance = interact(el).draggable({
     allowFrom: ".panel-header",
-    modifiers: [
-      interact.modifiers.restrict({
-        restriction: "body",
-        endOnly: false
-      })
-    ],
-    inertia: { resistance: 15, minSpeed: 200, endSpeed: 10 },
+    modifiers: [], // 移除限制以提高流畅度，或者保留但简化
+    inertia: false, // 禁用惯性，提高跟手性
     listeners: {
       start: () => {
         document.body.style.userSelect = "none";

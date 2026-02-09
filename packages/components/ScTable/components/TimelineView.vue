@@ -5,7 +5,7 @@
  * @since 2025-12-05
 -->
 <template>
-  <div class="sc-table-timeline" :style="{ height: height }">
+  <div class="sc-table-timeline" :class="`theme--${theme}`" :style="{ height: height }">
     <!-- 时间线容器 -->
     <el-timeline v-if="tableData.length > 0">
       <el-timeline-item
@@ -84,7 +84,12 @@ const props = defineProps({
   timelinePlacement: { type: String, default: "bottom" },
   timelineTypeField: { type: String, default: "type" },
   timelineColorField: { type: String, default: "color" },
-  showIndex: { type: Boolean, default: false }
+  showIndex: { type: Boolean, default: false },
+  theme: {
+    type: String,
+    default: "default",
+    validator: (val: string) => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
+  }
 });
 
 const emit = defineEmits(["row-click", "load-more"]);
@@ -117,6 +122,9 @@ function getTimelineType(item: Record<string, any>, index: number): string {
   if (item[props.timelineTypeField]) {
     return item[props.timelineTypeField];
   }
+  if (props.theme && props.theme !== 'default') {
+    return props.theme;
+  }
   // 默认按顺序循环
   const types = ["primary", "success", "warning", "danger", "info"];
   return types[index % types.length];
@@ -145,13 +153,13 @@ function handleRowClick(row: Record<string, any>, index: number): void {
   .timeline-content {
     position: relative;
     padding: 12px 16px;
-    background: var(--el-fill-color-lighter);
+    background: var(--stitch-lay-bg-group);
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: var(--stitch-lay-transition-fast);
 
     &:hover {
-      background: var(--el-fill-color);
+      background: var(--stitch-lay-bg-hover);
       transform: translateX(4px);
     }
 
@@ -166,30 +174,44 @@ function handleRowClick(row: Record<string, any>, index: number): void {
       align-items: center;
       justify-content: center;
       border-radius: 11px;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(135deg, var(--stitch-lay-primary), var(--stitch-lay-primary-light));
       color: #fff;
       font-size: 11px;
       font-weight: 600;
-      box-shadow: 0 2px 6px var(--el-color-primary-light-5);
+      box-shadow: var(--stitch-lay-shadow-sm);
     }
   }
+
+  // 主题变体混合宏
+  @mixin theme-variant($type) {
+    .timeline-content .timeline-index-badge {
+      background: linear-gradient(135deg, var(--el-color-#{$type}), var(--el-color-#{$type}-light-3));
+      box-shadow: 0 2px 6px var(--el-color-#{$type}-light-5);
+    }
+  }
+
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 
   .timeline-field {
     display: flex;
     margin-bottom: 8px;
-
+    
     &:last-child {
       margin-bottom: 0;
     }
 
     &-label {
-      color: var(--el-text-color-secondary);
+      color: var(--stitch-lay-text-sub);
       font-size: 13px;
       min-width: 80px;
     }
 
     &-value {
-      color: var(--el-text-color-primary);
+      color: var(--stitch-lay-text-main);
       font-size: 13px;
       flex: 1;
     }
@@ -205,7 +227,7 @@ function handleRowClick(row: Record<string, any>, index: number): void {
     padding: 16px;
 
     .no-more {
-      color: var(--el-text-color-secondary);
+      color: var(--stitch-lay-text-sub);
       font-size: 13px;
     }
   }

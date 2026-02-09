@@ -410,6 +410,7 @@ const handleDelete = (item: any) => {
 
 <style scoped lang="scss">
 @use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
 
 .page {
   @include system-container;
