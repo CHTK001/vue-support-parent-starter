@@ -36,6 +36,7 @@ emitter.on("systemThemeChange", handleThemeChange);
 // 主题判断函数
 const isSpringFestival = () => currentTheme.value === 'spring-festival';
 const isMidAutumn = () => currentTheme.value === 'mid-autumn';
+const isHalloween = () => currentTheme.value === 'halloween';
 
 // 界面元素显示状态 - 从存储中读取初始值
 const showSearch = ref($storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true);
@@ -89,12 +90,13 @@ onBeforeUnmount(() => {
     <!-- 系统设置 -->
     <span
       v-if="getConfig().ShowBarSetting"
-      :class="['tool-item', 'setting-btn', { 'fu-setting': isSpringFestival(), 'mooncake-setting': isMidAutumn() }]"
+      :class="['tool-item', 'setting-btn', { 'fu-setting': isSpringFestival(), 'mooncake-setting': isMidAutumn(), 'pumpkin-setting': isHalloween() }]"
       :title="t('buttons.pureOpenSystemSet')"
       @click="onPanel"
     >
       <template v-if="isSpringFestival()">福</template>
       <template v-else-if="isMidAutumn()">🥮</template>
+      <template v-else-if="isHalloween()">🎃</template>
       <IconifyIconOffline v-else :icon="Setting" />
     </span>
   </div>
@@ -196,6 +198,31 @@ onBeforeUnmount(() => {
     border-color: rgba(220, 20, 60, 0.5);
     animation: fu-glow 2s ease-in-out infinite;
   }
+}
+
+// 万圣节主题 - 南瓜设置按钮
+.pumpkin-setting {
+  font-size: 20px;
+  background: rgba(255, 117, 24, 0.15);
+  border: 1px solid rgba(255, 117, 24, 0.3);
+  
+  &:hover {
+    background: rgba(255, 117, 24, 0.25);
+    border-color: rgba(255, 117, 24, 0.6);
+    // 嘴巴发光效果 - 通过 drop-shadow 模拟
+    filter: drop-shadow(0 0 2px #ffff00) drop-shadow(0 0 5px #ff7518);
+    animation: pumpkin-bounce 0.6s ease infinite;
+    
+    // 尝试增加内部亮度
+    :deep(svg) {
+       filter: brightness(1.2);
+    }
+  }
+}
+
+@keyframes pumpkin-bounce {
+  0%, 100% { transform: translateY(-2px) scale(1.1); }
+  50% { transform: translateY(-5px) scale(1.1); }
 }
 
 // 中秋主题 - 月饼设置按钮

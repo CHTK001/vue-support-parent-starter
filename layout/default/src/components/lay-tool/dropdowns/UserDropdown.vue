@@ -2,6 +2,7 @@
 import { router } from "@repo/core";
 import { useNav } from "../../../hooks/useNav";
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
+import LayAvatar from "../../lay-avatar/index.vue";
 
 const { t } = useTranslationLang();
 const { logout, username, userAvatar, avatarsStyle, clickClearRouter } = useNav();
@@ -22,7 +23,7 @@ const gotoAccountSetting = () => {
   >
     <div class="user-trigger">
       <div class="avatar-container">
-        <img :src="userAvatar" :style="avatarsStyle" class="avatar-img" />
+        <LayAvatar :src="userAvatar" :style="avatarsStyle" class="avatar-img" />
         <span class="status-dot"></span>
       </div>
       <div v-if="username" class="user-info">
@@ -37,7 +38,7 @@ const gotoAccountSetting = () => {
       <el-dropdown-menu class="user-menu">
         <!-- 用户信息头部 -->
         <div class="menu-header">
-          <img :src="userAvatar" :style="avatarsStyle" class="header-avatar" />
+          <LayAvatar :src="userAvatar" :style="avatarsStyle" class="header-avatar" />
           <div class="header-info">
             <span class="header-name">{{ username }}</span>
             <span class="header-status">当前在线</span>

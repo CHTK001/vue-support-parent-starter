@@ -11,7 +11,6 @@ import BaseHover from './BaseHover.vue';
 <style lang="scss" scoped>
 .halloween-hover-wrapper {
   height: 100%;
-  width: 100%;
   
   :deep(.halloween-hover) {
     // 覆盖 BaseHover 中的样式 (如果有必要)
