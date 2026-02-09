@@ -1,5 +1,10 @@
 <template>
-  <div class="sc-switch">
+  <div
+    class="sc-switch"
+    :class="{
+      'sc-switch--full-height': ['visual-card', 'card', 'modern'].includes(layout)
+    }"
+  >
     <!-- 视觉卡片布局 -->
     <VisualCardLayout
       v-if="layout === 'visual-card'"
@@ -353,5 +358,10 @@ const handleChange = (val: boolean | string | number) => {
 <style lang="scss" scoped>
 .sc-switch {
   display: inline-block;
+
+  &--full-height {
+    height: 100%;
+    display: block;
+  }
 }
 </style>

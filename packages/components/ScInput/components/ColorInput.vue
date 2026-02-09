@@ -92,13 +92,13 @@ const handleActiveChange = (value: string) => {
   // 现代化的颜色选择器样式
   :deep(.el-color-picker__trigger) {
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--el-box-shadow-lighter);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid var(--el-border-color-lighter);
     
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--el-box-shadow-light);
       border-color: var(--el-color-primary);
     }
     
@@ -123,7 +123,7 @@ const handleActiveChange = (value: string) => {
       right: 0;
       bottom: 0;
       border-radius: 6px;
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+      box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
       pointer-events: none;
     }
   }

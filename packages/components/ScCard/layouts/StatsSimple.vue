@@ -60,7 +60,7 @@ export default defineComponent({
      * 主题色
      */
     theme: {
-      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info" | "blue" | "green" | "purple" | "orange" | "pink" | "cyan">,
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
       default: "primary"
     },
     /**
@@ -80,17 +80,17 @@ export default defineComponent({
   align-items: center;
   gap: 16px;
   padding: 20px 24px;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--stitch-lay-bg-panel);
   backdrop-filter: blur(10px);
-  border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: var(--stitch-lay-radius-lg);
+  border: 1px solid var(--stitch-lay-border);
+  transition: var(--stitch-lay-transition);
+  box-shadow: var(--stitch-lay-shadow-sm);
 
   &.is-hoverable:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: var(--stitch-lay-shadow-md);
+    border-color: var(--stitch-lay-border-hover);
   }
 
   &__icon {
@@ -133,17 +133,27 @@ export default defineComponent({
   &__value {
     font-size: 26px;
     font-weight: 700;
-    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--stitch-lay-text-main);
     line-height: 1.2;
   }
 
   &__label {
     font-size: 13px;
-    color: var(--el-text-color-secondary);
+    color: var(--stitch-lay-text-sub);
     margin-top: 4px;
+  }
+
+  // 主题变体混合宏
+  @mixin theme-variant($type) {
+    .sc-card-stats-simple__icon {
+      background: linear-gradient(135deg, var(--el-color-#{$type}) 0%, var(--el-color-#{$type}-light-3) 100%);
+    }
+    .sc-card-stats-simple__value {
+      background: linear-gradient(135deg, var(--el-color-#{$type}) 0%, var(--el-color-#{$type}-light-3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
   }
 
   // 主题色定义
@@ -151,39 +161,10 @@ export default defineComponent({
     background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   }
 
-  &.theme--primary .sc-card-stats-simple__icon {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-
-  &.theme--blue .sc-card-stats-simple__icon {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-  }
-
-  &.theme--success .sc-card-stats-simple__icon,
-  &.theme--green .sc-card-stats-simple__icon {
-    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-  }
-
-  &.theme--warning .sc-card-stats-simple__icon,
-  &.theme--orange .sc-card-stats-simple__icon {
-    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-  }
-
-  &.theme--danger .sc-card-stats-simple__icon {
-    background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-  }
-
-  &.theme--info .sc-card-stats-simple__icon,
-  &.theme--cyan .sc-card-stats-simple__icon {
-    background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
-  }
-
-  &.theme--purple .sc-card-stats-simple__icon {
-    background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
-  }
-
-  &.theme--pink .sc-card-stats-simple__icon {
-    background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
-  }
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 }
 </style>

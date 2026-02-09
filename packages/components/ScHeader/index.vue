@@ -88,7 +88,7 @@ interface Props {
   /** 主题风格 */
   theme?: "default" | "tech";
   /** Tech 主题颜色 */
-  techTheme?: "cyan" | "blue" | "green" | "purple" | "orange" | "red";
+  techTheme?: "cyan" | "blue" | "green" | "purple" | "orange" | "red" | "primary";
   /** Logo 图片地址 */
   logo?: string;
   /** 标题 */
@@ -155,6 +155,12 @@ const themeColors = computed(() => {
       secondary: "#ff7875",
       glow: "rgba(255, 77, 79, 0.5)",
       bg: "rgba(60, 0, 0, 0.9)"
+    },
+    primary: {
+      primary: "var(--el-color-primary)",
+      secondary: "var(--el-color-primary-light-3)",
+      glow: "var(--el-color-primary-light-5)",
+      bg: "var(--el-bg-color-overlay)"
     }
   };
   return themes[props.techTheme];

@@ -232,6 +232,11 @@ const props = defineProps({
   cardMinWidth: {
     type: Number,
     default: 280
+  },
+  theme: {
+    type: String,
+    default: "default",
+    validator: (val) => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
   }
 });
 
@@ -644,18 +649,18 @@ defineExpose({
   .waterfall-flex-item,
   .waterfall-masonry-item {
     position: relative;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: var(--stitch-lay-transition);
     cursor: pointer;
     will-change: transform;
     border-radius: 12px;
     overflow: visible;
-    background: var(--el-bg-color);
-    border: 1px solid var(--el-border-color-lighter);
+    background: var(--stitch-lay-bg-panel);
+    border: 1px solid var(--stitch-lay-border);
 
     &:hover {
       transform: translateY(-4px) translateZ(0);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 8px 24px var(--stitch-lay-shadow);
+      border-color: var(--stitch-lay-border-hover);
       z-index: 10;
     }
   }
@@ -691,7 +696,7 @@ defineExpose({
     min-width: 26px;
     height: 26px;
     padding: 0 6px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+    background: linear-gradient(135deg, var(--stitch-lay-primary), var(--stitch-lay-primary-dark, var(--stitch-lay-primary)));
     color: #fff;
     font-size: 11px;
     font-weight: 600;
@@ -700,7 +705,7 @@ defineExpose({
     align-items: center;
     justify-content: center;
     z-index: 20;
-    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.4);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .loading-overlay {
@@ -712,7 +717,7 @@ defineExpose({
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: var(--el-text-color-secondary);
+    color: var(--stitch-lay-text-sub);
     z-index: 10;
 
     svg {
@@ -731,7 +736,7 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--el-text-color-secondary);
+    color: var(--stitch-lay-text-sub);
     font-size: 14px;
   }
 
@@ -744,9 +749,10 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--el-text-color-placeholder);
+    color: var(--stitch-lay-text-sub);
+    opacity: 0.7;
     font-size: 12px;
-    border-top: 1px dashed var(--el-border-color-lighter);
+    border-top: 1px dashed var(--stitch-lay-border);
   }
 }
 
@@ -756,15 +762,6 @@ defineExpose({
   }
   100% {
     transform: rotate(360deg);
-  }
-}
-
-// 暗黑模式适配
-:root[data-theme="dark"] {
-  .waterfall-view-container {
-    .waterfall-item:hover {
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    }
   }
 }
 </style>

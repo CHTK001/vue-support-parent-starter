@@ -5,7 +5,8 @@
       'is-hoverable': hoverable,
       'is-shadow': shadow !== 'never',
       'is-shadow-always': shadow === 'always',
-      [`border-position--${borderPosition}`]: true
+      [`border-position--${borderPosition}`]: true,
+      [`theme--${theme}`]: true
     }"
   >
     <div v-if="$slots.header || title" class="sc-card-default__header">
@@ -59,6 +60,13 @@ export default defineComponent({
       type: String,
       default: "top",
       validator: (val: string) => ["top", "right", "bottom", "left", "none"].includes(val)
+    },
+    /**
+     * 主题色
+     */
+    theme: {
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
+      default: "default"
     }
   }
 });
@@ -66,23 +74,39 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .sc-card-default {
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
+  border-radius: var(--stitch-lay-radius-md);
+  border: 1px solid var(--stitch-lay-border);
+  background: var(--stitch-lay-bg-panel);
   overflow: hidden;
-  color: var(--el-text-color-primary);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--stitch-lay-text-main);
+  transition: var(--stitch-lay-transition);
   position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--stitch-lay-shadow-sm);
 
   &::before {
     content: "";
     position: absolute;
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, var(--stitch-lay-primary) 0%, var(--stitch-lay-primary-light) 100%);
+    transition: var(--stitch-lay-transition);
     z-index: 1;
   }
+
+  // 主题变体混合宏
+  @mixin theme-variant($type) {
+    &::before {
+      background: linear-gradient(135deg, var(--el-color-#{$type}) 0%, var(--el-color-#{$type}-light-3) 100%);
+    }
+
+    &.is-hoverable:hover {
+      border-color: var(--el-color-#{$type}-light-5);
+    }
+  }
+
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 
   // 边框位置样式
   &.border-position--top::before {
@@ -123,8 +147,8 @@ export default defineComponent({
 
   &__header {
     padding: 20px 24px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), transparent);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--el-bg-color), transparent 50%), transparent);
   }
 
   &__title {
@@ -141,8 +165,8 @@ export default defineComponent({
 
   &__footer {
     padding: 16px 24px;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
-    background: linear-gradient(to top, rgba(255, 255, 255, 0.5), transparent);
+    border-top: 1px solid var(--el-border-color-lighter);
+    background: linear-gradient(to top, color-mix(in srgb, var(--el-bg-color), transparent 50%), transparent);
   }
 
   &.is-hoverable {
@@ -150,8 +174,8 @@ export default defineComponent({
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-5);
 
       &::before {
         height: 4px;
@@ -166,17 +190,17 @@ export default defineComponent({
 
   &.is-shadow {
     &:hover {
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-5);
     }
   }
 
   &.is-shadow-always {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--el-box-shadow-light);
 
     &:hover {
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-5);
     }
   }
 }

@@ -23,6 +23,7 @@ import {
 } from "vue";
 import { useNav } from "../../../hooks/useNav";
 import { localStorageProxy } from "@repo/utils";
+import { useGlobal } from "@pureadmin/utils";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
 import ThemeMenuActiveIndicator from "./ThemeMenuActiveIndicator.vue";
@@ -151,6 +152,33 @@ function resolvePath(routePath: string) {
     return configResolvePath(props.basePath, routePath);
   }
 }
+
+const forceNewMenu = ref(getConfig()?.ForceNewMenu ?? false);
+const showNewMenu = ref(getConfig()?.ShowNewMenu ?? false);
+const menuAnimation = ref(getConfig()?.MenuAnimation ?? false);
+const newMenuAnimation = ref(getConfig()?.NewMenuAnimation || "bounce");
+
+onMounted(() => {
+  emitter.on("forceNewMenuChange", (val: boolean) => {
+    forceNewMenu.value = val;
+  });
+  emitter.on("showNewMenuChange", (val: boolean) => {
+    showNewMenu.value = val;
+  });
+  emitter.on("menuAnimationChange", (val: boolean) => {
+    menuAnimation.value = val;
+  });
+  emitter.on("newMenuAnimationChange", (val: string) => {
+    newMenuAnimation.value = val;
+  });
+});
+
+onBeforeUnmount(() => {
+  emitter.off("forceNewMenuChange");
+  emitter.off("showNewMenuChange");
+  emitter.off("menuAnimationChange");
+  emitter.off("newMenuAnimationChange");
+});
 </script>
 
 <template>
@@ -163,7 +191,7 @@ function resolvePath(routePath: string) {
   >
     <el-menu-item
       :index="resolvePath(onlyOneChild.path)"
-      :class="['sidebar-menu-item', themeClass, { 'submenu-title-noDropdown': !isNest }]"
+      :class="['sidebar-menu-item', themeClass, { 'submenu-title-noDropdown': !isNest, 'menu-animation': menuAnimation }]"
       :style="getNoDropdownStyle"
       v-bind="attrs"
     >
@@ -207,6 +235,7 @@ function resolvePath(routePath: string) {
               )
             }}
             <ReMenuNewBadge
+              v-if="!isCollapse && showNewMenu"
               :createTime="
                 onlyOneChild?.meta?.createTime || item?.meta?.createTime
               "
@@ -218,6 +247,8 @@ function resolvePath(routePath: string) {
               :customText="
                 onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
               "
+              :forceShow="forceNewMenu || onlyOneChild?.meta?.permanentNew || item?.meta?.permanentNew"
+              :animation="newMenuAnimation"
             />
           </span>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
@@ -232,7 +263,7 @@ function resolvePath(routePath: string) {
     ref="subMenu"
     teleported
     :index="resolvePath(item.path)"
-    :class="['sidebar-sub-menu', themeClass]"
+    :class="['sidebar-sub-menu', themeClass, { 'menu-animation': menuAnimation }]"
     v-bind="expandCloseIcon"
   >
     <template #title>
@@ -264,10 +295,12 @@ function resolvePath(routePath: string) {
       >
         {{ transformI18n(onlyOneChild?.meta?.i18nKey || item?.meta?.title) }}
         <ReMenuNewBadge
-          v-if="!isCollapse"
+          v-if="!isCollapse && showNewMenu"
           :createTime="item?.meta?.createTime"
           :type="item?.meta?.badgeType || 'primary'"
           :customText="item?.meta?.badgeText"
+          :forceShow="forceNewMenu || item?.meta?.permanentNew"
+          :animation="newMenuAnimation"
         />
       </span>
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
@@ -294,6 +327,16 @@ function resolvePath(routePath: string) {
   color: inherit;
   display: inline-block;
   vertical-align: middle;
+}
+
+.menu-animation.is-active {
+  animation: menu-bounce 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes menu-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
 .sidebar-menu-item,

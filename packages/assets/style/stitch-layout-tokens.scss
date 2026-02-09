@@ -14,10 +14,15 @@
   /* Backgrounds */
   --stitch-lay-bg-page: #f3f4f6;      /* Page background */
   --stitch-lay-bg-panel: #ffffff;     /* Card/Panel background */
+  --stitch-lay-bg-group: #f3f4f6;     /* Group/Item background */
+  --stitch-lay-bg-hover: #f1f5f9;
+  --stitch-lay-bg-active: #e2e8f0;
   --stitch-lay-bg-overlay: rgba(255, 255, 255, 0.8); /* Glass effect */
   
   /* Text */
   --stitch-lay-text-main: #1e293b;
+  --stitch-lay-text-normal: #334155;
+  --stitch-lay-text-sub: #64748b;
   --stitch-lay-text-secondary: #64748b;
   --stitch-lay-text-inverse: #f8fafc;
 
@@ -40,6 +45,27 @@
   /* ================== Transitions ================== */
   --stitch-lay-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --stitch-lay-transition-fast: all 0.15s ease-in-out;
+
+  /* ================== Semantic Types ================== */
+  /* Info */
+  --stitch-lay-info: #909399;
+  --stitch-lay-info-light: #c8c9cc;
+  --stitch-lay-info-bg: #f4f4f5;
+
+  /* Success */
+  --stitch-lay-success: #67c23a;
+  --stitch-lay-success-light: #b3e19d;
+  --stitch-lay-success-bg: #f0f9eb;
+
+  /* Warning */
+  --stitch-lay-warning: #e6a23c;
+  --stitch-lay-warning-light: #f3d19e;
+  --stitch-lay-warning-bg: #fdf6ec;
+
+  /* Error */
+  --stitch-lay-error: #f56c6c;
+  --stitch-lay-error-light: #fab6b6;
+  --stitch-lay-error-bg: #fef0f0;
 }
 
 /* ================== Dark Mode Mapping ================== */
@@ -53,10 +79,15 @@ html.dark {
   /* Backgrounds */
   --stitch-lay-bg-page: #141414;
   --stitch-lay-bg-panel: #1d1e1f;
+  --stitch-lay-bg-group: #27272a;
+  --stitch-lay-bg-hover: #3f3f46;
+  --stitch-lay-bg-active: #52525b;
   --stitch-lay-bg-overlay: rgba(30, 41, 59, 0.8);
 
   /* Text */
   --stitch-lay-text-main: #f8fafc;
+  --stitch-lay-text-normal: #e2e8f0;
+  --stitch-lay-text-sub: #cbd5e1;
   --stitch-lay-text-secondary: #94a3b8;
   --stitch-lay-text-inverse: #1e293b;
 
@@ -68,4 +99,21 @@ html.dark {
   --stitch-lay-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --stitch-lay-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --stitch-lay-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+
+  /* Semantic Types Dark */
+  --stitch-lay-info: #909399;
+  --stitch-lay-info-light: #a6a9ad;
+  --stitch-lay-info-bg: #202124;
+
+  --stitch-lay-success: #67c23a;
+  --stitch-lay-success-light: #85ce61;
+  --stitch-lay-success-bg: #1c2518;
+
+  --stitch-lay-warning: #e6a23c;
+  --stitch-lay-warning-light: #ebb563;
+  --stitch-lay-warning-bg: #2b261d;
+
+  --stitch-lay-error: #f56c6c;
+  --stitch-lay-error-light: #f78989;
+  --stitch-lay-error-bg: #2b1d1d;
 }

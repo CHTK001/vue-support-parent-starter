@@ -96,33 +96,24 @@ const themeObserver = new MutationObserver(mutations => {
 
 // 更新主题颜色
 const updateTheme = () => {
-  if (isDark.value) {
-    theme.value = {
-      headerBgColor: "#1d1e1f",
-      headerTextColor: "#e5eaf3",
-      rowBgColor: "#141414",
-      rowAltBgColor: "#1d1e1f",
-      rowHoverBgColor: "#262727",
-      rowSelectedBgColor: "#18222c",
-      borderColor: "#414243",
-      textColor: "#e5eaf3",
-      fontSize: 14,
-      fontFamily: "Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif"
-    };
-  } else {
-    theme.value = {
-      headerBgColor: "#f5f7fa",
-      headerTextColor: "#606266",
-      rowBgColor: "#ffffff",
-      rowAltBgColor: "#fafafa",
-      rowHoverBgColor: "#f5f7fa",
-      rowSelectedBgColor: "#ecf5ff",
-      borderColor: "#ebeef5",
-      textColor: "#606266",
-      fontSize: 14,
-      fontFamily: "Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif"
-    };
-  }
+  const getCssVar = (name) => {
+    const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return val || "";
+  };
+
+  theme.value = {
+    headerBgColor: getCssVar('--stitch-lay-bg-hover') || (isDark.value ? "#1d1e1f" : "#f5f7fa"),
+    headerTextColor: getCssVar('--stitch-lay-text-normal') || (isDark.value ? "#e5eaf3" : "#606266"),
+    rowBgColor: getCssVar('--stitch-lay-bg-panel') || (isDark.value ? "#141414" : "#ffffff"),
+    rowAltBgColor: getCssVar('--stitch-lay-bg-group') || (isDark.value ? "#1d1e1f" : "#fafafa"),
+    rowHoverBgColor: getCssVar('--stitch-lay-bg-hover') || (isDark.value ? "#262727" : "#f5f7fa"),
+    rowSelectedBgColor: getCssVar('--stitch-lay-bg-active') || (isDark.value ? "#18222c" : "#ecf5ff"),
+    borderColor: getCssVar('--stitch-lay-border') || (isDark.value ? "#414243" : "#ebeef5"),
+    textColor: getCssVar('--stitch-lay-text-sub') || (isDark.value ? "#e5eaf3" : "#606266"),
+    fontSize: 14,
+    fontFamily: "Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif"
+  };
+  
   // 主题变化后重新渲染表格
   nextTick(() => {
     rerenderTable();
@@ -777,7 +768,7 @@ defineExpose({
 
 .header-canvas {
   flex-shrink: 0;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--stitch-lay-border);
 }
 
 .body-container {
@@ -798,7 +789,7 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--el-mask-color-extra-light);
+  background-color: var(--stitch-lay-bg-overlay);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -808,8 +799,8 @@ defineExpose({
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid var(--el-fill-color-light);
-  border-top: 4px solid var(--el-color-primary);
+  border: 4px solid var(--stitch-lay-bg-hover);
+  border-top: 4px solid var(--stitch-lay-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -825,7 +816,7 @@ defineExpose({
 }
 
 .thin-scrollbar {
-  scrollbar-color: var(--el-color-primary) transparent; /* 滑块颜色、轨道颜色 */
+  scrollbar-color: var(--stitch-lay-primary) transparent; /* 滑块颜色、轨道颜色 */
 
   /* Firefox */
   scrollbar-width: thin; /* 可选值为 'auto', 'thin', 'none' */
@@ -840,13 +831,13 @@ defineExpose({
 
   /* 滚动条滑块 */
   ::-webkit-scrollbar-thumb {
-    background-color: var(--el-color-primary-light-1);
+    background-color: var(--stitch-lay-primary-light);
     border-radius: 4px;
   }
 
   /* 滚动条滑块：hover状态 */
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--el-color-primary); /* 滑块hover颜色 */
+    background: var(--stitch-lay-primary); /* 滑块hover颜色 */
   }
 }
 </style>

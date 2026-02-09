@@ -746,26 +746,26 @@ defineExpose({
   // 亮色主题
   &--light {
     .sc-video__controls {
-      background: linear-gradient(0deg, rgba(255,255,255,0.95) 0%, transparent 100%);
+      background: linear-gradient(0deg, color-mix(in srgb, var(--el-bg-color), transparent 5%) 0%, transparent 100%);
     }
 
     .control-btn {
-      color: #333;
+      color: var(--el-text-color-primary);
 
       &:hover {
-        background: rgba(0,0,0,0.1);
+        background: var(--el-fill-color);
       }
     }
 
     .time-display {
-      color: #333;
+      color: var(--el-text-color-primary);
     }
 
     .sc-video__progress {
-      background: rgba(0,0,0,0.1);
+      background: var(--el-fill-color);
 
       .progress-buffered {
-        background: rgba(0,0,0,0.2);
+        background: var(--el-fill-color-darker);
       }
     }
   }

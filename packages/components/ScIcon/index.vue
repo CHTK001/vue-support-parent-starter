@@ -3,7 +3,7 @@ import { defineProps } from "vue";
 
 const props = defineProps({
   modelValue: { type: String, default: "ep:warning" },
-  color: { type: String, default: "white" },
+  color: { type: String, default: "" },
   size: { type: Number, default: 20 }
 });
 </script>

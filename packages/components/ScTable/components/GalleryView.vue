@@ -12,7 +12,10 @@
         v-for="(item, index) in tableData"
         :key="item[rowKey] || index"
         class="gallery-item"
-        :class="{ 'is-selected': selectedItems.includes(item[rowKey] || index) }"
+        :class="[
+          { 'is-selected': selectedItems.includes(item[rowKey] || index) },
+          `theme--${theme}`
+        ]"
         @click="handleItemClick(item, index)"
       >
         <!-- 序号徽章 -->
@@ -98,6 +101,11 @@ const props = defineProps({
   paginationType: { type: String, default: "default" },
   colSize: { type: Number, default: 4 },
   gap: { type: Number, default: 16 },
+  theme: {
+    type: String,
+    default: "default",
+    validator: (val: string) => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
+  },
   // 画廊特有配置
   imageField: { type: String, default: "image" },
   titleField: { type: String, default: "title" },
@@ -191,14 +199,15 @@ function handleDownload(row: Record<string, any>): void {
   .gallery-item {
     border-radius: 8px;
     overflow: hidden;
-    background: var(--el-bg-color);
-    border: 1px solid var(--el-border-color-lighter);
-    transition: all 0.3s ease;
+    background: var(--stitch-lay-bg-panel);
+    border: 1px solid var(--stitch-lay-border);
+    transition: var(--stitch-lay-transition);
     cursor: pointer;
+    position: relative;
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      box-shadow: var(--stitch-lay-shadow-md);
 
       .gallery-overlay {
         opacity: 1;
@@ -206,9 +215,33 @@ function handleDownload(row: Record<string, any>): void {
     }
 
     &.is-selected {
-      border-color: var(--el-color-primary);
-      box-shadow: 0 0 0 2px var(--el-color-primary-light-7);
+      border-color: var(--stitch-lay-primary);
+      box-shadow: 0 0 0 2px var(--stitch-lay-primary-light);
     }
+
+    // 主题变体混合宏
+    @mixin theme-variant($type) {
+      &:hover {
+        border-color: var(--el-color-#{$type}-light-5);
+        box-shadow: 0 4px 12px var(--el-color-#{$type}-light-9);
+      }
+
+      &.is-selected {
+        border-color: var(--el-color-#{$type});
+        box-shadow: 0 0 0 2px var(--el-color-#{$type}-light-7);
+      }
+
+      .gallery-index-badge {
+        background: linear-gradient(135deg, var(--el-color-#{$type}), var(--el-color-#{$type}-light-3));
+        box-shadow: 0 2px 8px var(--el-color-#{$type}-light-5);
+      }
+    }
+
+    &.theme--primary { @include theme-variant('primary'); }
+    &.theme--success { @include theme-variant('success'); }
+    &.theme--warning { @include theme-variant('warning'); }
+    &.theme--danger { @include theme-variant('danger'); }
+    &.theme--info { @include theme-variant('info'); }
   }
 
   .gallery-image {
@@ -228,8 +261,8 @@ function handleDownload(row: Record<string, any>): void {
       justify-content: center;
       width: 100%;
       height: 100%;
-      background: var(--el-fill-color-lighter);
-      color: var(--el-text-color-secondary);
+      background: var(--stitch-lay-bg-group);
+      color: var(--stitch-lay-text-sub);
       font-size: 32px;
     }
 
@@ -246,7 +279,7 @@ function handleDownload(row: Record<string, any>): void {
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: var(--stitch-lay-transition-fast);
 
     .overlay-actions {
       display: flex;
@@ -275,11 +308,11 @@ function handleDownload(row: Record<string, any>): void {
     align-items: center;
     justify-content: center;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    background: linear-gradient(135deg, var(--stitch-lay-primary), var(--stitch-lay-primary-light));
     color: #fff;
     font-size: 12px;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--stitch-lay-shadow-sm);
   }
 
   .gallery-checkbox {
@@ -295,7 +328,7 @@ function handleDownload(row: Record<string, any>): void {
     .gallery-title {
       font-size: 14px;
       font-weight: 500;
-      color: var(--el-text-color-primary);
+      color: var(--stitch-lay-text-main);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -304,7 +337,7 @@ function handleDownload(row: Record<string, any>): void {
     .gallery-desc {
       margin-top: 4px;
       font-size: 12px;
-      color: var(--el-text-color-secondary);
+      color: var(--stitch-lay-text-sub);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -322,7 +355,7 @@ function handleDownload(row: Record<string, any>): void {
     grid-column: 1 / -1;
 
     .no-more {
-      color: var(--el-text-color-secondary);
+      color: var(--stitch-lay-text-sub);
       font-size: 13px;
     }
   }

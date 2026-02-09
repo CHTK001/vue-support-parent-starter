@@ -24,5 +24,5 @@ const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, De
 </script>
 
 <template>
-  <component :is="CurrentComponent" :key="currentTheme" />
+  <component :is="CurrentComponent" />
 </template>

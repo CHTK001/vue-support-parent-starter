@@ -1,6 +1,6 @@
 <template>
   <div class="sc-totp-input-wrapper" :class="{ 'is-invalid': !validationResult.valid }">
-    <div class="sc-totp-input-container" :class="{ 'is-disabled': disabled }">
+    <div class="sc-totp-input-container" :class="[{ 'is-disabled': disabled }, `is-${size}`]">
       <div v-if="showPrefix && (prefixIcon || defaultPrefixIcon)" class="sc-totp-input__prefix">
         <IconifyIconOnline :icon="prefixIcon || defaultPrefixIcon" class="sc-totp-input__prefix-icon" />
       </div>
@@ -323,6 +323,25 @@ onMounted(() => {
   align-items: center;
   width: 100%;
 
+  --sc-totp-width: 44px;
+  --sc-totp-height: 52px;
+  --sc-totp-font-size: 22px;
+  --sc-totp-radius: 12px;
+
+  &.is-large {
+    --sc-totp-width: 52px;
+    --sc-totp-height: 60px;
+    --sc-totp-font-size: 26px;
+    --sc-totp-radius: 14px;
+  }
+
+  &.is-small {
+    --sc-totp-width: 36px;
+    --sc-totp-height: 44px;
+    --sc-totp-font-size: 18px;
+    --sc-totp-radius: 10px;
+  }
+
   &.is-disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -367,7 +386,7 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 500;
   color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
+  background: var(--el-fill-color-light);
   border-radius: 20px;
 }
 
@@ -380,18 +399,16 @@ onMounted(() => {
 
 .sc-totp-segment {
   position: relative;
-  width: 44px;
-  height: 52px;
+  width: var(--sc-totp-width);
+  height: var(--sc-totp-height);
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid var(--el-border-color-light);
-  border-radius: 12px;
-  background: linear-gradient(180deg, var(--el-fill-color-blank, #fff) 0%, var(--el-fill-color-lighter, #fafafa) 100%);
+  border-radius: var(--sc-totp-radius);
+  background: var(--el-bg-color);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: var(--el-box-shadow-lighter);
 
   &:hover:not(.is-focused) {
     border-color: var(--el-border-color);
@@ -399,16 +416,14 @@ onMounted(() => {
 
   &.is-focused {
     border-color: var(--el-color-primary);
-    box-shadow:
-      0 0 0 3px rgba(var(--el-color-primary-rgb), 0.15),
-      0 4px 12px rgba(0, 0, 0, 0.08);
     transform: translateY(-2px);
-    background: var(--el-fill-color-blank);
+    box-shadow: var(--el-box-shadow-light);
+    z-index: 1;
   }
 
   &.is-filled {
     border-color: var(--el-color-success-light-5);
-    background: linear-gradient(180deg, rgba(var(--el-color-success-rgb), 0.05) 0%, var(--el-fill-color-blank) 100%);
+    background: var(--el-fill-color-light);
     animation: totp-fill-pulse 0.3s ease-out;
 
     &.is-focused {
@@ -420,7 +435,7 @@ onMounted(() => {
     width: 100%;
     height: 100%;
     text-align: center;
-    font-size: 22px;
+    font-size: var(--sc-totp-font-size);
     font-weight: 600;
     font-family: "Monaco", "Menlo", "Consolas", monospace;
     border: none;

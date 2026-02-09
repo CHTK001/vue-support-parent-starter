@@ -18,81 +18,81 @@ export const iotThemes: Record<string, CardThemeConfig> = {
   // 天气面板
   weather: {
     icon: "ri:sun-cloudy-line",
-    color: "var(--el-color-primary)",
-    bgColor: "var(--el-color-primary-light-9)",
-    bgGradient: "linear-gradient(135deg, var(--el-color-primary-light-5) 0%, var(--el-color-primary) 100%)",
+    color: "var(--stitch-lay-primary)",
+    bgColor: "var(--stitch-lay-primary-alpha)",
+    bgGradient: "linear-gradient(135deg, var(--stitch-lay-primary-light) 0%, var(--stitch-lay-primary) 100%)",
     title: "天气",
     layout: "stats"
   },
   // 空调面板
   aircon: {
     icon: "ri:snowflake-line",
-    color: "var(--el-color-primary)",
-    bgColor: "var(--el-color-primary-light-9)",
-    bgGradient: "linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-info) 100%)",
+    color: "var(--stitch-lay-primary)",
+    bgColor: "var(--stitch-lay-primary-alpha)",
+    bgGradient: "linear-gradient(135deg, var(--stitch-lay-primary-light) 0%, var(--stitch-lay-info) 100%)",
     title: "空调",
     layout: "panel-3d"
   },
   // 温控面板
   thermostat: {
     icon: "ri:temp-hot-line",
-    color: "var(--el-color-danger)",
-    bgColor: "var(--el-color-danger-light-9)",
-    bgGradient: "linear-gradient(135deg, var(--el-color-danger-light-3) 0%, var(--el-color-warning) 100%)",
+    color: "var(--stitch-lay-error)",
+    bgColor: "var(--stitch-lay-error-bg)",
+    bgGradient: "linear-gradient(135deg, var(--stitch-lay-error-light) 0%, var(--stitch-lay-warning) 100%)",
     title: "温控",
     layout: "panel-3d"
   },
   // 照明面板
   lighting: {
     icon: "ri:lightbulb-line",
-    color: "var(--el-color-warning)",
-    bgColor: "var(--el-color-warning-light-9)",
-    bgGradient: "linear-gradient(135deg, var(--el-color-warning-light-3) 0%, var(--el-color-danger) 100%)",
+    color: "var(--stitch-lay-warning)",
+    bgColor: "var(--stitch-lay-warning-bg)",
+    bgGradient: "linear-gradient(135deg, var(--stitch-lay-warning-light) 0%, var(--stitch-lay-error) 100%)",
     title: "照明",
     layout: "panel-3d"
   },
   // 安防面板
   security: {
     icon: "ri:shield-check-line",
-    color: "var(--el-color-success)",
-    bgColor: "var(--el-color-success-light-9)",
-    bgGradient: "linear-gradient(135deg, var(--el-color-success-light-3) 0%, var(--el-color-success) 100%)",
+    color: "var(--stitch-lay-success)",
+    bgColor: "var(--stitch-lay-success-bg)",
+    bgGradient: "linear-gradient(135deg, var(--stitch-lay-success-light) 0%, var(--stitch-lay-success) 100%)",
     title: "安防",
     layout: "panel-3d"
   },
   // 电量面板
   energy: {
     icon: "ri:flashlight-line",
-    color: "var(--el-color-warning)",
-    bgColor: "var(--el-color-warning-light-9)",
-    bgGradient: "linear-gradient(135deg, var(--el-color-warning-light-3) 0%, var(--el-color-error) 100%)",
+    color: "var(--stitch-lay-warning)",
+    bgColor: "var(--stitch-lay-warning-bg)",
+    bgGradient: "linear-gradient(135deg, var(--stitch-lay-warning-light) 0%, var(--stitch-lay-error) 100%)",
     title: "能耗",
     layout: "stats"
   },
   // 摄像头面板
   camera: {
     icon: "ri:camera-line",
-    color: "var(--el-text-color-secondary)",
-    bgColor: "var(--el-fill-color-light)",
-    bgGradient: "linear-gradient(135deg, var(--el-text-color-secondary) 0%, var(--el-text-color-primary) 100%)",
+    color: "var(--stitch-lay-text-sub)",
+    bgColor: "var(--stitch-lay-bg-group)",
+    bgGradient: "linear-gradient(135deg, var(--stitch-lay-text-sub) 0%, var(--stitch-lay-text-main) 100%)",
     title: "监控",
     layout: "media"
   },
   // 音乐面板
   music: {
     icon: "ri:music-line",
-    color: "var(--el-color-primary)",
-    bgColor: "var(--el-color-primary-light-9)",
-    bgGradient: "linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary-dark-2) 100%)",
+    color: "var(--stitch-lay-primary)",
+    bgColor: "var(--stitch-lay-primary-alpha)",
+    bgGradient: "linear-gradient(135deg, var(--stitch-lay-primary-light) 0%, var(--stitch-lay-primary-dark) 100%)",
     title: "音乐",
     layout: "media"
   },
   // 窗帘面板
   curtain: {
     icon: "ri:layout-masonry-line",
-    color: "var(--el-color-success)",
-    bgColor: "var(--el-color-success-light-9)",
-    bgGradient: "linear-gradient(135deg, var(--el-color-info-light-3) 0%, var(--el-color-info) 100%)",
+    color: "var(--stitch-lay-success)",
+    bgColor: "var(--stitch-lay-success-bg)",
+    bgGradient: "linear-gradient(135deg, var(--stitch-lay-info-light) 0%, var(--stitch-lay-info) 100%)",
     title: "窗帘",
     layout: "panel-3d"
   },

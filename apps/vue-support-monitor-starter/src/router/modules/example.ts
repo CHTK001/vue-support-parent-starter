@@ -7,6 +7,7 @@ export default [
       rank: 12,
       title: "测试例子",
       showLink: true,
+      permanentNew: true,
     },
     children: [
       {
@@ -16,6 +17,7 @@ export default [
         meta: {
           title: "测试例子",
           icon: "ep:files",
+          permanentNew: true
         },
       },
       {
@@ -25,7 +27,8 @@ export default [
         meta: {
           title: "TechUI 科幻组件",
           icon: "ri:rocket-2-line",
-          showLink: false,
+          showLink: true,
+          permanentNew: true
         },
       },
       {

@@ -39,6 +39,7 @@ defineOptions({
 
 <style lang="scss" scoped>
 @use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
 
 .data-analysis-container {
   @include page-container;

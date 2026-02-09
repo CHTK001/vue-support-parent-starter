@@ -1,6 +1,6 @@
 <template>
   <div class="sc-ip-input-wrapper" :class="{ 'is-invalid': !validationResult.valid }">
-    <div class="sc-ip-input-container" :class="{ 'is-disabled': disabled }">
+    <div class="sc-ip-input-container" :class="[{ 'is-disabled': disabled }, `is-${size}`]">
       <div v-if="showPrefix && (prefixIcon || actualPrefixIcon)" class="sc-ip-input__prefix">
         <IconifyIconOnline :icon="prefixIcon || actualPrefixIcon" />
       </div>
@@ -71,6 +71,10 @@ interface Props {
    */
   clearable?: boolean;
   /**
+   * 输入框尺寸
+   */
+  size?: "large" | "default" | "small";
+  /**
    * 输入框类型
    */
   type?: string;
@@ -100,6 +104,7 @@ const props = withDefaults(defineProps<Props>(), {
   prefixIcon: "",
   showPrefix: true,
   clearable: true,
+  size: "default",
   type: "ip",
   rules: () => ({}),
   showValidationMsg: true,
@@ -148,15 +153,12 @@ watch(
 );
 
 // 监听IP地址变化 - 使用版本号避免深度监听
-const ipAddressVersion = computed(() => ipAddress.value.map(item => item.value).join('.'));
-watch(
-  ipAddressVersion,
-  () => {
-    if (!props.disabled) {
-      updateModelValue();
-    }
+const ipAddressVersion = computed(() => ipAddress.value.map(item => item.value).join("."));
+watch(ipAddressVersion, () => {
+  if (!props.disabled) {
+    updateModelValue();
   }
-);
+});
 
 // 监听禁用状态变化
 watch(
@@ -352,25 +354,41 @@ function handleClear() {
 .sc-ip-input-container {
   display: flex;
   align-items: center;
-  border: 1px solid var(--el-border-color);
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--el-fill-color-blank, #fff) 0%, var(--el-fill-color-lighter, #fafafa) 100%);
+  background-color: var(--el-input-bg-color, var(--el-fill-color-blank));
+  border-radius: var(--el-input-border-radius, var(--el-border-radius-base));
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+  height: var(--el-component-size);
+
+  &.is-large {
+    --el-component-size: 40px;
+    --sc-ip-input-width: 60px;
+    --sc-ip-font-size: 16px;
+  }
+
+  &.is-default {
+    --el-component-size: 32px;
+    --sc-ip-input-width: 52px;
+    --sc-ip-font-size: 14px;
+  }
+
+  &.is-small {
+    --el-component-size: 24px;
+    --sc-ip-input-width: 40px;
+    --sc-ip-font-size: 12px;
+  }
 
   &:hover:not(.is-disabled) {
-    border-color: var(--el-color-primary-light-5);
-    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    box-shadow: 0 0 0 1px var(--el-border-color-hover) inset;
   }
 
   &:focus-within:not(.is-disabled) {
-    border-color: var(--el-color-primary);
-    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.15);
+    box-shadow: 0 0 0 1px var(--el-color-primary) inset;
   }
 
   &.is-disabled {
-    background: var(--el-disabled-bg-color);
-    border-color: var(--el-disabled-border-color);
+    background-color: var(--el-disabled-bg-color);
+    box-shadow: 0 0 0 1px var(--el-disabled-border-color) inset;
     color: var(--el-disabled-text-color);
     cursor: not-allowed;
     opacity: 0.7;
@@ -404,7 +422,7 @@ function handleClear() {
   display: flex;
   border: none;
   width: auto;
-  height: 40px;
+  height: 100%;
   flex: 1;
   padding: 0;
   margin: 0;
@@ -412,7 +430,7 @@ function handleClear() {
 
 .sc-ip-adress li {
   position: relative;
-  height: 36px;
+  height: 100%;
   margin: 0;
   padding: 0;
   list-style-type: none;
@@ -421,33 +439,33 @@ function handleClear() {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   // 已填充状态
-  &.is-filled {
-    .sc-ip-input-class {
-      background: rgba(var(--el-color-primary-rgb), 0.08);
-      border-radius: 6px;
+    &.is-filled {
+      .sc-ip-input-class {
+        background: var(--el-fill-color-light);
+        border-radius: 4px;
+      }
     }
-  }
 
-  // 激活状态
-  &.is-active {
-    transform: scale(1.05);
-    z-index: 1;
+    // 激活状态
+    &.is-active {
+      transform: scale(1.05);
+      z-index: 1;
 
-    .sc-ip-input-class {
-      background: rgba(var(--el-color-primary-rgb), 0.12);
-      border-radius: 6px;
-      box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+      .sc-ip-input-class {
+        background: var(--el-fill-color);
+        border-radius: 4px;
+        box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+      }
     }
-  }
 }
 
 .sc-ip-input-class {
   border: none;
-  width: 52px;
+  width: var(--sc-ip-input-width, 52px);
   height: 100%;
   text-align: center;
   background: transparent;
-  font-size: 15px;
+  font-size: var(--sc-ip-font-size, 14px);
   font-weight: 500;
   font-family: "Monaco", "Menlo", "Consolas", monospace;
   color: var(--el-text-color-primary);
@@ -475,7 +493,7 @@ function handleClear() {
   right: -2px;
   transform: translateY(50%);
   border-radius: 50%;
-  background: var(--el-color-primary-light-5);
+  background: var(--el-text-color-placeholder);
   width: 4px;
   height: 4px;
   transition: all 0.2s;
@@ -499,10 +517,32 @@ function handleClear() {
 }
 
 .sc-ip-input__error {
-  color: var(--el-color-danger);
-  font-size: 12px;
-  line-height: 1;
-  padding-top: 4px;
-  margin-left: 1px;
+    color: var(--el-color-danger);
+    font-size: 12px;
+    line-height: 1;
+    padding-top: 4px;
+    margin-left: 1px;
+  }
+}
+
+// 移动端适配
+@media screen and (max-width: 768px) {
+  .sc-ip-input-class {
+    width: 40px;
+    font-size: 13px;
+  }
+
+  .sc-ip-input__prefix,
+  .sc-ip-input__suffix {
+    padding: 0 8px;
+  }
+
+  .sc-ip-adress {
+    height: 32px;
+
+    li {
+      height: 32px;
+    }
+  }
 }
 </style>

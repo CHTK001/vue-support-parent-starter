@@ -7,6 +7,8 @@ export type RouteMetaType = {
   savedPosition?: boolean;
   auths?: Array<string>;
   i18nKey?: string;
+  permanentNew?: boolean;
+  createTime?: string;
 };
 
 export type MenuType = {
@@ -23,6 +25,8 @@ export type MenuType = {
     showParent?: boolean;
     extraIcon?: string;
     i18nKey?: string;
+    permanentNew?: boolean;
+    createTime?: string;
     remainingSelf?: boolean;
     remaining?: boolean;
   };

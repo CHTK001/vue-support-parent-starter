@@ -160,5 +160,16 @@ export default {
   text-align: center;
   font-size: 14px;
   margin-top: 3px;
+  cursor: move;
+  color: var(--el-text-color-placeholder);
+  transition: color 0.2s;
+}
+.sc-form-table .move:hover {
+  color: var(--el-text-color-primary);
+}
+
+:deep(.ghost) {
+  background: var(--el-color-primary-light-9) !important;
+  opacity: 0.8;
 }
 </style>

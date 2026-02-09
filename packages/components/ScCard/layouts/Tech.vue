@@ -131,9 +131,9 @@ export default defineComponent({
      * 主题色
      */
     theme: {
-      type: String as PropType<"cyan" | "blue" | "green" | "purple" | "orange" | "red">,
-      default: "cyan",
-      validator: (val: string) => ["cyan", "blue", "green", "purple", "orange", "red"].includes(val)
+      type: String as PropType<"default" | "primary" | "cyan" | "blue" | "green" | "purple" | "orange" | "red">,
+      default: "default",
+      validator: (val: string) => ["default", "primary", "cyan", "blue", "green", "purple", "orange", "red"].includes(val)
     },
     /**
      * 是否显示数据流动画
@@ -154,41 +154,69 @@ export default defineComponent({
     // 主题颜色配置
     const themeColors = computed(() => {
       const themes = {
+        default: {
+          primary: "var(--el-color-primary)",
+          secondary: "var(--el-border-color)",
+          glow: "rgba(var(--el-color-primary-rgb), 0.3)",
+          bg: "var(--stitch-lay-bg-panel)",
+          text: "var(--stitch-lay-text-main)",
+          subText: "var(--stitch-lay-text-sub)"
+        },
+        primary: {
+          primary: "var(--stitch-lay-border-hover)",
+          secondary: "var(--stitch-lay-border)",
+          glow: "var(--stitch-lay-shadow-sm)",
+          bg: "var(--stitch-lay-bg-panel)",
+          text: "var(--stitch-lay-text-main)",
+          subText: "var(--stitch-lay-text-sub)"
+        },
         cyan: {
           primary: "#00f6ff",
           secondary: "#00d4ff",
           glow: "rgba(0, 246, 255, 0.5)",
-          bg: "rgba(0, 20, 40, 0.8)"
+          bg: "rgba(0, 20, 40, 0.8)",
+          text: "#fff",
+          subText: "rgba(255, 255, 255, 0.9)"
         },
         blue: {
           primary: "#1890ff",
           secondary: "#40a9ff",
           glow: "rgba(24, 144, 255, 0.5)",
-          bg: "rgba(4, 49, 128, 0.8)"
+          bg: "rgba(4, 49, 128, 0.8)",
+          text: "#fff",
+          subText: "rgba(255, 255, 255, 0.9)"
         },
         green: {
-          primary: "#00ff88",
-          secondary: "#00cc6a",
-          glow: "rgba(0, 255, 136, 0.5)",
-          bg: "rgba(0, 40, 20, 0.8)"
+          primary: "var(--stitch-lay-success)",
+          secondary: "var(--stitch-lay-success-light)",
+          glow: "var(--stitch-lay-success-light)",
+          bg: "rgba(0, 40, 20, 0.8)",
+          text: "#fff",
+          subText: "rgba(255, 255, 255, 0.9)"
         },
         purple: {
           primary: "#b37feb",
           secondary: "#d3adf7",
           glow: "rgba(179, 127, 235, 0.5)",
-          bg: "rgba(40, 0, 60, 0.8)"
+          bg: "rgba(40, 0, 60, 0.8)",
+          text: "#fff",
+          subText: "rgba(255, 255, 255, 0.9)"
         },
         orange: {
-          primary: "#ff9500",
-          secondary: "#ffb340",
-          glow: "rgba(255, 149, 0, 0.5)",
-          bg: "rgba(60, 30, 0, 0.8)"
+          primary: "var(--stitch-lay-warning)",
+          secondary: "var(--stitch-lay-warning-light)",
+          glow: "var(--stitch-lay-warning-light)",
+          bg: "rgba(60, 30, 0, 0.8)",
+          text: "#fff",
+          subText: "rgba(255, 255, 255, 0.9)"
         },
         red: {
-          primary: "#ff4d4f",
-          secondary: "#ff7875",
-          glow: "rgba(255, 77, 79, 0.5)",
-          bg: "rgba(60, 0, 0, 0.8)"
+          primary: "var(--stitch-lay-error)",
+          secondary: "var(--stitch-lay-error-light)",
+          glow: "var(--stitch-lay-error-light)",
+          bg: "rgba(60, 0, 0, 0.8)",
+          text: "#fff",
+          subText: "rgba(255, 255, 255, 0.9)"
         }
       };
       return themes[props.theme] || themes.cyan;
@@ -200,6 +228,8 @@ export default defineComponent({
       "--tech-secondary-color": themeColors.value.secondary,
       "--tech-glow-color": themeColors.value.glow,
       "--tech-bg-color": themeColors.value.bg,
+      "--tech-text-color": themeColors.value.text,
+      "--tech-sub-text-color": themeColors.value.subText,
       "--tech-padding": props.padding
     }));
 
@@ -377,7 +407,7 @@ export default defineComponent({
   &__title-text {
     font-size: 16px;
     font-weight: 600;
-    color: #fff;
+    color: var(--tech-text-color);
     text-shadow: 0 0 10px var(--tech-glow-color);
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -401,7 +431,7 @@ export default defineComponent({
   &__content {
     flex: 1;
     overflow: auto;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--tech-sub-text-color);
 
     &::-webkit-scrollbar {
       width: 6px;

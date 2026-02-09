@@ -904,6 +904,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
 
 .file-manager {
   @include system-container;

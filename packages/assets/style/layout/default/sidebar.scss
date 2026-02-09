@@ -219,13 +219,15 @@
       background-color: transparent !important;
       border-radius: 8px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
 
       &:hover {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       }
 
-      div,
-      span {
+      div:not(.menu-new-badge),
+      span:not(.menu-new-badge) {
         height: 46px;
         line-height: 46px;
         font-size: 14px;

@@ -198,6 +198,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 @use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
 
 .acme-container {
   @include system-container;

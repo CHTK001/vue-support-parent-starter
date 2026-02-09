@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import "@wangeditor/editor/dist/css/style.css";
+import "../../ScEditor/style.css";
 import { Editor, Toolbar } from "@wangeditor/editor-for-vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { computed, ref, shallowRef, onBeforeUnmount, watch, onMounted } from "vue";
@@ -239,7 +240,7 @@ defineExpose({
     transform: translateY(-1px);
 
     .sc-richtext-input-container {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      box-shadow: var(--el-box-shadow-light);
     }
   }
 
@@ -248,7 +249,7 @@ defineExpose({
     transform: translateY(-2px);
 
     .sc-richtext-input-container {
-      box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.1), 0 6px 16px rgba(64, 158, 255, 0.15);
+      box-shadow: 0 0 0 4px var(--el-color-primary-light-9), 0 6px 16px var(--el-color-primary-light-8);
     }
   }
 }
@@ -274,7 +275,7 @@ defineExpose({
   overflow: hidden;
   background-color: var(--el-bg-color);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--el-box-shadow-lighter);
 
   &:hover {
     border-color: var(--el-border-color);
@@ -346,8 +347,8 @@ defineExpose({
   font-size: 12px;
   line-height: 1.4;
   padding: 8px 16px;
-  background-color: rgba(245, 108, 108, 0.05);
-  border-top: 1px solid rgba(245, 108, 108, 0.2);
+  background-color: var(--el-color-danger-light-9);
+  border-top: 1px solid var(--el-color-danger-light-8);
 }
 
 // 动画定义

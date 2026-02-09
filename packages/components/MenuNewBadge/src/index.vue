@@ -1,5 +1,5 @@
 <template>
-  <span v-if="showBadge" class="menu-new-badge" :class="badgeClass">
+  <span v-if="showBadge" class="menu-new-badge" :class="[badgeClass, animationClass]">
     {{ badgeText }}
   </span>
 </template>
@@ -24,13 +24,16 @@ interface Props {
   customText?: string;
   /** 标识样式类型 */
   type?: "default" | "primary" | "success" | "warning" | "danger";
+  /** 动画类型 */
+  animation?: "none" | "bounce" | "pulse" | "shake";
 }
 
 const props = withDefaults(defineProps<Props>(), {
   createTime: undefined,
   forceShow: false,
   customText: "",
-  type: "primary"
+  type: "primary",
+  animation: "bounce"
 });
 
 // 获取配置
@@ -83,21 +86,33 @@ const badgeText = computed(() => {
 const badgeClass = computed(() => {
   return `menu-new-badge--${props.type}`;
 });
+
+/**
+ * 动画样式类
+ */
+const animationClass = computed(() => {
+  if (props.animation === 'none') return '';
+  return `animate-${props.animation}`;
+});
 </script>
 
 <style lang="scss" scoped>
 .menu-new-badge {
   display: inline-block;
-  padding: 2px 6px;
-  font-size: 10px;
+  padding: 1px 4px;
+  font-size: 9px !important;
+  height: 20px !important;
+  line-height: 20px !important;
+  transform: scale(0.83);
+  transform-origin: left center;
   font-weight: 600;
+  color: #fff !important;
   line-height: 1;
   border-radius: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-left: 6px;
+  margin-left: 4px;
   vertical-align: middle;
-  animation: pulse 2s infinite;
   position: relative;
   overflow: hidden;
 
@@ -177,6 +192,19 @@ const badgeClass = computed(() => {
   }
 }
 
+// 动画类
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+.animate-bounce {
+  animation: bounce 2s infinite;
+}
+
+.animate-shake {
+  animation: shake 3s infinite;
+}
+
 // 脉冲动画
 @keyframes pulse {
   0%,
@@ -188,5 +216,30 @@ const badgeClass = computed(() => {
     transform: scale(1.05);
     opacity: 0.9;
   }
+}
+
+// 弹跳动画
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
+}
+
+// 摇晃动画
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(-10deg); }
+  20% { transform: rotate(8deg); }
+  30% { transform: rotate(-8deg); }
+  40% { transform: rotate(6deg); }
+  50% { transform: rotate(-4deg); }
+  60% { transform: rotate(2deg); }
+  70% { transform: rotate(0deg); }
 }
 </style>
