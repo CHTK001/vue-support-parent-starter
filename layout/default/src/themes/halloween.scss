@@ -55,6 +55,13 @@
   --el-border-color-lighter: #702099;
   --el-border-color-extra-light: #852cb5;
 
+  // --- 填充颜色 (用于下拉菜单触发器等) ---
+  --el-fill-color-lighter: rgba(44, 0, 62, 0.6);
+  --el-fill-color-light: rgba(44, 0, 62, 0.8);
+  --el-fill-color: rgba(44, 0, 62, 1);
+  --el-fill-color-dark: rgba(26, 0, 38, 1);
+  --el-fill-color-darker: rgba(0, 0, 0, 0.5);
+
   // --- 阴影与发光 ---
   --hw-shadow-glow: 0 0 10px rgba(118, 255, 3, 0.3);
   --hw-shadow-pumpkin: 0 0 10px rgba(255, 117, 24, 0.3);
@@ -299,19 +306,51 @@
 
 // --- 按钮 ---
 .theme-halloween :deep(.el-button) {
-  // 默认按钮
-  background: rgba(255,255,255,0.05);
-  border-color: var(--hw-witch-purple);
-  color: var(--hw-ghost-white);
-  
-  &:hover {
-    color: var(--hw-pumpkin-orange);
-    border-color: var(--hw-pumpkin-orange);
-    background: rgba(255, 117, 24, 0.1);
+  // 通用样式 (排除链接按钮)
+  &:not(.is-link) {
+    background: rgba(255,255,255,0.05);
+    border-color: var(--hw-witch-purple);
+    color: var(--hw-ghost-white);
+    border-radius: 12px 4px 12px 4px; // 南瓜形状微调
+    overflow: hidden;
+
+    // 添加南瓜头装饰
+    &:not(.is-circle):not(.is-round) {
+      &::before {
+        content: "🎃";
+        margin-right: 6px;
+        font-size: 1.1em;
+        transition: transform 0.3s;
+      }
+
+      &:hover::before {
+        animation: hw-shake 0.5s;
+      }
+    }
+    
+    &:hover {
+      color: var(--hw-pumpkin-orange);
+      border-color: var(--hw-pumpkin-orange);
+      background: rgba(255, 117, 24, 0.1);
+    }
+  }
+
+  // 链接按钮特化
+  &.is-link {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 4px 8px;
+    height: auto;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
   }
 
   // 主要按钮 (南瓜橙)
-  &.el-button--primary {
+  &.el-button--primary:not(.is-link) {
     background: var(--hw-pumpkin-orange);
     border-color: var(--hw-pumpkin-orange);
     color: #fff;
@@ -326,7 +365,7 @@
   }
 
   // 成功按钮 (史莱姆绿)
-  &.el-button--success {
+  &.el-button--success:not(.is-link) {
     background: var(--hw-slime-green);
     border-color: var(--hw-slime-green);
     color: #000;
@@ -338,7 +377,7 @@
   }
   
   // 危险按钮 (血红)
-  &.el-button--danger {
+  &.el-button--danger:not(.is-link) {
     background: var(--hw-blood-red);
     border-color: var(--hw-blood-red);
     
@@ -395,16 +434,261 @@
     border-bottom: 1px solid var(--hw-witch-purple);
     margin-right: 0;
     
-    .el-dialog__title {
+  .el-dialog__title {
       color: var(--hw-pumpkin-orange);
+      display: flex;
+      align-items: center;
+      
       &::before {
-        content: "🎃 ";
+        content: "🎃";
+        margin-right: 8px;
+        font-size: 1.2em;
+        animation: hw-shake 2s infinite;
+      }
+    }
+  }
+  
+  .el-dialog__body {
+    color: var(--hw-ghost-white);
+  }
+  
+  .el-dialog__footer {
+    border-top: 1px solid var(--hw-witch-purple);
+  }
+}
+
+// --- 下拉菜单 (语言/个人中心) ---
+.theme-halloween {
+  // 语言下拉菜单容器
+  .lang-dropdown-popper {
+    .el-dropdown-menu {
+      background: var(--hw-deep-purple);
+      border: 1px solid var(--hw-pumpkin-orange);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+      
+      .lang-header {
+        background: rgba(26, 0, 38, 0.8);
+        border-bottom: 1px solid var(--hw-witch-purple);
+        color: var(--hw-pumpkin-orange);
+      }
+      
+      .lang-item {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--hw-ghost-white);
+        border: 1px solid transparent;
+        
+        &:hover {
+          background: rgba(118, 255, 3, 0.15);
+          border-color: var(--hw-slime-green);
+          
+          .lang-name { color: var(--hw-slime-green); }
+        }
+        
+        &.active {
+          background: rgba(255, 117, 24, 0.15);
+          border-color: var(--hw-pumpkin-orange);
+          
+          .lang-name { color: var(--hw-pumpkin-orange); }
+          .lang-check { color: var(--hw-pumpkin-orange); }
+        }
+        
+        .lang-desc { color: #aaa; }
+      }
+    }
+    
+    .el-popper__arrow::before {
+      background: var(--hw-deep-purple) !important;
+      border: 1px solid var(--hw-pumpkin-orange) !important;
+    }
+  }
+
+  // 用户下拉菜单容器
+  .user-dropdown-popper {
+    .el-dropdown-menu {
+      background: var(--hw-deep-purple);
+      border: 1px solid var(--hw-pumpkin-orange);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+      padding: 0;
+      overflow: hidden;
+      
+      .menu-header {
+        background: linear-gradient(135deg, rgba(255, 117, 24, 0.1), rgba(44, 0, 62, 0.8));
+        border-bottom: 1px solid var(--hw-witch-purple);
+        
+        .header-name { color: var(--hw-pumpkin-orange); }
+        .header-status { color: var(--hw-slime-green); }
+      }
+      
+      .menu-body {
+        padding: 8px;
+        
+        .menu-item {
+          background: transparent;
+          color: var(--hw-ghost-white);
+          margin-bottom: 4px;
+          border-radius: 8px;
+          
+          .item-icon {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ccc;
+          }
+          
+          .item-title { color: #eee; }
+          .item-desc { color: #888; }
+          .item-arrow { color: #666; }
+          
+          &:hover {
+            background: rgba(118, 255, 3, 0.1);
+            
+            .item-icon {
+              background: var(--hw-slime-green);
+              color: #000;
+            }
+            
+            .item-title { color: var(--hw-slime-green); }
+            .item-arrow { color: var(--hw-slime-green); transform: translateX(2px); }
+          }
+        }
+      }
+      
+      .menu-footer {
+        background: rgba(0, 0, 0, 0.2);
+        border-top: 1px solid var(--hw-witch-purple);
+        
+        .logout-item {
+          color: #ccc;
+          
+          &:hover {
+            background: rgba(255, 0, 0, 0.1);
+            color: var(--hw-blood-red);
+          }
+        }
+      }
+    }
+    
+    .el-popper__arrow::before {
+      background: var(--hw-deep-purple) !important;
+      border: 1px solid var(--hw-pumpkin-orange) !important;
+    }
+  }
+  
+  // 导航栏内的触发器样式
+  .lay-navbar {
+    .user-trigger {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--hw-witch-purple);
+      color: var(--hw-ghost-white);
+      
+      &:hover {
+        background: rgba(255, 117, 24, 0.1);
+        border-color: var(--hw-pumpkin-orange);
+        color: var(--hw-pumpkin-orange);
+        
+        .avatar-img {
+          transform: scale(1.1);
+          border-color: var(--hw-pumpkin-orange);
+        }
+      }
+      
+      .avatar-img {
+        border: 2px solid var(--hw-witch-purple);
+        transition: all 0.3s;
+      }
+      
+      .user-info {
+        .user-name { color: var(--hw-pumpkin-orange); }
+        .user-role { color: #aaa; }
+      }
+    }
+    
+    // 语言切换触发器
+    .lang-style {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--hw-witch-purple);
+      
+      .lang-main-icon { color: var(--hw-slime-green); }
+      .user-info {
+         .user-name { color: var(--hw-ghost-white); }
+         .user-role { color: #aaa; }
+      }
+      
+      &:hover {
+        background: rgba(118, 255, 3, 0.1);
+        border-color: var(--hw-slime-green);
       }
     }
   }
 
-  .el-dialog__body {
-    color: var(--hw-ghost-white);
+  // 消息下拉菜单容器
+  .message-dropdown-popper {
+    .el-dropdown-menu {
+      background: var(--hw-deep-purple);
+      border: 1px solid var(--hw-pumpkin-orange);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+      padding: 0 !important;
+    }
+
+    .message-panel {
+      .panel-header {
+        background: rgba(26, 0, 38, 0.9);
+        border-bottom: 1px solid var(--hw-witch-purple);
+        
+        .header-title {
+          color: var(--hw-pumpkin-orange);
+          &::before { background: var(--hw-pumpkin-orange); }
+        }
+        
+        .el-button {
+          color: var(--hw-slime-green);
+          &:hover { color: #fff; }
+        }
+      }
+
+      .panel-body {
+        .message-item {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          
+          &:hover {
+            background: rgba(118, 255, 3, 0.1);
+            border-color: transparent;
+          }
+          
+          &.unread {
+            background: rgba(255, 117, 24, 0.1);
+            .item-title { color: var(--hw-pumpkin-orange); }
+          }
+
+          .item-title { color: var(--hw-ghost-white); }
+          .item-desc { color: #aaa; }
+          .item-time { color: #666; }
+        }
+      }
+
+      .panel-footer {
+        background: rgba(26, 0, 38, 0.95);
+        border-top: 1px solid var(--hw-witch-purple);
+        
+        .el-button {
+          color: var(--hw-ghost-white);
+          transition: all 0.3s;
+          
+          &:hover { 
+            color: var(--hw-pumpkin-orange);
+            background: rgba(255, 117, 24, 0.1);
+          }
+          
+          &--primary {
+            color: var(--hw-pumpkin-orange);
+            font-weight: bold;
+            
+            &:hover { 
+              color: var(--hw-slime-green);
+              background: rgba(118, 255, 3, 0.1);
+            }
+          }
+        }
+      }
+    }
   }
 }
 
@@ -468,6 +752,51 @@
     
     &:hover:not(.is-active) {
       color: var(--hw-slime-green);
+    }
+  }
+}
+
+// --- User Dropdown ---
+.theme-halloween {
+  .user-dropdown-popper {
+    background: var(--hw-deep-purple) !important;
+    border: 1px solid var(--hw-pumpkin-orange) !important;
+    box-shadow: 0 0 15px rgba(255, 117, 24, 0.4) !important;
+    
+    .el-popper__arrow::before {
+      background: var(--hw-deep-purple) !important;
+      border: 1px solid var(--hw-pumpkin-orange) !important;
+    }
+  }
+
+  .el-dropdown-menu {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .user-menu {
+    .menu-header {
+      background: rgba(255, 117, 24, 0.15);
+      border-bottom: 1px solid var(--hw-pumpkin-orange);
+      
+      .header-name { color: var(--hw-pumpkin-orange); text-shadow: 0 0 5px rgba(255, 117, 24, 0.5); }
+      .header-status { color: var(--hw-slime-green); }
+    }
+    
+    .menu-body {
+      .menu-item {
+        &:hover {
+          background: rgba(118, 255, 3, 0.15);
+          
+          .item-title { color: var(--hw-slime-green); }
+          .item-icon { color: var(--hw-slime-green); transform: scale(1.1); }
+        }
+        
+        .item-icon { color: var(--hw-ghost-white); transition: all 0.3s; }
+        .item-title { color: var(--hw-ghost-white); }
+        .item-desc { color: #888; }
+        .item-arrow { color: #666; }
+      }
     }
   }
 }

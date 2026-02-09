@@ -23,6 +23,25 @@ All notable changes to this project will be documented in this file.
 - **Lay-Tag**: 
   - Fixed an issue where the `chrome-close-btn` was not displaying by correctly importing and using the `CloseIcon` from `@iconify-icons`.
   - **Chrome Style Beautification**: Enhanced the Chrome tab style with smoother background transitions, improved hover effects (light background on hover), and refined close button interactions (red background on hover for inactive tabs, semi-transparent white for active tabs).
+- **Halloween Theme**:
+  - Fixed an issue where the top header (`lay-header`) would disappear in Hover Navigation mode by correctly applying the `lay-navbar` class to the theme component.
+  - Resolved a visibility issue in Hover Navigation where secondary menu items were unreadable (all black) by replacing hardcoded colors with theme-adaptive CSS variables (`--hover-nav-menu-color`).
+  - **Tool Bar Adaptation**: Fully adapted "Language" and "User Profile" dropdown menus to the Halloween theme, featuring deep purple backgrounds, pumpkin orange borders, and slime green hover effects.
+  - **Message Center**: Fixed unadapted styles for the "Clear" and "View All" buttons in the message dropdown footer, ensuring they match the Halloween theme colors (Ghost White/Pumpkin Orange) and use a clean "Ghost Button" style without the pumpkin decoration.
+   - **Button Styling**: Replaced all standard buttons with a "Pumpkin Head" style in the Halloween theme, featuring a pumpkin icon (🎃) and unique asymmetrical border radius. (Excluded link buttons to maintain text readability).
+   - **System Settings**: 
+     - Replaced the standard gear icon with a festive pumpkin icon (🎃) in the global toolbar when Halloween theme is active. Added a "lighting up" animation on hover where the pumpkin mouth glows.
+     - Enhanced the System Settings panel with Halloween-specific header decorations and optimized styles, ensuring a distinct festive look separate from the default theme.
+     - Deeply adapted Element Plus components (Switch, Slider, Radio, Segmented, InputNumber, Select) within the Halloween settings panel to match the Orange/Purple color scheme.
+     - Fixed a critical issue where the Halloween tool bar component (`lay-tool/themes/Halloween.vue`) was missing, preventing proper theme switching.
+   - **Festival Themes**:
+     - Componentized System Settings panels for all festival themes (Spring Festival, Mid-Autumn, Christmas, Cyberpunk, New Year).
+     - Implemented theme-specific deep adaptations for inner Element Plus components across all festival themes, ensuring a consistent and immersive visual experience (e.g., Red/Gold for Spring Festival, Neon for Cyberpunk).
+   - **Hover Navigation**: Replaced the default "Favorites" icon with a festive pumpkin icon (🎃) in the Halloween theme.
+   - **User Profile**:
+     - **Avatar**: Componentized the user avatar into `LayAvatar`, enabling theme-specific decorations. Added a spinning spider-web border decoration for the Halloween theme.
+     - **Dropdown**: Enhanced the User Dropdown to support deep theme customization. Implemented a semi-transparent purple background with pumpkin orange borders and shadow effects for the Halloween theme.
+   - **Theme Provider**: Fixed a bug in `ThemeSkinProvider` where the `theme-halloween` class was not correctly removed when switching to other themes.
 
 
 ### Changed
