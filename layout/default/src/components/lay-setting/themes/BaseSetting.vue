@@ -27,6 +27,7 @@ import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
 import { ElMessage } from "element-plus";
 import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
+import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import LayThemeSwitcher from "../../lay-theme-switcher/index.vue";
 import { useThemeStore } from "../../../stores/themeStore";
 import { storeToRefs } from "pinia";
@@ -93,6 +94,23 @@ const {
   dataThemeChange,
   setLayoutThemeColor,
 } = useDataThemeChange();
+
+const handleOverallStyleChange = (theme: any) => {
+  useThemeAnimation(() => {
+    theme.index === 1 && theme.index !== 2
+      ? (dataTheme.value = true)
+      : (dataTheme.value = false);
+    overallStyle.value = theme.option.theme;
+    dataThemeChange(theme.option.theme);
+    theme.index === 2 && watchSystemThemeChange();
+  });
+};
+
+const handleSetLayoutThemeColor = (color: string, event: MouseEvent) => {
+  useThemeAnimation(() => {
+    setLayoutThemeColor(color);
+  }, event);
+};
 
 /* body添加layout属性，作用于src/style/sidebar.scss */
 if (unref(layoutTheme)) {
@@ -161,7 +179,31 @@ const settings = reactive({
   fontEncryptionChinese: $storage.configure?.fontEncryptionChinese ?? true,
   fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? false,
   fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? false,
+  // 主题切换动画设置
+  themeAnimationMode: $storage.configure?.themeAnimationMode ?? "fixed",
+  themeAnimationDirection: $storage.configure?.themeAnimationDirection ?? "top-right",
 });
+
+/** 主题动画模式选项 */
+const themeAnimationModeOptions = computed<Array<OptionsType>>(() => [
+  { label: "随机", value: "random" },
+  { label: "固定", value: "fixed" },
+  { label: "禁用", value: "disabled" },
+]);
+
+/** 主题动画方向选项 */
+const themeAnimationDirectionOptions = computed(() => [
+  { label: "跟随鼠标", value: "cursor" },
+  { label: "中心扩散", value: "center" },
+  { label: "右上角", value: "top-right" },
+  { label: "左上角", value: "top-left" },
+  { label: "右下角", value: "bottom-right" },
+  { label: "左下角", value: "bottom-left" },
+  { label: "顶部", value: "top" },
+  { label: "底部", value: "bottom" },
+  { label: "左侧", value: "left" },
+  { label: "右侧", value: "right" },
+]);
 
 /** 过渡动画类型选项 */
 const transitionTypeOptions = computed<Array<OptionsType>>(() => [
@@ -877,6 +919,8 @@ function resetToDefault() {
     keepAlive: true,
     debugMode: false,
     menuAnimation: true,
+    themeAnimationMode: "fixed",
+    themeAnimationDirection: "top-right",
   });
 
   // 重置卡片颜色模式
@@ -902,6 +946,10 @@ function resetToDefault() {
   // 重置菜单动画
   storageConfigureChange("MenuAnimation", true);
   emitter.emit("menuAnimationChange", true);
+
+  // 重置主题动画
+  storageConfigureChange("themeAnimationMode", "fixed");
+  storageConfigureChange("themeAnimationDirection", "top-right");
 
   ElMessage.success(t("panel.settingsRestored"));
 }
@@ -1090,6 +1138,17 @@ function newMenuAnimationChange({ option }: { option: OptionsType }) {
   emitter.emit("newMenuAnimationChange", value);
 }
 
+function themeAnimationModeChange({ option }: { option: OptionsType }) {
+  const value = option.value as any;
+  settings.themeAnimationMode = value;
+  storageConfigureChange("themeAnimationMode", value);
+}
+
+function themeAnimationDirectionChange(value: string) {
+  settings.themeAnimationDirection = value as any;
+  storageConfigureChange("themeAnimationDirection", value);
+}
+
 /** 导入设置 */
 function importSettings() {
   const input = document.createElement("input");
@@ -1175,16 +1234,7 @@ onUnmounted(() => {
               class="select-none modern-segmented"
               :modelValue="overallStyle === 'system' ? 2 : dataTheme ? 1 : 0"
               :options="themeOptions"
-              @change="
-                (theme) => {
-                  theme.index === 1 && theme.index !== 2
-                    ? (dataTheme = true)
-                    : (dataTheme = false);
-                  overallStyle = theme.option.theme;
-                  dataThemeChange(theme.option.theme);
-                  theme.index === 2 && watchSystemThemeChange();
-                }
-              "
+              @change="handleOverallStyleChange"
             />
           </div>
         </div>
@@ -1214,7 +1264,7 @@ onUnmounted(() => {
                     'is-selected': item.themeColor === layoutTheme.theme,
                   }"
                   :style="getThemeColorStyle(item.color)"
-                  @click="setLayoutThemeColor(item.themeColor)"
+                  @click="(e) => handleSetLayoutThemeColor(item.themeColor, e)"
                 >
                   <!-- 选中状态指示器 -->
                   <div class="selection-indicator">
@@ -1227,6 +1277,65 @@ onUnmounted(() => {
                   <div class="shine-effect"></div>
                 </div>
               </el-tooltip>
+            </div>
+          </div>
+        </div>
+
+        <!-- 主题动画设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOnline icon="ri:movie-line" class="section-icon" />
+            <h3 class="section-title">主题切换动画</h3>
+            <div class="section-description">
+              设置主题切换时的过渡动画效果
+            </div>
+          </div>
+          <div class="setting-content">
+            <div
+              class="setting-group-item"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+              "
+            >
+              <span class="setting-label" style="font-size: 14px"
+                >动画模式</span
+              >
+              <Segmented
+                v-model="settings.themeAnimationMode"
+                :options="themeAnimationModeOptions"
+                size="small"
+                @change="themeAnimationModeChange"
+              />
+            </div>
+
+            <div
+              v-if="settings.themeAnimationMode === 'fixed'"
+              class="setting-group-item"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span class="setting-label" style="font-size: 14px"
+                >动画方向</span
+              >
+              <el-select
+                v-model="settings.themeAnimationDirection"
+                size="small"
+                style="width: 120px"
+                @change="themeAnimationDirectionChange"
+              >
+                <el-option
+                  v-for="item in themeAnimationDirectionOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
             </div>
           </div>
         </div>

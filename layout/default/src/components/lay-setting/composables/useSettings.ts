@@ -66,6 +66,9 @@ export interface SettingsState {
   fontEncryptionChinese: boolean;
   fontEncryptionGlobal: boolean;
   fontEncryptionOcrNoise: boolean;
+  // 主题切换动画配置
+  themeAnimationMode: 'random' | 'fixed' | 'disabled';
+  themeAnimationDirection: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center' | 'left' | 'right' | 'top' | 'bottom';
 }
 
 /**
@@ -78,6 +81,11 @@ export function useSettings() {
   const settings = reactive<SettingsState>({
     menuTransition: $storage.configure?.menuTransition ?? false,
     transitionType: $storage.configure?.transitionType ?? 'fade-slide',
+    // ... 其他默认值保持不变
+    // 新增动画配置默认值
+    themeAnimationMode: $storage.configure?.themeAnimationMode ?? 'fixed',
+    themeAnimationDirection: $storage.configure?.themeAnimationDirection ?? 'top-right',
+    
     contentMargin: $storage.configure?.contentMargin ?? 16,
     layoutRadius: $storage.configure?.layoutRadius ?? 10,
     layoutBlur: $storage.configure?.layoutBlur ?? 4,
