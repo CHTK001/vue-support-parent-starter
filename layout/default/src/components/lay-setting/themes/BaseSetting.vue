@@ -1963,6 +1963,17 @@ onUnmounted(() => {
                 @change="multiTagsCacheChange"
               />
 
+              <ScSwitch
+                v-model="themeStore.homeCustomizationEnabled"
+                layout="visual-card"
+                size="small"
+                label="首页自定义"
+                description="开启后支持自定义首页布局"
+                active-icon="ri:dashboard-line"
+                ribbon-color="var(--el-color-success)"
+                @change="themeStore.setHomeCustomizationEnabled"
+              />
+
               <!-- 性能监控 (仅在开发/测试环境或 SA 账号显示) -->
               <div v-if="isPerformanceMonitorVisible" class="setting-group">
                <h4 class="group-title">
