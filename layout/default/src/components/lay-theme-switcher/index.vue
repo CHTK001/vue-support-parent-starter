@@ -72,6 +72,8 @@ function removeAllThemeClasses() {
     .forEach((cls) => htmlEl.classList.remove(cls));
 }
 
+import { useThemeAnimation } from "../../hooks/useThemeAnimation";
+
 function applyTheme(themeKey: string) {
   const htmlEl = document.documentElement;
   removeAllThemeClasses();
@@ -100,15 +102,17 @@ function applyTheme(themeKey: string) {
   }
 }
 
-function onSelect(themeKey: string) {
-  internalTheme.value = themeKey;
-  
-  applyTheme(themeKey);
-  if (props.persist) {
-    try { localStorage.setItem(props.storageKey, themeKey); } catch {}
-  }
-  emit('update:modelValue', themeKey);
-  emit('change', themeKey);
+function onSelect(themeKey: string, event?: MouseEvent) {
+  useThemeAnimation(() => {
+    internalTheme.value = themeKey;
+    
+    applyTheme(themeKey);
+    if (props.persist) {
+      try { localStorage.setItem(props.storageKey, themeKey); } catch {}
+    }
+    emit('update:modelValue', themeKey);
+    emit('change', themeKey);
+  }, event);
 }
 
 watch(() => props.modelValue, (val) => {
@@ -141,7 +145,7 @@ onMounted(() => {
         :key="item.key"
         class="theme-card"
         :class="{ 'is-active': internalTheme === item.key }"
-        @click="onSelect(item.key)"
+        @click="(e) => onSelect(item.key, e)"
       >
         <div class="card-icon">
           <IconifyIconOnline :icon="item.icon || 'ri:palette-line'" />
@@ -170,7 +174,7 @@ onMounted(() => {
           :key="item.key"
           class="theme-card beta"
           :class="{ 'is-active': internalTheme === item.key }"
-          @click="onSelect(item.key)"
+          @click="(e) => onSelect(item.key, e)"
         >
           <!-- 斜向绸带标识 -->
           <ScRibbon
@@ -208,7 +212,7 @@ onMounted(() => {
           :key="item.key"
           class="theme-card festival"
           :class="{ 'is-active': internalTheme === item.key }"
-          @click="onSelect(item.key)"
+          @click="(e) => onSelect(item.key, e)"
         >
           <div class="card-icon">
             <IconifyIconOnline :icon="item.icon || 'ri:palette-line'" />
