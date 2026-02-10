@@ -35,7 +35,7 @@ export const globalSetting: PlatformConfigs = {
   MenuAnimation: true,
   MenuTransition: false,
   SfcScriptUrl:
-    "https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js",
+    "https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js",
 
   // ===========================================
   // 界面显示配置

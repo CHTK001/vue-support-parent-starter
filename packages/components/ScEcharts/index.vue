@@ -11,7 +11,6 @@ echarts.registerTheme("T", T);
 const unwarp = obj => obj && (obj.__v_raw || obj.valueOf() || obj);
 
 export default {
-  ...echarts,
   name: "scEcharts",
   props: {
     height: { type: String, default: "100%" },

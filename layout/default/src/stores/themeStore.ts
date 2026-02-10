@@ -43,6 +43,30 @@ export const useThemeStore = defineStore("theme", () => {
   const defaultCpu = getConfig("ShowCpuMonitor") ?? false;
   const cpuMonitorEnabled = ref(storedCpu !== null ? storedCpu === "true" : defaultCpu);
 
+  // Bandwidth Monitor State
+  const STORAGE_KEY_BANDWIDTH = "sys-bandwidth-monitor-enabled";
+  const storedBandwidth = localStorage.getItem(STORAGE_KEY_BANDWIDTH);
+  const defaultBandwidth = getConfig("ShowBandwidthMonitor") ?? false;
+  const bandwidthMonitorEnabled = ref(storedBandwidth !== null ? storedBandwidth === "true" : defaultBandwidth);
+
+  // Battery Monitor State
+  const STORAGE_KEY_BATTERY = "sys-battery-monitor-enabled";
+  const storedBattery = localStorage.getItem(STORAGE_KEY_BATTERY);
+  const defaultBattery = getConfig("ShowBatteryMonitor") ?? false;
+  const batteryMonitorEnabled = ref(storedBattery !== null ? storedBattery === "true" : defaultBattery);
+
+  // Bluetooth Monitor State
+  const STORAGE_KEY_BLUETOOTH = "sys-bluetooth-monitor-enabled";
+  const storedBluetooth = localStorage.getItem(STORAGE_KEY_BLUETOOTH);
+  const defaultBluetooth = getConfig("ShowBluetoothMonitor") ?? false;
+  const bluetoothMonitorEnabled = ref(storedBluetooth !== null ? storedBluetooth === "true" : defaultBluetooth);
+
+  // Screen Monitor State
+  const STORAGE_KEY_SCREEN = "sys-screen-monitor-enabled";
+  const storedScreen = localStorage.getItem(STORAGE_KEY_SCREEN);
+  const defaultScreen = getConfig("ShowScreenMonitor") ?? false;
+  const screenMonitorEnabled = ref(storedScreen !== null ? storedScreen === "true" : defaultScreen);
+
   // Monitor Position State
   const STORAGE_KEY_MONITOR_POS = "sys-performance-monitor-position";
   const storedMonitorPos = localStorage.getItem(STORAGE_KEY_MONITOR_POS);
@@ -155,6 +179,26 @@ export const useThemeStore = defineStore("theme", () => {
     localStorage.setItem(STORAGE_KEY_CPU, String(enabled));
   }
 
+  function setBandwidthMonitor(enabled: boolean) {
+    bandwidthMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_BANDWIDTH, String(enabled));
+  }
+
+  function setBatteryMonitor(enabled: boolean) {
+    batteryMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_BATTERY, String(enabled));
+  }
+
+  function setBluetoothMonitor(enabled: boolean) {
+    bluetoothMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_BLUETOOTH, String(enabled));
+  }
+
+  function setScreenMonitor(enabled: boolean) {
+    screenMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_SCREEN, String(enabled));
+  }
+
   function setPerformanceMonitorPosition(position: string) {
     performanceMonitorPosition.value = position;
     localStorage.setItem(STORAGE_KEY_MONITOR_POS, position);
@@ -259,6 +303,10 @@ export const useThemeStore = defineStore("theme", () => {
     fpsMonitorEnabled,
     memoryMonitorEnabled,
     cpuMonitorEnabled,
+    bandwidthMonitorEnabled,
+    batteryMonitorEnabled,
+    bluetoothMonitorEnabled,
+    screenMonitorEnabled,
     performanceMonitorPosition,
     performanceMonitorMode,
     performanceMonitorLayout,
@@ -270,6 +318,10 @@ export const useThemeStore = defineStore("theme", () => {
     setFpsMonitor,
     setMemoryMonitor,
     setCpuMonitor,
+    setBandwidthMonitor,
+    setBatteryMonitor,
+    setBluetoothMonitor,
+    setScreenMonitor,
     setPerformanceMonitorPosition,
     setPerformanceMonitorMode,
     setPerformanceMonitorLayout,

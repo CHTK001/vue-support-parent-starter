@@ -1,5 +1,9 @@
 {
-  "sysSfcId": "local-day",
-  "sysSfcName": "LocalDay",
-  "sysSfcChineseName": "本日天气"
+  "sysSfcId": "day",
+  "title": "每日一言",
+  "description": "每日更新一句励志语录",
+  "icon": "ri:double-quotes-l",
+  "width": 2,
+  "height": 1,
+  "type": 1
 }

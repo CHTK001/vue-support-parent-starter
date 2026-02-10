@@ -3,16 +3,15 @@
  * 便签/备忘录部件
  * @author CH
  * @date 2024-12-10
- * @version 1.0.0
+ * @version 1.0.1
  */
-import { reactive, onMounted, watch, computed } from "vue";
+import { reactive, onMounted, ref, computed } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { message } from "@repo/utils";
+import { message, dateFormat } from "@repo/utils";
+import ScDialog from "@repo/components/ScDialog/src/index.vue";
 
-// 存储键
 const STORAGE_KEY = "sc_module_memory_notes";
 
-// 便签颜色
 const noteColors = [
   { name: "黄色", value: "#fff9c4" },
   { name: "绿色", value: "#c8e6c9" },
@@ -22,7 +21,9 @@ const noteColors = [
   { name: "橙色", value: "#ffe0b2" },
 ];
 
-// 环境变量
+const dialogVisible = ref(false);
+const editingId = ref(null);
+
 const env = reactive({
   notes: [],
   currentNote: {
@@ -30,16 +31,9 @@ const env = reactive({
     title: "",
     content: "",
     color: noteColors[0].value,
-    createdAt: null,
-    updatedAt: null,
   },
-  isEditing: false,
-  showColorPicker: false,
 });
 
-/**
- * 从本地存储加载便签
- */
 const loadNotes = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -51,355 +45,294 @@ const loadNotes = () => {
   }
 };
 
-/**
- * 保存便签到本地存储
- */
 const saveNotes = () => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(env.notes));
-  } catch (error) {
-    console.error("保存便签失败:", error);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(env.notes));
+};
+
+const openEditor = (note = null) => {
+  if (note) {
+    env.currentNote = { ...note };
+    editingId.value = note.id;
+  } else {
+    env.currentNote = {
+      id: Date.now(),
+      title: "",
+      content: "",
+      color: noteColors[0].value,
+      updatedAt: new Date().toISOString(),
+    };
+    editingId.value = null;
   }
+  dialogVisible.value = true;
 };
 
-/**
- * 创建新便签
- */
-const createNote = () => {
-  env.currentNote = {
-    id: Date.now(),
-    title: "",
-    content: "",
-    color: noteColors[Math.floor(Math.random() * noteColors.length)].value,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  env.isEditing = true;
-};
-
-/**
- * 编辑便签
- * @param {Object} note - 便签对象
- */
-const editNote = (note) => {
-  env.currentNote = { ...note };
-  env.isEditing = true;
-};
-
-/**
- * 保存当前便签
- */
-const saveCurrentNote = () => {
+const saveNote = () => {
   if (!env.currentNote.title.trim() && !env.currentNote.content.trim()) {
-    message("请输入便签内容", { type: "warning" });
+    message("内容不能为空", { type: "warning" });
     return;
   }
-
+  
   env.currentNote.updatedAt = new Date().toISOString();
-
-  const existingIndex = env.notes.findIndex((n) => n.id === env.currentNote.id);
-  if (existingIndex >= 0) {
-    env.notes[existingIndex] = { ...env.currentNote };
+  
+  if (editingId.value) {
+    const index = env.notes.findIndex(n => n.id === editingId.value);
+    if (index !== -1) {
+      env.notes[index] = { ...env.currentNote };
+    }
   } else {
     env.notes.unshift({ ...env.currentNote });
   }
-
+  
   saveNotes();
-  env.isEditing = false;
+  dialogVisible.value = false;
   message("保存成功", { type: "success" });
 };
 
-/**
- * 删除便签
- * @param {number} id - 便签ID
- */
 const deleteNote = (id) => {
-  env.notes = env.notes.filter((n) => n.id !== id);
+  env.notes = env.notes.filter(n => n.id !== id);
   saveNotes();
-  message("删除成功", { type: "success" });
+  message("已删除", { type: "success" });
 };
 
-/**
- * 取消编辑
- */
-const cancelEdit = () => {
-  env.isEditing = false;
+const formatDate = (isoString) => {
+  if (!isoString) return "";
+  return dateFormat(new Date(isoString), "MM-dd HH:mm");
 };
 
-/**
- * 选择颜色
- * @param {string} color - 颜色值
- */
-const selectColor = (color) => {
-  env.currentNote.color = color;
-  env.showColorPicker = false;
-};
-
-/**
- * 格式化日期
- * @param {string} dateStr - 日期字符串
- * @returns {string} 格式化后的日期
- */
-const formatDate = (dateStr) => {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
-};
-
-// 组件挂载时加载便签
 onMounted(() => {
   loadNotes();
 });
 </script>
 
 <template>
-  <div class="memory-module">
-    <div class="memory-module__content">
-      <!-- 编辑模式 -->
-      <div class="memory-module__editor" v-if="env.isEditing">
-        <div class="memory-module__editor-header" :style="{ backgroundColor: env.currentNote.color }">
-          <input v-model="env.currentNote.title" class="memory-module__editor-title" placeholder="标题" />
-          <div class="memory-module__editor-actions">
-            <div class="memory-module__color-picker">
-              <el-button type="primary" link size="small" @click="env.showColorPicker = !env.showColorPicker">
-                <IconifyIconOnline icon="ri:palette-line" />
-              </el-button>
-              <div class="memory-module__color-options" v-show="env.showColorPicker">
-                <div
-                  v-for="color in noteColors"
-                  :key="color.value"
-                  class="memory-module__color-option"
-                  :style="{ backgroundColor: color.value }"
-                  :class="{ active: env.currentNote.color === color.value }"
-                  @click="selectColor(color.value)"
-                ></div>
-              </div>
+  <div class="memory-board">
+    <div class="board-header">
+      <span class="title">我的便签</span>
+      <el-button circle size="small" type="primary" @click="openEditor()">
+        <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+      </el-button>
+    </div>
+    
+    <div class="notes-container">
+      <el-empty v-if="env.notes.length === 0" description="暂无便签" :image-size="60" />
+      <div v-else class="notes-grid">
+        <div
+          v-for="note in env.notes"
+          :key="note.id"
+          class="note-item"
+          :style="{ backgroundColor: note.color }"
+          @click="openEditor(note)"
+        >
+          <div class="note-title" v-if="note.title">{{ note.title }}</div>
+          <div class="note-content">{{ note.content }}</div>
+          <div class="note-footer">
+            <span class="time">{{ formatDate(note.updatedAt) }}</span>
+            <div class="delete-btn" @click.stop="deleteNote(note.id)">
+              <IconifyIconOnline icon="ep:close" />
             </div>
           </div>
-        </div>
-        <textarea
-          v-model="env.currentNote.content"
-          class="memory-module__editor-content"
-          :style="{ backgroundColor: env.currentNote.color }"
-          placeholder="写点什么..."
-        ></textarea>
-        <div class="memory-module__editor-footer">
-          <el-button type="default" size="small" @click="cancelEdit">取消</el-button>
-          <el-button type="primary" size="small" @click="saveCurrentNote">保存</el-button>
-        </div>
-      </div>
-
-      <!-- 便签列表 -->
-      <div class="memory-module__list" v-else>
-        <div class="memory-module__header">
-          <span>便签</span>
-          <el-button type="primary" link size="small" @click="createNote">
-            <IconifyIconOnline icon="ri:add-line" />
-          </el-button>
-        </div>
-        <div class="memory-module__notes" v-if="env.notes.length > 0">
-          <div
-            v-for="note in env.notes"
-            :key="note.id"
-            class="memory-module__note"
-            :style="{ backgroundColor: note.color }"
-            @click="editNote(note)"
-          >
-            <div class="memory-module__note-header">
-              <div class="memory-module__note-title">{{ note.title || "无标题" }}</div>
-              <el-button type="danger" link size="small" @click.stop="deleteNote(note.id)">
-                <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
-            </div>
-            <div class="memory-module__note-content">{{ note.content }}</div>
-            <div class="memory-module__note-date">{{ formatDate(note.updatedAt) }}</div>
-          </div>
-        </div>
-        <div class="memory-module__empty" v-else>
-          <IconifyIconOnline icon="ri:sticky-note-line" />
-          <span>暂无便签，点击右上角创建</span>
         </div>
       </div>
     </div>
+
+    <sc-dialog v-model="dialogVisible" :title="editingId ? '编辑便签' : '新建便签'" width="400px" append-to-body>
+      <div class="editor-container" :style="{ backgroundColor: env.currentNote.color }">
+        <input
+          v-model="env.currentNote.title"
+          class="editor-title"
+          placeholder="标题 (可选)"
+        />
+        <textarea
+          v-model="env.currentNote.content"
+          class="editor-content"
+          placeholder="便签内容..."
+        ></textarea>
+        <div class="color-picker">
+          <div
+            v-for="color in noteColors"
+            :key="color.value"
+            class="color-dot"
+            :style="{ backgroundColor: color.value }"
+            :class="{ active: env.currentNote.color === color.value }"
+            @click="env.currentNote.color = color.value"
+          ></div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveNote">保存</el-button>
+      </template>
+    </sc-dialog>
   </div>
 </template>
 
-<style lang="scss" scoped>
-.memory-module {
-  &__content {
-    border-radius: 12px;
-    background: var(--el-bg-color);
-  }
+<style scoped lang="scss">
+.memory-board {
+  width: 100%;
+  height: 100%;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-  &__header {
+.board-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color-overlay);
+  
+  .title {
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+}
+
+.notes-container {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color-lighter);
+    border-radius: 3px;
+  }
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.note-item {
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    
+    .delete-btn {
+      opacity: 1;
+    }
+  }
+  
+  .note-title {
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 4px;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .note-content {
+    font-size: 12px;
+    color: #555;
+    flex: 1;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .note-footer {
+    margin-top: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    font-weight: 600;
-    font-size: 16px;
-    color: var(--el-text-color-primary);
-  }
-
-  &__notes {
-    padding: 12px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-
-  &__note {
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    &-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    &-title {
-      font-weight: 600;
-      font-size: 14px;
-      color: var(--el-text-color-primary);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    &-content {
-      font-size: 12px;
-      color: var(--el-text-color-regular);
-      line-height: 1.5;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      line-clamp: 3;
-      -webkit-box-orient: vertical;
-      min-height: 54px;
-    }
-
-    &-date {
+    
+    .time {
       font-size: 10px;
-      color: var(--el-text-color-secondary);
-      margin-top: 8px;
-      text-align: right;
+      color: rgba(0,0,0,0.5);
     }
-  }
-
-  &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    color: var(--el-text-color-secondary);
-    gap: 12px;
-
-    .iconify {
-      font-size: 48px;
-      opacity: 0.5;
-    }
-  }
-
-  &__editor {
-    &-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      border-radius: 12px 12px 0 0;
-    }
-
-    &-title {
-      flex: 1;
-      border: none;
-      background: transparent;
-      font-size: 16px;
-      font-weight: 600;
-      outline: none;
-      color: var(--el-text-color-primary);
-
-      &::placeholder {
-        color: var(--el-text-color-placeholder);
+    
+    .delete-btn {
+      opacity: 0;
+      transition: opacity 0.2s;
+      color: rgba(0,0,0,0.5);
+      
+      &:hover {
+        color: #f56c6c;
       }
     }
+  }
+}
 
-    &-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    &-content {
-      width: 100%;
-      min-height: 150px;
-      border: none;
-      padding: 16px;
-      font-size: 14px;
-      line-height: 1.6;
-      resize: none;
-      outline: none;
-      color: var(--el-text-color-primary);
-
-      &::placeholder {
-        color: var(--el-text-color-placeholder);
-      }
-    }
-
-    &-footer {
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      padding: 12px 16px;
-      background: var(--el-fill-color-light);
-      border-radius: 0 0 12px 12px;
+.editor-container {
+  border-radius: 8px;
+  padding: 16px;
+  transition: background-color 0.3s;
+  
+  .editor-title {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    outline: none;
+    color: #333;
+    
+    &::placeholder {
+      color: rgba(0,0,0,0.4);
     }
   }
-
-  &__color-picker {
-    position: relative;
+  
+  .editor-content {
+    width: 100%;
+    min-height: 150px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    line-height: 1.6;
+    outline: none;
+    resize: none;
+    color: #333;
+    font-family: inherit;
+    
+    &::placeholder {
+      color: rgba(0,0,0,0.4);
+    }
   }
+}
 
-  &__color-options {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    display: flex;
-    gap: 6px;
-    padding: 8px;
-    background: var(--el-bg-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10;
-  }
-
-  &__color-option {
+.color-picker {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  
+  .color-dot {
     width: 24px;
     height: 24px;
     border-radius: 50%;
     cursor: pointer;
-    transition: all 0.2s ease;
     border: 2px solid transparent;
-
+    transition: transform 0.2s;
+    
     &:hover {
       transform: scale(1.1);
     }
-
+    
     &.active {
-      border-color: var(--el-color-primary);
+      border-color: #666;
     }
   }
 }

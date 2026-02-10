@@ -1,7 +1,9 @@
 {
-  "sysSfcId": "quick-todo",
-  "sysSfcName": "QuickTodo",
-  "sysSfcChineseName": "待办事项",
-  "sysSfcIcon": "ri:checkbox-circle-line",
-  "sysSfcDesc": "简单待办事项清单"
+  "sysSfcId": "todo",
+  "title": "待办事项",
+  "description": "简单待办事项清单",
+  "icon": "ri:checkbox-circle-line",
+  "width": 2,
+  "height": 2,
+  "type": 1
 }

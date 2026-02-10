@@ -1,0 +1,9 @@
+{
+  "sysSfcId": "battery",
+  "title": "电池状态",
+  "description": "显示设备电池电量及充电状态",
+  "icon": "ri:battery-charge-line",
+  "width": 1,
+  "height": 1,
+  "type": 1
+}

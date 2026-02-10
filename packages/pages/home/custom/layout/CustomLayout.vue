@@ -87,7 +87,7 @@ const onDragOver = (e) => {
                 </template>
               </el-skeleton>
             </div>
-            <div v-if="props.modelValue" class="customize-overlay">
+            <div v-if="props.modelValue" class="customize-overlay" :class="{ 'is-local': item.type === 1 }">
               <el-button-group class="close">
                 <el-button
                   v-if="item.type != 1"
@@ -99,7 +99,7 @@ const onDragOver = (e) => {
                 />
                 <el-button type="danger" plain :icon="useRenderIcon('ep:close')" size="small" @click="handleRemove(item.id)" />
               </el-button-group>
-              <label>
+              <label v-if="item.type !== 1">
                 <el-icon>
                   <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
                 </el-icon>
@@ -290,6 +290,11 @@ const onDragOver = (e) => {
   &:hover {
     opacity: 1;
   }
+}
+
+.customize-overlay.is-local {
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .customizing .widgets-item:hover .customize-overlay {

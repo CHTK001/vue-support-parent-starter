@@ -1,0 +1,9 @@
+{
+  "sysSfcId": "countdown",
+  "title": "倒计时",
+  "description": "目标日倒计时",
+  "icon": "ri:timer-flash-line",
+  "width": 1,
+  "height": 1,
+  "type": 1
+}

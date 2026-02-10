@@ -3,14 +3,13 @@
  * 问候语部件
  * @author CH
  * @date 2024-12-10
- * @version 1.0.0
+ * @version 1.0.1
  */
 import { reactive, onMounted, computed, onUnmounted } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useUserStoreHook } from "@repo/core";
 import { dateFormat } from "@repo/utils";
 
-// 环境变量
 const env = reactive({
   currentTime: new Date(),
   username: "",
@@ -18,9 +17,6 @@ const env = reactive({
 
 let timer = null;
 
-/**
- * 获取问候语
- */
 const greeting = computed(() => {
   const hour = env.currentTime.getHours();
   if (hour >= 5 && hour < 9) return "早上好";
@@ -31,9 +27,6 @@ const greeting = computed(() => {
   return "夜深了";
 });
 
-/**
- * 获取时段图标
- */
 const timeIcon = computed(() => {
   const hour = env.currentTime.getHours();
   if (hour >= 5 && hour < 9) return "meteocons:sunrise-fill";
@@ -42,9 +35,6 @@ const timeIcon = computed(() => {
   return "meteocons:clear-night-fill";
 });
 
-/**
- * 获取时段提示语
- */
 const tipMessage = computed(() => {
   const hour = env.currentTime.getHours();
   if (hour >= 5 && hour < 9) return "新的一天开始了，元气满满！";
@@ -55,9 +45,6 @@ const tipMessage = computed(() => {
   return "夜深了，注意休息哦~";
 });
 
-/**
- * 获取背景渐变色
- */
 const bgGradient = computed(() => {
   const hour = env.currentTime.getHours();
   if (hour >= 5 && hour < 9) return "linear-gradient(135deg, #ff9966, #ff5e62)";
@@ -68,210 +55,130 @@ const bgGradient = computed(() => {
   return "linear-gradient(135deg, #2c3e50, #4ca1af)";
 });
 
-/**
- * 格式化日期
- */
-const formattedDate = computed(() => {
-  return dateFormat(env.currentTime, "yyyy年MM月dd日");
-});
+const formattedDate = computed(() => dateFormat(env.currentTime, "yyyy年MM月dd日"));
+const formattedTime = computed(() => dateFormat(env.currentTime, "HH:mm:ss"));
+const weekDay = computed(() => ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][env.currentTime.getDay()]);
 
-/**
- * 格式化时间
- */
-const formattedTime = computed(() => {
-  return dateFormat(env.currentTime, "hh:mm:ss");
-});
-
-/**
- * 星期
- */
-const weekDay = computed(() => {
-  const days = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
-  return days[env.currentTime.getDay()];
-});
-
-// 组件挂载时初始化
 onMounted(() => {
-  // 获取用户名
   try {
     const userStore = useUserStoreHook();
     env.username = userStore?.username || userStore?.nickname || "用户";
   } catch (e) {
     env.username = "用户";
   }
-
-  // 更新时间
+  
   timer = setInterval(() => {
     env.currentTime = new Date();
   }, 1000);
 });
 
-// 组件卸载时清理
 onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer);
-  }
+  if (timer) clearInterval(timer);
 });
 </script>
 
 <template>
-  <div class="greeting-module">
-    <div class="greeting-module__content" :style="{ background: bgGradient }">
-      <div class="greeting-module__decoration">
-        <div class="greeting-module__circle"></div>
-        <div class="greeting-module__circle"></div>
-        <div class="greeting-module__circle"></div>
-      </div>
-
-      <div class="greeting-module__main">
-        <div class="greeting-module__icon">
-          <IconifyIconOnline :icon="timeIcon" />
-        </div>
-
-        <div class="greeting-module__text">
-          <div class="greeting-module__hello">
-            {{ greeting }}，{{ env.username }}
+  <div class="greeting-card" :style="{ background: bgGradient }">
+    <div class="glass-effect">
+      <div class="content-left">
+        <div class="greeting-header">
+          <div class="icon-wrapper">
+            <IconifyIconOnline :icon="timeIcon" class="time-icon" />
           </div>
-          <div class="greeting-module__tip">
-            {{ tipMessage }}
+          <div class="text-info">
+            <h2 class="greeting-text">{{ greeting }}，{{ env.username }}</h2>
+            <p class="tip-text">{{ tipMessage }}</p>
           </div>
         </div>
       </div>
-
-      <div class="greeting-module__time">
-        <div class="greeting-module__clock">{{ formattedTime }}</div>
-        <div class="greeting-module__date">
-          {{ formattedDate }} {{ weekDay }}
-        </div>
+      
+      <div class="content-right">
+        <div class="time-display">{{ formattedTime }}</div>
+        <div class="date-display">{{ formattedDate }} {{ weekDay }}</div>
       </div>
     </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
-.greeting-module {
-  &__content {
-    border-radius: 12px;
-    padding: 24px;
-    color: #fff;
-    position: relative;
-    overflow: hidden;
-    min-height: 160px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+<style scoped lang="scss">
+.greeting-card {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  color: white;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   }
+}
 
-  &__decoration {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 0;
-  }
+.glass-effect {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
-  &__circle {
-    position: absolute;
+.greeting-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  
+  .icon-wrapper {
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-
-    &:nth-child(1) {
-      width: 150px;
-      height: 150px;
-      top: -50px;
-      right: -30px;
-      animation: float 12s infinite ease-in-out;
-    }
-
-    &:nth-child(2) {
-      width: 100px;
-      height: 100px;
-      bottom: -30px;
-      left: -20px;
-      animation: float 10s infinite ease-in-out reverse;
-    }
-
-    &:nth-child(3) {
-      width: 60px;
-      height: 60px;
-      top: 50%;
-      left: 30%;
-      animation: pulse 6s infinite ease-in-out;
-    }
-  }
-
-  &__main {
+    width: 56px;
+    height: 56px;
     display: flex;
     align-items: center;
-    gap: 16px;
-    position: relative;
-    z-index: 1;
+    justify-content: center;
+    
+    .time-icon {
+      font-size: 32px;
+    }
   }
-
-  &__icon {
-    font-size: 48px;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  
+  .text-info {
+    .greeting-text {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0;
+      line-height: 1.2;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .tip-text {
+      font-size: 13px;
+      margin: 4px 0 0;
+      opacity: 0.9;
+    }
   }
+}
 
-  &__text {
-    flex: 1;
-  }
-
-  &__hello {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 4px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  &__tip {
-    font-size: 14px;
-    opacity: 0.9;
-  }
-
-  &__time {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    position: relative;
-    z-index: 1;
-    margin-top: 16px;
-  }
-
-  &__clock {
+.content-right {
+  text-align: right;
+  
+  .time-display {
     font-size: 28px;
-    font-weight: 700;
-    font-family: "Avenir Next", "Helvetica Neue", monospace;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-weight: bold;
+    font-family: monospace;
+    line-height: 1;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
-
-  &__date {
-    font-size: 14px;
+  
+  .date-display {
+    font-size: 12px;
     opacity: 0.9;
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-15px) rotate(5deg);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.3;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.5;
   }
 }
 </style>

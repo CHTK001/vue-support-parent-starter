@@ -1,0 +1,9 @@
+{
+  "sysSfcId": "memory",
+  "title": "便签墙",
+  "description": "记录多个便签贴",
+  "icon": "ri:sticky-note-2-line",
+  "width": 2,
+  "height": 2,
+  "type": 1
+}

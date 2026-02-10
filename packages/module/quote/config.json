@@ -1,0 +1,9 @@
+{
+  "sysSfcId": "quote",
+  "title": "随机语录",
+  "description": "随机展示一条语录",
+  "icon": "ri:chat-quote-line",
+  "width": 2,
+  "height": 1,
+  "type": 1
+}

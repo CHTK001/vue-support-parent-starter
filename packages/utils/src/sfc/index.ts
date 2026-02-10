@@ -132,6 +132,26 @@ const getOptions = (name, sysSfcId) => {
   };
 };
 
+const ErrorComponent = {
+  render() {
+    return Vue.h('div', { 
+      style: { 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100%', 
+        background: 'var(--el-bg-color-page)', 
+        color: 'var(--el-color-danger)',
+        fontSize: '12px',
+        padding: '8px',
+        border: '1px dashed var(--el-border-color)'
+      } 
+    }, [
+      Vue.h('span', null, '预览失败')
+    ])
+  }
+};
+
 const cacheLoadModule = {};
 /**
  * 加载远程组件
@@ -142,27 +162,43 @@ const cacheLoadModule = {};
 const loadRemoteModule = (name, sysSfcId, sysSfc) => {
   return defineAsyncComponent({
     loadingComponent: LoadingComponent,
+    errorComponent: ErrorComponent,
     delay: sysSfc.delay || 0,
-    timeout: sysSfc.timeout || 1000,
+    timeout: sysSfc.timeout || 3000,
     loader: async () => {
-      let module = cacheLoadModule[sysSfcId];
-      if (module) {
-        if (module.timestamp + 360_000 < new Date().getTime()) {
-          cacheLoadModule[sysSfcId] = null;
-        } else {
-          return module.module;
+      try {
+        let module = cacheLoadModule[sysSfcId];
+        if (module) {
+          if (module.timestamp + 360_000 < new Date().getTime()) {
+            cacheLoadModule[sysSfcId] = null;
+          } else {
+            return module.module;
+          }
         }
+        let res = null;
+        await loadJS(getConfig().SfcScriptUrl, "js", undefined);
+        const loadModule = exports["vue3-sfc-loader"]?.loadModule || window["vue3-sfc-loader"]?.loadModule;
+        res = await loadModule(name, getOptions(name, sysSfcId));
+        cacheLoadModule[sysSfcId] = {
+          timestamp: new Date().getTime(),
+          module: res,
+        };
+        return res;
+      } catch (e) {
+        console.warn("Component load failed:", name, e);
+        if (Object.prototype.toString.call(e) === '[object Event]') {
+           throw new Error("Network error or script load failed for " + name);
+        }
+        throw e;
       }
-      let res = null;
-      await loadJS(getConfig().SfcScriptUrl, "js", undefined);
-      const loadModule = exports["vue3-sfc-loader"]?.loadModule || window["vue3-sfc-loader"]?.loadModule;
-      res = await loadModule(name, getOptions(name, sysSfcId));
-      cacheLoadModule[sysSfcId] = {
-        timestamp: new Date().getTime(),
-        module: res,
-      };
-      return res;
     },
+    onError(error, retry, fail, attempts) {
+        if (attempts <= 1) {
+            retry();
+        } else {
+            fail();
+        }
+    }
   });
 };
 let localModule = null;
@@ -225,7 +261,10 @@ export const loadSfcModule = (name, sysSfcId, sysSfc) => {
   }
   const _loadSfcModule = (name, sysSfcId, sysSfc) => {
     _loadLocationModule();
-    if (!sysSfc.sysSfcType || sysSfc.sysSfcType === 0 || sysSfc.sysSfcType === 1) {
+    if (
+      (!sysSfc.sysSfcType || sysSfc.sysSfcType === 0) ||
+      (sysSfc.sysSfcType === 1 && !localModule?.[sysSfc.sysSfcPath])
+    ) {
       return loadRemoteModule(name, sysSfcId, sysSfc);
     }
 
