@@ -98,6 +98,14 @@
       />
     </div>
 
+    <!-- 位置选择器布局 -->
+    <PositionLayout
+      v-else-if="layout === 'position'"
+      :model-value="selectValue"
+      :disabled="disabled"
+      @change="handleChange"
+    />
+
     <!-- 下拉选择器布局 -->
     <DropdownLayout
       v-else-if="layout === 'dropdown'"
@@ -196,6 +204,8 @@ import CardLayout from "./components/CardLayout.vue";
 import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue";
 import FilterLayout from "./components/FilterLayout.vue";
 import PillLayout from "./components/PillLayout.vue";
+// Position layout component
+import PositionLayout from "./components/PositionLayout.vue";
 import ScSelectTable from "./components/ScSelectTableLayout.vue";
 import ScSelectTreeLayout from "./components/ScSelectTreeLayout.vue";
 import SelectLayout, { CardOption } from "./components/SelectLayout.vue";
@@ -267,7 +277,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select", "pill", "dropdown", "filter", "table", "tree"].includes(value);
+      return ["card", "select", "pill", "dropdown", "filter", "table", "tree", "position"].includes(value);
     }
   },
   // 是否多选
