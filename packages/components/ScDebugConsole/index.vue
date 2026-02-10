@@ -1,44 +1,54 @@
 <template>
-  <div v-if="isVisible" ref="dialogRef" class="sc-debug-console">
-    <div class="console-panel">
-      <!-- 头部（拖拽区域） -->
-      <div class="panel-header">
-        <div class="header-title">
-          <IconifyIconOnline icon="ri:terminal-box-line" class="mr-2" />
-          调试控制台
-          <el-badge :value="logs.length" :hidden="logs.length === 0" type="primary" class="ml-2" />
+  <Teleport to="body">
+    <div 
+      v-if="isVisible" 
+      ref="el" 
+      class="sc-debug-console"
+      :style="style"
+    >
+      <div class="console-panel">
+        <!-- 头部（拖拽区域） -->
+        <div 
+          ref="handle"
+          class="panel-header"
+        >
+          <div class="header-title">
+            <IconifyIconOnline icon="ri:terminal-box-line" class="mr-2" />
+            调试控制台
+            <el-badge :value="logs.length" :hidden="logs.length === 0" type="primary" class="ml-2" />
+          </div>
+          <div class="header-actions">
+            <el-button size="small" circle @click.stop="handleClear" :disabled="logs.length === 0" title="清空日志" @mousedown.stop>
+              <IconifyIconOnline icon="ri:delete-bin-line" />
+            </el-button>
+            <el-button size="small" circle @click.stop="handleClose" title="关闭" @mousedown.stop>
+              <IconifyIconOnline icon="ri:close-line" />
+            </el-button>
+          </div>
         </div>
-        <div class="header-actions">
-          <el-button size="small" circle @click.stop="handleClear" :disabled="logs.length === 0" title="清空日志">
-            <IconifyIconOnline icon="ri:delete-bin-line" />
-          </el-button>
-          <el-button size="small" circle @click.stop="handleClose" title="关闭">
-            <IconifyIconOnline icon="ri:close-line" />
-          </el-button>
-        </div>
-      </div>
 
-      <!-- 内容 -->
-      <div class="panel-content" ref="contentRef">
-        <div v-if="logs.length === 0" class="empty-state">
-          <IconifyIconOnline icon="ri:terminal-line" class="empty-icon" />
-          <p>暂无日志输出</p>
-        </div>
+        <!-- 内容 -->
+        <div class="panel-content" ref="contentRef">
+          <div v-if="logs.length === 0" class="empty-state">
+            <IconifyIconOnline icon="ri:terminal-line" class="empty-icon" />
+            <p>暂无日志输出</p>
+          </div>
 
-        <div v-else class="log-list">
-          <div v-for="log in logs" :key="log.id" class="log-item" :class="[log.type]">
-            <div class="log-type">
-              <IconifyIconOnline :icon="getLogIcon(log.type)" />
-            </div>
-            <div class="log-content">
-              <div class="log-time">{{ formatTime(log.timestamp) }}</div>
-              <div class="log-message">{{ log.message }}</div>
+          <div v-else class="log-list">
+            <div v-for="log in logs" :key="log.id" class="log-item" :class="[log.type]">
+              <div class="log-type">
+                <IconifyIconOnline :icon="getLogIcon(log.type)" />
+              </div>
+              <div class="log-content">
+                <div class="log-time">{{ formatTime(log.timestamp) }}</div>
+                <div class="log-message">{{ log.message }}</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -46,12 +56,13 @@
  * 调试控制台组件
  * 用于显示 console.log 等日志输出
  * @author CH
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2025-12-03
+ * @description 使用 @vueuse/core useDraggable 重构，优化性能和体验
  */
-import { ref, onMounted, onUnmounted, nextTick, watch } from "vue";
-import interact from "interactjs";
+import { ref, onMounted, onUnmounted, nextTick, shallowRef, markRaw } from "vue";
 import { enableConsoleProxy, disableConsoleProxy, type LogEntry, type LogType } from "@repo/utils";
+import { useDraggable, useWindowSize } from '@vueuse/core';
 
 const emit = defineEmits<{
   close: [];
@@ -59,11 +70,29 @@ const emit = defineEmits<{
 
 // 状态
 const isVisible = ref(true);
-const dialogRef = ref<HTMLElement | null>(null);
+const el = ref<HTMLElement | null>(null);
+const handle = ref<HTMLElement | null>(null);
 const contentRef = ref<HTMLElement | null>(null);
-const logs = ref<LogEntry[]>([]);
-let interactInstance: ReturnType<typeof interact> | null = null;
+
+// 使用 shallowRef 优化大数据量下的响应式性能
+const logs = shallowRef<LogEntry[]>([]);
 let unsubscribe: (() => void) | null = null;
+
+// 窗口尺寸
+const { width: windowWidth } = useWindowSize();
+
+// 初始化位置：右上角
+const initialValue = { x: windowWidth.value - 420, y: 80 };
+
+// 使用 VueUse 的 useDraggable
+// storageKey: 可选，如果需要记住位置可以配置
+// storageType: 'local' | 'session'
+const { style, isDragging } = useDraggable(el, {
+  initialValue,
+  handle: handle,
+  preventDefault: true,
+  stopPropagation: true,
+});
 
 /** 获取日志图标 */
 const getLogIcon = (type: LogType): string => {
@@ -85,53 +114,23 @@ const formatTime = (timestamp: number): string => {
 
 /** 处理日志回调 */
 const handleLog = (entry: LogEntry): void => {
-  logs.value.push(entry);
+  // 拖拽过程中暂停日志更新，避免 DOM 变更引起的重排影响拖拽流畅度
+  if (isDragging.value) return;
+  
+  // 使用 markRaw 避免 Vue 对日志对象进行深度代理
+  const newLogs = [...logs.value, markRaw(entry)];
+  
   // 限制日志数量
-  if (logs.value.length > 100) {
-    logs.value.shift();
+  if (newLogs.length > 100) {
+    newLogs.shift();
   }
+  
+  logs.value = newLogs;
+  
   // 滚动到底部
   nextTick(() => {
     if (contentRef.value) {
       contentRef.value.scrollTop = contentRef.value.scrollHeight;
-    }
-  });
-};
-
-/** 初始化 interact.js */
-const initInteract = (): void => {
-  if (!dialogRef.value) return;
-
-  const el = dialogRef.value;
-  const margin = 20;
-
-  // 初始位置：右上角
-  const initX = window.innerWidth - 400 - margin;
-  const initY = margin + 60;
-
-  el.style.transform = `translate(${initX}px, ${initY}px)`;
-  el.setAttribute("data-x", String(initX));
-  el.setAttribute("data-y", String(initY));
-
-  interactInstance = interact(el).draggable({
-    allowFrom: ".panel-header",
-    modifiers: [], // 移除限制以提高流畅度，或者保留但简化
-    inertia: false, // 禁用惯性，提高跟手性
-    listeners: {
-      start: () => {
-        document.body.style.userSelect = "none";
-      },
-      move: event => {
-        const target = event.target as HTMLElement;
-        const x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
-        const y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
-        target.style.transform = `translate(${x}px, ${y}px)`;
-        target.setAttribute("data-x", String(x));
-        target.setAttribute("data-y", String(y));
-      },
-      end: () => {
-        document.body.style.userSelect = "";
-      }
     }
   });
 };
@@ -144,7 +143,6 @@ const handleClear = (): void => {
 /** 关闭控制台 */
 const handleClose = (): void => {
   isVisible.value = false;
-  // 禁用代理
   if (unsubscribe) {
     unsubscribe();
     unsubscribe = null;
@@ -157,21 +155,14 @@ const handleClose = (): void => {
 const show = (): void => {
   isVisible.value = true;
   logs.value = [];
-  // 启用代理
   unsubscribe = enableConsoleProxy(handleLog);
-  nextTick(() => initInteract());
 };
 
 onMounted(() => {
-  // 启用控制台代理
   unsubscribe = enableConsoleProxy(handleLog);
-  nextTick(() => initInteract());
 });
 
 onUnmounted(() => {
-  if (interactInstance) {
-    interactInstance.unset();
-  }
   if (unsubscribe) {
     unsubscribe();
   }
@@ -185,6 +176,12 @@ defineExpose({ show, handleClose, isVisible });
 .sc-debug-console {
   position: fixed;
   z-index: 9999;
+  /* 初始位置由 style 绑定控制 */
+  
+  /* 硬件加速提示 */
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
 .console-panel {
@@ -207,12 +204,16 @@ defineExpose({ show, handleClose, isVisible });
     color: white;
     cursor: move;
     user-select: none;
+    /* 确保触摸操作不会触发浏览器默认行为 */
+    touch-action: none;
 
     .header-title {
       display: flex;
       align-items: center;
       font-size: 13px;
       font-weight: 600;
+      /* 避免文字选中干扰拖拽 */
+      pointer-events: none;
     }
 
     .header-actions {

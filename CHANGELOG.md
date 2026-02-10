@@ -42,7 +42,12 @@ All notable changes to this project will be documented in this file.
      - **Avatar**: Componentized the user avatar into `LayAvatar`, enabling theme-specific decorations. Added a spinning spider-web border decoration for the Halloween theme.
      - **Dropdown**: Enhanced the User Dropdown to support deep theme customization. Implemented a semi-transparent purple background with pumpkin orange borders and shadow effects for the Halloween theme.
    - **Theme Provider**: Fixed a bug in `ThemeSkinProvider` where the `theme-halloween` class was not correctly removed when switching to other themes.
-
+- **Cyberpunk Theme Optimization**:
+  - **Performance**: Reduced GPU usage by optimizing CSS animations (using `transform`/`opacity` instead of `filter`), replacing `drop-shadow` with `box-shadow`, and implementing hardware acceleration for smoother rendering (60+ FPS).
+  - **Style Adaptation**: Completed visual adaptation for all Element Plus components (Button, Input, Card, Dialog, Table, Pagination, etc.) with Cyberpunk styles (Neon Cyan/Magenta, Glitch effects, Grid backgrounds).
+  - **Monitoring**: Added a built-in FPS Monitor (toggleable in System Settings) to track real-time rendering performance.
+  - **Architecture**: Centralized Cyberpunk styles in global SCSS (`cyberpunk.scss`) for better maintainability and consistency.
+  - **Settings**: Integrated FPS monitor toggle and Cyberpunk-specific settings into the System Settings panel, with local storage persistence.
 
 ### Changed
 - **Message Center**:
