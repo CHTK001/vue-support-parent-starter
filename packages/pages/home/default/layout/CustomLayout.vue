@@ -82,7 +82,7 @@ const handleRemove = async (key) => {
             </div>
             
             <!-- 编辑模式遮罩层 -->
-            <div v-if="props.modelValue" class="customize-overlay">
+            <div v-if="props.modelValue" class="customize-overlay" :class="{ 'is-local': item.type === 1 }">
               <!-- 操作按钮组 -->
               <div class="overlay-actions">
                 <el-tooltip content="预览/隐藏" placement="top" v-if="item.type != 1">
@@ -105,7 +105,7 @@ const handleRemove = async (key) => {
               </div>
               
               <!-- 拖拽区域 -->
-              <div class="drag-area">
+              <div class="drag-area" v-if="item.type !== 1">
                 <div class="drag-icon">
                   <el-icon :size="28">
                     <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon || 'ri:apps-line')" />
@@ -255,6 +255,11 @@ const handleRemove = async (key) => {
     background: rgba(255, 255, 255, 0.4);
     border-color: rgba(255, 255, 255, 0.5);
   }
+}
+
+.customize-overlay.is-local {
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .widgets-item:hover .customize-overlay {

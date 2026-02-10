@@ -16,10 +16,18 @@
 - **交互优化**: 修复系统设置图标悬停模糊问题。
 - **逻辑优化**: 节日主题自动切换默认关闭，支持手动切换主题时自动关闭该功能；修正春节检测日期范围。
 
+### 🏠 首页优化 (Home Page Enhancements)
+- **添加组件页面美化**: 优化了首页添加组件侧边栏的 UI 设计，采用 Glassmorphism 风格，提升视觉体验。
+- **实时预览**: 新增本地组件实时预览功能，替代原有的占位符图标，让用户在添加组件时能直接看到组件效果。
+- **时间显示优化**: 首页头部时间显示精确到秒 (HH:mm:ss)。
+
 ### 🚀 性能监控增强 (Performance Monitor)
 - **全局启用**: 性能监控 (FPS Monitor) 现在作为全局功能设置，适用于所有主题（不仅限于赛博朋克主题）。
 - **设置迁移**: 在系统设置面板的"功能设置"中新增 FPS 显示开关，移除 Cyberpunk 主题面板中的重复设置。
 - **状态持久化**: FPS 监控开启状态通过 Pinia 和 localStorage (sys-fps-monitor-enabled) 持久化存储，并支持从配置文件 (ShowFpsMonitor) 读取默认值。
+- **组件重构**: `lay-performance` 组件拆分为独立的子组件 (`FpsItem`, `CpuItem`, `MemoryItem`, `BandwidthItem`, `BatteryItem`, `BluetoothItem`, `ScreenItem`)，提高代码可维护性和复用性。
+- **蓝牙监控**: 新增蓝牙功能监控 (`BluetoothItem`)，支持检测浏览器蓝牙 API 可用性并显示连接状态 (需要浏览器支持 Web Bluetooth API)。
+- **屏幕监控**: 新增屏幕分辨率监控 (`ScreenItem`)，实时显示当前屏幕分辨率 (Width x Height)。
 
 ### 🎨 主题与样式
 - **Cyberpunk 修复**: 修复 Cyberpunk 主题设置面板中的重复开关和冗余样式，保持代码整洁。

@@ -203,8 +203,8 @@ wasmEnable: true
 # ===========================================
 # 远程加载配置
 # ===========================================
-# vue3-sfc-loader加载地址（默认: https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js）
-# SfcScriptUrl: "https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js"
+# vue3-sfc-loader加载地址（默认: https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js）
+# SfcScriptUrl: "https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js"
 
 # ===========================================
 # 会话配置（默认不启用）

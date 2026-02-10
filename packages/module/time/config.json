@@ -1,5 +1,9 @@
 {
-  "sysSfcId": "local-time",
-  "sysSfcName": "LocalTime",
-  "sysSfcChineseName": "本地时钟"
+  "sysSfcId": "time",
+  "title": "时钟",
+  "description": "当前时间显示",
+  "icon": "ri:time-line",
+  "width": 2,
+  "height": 1,
+  "type": 1
 }

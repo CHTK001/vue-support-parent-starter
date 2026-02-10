@@ -1,4 +1,10 @@
 <script setup>
+/**
+ * 快捷入口部件
+ * @author CH
+ * @date 2024-12-10
+ * @version 1.0.1
+ */
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -22,9 +28,9 @@ const handleClick = (link) => {
 </script>
 
 <template>
-  <div class="quick-links">
-    <div class="links-header">
-      <span class="header-title">快捷入口</span>
+  <div class="quick-links-card">
+    <div class="header">
+      <span class="title">常用功能</span>
     </div>
     <div class="links-grid">
       <div
@@ -33,40 +39,44 @@ const handleClick = (link) => {
         class="link-item"
         @click="handleClick(link)"
       >
-        <div class="link-icon" :style="{ backgroundColor: link.color + '15', color: link.color }">
-          <el-icon :size="22">
+        <div class="icon-box" :style="{ backgroundColor: link.color + '15', color: link.color }">
+          <el-icon :size="20">
             <component :is="useRenderIcon(link.icon)" />
           </el-icon>
         </div>
-        <span class="link-title">{{ link.title }}</span>
+        <span class="link-label">{{ link.title }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-.quick-links {
+.quick-links-card {
+  width: 100%;
   height: 100%;
+  background: var(--el-bg-color);
+  border-radius: 12px;
   padding: 16px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.links-header {
+.header {
   margin-bottom: 12px;
-  
-  .header-title {
-    font-size: 15px;
+  .title {
+    font-size: 14px;
     font-weight: 600;
     color: var(--el-text-color-primary);
   }
 }
 
 .links-grid {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  flex: 1;
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
 }
 
 .link-item {
@@ -74,31 +84,37 @@ const handleClick = (link) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12px 8px;
+  padding: 8px 4px;
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background: var(--el-fill-color-lighter);
   
   &:hover {
     background: var(--el-fill-color);
     transform: translateY(-2px);
+    
+    .icon-box {
+      transform: scale(1.1);
+    }
   }
 }
 
-.link-icon {
-  width: 44px;
-  height: 44px;
+.icon-box {
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  transition: transform 0.2s;
 }
 
-.link-title {
-  font-size: 12px;
+.link-label {
+  font-size: 11px;
   color: var(--el-text-color-regular);
+  text-align: center;
   white-space: nowrap;
 }
 </style>

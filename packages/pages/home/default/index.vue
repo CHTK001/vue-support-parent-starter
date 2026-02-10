@@ -5,6 +5,8 @@ import { useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
 import {
   computed,
   defineAsyncComponent,
+  defineComponent,
+  onErrorCaptured,
   nextTick,
   onBeforeMount,
   onMounted,
@@ -12,11 +14,30 @@ import {
   reactive,
   ref,
   shallowRef,
+  watch
 } from "vue";
 
 const widgets = shallowRef();
 const userLayoutObject = useLayoutLayoutStore();
 const userStore = useUserStoreHook();
+
+// 错误捕获组件
+const SafePreview = defineComponent({
+  name: 'SafePreview',
+  emits: ['error'],
+  setup(props, { slots, emit }) {
+    onErrorCaptured((err) => {
+      emit('error', err);
+      return false; // 阻止错误继续向上传播
+    });
+    return () => slots.default ? slots.default() : null;
+  }
+});
+
+const previewErrors = reactive({});
+const handlePreviewError = (id) => {
+  previewErrors[id] = true;
+};
 
 const CustomLayout = defineAsyncComponent(
   () => import("./layout/CustomLayout.vue")
@@ -33,7 +54,10 @@ const searchKeyword = ref("");
 const selectedCategory = ref("all");
 
 // 设置项
-const showHeaderInfo = ref(false); // 是否显示头部信息（欢迎语、时间、统计），默认不显示
+const showHeaderInfo = ref(localStorage.getItem("home-show-header-info") !== "false");
+watch(showHeaderInfo, (val) => {
+  localStorage.setItem("home-show-header-info", String(val));
+});
 
 // 当前时间
 const currentTime = ref(new Date());
@@ -44,7 +68,8 @@ const formattedTime = computed(() => {
   const date = currentTime.value;
   const hours = date.getHours().toString().padStart(2, "0");
   const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
+  const seconds = date.getSeconds().toString().padStart(2, "0");
+  return `${hours}:${minutes}:${seconds}`;
 });
 
 const formattedDate = computed(() => {
@@ -324,12 +349,12 @@ onUnmounted(() => {
           <p>没有找到匹配的部件</p>
         </div>
         <div
-          v-for="item in filteredWidgetList"
-          :key="item.key"
-          class="widget-card"
-          @click="push(item)"
-        >
-          <div class="widget-card-icon">
+            v-for="item in filteredWidgetList"
+            :key="item.key"
+            class="widget-card"
+            @click="push(item)"
+          >
+            <div class="widget-card-icon">
             <el-icon :size="24">
               <component :is="useRenderIcon(item.icon || 'ri:apps-line')" />
             </el-icon>
@@ -573,11 +598,18 @@ onUnmounted(() => {
 /* 部件选择侧边栏 */
 .widgets-aside {
   width: 360px;
-  background: var(--el-bg-color);
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--el-border-color-lighter);
+  z-index: 100;
+}
+
+html.dark .widgets-aside {
+  background: rgba(30, 30, 30, 0.85);
+  border-left-color: var(--el-border-color-darker);
 }
 
 .aside-header {
@@ -694,8 +726,9 @@ onUnmounted(() => {
   &:hover {
     background: var(--el-bg-color);
     border-color: var(--el-color-primary-light-5);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     
     .widget-card-action .el-button {
       background: var(--el-color-primary);
@@ -734,6 +767,54 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Added for preview */
+.widget-card.has-preview {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  
+  .widget-card-content {
+    padding: 12px 16px;
+    width: 100%;
+  }
+  
+  .widget-card-action {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+}
+
+.item-preview {
+  width: 100%;
+  height: 140px;
+  background: var(--el-bg-color-page);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-scaler {
+  width: 200%;
+  height: 200%;
+  transform: scale(0.5);
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.preview-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  cursor: grab;
+  background: transparent;
 }
 
 .widget-card-desc {

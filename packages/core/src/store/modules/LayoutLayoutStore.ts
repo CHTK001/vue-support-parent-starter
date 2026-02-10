@@ -145,7 +145,7 @@ export const useLayoutLayoutStore = defineStore({
       if (Array.isArray(this.component)) {
         for (let comp of allCompsList) {
           const _item = this.component.find((item) => {
-            return item === comp.key;
+            return item?.id === comp.key;
           });
           if (_item) {
             comp.disabled = true;
@@ -338,6 +338,22 @@ export const useLayoutLayoutStore = defineStore({
         if (!setting.vue) {
           return;
         }
+
+        // Auto-generate ID from directory name if missing
+        if (!setting.sysSfcId) {
+          const match = key.match(/module\/(.*?)\/config\.json/);
+          if (match && match[1]) {
+            setting.sysSfcId = match[1];
+          }
+        }
+
+        // Map standard fields to sysSfc fields
+        setting.sysSfcChineseName = setting.sysSfcChineseName || setting.title;
+        setting.sysSfcDesc = setting.sysSfcDesc || setting.description;
+        setting.sysSfcIcon = setting.sysSfcIcon || setting.icon;
+        setting.w = setting.w || setting.width || 1;
+        setting.h = setting.h || setting.height || 1;
+
         setting.sysSfcType = 1;
         if (!setting.sysSfcIcon) {
           setting.sysSfcIcon = "ri:inbox-2-fill";
@@ -355,6 +371,12 @@ export const useLayoutLayoutStore = defineStore({
       localStorageProxy().setItem(this.storageSfcKey, this.allComps);
     },
     async loadSfc() {
+      if (getConfig().LocationLayout) {
+        this.allComps = [];
+        this.loadLocationCompent();
+        return;
+      }
+
       const data = localStorageProxy().getItem(this.storageSfcKey);
       this.allComps = [];
       if (data) {
@@ -420,6 +442,13 @@ export const useLayoutLayoutStore = defineStore({
         this.layout = data.layout;
         this.component = data.component;
       }
+
+      // Clean up orphaned components
+      if (Array.isArray(this.layout) && Array.isArray(this.component)) {
+        const layoutIds = new Set(this.layout.map((l) => l.id));
+        this.component = this.component.filter((c) => layoutIds.has(c.id));
+      }
+
       await this.allCompsList();
     },
   },

@@ -1,7 +1,8 @@
 import { fetchGetWeather } from "../../api/common/weather";
 import { localStorageProxy } from "@repo/utils";
+import { reactive } from "vue";
 
-export const useWeatherStore = {
+export const useWeatherStore = reactive({
   id: "weather-setting",
   storageKey: "weather-layout-setting",
   weather: {
@@ -151,4 +152,4 @@ export const useWeatherStore = {
       return date.getFullYear() + "-" + (date.getMonth() + 1 > 9 ? date.getMonth() + 1 : "0" + (date.getMonth() + 1)) + "-" + date.getDate();
     },
   },
-};
+});

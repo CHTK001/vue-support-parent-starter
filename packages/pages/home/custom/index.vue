@@ -9,7 +9,30 @@ import {
   onBeforeMount,
   reactive,
   shallowRef,
+  defineComponent,
+  onErrorCaptured,
+  h
 } from "vue";
+
+// 安全预览包装组件
+const SafePreview = defineComponent({
+  name: 'SafePreview',
+  emits: ['error'],
+  setup(props, { slots, emit }) {
+    onErrorCaptured((err) => {
+      emit('error', err);
+      return false;
+    });
+    return () => slots.default ? slots.default() : null;
+  }
+});
+
+// 预览错误状态跟踪
+const previewErrors = reactive({});
+
+const handlePreviewError = (id) => {
+  previewErrors[id] = true;
+};
 
 const widgets = shallowRef();
 const userLayoutObject = useLayoutLayoutStore();
@@ -251,61 +274,67 @@ onBeforeMount(async () => {
 
 /* 添加部件侧边栏 - 美化 */
 .widgets-aside {
-  width: 320px;
-  background: var(--el-bg-color);
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.08);
+  width: 340px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.08);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border-left: 1px solid var(--el-border-color-lighter);
+  z-index: 100;
 }
 
 .widgets-aside :deep(.el-header) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
-  height: 50px !important;
+  padding: 0 20px;
+  height: 56px !important;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-color-primary);
+  background: transparent;
 }
 
 .widgets-aside-title {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  color: #fff;
-  gap: 8px;
+  color: var(--el-text-color-primary);
+  gap: 10px;
+  letter-spacing: 0.5px;
 }
 
 .widgets-aside-title i {
-  font-size: 18px;
+  font-size: 20px;
+  color: var(--el-color-primary);
 }
 
 .widgets-aside-close {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.85);
-  transition: all 0.2s;
+  color: var(--el-text-color-secondary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .widgets-aside-close:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: var(--el-fill-color);
+  color: var(--el-color-danger);
+  transform: rotate(90deg);
 }
 
 /* 部件列表 */
 .widgets-list {
-  padding: 12px;
+  padding: 16px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 16px;
 }
 
 .widgets-list-nodata {
@@ -319,39 +348,119 @@ onBeforeMount(async () => {
   flex-direction: column;
   padding: 16px;
   align-items: center;
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  border-radius: 16px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   position: relative;
   overflow: hidden;
+}
 
-  &:hover {
-    border-color: var(--el-color-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
-  }
+.widgets-list-item:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-4px);
 }
 
 .widgets-list-item .item-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   background: var(--el-color-primary-light-9);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 28px;
   margin-bottom: 12px;
   color: var(--el-color-primary);
-  transition: all 0.3s ease;
+  transition: all 0.4s ease;
+}
+
+/* Added for preview */
+.widgets-list-item.has-preview {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  
+  .item-info {
+    padding: 12px 16px;
+    width: 100%;
+    margin-top: auto;
+    background: var(--el-bg-color);
+    position: relative;
+    z-index: 5;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+  
+  .item-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 20;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s;
+    
+    .el-button {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border: none;
+      
+      &:hover {
+        background: var(--el-color-primary);
+        color: #fff;
+      }
+    }
+  }
+}
+
+.widgets-list-item.has-preview:hover .item-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.item-preview {
+  width: 100%;
+  height: 120px;
+  background: var(--el-fill-color-light);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.preview-scaler {
+  width: 200%;
+  height: 200%;
+  transform: scale(0.5);
+  transform-origin: top left;
+  pointer-events: none; /* 让事件穿透到遮罩 */
+}
+
+.preview-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  cursor: grab;
+  background: transparent;
+  transition: background 0.3s;
+}
+
+.widgets-list-item:hover .item-preview .preview-overlay {
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .widgets-list-item:hover .item-logo {
   background: var(--el-color-primary);
   color: #fff;
   transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 4px 12px var(--el-color-primary-light-5);
 }
 
 .widgets-list-item .item-info {
@@ -389,6 +498,8 @@ onBeforeMount(async () => {
 .widgets-list-item .item-actions .el-button {
   width: 100%;
   border-radius: 8px;
+  height: 32px;
+  font-weight: 500;
 }
 
 /* 底部操作栏 */
@@ -397,7 +508,29 @@ onBeforeMount(async () => {
   align-items: center;
   justify-content: center;
   border-top: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-lighter);
+  background: transparent;
+  backdrop-filter: blur(10px);
+}
+
+/* 暗黑模式适配 */
+html.dark .widgets-aside {
+  background: rgba(30, 30, 30, 0.85);
+  border-left: 1px solid var(--el-border-color-darker);
+}
+
+html.dark .widgets-list-item {
+  background: var(--el-bg-color-overlay);
+  border-color: var(--el-border-color-darker);
+}
+
+html.dark .widgets-list-item:hover {
+  border-color: var(--el-color-primary);
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+html.dark .item-logo {
+  background: var(--el-color-primary-light-8);
 }
 
 /* 自定义模式 */

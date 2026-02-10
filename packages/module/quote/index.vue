@@ -3,13 +3,12 @@
  * 每日名言部件
  * @author CH
  * @date 2024-12-10
- * @version 1.0.0
+ * @version 1.0.1
  */
-import { reactive, onMounted, computed } from "vue";
+import { reactive, onMounted } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 
-// 名言数据
 const quotes = [
   { text: "生活不是等待风暴过去，而是学会在风雨中起舞。", author: "佚名" },
   { text: "成功不是终点，失败也不是终结，唯有勇气才是永恒的。", author: "丘吉尔" },
@@ -33,150 +32,153 @@ const quotes = [
   { text: "纸上得来终觉浅，绝知此事要躬行。", author: "陆游" },
 ];
 
-// 环境变量
 const env = reactive({
-  loading: false,
   currentQuote: null,
   quoteIndex: 0,
 });
 
-/**
- * 获取随机名言
- */
 const getRandomQuote = () => {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   env.quoteIndex = randomIndex;
   env.currentQuote = quotes[randomIndex];
 };
 
-/**
- * 复制名言到剪贴板
- */
 const copyQuote = () => {
   if (!env.currentQuote) return;
   const text = `"${env.currentQuote.text}" —— ${env.currentQuote.author}`;
-  navigator.clipboard
-    .writeText(text)
-    .then(() => {
-      message("复制成功", { type: "success" });
-    })
-    .catch((err) => {
-      console.error("复制失败:", err);
-      message("复制失败", { type: "error" });
-    });
+  navigator.clipboard.writeText(text).then(() => {
+    message("复制成功", { type: "success" });
+  });
 };
 
-/**
- * 切换到下一条名言
- */
 const nextQuote = () => {
   env.quoteIndex = (env.quoteIndex + 1) % quotes.length;
   env.currentQuote = quotes[env.quoteIndex];
 };
 
-/**
- * 切换到上一条名言
- */
-const prevQuote = () => {
-  env.quoteIndex = (env.quoteIndex - 1 + quotes.length) % quotes.length;
-  env.currentQuote = quotes[env.quoteIndex];
-};
-
-// 组件挂载时获取随机名言
 onMounted(() => {
   getRandomQuote();
 });
 </script>
 
 <template>
-  <div class="quote-module">
-    <div class="quote-module__content">
-      <div class="quote-module__card">
-        <div class="quote-module__icon">
-          <IconifyIconOnline icon="ri:double-quotes-l" />
-        </div>
-        <div class="quote-module__text" v-if="env.currentQuote">
-          {{ env.currentQuote.text }}
-        </div>
-        <div class="quote-module__author" v-if="env.currentQuote">
-          —— {{ env.currentQuote.author }}
-        </div>
-        <div class="quote-module__actions">
-          <el-button type="primary" link size="small" @click="prevQuote">
-            <IconifyIconOnline icon="ri:arrow-left-s-line" />
-          </el-button>
-          <el-button type="primary" link size="small" @click="copyQuote">
-            <IconifyIconOnline icon="ri:file-copy-line" />
-          </el-button>
-          <el-button type="primary" link size="small" @click="getRandomQuote">
-            <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
-          <el-button type="primary" link size="small" @click="nextQuote">
-            <IconifyIconOnline icon="ri:arrow-right-s-line" />
-          </el-button>
-        </div>
+  <div class="quote-card">
+    <div class="quote-background">
+      <IconifyIconOnline icon="ri:double-quotes-r" class="bg-icon" />
+    </div>
+    
+    <div class="quote-content" v-if="env.currentQuote">
+      <div class="quote-icon">
+        <IconifyIconOnline icon="ri:double-quotes-l" />
       </div>
+      <div class="quote-text">{{ env.currentQuote.text }}</div>
+      <div class="quote-author">—— {{ env.currentQuote.author }}</div>
+    </div>
+    
+    <div class="quote-actions">
+      <el-tooltip content="复制" placement="top">
+        <div class="action-btn" @click="copyQuote">
+          <IconifyIconOnline icon="ri:file-copy-line" />
+        </div>
+      </el-tooltip>
+      <el-tooltip content="下一条" placement="top">
+        <div class="action-btn" @click="nextQuote">
+          <IconifyIconOnline icon="ri:refresh-line" />
+        </div>
+      </el-tooltip>
     </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
-.quote-module {
-  &__content {
-    border-radius: 12px;
+<style scoped lang="scss">
+.quote-card {
+  width: 100%;
+  height: 100%;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  position: relative;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+  
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    
+    .quote-actions {
+      opacity: 1;
+    }
   }
+}
 
-  &__card {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 12px;
-    padding: 24px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    color: #fff;
+.quote-background {
+  position: absolute;
+  bottom: -20px;
+  right: 10px;
+  opacity: 0.05;
+  pointer-events: none;
+  
+  .bg-icon {
+    font-size: 120px;
+    color: var(--el-text-color-primary);
   }
+}
 
-  &__icon {
-    font-size: 32px;
-    opacity: 0.8;
+.quote-content {
+  position: relative;
+  z-index: 1;
+  
+  .quote-icon {
+    font-size: 24px;
+    color: var(--el-color-primary);
+    margin-bottom: 8px;
+    opacity: 0.6;
+  }
+  
+  .quote-text {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--el-text-color-primary);
+    font-style: italic;
+    font-family: "Georgia", serif;
     margin-bottom: 12px;
   }
-
-  &__text {
-    font-size: 16px;
-    line-height: 1.8;
-    margin-bottom: 16px;
+  
+  .quote-author {
+    text-align: right;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
     font-weight: 500;
-    min-height: 60px;
+  }
+}
+
+.quote-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  
+  .action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  &__author {
-    font-size: 14px;
-    opacity: 0.8;
-    margin-bottom: 16px;
-  }
-
-  &__actions {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-
-    .el-button {
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 18px;
-      padding: 8px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(5px);
-      transition: all 0.3s ease;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: scale(1.1);
-      }
+    cursor: pointer;
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-regular);
+    transition: all 0.2s;
+    
+    &:hover {
+      background: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
     }
   }
 }

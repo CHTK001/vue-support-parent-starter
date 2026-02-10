@@ -1,0 +1,9 @@
+{
+  "sysSfcId": "shortcuts",
+  "title": "快捷键",
+  "description": "常用系统快捷键参考",
+  "icon": "ri:keyboard-box-line",
+  "width": 2,
+  "height": 2,
+  "type": 1
+}

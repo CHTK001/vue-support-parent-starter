@@ -158,7 +158,6 @@ class CustomSessionStorageProxy {
         const decryptedValue = decryptStorageValue(value as string, key, config.SystemCode, config.StorageKey, config.StorageEncode);
         return JSON.parse(decryptedValue) as T;
       } catch (error) {
-        console.error("存储值解密失败:", error);
         return value as T;
       }
     }
@@ -232,7 +231,6 @@ class CustomLocalStorageProxy {
         const decryptedValue = decryptStorageValue(value as string, key, config.SystemCode, config.StorageKey, config.StorageEncode);
         return JSON.parse(decryptedValue) as T;
       } catch (error) {
-        console.error("存储值解密失败:", error);
         return value as T;
       }
     }

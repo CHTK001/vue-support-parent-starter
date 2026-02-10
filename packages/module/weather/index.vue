@@ -1,318 +1,249 @@
-<template>
-  <div shadow="hover" :header="header" class="item-background">
-    <el-skeleton :loading="loading" animated>
-      <template #default>
-        <el-empty v-if="!useWeatherStore.weather?.data?.cityName" />
-        <div v-else class="sw-ui-main-container sc-fjdhpX fAFgBy">
-          <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
-            <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
-              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.cityName
-                }}</el-tag>
-              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.temperature
-                }}℃</el-tag>
-              <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
-                <el-icon style="font-size: 80px; position: relative; left: 15rem">
-                  <component :is="useRenderIcon(icon[useWeatherStore.current?.weatherIcon])" />
-                </el-icon>
-              </div>
-            </div>
-            <div class="sw-ui-main-grow sc-htoDjs hzdUrF" />
-            <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">
-              {{ useWeatherStore.current?.weatherDay }}
-            </p>
-            <div class="sw-ui-main-timeContainer sc-VigVT eMNzRy">
-              <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">
-                {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[0]?.name : 0 }}
-              </span>
-              <span class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF" color="inherit">
-                {{ useWeatherStore.current?.minLowTemp }}°C ~ {{ useWeatherStore.current?.maxHighTemp }}°C </span>
-              <span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW" color="textSecondary">
-                {{ useWeatherStore.current?.hours?.length > 0 ?
-                  useWeatherStore.current?.hours[useWeatherStore.current?.hours.length - 1]?.name : 23 }}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div v-for="(item, i) in useWeatherStore.weather?.data?.day || []" :key="i" class="three_days content-box">
-          <span>{{ item.date }} {{ item.week }}</span>
-          <div>
-            <el-icon style="font-size: 40px">
-              <component :is="useRenderIcon(icon[item.weatherIcon])" />
-            </el-icon>
-          </div>
-          <span>{{ item.minLowTemp }}-{{ item.maxHighTemp }}℃</span>
-          <span>{{ item.weatherDay }}</span>
-          <span>{{ item.windDirection }}</span>
-        </div>
-      </template>
-    </el-skeleton>
-  </div>
-
-  <sc-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
-    <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
-      <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB">
-        <scEcharts height="200px" width="100%" :option="useWeatherStore.options" />
-      </div>
-    </div>
-  </sc-dialog>
-</template>
-
-<script>
-import scEcharts from "@repo/components/ScEcharts/index.vue";
+<script setup>
+/**
+ * 天气部件
+ * @author CH
+ * @date 2024-12-10
+ * @version 1.0.1
+ */
+import { ref, onMounted, computed } from "vue";
 import { useWeatherStore } from "@repo/core";
-import { defineComponent } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-export default defineComponent({
-  title: "天气",
-  icon: "meteocons:clear-day-fill",
-  description: "天气信息",
-  components: { scEcharts },
-  data() {
-    return {
-      loading: true,
-      dialogVisible: false,
-      useWeatherStore: useWeatherStore,
-      icon: {
-        qing: "meteocons:clear-day-fill",
-        yun: "meteocons:partly-cloudy-day-fill",
-        yin: "meteocons:overcast-day-fill",
-        yu: "meteocons:rain-fill",
-      },
-    };
-  },
-  mounted() {
-    console.log("loading weather ....");
-    useWeatherStore.actions.load().then((res) => (this.loading = false));
-    this.$emit("loaded", true);
-  },
-  methods: {
-    useRenderIcon
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
+import ScDialog from "@repo/components/ScDialog/src/index.vue";
+
+const weatherStore = useWeatherStore;
+const loading = ref(true);
+const dialogVisible = ref(false);
+
+const iconMap = {
+  qing: "meteocons:clear-day-fill",
+  yun: "meteocons:partly-cloudy-day-fill",
+  yin: "meteocons:overcast-day-fill",
+  yu: "meteocons:rain-fill",
+  lei: "meteocons:thunderstorms-fill",
+  xue: "meteocons:snow-fill",
+  wu: "meteocons:fog-fill",
+  bing: "meteocons:hail-fill",
+  shachen: "meteocons:dust-fill",
+};
+
+const getWeatherIcon = (iconName) => {
+  return iconMap[iconName] || "meteocons:clear-day-fill";
+};
+
+onMounted(async () => {
+  try {
+    await weatherStore.actions.load();
+  } catch (e) {
+    console.error("Failed to load weather:", e);
+  } finally {
+    loading.value = false;
   }
 });
 </script>
 
+<template>
+  <div class="weather-card" @click="dialogVisible = true">
+    <el-skeleton :loading="loading" animated class="h-full">
+      <template #template>
+        <div class="skeleton-content">
+          <el-skeleton-item variant="circle" style="width: 60px; height: 60px" />
+          <div class="skeleton-text">
+            <el-skeleton-item variant="text" style="width: 50%" />
+            <el-skeleton-item variant="text" style="width: 80%" />
+          </div>
+        </div>
+      </template>
+      <template #default>
+        <div v-if="!weatherStore.weather?.data?.cityName" class="empty-state">
+          <el-empty description="暂无天气数据" :image-size="60" />
+        </div>
+        <div v-else class="weather-content">
+          <div class="weather-main">
+            <div class="weather-icon">
+              <IconifyIconOnline
+                :icon="getWeatherIcon(weatherStore.current?.weatherIcon)"
+                style="font-size: 48px"
+              />
+            </div>
+            <div class="weather-info">
+              <div class="temperature">
+                {{ weatherStore.weather?.data?.temperature }}<span class="unit">℃</span>
+              </div>
+              <div class="location-weather">
+                <span class="city">{{ weatherStore.weather?.data?.cityName }}</span>
+                <span class="divider">|</span>
+                <span class="desc">{{ weatherStore.current?.weatherDay }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="weather-details">
+            <div class="detail-item">
+              <span class="label">湿度</span>
+              <span class="value">{{ weatherStore.weather?.data?.shidu || '--' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">空气</span>
+              <span class="value">{{ weatherStore.weather?.data?.quality || '--' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">风向</span>
+              <span class="value">{{ weatherStore.current?.windDirection || '--' }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+    </el-skeleton>
+
+    <sc-dialog v-model="dialogVisible" title="24小时天气趋势" width="600px" draggable append-to-body>
+      <div class="chart-container">
+        <scEcharts height="300px" width="100%" :option="weatherStore.options" />
+      </div>
+    </sc-dialog>
+  </div>
+</template>
+
 <style scoped lang="scss">
-.item-background p {
-  margin-top: 10px;
-  line-height: 1.8;
-}
-
-:deep(.el-card__body) {
-  padding: 0;
-}
-
-.bRpexW {
-  width: 54px;
-  height: 54px;
-  display: block;
-  position: absolute;
-  transform: translate(-50%, -50%);
-  left: 67.7796%;
-  top: 3.26792%;
-}
-
-.three_days {
-  height: 200px !important;
-  background: linear-gradient(rgb(86, 107, 110), rgb(125, 147, 155));
-  box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 20px;
-  border-radius: 10px;
-  display: inline-flex;
-  font-size: 12px;
-  color: var(--el-text-color-primary);
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
-  width: 12.5%;
-  padding: 20px;
-  border: solid 1px #ddd;
-  box-shadow: 4px 3px 6px 0px #ccc;
-
-  .icon_weather {
-    width: 50px;
-    height: 50px;
-    margin: 15px 0;
-  }
-
-  span:nth-child(4) {
-    margin: 15px 0;
-  }
-
-  .current {
-    font-weight: 800;
-  }
-}
-
-.fAFgBy {
+.weather-card {
   width: 100%;
-  color: var(--el-text-color-primary);
-  font-weight: 800;
-  background: linear-gradient(rgb(86, 107, 110), rgb(125, 147, 155));
-  box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 20px;
-  border-radius: 10px;
-}
-
-.blUPwB {
-  flex: 1 0 99.999%;
-  max-width: 100%;
-  padding: 8px 10px 0px;
-  display: flex;
-  box-sizing: border-box;
-  flex-direction: column;
+  height: 100%;
+  background: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-fill-color-light) 100%);
+  border-radius: 12px;
+  overflow: hidden;
   position: relative;
-  margin-bottom: 16px;
-  height: 196px;
-}
-
-.cHlxbs {
-  width: 100%;
-  height: 180px;
-  margin: 0px -6px;
-  left: 6px;
-  position: absolute;
-  bottom: 20px;
-  overflow: hidden;
-}
-
-.hzdUrF {
-  height: 92px;
-}
-
-.bRmqwc {
-  width: 265.44px;
-  height: 265.44px;
-  position: absolute;
-  border-radius: 50%;
-  border: 1px dashed rgba(255, 255, 255, 0.3);
-  left: 50%;
-  bottom: 0px;
-  transform: translate(-50%, 50%);
-}
-
-.bRpexW {
-  width: 54px;
-  height: 54px;
-  display: block;
-  position: absolute;
-  transform: translate(-50%, -50%);
-  left: 67.7796%;
-  top: 3.26792%;
-}
-
-.hlBhLX {
-  width: 1em;
-  height: 1em;
-  margin: 0px;
-  vertical-align: -0.15em;
-  fill: currentcolor;
-  overflow: hidden;
-  flex: 0 0 auto;
-}
-
-.iWEWlT {
-  z-index: 1;
-  display: inline-flex;
-  flex-direction: row;
-  -webkit-box-align: center;
-  align-items: center;
-}
-
-.jQHZYL {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-  font-size: 1.875rem;
-  line-height: 1.71429;
-  font-weight: 400;
-  margin: 0px;
-  text-align: inherit;
-  white-space: pre;
-  flex: 0 0 auto;
-  color: inherit;
-}
-
-.eccBLL {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-  font-size: 1.75rem;
-  line-height: 1.33333;
-  font-weight: 400;
-  margin: 0px;
-  text-align: inherit;
-  white-space: pre;
-  flex: 0 0 auto;
-  color: rgba(255, 255, 255, 0.54);
-}
-
-.ggJaPA {
-  color: rgb(255, 255, 255);
-}
-
-.jQHZYL {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-  font-size: 0.875rem;
-  line-height: 1.71429;
-  font-weight: 400;
-  margin: 0px;
-  text-align: inherit;
-  white-space: pre;
-  flex: 0 0 auto;
-  color: inherit;
-}
-
-.eofBUk {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-  font-size: 25px;
-  line-height: 1.4;
-  font-weight: 500;
-  margin: 0px;
-  text-align: center;
-  white-space: pre;
-  flex: 0 0 auto;
-  color: inherit;
-}
-
-.eMNzRy {
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: flex;
-  -webkit-box-pack: justify;
+  flex-direction: column;
+  padding: 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--el-border-color-lighter);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    border-color: var(--el-color-primary-light-7);
+    
+    .weather-icon {
+      transform: scale(1.15) rotate(5deg);
+    }
+  }
+}
+
+.skeleton-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 100%;
+  
+  .skeleton-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.empty-state {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary);
+}
+
+.weather-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
 }
 
-.bpTFnS {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-  font-size: 1.25rem;
-  line-height: 1.33333;
-  font-weight: 400;
-  margin: 0px;
-  text-align: left;
-  white-space: pre;
-  flex: 0 0 auto;
-  color: rgba(255, 255, 255, 0.54);
+.weather-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 4px;
+  
+  .weather-icon {
+    color: var(--el-color-primary);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 4px 8px rgba(var(--el-color-primary-rgb), 0.3));
+  }
+  
+  .weather-info {
+    display: flex;
+    flex-direction: column;
+    
+    .temperature {
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+      background: linear-gradient(45deg, var(--el-text-color-primary), var(--el-color-primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      
+      .unit {
+        font-size: 18px;
+        margin-left: 2px;
+        font-weight: normal;
+        -webkit-text-fill-color: var(--el-text-color-secondary);
+      }
+    }
+    
+    .location-weather {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      .city {
+        font-weight: 500;
+        color: var(--el-text-color-regular);
+      }
+
+      .divider {
+        opacity: 0.3;
+        font-size: 10px;
+        transform: scaleY(0.8);
+      }
+    }
+  }
 }
 
-.bFsUuh {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: flex-start;
+.weather-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+  
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    
+    .label {
+      font-size: 12px;
+      color: var(--el-text-color-placeholder);
+    }
+    
+    .value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--el-text-color-regular);
+    }
+  }
 }
 
-.fwGqcW {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-  font-size: 1.25rem;
-  line-height: 1.33333;
-  font-weight: 400;
-  margin: 0px;
-  text-align: right;
-  white-space: pre;
-  flex: 0 0 auto;
-  color: rgba(255, 255, 255, 0.54);
-}
-
-.dBbtWF {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-  font-size: 1.25rem;
-  line-height: 1.33333;
-  font-weight: 400;
-  margin: 0px;
-  text-align: center;
-  white-space: pre;
-  flex: 0 0 auto;
-  color: inherit;
+.chart-container {
+  padding: 10px;
+  background: var(--el-bg-color);
+  border-radius: 8px;
 }
 </style>
