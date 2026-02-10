@@ -1,19 +1,6 @@
 <template>
-  <el-select
-    v-model="modelValue"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    :size="size"
-    :clearable="clearable"
-    @change="handleChange"
-  >
-    <el-option
-      v-for="item in options"
-      :key="item.value"
-      :label="item.label"
-      :value="item.value"
-      :disabled="item.disabled"
-    />
+  <el-select v-model="modelValue" :placeholder="placeholder" :disabled="disabled" :size="size" :clearable="clearable" @change="handleChange">
+    <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value" :disabled="item.disabled" />
   </el-select>
 </template>
 
@@ -39,7 +26,7 @@ const emit = defineEmits(["update:modelValue", "change"]);
 
 const modelValue = computed({
   get: () => props.modelValue,
-  set: (val) => emit("update:modelValue", val),
+  set: val => emit("update:modelValue", val)
 });
 
 const handleChange = (val: any) => {
