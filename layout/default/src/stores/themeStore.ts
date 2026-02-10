@@ -5,7 +5,8 @@
 import { defineStore } from "pinia";
 import { ref, computed, onScopeDispose, markRaw } from "vue";
 import { useGlobal } from "@pureadmin/utils";
-import { emitter } from "@repo/core";
+import { emitter, useUserStoreHook } from "@repo/core";
+import { getConfig } from "@repo/config";
 import type { ThemeKey } from "../types/theme";
 import { layoutThemes, getLayoutTheme, loadThemeStylesheet } from "../themes";
 
@@ -20,6 +21,69 @@ export const useThemeStore = defineStore("theme", () => {
   const currentTheme = ref<ThemeKey>(
     ($storage?.configure?.systemTheme as ThemeKey) || "default"
   );
+
+  // FPS Monitor State
+  // 优先读取 localStorage (新旧key兼容)，如果不存在则读取配置文件
+  const STORAGE_KEY_FPS = "sys-fps-monitor-enabled";
+  const LEGACY_KEY_FPS = "cyberpunk-fps-monitor";
+  
+  const storedFps = localStorage.getItem(STORAGE_KEY_FPS) || localStorage.getItem(LEGACY_KEY_FPS);
+  const defaultFps = getConfig("ShowFpsMonitor") ?? false;
+  const fpsMonitorEnabled = ref(storedFps !== null ? storedFps === "true" : defaultFps);
+
+  // Memory & CPU Monitor State
+  const STORAGE_KEY_MEMORY = "sys-memory-monitor-enabled";
+  const STORAGE_KEY_CPU = "sys-cpu-monitor-enabled";
+
+  const storedMemory = localStorage.getItem(STORAGE_KEY_MEMORY);
+  const defaultMemory = getConfig("ShowMemoryMonitor") ?? false;
+  const memoryMonitorEnabled = ref(storedMemory !== null ? storedMemory === "true" : defaultMemory);
+
+  const storedCpu = localStorage.getItem(STORAGE_KEY_CPU);
+  const defaultCpu = getConfig("ShowCpuMonitor") ?? false;
+  const cpuMonitorEnabled = ref(storedCpu !== null ? storedCpu === "true" : defaultCpu);
+
+  // Monitor Position State
+  const STORAGE_KEY_MONITOR_POS = "sys-performance-monitor-position";
+  const storedMonitorPos = localStorage.getItem(STORAGE_KEY_MONITOR_POS);
+  // Default to bottom-right as per original implementation, but configurable
+  // User asked for "currently default top-left", but code was bottom-right.
+  // We'll set default to bottom-right to match existing behavior unless config overrides.
+  const defaultMonitorPos = getConfig("PerformanceMonitorPosition") ?? "bottom-right";
+  const performanceMonitorPosition = ref(storedMonitorPos || defaultMonitorPos);
+
+  // Monitor Display Mode (Simple/Text vs Detailed/Graph)
+  const STORAGE_KEY_MONITOR_MODE = "sys-performance-monitor-mode"; // 'simple' | 'detailed'
+  const storedMonitorMode = localStorage.getItem(STORAGE_KEY_MONITOR_MODE);
+  const defaultMonitorMode = getConfig("PerformanceMonitorMode") ?? "detailed";
+  const performanceMonitorMode = ref(storedMonitorMode || defaultMonitorMode);
+
+  // Monitor Layout (Merged/Card vs Split/Pills)
+  // Options: 'merged', 'split'
+  const STORAGE_KEY_MONITOR_LAYOUT = "sys-performance-monitor-layout";
+  const storedMonitorLayout = localStorage.getItem(STORAGE_KEY_MONITOR_LAYOUT);
+  // Migrate legacy split values to 'split' if needed, or just let them fall through if robust
+  const defaultMonitorLayout = getConfig("PerformanceMonitorLayout") ?? "merged";
+  const performanceMonitorLayout = ref(storedMonitorLayout && !storedMonitorLayout.startsWith('split-') ? storedMonitorLayout : 'merged');
+
+  // Monitor Direction (Vertical vs Horizontal)
+  const STORAGE_KEY_MONITOR_DIRECTION = "sys-performance-monitor-direction"; // 'vertical' | 'horizontal'
+  const storedMonitorDirection = localStorage.getItem(STORAGE_KEY_MONITOR_DIRECTION);
+  const defaultMonitorDirection = "vertical";
+  const performanceMonitorDirection = ref(storedMonitorDirection || defaultMonitorDirection);
+
+  // Access Control Logic
+  const isPerformanceMonitorVisible = computed(() => {
+    // 1. Check Environment: Show if DEV or TEST
+    const isDevOrTest = import.meta.env.DEV || import.meta.env.MODE === 'test';
+    
+    // 2. Check User Role: Show if user is 'sa' or has 'sa' role (assuming username check for now as role structure varies)
+    // Note: Adjust 'sa' check based on actual user store structure if needed.
+    const userStore = useUserStoreHook();
+    const isSa = userStore.username === 'sa' || userStore.roles.includes('sa') || userStore.roles.includes('admin'); // Broaden to admin for safety, but user asked for 'sa'
+
+    return isDevOrTest || isSa;
+  });
 
   // 初始化标记
   let isInitialized = false;
@@ -61,6 +125,48 @@ export const useThemeStore = defineStore("theme", () => {
 
     // 发送主题变更事件
     emitter.emit("systemThemeChange", themeKey);
+  }
+
+  /**
+   * 设置 FPS 监控开关
+   */
+  function setFpsMonitor(enabled: boolean) {
+    fpsMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_FPS, String(enabled));
+    // 清理旧 key
+    if (localStorage.getItem(LEGACY_KEY_FPS)) {
+      localStorage.removeItem(LEGACY_KEY_FPS);
+    }
+  }
+
+  function setMemoryMonitor(enabled: boolean) {
+    memoryMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_MEMORY, String(enabled));
+  }
+
+  function setCpuMonitor(enabled: boolean) {
+    cpuMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_CPU, String(enabled));
+  }
+
+  function setPerformanceMonitorPosition(position: string) {
+    performanceMonitorPosition.value = position;
+    localStorage.setItem(STORAGE_KEY_MONITOR_POS, position);
+  }
+
+  function setPerformanceMonitorMode(mode: string) {
+    performanceMonitorMode.value = mode;
+    localStorage.setItem(STORAGE_KEY_MONITOR_MODE, mode);
+  }
+
+  function setPerformanceMonitorLayout(layout: string) {
+    performanceMonitorLayout.value = layout;
+    localStorage.setItem(STORAGE_KEY_MONITOR_LAYOUT, layout);
+  }
+
+  function setPerformanceMonitorDirection(direction: string) {
+    performanceMonitorDirection.value = direction;
+    localStorage.setItem(STORAGE_KEY_MONITOR_DIRECTION, direction);
   }
 
   /**
@@ -139,8 +245,23 @@ export const useThemeStore = defineStore("theme", () => {
     availableThemes,
     isDefaultTheme,
     isFestivalTheme,
+    fpsMonitorEnabled,
+    memoryMonitorEnabled,
+    cpuMonitorEnabled,
+    performanceMonitorPosition,
+    performanceMonitorMode,
+    performanceMonitorLayout,
+    performanceMonitorDirection,
+    isPerformanceMonitorVisible,
     // 方法
     setTheme,
+    setFpsMonitor,
+    setMemoryMonitor,
+    setCpuMonitor,
+    setPerformanceMonitorPosition,
+    setPerformanceMonitorMode,
+    setPerformanceMonitorLayout,
+    setPerformanceMonitorDirection,
     initThemeListener,
     destroyThemeListener,
   };

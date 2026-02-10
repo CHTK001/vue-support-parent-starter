@@ -404,6 +404,9 @@ rules:
   sysMenuPerm: 权限标识为必填项
   sysMenuTitle: 菜单名称为必填项
 search:
+  performanceMonitor: 性能监控
+  showFps: 显示 FPS
+  showMemory: 显示内存
   pureCollect: 收藏
   pureDragSort: （可拖拽排序）
   pureEmpty: 暂无搜索结果

@@ -306,7 +306,7 @@ onBeforeUnmount(() => {
                 }"
               >
                 <el-scrollbar class="card-scrollbar">
-                  <div style="padding: 20px; min-height: 100%; box-sizing: border-box;">
+                  <div style="min-height: 100%; display: flex; box-sizing: border-box;">
                     <ContentRenderer
                       :comp="Comp"
                       :route="route"
@@ -374,7 +374,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
 }
-
+.el-card:hover {
+  transform: none !important;
+}
 .sidebar-custom {
   background: var(--el-bg-color);
   border: 1px solid var(--el-card-border-color);
@@ -395,7 +397,7 @@ onBeforeUnmount(() => {
   // el-card 的 body 不产生滚动条，由内部内容处理
   :deep(.el-card__body) {
     overflow: hidden;
-    height: 100%;
+    min-height: 100%;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -403,7 +405,7 @@ onBeforeUnmount(() => {
   
   // 内部内容滚动
   :deep(.main-content) {
-    height: 100%;
+    min-height: 100%;
   }
 }
 

@@ -314,6 +314,9 @@ rules:
   sysMenuPerm: Permission identification is required
   sysMenuTitle: The menu name is mandatory
 search:
+  performanceMonitor: Performance Monitor
+  showFps: Show FPS
+  showMemory: Show Memory
   pureCollect: Collect
   pureDragSort: （Drag Sort）
   pureEmpty: Empty

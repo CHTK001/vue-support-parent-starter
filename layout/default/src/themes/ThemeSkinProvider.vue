@@ -4,6 +4,9 @@
     :style="providerStyles"
   >
     <slot />
+    
+    <!-- FPS Monitor -->
+    <FpsMonitor v-if="fpsMonitorEnabled" :visible="true" />
   </div>
 </template>
 
@@ -17,10 +20,15 @@
  * @version 2.0.0
  */
 
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch, defineAsyncComponent } from "vue";
 import { useGlobal } from "@pureadmin/utils";
+import { useThemeStore } from "../stores/themeStore";
+import { storeToRefs } from "pinia";
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+const FpsMonitor = defineAsyncComponent(() => import("../components/lay-performance/FpsMonitor.vue"));
+const themeStore = useThemeStore();
+const { fpsMonitorEnabled } = storeToRefs(themeStore);
 
 /**
  * 当前主题皮肤

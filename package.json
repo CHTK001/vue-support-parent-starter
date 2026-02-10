@@ -151,6 +151,7 @@
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
+    "@vueuse/core": "^14.2.0",
     "cropperjs": "^2.1.0"
   }
 }

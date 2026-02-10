@@ -47,6 +47,7 @@ export const globalSetting: PlatformConfigs = {
   ShowLogo: true,
   SidebarStatus: true,
   CardBody: false,
+  ShowFpsMonitor: false,
 
   // ===========================================
   // 顶部工具栏配置
