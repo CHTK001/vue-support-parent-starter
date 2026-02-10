@@ -72,6 +72,12 @@ export const useThemeStore = defineStore("theme", () => {
   const defaultMonitorDirection = "vertical";
   const performanceMonitorDirection = ref(storedMonitorDirection || defaultMonitorDirection);
 
+  // Home Customization Config
+  const STORAGE_KEY_HOME_CUSTOMIZATION = "sys-home-customization-enabled";
+  const storedHomeCustomization = localStorage.getItem(STORAGE_KEY_HOME_CUSTOMIZATION);
+  const defaultHomeCustomization = true;
+  const homeCustomizationEnabled = ref(storedHomeCustomization !== null ? storedHomeCustomization === "true" : defaultHomeCustomization);
+
   // Access Control Logic
   const isPerformanceMonitorVisible = computed(() => {
     // 1. Check Environment: Show if DEV or TEST
@@ -169,6 +175,11 @@ export const useThemeStore = defineStore("theme", () => {
     localStorage.setItem(STORAGE_KEY_MONITOR_DIRECTION, direction);
   }
 
+  function setHomeCustomizationEnabled(enabled: boolean) {
+    homeCustomizationEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_HOME_CUSTOMIZATION, String(enabled));
+  }
+
   /**
    * 更新主题类
    */
@@ -252,6 +263,7 @@ export const useThemeStore = defineStore("theme", () => {
     performanceMonitorMode,
     performanceMonitorLayout,
     performanceMonitorDirection,
+    homeCustomizationEnabled,
     isPerformanceMonitorVisible,
     // 方法
     setTheme,
@@ -262,6 +274,7 @@ export const useThemeStore = defineStore("theme", () => {
     setPerformanceMonitorMode,
     setPerformanceMonitorLayout,
     setPerformanceMonitorDirection,
+    setHomeCustomizationEnabled,
     initThemeListener,
     destroyThemeListener,
   };

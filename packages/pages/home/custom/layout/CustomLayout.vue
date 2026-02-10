@@ -1,9 +1,10 @@
 <script setup>
-import { defineAsyncComponent, reactive, ref } from "vue";
-import { GridLayout } from "grid-layout-plus";
+import { defineAsyncComponent, reactive, ref, onMounted, onUnmounted } from "vue";
+import { GridLayout, GridItem } from "grid-layout-plus";
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useLayoutLayoutStore } from "@repo/core";
+
 const loadingCollection = {};
 const userLayoutObject = useLayoutLayoutStore();
 const props = defineProps({
@@ -12,6 +13,9 @@ const props = defineProps({
     default: false,
   },
 });
+
+const gridLayoutRef = ref(null);
+
 /**
  * 隐藏组件
  * @param key 隐藏组件
@@ -19,10 +23,54 @@ const props = defineProps({
 const handleRemove = async (key) => {
   userLayoutObject.removeComp(key);
 };
+
+// Drop Handler
+const onDrop = (e) => {
+  e.preventDefault();
+  const data = e.dataTransfer.getData("text/plain");
+  if (!data) return;
+  
+  try {
+    const item = JSON.parse(data);
+    const layout = userLayoutObject.layout;
+    
+    // Calculate position
+    // Simple logic: add to bottom or find first empty space.
+    // For now, let's just push it. GridLayout might handle auto-placement if we don't specify x/y, 
+    // but usually we need to specify.
+    // Let's assume we want to place it where the mouse is.
+    // However, calculating grid coordinates from mouse event is complex without grid-layout-plus internal helper.
+    // We will use pushComp which likely handles finding a spot or adding to end.
+    
+    // Actually, user expects to drop *at the position*. 
+    // grid-layout-plus usually supports drag-in from outside if configured.
+    // But since we don't have the "drag from outside" feature fully set up in the library props (if it has any),
+    // we can just add it.
+    
+    // Better UX: If we can't easily calculate grid position, just add it.
+    userLayoutObject.pushComp(item);
+  } catch (err) {
+    console.error("Drop error", err);
+  }
+};
+
+const onDragOver = (e) => {
+  e.preventDefault();
+};
+
 </script>
 <template>
-  <div class="customizing h-full">
-    <GridLayout class="!h-full" :row-height="200" v-model:layout="userLayoutObject.layout" :is-draggable="props.modelValue" :is-resizable="props.modelValue" vertical-compact use-css-transforms>
+  <div class="customizing h-full" @drop="onDrop" @dragover="onDragOver">
+    <GridLayout 
+      ref="gridLayoutRef"
+      class="!h-full" 
+      :row-height="200" 
+      v-model:layout="userLayoutObject.layout" 
+      :is-draggable="props.modelValue" 
+      :is-resizable="props.modelValue" 
+      vertical-compact 
+      use-css-transforms
+    >
       <template #item="{ item }">
         <div class="item">
           <div class="widgets-item">
@@ -30,13 +78,10 @@ const handleRemove = async (key) => {
               <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)" animated>
                 <template #template>
                   <div class="!w-full !h-full" style="width: 100% !important">
-                    <div class="!h-full" v-if="(item.type == 1 && props.modelValue) || !props.modelValue || userLayoutObject.loadRemoteComponent(item.id)">
+                    <div class="!h-full">
                       <keep-alive class="!h-full">
                         <component class="!h-full" :is="userLayoutObject.loadComponent(item.id)" :frameInfo="userLayoutObject.loadFrameInfo(item.id)" :key="userLayoutObject.loadFrameInfo(item.id).key" @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" />
                       </keep-alive>
-                    </div>
-                    <div v-else-if="props.modelValue" class="relative h-full">
-                      <component class="w-full !h-full" :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
                     </div>
                   </div>
                 </template>
