@@ -420,14 +420,14 @@ onUnmounted(() => {
       <el-tab-pane label="系统通知" name="system" />
     </el-tabs>
 
-    <!-- 操作�?-->
+    <!-- 操作栏 -->
     <div class="drawer-actions">
-      <el-button size="small" @click="markAllAsRead" :disabled="unreadCount === 0">
-        <IconifyIconOnline icon="ri:check-double-line" />
+      <el-button round size="small" @click="markAllAsRead" :disabled="unreadCount === 0">
+        <IconifyIconOnline icon="ri:check-double-line" class="mr-1" />
         全部已读
       </el-button>
-      <el-button size="small" @click="clearAll" :disabled="messages.length === 0">
-        <IconifyIconOnline icon="ri:delete-bin-line" />
+      <el-button round size="small" @click="clearAll" :disabled="messages.length === 0">
+        <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
         清空全部
       </el-button>
     </div>
@@ -450,14 +450,17 @@ onUnmounted(() => {
           <div class="msg-body" @click="handleMessageClick(msg)">
             <div class="msg-header">
               <span class="msg-title">{{ msg.title }}</span>
-              <span class="msg-time">{{ msg.time }}</span>
+              <span class="msg-time">
+                <IconifyIconOnline icon="ri:time-line" />
+                {{ msg.time }}
+              </span>
             </div>
             <div class="msg-content">{{ msg.content }}</div>
           </div>
           <div class="msg-actions">
             <el-button
               v-if="!msg.read"
-              link
+              circle
               size="small"
               @click="markAsRead(msg)"
               title="标记已读"
@@ -465,7 +468,7 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:check-line" />
             </el-button>
             <el-button
-              link
+              circle
               size="small"
               @click="deleteMessage(msg)"
               title="删除"
@@ -619,24 +622,28 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 16px;
   padding: 16px;
-  margin-bottom: 8px;
+  margin: 0 12px 8px;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   border: 1px solid transparent;
+  background: rgba(var(--el-fill-color-white-rgb), 0.5);
 
   &:hover {
     background: var(--stitch-lay-bg-hover, var(--el-fill-color-light));
     border-color: var(--stitch-lay-border, var(--el-border-color-lighter));
-    transform: translateX(4px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 
   &.unread {
-    background: rgba(var(--el-color-primary-rgb), 0.08);
+    background: rgba(var(--el-color-primary-rgb), 0.04);
+    border: 1px solid rgba(var(--el-color-primary-rgb), 0.1);
 
     &:hover {
-      background: rgba(var(--el-color-primary-rgb), 0.12);
+      background: rgba(var(--el-color-primary-rgb), 0.08);
+      border-color: rgba(var(--el-color-primary-rgb), 0.2);
     }
     
     .item-title {
@@ -825,18 +832,32 @@ html.dark {
   .drawer-message-item {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    padding: 16px;
-    border-radius: 12px;
+    gap: 20px;
+    padding: 20px;
+    border-radius: 16px;
     background: var(--stitch-lay-bg-overlay, var(--el-bg-color));
     border: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--el-color-primary);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
 
     &:hover {
       border-color: var(--el-color-primary-light-5);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
       
       .msg-actions {
         opacity: 1;
@@ -845,8 +866,15 @@ html.dark {
     }
 
     &.unread {
-      background: rgba(var(--el-color-primary-rgb), 0.05);
-      border-left: 3px solid var(--el-color-primary);
+      background: rgba(var(--el-color-primary-rgb), 0.02);
+      
+      &::before {
+        opacity: 1;
+      }
+
+      .msg-title {
+        color: var(--el-color-primary);
+      }
     }
 
     .msg-avatar {
@@ -895,6 +923,9 @@ html.dark {
       background: var(--el-fill-color);
       padding: 2px 8px;
       border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .msg-content {
