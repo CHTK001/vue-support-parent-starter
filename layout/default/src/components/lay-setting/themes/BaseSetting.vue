@@ -15,7 +15,11 @@ import {
 import { useI18n } from "vue-i18n";
 import { useNav } from "../../../hooks/useNav";
 import LayPanel from "../../lay-panel/index.vue";
-import { getAvailableThemes, ThemeType, detectFestivalTheme } from "../../../themes";
+import {
+  getAvailableThemes,
+  ThemeType,
+  detectFestivalTheme,
+} from "../../../themes";
 
 import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
@@ -24,6 +28,8 @@ import ScRibbon from "@repo/components/ScRibbon/index.vue";
 import { ElMessage } from "element-plus";
 import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
 import LayThemeSwitcher from "../../lay-theme-switcher/index.vue";
+import { useThemeStore } from "../../../stores/themeStore";
+import { storeToRefs } from "pinia";
 
 import DayIcon from "@repo/assets/svg/day.svg?component";
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
@@ -39,6 +45,17 @@ const { t } = useI18n();
 const { device } = useNav();
 const { isDark } = useDark();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+const themeStore = useThemeStore();
+const {
+  fpsMonitorEnabled,
+  memoryMonitorEnabled,
+  cpuMonitorEnabled,
+  performanceMonitorPosition,
+  performanceMonitorMode,
+  performanceMonitorLayout,
+  performanceMonitorDirection,
+  isPerformanceMonitorVisible,
+} = storeToRefs(themeStore);
 
 // 预览数据
 const previewInput = ref("");
@@ -49,8 +66,8 @@ const previewRadio = ref("1");
 
 // 判断当前是否为非默认主题（节日主题优先级高于页签风格和整体风格）
 const isNonDefaultTheme = computed(() => {
-  const currentTheme = $storage?.configure?.systemTheme || 'default';
-  return currentTheme !== 'default';
+  const currentTheme = $storage?.configure?.systemTheme || "default";
+  return currentTheme !== "default";
 });
 
 const mixRef = ref();
@@ -73,7 +90,6 @@ const {
   setLayoutThemeColor,
 } = useDataThemeChange();
 
-
 /* body添加layout属性，作用于src/style/sidebar.scss */
 if (unref(layoutTheme)) {
   const layout = unref(layoutTheme).layout;
@@ -95,7 +111,7 @@ const cardBodyVal = ref($storage.configure?.cardBody ?? true);
 
 const settings = reactive({
   menuTransition: $storage.configure.menuTransition,
-  transitionType: $storage.configure.transitionType ?? 'fade-slide',
+  transitionType: $storage.configure.transitionType ?? "fade-slide",
   contentMargin: $storage.configure.contentMargin,
   layoutRadius: $storage.configure.layoutRadius,
   greyVal: $storage.configure.grey,
@@ -131,7 +147,10 @@ const settings = reactive({
   // AI 助手设置
   aiChatTheme: $storage.configure.aiChatTheme ?? "default",
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 false）
-  enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? (getConfig().EnableFestivalTheme ?? false),
+  enableFestivalTheme:
+    $storage.configure?.enableFestivalTheme ??
+    getConfig().EnableFestivalTheme ??
+    false,
   // 字体加密设置
   fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? true,
   fontEncryptionNumbers: $storage.configure?.fontEncryptionNumbers ?? true,
@@ -150,12 +169,36 @@ const transitionTypeOptions = computed<Array<OptionsType>>(() => [
 
 /** AI 助手皮肤主题选项 */
 const aiChatThemeOptions = computed<Array<OptionsType>>(() => [
-  { label: t("panel.aiThemePurple"), tip: t("panel.aiThemePurpleTip"), value: "default" },
-  { label: t("panel.aiThemeBlue"), tip: t("panel.aiThemeBlueTip"), value: "blue" },
-  { label: t("panel.aiThemeGreen"), tip: t("panel.aiThemeGreenTip"), value: "green" },
-  { label: t("panel.aiThemeOrange"), tip: t("panel.aiThemeOrangeTip"), value: "orange" },
-  { label: t("panel.aiThemePink"), tip: t("panel.aiThemePinkTip"), value: "pink" },
-  { label: t("panel.aiThemeDark"), tip: t("panel.aiThemeDarkTip"), value: "dark" },
+  {
+    label: t("panel.aiThemePurple"),
+    tip: t("panel.aiThemePurpleTip"),
+    value: "default",
+  },
+  {
+    label: t("panel.aiThemeBlue"),
+    tip: t("panel.aiThemeBlueTip"),
+    value: "blue",
+  },
+  {
+    label: t("panel.aiThemeGreen"),
+    tip: t("panel.aiThemeGreenTip"),
+    value: "green",
+  },
+  {
+    label: t("panel.aiThemeOrange"),
+    tip: t("panel.aiThemeOrangeTip"),
+    value: "orange",
+  },
+  {
+    label: t("panel.aiThemePink"),
+    tip: t("panel.aiThemePinkTip"),
+    value: "pink",
+  },
+  {
+    label: t("panel.aiThemeDark"),
+    tip: t("panel.aiThemeDarkTip"),
+    value: "dark",
+  },
 ]);
 
 /** 卡片颜色模式配置 */
@@ -190,9 +233,9 @@ const getThemeColorStyle = computed(() => {
 /**
  * 获取当前环境和用户信息
  */
-const currentEnv = import.meta.env.MODE || 'production';
-const isDevelopment = currentEnv === 'development' || import.meta.env.DEV;
-const isTest = currentEnv === 'test';
+const currentEnv = import.meta.env.MODE || "production";
+const isDevelopment = currentEnv === "development" || import.meta.env.DEV;
+const isTest = currentEnv === "test";
 
 // 获取用户角色列表（从 $storage 或其他地方获取）
 const userRoles = computed(() => {
@@ -210,16 +253,16 @@ const festivalThemesList = computed(() => {
     settings.enableFestivalTheme,
     userRoles.value,
     isDevelopment,
-    isTest
+    isTest,
   );
-  
+
   // 转换为设置面板需要的格式
-  return themes.map(t => ({
-    color: t.color || '#409EFF',
+  return themes.map((t) => ({
+    color: t.color || "#409EFF",
     themeColor: t.key,
     name: t.name,
     description: t.description,
-    icon: t.icon || 'ri:palette-line',
+    icon: t.icon || "ri:palette-line",
     type: t.type,
     key: t.key,
   }));
@@ -296,11 +339,11 @@ const monochromeChange = (value: boolean): void => {
 /** 节日主题自动切换设置 */
 const festivalThemeChange = (value: boolean): void => {
   storageConfigureChange("enableFestivalTheme", value);
-  
+
   if (value) {
     // 开启自动切换，检测并应用节日主题
     const festivalTheme = detectFestivalTheme();
-    
+
     if (festivalTheme) {
       switchSystemTheme(festivalTheme.key, true);
     } else {
@@ -317,20 +360,23 @@ const festivalThemeChange = (value: boolean): void => {
  * @param themeKey 主题键值
  * @param showMessage 是否显示消息，默认为true
  */
-const switchSystemTheme = (themeKey: string, showMessage: boolean = true): void => {
+const switchSystemTheme = (
+  themeKey: string,
+  showMessage: boolean = true,
+): void => {
   // 检查是否已经是当前主题，避免重复切换
-  const currentTheme = $storage.configure?.systemTheme || 'default';
+  const currentTheme = $storage.configure?.systemTheme || "default";
   if (currentTheme === themeKey) {
     return;
   }
-  
+
   const htmlEl = document.documentElement;
-  
+
   // 使用 data-skin 属性而不是 class
-  htmlEl.setAttribute('data-skin', themeKey);
-  
+  htmlEl.setAttribute("data-skin", themeKey);
+
   // 如果切换到非默认主题，强制切换到浅色模式
-  if (themeKey !== 'default') {
+  if (themeKey !== "default") {
     dataTheme.value = false;
     dataThemeChange("light");
     // 更新 element-plus 主题色为默认蓝色 (避免之前的深色主题色残留)
@@ -338,16 +384,20 @@ const switchSystemTheme = (themeKey: string, showMessage: boolean = true): void 
   }
 
   // 不再需要动态加载CSS，所有主题样式已在 @repo/skin 中
-  
+
   // 保存到本地存储
   storageConfigureChange("systemTheme", themeKey);
-  
+
   // 发送主题切换事件
   emitter.emit("systemThemeChange", themeKey);
-  
+
   // 只在明确要求显示消息时才显示
   if (showMessage) {
-    const themeName = themeKey === 'default' ? '默认' : festivalThemesList.value.find(t => t.themeColor === themeKey)?.name || themeKey;
+    const themeName =
+      themeKey === "default"
+        ? "默认"
+        : festivalThemesList.value.find((t) => t.themeColor === themeKey)
+            ?.name || themeKey;
     ElMessage.success(`已切换到${themeName}主题`);
   }
 };
@@ -372,12 +422,12 @@ const loadThemeStylesheet = (themeKey: string): void => {
   link.id = "layout-theme-stylesheet";
   link.rel = "stylesheet";
   link.href = `/themes/${themeKey}.css`;
-  
+
   // 添加加载事件监听
   link.onerror = () => {
     ElMessage.error(t("panel.themeStyleLoadFailed"));
   };
-  
+
   document.head.appendChild(link);
 };
 
@@ -446,7 +496,7 @@ const adjustValue = (key: string, delta: number): void => {
       case "layoutRadius":
         layoutRadiusChange(newValue);
         break;
-// case layoutBlur removed
+      // case layoutBlur removed
     }
   }
 };
@@ -665,17 +715,17 @@ function watchSystemThemeChange() {
  */
 const initializeTheme = () => {
   const savedTheme = $storage.configure?.systemTheme;
-  
+
   if (settings.enableFestivalTheme) {
     // 如果开启了自动切换，检测节日主题
     const festivalTheme = detectFestivalTheme();
-    
+
     if (festivalTheme) {
       switchSystemTheme(festivalTheme.key, false); // 初始化时不显示消息
       return;
     }
   }
-  
+
   // 应用保存的主题或默认主题
   if (savedTheme && savedTheme !== "default") {
     switchSystemTheme(savedTheme, false); // 初始化时不显示消息
@@ -704,7 +754,7 @@ onBeforeMount(() => {
       document.querySelector("html")?.classList.add("html-monochrome");
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
-    
+
     // 初始化同步配置
     // 修复：默认值为 true 的配置如果存储中不存在，会导致 UI 显示开启但实际不生效
     // 手动触发一次变更以同步状态
@@ -740,17 +790,23 @@ const collectTippyInstances = () => {
 };
 
 // 监听菜单动画设置
-watch(() => settings.menuAnimation, (val) => {
-  storageConfigureChange("MenuAnimation", val);
-  emitter.emit("menuAnimationChange", val);
-});
+watch(
+  () => settings.menuAnimation,
+  (val) => {
+    storageConfigureChange("MenuAnimation", val);
+    emitter.emit("menuAnimationChange", val);
+  },
+);
 
 // 监听强制新菜单设置
-watch(() => settings.forceNewMenu, (val) => {
-  storageConfigureChange("ForceNewMenu", val);
-  // 强制新菜单可能需要触发重渲染，或者组件内部监听
-  emitter.emit("forceNewMenuChange", val);
-});
+watch(
+  () => settings.forceNewMenu,
+  (val) => {
+    storageConfigureChange("ForceNewMenu", val);
+    // 强制新菜单可能需要触发重渲染，或者组件内部监听
+    emitter.emit("forceNewMenuChange", val);
+  },
+);
 
 onMounted(() => {
   collectTippyInstances();
@@ -838,7 +894,7 @@ function resetToDefault() {
   logoChange();
   cardBodyChange();
   multiTagsCacheChange();
-  
+
   // 重置菜单动画
   storageConfigureChange("MenuAnimation", true);
   emitter.emit("menuAnimationChange", true);
@@ -885,7 +941,7 @@ function breadcrumbModeChange() {
   storageConfigureChange("breadcrumbIconOnly", settings.breadcrumbIconOnly);
   emitter.emit(
     "breadcrumbModeChange",
-    settings.breadcrumbIconOnly ? "icon" : "icon-text"
+    settings.breadcrumbIconOnly ? "icon" : "icon-text",
   );
 }
 
@@ -912,7 +968,7 @@ function doubleNavExpandModeChange() {
 function doubleNavAutoExpandAllChange() {
   storageConfigureChange(
     "doubleNavAutoExpandAll",
-    settings.doubleNavAutoExpandAll
+    settings.doubleNavAutoExpandAll,
   );
 }
 
@@ -1103,14 +1159,10 @@ onUnmounted(() => {
   <div>
     <LayPanel>
       <div class="modern-setting-container">
-
         <!-- 主题风格设置区域 - 非默认主题下隐藏（节日主题优先级大于整体风格） -->
         <div v-if="!isNonDefaultTheme" class="setting-section">
           <div class="section-header">
-            <IconifyIconOnline
-              icon="ri:palette-line"
-              class="section-icon"
-            />
+            <IconifyIconOnline icon="ri:palette-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureOverallStyle") }}</h3>
           </div>
           <div class="setting-content">
@@ -1134,7 +1186,10 @@ onUnmounted(() => {
         </div>
 
         <!-- 主题色设置区域 -->
-        <div v-if="!isNonDefaultTheme && themeColors && themeColors.length > 0" class="setting-section">
+        <div
+          v-if="!isNonDefaultTheme && themeColors && themeColors.length > 0"
+          class="setting-section"
+        >
           <div class="section-header">
             <IconifyIconOnline icon="ri:drop-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureThemeColor") }}</h3>
@@ -1173,11 +1228,16 @@ onUnmounted(() => {
         </div>
 
         <!-- 主题皮肤功能区域 -->
-        <div v-if="getConfig().EnableThemeManagement !== false" class="setting-section">
+        <div
+          v-if="getConfig().EnableThemeManagement !== false"
+          class="setting-section"
+        >
           <div class="section-header">
             <IconifyIconOnline icon="ri:palette-fill" class="section-icon" />
             <h3 class="section-title">{{ t("panel.themeSkin") }}</h3>
-            <div class="section-description">{{ t("panel.themeSkinDesc") }}</div>
+            <div class="section-description">
+              {{ t("panel.themeSkinDesc") }}
+            </div>
           </div>
           <div class="setting-content">
             <!-- 节日主题自动切换开关 -->
@@ -1198,7 +1258,7 @@ onUnmounted(() => {
                 </div>
               </el-tooltip>
             </div>
-            
+
             <!-- 开启自动切换时：显示当前生效的主题提示 -->
             <div v-if="settings.enableFestivalTheme" class="auto-theme-status">
               <div class="status-card">
@@ -1206,15 +1266,25 @@ onUnmounted(() => {
                   <IconifyIconOnline icon="ri:calendar-check-line" />
                 </div>
                 <div class="status-content">
-                  <div class="status-title">{{ t("panel.autoThemeEnabled") }}</div>
-                  <div class="status-desc">{{ t("panel.autoThemeEnabledDesc") }}</div>
+                  <div class="status-title">
+                    {{ t("panel.autoThemeEnabled") }}
+                  </div>
+                  <div class="status-desc">
+                    {{ t("panel.autoThemeEnabledDesc") }}
+                  </div>
                   <div class="status-current">
-                    <span class="label">{{ t("panel.currentThemeLabel") }}</span>
+                    <span class="label">{{
+                      t("panel.currentThemeLabel")
+                    }}</span>
                     <span class="value">
-                      {{ 
-                        $storage.configure?.systemTheme === 'default' 
-                          ? t("panel.defaultTheme") 
-                          : festivalThemesList.find(th => th.themeColor === $storage.configure?.systemTheme)?.name || $storage.configure?.systemTheme
+                      {{
+                        $storage.configure?.systemTheme === "default"
+                          ? t("panel.defaultTheme")
+                          : festivalThemesList.find(
+                              (th) =>
+                                th.themeColor ===
+                                $storage.configure?.systemTheme,
+                            )?.name || $storage.configure?.systemTheme
                       }}
                     </span>
                   </div>
@@ -1229,15 +1299,17 @@ onUnmounted(() => {
                 :showMeta="true"
                 :persist="false"
                 :modelValue="$storage.configure?.systemTheme || 'default'"
-                @change="(key:string) => {
-                  // 手动切换主题时，自动关闭节日主题自动切换功能
-                  if (settings.enableFestivalTheme) {
-                    settings.enableFestivalTheme = false;
-                    storageConfigureChange('enableFestivalTheme', false);
-                    ElMessage.info(t('panel.festivalThemeAutoDisabled'));
+                @change="
+                  (key: string) => {
+                    // 手动切换主题时，自动关闭节日主题自动切换功能
+                    if (settings.enableFestivalTheme) {
+                      settings.enableFestivalTheme = false;
+                      storageConfigureChange('enableFestivalTheme', false);
+                      ElMessage.info(t('panel.festivalThemeAutoDisabled'));
+                    }
+                    switchSystemTheme(key);
                   }
-                  switchSystemTheme(key);
-                }"
+                "
               />
             </div>
           </div>
@@ -1248,7 +1320,9 @@ onUnmounted(() => {
           <div class="section-header">
             <IconifyIconOnline icon="ri:robot-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.aiChatSkin") }}</h3>
-            <div class="section-description">{{ t("panel.aiChatSkinDesc") }}</div>
+            <div class="section-description">
+              {{ t("panel.aiChatSkinDesc") }}
+            </div>
           </div>
           <div class="setting-content">
             <div class="ai-theme-grid">
@@ -1283,7 +1357,9 @@ onUnmounted(() => {
           <div class="section-header">
             <IconifyIconOnline icon="ri:layout-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureLayoutModel") }}</h3>
-            <div class="section-description">{{ t("panel.layoutModeDesc") }}</div>
+            <div class="section-description">
+              {{ t("panel.layoutModeDesc") }}
+            </div>
           </div>
           <div class="setting-content">
             <div class="layout-mode-grid">
@@ -1301,8 +1377,12 @@ onUnmounted(() => {
                   <VerticalIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{ t("panel.layoutVertical") }}</span>
-                  <span class="layout-mode-desc">{{ t("panel.layoutVerticalDesc") }}</span>
+                  <span class="layout-mode-name">{{
+                    t("panel.layoutVertical")
+                  }}</span>
+                  <span class="layout-mode-desc">{{
+                    t("panel.layoutVerticalDesc")
+                  }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'vertical'"
@@ -1327,8 +1407,12 @@ onUnmounted(() => {
                   <HorizontalIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{ t("panel.layoutHorizontal") }}</span>
-                  <span class="layout-mode-desc">{{ t("panel.layoutHorizontalDesc") }}</span>
+                  <span class="layout-mode-name">{{
+                    t("panel.layoutHorizontal")
+                  }}</span>
+                  <span class="layout-mode-desc">{{
+                    t("panel.layoutHorizontalDesc")
+                  }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'horizontal'"
@@ -1353,8 +1437,12 @@ onUnmounted(() => {
                   <MixIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{ t("panel.layoutMix") }}</span>
-                  <span class="layout-mode-desc">{{ t("panel.layoutMixDesc") }}</span>
+                  <span class="layout-mode-name">{{
+                    t("panel.layoutMix")
+                  }}</span>
+                  <span class="layout-mode-desc">{{
+                    t("panel.layoutMixDesc")
+                  }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'mix'"
@@ -1379,8 +1467,12 @@ onUnmounted(() => {
                   <HoverIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{ t("panel.layoutHover") }}</span>
-                  <span class="layout-mode-desc">{{ t("panel.layoutHoverDesc") }}</span>
+                  <span class="layout-mode-name">{{
+                    t("panel.layoutHover")
+                  }}</span>
+                  <span class="layout-mode-desc">{{
+                    t("panel.layoutHoverDesc")
+                  }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'hover'"
@@ -1404,8 +1496,12 @@ onUnmounted(() => {
                   <MobileIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{ t("panel.layoutMobile") }}</span>
-                  <span class="layout-mode-desc">{{ t("panel.layoutMobileDesc") }}</span>
+                  <span class="layout-mode-name">{{
+                    t("panel.layoutMobile")
+                  }}</span>
+                  <span class="layout-mode-desc">{{
+                    t("panel.layoutMobileDesc")
+                  }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'mobile'"
@@ -1430,8 +1526,12 @@ onUnmounted(() => {
                   <DoubleIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{ t("panel.layoutDouble") }}</span>
-                  <span class="layout-mode-desc">{{ t("panel.layoutDoubleDesc") }}</span>
+                  <span class="layout-mode-name">{{
+                    t("panel.layoutDouble")
+                  }}</span>
+                  <span class="layout-mode-desc">{{
+                    t("panel.layoutDoubleDesc")
+                  }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'double'"
@@ -1446,12 +1546,11 @@ onUnmounted(() => {
         <!-- 移动导航设置 -->
         <div v-if="layoutTheme.layout === 'mobile'" class="setting-section">
           <div class="section-header">
-            <IconifyIconOnline
-              icon="ri:smartphone-line"
-              class="section-icon"
-            />
+            <IconifyIconOnline icon="ri:smartphone-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.mobileNavConfig") }}</h3>
-            <div class="section-description">{{ t("panel.mobileNavConfigDesc") }}</div>
+            <div class="section-description">
+              {{ t("panel.mobileNavConfigDesc") }}
+            </div>
           </div>
           <div class="setting-content">
             <div class="mobile-nav-tips">
@@ -1482,7 +1581,9 @@ onUnmounted(() => {
               class="section-icon"
             />
             <h3 class="section-title">{{ t("panel.doubleNavConfig") }}</h3>
-            <div class="section-description">{{ t("panel.doubleNavConfigDesc") }}</div>
+            <div class="section-description">
+              {{ t("panel.doubleNavConfigDesc") }}
+            </div>
           </div>
           <div class="setting-content">
             <div class="switch-item">
@@ -1521,10 +1622,7 @@ onUnmounted(() => {
           class="setting-section"
         >
           <div class="section-header">
-            <IconifyIconOnline
-              icon="ri:fullscreen-line"
-              class="section-icon"
-            />
+            <IconifyIconOnline icon="ri:fullscreen-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureStretch") }}</h3>
           </div>
           <div class="setting-content">
@@ -1554,12 +1652,20 @@ onUnmounted(() => {
                 :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']"
               >
                 <IconifyIconOnline
-                  :icon="settings.stretch ? 'ri:arrow-right-s-line' : 'ri:arrow-left-s-line'"
+                  :icon="
+                    settings.stretch
+                      ? 'ri:arrow-right-s-line'
+                      : 'ri:arrow-left-s-line'
+                  "
                   height="20"
                 />
                 <div class="stretch-line" />
                 <IconifyIconOnline
-                  :icon="settings.stretch ? 'ri:arrow-left-s-line' : 'ri:arrow-right-s-line'"
+                  :icon="
+                    settings.stretch
+                      ? 'ri:arrow-left-s-line'
+                      : 'ri:arrow-right-s-line'
+                  "
                   height="20"
                 />
               </div>
@@ -1570,10 +1676,7 @@ onUnmounted(() => {
         <!-- 布局参数设置区域 -->
         <div class="setting-section">
           <div class="section-header">
-            <IconifyIconOnline
-              icon="ri:settings-3-line"
-              class="section-icon"
-            />
+            <IconifyIconOnline icon="ri:settings-3-line" class="section-icon" />
             <h3 class="section-title">
               {{ t("panel.pureLayoutParams") || "布局参数" }}
             </h3>
@@ -1699,10 +1802,7 @@ onUnmounted(() => {
             <!-- 视觉效果设置 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOnline
-                  icon="ri:palette-line"
-                  class="group-icon"
-                />
+                <IconifyIconOnline icon="ri:palette-line" class="group-icon" />
                 视觉效果
               </h4>
               <div class="switch-card-grid">
@@ -1751,10 +1851,7 @@ onUnmounted(() => {
             <!-- 界面元素设置 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOnline
-                  icon="ri:layout-4-line"
-                  class="group-icon"
-                />
+                <IconifyIconOnline icon="ri:layout-4-line" class="group-icon" />
                 界面元素
               </h4>
               <div class="switch-card-grid">
@@ -1865,6 +1962,226 @@ onUnmounted(() => {
                 ribbon-color="var(--el-color-warning)"
                 @change="multiTagsCacheChange"
               />
+
+              <!-- 性能监控 (仅在开发/测试环境或 SA 账号显示) -->
+              <div v-if="isPerformanceMonitorVisible" class="setting-group">
+               <h4 class="group-title">
+                   <IconifyIconOnline
+                  icon="ri:settings-3-line"
+                  class="group-icon"
+                />
+                  {{ t("search.performanceMonitor") }}
+               </h4>
+
+                <div class="setting-item-content">
+                  <!-- FPS Monitor -->
+                  <div class="switch-card-grid">
+                    <el-tooltip
+                      content="Frames Per Second: 衡量页面流畅度，60FPS 为最佳"
+                      placement="top"
+                      :append-to-body="true"
+                      :z-index="3000"
+                    >
+                      <ScSwitch
+                        v-model="fpsMonitorEnabled"
+                        layout="visual-card"
+                        size="small"
+                        :label="t('search.performanceMonitor')"
+                        :description="t('search.showFps')"
+                        active-icon="ri:pulse-line"
+                        ribbon-color="var(--el-color-danger)"
+                        @change="themeStore.setFpsMonitor"
+                      />
+                    </el-tooltip>
+                    <!-- Memory Monitor -->
+                      <el-tooltip
+                        content="JS Heap Size: 当前页面使用的 JS 堆内存 (仅 Chrome/Edge 有效)"
+                        placement="top"
+                        :append-to-body="true"
+                        :z-index="3000"
+                      >
+                        <ScSwitch
+                        v-model="memoryMonitorEnabled"
+                        layout="visual-card"
+                        size="small"
+                        :label="t('search.showMemory')"
+                        description="显示内存使用情况"
+                        active-icon="ri:cpu-line"
+                        ribbon-color="var(--el-color-primary)"
+                        @change="themeStore.setMemoryMonitor"
+                      />
+                    </el-tooltip>
+
+                    <el-tooltip
+                      content="CPU Load Estimation: 基于主线程帧间隔估算的负载值 (非系统真实 CPU)"
+                      placement="top"
+                      :append-to-body="true"
+                      :z-index="3000"
+                    >
+                      <ScSwitch
+                        v-model="cpuMonitorEnabled"
+                        layout="visual-card"
+                        size="small"
+                        label="CPU 监控"
+                        description="显示主线程负载 (模拟)"
+                        active-icon="ri:speed-up-line"
+                        ribbon-color="var(--el-color-warning)"
+                        @change="themeStore.setCpuMonitor"
+                      />
+                    </el-tooltip>
+                  </div>
+
+                  <!-- Display Settings Group -->
+                  <div
+                    class="monitor-display-settings"
+                    style="
+                      margin-top: 16px;
+                      width: 100%;
+                      border-top: 1px solid var(--el-border-color-lighter);
+                      padding-top: 12px;
+                    "
+                  >
+                    <span
+                      style="
+                        font-size: 13px;
+                        font-weight: bold;
+                        margin-bottom: 12px;
+                        display: block;
+                        color: var(--el-text-color-regular);
+                      "
+                      >显示配置</span
+                    >
+
+                    <!-- Layout Mode (Merged vs Split) -->
+                    <div
+                      style="
+                        margin-bottom: 12px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                      "
+                    >
+                      <span
+                        style="
+                          font-size: 12px;
+                          color: var(--el-text-color-secondary);
+                        "
+                        >布局模式</span
+                      >
+                      <Segmented
+                        v-model="performanceMonitorLayout"
+                        :options="[
+                          { label: '合并', value: 'merged' },
+                          { label: '分离', value: 'split' },
+                        ]"
+                        size="small"
+                        @change="
+                          (val) =>
+                            themeStore.setPerformanceMonitorLayout(
+                              val.option.value,
+                            )
+                        "
+                      />
+                    </div>
+
+                    <!-- Layout Direction (Vertical vs Horizontal) -->
+                    <div
+                      style="
+                        margin-bottom: 12px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                      "
+                    >
+                      <span
+                        style="
+                          font-size: 12px;
+                          color: var(--el-text-color-secondary);
+                        "
+                        >布局方向</span
+                      >
+                      <Segmented
+                        v-model="performanceMonitorDirection"
+                        :options="[
+                          { label: '垂直', value: 'vertical' },
+                          { label: '水平', value: 'horizontal' },
+                        ]"
+                        size="small"
+                        @change="
+                          (val) =>
+                            themeStore.setPerformanceMonitorDirection(
+                              val.option.value,
+                            )
+                        "
+                      />
+                    </div>
+
+                    <!-- Content Mode (Text vs Detail) -->
+                    <div
+                      style="
+                        margin-bottom: 12px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                      "
+                    >
+                      <span
+                        style="
+                          font-size: 12px;
+                          color: var(--el-text-color-secondary);
+                        "
+                        >内容展示</span
+                      >
+                      <Segmented
+                        v-model="performanceMonitorMode"
+                        :options="[
+                          { label: '详细', value: 'detailed' },
+                          { label: '简洁', value: 'simple' },
+                        ]"
+                        size="small"
+                        @change="
+                          (val) =>
+                            themeStore.setPerformanceMonitorMode(
+                              val.option.value,
+                            )
+                        "
+                      />
+                    </div>
+
+                    <!-- Position Selector (Visual Grid) -->
+                    <div class="position-selector-container">
+                      <span
+                        style="
+                          font-size: 12px;
+                          color: var(--el-text-color-secondary);
+                          margin-bottom: 8px;
+                          display: block;
+                        "
+                        >显示位置</span
+                      >
+                      <div class="position-grid">
+                        <!-- Top Row -->
+                        <div class="position-cell top-left" :class="{ active: performanceMonitorPosition === 'top-left' }" @click="themeStore.setPerformanceMonitorPosition('top-left')" title="左上"></div>
+                        <div class="position-cell top-center" :class="{ active: performanceMonitorPosition === 'top-center' }" @click="themeStore.setPerformanceMonitorPosition('top-center')" title="中上"></div>
+                        <div class="position-cell top-right" :class="{ active: performanceMonitorPosition === 'top-right' }" @click="themeStore.setPerformanceMonitorPosition('top-right')" title="右上"></div>
+                        
+                        <!-- Middle Row -->
+                        <div class="position-cell left-center" :class="{ active: performanceMonitorPosition === 'left-center' }" @click="themeStore.setPerformanceMonitorPosition('left-center')" title="左中"></div>
+                        <div class="position-cell center-disabled"></div>
+                        <div class="position-cell right-center" :class="{ active: performanceMonitorPosition === 'right-center' }" @click="themeStore.setPerformanceMonitorPosition('right-center')" title="右中"></div>
+                        
+                        <!-- Bottom Row -->
+                        <div class="position-cell bottom-left" :class="{ active: performanceMonitorPosition === 'bottom-left' }" @click="themeStore.setPerformanceMonitorPosition('bottom-left')" title="左下"></div>
+                        <div class="position-cell bottom-center" :class="{ active: performanceMonitorPosition === 'bottom-center' }" @click="themeStore.setPerformanceMonitorPosition('bottom-center')" title="中下"></div>
+                        <div class="position-cell bottom-right" :class="{ active: performanceMonitorPosition === 'bottom-right' }" @click="themeStore.setPerformanceMonitorPosition('bottom-right')" title="右下"></div>
+                        
+                        <!-- Screen Content Mockup -->
+                        <div class="screen-content-mock"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1880,10 +2197,7 @@ onUnmounted(() => {
             <!-- 菜单动画设置 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOnline
-                  icon="ri:movie-line"
-                  class="group-icon"
-                />
+                <IconifyIconOnline icon="ri:movie-line" class="group-icon" />
                 菜单动画
               </h4>
               <ScSwitch
@@ -1896,7 +2210,7 @@ onUnmounted(() => {
                 ribbon-color="var(--el-color-primary)"
                 @change="menuAnimationChange"
               />
-              
+
               <div v-if="settings.menuAnimation" class="mt-3 px-1">
                 <div class="text-xs text-gray-500 mb-2 pl-1">动画效果选择</div>
                 <Segmented
@@ -1930,12 +2244,16 @@ onUnmounted(() => {
               />
 
               <!-- 新菜单详细配置 (仅开启时显示) -->
-              <div v-if="settings.showNewMenu" class="sub-settings-container mt-4 pl-3 border-l-2 border-[var(--el-border-color-lighter)]">
-                
+              <div
+                v-if="settings.showNewMenu"
+                class="sub-settings-container mt-4 pl-3 border-l-2 border-[var(--el-border-color-lighter)]"
+              >
                 <!-- 新菜单文本 -->
                 <div class="setting-item mb-4">
                   <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm text-[var(--el-text-color-regular)]">标识文本</span>
+                    <span class="text-sm text-[var(--el-text-color-regular)]"
+                      >标识文本</span
+                    >
                     <el-input
                       v-model="settings.newMenuText"
                       placeholder="NEW"
@@ -1951,7 +2269,9 @@ onUnmounted(() => {
                 <!-- 时间限制 -->
                 <div class="setting-item mb-4">
                   <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm text-[var(--el-text-color-regular)]">显示时长(小时)</span>
+                    <span class="text-sm text-[var(--el-text-color-regular)]"
+                      >显示时长(小时)</span
+                    >
                     <el-input-number
                       v-model="settings.newMenuTimeLimit"
                       :min="1"
@@ -1967,7 +2287,9 @@ onUnmounted(() => {
                 <!-- 标识动画 -->
                 <div class="setting-item mb-4">
                   <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm text-[var(--el-text-color-regular)]">动画</span>
+                    <span class="text-sm text-[var(--el-text-color-regular)]"
+                      >动画</span
+                    >
                   </div>
                   <Segmented
                     resize
@@ -2004,7 +2326,9 @@ onUnmounted(() => {
           <div class="section-header">
             <IconifyIconOnline icon="ri:tools-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.advancedSettings") }}</h3>
-            <div class="section-description">{{ t("panel.advancedSettingsDesc") }}</div>
+            <div class="section-description">
+              {{ t("panel.advancedSettingsDesc") }}
+            </div>
           </div>
           <div class="setting-content">
             <!-- 高级功能开关 -->
@@ -2052,86 +2376,10 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- 字体加密设置 (已移除) -->
-            <!-- 
-            <div class="setting-group">
-              <h4 class="group-title">
-                <IconifyIconOnline
-                  icon="ri:lock-password-line"
-                  class="group-icon"
-                />
-                字体加密
-              </h4>
-              <div class="switch-card-grid">
-                <ScSwitch
-                  v-model="settings.fontEncryptionEnabled"
-                  layout="visual-card"
-                  size="small"
-                  label="启用字体加密"
-                  description="通过字符映射防止复制数字和常用汉字"
-                  active-icon="ri:shield-check-line"
-                  ribbon-color="var(--el-color-primary)"
-                  @change="fontEncryptionEnabledChange"
-                />
-
-                <ScSwitch
-                  v-model="settings.fontEncryptionNumbers"
-                  layout="visual-card"
-                  size="small"
-                  label="加密数字"
-                  description="对数字0-9进行字体加密"
-                  active-icon="ri:number-1"
-                  ribbon-color="var(--el-color-info)"
-                  :disabled="!settings.fontEncryptionEnabled"
-                  @change="fontEncryptionNumbersChange"
-                />
-
-                <ScSwitch
-                  v-model="settings.fontEncryptionChinese"
-                  layout="visual-card"
-                  size="small"
-                  label="加密汉字"
-                  description="对常用汉字进行字体加密"
-                  active-icon="ri:translate"
-                  ribbon-color="var(--el-color-success)"
-                  :disabled="!settings.fontEncryptionEnabled"
-                  @change="fontEncryptionChineseChange"
-                />
-
-                <ScSwitch
-                  v-model="settings.fontEncryptionGlobal"
-                  layout="visual-card"
-                  size="small"
-                  label="全局应用"
-                  description="将字体加密应用到整个页面"
-                  active-icon="ri:global-line"
-                  ribbon-color="var(--el-color-warning)"
-                  :disabled="!settings.fontEncryptionEnabled"
-                  @change="fontEncryptionGlobalChange"
-                />
-
-                <ScSwitch
-                  v-model="settings.fontEncryptionOcrNoise"
-                  layout="visual-card"
-                  size="small"
-                  label="OCR 噪点干扰"
-                  description="添加人眼不可见的噪点，干扰 OCR 识别"
-                  active-icon="ri:eye-off-line"
-                  ribbon-color="var(--el-color-danger)"
-                  :disabled="!settings.fontEncryptionEnabled"
-                  @change="fontEncryptionOcrNoiseChange"
-                />
-              </div>
-            </div>
-            -->
-
             <!-- 重置选项 -->
             <div class="setting-group">
               <h4 class="group-title">
-                <IconifyIconOnline
-                  icon="ri:refresh-line"
-                  class="group-icon"
-                />
+                <IconifyIconOnline icon="ri:refresh-line" class="group-icon" />
                 {{ t("panel.resetOptions") }}
               </h4>
               <div class="reset-actions">
@@ -2153,11 +2401,65 @@ onUnmounted(() => {
         </div>
       </div>
     </LayPanel>
-
   </div>
 </template>
 
 <style lang="scss" scoped>
+.monitor-display-settings {
+  .position-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 4px;
+            width: 90px;
+            height: 70px;
+            background: var(--el-bg-color-page);
+            border: 1px solid var(--el-border-color);
+            border-radius: 4px;
+            padding: 4px;
+            position: relative;
+            margin: 0 auto;
+            
+            .screen-content-mock {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 50px;
+              height: 36px;
+              background: var(--el-border-color-lighter);
+              border-radius: 2px;
+              pointer-events: none;
+              opacity: 0.5;
+            }
+
+            .position-cell {
+              background: var(--el-fill-color-light);
+              border-radius: 2px;
+              cursor: pointer;
+              transition: all 0.2s;
+              z-index: 1;
+
+              &:hover {
+                background: var(--el-color-primary-light-8);
+              }
+
+              &.active {
+                background: var(--el-color-primary);
+                box-shadow: 0 0 4px var(--el-color-primary-light-5);
+              }
+
+              &.center-disabled {
+                background: transparent;
+                cursor: default;
+                &:hover {
+                  background: transparent;
+                }
+              }
+            }
+          }
+}
+
 // 现代化动画关键帧
 @keyframes gradientShift {
   0%,
@@ -2228,57 +2530,57 @@ onUnmounted(() => {
 }
 
 // 现代化设置容器 - 全新设计语言
-  .modern-setting-container {
-    padding: 24px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 20px;
-    min-height: 100vh;
-    width: 440px;
-    max-width: 100%;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    box-shadow:
-      0 20px 60px rgba(0, 0, 0, 0.15),
-      0 10px 30px rgba(0, 0, 0, 0.12),
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      var(--el-box-shadow-light);
+.modern-setting-container {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  min-height: 100vh;
+  width: 440px;
+  max-width: 100%;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 10px 30px rgba(0, 0, 0, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    var(--el-box-shadow-light);
 
-    // 预览区域样式
-    .setting-section {
-      .preview-container {
-        padding: 16px;
-        background: var(--el-bg-color);
-        border-radius: 12px;
-        border: 1px solid var(--el-border-color-lighter);
-        box-shadow: var(--el-box-shadow-light);
-        margin-top: 8px;
-        transition: all 0.3s ease;
-        
-        &:hover {
-          box-shadow: var(--el-box-shadow);
-          border-color: var(--el-border-color);
+  // 预览区域样式
+  .setting-section {
+    .preview-container {
+      padding: 16px;
+      background: var(--el-bg-color);
+      border-radius: 12px;
+      border: 1px solid var(--el-border-color-lighter);
+      box-shadow: var(--el-box-shadow-light);
+      margin-top: 8px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: var(--el-box-shadow);
+        border-color: var(--el-border-color);
+      }
+
+      .preview-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+
+        &:last-child {
+          margin-bottom: 0;
         }
 
-        .preview-row {
-          display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 12px;
-          margin-bottom: 16px;
-          
-          &:last-child {
-            margin-bottom: 0;
-          }
-          
-          &.full-width {
-            width: 100%;
-          }
+        &.full-width {
+          width: 100%;
         }
       }
     }
+  }
 
-    // 现代化背景装饰 - 动态渐变
+  // 现代化背景装饰 - 动态渐变
   &::before {
     content: "";
     position: absolute;
@@ -3765,129 +4067,6 @@ onUnmounted(() => {
   }
 }
 
-// 美化其他按钮样式（无动画版本）
-:deep(.el-button) {
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  font-weight: 500;
-
-  // 悬停效果
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  }
-
-  // 点击效果
-  &:active {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  &.is-plain {
-    &:hover {
-      background-color: var(--el-color-primary-light-9);
-      border-color: var(--el-color-primary);
-      color: var(--el-color-primary);
-    }
-  }
-
-  &.el-button--primary {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary),
-      var(--el-color-primary-light-3)
-    );
-    border: none;
-    color: var(--el-color-white);
-
-    &:hover {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-3),
-        var(--el-color-primary)
-      );
-      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3);
-    }
-  }
-
-  &.el-button--danger {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-danger),
-      var(--el-color-danger-light-3)
-    );
-    border: none;
-    color: var(--el-color-white);
-
-    &:hover {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-danger-light-3),
-        var(--el-color-danger)
-      );
-      box-shadow: 0 6px 16px rgba(var(--el-color-danger-rgb), 0.3);
-    }
-  }
-
-  &.el-button--warning {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-warning),
-      var(--el-color-warning-light-3)
-    );
-    border: none;
-    color: var(--el-color-white);
-
-    &:hover {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-warning-light-3),
-        var(--el-color-warning)
-      );
-      box-shadow: 0 6px 16px rgba(var(--el-color-warning-rgb), 0.3);
-    }
-  }
-
-  &.el-button--info {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-info),
-      var(--el-color-info-light-3)
-    );
-    border: none;
-    color: var(--el-color-white);
-
-    &:hover {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-info-light-3),
-        var(--el-color-info)
-      );
-      box-shadow: 0 6px 16px rgba(var(--el-color-info-rgb), 0.3);
-    }
-  }
-
-  &.el-button--success {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-success),
-      var(--el-color-success-light-3)
-    );
-    border: none;
-    color: var(--el-color-white);
-
-    &:hover {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-success-light-3),
-        var(--el-color-success)
-      );
-      box-shadow: 0 6px 16px rgba(var(--el-color-success-rgb), 0.3);
-    }
-  }
-}
-
 // 现代化数字输入框样式
 .layout-params-grid {
   display: grid;
@@ -4420,7 +4599,7 @@ onUnmounted(() => {
       font-size: 18px;
     }
   }
-  
+
   .festival-themes-subtitle {
     display: flex;
     align-items: center;
@@ -4478,12 +4657,12 @@ onUnmounted(() => {
   &.is-disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    
+
     &:hover {
       border-color: var(--el-border-color);
       transform: none;
       box-shadow: none;
-      
+
       .card-icon {
         transform: none;
       }
@@ -4802,7 +4981,11 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.6) 0%, rgba(248, 250, 252, 0.6) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(248, 250, 252, 0.6) 100%
+  );
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -5054,7 +5237,11 @@ onUnmounted(() => {
 // 深色模式适配
 html.dark {
   .layout-mode-item {
-    background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%);
+    background: linear-gradient(
+      145deg,
+      rgba(30, 41, 59, 0.6) 0%,
+      rgba(15, 23, 42, 0.6) 100%
+    );
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     border-color: rgba(255, 255, 255, 0.08);
@@ -5904,18 +6091,18 @@ html.dark {
   color: var(--el-text-color-regular);
   line-height: 1.6;
   transition: all 0.3s ease;
-  
+
   .tip-icon {
     flex-shrink: 0;
     font-size: 16px;
     color: var(--el-color-info);
     margin-top: 2px;
   }
-  
+
   span {
     flex: 1;
   }
-  
+
   &:hover {
     background: linear-gradient(
       135deg,
@@ -5933,7 +6120,7 @@ html.dark {
       rgba(var(--el-color-info-rgb), 0.15) 0%,
       rgba(var(--el-color-info-rgb), 0.08) 100%
     );
-    
+
     &:hover {
       background: linear-gradient(
         135deg,
@@ -5962,7 +6149,7 @@ html.dark {
   border: 1px solid rgba(var(--el-color-success-rgb), 0.2);
   border-radius: 12px;
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: linear-gradient(
       135deg,
@@ -5973,7 +6160,7 @@ html.dark {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.15);
   }
-  
+
   .status-icon {
     flex-shrink: 0;
     display: flex;
@@ -5991,26 +6178,26 @@ html.dark {
     font-size: 24px;
     box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.3);
   }
-  
+
   .status-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .status-title {
     font-size: 16px;
     font-weight: 600;
     color: var(--el-text-color-primary);
   }
-  
+
   .status-desc {
     font-size: 13px;
     color: var(--el-text-color-secondary);
     line-height: 1.5;
   }
-  
+
   .status-current {
     display: flex;
     align-items: center;
@@ -6020,11 +6207,11 @@ html.dark {
     background: rgba(var(--el-color-success-rgb), 0.08);
     border-radius: 8px;
     font-size: 13px;
-    
+
     .label {
       color: var(--el-text-color-secondary);
     }
-    
+
     .value {
       font-weight: 600;
       color: var(--el-color-success);
@@ -6040,7 +6227,7 @@ html.dark {
       rgba(var(--el-color-success-rgb), 0.15) 0%,
       rgba(var(--el-color-success-rgb), 0.08) 100%
     );
-    
+
     &:hover {
       background: linear-gradient(
         135deg,
@@ -6048,7 +6235,7 @@ html.dark {
         rgba(var(--el-color-success-rgb), 0.12) 100%
       );
     }
-    
+
     .status-current {
       background: rgba(var(--el-color-success-rgb), 0.15);
     }

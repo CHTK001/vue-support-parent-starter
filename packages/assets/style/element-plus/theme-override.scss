@@ -56,31 +56,6 @@ body {
   border-radius: 8px;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  // Default button glass effect
-  &:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.is-disabled) {
-    @include glass.glass(0.5, 4px, 0.1);
-    
-    &:hover {
-      background: rgba(255, 255, 255, 0.8);
-      transform: translateY(-1px);
-      
-      html.dark & {
-        background: rgba(255, 255, 255, 0.1);
-      }
-    }
-  }
-
-  // Primary button glowing effect
-  &--primary {
-    border: none;
-    box-shadow: 0 4px 14px 0 rgba(var(--el-color-primary-rgb), 0.39);
-    
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.23);
-    }
-  }
 }
 
 /* 3. 输入框 Input */

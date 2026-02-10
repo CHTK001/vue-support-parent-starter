@@ -86,6 +86,8 @@ export interface PlatformConfigs {
   CardBody?: boolean;
   /** 内容区边距 */
   contentMargin?: Number;
+  /** 是否显示FPS监控 */
+  ShowFpsMonitor?: boolean;
 
   // ===========================================
   // 顶部工具栏配置

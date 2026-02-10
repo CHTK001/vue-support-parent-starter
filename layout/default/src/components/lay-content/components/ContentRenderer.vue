@@ -81,6 +81,7 @@ const contentStyle = computed(() => {
   if (props.layoutRadius) {
     style['border-radius'] = `${props.layoutRadius}px`;
   }
+  style['flex'] = '1';
   return { ...style, ...props.extraStyle };
 });
 </script>
