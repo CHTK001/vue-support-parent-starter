@@ -359,7 +359,7 @@ catalog:
   tailwindcss: ^3.4.17
   tailwindcss-animate: ^1.0.7
   techui-vue3-lite: ^3.0.8
-  "@techui/scifi": ^0.0.6-alpha.1
+  "@techui/scifi": ^0.0.7-alpha.7
   "@techui/colors": ^1.0.2
   "@techui/lessmixins": ^0.0.6
   "@techui/locales": ^0.0.6
