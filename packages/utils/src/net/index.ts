@@ -23,9 +23,11 @@ export const checkNetworkStatus = (): Promise<boolean> => {
  * 获取当前 IP 地址
  */
 // 添加必要的接口定义
-interface IPDetails {
+export interface IPDetails {
   country: string;
+  country_code?: string;
   region: string;
+  region_code?: string;
   city: string;
   isp: string;
   org: string;
@@ -53,6 +55,7 @@ const IP_SERVICES = [
     parseIP: (data: any) => data.ip,
     parseDetails: (data: any) => ({
       country: data.country || "",
+      country_code: data.country || "",
       region: data.region || "",
       city: data.city || "",
       isp: data.org || "",
@@ -68,6 +71,7 @@ const IP_SERVICES = [
     parseIP: (data: any) => data.ip,
     parseDetails: (data: any) => ({
       country: data.country || "",
+      country_code: data.country_code || "",
       region: data.region || "",
       city: data.city || "",
       isp: data.isp || "",
@@ -79,6 +83,7 @@ const IP_SERVICES = [
     })
   }
 ];
+
 
 /**
  * 获取当前 IP 地址及相关信息
@@ -299,6 +304,80 @@ export const getPhysicalAddressByIp = async (ip: string): Promise<string> => {
     }
   });
 };
+
+/**
+ * 获取指定 IP 的详细信息
+ * @param {string} ip - 要查询的 IP 地址
+ * @returns {Promise<IPDetails | null>} IP 详细信息
+ */
+export const getIpInfo = async (ip: string): Promise<IPDetails | null> => {
+  if (isPrivateIP(ip)) {
+    return null;
+  }
+  
+  const cacheKey = `ip_info_${ip}`;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {
+      localStorage.removeItem(cacheKey);
+    }
+  }
+
+  // 尝试 ip.sb
+  try {
+    const response = await fetch(`https://api.ip.sb/geoip/${ip}`);
+    if (response.ok) {
+        const data = await response.json();
+        const info: IPDetails = {
+            country: data.country || "",
+            country_code: data.country_code || "",
+            region: data.region || "",
+            region_code: data.region_code || "",
+            city: data.city || "",
+            isp: data.isp || "",
+            org: data.organization || "",
+            asn: data.asn?.toString() || "",
+            timezone: data.timezone || "",
+            latitude: data.latitude || 0,
+            longitude: data.longitude || 0
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(info));
+        return info;
+    }
+  } catch (e) {
+    console.warn("ip.sb fetch failed", e);
+  }
+
+  // 尝试 ipapi.co
+  try {
+    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    if (response.ok) {
+        const data = await response.json();
+        const info: IPDetails = {
+            country: data.country_name || "",
+            country_code: data.country_code || "",
+            region: data.region || "",
+            region_code: data.region_code || "",
+            city: data.city || "",
+            isp: data.org || "",
+            org: data.org || "",
+            asn: data.asn || "",
+            timezone: data.timezone || "",
+            latitude: data.latitude || 0,
+            longitude: data.longitude || 0
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(info));
+        return info;
+    }
+  } catch (e) {
+    console.warn("ipapi.co fetch failed", e);
+  }
+  
+  return null;
+};
+
 
 /**
  * 摄像头厂商RTSP地址接口

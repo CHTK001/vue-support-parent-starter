@@ -50,6 +50,10 @@ const {
   fpsMonitorEnabled,
   memoryMonitorEnabled,
   cpuMonitorEnabled,
+  bandwidthMonitorEnabled,
+  batteryMonitorEnabled,
+  bluetoothMonitorEnabled,
+  screenMonitorEnabled,
   performanceMonitorPosition,
   performanceMonitorMode,
   performanceMonitorLayout,
@@ -1952,6 +1956,7 @@ onUnmounted(() => {
                 />
                 功能设置
               </h4>
+               <div class="switch-card-grid">
               <ScSwitch
                 v-model="settings.multiTagsCache"
                 layout="visual-card"
@@ -1963,7 +1968,7 @@ onUnmounted(() => {
                 @change="multiTagsCacheChange"
               />
 
-              <ScSwitch
+              <!-- <ScSwitch
                 v-model="themeStore.homeCustomizationEnabled"
                 layout="visual-card"
                 size="small"
@@ -1972,8 +1977,9 @@ onUnmounted(() => {
                 active-icon="ri:dashboard-line"
                 ribbon-color="var(--el-color-success)"
                 @change="themeStore.setHomeCustomizationEnabled"
-              />
+              /> -->
 
+            </div>
               <!-- 性能监控 (仅在开发/测试环境或 SA 账号显示) -->
               <div v-if="isPerformanceMonitorVisible" class="setting-group">
                <h4 class="group-title">
@@ -2038,6 +2044,78 @@ onUnmounted(() => {
                         active-icon="ri:speed-up-line"
                         ribbon-color="var(--el-color-warning)"
                         @change="themeStore.setCpuMonitor"
+                      />
+                    </el-tooltip>
+
+                    <el-tooltip
+                      content="Bandwidth: 显示当前页面网络请求的传输速率"
+                      placement="top"
+                      :append-to-body="true"
+                      :z-index="3000"
+                    >
+                      <ScSwitch
+                        v-model="bandwidthMonitorEnabled"
+                        layout="visual-card"
+                        size="small"
+                        label="带宽监控"
+                        description="显示网络传输速率"
+                        active-icon="ri:global-line"
+                        ribbon-color="var(--el-color-info)"
+                        @change="themeStore.setBandwidthMonitor"
+                      />
+                    </el-tooltip>
+
+                    <el-tooltip
+                      content="Battery: 显示电池电量和充电状态"
+                      placement="top"
+                      :append-to-body="true"
+                      :z-index="3000"
+                    >
+                      <ScSwitch
+                        v-model="batteryMonitorEnabled"
+                        layout="visual-card"
+                        size="small"
+                        label="电池监控"
+                        description="显示电池状态"
+                        active-icon="ri:battery-charge-line"
+                        ribbon-color="var(--el-color-success)"
+                        @change="themeStore.setBatteryMonitor"
+                      />
+                    </el-tooltip>
+
+                    <el-tooltip
+                      content="Bluetooth: 显示蓝牙功能可用性"
+                      placement="top"
+                      :append-to-body="true"
+                      :z-index="3000"
+                    >
+                      <ScSwitch
+                        v-model="bluetoothMonitorEnabled"
+                        layout="visual-card"
+                        size="small"
+                        label="蓝牙监控"
+                        description="显示蓝牙状态"
+                        active-icon="ri:bluetooth-line"
+                        ribbon-color="var(--el-color-primary)"
+                        @change="themeStore.setBluetoothMonitor"
+                      />
+                    </el-tooltip>
+
+                    <el-tooltip
+                      content="Screen: 显示屏幕分辨率"
+                      placement="top"
+                      :append-to-body="true"
+                      :z-index="3000"
+                    >
+                      <ScSwitch
+                        v-model="screenMonitorEnabled"
+                        layout="visual-card"
+                        size="small"
+                        label="屏幕监控"
+                        description="显示屏幕分辨率"
+                        active-icon="ri:computer-line"
+                        ribbon-color="var(--el-color-primary)"
+                        @change="themeStore.setScreenMonitor"
                       />
                     </el-tooltip>
                   </div>

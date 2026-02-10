@@ -12,6 +12,7 @@ import {
   reactive,
   ref,
   shallowRef,
+  watch
 } from "vue";
 
 defineOptions({
@@ -37,7 +38,10 @@ const searchKeyword = ref("");
 const selectedCategory = ref("all");
 
 // 设置项
-const showHeaderInfo = ref(true); // 默认显示头部
+const showHeaderInfo = ref(localStorage.getItem("glass-show-header-info") !== "false");
+watch(showHeaderInfo, (val) => {
+  localStorage.setItem("glass-show-header-info", String(val));
+});
 
 // 当前时间
 const currentTime = ref(new Date());
@@ -48,7 +52,8 @@ const formattedTime = computed(() => {
   const date = currentTime.value;
   const hours = date.getHours().toString().padStart(2, "0");
   const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
+  const seconds = date.getSeconds().toString().padStart(2, "0");
+  return `${hours}:${minutes}:${seconds}`;
 });
 
 const formattedDate = computed(() => {
@@ -339,13 +344,25 @@ onUnmounted(() => {
               v-for="item in filteredWidgetList"
               :key="item.key"
               class="widget-card glass-panel-sm"
+              :class="{ 'has-preview': item.type === 1 }"
               @click="push(item)"
             >
-              <div class="widget-card-icon">
+              <!-- 实时预览 (本地组件) -->
+              <div v-if="item.type === 1" class="widget-preview-area">
+                <div class="preview-scaler">
+                   <component :is="userLayoutObject.loadComponent(item.id)" />
+                </div>
+                <!-- 遮罩防止交互 -->
+                <div class="preview-overlay"></div>
+              </div>
+
+              <!-- 图标 (远程组件) -->
+              <div v-else class="widget-card-icon">
                 <el-icon :size="24">
                   <component :is="useRenderIcon(item.icon || 'ri:apps-line')" />
                 </el-icon>
               </div>
+
               <div class="widget-card-content">
                 <div class="widget-card-title">{{ item.title }}</div>
                 <div class="widget-card-desc">{{ item.description || 'No description' }}</div>
@@ -742,6 +759,8 @@ $primary-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
   
   &:hover {
       background: rgba(255, 255, 255, 0.1);
@@ -752,6 +771,59 @@ $primary-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
           background: #6366f1;
           color: white;
       }
+  }
+
+  // 带有预览的卡片样式 (Task 1 & 2)
+  &.has-preview {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.03);
+    
+    .widget-preview-area {
+      height: 120px;
+      position: relative;
+      background: rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      
+      .preview-scaler {
+        width: 200%; 
+        height: 200%;
+        transform: scale(0.5);
+        transform-origin: 0 0;
+        pointer-events: none;
+        
+        // 强制组件内部充满
+        :deep(> *) {
+            width: 100% !important;
+            height: 100% !important;
+        }
+      }
+
+      .preview-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        cursor: pointer;
+      }
+    }
+
+    .widget-card-content {
+      padding: 12px;
+      flex: none;
+    }
+
+    .widget-card-action {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+    }
+    
+    &:hover {
+      transform: translateY(-2px); // 预览卡片向上浮动而不是向右
+    }
   }
 }
 

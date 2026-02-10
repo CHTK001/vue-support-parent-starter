@@ -1,7 +1,9 @@
 {
-  "sysSfcId": "quick-notes",
-  "sysSfcName": "QuickNotes",
-  "sysSfcChineseName": "快捷便签",
-  "sysSfcIcon": "ri:sticky-note-line",
-  "sysSfcDesc": "快速记录笔记"
+  "sysSfcId": "notes",
+  "title": "快捷便签",
+  "description": "快速记录临时文本",
+  "icon": "ri:sticky-note-line",
+  "width": 2,
+  "height": 2,
+  "type": 1
 }

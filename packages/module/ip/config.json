@@ -1,5 +1,9 @@
 {
   "sysSfcId": "public-ip",
-  "sysSfcName": "PublicIP",
-  "sysSfcChineseName": "公网IP"
+  "title": "公网IP",
+  "description": "显示本机公网IP地址",
+  "icon": "ri:global-line",
+  "width": 1,
+  "height": 1,
+  "type": 1
 }
