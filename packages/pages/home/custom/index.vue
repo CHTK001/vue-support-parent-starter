@@ -2,6 +2,7 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { getConfig } from "@repo/config";
 import { useLayoutLayoutStore } from "@repo/core";
+import { useThemeStore } from "@layout/default/src/stores/themeStore";
 import {
   defineAsyncComponent,
   nextTick,
@@ -12,6 +13,7 @@ import {
 
 const widgets = shallowRef();
 const userLayoutObject = useLayoutLayoutStore();
+const themeStore = useThemeStore();
 
 const CustomLayout = defineAsyncComponent(
   () => import("./layout/CustomLayout.vue")
@@ -31,6 +33,13 @@ const handeCustom = async () => {
     widgets.value.style.setProperty("--transform-scale", `${scale}`);
   });
 };
+
+// Drag Logic
+const onDragStart = (e, item) => {
+  e.dataTransfer.setData("text/plain", JSON.stringify(item));
+  e.dataTransfer.dropEffect = "copy";
+};
+
 
 /**
  * 恢复默认
@@ -76,7 +85,7 @@ onBeforeMount(async () => {
       <div class="widgets-top">
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
-          <div v-if="customizing.hasLayout">
+          <div v-if="customizing.hasLayout && themeStore.homeCustomizationEnabled">
             <el-button
               v-if="customizing.customizing"
               type="primary"
@@ -154,6 +163,8 @@ onBeforeMount(async () => {
               v-for="item in userLayoutObject.myCompsList()"
               :key="item.title"
               class="widgets-list-item"
+              draggable="true"
+              @dragstart="onDragStart($event, item)"
             >
               <div class="item-logo">
                 <el-icon>
@@ -292,55 +303,68 @@ onBeforeMount(async () => {
 /* 部件列表 */
 .widgets-list {
   padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .widgets-list-nodata {
+  grid-column: span 2;
   padding: 40px 20px;
   text-align: center;
 }
 
 .widgets-list-item {
   display: flex;
+  flex-direction: column;
+  padding: 16px;
   align-items: center;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  border-radius: 8px;
-  background: var(--el-fill-color-light);
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
+  border-radius: 12px;
+  transition: all 0.3s ease;
   cursor: pointer;
-}
-
-.widgets-list-item:hover {
+  border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
-  border-color: var(--el-border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    border-color: var(--el-color-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
 }
 
 .widgets-list-item .item-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: var(--el-color-primary);
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--el-color-primary-light-9);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  margin-right: 12px;
+  font-size: 24px;
+  margin-bottom: 12px;
+  color: var(--el-color-primary);
+  transition: all 0.3s ease;
+}
+
+.widgets-list-item:hover .item-logo {
+  background: var(--el-color-primary);
   color: #fff;
-  flex-shrink: 0;
+  transform: scale(1.1) rotate(5deg);
 }
 
 .widgets-list-item .item-info {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 8px;
 }
 
 .widgets-list-item .item-info h2 {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--el-text-color-primary);
-  margin: 0 0 4px 0;
+  margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -349,22 +373,22 @@ onBeforeMount(async () => {
 .widgets-list-item .item-info p {
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  margin: 0;
-  white-space: nowrap;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  height: 34px; /* Fixed height for 2 lines */
 }
 
 .widgets-list-item .item-actions {
-  flex-shrink: 0;
-  margin-left: 10px;
+  width: 100%;
+  margin-top: auto;
 }
 
-.widgets-list-item .item-actions :deep(.el-button) {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border-radius: 6px;
+.widgets-list-item .item-actions .el-button {
+  width: 100%;
+  border-radius: 8px;
 }
 
 /* 底部操作栏 */
