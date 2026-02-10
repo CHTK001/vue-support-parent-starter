@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.3] - 2026-02-10
+
+### Added
+- **Theme Animation**:
+  - Implemented View Transitions API based theme switch animation.
+  - Added configurable animation directions (top-left, top-right, bottom-left, bottom-right, center, etc.).
+  - Added "Random" animation mode and "Cursor" follower mode.
+  - Integrated animation settings into `BaseSetting.vue`.
+- **ScSelect**:
+  - Added new `PositionLayout` for selecting 9-grid positions (top-left, center, bottom-right, etc.).
+  - Added `ScSelect` integration for theme animation direction and performance monitor position settings.
+- **Modern Tech Theme**:
+  - Refined Modern Tech theme to resemble DataV style (Neon Cyan, Grid Background, Corner Accents).
+
+### Changed
+- **Dependencies**: Upgraded `@techui/scifi` to `^0.0.7-alpha.7`.
+- **BaseSetting**: Replaced native `el-select` and custom position grid with `ScSelect` components for better consistency and maintainability.
+- **SidebarFullScreen**: Replaced custom fullscreen implementation with native API to fix compatibility issues.
+- **Message Center**: Enhanced UI with Stitch Design System tokens and hover effects.
+
+### Fixed
+- **Theme Switcher**: Fixed beta theme card event passing to ensure consistent animation behavior.
+
 ## [2.2.2] - 2026-02-09
 
 ### Fixed

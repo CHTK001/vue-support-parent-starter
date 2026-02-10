@@ -24,6 +24,7 @@ import {
 import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
 import { ElMessage } from "element-plus";
 import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
@@ -1323,19 +1324,14 @@ onUnmounted(() => {
               <span class="setting-label" style="font-size: 14px"
                 >动画方向</span
               >
-              <el-select
+              <ScSelect
                 v-model="settings.themeAnimationDirection"
+                :options="themeAnimationDirectionOptions"
+                layout="select"
                 size="small"
                 style="width: 120px"
                 @change="themeAnimationDirectionChange"
-              >
-                <el-option
-                  v-for="item in themeAnimationDirectionOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
+              />
             </div>
           </div>
         </div>
@@ -2357,25 +2353,11 @@ onUnmounted(() => {
                         "
                         >显示位置</span
                       >
-                      <div class="position-grid">
-                        <!-- Top Row -->
-                        <div class="position-cell top-left" :class="{ active: performanceMonitorPosition === 'top-left' }" @click="themeStore.setPerformanceMonitorPosition('top-left')" title="左上"></div>
-                        <div class="position-cell top-center" :class="{ active: performanceMonitorPosition === 'top-center' }" @click="themeStore.setPerformanceMonitorPosition('top-center')" title="中上"></div>
-                        <div class="position-cell top-right" :class="{ active: performanceMonitorPosition === 'top-right' }" @click="themeStore.setPerformanceMonitorPosition('top-right')" title="右上"></div>
-                        
-                        <!-- Middle Row -->
-                        <div class="position-cell left-center" :class="{ active: performanceMonitorPosition === 'left-center' }" @click="themeStore.setPerformanceMonitorPosition('left-center')" title="左中"></div>
-                        <div class="position-cell center-disabled"></div>
-                        <div class="position-cell right-center" :class="{ active: performanceMonitorPosition === 'right-center' }" @click="themeStore.setPerformanceMonitorPosition('right-center')" title="右中"></div>
-                        
-                        <!-- Bottom Row -->
-                        <div class="position-cell bottom-left" :class="{ active: performanceMonitorPosition === 'bottom-left' }" @click="themeStore.setPerformanceMonitorPosition('bottom-left')" title="左下"></div>
-                        <div class="position-cell bottom-center" :class="{ active: performanceMonitorPosition === 'bottom-center' }" @click="themeStore.setPerformanceMonitorPosition('bottom-center')" title="中下"></div>
-                        <div class="position-cell bottom-right" :class="{ active: performanceMonitorPosition === 'bottom-right' }" @click="themeStore.setPerformanceMonitorPosition('bottom-right')" title="右下"></div>
-                        
-                        <!-- Screen Content Mockup -->
-                        <div class="screen-content-mock"></div>
-                      </div>
+                      <ScSelect
+                        :model-value="performanceMonitorPosition"
+                        layout="position"
+                        @change="(val) => themeStore.setPerformanceMonitorPosition(val)"
+                      />
                     </div>
                   </div>
                 </div>
@@ -2604,58 +2586,6 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .monitor-display-settings {
-  .position-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            grid-template-rows: 1fr 1fr 1fr;
-            gap: 4px;
-            width: 90px;
-            height: 70px;
-            background: var(--el-bg-color-page);
-            border: 1px solid var(--el-border-color);
-            border-radius: 4px;
-            padding: 4px;
-            position: relative;
-            margin: 0 auto;
-            
-            .screen-content-mock {
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              width: 50px;
-              height: 36px;
-              background: var(--el-border-color-lighter);
-              border-radius: 2px;
-              pointer-events: none;
-              opacity: 0.5;
-            }
-
-            .position-cell {
-              background: var(--el-fill-color-light);
-              border-radius: 2px;
-              cursor: pointer;
-              transition: all 0.2s;
-              z-index: 1;
-
-              &:hover {
-                background: var(--el-color-primary-light-8);
-              }
-
-              &.active {
-                background: var(--el-color-primary);
-                box-shadow: 0 0 4px var(--el-color-primary-light-5);
-              }
-
-              &.center-disabled {
-                background: transparent;
-                cursor: default;
-                &:hover {
-                  background: transparent;
-                }
-              }
-            }
-          }
 }
 
 // 现代化动画关键帧
