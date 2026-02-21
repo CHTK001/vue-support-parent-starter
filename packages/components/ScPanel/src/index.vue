@@ -49,7 +49,7 @@ import { ref, computed, watch, onUnmounted } from "vue";
 
 defineOptions({ name: "ScPanel" });
 
-export type PanelTheme = "default" | "tech" | "techui" | "glass" | "neon" | "cyber" | "modern" | "gradient";
+export type PanelTheme = "default" | "tech" | "techui" | "glass" | "neon" | "modern" | "gradient";
 
 const props = withDefaults(
   defineProps<{
@@ -340,40 +340,7 @@ defineExpose({ toggleCollapse, toggleMaximize });
     }
   }
 
-  // Cyber 赛博朋克
-  &--cyber {
-    background: linear-gradient(180deg, #1a1a2e, #16213e) !important;
-    border: 1px solid #0f3460 !important;
-    border-radius: 0 !important;
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, #e94560, transparent);
-    }
-    :deep(.el-card__header) {
-      background: rgba(233, 69, 96, 0.1);
-      border-bottom-color: rgba(233, 69, 96, 0.3);
-    }
-    .sc-panel__title {
-      color: #e94560;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .sc-panel__body {
-      color: #eee;
-    }
-    .sc-panel__action-btn {
-      color: #e94560;
-      &:hover {
-        background: rgba(233, 69, 96, 0.2);
-      }
-    }
-  }
+
 
   // TechUI 数据大屏风格
   &--techui {

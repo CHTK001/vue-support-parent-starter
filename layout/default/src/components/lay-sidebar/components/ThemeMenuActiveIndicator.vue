@@ -38,15 +38,6 @@
         <div class="gold-line"></div>
       </div>
     </template>
-
-    <!-- 赛博朋克主题：霓虹线条 -->
-    <template v-else-if="currentTheme === 'cyberpunk'">
-      <div class="cyberpunk-indicator">
-        <div class="neon-line"></div>
-        <div class="scan-line"></div>
-        <div class="glitch-effect"></div>
-      </div>
-    </template>
   </div>
 </template>
 
@@ -78,7 +69,7 @@ const currentTheme = ref<string>(
 
 // 是否启用装饰
 const isEnabled = computed(() => {
-  return props.isActive && ['christmas', 'mid-autumn', 'spring-festival', 'cyberpunk'].includes(currentTheme.value);
+  return props.isActive && ['christmas', 'mid-autumn', 'spring-festival'].includes(currentTheme.value);
 });
 
 onMounted(() => {
@@ -253,80 +244,5 @@ onBeforeUnmount(() => {
 @keyframes goldShimmer {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
-}
-
-// ==================== 赛博朋克主题 ====================
-.indicator-cyberpunk {
-  .cyberpunk-indicator {
-    position: relative;
-    width: 24px;
-    height: 16px;
-    
-    .neon-line {
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 100%;
-      height: 3px;
-      background: linear-gradient(90deg, #00ffff, #ff00ff, #00ffff);
-      border-radius: 2px;
-      box-shadow: 
-        0 0 4px #00ffff,
-        0 0 8px rgba(0, 255, 255, 0.5),
-        0 0 12px rgba(255, 0, 255, 0.3);
-      animation: neonPulse 2s ease-in-out infinite;
-    }
-    
-    .scan-line {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 4px;
-      height: 100%;
-      background: linear-gradient(180deg, transparent, #00ffff, transparent);
-      animation: scanMove 1.5s linear infinite;
-    }
-    
-    .glitch-effect {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(0, 255, 255, 0.1) 50%, 
-        transparent 100%
-      );
-      animation: glitchFlicker 0.3s ease-in-out infinite;
-    }
-  }
-}
-
-@keyframes neonPulse {
-  0%, 100% { 
-    opacity: 0.8;
-    box-shadow: 
-      0 0 4px #00ffff,
-      0 0 8px rgba(0, 255, 255, 0.5),
-      0 0 12px rgba(255, 0, 255, 0.3);
-  }
-  50% { 
-    opacity: 1;
-    box-shadow: 
-      0 0 8px #00ffff,
-      0 0 16px rgba(0, 255, 255, 0.7),
-      0 0 24px rgba(255, 0, 255, 0.5);
-  }
-}
-
-@keyframes scanMove {
-  0% { left: -4px; opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { left: calc(100% + 4px); opacity: 0; }
-}
-
-@keyframes glitchFlicker {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 0.3; }
 }
 </style>

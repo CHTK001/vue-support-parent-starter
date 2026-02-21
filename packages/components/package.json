@@ -87,7 +87,8 @@
     "rete-minimap-plugin": "catalog:",
     "rete-auto-arrange-plugin": "catalog:",
     "rete-render-utils": "catalog:",
-    "rete-connection-reroute-plugin": "catalog:"
+    "rete-connection-reroute-plugin": "catalog:",
+    "three": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",
@@ -113,6 +114,7 @@
     "@types/nprogress": "catalog:",
     "@types/qs": "catalog:",
     "@types/sortablejs": "catalog:",
+    "@types/three": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitejs/plugin-vue": "catalog:",

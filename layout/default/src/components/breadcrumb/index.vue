@@ -13,7 +13,6 @@ const themeComponents = {
   'default': DefaultBreadcrumb,
   'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
   'halloween': defineAsyncComponent(() => import("./themes/Halloween.vue")),
-  'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
   'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),

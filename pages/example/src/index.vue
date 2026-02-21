@@ -581,7 +581,7 @@ const components = [
     category: "layout",
     tags: ["面板", "主题"],
     description:
-      "面板组件，支持多种主题风格（default/tech/techui/glass/neon/cyber/modern/gradient），可折叠、最大化",
+      "面板组件，支持多种主题风格（default/tech/techui/glass/neon/modern/gradient），可折叠、最大化",
     component: resolveComponent("./components/ScPanelExample.vue"),
   },
   {
@@ -624,6 +624,14 @@ const components = [
     tags: ["图表", "数据"],
     description: "图表组件，基于 ECharts 封装的图表组件",
     component: resolveComponent("./components/ScEchartsExample.vue"),
+  },
+  {
+    name: "ScEchartsMap3D",
+    icon: "ri:map-3-line",
+    category: "display",
+    tags: ["3D地图", "ECharts", "数据可视化"],
+    description: "基于 ECharts GL 的 3D 地图组件，支持经纬度点位、飞线、自定义 GeoJSON 等",
+    component: resolveComponent("./components/ScEchartsMap3DExample.vue"),
   },
   {
     name: "ScEditor",

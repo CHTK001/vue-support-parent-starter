@@ -68,7 +68,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
-@import "../../../styles/mixins.scss";
+@use "../../../styles/mixins.scss" as *;
 
 // 基础布局样式 - 所有主题共用
 .base-navbar {

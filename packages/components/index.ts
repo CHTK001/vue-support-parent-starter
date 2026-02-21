@@ -16,8 +16,10 @@ import ScNumber from "./ScNumber/index.vue";
 import ScDictSelect from "./ScDictSelect/index.vue";
 import ScDrawer from "./ScDrawer/index.vue";
 import { ScReteEditor, useReteEditor } from "./ScReteEditor";
+import { ScThree } from "./ScThree";
+import { ScEchartsMap3D } from "./ScEchartsMap3D";
 
-export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel, ScNumber, ScDictSelect, ScDrawer, ScReteEditor, useReteEditor, useRenderIcon };
+export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel, ScNumber, ScDictSelect, ScDrawer, ScReteEditor, ScThree, ScEchartsMap3D, useReteEditor, useRenderIcon };
 export * from "./ScReteEditor/types";
 export * from "./ReIcon";
 
@@ -40,5 +42,7 @@ export default {
   ScDictSelect,
   ScDrawer,
   ScReteEditor,
+  ScThree,
+  ScEchartsMap3D,
   useReteEditor
 };

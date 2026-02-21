@@ -12,7 +12,6 @@ import DefaultTool from "./themes/Default.vue";
 const themeComponents = {
   'default': DefaultTool,
   'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
-  'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
   'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
@@ -497,99 +496,7 @@ html[data-skin="spring-festival"] {
   }
 }
 
-// 赛博朋克主题
-$cyber-cyan: #00ffff;
-$cyber-magenta: #ff00ff;
-$cyber-dark: #0a0a12;
 
-html[data-skin="cyberpunk"] {
-  .lang-dropdown-popper .el-dropdown-menu,
-  .user-dropdown-popper .el-dropdown-menu {
-    background: rgba($cyber-dark, 0.95) !important;
-    border: 1px solid rgba($cyber-cyan, 0.3) !important;
-    box-shadow: 0 0 30px rgba($cyber-cyan, 0.2), 0 0 60px rgba($cyber-magenta, 0.1), 0 20px 60px rgba(0, 0, 0, 0.5) !important;
-  }
-
-  .lang-menu {
-    .lang-header {
-      background: linear-gradient(135deg, rgba($cyber-cyan, 0.1) 0%, rgba($cyber-magenta, 0.05) 100%) !important;
-      border-bottom-color: rgba($cyber-cyan, 0.3) !important;
-      color: $cyber-cyan !important;
-      svg { color: $cyber-cyan !important; filter: drop-shadow(0 0 4px rgba($cyber-cyan, 0.6)); }
-    }
-
-    .lang-item {
-      background: rgba($cyber-dark, 0.6) !important;
-      border: 1px solid rgba($cyber-cyan, 0.15) !important;
-      .lang-name { color: $cyber-cyan !important; font-family: 'Rajdhani', 'Roboto', sans-serif; }
-      .lang-desc { color: rgba($cyber-cyan, 0.6) !important; }
-
-      &:hover {
-        background: rgba($cyber-cyan, 0.1) !important;
-        border-color: $cyber-cyan !important;
-        box-shadow: 0 0 15px rgba($cyber-cyan, 0.3) !important;
-        .lang-name { color: #fff !important; text-shadow: 0 0 8px rgba($cyber-cyan, 0.6); }
-      }
-
-      &.active {
-        background: linear-gradient(135deg, rgba($cyber-cyan, 0.15) 0%, rgba($cyber-magenta, 0.1) 100%) !important;
-        border-color: $cyber-cyan !important;
-        box-shadow: 0 0 20px rgba($cyber-cyan, 0.3) !important;
-        .lang-name { color: $cyber-cyan !important; text-shadow: 0 0 8px rgba($cyber-cyan, 0.8); font-weight: 700; }
-        .lang-check { color: $cyber-cyan !important; filter: drop-shadow(0 0 6px rgba($cyber-cyan, 0.8)); }
-      }
-    }
-  }
-
-  .user-menu {
-    .menu-header {
-      background: linear-gradient(135deg, rgba($cyber-cyan, 0.15) 0%, rgba($cyber-magenta, 0.1) 100%) !important;
-      border-bottom: 1px solid rgba($cyber-cyan, 0.3) !important;
-      .header-avatar { border-color: $cyber-cyan !important; box-shadow: 0 0 15px rgba($cyber-cyan, 0.4), 0 0 30px rgba($cyber-magenta, 0.2), 0 8px 24px rgba(0, 0, 0, 0.4) !important; }
-      .header-name { color: #fff !important; text-shadow: 0 0 10px rgba($cyber-cyan, 0.5); font-family: 'Orbitron', 'Rajdhani', monospace; }
-      .header-status { color: $cyber-cyan !important; &::before { background: linear-gradient(135deg, $cyber-cyan, #00ffa3) !important; box-shadow: 0 0 0 3px rgba($cyber-cyan, 0.2), 0 0 15px rgba($cyber-cyan, 0.6) !important; } }
-    }
-
-    .menu-body {
-      background: transparent !important;
-    }
-
-    .menu-item {
-      background: rgba($cyber-dark, 0.6) !important;
-      border: 1px solid rgba($cyber-cyan, 0.15) !important;
-      .item-title { color: $cyber-cyan !important; font-family: 'Rajdhani', 'Roboto', sans-serif; }
-      .item-desc { color: rgba($cyber-cyan, 0.6) !important; }
-      .account-icon { background: linear-gradient(135deg, $cyber-cyan, rgba(0, 200, 255, 0.8)) !important; color: $cyber-dark !important; box-shadow: 0 0 15px rgba($cyber-cyan, 0.4) !important; }
-      .cache-icon { background: linear-gradient(135deg, $cyber-magenta, rgba(255, 100, 200, 0.8)) !important; color: $cyber-dark !important; box-shadow: 0 0 15px rgba($cyber-magenta, 0.4) !important; }
-      &:hover {
-        background: rgba($cyber-cyan, 0.1) !important;
-        border-color: $cyber-cyan !important;
-        box-shadow: 0 0 15px rgba($cyber-cyan, 0.3) !important;
-        .item-title { color: #fff !important; text-shadow: 0 0 8px rgba($cyber-cyan, 0.6); }
-        .item-arrow { color: $cyber-cyan !important; filter: drop-shadow(0 0 4px rgba($cyber-cyan, 0.6)); }
-      }
-    }
-
-    .menu-footer {
-      background: linear-gradient(135deg, rgba($cyber-cyan, 0.05) 0%, rgba($cyber-magenta, 0.03) 100%) !important;
-      border-top-color: rgba($cyber-cyan, 0.3) !important;
-    }
-
-    .logout-item {
-      background: rgba($cyber-dark, 0.6) !important;
-      border: 1px solid rgba(255, 50, 100, 0.3) !important;
-      color: rgba(255, 100, 150, 0.9) !important;
-      .logout-icon { color: rgba(255, 100, 150, 0.9) !important; filter: drop-shadow(0 0 4px rgba(255, 50, 100, 0.5)); }
-      &:hover {
-        background: rgba(255, 50, 100, 0.15) !important;
-        border-color: rgba(255, 50, 100, 0.6) !important;
-        color: #ff6b9d !important;
-        box-shadow: 0 0 15px rgba(255, 50, 100, 0.3) !important;
-        .logout-icon { color: #ff6b9d !important; filter: drop-shadow(0 0 8px rgba(255, 50, 100, 0.8)); }
-      }
-    }
-  }
-}
 
 // 中秋主题
 $mid-blue: #1a237e;

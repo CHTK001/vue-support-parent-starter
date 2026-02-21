@@ -42,6 +42,20 @@ export const loginThemes: LoginTheme[] = [
     // @ts-ignore
     component: () => import("./business/index.vue"),
   },
+  {
+    name: "像素风",
+    key: "pixel",
+    description: "复古像素艺术风格",
+    // @ts-ignore
+    component: () => import("./pixel/index.vue"),
+  },
+  {
+    name: "Minecraft",
+    key: "mc",
+    description: "致敬经典方块世界",
+    // @ts-ignore
+    component: () => import("./mc/index.vue"),
+  },
 ];
 
 // 节日主题
@@ -87,6 +101,13 @@ export const festivalThemes: LoginTheme[] = [
     description: "圣诞主题，温馨浪漫",
     // @ts-ignore
     component: () => import("./festival/christmas.vue"),
+  },
+  {
+    name: "万圣节",
+    key: "halloween",
+    description: "万圣节主题，奇妙之夜",
+    // @ts-ignore
+    component: () => import("./festival/halloween.vue"),
   },
 ];
 
@@ -152,6 +173,11 @@ const detectFestivalTheme = (): LoginTheme | null => {
   // 国庆节（10月1日-10月7日）
   if (month === 10 && day >= 1 && day <= 7) {
     return festivalThemes[4]; // 国庆主题
+  }
+
+  // 万圣节（10月25日-11月2日）
+  if ((month === 10 && day >= 25) || (month === 11 && day <= 2)) {
+    return festivalThemes.find(t => t.key === "halloween") || null;
   }
 
   // 圣诞（12月15日-12月31日）

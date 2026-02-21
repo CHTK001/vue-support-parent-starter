@@ -8,12 +8,13 @@
     "./*": "./*"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
     "@pureadmin/utils": "catalog:",
     "@traptitech/markdown-it-katex": "catalog:",
     "@wangeditor/editor-for-vue": "catalog:",
@@ -121,6 +122,7 @@
     "vite-svg-loader": "catalog:",
     "vkbeautify": "catalog:",
     "vue-eslint-parser": "catalog:",
-    "vue-tsc": "catalog:"
+    "vue-tsc": "catalog:",
+    "vitest": "catalog:"
   }
 }

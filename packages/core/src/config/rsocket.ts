@@ -7,7 +7,7 @@
  * @since 2024-12-04
  */
 
-import { getToken } from "@repo/core";
+import { getToken } from "../utils/auth";
 import { inject, provide, ref, type InjectionKey } from "vue";
 import {
   createSocketTemplateKey,

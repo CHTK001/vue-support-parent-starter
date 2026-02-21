@@ -11,8 +11,9 @@ export type ThemeKey =
   | "mid-autumn"
   | "national-day"
   | "new-year"
-  | "cyberpunk"
-  | "modern-tech"
+  | "pixel-art"
+  | "8-bit"
+  | "future-tech"
   | "halloween";
 
 /** 主题类型分类 */
@@ -98,91 +99,17 @@ export interface StorageConfig {
   /** AI 助手主题 */
   aiChatTheme?: string;
   /** 显示新菜单标识 */
-  showNewMenu?: boolean;
-  /** 新菜单文本 */
-  newMenuText?: string;
-  /** 新菜单时间限制 */
-  newMenuTimeLimit?: number;
-  /** 新菜单动画 */
-  newMenuAnimation?: "none" | "bounce" | "pulse" | "shake";
-  /** 双栏导航展开模式 */
-  doubleNavExpandMode?: "auto" | "manual";
-  /** 双栏导航自动展开所有 */
-  doubleNavAutoExpandAll?: boolean;
-  /** 离开确认 */
-  confirmOnLeave?: boolean;
-  /** 过渡动画类型 */
+  forceNewMenu?: boolean;
+  /** 菜单动画开关 */
+  menuAnimation?: boolean;
+  /** 菜单动画类型 */
   transitionType?: string;
-  /** 字体加密启用 */
-  fontEncryptionEnabled?: boolean;
-  /** 字体加密-数字 */
-  fontEncryptionNumbers?: boolean;
-  /** 字体加密-中文 */
-  fontEncryptionChinese?: boolean;
-  /** 字体加密-全局 */
-  fontEncryptionGlobal?: boolean;
-  /** 字体加密-OCR干扰 */
-  fontEncryptionOcrNoise?: boolean;
-}
-
-/** Storage 布局配置接口 */
-export interface StorageLayout {
-  /** 布局类型 */
-  layout?: "vertical" | "horizontal" | "mix" | "hover" | "double" | "mobile";
-  /** 主题 */
-  theme?: "light" | "dark";
-  /** 暗色模式 */
-  darkMode?: boolean;
-  /** 侧边栏状态 */
-  sidebarStatus?: boolean;
-  /** EP 主题色 */
-  epThemeColor?: string;
-  /** 主题色 */
-  themeColor?: string;
-  /** 整体风格 */
-  overallStyle?: "light" | "dark" | "system";
-}
-
-/** 全局 Storage 接口 */
-export interface GlobalStorage {
-  configure?: StorageConfig;
-  layout?: StorageLayout;
-  locale?: { locale: string };
-  tags?: any[];
-  user?: any;
-  userInfo?: any;
-}
-
-/** Emitter 事件类型定义 */
-export interface LayoutEmitterEvents {
-  // 主题相关
-  systemThemeChange: ThemeKey;
-  aiChatThemeChange: string;
-
-  // 标签页相关
-  tagViewsChange: string;
-  tagViewsShowModel: string;
-  showTagIconChange: boolean;
-
-  // 布局相关
-  changLayoutRoute: string;
-  openPanel: void;
-  logoChange: boolean;
-  hideFooterChange: boolean;
-  hideHeaderChange: boolean;
-
-  // 面包屑相关
-  breadcrumbChange: boolean;
-  breadcrumbModeChange: "icon" | "icon-text";
-
-  // 功能开关
-  keepAliveChange: boolean;
-  debugModeChange: boolean;
-  debugModeChanged: boolean;
-  menuTransitionChange: boolean;
-  confirmOnLeaveChange: boolean;
-  messagePopupConfigChange: void;
-
-  // 设置面板
-  settingPanelClosed: void;
+  /** 主题动画开关 */
+  themeAnimation?: boolean;
+  /** 主题动画方向 */
+  themeAnimationDirection?: string;
+  /** 主题动画模式 */
+  themeAnimationMode?: string;
+  /** 性能监控开关 */
+  sysFpsMonitorEnabled?: boolean;
 }
