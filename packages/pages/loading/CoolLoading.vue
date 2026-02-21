@@ -1,279 +1,137 @@
-<template>
-  <div class="cool-loading">
-    <div class="loading-container">
-      <!-- 主要加载动画 -->
-      <div class="loading-spinner">
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-      </div>
-      
-      <!-- 加载文字 -->
-      <div class="loading-text">
-        <span class="text-gradient">{{ loadingText }}</span>
-      </div>
-      
-      <!-- 进度条 -->
-      <div class="progress-bar">
-        <div class="progress-fill" :style="{ width: progress + '%' }"></div>
-      </div>
-      
-      <!-- 装饰性粒子 -->
-      <div class="particles">
-        <div v-for="i in 20" :key="i" class="particle" :style="getParticleStyle(i)"></div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
+import DefaultLoading from "./DefaultLoading.vue";
+import PixelLoading from "./PixelLoading.vue";
+import DinoGameLoading from "./DinoGameLoading.vue";
+import NeonLineLoading from "./NeonLineLoading.vue";
+import SkeletonCardsLoading from "./SkeletonCardsLoading.vue";
+import MarioLoading from "./MarioLoading.vue";
+import BookFlipLoading from "./BookFlipLoading.vue";
+import BookWritingLoading from "./BookWritingLoading.vue";
+import BeaverClamLoading from "./BeaverClamLoading.vue";
 
 /**
- * 炫酷加载组件
- * @author CH
- * @version 1.0.0
- * @since 2024-01-20
+ * 炫酷加载组件（壳组件，根据类型或本地配置选择具体动画）
  */
-
 interface Props {
-  /** 加载文字 */
+  /** 加载文案 */
   loadingText?: string;
   /** 是否显示进度条 */
   showProgress?: boolean;
+  /**
+   * 动画类型：
+   * - default：默认炫酷加载
+   * - pixel：像素风加载
+   * - dinoGame：恐龙小游戏加载
+   * - neon：霓虹进度条加载
+   * - skeleton：骨架卡片加载
+   * - mario：马里奥采蘑菇
+   * - book：翻书加载
+   * - bookWrite：笔书写书加载
+   * - beaver：河狸敲蛤蜊
+   * 不传则读取本地 sys-loading-anim
+   */
+  type?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loadingText: "组件加载中...",
-  showProgress: true
+  showProgress: true,
+  type: ""
 });
 
-// 进度值
-const progress = ref(0);
+// 使用 ref 来存储当前动画类型，以便响应 localStorage 变化
+const localAnimType = ref<string>("");
 
-/**
- * 获取粒子样式
- * @param index 粒子索引
- * @returns 样式对象
- */
-const getParticleStyle = (index: number) => {
-  const angle = (index * 18) % 360; // 每个粒子间隔18度
-  const radius = 100 + Math.random() * 50; // 随机半径
-  const delay = Math.random() * 2; // 随机延迟
-  
-  return {
-    '--angle': `${angle}deg`,
-    '--radius': `${radius}px`,
-    '--delay': `${delay}s`
-  };
+const getLocalAnimType = () => {
+  const localKey = localStorage.getItem("sys-loading-anim") || "default";
+  // 兼容老的 dino 配置
+  if (localKey === "dino") {
+    return "dinoGame";
+  }
+  if (localKey === "neon") {
+    return "neon";
+  }
+  if (localKey === "skeleton") {
+    return "skeleton";
+  }
+  if (localKey === "book") {
+    return "book";
+  }
+  if (localKey === "bookWrite") {
+    return "bookWrite";
+  }
+  if (localKey === "beaver") {
+    return "beaver";
+  }
+  return localKey;
 };
 
-// 模拟进度更新
-onMounted(() => {
-  if (props.showProgress) {
-    const interval = setInterval(() => {
-      if (progress.value < 90) {
-        progress.value += Math.random() * 10;
-      } else {
-        clearInterval(interval);
-      }
-    }, 200);
+// 初始化
+localAnimType.value = getLocalAnimType();
+
+// 监听 storage 事件，响应 localStorage 变化
+const handleStorageChange = (e: StorageEvent) => {
+  if (e.key === "sys-loading-anim") {
+    localAnimType.value = getLocalAnimType();
   }
+};
+
+// 监听同窗口内的 localStorage 变化（通过自定义事件）
+const handleLocalStorageChange = ((e: CustomEvent) => {
+  if (e.detail?.key === "sys-loading-anim") {
+    localAnimType.value = getLocalAnimType();
+  }
+}) as EventListener;
+
+onMounted(() => {
+  window.addEventListener("storage", handleStorageChange);
+  window.addEventListener("localStorageChange", handleLocalStorageChange);
 });
+
+onUnmounted(() => {
+  window.removeEventListener("storage", handleStorageChange);
+  window.removeEventListener("localStorageChange", handleLocalStorageChange);
+});
+
+const currentKey = computed(() => {
+  if (props.type) {
+    return props.type;
+  }
+  return localAnimType.value;
+});
+
+const loadingMap: Record<string, unknown> = {
+  default: DefaultLoading,
+  pixel: PixelLoading,
+  dinoGame: DinoGameLoading,
+  neon: NeonLineLoading,
+  skeleton: SkeletonCardsLoading,
+  mario: MarioLoading,
+  book: BookFlipLoading,
+  bookWrite: BookWritingLoading,
+  beaver: BeaverClamLoading
+};
+
+const currentComponent = computed(() => loadingMap[currentKey.value] || DefaultLoading);
 </script>
+
+<template>
+  <div class="cool-loading">
+    <component
+      :is="currentComponent"
+      :loading-text="loadingText"
+      :show-progress="showProgress"
+    />
+  </div>
+</template>
 
 <style scoped>
 .cool-loading {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  inset: 0;
   z-index: 9999;
 }
-
-.loading-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-}
-
-/* 主要加载动画 */
-.loading-spinner {
-  position: relative;
-  width: 120px;
-  height: 120px;
-}
-
-.spinner-ring {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border: 3px solid transparent;
-  border-radius: 50%;
-  animation: spin 2s linear infinite;
-}
-
-.spinner-ring:nth-child(1) {
-  border-top-color: #ff6b6b;
-  animation-delay: 0s;
-}
-
-.spinner-ring:nth-child(2) {
-  border-right-color: #4ecdc4;
-  animation-delay: 0.5s;
-  width: 90%;
-  height: 90%;
-  top: 5%;
-  left: 5%;
-}
-
-.spinner-ring:nth-child(3) {
-  border-bottom-color: #45b7d1;
-  animation-delay: 1s;
-  width: 80%;
-  height: 80%;
-  top: 10%;
-  left: 10%;
-}
-
-.spinner-ring:nth-child(4) {
-  border-left-color: #f9ca24;
-  animation-delay: 1.5s;
-  width: 70%;
-  height: 70%;
-  top: 15%;
-  left: 15%;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-/* 加载文字 */
-.loading-text {
-  font-size: 1.5rem;
-  font-weight: 600;
-  text-align: center;
-}
-
-.text-gradient {
-  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24);
-  background-size: 400% 400%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradient-shift 3s ease-in-out infinite;
-}
-
-@keyframes gradient-shift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-/* 进度条 */
-.progress-bar {
-  width: 200px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-  position: relative;
-}
-
-.progress-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* 装饰性粒子 */
-.particles {
-  position: absolute;
-  width: 300px;
-  height: 300px;
-  pointer-events: none;
-}
-
-.particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  top: 50%;
-  left: 50%;
-  animation: float 3s ease-in-out infinite;
-  animation-delay: var(--delay);
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--radius)) scale(0);
-    opacity: 0;
-  }
-  50% {
-    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--radius)) scale(1);
-    opacity: 1;
-  }
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .loading-spinner {
-    width: 80px;
-    height: 80px;
-  }
-  
-  .loading-text {
-    font-size: 1.2rem;
-  }
-  
-  .progress-bar {
-    width: 150px;
-  }
-  
-  .particles {
-    width: 200px;
-    height: 200px;
-  }
-}
 </style>
+
+ 

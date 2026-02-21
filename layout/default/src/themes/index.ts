@@ -40,23 +40,33 @@ export const layoutThemes: LayoutTheme[] = [
   },
   // === 内测主题 ===
   {
-    name: "赛博朋克",
-    key: "cyberpunk",
-    description: "赛博朋克风格主题，科技感十足",
-    stylesheet: "cyberpunk.scss",
-    icon: "ri:robot-2-line",
+    name: "像素风",
+    key: "pixel-art",
+    description: "像素风格主题，复古游戏体验",
+    stylesheet: "pixel-art.scss",
+    icon: "ri:gamepad-line",
     type: "beta",
-    color: "#00ffff",
-    baseStyle: "dark",
+    color: "#ff00ff",
+    baseStyle: "light",
   },
   {
-    name: "现代科技",
-    key: "modern-tech",
-    description: "Modern Tech 现代科技主题，深色玻璃拟态风格",
-    stylesheet: "modern-tech.css",
-    icon: "ri:macbook-line",
+    name: "8bit",
+    key: "8-bit",
+    description: "8-bit 风格主题，经典怀旧",
+    stylesheet: "8-bit.scss",
+    icon: "ri:grid-fill",
     type: "beta",
-    color: "#5b13ec",
+    color: "#00ff00",
+    baseStyle: "light",
+  },
+  {
+    name: "未来科技",
+    key: "future-tech",
+    description: "未来科技主题，科幻感十足",
+    stylesheet: "future-tech.scss",
+    icon: "ri:rocket-2-line",
+    type: "beta",
+    color: "#00ffff",
     baseStyle: "dark",
   },
   // === 节日主题 ===
@@ -98,144 +108,95 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "noto:full-moon",
     type: "festival",
     color: "#13c2c2",
-    baseStyle: "dark",
-  },
-  {
-    name: "国庆",
-    key: "national-day",
-    description: "国庆主题皮肤，祝福祖国",
-    stylesheet: "national-day.scss",
-    icon: "twemoji:flag-china",
-    type: "festival",
-    color: "#fa541c",
     baseStyle: "light",
   },
   {
     name: "元旦",
     key: "new-year",
     description: "元旦主题皮肤，新年新气象",
-    stylesheet: "new-year.scss",
+    stylesheet: "new-year.css",
     icon: "noto:party-popper",
     type: "festival",
-    color: "#1b2a47",
-    baseStyle: "dark",
+    color: "#faad14",
+    baseStyle: "light",
   },
 ];
 
 /**
- * 获取主题皮肤
- * @param themeKey 主题键值
+ * 获取当前启用的主题
+ * @param themeKey 主题key
  */
-export const getLayoutTheme = (themeKey: ThemeKey = "default"): LayoutTheme => {
-  const theme = layoutThemes.find((t) => t.key === themeKey);
-  return theme || layoutThemes[0];
+export const getTheme = (themeKey: ThemeKey): LayoutTheme | undefined => {
+  return layoutThemes.find((theme) => theme.key === themeKey);
 };
 
 /**
- * 根据类型筛选获取主题列表
- * @param types 主题类型数组
+ * 获取所有可用主题
  */
-export const getThemesByType = (types: ThemeType[]): LayoutTheme[] => {
-  return layoutThemes.filter((t) => types.includes(t.type));
+export const getAvailableThemes = (): LayoutTheme[] => {
+  return layoutThemes;
 };
 
 /**
- * 获取可用的主题列表（根据环境和权限过滤）
- * @param enableFestivalTheme 是否启用节日主题自动切换
- * @param userRoles 用户角色列表
- * @param isDevelopment 是否为开发环境
- * @param isTest 是否为测试环境
- * @description 
- *   - 常规主题和内测主题：始终显示，不受节日主题自动切换开关影响
- *   - 节日主题：仅在关闭自动切换时显示，开启自动切换时由系统自动管理
+ * 检测当前日期是否匹配某个节日主题
+ * @returns 匹配的节日主题key，如果没有匹配则返回undefined
  */
-export const getAvailableThemes = (
-  enableFestivalTheme: boolean = true,
-  userRoles: string[] = [],
-  isDevelopment: boolean = false,
-  isTest: boolean = false
-): LayoutTheme[] => {
-  let themes: LayoutTheme[] = [];
-
-  // 常规主题始终可用（不受节日主题自动切换开关影响）
-  themes = themes.concat(getThemesByType(['regular']));
-
-  // 内测主题始终可用（所有用户都可以使用）
-  themes = themes.concat(getThemesByType(['beta']));
-
-  // 节日主题根据开关显示
-  // 关闭自动切换时，显示所有节日主题供手动选择
-  // 开启自动切换时，节日主题由系统自动管理，不在列表中显示
-  if (!enableFestivalTheme) {
-    themes = themes.concat(getThemesByType(['festival']));
-  }
-
-  return themes;
-};
-
-/**
- * 加载主题皮肤样式表
- * @param themeKey 主题键值
- */
-export const loadThemeStylesheet = (themeKey: string): void => {
-  // 移除现有的主题样式表
-  const existingLink = document.getElementById("layout-theme-stylesheet");
-  if (existingLink) {
-    existingLink.remove();
-  }
-
-  // 如果是默认主题，不需要加载额外样式
-  if (themeKey === "default") {
-    return;
-  }
-
-  const theme = getLayoutTheme(themeKey);
-  if (theme.stylesheet) {
-    const link = document.createElement("link");
-    link.id = "layout-theme-stylesheet";
-    link.rel = "stylesheet";
-    link.href = `/themes/${theme.stylesheet}`;
-    document.head.appendChild(link);
-  }
-};
-
-/**
- * 检测当前日期是否匹配节日主题
- * @returns 匹配的节日主题，如果没有匹配则返回 null
- */
-export const detectFestivalTheme = (): LayoutTheme | null => {
+export const detectFestivalTheme = (): ThemeKey | undefined => {
   const now = new Date();
-  const month = now.getMonth() + 1; // 0-11 -> 1-12
+  const month = now.getMonth() + 1;
   const date = now.getDate();
-  
-  // 春节：农历正月初一（简化处理：适配2026年春节2月17日）
-  if (month === 2) {
-    // 2026年春节是2月17日，设置为前后一周左右
-    // 2月10日-2月24日
-    if (date >= 10 && date <= 24) {
-      return getLayoutTheme("spring-festival");
-    }
+
+  // 万圣节 (10.25 - 11.5)
+  if ((month === 10 && date >= 25) || (month === 11 && date <= 5)) {
+    return "halloween";
   }
-  
-  // 国庆：10月1日-10月7日
-  if (month === 10 && date >= 1 && date <= 7) {
-    return getLayoutTheme("national-day");
+
+  // 圣诞节 (12.20 - 12.31)
+  if (month === 12 && date >= 20) {
+    return "christmas";
   }
-  
-  // 元旦：1月1日
-  if (month === 1 && date === 1) {
-    return getLayoutTheme("new-year");
+
+  // 元旦 (1.1 - 1.5)
+  if (month === 1 && date <= 5) {
+    return "new-year";
   }
-  
-  // 中秋：农历八月十五（简化处理：公历9月15日-9月20日）
-  if (month === 9 && date >= 15 && date <= 20) {
-    return getLayoutTheme("mid-autumn");
+
+  // 春节 (此处仅为示例，实际春节日期不固定，通常需要农历转换库)
+  // 假设 2.1 - 2.15
+  if (month === 2 && date <= 15) {
+    return "spring-festival";
   }
-  
-  // 圣诞：12月24日-12月26日
-  if (month === 12 && date >= 24 && date <= 26) {
-    return getLayoutTheme("christmas");
+
+  return undefined;
+};
+
+/**
+ * 获取布局主题
+ * @param themeKey
+ */
+export const getLayoutTheme = (themeKey: ThemeKey): LayoutTheme | undefined => {
+  return layoutThemes.find((theme) => theme.key === themeKey);
+};
+
+// 动态导入主题样式
+const themeModules = import.meta.glob('./*.{scss,css}');
+
+/**
+ * 动态加载主题样式表
+ * @param themeKey
+ */
+export const loadThemeStylesheet = (themeKey: ThemeKey) => {
+  const theme = getLayoutTheme(themeKey);
+  if (!theme || !theme.stylesheet) return;
+
+  const path = `./${theme.stylesheet}`;
+  if (themeModules[path]) {
+    themeModules[path]().then(() => {
+      console.debug(`Theme stylesheet loaded: ${path}`);
+    }).catch((e) => {
+      console.error(`Failed to load theme stylesheet: ${path}`, e);
+    });
+  } else {
+    console.warn(`Theme stylesheet not found: ${path}`);
   }
-  
-  return null;
 };

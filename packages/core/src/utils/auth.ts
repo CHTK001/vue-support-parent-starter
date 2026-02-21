@@ -6,7 +6,7 @@ import { getToken as getGlobalToken, removeToken as removeGlobalToken, setLoginO
 /** 获取`token` */
 export function getToken(): UserResult {
   // 此处与`TokenKey`相同，此写法解决初始化时`Cookies`中不存在`TokenKey`报错
-  return getGlobalToken();
+  return getGlobalToken() || localStorageProxy().getItem(userKey);
 }
 
 /**
@@ -65,6 +65,7 @@ export function setToken(data: UserResult) {
 /** 删除`token`以及key值为`user-info`的localStorage信息 */
 export function removeToken() {
   removeGlobalToken();
+  localStorageProxy().removeItem(userKey);
 }
 
 /** 格式化token（jwt格式） */

@@ -31,19 +31,6 @@ html[data-skin="spring-festival"] {
   --nav-double-menu-active-color: #ffd700;
 }
 
-// ==================== 赛博朋克主题 ====================
-html[data-skin="cyberpunk"] {
-  --nav-double-left-bg: linear-gradient(180deg, rgba(10, 10, 18, 0.95), rgba(18, 18, 31, 0.95));
-  --nav-double-left-border: rgba(0, 255, 255, 0.3);
-  --nav-double-right-bg: linear-gradient(180deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 25, 0.95));
-  --nav-double-icon-color: #00ffff;
-  --nav-double-icon-active-bg: rgba(0, 255, 255, 0.15);
-  --nav-double-icon-active-color: #00ffff;
-  --nav-double-menu-color: #00ffff;
-  --nav-double-menu-active-bg: rgba(0, 255, 255, 0.15);
-  --nav-double-menu-active-color: #00ffff;
-}
-
 // ==================== 中秋主题 ====================
 html[data-skin="mid-autumn"] {
   --nav-double-left-bg: linear-gradient(180deg, #1a237e 0%, #0d1652 100%);

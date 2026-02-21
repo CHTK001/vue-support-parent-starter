@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.4] - 2026-02-11
+
+### Added
+- **ScSelect**: Integrated `PositionLayout` for theme animation direction settings in `BaseSetting.vue`.
+- **Theme Animation**: Added support for center-based animation directions (`top-center`, `bottom-center`, `left-center`, `right-center`) in `useThemeAnimation.ts`.
+
+### Removed
+- **Cyberpunk Theme**: Fully removed Cyberpunk theme and related assets to optimize bundle size and prevent style conflicts.
+
+### Changed
+- **BaseSetting**: Replaced text-based theme animation position selector with visual `ScSelect` PositionLayout grid.
+
 ## [2.2.3] - 2026-02-10
 
 ### Added

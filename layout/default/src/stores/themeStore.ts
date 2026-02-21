@@ -25,9 +25,7 @@ export const useThemeStore = defineStore("theme", () => {
   // FPS Monitor State
   // 优先读取 localStorage (新旧key兼容)，如果不存在则读取配置文件
   const STORAGE_KEY_FPS = "sys-fps-monitor-enabled";
-  const LEGACY_KEY_FPS = "cyberpunk-fps-monitor";
-  
-  const storedFps = localStorage.getItem(STORAGE_KEY_FPS) || localStorage.getItem(LEGACY_KEY_FPS);
+  const storedFps = localStorage.getItem(STORAGE_KEY_FPS);
   const defaultFps = getConfig("ShowFpsMonitor") ?? false;
   const fpsMonitorEnabled = ref(storedFps !== null ? storedFps === "true" : defaultFps);
 
@@ -163,10 +161,6 @@ export const useThemeStore = defineStore("theme", () => {
   function setFpsMonitor(enabled: boolean) {
     fpsMonitorEnabled.value = enabled;
     localStorage.setItem(STORAGE_KEY_FPS, String(enabled));
-    // 清理旧 key
-    if (localStorage.getItem(LEGACY_KEY_FPS)) {
-      localStorage.removeItem(LEGACY_KEY_FPS);
-    }
   }
 
   function setMemoryMonitor(enabled: boolean) {
@@ -238,7 +232,6 @@ export const useThemeStore = defineStore("theme", () => {
       "theme-mid-autumn",
       "theme-national-day",
       "theme-new-year",
-      "theme-cyberpunk",
     ];
     themeClasses.forEach((cls) => htmlEl.classList.remove(cls));
 

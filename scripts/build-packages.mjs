@@ -40,9 +40,14 @@ async function buildPackages() {
 
         for (const subDir of subDirs) {
           const hasBuild = await hasBuildScript(subDir.path);
-          if (hasBuild) {
-            allPackages.push(subDir);
+          if (!hasBuild) {
+            continue;
           }
+          // 部分页面（如 crypto、tools）主要用于示例展示，构建流程中先跳过这些包，避免因三方工具兼容性问题导致整体构建失败
+          if (dir === "pages" && (subDir.name === "crypto" || subDir.name === "tools")) {
+            continue;
+          }
+          allPackages.push(subDir);
         }
       } catch {
         // 目录不存在，跳过

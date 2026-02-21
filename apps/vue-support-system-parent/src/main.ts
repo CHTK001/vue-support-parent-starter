@@ -19,8 +19,8 @@
   }
 })();
 
-import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
-import { router, setupStore } from "@repo/core";
+import { getPlatformConfig, injectResponsiveStorage, setLoginOutFunction, setRefreshTokenFunction, useI18n } from "@repo/config";
+import { router, setupStore, useUserStoreHook } from "@repo/core";
 import App from "./App.vue";
 
 import { createApp, type Directive } from "vue";
@@ -90,7 +90,27 @@ initializeWasmModule()
       app.use(vClickOutside);
 
       getPlatformConfig(app).then(async config => {
+        // 同步加载动画配置
+        // @ts-ignore
+        const configAnim = config.LoadingAnimation;
+        const localAnim = localStorage.getItem('sys-loading-anim');
+        
+        if (import.meta.env.DEV) {
+           // 开发环境：如果本地没有缓存，则使用配置文件的默认值
+           if (!localAnim && configAnim) {
+               localStorage.setItem('sys-loading-anim', configAnim);
+           }
+        } else {
+           // 生产环境：强制同步配置文件的值（如果有），确保管理员配置生效
+           if (configAnim && configAnim !== localAnim) {
+               localStorage.setItem('sys-loading-anim', configAnim);
+           }
+        }
+
         setupStore(app);
+        // 初始化 token 刷新和退出登录函数
+        setLoginOutFunction(useUserStoreHook().logOut);
+        setRefreshTokenFunction(useUserStoreHook().handRefreshToken);
         app.use(router);
         await router.isReady();
         injectResponsiveStorage(app, config);
@@ -132,6 +152,9 @@ initializeWasmModule()
 
       getPlatformConfig(app).then(async config => {
         setupStore(app);
+        // 初始化 token 刷新和退出登录函数
+        setLoginOutFunction(useUserStoreHook().logOut);
+        setRefreshTokenFunction(useUserStoreHook().handRefreshToken);
         app.use(router);
         await router.isReady();
         injectResponsiveStorage(app, config);

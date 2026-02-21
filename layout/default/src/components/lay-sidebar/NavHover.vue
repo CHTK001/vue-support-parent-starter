@@ -8,7 +8,6 @@ const themeComponents = {
   'default': DefaultHover,
   'spring-festival': defineAsyncComponent(() => import("./themes/hover/SpringFestival.vue")),
   'halloween': defineAsyncComponent(() => import("./themes/hover/Halloween.vue")),
-  'cyberpunk': defineAsyncComponent(() => import("./themes/hover/Cyberpunk.vue")),
   'mid-autumn': defineAsyncComponent(() => import("./themes/hover/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/hover/Christmas.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/hover/NewYear.vue")),

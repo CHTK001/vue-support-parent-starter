@@ -197,20 +197,6 @@
       </div>
     </DemoBlock>
 
-    <!-- Cyber 赛博朋克 -->
-    <DemoBlock title="Cyber 赛博朋克风格" :code="codes.cyber" dark>
-      <div class="demo-row">
-        <ScPanel
-          theme="cyber"
-          title="CYBER PANEL"
-          icon="ep:aim"
-          :width="320"
-          :height="180"
-        >
-          <p>切角设计的赛博朋克风格</p>
-        </ScPanel>
-      </div>
-    </DemoBlock>
 
     <!-- 功能组合 -->
     <DemoBlock title="功能组合" :code="codes.full">
@@ -393,15 +379,6 @@ const codes = {
   <p>自定义颜色</p>
 </ScPanel>`,
 
-  cyber: `<ScPanel
-  theme="cyber"
-  title="CYBER PANEL"
-  icon="ep:aim"
-  :width="320"
-  :height="180"
->
-  <p>切角设计的赛博朋克风格</p>
-</ScPanel>`,
 
   full: `<ScPanel
   title="完整功能"

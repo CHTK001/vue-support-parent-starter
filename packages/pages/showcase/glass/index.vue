@@ -93,7 +93,6 @@ const cards = [
               <label>Select Option</label>
               <el-select v-model="selectValue" placeholder="Select Option" class="glass-select" popper-class="glass-popper">
                 <el-option label="Glass Theme" value="glass" />
-                <el-option label="Cyberpunk" value="cyber" />
                 <el-option label="Minimal" value="minimal" />
               </el-select>
             </div>

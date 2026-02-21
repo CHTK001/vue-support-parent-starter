@@ -84,7 +84,7 @@
     "@typescript-eslint/parser": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@vitejs/plugin-vue-jsx": "catalog:",
-    "autoprefixer": "catalog:",
+    "autoprefixer": "^10.4.19",
     "boxen": "catalog:",
     "cssnano": "catalog:",
     "diff": "catalog:",

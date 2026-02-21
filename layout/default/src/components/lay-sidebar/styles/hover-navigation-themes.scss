@@ -55,19 +55,6 @@ html[data-skin="spring-festival"] {
   --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.4);
 }
 
-// ==================== 赛博朋克主题 ====================
-html[data-skin="cyberpunk"] {
-  --hover-nav-bg-start: rgba(10, 10, 18, 0.95);
-  --hover-nav-bg-end: rgba(18, 18, 31, 0.98);
-  --hover-nav-border: rgba(0, 255, 255, 0.3);
-  --hover-nav-menu-color: #00ffff;
-  --hover-nav-menu-active-bg: rgba(0, 255, 255, 0.15);
-  --hover-nav-menu-active-color: #00ffff;
-  --hover-nav-submenu-bg: rgba(10, 10, 18, 0.98);
-  --hover-nav-submenu-border: rgba(0, 255, 255, 0.3);
-  --hover-nav-submenu-shadow: rgba(0, 255, 255, 0.2);
-}
-
 // ==================== 中秋主题 ====================
 html[data-skin="mid-autumn"] {
   --hover-nav-bg-start: rgba(26, 35, 126, 0.95);

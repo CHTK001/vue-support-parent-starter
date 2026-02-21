@@ -112,6 +112,12 @@ theme:
     business:
       name: Business
       desc: Professional
+    pixel:
+      name: Pixel
+      desc: Retro Art
+    mc:
+      name: Minecraft
+      desc: Block World
     random:
       name: Random
       desc: Randomize
@@ -133,6 +139,9 @@ theme:
     christmas:
       name: Christmas
       desc: Cozy
+    halloween:
+      name: Halloween
+      desc: Spooky Night
 menus:
   pureAbnormal: Abnormal Page
   pureDept: dept Manage

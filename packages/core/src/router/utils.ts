@@ -379,7 +379,9 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
         ? modulesRoutesKeys.findIndex((ev) =>
             include(ev, v?.component as string)
           )
-        : modulesRoutesKeys.findIndex((ev) => includes(ev, v.path as string));
+        : modulesRoutesKeys.findIndex((ev) =>
+            include(ev, v.path as string)
+          );
       v.component = modulesRoutes[modulesRoutesKeys[index]];
     }
     if (v?.children && v.children.length) {

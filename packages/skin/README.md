@@ -21,7 +21,7 @@ packages/skin/
 │       ├── index.scss        # 主题样式集合
 │       ├── default.scss      # 默认主题
 │       ├── spring-festival.scss  # 春节主题
-│       ├── cyberpunk.scss    # 赛博朋克主题
+│
 │       └── ...               # 其他主题
 ```
 

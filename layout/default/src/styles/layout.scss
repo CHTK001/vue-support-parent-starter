@@ -1,7 +1,7 @@
-@import './variables.scss';
-@import '../themes/stitch-layout-tokens.scss';
-@import './mixins.scss';
-@import './mobile.scss';
+@use './variables.scss' as *;
+@use '../themes/stitch-layout-tokens.scss' as *;
+@use './mixins.scss' as *;
+@use './mobile.scss' as *;
 
 /**
  * Layout 主布局样式

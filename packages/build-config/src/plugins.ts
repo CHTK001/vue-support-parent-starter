@@ -1,4 +1,4 @@
-import { cdn } from "./cdn";
+import { createCdnPlugin } from "./cdn";
 import vue from "@vitejs/plugin-vue";
 import { pathResolve } from "./utils";
 import { viteBuildInfo } from "./info";
@@ -88,7 +88,7 @@ export function getPluginsList(options: PluginsOptions): PluginOption[] {
     }),
     // svg组件化支持
     svgLoader(),
-    VITE_CDN ? cdn : null,
+    VITE_CDN ? createCdnPlugin() : null,
     configCompressPlugin(VITE_COMPRESSION),
     // 线上环境删除console
     lifecycle === "report" || process.env.NODE_ENV === "production"

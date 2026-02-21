@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite ",
+    "dev": "vite",
     "serve": "pnpm dev",
     "build": "rimraf dist && vite build",
     "build:staging": "rimraf dist && vite build --mode test",
@@ -26,6 +26,9 @@
   },
   "dependencies": {
     "@layout/default": "workspace:^",
+    "@repo/core": "workspace:^",
+    "@repo/pages": "workspace:^",
+    "@element-plus/icons-vue": "catalog:",
     "@microsoft/fetch-event-source": "catalog:",
     "@pureadmin/descriptions": "catalog:",
     "@pureadmin/table": "catalog:",
@@ -119,6 +122,7 @@
     "@pages/dict": "workspace:^",
     "@pages/project": "workspace:^",
     "@repo/build-config": "workspace:^",
+    "@repo/tailwind-config": "workspace:^",
     "@types/gradient-string": "catalog:",
     "@types/js-cookie": "catalog:",
     "@types/markdown-it": "catalog:",

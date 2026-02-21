@@ -26,20 +26,7 @@ const TITLE = getConfig("Title");
   }
 }
 
-// 赛博朋克主题
-:global(html[data-skin="cyberpunk"]) .layout-footer {
-  color: rgba(0, 255, 255, 0.6) !important;
 
-  a {
-    color: #00ffff !important;
-    text-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
-
-    &:hover {
-      color: #ff00ff !important;
-      text-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
-    }
-  }
-}
 
 // 春节主题
 :global(html[data-skin="spring-festival"]),

@@ -146,6 +146,12 @@ theme:
     business:
       name: 商务专业
       desc: 专业稳重
+    pixel:
+      name: 像素风
+      desc: 复古像素艺术
+    mc:
+      name: Minecraft
+      desc: 致敬方块世界
     random:
       name: 随机主题
       desc: 每次随机
@@ -167,6 +173,9 @@ theme:
     christmas:
       name: 圣诞
       desc: 温馨浪漫
+    halloween:
+      name: 万圣节
+      desc: 奇妙之夜
 menu:
   produce-service: 产品与服务
   produce-star: 我的收藏

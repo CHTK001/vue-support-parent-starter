@@ -91,8 +91,8 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
-import { localStorageProxy } from "@repo/utils";
 import { useI18n } from "vue-i18n";
+import { getLoginTheme, setLoginTheme, setEnableFestivalTheme } from "../utils/themeConfig";
 
 /**
  * @author CH
@@ -105,9 +105,6 @@ defineOptions({
 
 const emit = defineEmits(["theme-change"]);
 const { t } = useI18n();
-
-const localStorageProxyObject = localStorageProxy();
-const THEME_STORAGE_KEY = "login-theme-preference";
 
 /**
  * 常规主题列表
@@ -130,6 +127,18 @@ const regularThemes = computed(() => [
     name: t("theme.themes.business.name"),
     description: t("theme.themes.business.desc"),
     icon: "ri:briefcase-line",
+  },
+  {
+    key: "pixel",
+    name: t("theme.themes.pixel.name"),
+    description: t("theme.themes.pixel.desc"),
+    icon: "ri:gamepad-line",
+  },
+  {
+    key: "mc",
+    name: t("theme.themes.mc.name"),
+    description: t("theme.themes.mc.desc"),
+    icon: "ri:box-3-line",
   },
   {
     key: "random",
@@ -179,6 +188,12 @@ const festivalThemes = computed(() => [
     description: t("theme.themes.christmas.desc"),
     icon: "noto:christmas-tree",
   },
+  {
+    key: "halloween",
+    name: t("theme.themes.halloween.name"),
+    description: t("theme.themes.halloween.desc"),
+    icon: "noto:jack-o-lantern",
+  },
 ]);
 
 /**
@@ -211,7 +226,7 @@ const currentThemeIcon = computed(() => {
  * 加载保存的主题偏好
  */
 const loadThemePreference = () => {
-  const savedTheme = localStorageProxyObject.getItem(THEME_STORAGE_KEY) as string;
+  const savedTheme = getLoginTheme();
   if (savedTheme && allThemes.value.find((t) => t.key === savedTheme)) {
     currentTheme.value = savedTheme;
   }
@@ -224,7 +239,9 @@ const loadThemePreference = () => {
 const selectTheme = (themeKey: string) => {
   currentTheme.value = themeKey;
   // 保存到本地存储
-  localStorageProxyObject.setItem(THEME_STORAGE_KEY, themeKey);
+  setLoginTheme(themeKey);
+  // 用户手动切换主题时，禁用自动节日主题
+  setEnableFestivalTheme(false);
   // 通知父组件
   emit("theme-change", themeKey);
   // 刷新页面以应用新主题

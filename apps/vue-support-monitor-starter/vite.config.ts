@@ -2,19 +2,99 @@ import {
   type ConfigEnv,
   loadEnv,
   type UserConfigExport,
+  type PluginOption,
   createLogger,
 } from "vite";
-import {
-  root,
-  wrapperEnv,
-  pathResolve,
-  createAlias,
-  createAppInfo,
-  getPluginsList,
-  include,
-  exclude,
-} from "@repo/build-config";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import dayjs from "dayjs";
+import vue from "@vitejs/plugin-vue";
+import vueJsx from "@vitejs/plugin-vue-jsx";
+import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
+import { vitePluginFakeServer } from "vite-plugin-fake-server";
+import { prismjsPlugin } from "vite-plugin-prismjs";
+import { codeInspectorPlugin } from "code-inspector-plugin";
+import topLevelAwait from "vite-plugin-top-level-await";
+import svgLoader from "vite-svg-loader";
+import removeNoMatch from "vite-plugin-router-warn";
 import pkg from "./package.json";
+
+const root: string = process.cwd();
+
+const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
+  const currentFileDir = dirname(fileURLToPath(metaUrl));
+  return resolve(currentFileDir, dir);
+};
+
+const createAlias = (metaUrl: string): Record<string, string> => ({
+  "@": pathResolve("./src", metaUrl),
+});
+
+const createAppInfo = (packageJson: {
+  name: string;
+  version: string;
+  engines?: Record<string, string>;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}) => ({
+  pkg: packageJson,
+  lastBuildTime: dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
+});
+
+const wrapperEnv = (envConf: Record<string, string>): any => {
+  const ret: Record<string, any> = {
+    VITE_PORT: 8848,
+    VITE_PUBLIC_PATH: "",
+    VITE_ROUTER_HISTORY: "",
+    VITE_CDN: false,
+    NODE_ENV: "",
+    VITE_HIDE_HOME: "false",
+    VITE_COMPRESSION: "none",
+    VITE_API_PREFIX: "",
+    VITE_API_URL: "",
+  };
+
+  for (const envName of Object.keys(envConf)) {
+    let realName = envConf[envName].replace(/\\n/g, "\n");
+    realName = realName === "true" ? true : realName === "false" ? false : realName;
+    if (envName === "VITE_PORT") {
+      realName = Number(realName);
+    }
+    ret[envName] = realName;
+    if (typeof realName === "string") {
+      process.env[envName] = realName;
+    } else if (typeof realName === "object") {
+      process.env[envName] = JSON.stringify(realName);
+    }
+  }
+  return ret;
+};
+
+const include = [
+  "qs",
+  "dayjs",
+  "axios",
+  "pinia",
+  "vue-i18n",
+  "@vueuse/core",
+  "@pureadmin/utils",
+  "responsive-storage",
+];
+
+const exclude = [
+  "@iconify-icons/ep",
+  "@iconify-icons/ri",
+  "@iconify-icons/bi",
+  "@iconify-icons/simple-icons",
+  "@iconify-icons/meteocons",
+  "@iconify-icons/line-md",
+  "@iconify-icons/humbleicons",
+  "@iconify-icons/mingcute",
+  "@iconify-icons/devicon",
+  "@iconify-icons/pixelarticons",
+  "@pureadmin/theme/dist/browser-utils",
+  "@techui/scifi",
+];
 
 // 创建自定义logger过滤color-adjust警告
 const logger = createLogger();
@@ -28,8 +108,63 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
   const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
-  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
-    wrapperEnv(env);
+  const { VITE_PORT, VITE_PUBLIC_PATH } = wrapperEnv(env);
+
+  const lifecycle = process.env.npm_lifecycle_event;
+  const plugins: PluginOption[] = [
+    vue(),
+    // jsx、tsx语法支持
+    vueJsx(),
+    // WASM 顶层 await 支持
+    topLevelAwait({
+      promiseExportName: "__tla",
+      promiseImportName: (i) => `__tla_${i}`,
+    }),
+    prismjsPlugin({
+      languages: "all",
+      plugins: [
+        "line-numbers",
+        "line-highlight",
+        "inline-color",
+        "copy-to-clipboard",
+        "highlight-keywords",
+        "show-language",
+        "download-button",
+        "data-uri-highlight",
+      ],
+      theme: "okaidia",
+      css: true,
+    }),
+    VueI18nPlugin({
+      include: [
+        pathResolve("../locales/**", import.meta.url),
+        pathResolve("@repo/config/locales/**", import.meta.url),
+      ],
+    }),
+    /**
+     * 在页面上按住组合键时，鼠标在页面移动即会在 DOM 上出现遮罩层并显示相关信息，点击一下将自动打开 IDE 并将光标定位到元素对应的代码位置
+     * Mac 默认组合键 Option + Shift
+     * Windows 默认组合键 Alt + Shift
+     * 更多用法看 https://inspector.fe-dev.cn/guide/start.html
+     */
+    codeInspectorPlugin({
+      bundler: "vite",
+      hideConsole: true,
+    }),
+    /**
+     * 开发环境下移除非必要的 vue-router 动态路由警告
+     */
+    removeNoMatch(),
+    // mock 支持
+    vitePluginFakeServer({
+      logger: false,
+      include: [pathResolve("./mock", import.meta.url)],
+      infixName: false,
+      enableProd: true,
+    }),
+    // svg 组件化支持
+    svgLoader(),
+  ];
 
   return {
     base: VITE_PUBLIC_PATH,
@@ -87,14 +222,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
       },
     },
-    plugins: getPluginsList({
-      VITE_CDN,
-      VITE_COMPRESSION,
-      i18nPaths: [
-        pathResolve("../locales/**", import.meta.url),
-        pathResolve("@repo/config/locales/**", import.meta.url),
-      ],
-    }),
+    plugins,
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
       include,

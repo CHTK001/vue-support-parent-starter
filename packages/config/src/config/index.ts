@@ -3,13 +3,13 @@ import { globalSetting } from "../setting";
 import type { PlatformConfigs } from "../types/config";
 import yaml from "js-yaml";
 
-let config: object = {};
-let configGroup: object = {};
+let config: Record<string, any> = {};
+let configGroup: Record<string, any> = {};
 const setConfig = (cfg?: unknown) => {
   config = Object.assign(config, cfg);
 };
 
-const putConfig = (key: string, value: object) => {
+const putConfig = (key: string, value: any) => {
   config[key] = value;
 };
 

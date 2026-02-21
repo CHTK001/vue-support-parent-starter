@@ -47,7 +47,6 @@ const themeClassMap: Record<string, string> = {
   'christmas': 'theme-christmas',
   'spring-festival': 'theme-spring-festival',
   'mid-autumn': 'theme-mid-autumn',
-  'cyberpunk': 'theme-cyberpunk',
   'default': 'theme-default',
   'default-light': 'theme-default',
   'default-dark': 'theme-default',
@@ -374,13 +373,6 @@ onBeforeUnmount(() => {
 .theme-mid-autumn {
   &.is-active {
     // 月亮装饰在 ThemeMenuActiveIndicator 中实现
-  }
-}
-
-// ==================== 赛博朋克主题 ====================
-.theme-cyberpunk {
-  &.is-active {
-    // 霓虹装饰在 ThemeMenuActiveIndicator 中实现
   }
 }
 </style>

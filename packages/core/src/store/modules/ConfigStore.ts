@@ -10,9 +10,8 @@ import {
   type ProtocolType,
 } from "../../config/socketService";
 import { useUserStoreHook } from "../../store/modules/UserStore";
-import { getConfig, putConfig } from "../utils";
+import { getConfig, putConfig } from "@repo/config";
 import { useSettingStore } from "./SettingStore";
-const config = getConfig();
 
 const { setWatermark, clear } = useWatermark();
 
@@ -134,7 +133,8 @@ export const useConfigStore = defineStore({
         return;
       }
       
-      if (!config.OpenSetting) {
+      const config = getConfig();
+      if (!config?.OpenSetting) {
         this.isLoaded = true;
         return;
       }

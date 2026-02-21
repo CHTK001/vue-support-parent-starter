@@ -379,7 +379,7 @@ catalog:
   unplugin-vue-components: ^29.0.0
   unplugin-icons: ^22.2.0
   vee-validate: ^4.14.7
-  vite: ^6.1.0
+  vite: 6.1.0
   vite-plugin-compression: ^0.5.1
   vite-plugin-cdn-import: ^1.0.1
   vite-plugin-checker: ^0.7.2
@@ -449,3 +449,6 @@ catalog:
   "rete-auto-arrange-plugin": ^2.0.1
   "rete-render-utils": ^2.0.3
   "rete-connection-reroute-plugin": ^2.0.2
+  # Three.js - 3D Graphics Library
+  three: ^0.169.0
+  "@types/three": ^0.169.0

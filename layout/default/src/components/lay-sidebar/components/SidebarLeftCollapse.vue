@@ -153,63 +153,7 @@ html[data-skin="spring-festival"] {
   }
 }
 
-// 赛博朋克主题 - 电路样式
-html[data-skin="cyberpunk"] {
-  .left-collapse {
-    background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-    border-top: 2px solid #00f0ff;
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), inset 0 0 20px rgba(0, 240, 255, 0.05);
-    position: relative;
-    
-    // 霉虹灯效果
-    &::after {
-      content: '⚡';
-      position: absolute;
-      font-size: 16px;
-      right: 12px;
-      animation: neonPulse 1.5s ease-in-out infinite;
-      filter: drop-shadow(0 0 4px #00f0ff);
-    }
-    
-    :deep(svg) {
-      color: #00f0ff !important;
-      filter: drop-shadow(0 0 4px #00f0ff);
-    }
-    
-    &:hover {
-      background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 100%);
-      box-shadow: 0 0 20px rgba(0, 240, 255, 0.5), inset 0 0 30px rgba(0, 240, 255, 0.1);
-    }
-    
-    &.collapsed-state {
-      background: linear-gradient(135deg, #ff00aa 0%, #00f0ff 100%);
-      border-top: 2px solid #ff00aa;
-      
-      &::after {
-        content: '🔌';
-        filter: drop-shadow(0 0 4px #ff00aa);
-      }
-      
-      :deep(svg) {
-        color: #0a0a0f !important;
-        filter: none;
-      }
-      
-      &::before {
-        background: linear-gradient(90deg, #ff00aa, #00f0ff);
-      }
-      
-      &:hover {
-        box-shadow: 0 0 25px rgba(255, 0, 170, 0.6);
-      }
-    }
-  }
-  
-  @keyframes neonPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-}
+
 
 // 中秋主题 - 月亮样式
 html[data-skin="mid-autumn"] {

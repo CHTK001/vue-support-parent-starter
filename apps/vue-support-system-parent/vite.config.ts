@@ -8,7 +8,7 @@ import {
   getPluginsList,
   include,
   exclude,
-} from "@repo/build-config";
+} from "../../packages/build-config/dist/index.mjs";
 import pkg from "./package.json";
 
 export default ({ mode }: ConfigEnv): UserConfigExport => {
@@ -16,14 +16,17 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
+  const alias = createAlias(import.meta.url);
+  alias["@repo/font-encryption"] = pathResolve("../../packages/font-encryption/src", import.meta.url);
+  alias["@layout/default"] = pathResolve("../../layout/default/src", import.meta.url);
 
   return {
     base: VITE_PUBLIC_PATH,
     root,
     resolve: {
-      alias: createAlias(import.meta.url),
-      dedupe: ["vue", "vue-router", "vue-i18n"],
-      preserveSymlinks: false,
+      alias,
+      dedupe: ["vite", "vue", "vue-router", "vue-i18n"],
+      preserveSymlinks: true,
     },
     // 服务端渲染
     server: {
@@ -66,7 +69,19 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     }),
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
-      include,
+      include: [
+        ...include,
+        "rete",
+        "rete-vue-plugin",
+        "rete-connection-plugin",
+        "rete-area-plugin",
+        "rete-context-menu-plugin",
+        "rete-render-utils",
+        "rete-auto-arrange-plugin",
+        "rete-connection-reroute-plugin",
+        "rete-minimap-plugin",
+        "@babel/runtime/regenerator"
+      ],
       exclude,
     },
     build: {
@@ -84,7 +99,6 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         input: {
           index: pathResolve("./index.html", import.meta.url),
         },
-        external: ["@element-plus/icons-vue"],
         // 静态资源分类打包
         output: {
           chunkFileNames: "static/js/[name]-[hash].js",

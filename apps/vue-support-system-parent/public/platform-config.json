@@ -28,5 +28,6 @@
   "MenuSearchHistory": 6,
   "ShowNewMenu": true,
   "NewMenuText": "new",
-  "NewMenuTimeLimit": 168
+  "NewMenuTimeLimit": 168,
+  "LoadingAnimation": "default"
 }

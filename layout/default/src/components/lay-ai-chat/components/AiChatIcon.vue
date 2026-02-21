@@ -5,7 +5,7 @@
  */
 defineProps<{
   /** 主题类型 */
-  theme: 'default' | 'blue' | 'green' | 'orange' | 'pink' | 'dark';
+  theme: 'default' | 'blue' | 'green' | 'orange' | 'pink';
   /** 图标用途：fab（悬浮按钮）, header（头部头像）, message（消息头像） */
   variant?: 'fab' | 'header' | 'message';
 }>();
@@ -119,28 +119,5 @@ defineProps<{
     </template>
   </svg>
   
-  <!-- 暗黑 - 赛博朋克 -->
-  <svg v-else-if="theme === 'dark'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-    <template v-if="variant === 'message'">
-      <rect x="6" y="6" width="12" height="10" rx="2" fill="#1a1a2e" stroke="#00ff88" />
-      <rect x="8" y="10" width="2" height="2" fill="#00ff88" stroke="none" />
-      <rect x="14" y="10" width="2" height="2" fill="#ff0055" stroke="none" />
-    </template>
-    <template v-else-if="variant === 'header'">
-      <rect x="5" y="6" width="14" height="12" rx="2" fill="#1a1a2e" stroke="#00ff88" />
-      <rect x="7" y="11" width="3" height="2" fill="#00ff88" stroke="none" />
-      <rect x="14" y="11" width="3" height="2" fill="#ff0055" stroke="none" />
-    </template>
-    <template v-else>
-      <rect x="5" y="6" width="14" height="12" rx="2" fill="#1a1a2e" />
-      <line x1="5" y1="10" x2="19" y2="10" stroke="#00ff88" />
-      <line x1="5" y1="14" x2="19" y2="14" stroke="#00ff88" opacity="0.5" />
-      <rect x="7" y="12" width="3" height="2" fill="#00ff88" />
-      <rect x="14" y="12" width="3" height="2" fill="#ff0055" />
-      <path d="M12 2v4M8 3l1 3M16 3l-1 3" stroke="#00ff88" />
-      <rect x="9" y="18" width="6" height="3" fill="#1a1a2e" />
-      <line x1="10" y1="19" x2="14" y2="19" stroke="#00ff88" />
-      <line x1="10" y1="20" x2="14" y2="20" stroke="#ff0055" opacity="0.5" />
-    </template>
-  </svg>
+
 </template>

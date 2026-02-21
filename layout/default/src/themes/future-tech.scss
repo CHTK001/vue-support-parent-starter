@@ -1,0 +1,31 @@
+/**
+ * 未来科技主题
+ * @description 未来科技主题，科幻感十足
+ */
+html[data-theme='future-tech'] {
+  --el-color-primary: #00ffff;
+  --el-color-primary-light-3: #4dfdfd;
+  --el-color-primary-light-5: #7fffff;
+  --el-color-primary-light-7: #b2ffff;
+  --el-color-primary-light-8: #ccffff;
+  --el-color-primary-light-9: #e5ffff;
+  --el-color-primary-dark-2: #00cccc;
+  
+  /* 深色背景 */
+  --el-bg-color: #050a1f;
+  --el-bg-color-overlay: rgba(5, 10, 31, 0.9);
+  
+  /* 玻璃拟态 */
+  .el-card, .el-dialog, .el-drawer {
+    background: rgba(5, 10, 31, 0.7) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+  }
+  
+  /* 发光文本 */
+  .el-menu-item.is-active, .el-button--primary {
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+  }
+}

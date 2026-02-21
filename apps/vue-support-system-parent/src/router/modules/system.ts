@@ -57,6 +57,16 @@ export default [
           title: "节假日日历",
           showParent: true
         }
+      },
+      {
+        path: "/system/sync-data",
+        name: "SyncDataManagement",
+        component: () => import("@/views/manage/sync-data/index.vue"),
+        meta: {
+          icon: "ri:refresh-line",
+          title: "数据同步管理",
+          showParent: true
+        }
       }
     ]
   }

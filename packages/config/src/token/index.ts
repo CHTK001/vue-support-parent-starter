@@ -1,9 +1,8 @@
 import Cookies from "js-cookie";
-import { localStorageProxy } from "@repo/utils";
-import { FlatUserResult, UserResult } from "@repo/core";
+
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
-import { useUserStoreHook } from "@repo/core";
+
 /**
  * 通过`multiple-tabs`是否在`cookie`中，判断用户是否已经登录系统，
  * 从而支持多标签页打开已经登录的系统后无需再登录。
@@ -11,18 +10,15 @@ import { useUserStoreHook } from "@repo/core";
  * 再次打开浏览器需要重新登录系统
  * */
 export const multipleTabsKey = "multiple-tabs";
-const TokenSetting = {
-  loginOutFunction: null,
-  tokenRefreshFunction: null,
-};
+
 /** 获取`token` */
-export function getToken(): UserResult {
+export function getToken(): any {
   // 此处与`TokenKey`相同，此写法解决初始化时`Cookies`中不存在`TokenKey`报错
-  return Cookies.get(TokenKey) ? JSON.parse(Cookies.get(TokenKey)) : localStorageProxy().getItem(userKey);
+  return Cookies.get(TokenKey) ? JSON.parse(Cookies.get(TokenKey)) : null;
 }
 
 /** 设置`token` */
-export function setToken(data: UserResult, userSetting: any = {}) {
+export function setToken(data: any, userSetting: any = {}) {
   let expires = 0;
   const { accessToken, refreshToken } = data;
   const { isRemembered, loginDay } = userSetting;
@@ -45,46 +41,6 @@ export function setToken(data: UserResult, userSetting: any = {}) {
       : {}
   );
 
-  function setUserKey({ avatar, tenantId, sysUserUsername, sysUserNickname, roles }) {
-    useUserStoreHook().SET_AVATAR(avatar);
-    useUserStoreHook().SET_TENANT(tenantId);
-    useUserStoreHook().SET_USERNAME(sysUserUsername);
-    useUserStoreHook().SET_NICKNAME(sysUserNickname);
-    useUserStoreHook().SET_ROLES(roles);
-    localStorageProxy().setItem(userKey, {
-      refreshToken,
-      accessToken,
-      expires,
-      avatar,
-      sysUserUsername,
-      sysUserNickname,
-      roles,
-    });
-  }
-
-  if (data?.userInfo?.sysUserUsername && data?.userInfo?.roles) {
-    const { sysUserUsername, roles } = data.userInfo;
-    setUserKey({
-      avatar: data?.userInfo?.avatar ?? "",
-      tenantId: data?.userInfo?.tenantId ?? "",
-      sysUserUsername,
-      sysUserNickname: data?.userInfo?.sysUserNickname ?? "",
-      roles,
-    });
-  } else {
-    const avatar = localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
-    const tenantId = localStorageProxy().getItem<FlatUserResult>(userKey)?.tenantId ?? "";
-    const sysUserUsername = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "";
-    const sysUserNickname = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "";
-    const roles = localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
-    setUserKey({
-      avatar,
-      tenantId,
-      sysUserUsername,
-      sysUserNickname,
-      roles,
-    });
-  }
   return {
     accessToken,
     refreshToken,
@@ -100,7 +56,14 @@ export const formatToken = (token: string): string => {
 /** 移除`token`以及`refreshToken` */
 export const logOut = () => {
   removeToken();
-  useUserStoreHook().logOut();
+  if (TokenSetting.loginOutFunction) {
+    TokenSetting.loginOutFunction();
+  }
+};
+
+const TokenSetting = {
+  loginOutFunction: null,
+  tokenRefreshFunction: null,
 };
 
 /** 设置`token`的移除函数 */
@@ -112,31 +75,25 @@ export const setLoginOutFunction = (func: Function) => {
 export const setRefreshTokenFunction = (func: Function) => {
   TokenSetting.tokenRefreshFunction = func;
 };
+
 export const handRefreshToken = (data: any): Promise<any> => {
   return new Promise((resolve, reject) => {
-    if (!TokenSetting.tokenRefreshFunction) {
-      useUserStoreHook()
-        .handRefreshToken(data)
+    if (TokenSetting.tokenRefreshFunction) {
+      TokenSetting.tokenRefreshFunction(data)
         .then((item) => {
           resolve(item);
         })
         .catch((error) => {
           reject(error);
         });
-      return;
+    } else {
+      resolve(null);
     }
-    TokenSetting.tokenRefreshFunction(data)
-      .then((item) => {
-        resolve(item);
-      })
-      .catch((error) => {
-        reject(error);
-      });
   });
 };
+
 /** 移除`token` */
 export const removeToken = () => {
   Cookies.remove(TokenKey);
   Cookies.remove(multipleTabsKey);
-  localStorageProxy().removeItem(userKey);
 };

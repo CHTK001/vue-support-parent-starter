@@ -13,7 +13,6 @@ const themeComponents = {
   'default': DefaultTag,
   'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestivalTag.vue")),
   'halloween': defineAsyncComponent(() => import("./themes/HalloweenTag.vue")),
-  'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
   'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumnTag.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/ChristmasTag.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/NewYearTag.vue")),

@@ -8,7 +8,6 @@ const themeComponents = {
   'default': DefaultHorizontal,
   'spring-festival': defineAsyncComponent(() => import("./themes/horizontal/SpringFestival.vue")),
   'halloween': defineAsyncComponent(() => import("./themes/horizontal/Halloween.vue")),
-  'cyberpunk': defineAsyncComponent(() => import("./themes/horizontal/Cyberpunk.vue")),
   'mid-autumn': defineAsyncComponent(() => import("./themes/horizontal/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/horizontal/Christmas.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/horizontal/NewYear.vue")),
