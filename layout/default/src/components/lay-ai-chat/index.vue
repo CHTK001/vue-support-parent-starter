@@ -46,7 +46,7 @@ const props = defineProps({
     type: String,
     default: "default",
     validator: (val: string) =>
-      ["default", "blue", "green", "orange", "pink", "dark"].includes(val),
+      ["default", "blue", "green", "orange", "pink"].includes(val),
   },
   /**
    * AI接口地址
@@ -139,18 +139,7 @@ const themeStyles = computed(() => {
       bubbleRadiusBot: "24px 24px 24px 8px",
       bubbleRadiusUser: "24px 24px 8px 24px",
     },
-    // 暗黑 - 赛博朋克机器人
-    dark: {
-      primary: "linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)",
-      primaryColor: "#00ff88",
-      shadow: "rgba(0, 255, 136, 0.3)",
-      name: "CYBER-X",
-      welcome: "[系统启动] CYBER-X 已上线，准备执行任务...",
-      fabRadius: "8px",
-      windowRadius: "4px",
-      bubbleRadiusBot: "4px 4px 4px 0",
-      bubbleRadiusUser: "4px 4px 0 4px",
-    },
+
   };
   return themes[props.theme] || themes.default;
 });
@@ -527,8 +516,7 @@ defineExpose({
         <!-- 史迪仔耳朵装饰 -->
         <div v-if="theme === 'pink'" class="stitch-ear stitch-ear--left"></div>
         <div v-if="theme === 'pink'" class="stitch-ear stitch-ear--right"></div>
-        <!-- 赛博朋克扫描线 -->
-        <div v-if="theme === 'dark'" class="cyber-scanline"></div>
+
       </button>
     </Transition>
 
@@ -1409,138 +1397,5 @@ defineExpose({
   }
 }
 
-// ==================== 暗黑赛博朋克主题 ====================
-.theme-dark {
-  .ai-fab {
-    border: 1px solid #00ff88;
-    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%) !important;
 
-    &::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      box-shadow:
-        0 0 15px #00ff88,
-        inset 0 0 10px rgba(0, 255, 136, 0.2);
-      animation: neon-pulse 1.5s ease-in-out infinite;
-    }
-  }
-
-  // 赛博朋克扫描线
-  .cyber-scanline {
-    position: absolute;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #00ff88, transparent);
-    top: 0;
-    left: 0;
-    animation: cyber-scan 2s linear infinite;
-    opacity: 0.8;
-  }
-
-  .ai-chat-window {
-    border: 1px solid #00ff88;
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
-
-    &::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 255, 136, 0.03) 2px,
-        rgba(0, 255, 136, 0.03) 4px
-      );
-      pointer-events: none;
-      z-index: 1000;
-    }
-  }
-
-  .ai-chat-header {
-    border-bottom: 1px solid #00ff88;
-
-    .status-dot {
-      background: #00ff88 !important;
-      box-shadow: 0 0 8px #00ff88;
-    }
-  }
-
-  .ai-avatar {
-    border: 1px solid #00ff88;
-    border-radius: 4px;
-  }
-
-  .message__avatar {
-    border: 1px solid #00ff88;
-    border-radius: 4px;
-  }
-
-  .message--user .message__bubble {
-    border: 1px solid #ff0055;
-    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%) !important;
-    box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
-  }
-
-  .message--bot .message__bubble {
-    border: 1px solid #00ff88;
-    background: rgba(0, 255, 136, 0.1) !important;
-  }
-
-  .ai-chat-input {
-    border-top: 1px solid #00ff88;
-
-    input {
-      border: 1px solid #00ff88;
-      background: rgba(0, 255, 136, 0.05) !important;
-      color: #00ff88 !important;
-      border-radius: 4px;
-
-      &::placeholder {
-        color: rgba(0, 255, 136, 0.5);
-      }
-    }
-  }
-
-  .send-btn {
-    border: 1px solid #00ff88;
-    background: transparent !important;
-    color: #00ff88 !important;
-    border-radius: 4px;
-
-    &:hover:not(:disabled) {
-      background: rgba(0, 255, 136, 0.2) !important;
-      box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
-    }
-  }
-
-  // 打字指示器赛博风格
-  .typing-indicator i {
-    background: #00ff88 !important;
-    box-shadow: 0 0 5px #00ff88;
-  }
-}
-
-@keyframes neon-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-@keyframes cyber-scan {
-  0% {
-    top: 0;
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
-    opacity: 0;
-  }
-}
 </style>

@@ -192,19 +192,6 @@ const themeAnimationModeOptions = computed<Array<OptionsType>>(() => [
   { label: "禁用", value: "disabled" },
 ]);
 
-/** 主题动画方向选项 */
-const themeAnimationDirectionOptions = computed(() => [
-  { label: "跟随鼠标", value: "cursor" },
-  { label: "中心扩散", value: "center" },
-  { label: "右上角", value: "top-right" },
-  { label: "左上角", value: "top-left" },
-  { label: "右下角", value: "bottom-right" },
-  { label: "左下角", value: "bottom-left" },
-  { label: "顶部", value: "top" },
-  { label: "底部", value: "bottom" },
-  { label: "左侧", value: "left" },
-  { label: "右侧", value: "right" },
-]);
 
 /** 过渡动画类型选项 */
 const transitionTypeOptions = computed<Array<OptionsType>>(() => [
@@ -1315,21 +1302,19 @@ onUnmounted(() => {
             <div
               v-if="settings.themeAnimationMode === 'fixed'"
               class="setting-group-item"
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              "
             >
-              <span class="setting-label" style="font-size: 14px"
+              <span
+                class="setting-label"
+                style="
+                  font-size: 14px;
+                  display: block;
+                  margin-bottom: 8px;
+                "
                 >动画方向</span
               >
               <ScSelect
-                v-model="settings.themeAnimationDirection"
-                :options="themeAnimationDirectionOptions"
-                layout="select"
-                size="small"
-                style="width: 120px"
+                :model-value="settings.themeAnimationDirection"
+                layout="position"
                 @change="themeAnimationDirectionChange"
               />
             </div>

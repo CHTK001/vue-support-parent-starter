@@ -17,3 +17,5 @@ export type {
 } from "./src/types/config";
 import { transformI18n as t } from "./src/i18n";
 export { t };
+// 显式导出 config 模块的函数，确保正确导出
+export { getConfig, setConfig, putConfig, responsiveStorageNameSpace, upgrade } from "./src/config";

@@ -3,7 +3,7 @@
  * 本文件仅保留用于向后兼容，将在未来版本移除
  */
 
-import { getToken } from "@repo/core";
+import { getToken } from "../utils/auth";
 import { message, uu4 } from "@repo/utils";
 import { io } from "socket.io-client";
 import { inject, provide, ref, type InjectionKey } from "vue";

@@ -79,8 +79,9 @@ const applyThemeSkin = (themeKey: string): void => {
     "theme-national-day",
     "theme-new-year",
     "theme-halloween",
-    "theme-glass", // 新增 glass 主题
-    "theme-modern", // 新增 modern 主题
+    "theme-pixel-art",
+    "theme-8-bit",
+    "theme-future-tech",
   ];
 
   themeClasses.forEach((cls) => {

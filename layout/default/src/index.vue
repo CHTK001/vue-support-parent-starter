@@ -18,6 +18,7 @@ import { useDebugMode } from "./hooks/useDebugMode";
 import { useFontEncryption } from "./utils/useFontEncryption";
 import { setType } from "./types";
 import ScDebugConsole from "@repo/components/ScDebugConsole/index.vue";
+import { CoolLoading } from "@repo/pages";
 
 import {
   useDark,
@@ -56,6 +57,9 @@ import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 import "./themes/christmas.scss";
 import "./themes/spring-festival.scss";
 import "./themes/halloween.scss";
+import "./themes/pixel-art.scss";
+import "./themes/8-bit.scss";
+import "./themes/future-tech.scss";
 import "./components/lay-sidebar/styles/hover-navigation-themes.scss";
 // 导入移动端独立样式
 import "./styles/mobile.scss";
@@ -94,11 +98,6 @@ const { isDark } = useDark();
 const {
   isConfigLoaded,
   isFirstLoad,
-  loadingStyle,
-  secondRotation,
-  minuteRotation,
-  hourRotation,
-  startClock,
   loadConfig,
 } = useLoadingPage();
 
@@ -193,9 +192,6 @@ const handleVisibilityChange = () => {
 };
 
 onMounted(async () => {
-  // 启动加载页时钟
-  startClock();
-  
   // 初始化移动端
   initMobile();
   
@@ -314,71 +310,11 @@ const LayHeader = defineComponent({
 <template>
   <ThemeSkinProvider>
     <!-- 全屏加载遮罩 -->
-    <div v-if="!isConfigLoaded" class="fullscreen-loading" :class="'loading-' + loadingStyle">
-   
-    
-    <!-- 加载信息 -->
-    <div class="loading-info">
-      <!-- 动态时钟 Logo -->
-      <div class="loading-brand">
-        <div class="brand-clock">
-          <svg viewBox="0 0 100 100" class="clock-svg">
-            <!-- 外圈 -->
-            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
-            <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="1" opacity="0.1"/>
-            <!-- 刻度 -->
-            <g class="clock-marks">
-              <line v-for="i in 12" :key="i" 
-                x1="50" y1="10" x2="50" :y2="i % 3 === 0 ? 16 : 14"
-                :transform="`rotate(${i * 30} 50 50)`"
-                stroke="currentColor" 
-                :stroke-width="i % 3 === 0 ? 2 : 1"
-                :opacity="i % 3 === 0 ? 0.6 : 0.3"
-              />
-            </g>
-            <!-- 时针 -->
-            <line class="clock-hand hour-hand"
-              x1="50" y1="50" x2="50" y2="28"
-              stroke="currentColor" stroke-width="3" stroke-linecap="round"
-              :transform="`rotate(${hourRotation} 50 50)`"
-            />
-            <!-- 分针 -->
-            <line class="clock-hand minute-hand"
-              x1="50" y1="50" x2="50" y2="18"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              :transform="`rotate(${minuteRotation} 50 50)`"
-            />
-            <!-- 秒针 -->
-            <line class="clock-hand second-hand"
-              x1="50" y1="55" x2="50" y2="14"
-              stroke="var(--el-color-primary, #409eff)" stroke-width="1" stroke-linecap="round"
-              :transform="`rotate(${secondRotation} 50 50)`"
-            />
-            <!-- 中心点 -->
-            <circle cx="50" cy="50" r="4" fill="currentColor"/>
-            <circle cx="50" cy="50" r="2" fill="var(--el-color-primary, #409eff)"/>
-          </svg>
-        </div>
-        <div class="brand-text">{{ isFirstLoad ? '系统初始化' : '加载中' }}</div>
-      </div>
-      
-      <!-- 进度条 -->
-      <div class="loading-progress">
-        <div class="progress-track">
-          <div class="progress-bar"></div>
-          <div class="progress-glow"></div>
-        </div>
-      </div>
-      
-      <!-- 状态提示 -->
-      <div class="loading-status">
-        <span class="status-text">{{ isFirstLoad ? '正在初始化核心模块' : '正在加载页面资源' }}</span>
-        <span class="status-dots">
-          <i></i><i></i><i></i>
-        </span>
-      </div>
-    </div>
-  </div>
+    <CoolLoading 
+      v-if="!isConfigLoaded" 
+      :loading-text="isFirstLoad ? '系统初始化中...' : '加载中...'" 
+      :show-progress="true" 
+    />
 
   <!-- 页面内容 -->
   <div v-else ref="appWrapperRef" :class="['app-wrapper', set.classes]">

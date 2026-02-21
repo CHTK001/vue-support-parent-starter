@@ -25,6 +25,7 @@ export function useThemeAnimation(callback: () => void, event?: MouseEvent) {
 
   const validDirections = [
     'top-right', 'top-left', 'bottom-right', 'bottom-left', 
+    'top-center', 'bottom-center', 'left-center', 'right-center',
     'center', 'left', 'right', 'top', 'bottom', 'cursor'
   ];
   
@@ -73,6 +74,14 @@ export function useThemeAnimation(callback: () => void, event?: MouseEvent) {
         ];
         break;
 
+      case 'top-center':
+        const endRadiusTC = Math.hypot(innerWidth / 2, innerHeight);
+        clipPath = [
+          `circle(0px at 50% 0)`,
+          `circle(${endRadiusTC}px at 50% 0)`,
+        ];
+        break;
+
       case 'top-left':
         const endRadiusTL = Math.hypot(innerWidth, innerHeight);
         clipPath = [
@@ -89,6 +98,14 @@ export function useThemeAnimation(callback: () => void, event?: MouseEvent) {
         ];
         break;
 
+      case 'bottom-center':
+        const endRadiusBC = Math.hypot(innerWidth / 2, innerHeight);
+        clipPath = [
+          `circle(0px at 50% 100%)`,
+          `circle(${endRadiusBC}px at 50% 100%)`,
+        ];
+        break;
+
       case 'bottom-left':
         const endRadiusBL = Math.hypot(innerWidth, innerHeight);
         clipPath = [
@@ -102,6 +119,22 @@ export function useThemeAnimation(callback: () => void, event?: MouseEvent) {
         clipPath = [
           `circle(0px at 50% 50%)`,
           `circle(${endRadiusCenter}px at 50% 50%)`,
+        ];
+        break;
+
+      case 'left-center':
+        const endRadiusLC = Math.hypot(innerWidth, innerHeight / 2);
+        clipPath = [
+          `circle(0px at 0 50%)`,
+          `circle(${endRadiusLC}px at 0 50%)`,
+        ];
+        break;
+
+      case 'right-center':
+        const endRadiusRC = Math.hypot(innerWidth, innerHeight / 2);
+        clipPath = [
+          `circle(0px at 100% 50%)`,
+          `circle(${endRadiusRC}px at 100% 50%)`,
         ];
         break;
 
