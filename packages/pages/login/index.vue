@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import {
   useDataThemeChange,
   useLayout,
@@ -7,6 +7,8 @@ import {
 } from "@layout/default";
 import { fetchDefaultSetting } from "@pages/setting";
 import { getConfig, setConfig } from "@repo/config";
+import { getAllLanguageConfigs, getLanguageConfig } from "@repo/config";
+import type { LanguageConfig } from "@repo/config";
 import { fetchVerifyCode } from "@repo/core";
 import { getParameter, localStorageProxy } from "@repo/utils";
 import {
@@ -66,7 +68,16 @@ const { t } = useI18n();
 const { dataTheme, overallStyle, dataThemeChange } = useDataThemeChange();
 dataThemeChange(overallStyle.value);
 const { title, getDropdownItemStyle, getDropdownItemClass } = useNav();
-const { locale, translationCh, translationEn } = useTranslationLang();
+const { locale, translation } = useTranslationLang();
+
+// 获取所有语言配置
+const languageConfigs = getAllLanguageConfigs();
+
+// 获取当前语言的配置
+const currentLanguageConfig = computed(() => {
+  const currentLocale = typeof locale.value === "string" ? locale.value : locale.value.value;
+  return getLanguageConfig(currentLocale);
+});
 
 const defaultSetting = reactive({
   OpenVerifyCode: false,
@@ -237,9 +248,7 @@ const envBadgeClass = computed(() => {
               <IconifyIconOnline icon="ri:translate-2" class="lang-main-icon" />
             </div>
             <div class="lang-info">
-              <span class="lang-name">{{
-                locale === "zh-CN" ? "简体中文" : "English"
-              }}</span>
+              <span class="lang-name">{{ currentLanguageConfig.nativeName }}</span>
               <span class="lang-role">{{
                 locale === "zh-CN" ? "语言" : "Language"
               }}</span>
@@ -258,35 +267,20 @@ const envBadgeClass = computed(() => {
                 <span>选择语言</span>
               </div>
               <el-dropdown-item
-                :class="['lang-item', { active: locale === 'zh-CN' }]"
-                @click="translationCh"
+                v-for="langConfig in languageConfigs"
+                :key="langConfig.code"
+                :class="['lang-item', { active: (typeof locale === 'string' ? locale : locale.value) === langConfig.code }]"
+                @click="translation(langConfig.code)"
               >
                 <div class="lang-item-content">
-                  <span class="lang-flag">🇨🇳</span>
+                  <span class="lang-flag">{{ langConfig.flag }}</span>
                   <div class="lang-item-info">
-                    <span class="lang-item-name">简体中文</span>
-                    <span class="lang-item-desc">Simplified Chinese</span>
+                    <span class="lang-item-name">{{ langConfig.nativeName }}</span>
+                    <span class="lang-item-desc">{{ langConfig.description }}</span>
                   </div>
                 </div>
                 <IconifyIconOnline
-                  v-show="locale === 'zh-CN'"
-                  class="lang-check"
-                  icon="ep:check"
-                />
-              </el-dropdown-item>
-              <el-dropdown-item
-                :class="['lang-item', { active: locale === 'en-US' }]"
-                @click="translationEn"
-              >
-                <div class="lang-item-content">
-                  <span class="lang-flag">🇺🇸</span>
-                  <div class="lang-item-info">
-                    <span class="lang-item-name">English</span>
-                    <span class="lang-item-desc">United States</span>
-                  </div>
-                </div>
-                <IconifyIconOnline
-                  v-show="locale === 'en-US'"
+                  v-show="(typeof locale === 'string' ? locale : locale.value) === langConfig.code"
                   class="lang-check"
                   icon="ep:check"
                 />

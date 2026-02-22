@@ -1,10 +1,25 @@
 <script setup lang="ts">
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
+import { getAllLanguageConfigs, getLanguageConfig } from "@repo/config";
+import type { LanguageConfig } from "@repo/config";
 import Check from "@iconify-icons/ep/check";
 import { useDefer } from "@repo/utils";
+import { computed } from "vue";
 
-const { locale, translationCh, translationEn } = useTranslationLang();
-const deferLang = useDefer(2);
+const { locale, translation } = useTranslationLang();
+const languageConfigs = getAllLanguageConfigs();
+const deferLang = useDefer(languageConfigs.length);
+
+// 获取当前语言的配置
+const currentLanguageConfig = computed(() => {
+  const currentLocale = typeof locale.value === "string" ? locale.value : locale.value.value;
+  return getLanguageConfig(currentLocale);
+});
+
+// 切换语言
+const handleLanguageChange = (langCode: string) => {
+  translation(langCode);
+};
 </script>
 
 <template>
@@ -18,7 +33,7 @@ const deferLang = useDefer(2);
         <IconifyIconOnline icon="ri:translate-2" class="lang-main-icon" />
       </div>
       <div class="user-info">
-        <span class="user-name">{{ locale === "zh-CN" ? "简体中文" : "English" }}</span>
+        <span class="user-name">{{ currentLanguageConfig.nativeName }}</span>
         <span class="user-role">{{ locale === "zh-CN" ? "语言" : "Language" }}</span>
       </div>
       <span class="dropdown-arrow-wrapper">
@@ -32,37 +47,21 @@ const deferLang = useDefer(2);
           <span>选择语言</span>
         </div>
         <el-dropdown-item
-          v-if="deferLang(0)"
-          :class="['lang-item', { active: locale === 'zh-CN' }]"
-          @click="translationCh"
+          v-for="(langConfig, index) in languageConfigs"
+          :key="langConfig.code"
+          v-if="deferLang(index)"
+          :class="['lang-item', { active: (typeof locale === 'string' ? locale : locale.value) === langConfig.code }]"
+          @click="handleLanguageChange(langConfig.code)"
         >
           <div class="lang-item-content">
-            <span class="lang-flag">🇨🇳</span>
+            <span class="lang-flag">{{ langConfig.flag }}</span>
             <div class="lang-info">
-              <span class="lang-name">简体中文</span>
-              <span class="lang-desc">Simplified Chinese</span>
+              <span class="lang-name">{{ langConfig.nativeName }}</span>
+              <span class="lang-desc">{{ langConfig.description }}</span>
             </div>
           </div>
           <IconifyIconOffline
-            v-show="locale === 'zh-CN'"
-            class="lang-check"
-            :icon="Check"
-          />
-        </el-dropdown-item>
-        <el-dropdown-item
-          v-if="deferLang(1)"
-          :class="['lang-item', { active: locale === 'en-US' }]"
-          @click="translationEn"
-        >
-          <div class="lang-item-content">
-            <span class="lang-flag">🇺🇸</span>
-            <div class="lang-info">
-              <span class="lang-name">English</span>
-              <span class="lang-desc">United States</span>
-            </div>
-          </div>
-          <IconifyIconOffline
-            v-show="locale === 'en-US'"
+            v-show="(typeof locale === 'string' ? locale : locale.value) === langConfig.code"
             class="lang-check"
             :icon="Check"
           />
