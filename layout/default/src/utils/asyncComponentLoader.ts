@@ -8,7 +8,7 @@ import { defineAsyncComponent, h, type AsyncComponentLoader, type Component } fr
 import { ElSkeleton, ElIcon, ElButton } from "element-plus";
 
 /**
- * 默认加载组件
+ * 默认加载组件（三个点动画）
  */
 const DefaultLoadingComponent = {
   name: "DefaultLoadingComponent",
@@ -26,7 +26,53 @@ const DefaultLoadingComponent = {
         },
       },
       [
-        h(ElSkeleton, { rows: 4, animated: true }),
+        h(
+          "div",
+          {
+            class: "loading-dots",
+            style: {
+              display: "flex",
+              gap: "8px",
+              alignItems: "center",
+              justifyContent: "center",
+            },
+          },
+          [
+            h("span", {
+              class: "loading-dot dot1",
+              style: {
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                backgroundColor: "var(--el-color-primary, #409eff)",
+                animation: "bounce 1.4s infinite ease-in-out both",
+                animationDelay: "-0.32s",
+              },
+            }),
+            h("span", {
+              class: "loading-dot dot2",
+              style: {
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                backgroundColor: "var(--el-color-primary, #409eff)",
+                animation: "bounce 1.4s infinite ease-in-out both",
+                animationDelay: "-0.16s",
+              },
+            }),
+            h("span", {
+              class: "loading-dot dot3",
+              style: {
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                backgroundColor: "var(--el-color-primary, #409eff)",
+                animation: "bounce 1.4s infinite ease-in-out both",
+                animationDelay: "0",
+              },
+            }),
+          ]
+        ),
       ]
     );
   },
