@@ -41,7 +41,8 @@ import "@repo/assets/style/stitch-layout-overrides.scss";
 import "@repo/assets/style/stitch-overrides.scss";
 // 自定义指令
 //@ts-ignore
-import * as directives from "@repo/core/directives";
+// import * as directives from "@repo/core/directives";
+import * as directives from "../../../packages/core/src/directives";
 // 字体加密指令
 import { vFontEncryption } from "@layout/default";
 // 全局注册@iconify/vue图标库

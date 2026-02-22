@@ -154,13 +154,19 @@ const onLogin = async (formEl) => {
 
   await formEl.validate((valid, fields) => {
     if (valid) {
+      // 检查密码是否存在
+      if (!ruleForm.password) {
+        message(t("login.purePasswordReg"), { type: "error" });
+        return;
+      }
+
       // 设置加载状态
       loading.value = true;
 
       useUserStoreHook()
         .loginByUsername({
           username: ruleForm.username,
-          password: Md5.hashStr(ruleForm.password),
+          password: Md5.hashStr(ruleForm.password || ""),
           verifyCodeKey: ruleForm.verifyCode,
           verifyCodeUlid: defaultVerifyCode.value.verifyCodeUlid,
           loginType: "WEB",

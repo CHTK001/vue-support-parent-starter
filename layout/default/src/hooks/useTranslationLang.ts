@@ -9,6 +9,7 @@ interface TranslationLangReturn {
   locale: Composer['locale'];
   translationCh: () => void;
   translationEn: () => void;
+  translation: (langCode: string) => void;
 }
 
 export function useTranslationLang(ref?: Ref): TranslationLangReturn {
@@ -16,16 +17,22 @@ export function useTranslationLang(ref?: Ref): TranslationLangReturn {
   const { locale, t } = useI18n();
   const route = useRoute();
 
-  function translationCh() {
-    $storage.locale = { locale: "zh-CN" };
-    locale.value = "zh-CN";
+  /**
+   * 通用的语言切换函数
+   * @param langCode - 语言代码
+   */
+  function translation(langCode: string) {
+    $storage.locale = { locale: langCode };
+    locale.value = langCode;
     ref && handleResize(ref.value);
   }
 
+  function translationCh() {
+    translation("zh-CN");
+  }
+
   function translationEn() {
-    $storage.locale = { locale: "en-US" };
-    locale.value = "en-US";
-    ref && handleResize(ref.value);
+    translation("en-US");
   }
 
   watch(
@@ -45,5 +52,6 @@ export function useTranslationLang(ref?: Ref): TranslationLangReturn {
     locale,
     translationCh,
     translationEn,
+    translation,
   };
 }

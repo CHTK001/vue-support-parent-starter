@@ -23,6 +23,43 @@ const MAX_SPEED = 4;
 const ACCELERATION = 0.3;
 const FRICTION = 0.85;
 
+type BlockType = "ground" | "brick" | "question" | "pipe" | "flagpole";
+
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface MarioState extends Rect {
+  vx: number;
+  vy: number;
+  onGround: boolean;
+  facingRight: boolean;
+  animFrame: number;
+  animTimer: number;
+}
+
+interface EnemyState extends Rect {
+  vx: number;
+  vy: number;
+  onGround: boolean;
+  dead: boolean;
+  deadTimer: number;
+}
+
+interface LevelBlock extends Rect {
+  type: BlockType;
+}
+
+interface KeyState {
+  left: boolean;
+  right: boolean;
+  jump: boolean;
+  jumpPressed: boolean;
+}
+
 // 游戏状态
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const gameStarted = ref(false);
@@ -33,7 +70,7 @@ const timeLeft = ref(400);
 const cameraX = ref(0);
 
 // 马里奥状态
-const mario = ref({
+const mario = ref<MarioState>({
   x: 50,
   y: 180,
   vx: 0,
@@ -47,7 +84,7 @@ const mario = ref({
 });
 
 // 按键状态
-const keys = ref({
+const keys = ref<KeyState>({
   left: false,
   right: false,
   jump: false,
@@ -55,87 +92,87 @@ const keys = ref({
 });
 
 // 生成关卡数据 - 第一关完整地图
-const generateLevel = () => {
-  const blocks: Array<{ type: string; x: number; y: number; width?: number; height?: number }> = [];
+const generateLevel = (): LevelBlock[] => {
+  const blocks: LevelBlock[] = [];
   
   // 地面 - 第一关大约3200像素宽
   for (let i = 0; i < 200; i++) {
-    blocks.push({ type: 'ground', x: i * TILE_SIZE, y: 224, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "ground", x: i * TILE_SIZE, y: 224, width: TILE_SIZE, height: TILE_SIZE });
   }
   
   // 第一组平台 (x: 200-400)
   for (let i = 0; i < 4; i++) {
-    blocks.push({ type: 'brick', x: 200 + i * TILE_SIZE, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "brick", x: 200 + i * TILE_SIZE, y: 160, width: TILE_SIZE, height: TILE_SIZE });
   }
-  blocks.push({ type: 'question', x: 264, y: 160, width: TILE_SIZE, height: TILE_SIZE });
-  blocks.push({ type: 'question', x: 280, y: 160, width: TILE_SIZE, height: TILE_SIZE });
-  blocks.push({ type: 'question', x: 296, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 264, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 280, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 296, y: 160, width: TILE_SIZE, height: TILE_SIZE });
   for (let i = 0; i < 2; i++) {
-    blocks.push({ type: 'brick', x: 312 + i * TILE_SIZE, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "brick", x: 312 + i * TILE_SIZE, y: 160, width: TILE_SIZE, height: TILE_SIZE });
   }
   
   // 第一个管道 (x: 400)
-  blocks.push({ type: 'pipe', x: 400, y: 208, width: 32, height: 32 });
+  blocks.push({ type: "pipe", x: 400, y: 208, width: 32, height: 32 });
   
   // 第二组平台 (x: 500-700)
   for (let i = 0; i < 3; i++) {
-    blocks.push({ type: 'brick', x: 500 + i * TILE_SIZE, y: 144, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "brick", x: 500 + i * TILE_SIZE, y: 144, width: TILE_SIZE, height: TILE_SIZE });
   }
-  blocks.push({ type: 'question', x: 548, y: 144, width: TILE_SIZE, height: TILE_SIZE });
-  blocks.push({ type: 'brick', x: 564, y: 144, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 548, y: 144, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "brick", x: 564, y: 144, width: TILE_SIZE, height: TILE_SIZE });
   
   // 第二个管道 (x: 800)
-  blocks.push({ type: 'pipe', x: 800, y: 208, width: 32, height: 32 });
+  blocks.push({ type: "pipe", x: 800, y: 208, width: 32, height: 32 });
   
   // 第三组平台 (x: 1000-1200)
   for (let i = 0; i < 5; i++) {
-    blocks.push({ type: 'brick', x: 1000 + i * TILE_SIZE, y: 128, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "brick", x: 1000 + i * TILE_SIZE, y: 128, width: TILE_SIZE, height: TILE_SIZE });
   }
-  blocks.push({ type: 'question', x: 1080, y: 128, width: TILE_SIZE, height: TILE_SIZE });
-  blocks.push({ type: 'question', x: 1096, y: 128, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 1080, y: 128, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 1096, y: 128, width: TILE_SIZE, height: TILE_SIZE });
   
   // 第四组平台 (x: 1300-1500)
   for (let i = 0; i < 4; i++) {
-    blocks.push({ type: 'brick', x: 1300 + i * TILE_SIZE, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "brick", x: 1300 + i * TILE_SIZE, y: 160, width: TILE_SIZE, height: TILE_SIZE });
   }
-  blocks.push({ type: 'question', x: 1364, y: 160, width: TILE_SIZE, height: TILE_SIZE });
-  blocks.push({ type: 'question', x: 1380, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 1364, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 1380, y: 160, width: TILE_SIZE, height: TILE_SIZE });
   
   // 第三个管道 (x: 1600)
-  blocks.push({ type: 'pipe', x: 1600, y: 208, width: 32, height: 32 });
+  blocks.push({ type: "pipe", x: 1600, y: 208, width: 32, height: 32 });
   
   // 第五组平台 (x: 1800-2000) - 阶梯式
   for (let i = 0; i < 3; i++) {
-    blocks.push({ type: 'brick', x: 1800 + i * TILE_SIZE, y: 192 - i * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "brick", x: 1800 + i * TILE_SIZE, y: 192 - i * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE });
   }
-  blocks.push({ type: 'question', x: 1848, y: 160, width: TILE_SIZE, height: TILE_SIZE });
-  blocks.push({ type: 'brick', x: 1864, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 1848, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "brick", x: 1864, y: 160, width: TILE_SIZE, height: TILE_SIZE });
   
   // 第六组平台 (x: 2200-2400)
   for (let i = 0; i < 6; i++) {
-    blocks.push({ type: 'brick', x: 2200 + i * TILE_SIZE, y: 144, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "brick", x: 2200 + i * TILE_SIZE, y: 144, width: TILE_SIZE, height: TILE_SIZE });
   }
-  blocks.push({ type: 'question', x: 2296, y: 144, width: TILE_SIZE, height: TILE_SIZE });
-  blocks.push({ type: 'question', x: 2312, y: 144, width: TILE_SIZE, height: TILE_SIZE });
-  blocks.push({ type: 'question', x: 2328, y: 144, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 2296, y: 144, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 2312, y: 144, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 2328, y: 144, width: TILE_SIZE, height: TILE_SIZE });
   
   // 第七组平台 (x: 2600-2800)
   for (let i = 0; i < 4; i++) {
-    blocks.push({ type: 'brick', x: 2600 + i * TILE_SIZE, y: 128, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "brick", x: 2600 + i * TILE_SIZE, y: 128, width: TILE_SIZE, height: TILE_SIZE });
   }
-  blocks.push({ type: 'question', x: 2664, y: 128, width: TILE_SIZE, height: TILE_SIZE });
-  blocks.push({ type: 'brick', x: 2680, y: 128, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "question", x: 2664, y: 128, width: TILE_SIZE, height: TILE_SIZE });
+  blocks.push({ type: "brick", x: 2680, y: 128, width: TILE_SIZE, height: TILE_SIZE });
   
   // 终点旗杆区域 (x: 3000+)
   for (let i = 0; i < 10; i++) {
-    blocks.push({ type: 'brick', x: 3000 + i * TILE_SIZE, y: 160, width: TILE_SIZE, height: TILE_SIZE });
+    blocks.push({ type: "brick", x: 3000 + i * TILE_SIZE, y: 160, width: TILE_SIZE, height: TILE_SIZE });
   }
-  blocks.push({ type: 'flagpole', x: 3100, y: 0, width: 16, height: 224 });
+  blocks.push({ type: "flagpole", x: 3100, y: 0, width: 16, height: 224 });
   
   return blocks;
 };
 
-const level = ref(generateLevel());
+const level = ref<LevelBlock[]>(generateLevel());
 
 // 检查是否到达终点
 const checkWin = () => {
@@ -146,7 +183,7 @@ const checkWin = () => {
 };
 
 // 生成敌人 - 第一关敌人分布
-const generateEnemies = () => {
+const generateEnemies = (): EnemyState[] => {
   return [
     { x: 300, y: 208, vx: -1, vy: 0, width: 16, height: 16, onGround: true, dead: false, deadTimer: 0 },
     { x: 450, y: 208, vx: -1, vy: 0, width: 16, height: 16, onGround: true, dead: false, deadTimer: 0 },
@@ -161,15 +198,14 @@ const generateEnemies = () => {
   ];
 };
 
-const enemies = ref(generateEnemies());
+const enemies = ref<EnemyState[]>(generateEnemies());
 
 let frameId = 0;
 let lastTime = 0;
 let timeInterval: number;
 
 // 碰撞检测
-const checkCollision = (rect1: { x: number; y: number; width: number; height: number }, 
-                       rect2: { x: number; y: number; width: number; height: number }): boolean => {
+const checkCollision = (rect1: Rect, rect2: Rect): boolean => {
   return rect1.x < rect2.x + rect2.width &&
          rect1.x + rect1.width > rect2.x &&
          rect1.y < rect2.y + rect2.height &&
@@ -177,12 +213,12 @@ const checkCollision = (rect1: { x: number; y: number; width: number; height: nu
 };
 
 // 获取马里奥脚下的方块
-const getBlockAt = (x: number, y: number): { type: string; x: number; y: number; width?: number; height?: number } | null => {
+const getBlockAt = (x: number, y: number): LevelBlock | null => {
   for (const block of level.value) {
     const blockX = block.x;
     const blockY = block.y;
-    const blockWidth = block.width || TILE_SIZE;
-    const blockHeight = block.height || TILE_SIZE;
+    const blockWidth = block.width;
+    const blockHeight = block.height;
     
     if (x >= blockX && x < blockX + blockWidth &&
         y >= blockY && y < blockY + blockHeight) {
@@ -318,6 +354,31 @@ const drawMario = (ctx: CanvasRenderingContext2D, x: number, y: number, facingRi
   ctx.restore();
 };
 
+// 云朵配置（避免在每帧内重复创建常量数据）
+const FAR_CLOUDS: Array<{ x: number; y: number; size: number }> = [
+  { x: 50, y: 30, size: 1.0 },
+  { x: 250, y: 40, size: 0.8 },
+  { x: 450, y: 25, size: 1.2 },
+  { x: 650, y: 35, size: 0.9 },
+  { x: 850, y: 30, size: 1.1 },
+  { x: 1050, y: 45, size: 0.85 },
+  { x: 1250, y: 28, size: 1.15 },
+  { x: 1450, y: 38, size: 0.95 },
+  { x: 1650, y: 32, size: 1.05 },
+  { x: 1850, y: 42, size: 0.9 }
+];
+
+const MID_CLOUDS: Array<{ x: number; y: number; size: number }> = [
+  { x: 150, y: 60, size: 0.7 },
+  { x: 350, y: 70, size: 0.6 },
+  { x: 550, y: 55, size: 0.8 },
+  { x: 750, y: 65, size: 0.65 },
+  { x: 950, y: 60, size: 0.75 },
+  { x: 1150, y: 75, size: 0.6 },
+  { x: 1350, y: 58, size: 0.85 },
+  { x: 1550, y: 68, size: 0.7 }
+];
+
 // 绘制云朵
 const drawCloud = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number = 1) => {
   ctx.fillStyle = '#ffffff';
@@ -448,20 +509,7 @@ const gameLoop = (currentTime: number) => {
   
   // 绘制云朵背景（多层，不同速度产生视差效果）
   // 远层云朵（移动慢）
-  const cloudPositions = [
-    { x: 50, y: 30, size: 1.0 },
-    { x: 250, y: 40, size: 0.8 },
-    { x: 450, y: 25, size: 1.2 },
-    { x: 650, y: 35, size: 0.9 },
-    { x: 850, y: 30, size: 1.1 },
-    { x: 1050, y: 45, size: 0.85 },
-    { x: 1250, y: 28, size: 1.15 },
-    { x: 1450, y: 38, size: 0.95 },
-    { x: 1650, y: 32, size: 1.05 },
-    { x: 1850, y: 42, size: 0.9 }
-  ];
-  
-  for (const cloud of cloudPositions) {
+  for (const cloud of FAR_CLOUDS) {
     const cloudX = (cloud.x - cameraX.value * 0.2) % (SCREEN_WIDTH + 200) - 50;
     if (cloudX > -100 && cloudX < SCREEN_WIDTH + 100) {
       drawCloud(ctx, cloudX, cloud.y, cloud.size);
@@ -469,18 +517,7 @@ const gameLoop = (currentTime: number) => {
   }
   
   // 中层云朵（移动稍快）
-  const midCloudPositions = [
-    { x: 150, y: 60, size: 0.7 },
-    { x: 350, y: 70, size: 0.6 },
-    { x: 550, y: 55, size: 0.8 },
-    { x: 750, y: 65, size: 0.65 },
-    { x: 950, y: 60, size: 0.75 },
-    { x: 1150, y: 75, size: 0.6 },
-    { x: 1350, y: 58, size: 0.85 },
-    { x: 1550, y: 68, size: 0.7 }
-  ];
-  
-  for (const cloud of midCloudPositions) {
+  for (const cloud of MID_CLOUDS) {
     const cloudX = (cloud.x - cameraX.value * 0.4) % (SCREEN_WIDTH + 200) - 50;
     if (cloudX > -100 && cloudX < SCREEN_WIDTH + 100) {
       drawCloud(ctx, cloudX, cloud.y, cloud.size);

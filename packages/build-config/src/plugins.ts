@@ -24,6 +24,8 @@ export interface PluginsOptions {
   i18nPaths?: string[];
   /** 移除 console 排除项 */
   removeConsoleExternal?: string[];
+  /** mock 路径（可选，如果提供则启用 mock 插件） */
+  mockPath?: string | string[];
 }
 
 export function getPluginsList(options: PluginsOptions): PluginOption[] {
@@ -32,6 +34,7 @@ export function getPluginsList(options: PluginsOptions): PluginOption[] {
     VITE_COMPRESSION,
     i18nPaths = [],
     removeConsoleExternal = ["@repo/assets/iconfont/iconfont.js"],
+    mockPath,
   } = options;
 
   const lifecycle = process.env.npm_lifecycle_event;
@@ -80,12 +83,14 @@ export function getPluginsList(options: PluginsOptions): PluginOption[] {
      */
     removeNoMatch(),
     // mock支持
-    vitePluginFakeServer({
-      logger: false,
-      include: "mock",
-      infixName: false,
-      enableProd: true,
-    }),
+    mockPath
+      ? vitePluginFakeServer({
+          logger: false,
+          include: mockPath,
+          infixName: false,
+          enableProd: true,
+        })
+      : null,
     // svg组件化支持
     svgLoader(),
     VITE_CDN ? createCdnPlugin() : null,

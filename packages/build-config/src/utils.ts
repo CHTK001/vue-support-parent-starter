@@ -1,11 +1,31 @@
 import { formatBytes, sum } from "@pureadmin/utils";
 import dayjs from "dayjs";
+import { existsSync } from "node:fs";
 import { readdir, stat } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/**
+ * 查找包含 packages 目录的根目录
+ * 从当前文件位置向上查找，直到找到包含 packages 目录的位置
+ */
+const findRoot = (): string => {
+  // 当前文件目录的绝对路径 (packages/build-config/src)
+  let currentDir = dirname(fileURLToPath(import.meta.url));
+  // 向上查找，直到找到包含 packages 目录的位置
+  while (currentDir !== dirname(currentDir)) {
+    const packagesDir = resolve(currentDir, "packages");
+    if (existsSync(packagesDir)) {
+      return currentDir;
+    }
+    currentDir = dirname(currentDir);
+  }
+  // 如果找不到，回退到 process.cwd()
+  return process.cwd();
+};
+
 /** 启动`node`进程时所在工作目录的绝对路径 */
-export const root: string = process.cwd();
+export const root: string = findRoot();
 
 /**
  * @description 将`process.env.NODE_ENV`转换为`dev`、`prod`、`test`等
@@ -43,9 +63,22 @@ export const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
 };
 
 /** 设置别名（基础） */
-export const createAlias = (metaUrl: string): Record<string, string> => ({
-  "@": pathResolve("./src", metaUrl),
-});
+export const createAlias = (metaUrl: string): Record<string, string> => {
+  return {
+    "@": pathResolve("./src", metaUrl),
+    "@pages": resolve(root, "pages"),
+    "@pages/setting": resolve(root, "pages/setting"),
+    "@repo": resolve(root, "packages"),
+    "@repo/assets": resolve(root, "packages/assets"),
+    "@repo/components": resolve(root, "packages/components"),
+    "@repo/config": resolve(root, "packages/config"),
+    "@repo/core": resolve(root, "packages/core"),
+    "@repo/pages": resolve(root, "packages/pages"),
+    "@repo/utils": resolve(root, "packages/utils"),
+    "@repo/font-encryption": resolve(root, "packages/font-encryption/src"),
+    "@repo/codec-wasm": resolve(root, "packages/codec-wasm"),
+  };
+};
 
 /** 创建 APP_INFO */
 export const createAppInfo = (pkg: {

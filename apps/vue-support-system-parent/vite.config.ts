@@ -9,24 +9,41 @@ import {
   include,
   exclude,
 } from "../../packages/build-config/dist/index.mjs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import pkg from "./package.json";
 
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
-  const env = loadEnv(newMode, root);
+  // const env = loadEnv(newMode, root);
+  const localRoot = process.cwd();
+  const env = loadEnv(newMode, localRoot);
   console.log("当前启动模式:" + newMode);
+  console.log("Root:", localRoot);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
+  
+  const currentFileDir = dirname(fileURLToPath(import.meta.url));
   const alias = createAlias(import.meta.url);
-  alias["@repo/font-encryption"] = pathResolve("../../packages/font-encryption/src", import.meta.url);
-  alias["@layout/default"] = pathResolve("../../layout/default/src", import.meta.url);
+  
+  // Explicitly set aliases for local packages to avoid resolution issues
+  // Order matters: more specific aliases first (though object keys order is not guaranteed, usually it works)
+  // Use root variable for consistent path resolution
+  alias["@layout/default"] = resolve(root, "layout/default/src");
+  // Point directly to index.ts for directives to be unambiguous
+  alias["@repo/core/directives"] = resolve(root, "packages/core/src/directives/index.ts");
+  alias["@repo/core"] = resolve(root, "packages/core/src");
+
+  // 构建 mock 路径（相对于 vite.config.ts 文件）
+  const mockPath = resolve(currentFileDir, "./mock");
 
   return {
     base: VITE_PUBLIC_PATH,
-    root,
+    root: localRoot,
     resolve: {
       alias,
       dedupe: ["vite", "vue", "vue-router", "vue-i18n"],
       preserveSymlinks: true,
+      conditions: ["import", "module", "browser", "default"],
     },
     // 服务端渲染
     server: {
@@ -66,6 +83,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         pathResolve("../locales/**", import.meta.url),
         pathResolve("@repo/config/locales/**", import.meta.url),
       ],
+      mockPath: ["mock"],
     }),
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
@@ -88,69 +106,45 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // https://cn.vitejs.dev/guide/build.html#browser-compatibility
       target: "es2015",
       sourcemap: false,
+      minify: "terser",
       // 消除打包大小超过500kb警告
       chunkSizeWarningLimit: 4000,
       terserOptions: {
         compress: {
           drop_console: true,
+          drop_debugger: true,
+          pure_funcs: ["console.log", "console.info", "console.debug", "console.warn", "console.error"],
+          passes: 3,
+          dead_code: true,
+          unused: true,
+          collapse_vars: true,
+          reduce_vars: true,
+          reduce_funcs: true,
+          inline: 2,
+          keep_fargs: false,
+          keep_fnames: false,
+        },
+        mangle: {
+          properties: {
+            regex: /^_/,
+          },
+          toplevel: true,
+        },
+        format: {
+          comments: false,
         },
       },
       rollupOptions: {
-        input: {
-          index: pathResolve("./index.html", import.meta.url),
-        },
-        // 静态资源分类打包
         output: {
+          // 静态资源分类打包
           chunkFileNames: "static/js/[name]-[hash].js",
           entryFileNames: "static/js/[name]-[hash].js",
           assetFileNames: "static/[ext]/[name]-[hash].[ext]",
-          manualChunks: (id) => {
-            // 将大型依赖拆分为独立 chunk
-            if (id.includes("node_modules")) {
-              // Element Plus
-              if (id.includes("element-plus")) {
-                return "vendor-element-plus";
-              }
-              // Vue 核心
-              if (id.includes("vue") && !id.includes("vue-router") && !id.includes("vue-i18n")) {
-                return "vendor-vue";
-              }
-              // Vue Router
-              if (id.includes("vue-router")) {
-                return "vendor-vue-router";
-              }
-              // Vue I18n
-              if (id.includes("vue-i18n")) {
-                return "vendor-vue-i18n";
-              }
-              // VueUse
-              if (id.includes("@vueuse")) {
-                return "vendor-vueuse";
-              }
-              // PureAdmin
-              if (id.includes("@pureadmin")) {
-                return "vendor-pureadmin";
-              }
-              // Tippy.js
-              if (id.includes("tippy.js")) {
-                return "vendor-tippy";
-              }
-              // Vue Grid Layout
-              if (id.includes("vue-grid-layout")) {
-                return "vendor-grid-layout";
-              }
-              // 其他 node_modules
-              return "vendor";
-            }
-          },
         },
       },
     },
     define: {
-      __INTLIFY_PROD_DEVTOOLS__: false,
-      __APP_CONFIG__: JSON.stringify(env),
       __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
-      __APP_ENV__: JSON.stringify(newMode),
     },
   };
 };

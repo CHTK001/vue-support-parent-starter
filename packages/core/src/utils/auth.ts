@@ -14,9 +14,17 @@ export function getToken(): UserResult {
  * 无感刷新：后端返回`accessToken`（访问接口使用的`token`）、`refreshToken`（用于调用刷新`accessToken`的接口时所需的`token`，`refreshToken`的过期时间（比如30天）应大于`accessToken`的过期时间（比如2小时））、`expires`（`accessToken`的过期时间）
  * 将`accessToken`、`expires`、`refreshToken`这三条信息放在key值为authorized-token的cookie里（过期自动销毁）
  * 将`avatar`、`username`、`nickname`、`roles`、`refreshToken`、`expires`这六条信息放在key值为`user-info`的localStorage里（利用`multipleTabsKey`当浏览器完全关闭后自动销毁）
+ * @param data - 用户数据，包含 accessToken、refreshToken、expires 等信息
+ * @param userSetting - 用户设置，包含 isRemembered 和 expires 等信息（expires 会被忽略，使用 data.expires）
  */
-export function setToken(data: UserResult) {
-  const { refreshToken, expires } = setGlobalToken(data, useUserStoreHook());
+export function setToken(data: UserResult, userSetting?: { isRemembered?: boolean; expires?: number }) {
+  const userStore = useUserStoreHook();
+  // setGlobalToken 期望的 userSetting 是 { isRemembered, loginDay }，而不是 { isRemembered, expires }
+  const setting = {
+    isRemembered: userSetting?.isRemembered ?? data?.isRemembered ?? userStore.isRemembered ?? true,
+    loginDay: userStore.loginDay ?? 7,
+  };
+  const { refreshToken, expires } = setGlobalToken(data, setting);
   setLoginOutFunction(useUserStoreHook().logOut);
   setRefreshTokenFunction(useUserStoreHook().handRefreshToken);
 

@@ -142,7 +142,7 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="preview">
-          <CoolLoading :type="previewType" loading-text="加载预览..." :show-progress="false" />
+          <CoolLoading :type="previewType" loading-text="加载预览..." :show-progress="true" />
         </div>
       </div>
     </div>
