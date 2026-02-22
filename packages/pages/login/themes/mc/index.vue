@@ -1,7 +1,7 @@
 <template>
   <div class="mc-login-page mc-world-bg">
     <!-- 翻书加载动画 -->
-    <div v-if="loading" class="mc-loading-overlay">
+    <div v-if="loading && loadingType === 'book'" class="mc-loading-overlay">
       <div class="loading-background">
         <div class="loading-bg-image"></div>
         <div class="loading-vignette"></div>
@@ -68,6 +68,70 @@
               <p class="tips-title">你知道吗？</p>
               <p class="tips-text">钻石镐最适合挖掘黑曜石。结合效率 IV 附魔，可在下界获得最大挖掘速度。</p>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 方块旋转加载动画 -->
+    <div v-if="loading && loadingType === 'block'" class="mc-loading-overlay block-loading">
+      <div class="block-loading-background">
+        <div class="block-bg-gradient"></div>
+        <div class="block-vignette"></div>
+      </div>
+      
+      <div class="block-loading-content">
+        <!-- 3D 方块容器 -->
+        <div class="block-container-3d">
+          <!-- 旋转的方块 -->
+          <div class="rotating-block">
+            <div class="block-face block-front">
+              <div class="block-pattern diamond"></div>
+            </div>
+            <div class="block-face block-back">
+              <div class="block-pattern diamond"></div>
+            </div>
+            <div class="block-face block-right">
+              <div class="block-pattern diamond"></div>
+            </div>
+            <div class="block-face block-left">
+              <div class="block-pattern diamond"></div>
+            </div>
+            <div class="block-face block-top">
+              <div class="block-pattern diamond"></div>
+            </div>
+            <div class="block-face block-bottom">
+              <div class="block-pattern diamond"></div>
+            </div>
+          </div>
+          
+          <!-- 环绕粒子 -->
+          <div class="orbit-particle" v-for="i in 8" :key="i" :style="{ '--index': i }"></div>
+          
+          <!-- 发光效果 -->
+          <div class="block-glow-effect"></div>
+        </div>
+        
+        <!-- 加载文本 -->
+        <div class="block-loading-text">
+          <h2 class="block-loading-title">正在加载世界...</h2>
+          <p class="block-loading-subtitle">生成区块中</p>
+        </div>
+        
+        <!-- 进度条 -->
+        <div class="block-progress-wrapper">
+          <div class="block-progress-bar">
+            <div class="block-progress-fill" :style="{ width: `${loadingProgress}%` }">
+              <div class="block-progress-shine"></div>
+            </div>
+            <div class="block-progress-text">{{ loadingProgress }}%</div>
+          </div>
+        </div>
+        
+        <!-- 方块图标装饰 -->
+        <div class="block-decorations">
+          <div class="decoration-block" v-for="i in 5" :key="i" :style="{ '--delay': i * 0.2 + 's' }">
+            <div class="mini-block"></div>
           </div>
         </div>
       </div>
@@ -148,9 +212,11 @@ defineOptions({
 withDefaults(defineProps<{
   loading?: boolean;
   loadingProgress?: number;
+  loadingType?: 'book' | 'block';
 }>(), {
   loading: false,
   loadingProgress: 0,
+  loadingType: 'book',
 });
 </script>
 
@@ -971,6 +1037,379 @@ withDefaults(defineProps<{
   .book-main {
     width: 12rem;
     height: 15rem;
+  }
+}
+
+// ========== 方块旋转加载动画样式 ==========
+.block-loading {
+  .block-loading-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    
+    .block-bg-gradient {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      opacity: 0.95;
+    }
+    
+    .block-vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+    }
+  }
+  
+  .block-loading-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    gap: 3rem;
+  }
+  
+  // 3D 方块容器
+  .block-container-3d {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    perspective: 1000px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  // 旋转的方块
+  .rotating-block {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    transform-style: preserve-3d;
+    animation: blockRotate 3s linear infinite;
+  }
+  
+  // 方块面
+  .block-face {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    .block-pattern {
+      width: 100%;
+      height: 100%;
+      background-size: 40px 40px;
+      background-repeat: repeat;
+      opacity: 0.9;
+      
+      &.diamond {
+        background-image: 
+          linear-gradient(45deg, #55c3ff 25%, transparent 25%),
+          linear-gradient(-45deg, #55c3ff 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #55c3ff 75%),
+          linear-gradient(-45deg, transparent 75%, #55c3ff 75%);
+        background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+        background-color: #4a9eff;
+        box-shadow: inset 0 0 20px rgba(85, 195, 255, 0.5);
+      }
+    }
+    
+    &.block-front {
+      transform: rotateY(0deg) translateZ(60px);
+      background: linear-gradient(135deg, #4a9eff 0%, #55c3ff 100%);
+    }
+    
+    &.block-back {
+      transform: rotateY(180deg) translateZ(60px);
+      background: linear-gradient(135deg, #4a9eff 0%, #55c3ff 100%);
+    }
+    
+    &.block-right {
+      transform: rotateY(90deg) translateZ(60px);
+      background: linear-gradient(135deg, #3d8eef 0%, #4a9eff 100%);
+    }
+    
+    &.block-left {
+      transform: rotateY(-90deg) translateZ(60px);
+      background: linear-gradient(135deg, #3d8eef 0%, #4a9eff 100%);
+    }
+    
+    &.block-top {
+      transform: rotateX(90deg) translateZ(60px);
+      background: linear-gradient(135deg, #55c3ff 0%, #6dd5ff 100%);
+    }
+    
+    &.block-bottom {
+      transform: rotateX(-90deg) translateZ(60px);
+      background: linear-gradient(135deg, #3d8eef 0%, #2d7edf 100%);
+    }
+  }
+  
+  // 环绕粒子
+  .orbit-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: radial-gradient(circle, #55c3ff 0%, transparent 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 10px #55c3ff;
+    animation: orbitRotate 4s linear infinite;
+    animation-delay: calc(var(--index) * 0.5s);
+    transform-origin: 100px 100px;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: inherit;
+      border-radius: inherit;
+      animation: particlePulse 2s ease-in-out infinite;
+      animation-delay: calc(var(--index) * 0.3s);
+    }
+  }
+  
+  // 发光效果
+  .block-glow-effect {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(85, 195, 255, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: glowPulse 2s ease-in-out infinite;
+    filter: blur(20px);
+  }
+  
+  // 加载文本
+  .block-loading-text {
+    text-align: center;
+    color: #e2e8f0;
+    
+    .block-loading-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #55c3ff 0%, #ffffff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: textShimmer 2s ease-in-out infinite;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    
+    .block-loading-subtitle {
+      font-size: 1.125rem;
+      color: #94a3b8;
+      font-family: 'Noto Sans', sans-serif;
+      opacity: 0.8;
+    }
+  }
+  
+  // 进度条
+  .block-progress-wrapper {
+    width: 100%;
+    max-width: 400px;
+    padding: 0 2rem;
+  }
+  
+  .block-progress-bar {
+    position: relative;
+    width: 100%;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(85, 195, 255, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .block-progress-fill {
+    position: relative;
+    height: 100%;
+    background: linear-gradient(90deg, #4a9eff 0%, #55c3ff 50%, #6dd5ff 100%);
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px rgba(85, 195, 255, 0.6);
+    
+    .block-progress-shine {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+      animation: progressShine 2s infinite;
+    }
+  }
+  
+  .block-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  
+  // 装饰方块
+  .block-decorations {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .decoration-block {
+    animation: decorationFloat 2s ease-in-out infinite;
+    animation-delay: var(--delay);
+    
+    .mini-block {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #4a9eff 0%, #55c3ff 100%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 8px rgba(85, 195, 255, 0.4);
+      transform: rotate(45deg);
+    }
+  }
+}
+
+// 方块旋转动画
+@keyframes blockRotate {
+  0% {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+  100% {
+    transform: rotateX(360deg) rotateY(360deg);
+  }
+}
+
+// 环绕旋转动画
+@keyframes orbitRotate {
+  0% {
+    transform: rotate(0deg) translateX(100px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(100px) rotate(-360deg);
+  }
+}
+
+// 粒子脉冲动画
+@keyframes particlePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.6;
+  }
+}
+
+// 发光脉冲动画
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+// 文本闪烁动画
+@keyframes textShimmer {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+// 进度条闪光动画
+@keyframes progressShine {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+// 装饰浮动动画
+@keyframes decorationFloat {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+// 方块加载动画响应式
+@media (max-width: 768px) {
+  .block-loading {
+    .block-container-3d {
+      width: 150px;
+      height: 150px;
+    }
+    
+    .rotating-block {
+      width: 90px;
+      height: 90px;
+    }
+    
+    .block-face {
+      width: 90px;
+      height: 90px;
+      
+      &.block-front {
+        transform: rotateY(0deg) translateZ(45px);
+      }
+      
+      &.block-back {
+        transform: rotateY(180deg) translateZ(45px);
+      }
+      
+      &.block-right {
+        transform: rotateY(90deg) translateZ(45px);
+      }
+      
+      &.block-left {
+        transform: rotateY(-90deg) translateZ(45px);
+      }
+      
+      &.block-top {
+        transform: rotateX(90deg) translateZ(45px);
+      }
+      
+      &.block-bottom {
+        transform: rotateX(-90deg) translateZ(45px);
+      }
+    }
+    
+    .block-loading-text .block-loading-title {
+      font-size: 1.75rem;
+    }
+    
+    .block-progress-wrapper {
+      max-width: 300px;
+      padding: 0 1rem;
+    }
   }
 }
 </style>
