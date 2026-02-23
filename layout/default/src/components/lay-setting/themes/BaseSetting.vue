@@ -989,94 +989,7 @@ function importSettings() {
         <component :is="MenuSetting" :key="`menu-${currentTheme}`" />
         <component :is="AdvancedSetting" :key="`advanced-${currentTheme}`" />
 
-        <!-- 以下为保留的原始代码，待后续逐步迁移到组件 -->
-        <!-- 主题皮肤功能区域 -->
-        <!-- <div
-          v-if="getConfig().EnableThemeManagement !== false"
-          class="setting-section"
-        >
-          <div class="section-header">
-            <IconifyIconOnline icon="ri:palette-fill" class="section-icon" />
-            <h3 class="section-title">{{ t("panel.themeSkin") }}</h3>
-            <div class="section-description">
-              {{ t("panel.themeSkinDesc") }}
-            </div>
-          </div>
-          <div class="setting-content">
-            <!-- 节日主题自动切换开关 -->
-            <div class="switch-card-grid">
-              <el-tooltip
-                :content="t('panel.festivalThemeAutoDesc')"
-                placement="top"
-              >
-                <div>
-                  <ScSwitch
-                    v-model="settings.enableFestivalTheme"
-                    layout="visual-card"
-                    size="small"
-                    :label="t('panel.festivalThemeAuto')"
-                    active-icon="ri:calendar-event-line"
-                    @change="festivalThemeChange"
-                  />
-                </div>
-              </el-tooltip>
-            </div>
-
-            <!-- 开启自动切换时：显示当前生效的主题提示 -->
-            <div v-if="settings.enableFestivalTheme" class="auto-theme-status">
-              <div class="status-card">
-                <div class="status-icon">
-                  <IconifyIconOnline icon="ri:calendar-check-line" />
-                </div>
-                <div class="status-content">
-                  <div class="status-title">
-                    {{ t("panel.autoThemeEnabled") }}
-                  </div>
-                  <div class="status-desc">
-                    {{ t("panel.autoThemeEnabledDesc") }}
-                  </div>
-                  <div class="status-current">
-                    <span class="label">{{
-                      t("panel.currentThemeLabel")
-                    }}</span>
-                    <span class="value">
-                      {{
-                        $storage.configure?.systemTheme === "default"
-                          ? t("panel.defaultTheme")
-                          : festivalThemesList.find(
-                              (th) =>
-                                th.themeColor ===
-                                $storage.configure?.systemTheme,
-                            )?.name || $storage.configure?.systemTheme
-                      }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 主题选择区域 - 始终显示，但根据自动切换开关过滤主题 -->
-            <div class="festival-themes-section">
-              <LayThemeSwitcher
-                :themes="festivalThemesList"
-                :showMeta="true"
-                :persist="false"
-                :modelValue="$storage.configure?.systemTheme || 'default'"
-                @change="
-                  (key: string) => {
-                    // 手动切换主题时，自动关闭节日主题自动切换功能
-                    if (settings.enableFestivalTheme) {
-                      settings.enableFestivalTheme = false;
-                      storageConfigureChange('enableFestivalTheme', false);
-                      ElMessage.info(t('panel.festivalThemeAutoDisabled'));
-                    }
-                    switchSystemTheme(key);
-                  }
-                "
-              />
-            </div>
-          </div>
-        </div>
+        <!-- 原始主题皮肤相关模板已删除，逻辑已迁移到上方组件 -->
 
         <!-- AI 助手皮肤设置区域 -->
         <div v-if="getConfig().ShowAiChat !== false" class="setting-section">
@@ -1102,7 +1015,7 @@ function importSettings() {
                 <div class="ai-theme-preview">
                   <div class="ai-theme-bubble"></div>
                   <div class="ai-theme-bot"></div>
-                </div>
+            </div>
                 <span class="ai-theme-label">{{ theme.label }}</span>
                 <div
                   v-if="settings.aiChatTheme === theme.value"
@@ -1128,23 +1041,23 @@ function importSettings() {
             <div class="setting-item">
               <div class="setting-item-header">
                 <span class="setting-item-label">启用本地模型</span>
-                <ScSwitch
+                  <ScSwitch
                   v-model="settings.useLocalModel"
-                  layout="visual-card"
-                  size="small"
+                    layout="visual-card"
+                    size="small"
                   label="本地 AI 模型"
                   description="使用 Transformers.js 在浏览器中运行 AI 模型"
                   active-icon="ri:brain-line"
                   ribbon-color="var(--el-color-primary)"
                   @change="useLocalModelChange"
-                />
-              </div>
+                  />
+                </div>
             </div>
-            
+
             <div v-if="settings.useLocalModel" class="setting-item mt-4">
               <div class="setting-item-header">
                 <span class="setting-item-label">选择模型</span>
-              </div>
+                </div>
               <div class="setting-item-content">
                 <ScSelect
                   v-model="settings.localModelId"
@@ -1155,16 +1068,16 @@ function importSettings() {
                 <div class="setting-item-tip mt-2">
                   <IconifyIconOnline icon="ri:information-line" class="tip-icon" />
                   <span>首次使用需要下载模型文件，请耐心等待</span>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
 
             <!-- AI 对话测试区域 -->
             <div v-if="settings.useLocalModel" class="ai-chat-test-container mt-4">
               <div class="ai-chat-test-header">
                 <IconifyIconOnline icon="ri:message-3-line" class="test-icon" />
                 <span class="test-title">对话测试</span>
-              </div>
+            </div>
               <div class="ai-chat-test-content">
                 <LayAiChat
                   :use-local-model="settings.useLocalModel"
@@ -1173,7 +1086,7 @@ function importSettings() {
                   :default-open="true"
                   class="inline-chat"
                 />
-              </div>
+          </div>
             </div>
           </div>
         </div>
@@ -1800,9 +1713,9 @@ function importSettings() {
                 ribbon-color="var(--el-color-success)"
                 @change="themeStore.setHomeCustomizationEnabled"
               /> -->
+            </div>
+            </div>
 
-            </div>
-            </div>
               <!-- 性能监控 (仅在开发/测试环境或 SA 账号显示) -->
               <div v-if="isPerformanceMonitorVisible" class="setting-group">
                <h4 class="group-title">
@@ -2286,85 +2199,6 @@ function importSettings() {
           </div>
         </div>
 
-        <!-- 高级设置区域 - 已迁移到组件 -->
-        <!-- <div class="setting-section">
-          <div class="section-header">
-            <IconifyIconOnline icon="ri:tools-line" class="section-icon" />
-            <h3 class="section-title">{{ t("panel.advancedSettings") }}</h3>
-            <div class="section-description">
-              {{ t("panel.advancedSettingsDesc") }}
-            </div>
-          </div>
-          <div class="setting-content">
-            <!-- 高级功能开关 -->
-            <div class="setting-group">
-              <h4 class="group-title">
-                <IconifyIconOnline
-                  icon="ri:settings-4-line"
-                  class="group-icon"
-                />
-                {{ t("panel.advancedFeatures") }}
-              </h4>
-              <div class="switch-card-grid">
-                <ScSwitch
-                  v-model="settings.keepAlive"
-                  layout="visual-card"
-                  size="small"
-                  :label="t('panel.componentCache')"
-                  :description="t('panel.componentCacheDesc')"
-                  active-icon="ri:speed-line"
-                  ribbon-color="var(--el-color-success)"
-                  @change="keepAliveChange"
-                />
-
-                <ScSwitch
-                  v-model="settings.stretch"
-                  layout="visual-card"
-                  size="small"
-                  :label="t('panel.pageStretch')"
-                  :description="t('panel.pageStretchDesc')"
-                  active-icon="ri:fullscreen-line"
-                  ribbon-color="var(--el-color-success)"
-                />
-
-                <ScSwitch
-                  v-if="isDevelopment || isTest"
-                  v-model="settings.debugMode"
-                  layout="visual-card"
-                  size="small"
-                  :label="t('panel.debugMode')"
-                  :description="t('panel.debugModeDesc')"
-                  active-icon="ri:terminal-box-line"
-                  ribbon-color="var(--el-color-warning)"
-                  @change="debugModeChange"
-                />
-              </div>
-            </div>
-
-            <!-- 重置选项 -->
-            <div class="setting-group">
-              <h4 class="group-title">
-                <IconifyIconOnline icon="ri:refresh-line" class="group-icon" />
-                {{ t("panel.resetOptions") }}
-              </h4>
-              <div class="reset-actions">
-                <el-button type="warning" plain @click="resetToDefault">
-                  <IconifyIconOnline icon="ri:restart-line" />
-                  {{ t("panel.restoreDefault") }}
-                </el-button>
-                <el-button type="info" plain @click="exportSettings">
-                  <IconifyIconOnline icon="ri:download-line" />
-                  {{ t("panel.exportConfig") }}
-                </el-button>
-                <el-button type="success" plain @click="importSettings">
-                  <IconifyIconOnline icon="ri:upload-line" />
-                  {{ t("panel.importConfig") }}
-                </el-button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </LayPanel>
   </div>
 </template>
