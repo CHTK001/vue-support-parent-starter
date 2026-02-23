@@ -319,7 +319,7 @@ function clearTimers() {
   }
 }
 
-// 处理菜单悬停
+// 处理菜单悬停 - 使用 requestAnimationFrame 优化性能
 function handleMenuHover(menu: MenuItem, event: MouseEvent) {
   clearTimers();
 
@@ -339,32 +339,35 @@ function handleMenuHover(menu: MenuItem, event: MouseEvent) {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
 
   showTimer.value = setTimeout(() => {
-    // 计算子菜单的预估高度（根据子菜单项数量估算）
-    const estimatedHeight = Math.min(500, menu.children.length * 50 + 100);
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
+    // 使用 requestAnimationFrame 优化渲染性能
+    requestAnimationFrame(() => {
+      // 计算子菜单的预估高度（根据子菜单项数量估算）
+      const estimatedHeight = Math.min(500, menu.children.length * 50 + 100);
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
 
-    // 计算最佳的 top 位置
-    let top = rect.top;
-    // 如果子菜单会超出屏幕底部，向上调整位置
-    if (top + estimatedHeight > viewportHeight - 20) {
-      top = Math.max(20, viewportHeight - estimatedHeight - 20);
-    }
+      // 计算最佳的 top 位置
+      let top = rect.top;
+      // 如果子菜单会超出屏幕底部，向上调整位置
+      if (top + estimatedHeight > viewportHeight - 20) {
+        top = Math.max(20, viewportHeight - estimatedHeight - 20);
+      }
 
-    // 计算 left 位置，确保不超出右边界
-    let left = rect.right + 10;
-    const estimatedWidth = 400; // 子菜单预估宽度
-    if (left + estimatedWidth > viewportWidth - 20) {
-      // 如果右侧空间不够，显示在左侧
-      left = rect.left - estimatedWidth - 10;
-    }
+      // 计算 left 位置，确保不超出右边界
+      let left = rect.right + 10;
+      const estimatedWidth = 400; // 子菜单预估宽度
+      if (left + estimatedWidth > viewportWidth - 20) {
+        // 如果右侧空间不够，显示在左侧
+        left = rect.left - estimatedWidth - 10;
+      }
 
-    subMenuPosition.value = {
-      top: top,
-      left: left,
-    };
-    subMenuVisible.value = true;
-  }, 150);
+      subMenuPosition.value = {
+        top: top,
+        left: left,
+      };
+      subMenuVisible.value = true;
+    });
+  }, 100);
 }
 
 // 处理菜单离开
@@ -612,6 +615,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearTimers(); // 清理定时器
+  // 清理 CSS 变量，避免影响其他导航模式
+  document.documentElement.style.removeProperty("--hover-sidebar-width");
 });
 
 const defer = useDefer(firstLevelMenus.value.length);
@@ -1079,13 +1084,17 @@ const defer = useDefer(firstLevelMenus.value.length);
     var(--hover-nav-bg-start),
     var(--hover-nav-bg-end)
   );
-  backdrop-filter: blur(12px);
+  // 性能优化：悬停导航主容器不再使用高强度模糊，避免 GPU 过度消耗
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-right: 1px solid var(--hover-nav-border);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: visible;
   overflow-y: hidden;
   display: flex;
   flex-direction: column;
+  will-change: width;
+  contain: layout style;
 
   /* 收缩状态 */
   &.collapsed {
@@ -1141,16 +1150,20 @@ const defer = useDefer(firstLevelMenus.value.length);
 
 .hover-menu-container {
   padding: 8px;
+  contain: layout style;
+  transform: translateZ(0); // 启用硬件加速
 }
 
 .first-level-menu-item {
   height: 50px;
   margin: 4px 0;
   border-radius: 8px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  will-change: transform;
+  contain: layout style paint;
 
   &:hover {
     transform: translateX(4px);
@@ -1225,6 +1238,8 @@ const defer = useDefer(firstLevelMenus.value.length);
   z-index: 100; // 子菜单弹出层保持一定层级但不要太高，避免遮挡对话框
   pointer-events: auto;
   max-height: calc(100vh - 40px);
+  will-change: transform, opacity;
+  contain: layout style paint;
 
   /* 添加一个透明的连接区域，方便鼠标移动 */
   &::before {
@@ -1246,14 +1261,16 @@ const defer = useDefer(firstLevelMenus.value.length);
     max-height: calc(100vh - 60px);
     background: var(--hover-nav-submenu-bg);
     border-radius: 16px;
-    box-shadow:
-      0 20px 40px var(--hover-nav-submenu-shadow),
-      0 8px 16px rgba(0, 0, 0, 0.04),
-      0 0 0 1px rgba(255, 255, 255, 0.1);
+    // 性能优化：减少阴影层级，减轻重绘开销
+    box-shadow: 0 12px 24px var(--hover-nav-submenu-shadow);
     border: 1px solid var(--hover-nav-submenu-border);
     overflow: hidden;
-    backdrop-filter: blur(24px);
+    // 性能优化：去掉大面积背景模糊，降低 hover 打开时的卡顿
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     position: relative;
+    will-change: transform, opacity;
+    contain: layout style paint;
 
   /* 添加光泽效果 */
   &::before {
@@ -1289,6 +1306,8 @@ const defer = useDefer(firstLevelMenus.value.length);
   padding: 12px;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
+  contain: layout style;
+  transform: translateZ(0); // 启用硬件加速
 
   /* 自定义滚动条 */
   &::-webkit-scrollbar {
@@ -1302,7 +1321,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   &::-webkit-scrollbar-thumb {
     background: rgba(var(--el-color-primary-rgb), 0.2);
     border-radius: 3px;
-    transition: all 0.3s;
+    transition: background-color 0.2s ease;
 
     &:hover {
       background: rgba(var(--el-color-primary-rgb), 0.4);
@@ -1473,7 +1492,8 @@ const defer = useDefer(firstLevelMenus.value.length);
   font-weight: 400;
   line-height: 1.4;
   border-radius: 6px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 性能优化：仅过渡颜色相关属性，避免频繁动画 box-shadow
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   position: relative;
   width: 100%;
   min-height: 36px;
@@ -1485,6 +1505,8 @@ const defer = useDefer(firstLevelMenus.value.length);
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  will-change: transform;
+  contain: layout style;
 
   /* 浅色风格下文字为黑色 */
   html[data-theme="light"] & {
@@ -1500,9 +1522,9 @@ const defer = useDefer(firstLevelMenus.value.length);
     background: var(--el-color-primary-light-9);
     color: var(--el-color-primary-dark-2);
     font-weight: 500;
+    // 轻微位移对性能影响较小，保留细微反馈
     transform: translateY(-1px);
     border-color: var(--el-color-primary-light-6);
-    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
 
     /* 浅色风格下悬停样式 */
     html[data-theme="light"] & {
@@ -1552,10 +1574,12 @@ const defer = useDefer(firstLevelMenus.value.length);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
   opacity: 0;
   z-index: 10;
   border: 1px solid rgba(var(--el-color-primary-rgb), 0.1);
+  will-change: transform, opacity;
+  contain: layout style paint;
 
   &:hover {
     background: rgba(var(--el-color-primary-rgb), 0.2);
@@ -1650,7 +1674,7 @@ const defer = useDefer(firstLevelMenus.value.length);
       border-radius: 8px;
       text-decoration: none;
       color: var(--el-text-color-regular);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       font-size: 13px;
       position: relative;
       border: 1px solid transparent;
@@ -1661,6 +1685,8 @@ const defer = useDefer(firstLevelMenus.value.length);
         var(--el-bg-color),
         rgba(var(--el-color-warning-rgb), 0.02)
       );
+      will-change: transform;
+      contain: layout style;
 
       /* 浅色风格下文字为黑色 */
       html[data-theme="light"] & {
@@ -2372,7 +2398,8 @@ html[data-skin="new-year"] {
     background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.95)) !important;
     border-right: 2px solid $ice-border !important;
     box-shadow: 0 4px 20px rgba($ice-deep, 0.15) !important;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 
     // Logo区域
     .sidebar-logo-container {
@@ -2461,7 +2488,8 @@ html[data-skin="new-year"] {
       box-shadow:
         0 8px 32px rgba($ice-deep, 0.2),
         0 20px 60px rgba(0, 0, 0, 0.15) !important;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 
       // 列标题
       .column-title {

@@ -5,7 +5,7 @@
       <span class="label">MB</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-bar-gauge">
-       <div class="gauge-fill" :style="{ width: `${Math.min(parseFloat(memory.used) / 1000 * 100, 100)}%` }"></div>
+       <div class="gauge-fill" :style="{ width: `${Math.min((parseFloat(memory.used) / parseFloat(memory.limit)) * 100, 100)}%` }"></div>
     </div>
   </div>
 </template>

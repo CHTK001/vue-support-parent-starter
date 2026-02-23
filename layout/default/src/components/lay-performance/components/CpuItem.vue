@@ -1,7 +1,7 @@
 <template>
   <div class="monitor-item cpu-item">
     <div class="item-content">
-      <span class="value">{{ cpuLoad }}%</span>
+      <span class="value">{{ formattedCpuLoad }}%</span>
       <span class="label">CPU</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-bar-gauge">
@@ -11,9 +11,15 @@
 </template>
 
 <script setup lang="ts">
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   cpuLoad: { type: Number, required: true },
   mode: { type: String, required: true }
+});
+
+const formattedCpuLoad = computed(() => {
+  return props.cpuLoad.toFixed(1);
 });
 
 const getCpuColor = (val: number) => {

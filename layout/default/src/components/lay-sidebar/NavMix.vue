@@ -11,6 +11,7 @@ const themeComponents = {
   'mid-autumn': defineAsyncComponent(() => import("./themes/mix/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/mix/Christmas.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/mix/NewYear.vue")),
+  'future-tech': defineAsyncComponent(() => import("./themes/mix/FutureTech.vue")),
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultMix);

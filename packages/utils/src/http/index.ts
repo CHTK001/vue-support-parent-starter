@@ -24,7 +24,7 @@ import Axios, {
 import NProgress from "nprogress";
 import { stringify } from "qs";
 import { transformI18n } from "../../../config/src/i18n";
-import { uu1, uu2, isWasmEnabled, generateNonce as generateNonceFromCodec } from "../crypto/codec";
+import { uu1, uu2 } from "../crypto/codec";
 import type {
   PureHttpError,
   PureHttpRequestConfig,
@@ -34,11 +34,8 @@ import type {
 import { message } from "../message";
 import {
   generateNonce as generateNonceWasm,
-  jsGenerateNonce,
-  generateSign as generateSignWasm,
-  jsGenerateSign,
   md5Hash as md5HashWasm,
-  jsMd5Hash,
+  isWasmLoaded,
 } from "@repo/codec-wasm";
 
 /** 响应结果类型 */
@@ -188,11 +185,42 @@ class PureHttp {
   /** 存储活跃的请求控制器 */
   private static activeRequests = new Map<string, AbortController>();
 
+  /**
+   * 确保 x-nonce、x-sign 等安全头存在（仅当 WASM 已加载时添加）
+   * x-nonce、x-sign 必须由 WASM 生成，未加载时跳过，后端不尝试验证
+   */
+  private static ensureXSign(config: PureHttpRequestConfig): void {
+    if (!config.headers) {
+      config.headers = {};
+    }
+    // WASM 未加载时不添加安全头，后端根据是否有这些参数决定是否验证
+    if (!isWasmLoaded()) {
+      return;
+    }
+    const timestamp = Date.now();
+    const nonce = generateNonce();
+    config.headers["x-timestamp"] = timestamp.toString();
+    config.headers["x-nonce"] = nonce;
+    const fingerprint = config.headers["x-req-fingerprint"] ?? localStorageProxy().getItem("visitId") ?? "";
+    const sign = generateSign(config, timestamp, nonce, fingerprint);
+    config.headers["x-sign"] = sign || "";
+    if (process.env.NODE_ENV === "development") {
+      console.debug("[HTTP][签名生成] 安全头已设置", {
+        url: config.url,
+        hasSign: !!sign,
+        timestamp: config.headers["x-timestamp"],
+        nonce: config.headers["x-nonce"]
+      });
+    }
+  }
+
   /** 重连原始请求 */
   private static retryOriginalRequest(config: PureHttpRequestConfig) {
     return new Promise((resolve) => {
       PureHttp.requests.push((token: string) => {
         config.headers["Authorization"] = formatToken(token);
+        // 确保 x-sign 一定存在
+        PureHttp.ensureXSign(config);
         resolve(config);
       });
     });
@@ -216,19 +244,7 @@ class PureHttp {
         config.headers["x-req-fingerprint"] =
           localStorageProxy().getItem("visitId");
 
-        // 添加nonce和timestamp参数
-        const timestamp = Date.now();
-        // 使用同步方式获取nonce
-        const nonce = generateNonce();
-
-        config.headers["x-nonce"] = nonce;
-        config.headers["x-timestamp"] = timestamp.toString();
-
-        // 生成并添加签名
-        const sign = generateSign(config, timestamp, nonce);
-        config.headers["x-sign"] = sign;
-
-        // 检查是否配置了apiVersion，如果配置了则在URL中添加version参数
+        // 检查是否配置了apiVersion，如果配置了则在URL中添加version参数（必须在生成签名之前）
         const apiVersion = getConfig().apiVersion;
         if (apiVersion) {
           // 确保URL包含版本参数
@@ -252,51 +268,63 @@ class PureHttp {
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
         if (typeof config.beforeRequestCallback === "function") {
           config.beforeRequestCallback(config);
+          // 在所有处理完成后，最后统一生成 sign
+          PureHttp.ensureXSign(config);
           return config;
         }
         if (PureHttp.initConfig.beforeRequestCallback) {
           PureHttp.initConfig.beforeRequestCallback(config);
+          // 在所有处理完成后，最后统一生成 sign
+          PureHttp.ensureXSign(config);
           return config;
         }
         // 白名单接口直接放行
-        return WHITE_LIST.some((url) => config.url?.endsWith(url))
-          ? config
-          : new Promise((resolve) => {
-              let data = getToken();
-              const openAuth = getConfig().OpenAuth;
-              if (!openAuth && !data) {
-                data = {} as UserResult;
+        if (WHITE_LIST.some((url) => config.url?.endsWith(url))) {
+          // 在所有处理完成后，最后统一生成 sign
+          PureHttp.ensureXSign(config);
+          return config;
+        }
+        // 需要 token 验证的接口
+        return new Promise((resolve) => {
+          let data = getToken();
+          const openAuth = getConfig().OpenAuth;
+          if (!openAuth && !data) {
+            data = {} as UserResult;
+          }
+          if ((openAuth && data) || !openAuth) {
+            const now = new Date().getTime();
+            const expired =
+              ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
+            if (expired) {
+              if (!PureHttp.isRefreshing) {
+                PureHttp.isRefreshing = true;
+                // token过期刷新
+                handRefreshToken({ refreshToken: data.refreshToken })
+                  .then((res) => {
+                    const token = res.accessToken;
+                    config.headers["Authorization"] = formatToken(token);
+                    PureHttp.requests.forEach((cb) => cb(token));
+                    PureHttp.requests = [];
+                  })
+                  .finally(() => {
+                    PureHttp.isRefreshing = false;
+                  });
               }
-              if ((openAuth && data) || !openAuth) {
-                const now = new Date().getTime();
-                const expired =
-                  ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
-                if (expired) {
-                  if (!PureHttp.isRefreshing) {
-                    PureHttp.isRefreshing = true;
-                    // token过期刷新
-                    handRefreshToken({ refreshToken: data.refreshToken })
-                      .then((res) => {
-                        const token = res.accessToken;
-                        config.headers["Authorization"] = formatToken(token);
-                        PureHttp.requests.forEach((cb) => cb(token));
-                        PureHttp.requests = [];
-                      })
-                      .finally(() => {
-                        PureHttp.isRefreshing = false;
-                      });
-                  }
-                  resolve(PureHttp.retryOriginalRequest(config));
-                } else {
-                  config.headers["Authorization"] = formatToken(
-                    data.accessToken
-                  );
-                  resolve(config);
-                }
-              } else {
-                resolve(config);
-              }
-            });
+              resolve(PureHttp.retryOriginalRequest(config));
+            } else {
+              config.headers["Authorization"] = formatToken(
+                data.accessToken
+              );
+              // 在所有处理完成后，最后统一生成 sign
+              PureHttp.ensureXSign(config);
+              resolve(config);
+            }
+          } else {
+            // 在所有处理完成后，最后统一生成 sign
+            PureHttp.ensureXSign(config);
+            resolve(config);
+          }
+        });
       },
       (error) => {
         return Promise.reject(error);
@@ -510,13 +538,27 @@ class PureHttp {
   ): AbortController {
     const controller = new AbortController();
     const token = getToken();
-
-    const defaultHeaders = {
+    const fingerprint = localStorageProxy().getItem("visitId") || "";
+    const defaultHeaders: Record<string, string> = {
       //@ts-ignore
       Authorization: formatToken(token),
-      "x-req-fingerprint": localStorageProxy().getItem("visitId") || "",
+      "x-req-fingerprint": fingerprint,
       ...options.headers,
     };
+    if (isWasmLoaded()) {
+      const timestamp = Date.now();
+      const nonce = generateNonce();
+      const tempConfig: PureHttpRequestConfig = {
+        url,
+        method: (options.method || "GET") as any,
+        params: {},
+        data: typeof options.body === "object" && options.body !== null ? options.body : {},
+        headers: options.headers || {},
+      };
+      defaultHeaders["x-nonce"] = nonce;
+      defaultHeaders["x-timestamp"] = timestamp.toString();
+      defaultHeaders["x-sign"] = generateSign(tempConfig, timestamp, nonce, fingerprint);
+    }
 
     // 优先使用 ApiAddress，如果未设置则使用 BaseUrl
     const sseBaseUrl = getConfig().ApiAddress || getConfig().BaseUrl;
@@ -614,89 +656,74 @@ class PureHttp {
 
 export const http = new PureHttp();
 
-/** 
- * 生成复杂的 nonce 值
- * 根据 wasmEnable 配置决定使用 WASM 或 JS/TS 实现
- * 不会降级：如果启用 WASM 但加载失败，将抛出错误
+/**
+ * 生成随机 nonce（必须由 WASM 生成）
+ * 仅在 isWasmLoaded() 为 true 时调用
  */
 const generateNonce = (): string => {
-  if (isWasmEnabled()) {
-    // 使用 WASM 版本，不降级
-    return generateNonceWasm();
-  } else {
-    // 使用 JS/TS 版本
-    return jsGenerateNonce();
-  }
+  return generateNonceWasm();
 };
 
-/** 
- * 生成签名
- * 根据 wasmEnable 配置决定使用 WASM 或 JS/TS 实现
- * 不会降级：如果启用 WASM 但加载失败，将抛出错误
+/** 需排除的请求参数字段（如 file 等二进制） */
+const EXCLUDED_PARAM_KEYS = new Set(["file", "files"]);
+
+/**
+ * 生成 x-sign（必须由 WASM md5Hash 生成）
+ * 算法：sign = MD5(nonce + fingerprint + timestamp + paramsMd5 + secretKey)
+ * paramsMd5 = MD5(请求参数自然排序、排除 file、key=value& 拼接)
  */
+function collectParams(config: PureHttpRequestConfig): Record<string, string> {
+  const filteredParams: Record<string, string> = {};
+  const add = (key: string, value: unknown) => {
+    if (EXCLUDED_PARAM_KEYS.has(key.toLowerCase())) return;
+    if (value === null || value === undefined || typeof value === "function") return;
+    if (value instanceof File || value instanceof Blob) return;
+    if (typeof value === "object") return;
+    filteredParams[key] = String(value);
+  };
+  const params = config.params ?? {};
+  const data = config.data;
+  for (const key of Object.keys(params)) {
+    add(key, params[key]);
+  }
+  if (data && typeof data === "object" && !(data instanceof FormData)) {
+    for (const key of Object.keys(data)) {
+      add(key, (data as Record<string, unknown>)[key]);
+    }
+  } else if (data instanceof FormData) {
+    for (const [key, value] of data.entries()) {
+      add(key, value);
+    }
+  }
+  return filteredParams;
+}
+
+/** 多路径解析 secretKey（与后端 NonceSignProperties.resolveSecretKey 对应） */
+const resolveSecretKey = (): string => {
+  const cfg = getConfig();
+  return (
+    cfg?.secretKey ||
+    cfg?.["nonce"]?.["sign"]?.["secretKey"] ||
+    cfg?.["nonce"]?.["sign"]?.["secret-key"] ||
+    cfg?.["plugin"]?.["nonce"]?.["sign"]?.["secretKey"] ||
+    cfg?.["plugin"]?.["nonce"]?.["sign"]?.["secret-key"] ||
+    ""
+  );
+};
+
 export const generateSign = (
   config: PureHttpRequestConfig,
   timestamp: number,
-  nonce: string
+  nonce: string,
+  fingerprint: string
 ): string => {
-  // 准备签名参数
-  const params: Record<string, any> = {
-    ...config.params,
-    ...config.data,
-  };
-
-  // 过滤掉空值和函数
-  const filteredParams: Record<string, string> = {};
-  Object.keys(params).forEach((key) => {
-    const value = params[key];
-    if (
-      value !== null &&
-      value !== undefined &&
-      typeof value !== "function" &&
-      typeof value !== "object"
-    ) {
-      filteredParams[key] = String(value);
-    }
-  });
-
-  // 将参数转换为 key=value 格式的字符串
-  const paramPairs: string[] = [];
-  Object.keys(filteredParams)
+  const filteredParams = collectParams(config);
+  const paramPairs = Object.keys(filteredParams)
     .sort()
-    .forEach((key) => {
-      paramPairs.push(`${key}=${filteredParams[key]}`);
-    });
-
+    .map((k) => `${k}=${filteredParams[k]}`);
   const paramsString = paramPairs.join("&");
-
-  if (isWasmEnabled()) {
-    // 使用 WASM 版本，不降级
-    return generateSignWasm(
-      paramsString,
-      timestamp,
-      nonce,
-      getConfig().secretKey || ""
-    );
-  } else {
-    // 使用 JS/TS 版本
-    return jsGenerateSign(
-      paramsString + timestamp + nonce + (getConfig().secretKey || ""),
-      getConfig().secretKey || ""
-    );
-  }
-};
-
-/** 
- * MD5 哈希函数
- * 根据 wasmEnable 配置决定使用 WASM 或 JS/TS 实现
- * 不会降级：如果启用 WASM 但加载失败，将抛出错误
- */
-const md5Hash = (input: string): string => {
-  if (isWasmEnabled()) {
-    // 使用 WASM 版本，不降级
-    return md5HashWasm(input);
-  } else {
-    // 使用 JS/TS 版本
-    return jsMd5Hash(input);
-  }
+  const paramsMd5 = md5HashWasm(paramsString);
+  const secretKey = resolveSecretKey();
+  const signInput = nonce + fingerprint + timestamp + paramsMd5 + secretKey;
+  return md5HashWasm(signInput);
 };

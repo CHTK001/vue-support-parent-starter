@@ -9,7 +9,8 @@ import BaseSetting from './BaseSetting.vue';
 </template>
 
 <style lang="scss">
-html[data-skin="christmas"] {
+html[data-skin="christmas"],
+html.theme-christmas {
   .right-panel {
     background: linear-gradient(180deg, #1b5e20 0%, #164d1a 100%) !important;
     border-left: 2px solid #c62828 !important;
@@ -129,6 +130,76 @@ html[data-skin="christmas"] {
       }
       .el-input__inner {
         color: #fff !important;
+      }
+    }
+    
+    // Input 输入框
+    .el-input {
+      .el-input__wrapper {
+        background-color: rgba(0, 0, 0, 0.2) !important;
+        box-shadow: 0 0 0 1px #2e7d32 inset !important;
+        &.is-focus {
+          box-shadow: 0 0 0 1px #c62828 inset !important;
+        }
+      }
+      .el-input__inner {
+        color: #fff !important;
+      }
+    }
+    
+    // Button 按钮
+    .el-button {
+      border-color: #2e7d32 !important;
+      color: #a5d6a7 !important;
+      
+      &:hover {
+        border-color: #c62828 !important;
+        background: rgba(198, 40, 40, 0.1) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.el-button--primary {
+        background: #c62828 !important;
+        border-color: #c62828 !important;
+        color: #ffd700 !important;
+        
+        &:hover {
+          background: #d32f2f !important;
+        }
+      }
+    }
+    
+    // 设置项容器
+    .setting-section {
+      border-bottom: 1px solid rgba(198, 40, 40, 0.2) !important;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+    
+    // 主题颜色项
+    .theme-color-item {
+      border: 2px solid rgba(198, 40, 40, 0.3) !important;
+      box-shadow: 0 0 5px rgba(198, 40, 40, 0.2) !important;
+      
+      &:hover {
+        border-color: rgba(198, 40, 40, 0.6) !important;
+        box-shadow: 0 0 10px rgba(198, 40, 40, 0.4) !important;
+      }
+      
+      &.is-selected {
+        border-color: #ffd700 !important;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5) !important;
+      }
+    }
+    
+    // 开关卡片
+    .switch-card-item {
+      background: rgba(0, 0, 0, 0.2) !important;
+      border: 1px solid rgba(198, 40, 40, 0.3) !important;
+      
+      &:hover {
+        border-color: rgba(198, 40, 40, 0.6) !important;
+        background: rgba(198, 40, 40, 0.1) !important;
       }
     }
   }

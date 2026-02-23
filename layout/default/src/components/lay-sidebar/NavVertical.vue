@@ -11,6 +11,7 @@ const themeComponents = {
   'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
+  'future-tech': defineAsyncComponent(() => import("./themes/FutureTech.vue")),
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultSidebar);

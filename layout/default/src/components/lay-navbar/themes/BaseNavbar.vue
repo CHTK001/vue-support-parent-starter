@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useNav } from "../../../hooks/useNav";
-import LayBreadcrumb from "../../breadcrumb/index.vue";
+import CustomBreadcrumb from "../../breadcrumb/CustomBreadcrumb.vue";
 import LaySidebarTopCollapse from "../../lay-sidebar/components/SidebarTopCollapse.vue";
 import LayNavMix from "../../lay-sidebar/NavMix.vue";
 import LayTool from "../../lay-tool/index.vue";
@@ -46,9 +46,15 @@ onBeforeUnmount(() => {
       @toggleClick="toggleSideBar"
     />
 
-    <LayBreadcrumb
+    <CustomBreadcrumb
       v-if="layout !== 'mix' && device !== 'mobile' && showBreadcrumb"
       class="breadcrumb-container"
+      :show-home="true"
+      :show-icon="true"
+      separator="arrow"
+      :max-items="5"
+      :enable-animation="true"
+      :show-tooltip="true"
     />
 
     <LayNavMix v-if="layout === 'mix'" />

@@ -16,6 +16,8 @@ const themeComponents = {
   'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
+  'pixel-art': defineAsyncComponent(() => import("./themes/PixelArt.vue")),
+  'future-tech': defineAsyncComponent(() => import("./themes/FutureTech.vue")),
 };
 
 // 使用统一的主题切换 Hook

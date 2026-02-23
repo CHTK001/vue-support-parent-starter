@@ -13,6 +13,8 @@ export interface CrossHighlightOptions {
   highlightColor?: string;
   /** 交叉点颜色 */
   intersectionColor?: string;
+  /** 边框颜色（CSS 变量或颜色值） */
+  borderColor?: string;
   /** 边框宽度 */
   borderWidth?: number;
   /** 是否显示边框 */
@@ -63,6 +65,7 @@ export function useTableCrossHighlight(options: CrossHighlightOptions = {}): Cro
     enabled = false,
     highlightColor = 'var(--el-color-primary-light-9)',
     intersectionColor = 'var(--el-color-primary-light-7)',
+    borderColor = 'var(--el-color-primary)',
     borderWidth = 3,
     showBorder = true,
   } = options;
@@ -91,6 +94,7 @@ export function useTableCrossHighlight(options: CrossHighlightOptions = {}): Cro
       '--cross-highlight-col': state.colIndex >= 0 ? String(state.colIndex) : '-1',
       '--cross-highlight-color': highlightColor,
       '--cross-intersection-color': intersectionColor,
+      '--cross-border-color': borderColor,
       '--cross-border-width': `${borderWidth}px`,
       '--cross-border-display': showBorder ? 'block' : 'none',
     };

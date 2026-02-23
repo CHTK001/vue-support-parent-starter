@@ -5,7 +5,8 @@
     :class="{
       'is-empty': !currentDataList || currentDataList.length === 0,
       'h-full': height === 'full',
-      'is-draggable': draggable
+      'is-draggable': draggable,
+      'has-border': border
     }"
     :style="containerStyle"
     @scroll="handleScroll"
@@ -46,7 +47,8 @@
         :class="[
           { 
           'is-selected': isSelected(row),
-          'is-dragging': draggingIndex === index
+          'is-dragging': draggingIndex === index,
+          'has-border': border
           },
           `theme--${theme}`
         ]"
@@ -61,9 +63,9 @@
         
         <!-- 拖拽手柄 -->
         <div v-if="draggable" class="card-drag-handle">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-          </svg>
+          <el-icon :size="16">
+            <component :is="useRenderIcon('ri:drag-move-2-line')" />
+          </el-icon>
         </div>
         
         <!-- 选择框 -->
@@ -119,7 +121,9 @@
 import ScCard from "@repo/components/ScCard/index.vue";
 import { debounce } from "lodash-es";
 import { computed, nextTick, onMounted, onUnmounted, ref, useSlots, watch } from "vue";
+import Sortable from "sortablejs";
 import ContextMenu from "../plugins/ContextMenu.vue";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 // 定义props
 const props = defineProps({
@@ -218,6 +222,11 @@ const props = defineProps({
   dragRowKey: {
     type: String,
     default: "id"
+  },
+  // 是否显示边框
+  border: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -238,6 +247,7 @@ const loadingPrev = ref(false);
 const internalCurrentPage = ref(props.currentPage);
 const cardGridRef = ref(null);
 const draggingIndex = ref(-1);
+const sortableInstance = ref(null);
 
 // 右键菜单相关状态
 const contextMenuRef = ref(null);
@@ -376,6 +386,34 @@ watch(
   { immediate: true }
 );
 
+// 监听 draggable 变化
+watch(
+  () => props.draggable,
+  (newVal) => {
+    if (newVal) {
+      nextTick(() => {
+        initDragSort();
+      });
+    } else {
+      destroyDragSort();
+    }
+  },
+  { immediate: true }
+);
+
+// 监听 tableData 变化，重新初始化拖拽
+watch(
+  () => props.tableData,
+  () => {
+    if (props.draggable) {
+      nextTick(() => {
+        initDragSort();
+      });
+    }
+  },
+  { deep: true }
+);
+
 // 更新容器样式
 const updateContainerStyles = () => {
   if (!cardContainer.value) return;
@@ -501,15 +539,68 @@ const resetScrollState = () => {
   }
 };
 
+// 初始化拖拽排序
+const initDragSort = () => {
+  if (!props.draggable || !cardGridRef.value) return;
+  
+  destroyDragSort();
+  
+  nextTick(() => {
+    if (!cardGridRef.value) return;
+    
+    sortableInstance.value = Sortable.create(cardGridRef.value, {
+      animation: 150,
+      handle: ".card-drag-handle",
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-chosen",
+      dragClass: "sortable-drag",
+      onStart: (evt) => {
+        draggingIndex.value = evt.oldIndex;
+      },
+      onEnd: (evt) => {
+        draggingIndex.value = -1;
+        const { oldIndex, newIndex } = evt;
+        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+        
+        // 创建新数组以避免直接修改原数组
+        const newOrder = [...props.tableData];
+        const movedItem = newOrder.splice(oldIndex, 1)[0];
+        newOrder.splice(newIndex, 0, movedItem);
+        
+        // 触发拖拽排序变化事件
+        emit("drag-sort-change", {
+          oldIndex,
+          newIndex,
+          newOrder,
+          movedItem
+        });
+      }
+    });
+  });
+};
+
+// 销毁拖拽排序
+const destroyDragSort = () => {
+  if (sortableInstance.value) {
+    sortableInstance.value.destroy();
+    sortableInstance.value = null;
+  }
+};
+
 // 生命周期钩子
 onMounted(() => {
   nextTick(() => {
     updateContainerStyles();
+    // 初始化拖拽排序
+    if (props.draggable) {
+      initDragSort();
+    }
   });
 });
 
 onUnmounted(() => {
-  // 清理工作
+  // 清理拖拽实例
+  destroyDragSort();
 });
 
 // 计算属性
@@ -600,6 +691,12 @@ const doLayout = () => {
   // 卡片布局不需要特殊处理
   updateContainerStyles();
   resetScrollState();
+  // 重新初始化拖拽
+  if (props.draggable) {
+    nextTick(() => {
+      initDragSort();
+    });
+  }
 };
 
 // 暴露方法给父组件
@@ -679,6 +776,18 @@ const handleMenuAction = action => {
     border-radius: 14px;
     overflow: visible;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.has-border {
+      .card-inner {
+        border: 1px solid var(--stitch-lay-border);
+      }
+    }
+
+    &:not(.has-border) {
+      .card-inner {
+        border: 1px solid rgba(0, 0, 0, 0.06);
+      }
+    }
 
     &:hover {
       transform: translateY(-6px);
@@ -812,7 +921,7 @@ const handleMenuAction = action => {
   .card-inner {
     height: 100%;
     border-radius: 14px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: none;
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(10px);
     overflow: hidden;

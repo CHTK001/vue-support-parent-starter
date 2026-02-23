@@ -322,4 +322,82 @@ html[data-skin="new-year"] {
     50% { transform: translateY(-2px) rotate(15deg); }
   }
 }
+
+// FutureTech 主题 - 科技风格
+html[data-skin="future-tech"] {
+  .left-collapse {
+    background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+    border-top: 2px solid rgba(0, 255, 255, 0.4) !important;
+    box-shadow: 0 -2px 10px rgba(0, 255, 255, 0.1) !important;
+    position: relative;
+    overflow: hidden;
+    
+    // 扫描线装饰
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #00ffff, transparent);
+      box-shadow: 0 0 10px #00ffff;
+      animation: techScan 3s linear infinite;
+    }
+    
+    :deep(svg) {
+      color: rgba(0, 255, 255, 0.7) !important;
+      filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.4));
+    }
+    
+    &:hover {
+      background: rgba(0, 255, 255, 0.15) !important;
+      box-shadow: 0 -2px 15px rgba(0, 255, 255, 0.3) !important;
+      
+      :deep(svg) {
+        color: #00ffff !important;
+        filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
+      }
+    }
+    
+    &.collapsed-state {
+      background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+      border-top: 2px solid #00ffff !important;
+      box-shadow: 0 -2px 15px rgba(0, 255, 255, 0.3) !important;
+      
+      &::after {
+        animation: techScan 2s linear infinite;
+      }
+      
+      :deep(svg) {
+        color: #00ffff !important;
+        filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.9));
+      }
+      
+      &::before {
+        background: #00ffff;
+        box-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
+      }
+      
+      &:hover {
+        background: rgba(0, 255, 255, 0.2) !important;
+        box-shadow: 0 -2px 20px rgba(0, 255, 255, 0.5) !important;
+      }
+    }
+  }
+  
+  @keyframes techScan {
+    0% {
+      left: -100%;
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      left: 100%;
+      opacity: 0;
+    }
+  }
+}
 </style>

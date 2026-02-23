@@ -84,4 +84,60 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
     color: rgba(139, 0, 0, 0.8);
   }
 }
+
+// 动画效果
+@keyframes springFestivalGlow {
+  0%, 100% {
+    box-shadow: 
+      0 4px 16px rgba(255, 215, 0, 0.4),
+      inset 0 2px 4px rgba(255, 255, 255, 0.5);
+  }
+  50% {
+    box-shadow: 
+      0 4px 20px rgba(255, 215, 0, 0.6),
+      inset 0 2px 4px rgba(255, 255, 255, 0.7);
+  }
+}
+
+.spring-festival-breadcrumb {
+  .breadcrumb-link {
+    &.is-current {
+      animation: springFestivalGlow 2s ease-in-out infinite;
+    }
+  }
+  
+  .home-icon {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      animation: springFestivalGlow 1s ease-in-out infinite;
+    }
+  }
+}
+
+// 响应式适配
+@media (max-width: 768px) {
+  .spring-festival-breadcrumb {
+    padding: 0 8px;
+    
+    .home-icon {
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+    }
+
+    .breadcrumb-link {
+      padding: 4px 8px;
+      
+      .breadcrumb-text {
+        font-size: 11px;
+        max-width: 70px;
+      }
+
+      .breadcrumb-icon {
+        font-size: 13px;
+      }
+    }
+  }
+}
 </style>

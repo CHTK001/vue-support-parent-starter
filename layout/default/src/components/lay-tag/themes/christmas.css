@@ -5,7 +5,9 @@
 
 /* 圣诞主题标签页容器 - 红绿圣诞渐变 */
 html[data-skin="christmas"] .tags-view,
-html[data-skin="christmas"] .shadow-tab {
+html.theme-christmas .tags-view,
+html[data-skin="christmas"] .shadow-tab,
+html.theme-christmas .shadow-tab {
   background: linear-gradient(180deg, rgba(27, 94, 32, 0.08) 0%, rgba(198, 40, 40, 0.05) 50%, rgba(27, 94, 32, 0.03) 100%) !important;
   border-top: 1px solid rgba(27, 94, 32, 0.15) !important;
   box-shadow: 0 2px 8px rgba(27, 94, 32, 0.1), inset 0 1px 0 rgba(255, 215, 0, 0.1) !important;
@@ -15,14 +17,19 @@ html[data-skin="christmas"] .shadow-tab {
 
 /* 隐藏 Chrome 样式的背景图 */
 html[data-skin="christmas"] .chrome-tab__bg,
-html[data-skin="christmas"] .chrome-tab__bg svg {
+html.theme-christmas .chrome-tab__bg,
+html[data-skin="christmas"] .chrome-tab__bg svg,
+html.theme-christmas .chrome-tab__bg svg {
   display: none !important;
 }
 
 /* 圣诞样式的标签项 - 礼物盒风格 */
 html[data-skin="christmas"] .scroll-item,
+html.theme-christmas .scroll-item,
 html[data-skin="christmas"] .chrome-item,
-html[data-skin="christmas"] .modern-item {
+html.theme-christmas .chrome-item,
+html[data-skin="christmas"] .modern-item,
+html.theme-christmas .modern-item {
   position: relative;
   display: inline-flex !important;
   align-items: center !important;
@@ -143,4 +150,83 @@ html[data-skin="christmas"] .scroll-item .tag-icon,
 html[data-skin="christmas"] .chrome-item .tag-icon,
 html[data-skin="christmas"] .modern-item .tag-icon {
   color: inherit !important;
+}
+
+/* ==================== 右侧功能按钮下拉菜单 ==================== */
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu {
+  background: linear-gradient(180deg, rgba(27, 94, 32, 0.95), rgba(198, 40, 40, 0.1)) !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(27, 94, 32, 0.3), 0 0 20px rgba(255, 215, 0, 0.15) !important;
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  padding: 6px !important;
+  position: relative;
+}
+
+/* 顶部装饰线 */
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #1B5E20 20%, #FFD700 50%, #C62828 80%, transparent);
+  z-index: 1;
+}
+
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item {
+  color: #ffffff !important;
+  background: rgba(27, 94, 32, 0.6) !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  margin: 2px 0 !important;
+  padding: 8px 16px !important;
+  transition: all 0.25s ease !important;
+  position: relative;
+  z-index: 1;
+}
+
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item .el-icon,
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item svg {
+  color: #FFD700 !important;
+  margin-right: 8px;
+}
+
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) {
+  background: rgba(255, 215, 0, 0.15) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: #FFD700 !important;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3) !important;
+}
+
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) .el-icon,
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) svg {
+  color: #FFD700 !important;
+}
+
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled {
+  color: rgba(255, 255, 255, 0.4) !important;
+  background: rgba(27, 94, 32, 0.3) !important;
+  cursor: not-allowed;
+}
+
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled .el-icon,
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled svg {
+  color: rgba(255, 215, 0, 0.4) !important;
+}
+
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item--divided {
+  margin-top: 6px !important;
+}
+
+html[data-skin="christmas"] .tag-function-dropdown-popper .el-dropdown-menu__item--divided::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.3), transparent);
 }

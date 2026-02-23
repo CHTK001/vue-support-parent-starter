@@ -1,5 +1,6 @@
 // ==================== 中秋主题样式 ====================
-html[data-skin="mid-autumn"] {
+html[data-skin="mid-autumn"],
+html.theme-mid-autumn {
   $mid-blue: #1a237e;
   $mid-blue-light: #283593;
   $mid-gold: #ffd54f;

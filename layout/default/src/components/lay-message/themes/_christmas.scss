@@ -1,5 +1,6 @@
 // ==================== 圣诞主题样式 ====================
-html[data-skin="christmas"] {
+html[data-skin="christmas"],
+html.theme-christmas {
   $xmas-green: #1b5e20;
   $xmas-green-light: #2e7d32;
   $xmas-red: #c62828;

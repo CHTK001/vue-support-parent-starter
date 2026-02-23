@@ -380,11 +380,13 @@ const alignGuidesRef = ref<HTMLElement | null>(null);
 
 // Composables
 const {
-  zIndex: currentZIndex,
-  activate: activateDialog
+  currentZIndex,
+  activateDialog,
+  registerDialog,
+  unregisterDialog,
+  updateDialogRect
 } = useDialogZIndex({
-  initialZIndex: 2000,
-  id: internalDialogId
+  initialZIndex: 2000
 });
 
 const {
@@ -416,8 +418,8 @@ const {
   maxSize: props.maxSize,
   dragOutside: props.dragOutside,
   snapThreshold: props.snapThreshold,
-  onDragStart: () => activateDialog(),
-  onResizeStart: () => activateDialog()
+  onDragStart: () => activateDialog(internalDialogId),
+  onResizeStart: () => activateDialog(internalDialogId)
 });
 
 // 计算属性
@@ -510,11 +512,11 @@ const handleOverlayClick = () => {
 };
 
 const handleDialogMouseDown = () => {
-  activateDialog();
+  activateDialog(internalDialogId);
 };
 
 const onHeaderMouseDown = () => {
-  activateDialog();
+  activateDialog(internalDialogId);
 };
 
 const handleBeforeClose = (done: () => void) => {
@@ -532,12 +534,14 @@ const handleAfterLeave = () => {
 // 生命周期
 onMounted(() => {
   if (props.mode === 'custom' && dialogRef.value) {
+    registerDialog(internalDialogId, dialogRef.value);
     initInteract(dialogRef.value);
-    activateDialog();
+    activateDialog(internalDialogId);
   }
 });
 
 onUnmounted(() => {
+  unregisterDialog(internalDialogId);
   destroyInteract();
 });
 
@@ -545,11 +549,17 @@ watch(() => props.modelValue, (val) => {
   if (val) {
     nextTick(() => {
       if (props.mode === 'custom' && dialogRef.value) {
+        registerDialog(internalDialogId, dialogRef.value);
         initInteract(dialogRef.value);
-        activateDialog();
+        activateDialog(internalDialogId);
       }
       emit("open");
     });
+  } else {
+    // 对话框关闭时注销
+    if (props.mode === 'custom') {
+      unregisterDialog(internalDialogId);
+    }
   }
 });
 

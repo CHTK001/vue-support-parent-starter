@@ -1,0 +1,164 @@
+/**
+ * FutureTech 主题 - 自定义菜单弹出层样式
+ */
+
+html[data-theme='future-tech'] {
+  $ft-cyan: #00ffff;
+  $ft-cyan-light: #4dfdfd;
+  $ft-cyan-dark: #00cccc;
+  $ft-bg-dark: #050a1f;
+  $ft-bg-darker: #0a1a3a;
+  $ft-border: rgba(0, 255, 255, 0.4);
+
+  // 弹出层基础样式（全局，因为 Teleport 到 body）
+  .custom-sub-menu__popper.future-tech-custom-popper,
+  .future-tech-custom-popper {
+    background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+    border: 2px solid $ft-border !important;
+    box-shadow: 
+      0 0 20px rgba(0, 255, 255, 0.4),
+      0 0 40px rgba(0, 255, 255, 0.2),
+      inset 0 0 20px rgba(0, 255, 255, 0.05) !important;
+    backdrop-filter: blur(20px);
+    border-radius: 8px;
+    padding: 8px !important;
+    position: relative;
+    overflow: visible !important;
+    z-index: 2050 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    // 网格背景
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    // 菜单项样式
+    .custom-menu-item,
+    .custom-sub-menu__title {
+      color: rgba(0, 255, 255, 0.7) !important;
+      background: rgba(0, 0, 0, 0.2) !important;
+      border: 1px solid rgba(0, 255, 255, 0.2) !important;
+      border-radius: 6px !important;
+      margin: 4px 0 !important;
+      padding: 8px 12px !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      position: relative;
+      overflow: hidden;
+
+      // 网格背景
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          linear-gradient(rgba(0, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 10px 10px;
+        opacity: 0.2;
+        pointer-events: none;
+      }
+
+      &:hover {
+        background: rgba(0, 255, 255, 0.15) !important;
+        border-color: rgba(0, 255, 255, 0.5) !important;
+        color: $ft-cyan !important;
+        box-shadow: 
+          0 0 10px rgba(0, 255, 255, 0.3),
+          inset 0 0 10px rgba(0, 255, 255, 0.05) !important;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+        transform: translateX(4px);
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(5, 10, 31, 0.6)) !important;
+        border-color: $ft-cyan !important;
+        color: $ft-cyan !important;
+        box-shadow: 
+          0 0 15px rgba(0, 255, 255, 0.5),
+          inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+        text-shadow: 
+          0 0 10px rgba(0, 255, 255, 0.8),
+          0 0 20px rgba(0, 255, 255, 0.4) !important;
+        font-weight: 600;
+        position: relative;
+
+        // 左侧指示条
+        &::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+          background: $ft-cyan;
+          box-shadow: 0 0 10px $ft-cyan;
+        }
+      }
+
+      .menu-icon,
+      svg {
+        color: rgba(0, 255, 255, 0.6) !important;
+        filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.4));
+        transition: all 0.3s ease;
+
+        &.is-active {
+          color: $ft-cyan !important;
+          filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
+        }
+      }
+
+      span {
+        color: inherit !important;
+      }
+    }
+
+    // 子菜单样式
+    .custom-sub-menu {
+      .custom-sub-menu__title {
+        color: rgba(0, 255, 255, 0.7) !important;
+        background: rgba(0, 0, 0, 0.2) !important;
+
+        .custom-sub-menu__icon-arrow {
+          color: inherit !important;
+        }
+      }
+
+      &.is-active > .custom-sub-menu__title {
+        color: $ft-cyan !important;
+        background: rgba(0, 255, 255, 0.15) !important;
+      }
+    }
+    
+    // 弹出层内容区域
+    .custom-sub-menu__content {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      
+      // 确保子菜单项可见
+      .custom-menu-item,
+      .custom-sub-menu {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+    }
+  }
+}
+

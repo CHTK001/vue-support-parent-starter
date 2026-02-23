@@ -12,7 +12,6 @@ export type ThemeKey =
   | "national-day"
   | "new-year"
   | "pixel-art"
-  | "8-bit"
   | "future-tech"
   | "halloween";
 

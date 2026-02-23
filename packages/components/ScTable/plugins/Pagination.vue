@@ -90,6 +90,10 @@ const isCardLayout = computed(() => props.tableLayout === "card");
 const isTableLayout = computed(() => props.tableLayout === "table");
 const showTableSettings = computed(() => !props.hideSetting && isTableLayout.value);
 const showColumnSettings = computed(() => !props.hideSetting && isTableLayout.value && props.columns && props.columns.length > 0);
+// 列表模式显示设置按钮，但只显示拖拽选项
+const showListSettings = computed(() => !props.hideSetting && isListLayout.value);
+// 卡片模式显示设置按钮
+const showCardSettings = computed(() => !props.hideSetting && isCardLayout.value);
 
 // 初始化表格设置
 const getTableConfig = () => {
@@ -482,6 +486,84 @@ onMounted(() => {
               </div>
               <div class="setting-control">
                 <el-switch :model-value="tableConfigData.pageMemoryEnabled" @change="handlePageMemoryEnabledChange" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-popover>
+
+      <!-- 列表设置按钮 - 只显示拖拽排序选项 -->
+      <el-popover v-if="showListSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
+        <template #reference>
+          <el-button circle size="default">
+            <IconifyIconOnline icon="ep:setting" />
+          </el-button>
+        </template>
+
+        <div class="table-settings-container">
+          <div class="settings-header">
+            <IconifyIconOnline icon="ep:setting" class="settings-icon" />
+            <h4 class="settings-title">列表设置</h4>
+          </div>
+
+          <div class="settings-body">
+            <!-- 拖拽排序 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:rank" class="setting-icon" />
+                <span>启用拖拽排序</span>
+              </div>
+              <div class="setting-control">
+                <el-switch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
+              </div>
+            </div>
+            <!-- 边框设置 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:border" class="setting-icon" />
+                <span>显示边框</span>
+              </div>
+              <div class="setting-control">
+                <el-switch :model-value="tableConfigData.border" @change="handleBorderChange" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-popover>
+
+      <!-- 卡片设置按钮 - 显示拖拽排序和边框选项 -->
+      <el-popover v-if="showCardSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
+        <template #reference>
+          <el-button circle size="default">
+            <IconifyIconOnline icon="ep:setting" />
+          </el-button>
+        </template>
+
+        <div class="table-settings-container">
+          <div class="settings-header">
+            <IconifyIconOnline icon="ep:setting" class="settings-icon" />
+            <h4 class="settings-title">卡片设置</h4>
+          </div>
+
+          <div class="settings-body">
+            <!-- 拖拽排序 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:rank" class="setting-icon" />
+                <span>启用拖拽排序</span>
+              </div>
+              <div class="setting-control">
+                <el-switch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
+              </div>
+            </div>
+            <!-- 边框设置 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:border" class="setting-icon" />
+                <span>显示边框</span>
+              </div>
+              <div class="setting-control">
+                <el-switch :model-value="tableConfigData.border" @change="handleBorderChange" />
               </div>
             </div>
           </div>

@@ -133,22 +133,37 @@
             overflow-x="auto"
           >
             <el-table-column type="selection" width="55"></el-table-column>
-            <el-table-column prop="id" label="ID" sortable></el-table-column>
-            <el-table-column prop="name" label="名称"></el-table-column>
-            <el-table-column prop="status" label="状态">
+            <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
+            <el-table-column prop="name" label="名称" width="150"></el-table-column>
+            <el-table-column prop="status" label="状态" width="100">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'active' ? 'success' : 'info'">
                   {{ row.status === "active" ? "启用" : "禁用" }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="description" label="描述"></el-table-column>
+            <el-table-column prop="description" label="描述" width="200"></el-table-column>
             <el-table-column
               prop="createTime"
               label="创建时间"
+              width="180"
               sortable
             ></el-table-column>
-            <el-table-column label="操作" width="150">
+            <el-table-column prop="author" label="作者" width="120"></el-table-column>
+            <el-table-column prop="category" label="分类" width="100"></el-table-column>
+            <el-table-column prop="priority" label="优先级" width="100" sortable>
+              <template #default="{ row }">
+                <el-tag :type="row.priority === 'high' ? 'danger' : row.priority === 'medium' ? 'warning' : 'info'">
+                  {{ row.priority === 'high' ? '高' : row.priority === 'medium' ? '中' : '低' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="department" label="部门" width="150"></el-table-column>
+            <el-table-column prop="location" label="位置" width="150"></el-table-column>
+            <el-table-column prop="phone" label="联系电话" width="150"></el-table-column>
+            <el-table-column prop="email" label="邮箱" width="200"></el-table-column>
+            <el-table-column prop="remark" label="备注" width="250"></el-table-column>
+            <el-table-column label="操作" width="150" fixed="right">
               <template #default="{ row }">
                 <el-button type="primary" size="small" @click="handleEdit(row)"
                   >编辑</el-button
@@ -555,6 +570,14 @@ const tableData = ref([
     status: "active",
     description: "这是一个测试项目的描述信息，展示了项目的基本情况",
     createTime: "2023-08-15 10:30:45",
+    author: "张三",
+    category: "开发",
+    priority: "high",
+    department: "技术部",
+    location: "北京",
+    phone: "13800138001",
+    email: "zhangsan@example.com",
+    remark: "重要项目，需要重点关注",
   },
   {
     id: 2,
@@ -562,6 +585,14 @@ const tableData = ref([
     status: "inactive",
     description: "这是另一个测试项目，目前处于非活跃状态",
     createTime: "2023-08-16 14:22:18",
+    author: "李四",
+    category: "测试",
+    priority: "medium",
+    department: "质量部",
+    location: "上海",
+    phone: "13800138002",
+    email: "lisi@example.com",
+    remark: "待评估项目",
   },
   {
     id: 3,
@@ -569,6 +600,14 @@ const tableData = ref([
     status: "active",
     description: "这是第三个测试项目，包含了更多的测试内容",
     createTime: "2023-08-17 09:11:32",
+    author: "王五",
+    category: "运维",
+    priority: "low",
+    department: "运维部",
+    location: "广州",
+    phone: "13800138003",
+    email: "wangwu@example.com",
+    remark: "常规维护项目",
   },
   {
     id: 4,
@@ -576,6 +615,14 @@ const tableData = ref([
     status: "active",
     description: "这是一个长期项目，需要持续维护",
     createTime: "2023-08-18 16:45:09",
+    author: "赵六",
+    category: "开发",
+    priority: "high",
+    department: "技术部",
+    location: "深圳",
+    phone: "13800138004",
+    email: "zhaoliu@example.com",
+    remark: "长期项目，持续更新",
   },
   {
     id: 5,
@@ -583,6 +630,14 @@ const tableData = ref([
     status: "inactive",
     description: "这个项目已经暂停，等待进一步评估",
     createTime: "2023-08-19 11:38:27",
+    author: "孙七",
+    category: "设计",
+    priority: "medium",
+    department: "设计部",
+    location: "杭州",
+    phone: "13800138005",
+    email: "sunqi@example.com",
+    remark: "已暂停，等待评估",
   },
   {
     id: 6,
@@ -590,6 +645,14 @@ const tableData = ref([
     status: "active",
     description: "新增的测试项目，用于测试分页功能",
     createTime: "2023-08-20 13:25:11",
+    author: "周八",
+    category: "测试",
+    priority: "low",
+    department: "质量部",
+    location: "成都",
+    phone: "13800138006",
+    email: "zhouba@example.com",
+    remark: "测试用项目",
   },
   {
     id: 7,
@@ -597,6 +660,14 @@ const tableData = ref([
     status: "inactive",
     description: "另一个测试项目示例",
     createTime: "2023-08-21 09:44:55",
+    author: "吴九",
+    category: "开发",
+    priority: "medium",
+    department: "技术部",
+    location: "武汉",
+    phone: "13800138007",
+    email: "wujiu@example.com",
+    remark: "示例项目",
   },
   {
     id: 8,
@@ -604,6 +675,14 @@ const tableData = ref([
     status: "active",
     description: "用于测试表格性能的数据行",
     createTime: "2023-08-22 15:33:21",
+    author: "郑十",
+    category: "运维",
+    priority: "high",
+    department: "运维部",
+    location: "西安",
+    phone: "13800138008",
+    email: "zhengshi@example.com",
+    remark: "性能测试项目",
   },
 ]);
 
@@ -611,6 +690,12 @@ const tableData = ref([
 const generateData = () => {
   const count = config.dataCount;
   const data = [];
+  const authors = ["张三", "李四", "王五", "赵六", "孙七", "周八", "吴九", "郑十"];
+  const categories = ["开发", "测试", "运维", "设计", "产品"];
+  const priorities = ["high", "medium", "low"];
+  const departments = ["技术部", "质量部", "运维部", "设计部", "产品部"];
+  const locations = ["北京", "上海", "广州", "深圳", "杭州", "成都", "武汉", "西安"];
+  
   for (let i = 0; i < count; i++) {
     data.push({
       id: i + 1,
@@ -618,6 +703,14 @@ const generateData = () => {
       status: i % 3 === 0 ? "active" : "inactive",
       description: `这是测试项目${i + 1}的描述信息，用于演示表格功能`,
       createTime: getRandomDate(),
+      author: authors[i % authors.length],
+      category: categories[i % categories.length],
+      priority: priorities[i % priorities.length],
+      department: departments[i % departments.length],
+      location: locations[i % locations.length],
+      phone: `138${String(i + 1).padStart(8, '0')}`,
+      email: `user${i + 1}@example.com`,
+      remark: `这是项目${i + 1}的备注信息，用于测试横向滚动功能`,
     });
   }
   tableData.value = data;
@@ -648,18 +741,12 @@ const handleCanvasRowClick = (row) => {
 
 // 编辑按钮点击处理
 const handleEdit = (row) => {
-  ElMessage({
-    message: `编辑: ${row.name}`,
-    type: "info",
-  });
+  message(`编辑: ${row.name}`, { type: "info" });
 };
 
 // 删除按钮点击处理
 const handleDelete = (row) => {
-  ElMessage({
-    message: `删除: ${row.name}`,
-    type: "warning",
-  });
+  message(`删除: ${row.name}`, { type: "warning" });
 };
 
 // 模拟拖拽排序API
@@ -773,18 +860,32 @@ const generatedCode = computed(() => {
 
     code += `>
   <el-table-column type="selection" width="55"></el-table-column>
-  <el-table-column prop="id" label="ID" sortable></el-table-column>
-  <el-table-column prop="name" label="名称"></el-table-column>
-  <el-table-column prop="status" label="状态">
+  <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
+  <el-table-column prop="name" label="名称" width="150"></el-table-column>
+  <el-table-column prop="status" label="状态" width="100">
     <template #default="{ row }">
       <el-tag :type="row.status === 'active' ? 'success' : 'info'">
         {{ row.status === "active" ? "启用" : "禁用" }}
       </el-tag>
     </template>
   </el-table-column>
-  <el-table-column prop="description" label="描述"></el-table-column>
-  <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
-  <el-table-column label="操作" width="150">
+  <el-table-column prop="description" label="描述" width="200"></el-table-column>
+  <el-table-column prop="createTime" label="创建时间" width="180" sortable></el-table-column>
+  <el-table-column prop="author" label="作者" width="120"></el-table-column>
+  <el-table-column prop="category" label="分类" width="100"></el-table-column>
+  <el-table-column prop="priority" label="优先级" width="100" sortable>
+    <template #default="{ row }">
+      <el-tag :type="row.priority === 'high' ? 'danger' : row.priority === 'medium' ? 'warning' : 'info'">
+        {{ row.priority === 'high' ? '高' : row.priority === 'medium' ? '中' : '低' }}
+      </el-tag>
+    </template>
+  </el-table-column>
+  <el-table-column prop="department" label="部门" width="150"></el-table-column>
+  <el-table-column prop="location" label="位置" width="150"></el-table-column>
+  <el-table-column prop="phone" label="联系电话" width="150"></el-table-column>
+  <el-table-column prop="email" label="邮箱" width="200"></el-table-column>
+  <el-table-column prop="remark" label="备注" width="250"></el-table-column>
+  <el-table-column label="操作" width="150" fixed="right">
     <template #default="{ row }">
       <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
       <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>

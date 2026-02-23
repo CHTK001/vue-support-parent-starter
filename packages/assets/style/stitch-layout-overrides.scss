@@ -136,18 +136,31 @@
   background-color: var(--stitch-lay-bg-page);
   padding: 20px;
   min-height: calc(100vh - 100px);
+  width: 100%;
+  max-width: 100%; /* 限制最大宽度 */
+  box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
   
   /* Panels inside content */
   .lay-panel, .el-card {
+    width: 100% !important; /* 强制宽度为 100% */
+    max-width: 100% !important; /* 限制最大宽度 */
     border-radius: var(--stitch-lay-radius-md);
     border: 1px solid var(--stitch-lay-border-light);
     box-shadow: var(--stitch-lay-shadow-sm);
     background-color: var(--stitch-lay-bg-panel);
     transition: var(--stitch-lay-transition);
+    box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
     
     &:hover {
       box-shadow: var(--stitch-lay-shadow-md);
       transform: translateY(-1px);
+    }
+    
+    /* 确保 el-card 内部元素也有宽度限制 */
+    :deep(.el-card__body) {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
     }
   }
 }

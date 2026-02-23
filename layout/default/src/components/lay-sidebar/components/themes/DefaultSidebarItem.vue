@@ -109,14 +109,42 @@ const props = defineProps({
     .el-sub-menu__title {
       color: var(--item-text-color);
       margin: 4px 8px;
-      width: calc(100% - 16px) !important;
+  
       border-radius: var(--item-border-radius);
       height: 48px;
       line-height: 48px;
       transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      position: relative;
+      padding-right: 32px; // 为箭头预留空间
       
       .el-text {
         color: inherit;
+      }
+
+      // 文字部分需要能够收缩，避免覆盖箭头
+      .menu-text,
+      span.flex-1 {
+        flex: 1;
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      // 确保展开箭头显示并固定在右侧
+      .el-sub-menu__icon-arrow {
+        display: inline-flex !important;
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        flex-shrink: 0;
+        transition: transform 0.3s ease;
+        color: inherit;
+        z-index: 1;
       }
 
       &:hover {
@@ -124,21 +152,55 @@ const props = defineProps({
       }
     }
 
+    // 展开状态下的箭头旋转
+    &.is-opened > .el-sub-menu__title .el-sub-menu__icon-arrow {
+      transform: translateY(-50%) rotate(180deg);
+    }
+
     &.is-active > .el-sub-menu__title {
       // 默认（亮色）：使用主题色文字
       color: var(--el-color-primary) !important;
       font-weight: 600;
       
-      .el-icon, svg, span, div {
+      .el-icon, svg, span, div, .el-sub-menu__icon-arrow {
         color: var(--el-color-primary) !important;
       }
 
       // 暗色模式适配
       @at-root html.dark & {
         color: var(--item-active-text) !important;
-        .el-icon, svg, span, div {
+        .el-icon, svg, span, div, .el-sub-menu__icon-arrow {
           color: var(--item-active-text) !important;
         }
+      }
+    }
+  }
+
+  // 嵌套菜单（二级菜单）的箭头样式
+  :deep(.nest-menu) {
+    .sidebar-sub-menu {
+      .el-sub-menu__title {
+        padding-right: 32px !important; // 为箭头预留空间
+        
+        // 确保嵌套菜单的箭头也显示
+        .el-sub-menu__icon-arrow {
+          display: inline-flex !important;
+          position: absolute !important;
+          right: 12px !important;
+          top: 50% !important;
+          transform: translateY(-50%) !important;
+          flex-shrink: 0;
+          transition: transform 0.3s ease;
+          color: inherit !important;
+          z-index: 1;
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+      }
+
+      // 展开状态下的箭头旋转
+      &.is-opened > .el-sub-menu__title .el-sub-menu__icon-arrow {
+        transform: translateY(-50%) rotate(180deg) !important;
       }
     }
   }

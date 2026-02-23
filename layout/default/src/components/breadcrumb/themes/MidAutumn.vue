@@ -85,4 +85,56 @@ $mid-border: rgba(255, 213, 79, 0.3);
     color: $mid-gold;
   }
 }
+
+// 动画效果
+@keyframes midAutumnGlow {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba($mid-gold, 0.5);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba($mid-gold, 0.7), 0 0 30px rgba($mid-gold, 0.4);
+  }
+}
+
+.mid-autumn-breadcrumb {
+  .breadcrumb-link {
+    &.is-current {
+      animation: midAutumnGlow 2s ease-in-out infinite;
+    }
+  }
+  
+  .home-icon {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      animation: midAutumnGlow 1s ease-in-out infinite;
+    }
+  }
+}
+
+// 响应式适配
+@media (max-width: 768px) {
+  .mid-autumn-breadcrumb {
+    padding: 0 8px;
+    
+    .home-icon {
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+    }
+
+    .breadcrumb-link {
+      padding: 4px 8px;
+      
+      .breadcrumb-text {
+        font-size: 11px;
+        max-width: 70px;
+      }
+
+      .breadcrumb-icon {
+        font-size: 13px;
+      }
+    }
+  }
+}
 </style>

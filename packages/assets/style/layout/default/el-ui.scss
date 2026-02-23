@@ -143,6 +143,8 @@ translate-x-50\% {
 }
 //--el-bg-color
 .main-content {
+  width: 100% !important; /* 强制宽度为 100% */
+  max-width: 100% !important; /* 限制最大宽度 */
   background: var(--el-bg-color);
   border: 1px solid var(--el-card-border-color);
   border-radius: var(--el-card-border-radius);
@@ -156,17 +158,24 @@ translate-x-50\% {
   transition: var(--el-transition-duration);
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+  box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
   .content-section {
     flex: 1;
     height: 100%;
+    width: 100%;
+    max-width: 100%; /* 限制内容区域最大宽度 */
+    box-sizing: border-box;
   }
 }
 .shadow {
   box-shadow: 0 4px 10px 0 rgba(163, 146, 238, 0.302);
 }
 .sidebar-custom {
+  width: 100% !important; /* 强制宽度为 100% */
+  max-width: 100% !important; /* 限制最大宽度 */
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+  box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
 }
 .sidebar-custom-v1 {
   --un-shadow-v1: var(--sider-box-shadow-v1);

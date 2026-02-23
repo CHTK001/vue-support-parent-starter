@@ -23,7 +23,7 @@ export default [
       {
         path: "/example/techui",
         name: "ExampleTechUI",
-        component: () => import("@pages/example/TechUIPage"),
+        component: () => import("@pages/example/src/views/TechUIPage.vue"),
         meta: {
           title: "TechUI 科幻组件",
           icon: "ri:rocket-2-line",

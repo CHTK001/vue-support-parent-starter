@@ -5,7 +5,9 @@
 
 /* 中秋主题标签页容器 - 夜空月光渐变 */
 html[data-skin="mid-autumn"] .tags-view,
-html[data-skin="mid-autumn"] .shadow-tab {
+html.theme-mid-autumn .tags-view,
+html[data-skin="mid-autumn"] .shadow-tab,
+html.theme-mid-autumn .shadow-tab {
   background: linear-gradient(180deg, rgba(26, 35, 126, 0.08) 0%, rgba(255, 213, 79, 0.05) 50%, rgba(26, 35, 126, 0.03) 100%) !important;
   border-top: 1px solid rgba(26, 35, 126, 0.15) !important;
   box-shadow: 0 2px 8px rgba(26, 35, 126, 0.1), inset 0 1px 0 rgba(255, 213, 79, 0.15) !important;
@@ -143,4 +145,84 @@ html[data-skin="mid-autumn"] .scroll-item .tag-icon,
 html[data-skin="mid-autumn"] .chrome-item .tag-icon,
 html[data-skin="mid-autumn"] .modern-item .tag-icon {
   color: inherit !important;
+}
+
+/* ==================== 右侧功能按钮下拉菜单 ==================== */
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu {
+  background: linear-gradient(180deg, rgba(26, 35, 126, 0.95), rgba(255, 213, 79, 0.1)) !important;
+  border: 1px solid rgba(255, 213, 79, 0.3) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(26, 35, 126, 0.3), 0 0 20px rgba(255, 213, 79, 0.15) !important;
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  padding: 6px !important;
+  position: relative;
+}
+
+/* 顶部月光线 */
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #FFD54F 20%, #FFC107 50%, #FFD54F 80%, transparent);
+  box-shadow: 0 0 10px rgba(255, 213, 79, 0.5);
+  z-index: 1;
+}
+
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item {
+  color: #FFD54F !important;
+  background: rgba(26, 35, 126, 0.6) !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  margin: 2px 0 !important;
+  padding: 8px 16px !important;
+  transition: all 0.25s ease !important;
+  position: relative;
+  z-index: 1;
+}
+
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item .el-icon,
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item svg {
+  color: #FFC107 !important;
+  margin-right: 8px;
+}
+
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) {
+  background: rgba(255, 213, 79, 0.15) !important;
+  border-color: rgba(255, 213, 79, 0.4) !important;
+  color: #FFC107 !important;
+  box-shadow: 0 2px 8px rgba(255, 213, 79, 0.3) !important;
+}
+
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) .el-icon,
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) svg {
+  color: #FFC107 !important;
+}
+
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled {
+  color: rgba(255, 213, 79, 0.4) !important;
+  background: rgba(26, 35, 126, 0.3) !important;
+  cursor: not-allowed;
+}
+
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled .el-icon,
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled svg {
+  color: rgba(255, 193, 7, 0.4) !important;
+}
+
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item--divided {
+  margin-top: 6px !important;
+}
+
+html[data-skin="mid-autumn"] .tag-function-dropdown-popper .el-dropdown-menu__item--divided::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 213, 79, 0.3), transparent);
 }

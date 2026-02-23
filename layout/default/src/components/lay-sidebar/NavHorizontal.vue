@@ -11,6 +11,7 @@ const themeComponents = {
   'mid-autumn': defineAsyncComponent(() => import("./themes/horizontal/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/horizontal/Christmas.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/horizontal/NewYear.vue")),
+  'future-tech': defineAsyncComponent(() => import("./themes/horizontal/FutureTech.vue")),
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultHorizontal);
