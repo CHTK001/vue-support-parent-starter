@@ -2,9 +2,9 @@
  * BaseSetting 组件逻辑 Composable
  * @description 提取 BaseSetting.vue 中的复杂逻辑，包括主题切换、布局模式、系统监听等
  */
-import { ref, computed, watch, onBeforeMount, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, watch, onBeforeMount, onMounted, onUnmounted, nextTick, unref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useGlobal, useDark, debounce, isNumber, toggleClass, unref } from "@pureadmin/utils";
+import { useGlobal, useDark, debounce, isNumber, toggleClass } from "@pureadmin/utils";
 import { emitter, useAppStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { ElMessage } from "element-plus";
