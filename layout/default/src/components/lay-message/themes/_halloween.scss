@@ -1,5 +1,6 @@
 // ==================== 万圣节主题样式 ====================
-html[data-skin="halloween"] {
+html[data-skin="halloween"],
+html.theme-halloween {
   $hw-pumpkin: #ff7518;
   $hw-purple: #2c003e;
   $hw-purple-dark: #1a0026;

@@ -28,3 +28,11 @@ export type {
   SidebarItemProps,
   NavEmits,
 } from "./menu";
+
+// AI 相关类型
+export type {
+  ModelConfig,
+  ModelStatus,
+  ChatMessage,
+  GenerationOptions,
+} from "./ai";

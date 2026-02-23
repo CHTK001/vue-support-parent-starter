@@ -85,4 +85,48 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
     color: rgba(179, 157, 219, 0.8);
   }
 }
+
+// 动画效果
+@keyframes halloweenGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 117, 24, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 117, 24, 0.6), 0 0 30px rgba(118, 255, 3, 0.3);
+  }
+}
+
+.halloween-breadcrumb {
+  .breadcrumb-link {
+    &.is-current {
+      animation: halloweenGlow 2s ease-in-out infinite;
+    }
+  }
+}
+
+// 响应式适配
+@media (max-width: 768px) {
+  .halloween-breadcrumb {
+    padding: 0 8px;
+    
+    .home-icon {
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+    }
+
+    .breadcrumb-link {
+      padding: 4px 8px;
+      
+      .breadcrumb-text {
+        font-size: 11px;
+        max-width: 70px;
+      }
+
+      .breadcrumb-icon {
+        font-size: 13px;
+      }
+    }
+  }
+}
 </style>

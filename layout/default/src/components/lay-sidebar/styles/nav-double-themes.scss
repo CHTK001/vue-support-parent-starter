@@ -69,3 +69,16 @@ html[data-skin="new-year"] {
   --nav-double-menu-active-bg: rgba(78, 168, 222, 0.15);
   --nav-double-menu-active-color: #2a7ab8;
 }
+
+// ==================== FutureTech 主题 ====================
+html[data-theme='future-tech'] {
+  --nav-double-left-bg: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9));
+  --nav-double-left-border: rgba(0, 255, 255, 0.4);
+  --nav-double-right-bg: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9));
+  --nav-double-icon-color: rgba(0, 255, 255, 0.7);
+  --nav-double-icon-active-bg: rgba(0, 255, 255, 0.15);
+  --nav-double-icon-active-color: #00ffff;
+  --nav-double-menu-color: rgba(0, 255, 255, 0.7);
+  --nav-double-menu-active-bg: rgba(0, 255, 255, 0.15);
+  --nav-double-menu-active-color: #00ffff;
+}

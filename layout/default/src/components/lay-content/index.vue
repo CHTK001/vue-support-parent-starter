@@ -299,14 +299,17 @@ onBeforeUnmount(() => {
                 class="layout sidebar-custom thin-scroller"
                 :class="{ 'no-card-mode': !cardBody }"
                 :shadow="cardBody ? 'always' : 'never'"
-                :body-style="{ padding: '0', height: '100%' }"
+                :body-style="{ padding: '0', height: '100%', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }"
                 :style="{
                   height: '100%',
-                  'border-radius': layoutRadius + 'px  !important'
+                  width: '100%',
+                  maxWidth: '100%',
+                  'border-radius': layoutRadius + 'px  !important',
+                  boxSizing: 'border-box'
                 }"
               >
                 <el-scrollbar class="card-scrollbar">
-                  <div style="min-height: 100%; display: flex; box-sizing: border-box;">
+                  <div style="min-height: 100%; width: 100%; max-width: 100%; display: flex; box-sizing: border-box;">
                     <ContentRenderer
                       :comp="Comp"
                       :route="route"
@@ -325,15 +328,18 @@ onBeforeUnmount(() => {
                 class="h-full layout sidebar-custom"
                 :class="{ 'no-card-mode': !cardBody }"
                 :shadow="cardBody ? 'always' : 'never'"
-                :body-style="{ padding: '0', height: '100%' }"
+                :body-style="{ padding: '0', height: '100%', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }"
                 :style="{
                   height: 'calc(100% - ' + contentMargin * 2 + 'px)',
+                  width: '100%',
+                  maxWidth: '100%',
                   'border-radius': layoutRadius + 'px  !important',
-                  margin: contentMargin + 'px'
+                  margin: contentMargin + 'px',
+                  boxSizing: 'border-box'
                 }"
               >
                 <el-scrollbar class="card-scrollbar">
-                  <div style="padding: 20px; min-height: 100%; box-sizing: border-box;">
+                  <div style="padding: 20px; min-height: 100%; width: 100%; max-width: 100%; box-sizing: border-box;">
                     <ContentRenderer
                       :comp="Comp"
                       :route="route"
@@ -370,14 +376,18 @@ onBeforeUnmount(() => {
 .content-area {
   height: 100%;
   width: 100%;
+  max-width: 100%; /* 限制最大宽度 */
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
 }
 .el-card:hover {
   transform: none !important;
 }
 .sidebar-custom {
+  width: 100% !important; /* 强制宽度为 100% */
+  max-width: 100% !important; /* 限制最大宽度 */
   background: var(--el-bg-color);
   border: 1px solid var(--el-card-border-color);
   border-radius: var(--el-card-border-radius);
@@ -387,6 +397,7 @@ onBeforeUnmount(() => {
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.04),
     0 2px 8px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
 
   .dark & {
     box-shadow:
@@ -401,11 +412,36 @@ onBeforeUnmount(() => {
     padding: 0;
     display: flex;
     flex-direction: column;
+    width: 100% !important;
+    max-width: 100% !important; /* 限制 body 最大宽度 */
+    box-sizing: border-box;
   }
   
   // 内部内容滚动
   :deep(.main-content) {
     min-height: 100%;
+    width: 100%;
+    max-width: 100%; /* 限制内容最大宽度 */
+    box-sizing: border-box;
+  }
+  
+  // 滚动条容器宽度限制
+  :deep(.el-scrollbar) {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    
+    .el-scrollbar__wrap {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
+    }
+    
+    .el-scrollbar__view {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
+    }
   }
 }
 
@@ -496,7 +532,10 @@ onBeforeUnmount(() => {
 .bg-layout {
   height: 100%;
   width: 100%;
+  max-width: 100%; /* 限制最大宽度 */
   background: transparent;
+  box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 :deep(.el-backtop) {
@@ -609,8 +648,21 @@ onBeforeUnmount(() => {
 
 .card-scrollbar {
   height: 100%;
+  width: 100% !important;
+  max-width: 100% !important; /* 限制滚动条容器最大宽度 */
+  box-sizing: border-box;
+  
+  :deep(.el-scrollbar__wrap) {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  
   :deep(.el-scrollbar__view) {
     height: 100%;
+    width: 100% !important;
+    max-width: 100% !important; /* 限制视图最大宽度 */
+    box-sizing: border-box;
   }
 }
 </style>

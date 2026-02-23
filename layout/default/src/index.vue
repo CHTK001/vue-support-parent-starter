@@ -58,7 +58,6 @@ import "./themes/christmas.scss";
 import "./themes/spring-festival.scss";
 import "./themes/halloween.scss";
 import "./themes/pixel-art.scss";
-import "./themes/8-bit.scss";
 import "./themes/future-tech.scss";
 import "./components/lay-sidebar/styles/hover-navigation-themes.scss";
 // 导入移动端独立样式
@@ -92,6 +91,7 @@ const appWrapperRef = ref<HTMLElement>();
 const watermarkContainerRef = ref<HTMLElement>();
 const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 const { isDark } = useDark();
+const isDev = import.meta.env.DEV;
 
 // ===== Composables =====
 // 加载页逻辑
@@ -173,6 +173,17 @@ watch(
     }
   },
   { immediate: true }
+);
+
+// 监听布局模式变化，清理导航相关的 CSS 变量
+watch(
+  () => layout.value,
+  (newLayout, oldLayout) => {
+    // 从双栏导航或其他导航切换时，清理可能残留的 CSS 变量
+    if (oldLayout === 'double' || oldLayout === 'hover') {
+      document.documentElement.style.removeProperty("--hover-sidebar-width");
+    }
+  }
 );
 
 // 页面可见性变化处理
@@ -418,7 +429,7 @@ const LayHeader = defineComponent({
 
     <!-- AI 助手 -->
     <LayAiChat 
-      :visible="getConfig().ShowAiChat !== false" 
+      :visible="getConfig().ShowAiChat !== false || isDev" 
       :theme="aiChatTheme"
     />
 

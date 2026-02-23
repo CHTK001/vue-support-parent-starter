@@ -238,7 +238,7 @@ import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { GridItem, GridLayout } from "grid-layout-plus";
-import { defineExpose, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import ChartConfigDialog from "../components/ChartConfigDialog.vue";
 import ComponentEditDialog from "../components/ComponentEditDialog.vue";
 import ServerComponent from "./ServerComponent.vue";

@@ -1,5 +1,5 @@
 <template>
-  <div ref="tableContainer" class="virtual-table-container">
+  <div ref="tableContainer" class="virtual-table-container" @wheel="handleWheel">
     <div ref="scrollWrapper" class="scroll-wrapper" :style="{ width: '100%', height: _height }" @contextmenu.prevent="handleWrapperContextMenu">
       <!-- 使用Element Plus的el-table-v2组件 -->
       <el-table-v2
@@ -78,6 +78,7 @@ const emit = defineEmits(["row-click", "selection-change", "sort-change", "filte
 const tableContainer = ref(null);
 const scrollWrapper = ref(null);
 const virtualTable = ref(null);
+let wheelHandler = null;
 
 // 虚拟表格相关的响应式数据
 const estimatedRowHeight = ref(50); // 估计的行高
@@ -383,6 +384,8 @@ const handleWrapperContextMenu = event => {
   if (!props.contextmenu || !virtualTable.value) return;
 
   const tableEl = virtualTable.value.$el;
+  if (!tableEl) return;
+  
   const rect = tableEl.getBoundingClientRect();
 
   // 计算鼠标相对于表格的位置
@@ -409,7 +412,9 @@ const handleWrapperContextMenu = event => {
     menuItems.value = items;
     // 显示右键菜单
     nextTick(() => {
-      contextMenuRef.value.open(event, row);
+      if (contextMenuRef.value) {
+        contextMenuRef.value.open(event, row);
+      }
     });
   }
 };
@@ -455,11 +460,122 @@ watch(
   }
 );
 
+// 处理滚轮事件（直接在模板中绑定）
+const handleWheel = (event) => {
+  // 只处理 Shift+滚轮的情况
+  if (!event.shiftKey) {
+    return;
+  }
+  
+  if (!virtualTable.value) {
+    return;
+  }
+  
+  const tableEl = virtualTable.value?.$el;
+  if (!tableEl) {
+    return;
+  }
+  
+  // el-table-v2 的滚动容器是 .el-scrollbar__wrap
+  let targetScrollContainer = tableEl.querySelector('.el-scrollbar__wrap');
+  if (!targetScrollContainer) {
+    targetScrollContainer = scrollWrapper.value;
+  }
+  if (!targetScrollContainer) {
+    targetScrollContainer = tableEl;
+  }
+  
+  if (targetScrollContainer) {
+    // 阻止默认的垂直滚动行为
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 将垂直滚动转换为横向滚动
+    const deltaX = event.deltaY !== 0 ? event.deltaY : (event.deltaX || 0);
+    targetScrollContainer.scrollLeft += deltaX;
+  }
+};
+
+// 初始化 Shift+滚轮横向滚动功能
+const initShiftWheelScroll = () => {
+  if (!virtualTable.value) {
+    return;
+  }
+  
+  nextTick(() => {
+    const tableEl = virtualTable.value?.$el;
+    if (!tableEl) {
+      return;
+    }
+    
+    // el-table-v2 的滚动容器是 .el-scrollbar__wrap
+    let scrollContainer = tableEl.querySelector('.el-scrollbar__wrap');
+    if (!scrollContainer) {
+      // 如果找不到，尝试使用scrollWrapper
+      scrollContainer = scrollWrapper.value;
+    }
+    if (!scrollContainer) {
+      // 如果还是找不到，使用表格元素本身
+      scrollContainer = tableEl;
+    }
+    if (!scrollContainer) {
+      return;
+    }
+    
+    // 创建滚轮事件处理函数
+    wheelHandler = (event) => {
+      // 检查是否按下了 Shift 键
+      if (event.shiftKey) {
+        // 阻止默认的垂直滚动行为
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // 将垂直滚动转换为横向滚动
+        const deltaX = event.deltaY !== 0 ? event.deltaY : (event.deltaX || 0);
+        if (scrollContainer) {
+          scrollContainer.scrollLeft += deltaX;
+        }
+      }
+    };
+    
+    // 添加滚轮事件监听器到滚动容器
+    // 使用 capture 模式确保事件在捕获阶段被处理
+    scrollContainer.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
+    
+    // 同时监听表格容器和包装器，确保在表格任何位置都能触发
+    if (tableEl !== scrollContainer) {
+      tableEl.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
+    }
+    if (scrollWrapper.value && scrollWrapper.value !== scrollContainer && scrollWrapper.value !== tableEl) {
+      scrollWrapper.value.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
+    }
+  });
+};
+
+// 销毁 Shift+滚轮横向滚动功能
+const destroyShiftWheelScroll = () => {
+  if (virtualTable.value && wheelHandler) {
+    const tableEl = virtualTable.value?.$el;
+    if (tableEl) {
+      tableEl.removeEventListener('wheel', wheelHandler, { capture: true });
+      const scrollContainer = tableEl.querySelector('.el-scrollbar__wrap');
+      if (scrollContainer && scrollContainer !== tableEl) {
+        scrollContainer.removeEventListener('wheel', wheelHandler, { capture: true });
+      }
+    }
+  }
+  if (scrollWrapper.value && wheelHandler) {
+    scrollWrapper.value.removeEventListener('wheel', wheelHandler, { capture: true });
+  }
+  wheelHandler = null;
+};
+
 // 生命周期钩子
 onMounted(() => {
   // 初始化表格布局
   nextTick(() => {
     updateTableSize();
+    initShiftWheelScroll();
   });
 
   // 添加窗口大小变化的监听，以便动态调整表格高度
@@ -469,6 +585,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   // 组件销毁前移除事件监听，避免内存泄漏
   window.removeEventListener("resize", handleResize);
+  destroyShiftWheelScroll();
 });
 
 // 暴露方法给父组件

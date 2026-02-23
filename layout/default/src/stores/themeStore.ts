@@ -65,6 +65,30 @@ export const useThemeStore = defineStore("theme", () => {
   const defaultScreen = getConfig("ShowScreenMonitor") ?? false;
   const screenMonitorEnabled = ref(storedScreen !== null ? storedScreen === "true" : defaultScreen);
 
+  // Network Latency Monitor State
+  const STORAGE_KEY_NETWORK_LATENCY = "sys-network-latency-monitor-enabled";
+  const storedNetworkLatency = localStorage.getItem(STORAGE_KEY_NETWORK_LATENCY);
+  const defaultNetworkLatency = getConfig("ShowNetworkLatencyMonitor") ?? false;
+  const networkLatencyMonitorEnabled = ref(storedNetworkLatency !== null ? storedNetworkLatency === "true" : defaultNetworkLatency);
+
+  // Storage Monitor State
+  const STORAGE_KEY_STORAGE = "sys-storage-monitor-enabled";
+  const storedStorage = localStorage.getItem(STORAGE_KEY_STORAGE);
+  const defaultStorage = getConfig("ShowStorageMonitor") ?? false;
+  const storageMonitorEnabled = ref(storedStorage !== null ? storedStorage === "true" : defaultStorage);
+
+  // Device Info Monitor State
+  const STORAGE_KEY_DEVICE_INFO = "sys-device-info-monitor-enabled";
+  const storedDeviceInfo = localStorage.getItem(STORAGE_KEY_DEVICE_INFO);
+  const defaultDeviceInfo = getConfig("ShowDeviceInfoMonitor") ?? false;
+  const deviceInfoMonitorEnabled = ref(storedDeviceInfo !== null ? storedDeviceInfo === "true" : defaultDeviceInfo);
+
+  // Page Time Monitor State
+  const STORAGE_KEY_PAGE_TIME = "sys-page-time-monitor-enabled";
+  const storedPageTime = localStorage.getItem(STORAGE_KEY_PAGE_TIME);
+  const defaultPageTime = getConfig("ShowPageTimeMonitor") ?? false;
+  const pageTimeMonitorEnabled = ref(storedPageTime !== null ? storedPageTime === "true" : defaultPageTime);
+
   // Monitor Position State
   const STORAGE_KEY_MONITOR_POS = "sys-performance-monitor-position";
   const storedMonitorPos = localStorage.getItem(STORAGE_KEY_MONITOR_POS);
@@ -193,6 +217,26 @@ export const useThemeStore = defineStore("theme", () => {
     localStorage.setItem(STORAGE_KEY_SCREEN, String(enabled));
   }
 
+  function setNetworkLatencyMonitor(enabled: boolean) {
+    networkLatencyMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_NETWORK_LATENCY, String(enabled));
+  }
+
+  function setStorageMonitor(enabled: boolean) {
+    storageMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_STORAGE, String(enabled));
+  }
+
+  function setDeviceInfoMonitor(enabled: boolean) {
+    deviceInfoMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_DEVICE_INFO, String(enabled));
+  }
+
+  function setPageTimeMonitor(enabled: boolean) {
+    pageTimeMonitorEnabled.value = enabled;
+    localStorage.setItem(STORAGE_KEY_PAGE_TIME, String(enabled));
+  }
+
   function setPerformanceMonitorPosition(position: string) {
     performanceMonitorPosition.value = position;
     localStorage.setItem(STORAGE_KEY_MONITOR_POS, position);
@@ -300,6 +344,10 @@ export const useThemeStore = defineStore("theme", () => {
     batteryMonitorEnabled,
     bluetoothMonitorEnabled,
     screenMonitorEnabled,
+    networkLatencyMonitorEnabled,
+    storageMonitorEnabled,
+    deviceInfoMonitorEnabled,
+    pageTimeMonitorEnabled,
     performanceMonitorPosition,
     performanceMonitorMode,
     performanceMonitorLayout,
@@ -315,6 +363,10 @@ export const useThemeStore = defineStore("theme", () => {
     setBatteryMonitor,
     setBluetoothMonitor,
     setScreenMonitor,
+    setNetworkLatencyMonitor,
+    setStorageMonitor,
+    setDeviceInfoMonitor,
+    setPageTimeMonitor,
     setPerformanceMonitorPosition,
     setPerformanceMonitorMode,
     setPerformanceMonitorLayout,

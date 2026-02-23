@@ -240,6 +240,7 @@ onMounted(() => {
     :index="resolvePath(item.path)"
     class="sidebar-sub-menu"
     :class="{ 'menu-animation': menuAnimation }"
+    :popper-offset="isNest ? [-8, 0] : undefined"
     v-bind="expandCloseIcon"
   >
     <template #title>

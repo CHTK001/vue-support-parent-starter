@@ -16,6 +16,8 @@ const themeComponents = {
   'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumnTag.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/ChristmasTag.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/NewYearTag.vue")),
+  'future-tech': defineAsyncComponent(() => import("./themes/FutureTechTag.vue")),
+  'pixel-art': DefaultTag, // 像素艺术主题使用默认标签组件
 };
 
 // 使用统一的主题切换 Hook

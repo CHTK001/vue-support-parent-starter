@@ -15,7 +15,12 @@ const updateState = () => {
   );
 };
 
-const toggle = async () => {
+const toggle = async (event?: Event) => {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  
   const element = document.documentElement;
   try {
     if (isFullscreen.value) {
@@ -39,8 +44,12 @@ const toggle = async () => {
         await (element as any).msRequestFullscreen();
       }
     }
+    // 手动更新状态，确保立即反映变化
+    setTimeout(() => {
+      updateState();
+    }, 100);
   } catch (err: any) {
-    console.error("Fullscreen error:", err);
+    console.error("全屏切换错误:", err);
     message(`全屏切换失败: ${err.message || "不支持全屏或被浏览器拦截"}`, { type: "error" });
   }
 };
@@ -72,7 +81,7 @@ const screenIcon = computed(() =>
 </script>
 
 <template>
-  <div class="fullscreen-icon" @click.stop="toggle">
+  <div class="fullscreen-icon" @click="toggle">
     <IconifyIconOffline :icon="screenIcon" />
   </div>
 </template>
@@ -85,10 +94,17 @@ const screenIcon = computed(() =>
   width: 100%;
   height: 100%;
   cursor: pointer;
-  pointer-events: auto; /* Ensure clicks are captured */
+  pointer-events: auto;
+  position: relative;
+  z-index: 100;
+  user-select: none;
+  -webkit-user-select: none;
   
   :deep(svg) {
-    pointer-events: none; /* Pass clicks to parent span */
+    pointer-events: none;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
   }
 }
 </style>

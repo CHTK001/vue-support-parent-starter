@@ -84,4 +84,5 @@ const TITLE = getConfig("Title");
     }
   }
 }
+
 </style>

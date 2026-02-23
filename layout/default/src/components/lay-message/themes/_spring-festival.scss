@@ -1,5 +1,6 @@
 // ==================== 春节主题样式 ====================
-html[data-skin="spring-festival"] {
+html[data-skin="spring-festival"],
+html.theme-spring-festival {
   $spring-red: #DC143C;
   $spring-red-dark: #B22222;
   $spring-gold: #FFD700;

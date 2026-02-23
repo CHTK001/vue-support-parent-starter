@@ -26,7 +26,8 @@ const { t } = useI18n();
   }
 }
 
-html[data-skin="halloween"] {
+html[data-skin="halloween"],
+html.theme-halloween {
   // --- ScCard & Global Theme Variables Override ---
   --stitch-lay-primary: #ff7518;
   --stitch-lay-primary-light: #ffa726;

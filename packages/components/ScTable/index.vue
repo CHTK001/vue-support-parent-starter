@@ -577,6 +577,74 @@ const memoryStorageKey = computed(() => {
 // 计算高度
 const scTableContentWrapper = ref(null);
 
+// Shift+滚轮横向滚动处理
+const handleWheelWithShift = (event) => {
+  // 检测是否按住了 Shift 键
+  if (!event.shiftKey) {
+    return;
+  }
+
+  // 查找横向滚动容器
+  let scrollContainer = null;
+
+  // 根据布局类型查找不同的滚动容器
+  if (props.layout === 'table') {
+    // 表格布局：查找 el-table__body-wrapper
+    // 注意：表格布局由 TableView 组件自己处理，这里只作为备用
+    const tableEl = scTable.value?.$el;
+    if (tableEl) {
+      scrollContainer = tableEl.querySelector('.el-table__body-wrapper');
+      if (!scrollContainer) {
+        scrollContainer = tableEl.querySelector('.el-scrollbar__wrap');
+      }
+    }
+  } else if (props.layout === 'card') {
+    // 卡片布局：查找 card-view-container
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.card-view-container');
+    }
+  } else if (props.layout === 'list') {
+    // 列表布局：查找 list-view-container
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.list-view-container');
+    }
+  } else if (props.layout === 'virtual') {
+    // 虚拟表格布局：查找 scroll-wrapper
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.scroll-wrapper');
+    }
+  } else if (props.layout === 'canvas') {
+    // Canvas 表格布局：查找 body-container
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.body-container');
+    }
+  } else if (props.layout === 'waterfall') {
+    // 瀑布流布局：查找 waterfall-view-container
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.waterfall-view-container');
+    }
+  } else {
+    // 其他布局：使用内容包装器
+    scrollContainer = scTableContentWrapper.value;
+  }
+
+  // 如果找到了滚动容器，执行横向滚动
+  if (scrollContainer) {
+    // 阻止默认的垂直滚动行为
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 将垂直滚动转换为横向滚动
+    const deltaX = event.deltaY !== 0 ? event.deltaY : (event.deltaX || 0);
+    scrollContainer.scrollLeft += deltaX;
+  }
+};
+
 // 移除 ResizeObserver，直接使用 CSS 控制
 const computedHeight = computed(() => {
   // 当 height 为 auto 时，返回 'auto' 让表格组件自行处理
@@ -676,6 +744,14 @@ watch(
   () => props.stripe,
   newVal => {
     configState.stripe = typeof newVal === "string" ? newVal === "true" : !!newVal;
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.draggable,
+  newVal => {
+    configState.draggable = !!newVal;
   },
   { immediate: true }
 );
@@ -1491,6 +1567,12 @@ onMounted(() => {
       };
     });
   }
+
+  // 添加 Shift+滚轮横向滚动支持
+  // 使用 capture 模式确保事件在捕获阶段被处理，避免被子组件拦截
+  if (scTableMain.value) {
+    scTableMain.value.addEventListener('wheel', handleWheelWithShift, { passive: false, capture: true });
+  }
 });
 
 onUnmounted(() => {
@@ -1502,6 +1584,10 @@ onUnmounted(() => {
   clearLocalData();
   // 清理预加载缓存
   clearPrefetchCache();
+  // 移除 Shift+滚轮横向滚动事件监听
+  if (scTableMain.value) {
+    scTableMain.value.removeEventListener('wheel', handleWheelWithShift, { capture: true });
+  }
 });
 
 onActivated(() => {
@@ -2026,6 +2112,8 @@ defineExpose({
           :draggable="configState.draggable"
           :drag-row-key="dragRowKey"
           :drag-handle-width="dragHandleWidth"
+          :drag-scroll-enabled="dragScrollEnabled"
+          :border="configState.border"
           @row-click="onRowClick"
           @col-click="onColClick"
           @selection-change="selectionChange"
@@ -2082,26 +2170,33 @@ defineExpose({
 <style lang="scss" scoped>
 .sc-table-container {
   width: 100%;
+  max-width: 100%; /* 限制容器最大宽度 */
   height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
 }
 
 .sc-table-wrapper {
   width: 100%;
+  max-width: 100%; /* 限制包装器最大宽度 */
   height: 100%;
   display: flex;
   flex: 1;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
 
   .sc-table-auto-height {
     flex: 1;
     min-height: 0; /* 关键属性：允许flex子项收缩 */
-    overflow: hidden; /* 防止内容溢出 */
+    min-width: 0; /* 关键属性：允许flex子项在横向收缩 */
+    overflow-x: auto; /* 允许横向滚动 */
+    overflow-y: hidden; /* 防止纵向溢出 */
     display: flex;
     flex-direction: column;
+    max-width: 100%; /* 限制最大宽度 */
   }
 }
 
@@ -2342,26 +2437,36 @@ defineExpose({
 
 /* 确保表格内容区域不会被分页挤压 */
 :deep(.el-table__body-wrapper) {
-  overflow: auto !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
   height: auto !important;
   flex: 1;
+  max-width: 100%; /* 限制最大宽度 */
 }
 
 :deep(.el-table) {
   height: 100% !important;
+  width: 100% !important;
+  max-width: 100% !important; /* 限制表格最大宽度 */
   display: flex;
   flex-direction: column;
+  table-layout: auto; /* 允许表格根据内容自适应 */
 }
 
 :deep(.el-table__inner-wrapper) {
   height: 100% !important;
+  width: 100% !important;
+  max-width: 100% !important; /* 限制内部容器最大宽度 */
   display: flex;
   flex-direction: column;
 }
 
 :deep(.el-table__header-wrapper) {
   width: 100%;
+  max-width: 100%; /* 限制表头最大宽度 */
   flex-shrink: 0;
+  overflow-x: hidden; /* 表头不独立滚动，跟随表体滚动 */
+  overflow-y: hidden;
 }
 
 /* 表头固定样式 */

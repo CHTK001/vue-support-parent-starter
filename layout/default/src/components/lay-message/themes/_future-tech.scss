@@ -1,0 +1,386 @@
+// ==================== 未来科技主题样式 ====================
+html[data-skin="future-tech"],
+html.theme-future-tech {
+  $ft-cyan: #00ffff;
+  $ft-cyan-light: #4dfdfd;
+  $ft-cyan-dark: #00cccc;
+  $ft-bg-dark: #050a1f;
+  $ft-bg-darker: #0a1a3a;
+  $ft-border: rgba(0, 255, 255, 0.4);
+
+  .message-trigger {
+    background: linear-gradient(135deg, rgba(5, 10, 31, 0.9), rgba(10, 26, 58, 0.85)) !important;
+    border: 2px solid $ft-border !important;
+    border-radius: 12px !important;
+    box-shadow: 
+      0 0 10px rgba(0, 255, 255, 0.3),
+      inset 0 0 10px rgba(0, 255, 255, 0.05) !important;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative;
+    overflow: hidden;
+
+    // 网格背景
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 10px 10px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    // 扫描线效果
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+      animation: scan 3s linear infinite;
+    }
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(5, 10, 31, 0.9)) !important;
+      border-color: rgba(0, 255, 255, 0.8) !important;
+      transform: translateY(-2px) scale(1.05) !important;
+      box-shadow: 
+        0 0 20px rgba(0, 255, 255, 0.5),
+        inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+
+      &::after {
+        animation-duration: 1.5s;
+      }
+
+      .message-icon {
+        color: $ft-cyan !important;
+        filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.9));
+      }
+    }
+
+    .message-icon {
+      color: $ft-cyan !important;
+      filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.6));
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s ease;
+    }
+
+    .el-badge__content {
+      background: linear-gradient(135deg, $ft-cyan, $ft-cyan-light) !important;
+      color: $ft-bg-dark !important;
+      border: 2px solid $ft-cyan !important;
+      box-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.6),
+        0 0 20px rgba(0, 255, 255, 0.3) !important;
+      font-weight: 600;
+      text-shadow: none;
+    }
+  }
+
+  .message-dropdown-popper {
+    .el-dropdown-menu {
+      background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+      border: 2px solid $ft-border !important;
+      box-shadow:
+        0 0 20px rgba(0, 255, 255, 0.4),
+        0 0 40px rgba(0, 255, 255, 0.2),
+        0 20px 60px rgba(0, 0, 0, 0.8) !important;
+      border-radius: 16px !important;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      position: relative;
+
+      // 网格背景
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 20px 20px;
+        opacity: 0.3;
+        pointer-events: none;
+      }
+    }
+  }
+
+  .message-panel {
+    background: transparent !important;
+    position: relative;
+  }
+
+  .panel-header {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(5, 10, 31, 0.4) 100%) !important;
+    border-bottom: 1px solid $ft-border !important;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $ft-cyan 30%, $ft-cyan-light 50%, $ft-cyan 70%, transparent);
+      animation: scanLine 3s linear infinite;
+    }
+
+    .header-title {
+      color: $ft-cyan !important;
+      text-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.8),
+        0 0 20px rgba(0, 255, 255, 0.4) !important;
+      font-weight: 600;
+      font-family: 'Courier New', 'Monaco', monospace;
+      letter-spacing: 2px;
+      position: relative;
+      z-index: 1;
+
+      &::before {
+        content: "⚡ ";
+        margin-right: 5px;
+        filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.8));
+      }
+    }
+
+    .el-button {
+      color: rgba(0, 255, 255, 0.7) !important;
+
+      &:hover {
+        color: $ft-cyan !important;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+      }
+    }
+  }
+
+  .panel-body {
+    .loading-wrapper {
+      color: $ft-cyan !important;
+
+      .el-icon {
+        filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.6));
+      }
+    }
+  }
+
+  .message-item {
+    background: rgba(5, 10, 31, 0.6) !important;
+    border: 1px solid rgba(0, 255, 255, 0.3) !important;
+    border-radius: 12px !important;
+    margin: 4px 0 !important;
+    transition: all 0.3s ease !important;
+    position: relative;
+    overflow: hidden;
+
+    // 网格背景
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 15px 15px;
+      opacity: 0.2;
+      pointer-events: none;
+    }
+
+    &:hover {
+      background: rgba(0, 255, 255, 0.1) !important;
+      border-color: $ft-cyan !important;
+      box-shadow: 
+        0 0 15px rgba(0, 255, 255, 0.3),
+        inset 0 0 10px rgba(0, 255, 255, 0.05) !important;
+      transform: translateX(4px);
+    }
+
+    &.unread {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.15) 0%, rgba(5, 10, 31, 0.8) 100%) !important;
+      border-color: rgba(0, 255, 255, 0.5) !important;
+      box-shadow: 
+        0 0 20px rgba(0, 255, 255, 0.4),
+        inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.25) 0%, rgba(5, 10, 31, 0.9) 100%) !important;
+      }
+    }
+
+    .item-avatar .default-avatar {
+      background: linear-gradient(135deg, $ft-cyan, $ft-cyan-light) !important;
+      box-shadow: 
+        0 0 12px rgba(0, 255, 255, 0.6),
+        0 0 24px rgba(0, 255, 255, 0.3) !important;
+    }
+
+    .item-title {
+      color: $ft-cyan !important;
+      text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+    }
+
+    .item-desc {
+      color: rgba(0, 255, 255, 0.7) !important;
+    }
+
+    .item-time {
+      color: rgba(0, 255, 255, 0.5) !important;
+    }
+
+    .unread-dot {
+      background: $ft-cyan !important;
+      box-shadow: 
+        0 0 8px rgba(0, 255, 255, 0.8),
+        0 0 16px rgba(0, 255, 255, 0.4) !important;
+      animation: pulse 2s infinite;
+    }
+  }
+
+  .panel-footer {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.05) 0%, rgba(5, 10, 31, 0.3) 100%) !important;
+    border-top: 1px solid $ft-border !important;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $ft-cyan 30%, $ft-cyan-light 50%, $ft-cyan 70%, transparent);
+      animation: scanLine 3s linear infinite;
+    }
+
+    .el-button {
+      color: rgba(0, 255, 255, 0.7) !important;
+
+      &:hover {
+        color: $ft-cyan !important;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+      }
+
+      &[type="primary"] {
+        color: $ft-cyan !important;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+
+        &:hover {
+          color: $ft-cyan-light !important;
+          text-shadow: 
+            0 0 15px rgba(0, 255, 255, 1),
+            0 0 25px rgba(0, 255, 255, 0.6) !important;
+        }
+      }
+    }
+  }
+
+  .message-center-drawer {
+    .el-drawer {
+      background: linear-gradient(180deg, rgba(5, 10, 31, 0.98), rgba(10, 26, 58, 0.95)) !important;
+      border-left: 2px solid $ft-border !important;
+      box-shadow: 
+        -10px 0 30px rgba(0, 255, 255, 0.1),
+        0 0 40px rgba(0, 255, 255, 0.15) !important;
+    }
+
+    .el-drawer__header {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(5, 10, 31, 0.4) 100%) !important;
+      border-bottom: 1px solid $ft-border !important;
+    }
+
+    .drawer-title {
+      color: $ft-cyan !important;
+      text-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.8),
+        0 0 20px rgba(0, 255, 255, 0.4) !important;
+      font-family: 'Courier New', 'Monaco', monospace;
+      letter-spacing: 2px;
+    }
+
+    .el-tabs__item {
+      color: rgba(0, 255, 255, 0.7) !important;
+
+      &.is-active {
+        color: $ft-cyan !important;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+      }
+
+      &:hover {
+        color: $ft-cyan-light !important;
+      }
+    }
+
+    .drawer-message-item {
+      background: rgba(5, 10, 31, 0.6) !important;
+      border: 1px solid rgba(0, 255, 255, 0.3) !important;
+
+      &:hover {
+        border-color: $ft-cyan !important;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
+      }
+
+      &.unread {
+        background: rgba(0, 255, 255, 0.1) !important;
+        border-color: rgba(0, 255, 255, 0.5) !important;
+
+        .msg-title {
+          color: $ft-cyan !important;
+        }
+      }
+    }
+  }
+}
+
+// 扫描动画
+@keyframes scan {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+// 扫描线动画
+@keyframes scanLine {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+// 脉冲动画
+@keyframes pulse {
+  0% { 
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.4);
+  }
+  70% { 
+    box-shadow: 0 0 0 6px rgba(0, 255, 255, 0);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0);
+  }
+}
+

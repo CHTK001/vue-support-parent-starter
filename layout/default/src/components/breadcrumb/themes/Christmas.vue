@@ -87,4 +87,56 @@ $xmas-border: rgba(255, 215, 0, 0.4);
     color: $xmas-gold;
   }
 }
+
+// 动画效果
+@keyframes christmasSparkle {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba($xmas-red, 0.5);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba($xmas-red, 0.7), 0 0 30px rgba($xmas-gold, 0.4);
+  }
+}
+
+.christmas-breadcrumb {
+  .breadcrumb-link {
+    &.is-current {
+      animation: christmasSparkle 2s ease-in-out infinite;
+    }
+  }
+  
+  .home-icon {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      animation: christmasSparkle 1s ease-in-out infinite;
+    }
+  }
+}
+
+// 响应式适配
+@media (max-width: 768px) {
+  .christmas-breadcrumb {
+    padding: 0 8px;
+    
+    .home-icon {
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+    }
+
+    .breadcrumb-link {
+      padding: 4px 8px;
+      
+      .breadcrumb-text {
+        font-size: 11px;
+        max-width: 70px;
+      }
+
+      .breadcrumb-icon {
+        font-size: 13px;
+      }
+    }
+  }
+}
 </style>

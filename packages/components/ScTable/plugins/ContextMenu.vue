@@ -1,4 +1,5 @@
 <template>
+  <!-- 主菜单 -->
   <Teleport to="body">
     <div v-if="visible" class="sc-context-menu" :class="className" :style="{ top: `${top}px`, left: `${left}px` }" @click.stop @contextmenu.prevent>
       <ul class="sc-context-menu__list">
@@ -36,37 +37,39 @@
           </li>
         </template>
       </ul>
+    </div>
+  </Teleport>
+  
+  <!-- 子菜单 - 独立的 Teleport，避免被主菜单样式影响 -->
+  <Teleport to="body">
+    <div v-if="subMenuVisible && visible" class="sc-context-menu sc-context-menu--submenu" :class="className" :style="{ top: `${subMenuTop}px`, left: `${subMenuLeft}px` }" @click.stop @contextmenu.prevent @mouseenter="handleSubMenuHover" @mouseleave="handleMenuItemLeave(null, $event)">
+      <ul class="sc-context-menu__list">
+        <template v-for="(item, index) in subMenuItems" :key="index">
+          <!-- 分割线 -->
+          <li v-if="item.type === 'LINE'" class="sc-context-menu__divider"></li>
 
-      <!-- 子菜单 -->
-      <div v-if="subMenuVisible" class="sc-context-menu sc-context-menu--submenu" :class="className" :style="{ top: `${subMenuTop}px`, left: `${subMenuLeft}px` }">
-        <ul class="sc-context-menu__list">
-          <template v-for="(item, index) in subMenuItems" :key="index">
-            <!-- 分割线 -->
-            <li v-if="item.type === 'LINE'" class="sc-context-menu__divider"></li>
+          <!-- 子菜单项 -->
+          <li
+            v-else
+            class="sc-context-menu__item"
+            :class="{ 'sc-context-menu__item--disabled': item.disabled }"
+            @click="handleSubMenuItemClick(item)"
+            @mouseenter="item.children && item.children.length ? handleMenuItemHover(item, $event) : handleSubMenuHover()"
+            @mouseleave="item.children && item.children.length ? handleMenuItemLeave(item, $event) : null"
+            @mousedown.prevent
+          >
+            <!-- 图标 -->
+            <div class="sc-context-menu__item-icon">
+              <IconifyIconOnline v-if="item.icon" :icon="item.icon" />
+            </div>
 
-            <!-- 子菜单项 -->
-            <li
-              v-else
-              class="sc-context-menu__item"
-              :class="{ 'sc-context-menu__item--disabled': item.disabled }"
-              @click="handleSubMenuItemClick(item)"
-              @mouseenter="item.children && item.children.length ? handleMenuItemHover(item, $event) : null"
-              @mouseleave="item.children && item.children.length ? handleMenuItemLeave(item, $event) : null"
-              @mousedown.prevent
-            >
-              <!-- 图标 -->
-              <div class="sc-context-menu__item-icon">
-                <IconifyIconOnline v-if="item.icon" :icon="item.icon" />
-              </div>
-
-              <!-- 标题 -->
-              <div class="sc-context-menu__item-title">
-                {{ item.name }}
-              </div>
-            </li>
-          </template>
-        </ul>
-      </div>
+            <!-- 标题 -->
+            <div class="sc-context-menu__item-title">
+              {{ item.name }}
+            </div>
+          </li>
+        </template>
+      </ul>
     </div>
   </Teleport>
 </template>
@@ -107,10 +110,10 @@ const subMenuHoverTimer = ref(null);
 const subMenuLeaveTimer = ref(null);
 
 // 处理菜单项悬停
-const handleMenuItemHover = (item, event) => {
+const handleMenuItemHover = async (item, event) => {
   if (item.disabled) return;
 
-  // 清除定时器
+  // 清除隐藏定时器
   if (subMenuLeaveTimer.value) {
     clearTimeout(subMenuLeaveTimer.value);
     subMenuLeaveTimer.value = null;
@@ -118,51 +121,35 @@ const handleMenuItemHover = (item, event) => {
 
   // 如果有子菜单，显示子菜单
   if (item.children && item.children.length) {
-    // 设置延迟，避免频繁显示
-    subMenuHoverTimer.value = setTimeout(() => {
-      activeParentItem.value = item;
-      subMenuItems.value = item.children;
+    // 清除之前的显示定时器
+    if (subMenuHoverTimer.value) {
+      clearTimeout(subMenuHoverTimer.value);
+      subMenuHoverTimer.value = null;
+    }
 
-      // 计算子菜单位置
-      let menuItemEl = event.currentTarget;
+    // 设置当前激活的父菜单项和子菜单项
+    activeParentItem.value = item;
+    subMenuItems.value = item.children;
 
-      // 如果currentTarget为空，尝试从event.target向上查找菜单项元素
-      if (!menuItemEl) {
-        menuItemEl = event.target;
-        // 向上查找，直到找到具有sc-context-menu__item类的元素
-        while (menuItemEl && !menuItemEl.classList.contains("sc-context-menu__item")) {
-          menuItemEl = menuItemEl.parentElement;
-        }
+    // 使用 nextTick 确保 DOM 更新后再计算位置和显示
+    await nextTick();
 
-        // 如果仍然找不到有效元素，使用固定偏移
-        if (!menuItemEl) {
-          subMenuLeft.value = left.value + 160; // 主菜单宽度
-          subMenuTop.value = event.clientY;
+    // 计算子菜单位置
+    let menuItemEl = event?.currentTarget;
 
-          // 检查是否超出视口右侧
-          const viewport = {
-            width: window.innerWidth,
-            height: window.innerHeight
-          };
-
-          // 估算子菜单宽度
-          const subMenuWidth = 160;
-
-          if (subMenuLeft.value + subMenuWidth > viewport.width) {
-            // 如果右侧没有足够空间，将子菜单放在左侧
-            subMenuLeft.value = left.value - subMenuWidth;
-          }
-
-          // 显示子菜单
-          subMenuVisible.value = true;
-          return;
-        }
+    // 如果currentTarget为空，尝试从event.target向上查找菜单项元素
+    if (!menuItemEl && event?.target) {
+      menuItemEl = event.target;
+      // 向上查找，直到找到具有sc-context-menu__item类的元素
+      while (menuItemEl && !menuItemEl.classList?.contains("sc-context-menu__item")) {
+        menuItemEl = menuItemEl.parentElement;
       }
+    }
 
-      const rect = menuItemEl.getBoundingClientRect();
-
-      subMenuLeft.value = rect.right + 5;
-      subMenuTop.value = rect.top;
+    // 如果仍然找不到有效元素，使用固定偏移
+    if (!menuItemEl) {
+      subMenuLeft.value = left.value + 160; // 主菜单宽度
+      subMenuTop.value = event?.clientY || top.value;
 
       // 检查是否超出视口右侧
       const viewport = {
@@ -175,12 +162,42 @@ const handleMenuItemHover = (item, event) => {
 
       if (subMenuLeft.value + subMenuWidth > viewport.width) {
         // 如果右侧没有足够空间，将子菜单放在左侧
-        subMenuLeft.value = rect.left - subMenuWidth - 5;
+        subMenuLeft.value = left.value - subMenuWidth;
       }
 
       // 显示子菜单
       subMenuVisible.value = true;
-    }, 100);
+      return;
+    }
+
+    const rect = menuItemEl.getBoundingClientRect();
+
+    subMenuLeft.value = rect.right + 5;
+    subMenuTop.value = rect.top;
+
+    // 检查是否超出视口右侧
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight
+    };
+
+    // 估算子菜单宽度
+    const subMenuWidth = 160;
+
+    if (subMenuLeft.value + subMenuWidth > viewport.width) {
+      // 如果右侧没有足够空间，将子菜单放在左侧
+      subMenuLeft.value = rect.left - subMenuWidth - 5;
+    }
+
+    // 检查是否超出视口底部
+    const estimatedSubMenuHeight = item.children.length * 32 + 10; // 估算子菜单高度
+    if (subMenuTop.value + estimatedSubMenuHeight > viewport.height) {
+      // 如果底部空间不足，向上调整
+      subMenuTop.value = Math.max(5, viewport.height - estimatedSubMenuHeight - 5);
+    }
+
+    // 显示子菜单
+    subMenuVisible.value = true;
   } else {
     // 如果没有子菜单，隐藏当前子菜单
     hideSubMenu();
@@ -189,48 +206,56 @@ const handleMenuItemHover = (item, event) => {
 
 // 处理菜单项鼠标离开
 const handleMenuItemLeave = (item, event) => {
-  // 清除悬停定时器
-  if (subMenuHoverTimer.value) {
-    clearTimeout(subMenuHoverTimer.value);
-    subMenuHoverTimer.value = null;
-  }
-
-  // 设置延迟，避免移动到子菜单过程中隐藏子菜单
-  subMenuLeaveTimer.value = setTimeout(() => {
-    // 检查鼠标是否移动到子菜单区域
-    if (subMenuVisible.value) {
-      const subMenuEl = document.querySelector(".sc-context-menu--submenu");
-      if (subMenuEl) {
-        const subMenuRect = subMenuEl.getBoundingClientRect();
-        const mouseX = event.clientX;
-        const mouseY = event.clientY;
-
-        // 检查鼠标是否在子菜单元素上或旁边的过渡区域
-        const padding = 10; // 过渡区域的大小
-
-        // 如果鼠标坐标数据可用
-        if (mouseX !== undefined && mouseY !== undefined) {
-          if (mouseX >= subMenuRect.left - padding && mouseX <= subMenuRect.right + padding && mouseY >= subMenuRect.top - padding && mouseY <= subMenuRect.bottom + padding) {
-            // 鼠标正在移动到子菜单，不隐藏
-            return;
-          }
-        } else {
-          // 如果鼠标坐标不可用，使用一个更安全的判断方法
-          // 获取当前悬浮的元素
-          const hoveredElement = document.querySelectorAll(":hover");
-          for (const el of hoveredElement) {
+  // 如果当前菜单项有子菜单，设置延迟隐藏
+  if (item && item.children && item.children.length) {
+    // 设置延迟，避免移动到子菜单过程中隐藏子菜单
+    subMenuLeaveTimer.value = setTimeout(() => {
+      // 检查鼠标是否移动到子菜单区域
+      if (subMenuVisible.value) {
+        const subMenuEl = document.querySelector(".sc-context-menu--submenu");
+        if (subMenuEl) {
+          // 使用更可靠的方法检查鼠标是否在子菜单上
+          const hoveredElements = document.querySelectorAll(":hover");
+          let isHoveringSubMenu = false;
+          
+          for (const el of hoveredElements) {
             if (subMenuEl.contains(el)) {
-              // 当前悬浮在子菜单内部，不隐藏
-              return;
+              isHoveringSubMenu = true;
+              break;
             }
+          }
+
+          // 如果鼠标坐标可用，也检查坐标
+          if (!isHoveringSubMenu && event?.clientX !== undefined && event?.clientY !== undefined) {
+            const subMenuRect = subMenuEl.getBoundingClientRect();
+            const padding = 10; // 过渡区域的大小
+            
+            if (event.clientX >= subMenuRect.left - padding && 
+                event.clientX <= subMenuRect.right + padding && 
+                event.clientY >= subMenuRect.top - padding && 
+                event.clientY <= subMenuRect.bottom + padding) {
+              isHoveringSubMenu = true;
+            }
+          }
+
+          // 如果鼠标在子菜单上，不隐藏
+          if (isHoveringSubMenu) {
+            return;
           }
         }
       }
-    }
 
-    // 隐藏子菜单
-    hideSubMenu();
-  }, 100);
+      // 隐藏子菜单
+      hideSubMenu();
+    }, 150); // 增加延迟时间，给用户更多时间移动到子菜单
+  } else {
+    // 如果当前菜单项没有子菜单，立即隐藏（如果有其他菜单项的子菜单显示）
+    if (subMenuVisible.value && (!item || !item.children || !item.children.length)) {
+      subMenuLeaveTimer.value = setTimeout(() => {
+        hideSubMenu();
+      }, 150);
+    }
+  }
 };
 
 // 隐藏子菜单
@@ -341,6 +366,21 @@ const handleDocumentClick = event => {
 
   // 否则关闭菜单
   close();
+};
+
+// 处理子菜单悬停，确保子菜单在鼠标悬停时保持显示
+const handleSubMenuHover = () => {
+  // 清除隐藏定时器
+  if (subMenuLeaveTimer.value) {
+    clearTimeout(subMenuLeaveTimer.value);
+    subMenuLeaveTimer.value = null;
+  }
+  
+  // 确保子菜单可见
+  if (!subMenuVisible.value && activeParentItem.value && activeParentItem.value.children) {
+    subMenuItems.value = activeParentItem.value.children;
+    subMenuVisible.value = true;
+  }
 };
 
 // 计算菜单的最佳位置
