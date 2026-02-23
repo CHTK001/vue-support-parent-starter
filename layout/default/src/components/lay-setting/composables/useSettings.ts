@@ -54,6 +54,9 @@ export interface SettingsState {
   doubleNavAutoExpandAll: boolean;
   // AI 助手
   aiChatTheme: string;
+  // AI 对话功能
+  useLocalModel: boolean;
+  localModelId: string;
   // 主题管理
   enableFestivalTheme: boolean;
   // 消息弹窗
@@ -113,6 +116,8 @@ export function useSettings() {
     doubleNavExpandMode: $storage.configure?.doubleNavExpandMode ?? "auto",
     doubleNavAutoExpandAll: $storage.configure?.doubleNavAutoExpandAll ?? true,
     aiChatTheme: $storage.configure?.aiChatTheme ?? "default",
+    useLocalModel: $storage.configure?.useLocalModel ?? false,
+    localModelId: $storage.configure?.localModelId ?? "onnx-community/Llama-3.2-1B-Instruct-ONNX",
     enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? getConfig().EnableFestivalTheme ?? true,
     messagePopupEnabled: $storage.configure?.messagePopupEnabled ?? getConfig().MessagePopupEnabled ?? true,
     messagePopupPosition: $storage.configure?.messagePopupPosition ?? "top-right",
@@ -370,6 +375,26 @@ export function useSettings() {
     });
   }
 
+  // ===== AI 对话功能设置 =====
+  
+  function setUseLocalModel(value: boolean): void {
+    settings.useLocalModel = value;
+    saveToStorage("useLocalModel", value);
+    emitter.emit("aiLocalModelChange", {
+      useLocalModel: value,
+      localModelId: settings.localModelId,
+    });
+  }
+
+  function setLocalModelId(value: string): void {
+    settings.localModelId = value;
+    saveToStorage("localModelId", value);
+    emitter.emit("aiLocalModelChange", {
+      useLocalModel: settings.useLocalModel,
+      localModelId: value,
+    });
+  }
+
   // ===== 重置功能 =====
   
   function resetToDefault(): void {
@@ -429,6 +454,9 @@ export function useSettings() {
     setFontEncryptionChinese,
     setFontEncryptionGlobal,
     setFontEncryptionOcrNoise,
+    // AI 对话功能
+    setUseLocalModel,
+    setLocalModelId,
     // 重置
     resetToDefault,
     // 工具方法

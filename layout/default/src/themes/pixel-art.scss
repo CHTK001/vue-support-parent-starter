@@ -1,25 +1,184 @@
-/**
- * 像素风主题
- * @description 像素风格主题，复古游戏体验
- */
-html[data-theme='pixel-art'] {
-  --el-color-primary: #ff00ff;
-  --el-border-radius-base: 0px;
-  --el-border-radius-small: 0px;
-  --el-border-radius-round: 0px;
-  --el-border-radius-circle: 0px;
+@font-face {
+  font-family: "Press Start 2P";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/PressStart2P-Regular.ttf") format("truetype");
+}
 
-  /* 字体设置 - 优先使用像素字体，没有则使用等宽字体 */
-  font-family: "Press Start 2P", "Courier New", Courier, monospace;
+/* 中文像素字体 */
+@font-face {
+  font-family: "Pixel CN";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/PixelCN-Regular.ttf") format("truetype");
+}
 
-  /* 强制无圆角 */
-  * {
-    border-radius: 0 !important;
+/* 应用像素字体到整个页面 */
+html[data-theme="pixel-art"] {
+  font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+}
+
+html[data-theme="pixel-art"] body,
+html[data-theme="pixel-art"] body * {
+  font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+}
+
+/* 确保二级导航也应用像素字体 */
+html[data-theme="pixel-art"] {
+  // 内联展开的二级导航
+  .el-sub-menu .el-menu .el-menu-item,
+  .el-sub-menu .el-sub-menu__title {
+    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
   }
   
-  /* 简单的像素边框效果 */
-  .el-button, .el-card, .el-input__wrapper {
-    box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.2) !important;
-    border: 2px solid #000 !important;
+  // 弹出层的二级导航
+  .el-menu--popup,
+  .el-menu--popup-container .el-menu--popup,
+  .pure-scrollbar.el-menu--vertical {
+    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+    
+    .el-menu-item,
+    .el-sub-menu__title {
+      font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+      
+      span, .el-text {
+        font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+      }
+    }
+  }
+  
+  // 双栏导航的二级导航
+  .sub-menu-list .sub-menu-item {
+    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+  }
+  
+  // 悬停导航的二级导航
+  .sub-menu-popup,
+  .sub-menu-container,
+  .sub-menu-content {
+    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+    
+    // 二级菜单容器样式
+    .sub-menu-container {
+      background: #1a1a2e !important;
+      border: 2px solid #4a4a6e !important;
+      box-shadow: 
+        0 0 0 2px #2a2a4e,
+        4px 4px 0 0 #0a0a1e !important;
+      border-radius: 0 !important;
+      
+      // 像素艺术风格的边框效果
+      &::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(90deg, #6a6a8e 0%, #4a4a6e 50%, #6a6a8e 100%);
+        z-index: -1;
+        border-radius: 0;
+      }
+    }
+    
+    // 菜单项样式
+    .menu-item,
+    .favorite-menu-item {
+      font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+      background: #2a2a4e !important;
+      border: 2px solid #4a4a6e !important;
+      color: #e0e0e0 !important;
+      border-radius: 0 !important;
+      box-shadow: 2px 2px 0 0 #0a0a1e !important;
+      transition: all 0.1s linear !important;
+      
+      span {
+        font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+        text-shadow: 1px 1px 0 #0a0a1e !important;
+      }
+      
+      &:hover {
+        background: #3a3a5e !important;
+        border-color: #6a6a8e !important;
+        transform: translate(-2px, -2px) !important;
+        box-shadow: 4px 4px 0 0 #0a0a1e !important;
+      }
+      
+      &.is-active {
+        background: #4a4a8e !important;
+        border-color: #8a8aae !important;
+        color: #fff !important;
+        box-shadow: 
+          2px 2px 0 0 #0a0a1e,
+          inset 0 0 10px rgba(138, 138, 174, 0.3) !important;
+      }
+    }
+    
+    // 列标题样式
+    .column-title,
+    .vertical-group-title {
+      font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+      color: #8a8aae !important;
+      border-bottom: 2px solid #4a4a6e !important;
+      text-shadow: 1px 1px 0 #0a0a1e !important;
+      border-radius: 0 !important;
+    }
+    
+    // 收藏按钮样式
+    .favorite-btn {
+      background: #2a2a4e !important;
+      border: 2px solid #4a4a6e !important;
+      border-radius: 0 !important;
+      box-shadow: 2px 2px 0 0 #0a0a1e !important;
+      
+      svg {
+        filter: drop-shadow(1px 1px 0 #0a0a1e) !important;
+      }
+      
+      &:hover {
+        background: #3a3a5e !important;
+        border-color: #6a6a8e !important;
+        transform: translate(-1px, -1px) !important;
+        box-shadow: 3px 3px 0 0 #0a0a1e !important;
+      }
+      
+      &.is-favorited {
+        background: #6a6a4e !important;
+        border-color: #8a8a6e !important;
+      }
+    }
+    
+    // 空收藏提示
+    .empty-favorites {
+      font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+      color: #6a6a8e !important;
+      
+      .empty-icon {
+        filter: drop-shadow(2px 2px 0 #0a0a1e) !important;
+      }
+      
+      p {
+        text-shadow: 1px 1px 0 #0a0a1e !important;
+      }
+    }
+    
+    // 菜单项包装器
+    .menu-item-wrapper {
+      border-radius: 0 !important;
+    }
+    
+    // 横向和纵向布局容器
+    .horizontal-menu-container,
+    .vertical-columns-layout,
+    .mixed-layout-container {
+      border-radius: 0 !important;
+    }
+    
+    // 菜单列
+    .menu-column {
+      border-radius: 0 !important;
+    }
   }
 }

@@ -5,7 +5,9 @@
 
 /* 容器 - 暗紫色背景 */
 html[data-skin="halloween"] .tags-view,
-html[data-skin="halloween"] .shadow-tab {
+html.theme-halloween .tags-view,
+html[data-skin="halloween"] .shadow-tab,
+html.theme-halloween .shadow-tab {
   background: linear-gradient(180deg, 
     #1a0026 0%, 
     #2c003e 50%,
@@ -192,4 +194,85 @@ html[data-skin="halloween"] .halloween-item .tag-icon {
 html[data-skin="halloween"] .scroll-item .schedule-active,
 html[data-skin="halloween"] .halloween-item .schedule-active {
   display: none !important;
+}
+
+/* ==================== 右侧功能按钮下拉菜单 ==================== */
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu {
+  background: linear-gradient(180deg, rgba(26, 0, 38, 0.98), rgba(44, 0, 62, 0.96)) !important;
+  border: 1px solid #76ff03 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(118, 255, 3, 0.2) !important;
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  padding: 6px !important;
+  position: relative;
+}
+
+/* 顶部发光线 */
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #76ff03 20%, #b39ddb 50%, #76ff03 80%, transparent);
+  box-shadow: 0 0 10px rgba(118, 255, 3, 0.5);
+  z-index: 1;
+}
+
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item {
+  color: #b39ddb !important;
+  background: rgba(49, 27, 146, 0.6) !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  margin: 2px 0 !important;
+  padding: 8px 16px !important;
+  transition: all 0.25s ease !important;
+  position: relative;
+  z-index: 1;
+}
+
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item .el-icon,
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item svg {
+  color: #76ff03 !important;
+  margin-right: 8px;
+}
+
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) {
+  background: rgba(118, 255, 3, 0.15) !important;
+  border-color: rgba(118, 255, 3, 0.4) !important;
+  color: #76ff03 !important;
+  box-shadow: 0 2px 8px rgba(118, 255, 3, 0.3), inset 0 0 10px rgba(118, 255, 3, 0.1) !important;
+}
+
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) .el-icon,
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) svg {
+  color: #76ff03 !important;
+  text-shadow: 0 0 8px rgba(118, 255, 3, 0.8);
+}
+
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled {
+  color: rgba(179, 157, 219, 0.4) !important;
+  background: rgba(49, 27, 146, 0.3) !important;
+  cursor: not-allowed;
+}
+
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled .el-icon,
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled svg {
+  color: rgba(118, 255, 3, 0.4) !important;
+}
+
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item--divided {
+  margin-top: 6px !important;
+}
+
+html[data-skin="halloween"] .tag-function-dropdown-popper .el-dropdown-menu__item--divided::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(118, 255, 3, 0.3), transparent);
 }

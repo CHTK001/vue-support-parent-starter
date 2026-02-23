@@ -89,4 +89,56 @@ $ice-border: rgba(78, 168, 222, 0.3);
     color: $ice-primary;
   }
 }
+
+// 动画效果
+@keyframes newYearShimmer {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba($ice-primary, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba($ice-primary, 0.6), 0 0 30px rgba($ice-primary, 0.3);
+  }
+}
+
+.new-year-breadcrumb {
+  .breadcrumb-link {
+    &.is-current {
+      animation: newYearShimmer 2s ease-in-out infinite;
+    }
+  }
+  
+  .home-icon {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      animation: newYearShimmer 1s ease-in-out infinite;
+    }
+  }
+}
+
+// 响应式适配
+@media (max-width: 768px) {
+  .new-year-breadcrumb {
+    padding: 0 8px;
+    
+    .home-icon {
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+    }
+
+    .breadcrumb-link {
+      padding: 4px 8px;
+      
+      .breadcrumb-text {
+        font-size: 11px;
+        max-width: 70px;
+      }
+
+      .breadcrumb-icon {
+        font-size: 13px;
+      }
+    }
+  }
+}
 </style>

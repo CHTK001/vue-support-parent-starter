@@ -1,0 +1,761 @@
+// 全局样式：主题切换优化
+:root {
+  // 主题切换速度控制
+  --theme-transition-duration: 0.15s;
+  --theme-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// 主题切换时禁用所有transition，避免延迟
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
+  animation: none !important;
+}
+
+// 优化Element Plus组件的主题切换性能
+.el-button,
+.el-input,
+.el-select,
+.el-card,
+.el-dialog,
+.el-drawer,
+.el-menu,
+.el-table,
+.el-form-item {
+  transition:
+    background-color var(--theme-transition-duration)
+      var(--theme-transition-timing),
+    border-color var(--theme-transition-duration) var(--theme-transition-timing),
+    color var(--theme-transition-duration) var(--theme-transition-timing) !important;
+}
+
+// 确保所有使用CSS变量的元素都能快速响应主题变化
+[style*="--el-"],
+[class*="el-"] {
+  transition:
+    background-color var(--theme-transition-duration)
+      var(--theme-transition-timing),
+    border-color var(--theme-transition-duration) var(--theme-transition-timing),
+    color var(--theme-transition-duration) var(--theme-transition-timing);
+}
+
+.modern-input-number .el-input__wrapper {
+  border-radius: var(--el-border-radius-base, 8px) !important;
+}
+
+// 响应式设计优化
+@media (max-width: 768px) {
+  .modern-setting-container {
+    padding: 16px;
+    width: 100%;
+    border-radius: 16px;
+  }
+
+  .setting-section {
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 14px;
+  }
+
+  .section-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      margin-right: 12px;
+    }
+
+    .section-title {
+      font-size: 16px;
+    }
+  }
+
+  .pure-theme {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 12px;
+    padding: 8px;
+
+    li {
+      height: 430px;
+      border-radius: 14px;
+    }
+  }
+
+  .theme-color-grid {
+    grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
+    gap: 8px;
+    padding: 6px;
+  }
+
+  .theme-color-item {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+
+    &:hover {
+      transform: translateY(-2px) scale(1.05);
+    }
+
+    &.is-selected {
+      transform: translateY(-1px) scale(1.03);
+    }
+  }
+
+  .switch-grid {
+    gap: 8px;
+  }
+
+  .switch-item {
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modern-setting-container {
+    padding: 12px;
+  }
+
+  .setting-section {
+    padding: 16px;
+  }
+
+  .pure-theme {
+    grid-template-columns: repeat(1, 1fr);
+    gap: 10px;
+
+    li {
+      height: 430px;
+    }
+  }
+
+  .theme-color-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+}
+
+// 卡片开关网格样式
+.switch-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+
+  &.single-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+// 卡片开关项样式
+.switch-card-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  background: var(--el-fill-color-lighter);
+  border: 2px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 90px;
+  overflow: hidden;
+
+  &:hover {
+    background: var(--el-fill-color-light);
+    border-color: var(--el-color-primary-light-5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+  }
+
+  &.is-active {
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary);
+    box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.2);
+
+    .switch-card-icon {
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-8);
+    }
+
+    .switch-card-label {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+.switch-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  font-size: 20px;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.switch-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.switch-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  transition: color 0.3s ease;
+}
+
+.switch-card-desc {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+}
+
+// 深色主题适配
+html.dark {
+  .switch-card-item {
+    background: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+
+    &:hover {
+      background: var(--el-fill-color);
+      border-color: var(--el-color-primary-light-3);
+    }
+
+    &.is-active {
+      background: rgba(var(--el-color-primary-rgb), 0.15);
+      border-color: var(--el-color-primary);
+
+      .switch-card-icon {
+        background: rgba(var(--el-color-primary-rgb), 0.2);
+      }
+    }
+  }
+
+  .switch-card-icon {
+    background: var(--el-fill-color-darker);
+  }
+}
+
+// 响应式适配
+@media (max-width: 480px) {
+  .switch-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .switch-card-item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    min-height: auto;
+
+    .switch-card-icon {
+      margin-bottom: 0;
+    }
+
+    .switch-card-content {
+      align-items: flex-start;
+    }
+  }
+}
+
+// 节日装饰提示样式
+.festival-decoration-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-info-rgb), 0.08) 0%,
+    rgba(var(--el-color-info-rgb), 0.04) 100%
+  );
+  border-left: 3px solid var(--el-color-info);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  line-height: 1.6;
+  transition: all 0.3s ease;
+
+  .tip-icon {
+    flex-shrink: 0;
+    font-size: 16px;
+    color: var(--el-color-info);
+    margin-top: 2px;
+  }
+
+  span {
+    flex: 1;
+  }
+
+  &:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-info-rgb), 0.12) 0%,
+      rgba(var(--el-color-info-rgb), 0.06) 100%
+    );
+  }
+}
+
+// 深色主题下的节日装饰提示
+html.dark {
+  .festival-decoration-tip {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-info-rgb), 0.15) 0%,
+      rgba(var(--el-color-info-rgb), 0.08) 100%
+    );
+
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-info-rgb), 0.2) 0%,
+        rgba(var(--el-color-info-rgb), 0.12) 100%
+      );
+    }
+  }
+}
+
+// 自动主题状态卡片样式
+.auto-theme-status {
+  margin-top: 16px;
+}
+
+.status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-success-rgb), 0.08) 0%,
+    rgba(var(--el-color-success-rgb), 0.04) 100%
+  );
+  border: 1px solid rgba(var(--el-color-success-rgb), 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-success-rgb), 0.12) 0%,
+      rgba(var(--el-color-success-rgb), 0.06) 100%
+    );
+    border-color: rgba(var(--el-color-success-rgb), 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.15);
+  }
+
+  .status-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-success) 0%,
+      var(--el-color-success-light-3) 100%
+    );
+    color: #fff;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.3);
+  }
+
+  .status-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .status-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  .status-desc {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.5;
+  }
+
+  .status-current {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-top: 4px;
+    background: rgba(var(--el-color-success-rgb), 0.08);
+    border-radius: 8px;
+    font-size: 13px;
+
+    .label {
+      color: var(--el-text-color-secondary);
+    }
+
+    .value {
+      font-weight: 600;
+      color: var(--el-color-success);
+    }
+  }
+}
+
+// 深色主题下的自动主题状态
+html.dark {
+  .status-card {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-success-rgb), 0.15) 0%,
+      rgba(var(--el-color-success-rgb), 0.08) 100%
+    );
+
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-success-rgb), 0.2) 0%,
+        rgba(var(--el-color-success-rgb), 0.12) 100%
+      );
+    }
+
+    .status-current {
+      background: rgba(var(--el-color-success-rgb), 0.15);
+    }
+  }
+}
+
+// ==================== AI 助手皮肤设置 ====================
+.ai-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.ai-theme-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 2px solid var(--el-border-color-light);
+  background: var(--el-bg-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: var(--el-border-color);
+  }
+
+  &.is-active {
+    border-color: var(--el-color-primary);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+  }
+}
+
+.ai-theme-preview {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+
+  .ai-theme-bubble {
+    position: absolute;
+    width: 16px;
+    height: 12px;
+    border-radius: 6px;
+    top: 4px;
+    right: 2px;
+  }
+
+  .ai-theme-bot {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+  }
+}
+
+// 各主题颜色
+.ai-theme-default {
+  .ai-theme-preview {
+    background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 0.1),
+      rgba(118, 75, 162, 0.1)
+    );
+  }
+  .ai-theme-bubble {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+  }
+  .ai-theme-bot {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+  }
+}
+
+.ai-theme-blue {
+  .ai-theme-preview {
+    background: linear-gradient(
+      135deg,
+      rgba(0, 198, 251, 0.1),
+      rgba(0, 91, 234, 0.1)
+    );
+  }
+  .ai-theme-bubble {
+    background: linear-gradient(135deg, #00c6fb, #005bea);
+  }
+  .ai-theme-bot {
+    background: linear-gradient(135deg, #00c6fb, #005bea);
+  }
+}
+
+.ai-theme-green {
+  .ai-theme-preview {
+    background: linear-gradient(
+      135deg,
+      rgba(17, 153, 142, 0.1),
+      rgba(56, 239, 125, 0.1)
+    );
+  }
+  .ai-theme-bubble {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+  }
+  .ai-theme-bot {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+  }
+}
+
+.ai-theme-orange {
+  .ai-theme-preview {
+    background: linear-gradient(
+      135deg,
+      rgba(240, 147, 251, 0.1),
+      rgba(245, 87, 108, 0.1)
+    );
+  }
+  .ai-theme-bubble {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+  }
+  .ai-theme-bot {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+  }
+}
+
+.ai-theme-pink {
+  .ai-theme-preview {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 154, 158, 0.1),
+      rgba(254, 207, 239, 0.1)
+    );
+  }
+  .ai-theme-bubble {
+    background: linear-gradient(135deg, #ff9a9e, #fecfef);
+  }
+  .ai-theme-bot {
+    background: linear-gradient(135deg, #ff9a9e, #fecfef);
+  }
+}
+
+.ai-theme-dark {
+  .ai-theme-preview {
+    background: linear-gradient(
+      135deg,
+      rgba(67, 67, 67, 0.1),
+      rgba(0, 0, 0, 0.1)
+    );
+  }
+  .ai-theme-bubble {
+    background: linear-gradient(135deg, #434343, #000000);
+  }
+  .ai-theme-bot {
+    background: linear-gradient(135deg, #434343, #000000);
+  }
+}
+
+.ai-theme-label {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+}
+
+.ai-theme-check {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .ai-theme-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+// ==================== AI 对话测试区域样式 ====================
+.ai-chat-test-container {
+  border: 1px solid var(--el-border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--el-bg-color);
+}
+
+.ai-chat-test-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--el-bg-color-page);
+  border-bottom: 1px solid var(--el-border-color);
+  
+  .test-icon {
+    font-size: 18px;
+    color: var(--el-color-primary);
+  }
+  
+  .test-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+}
+
+.ai-chat-test-content {
+  padding: 16px;
+  background: var(--el-bg-color);
+  min-height: 400px;
+  max-height: 600px;
+  overflow: hidden;
+  
+  :deep(.inline-chat) {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    
+    .ai-fab {
+      display: none !important;
+    }
+    
+    .ai-chat-window {
+      position: relative !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      border-radius: 12px;
+      box-shadow: none;
+      border: 1px solid var(--el-border-color);
+      display: block !important;
+      transform: none !important;
+      opacity: 1 !important;
+      bottom: auto !important;
+      right: auto !important;
+    }
+  }
+}
+
+.setting-item {
+  .setting-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    
+    .setting-item-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+  }
+  
+  .setting-item-content {
+    .setting-item-tip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      
+      .tip-icon {
+        font-size: 14px;
+        color: var(--el-color-info);
+      }
+    }
+  }
+}
+
+// ==================== Pixel-Art 主题下的 lay-setting 像素风样式 ====================
+:global(html[data-skin="pixel-art"]),
+:global(html.theme-pixel-art) {
+  .modern-setting-container {
+    background: var(--el-bg-color);
+    border-radius: 0;
+    box-shadow: none;
+    border: 4px solid #000;
+    image-rendering: pixelated;
+  }
+
+  .setting-section {
+    background: var(--el-bg-color-overlay);
+    border-radius: 0;
+    border: 3px solid #000;
+    box-shadow: none;
+    padding: 20px;
+  }
+
+  .section-header {
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000;
+
+    .section-title {
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  }
+
+  .group-title {
+    border-left: 3px solid #000;
+    padding-left: 8px;
+  }
+
+  .el-button {
+    border-radius: 0;
+    box-shadow: 0 0 0 2px #000;
+  }
+
+  .switch-card-item {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .theme-color-item {
+    border-radius: 0;
+  }
+}

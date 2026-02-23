@@ -116,6 +116,178 @@ onMounted(() => {
         color: var(--xmas-white);
       }
     }
+    
+    // 二级导航样式（内联展开）
+    .el-sub-menu {
+      .el-sub-menu__title {
+        color: var(--xmas-white) !important;
+        
+        &:hover {
+          background: rgba(211, 47, 47, 0.15) !important;
+          color: var(--xmas-gold) !important;
+        }
+      }
+      
+      &.is-opened .el-sub-menu__title {
+        color: var(--xmas-gold) !important;
+      }
+      
+      .el-menu {
+        background: rgba(13, 61, 18, 0.8) !important;
+        
+        .el-menu-item {
+          color: var(--xmas-white) !important;
+          background: transparent !important;
+          border: none !important;
+          margin: 2px 8px !important;
+          
+          &:hover {
+            background: rgba(211, 47, 47, 0.2) !important;
+            color: var(--xmas-gold) !important;
+          }
+          
+          &.is-active {
+            background: linear-gradient(135deg, var(--xmas-red), var(--xmas-red-light)) !important;
+            color: var(--xmas-white) !important;
+            border-left: 3px solid var(--xmas-gold) !important;
+            
+            .el-icon, svg, span, div {
+              color: var(--xmas-white) !important;
+            }
+          }
+          
+          .el-icon, svg {
+            color: var(--xmas-gold) !important;
+          }
+        }
+      }
+    }
+  }
+}
+</style>
+
+<style lang="scss">
+// 二级导航弹出层全局样式（teleport 到 body）
+html[data-skin="christmas"] {
+  $xmas-green: #144923;
+  $xmas-green-dark: #0d3316;
+  $xmas-red: #d32f2f;
+  $xmas-red-light: #ef5350;
+  $xmas-gold: #ffb300;
+  $xmas-white: #ffffff;
+
+  .pure-scrollbar.el-menu--vertical,
+  .el-menu--popup-container .el-menu--popup,
+  .el-menu--popup {
+    background: linear-gradient(135deg, rgba($xmas-green-dark, 0.98) 0%, rgba($xmas-green, 0.98) 100%) !important;
+    border: 2px solid rgba($xmas-gold, 0.4) !important;
+    border-radius: 8px !important;
+    box-shadow:
+      0 0 25px rgba($xmas-gold, 0.15),
+      0 15px 40px rgba(0, 0, 0, 0.4) !important;
+    overflow: hidden !important;
+    padding: 6px !important;
+    position: relative;
+
+    // 顶部金色装饰线
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $xmas-gold 20%, $xmas-white 50%, $xmas-gold 80%, transparent);
+      z-index: 1;
+    }
+
+    .el-menu-item {
+      margin: 4px 6px !important;
+      padding: 0 16px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      border-radius: 8px !important;
+      background: linear-gradient(135deg, rgba($xmas-green-dark, 0.7) 0%, rgba($xmas-green, 0.7) 100%) !important;
+      border: 1.5px solid rgba($xmas-gold, 0.25) !important;
+      color: $xmas-white !important;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      position: relative;
+      z-index: 1;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba($xmas-red, 0.9) 0%, rgba($xmas-red-light, 0.9) 100%) !important;
+        color: $xmas-white !important;
+        border-color: rgba($xmas-gold, 0.5) !important;
+        transform: translateX(4px) !important;
+        box-shadow:
+          0 4px 12px rgba($xmas-red, 0.25),
+          0 2px 8px rgba($xmas-green, 0.4) !important;
+      }
+
+      .el-icon, svg, .sub-menu-icon {
+        color: $xmas-gold !important;
+        margin-right: 8px;
+      }
+
+      span, .el-text {
+        color: inherit !important;
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, $xmas-red 0%, $xmas-red-light 100%) !important;
+        color: $xmas-white !important;
+        border: 2px solid $xmas-gold !important;
+        font-weight: 700;
+        box-shadow:
+          0 4px 16px rgba($xmas-red, 0.5),
+          0 0 20px rgba($xmas-gold, 0.3) !important;
+
+        .el-icon, svg, .sub-menu-icon, span, .el-text {
+          color: $xmas-white !important;
+        }
+
+        &::after {
+          content: '';
+          position: absolute;
+          left: -2px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 70%;
+          background: linear-gradient(to bottom, $xmas-gold, $xmas-white, $xmas-gold);
+          border-radius: 2px;
+          box-shadow: 0 0 8px rgba($xmas-gold, 0.8);
+        }
+      }
+    }
+
+    .el-sub-menu__title {
+      margin: 4px 6px !important;
+      padding: 0 16px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      border-radius: 8px !important;
+      background: linear-gradient(135deg, rgba($xmas-green-dark, 0.7) 0%, rgba($xmas-green, 0.7) 100%) !important;
+      border: 1.5px solid rgba($xmas-gold, 0.25) !important;
+      color: $xmas-white !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba($xmas-red, 0.9) 0%, rgba($xmas-red-light, 0.9) 100%) !important;
+        color: $xmas-gold !important;
+        border-color: rgba($xmas-gold, 0.5) !important;
+        transform: translateX(4px) !important;
+      }
+
+      .el-icon, svg {
+        color: $xmas-gold !important;
+      }
+
+      .el-sub-menu__icon-arrow {
+        color: $xmas-gold !important;
+      }
+    }
   }
 }
 </style>

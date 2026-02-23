@@ -11,6 +11,7 @@ const themeComponents = {
   'mid-autumn': defineAsyncComponent(() => import("./themes/hover/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/hover/Christmas.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/hover/NewYear.vue")),
+  'future-tech': defineAsyncComponent(() => import("./themes/hover/FutureTech.vue")),
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultHover);

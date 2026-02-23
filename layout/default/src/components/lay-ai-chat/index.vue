@@ -8,8 +8,9 @@
  * @version 1.1.0
  */
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-import { ref, nextTick, computed, onUnmounted } from "vue";
+import { ref, nextTick, computed, onUnmounted, onMounted } from "vue";
 import AiChatIcon from "./components/AiChatIcon.vue";
+import { useTransformersAI } from "../../composables/useTransformersAI";
 
 const props = defineProps({
   /**
@@ -71,6 +72,30 @@ const props = defineProps({
   headers: {
     type: Object,
     default: () => ({}),
+  },
+  /**
+   * 是否启用本地 Transformers.js 模型
+   * 启用后将使用本地 ONNX 模型进行对话，而不是远程 API
+   */
+  useLocalModel: {
+    type: Boolean,
+    default: false,
+  },
+  /**
+   * 本地模型 ID
+   * 仅在 useLocalModel 为 true 时生效
+   */
+  localModelId: {
+    type: String,
+    default: "",
+  },
+  /**
+   * 是否默认打开聊天窗口
+   * 设置为 true 时，组件挂载后自动打开聊天窗口
+   */
+  defaultOpen: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -150,7 +175,7 @@ const themeColors = themeStyles;
 const emit = defineEmits(["send", "open", "close"]);
 
 // 聊天窗口是否展开
-const isOpen = ref(false);
+const isOpen = ref(props.defaultOpen);
 // 输入的消息
 const inputMessage = ref("");
 // 消息列表
@@ -174,6 +199,33 @@ let messageId = 0;
 // SSE控制器
 let controller: AbortController | null = null;
 
+// Transformers.js AI 实例
+const transformersAI = props.useLocalModel ? useTransformersAI(props.localModelId || undefined) : null;
+
+/**
+ * 组件挂载时加载模型（如果启用本地模型）
+ */
+onMounted(async () => {
+  if (props.useLocalModel && transformersAI) {
+    try {
+      await transformersAI.loadModel();
+      console.log('[AI][模型加载]', '本地模型加载成功');
+    } catch (error) {
+      console.error('[AI][模型加载失败]', error);
+    }
+  }
+  
+  // 如果设置了默认打开，则打开聊天窗口并添加欢迎消息
+  if (props.defaultOpen && isOpen.value) {
+    if (messages.value.length === 0) {
+      addBotMessage(themeStyles.value.welcome || props.welcomeMessage);
+    }
+    nextTick(() => {
+      inputRef.value?.focus();
+    });
+  }
+});
+
 /**
  * 组件卸载时清理
  */
@@ -181,6 +233,9 @@ onUnmounted(() => {
   if (controller) {
     controller.abort();
     controller = null;
+  }
+  if (transformersAI) {
+    transformersAI.unloadModel();
   }
 });
 
@@ -281,8 +336,11 @@ const sendMessage = async () => {
   isTyping.value = true;
   const loadingId = addBotMessage("", true);
 
-  // 如果设置了url，使用SSE流式对话
-  if (props.url) {
+  // 优先级：本地模型 > SSE API > 模拟回复
+  if (props.useLocalModel && transformersAI) {
+    await sendToLocalModel(content, loadingId);
+  } else if (props.url) {
+    // 如果设置了url，使用SSE流式对话
     await sendToAI(content, loadingId);
   } else {
     // 本地模拟回复
@@ -428,12 +486,71 @@ const simulateReply = async (msgId: number) => {
 };
 
 /**
+ * 使用本地 Transformers.js 模型生成回复
+ * @param prompt 用户输入
+ * @param msgId 消息ID
+ */
+const sendToLocalModel = async (prompt: string, msgId: number) => {
+  if (!transformersAI) {
+    isTyping.value = false;
+    const msg = messages.value.find((m) => m.id === msgId);
+    if (msg) {
+      msg.loading = false;
+      msg.content = "本地模型未启用";
+    }
+    return;
+  }
+
+  try {
+    // 流式生成
+    await transformersAI.generate(
+      prompt,
+      {
+        maxLength: 200,
+        temperature: 0.7,
+        topP: 0.9,
+      },
+      (token: string) => {
+        // 更新消息内容
+        const msg = messages.value.find((m) => m.id === msgId);
+        if (msg) {
+          msg.content += token;
+          scrollToBottom();
+        }
+      }
+    );
+
+    // 完成生成
+    isTyping.value = false;
+    const msg = messages.value.find((m) => m.id === msgId);
+    if (msg) {
+      msg.loading = false;
+    }
+    scrollToBottom();
+  } catch (err: unknown) {
+    console.error("[AI][本地模型生成失败]", err);
+    isTyping.value = false;
+    const msg = messages.value.find((m) => m.id === msgId);
+    if (msg) {
+      msg.loading = false;
+      if (!msg.content) {
+        const errorMessage = err instanceof Error ? err.message : "未知错误";
+        msg.content = `抱歉，生成失败：${errorMessage}`;
+      }
+    }
+  }
+};
+
+/**
  * 停止生成
  */
 const stopGeneration = () => {
   if (controller) {
     controller.abort();
     controller = null;
+  }
+  if (transformersAI) {
+    transformersAI.stopGeneration();
   }
   isTyping.value = false;
   // 标记最后一条消息为完成

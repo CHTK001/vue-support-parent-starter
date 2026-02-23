@@ -9,7 +9,8 @@ import BaseSetting from './BaseSetting.vue';
 </template>
 
 <style lang="scss">
-html[data-skin="spring-festival"] {
+html[data-skin="spring-festival"],
+html.theme-spring-festival {
   .right-panel {
     background: linear-gradient(180deg, #b71c1c 0%, #880e4f 100%) !important;
     border-left: 2px solid #ffd700 !important;
@@ -129,6 +130,76 @@ html[data-skin="spring-festival"] {
       }
       .el-input__inner {
         color: #fff !important;
+      }
+    }
+    
+    // Input 输入框
+    .el-input {
+      .el-input__wrapper {
+        background-color: rgba(0, 0, 0, 0.2) !important;
+        box-shadow: 0 0 0 1px #e57373 inset !important;
+        &.is-focus {
+          box-shadow: 0 0 0 1px #ffd700 inset !important;
+        }
+      }
+      .el-input__inner {
+        color: #fff !important;
+      }
+    }
+    
+    // Button 按钮
+    .el-button {
+      border-color: #e57373 !important;
+      color: #ffcdd2 !important;
+      
+      &:hover {
+        border-color: #ffd700 !important;
+        background: rgba(255, 215, 0, 0.1) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.el-button--primary {
+        background: #ffd700 !important;
+        border-color: #ffd700 !important;
+        color: #b71c1c !important;
+        
+        &:hover {
+          background: #ffecb3 !important;
+        }
+      }
+    }
+    
+    // 设置项容器
+    .setting-section {
+      border-bottom: 1px solid rgba(255, 215, 0, 0.2) !important;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+    
+    // 主题颜色项
+    .theme-color-item {
+      border: 2px solid rgba(255, 215, 0, 0.3) !important;
+      box-shadow: 0 0 5px rgba(255, 215, 0, 0.2) !important;
+      
+      &:hover {
+        border-color: rgba(255, 215, 0, 0.6) !important;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.4) !important;
+      }
+      
+      &.is-selected {
+        border-color: #ffd700 !important;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5) !important;
+      }
+    }
+    
+    // 开关卡片
+    .switch-card-item {
+      background: rgba(0, 0, 0, 0.2) !important;
+      border: 1px solid rgba(255, 215, 0, 0.3) !important;
+      
+      &:hover {
+        border-color: rgba(255, 215, 0, 0.6) !important;
+        background: rgba(255, 215, 0, 0.1) !important;
       }
     }
   }

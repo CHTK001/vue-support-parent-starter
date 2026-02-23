@@ -50,16 +50,6 @@ export const layoutThemes: LayoutTheme[] = [
     baseStyle: "light",
   },
   {
-    name: "8bit",
-    key: "8-bit",
-    description: "8-bit 风格主题，经典怀旧",
-    stylesheet: "8-bit.scss",
-    icon: "ri:grid-fill",
-    type: "beta",
-    color: "#00ff00",
-    baseStyle: "light",
-  },
-  {
     name: "未来科技",
     key: "future-tech",
     description: "未来科技主题，科幻感十足",

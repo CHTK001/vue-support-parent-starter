@@ -20,7 +20,7 @@
  * @version 2.0.0
  */
 
-import { computed, onMounted, ref, watch, defineAsyncComponent } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch, defineAsyncComponent } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { useThemeStore } from "../stores/themeStore";
 import { storeToRefs } from "pinia";
@@ -80,7 +80,6 @@ const applyThemeSkin = (themeKey: string): void => {
     "theme-new-year",
     "theme-halloween",
     "theme-pixel-art",
-    "theme-8-bit",
     "theme-future-tech",
   ];
 
@@ -103,6 +102,7 @@ const applyThemeSkin = (themeKey: string): void => {
 onMounted(() => {
   applyThemeSkin(currentTheme.value);
 });
+
 </script>
 
 <style scoped lang="scss">

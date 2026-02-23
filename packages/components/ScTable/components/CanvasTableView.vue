@@ -83,6 +83,7 @@ const columnWidths = ref([]);
 const devicePixelRatio = ref(window.devicePixelRatio || 1);
 // 检测深色主题
 const isDark = ref(document.documentElement.classList.contains("dark"));
+let wheelHandler = null;
 
 // 监听主题变化
 const themeObserver = new MutationObserver(mutations => {
@@ -712,12 +713,17 @@ onMounted(() => {
   });
 
   // 设置鼠标滚轮事件，支持水平滚动
-  bodyContainer.value?.addEventListener("wheel", e => {
+  wheelHandler = (e) => {
     if (e.shiftKey) {
       e.preventDefault();
-      bodyContainer.value.scrollLeft += e.deltaY;
+      e.stopPropagation();
+      const deltaX = e.deltaY !== 0 ? e.deltaY : e.deltaX;
+      if (bodyContainer.value) {
+        bodyContainer.value.scrollLeft += deltaX;
+      }
     }
-  });
+  };
+  bodyContainer.value?.addEventListener("wheel", wheelHandler, { passive: false });
 
   // 添加右键菜单事件监听
   bodyCanvas.value?.addEventListener("contextmenu", handleCanvasContextMenu);
@@ -731,7 +737,10 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", handleResize);
   headerCanvas.value?.removeEventListener("click", handleCellClick);
   bodyCanvas.value?.removeEventListener("click", handleRowClick);
-  bodyContainer.value?.removeEventListener("wheel", () => {});
+  if (bodyContainer.value && wheelHandler) {
+    bodyContainer.value.removeEventListener("wheel", wheelHandler);
+    wheelHandler = null;
+  }
 
   // 移除右键菜单事件监听
   bodyCanvas.value?.removeEventListener("contextmenu", handleCanvasContextMenu);

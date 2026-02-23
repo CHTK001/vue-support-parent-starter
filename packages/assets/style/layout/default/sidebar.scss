@@ -476,6 +476,39 @@
         padding: 0;
       }
     }
+
+    /* 确保纵向布局中父菜单显示展开箭头 */
+    .el-sub-menu__title {
+      position: relative;
+      padding-right: 32px; // 为箭头预留空间
+      
+      // 文字部分需要能够收缩，避免覆盖箭头
+      .menu-text,
+      span.flex-1 {
+        flex: 1;
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .el-sub-menu__icon-arrow {
+        display: inline-flex !important;
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        flex-shrink: 0;
+        transition: transform 0.3s ease;
+        color: inherit;
+        z-index: 1;
+      }
+    }
+
+    .el-sub-menu.is-opened > .el-sub-menu__title .el-sub-menu__icon-arrow {
+      transform: translateY(-50%) rotate(180deg);
+    }
   }
 
   /* ==================== 横向导航样式重新设计 ==================== */
@@ -889,6 +922,23 @@ body[layout="vertical"] {
 
   .sidebar-logo-container {
     background: var(--pure-theme-sidebar-logo);
+  }
+
+  /* 确保纵向布局中父菜单显示展开箭头 */
+  .sidebar-container {
+    .el-sub-menu__title {
+      .el-sub-menu__icon-arrow {
+        display: inline-flex !important;
+        margin-left: auto;
+        margin-right: 0;
+        transition: transform 0.3s ease;
+        color: inherit;
+      }
+    }
+
+    .el-sub-menu.is-opened > .el-sub-menu__title .el-sub-menu__icon-arrow {
+      transform: rotate(180deg);
+    }
   }
 
     .hideSidebar {

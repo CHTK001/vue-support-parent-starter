@@ -26,18 +26,23 @@
     </template>
 
     <!-- 列表布局 -->
-    <div v-else class="list-items">
+    <div v-else ref="listItemsContainer" class="list-items" :class="{ 'is-draggable': draggable, 'has-border': border }">
       <div
         v-for="(row, index) in currentDataList"
         :key="rowKey ? row[rowKey] : index"
         class="list-item"
         :class="[
-          { 'is-selected': isSelected(row), 'has-index': showIndex },
+          { 'is-selected': isSelected(row), 'has-index': showIndex, 'is-dragging': isDragging, 'has-border': border },
           `theme--${theme}`
         ]"
         @click="onRowClick(row)"
         @contextmenu.prevent="handleContextMenu($event, row)"
       >
+        <!-- 拖拽手柄 -->
+        <div v-if="draggable" class="list-item-drag-handle">
+          <IconifyIconOnline icon="ep:rank" />
+        </div>
+
         <!-- 序号 -->
         <div v-if="showIndex" class="list-item-index">
           <span class="index-number">{{ index + 1 }}</span>
@@ -87,6 +92,8 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 import { debounce } from "lodash-es";
 import { ElIcon, ElEmpty, ElCheckbox } from "element-plus";
+import Sortable from "sortablejs";
+import { IconifyIconOnline } from "@repo/components";
 import ContextMenu from "../plugins/ContextMenu.vue";
 
 // 定义props
@@ -140,22 +147,39 @@ const props = defineProps({
   total: {
     type: Number,
     default: 0
+  },
+  draggable: {
+    type: Boolean,
+    default: false
+  },
+  dragRowKey: {
+    type: String,
+    default: "id"
+  },
+  border: {
+    type: Boolean,
+    default: false
   }
 });
 
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "prev-page", "next-page", "update:currentPage", "col-click"]);
+const emit = defineEmits(["row-click", "selection-change", "prev-page", "next-page", "update:currentPage", "col-click", "drag-sort-change"]);
 
 // 响应式数据
 const selectedRows = ref([]);
 const internalCurrentPage = ref(props.currentPage);
 const listContainer = ref(null);
+const listItemsContainer = ref(null);
 const lastScrollTop = ref(0);
 const loadingNext = ref(false);
 const loadingPrev = ref(false);
 const scrollThreshold = 100; // 滚动阈值，距离顶部或底部多少像素时触发加载
 const canLoadMore = ref(true); // 防止重复加载
 const scrollDirection = ref(""); // 'up' 或 'down'
+
+// 拖拽相关状态
+const sortableInstance = ref(null);
+const isDragging = ref(false);
 
 // 右键菜单相关状态
 const contextMenuRef = ref(null);
@@ -233,11 +257,16 @@ watch(
 onMounted(() => {
   nextTick(() => {
     updateContainerStyles();
+    // 初始化拖拽排序
+    if (props.draggable) {
+      initDragSort();
+    }
   });
 });
 
 onBeforeUnmount(() => {
-  // 清理工作
+  // 清理拖拽实例
+  destroyDragSort();
 });
 
 // 计算属性
@@ -469,6 +498,82 @@ const handleMenuAction = action => {
   console.log("菜单动作:", action);
 };
 
+// 初始化拖拽排序
+const initDragSort = () => {
+  if (!props.draggable || !listItemsContainer.value) return;
+  
+  destroyDragSort();
+  
+  nextTick(() => {
+    if (!listItemsContainer.value) return;
+    
+    sortableInstance.value = Sortable.create(listItemsContainer.value, {
+      animation: 150,
+      handle: ".list-item-drag-handle",
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-chosen",
+      dragClass: "sortable-drag",
+      onStart: () => {
+        isDragging.value = true;
+      },
+      onEnd: (evt) => {
+        isDragging.value = false;
+        const { oldIndex, newIndex } = evt;
+        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+        
+        // 创建新数组以避免直接修改原数组
+        const newOrder = [...props.tableData];
+        const movedItem = newOrder.splice(oldIndex, 1)[0];
+        newOrder.splice(newIndex, 0, movedItem);
+        
+        // 触发拖拽排序变化事件
+        emit("drag-sort-change", {
+          oldIndex,
+          newIndex,
+          newOrder,
+          movedItem
+        });
+      }
+    });
+  });
+};
+
+// 销毁拖拽排序
+const destroyDragSort = () => {
+  if (sortableInstance.value) {
+    sortableInstance.value.destroy();
+    sortableInstance.value = null;
+  }
+};
+
+// 监听 draggable 变化
+watch(
+  () => props.draggable,
+  (newVal) => {
+    if (newVal) {
+      nextTick(() => {
+        initDragSort();
+      });
+    } else {
+      destroyDragSort();
+    }
+  },
+  { immediate: true }
+);
+
+// 监听 tableData 变化，重新初始化拖拽
+watch(
+  () => props.tableData,
+  () => {
+    if (props.draggable) {
+      nextTick(() => {
+        initDragSort();
+      });
+    }
+  },
+  { deep: true }
+);
+
 // 暴露方法给父组件
 defineExpose({
   toggleSelection,
@@ -494,6 +599,12 @@ defineExpose({
     display: flex;
     flex-direction: column;
     gap: 10px;
+
+    &.is-draggable {
+      .list-item {
+        cursor: move;
+      }
+    }
   }
 
   .list-item {
@@ -502,9 +613,13 @@ defineExpose({
     border-radius: 12px;
     transition: var(--stitch-lay-transition);
     background: var(--stitch-lay-bg-panel);
-    border: 2px solid var(--stitch-lay-border);
+    border: none;
     position: relative;
     overflow: hidden;
+
+    &.has-border {
+      border: 2px solid var(--stitch-lay-border);
+    }
 
     // 左侧装饰条
     &::before {
@@ -520,7 +635,7 @@ defineExpose({
       transition: height 0.3s ease;
     }
 
-    &:hover {
+    &:hover:not(.is-dragging) {
       transform: translateX(4px);
       border-color: var(--stitch-lay-primary-light);
       box-shadow: var(--stitch-lay-shadow-md);
@@ -575,6 +690,35 @@ defineExpose({
     &.theme--warning { @include theme-variant('warning'); }
     &.theme--danger { @include theme-variant('danger'); }
     &.theme--info { @include theme-variant('info'); }
+
+    .list-item-drag-handle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      padding: 12px 8px 12px 14px;
+      color: var(--stitch-lay-text-sub);
+      cursor: grab;
+      transition: var(--stitch-lay-transition-fast);
+      user-select: none;
+
+      &:active {
+        cursor: grabbing;
+      }
+
+      &:hover {
+        color: var(--stitch-lay-primary);
+      }
+
+      :deep(svg) {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    &.is-dragging {
+      opacity: 0.6;
+    }
 
     .list-item-index {
       display: flex;
@@ -638,6 +782,20 @@ defineExpose({
       flex: 1;
       min-width: 0;
     }
+  }
+
+  // 拖拽排序样式
+  .sortable-ghost {
+    opacity: 0.4;
+    background: var(--stitch-lay-primary-alpha);
+  }
+
+  .sortable-chosen {
+    cursor: grabbing !important;
+  }
+
+  .sortable-drag {
+    opacity: 0.8;
   }
 
   // 加载指示器
