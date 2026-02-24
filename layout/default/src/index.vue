@@ -38,16 +38,19 @@ import {
   watch,
 } from "vue";
 import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
+import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
-import LayHeader from "./components/lay-header/index.vue";
-import LayContent from "./components/lay-content/index.vue";
-import NavVertical from "./components/lay-sidebar/NavVertical.vue";
-import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
-import NavHover from "./components/lay-sidebar/NavHover.vue";
-import NavDouble from "./components/lay-sidebar/NavDouble.vue";
-import NavMobile from "./components/lay-sidebar/NavMobile.vue";
+import LayNavbar from "./components/lay-navbar/index.vue";
+import LaySetting from "./components/lay-setting/index.vue";
+import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
+import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
+import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
+import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
+import NavMobileLayout from "./components/lay-sidebar/NavMobile.vue";
+import LayTag from "./components/lay-tag/index.vue";
+import LayAiChat from "./components/lay-ai-chat/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 
 // 导入主题皮肤样式
@@ -55,6 +58,7 @@ import "./themes/christmas.scss";
 import "./themes/spring-festival.scss";
 import "./themes/halloween.scss";
 import "./themes/pixel-art.scss";
+import "./themes/8-bit.scss";
 import "./themes/future-tech.scss";
 import "./components/lay-sidebar/styles/hover-navigation-themes.scss";
 // 导入移动端独立样式
@@ -70,23 +74,24 @@ window.onload = () => {
   });
 };
 
-// 使用带 loading/error 状态的异步组件加载器（仅用于非主体框架组件）
+// 使用带 loading/error 状态的异步组件加载器
 const CardNavigation = createLayoutAsyncComponent(
   () => import("./components/lay-sidebar/components/CardNavigation.vue")
 );
-const LaySetting = createLayoutAsyncComponent(
-  () => import("./components/lay-setting/index.vue")
+const LayContent = createLayoutAsyncComponent(
+  () => import("./components/lay-content/index.vue")
 );
-const LayAiChat = createLayoutAsyncComponent(
-  () => import("./components/lay-ai-chat/index.vue")
-);
+const NavVertical = markRaw(NavVerticalLayout);
+const NavHorizontal = markRaw(NavHorizontalLayout);
+const NavHover = markRaw(NavHoverLayout);
+const NavDouble = markRaw(NavDoubleLayout);
+const NavMobile = markRaw(NavMobileLayout);
 
 const { t } = useI18n();
 const appWrapperRef = ref<HTMLElement>();
 const watermarkContainerRef = ref<HTMLElement>();
 const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 const { isDark } = useDark();
-const isDev = import.meta.env.DEV;
 
 // ===== Composables =====
 // 加载页逻辑
@@ -120,10 +125,15 @@ useFontEncryption(() => fontEncryptionConfig.value);
 // AI 助手皮肤主题
 const aiChatTheme = ref(getConfig().AiChatTheme || "default");
 
-const { initStorage, layout } = useLayout();
+const { initStorage } = useLayout();
 const { dataThemeChange } = useDataThemeChange();
 
 initStorage();
+
+// 将layout改为字符串形式
+const layout = computed(() => {
+  return $storage?.layout?.layout || "vertical";
+});
 
 // 响应式布局
 const { isMobile, initResponsiveObserver, initMobile } = useResponsiveLayout(
@@ -165,17 +175,6 @@ watch(
   { immediate: true }
 );
 
-// 监听布局模式变化，清理导航相关的 CSS 变量
-watch(
-  () => layout.value,
-  (newLayout, oldLayout) => {
-    // 从双栏导航或其他导航切换时，清理可能残留的 CSS 变量
-    if (oldLayout === 'double' || oldLayout === 'hover') {
-      document.documentElement.style.removeProperty("--hover-sidebar-width");
-    }
-  }
-);
-
 // 页面可见性变化处理
 let originalTitle = "";
 const handleVisibilityChange = () => {
@@ -204,10 +203,12 @@ onMounted(async () => {
 
   // 页面加载完成后检查配置并应用
   nextTick(() => {
-    // 确保 body 的 layout 属性正确设置（非法值统一回退到 vertical）
-    document.body.setAttribute("layout", layout.value);
-    // 应用整体风格（无缓存时默认浅色，避免出现“默认却是深色”的初始错乱）
-    dataThemeChange($storage?.layout?.overallStyle ?? "light");
+    // 确保 body 的 layout 属性正确设置
+    if ($storage?.layout?.layout) {
+      document.body.setAttribute("layout", $storage.layout.layout);
+    }
+    // 应用整体风格
+    dataThemeChange($storage?.layout?.overallStyle);
     // 加载配置，完成后初始化水印
     loadConfig(() => nextTick(initWatermark));
   });
@@ -263,13 +264,43 @@ onBeforeMount(() => {
     initRouter();
   }
 
-  // 确保在组件挂载前设置body的layout属性（非法值统一回退到 vertical）
-  document.body.setAttribute("layout", layout.value);
+  // 确保在组件挂载前设置body的layout属性
+  if ($storage?.layout?.layout) {
+    document.body.setAttribute("layout", $storage.layout.layout);
+  }
   
   // 应用颜色主题（light/dark）
   dataThemeChange($storage.layout?.overallStyle);
 });
 
+const LayHeader = defineComponent({
+  name: "LayHeader",
+  render() {
+    return h(
+      "div",
+      {
+        class: { "fixed-header shadow-tab": set.fixedHeader },
+      },
+      {
+        default: () => [
+          !pureSetting.hiddenSideBar &&
+          (layout.value === "vertical" ||
+            layout.value === "mix" ||
+            layout.value === "hover" ||
+            layout.value === "double" ||
+            layout.value === "mobile")
+            ? h(LayNavbar)
+            : null,
+          !pureSetting.hiddenSideBar && layout.value === "horizontal"
+            ? h(NavHorizontal)
+            : null,
+          // 移动导航模式下不显示标签页
+          layout.value !== "mobile" ? h(markRaw(LayTag)) : null,
+        ],
+      }
+    );
+  },
+});
 </script>
 
 <style lang="scss" scoped>
@@ -302,12 +333,12 @@ onBeforeMount(() => {
     <!-- 双栏导航模式：特殊布局 -->
     <template v-else-if="layout === 'double'">
       <div
-        v-if="set.device === 'mobile' && set.sidebar.opened"
+        v-show="set.device === 'mobile' && set.sidebar.opened"
         class="app-mask"
         @click="useAppStoreHook().toggleSideBar()"
       />
       <div class="double-layout-container">
-        <NavDouble v-if="!pureSetting.hiddenSideBar" />
+        <NavDouble v-show="!pureSetting.hiddenSideBar" />
         <div
 :class="[
             'main-container',
@@ -326,7 +357,9 @@ onBeforeMount(() => {
             <el-backtop
               :title="t('buttons.pureBackTop')"
               target=".main-container .el-scrollbar__wrap"
-            />
+            >
+              <BackTopIcon />
+            </el-backtop>
             <LayHeader />
             <!-- 主体内容 -->
             <div style="flex: 1">
@@ -340,17 +373,17 @@ onBeforeMount(() => {
     <!-- 其他导航模式：原有逻辑 -->
     <template v-else>
       <div
-        v-if="set.device === 'mobile' && set.sidebar.opened"
+        v-show="set.device === 'mobile' && set.sidebar.opened"
         class="app-mask"
         @click="useAppStoreHook().toggleSideBar()"
       />
       <NavVertical
-        v-if="
+        v-show="
           !pureSetting.hiddenSideBar &&
           (layout === 'vertical' || layout === 'mix')
         "
       />
-      <NavHover v-if="!pureSetting.hiddenSideBar && layout === 'hover'" />
+      <NavHover v-show="!pureSetting.hiddenSideBar && layout === 'hover'" />
       <div
 :class="[
           'main-container',
@@ -368,7 +401,9 @@ onBeforeMount(() => {
           <el-backtop
             :title="t('buttons.pureBackTop')"
             target=".main-container .el-scrollbar__wrap"
-          />
+          >
+            <BackTopIcon />
+          </el-backtop>
           <LayHeader />
           <!-- 主体内容 -->
           <div style="flex: 1">
@@ -383,7 +418,7 @@ onBeforeMount(() => {
 
     <!-- AI 助手 -->
     <LayAiChat 
-      :visible="getConfig().ShowAiChat !== false || isDev" 
+      :visible="getConfig().ShowAiChat !== false" 
       :theme="aiChatTheme"
     />
 

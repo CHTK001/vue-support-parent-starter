@@ -1,109 +1,188 @@
 
+import { nextTick } from "vue";
+import { storageLocal } from "@pureadmin/utils";
+
 /**
- * 主题切换动画封装
- * 使用轻量覆盖层实现从指定方向/点击位置扩散的渐变效果
- * 避免使用 View Transitions，兼容性更好且不会导致递归调用问题
- *
- * 注意：
- * - 只能在组件 setup / 组合式函数中调用本方法（内部使用 useGlobal）
- * - 返回的 runAnimation 函数可以在任意事件回调中安全调用
+ * 启动主题切换动画
+ * @param callback 执行状态变更的回调函数
+ * @param event 触发事件（可选），如果提供则从点击位置扩散，否则默认从配置位置扩散
  */
-import { useGlobal } from "@pureadmin/utils";
+export function useThemeAnimation(callback: () => void, event?: MouseEvent) {
+  // 检查浏览器是否支持 View Transitions API
+  if (!document.startViewTransition) {
+    callback();
+    return;
+  }
 
-export function useThemeAnimation() {
-  const { $storage } = useGlobal<GlobalPropertiesApi>();
+  // 获取配置
+  const configure = storageLocal().getItem<any>("responsive-configure");
+  const mode = configure?.themeAnimationMode ?? 'fixed';
+  
+  if (mode === 'disabled') {
+    callback();
+    return;
+  }
 
-  const getConfigure = () => {
-    return $storage?.configure ?? {};
-  };
+  const validDirections = [
+    'top-right', 'top-left', 'bottom-right', 'bottom-left', 
+    'top-center', 'bottom-center', 'left-center', 'right-center',
+    'center', 'left', 'right', 'top', 'bottom', 'cursor'
+  ];
+  
+  let direction = configure?.themeAnimationDirection ?? 'top-right';
 
-  const runAnimation = (callback: () => void, event?: MouseEvent) => {
-    const configure = getConfigure();
-    const mode = (configure.themeAnimationMode as string) ?? "fixed"; // random | fixed | disabled
-    const direction = (configure.themeAnimationDirection as string) ?? "top-right";
+  if (mode === 'random') {
+    direction = validDirections[Math.floor(Math.random() * validDirections.length)];
+  }
 
-    // 关闭动画时直接执行
-    if (mode === "disabled") {
-      callback();
-      return;
-    }
+  // 如果是 cursor 模式但没有 event，降级为 center
+  if (direction === 'cursor' && !event) {
+    direction = 'center';
+  }
 
-    // 计算动画起点
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+  // 启动 View Transition
+  const transition = document.startViewTransition(async () => {
+    callback();
+    await nextTick();
+  });
 
-    let originX = viewportWidth * 0.5;
-    let originY = viewportHeight * 0.5;
+  transition.ready.then(() => {
+    let clipPath = [];
+    let x = 0;
+    let y = 0;
+    const { innerWidth, innerHeight } = window;
 
-    if (mode === "random" && event) {
-      originX = event.clientX;
-      originY = event.clientY;
-    } else {
-      switch (direction) {
-        case "top-left":
-          originX = 0;
-          originY = 0;
-          break;
-        case "top-right":
-          originX = viewportWidth;
-          originY = 0;
-          break;
-        case "bottom-left":
-          originX = 0;
-          originY = viewportHeight;
-          break;
-        case "bottom-right":
-          originX = viewportWidth;
-          originY = viewportHeight;
-          break;
-        case "left":
-          originX = 0;
-          originY = viewportHeight / 2;
-          break;
-        case "right":
-          originX = viewportWidth;
-          originY = viewportHeight / 2;
-          break;
-        case "top":
-          originX = viewportWidth / 2;
-          originY = 0;
-          break;
-        case "bottom":
-          originX = viewportWidth / 2;
-          originY = viewportHeight;
-          break;
-        case "center":
-        default:
-          originX = viewportWidth / 2;
-          originY = viewportHeight / 2;
-          break;
-      }
-    }
-
-    // 创建覆盖层
-    const overlay = document.createElement("div");
-    overlay.className = "theme-switch-overlay";
-    overlay.style.setProperty("--theme-origin-x", `${originX}px`);
-    overlay.style.setProperty("--theme-origin-y", `${originY}px`);
-
-    document.body.appendChild(overlay);
-
-    // 在下一帧启动动画并执行主题变更
-    requestAnimationFrame(() => {
-      overlay.classList.add("is-active");
-      try {
-        callback();
-      } finally {
-        overlay.addEventListener(
-          "animationend",
-          () => {
-            overlay.remove();
-          },
-          { once: true },
+    switch (direction) {
+      case 'cursor':
+        x = event!.clientX;
+        y = event!.clientY;
+        const endRadiusCursor = Math.hypot(
+          Math.max(x, innerWidth - x),
+          Math.max(y, innerHeight - y)
         );
-      }
-    });
-  };
+        clipPath = [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${endRadiusCursor}px at ${x}px ${y}px)`,
+        ];
+        break;
+      
+      case 'top-right':
+        const endRadiusTR = Math.hypot(innerWidth, innerHeight);
+        clipPath = [
+          `circle(0px at 100% 0)`,
+          `circle(${endRadiusTR}px at 100% 0)`,
+        ];
+        break;
 
-  return runAnimation;
+      case 'top-center':
+        const endRadiusTC = Math.hypot(innerWidth / 2, innerHeight);
+        clipPath = [
+          `circle(0px at 50% 0)`,
+          `circle(${endRadiusTC}px at 50% 0)`,
+        ];
+        break;
+
+      case 'top-left':
+        const endRadiusTL = Math.hypot(innerWidth, innerHeight);
+        clipPath = [
+          `circle(0px at 0 0)`,
+          `circle(${endRadiusTL}px at 0 0)`,
+        ];
+        break;
+
+      case 'bottom-right':
+        const endRadiusBR = Math.hypot(innerWidth, innerHeight);
+        clipPath = [
+          `circle(0px at 100% 100%)`,
+          `circle(${endRadiusBR}px at 100% 100%)`,
+        ];
+        break;
+
+      case 'bottom-center':
+        const endRadiusBC = Math.hypot(innerWidth / 2, innerHeight);
+        clipPath = [
+          `circle(0px at 50% 100%)`,
+          `circle(${endRadiusBC}px at 50% 100%)`,
+        ];
+        break;
+
+      case 'bottom-left':
+        const endRadiusBL = Math.hypot(innerWidth, innerHeight);
+        clipPath = [
+          `circle(0px at 0 100%)`,
+          `circle(${endRadiusBL}px at 0 100%)`,
+        ];
+        break;
+
+      case 'center':
+        const endRadiusCenter = Math.hypot(innerWidth / 2, innerHeight / 2);
+        clipPath = [
+          `circle(0px at 50% 50%)`,
+          `circle(${endRadiusCenter}px at 50% 50%)`,
+        ];
+        break;
+
+      case 'left-center':
+        const endRadiusLC = Math.hypot(innerWidth, innerHeight / 2);
+        clipPath = [
+          `circle(0px at 0 50%)`,
+          `circle(${endRadiusLC}px at 0 50%)`,
+        ];
+        break;
+
+      case 'right-center':
+        const endRadiusRC = Math.hypot(innerWidth, innerHeight / 2);
+        clipPath = [
+          `circle(0px at 100% 50%)`,
+          `circle(${endRadiusRC}px at 100% 50%)`,
+        ];
+        break;
+
+      case 'left': // Left to Right
+        clipPath = [
+          `inset(0 100% 0 0)`,
+          `inset(0 0 0 0)`,
+        ];
+        break;
+
+      case 'right': // Right to Left
+        clipPath = [
+          `inset(0 0 0 100%)`,
+          `inset(0 0 0 0)`,
+        ];
+        break;
+
+      case 'top': // Top to Bottom
+        clipPath = [
+          `inset(0 0 100% 0)`,
+          `inset(0 0 0 0)`,
+        ];
+        break;
+
+      case 'bottom': // Bottom to Top
+        clipPath = [
+          `inset(100% 0 0 0)`,
+          `inset(0 0 0 0)`,
+        ];
+        break;
+        
+      default: // Fallback to top-right
+        const endRadiusDef = Math.hypot(innerWidth, innerHeight);
+        clipPath = [
+          `circle(0px at 100% 0)`,
+          `circle(${endRadiusDef}px at 100% 0)`,
+        ];
+    }
+
+    document.documentElement.animate(
+      {
+        clipPath: clipPath,
+      },
+      {
+        duration: 500,
+        easing: "ease-in-out",
+        pseudoElement: "::view-transition-new(root)",
+      }
+    );
+  });
 }

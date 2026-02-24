@@ -20,7 +20,7 @@
  * @version 2.0.0
  */
 
-import { computed, onMounted, onUnmounted, ref, watch, defineAsyncComponent } from "vue";
+import { computed, onMounted, ref, watch, defineAsyncComponent } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { useThemeStore } from "../stores/themeStore";
 import { storeToRefs } from "pinia";
@@ -80,6 +80,7 @@ const applyThemeSkin = (themeKey: string): void => {
     "theme-new-year",
     "theme-halloween",
     "theme-pixel-art",
+    "theme-8-bit",
     "theme-future-tech",
   ];
 
@@ -92,8 +93,8 @@ const applyThemeSkin = (themeKey: string): void => {
     htmlEl.classList.add(`theme-${themeKey}`);
   }
   
-  // 设置 data-skin 属性，供皮肤主题样式使用（与 data-theme 的浅/深色主题区分）
-  htmlEl.setAttribute("data-skin", themeKey);
+  // 设置 data-theme 属性，便于 CSS 选择器使用
+  htmlEl.setAttribute("data-theme", themeKey);
 };
 
 /**
@@ -102,7 +103,6 @@ const applyThemeSkin = (themeKey: string): void => {
 onMounted(() => {
   applyThemeSkin(currentTheme.value);
 });
-
 </script>
 
 <style scoped lang="scss">

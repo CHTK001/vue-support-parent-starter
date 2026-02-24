@@ -12,7 +12,6 @@ import { useConfigStore, router, emitter } from "@repo/core";
 import MessageIcon from "@iconify-icons/ri/message-3-line";
 import { getConfig } from "@repo/config";
 import { useGlobal } from "@pureadmin/utils";
-import { getLogger } from "@repo/utils";
 import {
   fetchUnreadMessages,
   fetchMarkAsRead,
@@ -21,8 +20,6 @@ import {
   type SysMessage,
 } from "./api";
 import LayMessageToast from "../lay-message-toast/index.vue";
-
-const logger = getLogger("[消息中心]");
 
 defineOptions({
   name: "LayMessage",
@@ -33,9 +30,9 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
 // 提取 store 引用到顶层，避免在生命周期中重复调用
 const configStore = useConfigStore();
 
-// 消息功能开关 - 从配置中读取
+// 消息功能开�?- 从配置中读取
 const messageEnabled = ref(
-  $storage?.configure?.showMessage ?? getConfig().ShowBarMessage ?? true
+  $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true
 );
 
 /**
@@ -97,7 +94,7 @@ const fetchMessages = async () => {
       messages.value = [];
     }
   } catch (error) {
-    logger.error("获取消息列表失败", error as Error);
+    console.error("获取消息列表失败:", error);
     messages.value = [];
   } finally {
   loading.value = false;
@@ -180,7 +177,7 @@ const markAsRead = async (message: MessageItem) => {
       }
     }
   } catch (error) {
-    logger.error("标记已读失败", error as Error);
+    console.error("标记已读失败:", error);
   }
 };
 
@@ -200,7 +197,7 @@ const markAllAsRead = async () => {
       messages.value = [];
     }
   } catch (error) {
-    logger.error("全部标记已读失败", error as Error);
+    console.error("全部标记已读失败:", error);
   }
 };
 
@@ -264,7 +261,7 @@ const deleteMessage = async (msg: MessageItem) => {
       }
     }
   } catch (error) {
-    logger.error("删除消息失败", error as Error);
+    console.error("删除消息失败:", error);
   }
 };
 
@@ -311,7 +308,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="messageEnabled">
+  <div>
     <el-dropdown
       ref="dropdownRef"
       trigger="click"
