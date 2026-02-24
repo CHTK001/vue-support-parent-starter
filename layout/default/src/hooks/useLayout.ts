@@ -58,7 +58,15 @@ export function useLayout() {
 
   /** 清空缓存后从Platform-config.json读取默认配置并赋值到storage中 */
   const layout = computed<LayoutType>(() => {
-    return ($storage?.layout?.layout || $config?.Layout || "vertical") as LayoutType;
+    const fallbackLayout: LayoutType = "vertical";
+    const validLayouts: LayoutType[] = ["vertical", "horizontal", "mix", "hover", "double", "mobile"];
+
+    const rawLayout = ($storage?.layout?.layout || $config?.Layout) as string | undefined;
+    if (rawLayout && (validLayouts as string[]).includes(rawLayout)) {
+      return rawLayout as LayoutType;
+    }
+
+    return fallbackLayout;
   });
 
   const layoutTheme = computed<StorageLayout | undefined>(() => {

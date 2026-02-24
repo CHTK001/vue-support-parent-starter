@@ -94,7 +94,10 @@ import { debounce } from "lodash-es";
 import { ElIcon, ElEmpty, ElCheckbox } from "element-plus";
 import Sortable from "sortablejs";
 import { IconifyIconOnline } from "@repo/components";
+import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
+
+const logger = getLogger("[ScTable][ListView]");
 
 // 定义props
 const props = defineProps({
@@ -495,7 +498,7 @@ const handleContextMenu = (event, row) => {
 // 处理菜单动作
 const handleMenuAction = action => {
   // 如果需要，可以在这里处理菜单动作
-  console.log("菜单动作:", action);
+  logger.info("菜单动作: {}", action);
 };
 
 // 初始化拖拽排序

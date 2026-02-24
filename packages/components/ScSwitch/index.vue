@@ -105,6 +105,19 @@
       @change="handleChange"
     />
 
+    <!-- 8 方位矩形点选布局 -->
+    <Rect8Layout
+      v-else-if="layout === 'rect-8'"
+      v-model="currentValue"
+      :disabled="disabled"
+      :loading="loading"
+      :size="size"
+      :rect8-options="rect8Options"
+      :active-color="activeColor"
+      :inactive-color="inactiveColor"
+      @change="handleChange"
+    />
+
     <!-- 默认布局 -->
     <el-switch
       v-else
@@ -138,6 +151,7 @@ import SliderLayout from "./components/SliderLayout.vue";
 import ModernLayout from "./components/ModernLayout.vue";
 import VisualCardLayout from "./components/VisualCardLayout.vue";
 import CompactCardLayout from "./components/CompactCardLayout.vue";
+import Rect8Layout from "./components/Rect8Layout.vue";
 import { getThemeConfig, type IotSwitchTheme } from "./themes";
 
 const props = defineProps({
@@ -170,11 +184,13 @@ const props = defineProps({
    * - modern: 现代布局
    * - visual-card: 视觉效果卡片布局
    * - compact-card: 紧凑卡片布局（图标+标签+开关）
+   * - rect-8: 8 方位矩形点选布局（方向/位置选择）
    */
   layout: {
     type: String,
     default: "default",
-    validator: (val: string) => ["default", "card", "slider", "modern", "visual-card", "compact-card"].includes(val)
+    validator: (val: string) =>
+      ["default", "card", "slider", "modern", "visual-card", "compact-card", "rect-8"].includes(val)
   },
   /**
    * 物联网主题
@@ -307,6 +323,14 @@ const props = defineProps({
   wide: {
     type: Boolean,
     default: false
+  },
+  // ========== rect-8 布局专用属性 ==========
+  /**
+   * 8 方位选项（rect-8 布局）
+   */
+  rect8Options: {
+    type: Array as () => Array<{ value: string; label: string; position: string; disabled?: boolean }>,
+    default: undefined
   }
 });
 

@@ -102,27 +102,6 @@ body {
   }
 }
 
-// 确保非双栏导航模式下，主容器样式正确
-.app-wrapper {
-  .main-container {
-    margin-left: 0 !important;
-    width: 100% !important;
-    
-    // 双栏导航模式下的主容器样式由 .double-main 控制
-    &.double-main {
-      // 样式已在 .double-layout-container .double-main 中定义
-    }
-  }
-}
-
-// 悬停导航布局
-.app-wrapper.hover {
-  // :deep(.fixed-header) {
-  //   width: calc(100% - var(--hover-sidebar-width, 200px)) !important;
-  //   margin-left: var(--hover-sidebar-width, 200px) !important;
-  //   transition: all 0.3s;
-  // }
-}
 
 // 移动导航容器
 .mobile-main-container {

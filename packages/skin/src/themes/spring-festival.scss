@@ -8,7 +8,9 @@ html[data-skin="spring-festival"] {
   // Header 容器样式 - 继承默认并修改为红色
   .header-container-with-decoration,
   div.header-container-with-decoration {
-    @extend %header-container-base;
+    @extend %header-container-base !optional;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
     background: linear-gradient(180deg, #DC143C, #B22222) !important;
     border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;
     box-shadow: 0 2px 8px rgba(139, 0, 0, 0.3) !important;
@@ -44,7 +46,14 @@ html[data-skin="spring-festival"] {
   div.base-navbar.spring-festival-navbar,
   .base-navbar[class*="spring-festival"],
   [class*="spring-festival-navbar"] {
-    @extend %navbar-base;
+    @extend %navbar-base !optional;
+    height: 48px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
     // 与 tag 标签完全相同: linear-gradient(180deg, #DC143C, #B22222)
     background: linear-gradient(180deg, #DC143C, #B22222) !important;
     border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;

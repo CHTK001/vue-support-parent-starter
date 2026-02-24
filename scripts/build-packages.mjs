@@ -62,7 +62,7 @@ async function buildPackages() {
         execSync('pnpm build', {
           cwd: pkg.path,
           stdio: 'inherit',
-          env: { ...process.env },
+          env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' },
         });
         console.log(`✓ ${pkg.name} 构建成功`);
       } catch (error) {

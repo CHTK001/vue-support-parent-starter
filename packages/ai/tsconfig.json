@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "jsx": "preserve",
+    "importHelpers": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "allowJs": false,
+    "resolveJsonModule": true,
+    "lib": ["ESNext", "DOM", "WebWorker"],
+    "types": ["node", "vite/client"]
+  },
+  "include": ["src/**/*.ts", "index.ts"],
+  "exclude": ["node_modules", "dist"]
+}
+

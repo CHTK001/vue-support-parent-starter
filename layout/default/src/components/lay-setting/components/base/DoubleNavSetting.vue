@@ -3,49 +3,38 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { storageConfigureChange } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
-const doubleNavEnabled = computed({
-  get: () => $storage?.configure?.doubleNavEnabled ?? false,
-  set: (value: boolean) => {
-    $storage.configure.doubleNavEnabled = value;
-  },
-});
-
-const doubleNavMode = computed({
-  get: () => $storage?.configure?.doubleNavMode ?? "classic",
+const doubleNavExpandMode = computed({
+  get: () => $storage?.configure?.doubleNavExpandMode ?? "auto",
   set: (value: string) => {
-    $storage.configure.doubleNavMode = value;
+    storageConfigureChange("doubleNavExpandMode", value);
   },
 });
 
-const doubleNavEnabledOptions = computed<Array<OptionsType>>(() => [
-  { label: "关闭", value: "off" },
-  { label: "开启", value: "on" },
-]);
-
-const doubleNavModeOptions = computed<Array<OptionsType>>(() => [
-  { label: "经典双栏", value: "classic" },
-  { label: "紧凑双栏", value: "compact" },
-]);
-
-const handleEnabledChange = ({ option }: { option: OptionsType }) => {
-  doubleNavEnabled.value = option.value === "on";
-};
-
-const handleModeChange = ({ option }: { option: OptionsType }) => {
-  doubleNavMode.value = option.value as string;
-};
-
-const currentEnabledIndex = computed(() => {
-  return doubleNavEnabled.value ? 1 : 0;
+const doubleNavAutoExpandAll = computed({
+  get: () => $storage?.configure?.doubleNavAutoExpandAll ?? true,
+  set: (value: boolean) => {
+    storageConfigureChange("doubleNavAutoExpandAll", value);
+  },
 });
 
-const currentModeIndex = computed(() => {
-  const index = doubleNavModeOptions.value.findIndex(
-    (opt) => opt.value === doubleNavMode.value,
+const expandModeOptions = computed<Array<OptionsType>>(() => [
+  { label: "自动展开", value: "auto" },
+  { label: "手动控制", value: "manual" },
+]);
+
+const handleExpandModeChange = ({ option }: { option: OptionsType }) => {
+  doubleNavExpandMode.value = option.value as string;
+};
+
+const currentExpandModeIndex = computed(() => {
+  const index = expandModeOptions.value.findIndex(
+    (opt) => opt.value === doubleNavExpandMode.value,
   );
   return index >= 0 ? index : 0;
 });
@@ -60,26 +49,27 @@ const currentModeIndex = computed(() => {
     <div class="setting-content">
       <div class="mb-4">
         <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          是否启用
+          展开策略
         </div>
         <Segmented
           resize
           class="select-none modern-segmented w-full"
-          :modelValue="currentEnabledIndex"
-          :options="doubleNavEnabledOptions"
-          @change="handleEnabledChange"
+          :modelValue="currentExpandModeIndex"
+          :options="expandModeOptions"
+          @change="handleExpandModeChange"
         />
       </div>
-      <div v-if="doubleNavEnabled" class="mt-4">
-        <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          导航样式
-        </div>
-        <Segmented
-          resize
-          class="select-none modern-segmented w-full"
-          :modelValue="currentModeIndex"
-          :options="doubleNavModeOptions"
-          @change="handleModeChange"
+      <div
+        v-if="doubleNavExpandMode === 'manual'"
+        class="mt-4 pl-3 border-l-2 border-[var(--el-border-color-lighter)]"
+      >
+        <ScSwitch
+          v-model="doubleNavAutoExpandAll"
+          layout="visual-card"
+          size="small"
+          label="自动展开全部"
+          description="手动模式下是否自动展开所有一级菜单"
+          active-icon="ri:arrow-down-s-line"
         />
       </div>
     </div>

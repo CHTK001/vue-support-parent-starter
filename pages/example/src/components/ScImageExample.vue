@@ -225,7 +225,6 @@
             width="200px"
             height="200px"
             :editor-show-flip="false"
-            :editor-show-remove-background="false"
             :editor-show-scale="false"
             :editor-show-background-tools="false"
           />
@@ -237,7 +236,6 @@
             width="200px"
             height="200px"
             :editor-show-upload="false"
-            :editor-show-remove-background="false"
             :editor-show-background-tools="false"
           />
         </div>
@@ -294,65 +292,6 @@
             icon: 'ri:code-s-slash-line',
             language: 'vue',
             code: compareCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 背景去除 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:magic-line" /> AI 背景去除</h3>
-      </template>
-      <div class="feature-demo">
-        <div class="demo-item">
-          <p class="demo-label">原图</p>
-          <ScImage
-            v-model="bgRemovalImage"
-            width="300px"
-            height="300px"
-            :enable-background-removal="true"
-            @background-removed="handleBackgroundRemoved"
-          />
-        </div>
-        <div class="feature-info">
-          <h4>AI 背景去除：</h4>
-          <ul>
-            <li>
-              <el-icon><IconifyIconOnline icon="ri:cpu-line" /></el-icon>
-              基于机器学习算法
-            </li>
-            <li>
-              <el-icon><IconifyIconOnline icon="ri:flashlight-line" /></el-icon>
-              自动识别主体
-            </li>
-            <li>
-              <el-icon><IconifyIconOnline icon="ri:paint-line" /></el-icon>
-              精准抠图
-            </li>
-            <li>
-              <el-icon><IconifyIconOnline icon="ri:download-2-line" /></el-icon>
-              支持下载
-            </li>
-          </ul>
-          <el-alert type="warning" :closable="false" class="mt-3">
-            <template #title>
-              <span style="font-size: 12px">
-                首次使用需要下载AI模型（约30MB），可能需要一些时间
-              </span>
-            </template>
-          </el-alert>
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'bgRemoval',
-            label: '背景去除',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: bgRemovalCode,
           },
         ]"
         class="mt-3"
@@ -509,9 +448,6 @@ const editImage = ref("");
 // 比较示例
 const compareImage = ref("");
 
-// 背景去除示例
-const bgRemovalImage = ref("");
-
 // 自定义配置示例
 const customImage1 = ref("");
 const customImage2 = ref("");
@@ -550,11 +486,6 @@ const handleCompareEnd = () => {
 
 const handleCompareChange = (value: number) => {
   console.log("Compare value:", value);
-};
-
-const handleBackgroundRemoved = (blob: Blob, url: string) => {
-  console.log("Background removed:", blob, url);
-  message("背景已去除", { type: "success" });
 };
 
 const addEventLog = (type: string, message: string) => {
@@ -609,7 +540,6 @@ const editorToolbarCode = `<!-- 只显示裁剪和旋转 -->
 <ScImage
   v-model="image"
   :editor-show-flip="false"
-  :editor-show-remove-background="false"
   :editor-show-scale="false"
   :editor-show-background-tools="false"
 />
@@ -618,7 +548,6 @@ const editorToolbarCode = `<!-- 只显示裁剪和旋转 -->
 <ScImage
   v-model="image"
   :editor-show-upload="false"
-  :editor-show-remove-background="false"
   :editor-show-background-tools="false"
 />
 
@@ -627,7 +556,6 @@ editorShowUpload: 显示上传按钮
 editorShowCrop: 显示裁剪按钮
 editorShowRotate: 显示旋转按钮
 editorShowFlip: 显示翻转按钮
-editorShowRemoveBackground: 显示去除背景按钮
 editorShowScale: 显示缩放滑块
 editorShowBackgroundTools: 显示背景工具`;
 
@@ -639,14 +567,6 @@ const compareCode = `<ScImage
   @compare-start="handleCompareStart"
   @compare-end="handleCompareEnd"
   @compare-change="handleCompareChange"
-/>`;
-
-const bgRemovalCode = `<ScImage
-  v-model="bgRemovalImage"
-  width="300px"
-  height="300px"
-  :enable-background-removal="true"
-  @background-removed="handleBackgroundRemoved"
 />`;
 
 const customCode = `<ScImage
@@ -732,12 +652,6 @@ const propsData = [
     description: "是否启用拖拽上传",
   },
   {
-    prop: "enableBackgroundRemoval",
-    type: "boolean",
-    default: "true",
-    description: "是否启用背景去除功能",
-  },
-  {
     prop: "enableCompare",
     type: "boolean",
     default: "true",
@@ -787,12 +701,6 @@ const propsData = [
     description: "编辑器显示翻转按钮",
   },
   {
-    prop: "editorShowRemoveBackground",
-    type: "boolean",
-    default: "true",
-    description: "编辑器显示去除背景按钮",
-  },
-  {
     prop: "editorShowScale",
     type: "boolean",
     default: "true",
@@ -817,11 +725,6 @@ const eventsData = [
   { event: "remove", params: "-", description: "图片删除时触发" },
   { event: "load", params: "event", description: "图片加载成功时触发" },
   { event: "error", params: "event", description: "图片加载失败时触发" },
-  {
-    event: "backgroundRemoved",
-    params: "blob: Blob, url: string",
-    description: "背景去除完成时触发",
-  },
   {
     event: "compareStart",
     params: "img1: string, img2: string",

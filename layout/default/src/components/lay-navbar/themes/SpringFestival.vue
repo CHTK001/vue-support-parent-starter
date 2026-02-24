@@ -51,7 +51,7 @@ onMounted(() => {
       ></span>
     </div>
 
-    <BaseNavbar theme-class="spring-festival-navbar" />
+    <BaseNavbar theme-class="spring-festival-navbar lay-navbar" />
   </div>
 </template>
 

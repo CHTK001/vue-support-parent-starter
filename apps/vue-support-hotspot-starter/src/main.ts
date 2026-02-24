@@ -56,67 +56,43 @@ import VueTippy from "vue-tippy";
 // 异步加载WASM模块
 import { initializeWasmModule } from "@repo/codec-wasm";
 
+async function bootstrapApp() {
+  const app = createApp(App);
+  Object.keys(directives).forEach(key => {
+    app.directive(key, (directives as { [key: string]: Directive })[key]);
+  });
+  // 注册字体加密指令
+  app.directive("font-encryption", vFontEncryption);
+
+  app.component("IconifyIconOffline", IconifyIconOffline);
+  app.component("IconifyIconOnline", IconifyIconOnline);
+  app.component("FontIcon", FontIcon);
+
+  app.component("Auth", Auth);
+  app.component("ScTable", ScTable);
+  app.component("ScDialog", ScDialog);
+  app.component("ScDrawer", ScDrawer);
+
+  app.use(VueTippy);
+
+  const config = await getPlatformConfig(app);
+  setupStore(app);
+  app.use(router);
+  await router.isReady();
+  injectResponsiveStorage(app, config);
+  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+  // .use(PureDescriptions)
+  // .use(useEcharts);
+  app.mount("#app");
+}
+
 // 先加载WASM模块，再启动应用
 initializeWasmModule()
-  .then(() => {
-    const app = createApp(App);
-    Object.keys(directives).forEach(key => {
-      app.directive(key, (directives as { [key: string]: Directive })[key]);
-    });
-    // 注册字体加密指令
-    app.directive("font-encryption", vFontEncryption);
-
-    app.component("IconifyIconOffline", IconifyIconOffline);
-    app.component("IconifyIconOnline", IconifyIconOnline);
-    app.component("FontIcon", FontIcon);
-
-    app.component("Auth", Auth);
-    app.component("ScTable", ScTable);
-    app.component("ScDialog", ScDialog);
-    app.component("ScDrawer", ScDrawer);
-
-    app.use(VueTippy);
-
-    getPlatformConfig(app).then(async config => {
-      setupStore(app);
-      app.use(router);
-      await router.isReady();
-      injectResponsiveStorage(app, config);
-      app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-      // .use(PureDescriptions)
-      // .use(useEcharts);
-      app.mount("#app");
-    });
-  })
   .catch(error => {
     console.error("Failed to initialize WASM module:", error);
     // 即使WASM加载失败，也启动应用，但可能会缺少某些功能
-    const app = createApp(App);
-    Object.keys(directives).forEach(key => {
-      app.directive(key, (directives as { [key: string]: Directive })[key]);
-    });
-    // 注册字体加密指令
-    app.directive("font-encryption", vFontEncryption);
-
-    app.component("IconifyIconOffline", IconifyIconOffline);
-    app.component("IconifyIconOnline", IconifyIconOnline);
-    app.component("FontIcon", FontIcon);
-
-    app.component("Auth", Auth);
-    app.component("ScTable", ScTable);
-    app.component("ScDialog", ScDialog);
-    app.component("ScDrawer", ScDrawer);
-
-    app.use(VueTippy);
-
-    getPlatformConfig(app).then(async config => {
-      setupStore(app);
-      app.use(router);
-      await router.isReady();
-      injectResponsiveStorage(app, config);
-      app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-      // .use(PureDescriptions)
-      // .use(useEcharts);
-      app.mount("#app");
-    });
+  })
+  .finally(() => {
+    // 无论WASM是否加载成功都启动应用，避免重复代码
+    void bootstrapApp();
   });

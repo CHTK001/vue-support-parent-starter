@@ -1,24 +1,3 @@
-// 在应用启动早期检测并设置深色主题与皮肤，避免FOUC问题
-(function () {
-  try {
-    // 从localStorage中读取布局配置
-    const layoutConfig = JSON.parse(localStorage.getItem("layout") || "{}");
-    // 深色模式
-    if (layoutConfig.darkMode) {
-      document.documentElement.classList.add("dark");
-    }
-    // 主题皮肤（default/flat/enhanced）
-    if (layoutConfig.themeSkin) {
-      document.documentElement.setAttribute(
-        "data-theme-skin",
-        layoutConfig.themeSkin
-      );
-    }
-  } catch (e) {
-    console.warn("Failed to set theme from localStorage:", e);
-  }
-})();
-
 import { createApp, type Directive } from "vue";
 import Table from "@pureadmin/table";
 import {
@@ -71,30 +50,36 @@ import techuiScifiInit from "@techui/scifi";
 // 显式导入 TechUI 样式 (确保样式正确加载)
 import "@techui/scifi/dist/index.css";
 
-// 先加载WASM模块，再启动应用
-initializeWasmModule()
-  .then(async () => {
-    const app = createApp(App);
-    Object.keys(directives).forEach((key) => {
-      app.directive(key, (directives as { [key: string]: Directive })[key]);
-    });
-    // 注册字体加密指令
-    app.directive("font-encryption", vFontEncryption);
-    app.component("IconifyIconOffline", IconifyIconOffline);
-    app.component("IconifyIconOnline", IconifyIconOnline);
-    app.component("FontIcon", FontIcon);
+interface BootstrapOptions {
+  readonly enableTechUI: boolean;
+}
 
-    app.component("Auth", Auth);
-    app.component("ScTable", ScTable);
+async function bootstrapApp(options: BootstrapOptions) {
+  const app = createApp(App);
+  Object.keys(directives).forEach(key => {
+    app.directive(key, (directives as { [key: string]: Directive })[key]);
+  });
+  // 注册字体加密指令
+  app.directive("font-encryption", vFontEncryption);
+  app.component("IconifyIconOffline", IconifyIconOffline);
+  app.component("IconifyIconOnline", IconifyIconOnline);
+  app.component("FontIcon", FontIcon);
+
+  app.component("Auth", Auth);
+  app.component("ScTable", ScTable);
+  // 只有在WASM成功初始化并启用 TechUI 时才注册高级组件
+  if (options.enableTechUI) {
     app.component("ScCard", ScCard);
     app.component("ScSwitch", ScSwitch);
-    app.component("ScDialog", ScDialog);
-    app.component("ScDrawer", ScDrawer);
+  }
+  app.component("ScDialog", ScDialog);
+  app.component("ScDrawer", ScDrawer);
 
-    app.use(VueTippy);
-    // 使用 ElementPlusX
-    app.use(ElementPlusX);
+  app.use(VueTippy);
+  // 使用 ElementPlusX
+  app.use(ElementPlusX);
 
+  if (options.enableTechUI) {
     // 初始化 TechUI 科幻组件库 (WASM 核心)
     try {
       console.log("[TechUI] 开始初始化...");
@@ -108,68 +93,38 @@ initializeWasmModule()
     } catch (err) {
       console.error("[TechUI] 初始化失败:", err);
     }
+  }
 
-    app.config.warnHandler = (msg, instance, trace) => {
-      if (msg.includes("__proxyIdCheat__")) return;
-      console.warn(msg, trace);
-    };
-    // 注册指令
-    setupDirectives(app);
+  app.config.warnHandler = (msg, instance, trace) => {
+    if (msg.includes("__proxyIdCheat__")) {
+      return;
+    }
+    console.warn(msg, trace);
+  };
+  // 注册指令
+  setupDirectives(app);
 
-    getPlatformConfig(app).then(async (config) => {
-      setupStore(app);
-      app.use(router);
-      await router.isReady();
-      injectResponsiveStorage(app, config);
-      app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-      // .use(PureDescriptions)
-      // .use(useEcharts);
+  const config = await getPlatformConfig(app);
+  setupStore(app);
+  app.use(router);
+  await router.isReady();
+  injectResponsiveStorage(app, config);
+  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+  // .use(PureDescriptions)
+  // .use(useEcharts);
 
-      app.use(GlobalSocketPlugin);
-      setupFullscreenSocket(router);
-      app.mount("#app");
-    });
+  app.use(GlobalSocketPlugin);
+  setupFullscreenSocket(router);
+  app.mount("#app");
+}
+
+// 先加载WASM模块，再启动应用
+initializeWasmModule()
+  .then(() => {
+    void bootstrapApp({ enableTechUI: true });
   })
-  .catch((error) => {
+  .catch(error => {
     console.error("Failed to initialize WASM module:", error);
-    // 即使WASM加载失败，也启动应用，但可能会缺少某些功能
-    const app = createApp(App);
-    Object.keys(directives).forEach((key) => {
-      app.directive(key, (directives as { [key: string]: Directive })[key]);
-    });
-    // 注册字体加密指令
-    app.directive("font-encryption", vFontEncryption);
-    app.component("IconifyIconOffline", IconifyIconOffline);
-    app.component("IconifyIconOnline", IconifyIconOnline);
-    app.component("FontIcon", FontIcon);
-
-    app.component("Auth", Auth);
-    app.component("ScTable", ScTable);
-    app.component("ScDialog", ScDialog);
-    app.component("ScDrawer", ScDrawer);
-
-    app.use(VueTippy);
-    // 使用 ElementPlusX
-    app.use(ElementPlusX);
-
-    app.config.warnHandler = (msg, instance, trace) => {
-      if (msg.includes("__proxyIdCheat__")) return;
-      console.warn(msg, trace);
-    };
-    // 注册指令
-    setupDirectives(app);
-
-    getPlatformConfig(app).then(async (config) => {
-      setupStore(app);
-      app.use(router);
-      await router.isReady();
-      injectResponsiveStorage(app, config);
-      app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-      // .use(PureDescriptions)
-      // .use(useEcharts);
-
-      app.use(GlobalSocketPlugin);
-      setupFullscreenSocket(router);
-      app.mount("#app");
-    });
+    // 即使WASM加载失败，也启动应用，但可能会缺少某些功能（不启用 TechUI 高级能力）
+    void bootstrapApp({ enableTechUI: false });
   });

@@ -9,7 +9,10 @@ import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { Delete, CheckDouble } from "@element-plus/icons-vue";
 import { useMessageStore, useUserStoreHook } from "@repo/core";
+import { getLogger } from "@repo/utils";
 import { fetchHistoryMessages, type MessageHistoryItem } from "@repo/core/src/api/message";
+
+const logger = getLogger("[消息中心]");
 
 defineOptions({
   name: "MessageCenter",
@@ -112,7 +115,7 @@ const loadHistoryMessages = async () => {
       historyMessages.value = response.data;
     }
   } catch (error) {
-    console.error("获取历史消息失败:", error);
+    logger.error("获取历史消息失败", error as Error);
   } finally {
     historyLoading.value = false;
   }
@@ -130,7 +133,7 @@ const markAsRead = async (message: DisplayMessageItem) => {
     // 刷新历史消息
     await loadHistoryMessages();
   } catch (error) {
-    console.error("标记已读失败:", error);
+    logger.error("标记已读失败", error as Error);
   }
 };
 
@@ -143,7 +146,7 @@ const markAllAsRead = async () => {
     // 刷新历史消息
     await loadHistoryMessages();
   } catch (error) {
-    console.error("全部标记已读失败:", error);
+    logger.error("全部标记已读失败", error as Error);
   }
 };
 
@@ -161,7 +164,7 @@ const deleteMessage = async (message: DisplayMessageItem) => {
       await messageStore.deleteMessage(message.originalId);
     }
   } catch (error) {
-    console.error("删除消息失败:", error);
+    logger.error("删除消息失败", error as Error);
   }
 };
 

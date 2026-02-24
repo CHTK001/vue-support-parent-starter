@@ -117,8 +117,11 @@
 import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed, defineComponent, h } from 'vue';
 import Sortable from 'sortablejs';
 import { IconifyIconOnline } from '@repo/components';
+import { getLogger } from '@repo/utils';
 import ContextMenu from '../plugins/ContextMenu.vue';
 import { useTableCrossHighlight } from '../composables/useTableCrossHighlight';
+
+const logger = getLogger("[ScTable][TableView]");
 
 // 创建一个简单的拖拽滚动包装组件
 // 如果 vue-drag-scroll 包已安装，可以替换为实际导入
@@ -607,7 +610,7 @@ const handleTableContextMenu = (event) => {
 // 处理菜单动作
 const handleMenuAction = (action) => {
   // 如果需要，可以在这里处理菜单动作
-  console.log('菜单动作:', action);
+  logger.info('菜单动作: {}', action);
 };
 
 onBeforeUnmount(() => {

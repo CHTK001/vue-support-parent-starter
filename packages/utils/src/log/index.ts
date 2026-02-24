@@ -5,6 +5,19 @@ import { LoggerImpl } from './logger';
 export type { Logger, LoggerOptions };
 export { LogLevel };
 
+// 导出 SLF4J 风格的日志工具
+export { LoggerFactory, getLogger, type Slf4jLogger, type Slf4jLoggerOptions } from './slf4j';
+
+// 导出堆栈劫持工具
+export {
+  initStackTrace,
+  restoreStackTrace,
+  updateStackTraceOptions,
+  getStackTraceOptions,
+  formatErrorStack,
+  type StackTraceOptions,
+} from './stack-trace';
+
 // 创建默认日志实例
 const defaultLogger = new LoggerImpl();
 

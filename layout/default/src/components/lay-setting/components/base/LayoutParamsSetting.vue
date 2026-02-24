@@ -3,55 +3,58 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import { storageConfigureChange } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
-const contentPadding = computed({
-  get: () => $storage?.configure?.contentPadding ?? "medium",
-  set: (value: string) => {
-    $storage.configure.contentPadding = value;
+const contentMargin = computed({
+  get: () => $storage?.configure?.contentMargin ?? 16,
+  set: (value: number) => {
+    storageConfigureChange("contentMargin", value);
+    document.body.style.setProperty("--contentMargin", value + "px");
   },
 });
 
-const pageRadius = computed({
-  get: () => $storage?.configure?.pageRadius ?? "medium",
-  set: (value: string) => {
-    $storage.configure.pageRadius = value;
+const layoutRadius = computed({
+  get: () => $storage?.configure?.layoutRadius ?? 10,
+  set: (value: number) => {
+    storageConfigureChange("layoutRadius", value);
+    document.body.style.setProperty("--layoutRadius", value + "px");
   },
 });
 
-const contentPaddingOptions = computed<Array<OptionsType>>(() => [
-  { label: "紧凑", value: "small" },
-  { label: "适中", value: "medium" },
-  { label: "宽松", value: "large" },
+const contentMarginOptions = computed<Array<OptionsType>>(() => [
+  { label: "紧凑", value: 12 },
+  { label: "适中", value: 16 },
+  { label: "宽松", value: 24 },
 ]);
 
-const pageRadiusOptions = computed<Array<OptionsType>>(() => [
-  { label: "直角", value: "none" },
-  { label: "轻微圆角", value: "small" },
-  { label: "中等圆角", value: "medium" },
-  { label: "大圆角", value: "large" },
+const layoutRadiusOptions = computed<Array<OptionsType>>(() => [
+  { label: "直角", value: 0 },
+  { label: "轻微圆角", value: 6 },
+  { label: "中等圆角", value: 10 },
+  { label: "大圆角", value: 14 },
 ]);
 
-const handleContentPaddingChange = ({ option }: { option: OptionsType }) => {
-  contentPadding.value = option.value as string;
+const handleContentMarginChange = ({ option }: { option: OptionsType }) => {
+  contentMargin.value = option.value as number;
 };
 
-const handlePageRadiusChange = ({ option }: { option: OptionsType }) => {
-  pageRadius.value = option.value as string;
+const handleLayoutRadiusChange = ({ option }: { option: OptionsType }) => {
+  layoutRadius.value = option.value as number;
 };
 
-const currentContentPaddingIndex = computed(() => {
-  const index = contentPaddingOptions.value.findIndex(
-    (opt) => opt.value === contentPadding.value,
+const currentContentMarginIndex = computed(() => {
+  const index = contentMarginOptions.value.findIndex(
+    (opt) => opt.value === contentMargin.value,
   );
   return index >= 0 ? index : 1;
 });
 
-const currentPageRadiusIndex = computed(() => {
-  const index = pageRadiusOptions.value.findIndex(
-    (opt) => opt.value === pageRadius.value,
+const currentLayoutRadiusIndex = computed(() => {
+  const index = layoutRadiusOptions.value.findIndex(
+    (opt) => opt.value === layoutRadius.value,
   );
   return index >= 0 ? index : 1;
 });
@@ -66,26 +69,26 @@ const currentPageRadiusIndex = computed(() => {
     <div class="setting-content">
       <div class="mb-4">
         <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          内容内边距
+          内容边距
         </div>
         <Segmented
           resize
           class="select-none modern-segmented w-full"
-          :modelValue="currentContentPaddingIndex"
-          :options="contentPaddingOptions"
-          @change="handleContentPaddingChange"
+          :modelValue="currentContentMarginIndex"
+          :options="contentMarginOptions"
+          @change="handleContentMarginChange"
         />
       </div>
       <div class="mt-4">
         <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          页面圆角
+          布局圆角
         </div>
         <Segmented
           resize
           class="select-none modern-segmented w-full"
-          :modelValue="currentPageRadiusIndex"
-          :options="pageRadiusOptions"
-          @change="handlePageRadiusChange"
+          :modelValue="currentLayoutRadiusIndex"
+          :options="layoutRadiusOptions"
+          @change="handleLayoutRadiusChange"
         />
       </div>
     </div>

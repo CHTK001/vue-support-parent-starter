@@ -9,6 +9,7 @@ import { emitter, useUserStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import type { ThemeKey } from "../types/theme";
 import { layoutThemes, getLayoutTheme, loadThemeStylesheet } from "../themes";
+import { storageConfigureChange } from "../components/lay-setting/composables/useSettings";
 
 // 条件日志函数
 const isDev = import.meta.env.DEV;
@@ -158,7 +159,6 @@ export const useThemeStore = defineStore("theme", () => {
   function setTheme(themeKey: ThemeKey): void {
     if (currentTheme.value === themeKey) return;
 
-    log("主题切换:", currentTheme.value, "->", themeKey);
     currentTheme.value = themeKey;
 
     // 更新 DOM 属性
@@ -171,9 +171,7 @@ export const useThemeStore = defineStore("theme", () => {
     loadThemeStylesheet(themeKey);
 
     // 持久化到 storage
-    if ($storage?.configure) {
-      $storage.configure.systemTheme = themeKey;
-    }
+    storageConfigureChange("systemTheme", themeKey);
 
     // 发送主题变更事件
     emitter.emit("systemThemeChange", themeKey);
@@ -293,7 +291,6 @@ export const useThemeStore = defineStore("theme", () => {
     if (isInitialized) return;
     isInitialized = true;
 
-    log("初始化主题监听器");
 
     // 监听 emitter 事件（用于外部切换）
     emitter.on("systemThemeChange", handleExternalThemeChange);
@@ -310,7 +307,6 @@ export const useThemeStore = defineStore("theme", () => {
    */
   function handleExternalThemeChange(themeKey: string): void {
     if (currentTheme.value !== themeKey) {
-      log("收到外部主题变更:", themeKey);
       currentTheme.value = themeKey as ThemeKey;
     }
   }
@@ -319,7 +315,6 @@ export const useThemeStore = defineStore("theme", () => {
    * 销毁监听器
    */
   function destroyThemeListener(): void {
-    log("销毁主题监听器");
     emitter.off("systemThemeChange", handleExternalThemeChange);
     isInitialized = false;
   }

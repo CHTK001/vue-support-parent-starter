@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { storageConfigureChange } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -10,18 +11,14 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
 const enableAiQuickAction = computed({
   get: () => $storage?.configure?.enableAiQuickAction ?? true,
   set: (value: boolean) => {
-    if ($storage?.configure) {
-      $storage.configure.enableAiQuickAction = value as any;
-    }
+    storageConfigureChange("enableAiQuickAction", value);
   },
 });
 
 const enableAiShortcutPanel = computed({
   get: () => $storage?.configure?.enableAiShortcutPanel ?? true,
   set: (value: boolean) => {
-    if ($storage?.configure) {
-      $storage.configure.enableAiShortcutPanel = value as any;
-    }
+    storageConfigureChange("enableAiShortcutPanel", value);
   },
 });
 </script>

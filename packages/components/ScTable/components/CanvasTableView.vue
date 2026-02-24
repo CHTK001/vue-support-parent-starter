@@ -20,7 +20,10 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, onBeforeUnmount } from "vue";
 import { debounce } from "lodash-es";
+import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
+
+const logger = getLogger("[ScTable][CanvasTableView]");
 
 // 定义props
 const props = defineProps({
@@ -682,7 +685,7 @@ const handleCanvasContextMenu = e => {
 // 处理菜单动作
 const handleMenuAction = action => {
   // 如果需要，可以在这里处理菜单动作
-  console.log("菜单动作:", action);
+  logger.info("菜单动作: {}", action);
 };
 
 // 生命周期钩子

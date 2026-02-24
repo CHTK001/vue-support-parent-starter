@@ -122,8 +122,11 @@ import ScCard from "@repo/components/ScCard/index.vue";
 import { debounce } from "lodash-es";
 import { computed, nextTick, onMounted, onUnmounted, ref, useSlots, watch } from "vue";
 import Sortable from "sortablejs";
+import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+
+const logger = getLogger("[ScTable][CardView]");
 
 // 定义props
 const props = defineProps({
@@ -731,7 +734,7 @@ const handleContextMenu = (event, row) => {
 // 处理菜单动作
 const handleMenuAction = action => {
   // 如果需要，可以在这里处理菜单动作
-  console.log("菜单动作:", action);
+  logger.info("菜单动作: {}", action);
 };
 </script>
 

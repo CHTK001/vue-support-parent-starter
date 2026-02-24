@@ -2,11 +2,25 @@
  * 设置管理 Composable
  * @description 统一管理系统设置的状态和方法
  */
-import { reactive, ref, computed } from "vue";
-import { useGlobal } from "@pureadmin/utils";
-import { emitter } from "@repo/core";
+import {
+  computed,
+  nextTick,
+  onBeforeMount,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  unref,
+  watch,
+} from "vue";
+import { debounce, toggleClass, useDark, useGlobal } from "@pureadmin/utils";
+import { emitter, useAppStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import type { StorageConfig } from "../../../types/theme";
+import { ElMessage } from "element-plus";
+import { useI18n } from "vue-i18n";
+import { detectFestivalTheme, getAvailableThemes } from "../../../themes";
+import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
 
 /**
  * 设置状态类型
@@ -54,9 +68,6 @@ export interface SettingsState {
   doubleNavAutoExpandAll: boolean;
   // AI 助手
   aiChatTheme: string;
-  // AI 对话功能
-  useLocalModel: boolean;
-  localModelId: string;
   // 主题管理
   enableFestivalTheme: boolean;
   // 消息弹窗
@@ -74,6 +85,7 @@ export interface SettingsState {
   themeAnimationDirection: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center' | 'left' | 'right' | 'top' | 'bottom';
 }
 
+
 /**
  * 设置管理 Hook
  */
@@ -81,62 +93,62 @@ export function useSettings() {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
 
   // ===== 初始化状态 =====
+  const configure = $storage?.configure ?? {};
   const settings = reactive<SettingsState>({
-    menuTransition: $storage.configure?.menuTransition ?? false,
-    transitionType: $storage.configure?.transitionType ?? 'fade-slide',
+    menuTransition: configure?.menuTransition ?? false,
+    transitionType: configure?.transitionType ?? 'fade-slide',
     // ... 其他默认值保持不变
     // 新增动画配置默认值
-    themeAnimationMode: $storage.configure?.themeAnimationMode ?? 'fixed',
-    themeAnimationDirection: $storage.configure?.themeAnimationDirection ?? 'top-right',
+    themeAnimationMode: configure?.themeAnimationMode ?? 'fixed',
+    themeAnimationDirection: configure?.themeAnimationDirection ?? 'top-right',
     
-    contentMargin: $storage.configure?.contentMargin ?? 16,
-    layoutRadius: $storage.configure?.layoutRadius ?? 10,
-    layoutBlur: $storage.configure?.layoutBlur ?? 4,
-    greyVal: $storage.configure?.grey ?? false,
-    weakVal: $storage.configure?.weak ?? false,
-    invertVal: $storage.configure?.invert ?? false,
-    monochromeVal: $storage.configure?.monochrome ?? false,
-    tabsVal: $storage.configure?.hideTabs ?? false,
-    cardBody: $storage.configure?.cardBody ?? true,
-    showLogo: $storage.configure?.showLogo ?? true,
-    showModel: $storage.configure?.showModel ?? "chrome",
-    hideFooter: $storage.configure?.hideFooter ?? true,
-    hideHeader: $storage.configure?.hideHeader ?? false,
-    multiTagsCache: $storage.configure?.multiTagsCache ?? true,
-    stretch: $storage.configure?.stretch ?? false,
-    keepAlive: $storage.configure?.keepAlive ?? true,
-    debugMode: $storage.configure?.debugMode ?? false,
-    showBreadcrumb: $storage.configure?.showBreadcrumb ?? true,
-    breadcrumbIconOnly: $storage.configure?.breadcrumbIconOnly ?? false,
-    showTagIcon: $storage.configure?.showTagIcon ?? true,
-    showNewMenu: $storage.configure?.showNewMenu ?? true,
-    newMenuText: $storage.configure?.newMenuText ?? "new",
-    newMenuTimeLimit: $storage.configure?.newMenuTimeLimit ?? 168,
-    newMenuAnimation: $storage.configure?.newMenuAnimation ?? "bounce",
-    doubleNavExpandMode: $storage.configure?.doubleNavExpandMode ?? "auto",
-    doubleNavAutoExpandAll: $storage.configure?.doubleNavAutoExpandAll ?? true,
-    aiChatTheme: $storage.configure?.aiChatTheme ?? "default",
-    useLocalModel: $storage.configure?.useLocalModel ?? false,
-    localModelId: $storage.configure?.localModelId ?? "onnx-community/Llama-3.2-1B-Instruct-ONNX",
-    enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? getConfig().EnableFestivalTheme ?? true,
-    messagePopupEnabled: $storage.configure?.messagePopupEnabled ?? getConfig().MessagePopupEnabled ?? true,
-    messagePopupPosition: $storage.configure?.messagePopupPosition ?? "top-right",
-    messagePopupDuration: $storage.configure?.messagePopupDuration ?? 5,
-    fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? false,
-    fontEncryptionNumbers: $storage.configure?.fontEncryptionNumbers ?? true,
-    fontEncryptionChinese: $storage.configure?.fontEncryptionChinese ?? true,
-    fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? false,
-    fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? false,
+    contentMargin: configure?.contentMargin ?? 16,
+    layoutRadius: configure?.layoutRadius ?? 10,
+    layoutBlur: configure?.layoutBlur ?? 4,
+    greyVal: configure?.grey ?? false,
+    weakVal: configure?.weak ?? false,
+    invertVal: configure?.invert ?? false,
+    monochromeVal: configure?.monochrome ?? false,
+    tabsVal: configure?.hideTabs ?? false,
+    cardBody: configure?.cardBody ?? true,
+    showLogo: configure?.showLogo ?? true,
+    showModel: configure?.showModel ?? "chrome",
+    hideFooter: configure?.hideFooter ?? true,
+    hideHeader: configure?.hideHeader ?? false,
+    multiTagsCache: configure?.multiTagsCache ?? true,
+    stretch: configure?.stretch ?? false,
+    keepAlive: configure?.keepAlive ?? true,
+    debugMode: configure?.debugMode ?? false,
+    showBreadcrumb: configure?.showBreadcrumb ?? true,
+    breadcrumbIconOnly: configure?.breadcrumbIconOnly ?? false,
+    showTagIcon: configure?.showTagIcon ?? true,
+    showNewMenu: configure?.showNewMenu ?? true,
+    newMenuText: configure?.newMenuText ?? "new",
+    newMenuTimeLimit: configure?.newMenuTimeLimit ?? 168,
+    newMenuAnimation: configure?.newMenuAnimation ?? "bounce",
+    doubleNavExpandMode: configure?.doubleNavExpandMode ?? "auto",
+    doubleNavAutoExpandAll: configure?.doubleNavAutoExpandAll ?? true,
+    aiChatTheme: configure?.aiChatTheme ?? "default",
+    enableFestivalTheme: configure?.enableFestivalTheme ?? getConfig().EnableFestivalTheme ?? true,
+    messagePopupEnabled: configure?.messagePopupEnabled ?? getConfig().MessagePopupEnabled ?? true,
+    messagePopupPosition: configure?.messagePopupPosition ?? "top-right",
+    messagePopupDuration: configure?.messagePopupDuration ?? 5,
+    fontEncryptionEnabled: configure?.fontEncryptionEnabled ?? false,
+    fontEncryptionNumbers: configure?.fontEncryptionNumbers ?? true,
+    fontEncryptionChinese: configure?.fontEncryptionChinese ?? true,
+    fontEncryptionGlobal: configure?.fontEncryptionGlobal ?? false,
+    fontEncryptionOcrNoise: configure?.fontEncryptionOcrNoise ?? false,
   });
 
   // ===== 通用方法 =====
   
-  /**
+
+   /**
    * 持久化配置到 storage
    */
-  function saveToStorage<T>(key: keyof StorageConfig, value: T): void {
-    const storageConfigure = $storage.configure || {};
-    storageConfigure[key] = value;
+   function saveToStorage<T>(key: keyof StorageConfig, value: T): void {
+    const storageConfigure = $storage.configure || {} as StorageConfig;
+    storageConfigure[key] = value as never;
     $storage.configure = storageConfigure;
   }
 
@@ -375,26 +387,6 @@ export function useSettings() {
     });
   }
 
-  // ===== AI 对话功能设置 =====
-  
-  function setUseLocalModel(value: boolean): void {
-    settings.useLocalModel = value;
-    saveToStorage("useLocalModel", value);
-    emitter.emit("aiLocalModelChange", {
-      useLocalModel: value,
-      localModelId: settings.localModelId,
-    });
-  }
-
-  function setLocalModelId(value: string): void {
-    settings.localModelId = value;
-    saveToStorage("localModelId", value);
-    emitter.emit("aiLocalModelChange", {
-      useLocalModel: settings.useLocalModel,
-      localModelId: value,
-    });
-  }
-
   // ===== 重置功能 =====
   
   function resetToDefault(): void {
@@ -454,14 +446,425 @@ export function useSettings() {
     setFontEncryptionChinese,
     setFontEncryptionGlobal,
     setFontEncryptionOcrNoise,
-    // AI 对话功能
-    setUseLocalModel,
-    setLocalModelId,
     // 重置
     resetToDefault,
     // 工具方法
     saveToStorage,
     toggleHtmlClass,
     setCssVariable,
+  };
+}
+
+/** 布局类型 */
+type LayoutType =
+  | "vertical"
+  | "horizontal"
+  | "mix"
+  | "hover"
+  | "double"
+  | "mobile";
+
+/**
+ * BaseSetting 组件逻辑
+ * @description 从 BaseSetting.vue 提取的主题/布局/节日主题相关逻辑
+ */
+export function useBaseSetting() {
+  const { t } = useI18n();
+  const { $storage } = useGlobal<GlobalPropertiesApi>();
+  const { isDark } = useDark();
+  const {
+    dataTheme,
+    overallStyle,
+    layoutTheme,
+    dataThemeChange,
+    setLayoutThemeColor,
+  } = useDataThemeChange();
+
+  // ===== 响应式状态 =====
+  const configure = ($storage?.configure ?? {}) as StorageConfig;
+  const markValue = ref<StorageConfig["showModel"]>(configure?.showModel ?? "chrome");
+  const logoVal = ref<boolean>(configure?.showLogo ?? true);
+  const cardBodyVal = ref<boolean>(configure?.cardBody ?? true);
+  const cardColorMode = ref<StorageConfig["cardColorMode"]>(configure?.cardColorMode ?? "all");
+  const previewInput = ref<string>("");
+  const previewSwitch = ref<boolean>(true);
+  const previewSlider = ref<number>(50);
+  const previewCheck = ref<boolean>(true);
+  const previewRadio = ref<string>("1");
+
+  // 布局模式 refs
+  const mixRef = ref<any>();
+  const verticalRef = ref<any>();
+  const horizontalRef = ref<any>();
+  const hoverRef = ref<any>();
+  const mobileRef = ref<any>();
+  const doubleRef = ref<any>();
+
+  // Tippy 实例管理
+  const tippyInstances = ref<any[]>([]);
+
+  // ===== 计算属性 =====
+
+  /** 判断当前是否为非默认主题 */
+  const isNonDefaultTheme = computed(() => {
+    const currentTheme = ($storage?.configure?.systemTheme || "default") as string;
+    return currentTheme !== "default";
+  });
+
+  /** 获取当前环境 */
+  const currentEnv = import.meta.env.MODE || "production";
+  const isDevelopment = currentEnv === "development" || import.meta.env.DEV;
+  const isTest = currentEnv === "test";
+
+  /** 获取用户角色列表 */
+  const userRoles = computed(() => {
+    const roles = ($storage as any)?.user?.roles || ($storage as any)?.userInfo?.roles || [];
+    return Array.isArray(roles) ? roles : [];
+  });
+
+  /** 节日主题列表 */
+  const festivalThemesList = computed(() => {
+    const enableFestivalTheme =
+      $storage?.configure?.enableFestivalTheme ??
+      getConfig().EnableFestivalTheme ??
+      false;
+
+    const themes = getAvailableThemes(
+      enableFestivalTheme,
+      userRoles.value,
+      isDevelopment,
+      isTest,
+    );
+
+    return themes.map((theme) => ({
+      color: theme.color || "#409EFF",
+      themeColor: theme.key,
+      name: theme.name,
+      description: theme.description,
+      icon: theme.icon || "ri:palette-line",
+      type: theme.type,
+      key: theme.key,
+    }));
+  });
+
+  /** 当网页整体为暗色风格时不显示亮白色主题配色切换选项 */
+  const showThemeColors = computed(() => {
+    return (themeColor: string) => {
+      return themeColor === "light" && isDark.value ? false : true;
+    };
+  });
+
+  /** 主题色样式 */
+  const getThemeColorStyle = computed(() => {
+    return (color: string) => {
+      return { background: color };
+    };
+  });
+
+  /** 主题色激活选择项 */
+  const getThemeColor = computed(() => {
+    return (current: string) => {
+      if (current === layoutTheme.value.theme && layoutTheme.value.theme !== "light") {
+        return "#fff";
+      }
+      if (current === layoutTheme.value.theme && layoutTheme.value.theme === "light") {
+        return "#1d2b45";
+      }
+      return "transparent";
+    };
+  });
+
+  // ===== 工具函数 =====
+
+  /**
+   * 切换系统主题皮肤
+   * @param themeKey 主题键值
+   * @param showMessage 是否显示消息
+   */
+  function switchSystemTheme(themeKey: string, showMessage: boolean = true): void {
+    const currentTheme = ($storage?.configure?.systemTheme || "default") as string;
+    if (currentTheme === themeKey) {
+      return;
+    }
+
+    document.documentElement.setAttribute("data-skin", themeKey);
+
+    // 如果切换到非默认主题，强制切换到浅色模式
+    if (themeKey !== "default") {
+      dataTheme.value = false;
+      dataThemeChange("light");
+    }
+
+    saveToStorage("systemTheme", themeKey as any);
+    emitter.emit("systemThemeChange", themeKey);
+
+    if (!showMessage) {
+      return;
+    }
+
+    const themeName =
+      themeKey === "default"
+        ? "默认"
+        : festivalThemesList.value.find((item) => item.themeColor === themeKey)?.name || themeKey;
+    ElMessage.success(`已切换到${themeName}主题`);
+  }
+
+  /**
+   * 节日主题自动切换设置
+   */
+  function festivalThemeChange(value: boolean): void {
+    saveToStorage("enableFestivalTheme", value);
+
+    if (value) {
+      const festivalTheme = detectFestivalTheme();
+      if (festivalTheme) {
+        switchSystemTheme(festivalTheme.key, true);
+        return;
+      }
+      switchSystemTheme("default", true);
+      return;
+    }
+
+    ElMessage.success(t("panel.festivalThemeDisabled"));
+  }
+
+  /**
+   * 设置导航模式
+   * @description 对非法值兜底到 vertical
+   */
+  function setLayoutModel(layout: string): void {
+    const fallbackLayout: LayoutType = "vertical";
+    const validLayouts: LayoutType[] = [
+      "vertical",
+      "horizontal",
+      "mix",
+      "hover",
+      "double",
+      "mobile",
+    ];
+    const targetLayout = (validLayouts as string[]).includes(layout)
+      ? (layout as LayoutType)
+      : fallbackLayout;
+
+    layoutTheme.value.layout = targetLayout as any;
+    window.document.body.setAttribute("layout", targetLayout);
+    $storage.layout = {
+      layout: targetLayout as any,
+      theme: layoutTheme.value.theme,
+      darkMode: $storage.layout?.darkMode,
+      sidebarStatus: $storage.layout?.sidebarStatus,
+      epThemeColor: $storage.layout?.epThemeColor,
+      themeColor: $storage.layout?.themeColor,
+      overallStyle: $storage.layout?.overallStyle,
+    };
+    useAppStoreHook().setLayout(targetLayout);
+  }
+
+  /**
+   * 系统主题监听相关
+   */
+  const mediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
+
+  /** 根据操作系统主题设置平台整体风格 */
+  function updateTheme(): void {
+    if (overallStyle.value !== "system") {
+      return;
+    }
+
+    dataTheme.value = mediaQueryList.matches;
+    dataThemeChange(overallStyle.value);
+  }
+
+  function removeMatchMedia(): void {
+    mediaQueryList.removeEventListener("change", updateTheme);
+  }
+
+  /** 监听操作系统主题改变 */
+  function watchSystemThemeChange(): void {
+    updateTheme();
+    removeMatchMedia();
+    mediaQueryList.addEventListener("change", updateTheme);
+  }
+
+  /**
+   * 初始化主题
+   */
+  function initializeTheme(): void {
+    const savedTheme = $storage?.configure?.systemTheme;
+    const enableFestivalTheme =
+      $storage?.configure?.enableFestivalTheme ??
+      getConfig().EnableFestivalTheme ??
+      false;
+
+    if (enableFestivalTheme) {
+      const festivalTheme = detectFestivalTheme();
+      if (festivalTheme) {
+        switchSystemTheme(festivalTheme.key, false);
+        return;
+      }
+    }
+
+    if (savedTheme && savedTheme !== "default") {
+      switchSystemTheme(savedTheme as any, false);
+    }
+  }
+
+  /**
+   * Tippy 实例管理
+   */
+  function collectTippyInstances(): void {
+    nextTick(() => {
+      const elementsWithTippy = [
+        verticalRef.value,
+        horizontalRef.value,
+        mixRef.value,
+        hoverRef.value,
+        doubleRef.value,
+      ].filter(Boolean);
+
+      elementsWithTippy.forEach((element: any) => {
+        if (element?._tippy) {
+          tippyInstances.value.push(element._tippy);
+        }
+      });
+    });
+  }
+
+  function destroyAllTippyInstances(): void {
+    const elementsWithTippy = [
+      verticalRef.value,
+      horizontalRef.value,
+      mixRef.value,
+      hoverRef.value,
+      doubleRef.value,
+    ].filter(Boolean);
+
+    elementsWithTippy.forEach((element: any) => {
+      element?._tippy?.destroy?.();
+    });
+
+    tippyInstances.value.forEach((instance: any) => {
+      instance?.destroy?.();
+    });
+
+    tippyInstances.value = [];
+
+    const tippyElements = document.querySelectorAll("[data-tippy-root]");
+    tippyElements.forEach((element) => {
+      element.parentNode?.removeChild(element);
+    });
+  }
+
+  /**
+   * 布局模式选择相关
+   */
+  function setFalse(doms: Array<any>): void {
+    doms.forEach((dom) => {
+      toggleClass(false, "is-select", unref(dom));
+    });
+  }
+
+  const debouncedSetFalse = debounce((doms: Array<any>) => setFalse(doms), 50);
+
+  // 监听布局模式变化
+  watch(
+    () => $storage.layout,
+    (newLayout) => {
+      const currentLayout = (newLayout?.layout || "vertical") as LayoutType;
+      switch (currentLayout) {
+        case "vertical":
+          toggleClass(true, "is-select", unref(verticalRef));
+          debouncedSetFalse([horizontalRef, mixRef, hoverRef, doubleRef]);
+          break;
+        case "horizontal":
+          toggleClass(true, "is-select", unref(horizontalRef));
+          debouncedSetFalse([verticalRef, mixRef, hoverRef, doubleRef]);
+          break;
+        case "mix":
+          toggleClass(true, "is-select", unref(mixRef));
+          debouncedSetFalse([verticalRef, horizontalRef, hoverRef, doubleRef]);
+          break;
+        case "hover":
+          toggleClass(true, "is-select", unref(hoverRef));
+          debouncedSetFalse([verticalRef, horizontalRef, mixRef, doubleRef]);
+          break;
+        case "double":
+          toggleClass(true, "is-select", unref(doubleRef));
+          debouncedSetFalse([verticalRef, horizontalRef, mixRef, hoverRef]);
+          break;
+        default:
+          break;
+      }
+    },
+    { deep: true },
+  );
+
+  // ===== 生命周期 =====
+
+  onBeforeMount(() => {
+    // 强制重置节日主题自动切换默认为关闭 (针对旧版本缓存)
+    const MIGRATION_KEY = "festival_theme_config_reset_v1";
+    if (!localStorage.getItem(MIGRATION_KEY)) {
+      saveToStorage("enableFestivalTheme", false);
+      localStorage.setItem(MIGRATION_KEY, "true");
+    }
+  });
+
+  onMounted(() => {
+    collectTippyInstances();
+    emitter.on("settingPanelClosed", () => {
+      destroyAllTippyInstances();
+    });
+  });
+
+  onUnmounted(() => {
+    removeMatchMedia();
+    destroyAllTippyInstances();
+    emitter.off("settingPanelClosed");
+  });
+
+  return {
+    // 状态
+    markValue,
+    logoVal,
+    cardBodyVal,
+    cardColorMode,
+    previewInput,
+    previewSwitch,
+    previewSlider,
+    previewCheck,
+    previewRadio,
+    // 布局模式 refs
+    mixRef,
+    verticalRef,
+    horizontalRef,
+    hoverRef,
+    mobileRef,
+    doubleRef,
+    // 计算属性
+    isNonDefaultTheme,
+    isDevelopment,
+    isTest,
+    userRoles,
+    festivalThemesList,
+    showThemeColors,
+    getThemeColorStyle,
+    getThemeColor,
+    // 方法
+    saveToStorage ,
+    switchSystemTheme,
+    festivalThemeChange,
+    setLayoutModel,
+    watchSystemThemeChange,
+    initializeTheme,
+    collectTippyInstances,
+    destroyAllTippyInstances,
+    setFalse,
+    // 主题相关
+    dataTheme,
+    overallStyle,
+    layoutTheme,
+    dataThemeChange,
+    setLayoutThemeColor,
   };
 }

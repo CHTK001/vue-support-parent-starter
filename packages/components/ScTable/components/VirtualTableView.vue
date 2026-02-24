@@ -40,7 +40,10 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive } from "vue";
+import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
+
+const logger = getLogger("[ScTable][VirtualTableView]");
 
 // 定义props
 const props = defineProps({
@@ -289,27 +292,27 @@ const handleResize = () => {
 // 原生方法转发
 const clearSelection = () => {
   // el-table-v2 目前不支持选择功能，需要自行实现
-  console.warn("el-table-v2 does not support selection directly");
+  logger.warn("el-table-v2 does not support selection directly");
 };
 
 const toggleRowSelection = (row, selected) => {
   // el-table-v2 目前不支持选择功能，需要自行实现
-  console.warn("el-table-v2 does not support selection directly");
+  logger.warn("el-table-v2 does not support selection directly");
 };
 
 const toggleAllSelection = () => {
   // el-table-v2 目前不支持选择功能，需要自行实现
-  console.warn("el-table-v2 does not support selection directly");
+  logger.warn("el-table-v2 does not support selection directly");
 };
 
 const toggleRowExpansion = (row, expanded) => {
   // el-table-v2 目前不支持展开行功能，需要自行实现
-  console.warn("el-table-v2 does not support row expansion directly");
+  logger.warn("el-table-v2 does not support row expansion directly");
 };
 
 const setCurrentRow = row => {
   // el-table-v2 目前不支持当前行功能，需要自行实现
-  console.warn("el-table-v2 does not support current row directly");
+  logger.warn("el-table-v2 does not support current row directly");
 };
 
 const clearSort = () => {
@@ -319,7 +322,7 @@ const clearSort = () => {
 
 const clearFilter = columnKey => {
   // el-table-v2 目前不支持筛选功能，需要自行实现
-  console.warn("el-table-v2 does not support filtering directly");
+  logger.warn("el-table-v2 does not support filtering directly");
 };
 
 const doLayout = () => {
@@ -376,7 +379,7 @@ const remoteSummaryMethod = param => {
 // 处理菜单动作
 const handleMenuAction = action => {
   // 如果需要，可以在这里处理菜单动作
-  console.log("菜单动作:", action);
+  logger.info("菜单动作: {}", action);
 };
 
 // 添加包装器的右键菜单处理函数
