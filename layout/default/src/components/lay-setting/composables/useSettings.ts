@@ -63,6 +63,8 @@ export interface SettingsState {
   newMenuText: string;
   newMenuTimeLimit: number;
   newMenuAnimation: string;
+  // 消息按钮
+  showMessage: boolean;
   // 双栏导航
   doubleNavExpandMode: string;
   doubleNavAutoExpandAll: boolean;
@@ -126,6 +128,7 @@ export function useSettings() {
     newMenuText: configure?.newMenuText ?? "new",
     newMenuTimeLimit: configure?.newMenuTimeLimit ?? 168,
     newMenuAnimation: configure?.newMenuAnimation ?? "bounce",
+    showMessage: configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
     doubleNavExpandMode: configure?.doubleNavExpandMode ?? "auto",
     doubleNavAutoExpandAll: configure?.doubleNavAutoExpandAll ?? true,
     aiChatTheme: configure?.aiChatTheme ?? "default",
@@ -309,6 +312,14 @@ export function useSettings() {
     saveToStorage("newMenuAnimation", value);
   }
 
+  // ===== 消息按钮 / 弹窗设置 =====
+
+  function setShowMessage(value: boolean): void {
+    settings.showMessage = value;
+    saveToStorage("showMessage", value);
+    emitter.emit("showMessageChange", value);
+  }
+
   // ===== 消息弹窗设置 =====
   
   function setMessagePopupEnabled(value: boolean): void {
@@ -436,6 +447,8 @@ export function useSettings() {
     setNewMenuText,
     setNewMenuTimeLimit,
     setNewMenuAnimation,
+    // 消息
+    setShowMessage,
     // 消息弹窗
     setMessagePopupEnabled,
     setMessagePopupPosition,

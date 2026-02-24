@@ -1,28 +1,3 @@
-import { getLogger } from "@repo/utils";
-
-const logger = getLogger("[App][GlobalErrorHandler]");
-
-// 在应用启动早期检测并设置深色主题与皮肤，避免FOUC问题
-(function () {
-  try {
-    // 从localStorage中读取布局配置
-    const layoutConfig = JSON.parse(localStorage.getItem("layout") || "{}");
-    // 深色模式
-    if (layoutConfig.darkMode) {
-      document.documentElement.classList.add("dark");
-    }
-    // 主题皮肤（default/flat/enhanced）
-    if (layoutConfig.themeSkin) {
-      document.documentElement.setAttribute(
-        "data-theme-skin",
-        layoutConfig.themeSkin
-      );
-    }
-  } catch (e) {
-    logger.warn("Failed to set theme from localStorage: {}", e);
-  }
-})();
-
 import { getPlatformConfig, injectResponsiveStorage, setLoginOutFunction, setRefreshTokenFunction, useI18n } from "@repo/config";
 import { router, setupStore, useUserStoreHook } from "@repo/core";
 import App from "./App.vue";
@@ -136,7 +111,6 @@ initializeWasmModule()
     void bootstrapApp({ syncLoadingAnimation: true });
   })
   .catch(error => {
-    logger.error("Failed to initialize WASM module: {}", error, error);
     // 即使WASM加载失败，也启动应用，但可能会缺少某些功能
     void bootstrapApp({ syncLoadingAnimation: false });
   });

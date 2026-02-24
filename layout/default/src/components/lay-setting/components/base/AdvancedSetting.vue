@@ -9,6 +9,7 @@ const {
   settings,
   setKeepAlive,
   setDebugMode,
+  setShowMessage,
   setMessagePopupEnabled,
   setMessagePopupPosition,
   setMessagePopupDuration,
@@ -81,13 +82,24 @@ function handleMessageDurationChange(value: number) {
         </div>
       </div>
 
-      <!-- 消息弹窗 -->
+      <!-- 消息设置 -->
       <div class="setting-group">
         <h4 class="group-title">
           <IconifyIconOnline icon="ri:message-3-line" class="group-icon" />
-          消息弹窗
+          消息设置
         </h4>
         <div class="switch-card-grid">
+          <ScSwitch
+            v-model="settings.showMessage"
+            layout="visual-card"
+            size="small"
+            label="启用顶部消息按钮"
+            description="控制头部消息中心按钮是否显示"
+            active-icon="ri:notification-3-line"
+            ribbon-color="var(--el-color-primary)"
+            @change="setShowMessage"
+          />
+
           <ScSwitch
             v-model="settings.messagePopupEnabled"
             layout="visual-card"

@@ -16,17 +16,17 @@
 }
 
 /* 应用像素字体到整个页面 */
-html[data-theme="pixel-art"] {
+html[data-skin="pixel-art"] {
   font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
 }
 
-html[data-theme="pixel-art"] body,
-html[data-theme="pixel-art"] body * {
+html[data-skin="pixel-art"] body,
+html[data-skin="pixel-art"] body * {
   font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
 }
 
 /* 确保二级导航也应用像素字体 */
-html[data-theme="pixel-art"] {
+html[data-skin="pixel-art"] {
   // 内联展开的二级导航
   .el-sub-menu .el-menu .el-menu-item,
   .el-sub-menu .el-sub-menu__title {

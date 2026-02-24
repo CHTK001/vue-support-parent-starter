@@ -311,7 +311,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div>
+  <div v-if="messageEnabled">
     <el-dropdown
       ref="dropdownRef"
       trigger="click"

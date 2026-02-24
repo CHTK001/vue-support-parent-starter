@@ -19,6 +19,8 @@ const {
   dataThemeChange,
 } = useDataThemeChange();
 
+const runThemeAnimation = useThemeAnimation();
+
 // 判断当前是否为非默认主题（节日主题优先级高于页签风格和整体风格）
 const isNonDefaultTheme = computed(() => {
   const currentTheme = $storage?.configure?.systemTheme || "default";
@@ -50,7 +52,7 @@ function watchSystemThemeChange() {
 }
 
 const handleOverallStyleChange = (theme: any) => {
-  useThemeAnimation(() => {
+  runThemeAnimation(() => {
     theme.index === 1 && theme.index !== 2
       ? (dataTheme.value = true)
       : (dataTheme.value = false);

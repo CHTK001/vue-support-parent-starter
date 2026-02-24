@@ -89,6 +89,8 @@ export interface StorageConfig {
   cardColorMode?: "all" | "third" | "white";
   /** 节日主题自动切换 */
   enableFestivalTheme?: boolean;
+  /** 是否显示顶部消息按钮 */
+  showMessage?: boolean;
   /** 消息弹窗启用 */
   messagePopupEnabled?: boolean;
   /** 消息弹窗位置 */

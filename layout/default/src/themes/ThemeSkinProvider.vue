@@ -92,8 +92,8 @@ const applyThemeSkin = (themeKey: string): void => {
     htmlEl.classList.add(`theme-${themeKey}`);
   }
   
-  // 设置 data-theme 属性，便于 CSS 选择器使用
-  htmlEl.setAttribute("data-theme", themeKey);
+  // 设置 data-skin 属性，供皮肤主题样式使用（与 data-theme 的浅/深色主题区分）
+  htmlEl.setAttribute("data-skin", themeKey);
 };
 
 /**

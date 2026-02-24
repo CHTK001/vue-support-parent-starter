@@ -128,15 +128,27 @@ export const useThemeStore = defineStore("theme", () => {
 
   // Access Control Logic
   const isPerformanceMonitorVisible = computed(() => {
-    // 1. Check Environment: Show if DEV or TEST
-    const isDevOrTest = import.meta.env.DEV || import.meta.env.MODE === 'test';
-    
-    // 2. Check User Role: Show if user is 'sa' or has 'sa' role (assuming username check for now as role structure varies)
-    // Note: Adjust 'sa' check based on actual user store structure if needed.
-    const userStore = useUserStoreHook();
-    const isSa = userStore.username === 'sa' || userStore.roles.includes('sa') || userStore.roles.includes('admin'); // Broaden to admin for safety, but user asked for 'sa'
+    // 只要任一监控项开启，就允许在界面上显示性能监控组件
+    const hasAnyMonitorEnabled =
+      fpsMonitorEnabled.value ||
+      memoryMonitorEnabled.value ||
+      cpuMonitorEnabled.value ||
+      bandwidthMonitorEnabled.value ||
+      batteryMonitorEnabled.value ||
+      bluetoothMonitorEnabled.value ||
+      screenMonitorEnabled.value ||
+      networkLatencyMonitorEnabled.value ||
+      storageMonitorEnabled.value ||
+      deviceInfoMonitorEnabled.value ||
+      pageTimeMonitorEnabled.value;
 
-    return isDevOrTest || isSa;
+    if (!hasAnyMonitorEnabled) {
+      return false;
+    }
+
+    // 环境或角色控制暂不做强约束，避免在生产环境下开关“开启无效”
+    // 如需收紧权限，可在此处增加 DEV / SA 账号判断
+    return true;
   });
 
   // 初始化标记

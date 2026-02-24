@@ -125,8 +125,10 @@ const {
   toggleClass,
 } = useDataThemeChange();
 
+const runThemeAnimation = useThemeAnimation();
+
 const handleOverallStyleChange = (theme: any) => {
-  useThemeAnimation(() => {
+  runThemeAnimation(() => {
     theme.index === 1 && theme.index !== 2
       ? (dataTheme.value = true)
       : (dataTheme.value = false);
@@ -137,7 +139,7 @@ const handleOverallStyleChange = (theme: any) => {
 };
 
 const handleSetLayoutThemeColor = (color: string, event: MouseEvent) => {
-  useThemeAnimation(() => {
+  runThemeAnimation(() => {
     setLayoutThemeColor(color);
   }, event);
 };
@@ -971,16 +973,27 @@ function importSettings() {
         <component :is="ThemeColorSetting" :key="`theme-color-${currentTheme}`" />
         <component :is="ThemeAnimationSetting" :key="`theme-animation-${currentTheme}`" />
         <component :is="ThemeSkinSetting" :key="`theme-skin-${currentTheme}`" />
-        <component v-if="getConfig().ShowAiChat !== false" :is="AiChatSkinSetting" :key="`ai-chat-skin-${currentTheme}`" />
-        <component v-if="getConfig().ShowAiChat !== false" :is="AiChatFunctionSetting" :key="`ai-chat-function-${currentTheme}`" />
-        <component :is="LayoutModeSetting" :key="`layout-mode-${currentTheme}`" />
-        <component v-if="layoutTheme.layout === 'mobile'" :is="MobileNavSetting" :key="`mobile-nav-${currentTheme}`" />
-        <component v-if="layoutTheme.layout === 'double'" :is="DoubleNavSetting" :key="`double-nav-${currentTheme}`" />
-        <component v-if="useAppStoreHook().getViewportWidth > 1280" :is="PageStretchSetting" :key="`page-stretch-${currentTheme}`" />
-        <component :is="LayoutParamsSetting" :key="`layout-params-${currentTheme}`" />
-        <component :is="TagsStyleSetting" :key="`tags-style-${currentTheme}`" />
-        <component :is="InterfaceDisplaySetting" :key="`interface-display-${currentTheme}`" />
-        <component :is="MenuSetting" :key="`menu-${currentTheme}`" />
+        <component
+          v-if="getConfig().ShowAiChat !== false"
+          :is="AiChatSkinSetting"
+          :key="`ai-chat-skin-${currentTheme}`"
+        />
+        <component
+          v-if="getConfig().ShowAiChat !== false"
+          :is="AiChatFunctionSetting"
+          :key="`ai-chat-function-${currentTheme}`"
+        />
+        <!-- 导航 / 页面宽度 / 布局参数 / 标签页样式 / 界面显示 / 菜单
+             已在下方提供一套自定义样式实现，这里关闭对应的主题组件，避免面板出现两套重复布局 -->
+        <!-- <component :is="LayoutModeSetting" :key="`layout-mode-${currentTheme}`" /> -->
+        <!-- <component v-if="layoutTheme.layout === 'mobile'" :is="MobileNavSetting" :key="`mobile-nav-${currentTheme}`" /> -->
+        <!-- <component v-if="layoutTheme.layout === 'double'" :is="DoubleNavSetting" :key="`double-nav-${currentTheme}`" /> -->
+        <!-- <component v-if="useAppStoreHook().getViewportWidth > 1280" :is="PageStretchSetting" :key="`page-stretch-${currentTheme}`" /> -->
+        <!-- <component :is="LayoutParamsSetting" :key="`layout-params-${currentTheme}`" /> -->
+        <!-- <component :is="TagsStyleSetting" :key="`tags-style-${currentTheme}`" /> -->
+        <!-- <component :is="InterfaceDisplaySetting" :key="`interface-display-${currentTheme}`" /> -->
+        <!-- <component :is="MenuSetting" :key="`menu-${currentTheme}`" /> -->
+        <!-- 高级设置沿用基础组件，避免与下方其他分组混淆 -->
         <component :is="AdvancedSetting" :key="`advanced-${currentTheme}`" />
 
         <!-- 原始主题皮肤相关模板已删除，逻辑已迁移到上方组件 -->
