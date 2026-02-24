@@ -1,53 +1,195 @@
-import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import {
-  root,
-  wrapperEnv,
-  pathResolve,
-  createAlias,
-  createAppInfo,
-  getPluginsList,
-  include,
-  exclude,
-} from "../../packages/build-config/dist/index.mjs";
+  type ConfigEnv,
+  loadEnv,
+  type UserConfigExport,
+  type PluginOption,
+  createLogger,
+} from "vite";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import dayjs from "dayjs";
+import vue from "@vitejs/plugin-vue";
+import vueJsx from "@vitejs/plugin-vue-jsx";
+import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
+import { vitePluginFakeServer } from "vite-plugin-fake-server";
+import { prismjsPlugin } from "vite-plugin-prismjs";
+import { codeInspectorPlugin } from "code-inspector-plugin";
+import topLevelAwait from "vite-plugin-top-level-await";
+import svgLoader from "vite-svg-loader";
+import removeNoMatch from "vite-plugin-router-warn";
 import pkg from "./package.json";
+
+const root: string = process.cwd();
+
+const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
+  const currentFileDir = dirname(fileURLToPath(metaUrl));
+  return resolve(currentFileDir, dir);
+};
+
+const createAlias = (metaUrl: string): Record<string, string> => ({
+  "@": pathResolve("./src", metaUrl),
+});
+
+const createAppInfo = (packageJson: {
+  name: string;
+  version: string;
+  engines?: Record<string, string>;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}) => ({
+  pkg: packageJson,
+  lastBuildTime: dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
+});
+
+const wrapperEnv = (envConf: Record<string, string>): any => {
+  const ret: Record<string, any> = {
+    VITE_PORT: 8848,
+    VITE_PUBLIC_PATH: "",
+    VITE_ROUTER_HISTORY: "",
+    VITE_CDN: false,
+    NODE_ENV: "",
+    VITE_HIDE_HOME: "false",
+    VITE_COMPRESSION: "none",
+    VITE_API_PREFIX: "",
+    VITE_API_URL: "",
+  };
+
+  for (const envName of Object.keys(envConf)) {
+    let realName = envConf[envName].replace(/\\n/g, "\n");
+    realName = realName === "true" ? true : realName === "false" ? false : realName;
+    if (envName === "VITE_PORT") {
+      realName = Number(realName);
+    }
+    ret[envName] = realName;
+    if (typeof realName === "string") {
+      process.env[envName] = realName;
+    } else if (typeof realName === "object") {
+      process.env[envName] = JSON.stringify(realName);
+    }
+  }
+  return ret;
+};
+
+const include = [
+  "qs",
+  "dayjs",
+  "axios",
+  "pinia",
+  "vue-i18n",
+  "@vueuse/core",
+  "@pureadmin/utils",
+  "responsive-storage",
+];
+
+const exclude = [
+  "@iconify-icons/ep",
+  "@iconify-icons/ri",
+  "@iconify-icons/bi",
+  "@iconify-icons/simple-icons",
+  "@iconify-icons/meteocons",
+  "@iconify-icons/line-md",
+  "@iconify-icons/humbleicons",
+  "@iconify-icons/mingcute",
+  "@iconify-icons/devicon",
+  "@iconify-icons/pixelarticons",
+  "@pureadmin/theme/dist/browser-utils",
+  "@techui/scifi",
+];
+
+// 创建自定义logger过滤color-adjust警告
+const logger = createLogger();
+const originalWarn = logger.warn;
+logger.warn = (msg, options) => {
+  if (msg.includes("color-adjust")) return;
+  originalWarn(msg, options);
+};
 
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
-  // const env = loadEnv(newMode, root);
-  const localRoot = process.cwd();
-  const env = loadEnv(newMode, localRoot);
+  const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
-  console.log("Root:", localRoot);
-  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
+  const { VITE_PORT, VITE_PUBLIC_PATH } = wrapperEnv(env);
 
-  const currentFileDir = dirname(fileURLToPath(import.meta.url));
-  const baseAlias = createAlias(import.meta.url);
-
-  // 使用数组形式的别名配置，确保更具体的别名优先匹配
-  // Vite 会按数组顺序匹配别名，所以更具体的路径要放在前面
-  const alias = [
-    // 最具体的别名放在最前面
-    { find: "@repo/core/directives", replacement: resolve(root, "packages/core/src/directives/index.ts") },
-    { find: "@layout/default", replacement: resolve(root, "layout/default/src") },
-    // 然后添加基础别名
-    ...Object.entries(baseAlias).map(([find, replacement]) => ({ find, replacement })),
-    // 覆盖 @repo/core 指向 src 目录（放在后面，避免覆盖更具体的别名）
-    { find: "@repo/core", replacement: resolve(root, "packages/core/src") },
+  const lifecycle = process.env.npm_lifecycle_event;
+  const plugins: PluginOption[] = [
+    vue(),
+    // jsx、tsx语法支持
+    vueJsx(),
+    // WASM 顶层 await 支持
+    topLevelAwait({
+      promiseExportName: "__tla",
+      promiseImportName: (i) => `__tla_${i}`,
+    }),
+    prismjsPlugin({
+      languages: "all",
+      plugins: [
+        "line-numbers",
+        "line-highlight",
+        "inline-color",
+        "copy-to-clipboard",
+        "highlight-keywords",
+        "show-language",
+        "download-button",
+        "data-uri-highlight",
+      ],
+      theme: "okaidia",
+      css: true,
+    }),
+    VueI18nPlugin({
+      include: [
+        pathResolve("../locales/**", import.meta.url),
+        pathResolve("@repo/config/locales/**", import.meta.url),
+      ],
+    }),
+    /**
+     * 在页面上按住组合键时，鼠标在页面移动即会在 DOM 上出现遮罩层并显示相关信息，点击一下将自动打开 IDE 并将光标定位到元素对应的代码位置
+     * Mac 默认组合键 Option + Shift
+     * Windows 默认组合键 Alt + Shift
+     * 更多用法看 https://inspector.fe-dev.cn/guide/start.html
+     */
+    codeInspectorPlugin({
+      bundler: "vite",
+      hideConsole: true,
+    }),
+    /**
+     * 开发环境下移除非必要的 vue-router 动态路由警告
+     */
+    removeNoMatch(),
+    // svg 组件化支持
+    svgLoader(),
   ];
 
-  // 构建 mock 路径（相对于 vite.config.ts 文件）
-  const mockPath = resolve(currentFileDir, "./mock");
+  if (env.VITE_USE_MOCK === "true") {
+    plugins.push(
+      vitePluginFakeServer({
+        logger: false,
+        include: [pathResolve("./mock", import.meta.url)],
+        infixName: false,
+        enableProd: true,
+      })
+    );
+  }
 
   return {
     base: VITE_PUBLIC_PATH,
-    root: localRoot,
+    define: {
+      // 把源码里所有 `process.env` 替换成对象字面量
+      "process.env": {},
+      // 若还读 global
+      global: "globalThis",
+      __INTLIFY_PROD_DEVTOOLS__: false,
+      __APP_CONFIG__: JSON.stringify(env),
+      __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
+      __APP_ENV__: JSON.stringify(newMode),
+    },
+    root,
     resolve: {
-      alias,
-      dedupe: ["vite", "vue", "vue-router", "vue-i18n"],
-      preserveSymlinks: true,
-      conditions: ["import", "module", "browser", "default"],
+      alias: {
+        ...createAlias(import.meta.url),
+      },
+      dedupe: ["vue", "vue-router", "vue-i18n"],
+      // 确保正确解析 node_modules 中的包路径
+      preserveSymlinks: false,
     },
     // 服务端渲染
     server: {
@@ -69,8 +211,13 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         clientFiles: ["./index.html", "./src/{views,components}/*"],
       },
     },
+    customLogger: logger,
     css: {
       preprocessorOptions: {
+        less: {
+          javascriptEnabled: true,
+          //引入的less全局变量，来自于开源组件ayin-color和ayin-lessmixins，访问https://www.npmjs.com/package/ayin-color 查看相关信息
+        },
         scss: {
           additionalData: `
             @use "@repo/assets/style/layout/default/variables.scss" as *;
@@ -79,80 +226,71 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
       },
     },
-    plugins: getPluginsList({
-      VITE_CDN,
-      VITE_COMPRESSION,
-      i18nPaths: [
-        pathResolve("../locales/**", import.meta.url),
-        pathResolve("@repo/config/locales/**", import.meta.url),
-      ],
-      mockPath: ["mock"],
-    }),
+    plugins,
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
-      include: [
-        ...include,
-        "rete",
-        "rete-vue-plugin",
-        "rete-connection-plugin",
-        "rete-area-plugin",
-        "rete-context-menu-plugin",
-        "rete-render-utils",
-        "rete-auto-arrange-plugin",
-        "rete-connection-reroute-plugin",
-        "rete-minimap-plugin",
-        "@babel/runtime/regenerator"
-      ],
+      include,
       exclude,
     },
     build: {
       // https://cn.vitejs.dev/guide/build.html#browser-compatibility
-      target: "es2015",
+      target: "esnext",
       sourcemap: false,
-      minify: "terser",
       // 消除打包大小超过500kb警告
       chunkSizeWarningLimit: 4000,
       terserOptions: {
         compress: {
           drop_console: true,
-          drop_debugger: true,
-          pure_funcs: ["console.log", "console.info", "console.debug", "console.warn", "console.error"],
-          passes: 3,
-          dead_code: true,
-          unused: true,
-          collapse_vars: true,
-          reduce_vars: true,
-          reduce_funcs: true,
-          inline: 2,
-          keep_fargs: false,
-          keep_fnames: false,
-        },
-        mangle: {
-          properties: {
-            regex: /^_/,
-          },
-          toplevel: true,
-        },
-        format: {
-          comments: false,
         },
       },
       rollupOptions: {
+        input: {
+          index: pathResolve("./index.html", import.meta.url),
+        },
+        external: ["@element-plus/icons-vue"],
+        // 静态资源分类打包
         output: {
-          // 静态资源分类打包
           chunkFileNames: "static/js/[name]-[hash].js",
           entryFileNames: "static/js/[name]-[hash].js",
           assetFileNames: "static/[ext]/[name]-[hash].[ext]",
+          // 手动分割代码块，优化加载性能
+          manualChunks(id) {
+            // 将 node_modules 中的大依赖单独打包
+            if (id.includes("node_modules")) {
+              // mermaid 相关
+              if (id.includes("mermaid")) {
+                return "vendor-mermaid";
+              }
+              // codemirror 相关
+              if (id.includes("codemirror")) {
+                return "vendor-codemirror";
+              }
+              // xterm 相关
+              if (id.includes("xterm")) {
+                return "vendor-xterm";
+              }
+              // cytoscape 相关
+              if (id.includes("cytoscape")) {
+                return "vendor-cytoscape";
+              }
+              // echarts 相关
+              if (id.includes("echarts") || id.includes("zrender")) {
+                return "vendor-echarts";
+              }
+              // element-plus 相关
+              if (id.includes("element-plus")) {
+                return "vendor-element-plus";
+              }
+              // vue 核心
+              if (id.includes("vue") && !id.includes("node_modules/@vue")) {
+                return "vendor-vue";
+              }
+              // 其他 node_modules 依赖
+              return "vendor";
+            }
+          },
         },
       },
-    },
-    define: {
-      __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
-      // Monaco Editor 需要 process.env 对象
-      "process.env": JSON.stringify({
-        NODE_ENV: mode,
-        VSCODE_TEXTMATE_DEBUG: false,
-      }),
     },
   };
 };

@@ -2,25 +2,11 @@
  * 设置管理 Composable
  * @description 统一管理系统设置的状态和方法
  */
-import {
-  computed,
-  nextTick,
-  onBeforeMount,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref,
-  unref,
-  watch,
-} from "vue";
-import { debounce, toggleClass, useDark, useGlobal } from "@pureadmin/utils";
-import { emitter, useAppStoreHook } from "@repo/core";
+import { reactive, ref, computed } from "vue";
+import { useGlobal } from "@pureadmin/utils";
+import { emitter } from "@repo/core";
 import { getConfig } from "@repo/config";
 import type { StorageConfig } from "../../../types/theme";
-import { ElMessage } from "element-plus";
-import { useI18n } from "vue-i18n";
-import { detectFestivalTheme, getAvailableThemes } from "../../../themes";
-import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
 
 /**
  * 设置状态类型
@@ -63,8 +49,6 @@ export interface SettingsState {
   newMenuText: string;
   newMenuTimeLimit: number;
   newMenuAnimation: string;
-  // 消息按钮
-  showMessage: boolean;
   // 双栏导航
   doubleNavExpandMode: string;
   doubleNavAutoExpandAll: boolean;
@@ -87,7 +71,6 @@ export interface SettingsState {
   themeAnimationDirection: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center' | 'left' | 'right' | 'top' | 'bottom';
 }
 
-
 /**
  * 设置管理 Hook
  */
@@ -95,63 +78,60 @@ export function useSettings() {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
 
   // ===== 初始化状态 =====
-  const configure = $storage?.configure ?? {};
   const settings = reactive<SettingsState>({
-    menuTransition: configure?.menuTransition ?? false,
-    transitionType: (configure?.transitionType ?? 'fade-slide') as TransitionType,
+    menuTransition: $storage.configure?.menuTransition ?? false,
+    transitionType: $storage.configure?.transitionType ?? 'fade-slide',
     // ... 其他默认值保持不变
     // 新增动画配置默认值
-    themeAnimationMode: (configure?.themeAnimationMode ?? 'fixed') as 'random' | 'fixed' | 'disabled',
-    themeAnimationDirection: (configure?.themeAnimationDirection ?? 'top-right') as 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center' | 'left' | 'right' | 'top' | 'bottom',
+    themeAnimationMode: $storage.configure?.themeAnimationMode ?? 'fixed',
+    themeAnimationDirection: $storage.configure?.themeAnimationDirection ?? 'top-right',
     
-    contentMargin: configure?.contentMargin ?? 16,
-    layoutRadius: configure?.layoutRadius ?? 10,
-    layoutBlur: configure?.layoutBlur ?? 4,
-    greyVal: configure?.grey ?? false,
-    weakVal: configure?.weak ?? false,
-    invertVal: configure?.invert ?? false,
-    monochromeVal: configure?.monochrome ?? false,
-    tabsVal: configure?.hideTabs ?? false,
-    cardBody: configure?.cardBody ?? true,
-    showLogo: configure?.showLogo ?? true,
-    showModel: configure?.showModel ?? "chrome",
-    hideFooter: configure?.hideFooter ?? true,
-    hideHeader: configure?.hideHeader ?? false,
-    multiTagsCache: configure?.multiTagsCache ?? true,
-    stretch: configure?.stretch ?? false,
-    keepAlive: configure?.keepAlive ?? true,
-    debugMode: configure?.debugMode ?? false,
-    showBreadcrumb: configure?.showBreadcrumb ?? true,
-    breadcrumbIconOnly: configure?.breadcrumbIconOnly ?? false,
-    showTagIcon: configure?.showTagIcon ?? true,
-    showNewMenu: configure?.showNewMenu ?? true,
-    newMenuText: configure?.newMenuText ?? "new",
-    newMenuTimeLimit: configure?.newMenuTimeLimit ?? 168,
-    newMenuAnimation: configure?.newMenuAnimation ?? "bounce",
-    showMessage: configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
-    doubleNavExpandMode: configure?.doubleNavExpandMode ?? "auto",
-    doubleNavAutoExpandAll: configure?.doubleNavAutoExpandAll ?? true,
-    aiChatTheme: configure?.aiChatTheme ?? "default",
-    enableFestivalTheme: configure?.enableFestivalTheme ?? getConfig().EnableFestivalTheme ?? true,
-    messagePopupEnabled: configure?.messagePopupEnabled ?? getConfig().MessagePopupEnabled ?? true,
-    messagePopupPosition: configure?.messagePopupPosition ?? "top-right",
-    messagePopupDuration: configure?.messagePopupDuration ?? 5,
-    fontEncryptionEnabled: configure?.fontEncryptionEnabled ?? false,
-    fontEncryptionNumbers: configure?.fontEncryptionNumbers ?? true,
-    fontEncryptionChinese: configure?.fontEncryptionChinese ?? true,
-    fontEncryptionGlobal: configure?.fontEncryptionGlobal ?? false,
-    fontEncryptionOcrNoise: configure?.fontEncryptionOcrNoise ?? false,
+    contentMargin: $storage.configure?.contentMargin ?? 16,
+    layoutRadius: $storage.configure?.layoutRadius ?? 10,
+    layoutBlur: $storage.configure?.layoutBlur ?? 4,
+    greyVal: $storage.configure?.grey ?? false,
+    weakVal: $storage.configure?.weak ?? false,
+    invertVal: $storage.configure?.invert ?? false,
+    monochromeVal: $storage.configure?.monochrome ?? false,
+    tabsVal: $storage.configure?.hideTabs ?? false,
+    cardBody: $storage.configure?.cardBody ?? true,
+    showLogo: $storage.configure?.showLogo ?? true,
+    showModel: $storage.configure?.showModel ?? "chrome",
+    hideFooter: $storage.configure?.hideFooter ?? true,
+    hideHeader: $storage.configure?.hideHeader ?? false,
+    multiTagsCache: $storage.configure?.multiTagsCache ?? true,
+    stretch: $storage.configure?.stretch ?? false,
+    keepAlive: $storage.configure?.keepAlive ?? true,
+    debugMode: $storage.configure?.debugMode ?? false,
+    showBreadcrumb: $storage.configure?.showBreadcrumb ?? true,
+    breadcrumbIconOnly: $storage.configure?.breadcrumbIconOnly ?? false,
+    showTagIcon: $storage.configure?.showTagIcon ?? true,
+    showNewMenu: $storage.configure?.showNewMenu ?? true,
+    newMenuText: $storage.configure?.newMenuText ?? "new",
+    newMenuTimeLimit: $storage.configure?.newMenuTimeLimit ?? 168,
+    newMenuAnimation: $storage.configure?.newMenuAnimation ?? "bounce",
+    doubleNavExpandMode: $storage.configure?.doubleNavExpandMode ?? "auto",
+    doubleNavAutoExpandAll: $storage.configure?.doubleNavAutoExpandAll ?? true,
+    aiChatTheme: $storage.configure?.aiChatTheme ?? "default",
+    enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? getConfig().EnableFestivalTheme ?? true,
+    messagePopupEnabled: $storage.configure?.messagePopupEnabled ?? getConfig().MessagePopupEnabled ?? true,
+    messagePopupPosition: $storage.configure?.messagePopupPosition ?? "top-right",
+    messagePopupDuration: $storage.configure?.messagePopupDuration ?? 5,
+    fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? false,
+    fontEncryptionNumbers: $storage.configure?.fontEncryptionNumbers ?? true,
+    fontEncryptionChinese: $storage.configure?.fontEncryptionChinese ?? true,
+    fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? false,
+    fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? false,
   });
 
   // ===== 通用方法 =====
   
-
-   /**
+  /**
    * 持久化配置到 storage
    */
-   function saveToStorage<T>(key: keyof StorageConfig, value: T): void {
-    const storageConfigure = $storage.configure || {} as StorageConfig;
-    storageConfigure[key] = value as never;
+  function saveToStorage<T>(key: keyof StorageConfig, value: T): void {
+    const storageConfigure = $storage.configure || {};
+    storageConfigure[key] = value;
     $storage.configure = storageConfigure;
   }
 
@@ -312,14 +292,6 @@ export function useSettings() {
     saveToStorage("newMenuAnimation", value);
   }
 
-  // ===== 消息按钮 / 弹窗设置 =====
-
-  function setShowMessage(value: boolean): void {
-    settings.showMessage = value;
-    saveToStorage("showMessage", value);
-    emitter.emit("showMessageChange", value);
-  }
-
   // ===== 消息弹窗设置 =====
   
   function setMessagePopupEnabled(value: boolean): void {
@@ -447,8 +419,6 @@ export function useSettings() {
     setNewMenuText,
     setNewMenuTimeLimit,
     setNewMenuAnimation,
-    // 消息
-    setShowMessage,
     // 消息弹窗
     setMessagePopupEnabled,
     setMessagePopupPosition,
