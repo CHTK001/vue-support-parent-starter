@@ -42,6 +42,12 @@ import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
 import LayHeader from "./components/lay-header/index.vue";
+import LayContent from "./components/lay-content/index.vue";
+import NavVertical from "./components/lay-sidebar/NavVertical.vue";
+import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
+import NavHover from "./components/lay-sidebar/NavHover.vue";
+import NavDouble from "./components/lay-sidebar/NavDouble.vue";
+import NavMobile from "./components/lay-sidebar/NavMobile.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 
 // 导入主题皮肤样式
@@ -64,37 +70,9 @@ window.onload = () => {
   });
 };
 
-// 使用带 loading/error 状态的异步组件加载器
+// 使用带 loading/error 状态的异步组件加载器（仅用于非主体框架组件）
 const CardNavigation = createLayoutAsyncComponent(
   () => import("./components/lay-sidebar/components/CardNavigation.vue")
-);
-const LayContent = createLayoutAsyncComponent(
-  () => import("./components/lay-content/index.vue")
-);
-const NavVertical = markRaw(
-  createLayoutAsyncComponent(
-    () => import("./components/lay-sidebar/NavVertical.vue")
-  )
-);
-const NavHorizontal = markRaw(
-  createLayoutAsyncComponent(
-    () => import("./components/lay-sidebar/NavHorizontal.vue")
-  )
-);
-const NavHover = markRaw(
-  createLayoutAsyncComponent(
-    () => import("./components/lay-sidebar/NavHover.vue")
-  )
-);
-const NavDouble = markRaw(
-  createLayoutAsyncComponent(
-    () => import("./components/lay-sidebar/NavDouble.vue")
-  )
-);
-const NavMobile = markRaw(
-  createLayoutAsyncComponent(
-    () => import("./components/lay-sidebar/NavMobile.vue")
-  )
 );
 const LaySetting = createLayoutAsyncComponent(
   () => import("./components/lay-setting/index.vue")
@@ -228,8 +206,8 @@ onMounted(async () => {
   nextTick(() => {
     // 确保 body 的 layout 属性正确设置（非法值统一回退到 vertical）
     document.body.setAttribute("layout", layout.value);
-    // 应用整体风格
-    dataThemeChange($storage?.layout?.overallStyle);
+    // 应用整体风格（无缓存时默认浅色，避免出现“默认却是深色”的初始错乱）
+    dataThemeChange($storage?.layout?.overallStyle ?? "light");
     // 加载配置，完成后初始化水印
     loadConfig(() => nextTick(initWatermark));
   });

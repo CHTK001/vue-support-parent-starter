@@ -35,8 +35,8 @@ export function useDataThemeChange() {
     { color: "#4e69fd", themeColor: "#4e69fd", description: "梦幻迷人的紫色主题" },
   ]);
   const { $storage } = useGlobal<GlobalPropertiesApi>();
-  const dataTheme = ref<boolean>($storage?.layout?.darkMode);
-  const overallStyle = ref<string>($storage?.layout?.overallStyle);
+  const dataTheme = ref<boolean>($storage?.layout?.darkMode ?? false);
+  const overallStyle = ref<string>($storage?.layout?.overallStyle ?? "light");
   const body = document.documentElement as HTMLElement;
 
   /**

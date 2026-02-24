@@ -11,6 +11,8 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 const { themeColors, layoutTheme, setLayoutThemeColor } = useDataThemeChange();
 
+const runThemeAnimation = useThemeAnimation();
+
 // 判断当前是否为非默认主题（节日主题优先级高于整体/页签风格）
 const isNonDefaultTheme = computed(() => {
   const currentTheme = $storage?.configure?.systemTheme || "default";
@@ -48,7 +50,7 @@ const getThemeColor = computed(() => {
 });
 
 const handleSetLayoutThemeColor = (themeKey: string, event: MouseEvent) => {
-  useThemeAnimation(() => {
+  runThemeAnimation(() => {
     setLayoutThemeColor(themeKey);
   }, event);
 };

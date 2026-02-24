@@ -29,6 +29,8 @@ export function useThemeSetting() {
     toggleClass: toggleClassUtil,
   } = useDataThemeChange();
 
+  const runThemeAnimation = useThemeAnimation();
+
   // ===== 响应式状态 =====
   const markValue = ref($storage.configure?.showModel ?? "chrome");
   const logoVal = ref($storage.configure?.showLogo ?? true);
