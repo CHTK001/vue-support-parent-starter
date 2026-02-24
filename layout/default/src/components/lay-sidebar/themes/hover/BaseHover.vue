@@ -20,6 +20,5 @@ defineProps<{
 <style lang="scss" scoped>
 .hover-nav-theme-wrapper {
   height: 100%;
-  width: auto;
 }
 </style>

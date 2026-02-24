@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { useSettings } from "../../composables/useSettings";
 
@@ -13,30 +12,30 @@ const {
   setMessagePopupEnabled,
   setMessagePopupPosition,
   setMessagePopupDuration,
-  setFontEncryptionEnabled,
-  setFontEncryptionNumbers,
-  setFontEncryptionChinese,
-  setFontEncryptionGlobal,
-  setFontEncryptionOcrNoise,
 } = useSettings();
 
-const messagePositionOptions = computed<Array<OptionsType>>(() => [
-  { label: "右上角", value: "top-right" },
-  { label: "右下角", value: "bottom-right" },
-  { label: "左上角", value: "top-left" },
-  { label: "左下角", value: "bottom-left" },
+const messagePositionOptions = computed(() => [
+  { label: "左上角", value: "top-left", position: "top-left" },
+  { label: "顶部", value: "top-center", position: "top-center" },
+  { label: "右上角", value: "top-right", position: "top-right" },
+  { label: "左侧", value: "left-center", position: "left-center" },
+  { label: "右侧", value: "right-center", position: "right-center" },
+  { label: "左下角", value: "bottom-left", position: "bottom-left" },
+  { label: "底部", value: "bottom-center", position: "bottom-center" },
+  { label: "右下角", value: "bottom-right", position: "bottom-right" },
 ]);
 
-const currentMessagePositionIndex = computed(() => {
-  const index = messagePositionOptions.value.findIndex(
-    (opt) => opt.value === settings.messagePopupPosition,
-  );
-  return index >= 0 ? index : 0;
+const messagePopupPositionValue = computed({
+  get() {
+    const valid = messagePositionOptions.value.some(
+      (opt) => opt.value === settings.messagePopupPosition,
+    );
+    return valid ? settings.messagePopupPosition : "top-right";
+  },
+  set(val: string) {
+    setMessagePopupPosition(val);
+  },
 });
-
-function handleMessagePositionChange({ option }: { option: OptionsType }) {
-  setMessagePopupPosition(option.value as string);
-}
 
 function handleMessageDurationChange(value: number) {
   setMessagePopupDuration(value);
@@ -110,12 +109,11 @@ function handleMessageDurationChange(value: number) {
               <span class="text-sm text-[var(--el-text-color-regular)]">
                 显示位置
               </span>
-              <Segmented
-                resize
-                class="select-none modern-segmented w-[220px]"
-                :modelValue="currentMessagePositionIndex"
-                :options="messagePositionOptions"
-                @change="handleMessagePositionChange"
+              <ScSwitch
+                v-model="messagePopupPositionValue"
+                layout="rect-8"
+                size="small"
+                :rect8-options="messagePositionOptions"
               />
             </div>
           </div>
@@ -136,70 +134,6 @@ function handleMessageDurationChange(value: number) {
               />
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- 字体加密 -->
-      <div class="setting-group">
-        <h4 class="group-title">
-          <IconifyIconOnline icon="ri:shield-keyhole-line" class="group-icon" />
-          字体加密
-        </h4>
-        <div class="switch-card-grid">
-          <ScSwitch
-            v-model="settings.fontEncryptionEnabled"
-            layout="visual-card"
-            size="small"
-            label="启用字体加密"
-            description="对关键内容文字进行简单混淆，降低爬取成本"
-            active-icon="ri:shield-check-line"
-            ribbon-color="var(--el-color-danger)"
-            @change="setFontEncryptionEnabled"
-          />
-
-          <ScSwitch
-            v-model="settings.fontEncryptionNumbers"
-            layout="visual-card"
-            size="small"
-            label="加密数字"
-            description="对页面中的数字做保护"
-            active-icon="ri:numbers-line"
-            :disabled="!settings.fontEncryptionEnabled"
-            @change="setFontEncryptionNumbers"
-          />
-
-          <ScSwitch
-            v-model="settings.fontEncryptionChinese"
-            layout="visual-card"
-            size="small"
-            label="加密中文"
-            description="对中文字符进行保护"
-            active-icon="ri:characters-line"
-            :disabled="!settings.fontEncryptionEnabled"
-            @change="setFontEncryptionChinese"
-          />
-
-          <ScSwitch
-            v-model="settings.fontEncryptionGlobal"
-            layout="visual-card"
-            size="small"
-            label="全局生效"
-            description="应用到整站所有文字"
-            active-icon="ri:global-line"
-            :disabled="!settings.fontEncryptionEnabled"
-            @change="setFontEncryptionGlobal"
-          />
-
-          <ScSwitch
-            v-model="settings.fontEncryptionOcrNoise"
-            layout="visual-card"
-            size="small"
-            label="增加 OCR 干扰"
-            description="对文字形状添加轻微噪点"
-            active-icon="ri:contrast-drop-line"
-            :disabled="!settings.fontEncryptionEnabled"
-            @change="setFontEncryptionOcrNoise"
-          />
         </div>
       </div>
     </div>

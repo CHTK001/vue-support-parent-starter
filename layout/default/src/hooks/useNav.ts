@@ -76,7 +76,15 @@ const device = computed(() => {
   });
   const { $storage } = useGlobal<GlobalPropertiesApi>();
   const layout = computed(() => {
-    return $storage?.layout?.layout;
+    const fallbackLayout = "vertical";
+    const validLayouts = ["vertical", "horizontal", "mix", "hover", "double", "mobile"];
+    const rawLayout = $storage?.layout?.layout as string | undefined;
+
+    if (rawLayout && validLayouts.includes(rawLayout)) {
+      return rawLayout;
+    }
+
+    return fallbackLayout;
   });
 
   const title = computed(() => {

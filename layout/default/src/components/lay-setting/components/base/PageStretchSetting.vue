@@ -3,33 +3,28 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import { storageConfigureChange } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
-const pageWidthMode = computed({
-  get: () => $storage?.configure?.pageWidthMode ?? "adaptive",
-  set: (value: string) => {
-    $storage.configure.pageWidthMode = value;
+const stretch = computed({
+  get: () => Boolean($storage?.configure?.stretch),
+  set: (value: boolean) => {
+    storageConfigureChange("stretch", value);
   },
 });
 
-const pageWidthModeOptions = computed<Array<OptionsType>>(() => [
-  { label: "自适应宽度", value: "adaptive" },
-  { label: "固定宽度", value: "fixed" },
-  { label: "全宽铺满", value: "full" },
+const stretchOptions = computed<Array<OptionsType>>(() => [
+  { label: "默认", value: "off" },
+  { label: "拉伸", value: "on" },
 ]);
 
-const handlePageWidthModeChange = ({ option }: { option: OptionsType }) => {
-  pageWidthMode.value = option.value as string;
+const handleStretchChange = ({ option }: { option: OptionsType }) => {
+  stretch.value = (option.value as string) === "on";
 };
 
-const currentPageWidthModeIndex = computed(() => {
-  const index = pageWidthModeOptions.value.findIndex(
-    (opt) => opt.value === pageWidthMode.value,
-  );
-  return index >= 0 ? index : 0;
-});
+const currentStretchIndex = computed(() => (stretch.value ? 1 : 0));
 </script>
 
 <template>
@@ -41,14 +36,14 @@ const currentPageWidthModeIndex = computed(() => {
     <div class="setting-content">
       <div class="mb-4">
         <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          页面伸缩模式
+          内容宽度
         </div>
         <Segmented
           resize
           class="select-none modern-segmented w-full"
-          :modelValue="currentPageWidthModeIndex"
-          :options="pageWidthModeOptions"
-          @change="handlePageWidthModeChange"
+          :modelValue="currentStretchIndex"
+          :options="stretchOptions"
+          @change="handleStretchChange"
         />
       </div>
     </div>

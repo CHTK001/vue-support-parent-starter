@@ -1,8 +1,11 @@
 <script setup>
 import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
 import { computed, onMounted, ref, watch } from "vue";
+import { getLogger } from "@repo/utils";
 import { config } from "../column";
 import columnSetting from "../plugins/columnSetting.vue"; // 更新为新路径
+
+const logger = getLogger("[ScTable][Pagination]");
 
 // 定义组件属性
 const props = defineProps({
@@ -254,7 +257,7 @@ const handleCrossHighlightChange = value => {
 
 // 监听行数变更
 const handleRowSizeChange = value => {
-  console.log("行数变更:", value);
+  logger.info("行数变更: {}", value);
   tableConfigData.value.rowSize = value;
   // 确保最小值为 1
   if (value < 1) value = 1;
@@ -264,7 +267,7 @@ const handleRowSizeChange = value => {
 
 // 监听列数变更
 const handleColSizeChange = value => {
-  console.log("列数变更:", value);
+  logger.info("列数变更: {}", value);
   tableConfigData.value.colSize = value;
   // 确保最小值为 1
   if (value < 1) value = 1;

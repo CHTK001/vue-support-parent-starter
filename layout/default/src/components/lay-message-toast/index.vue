@@ -16,7 +16,7 @@ defineOptions({
 
 const props = withDefaults(
   defineProps<{
-    // 弹窗位置：top-left, top-right, bottom-left, bottom-right
+    // 弹窗位置：top-left, top-center, top-right, left-center, right-center, bottom-left, bottom-center, bottom-right
     position?: string;
     // 消息存在时间（毫秒）
     duration?: number;
@@ -50,15 +50,19 @@ const messages = ref<ToastMessage[]>([]);
 
 // 从配置获取设置
 const toastEnabled = computed(() => {
-  return $storage.configure?.messagePopupEnabled ?? getConfig().MessagePopupEnabled ?? true;
+  return (
+    $storage?.configure?.messagePopupEnabled ??
+    getConfig().MessagePopupEnabled ??
+    true
+  );
 });
 
 const toastPosition = computed(() => {
-  return $storage.configure?.messagePopupPosition ?? props.position;
+  return $storage?.configure?.messagePopupPosition ?? props.position;
 });
 
 const toastDuration = computed(() => {
-  const duration = $storage.configure?.messagePopupDuration;
+  const duration = $storage?.configure?.messagePopupDuration;
   return duration ? duration * 1000 : props.duration;
 });
 
@@ -74,6 +78,18 @@ const positionStyle = computed(() => {
     style.top = "80px";
     style.left = "50%";
     style.transform = "translateX(-50%)";
+  } else if (pos === "bottom-center") {
+    style.bottom = "20px";
+    style.left = "50%";
+    style.transform = "translateX(-50%)";
+  } else if (pos === "left-center") {
+    style.top = "50%";
+    style.left = "20px";
+    style.transform = "translateY(-50%)";
+  } else if (pos === "right-center") {
+    style.top = "50%";
+    style.right = "20px";
+    style.transform = "translateY(-50%)";
   } else {
     if (pos.includes("top")) {
       style.top = "80px";

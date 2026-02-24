@@ -1,7 +1,9 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { deepCopy, localStorageProxy, paginate } from "@repo/utils";
+import { deepCopy, localStorageProxy, paginate, getLogger } from "@repo/utils";
+
+const logger = getLogger("[ScTable]");
 import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
 import { columnSettingGet, columnSettingReset, columnSettingSave, config, parseData } from "./column";
 import { useKeyboard } from "./composables/useKeyboard";
@@ -685,7 +687,11 @@ const loadConfigFromStorage = () => {
       }
     }
   } catch (error) {
-    console.error("加载表格配置失败:", error);
+    if (error instanceof Error) {
+      logger.error("加载表格配置失败", error);
+    } else {
+      logger.error("加载表格配置失败: {}", error);
+    }
   }
 };
 
@@ -704,7 +710,11 @@ const loadPageMemory = () => {
       }
     }
   } catch (error) {
-    console.error("加载页码记忆失败:", error);
+    if (error instanceof Error) {
+      logger.error("加载页码记忆失败", error);
+    } else {
+      logger.error("加载页码记忆失败: {}", error);
+    }
   }
 };
 
@@ -719,7 +729,11 @@ const savePageMemory = () => {
     memory.timestamp = Date.now();
     localStorageProxy().setItem(memoryStorageKey.value, memory);
   } catch (error) {
-    console.error("保存页码记忆失败:", error);
+    if (error instanceof Error) {
+      logger.error("保存页码记忆失败", error);
+    } else {
+      logger.error("保存页码记忆失败: {}", error);
+    }
   }
 };
 
@@ -1336,7 +1350,11 @@ const saveEditChanges = async () => {
     editPending.value = false;
     editChangeCount.value = 0;
   } catch (error) {
-    console.error('保存编辑失败:', error);
+    if (error instanceof Error) {
+      logger.error('保存编辑失败', error);
+    } else {
+      logger.error('保存编辑失败: {}', error);
+    }
   } finally {
     editSaveLoading.value = false;
   }
@@ -1766,7 +1784,11 @@ const saveConfig = config => {
         table: config.config
       });
     } catch (error) {
-      console.error("保存表格配置失败:", error);
+      if (error instanceof Error) {
+        logger.error("保存表格配置失败", error);
+      } else {
+        logger.error("保存表格配置失败: {}", error);
+      }
     }
 
     // 触发重新渲染
@@ -1791,7 +1813,11 @@ const saveConfig = config => {
         // 更新到columnSetting组件
         columnSettingSave(props.tableName, config.config);
       } catch (error) {
-        console.error("保存列配置失败:", error);
+        if (error instanceof Error) {
+          logger.error("保存列配置失败", error);
+        } else {
+          logger.error("保存列配置失败: {}", error);
+        }
       }
 
       // 触发重新渲染
@@ -1875,7 +1901,11 @@ const autoFitColumnWidth = (columnProp) => {
         columnWidths: columnWidthConfig
       });
     } catch (error) {
-      console.error('保存列宽失败:', error);
+      if (error instanceof Error) {
+        logger.error('保存列宽失败', error);
+      } else {
+        logger.error('保存列宽失败: {}', error);
+      }
     }
     
     // 重新渲染
@@ -1895,7 +1925,11 @@ const resetColumnWidth = () => {
     delete currentConfig.columnWidths;
     localStorageProxy().setItem(storageKey.value, currentConfig);
   } catch (error) {
-    console.error('重置列宽失败:', error);
+    if (error instanceof Error) {
+      logger.error('重置列宽失败', error);
+    } else {
+      logger.error('重置列宽失败: {}', error);
+    }
   }
   
   triggerRerender();

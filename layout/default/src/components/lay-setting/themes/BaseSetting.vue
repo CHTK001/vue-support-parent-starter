@@ -1,50 +1,42 @@
 <script setup lang="ts">
-import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
+import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import {
   computed,
   defineAsyncComponent,
   nextTick,
   onBeforeMount,
-  onMounted,
-  onUnmounted,
+  provide,
   reactive,
-  ref,
   unref,
-  watch,
+  watch
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { useNav } from "../../../hooks/useNav";
 import LayPanel from "../../lay-panel/index.vue";
-import {
-  ThemeType,
-} from "../../../themes";
 
-import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
+import { isNumber, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import ScRibbon from "@repo/components/ScRibbon/index.vue";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { ElMessage } from "element-plus";
+import { storeToRefs } from "pinia";
 import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
-import LayThemeSwitcher from "../../lay-theme-switcher/index.vue";
 import { useThemeStore } from "../../../stores/themeStore";
-import { storeToRefs } from "pinia";
 import LayAiChat from "../../lay-ai-chat/index.vue";
-import { SUPPORTED_MODELS } from "../../../composables/useTransformersAI";
 import { getThemeComponents } from "../components";
-import { useBaseSetting } from "./composables/useBaseSetting";
+import { useBaseSetting } from "../composables/useSettings";
 
-import DayIcon from "@repo/assets/svg/day.svg?component";
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
+import DayIcon from "@repo/assets/svg/day.svg?component";
+import DoubleIcon from "@repo/assets/svg/double.svg?component";
+import HorizontalIcon from "@repo/assets/svg/horizontal.svg?component";
+import HoverIcon from "@repo/assets/svg/hover.svg?component";
+import MixIcon from "@repo/assets/svg/mix.svg?component";
+import MobileIcon from "@repo/assets/svg/mobile.svg?component";
 import SystemIcon from "@repo/assets/svg/system.svg?component";
 import VerticalIcon from "@repo/assets/svg/vertical.svg?component";
-import HorizontalIcon from "@repo/assets/svg/horizontal.svg?component";
-import MixIcon from "@repo/assets/svg/mix.svg?component";
-import HoverIcon from "@repo/assets/svg/hover.svg?component";
-import MobileIcon from "@repo/assets/svg/mobile.svg?component";
-import DoubleIcon from "@repo/assets/svg/double.svg?component";
 
 const { t } = useI18n();
 const { device } = useNav();
@@ -779,6 +771,7 @@ function localModelIdChange(value: string) {
   });
 }
 
+const SUPPORTED_MODELS = {};
 /**
  * 本地模型选项
  */

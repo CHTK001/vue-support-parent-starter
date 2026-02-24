@@ -501,6 +501,16 @@ const handleSwitch = index => {
 };
 
 const handleClose = () => {
+  // 清理 Viewer 实例，避免访问已销毁的 DOM 元素
+  if (viewerInstance.value) {
+    try {
+      viewerInstance.value.destroy();
+    } catch (error) {
+      // 忽略销毁时的错误，可能元素已经被移除
+      console.warn("[ScImage] Viewer 销毁时出错:", error);
+    }
+    viewerInstance.value = null;
+  }
   emit("close");
 };
 
@@ -564,9 +574,19 @@ const handlePreview = () => {
     maxZoomRatio: 10,
     hidden: () => {
       // 销毁实例并移除临时容器
-      viewerInstance.value?.destroy();
-      viewerInstance.value = null;
-      container.remove();
+      if (viewerInstance.value) {
+        try {
+          viewerInstance.value.destroy();
+        } catch (error) {
+          // 忽略销毁时的错误，可能元素已经被移除
+          console.warn("[ScImage] Viewer 销毁时出错:", error);
+        }
+        viewerInstance.value = null;
+      }
+      // 安全移除容器
+      if (container && container.parentNode) {
+        container.remove();
+      }
     }
   });
 
@@ -759,7 +779,12 @@ const handleEditorCancel = () => {
 // 清理函数
 const cleanup = () => {
   if (viewerInstance.value) {
-    viewerInstance.value.destroy();
+    try {
+      viewerInstance.value.destroy();
+    } catch (error) {
+      // 忽略销毁时的错误，可能元素已经被移除
+      console.warn("[ScImage] Viewer 销毁时出错:", error);
+    }
     viewerInstance.value = null;
   }
 

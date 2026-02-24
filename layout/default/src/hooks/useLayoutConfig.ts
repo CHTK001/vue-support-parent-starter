@@ -88,11 +88,11 @@ export function useLayoutConfig() {
     key: K,
     value: StorageConfig[K]
   ): void {
-    if (!$storage?.configure) return;
-
-    const storageConfigure = $storage.configure;
-    storageConfigure[key] = value;
-    $storage.configure = storageConfigure;
+    if (!$storage) {
+      return;
+    }
+    const oldConfigure = ($storage.configure ?? {}) as Record<string, unknown>;
+    $storage.configure = { ...oldConfigure, [key]: value } as typeof $storage.configure;
 
     // 发送相应的事件通知
     emitConfigChange(key, value);
@@ -103,10 +103,11 @@ export function useLayoutConfig() {
    * @param updates 配置更新对象
    */
   function batchUpdateConfig(updates: Partial<StorageConfig>): void {
-    if (!$storage?.configure) return;
-
-    const storageConfigure = { ...$storage.configure, ...updates };
-    $storage.configure = storageConfigure;
+    if (!$storage) {
+      return;
+    }
+    const oldConfigure = ($storage.configure ?? {}) as Record<string, unknown>;
+    $storage.configure = { ...oldConfigure, ...updates } as typeof $storage.configure;
 
     // 发送事件通知
     Object.keys(updates).forEach((key) => {
