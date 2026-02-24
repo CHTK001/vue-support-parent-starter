@@ -3,6 +3,8 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { storageConfigureChange } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -25,30 +27,24 @@ const themeAnimationModeOptions = computed<Array<OptionsType>>(() => [
 
 // 主题动画方向选项
 const themeAnimationDirectionOptions = computed<Array<OptionsType>>(() => [
-  { label: "右上角", value: "top-right" },
   { label: "左上角", value: "top-left" },
-  { label: "右下角", value: "bottom-right" },
+  { label: "顶部", value: "top-center" },
+  { label: "右上角", value: "top-right" },
+  { label: "左侧", value: "left-center" },
+  { label: "右侧", value: "right-center" },
   { label: "左下角", value: "bottom-left" },
-  { label: "顶部居中", value: "top-center" },
-  { label: "底部居中", value: "bottom-center" },
-  { label: "左侧居中", value: "left-center" },
-  { label: "右侧居中", value: "right-center" },
-  { label: "中心", value: "center" },
-  { label: "从左到右", value: "left" },
-  { label: "从右到左", value: "right" },
-  { label: "从上到下", value: "top" },
-  { label: "从下到上", value: "bottom" },
-  { label: "跟随鼠标", value: "cursor" },
+  { label: "底部", value: "bottom-center" },
+  { label: "右下角", value: "bottom-right" },
 ]);
 
 // 处理动画模式变化
 const handleModeChange = ({ option }: { option: OptionsType }) => {
-  $storage.configure.themeAnimationMode = option.value as string;
+  storageConfigureChange("themeAnimationMode", option.value as string);
 };
 
 // 处理动画方向变化
 const handleDirectionChange = ({ option }: { option: OptionsType }) => {
-  $storage.configure.themeAnimationDirection = option.value as string;
+  storageConfigureChange("themeAnimationDirection", option.value as string);
 };
 
 // 计算当前模式索引
@@ -64,6 +60,18 @@ const currentDirectionIndex = computed(() => {
     (opt) => opt.value === themeAnimationDirection.value
   );
   return index >= 0 ? index : 0;
+});
+
+const themeAnimationDirectionValue = computed({
+  get() {
+    const valid = themeAnimationDirectionOptions.value.some(
+      (opt) => opt.value === themeAnimationDirection.value
+    );
+    return valid ? themeAnimationDirection.value : "top-right";
+  },
+  set(val: string) {
+    storageConfigureChange("themeAnimationDirection", val);
+  }
 });
 </script>
 
@@ -86,13 +94,17 @@ const currentDirectionIndex = computed(() => {
       </div>
       <div v-if="themeAnimationMode === 'fixed'" class="mt-4">
         <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">动画方向</div>
-        <Segmented
-          resize
-          class="select-none modern-segmented w-full"
-          :modelValue="currentDirectionIndex"
-          :options="themeAnimationDirectionOptions"
-          @change="handleDirectionChange"
-        />
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            点击 8 个方向点选择
+          </div>
+          <ScSwitch
+            v-model="themeAnimationDirectionValue"
+            layout="rect-8"
+            size="small"
+            :rect8-options="themeAnimationDirectionOptions.map((o) => ({ value: String(o.value), label: o.label as string, position: String(o.value) }))"
+          />
+        </div>
       </div>
     </div>
   </div>

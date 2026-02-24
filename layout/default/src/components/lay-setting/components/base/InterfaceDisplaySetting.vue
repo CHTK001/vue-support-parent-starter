@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import { storageConfigureChange } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -10,27 +11,32 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
 const showBreadcrumb = computed({
   get: () => $storage?.configure?.showBreadcrumb ?? true,
   set: (value: boolean) => {
-    $storage.configure.showBreadcrumb = value;
+    storageConfigureChange("showBreadcrumb", value);
   },
 });
 
-const showBreadcrumbIcon = computed({
-  get: () => $storage?.configure?.showBreadcrumbIcon ?? true,
+const breadcrumbIconOnly = computed({
+  get: () => $storage?.configure?.breadcrumbIconOnly ?? false,
   set: (value: boolean) => {
-    $storage.configure.showBreadcrumbIcon = value;
+    storageConfigureChange("breadcrumbIconOnly", value);
   },
 });
 
-const showTabs = computed({
-  get: () => $storage?.configure?.showTabs ?? true,
+const hideTabs = computed({
+  get: () => $storage?.configure?.hideTabs ?? false,
   set: (value: boolean) => {
-    $storage.configure.showTabs = value;
+    storageConfigureChange("hideTabs", value);
   },
 });
 
-const interfaceOptions = computed<Array<OptionsType>>(() => [
+const displayOptions = computed<Array<OptionsType>>(() => [
   { label: "显示", value: "show" },
   { label: "隐藏", value: "hide" },
+]);
+
+const breadcrumbIconOptions = computed<Array<OptionsType>>(() => [
+  { label: "图标+文字", value: "icon-text" },
+  { label: "仅图标", value: "icon" },
 ]);
 
 const toBoolean = (value: string) => value === "show";
@@ -39,24 +45,24 @@ const handleBreadcrumbChange = ({ option }: { option: OptionsType }) => {
   showBreadcrumb.value = toBoolean(option.value as string);
 };
 
-const handleBreadcrumbIconChange = ({ option }: { option: OptionsType }) => {
-  showBreadcrumbIcon.value = toBoolean(option.value as string);
+const handleBreadcrumbIconOnlyChange = ({ option }: { option: OptionsType }) => {
+  breadcrumbIconOnly.value = (option.value as string) === "icon";
 };
 
 const handleTabsChange = ({ option }: { option: OptionsType }) => {
-  showTabs.value = toBoolean(option.value as string);
+  hideTabs.value = (option.value as string) === "hide";
 };
 
 const currentBreadcrumbIndex = computed(() =>
   showBreadcrumb.value ? 0 : 1,
 );
 
-const currentBreadcrumbIconIndex = computed(() =>
-  showBreadcrumbIcon.value ? 0 : 1,
+const currentBreadcrumbIconOnlyIndex = computed(() =>
+  breadcrumbIconOnly.value ? 1 : 0,
 );
 
 const currentTabsIndex = computed(() =>
-  showTabs.value ? 0 : 1,
+  hideTabs.value ? 1 : 0,
 );
 </script>
 
@@ -75,20 +81,20 @@ const currentTabsIndex = computed(() =>
           resize
           class="select-none modern-segmented w-full"
           :modelValue="currentBreadcrumbIndex"
-          :options="interfaceOptions"
+          :options="displayOptions"
           @change="handleBreadcrumbChange"
         />
       </div>
       <div class="mb-4">
         <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          面包屑图标
+          面包屑显示方式
         </div>
         <Segmented
           resize
           class="select-none modern-segmented w-full"
-          :modelValue="currentBreadcrumbIconIndex"
-          :options="interfaceOptions"
-          @change="handleBreadcrumbIconChange"
+          :modelValue="currentBreadcrumbIconOnlyIndex"
+          :options="breadcrumbIconOptions"
+          @change="handleBreadcrumbIconOnlyChange"
         />
       </div>
       <div class="mb-4">
@@ -99,7 +105,7 @@ const currentTabsIndex = computed(() =>
           resize
           class="select-none modern-segmented w-full"
           :modelValue="currentTabsIndex"
-          :options="interfaceOptions"
+          :options="displayOptions"
           @change="handleTabsChange"
         />
       </div>

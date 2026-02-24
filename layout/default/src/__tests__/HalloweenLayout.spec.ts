@@ -25,11 +25,11 @@ describe('Layout Index - Halloween Theme', () => {
     settingStore.fixedHeader = true;
   });
 
-  it('renders NavHover and LayHeader in hover layout', async () => {
+  it('renders NavHover, LayNavbar and LayTag in hover layout', async () => {
     // Mock storage/layout
     const wrapper = mount(Index, {
       global: {
-        stubs: ['LayContent', 'LaySetting', 'LayAiChat', 'ScDebugConsole', 'ThemeSkinProvider', 'el-scrollbar', 'el-backtop', 'BackTopIcon'],
+        stubs: ['LayContent', 'LaySetting', 'LayAiChat', 'ScDebugConsole', 'ThemeSkinProvider', 'el-scrollbar', 'el-backtop'],
         mocks: {
           $storage: {
             layout: { layout: 'hover', overallStyle: 'light' },
@@ -39,14 +39,14 @@ describe('Layout Index - Halloween Theme', () => {
       }
     });
 
-    // Check NavHover rendering
+    // Check NavHover rendering（左侧悬停导航）
     expect(wrapper.find('.nav-hover').exists()).toBe(true);
 
-    // Check LayNavbar rendering (inside LayHeader)
+    // 顶部应渲染 LayNavbar
     expect(wrapper.find('.lay-navbar').exists()).toBe(true);
     
-    // Check LayTag rendering
-    expect(wrapper.find('.lay-tag').exists()).toBe(true);
+    // 只保留一处 LayTag（来自 Header 区域）
+    expect(wrapper.findAll('.lay-tag').length).toBe(1);
   });
 
   it('hides LayNavbar when hiddenSideBar is true', async () => {
@@ -55,7 +55,7 @@ describe('Layout Index - Halloween Theme', () => {
 
     const wrapper = mount(Index, {
       global: {
-        stubs: ['LayContent', 'LaySetting', 'LayAiChat', 'ScDebugConsole', 'ThemeSkinProvider', 'el-scrollbar', 'el-backtop', 'BackTopIcon'],
+        stubs: ['LayContent', 'LaySetting', 'LayAiChat', 'ScDebugConsole', 'ThemeSkinProvider', 'el-scrollbar', 'el-backtop'],
         mocks: {
           $storage: {
             layout: { layout: 'hover', overallStyle: 'light' },

@@ -6,6 +6,7 @@ import { emitter } from "@repo/core";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { useSettings } from "../../composables/useSettings";
+import { storageConfigureChange } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -44,11 +45,7 @@ const currentTransitionTypeValue = computed(() => settings.transitionType);
 
 function handleMenuAnimationChange(value: boolean) {
   setMenuTransition(value);
-  if ($storage?.configure) {
-    const config = $storage.configure;
-    config.MenuAnimation = value;
-    $storage.configure = config;
-  }
+  storageConfigureChange("MenuAnimation", value);
   emitter.emit("menuAnimationChange", value);
 }
 

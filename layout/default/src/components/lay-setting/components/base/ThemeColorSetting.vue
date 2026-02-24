@@ -34,6 +34,9 @@ const getThemeColorStyle = computed(() => {
 // 主题色激活边框颜色
 const getThemeColor = computed(() => {
   return (current: string) => {
+    if (!layoutTheme.value?.theme) {
+      return "transparent";
+    }
     if (current === layoutTheme.value.theme && layoutTheme.value.theme !== "light") {
       return "#fff";
     } else if (current === layoutTheme.value.theme && layoutTheme.value.theme === "light") {
@@ -63,11 +66,11 @@ const handleSetLayoutThemeColor = (themeKey: string, event: MouseEvent) => {
       <div class="theme-color-grid">
         <div
           v-for="item in themeColors"
-          :key="item.themeColor"
-          v-if="showThemeColors(item.themeColor)"
+          :key="item?.themeColor"
+          v-if="item && item.themeColor && showThemeColors(item.themeColor)"
           class="theme-color-item"
           :style="getThemeColorStyle(item.color)"
-          :class="{ 'is-selected': layoutTheme.theme === item.themeColor }"
+          :class="{ 'is-selected': layoutTheme?.theme === item.themeColor }"
           @click="handleSetLayoutThemeColor(item.themeColor, $event)"
         >
           <div

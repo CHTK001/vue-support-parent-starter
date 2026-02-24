@@ -3,35 +3,17 @@
     class="header-container"
     :class="{ 'fixed-header': set.fixedHeader }"
   >
-    <!-- 纵向和混合布局的导航栏 -->
-    <div
-      v-if="
-        !pureSetting.hiddenSideBar &&
-        (layout.includes('vertical') ||
-          layout.includes('mix') ||
-          layout.includes('hover'))
-      "
-    >
-      <LayNavbar v-if="defer(0)" />
-    </div>
-
-    <!-- 横向布局的导航栏 -->
-    <div
-      v-else-if="!pureSetting.hiddenSideBar && layout.includes('horizontal')"
-    >
-      <NavHorizontal v-if="defer(1)" />
-    </div>
-
-    <!-- 隐藏侧边栏时只显示标签页 -->
-    <div v-else class="header-only-tags">
+    <LayNav />
+    
+    <!-- 标签页：在非移动模式下显示，且未隐藏标签页 -->
+    <div v-if="layout !== 'mobile' && !set.hideTabs" class="header-tags">
       <LayTag v-if="defer(2)" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import LayNavbar from "../lay-navbar/index.vue";
-import NavHorizontal from "../lay-sidebar/NavHorizontal.vue";
 import LayTag from "../lay-tag/index.vue";
+import LayNav from "../lay-nav/index.vue";
 import { useAppStoreHook, useSettingStoreHook } from "@repo/core";
 import { useGlobal } from "@pureadmin/utils";
 import { computed, reactive } from "vue";

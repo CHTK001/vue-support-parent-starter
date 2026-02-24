@@ -19,11 +19,22 @@ export function useResponsiveLayout(
 
   /**
    * 设置布局主题
+   * 处理非法或未初始化的布局值，统一回退到 vertical
    */
   function setTheme(layoutModel: string) {
-    window.document.body.setAttribute("layout", layoutModel);
+    const fallbackLayout = "vertical";
+    const validLayouts = ["vertical", "horizontal", "mix", "hover", "double", "mobile"];
+
+    const targetLayout =
+      (layoutModel as string | undefined) && validLayouts.includes(layoutModel)
+        ? layoutModel
+        : (validLayouts.includes(($storage.layout?.layout as string) || "")
+            ? ($storage.layout?.layout as string)
+            : fallbackLayout);
+
+    window.document.body.setAttribute("layout", targetLayout);
     $storage.layout = {
-      layout: `${layoutModel}`,
+      layout: `${targetLayout}`,
       theme: $storage.layout?.theme,
       darkMode: $storage.layout?.darkMode,
       sidebarStatus: $storage.layout?.sidebarStatus,

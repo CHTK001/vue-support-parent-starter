@@ -71,6 +71,4 @@ export const exclude = [
   "@pureadmin/theme/dist/browser-utils",
   // TechUI 使用 WASM，不要预构建
   "@techui/scifi",
-  // Transformers.js 使用 WASM 和 ONNX，不要预构建
-  "@xenova/transformers",
 ];

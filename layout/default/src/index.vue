@@ -38,11 +38,11 @@ import {
   watch,
 } from "vue";
 import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
-import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
+import LayHeader from "./components/lay-header/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
 import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
@@ -125,15 +125,10 @@ useFontEncryption(() => fontEncryptionConfig.value);
 // AI 助手皮肤主题
 const aiChatTheme = ref(getConfig().AiChatTheme || "default");
 
-const { initStorage } = useLayout();
+const { initStorage, layout } = useLayout();
 const { dataThemeChange } = useDataThemeChange();
 
 initStorage();
-
-// 将layout改为字符串形式
-const layout = computed(() => {
-  return $storage?.layout?.layout || "vertical";
-});
 
 // 响应式布局
 const { isMobile, initResponsiveObserver, initMobile } = useResponsiveLayout(
@@ -214,10 +209,8 @@ onMounted(async () => {
 
   // 页面加载完成后检查配置并应用
   nextTick(() => {
-    // 确保 body 的 layout 属性正确设置
-    if ($storage?.layout?.layout) {
-      document.body.setAttribute("layout", $storage.layout.layout);
-    }
+    // 确保 body 的 layout 属性正确设置（非法值统一回退到 vertical）
+    document.body.setAttribute("layout", layout.value);
     // 应用整体风格
     dataThemeChange($storage?.layout?.overallStyle);
     // 加载配置，完成后初始化水印
@@ -275,43 +268,13 @@ onBeforeMount(() => {
     initRouter();
   }
 
-  // 确保在组件挂载前设置body的layout属性
-  if ($storage?.layout?.layout) {
-    document.body.setAttribute("layout", $storage.layout.layout);
-  }
+  // 确保在组件挂载前设置body的layout属性（非法值统一回退到 vertical）
+  document.body.setAttribute("layout", layout.value);
   
   // 应用颜色主题（light/dark）
   dataThemeChange($storage.layout?.overallStyle);
 });
 
-const LayHeader = defineComponent({
-  name: "LayHeader",
-  render() {
-    return h(
-      "div",
-      {
-        class: { "fixed-header shadow-tab": set.fixedHeader },
-      },
-      {
-        default: () => [
-          !pureSetting.hiddenSideBar &&
-          (layout.value === "vertical" ||
-            layout.value === "mix" ||
-            layout.value === "hover" ||
-            layout.value === "double" ||
-            layout.value === "mobile")
-            ? h(LayNavbar)
-            : null,
-          !pureSetting.hiddenSideBar && layout.value === "horizontal"
-            ? h(NavHorizontal)
-            : null,
-          // 移动导航模式下不显示标签页
-          layout.value !== "mobile" ? h(markRaw(LayTag)) : null,
-        ],
-      }
-    );
-  },
-});
 </script>
 
 <style lang="scss" scoped>
@@ -344,12 +307,12 @@ const LayHeader = defineComponent({
     <!-- 双栏导航模式：特殊布局 -->
     <template v-else-if="layout === 'double'">
       <div
-        v-show="set.device === 'mobile' && set.sidebar.opened"
+        v-if="set.device === 'mobile' && set.sidebar.opened"
         class="app-mask"
         @click="useAppStoreHook().toggleSideBar()"
       />
       <div class="double-layout-container">
-        <NavDouble v-show="!pureSetting.hiddenSideBar" />
+        <NavDouble v-if="!pureSetting.hiddenSideBar" />
         <div
 :class="[
             'main-container',
@@ -368,9 +331,7 @@ const LayHeader = defineComponent({
             <el-backtop
               :title="t('buttons.pureBackTop')"
               target=".main-container .el-scrollbar__wrap"
-            >
-              <BackTopIcon />
-            </el-backtop>
+            />
             <LayHeader />
             <!-- 主体内容 -->
             <div style="flex: 1">
@@ -384,17 +345,17 @@ const LayHeader = defineComponent({
     <!-- 其他导航模式：原有逻辑 -->
     <template v-else>
       <div
-        v-show="set.device === 'mobile' && set.sidebar.opened"
+        v-if="set.device === 'mobile' && set.sidebar.opened"
         class="app-mask"
         @click="useAppStoreHook().toggleSideBar()"
       />
       <NavVertical
-        v-show="
+        v-if="
           !pureSetting.hiddenSideBar &&
           (layout === 'vertical' || layout === 'mix')
         "
       />
-      <NavHover v-show="!pureSetting.hiddenSideBar && layout === 'hover'" />
+      <NavHover v-if="!pureSetting.hiddenSideBar && layout === 'hover'" />
       <div
 :class="[
           'main-container',
@@ -412,9 +373,7 @@ const LayHeader = defineComponent({
           <el-backtop
             :title="t('buttons.pureBackTop')"
             target=".main-container .el-scrollbar__wrap"
-          >
-            <BackTopIcon />
-          </el-backtop>
+          />
           <LayHeader />
           <!-- 主体内容 -->
           <div style="flex: 1">

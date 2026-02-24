@@ -92,23 +92,76 @@ export interface StorageConfig {
   /** 消息弹窗启用 */
   messagePopupEnabled?: boolean;
   /** 消息弹窗位置 */
-  messagePopupPosition?: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-right";
+  messagePopupPosition?:
+    | "top-left"
+    | "top-center"
+    | "top-right"
+    | "left-center"
+    | "right-center"
+    | "bottom-left"
+    | "bottom-center"
+    | "bottom-right";
   /** 消息弹窗持续时间 */
   messagePopupDuration?: number;
   /** AI 助手主题 */
   aiChatTheme?: string;
+  /** AI 聊天外观：启用主题化对话窗 */
+  enableAiChatTheme?: boolean;
+  /** AI 聊天外观：启用场景背景 */
+  enableAiChatBackground?: boolean;
+  /** AI 聊天功能：启用快捷提问 */
+  enableAiQuickAction?: boolean;
+  /** AI 聊天功能：启用快捷功能面板 */
+  enableAiShortcutPanel?: boolean;
   /** 显示新菜单标识 */
   forceNewMenu?: boolean;
   /** 菜单动画开关 */
   menuAnimation?: boolean;
   /** 菜单动画类型 */
   transitionType?: string;
+  /** 离开页面二次确认 */
+  confirmOnLeave?: boolean;
   /** 主题动画开关 */
   themeAnimation?: boolean;
   /** 主题动画方向 */
   themeAnimationDirection?: string;
   /** 主题动画模式 */
   themeAnimationMode?: string;
+
+  /** 页签样式：形状 */
+  tagsStyle?: string;
+  /** 页签样式：效果 */
+  tagsEffect?: string;
+
+  /** 移动端导航：样式 */
+  mobileNavMode?: string;
+  /** 移动端导航：位置 */
+  mobileNavPosition?: string;
+
+  /** 双栏导航：展开策略 */
+  doubleNavExpandMode?: "auto" | "manual";
+  /** 双栏导航：是否自动展开全部 */
+  doubleNavAutoExpandAll?: boolean;
+
+  /** 新菜单标识：是否显示 */
+  showNewMenu?: boolean;
+  /** 新菜单标识：文本 */
+  newMenuText?: string;
+  /** 新菜单标识：显示时长（小时） */
+  newMenuTimeLimit?: number;
+  /** 新菜单标识：动画 */
+  newMenuAnimation?: string;
   /** 性能监控开关 */
   sysFpsMonitorEnabled?: boolean;
+
+  /** 字体加密开关 */
+  fontEncryptionEnabled?: boolean;
+  /** 是否加密数字 */
+  fontEncryptionNumbers?: boolean;
+  /** 是否加密中文 */
+  fontEncryptionChinese?: boolean;
+  /** 是否全局启用字体加密 */
+  fontEncryptionGlobal?: boolean;
+  /** OCR 噪点开关 */
+  fontEncryptionOcrNoise?: boolean;
 }
