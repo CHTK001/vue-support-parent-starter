@@ -83,16 +83,16 @@ onMounted(() => {
       opacity: 0.3;
     }
     
-    // 扫描线效果
+    // 顶部静态高亮线，关闭扫描动画以提高性能
     &::after {
       content: '';
       position: absolute;
       top: 0;
-      left: -100%;
+      left: 0;
       width: 100%;
       height: 2px;
       background: linear-gradient(90deg, transparent, var(--ft-cyan), transparent);
-      animation: scanLine 4s linear infinite;
+      opacity: 0.6;
     }
   }
 
@@ -110,8 +110,7 @@ onMounted(() => {
       position: absolute;
       background: var(--ft-cyan);
       border-radius: 50%;
-      animation: float linear infinite;
-      box-shadow: 0 0 6px var(--ft-cyan);
+      box-shadow: 0 0 4px var(--ft-cyan);
     }
   }
 

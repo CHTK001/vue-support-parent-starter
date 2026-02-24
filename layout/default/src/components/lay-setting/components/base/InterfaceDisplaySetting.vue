@@ -3,29 +3,29 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import { storageConfigureChange } from "../../composables/useSettings";
+import { useSettings } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
-
+const { saveToStorage } = useSettings();
 const showBreadcrumb = computed({
   get: () => $storage?.configure?.showBreadcrumb ?? true,
   set: (value: boolean) => {
-    storageConfigureChange("showBreadcrumb", value);
+    saveToStorage("showBreadcrumb", value);
   },
 });
 
 const breadcrumbIconOnly = computed({
   get: () => $storage?.configure?.breadcrumbIconOnly ?? false,
   set: (value: boolean) => {
-    storageConfigureChange("breadcrumbIconOnly", value);
+    saveToStorage("breadcrumbIconOnly", value);
   },
 });
 
 const hideTabs = computed({
   get: () => $storage?.configure?.hideTabs ?? false,
   set: (value: boolean) => {
-    storageConfigureChange("hideTabs", value);
+    saveToStorage("hideTabs", value);
   },
 });
 

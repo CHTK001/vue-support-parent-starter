@@ -41,16 +41,7 @@ import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
-import LayNavbar from "./components/lay-navbar/index.vue";
 import LayHeader from "./components/lay-header/index.vue";
-import LaySetting from "./components/lay-setting/index.vue";
-import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
-import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
-import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
-import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
-import NavMobileLayout from "./components/lay-sidebar/NavMobile.vue";
-import LayTag from "./components/lay-tag/index.vue";
-import LayAiChat from "./components/lay-ai-chat/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 
 // 导入主题皮肤样式
@@ -80,11 +71,37 @@ const CardNavigation = createLayoutAsyncComponent(
 const LayContent = createLayoutAsyncComponent(
   () => import("./components/lay-content/index.vue")
 );
-const NavVertical = markRaw(NavVerticalLayout);
-const NavHorizontal = markRaw(NavHorizontalLayout);
-const NavHover = markRaw(NavHoverLayout);
-const NavDouble = markRaw(NavDoubleLayout);
-const NavMobile = markRaw(NavMobileLayout);
+const NavVertical = markRaw(
+  createLayoutAsyncComponent(
+    () => import("./components/lay-sidebar/NavVertical.vue")
+  )
+);
+const NavHorizontal = markRaw(
+  createLayoutAsyncComponent(
+    () => import("./components/lay-sidebar/NavHorizontal.vue")
+  )
+);
+const NavHover = markRaw(
+  createLayoutAsyncComponent(
+    () => import("./components/lay-sidebar/NavHover.vue")
+  )
+);
+const NavDouble = markRaw(
+  createLayoutAsyncComponent(
+    () => import("./components/lay-sidebar/NavDouble.vue")
+  )
+);
+const NavMobile = markRaw(
+  createLayoutAsyncComponent(
+    () => import("./components/lay-sidebar/NavMobile.vue")
+  )
+);
+const LaySetting = createLayoutAsyncComponent(
+  () => import("./components/lay-setting/index.vue")
+);
+const LayAiChat = createLayoutAsyncComponent(
+  () => import("./components/lay-ai-chat/index.vue")
+);
 
 const { t } = useI18n();
 const appWrapperRef = ref<HTMLElement>();

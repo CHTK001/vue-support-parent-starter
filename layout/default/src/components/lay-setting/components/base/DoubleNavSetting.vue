@@ -4,22 +4,22 @@ import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { storageConfigureChange } from "../../composables/useSettings";
+import { useSettings } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
-
+const { saveToStorage } = useSettings();
 const doubleNavExpandMode = computed({
   get: () => $storage?.configure?.doubleNavExpandMode ?? "auto",
   set: (value: string) => {
-    storageConfigureChange("doubleNavExpandMode", value);
+    saveToStorage("doubleNavExpandMode", value);
   },
 });
 
 const doubleNavAutoExpandAll = computed({
   get: () => $storage?.configure?.doubleNavAutoExpandAll ?? true,
   set: (value: boolean) => {
-    storageConfigureChange("doubleNavAutoExpandAll", value);
+    saveToStorage("doubleNavAutoExpandAll", value);
   },
 });
 

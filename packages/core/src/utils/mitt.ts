@@ -7,6 +7,8 @@ type Events = {
   tagViewsChange: string;
   tagViewsShowModel: string;
   logoChange: boolean;
+  hideHeaderChange: boolean;
+  messagePopupConfigChange: boolean;
   changLayoutRoute: string;
   settingPanelClosed: void;
   hideFooterChange: boolean;
@@ -31,6 +33,7 @@ type Events = {
   fontEncryptionChange: any;
   /** 离开确认 */
   confirmOnLeaveChange: boolean;
+  /** 主题动画模式 */
 };
 
 export const emitter: Emitter<Events> = mitt<Events>();

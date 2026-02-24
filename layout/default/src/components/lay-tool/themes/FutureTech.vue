@@ -41,16 +41,13 @@ import BaseTool from './BaseTool.vue';
         pointer-events: none;
       }
 
-      // 扫描线效果
+      // 扫描线效果改为静态高光层，避免长时间动画
       &::after {
         content: '';
         position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
-        animation: scan 3s linear infinite;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(0, 255, 255, 0.08), transparent 40%, rgba(0, 255, 255, 0.08));
+        pointer-events: none;
       }
 
       svg {
@@ -222,16 +219,6 @@ import BaseTool from './BaseTool.vue';
         }
       }
     }
-  }
-}
-
-// 扫描动画
-@keyframes scan {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
   }
 }
 </style>

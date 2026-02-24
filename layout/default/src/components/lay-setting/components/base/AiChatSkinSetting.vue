@@ -3,22 +3,22 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { storageConfigureChange } from "../../composables/useSettings";
+import { useSettings } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
-
+const { saveToStorage } = useSettings();
 const enableAiChatTheme = computed({
   get: () => $storage?.configure?.enableAiChatTheme ?? true,
   set: (value: boolean) => {
-    storageConfigureChange("enableAiChatTheme", value);
+  saveToStorage("enableAiChatTheme", value);
   },
 });
 
 const enableAiChatBackground = computed({
   get: () => $storage?.configure?.enableAiChatBackground ?? true,
   set: (value: boolean) => {
-    storageConfigureChange("enableAiChatBackground", value);
+  saveToStorage("enableAiChatBackground", value);
   },
 });
 </script>

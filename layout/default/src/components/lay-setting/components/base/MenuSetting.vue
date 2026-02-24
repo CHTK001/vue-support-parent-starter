@@ -6,7 +6,6 @@ import { emitter } from "@repo/core";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { useSettings } from "../../composables/useSettings";
-import { storageConfigureChange } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -19,7 +18,7 @@ const {
   setNewMenuTimeLimit,
   setNewMenuAnimation,
 } = useSettings();
-
+const { saveToStorage } = useSettings();
 const transitionTypeOptions = computed<Array<OptionsType>>(() => [
   { label: "滑动淡入", tip: "平滑的上下滑动效果", value: "fade-slide" },
   { label: "缩放淡入", tip: "带缩放的淡入淡出效果", value: "fade-scale" },
@@ -45,7 +44,7 @@ const currentTransitionTypeValue = computed(() => settings.transitionType);
 
 function handleMenuAnimationChange(value: boolean) {
   setMenuTransition(value);
-  storageConfigureChange("MenuAnimation", value);
+  saveToStorage("menuTransition", value);
   emitter.emit("menuAnimationChange" as any, value as any);
 }
 
