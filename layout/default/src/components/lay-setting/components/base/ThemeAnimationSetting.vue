@@ -4,10 +4,11 @@ import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { storageConfigureChange } from "../../composables/useSettings";
+import { useSettings } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+const { saveToStorage } = useSettings();
 
 // 从 storage 读取设置，仅作为计算属性使用，写入通过专门方法处理，避免响应式递归
 const themeAnimationMode = computed(() => {
@@ -39,12 +40,12 @@ const themeAnimationDirectionOptions = computed<Array<OptionsType>>(() => [
 
 // 处理动画模式变化
 const handleModeChange = ({ option }: { option: OptionsType }) => {
-  storageConfigureChange("themeAnimationMode", option.value as string);
+  saveToStorage("themeAnimationMode", option.value as string);
 };
 
 // 处理动画方向变化
 const handleDirectionChange = ({ option }: { option: OptionsType }) => {
-  storageConfigureChange("themeAnimationDirection", option.value as string);
+  saveToStorage("themeAnimationDirection", option.value as string);
 };
 
 // 计算当前模式索引
@@ -70,7 +71,7 @@ const themeAnimationDirectionValue = computed({
     return valid ? themeAnimationDirection.value : "top-right";
   },
   set(val: string) {
-    storageConfigureChange("themeAnimationDirection", val);
+    saveToStorage("themeAnimationDirection", val);
   }
 });
 </script>

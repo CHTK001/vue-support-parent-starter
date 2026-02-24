@@ -3,15 +3,15 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import { storageConfigureChange } from "../../composables/useSettings";
+import { useSettings } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
-
+const { saveToStorage } = useSettings();
 const contentMargin = computed({
   get: () => $storage?.configure?.contentMargin ?? 16,
   set: (value: number) => {
-    storageConfigureChange("contentMargin", value);
+    saveToStorage("contentMargin", value);
     document.body.style.setProperty("--contentMargin", value + "px");
   },
 });
@@ -19,7 +19,7 @@ const contentMargin = computed({
 const layoutRadius = computed({
   get: () => $storage?.configure?.layoutRadius ?? 10,
   set: (value: number) => {
-    storageConfigureChange("layoutRadius", value);
+    saveToStorage("layoutRadius", value);
     document.body.style.setProperty("--layoutRadius", value + "px");
   },
 });

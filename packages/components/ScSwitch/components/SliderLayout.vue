@@ -153,7 +153,7 @@ const toggleSwitch = () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 6px;
     background-color: var(--el-bg-color-overlay);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s;

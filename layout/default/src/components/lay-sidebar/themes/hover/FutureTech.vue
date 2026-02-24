@@ -47,7 +47,7 @@ $ft-border: rgba(0, 255, 255, 0.4);
       z-index: 0;
     }
     
-    // 扫描线效果
+    // 底部静态高亮线，去掉扫描动画
     &::after {
       content: '';
       position: absolute;
@@ -57,8 +57,8 @@ $ft-border: rgba(0, 255, 255, 0.4);
       height: 2px;
       background: linear-gradient(90deg, transparent, $ft-cyan, transparent);
       z-index: 10;
-      box-shadow: 0 0 10px $ft-cyan;
-      animation: scanLine 4s linear infinite;
+      box-shadow: 0 0 8px $ft-cyan;
+      opacity: 0.7;
     }
     
     // Logo区域

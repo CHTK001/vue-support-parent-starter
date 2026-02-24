@@ -15,14 +15,22 @@
 </template>
 
 <script setup lang="ts">
-import LayNavbar from "../lay-navbar/index.vue";
-import NavHorizontal from "../lay-sidebar/NavHorizontal.vue";
-import LayTag from "../lay-tag/index.vue";
 import { useSettingStoreHook } from "@repo/core";
 import { useGlobal } from "@pureadmin/utils";
 import { computed } from "vue";
 import { useLayout } from "../../hooks/useLayout";
 import { useDefer } from "@repo/utils";
+import { createLayoutAsyncComponent } from "../../utils/asyncComponentLoader";
+
+const LayNavbar = createLayoutAsyncComponent(
+  () => import("../lay-navbar/index.vue")
+);
+const NavHorizontal = createLayoutAsyncComponent(
+  () => import("../lay-sidebar/NavHorizontal.vue")
+);
+const LayTag = createLayoutAsyncComponent(
+  () => import("../lay-tag/index.vue")
+);
 
 const { layout } = useLayout();
 const { $storage } = useGlobal<GlobalPropertiesApi>();

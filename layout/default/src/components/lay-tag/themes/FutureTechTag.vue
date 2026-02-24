@@ -12,6 +12,7 @@ html.theme-future-tech {
   $ft-cyan: #00ffff;
   $ft-cyan-light: #4dfdfd;
   $ft-cyan-dark: #00cccc;
+  $ft-purple: #a855ff;
   $ft-bg-dark: #050a1f;
   $ft-bg-darker: #0a1a3a;
   $ft-border: rgba(0, 255, 255, 0.4);
@@ -42,16 +43,16 @@ html.theme-future-tech {
       pointer-events: none;
     }
 
-    // 扫描线效果
+    // 顶部静态高亮线，去掉扫描动画
     &::after {
       content: '';
       position: absolute;
       top: 0;
-      left: -100%;
+      left: 0;
       width: 100%;
       height: 2px;
       background: linear-gradient(90deg, transparent, $ft-cyan, transparent);
-      animation: scanLine 4s linear infinite;
+      opacity: 0.7;
     }
 
     // 标签项样式

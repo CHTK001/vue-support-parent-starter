@@ -38,7 +38,7 @@ html.theme-future-tech {
       border-bottom: 1px solid rgba(0, 255, 255, 0.2) !important;
       position: relative;
       
-      // 扫描线效果
+      // 顶部静态高亮线，移除循环动画减少卡顿
       &::after {
         content: '';
         position: absolute;
@@ -47,7 +47,7 @@ html.theme-future-tech {
         right: 0;
         height: 2px;
         background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.6), transparent);
-        animation: scanLine 3s linear infinite;
+        opacity: 0.7;
       }
       
       h4 {

@@ -54,16 +54,16 @@ $ft-border: rgba(0, 255, 255, 0.4);
       pointer-events: none;
     }
 
-    // 扫描线效果
+    // 顶部静态高亮线，关闭扫描动画
     &::after {
       content: '';
       position: absolute;
       top: 0;
-      left: -100%;
+      left: 0;
       width: 100%;
       height: 2px;
       background: linear-gradient(90deg, transparent, $ft-cyan, transparent);
-      animation: scanLine 4s linear infinite;
+      opacity: 0.7;
     }
     
     .horizontal-header-left {

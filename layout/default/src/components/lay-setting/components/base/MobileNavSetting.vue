@@ -3,22 +3,22 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import { storageConfigureChange } from "../../composables/useSettings";
+import { useSettings } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
-
+const { saveToStorage } = useSettings();
 const mobileNavMode = computed({
   get: () => $storage?.configure?.mobileNavMode ?? "drawer",
   set: (value: string) => {
-    storageConfigureChange("mobileNavMode", value);
+    saveToStorage("mobileNavMode", value);
   },
 });
 
 const mobileNavPosition = computed({
   get: () => $storage?.configure?.mobileNavPosition ?? "left",
   set: (value: string) => {
-    storageConfigureChange("mobileNavPosition", value);
+    saveToStorage("mobileNavPosition", value);
   },
 });
 

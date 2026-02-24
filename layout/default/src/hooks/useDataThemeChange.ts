@@ -39,6 +39,35 @@ export function useDataThemeChange() {
   const overallStyle = ref<string>($storage?.layout?.overallStyle);
   const body = document.documentElement as HTMLElement;
 
+  /**
+   * 将十六进制颜色值转换为 RGB 字符串
+   * @param color 十六进制颜色值（支持 #RGB / #RRGGBB）
+   */
+  function hexToRgb(color: string): string | null {
+    const hex = color.replace("#", "");
+    if (hex.length !== 3 && hex.length !== 6) {
+      return null;
+    }
+
+    const fullHex =
+      hex.length === 3
+        ? hex
+            .split("")
+            .map((ch) => ch + ch)
+            .join("")
+        : hex;
+
+    const r = Number.parseInt(fullHex.substring(0, 2), 16);
+    const g = Number.parseInt(fullHex.substring(2, 4), 16);
+    const b = Number.parseInt(fullHex.substring(4, 6), 16);
+
+    if ([r, g, b].some((v) => Number.isNaN(v))) {
+      return null;
+    }
+
+    return `${r}, ${g}, ${b}`;
+  }
+
   function toggleClass(flag: boolean, clsName: string, target?: HTMLElement) {
     const targetEl = target || document.body;
     let { className } = targetEl;
@@ -87,15 +116,39 @@ export function useDataThemeChange() {
     // 预计算所有颜色值
     const cssProperties = new Map();
     cssProperties.set("--el-color-primary", color);
-    // 同时更新 --app-primary 变量，确保标签页激活状态颜色能正确变化
+    // 同步更新应用主题基础变量，确保菜单、按钮等都能跟随主题色变化
     cssProperties.set("--app-primary", color);
+
+    const rgb = hexToRgb(color);
+    if (rgb) {
+      cssProperties.set("--app-primary-rgb", rgb);
+    }
+
+    // 根据深浅模式预计算应用层级颜色梯度
+    const primaryLight = lighten(color, 0.2);
+    const primaryLighter = lighten(color, 0.35);
+    const primaryLightest = lighten(color, 0.5);
+    const primaryDark = darken(color, 0.18);
+    const primaryDarker = darken(color, 0.3);
+
+    cssProperties.set("--app-primary-light", primaryLight);
+    cssProperties.set("--app-primary-lighter", primaryLighter);
+    cssProperties.set("--app-primary-lightest", primaryLightest);
+    cssProperties.set("--app-primary-dark", primaryDark);
+    cssProperties.set("--app-primary-darker", primaryDarker);
 
     // 预计算dark和light变体
     for (let i = 1; i <= 2; i++) {
-      cssProperties.set(`--el-color-primary-dark-${i}`, dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10));
+      cssProperties.set(
+        `--el-color-primary-dark-${i}`,
+        dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10),
+      );
     }
     for (let i = 1; i <= 9; i++) {
-      cssProperties.set(`--el-color-primary-light-${i}`, dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10));
+      cssProperties.set(
+        `--el-color-primary-light-${i}`,
+        dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10),
+      );
     }
 
     // 批量设置所有CSS变量，减少DOM操作
@@ -115,8 +168,17 @@ export function useDataThemeChange() {
 
     // 批量更新所有主题相关的属性
     const updates = () => {
+      // 根据整体风格同步深浅模式，防止缓存不一致
+      if (overall) {
+        if (overall === "light") {
+          dataTheme.value = false;
+        } else if (overall === "dark") {
+          dataTheme.value = true;
+        }
+      }
+
       // 更新响应式值
-      overallStyle.value = overall;
+      overallStyle.value = overall || overallStyle.value;
 
       // 更新 dark 类
       if (dataTheme.value) {

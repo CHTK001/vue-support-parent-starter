@@ -3,22 +3,22 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import { storageConfigureChange } from "../../composables/useSettings";
+import { useSettings } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
-
+const { saveToStorage } = useSettings();
 const tagsStyle = computed({
   get: () => $storage?.configure?.tagsStyle ?? "rounded",
   set: (value: string) => {
-    storageConfigureChange("tagsStyle", value);
+    saveToStorage("tagsStyle", value);
   },
 });
 
 const tagsEffect = computed({
   get: () => $storage?.configure?.tagsEffect ?? "plain",
   set: (value: string) => {
-    storageConfigureChange("tagsEffect", value);
+    saveToStorage("tagsEffect", value);
   },
 });
 
