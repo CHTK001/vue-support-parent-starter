@@ -74,8 +74,6 @@ function removeAllThemeClasses() {
 
 import { useThemeAnimation } from "../../hooks/useThemeAnimation";
 
-const runThemeAnimation = useThemeAnimation();
-
 function applyTheme(themeKey: string) {
   const htmlEl = document.documentElement;
   removeAllThemeClasses();
@@ -105,7 +103,7 @@ function applyTheme(themeKey: string) {
 }
 
 function onSelect(themeKey: string, event?: MouseEvent) {
-  runThemeAnimation(() => {
+  useThemeAnimation(() => {
     internalTheme.value = themeKey;
     
     applyTheme(themeKey);

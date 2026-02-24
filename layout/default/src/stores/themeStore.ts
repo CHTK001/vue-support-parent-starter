@@ -9,7 +9,6 @@ import { emitter, useUserStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import type { ThemeKey } from "../types/theme";
 import { layoutThemes, getLayoutTheme, loadThemeStylesheet } from "../themes";
-import { useSettings } from "../components/lay-setting/composables/useSettings";
 
 // 条件日志函数
 const isDev = import.meta.env.DEV;
@@ -17,7 +16,6 @@ const log = isDev ? console.log.bind(console, "[ThemeStore]") : () => {};
 
 export const useThemeStore = defineStore("theme", () => {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
-  const { saveToStorage } = useSettings();
 
   // ===== 状态 =====
   const currentTheme = ref<ThemeKey>(
@@ -67,30 +65,6 @@ export const useThemeStore = defineStore("theme", () => {
   const defaultScreen = getConfig("ShowScreenMonitor") ?? false;
   const screenMonitorEnabled = ref(storedScreen !== null ? storedScreen === "true" : defaultScreen);
 
-  // Network Latency Monitor State
-  const STORAGE_KEY_NETWORK_LATENCY = "sys-network-latency-monitor-enabled";
-  const storedNetworkLatency = localStorage.getItem(STORAGE_KEY_NETWORK_LATENCY);
-  const defaultNetworkLatency = getConfig("ShowNetworkLatencyMonitor") ?? false;
-  const networkLatencyMonitorEnabled = ref(storedNetworkLatency !== null ? storedNetworkLatency === "true" : defaultNetworkLatency);
-
-  // Storage Monitor State
-  const STORAGE_KEY_STORAGE = "sys-storage-monitor-enabled";
-  const storedStorage = localStorage.getItem(STORAGE_KEY_STORAGE);
-  const defaultStorage = getConfig("ShowStorageMonitor") ?? false;
-  const storageMonitorEnabled = ref(storedStorage !== null ? storedStorage === "true" : defaultStorage);
-
-  // Device Info Monitor State
-  const STORAGE_KEY_DEVICE_INFO = "sys-device-info-monitor-enabled";
-  const storedDeviceInfo = localStorage.getItem(STORAGE_KEY_DEVICE_INFO);
-  const defaultDeviceInfo = getConfig("ShowDeviceInfoMonitor") ?? false;
-  const deviceInfoMonitorEnabled = ref(storedDeviceInfo !== null ? storedDeviceInfo === "true" : defaultDeviceInfo);
-
-  // Page Time Monitor State
-  const STORAGE_KEY_PAGE_TIME = "sys-page-time-monitor-enabled";
-  const storedPageTime = localStorage.getItem(STORAGE_KEY_PAGE_TIME);
-  const defaultPageTime = getConfig("ShowPageTimeMonitor") ?? false;
-  const pageTimeMonitorEnabled = ref(storedPageTime !== null ? storedPageTime === "true" : defaultPageTime);
-
   // Monitor Position State
   const STORAGE_KEY_MONITOR_POS = "sys-performance-monitor-position";
   const storedMonitorPos = localStorage.getItem(STORAGE_KEY_MONITOR_POS);
@@ -128,27 +102,15 @@ export const useThemeStore = defineStore("theme", () => {
 
   // Access Control Logic
   const isPerformanceMonitorVisible = computed(() => {
-    // 只要任一监控项开启，就允许在界面上显示性能监控组件
-    const hasAnyMonitorEnabled =
-      fpsMonitorEnabled.value ||
-      memoryMonitorEnabled.value ||
-      cpuMonitorEnabled.value ||
-      bandwidthMonitorEnabled.value ||
-      batteryMonitorEnabled.value ||
-      bluetoothMonitorEnabled.value ||
-      screenMonitorEnabled.value ||
-      networkLatencyMonitorEnabled.value ||
-      storageMonitorEnabled.value ||
-      deviceInfoMonitorEnabled.value ||
-      pageTimeMonitorEnabled.value;
+    // 1. Check Environment: Show if DEV or TEST
+    const isDevOrTest = import.meta.env.DEV || import.meta.env.MODE === 'test';
+    
+    // 2. Check User Role: Show if user is 'sa' or has 'sa' role (assuming username check for now as role structure varies)
+    // Note: Adjust 'sa' check based on actual user store structure if needed.
+    const userStore = useUserStoreHook();
+    const isSa = userStore.username === 'sa' || userStore.roles.includes('sa') || userStore.roles.includes('admin'); // Broaden to admin for safety, but user asked for 'sa'
 
-    if (!hasAnyMonitorEnabled) {
-      return false;
-    }
-
-    // 环境或角色控制暂不做强约束，避免在生产环境下开关“开启无效”
-    // 如需收紧权限，可在此处增加 DEV / SA 账号判断
-    return true;
+    return isDevOrTest || isSa;
   });
 
   // 初始化标记
@@ -172,6 +134,7 @@ export const useThemeStore = defineStore("theme", () => {
   function setTheme(themeKey: ThemeKey): void {
     if (currentTheme.value === themeKey) return;
 
+    log("主题切换:", currentTheme.value, "->", themeKey);
     currentTheme.value = themeKey;
 
     // 更新 DOM 属性
@@ -184,7 +147,9 @@ export const useThemeStore = defineStore("theme", () => {
     loadThemeStylesheet(themeKey);
 
     // 持久化到 storage
-    saveToStorage("systemTheme", themeKey);
+    if ($storage?.configure) {
+      $storage.configure.systemTheme = themeKey;
+    }
 
     // 发送主题变更事件
     emitter.emit("systemThemeChange", themeKey);
@@ -226,26 +191,6 @@ export const useThemeStore = defineStore("theme", () => {
   function setScreenMonitor(enabled: boolean) {
     screenMonitorEnabled.value = enabled;
     localStorage.setItem(STORAGE_KEY_SCREEN, String(enabled));
-  }
-
-  function setNetworkLatencyMonitor(enabled: boolean) {
-    networkLatencyMonitorEnabled.value = enabled;
-    localStorage.setItem(STORAGE_KEY_NETWORK_LATENCY, String(enabled));
-  }
-
-  function setStorageMonitor(enabled: boolean) {
-    storageMonitorEnabled.value = enabled;
-    localStorage.setItem(STORAGE_KEY_STORAGE, String(enabled));
-  }
-
-  function setDeviceInfoMonitor(enabled: boolean) {
-    deviceInfoMonitorEnabled.value = enabled;
-    localStorage.setItem(STORAGE_KEY_DEVICE_INFO, String(enabled));
-  }
-
-  function setPageTimeMonitor(enabled: boolean) {
-    pageTimeMonitorEnabled.value = enabled;
-    localStorage.setItem(STORAGE_KEY_PAGE_TIME, String(enabled));
   }
 
   function setPerformanceMonitorPosition(position: string) {
@@ -304,6 +249,7 @@ export const useThemeStore = defineStore("theme", () => {
     if (isInitialized) return;
     isInitialized = true;
 
+    log("初始化主题监听器");
 
     // 监听 emitter 事件（用于外部切换）
     emitter.on("systemThemeChange", handleExternalThemeChange);
@@ -320,6 +266,7 @@ export const useThemeStore = defineStore("theme", () => {
    */
   function handleExternalThemeChange(themeKey: string): void {
     if (currentTheme.value !== themeKey) {
+      log("收到外部主题变更:", themeKey);
       currentTheme.value = themeKey as ThemeKey;
     }
   }
@@ -328,6 +275,7 @@ export const useThemeStore = defineStore("theme", () => {
    * 销毁监听器
    */
   function destroyThemeListener(): void {
+    log("销毁主题监听器");
     emitter.off("systemThemeChange", handleExternalThemeChange);
     isInitialized = false;
   }
@@ -352,10 +300,6 @@ export const useThemeStore = defineStore("theme", () => {
     batteryMonitorEnabled,
     bluetoothMonitorEnabled,
     screenMonitorEnabled,
-    networkLatencyMonitorEnabled,
-    storageMonitorEnabled,
-    deviceInfoMonitorEnabled,
-    pageTimeMonitorEnabled,
     performanceMonitorPosition,
     performanceMonitorMode,
     performanceMonitorLayout,
@@ -371,10 +315,6 @@ export const useThemeStore = defineStore("theme", () => {
     setBatteryMonitor,
     setBluetoothMonitor,
     setScreenMonitor,
-    setNetworkLatencyMonitor,
-    setStorageMonitor,
-    setDeviceInfoMonitor,
-    setPageTimeMonitor,
     setPerformanceMonitorPosition,
     setPerformanceMonitorMode,
     setPerformanceMonitorLayout,

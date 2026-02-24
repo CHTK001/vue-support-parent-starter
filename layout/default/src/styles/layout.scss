@@ -102,6 +102,14 @@ body {
   }
 }
 
+// 悬停导航布局
+.app-wrapper.hover {
+  // :deep(.fixed-header) {
+  //   width: calc(100% - var(--hover-sidebar-width, 200px)) !important;
+  //   margin-left: var(--hover-sidebar-width, 200px) !important;
+  //   transition: all 0.3s;
+  // }
+}
 
 // 移动导航容器
 .mobile-main-container {
@@ -209,42 +217,5 @@ body {
   40% {
     transform: scale(1);
     opacity: 1;
-  }
-}
-
-// 主题切换动画覆盖层
-.theme-switch-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9990;
-  background-image: radial-gradient(
-    circle at center,
-    rgba(var(--app-primary-rgb, 22, 119, 255), 0.45) 0%,
-    rgba(var(--app-primary-rgb, 22, 119, 255), 0.25) 35%,
-    transparent 70%
-  );
-  background-repeat: no-repeat;
-  background-size: 160% 160%;
-  background-position: var(--theme-origin-x, 50%) var(--theme-origin-y, 50%);
-  opacity: 0;
-}
-
-.theme-switch-overlay.is-active {
-  animation: theme-switch-ripple 550ms ease-out forwards;
-}
-
-@keyframes theme-switch-ripple {
-  0% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  45% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.3);
   }
 }

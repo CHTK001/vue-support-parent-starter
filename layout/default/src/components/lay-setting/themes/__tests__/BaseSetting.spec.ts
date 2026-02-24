@@ -270,11 +270,11 @@ describe('BaseSetting.vue', () => {
   it('persists changes to storage', async () => {
     wrapper = mount(BaseSetting, mountOptions);
 
-    // Call saveToStorage directly or trigger a change
-    // Since saveToStorage is internal, we test the bound model updates
+    // Call storageConfigureChange directly or trigger a change
+    // Since storageConfigureChange is internal, we test the bound model updates
     
     // Simulate updating a setting
-    wrapper.vm.saveToStorage('contentMargin', 30);
+    wrapper.vm.storageConfigureChange('contentMargin', 30);
     expect(mockStorage.configure.contentMargin).toBe(30);
   });
 
