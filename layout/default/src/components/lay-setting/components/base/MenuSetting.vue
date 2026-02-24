@@ -46,7 +46,7 @@ const currentTransitionTypeValue = computed(() => settings.transitionType);
 function handleMenuAnimationChange(value: boolean) {
   setMenuTransition(value);
   storageConfigureChange("MenuAnimation", value);
-  emitter.emit("menuAnimationChange", value);
+  emitter.emit("menuAnimationChange" as any, value as any);
 }
 
 function handleTransitionTypeChange({ option }: { option: OptionsType }) {
@@ -55,7 +55,7 @@ function handleTransitionTypeChange({ option }: { option: OptionsType }) {
 
 function handleShowNewMenuChange(value: boolean) {
   setShowNewMenu(value);
-  emitter.emit("showNewMenuChange", value);
+  emitter.emit("showNewMenuChange" as any, value as any);
 }
 
 function handleNewMenuTextBlur() {
@@ -69,7 +69,7 @@ function handleNewMenuTimeLimitChange(value: number) {
 function handleNewMenuAnimationChange({ option }: { option: OptionsType }) {
   const value = option.value as string;
   setNewMenuAnimation(value);
-  emitter.emit("newMenuAnimationChange", value);
+  emitter.emit("newMenuAnimationChange" as any, value as any);
 }
 </script>
 
