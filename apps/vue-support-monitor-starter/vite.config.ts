@@ -21,10 +21,10 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   console.log("当前启动模式:" + newMode);
   console.log("Root:", localRoot);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
-  
+
   const currentFileDir = dirname(fileURLToPath(import.meta.url));
   const baseAlias = createAlias(import.meta.url);
-  
+
   // 使用数组形式的别名配置，确保更具体的别名优先匹配
   // Vite 会按数组顺序匹配别名，所以更具体的路径要放在前面
   const alias = [

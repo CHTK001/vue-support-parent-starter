@@ -86,22 +86,16 @@ const siphonI18n = (function () {
   const cache1 = loadI18nFiles(import.meta.glob("../../locales/*.y(a)?ml", { eager: true, query: "?raw" }), (content) => yaml.load(content), "相对路径 YAML");
   // 加载相对路径的 json 文件
   const cache2 = loadI18nFiles(import.meta.glob("../../locales/*.json", { eager: true, query: "?raw" }), (content) => JSON.parse(content), "相对路径 JSON");
-  // 使用别名路径加载 yaml 文件
-  const aliasCache1 = loadI18nFiles(import.meta.glob("@repo/config/locales/*.y(a)?ml", { eager: true, query: "?raw" }), (content) => yaml.load(content), "别名路径 YAML");
-  // 使用别名路径加载 json 文件
-  const aliasCache2 = loadI18nFiles(import.meta.glob("@repo/config/locales/*.json", { eager: true, query: "?raw" }), (content) => JSON.parse(content), "别名路径 JSON");
   // 加载应用级别的 yaml 文件
   const extCache = loadI18nFiles(import.meta.glob("@/locales/*.y(a)?ml", { eager: true, query: "?raw" }), (content) => yaml.load(content), "应用级别 YAML");
   // 加载应用级别的 json 文件
   const extCache2 = loadI18nFiles(import.meta.glob("@/locales/*.json", { eager: true, query: "?raw" }), (content) => JSON.parse(content), "应用级别 JSON");
 
-  // 合并所有缓存（应用级别优先级最高，然后是别名路径，最后是相对路径）
+  // 合并所有缓存（应用级别优先级最高，其次为相对路径）
   // 确保每个合并步骤都有默认空对象，防止没有数据时出错
-  const _cache = mergeObjects(extCache || {}, extCache2 || {});
-  const _cache1 = mergeObjects(aliasCache1 || {}, aliasCache2 || {});
-  const _cache2 = mergeObjects(_cache1 || {}, cache1 || {});
-  const _cache3 = mergeObjects(_cache2 || {}, cache2 || {});
-  const finalCache = mergeObjects(_cache || {}, _cache3 || {});
+  const packageCache = mergeObjects(cache1 || {}, cache2 || {});
+  const appCache = mergeObjects(extCache || {}, extCache2 || {});
+  const finalCache = mergeObjects(packageCache, appCache);
 
   // 开发环境下输出调试信息
       //@ts-ignore
@@ -112,8 +106,6 @@ const siphonI18n = (function () {
       console.log(`[i18n] 各来源加载情况:`);
       console.log(`  - 相对路径 YAML: ${Object.keys(cache1).join(", ") || "无"}`);
       console.log(`  - 相对路径 JSON: ${Object.keys(cache2).join(", ") || "无"}`);
-      console.log(`  - 别名路径 YAML: ${Object.keys(aliasCache1).join(", ") || "无"}`);
-      console.log(`  - 别名路径 JSON: ${Object.keys(aliasCache2).join(", ") || "无"}`);
       console.log(`  - 应用级别 YAML: ${Object.keys(extCache).join(", ") || "无"}`);
       console.log(`  - 应用级别 JSON: ${Object.keys(extCache2).join(", ") || "无"}`);
     } else {
