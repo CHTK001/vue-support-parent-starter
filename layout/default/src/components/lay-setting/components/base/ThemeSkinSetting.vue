@@ -60,8 +60,8 @@ function festivalThemeChange(value: boolean): void {
 
   if (value) {
     const festivalTheme = detectFestivalTheme();
-    if (festivalTheme) {
-      switchSystemTheme(festivalTheme.key, true);
+    if (festivalTheme && typeof festivalTheme === "object" && "key" in festivalTheme) {
+      switchSystemTheme((festivalTheme as any).key, true);
     } else {
       switchSystemTheme("default", true);
     }
