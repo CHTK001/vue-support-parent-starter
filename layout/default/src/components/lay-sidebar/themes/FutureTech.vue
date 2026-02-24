@@ -253,7 +253,7 @@ onMounted(() => {
 
 <style lang="scss">
 // 二级导航弹出层全局样式（teleport 到 body）
-html[data-theme='future-tech'] {
+html[data-skin='future-tech'] {
   $ft-cyan: #00ffff;
   $ft-bg: #050a1f;
   $ft-bg-light: #0a1a3a;
