@@ -265,7 +265,7 @@ function handleSelect(value: string): void {
 .sc-switch-rect8__dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: 6px;
   background: var(--rect8-inactive-color);
   transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 

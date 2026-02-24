@@ -26,7 +26,8 @@ import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useThemeStore } from "../../../stores/themeStore";
 import LayAiChat from "../../lay-ai-chat/index.vue";
 import { getThemeComponents } from "../components";
-import { useBaseSetting } from "../composables/useSettings";
+import { useSettings } from "../composables/useSettings";
+import { useThemeSetting } from "./composables/useBaseSetting";
 
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
 import DayIcon from "@repo/assets/svg/day.svg?component";
@@ -42,6 +43,7 @@ const { t } = useI18n();
 const { device } = useNav();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeStore = useThemeStore();
+const { saveToStorage } = useSettings();
 const {
   fpsMonitorEnabled,
   memoryMonitorEnabled,
@@ -85,7 +87,6 @@ const {
   showThemeColors,
   getThemeColorStyle,
   getThemeColor,
-  storageConfigureChange,
   switchSystemTheme,
   festivalThemeChange,
   setLayoutModel,
@@ -96,7 +97,7 @@ const {
   layoutTheme,
   dataThemeChange,
   setLayoutThemeColor,
-} = useBaseSetting();
+} = useThemeSetting();
 
 // 获取当前主题的组件映射
 const currentTheme = computed(() => $storage?.configure?.systemTheme || "default");
@@ -286,20 +287,20 @@ const cardColorOptions = computed<Array<OptionsType>>(() => {
 
 /** 设置内容宽度 */
 const contentMarginChange = (value: number): void => {
-  storageConfigureChange("contentMargin", value);
+  saveToStorage("contentMargin", value);
   document.body.style.setProperty("--contentMargin", value + "px");
 };
 
 /** 设置内容radius */
 const layoutRadiusChange = (value: number): void => {
-  storageConfigureChange("layoutRadius", value);
+  saveToStorage("layoutRadius", value);
   document.body.style.setProperty("--layoutRadius", value + "px");
 };
 // layoutBlurChange removed
 
 /** 切换菜单动画设置 */
 const menuAnimationChange = (value: boolean): void => {
-  storageConfigureChange("MenuAnimation", value);
+  saveToStorage("MenuAnimation", value);
   emitter.emit("menuAnimationChange", value);
 };
 
@@ -307,7 +308,7 @@ const menuAnimationChange = (value: boolean): void => {
 const transitionTypeChange = ({ option }: { option: OptionsType }): void => {
   const value = option.value as string;
   settings.transitionType = value;
-  storageConfigureChange("transitionType", value);
+  saveToStorage("transitionType", value);
   emitter.emit("transitionTypeChange", value);
 };
 
@@ -315,28 +316,28 @@ const transitionTypeChange = ({ option }: { option: OptionsType }): void => {
 const greyChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.greyVal, "html-grey", htmlEl);
-  storageConfigureChange("grey", value);
+  saveToStorage("grey", value);
 };
 
 /** 色弱模式设置 */
 const weekChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.weakVal, "html-weakness", htmlEl);
-  storageConfigureChange("weak", value);
+  saveToStorage("weak", value);
 };
 
 /** 反色模式设置 */
 const invertChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.invertVal, "html-invert", htmlEl);
-  storageConfigureChange("invert", value);
+  saveToStorage("invert", value);
 };
 
 /** 黑白模式设置 */
 const monochromeChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.monochromeVal, "html-monochrome", htmlEl);
-  storageConfigureChange("monochrome", value);
+  saveToStorage("monochrome", value);
 };
 
 
@@ -372,50 +373,50 @@ const loadThemeStylesheet = (themeKey: string): void => {
 /** 隐藏标签页设置 */
 const tagsChange = () => {
   const showVal = settings.tabsVal;
-  storageConfigureChange("hideTabs", showVal);
+  saveToStorage("hideTabs", showVal);
   emitter.emit("tagViewsChange", showVal as unknown as string);
 };
 
 /** 隐藏页脚设置 */
 const hideFooterChange = () => {
   const hideFooter = settings.hideFooter;
-  storageConfigureChange("hideFooter", hideFooter);
+  saveToStorage("hideFooter", hideFooter);
   emitter.emit("hideFooterChange", hideFooter);
 };
 
 /** 标签页持久化设置 */
 const multiTagsCacheChange = () => {
   const multiTagsCache = settings.multiTagsCache;
-  storageConfigureChange("multiTagsCache", multiTagsCache);
+  saveToStorage("multiTagsCache", multiTagsCache);
   useMultiTagsStoreHook().multiTagsCacheChange(multiTagsCache);
 };
 
 function onChange({ option }: { option: OptionsType }) {
   const { value } = option;
   markValue.value = value;
-  storageConfigureChange("showModel", value);
+  saveToStorage("showModel", value);
   emitter.emit("tagViewsShowModel", value);
 }
 
 /** 侧边栏Logo */
 function logoChange() {
   unref(logoVal)
-    ? storageConfigureChange("showLogo", true)
-    : storageConfigureChange("showLogo", false);
+    ? saveToStorage("showLogo", true)
+    : saveToStorage("showLogo", false);
   emitter.emit("logoChange", unref(logoVal));
 }
 /** 卡片Body */
 function cardBodyChange() {
   unref(cardBodyVal)
-    ? storageConfigureChange("cardBody", true)
-    : storageConfigureChange("cardBody", false);
+    ? saveToStorage("cardBody", true)
+    : saveToStorage("cardBody", false);
 }
 
 /** 卡片颜色模式变更 */
 function onCardColorModeChange({ option }: { option: OptionsType }) {
   const { value } = option;
   cardColorMode.value = value;
-  storageConfigureChange("cardColorMode", value);
+  saveToStorage("cardColorMode", value);
 }
 
 /** 数字输入框调整值函数 */
@@ -493,7 +494,7 @@ const stretchTypeOptions = computed<Array<OptionsType>>(() => {
 
 const setStretch = (value: number | boolean) => {
   settings.stretch = value;
-  storageConfigureChange("stretch", value);
+  saveToStorage("stretch", value);
 };
 
 const stretchTypeChange = ({ option }: { option: OptionsType }) => {
@@ -597,7 +598,7 @@ onBeforeMount(() => {
 watch(
   () => settings.menuAnimation,
   (val) => {
-    storageConfigureChange("MenuAnimation", val);
+    saveToStorage("MenuAnimation", val);
     emitter.emit("menuAnimationChange", val);
   },
 );
@@ -606,7 +607,7 @@ watch(
 watch(
   () => settings.forceNewMenu,
   (val) => {
-    storageConfigureChange("ForceNewMenu", val);
+    saveToStorage("ForceNewMenu", val);
     // 强制新菜单可能需要触发重渲染，或者组件内部监听
     emitter.emit("forceNewMenuChange", val);
   },
@@ -638,7 +639,7 @@ function resetToDefault() {
 
   // 重置卡片颜色模式
   cardColorMode.value = "all";
-  storageConfigureChange("cardColorMode", "all");
+  saveToStorage("cardColorMode", "all");
 
   // 重置主题
   setLayoutModel("vertical");
@@ -657,12 +658,12 @@ function resetToDefault() {
   multiTagsCacheChange();
 
   // 重置菜单动画
-  storageConfigureChange("MenuAnimation", true);
+  saveToStorage("MenuAnimation", true);
   emitter.emit("menuAnimationChange", true);
 
   // 重置主题动画
-  storageConfigureChange("themeAnimationMode", "fixed");
-  storageConfigureChange("themeAnimationDirection", "top-right");
+  saveToStorage("themeAnimationMode", "fixed");
+  saveToStorage("themeAnimationDirection", "top-right");
 
   ElMessage.success(t("panel.settingsRestored"));
 }
@@ -695,7 +696,7 @@ function exportSettings() {
  * 面包屑导航显示变更
  */
 function showBreadcrumbChange() {
-  storageConfigureChange("showBreadcrumb", settings.showBreadcrumb);
+  saveToStorage("showBreadcrumb", settings.showBreadcrumb);
   emitter.emit("breadcrumbChange", settings.showBreadcrumb);
 }
 
@@ -703,7 +704,7 @@ function showBreadcrumbChange() {
  * 面包屑显示模式变更
  */
 function breadcrumbModeChange() {
-  storageConfigureChange("breadcrumbIconOnly", settings.breadcrumbIconOnly);
+  saveToStorage("breadcrumbIconOnly", settings.breadcrumbIconOnly);
   emitter.emit(
     "breadcrumbModeChange",
     settings.breadcrumbIconOnly ? "icon" : "icon-text",
@@ -714,7 +715,7 @@ function breadcrumbModeChange() {
  * 标签页图标显示变更
  */
 function showTagIconChange() {
-  storageConfigureChange("showTagIcon", settings.showTagIcon);
+  saveToStorage("showTagIcon", settings.showTagIcon);
   emitter.emit("showTagIconChange", settings.showTagIcon);
 }
 
@@ -722,16 +723,16 @@ function showTagIconChange() {
  * 组件缓存变更
  */
 function keepAliveChange() {
-  storageConfigureChange("keepAlive", settings.keepAlive);
+  saveToStorage("keepAlive", settings.keepAlive);
   emitter.emit("keepAliveChange", settings.keepAlive);
 }
 
 function doubleNavExpandModeChange() {
-  storageConfigureChange("doubleNavExpandMode", settings.doubleNavExpandMode);
+  saveToStorage("doubleNavExpandMode", settings.doubleNavExpandMode);
 }
 
 function doubleNavAutoExpandAllChange() {
-  storageConfigureChange(
+  saveToStorage(
     "doubleNavAutoExpandAll",
     settings.doubleNavAutoExpandAll,
   );
@@ -743,7 +744,7 @@ function doubleNavAutoExpandAllChange() {
 function aiChatThemeChange({ option }: { option: OptionsType }) {
   const value = option.value as string;
   settings.aiChatTheme = value;
-  storageConfigureChange("aiChatTheme", value);
+  saveToStorage("aiChatTheme", value);
   emitter.emit("aiChatThemeChange", value);
 }
 
@@ -752,7 +753,7 @@ function aiChatThemeChange({ option }: { option: OptionsType }) {
  */
 function useLocalModelChange(enabled: boolean) {
   settings.useLocalModel = enabled;
-  storageConfigureChange("useLocalModel", enabled);
+  saveToStorage("useLocalModel", enabled);
   emitter.emit("aiLocalModelChange", {
     useLocalModel: enabled,
     localModelId: settings.localModelId,
@@ -764,7 +765,7 @@ function useLocalModelChange(enabled: boolean) {
  */
 function localModelIdChange(value: string) {
   settings.localModelId = value;
-  storageConfigureChange("localModelId", value);
+  saveToStorage("localModelId", value);
   emitter.emit("aiLocalModelChange", {
     useLocalModel: settings.useLocalModel,
     localModelId: value,
@@ -789,7 +790,7 @@ const localModelOptions = computed(() => {
  */
 function debugModeChange(enabled: boolean) {
   settings.debugMode = enabled;
-  storageConfigureChange("debugMode", enabled);
+  saveToStorage("debugMode", enabled);
   // 发送事件到主布局组件控制调试控制台
   emitter.emit("debugModeChange", enabled);
 }
@@ -797,7 +798,7 @@ function debugModeChange(enabled: boolean) {
 // 监听调试模式状态变更（从主布局组件发出）
 emitter.on("debugModeChanged", (enabled: boolean) => {
   settings.debugMode = enabled;
-  storageConfigureChange("debugMode", enabled);
+  saveToStorage("debugMode", enabled);
 });
 
 /**
@@ -805,7 +806,7 @@ emitter.on("debugModeChanged", (enabled: boolean) => {
  */
 function fontEncryptionEnabledChange(enabled: boolean) {
   settings.fontEncryptionEnabled = enabled;
-  storageConfigureChange("fontEncryptionEnabled", enabled);
+  saveToStorage("fontEncryptionEnabled", enabled);
   emitter.emit("fontEncryptionChange", {
     enabled,
     encryptNumbers: settings.fontEncryptionNumbers,
@@ -816,7 +817,7 @@ function fontEncryptionEnabledChange(enabled: boolean) {
 
 function fontEncryptionNumbersChange(enabled: boolean) {
   settings.fontEncryptionNumbers = enabled;
-  storageConfigureChange("fontEncryptionNumbers", enabled);
+  saveToStorage("fontEncryptionNumbers", enabled);
   if (settings.fontEncryptionEnabled) {
     emitter.emit("fontEncryptionChange", {
       enabled: settings.fontEncryptionEnabled,
@@ -829,7 +830,7 @@ function fontEncryptionNumbersChange(enabled: boolean) {
 
 function fontEncryptionChineseChange(enabled: boolean) {
   settings.fontEncryptionChinese = enabled;
-  storageConfigureChange("fontEncryptionChinese", enabled);
+  saveToStorage("fontEncryptionChinese", enabled);
   if (settings.fontEncryptionEnabled) {
     emitter.emit("fontEncryptionChange", {
       enabled: settings.fontEncryptionEnabled,
@@ -842,7 +843,7 @@ function fontEncryptionChineseChange(enabled: boolean) {
 
 function fontEncryptionGlobalChange(enabled: boolean) {
   settings.fontEncryptionGlobal = enabled;
-  storageConfigureChange("fontEncryptionGlobal", enabled);
+  saveToStorage("fontEncryptionGlobal", enabled);
   if (settings.fontEncryptionEnabled) {
     emitter.emit("fontEncryptionChange", {
       enabled: settings.fontEncryptionEnabled,
@@ -855,7 +856,7 @@ function fontEncryptionGlobalChange(enabled: boolean) {
 
 function fontEncryptionOcrNoiseChange(enabled: boolean) {
   settings.fontEncryptionOcrNoise = enabled;
-  storageConfigureChange("fontEncryptionOcrNoise", enabled);
+  saveToStorage("fontEncryptionOcrNoise", enabled);
   if (settings.fontEncryptionEnabled) {
     emitter.emit("fontEncryptionChange", {
       enabled: settings.fontEncryptionEnabled,
@@ -868,34 +869,34 @@ function fontEncryptionOcrNoiseChange(enabled: boolean) {
 }
 
 function showNewMenuChange() {
-  storageConfigureChange("ShowNewMenu", settings.showNewMenu);
+  saveToStorage("ShowNewMenu", settings.showNewMenu);
   emitter.emit("showNewMenuChange", settings.showNewMenu);
 }
 
 function newMenuTextChange() {
-  storageConfigureChange("NewMenuText", settings.newMenuText);
+  saveToStorage("NewMenuText", settings.newMenuText);
 }
 
 function newMenuTimeLimitChange() {
-  storageConfigureChange("NewMenuTimeLimit", settings.newMenuTimeLimit);
+  saveToStorage("NewMenuTimeLimit", settings.newMenuTimeLimit);
 }
 
 function newMenuAnimationChange({ option }: { option: OptionsType }) {
   const value = option.value as string;
   settings.newMenuAnimation = value as any;
-  storageConfigureChange("NewMenuAnimation", value);
+  saveToStorage("NewMenuAnimation", value);
   emitter.emit("newMenuAnimationChange", value);
 }
 
 function themeAnimationModeChange({ option }: { option: OptionsType }) {
   const value = option.value as any;
   settings.themeAnimationMode = value;
-  storageConfigureChange("themeAnimationMode", value);
+  saveToStorage("themeAnimationMode", value);
 }
 
 function themeAnimationDirectionChange(value: string) {
   settings.themeAnimationDirection = value as any;
-  storageConfigureChange("themeAnimationDirection", value);
+  saveToStorage("themeAnimationDirection", value);
 }
 
 /** 导入设置 */

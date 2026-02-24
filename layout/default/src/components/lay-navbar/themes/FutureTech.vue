@@ -84,16 +84,16 @@ onMounted(() => {
       opacity: 0.3;
     }
     
-    // 扫描线效果
+    // 顶部静态高亮线，保留科技感但不做循环动画
     &::after {
       content: '';
       position: absolute;
       top: 0;
-      left: -100%;
+      left: 0;
       width: 100%;
       height: 2px;
       background: linear-gradient(90deg, transparent, var(--ft-cyan), transparent);
-      animation: scanLine 4s linear infinite;
+      opacity: 0.6;
     }
   }
 
@@ -163,41 +163,11 @@ onMounted(() => {
       position: absolute;
       background: var(--ft-cyan);
       border-radius: 50%;
-      box-shadow: 0 0 5px var(--ft-cyan), 0 0 10px var(--ft-cyan);
-      animation: float linear infinite;
+      box-shadow: 0 0 4px var(--ft-cyan);
     }
   }
 }
 
-// 扫描线动画
-@keyframes scanLine {
-  0% {
-    left: -100%;
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    left: 100%;
-    opacity: 0;
-  }
-}
-
-// 粒子浮动动画
-@keyframes float {
-  0% { 
-    transform: translate(0, 0) scale(1);
-    opacity: 0;
-  }
-  50% { 
-    opacity: 1;
-  }
-  100% { 
-    transform: translate(30px, -30px) scale(0);
-    opacity: 0;
-  }
-}
 
 // 深色模式适配
 :global(html.dark) {

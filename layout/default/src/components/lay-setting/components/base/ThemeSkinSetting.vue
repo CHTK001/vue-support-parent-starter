@@ -9,12 +9,12 @@ import { layoutThemes, detectFestivalTheme } from "../../../../themes";
 import { useDataThemeChange } from "../../../../hooks/useDataThemeChange";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import LayThemeSwitcher from "../../../lay-theme-switcher/index.vue";
-import { storageConfigureChange } from "../../composables/useSettings";
+import { useSettings } from "../../composables/useSettings";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const { dataTheme, dataThemeChange } = useDataThemeChange();
-
+const { saveToStorage } = useSettings();
 const systemTheme = computed(() => $storage?.configure?.systemTheme || "default");
 
 const enableFestivalTheme = computed({
@@ -41,7 +41,7 @@ function switchSystemTheme(themeKey: string, showMessage: boolean = true): void 
     dataThemeChange("light");
   }
 
-  storageConfigureChange("systemTheme", themeKey as any);
+  saveToStorage("systemTheme", themeKey as any);
 
   emitter.emit("systemThemeChange", themeKey);
 
@@ -56,12 +56,12 @@ function switchSystemTheme(themeKey: string, showMessage: boolean = true): void 
 }
 
 function festivalThemeChange(value: boolean): void {
-  storageConfigureChange("enableFestivalTheme", value);
+  saveToStorage("enableFestivalTheme", value);
 
   if (value) {
     const festivalTheme = detectFestivalTheme();
-    if (festivalTheme && typeof festivalTheme === "object" && "key" in festivalTheme) {
-      switchSystemTheme((festivalTheme as any).key, true);
+    if (festivalTheme) {
+      switchSystemTheme(festivalTheme as any, true);
     } else {
       switchSystemTheme("default", true);
     }

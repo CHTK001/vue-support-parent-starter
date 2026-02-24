@@ -9,7 +9,7 @@ import { emitter, useUserStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import type { ThemeKey } from "../types/theme";
 import { layoutThemes, getLayoutTheme, loadThemeStylesheet } from "../themes";
-import { storageConfigureChange } from "../components/lay-setting/composables/useSettings";
+import { useSettings } from "../components/lay-setting/composables/useSettings";
 
 // 条件日志函数
 const isDev = import.meta.env.DEV;
@@ -17,6 +17,7 @@ const log = isDev ? console.log.bind(console, "[ThemeStore]") : () => {};
 
 export const useThemeStore = defineStore("theme", () => {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
+  const { saveToStorage } = useSettings();
 
   // ===== 状态 =====
   const currentTheme = ref<ThemeKey>(
@@ -171,7 +172,7 @@ export const useThemeStore = defineStore("theme", () => {
     loadThemeStylesheet(themeKey);
 
     // 持久化到 storage
-    storageConfigureChange("systemTheme", themeKey);
+    saveToStorage("systemTheme", themeKey);
 
     // 发送主题变更事件
     emitter.emit("systemThemeChange", themeKey);
