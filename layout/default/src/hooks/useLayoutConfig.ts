@@ -45,7 +45,8 @@ export function useLayoutConfig() {
   const showTagIcon = computed(() => config.value.showTagIcon ?? true);
   const keepAlive = computed(() => config.value.keepAlive ?? true);
   const debugMode = computed(() => config.value.debugMode ?? false);
-  const menuTransition = computed(() => config.value.menuTransition ?? true);
+  // 菜单过渡动画默认关闭，避免路由切换产生明显“刷屏”效果
+  const menuTransition = computed(() => config.value.menuTransition ?? false);
 
   // 主题相关
   const systemTheme = computed<ThemeKey>(() => {
@@ -177,7 +178,8 @@ export function useLayoutConfig() {
       stretch: false,
       keepAlive: true,
       debugMode: false,
-      menuTransition: true,
+      // 重置为默认关闭菜单过渡动画
+      menuTransition: false,
       contentMargin: 16,
       layoutRadius: 8,
       layoutBlur: 0,

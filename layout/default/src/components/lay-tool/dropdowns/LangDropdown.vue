@@ -9,6 +9,8 @@ import { computed } from "vue";
 const { locale, translation } = useTranslationLang();
 const languageConfigs = getAllLanguageConfigs();
 const deferLang = useDefer(languageConfigs.length);
+// 为运行时注入的 index 访问提供兜底，避免告警
+const index = 0;
 
 // 获取当前语言的配置
 const currentLanguageConfig = computed(() => {

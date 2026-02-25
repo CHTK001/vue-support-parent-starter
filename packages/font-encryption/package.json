@@ -16,7 +16,9 @@
     "src/"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node ./scripts/generate_font.mjs",
+    "font:generate": "node ./scripts/generate_font.mjs"
   },
   "keywords": [
     "font",
@@ -27,7 +29,8 @@
   "author": "CH",
   "license": "MIT",
   "dependencies": {
-    "@repo/codec-wasm": "workspace:*"
+    "@repo/codec-wasm": "workspace:*",
+    "font-cloak": "^0.3.0"
   }
 }
 

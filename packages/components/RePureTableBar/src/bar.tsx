@@ -4,11 +4,11 @@ import {useEpThemeStoreHook} from "../../../core";
 import {computed, defineComponent, getCurrentInstance, nextTick, type PropType, ref, unref} from "vue";
 import {cloneDeep, delay, getKeyList, isBoolean, isFunction} from "@pureadmin/utils";
 
-import DragIcon from "@repo/assets/table-bar/drag.svg";
-import ExpandIcon from "@repo/assets/table-bar/expand.svg";
-import RefreshIcon from "@repo/assets/table-bar/refresh.svg";
-import SettingIcon from "@repo/assets/table-bar/settings.svg";
-import CollapseIcon from "@repo/assets/table-bar/collapse.svg";
+import DragIcon from "@repo/assets/svg/table-drag.svg";
+import ExpandIcon from "@repo/assets/svg/table-expand.svg";
+import RefreshIcon from "@repo/assets/svg/table-refresh.svg";
+import SettingIcon from "@repo/assets/svg/table-settings.svg";
+import CollapseIcon from "@repo/assets/svg/table-collapse.svg";
 
 const props = {
   /** 头部最左边的标题 */

@@ -5,6 +5,7 @@ import { removeToken, resetRouter, router, useAppStoreHook, useEpThemeStoreHook,
 import { localStorageProxy } from "@repo/utils";
 import { ref } from "vue";
 import type { themeColorsType } from "../types";
+import type { StorageLayout } from "../types/theme";
 import { useLayout } from "./useLayout";
 
 export function useDataThemeChange() {
@@ -35,8 +36,25 @@ export function useDataThemeChange() {
     { color: "#4e69fd", themeColor: "#4e69fd", description: "梦幻迷人的紫色主题" },
   ]);
   const { $storage } = useGlobal<GlobalPropertiesApi>();
-  const dataTheme = ref<boolean>($storage?.layout?.darkMode);
-  const overallStyle = ref<string>($storage?.layout?.overallStyle);
+
+  // 优先从 localStorage 读取 layout 配置，避免应用早期 $storage 还未就绪导致深色样式被覆盖
+  let initialDarkMode: boolean | undefined;
+  let initialOverallStyle: string | undefined;
+  try {
+    const layoutConfig = JSON.parse(localStorage.getItem("layout") || "{}") as Partial<StorageLayout>;
+    initialDarkMode = layoutConfig.darkMode;
+    initialOverallStyle = layoutConfig.overallStyle as string | undefined;
+  } catch {
+    // 解析失败则回退到 $storage
+  }
+
+  const dataTheme = ref<boolean>(
+    typeof initialDarkMode === "boolean" ? initialDarkMode : $storage?.layout?.darkMode,
+  );
+  const overallStyle = ref<string>(
+    initialOverallStyle ?? ($storage?.layout?.overallStyle as string | undefined),
+  );
+
   const body = document.documentElement as HTMLElement;
 
   function toggleClass(flag: boolean, clsName: string, target?: HTMLElement) {
@@ -50,10 +68,12 @@ export function useDataThemeChange() {
   async function setLayoutThemeColor(theme = getConfig().Theme ?? "light", isClick = true) {
     layoutTheme.value.theme = theme;
     document.documentElement.setAttribute("data-theme", theme);
-    // 如果非isClick，保留之前的themeColor
+
+    // 如果非 isClick，保留之前的 themeColor
     const storageThemeColor = $storage.layout.themeColor;
-    $storage.layout = {
-      layout: layout.value,
+
+    const nextLayout: StorageLayout = {
+      layout: layout.value as StorageLayout["layout"],
       theme,
       darkMode: dataTheme.value,
       sidebarStatus: $storage.layout?.sidebarStatus,
@@ -61,6 +81,24 @@ export function useDataThemeChange() {
       themeColor: isClick ? theme : storageThemeColor,
       overallStyle: overallStyle.value,
     };
+
+    const currentLayout = $storage.layout as StorageLayout | undefined;
+
+    // 防止对同一内容反复写入，避免触发递归更新
+    if (
+      currentLayout &&
+      currentLayout.layout === nextLayout.layout &&
+      currentLayout.theme === nextLayout.theme &&
+      currentLayout.darkMode === nextLayout.darkMode &&
+      currentLayout.sidebarStatus === nextLayout.sidebarStatus &&
+      currentLayout.epThemeColor === nextLayout.epThemeColor &&
+      currentLayout.themeColor === nextLayout.themeColor &&
+      currentLayout.overallStyle === nextLayout.overallStyle
+    ) {
+      return;
+    }
+
+    $storage.layout = nextLayout;
 
     // 当选择白色主题时，使用#006ae6作为主色调
     if (theme === "light") {

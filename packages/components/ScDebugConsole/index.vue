@@ -6,7 +6,13 @@
       class="sc-debug-console"
       :style="style"
     >
-      <div class="console-panel">
+      <div 
+        class="console-panel"
+        :style="{
+          width: panelWidth + 'px',
+          maxHeight: panelHeight + 'px'
+        }"
+      >
         <!-- 头部（拖拽区域） -->
         <div 
           ref="handle"
@@ -18,6 +24,20 @@
             <el-badge :value="logs.length" :hidden="logs.length === 0" type="primary" class="ml-2" />
           </div>
           <div class="header-actions">
+            <div class="log-filter-wrapper" @mousedown.stop>
+              <el-select
+                v-model="filterType"
+                size="small"
+                class="log-filter-select"
+                placeholder="全部类型"
+              >
+                <el-option label="全部" value="all" />
+                <el-option label="Info" value="info" />
+                <el-option label="Warn" value="warn" />
+                <el-option label="Error" value="error" />
+                <el-option label="Debug" value="debug" />
+              </el-select>
+            </div>
             <el-button size="small" circle @click.stop="handleClear" :disabled="logs.length === 0" title="清空日志" @mousedown.stop>
               <IconifyIconOnline icon="ri:delete-bin-line" />
             </el-button>
@@ -34,8 +54,13 @@
             <p>暂无日志输出</p>
           </div>
 
+          <div v-else-if="filteredLogs.length === 0" class="empty-state">
+            <IconifyIconOnline icon="ri:filter-2-line" class="empty-icon" />
+            <p>当前筛选条件下暂无日志</p>
+          </div>
+
           <div v-else class="log-list">
-            <div v-for="log in logs" :key="log.id" class="log-item" :class="[log.type]">
+            <div v-for="log in filteredLogs" :key="log.id" class="log-item" :class="[log.type]">
               <div class="log-type">
                 <IconifyIconOnline :icon="getLogIcon(log.type)" />
               </div>
@@ -45,6 +70,14 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- 右下角缩放拖拽手柄 -->
+        <div
+          class="resize-handle"
+          @mousedown="handleResizeStart"
+        >
+          <span class="resize-icon" />
         </div>
       </div>
     </div>
@@ -60,9 +93,9 @@
  * @since 2025-12-03
  * @description 使用 @vueuse/core useDraggable 重构，优化性能和体验
  */
-import { ref, onMounted, onUnmounted, nextTick, shallowRef, markRaw } from "vue";
-import { enableConsoleProxy, disableConsoleProxy, type LogEntry, type LogType } from "@repo/utils";
-import { useDraggable, useWindowSize } from '@vueuse/core';
+import { ref, onMounted, onUnmounted, nextTick, shallowRef, markRaw, computed } from "vue";
+import { enableConsoleProxy, disableConsoleProxy, clearLogHistory, type LogEntry, type LogType } from "@repo/utils";
+import { useDraggable, useWindowSize, useEventListener } from '@vueuse/core';
 
 const emit = defineEmits<{
   close: [];
@@ -78,8 +111,27 @@ const contentRef = ref<HTMLElement | null>(null);
 const logs = shallowRef<LogEntry[]>([]);
 let unsubscribe: (() => void) | null = null;
 
+// 日志过滤类型
+const filterType = ref<LogType | "all">("all");
+
+const filteredLogs = computed<LogEntry[]>(() => {
+  if (filterType.value === "all") {
+    return logs.value;
+  }
+  return logs.value.filter((log) => log.type === filterType.value);
+});
+
 // 窗口尺寸
 const { width: windowWidth } = useWindowSize();
+
+// 面板尺寸（支持拖拽缩放）
+const MIN_WIDTH = 320;
+const MIN_HEIGHT = 240;
+const MAX_WIDTH = 800;
+const MAX_HEIGHT = 600;
+
+const panelWidth = ref(400);
+const panelHeight = ref(400);
 
 // 初始化位置：右上角
 const initialValue = { x: windowWidth.value - 420, y: 80 };
@@ -93,6 +145,13 @@ const { style, isDragging } = useDraggable(el, {
   preventDefault: true,
   stopPropagation: true,
 });
+
+// 缩放拖拽状态
+const isResizing = ref(false);
+const resizeStartX = ref(0);
+const resizeStartY = ref(0);
+const startWidth = ref(0);
+const startHeight = ref(0);
 
 /** 获取日志图标 */
 const getLogIcon = (type: LogType): string => {
@@ -137,7 +196,48 @@ const handleLog = (entry: LogEntry): void => {
 
 /** 清空日志 */
 const handleClear = (): void => {
+  // 清空全局日志历史，避免重新挂载时重复回放
+  clearLogHistory();
   logs.value = [];
+  if (contentRef.value) {
+    contentRef.value.scrollTop = 0;
+  }
+};
+
+/** 开始缩放 */
+const handleResizeStart = (event: MouseEvent): void => {
+  event.stopPropagation();
+  event.preventDefault();
+  isResizing.value = true;
+  resizeStartX.value = event.clientX;
+  resizeStartY.value = event.clientY;
+  startWidth.value = panelWidth.value;
+  startHeight.value = panelHeight.value;
+};
+
+/** 缩放中 */
+const handleResizing = (event: MouseEvent): void => {
+  if (!isResizing.value) {
+    return;
+  }
+
+  const deltaX = event.clientX - resizeStartX.value;
+  const deltaY = event.clientY - resizeStartY.value;
+
+  const maxWidth = Math.min(MAX_WIDTH, windowWidth.value - 40);
+  const nextWidth = Math.min(Math.max(MIN_WIDTH, startWidth.value + deltaX), maxWidth);
+  const nextHeight = Math.min(Math.max(MIN_HEIGHT, startHeight.value + deltaY), MAX_HEIGHT);
+
+  panelWidth.value = nextWidth;
+  panelHeight.value = nextHeight;
+};
+
+/** 结束缩放 */
+const handleResizeEnd = (): void => {
+  if (!isResizing.value) {
+    return;
+  }
+  isResizing.value = false;
 };
 
 /** 关闭控制台 */
@@ -169,6 +269,10 @@ onUnmounted(() => {
   disableConsoleProxy();
 });
 
+// 监听全局鼠标事件，支持拖拽缩放
+useEventListener(window, "mousemove", handleResizing);
+useEventListener(window, "mouseup", handleResizeEnd);
+
 defineExpose({ show, handleClose, isVisible });
 </script>
 
@@ -185,8 +289,7 @@ defineExpose({ show, handleClose, isVisible });
 }
 
 .console-panel {
-  width: 400px;
-  max-height: 400px;
+  position: relative;
   background: var(--el-bg-color);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -218,7 +321,14 @@ defineExpose({ show, handleClose, isVisible });
 
     .header-actions {
       display: flex;
+      align-items: center;
       gap: 4px;
+
+      .log-filter-wrapper {
+        .log-filter-select {
+          width: 120px;
+        }
+      }
 
       .el-button {
         background: rgba(255, 255, 255, 0.2);
@@ -239,6 +349,40 @@ defineExpose({ show, handleClose, isVisible });
     max-height: 340px;
     font-family: "Consolas", "Monaco", monospace;
     font-size: 12px;
+  }
+
+  .resize-handle {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 14px;
+    height: 14px;
+    cursor: se-resize;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    pointer-events: auto;
+
+    .resize-icon {
+      width: 100%;
+      height: 100%;
+      background-image: linear-gradient(
+        135deg,
+        transparent 0,
+        transparent 40%,
+        rgba(148, 163, 184, 0.9) 40%,
+        rgba(148, 163, 184, 0.9) 50%,
+        transparent 50%,
+        transparent 100%
+      );
+      background-repeat: no-repeat;
+      background-position: right bottom;
+      opacity: 0.8;
+    }
+
+    &:hover .resize-icon {
+      opacity: 1;
+    }
   }
 }
 

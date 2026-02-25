@@ -1,0 +1,300 @@
+// ==================== 8-bit 主题样式 ====================
+html[data-skin="8bit"],
+html.theme-8bit {
+  $pixel-black: #000000;
+  $pixel-white: #ffffff;
+  $pixel-gray: #808080;
+  $pixel-primary: #00ff00;
+  $pixel-border: 4px solid $pixel-black;
+  $pixel-border-thin: 2px solid $pixel-black;
+
+  .message-trigger {
+    background: $pixel-white !important;
+    border: $pixel-border !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    image-rendering: pixelated;
+    transition: none !important;
+
+    &:hover {
+      background: $pixel-gray !important;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .message-icon {
+      color: $pixel-black !important;
+      filter: none !important;
+    }
+
+    .el-badge__content {
+      background: $pixel-primary !important;
+      color: $pixel-black !important;
+      border: $pixel-border-thin !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      font-weight: bold;
+    }
+  }
+
+  .message-dropdown-popper {
+    .el-dropdown-menu {
+      background: $pixel-white !important;
+      border: $pixel-border !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      overflow: hidden;
+      image-rendering: pixelated;
+    }
+  }
+
+  .message-panel {
+    background: transparent !important;
+    position: relative;
+  }
+
+  .panel-header {
+    background: $pixel-gray !important;
+    border-bottom: $pixel-border-thin !important;
+    position: relative;
+
+    .header-title {
+      color: $pixel-black !important;
+      text-shadow: none !important;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: "Press Start 2P", "Pixel CN", monospace;
+    }
+
+    .el-button {
+      color: $pixel-black !important;
+      border: $pixel-border-thin !important;
+      border-radius: 0 !important;
+      background: $pixel-white !important;
+
+      &:hover {
+        background: $pixel-gray !important;
+        color: $pixel-black !important;
+      }
+    }
+  }
+
+  .panel-body {
+    .loading-wrapper {
+      color: $pixel-black !important;
+
+      .el-icon {
+        filter: none !important;
+      }
+    }
+  }
+
+  .message-item {
+    background: $pixel-white !important;
+    border: $pixel-border-thin !important;
+    border-radius: 0 !important;
+    margin: 4px 0 !important;
+    transition: none !important;
+    image-rendering: pixelated;
+
+    &:hover {
+      background: $pixel-gray !important;
+      border-color: $pixel-black !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    &.unread {
+      background: $pixel-primary !important;
+      border: $pixel-border !important;
+
+      &:hover {
+        background: $pixel-primary !important;
+      }
+    }
+
+    .item-avatar .default-avatar {
+      background: $pixel-black !important;
+      box-shadow: none !important;
+      border: $pixel-border-thin !important;
+      border-radius: 0 !important;
+    }
+
+    .item-title {
+      color: $pixel-black !important;
+      text-shadow: none !important;
+      font-weight: bold;
+      font-family: "Press Start 2P", "Pixel CN", monospace;
+    }
+
+    .item-desc {
+      color: $pixel-black !important;
+    }
+
+    .item-time {
+      color: $pixel-gray !important;
+    }
+
+    .unread-dot {
+      background: $pixel-black !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      width: 8px;
+      height: 8px;
+    }
+  }
+
+  .panel-footer {
+    background: $pixel-gray !important;
+    border-top: $pixel-border-thin !important;
+    position: relative;
+
+    .el-button {
+      color: $pixel-black !important;
+      border: $pixel-border-thin !important;
+      border-radius: 0 !important;
+      background: $pixel-white !important;
+
+      &:hover {
+        background: $pixel-gray !important;
+        color: $pixel-black !important;
+      }
+
+      &[type="primary"] {
+        background: $pixel-primary !important;
+        color: $pixel-black !important;
+
+        &:hover {
+          background: $pixel-gray !important;
+          color: $pixel-black !important;
+          text-shadow: none !important;
+        }
+      }
+    }
+  }
+
+  .message-center-drawer {
+    .el-drawer {
+      background: $pixel-white !important;
+      border-left: $pixel-border !important;
+      box-shadow: none !important;
+      image-rendering: pixelated;
+    }
+
+    .el-drawer__header {
+      background: $pixel-gray !important;
+      border-bottom: $pixel-border-thin !important;
+    }
+
+    .drawer-title {
+      color: $pixel-black !important;
+      text-shadow: none !important;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: "Press Start 2P", "Pixel CN", monospace;
+    }
+
+    .el-tabs__item {
+      color: $pixel-black !important;
+      border: $pixel-border-thin !important;
+      border-radius: 0 !important;
+
+      &.is-active {
+        color: $pixel-black !important;
+        background: $pixel-primary !important;
+        text-shadow: none !important;
+      }
+
+      &:hover {
+        background: $pixel-gray !important;
+        color: $pixel-black !important;
+      }
+    }
+
+    .el-tabs__active-bar {
+      display: none !important;
+    }
+
+    .drawer-actions {
+      background: $pixel-gray !important;
+      border-bottom-color: $pixel-border-thin !important;
+
+      .el-button {
+        background: $pixel-white !important;
+        border: $pixel-border-thin !important;
+        border-radius: 0 !important;
+        color: $pixel-black !important;
+
+        &:hover:not(:disabled) {
+          background: $pixel-gray !important;
+          border-color: $pixel-black !important;
+          color: $pixel-black !important;
+          box-shadow: none !important;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+        }
+      }
+    }
+
+    .drawer-message-item {
+      background: $pixel-white !important;
+      border: $pixel-border-thin !important;
+      border-radius: 0 !important;
+      image-rendering: pixelated;
+
+      &:hover {
+        border-color: $pixel-black !important;
+        box-shadow: none !important;
+        background: $pixel-gray !important;
+      }
+
+      &.unread {
+        background: $pixel-primary !important;
+        border: $pixel-border !important;
+        border-left: 4px solid $pixel-black !important;
+      }
+
+      .msg-avatar .default-avatar {
+        background: $pixel-black !important;
+        box-shadow: none !important;
+        border: $pixel-border-thin !important;
+        border-radius: 0 !important;
+      }
+
+      .msg-title {
+        color: $pixel-black !important;
+        font-weight: bold;
+        font-family: "Press Start 2P", "Pixel CN", monospace;
+      }
+
+      .msg-time {
+        color: $pixel-gray !important;
+        background: $pixel-white !important;
+        border: $pixel-border-thin !important;
+        border-radius: 0 !important;
+      }
+
+      .msg-content {
+        color: $pixel-black !important;
+      }
+
+      .msg-actions .el-button {
+        color: $pixel-black !important;
+        border: $pixel-border-thin !important;
+        border-radius: 0 !important;
+        background: $pixel-white !important;
+
+        &:hover {
+          background: $pixel-gray !important;
+          color: $pixel-black !important;
+          filter: none !important;
+        }
+      }
+    }
+  }
+}
+

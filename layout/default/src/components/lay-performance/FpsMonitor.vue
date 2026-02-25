@@ -1,9 +1,14 @@
 <template>
-  <div v-if="visible && isPerformanceMonitorVisible" class="fps-monitor-container" :class="[
-    `position-${performanceMonitorPosition}`,
-    `layout-${performanceMonitorLayout || 'merged'}`,
-    `direction-${performanceMonitorDirection || 'vertical'}`
-  ]">
+  <div
+    v-if="visible && isPerformanceMonitorVisible"
+    class="fps-monitor-container"
+    :class="[
+      `position-${performanceMonitorPosition}`,
+      `layout-${performanceMonitorLayout || 'merged'}`,
+      `direction-${effectiveDirection}`,
+      `mode-${performanceMonitorMode || 'simple'}`,
+    ]"
+  >
     <!-- FPS Item -->
     <FpsItem :fps="fps" :history="history" :mode="performanceMonitorMode" />
     
@@ -40,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useThemeStore } from "../../stores/themeStore";
 import { storeToRefs } from "pinia";
 import FpsItem from './components/FpsItem.vue';
@@ -73,6 +78,27 @@ const {
   performanceMonitorLayout,
   performanceMonitorDirection
 } = storeToRefs(themeStore);
+
+/**
+ * 根据位置自动计算布局方向：
+ * - 上下位置：横向布局
+ * - 左右位置：纵向布局
+ * - 其他情况默认纵向
+ */
+const effectiveDirection = computed(() => {
+  const rawDirection = performanceMonitorDirection.value || 'vertical';
+  if (rawDirection !== 'auto') {
+    return rawDirection;
+  }
+
+  const position = performanceMonitorPosition.value || 'bottom-right';
+
+  if (position.startsWith('top') || position.startsWith('bottom')) {
+    return 'horizontal';
+  }
+
+  return 'vertical';
+});
 
 defineProps({
   visible: {
@@ -184,11 +210,34 @@ onBeforeUnmount(() => {
   position: fixed;
   z-index: 9999;
   display: flex;
-  pointer-events: none;
+  /* 允许性能监控面板响应鼠标交互 */
+  pointer-events: auto;
   transition: all 0.3s;
-  /* Default text color to ensure visibility against dark background */
+  /* 默认文字颜色，保证在暗色背景下可见 */
   color: #fff;
 }
+
+/* 极简模式：在简洁模式基础上进一步压缩尺寸，减少占用 */
+.fps-monitor-container.mode-minimal {
+  font-size: 8px;
+  line-height: 1;
+}
+
+.fps-monitor-container.mode-minimal.layout-merged {
+  padding: 0 2px;
+  /* 进一步压缩整体高度与宽度占用 */
+  min-height: 14px;
+  min-width: 40px;
+}
+
+.fps-monitor-container.mode-minimal.layout-split {
+  gap: 1px;
+}
+
+.fps-monitor-container.mode-minimal :deep(.monitor-item .item-content) {
+  padding: 0;
+}
+
 
 /* Position Styles */
 .fps-monitor-container.position-top-left { top: 10px; left: 10px; }

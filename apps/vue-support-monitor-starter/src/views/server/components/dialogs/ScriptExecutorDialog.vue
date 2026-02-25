@@ -490,7 +490,6 @@ defineExpose({
 
 <style lang="scss" scoped>
 @use "@/styles/mixins.scss" as *;
-@use "@/styles/variables.scss" as *;
 
 .script-executor {
   :deep(.el-divider__text) {

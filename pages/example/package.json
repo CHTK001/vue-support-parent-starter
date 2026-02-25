@@ -31,6 +31,11 @@
       "development": "./src/views/TechUIPage.vue",
       "import": "./src/views/TechUIPage.vue",
       "default": "./src/views/TechUIPage.vue"
+    },
+    "./rete-editor": {
+      "development": "./src/views/rete-editor/index.vue",
+      "import": "./src/views/rete-editor/index.vue",
+      "default": "./src/views/rete-editor/index.vue"
     }
   },
   "publishConfig": {

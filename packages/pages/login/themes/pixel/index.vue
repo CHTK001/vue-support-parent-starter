@@ -15,7 +15,7 @@
         <!-- 左侧插图区域 -->
         <div class="illustration-section">
           <div class="illustration-content">
-            <div class="pixel-art-container">
+            <div class="eight-bit-container">
               <div class="pixel-character">
                 <!-- 简单的像素人CSS实现 -->
                 <div class="pixel-head"></div>
@@ -114,7 +114,7 @@ defineOptions({
     position: relative;
     overflow: hidden;
     
-    .pixel-art-container {
+    .eight-bit-container {
       text-align: center;
       color: #fff;
       

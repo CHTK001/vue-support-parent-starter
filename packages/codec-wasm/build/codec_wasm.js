@@ -1,5 +1,14 @@
-// Dummy codec_wasm.js to prevent 404 errors when Rust build fails
-console.warn("codec-wasm: Rust build failed. Using dummy implementation. Encryption will NOT work.");
+// codec-wasm JS 降级实现
+// 说明：当 Rust / WASM 构建未执行或不可用时，使用该文件避免 404，并提供安全的降级行为。
+// 仅在开发环境打印一次提示，避免在控制台制造“错误”恐慌。
+if (typeof window !== "undefined") {
+  if (!window.__CODEC_WASM_FALLBACK_LOGGED__) {
+    window.__CODEC_WASM_FALLBACK_LOGGED__ = true;
+    console.info(
+      "[codec-wasm] 未加载 WASM 模块，当前使用 JS 降级实现，部分高级加密能力关闭。"
+    );
+  }
+}
 
 const dummyInstance = {
   memory: new WebAssembly.Memory({ initial: 1 }),

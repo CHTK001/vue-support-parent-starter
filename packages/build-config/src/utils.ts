@@ -10,9 +10,7 @@ import { fileURLToPath } from "node:url";
  * 从当前文件位置向上查找，直到找到包含 packages 目录的位置
  */
 const findRoot = (): string => {
-  // 当前文件目录的绝对路径 (packages/build-config/src)
   let currentDir = dirname(fileURLToPath(import.meta.url));
-  // 向上查找，直到找到包含 packages 目录的位置
   while (currentDir !== dirname(currentDir)) {
     const packagesDir = resolve(currentDir, "packages");
     if (existsSync(packagesDir)) {
@@ -20,7 +18,6 @@ const findRoot = (): string => {
     }
     currentDir = dirname(currentDir);
   }
-  // 如果找不到，回退到 process.cwd()
   return process.cwd();
 };
 
@@ -47,18 +44,12 @@ export const convertEnv = (env: string) => {
  * @param metaUrl 模块的完整`url`，如果在`build`目录外调用必传`import.meta.url`
  */
 export const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
-  // 当前文件目录的绝对路径
   const currentFileDir = dirname(fileURLToPath(metaUrl));
-  // build 目录的绝对路径
   const buildDir = resolve(currentFileDir, "build");
-  // 解析的绝对路径
   const resolvedPath = resolve(currentFileDir, dir);
-  // 检查解析的绝对路径是否在 build 目录内
   if (resolvedPath.startsWith(buildDir)) {
-    // 在 build 目录内，返回当前文件路径
     return fileURLToPath(metaUrl);
   }
-  // 不在 build 目录内，返回解析后的绝对路径
   return resolvedPath;
 };
 
@@ -75,7 +66,6 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@repo/core": resolve(root, "packages/core"),
     "@repo/pages": resolve(root, "packages/pages"),
     "@repo/utils": resolve(root, "packages/utils"),
-    "@repo/font-encryption": resolve(root, "packages/font-encryption/src"),
     "@repo/codec-wasm": resolve(root, "packages/codec-wasm"),
   };
 };
@@ -94,7 +84,6 @@ export const createAppInfo = (pkg: {
 
 /** 处理环境变量 */
 export const wrapperEnv = (envConf: any): ViteEnv => {
-  // 默认值
   const ret: ViteEnv = {
     VITE_PORT: 8848,
     VITE_PUBLIC_PATH: "",
@@ -108,7 +97,7 @@ export const wrapperEnv = (envConf: any): ViteEnv => {
   };
 
   for (const envName of Object.keys(envConf)) {
-    let realName = envConf[envName].replace(/\\n/g, "\n");
+    let realName = envConf[envName].replace(/\n/g, "\n");
     realName = realName === "true" ? true : realName === "false" ? false : realName;
 
     if (envName === "VITE_PORT") {
@@ -121,43 +110,76 @@ export const wrapperEnv = (envConf: any): ViteEnv => {
       process.env[envName] = JSON.stringify(realName);
     }
   }
-  return ret;
+
+  return ret as ViteEnv;
 };
 
-const fileListTotal: number[] = [];
-
-/** 获取指定文件夹中所有文件的总大小 */
-export const getPackageSize = (options: {
-  folder?: string;
-  callback: (size: string | number) => void;
-  format?: boolean;
-}) => {
-  const { folder = "dist", callback, format = true } = options;
-  readdir(folder, (err, files: string[]) => {
-    if (err) throw err;
-    let count = 0;
-    const checkEnd = () => {
-      if (++count == files.length) {
-        const data = format ? formatBytes(sum(fileListTotal)) : sum(fileListTotal);
-        callback(data);
+/**
+ * 读取目录大小
+ */
+export const getDirSize = (dirPath: string): Promise<number> => {
+  return new Promise((resolvePromise, rejectPromise) => {
+    readdir(dirPath, (err, files) => {
+      if (err) {
+        rejectPromise(err);
+        return;
       }
-    };
-    files.forEach((item: string) => {
-      stat(`${folder}/${item}`, async (err, stats) => {
-        if (err) throw err;
-        if (stats.isFile()) {
-          fileListTotal.push(stats.size);
-          checkEnd();
-        } else if (stats.isDirectory()) {
-          getPackageSize({
-            folder: `${folder}/${item}/`,
-            callback: checkEnd,
+
+      const tasks = files.map((file) => {
+        return new Promise<number>((resolveTask, rejectTask) => {
+          const filePath = resolve(dirPath, file);
+          stat(filePath, (error, stats) => {
+            if (error) {
+              rejectTask(error);
+              return;
+            }
+
+            if (stats.isDirectory()) {
+              getDirSize(filePath)
+                .then((size) => resolveTask(size))
+                .catch((e) => rejectTask(e));
+            } else {
+              resolveTask(stats.size);
+            }
           });
-        }
+        });
       });
+
+      Promise.all(tasks)
+        .then((sizes) => {
+          resolvePromise(sum(sizes));
+        })
+        .catch((e) => rejectPromise(e));
     });
-    if (files.length === 0) {
-      callback(0);
-    }
   });
+};
+
+/**
+ * 读取打包目录总大小
+ * @param options.folder 目录，相对项目根目录，默认 dist
+ * @param options.callback 计算完成后的回调
+ */
+export const getPackageSize = (options: { folder?: string; callback?: (size: string | number) => void }) => {
+  const { folder = "dist", callback } = options;
+  const targetDir = resolve(root, folder);
+
+  if (!existsSync(targetDir)) {
+    if (callback) {
+      callback("0KB");
+    }
+    return;
+  }
+
+  getDirSize(targetDir)
+    .then((size) => {
+      const formatted = formatBytes(size);
+      if (callback) {
+        callback(formatted);
+      }
+    })
+    .catch(() => {
+      if (callback) {
+        callback("0KB");
+      }
+    });
 };

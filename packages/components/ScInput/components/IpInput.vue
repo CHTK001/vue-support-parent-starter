@@ -517,12 +517,11 @@ function handleClear() {
 }
 
 .sc-ip-input__error {
-    color: var(--el-color-danger);
-    font-size: 12px;
-    line-height: 1;
-    padding-top: 4px;
-    margin-left: 1px;
-  }
+color: var(--el-color-danger);
+font-size: 12px;
+line-height: 1;
+padding-top: 4px;
+margin-left: 1px;
 }
 
 // 移动端适配

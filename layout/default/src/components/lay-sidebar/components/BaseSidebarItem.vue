@@ -129,33 +129,26 @@ const expandCloseIcon = computed(() => {
   };
 });
 
-const onlyOneChild = ref<MenuType>(null);
-
-function hasOneShowingChild(children: MenuType[] = [], parent: MenuType) {
+const onlyOneChild = computed<MenuType | null>(() => {
+  const children = props.item?.children || [];
   const showingChildren = children.filter((item: MenuType) => {
-    if (item.meta?.hidden) {
-      return false;
-    } else {
-      // Temp set onlyOneChild, will be overwritten if multiple
-      onlyOneChild.value = item;
-      return true;
-    }
+    return !(item.meta && item.meta.hidden);
   });
 
   if (showingChildren[0]?.meta?.showParent) {
-    return false;
+    return null;
   }
 
   if (showingChildren.length === 1) {
-    return true;
+    return showingChildren[0];
   }
 
   if (showingChildren.length === 0) {
-    onlyOneChild.value = { ...parent, path: "", noShowingChildren: true };
-    return true;
+    return { ...props.item, path: "", noShowingChildren: true };
   }
-  return false;
-}
+
+  return null;
+});
 
 function resolvePath(routePath: string) {
   const httpReg = /^http(s?):\/\//;
@@ -174,10 +167,7 @@ onMounted(() => {
 
 <template>
   <SidebarLinkItem
-    v-if="
-      hasOneShowingChild(item.children, item) &&
-      (!onlyOneChild.children || onlyOneChild.noShowingChildren)
-    "
+    v-if="onlyOneChild && (!onlyOneChild.children || onlyOneChild.noShowingChildren)"
     :to="onlyOneChild"
   >
     <el-menu-item
@@ -240,7 +230,7 @@ onMounted(() => {
     :index="resolvePath(item.path)"
     class="sidebar-sub-menu"
     :class="{ 'menu-animation': menuAnimation }"
-    :popper-offset="isNest ? [-8, 0] : undefined"
+    :popper-offset="isNest ? -8 : undefined"
     v-bind="expandCloseIcon"
   >
     <template #title>

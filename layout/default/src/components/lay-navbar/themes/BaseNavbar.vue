@@ -4,7 +4,7 @@ import CustomBreadcrumb from "../../breadcrumb/CustomBreadcrumb.vue";
 import LaySidebarTopCollapse from "../../lay-sidebar/components/SidebarTopCollapse.vue";
 import LayNavMix from "../../lay-sidebar/NavMix.vue";
 import LayTool from "../../lay-tool/index.vue";
-import { useGlobal, useDark } from "@pureadmin/utils";
+import { useGlobal } from "@pureadmin/utils";
 import { emitter } from "@repo/core";
 import { onBeforeUnmount, ref, computed } from "vue";
 
@@ -12,8 +12,6 @@ import { onBeforeUnmount, ref, computed } from "vue";
 const props = defineProps<{
   themeClass?: string;
 }>();
-
-const { isDark } = useDark();
 
 const {
   layout,
