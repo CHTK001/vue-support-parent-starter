@@ -1,0 +1,25 @@
+/**
+ * 8-bit 主题
+ * @description 8-bit 风格主题，复古游戏体验
+ */
+html[data-theme='8bit'] {
+  --el-color-primary: #ff00ff;
+  --el-border-radius-base: 0px;
+  --el-border-radius-small: 0px;
+  --el-border-radius-round: 0px;
+  --el-border-radius-circle: 0px;
+
+  /* 字体设置 - 优先使用像素字体，没有则使用等宽字体 */
+  font-family: "Press Start 2P", "Courier New", Courier, monospace;
+
+  /* 强制无圆角 */
+  * {
+    border-radius: 0 !important;
+  }
+  
+  /* 简单的像素边框效果 */
+  .el-button, .el-card, .el-input__wrapper {
+    box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.2) !important;
+    border: 2px solid #000 !important;
+  }
+}

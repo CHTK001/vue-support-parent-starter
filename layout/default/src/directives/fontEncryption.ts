@@ -1,11 +1,10 @@
 /**
  * 字体加密指令
- * @description 为元素应用字体加密，支持加密开关和复制开关
+ * @description 通过切换字体相关的 class 来应用加密字体与防复制效果
  * @author CH
  * @date 2025-12-16
  */
 import type { Directive, DirectiveBinding } from "vue";
-import { encryptText, decryptText } from "../utils/fontEncryption";
 
 /**
  * 字体加密指令值类型
@@ -13,16 +12,9 @@ import { encryptText, decryptText } from "../utils/fontEncryption";
 interface FontEncryptionValue {
   /** 是否启用加密 */
   enabled?: boolean;
-  /** 是否加密数字 */
-  encryptNumbers?: boolean;
-  /** 是否加密汉字 */
-  encryptChinese?: boolean;
   /** 是否禁用复制 */
   disableCopy?: boolean;
-  /**
-   * 是否启用 OCR 噪点（干扰 OCR）
-   * @description 默认关闭。开启后会在元素上叠加低透明噪点层，尽量不影响人眼阅读。
-   */
+  /** 是否启用 OCR 噪点（干扰 OCR） */
   ocrNoise?: boolean | { level?: "low" | "medium" | "high" };
 }
 
@@ -30,7 +22,6 @@ interface FontEncryptionValue {
  * 元素扩展属性
  */
 interface ElementWithEncryption extends HTMLElement {
-  __originalText?: string;
   __encryptionEnabled?: boolean;
   __copyHandler?: (e: ClipboardEvent) => void;
   __selectHandler?: (e: Event) => void;
@@ -39,45 +30,23 @@ interface ElementWithEncryption extends HTMLElement {
 }
 
 /**
- * 应用字体加密到元素
+ * 应用字体加密样式到元素
  */
-function applyEncryption(
-  el: ElementWithEncryption,
-  encryptNumbers: boolean,
-  encryptChinese: boolean
-): void {
-  if (!el.textContent) {
-    return;
-  }
-
-  // 保存原始文本
-  if (!el.__originalText) {
-    el.__originalText = el.textContent;
-  }
-
-  // 加密文本
-  const encryptedText = encryptText(
-    el.__originalText,
-    encryptNumbers,
-    encryptChinese
-  );
-
-  if (encryptedText !== el.__originalText) {
-    el.textContent = encryptedText;
-    el.classList.add("font-encryption-enabled");
-    el.__encryptionEnabled = true;
-  }
+function applyEncryption(el: ElementWithEncryption): void {
+  el.classList.add("font-encryption-enabled");
+  el.__encryptionEnabled = true;
 }
 
 /**
- * 恢复元素原始文本
+ * 还原元素的字体加密样式
  */
 function restoreEncryption(el: ElementWithEncryption): void {
-  if (el.__originalText && el.__encryptionEnabled) {
-    el.textContent = el.__originalText;
-    el.classList.remove("font-encryption-enabled");
-    el.__encryptionEnabled = false;
+  if (!el.__encryptionEnabled) {
+    return;
   }
+
+  el.classList.remove("font-encryption-enabled");
+  el.__encryptionEnabled = false;
 }
 
 /**
@@ -88,12 +57,11 @@ function disableCopy(el: ElementWithEncryption): void {
   el.__copyHandler = (e: ClipboardEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // 可选：显示提示
+
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) {
-      // 可以显示提示消息
-      console.log("[字体加密] 复制功能已禁用");
+      // 这里可以接入统一消息提示
+      // console.log("[字体加密] 复制功能已禁用");
     }
   };
 
@@ -203,27 +171,22 @@ function disableOcrNoise(el: ElementWithEncryption): void {
 /**
  * 字体加密指令
  */
-export const vFontEncryption: Directive<ElementWithEncryption, FontEncryptionValue | boolean> = {
-  mounted(el, binding) {
+export const vFontEncryption: Directive<
+  ElementWithEncryption,
+  FontEncryptionValue | boolean
+> = {
+  mounted(el, binding: DirectiveBinding<FontEncryptionValue | boolean>) {
     const value = binding.value;
     const config: FontEncryptionValue =
-      typeof value === "boolean"
-        ? { enabled: value }
-        : value ?? { enabled: true, encryptNumbers: true, encryptChinese: true };
+      typeof value === "boolean" ? { enabled: value } : value ?? { enabled: true };
 
-    const {
-      enabled = true,
-      encryptNumbers = true,
-      encryptChinese = true,
-      disableCopy = false,
-      ocrNoise = false,
-    } = config;
+    const { enabled = true, disableCopy: needDisableCopy = false, ocrNoise = false } = config;
 
     if (enabled) {
-      applyEncryption(el, encryptNumbers, encryptChinese);
+      applyEncryption(el);
     }
 
-    if (disableCopy) {
+    if (needDisableCopy) {
       disableCopy(el);
     }
 
@@ -232,39 +195,21 @@ export const vFontEncryption: Directive<ElementWithEncryption, FontEncryptionVal
     }
   },
 
-  updated(el, binding) {
+  updated(el, binding: DirectiveBinding<FontEncryptionValue | boolean>) {
     const value = binding.value;
     const config: FontEncryptionValue =
-      typeof value === "boolean"
-        ? { enabled: value }
-        : value ?? { enabled: true, encryptNumbers: true, encryptChinese: true };
+      typeof value === "boolean" ? { enabled: value } : value ?? { enabled: true };
 
-    const {
-      enabled = true,
-      encryptNumbers = true,
-      encryptChinese = true,
-      disableCopy = false,
-      ocrNoise = false,
-    } = config;
+    const { enabled = true, disableCopy: needDisableCopy = false, ocrNoise = false } = config;
 
     if (enabled) {
-      // 如果原始文本已改变，重新加密
-      const currentText = el.textContent || "";
-      if (el.__originalText !== currentText && !el.__encryptionEnabled) {
-        applyEncryption(el, encryptNumbers, encryptChinese);
-      } else if (el.__encryptionEnabled) {
-        // 如果已加密，检查是否需要更新
-        const shouldEncrypt = encryptNumbers || encryptChinese;
-        if (!shouldEncrypt) {
-          restoreEncryption(el);
-        }
-      }
+      applyEncryption(el);
     } else {
       restoreEncryption(el);
     }
 
     // 更新复制开关
-    if (disableCopy) {
+    if (needDisableCopy) {
       disableCopy(el);
     } else {
       enableCopy(el);
@@ -282,11 +227,9 @@ export const vFontEncryption: Directive<ElementWithEncryption, FontEncryptionVal
     restoreEncryption(el);
     enableCopy(el);
     disableOcrNoise(el);
-    
-    // 清理
-    delete el.__originalText;
+
+    // 清理标记
     delete el.__encryptionEnabled;
     delete el.__ocrNoiseEnabled;
   },
 };
-

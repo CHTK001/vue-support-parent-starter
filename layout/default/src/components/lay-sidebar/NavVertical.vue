@@ -3,22 +3,20 @@ import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultSidebar from "./themes/Default.vue";
 
-// 主题组件映射 - 默认主题静态导入，其他主题懒加载
+// 主题组件映射 - 默认主题静态导入，其他存在的主题懒加载
 const themeComponents = {
-  'default': DefaultSidebar,
-  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
-  'halloween': defineAsyncComponent(() => import("./themes/Halloween.vue")),
-  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
-  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
-  'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
-  'future-tech': defineAsyncComponent(() => import("./themes/FutureTech.vue")),
+  default: DefaultSidebar,
+  // 仅保留实际存在的未来科技主题，其余已删除的节日主题不再懒加载
+  "future-tech": defineAsyncComponent(() => import("./themes/FutureTech.vue")),
+ 
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultSidebar);
 </script>
 
 <template>
-  <component :is="CurrentComponent" :key="currentTheme" />
+  <!-- 不再使用 currentTheme 作为 key，避免仅皮肤变化时导航整体重新挂载 -->
+  <component :is="CurrentComponent" />
 </template>
 
 <style lang="scss" scoped>

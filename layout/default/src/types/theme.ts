@@ -11,8 +11,7 @@ export type ThemeKey =
   | "mid-autumn"
   | "national-day"
   | "new-year"
-  | "pixel-art"
-  | "8-bit"
+  | "8bit"
   | "future-tech"
   | "halloween";
 
@@ -64,6 +63,8 @@ export interface StorageConfig {
   showModel?: "smart" | "card" | "chrome" | "modern";
   /** 多标签缓存 */
   multiTagsCache?: boolean;
+  /** 超时自动退出 */
+  autoLogout?: boolean;
   /** 页面拉伸 */
   stretch?: boolean | number;
   /** 组件缓存 */
@@ -72,6 +73,8 @@ export interface StorageConfig {
   debugMode?: boolean;
   /** 菜单过渡动画 */
   menuTransition?: boolean;
+  /** 菜单过渡动画类型 */
+  transitionType?: string;
   /** 内容边距 */
   contentMargin?: number;
   /** 布局圆角 */
@@ -88,8 +91,41 @@ export interface StorageConfig {
   cardBody?: boolean;
   /** 卡片颜色模式 */
   cardColorMode?: "all" | "third" | "white";
+  /** 是否显示新菜单标识 */
+  showNewMenu?: boolean;
+  /** 新菜单文本 */
+  newMenuText?: string;
+  /** 新菜单高亮时长（单位：小时） */
+  newMenuTimeLimit?: number;
+  /** 新菜单动画类型 */
+  newMenuAnimation?: string;
+  /** 双栏导航展开模式 */
+  doubleNavExpandMode?: string;
+  /** 双栏导航是否默认展开全部 */
+  doubleNavAutoExpandAll?: boolean;
   /** 节日主题自动切换 */
   enableFestivalTheme?: boolean;
+  /** 是否显示头部消息中心按钮 */
+  showMessage?: boolean;
+  /** 是否显示顶部搜索按钮 */
+  showSearch?: boolean;
+  /** 是否显示顶部全屏按钮 */
+  showFullscreen?: boolean;
+  /** 是否显示顶部时间 */
+  showHeaderClock?: boolean;
+  /**
+   * 消息中心下拉弹框位置（用于 el-dropdown placement 映射）
+   * 值域与 ScSelect layout="position" 一致
+   */
+  messageDropdownPosition?:
+    | "top-left"
+    | "top-center"
+    | "top-right"
+    | "left-center"
+    | "right-center"
+    | "bottom-left"
+    | "bottom-center"
+    | "bottom-right";
   /** 消息弹窗启用 */
   messagePopupEnabled?: boolean;
   /** 消息弹窗位置 */
@@ -98,18 +134,48 @@ export interface StorageConfig {
   messagePopupDuration?: number;
   /** AI 助手主题 */
   aiChatTheme?: string;
+  /** AI 助手是否启用（优先于 ShowAiChat 配置） */
+  aiChatEnabled?: boolean;
+  /** AI 助手位置 */
+  aiChatPosition?: "bottom-right" | "bottom-left" | "bottom-center";
+  /** AI 助手 API Key（用于请求头） */
+  aiChatApiKey?: string;
   /** 显示新菜单标识 */
   forceNewMenu?: boolean;
   /** 菜单动画开关 */
   menuAnimation?: boolean;
-  /** 菜单动画类型 */
-  transitionType?: string;
   /** 主题动画开关 */
   themeAnimation?: boolean;
   /** 主题动画方向 */
   themeAnimationDirection?: string;
   /** 主题动画模式 */
   themeAnimationMode?: string;
+  /** 字体加密是否启用 */
+  fontEncryptionEnabled?: boolean;
+  /** 是否加密数字 */
+  fontEncryptionNumbers?: boolean;
+  /** 是否加密中文 */
+  fontEncryptionChinese?: boolean;
+  /** 是否全局应用字体加密 */
+  fontEncryptionGlobal?: boolean;
+  /** 是否启用 OCR 干扰噪点 */
+  fontEncryptionOcrNoise?: boolean;
   /** 性能监控开关 */
   sysFpsMonitorEnabled?: boolean;
+  /** 读屏优化模式 */
+  screenReaderMode?: boolean;
+  /** 高对比度模式 */
+  highContrastMode?: boolean;
+  /** 页面缩放比例 */
+  uiScale?: number;
+  /** DevTools 精简版总开关 */
+  devLiteTools?: boolean;
+  /** DevTools 标尺开关 */
+  devRuler?: boolean;
+  /** DevTools 网格开关 */
+  devGrid?: boolean;
+  /** DevTools 悬停检查开关 */
+  devHoverInspector?: boolean;
+  /** 开发模式下 AI 设置展示控制 */
+  showDevAiSetting?: boolean;
 }

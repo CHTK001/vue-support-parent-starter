@@ -7,7 +7,7 @@
  */
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { Delete, CheckDouble } from "@element-plus/icons-vue";
+import { Delete, Check } from "@element-plus/icons-vue";
 import { useMessageStore, useUserStoreHook } from "@repo/core";
 import { getLogger } from "@repo/utils";
 import { fetchHistoryMessages, type MessageHistoryItem } from "@repo/core/src/api/message";
@@ -296,7 +296,7 @@ const formatTime = (time: string) => {
           <el-button 
             v-if="unreadCount > 0" 
             type="primary" 
-            :icon="CheckDouble"
+            :icon="Check"
             @click="markAllAsRead"
             size="default"
           >

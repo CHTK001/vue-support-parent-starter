@@ -11,10 +11,15 @@
 
 </body>
 <script type="text/javascript">
-    var dark = window.localStorage.getItem('APP_DARK');
-    if (dark) {
-        document.documentElement.classList.add("dark")
-    }
+    // 仅当 APP_DARK 显式为开启值时才启用暗色模式，避免任意非空值导致默认深色
+    (function () {
+        var dark = window.localStorage.getItem('APP_DARK');
+        if (dark === '1' || dark === 'true' || dark === 'dark') {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
+    })();
 </script>
 <style>
     ::-webkit-scrollbar {

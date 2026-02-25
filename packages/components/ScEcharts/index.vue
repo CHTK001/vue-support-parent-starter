@@ -5,7 +5,7 @@
 <script>
 import * as echarts from "echarts";
 import T from "./echarts-theme-T";
-import { useDark } from "@vueuse/core";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 
 echarts.registerTheme("T", T);
 const unwarp = obj => obj && (obj.__v_raw || obj.valueOf() || obj);
@@ -19,7 +19,35 @@ export default {
     option: { type: Object, default: () => {} }
   },
   setup() {
-    const isDark = useDark();
+    const isDark = ref(false);
+    let observer = null;
+
+    const updateIsDark = () => {
+      if (typeof document === "undefined") {
+        isDark.value = false;
+        return;
+      }
+      isDark.value = document.documentElement.classList.contains("dark");
+    };
+
+    onMounted(() => {
+      updateIsDark();
+      if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+        observer = new MutationObserver(updateIsDark);
+        observer.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+      }
+    });
+
+    onBeforeUnmount(() => {
+      if (observer) {
+        observer.disconnect();
+        observer = null;
+      }
+    });
+
     return { isDark };
   },
   data() {

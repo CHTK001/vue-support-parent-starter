@@ -54,8 +54,22 @@ export interface SettingsState {
   doubleNavAutoExpandAll: boolean;
   // AI 助手
   aiChatTheme: string;
+  aiChatEnabled: boolean;
+  aiChatPosition: "bottom-right" | "bottom-left" | "bottom-center";
+  aiChatApiKey: string;
   // 主题管理
   enableFestivalTheme: boolean;
+  // 消息中心（Header）
+  showMessage: boolean;
+  messageDropdownPosition:
+    | "top-left"
+    | "top-center"
+    | "top-right"
+    | "left-center"
+    | "right-center"
+    | "bottom-left"
+    | "bottom-center"
+    | "bottom-right";
   // 消息弹窗
   messagePopupEnabled: boolean;
   messagePopupPosition: string;
@@ -113,15 +127,21 @@ export function useSettings() {
     doubleNavExpandMode: $storage.configure?.doubleNavExpandMode ?? "auto",
     doubleNavAutoExpandAll: $storage.configure?.doubleNavAutoExpandAll ?? true,
     aiChatTheme: $storage.configure?.aiChatTheme ?? "default",
+    aiChatEnabled: $storage.configure?.aiChatEnabled ?? getConfig().ShowAiChat ?? false,
+    aiChatPosition: $storage.configure?.aiChatPosition ?? "bottom-right",
+    aiChatApiKey: $storage.configure?.aiChatApiKey ?? "",
     enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? getConfig().EnableFestivalTheme ?? true,
+    showMessage: $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
+    messageDropdownPosition: $storage.configure?.messageDropdownPosition ?? "bottom-right",
     messagePopupEnabled: $storage.configure?.messagePopupEnabled ?? getConfig().MessagePopupEnabled ?? true,
     messagePopupPosition: $storage.configure?.messagePopupPosition ?? "top-right",
     messagePopupDuration: $storage.configure?.messagePopupDuration ?? 5,
-    fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? false,
+    // 字体加密默认开启，子项也默认开启，保证初始环境具有安全防护
+    fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? true,
     fontEncryptionNumbers: $storage.configure?.fontEncryptionNumbers ?? true,
     fontEncryptionChinese: $storage.configure?.fontEncryptionChinese ?? true,
-    fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? false,
-    fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? false,
+    fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? true,
+    fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? true,
   });
 
   // ===== 通用方法 =====
@@ -425,6 +445,19 @@ export function useSettings() {
     setMessagePopupDuration,
     // 字体加密
     setFontEncryptionEnabled,
+    setFontEncryptionNumbers,
+    setFontEncryptionChinese,
+    setFontEncryptionGlobal,
+    setFontEncryptionOcrNoise,
+    // 重置
+    resetToDefault,
+    // 工具方法
+    saveToStorage,
+    toggleHtmlClass,
+    setCssVariable,
+  };
+}
+
     setFontEncryptionNumbers,
     setFontEncryptionChinese,
     setFontEncryptionGlobal,

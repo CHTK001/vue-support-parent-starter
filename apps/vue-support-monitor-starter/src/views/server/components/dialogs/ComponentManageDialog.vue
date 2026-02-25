@@ -444,7 +444,6 @@ defineExpose({
 
 <style lang="scss" scoped>
 @use "@/styles/mixins.scss" as *;
-@use "@/styles/variables.scss" as *;
 
 .component-manage-dialog {
   :deep(.el-dialog) {

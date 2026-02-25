@@ -77,9 +77,14 @@ const layoutRadius = computed(() => {
 });
 
 const hideFooter = ref($storage?.configure.hideFooter ?? false);
-const menuTransition = ref($storage?.configure?.MenuAnimation ?? true);
-const transitionType = ref($storage?.configure?.transitionType ?? 'fade-slide');
+// 菜单过渡动画默认关闭，如需开启通过设置面板修改 menuTransition 配置
+const menuTransition = ref($storage?.configure?.menuTransition ?? false);
+const transitionType = ref($storage?.configure?.transitionType ?? "fade-slide");
 const confirmOnLeave = ref($storage?.configure?.confirmOnLeave ?? false);
+
+// Backtop 目标容器就绪标记，避免 ElementPlus target 不存在报错
+const backtopReady = ref(false);
+const backtopTargetSelector = ".content-area .sidebar-custom .el-scrollbar__wrap";
 
 // 初始化离开确认功能
 if (confirmOnLeave.value) {
@@ -88,12 +93,13 @@ if (confirmOnLeave.value) {
 
 // 使用 useLayoutEvents 统一管理所有事件，自动在组件卸载时注销
 useLayoutEvents([
-  { name: 'keepAliveChange', handler: (v: boolean) => { isKeepAlive.value = v; } },
-  { name: 'menuAnimationChange', handler: (v: boolean) => { menuTransition.value = v; } },
-  { name: 'transitionTypeChange', handler: (v: string) => { transitionType.value = v; } },
-  { name: 'hideFooterChange', handler: (v: boolean) => { hideFooter.value = v; } },
+  { name: "keepAliveChange", handler: (v: boolean) => { isKeepAlive.value = v; } },
+  // 统一使用菜单过渡动画事件，默认关闭，用户可在设置面板手动开启
+  { name: "menuTransitionChange", handler: (v: boolean) => { menuTransition.value = v; } },
+  { name: "transitionTypeChange", handler: (v: string) => { transitionType.value = v; } },
+  { name: "hideFooterChange", handler: (v: boolean) => { hideFooter.value = v; } },
   {
-    name: 'confirmOnLeaveChange',
+    name: "confirmOnLeaveChange",
     handler: (v: boolean) => {
       confirmOnLeave.value = v;
       v ? enableConfirmOnLeave() : disableConfirmOnLeave();
@@ -157,6 +163,10 @@ onMounted(() => {
       "--layoutRadius",
       layoutRadius.value + "px"
     );
+
+    // 等待 DOM 完整挂载后再检查 Backtop 目标容器是否存在
+    const target = document.querySelector(backtopTargetSelector);
+    backtopReady.value = !!target;
   });
 });
 
@@ -248,16 +258,14 @@ onBeforeUnmount(() => {
     :class="[fixedHeader ? 'app-main' : 'app-main-nofixed-header']"
     :style="getSectionStyle"
   >
-    <!-- 加载状态骨架屏 -->
-    <Transition :name="menuTransition ? transitionType : undefined" mode="out-in">
-      <RouteLoadingSkeleton 
-        v-if="isLoading" 
-        :rows="6" 
-        :show-header="true"
-        loading-text="页面加载中..."
-        :min-height="fixedHeader ? 'calc(100vh - 120px)' : '400px'"
-      />
-    </Transition>
+    <!-- 加载状态骨架屏：去掉过渡动画，避免路由切换时整块内容产生动画 -->
+    <RouteLoadingSkeleton 
+      v-if="isLoading" 
+      :rows="6" 
+      :show-header="true"
+      loading-text="页面加载中..."
+      :min-height="fixedHeader ? 'calc(100vh - 120px)' : '400px'"
+    />
 
     <!-- 错误状态 -->
     <div v-if="loadError && !isLoading" class="route-error-container">
@@ -291,9 +299,9 @@ onBeforeUnmount(() => {
               }"
             >
               <el-backtop
-                v-if="cardBody"
+                v-if="cardBody && backtopReady"
                 :title="t('buttons.pureBackTop')"
-                target=".content-area .sidebar-custom .el-scrollbar__wrap"
+                :target="backtopTargetSelector"
               />
               <el-card
                 class="layout sidebar-custom thin-scroller"
@@ -323,7 +331,14 @@ onBeforeUnmount(() => {
                 </el-scrollbar>
               </el-card>
             </div>
-            <div v-else class="grow bg-layout">
+          <div
+            v-else
+            class="grow bg-layout"
+            :style="{
+              maxWidth: getMainWidth,
+              margin: '0 auto'
+            }"
+          >
               <el-card
                 class="h-full layout sidebar-custom"
                 :class="{ 'no-card-mode': !cardBody }"
@@ -367,8 +382,8 @@ onBeforeUnmount(() => {
       </template>
     </router-view>
 
-    <!-- 页脚 -->
-    <LayFooter v-if="!hideFooter && !fixedHeader" />
+    <!-- 页脚：仅由 hideFooter 控制是否显示，与 fixedHeader 解耦 -->
+    <LayFooter v-if="!hideFooter" />
   </section>
 </template>
 
@@ -516,7 +531,6 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 0;
   background: transparent;
-  transition: opacity 0.2s ease;
 }
 
 :deep(.el-card__body) {

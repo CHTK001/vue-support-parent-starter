@@ -376,14 +376,6 @@ export default defineComponent({
     background: linear-gradient(135deg, var(--el-color-primary-light-5) 0%, var(--el-color-primary-light-3) 100%);
     color: var(--el-color-primary);
     overflow: hidden;
-  }
-  
-  &__icon-text {
-    font-weight: bold;
-    font-size: 16px;
-    color: var(--el-color-primary);
-  }
-
     flex-shrink: 0;
 
     svg {
@@ -394,6 +386,12 @@ export default defineComponent({
     &--animated {
       animation: pulse 2s infinite;
     }
+  }
+  
+  &__icon-text {
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--el-color-primary);
   }
 
   // 内容

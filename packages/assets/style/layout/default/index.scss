@@ -100,6 +100,16 @@ html.dark svg {
   }
 }
 
+/* 读屏优化模式：增强键盘焦点与可读性 */
+html.a11y-screen-reader {
+  scroll-behavior: auto;
+
+  *:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 2px;
+  }
+}
+
 /* 护眼模式 - 降低蓝光 */
 .html-eye-protection {
   filter: sepia(0.15) saturate(0.9) brightness(0.95);

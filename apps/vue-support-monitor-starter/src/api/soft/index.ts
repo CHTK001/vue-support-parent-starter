@@ -16,8 +16,6 @@ export {
   getContainerById,
   getContainerLogs,
   getContainerStats,
-  getContainerStatusStatistics as getContainerStatusStats,
-  getRunningContainers,
   startContainer,
   stopContainer,
   restartContainer,
@@ -38,10 +36,6 @@ export {
   batchDeleteRegistries,
   testRegistryConnection,
   syncRegistry,
-  syncAllRegistries,
-  batchSyncRegistries,
-  getRegistrySyncProgress,
-  getRegistryStats,
 } from "../docker/management";
 
 // 为了向后兼容，保留一个softRegistryApi对象

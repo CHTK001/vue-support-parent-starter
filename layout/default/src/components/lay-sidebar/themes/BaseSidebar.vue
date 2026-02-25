@@ -203,21 +203,9 @@ onBeforeUnmount(() => {
   }
 }
 
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
+// 移除菜单项统一进入动画，点击菜单不再触发整列侧边栏平移/淡入效果
 .menu-item-animate-wrapper {
   display: block;
-  animation: slide-in-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
-  animation-delay: calc(var(--index) * 0.04s);
 }
 
 :deep(.el-loading-mask) {

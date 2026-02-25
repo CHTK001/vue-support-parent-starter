@@ -712,8 +712,8 @@ html.dark {
 }
 
 // ==================== Pixel-Art 主题下的 lay-setting 像素风样式 ====================
-:global(html[data-skin="pixel-art"]),
-:global(html.theme-pixel-art) {
+:global(html[data-skin="8bit"]),
+:global(html.theme-8bit) {
   .modern-setting-container {
     background: var(--el-bg-color);
     border-radius: 0;

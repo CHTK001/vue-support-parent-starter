@@ -11,10 +11,7 @@ import DefaultTool from "./themes/Default.vue";
 // 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultTool,
-  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
-  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
-  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
-  'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
+  
   'future-tech': defineAsyncComponent(() => import("./themes/FutureTech.vue")),
 };
 
@@ -23,7 +20,8 @@ const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, De
 </script>
 
 <template>
-  <component :is="CurrentComponent" :key="currentTheme" />
+  <!-- 工具栏主题切换同样不再依赖 key 触发整体重建 -->
+  <component :is="CurrentComponent" />
 </template>
 
 <style lang="scss">
@@ -1000,8 +998,8 @@ $pixel-white: #ffffff;
 $pixel-gray: #808080;
 $pixel-primary: #00ff00;
 
-html[data-skin="pixel-art"],
-html.theme-pixel-art {
+html[data-skin="8bit"],
+html.theme-8bit {
   .lang-dropdown-popper .el-dropdown-menu,
   .user-dropdown-popper .el-dropdown-menu {
     background: $pixel-white !important;

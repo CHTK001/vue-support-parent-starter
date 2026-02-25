@@ -17,18 +17,29 @@ import { codeInspectorPlugin } from "code-inspector-plugin";
 import topLevelAwait from "vite-plugin-top-level-await";
 import svgLoader from "vite-svg-loader";
 import removeNoMatch from "vite-plugin-router-warn";
+import {
+  createAlias as createBuildAlias,
+} from "@repo/build-config";
 import pkg from "./package.json";
-
-const root: string = process.cwd();
 
 const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
   const currentFileDir = dirname(fileURLToPath(metaUrl));
   return resolve(currentFileDir, dir);
 };
 
-const createAlias = (metaUrl: string): Record<string, string> => ({
-  "@": pathResolve("./src", metaUrl),
-});
+// 当前应用的根目录（vite.config.ts 所在目录）
+const root = pathResolve(".", import.meta.url);
+
+const createAlias = (metaUrl: string): Record<string, string> => {
+  const buildAlias = createBuildAlias(metaUrl);
+  // monorepo 根目录（apps/vue-support-monitor-starter 的上上级目录）
+  const repoRoot = pathResolve("../..", metaUrl);
+  return {
+    ...buildAlias,
+    "@repo/core/directives": resolve(repoRoot, "packages/core/src/directives/index.ts"),
+    "@": pathResolve("./src", metaUrl),
+  };
+};
 
 const createAppInfo = (packageJson: {
   name: string;
@@ -161,11 +172,11 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
 
   if (env.VITE_USE_MOCK === "true") {
     plugins.push(
-      vitePluginFakeServer({
-        logger: false,
-        include: [pathResolve("./mock", import.meta.url)],
-        infixName: false,
-        enableProd: true,
+    vitePluginFakeServer({
+      logger: false,
+      include: [pathResolve("./mock", import.meta.url)],
+      infixName: false,
+      enableProd: true,
       })
     );
   }
@@ -190,6 +201,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       dedupe: ["vue", "vue-router", "vue-i18n"],
       // 确保正确解析 node_modules 中的包路径
       preserveSymlinks: false,
+      // 支持 package.json 的 exports 字段
+      conditions: ["import", "module", "browser", "default"],
     },
     // 服务端渲染
     server: {

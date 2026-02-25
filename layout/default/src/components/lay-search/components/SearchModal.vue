@@ -286,6 +286,7 @@ onKeyStroke("ArrowDown", handleDown);
     :show-close="false"
     :width="device === 'mobile' ? '80vw' : '40vw'"
     :before-close="handleClose"
+    :lock-scroll="false"
     :style="{
       borderRadius: '6px',
     }"
@@ -345,4 +346,18 @@ onKeyStroke("ArrowDown", handleDown);
 <style lang="scss">
 // 引入主题样式
 @use '../themes/index';
+
+// 防止搜索弹窗打开时页面宽度变化
+.pure-search-dialog {
+  // 确保 body 在弹窗打开时保持宽度不变
+  & ~ .el-overlay {
+    overflow: hidden;
+  }
+}
+
+// 当弹窗打开时，防止页面出现滚动条导致宽度变化
+body.el-popup-parent--hidden {
+  padding-right: 0 !important;
+  overflow: hidden !important;
+}
 </style>

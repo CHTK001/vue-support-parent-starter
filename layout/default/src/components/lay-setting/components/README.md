@@ -22,7 +22,7 @@ components/
 │   └── AdvancedSetting.vue
 │
 ├── themes/                  # 主题特定组件
-│   ├── pixel-art/          # Pixel Art 主题组件
+│   ├── 8bit/               # 8-bit 主题组件
 │   │   ├── OverallStyleSetting.vue
 │   │   ├── ThemeColorSetting.vue
 │   │   ├── ThemeAnimationSetting.vue
