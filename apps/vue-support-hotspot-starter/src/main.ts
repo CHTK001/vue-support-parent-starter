@@ -1,21 +1,3 @@
-// 在应用启动早期检测并设置深色主题与皮肤，避免FOUC问题
-(function () {
-  try {
-    // 从localStorage中读取布局配置
-    const layoutConfig = JSON.parse(localStorage.getItem("layout") || "{}");
-    // 深色模式
-    if (layoutConfig.darkMode) {
-      document.documentElement.classList.add("dark");
-    }
-    // 主题皮肤（default/flat/enhanced）
-    if (layoutConfig.themeSkin) {
-      document.documentElement.setAttribute("data-theme-skin", layoutConfig.themeSkin);
-    }
-  } catch (e) {
-    console.warn("Failed to set theme from localStorage:", e);
-  }
-})();
-
 import App from "./App.vue";
 import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
 import { router, setupStore } from "@repo/core";
@@ -37,10 +19,12 @@ import "@repo/assets/iconfont/iconfont.css";
 import "@repo/assets/style/layout/default/index.scss";
 import "@repo/assets/style/modern-page.scss";
 // 自定义指令
-//@ts-ignore
-import * as directives from "@repo/core/directives";
+// @ts-ignore
+import * as directives from "@repo/core";
 // 字体加密指令
 import { vFontEncryption } from "@layout/default";
+// 字体加密：随机注册两个加密字体（对外名称保持固定且普通）
+import { registerEncryptedFonts } from "@repo/font-encryption";
 // 全局注册@iconify/vue图标库
 import { FontIcon, IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 // 全局注册按钮级别权限组件
@@ -57,6 +41,8 @@ import VueTippy from "vue-tippy";
 import { initializeWasmModule } from "@repo/codec-wasm";
 
 async function bootstrapApp() {
+  await registerEncryptedFonts();
+
   const app = createApp(App);
   Object.keys(directives).forEach(key => {
     app.directive(key, (directives as { [key: string]: Directive })[key]);

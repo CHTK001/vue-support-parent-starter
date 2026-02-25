@@ -2,8 +2,8 @@
 // 将主题样式拆分到独立文件，提高可维护性
 
 @use './default';
-@use './spring-festival';
 @use './halloween';
 @use './mid-autumn';
 @use './christmas';
 @use './future-tech';
+@use './8bit' as bit;

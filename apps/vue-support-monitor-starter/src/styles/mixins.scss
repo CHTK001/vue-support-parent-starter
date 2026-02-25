@@ -7,6 +7,7 @@
  */
 
 @use './variables.scss' as *;
+@forward './variables.scss';
 
 // ========== 布局 Mixins ==========
 
@@ -87,6 +88,18 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+// 毛玻璃效果
+@mixin glass-effect($opacity: 0.85, $blur: 20px) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur($blur) saturate(180%);
+  -webkit-backdrop-filter: blur($blur) saturate(180%);
+}
+
+// 渐变背景
+@mixin gradient-bg {
+  background: $gradient-bg-1, $gradient-bg-2;
 }
 
 // ========== 卡片 Mixins ==========
@@ -417,6 +430,54 @@
 }
 
 // ========== 工具 Mixins ==========
+
+// 按钮涟漪效果
+@mixin button-ripple {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width $duration-normal ease, height $duration-normal ease;
+  }
+
+  &:hover::before {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+// 滚动条样式
+@mixin custom-scrollbar($width: 8px) {
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    transition: background $duration-fast ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
 
 /**
  * 清除浮动

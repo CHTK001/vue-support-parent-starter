@@ -35,6 +35,37 @@ const messageEnabled = ref(
   $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true
 );
 
+type MessageDropdownPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "left-center"
+  | "right-center"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
+// 消息中心下拉弹框位置（与 ScSelect layout="position" 一致）
+// 默认顶部靠右，便于与通知区域保持一致
+const messageDropdownPosition = ref<MessageDropdownPosition>(
+  ($storage.configure?.messageDropdownPosition as MessageDropdownPosition) ??
+    "top-right",
+);
+
+const dropdownPlacement = computed(() => {
+  const map: Record<MessageDropdownPosition, string> = {
+    "top-left": "top-start",
+    "top-center": "top",
+    "top-right": "top-end",
+    "left-center": "left",
+    "right-center": "right",
+    "bottom-left": "bottom-start",
+    "bottom-center": "bottom",
+    "bottom-right": "bottom-end",
+  };
+  return map[messageDropdownPosition.value] || "bottom-end";
+});
+
 /**
  * 消息项接�?
  */
@@ -111,6 +142,13 @@ const showMessageChangeHandler = (val: boolean) => {
   } else {
     messages.value = [];
   }
+};
+
+/**
+ * messageDropdownPosition 变化监听处理函数
+ */
+const messageDropdownPositionChangeHandler = (val: MessageDropdownPosition) => {
+  messageDropdownPosition.value = val;
 };
 
 /**
@@ -277,12 +315,37 @@ const handleMessageClick = (msg: MessageItem) => {
 };
 
 // 组件挂载时初始化
+/**
+ * 开发模式下的本地默认消息推送
+ * 通过事件总线触发，避免依赖真实后端
+ */
+const handleDevMessagePush = (payload?: any) => {
+  const now = new Date();
+  const data =
+    payload || {
+      id: now.getTime(),
+      title: "开发环境默认测试消息",
+      content: "这是通过设置面板发送的默认测试消息，用于验证消息中心展示和弹窗配置。",
+      type: "dev",
+      level: "info",
+      time: now.toLocaleString(),
+    };
+  handleSocketMessage(data);
+};
+
 onMounted(() => {
   // 获取消息列表
   fetchMessages();
 
   // 监听消息开关变�?
   emitter.on("showMessageChange", showMessageChangeHandler);
+  emitter.on(
+    "messageDropdownPositionChange",
+    messageDropdownPositionChangeHandler,
+  );
+
+  // 开发模式下的本地默认消息推送
+  emitter.on("devMessagePush", handleDevMessagePush);
 
   // 监听Socket消息推�?
   const socket = configStore.getSocket();
@@ -304,15 +367,20 @@ onUnmounted(() => {
   }
   // 清理事件监听
   emitter.off("showMessageChange", showMessageChangeHandler);
+  emitter.off(
+    "messageDropdownPositionChange",
+    messageDropdownPositionChangeHandler,
+  );
+  emitter.off("devMessagePush", handleDevMessagePush);
 });
 </script>
 
 <template>
-  <div>
+  <div v-show="messageEnabled">
     <el-dropdown
       ref="dropdownRef"
       trigger="click"
-      placement="bottom-end"
+      :placement="dropdownPlacement"
       popper-class="message-dropdown-popper"
     >
       <div class="message-trigger flex-c cursor-pointer navbar-bg-hover">

@@ -79,6 +79,7 @@
     "eslint-plugin-vue": "catalog:",
     "gradient-string": "catalog:",
     "husky": "catalog:",
+    "less": "^4.5.1",
     "lint-staged": "catalog:",
     "postcss": "catalog:",
     "postcss-html": "catalog:",

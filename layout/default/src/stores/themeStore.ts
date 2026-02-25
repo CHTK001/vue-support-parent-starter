@@ -17,9 +17,20 @@ const log = isDev ? console.log.bind(console, "[ThemeStore]") : () => {};
 export const useThemeStore = defineStore("theme", () => {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
 
+  /**
+   * 主题 key 归一化（兼容旧值）
+   * @param themeKey 原始主题 key
+   * @returns 归一化后的主题 key
+   */
+  function normalizeThemeKey(themeKey?: string | null): ThemeKey {
+    if (!themeKey) return "default";
+    if (themeKey === "pixel-art" || themeKey === "8-bit") return "8bit";
+    return themeKey as ThemeKey;
+  }
+
   // ===== 状态 =====
   const currentTheme = ref<ThemeKey>(
-    ($storage?.configure?.systemTheme as ThemeKey) || "default"
+    normalizeThemeKey($storage?.configure?.systemTheme)
   );
 
   // FPS Monitor State
@@ -68,16 +79,15 @@ export const useThemeStore = defineStore("theme", () => {
   // Monitor Position State
   const STORAGE_KEY_MONITOR_POS = "sys-performance-monitor-position";
   const storedMonitorPos = localStorage.getItem(STORAGE_KEY_MONITOR_POS);
-  // Default to bottom-right as per original implementation, but configurable
-  // User asked for "currently default top-left", but code was bottom-right.
-  // We'll set default to bottom-right to match existing behavior unless config overrides.
-  const defaultMonitorPos = getConfig("PerformanceMonitorPosition") ?? "bottom-right";
+  // 默认显示在左上角，便于快速观察性能
+  const defaultMonitorPos = getConfig("PerformanceMonitorPosition") ?? "top-left";
   const performanceMonitorPosition = ref(storedMonitorPos || defaultMonitorPos);
 
   // Monitor Display Mode (Simple/Text vs Detailed/Graph)
-  const STORAGE_KEY_MONITOR_MODE = "sys-performance-monitor-mode"; // 'simple' | 'detailed'
+  const STORAGE_KEY_MONITOR_MODE = "sys-performance-monitor-mode"; // 'simple' | 'detailed' | 'minimal'
   const storedMonitorMode = localStorage.getItem(STORAGE_KEY_MONITOR_MODE);
-  const defaultMonitorMode = getConfig("PerformanceMonitorMode") ?? "detailed";
+  // 默认使用极简模式，减少视觉干扰
+  const defaultMonitorMode = getConfig("PerformanceMonitorMode") ?? "minimal";
   const performanceMonitorMode = ref(storedMonitorMode || defaultMonitorMode);
 
   // Monitor Layout (Merged/Card vs Split/Pills)
@@ -88,10 +98,11 @@ export const useThemeStore = defineStore("theme", () => {
   const defaultMonitorLayout = getConfig("PerformanceMonitorLayout") ?? "merged";
   const performanceMonitorLayout = ref(storedMonitorLayout && !storedMonitorLayout.startsWith('split-') ? storedMonitorLayout : 'merged');
 
-  // Monitor Direction (Vertical vs Horizontal)
-  const STORAGE_KEY_MONITOR_DIRECTION = "sys-performance-monitor-direction"; // 'vertical' | 'horizontal'
+  // Monitor Direction (Vertical / Horizontal / Auto)
+  const STORAGE_KEY_MONITOR_DIRECTION = "sys-performance-monitor-direction"; // 'vertical' | 'horizontal' | 'auto'
   const storedMonitorDirection = localStorage.getItem(STORAGE_KEY_MONITOR_DIRECTION);
-  const defaultMonitorDirection = "vertical";
+  // 默认使用 auto，由组件根据位置自动计算方向
+  const defaultMonitorDirection = "auto";
   const performanceMonitorDirection = ref(storedMonitorDirection || defaultMonitorDirection);
 
   // Home Customization Config
@@ -132,27 +143,28 @@ export const useThemeStore = defineStore("theme", () => {
    * 设置主题
    */
   function setTheme(themeKey: ThemeKey): void {
-    if (currentTheme.value === themeKey) return;
+    const normalizedThemeKey = normalizeThemeKey(themeKey);
+    if (currentTheme.value === normalizedThemeKey) return;
 
-    log("主题切换:", currentTheme.value, "->", themeKey);
-    currentTheme.value = themeKey;
+    log("主题切换:", currentTheme.value, "->", normalizedThemeKey);
+    currentTheme.value = normalizedThemeKey;
 
     // 更新 DOM 属性
-    document.documentElement.setAttribute("data-skin", themeKey);
+    document.documentElement.setAttribute("data-skin", normalizedThemeKey);
 
     // 更新主题类
-    updateThemeClass(themeKey);
+    updateThemeClass(normalizedThemeKey);
 
     // 加载主题样式表
-    loadThemeStylesheet(themeKey);
+    loadThemeStylesheet(normalizedThemeKey);
 
     // 持久化到 storage
     if ($storage?.configure) {
-      $storage.configure.systemTheme = themeKey;
+      $storage.configure.systemTheme = normalizedThemeKey;
     }
 
     // 发送主题变更事件
-    emitter.emit("systemThemeChange", themeKey);
+    emitter.emit("systemThemeChange", normalizedThemeKey);
   }
 
   /**
@@ -256,8 +268,9 @@ export const useThemeStore = defineStore("theme", () => {
 
     // 初始化时同步 DOM 状态
     const domTheme = document.documentElement.getAttribute("data-skin");
-    if (domTheme && domTheme !== currentTheme.value) {
-      currentTheme.value = domTheme as ThemeKey;
+    const normalizedDomTheme = normalizeThemeKey(domTheme);
+    if (normalizedDomTheme && normalizedDomTheme !== currentTheme.value) {
+      currentTheme.value = normalizedDomTheme;
     }
   }
 
@@ -265,9 +278,10 @@ export const useThemeStore = defineStore("theme", () => {
    * 处理外部主题变更（避免循环触发）
    */
   function handleExternalThemeChange(themeKey: string): void {
-    if (currentTheme.value !== themeKey) {
-      log("收到外部主题变更:", themeKey);
-      currentTheme.value = themeKey as ThemeKey;
+    const normalizedThemeKey = normalizeThemeKey(themeKey);
+    if (currentTheme.value !== normalizedThemeKey) {
+      log("收到外部主题变更:", normalizedThemeKey);
+      currentTheme.value = normalizedThemeKey;
     }
   }
 

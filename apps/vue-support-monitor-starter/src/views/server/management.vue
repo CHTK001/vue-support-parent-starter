@@ -9,6 +9,7 @@ import ServerManagement from "./modules/server-management/management.vue";
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/mixins.scss" as *;
 @use "@/styles/variables.scss" as *;
 
 .modern-bg {

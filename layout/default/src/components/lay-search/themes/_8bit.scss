@@ -1,0 +1,221 @@
+// ==================== 8-bit 主题样式 ====================
+html[data-skin="8bit"] {
+  $bit-primary: #00ff00;
+  $bit-secondary: #ff00ff;
+  $bit-bg: #000000;
+  $bit-border: #ffffff;
+  $bit-border-hover: #00ff00;
+
+  // 设置字体变量
+  --font-family: "Press Start 2P", "Courier New", Courier, monospace;
+
+  // 搜索触发按钮
+  .search-container {
+    background: $bit-bg !important;
+    border: 2px solid $bit-border !important;
+    box-shadow: 
+      4px 4px 0px 0px rgba(255, 255, 255, 0.3),
+      inset 0 0 0 1px rgba(0, 255, 0, 0.2) !important;
+    transition: all 0.1s ease !important;
+    font-family: var(--font-family) !important;
+
+    &:hover {
+      background: rgba(0, 255, 0, 0.1) !important;
+      border-color: $bit-border-hover !important;
+      box-shadow: 
+        6px 6px 0px 0px rgba(0, 255, 0, 0.5),
+        inset 0 0 0 1px rgba(0, 255, 0, 0.3) !important;
+      transform: translate(-2px, -2px);
+
+      svg {
+        color: $bit-primary !important;
+        filter: drop-shadow(0 0 4px rgba(0, 255, 0, 0.8));
+      }
+    }
+
+    svg {
+      color: $bit-border !important;
+      filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6));
+    }
+  }
+
+  // 搜索弹窗
+  .pure-search-dialog {
+    .el-dialog {
+      background: $bit-bg !important;
+      border: 3px solid $bit-border !important;
+      box-shadow:
+        8px 8px 0px 0px rgba(255, 255, 255, 0.3),
+        inset 0 0 0 2px rgba(0, 255, 0, 0.2) !important;
+      position: relative;
+      overflow: hidden;
+      font-family: var(--font-family) !important;
+
+      // 像素网格背景
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          linear-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px);
+        background-size: 8px 8px;
+        opacity: 0.3;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      // 顶部像素条
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: repeating-linear-gradient(
+          90deg,
+          $bit-primary 0px,
+          $bit-primary 4px,
+          $bit-secondary 4px,
+          $bit-secondary 8px
+        );
+        z-index: 1;
+      }
+    }
+
+    .el-dialog__footer {
+      border-top: 2px solid $bit-border !important;
+      background: rgba(0, 255, 0, 0.05) !important;
+    }
+
+    // 搜索输入框
+    .el-input {
+      .el-input__wrapper {
+        background: rgba(0, 0, 0, 0.8) !important;
+        border: 2px solid $bit-border !important;
+        box-shadow: 
+          2px 2px 0px 0px rgba(255, 255, 255, 0.3),
+          inset 0 0 0 1px rgba(0, 255, 0, 0.2) !important;
+        font-family: var(--font-family) !important;
+
+        &:hover,
+        &.is-focus {
+          border-color: $bit-primary !important;
+          box-shadow: 
+            4px 4px 0px 0px rgba(0, 255, 0, 0.5),
+            inset 0 0 0 1px rgba(0, 255, 0, 0.4) !important;
+        }
+      }
+
+      .el-input__inner {
+        color: $bit-primary !important;
+        font-family: var(--font-family) !important;
+        text-shadow: 0 0 4px rgba(0, 255, 0, 0.6);
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.5) !important;
+          font-family: var(--font-family) !important;
+        }
+      }
+
+      .el-input__prefix {
+        color: $bit-primary !important;
+        filter: drop-shadow(0 0 2px rgba(0, 255, 0, 0.8));
+      }
+
+      .el-input__clear {
+        color: $bit-secondary !important;
+        filter: drop-shadow(0 0 2px rgba(255, 0, 255, 0.8));
+      }
+    }
+  }
+
+  // 搜索结果
+  .result {
+    &-item {
+      background: rgba(0, 0, 0, 0.8) !important;
+      border: 2px solid $bit-border !important;
+      box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 0.2) !important;
+      transition: all 0.1s ease !important;
+      font-family: var(--font-family) !important;
+
+      &:hover {
+        border-color: $bit-primary !important;
+        box-shadow: 4px 4px 0px 0px rgba(0, 255, 0, 0.5) !important;
+        transform: translate(-2px, -2px);
+        background: rgba(0, 255, 0, 0.1) !important;
+      }
+
+      svg {
+        color: $bit-primary !important;
+        filter: drop-shadow(0 0 4px rgba(0, 255, 0, 0.8));
+      }
+
+      &-title {
+        color: $bit-primary !important;
+        font-family: var(--font-family) !important;
+        text-shadow: 0 0 4px rgba(0, 255, 0, 0.6);
+      }
+    }
+  }
+
+  // 历史记录
+  .history {
+    &-item {
+      background: rgba(0, 0, 0, 0.8) !important;
+      border: 2px solid $bit-border !important;
+      box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 0.2) !important;
+      transition: all 0.1s ease !important;
+      font-family: var(--font-family) !important;
+
+      &:hover {
+        border-color: $bit-primary !important;
+        box-shadow: 4px 4px 0px 0px rgba(0, 255, 0, 0.5) !important;
+        transform: translate(-2px, -2px);
+        background: rgba(0, 255, 0, 0.1) !important;
+      }
+
+      svg {
+        color: $bit-primary !important;
+        filter: drop-shadow(0 0 4px rgba(0, 255, 0, 0.8));
+      }
+
+      &-title {
+        color: $bit-border !important;
+        font-family: var(--font-family) !important;
+      }
+    }
+  }
+
+  // 搜索底部
+  .search-footer {
+    color: $bit-primary !important;
+    font-family: var(--font-family) !important;
+
+    &-item {
+      color: $bit-primary !important;
+      font-family: var(--font-family) !important;
+    }
+
+    .icon {
+      background: rgba(0, 255, 0, 0.1) !important;
+      border: 2px solid $bit-border !important;
+      box-shadow:
+        inset 0 -2px rgba(0, 255, 0, 0.3),
+        2px 2px 0px 0px rgba(255, 255, 255, 0.2) !important;
+      color: $bit-primary !important;
+      font-family: var(--font-family) !important;
+    }
+
+    &-total {
+      color: $bit-secondary !important;
+      font-family: var(--font-family) !important;
+      text-shadow: 0 0 4px rgba(255, 0, 255, 0.6);
+    }
+  }
+}
+

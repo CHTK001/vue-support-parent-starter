@@ -464,14 +464,14 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
       }
 
-      // 菜单动画
-      &.menu-animation {
-        &.is-active {
-          .menu-icon-only {
-            animation: menu-bounce 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-        }
-      }
+// 关闭点击后触发的菜单缩放动画，避免左侧整体有“弹跳”感
+&.menu-animation {
+  &.is-active {
+    .menu-icon-only {
+      animation: none;
+    }
+  }
+}
     }
   }
 }
@@ -482,7 +482,8 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     min-width: 200px;
     background-color: var(--el-bg-color-page);
     border-right: 1px solid var(--el-border-color-lighter);
-    transition: all 0.3s ease;
+    // 去除宽度/位移过渡，点击菜单或切换折叠状态不再有整体动画
+    transition: none !important;
 
   // 折叠状态
   &.collapsed {

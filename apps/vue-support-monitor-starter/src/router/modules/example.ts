@@ -17,29 +17,10 @@ export default [
         meta: {
           title: "测试例子",
           icon: "ep:files",
-          permanentNew: true
+          permanentNew: true,
         },
       },
-      {
-        path: "/example/techui",
-        name: "ExampleTechUI",
-        component: () => import("@pages/example/src/views/TechUIPage.vue"),
-        meta: {
-          title: "TechUI 科幻组件",
-          icon: "ri:rocket-2-line",
-          showLink: true,
-          permanentNew: true
-        },
-      },
-      {
-        path: "/example/rete-editor",
-        name: "ExampleReteEditor",
-        component: () => import("@/views/example/rete-editor/index.vue"),
-        meta: {
-          title: "ScReteEditor 编辑器",
-          icon: "ri:node-tree",
-        },
-      },
+   
     ],
   },
 ];

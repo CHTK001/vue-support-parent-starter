@@ -6,11 +6,6 @@ import DefaultMix from "./themes/mix/Default.vue";
 // 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultMix,
-  'spring-festival': defineAsyncComponent(() => import("./themes/mix/SpringFestival.vue")),
-  'halloween': defineAsyncComponent(() => import("./themes/mix/Halloween.vue")),
-  'mid-autumn': defineAsyncComponent(() => import("./themes/mix/MidAutumn.vue")),
-  'christmas': defineAsyncComponent(() => import("./themes/mix/Christmas.vue")),
-  'new-year': defineAsyncComponent(() => import("./themes/mix/NewYear.vue")),
   'future-tech': defineAsyncComponent(() => import("./themes/mix/FutureTech.vue")),
 };
 
@@ -18,5 +13,6 @@ const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, De
 </script>
 
 <template>
-  <component :is="CurrentComponent" :key="currentTheme" />
+  <!-- 去掉 key，避免 mix 导航在仅主题皮肤变化时整体刷新 -->
+  <component :is="CurrentComponent" />
 </template>

@@ -2,7 +2,18 @@
   "name": "@repo/components",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "development": "./index.ts",
+      "import": "./index.ts",
+      "require": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./*": "./*"
+  },
   "private": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

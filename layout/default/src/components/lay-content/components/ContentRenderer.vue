@@ -2,10 +2,9 @@
 /**
  * 内容渲染组件
  * 封装 keep-alive + component 的公共逻辑，避免重复代码
- * @author Auto-refactored
- * @version 1.0.0
+ * 页面级切换不再使用过渡动画，避免点击菜单时整块内容区域产生动画
  */
-import { computed, h, Transition, defineComponent } from "vue";
+import { computed, defineComponent } from "vue";
 
 const props = defineProps<{
   /** 要渲染的组件 */
@@ -30,7 +29,7 @@ const props = defineProps<{
   extraClass?: string;
 }>();
 
-// 过渡动画组件
+// 包装组件：当前不再对内容区域做过渡动画，始终直接渲染插槽内容
 const TransitionWrapper = defineComponent({
   props: {
     route: {
@@ -43,36 +42,11 @@ const TransitionWrapper = defineComponent({
     },
     transitionType: {
       type: String,
-      default: 'fade-slide',
+      default: "fade-slide",
     },
   },
-  setup(props, { slots }) {
-    const getTransitionName = computed(() => {
-      if (!props.menuTransition) return undefined;
-      // 路由级别的动画配置优先
-      const routeTransition = props.route?.meta?.transition;
-      if (routeTransition) return routeTransition;
-      // 使用全局配置的动画类型
-      return props.transitionType;
-    });
-
-    return () => {
-      const content = slots.default?.();
-      
-      if (!props.menuTransition) {
-        return content;
-      }
-      
-      return h(
-        Transition,
-        {
-          name: getTransitionName.value,
-          mode: "out-in",
-          appear: true,
-        },
-        () => content
-      );
-    };
+  setup(_, { slots }) {
+    return () => slots.default?.();
   },
 });
 

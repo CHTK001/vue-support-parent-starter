@@ -20,23 +20,6 @@ export { default as InterfaceDisplaySetting } from "./base/InterfaceDisplaySetti
 export { default as MenuSetting } from "./base/MenuSetting.vue";
 export { default as AdvancedSetting } from "./base/AdvancedSetting.vue";
 
-// 主题特定组件（Pixel Art）
-export { default as PixelArtOverallStyleSetting } from "./themes/pixel-art/OverallStyleSetting.vue";
-export { default as PixelArtThemeColorSetting } from "./themes/pixel-art/ThemeColorSetting.vue";
-export { default as PixelArtThemeAnimationSetting } from "./themes/pixel-art/ThemeAnimationSetting.vue";
-export { default as PixelArtThemeSkinSetting } from "./themes/pixel-art/ThemeSkinSetting.vue";
-export { default as PixelArtAiChatSkinSetting } from "./themes/pixel-art/AiChatSkinSetting.vue";
-export { default as PixelArtAiChatFunctionSetting } from "./themes/pixel-art/AiChatFunctionSetting.vue";
-export { default as PixelArtLayoutModeSetting } from "./themes/pixel-art/LayoutModeSetting.vue";
-export { default as PixelArtMobileNavSetting } from "./themes/pixel-art/MobileNavSetting.vue";
-export { default as PixelArtDoubleNavSetting } from "./themes/pixel-art/DoubleNavSetting.vue";
-export { default as PixelArtPageStretchSetting } from "./themes/pixel-art/PageStretchSetting.vue";
-export { default as PixelArtLayoutParamsSetting } from "./themes/pixel-art/LayoutParamsSetting.vue";
-export { default as PixelArtTagsStyleSetting } from "./themes/pixel-art/TagsStyleSetting.vue";
-export { default as PixelArtInterfaceDisplaySetting } from "./themes/pixel-art/InterfaceDisplaySetting.vue";
-export { default as PixelArtMenuSetting } from "./themes/pixel-art/MenuSetting.vue";
-export { default as PixelArtAdvancedSetting } from "./themes/pixel-art/AdvancedSetting.vue";
-
 /**
  * 组件映射类型
  */
@@ -66,7 +49,7 @@ export interface ComponentMap {
 export function getThemeComponents(theme: string): ComponentMap {
   // 主题组件映射表
   const themeMap: Record<string, string> = {
-    "pixel-art": "pixel-art",
+    "8bit": "8bit",
     "spring-festival": "spring-festival",
     "halloween": "halloween",
     "mid-autumn": "mid-autumn",

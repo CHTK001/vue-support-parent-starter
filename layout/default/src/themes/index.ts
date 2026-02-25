@@ -40,10 +40,10 @@ export const layoutThemes: LayoutTheme[] = [
   },
   // === 内测主题 ===
   {
-    name: "像素风",
-    key: "pixel-art",
-    description: "像素风格主题，复古游戏体验",
-    stylesheet: "pixel-art.scss",
+    name: "8-bit",
+    key: "8bit",
+    description: "8-bit 风格主题，复古游戏体验",
+    stylesheet: "8bit.scss",
     icon: "ri:gamepad-line",
     type: "beta",
     color: "#ff00ff",
@@ -58,57 +58,6 @@ export const layoutThemes: LayoutTheme[] = [
     type: "beta",
     color: "#00ffff",
     baseStyle: "dark",
-  },
-  // === 节日主题 ===
-  {
-    name: "万圣节",
-    key: "halloween",
-    description: "深度定制万圣节主题，包含南瓜、幽灵、蜘蛛网等节日元素",
-    stylesheet: "halloween.scss",
-    icon: "noto:jack-o-lantern",
-    type: "festival",
-    color: "#ff7518",
-    baseStyle: "dark",
-  },
-  {
-    name: "春节",
-    key: "spring-festival",
-    description: "春节主题皮肤，喜庆祥和",
-    stylesheet: "spring-festival.scss",
-    icon: "noto:firecracker",
-    type: "festival",
-    color: "#f5222d",
-    baseStyle: "light",
-  },
-  {
-    name: "圣诞",
-    key: "christmas",
-    description: "圣诞主题皮肤，温馨浪漫",
-    stylesheet: "christmas.scss",
-    icon: "noto:christmas-tree",
-    type: "festival",
-    color: "#722ed1",
-    baseStyle: "light",
-  },
-  {
-    name: "中秋",
-    key: "mid-autumn",
-    description: "中秋主题皮肤，月圆人团圆",
-    stylesheet: "mid-autumn.scss",
-    icon: "noto:full-moon",
-    type: "festival",
-    color: "#13c2c2",
-    baseStyle: "light",
-  },
-  {
-    name: "元旦",
-    key: "new-year",
-    description: "元旦主题皮肤，新年新气象",
-    stylesheet: "new-year.css",
-    icon: "noto:party-popper",
-    type: "festival",
-    color: "#faad14",
-    baseStyle: "light",
   },
 ];
 
@@ -125,39 +74,6 @@ export const getTheme = (themeKey: ThemeKey): LayoutTheme | undefined => {
  */
 export const getAvailableThemes = (): LayoutTheme[] => {
   return layoutThemes;
-};
-
-/**
- * 检测当前日期是否匹配某个节日主题
- * @returns 匹配的节日主题key，如果没有匹配则返回undefined
- */
-export const detectFestivalTheme = (): ThemeKey | undefined => {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const date = now.getDate();
-
-  // 万圣节 (10.25 - 11.5)
-  if ((month === 10 && date >= 25) || (month === 11 && date <= 5)) {
-    return "halloween";
-  }
-
-  // 圣诞节 (12.20 - 12.31)
-  if (month === 12 && date >= 20) {
-    return "christmas";
-  }
-
-  // 元旦 (1.1 - 1.5)
-  if (month === 1 && date <= 5) {
-    return "new-year";
-  }
-
-  // 春节 (此处仅为示例，实际春节日期不固定，通常需要农历转换库)
-  // 假设 2.1 - 2.15
-  if (month === 2 && date <= 15) {
-    return "spring-festival";
-  }
-
-  return undefined;
 };
 
 /**

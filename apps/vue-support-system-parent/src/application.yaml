@@ -243,9 +243,17 @@ wasmEnable: true
 # ===========================================
 # PageBehavior:
 #   enable: true               # 是否启用页面行为管理
-#   rememberScroll: true      # 记住滚动位置
+#   rememberScroll: true       # 记住滚动位置
 #   autoRefreshInterval: 0     # 自动刷新间隔（秒），0表示不刷新
 #   confirmOnLeave: true      # 离开页面确认
+#   showHeaderClock: false     # 顶部是否显示时间（适合大屏/全屏展示时开启）
+#   uiScale: 1.0               # 页面缩放比例（0.8 - 1.5，1 为默认）
+#   screenReaderMode: false    # 读屏优化模式（增强焦点高亮与文本可读性）
+#   highContrastMode: false    # 高对比度模式（独立于深色模式）
+#   devLiteTools: false        # DevTools 精简版总开关（仅开发环境生效）
+#   devRuler: false            # 显示标尺（顶部/侧边距离辅助线）
+#   devGrid: false             # 显示布局网格（用于对齐排版调试）
+#   devHoverInspector: false   # 悬停显示元素信息（标签、类名、尺寸）
 
 # ===========================================
 # 性能配置（默认启用）

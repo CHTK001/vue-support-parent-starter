@@ -1,0 +1,66 @@
+/**
+ * 公共样式 Mixins（热点应用）
+ * 复用监控应用中的通用布局、文本与卡片样式，保持视觉一致性
+ */
+
+@use "./variables.scss" as *;
+@forward "./variables.scss";
+
+// 基础 Flex 布局
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-align-center {
+  display: flex;
+  align-items: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+// 文本相关
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-ellipsis-multiline($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// 卡片常用样式
+@mixin card-base {
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  border: 1px solid $border-light;
+  transition: all $duration-normal $ease-standard;
+}
+
+@mixin card-hover {
+  &:hover {
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+  }
+}
+
+@mixin card-style {
+  @include card-base;
+  @include card-hover;
+}

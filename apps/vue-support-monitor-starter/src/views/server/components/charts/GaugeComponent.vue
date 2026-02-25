@@ -365,7 +365,6 @@ watch(() => data.value, () => {
 
 <style lang="scss" scoped>
 @use "@/styles/mixins.scss" as *;
-@use "@/styles/variables.scss" as *;
 
 .modern-bg {
   position: relative;

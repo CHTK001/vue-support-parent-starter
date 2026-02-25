@@ -101,7 +101,7 @@
     <!-- 位置选择器布局 -->
     <PositionLayout
       v-else-if="layout === 'position'"
-      :model-value="selectValue"
+      v-model="selectValue"
       :disabled="disabled"
       @change="handleChange"
     />
@@ -245,7 +245,7 @@ const props = defineProps({
   // 选项数组
   options: {
     type: Array as () => DropdownOption[] & CardOption[],
-    required: true,
+    required: false,
     default: () => []
   },
   props: {
@@ -259,6 +259,11 @@ const props = defineProps({
     }
   },
   isRemote: {
+    type: Boolean,
+    default: false
+  },
+  // 是否禁用选择器
+  disabled: {
     type: Boolean,
     default: false
   },

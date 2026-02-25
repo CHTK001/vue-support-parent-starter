@@ -2,9 +2,14 @@
   "name": "@repo/pages",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
   "exports": {
-    ".": "./index.js",
+    ".": {
+      "types": "./index.ts",
+      "development": "./index.ts",
+      "import": "./index.ts",
+      "default": "./index.ts"
+    },
     "./*": "./*"
   },
   "scripts": {

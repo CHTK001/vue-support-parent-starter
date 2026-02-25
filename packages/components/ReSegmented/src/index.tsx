@@ -1,8 +1,8 @@
 import "./index.css";
 import type { OptionsType } from "./type";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useDark, isNumber, isFunction, useResizeObserver } from "@pureadmin/utils";
-import { type PropType, h, ref, toRef, watch, nextTick, defineComponent, getCurrentInstance } from "vue";
+import { isNumber, isFunction, useResizeObserver } from "@pureadmin/utils";
+import { type PropType, h, ref, toRef, watch, nextTick, defineComponent, getCurrentInstance, computed } from "vue";
 
 const props = {
   options: {
@@ -43,7 +43,10 @@ export default defineComponent({
   setup(props, { emit }) {
     const width = ref(0);
     const translateX = ref(0);
-    const { isDark } = useDark();
+    const isDark = computed(() => {
+      if (typeof document === "undefined") return false;
+      return document.documentElement.classList.contains("dark");
+    });
     const initStatus = ref(false);
     const curMouseActive = ref(-1);
     const segmentedItembg = ref("");
@@ -105,6 +108,21 @@ export default defineComponent({
       {
         immediate: true
       }
+    );
+
+    // 当外部通过字符串等非 number 类型更新 modelValue 时，同步到内部索引
+    watch(
+      () => props.modelValue,
+      value => {
+        if (isNumber(value)) {
+          return;
+        }
+        const targetIndex = props.options.findIndex(option => option.value === value);
+        if (targetIndex !== -1 && targetIndex !== curIndex.value) {
+          curIndex.value = targetIndex;
+        }
+      },
+      { immediate: true }
     );
 
     watch(() => props.size, handleResizeInit, {

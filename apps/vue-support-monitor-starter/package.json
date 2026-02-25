@@ -3,11 +3,8 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-<<<<<<< HEAD
-   "scripts": {
-=======
+
   "scripts": {
->>>>>>> a61369796 (chore:)
     "dev": "vite",
     "serve": "pnpm dev",
     "build": "rimraf dist && vite build",

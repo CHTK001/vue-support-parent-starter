@@ -1,14 +1,2 @@
-/**
- * 字体加密工具（重新导出）
- * @description 从 @repo/font-encryption 重新导出字体加密工具
- * @author CH
- * @date 2025-12-16
- */
-
-export {
-  encryptText,
-  decryptText,
-  isEncryptedChar,
-  getMappedCharCount,
-  getMaps
-} from "@repo/font-encryption";
+// 已改为直接使用 font-cloak 生成的加密字体 + 全局 SCSS class，不再提供运行时加解密函数。
+// 该文件保留为空壳以兼容旧引用，后续不再导出任何 API。

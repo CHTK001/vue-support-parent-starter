@@ -612,7 +612,7 @@ const deferTag = useDefer(tagsViews?.length);
               <IconifyIconOffline :icon="CloseIcon" />
             </span>
             <span
-              v-if="showModel !== 'card' && showModel !== 'glass'"
+              v-if="showModel !== 'card'"
               :ref="'schedule' + index"
               :class="[scheduleIsActive(item)]"
             />

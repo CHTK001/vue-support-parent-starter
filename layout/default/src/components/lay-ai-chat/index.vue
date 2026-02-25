@@ -73,6 +73,18 @@ const props = defineProps({
     default: () => ({}),
   },
   /**
+   * 机器人位置
+   * - bottom-right: 右下角
+   * - bottom-left: 左下角
+   * - bottom-center: 底部居中
+   */
+  position: {
+    type: String,
+    default: "bottom-right",
+    validator: (val: string) =>
+      ["bottom-right", "bottom-left", "bottom-center"].includes(val),
+  },
+  /**
    * 是否默认打开聊天窗口
    * 设置为 true 时，组件挂载后自动打开聊天窗口
    */
@@ -513,7 +525,7 @@ defineExpose({
   <div
     v-if="visible"
     class="ai-chat-wrapper"
-    :class="[`theme-${theme}`]"
+    :class="[`theme-${theme}`, `pos-${position}`]"
     :style="{
       '--ai-primary': themeStyles.primary,
       '--ai-primary-color': themeStyles.primaryColor,
@@ -662,6 +674,17 @@ defineExpose({
   bottom: 24px;
   right: 24px;
   z-index: 2000;
+
+  &.pos-bottom-left {
+    left: 24px;
+    right: auto;
+  }
+
+  &.pos-bottom-center {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
 }
 
 // ==================== 悬浮按钮 ====================
@@ -752,6 +775,17 @@ defineExpose({
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
+
+  .ai-chat-wrapper.pos-bottom-left & {
+    right: auto;
+    left: 0;
+  }
+
+  .ai-chat-wrapper.pos-bottom-center & {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 
   :global(.dark) & {
     background: var(--el-bg-color-overlay, #1d1e1f);

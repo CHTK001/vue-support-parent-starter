@@ -300,6 +300,22 @@ export interface PageBehaviorConfig {
   autoRefreshInterval?: number;
   /** 离开页面确认 */
   confirmOnLeave?: boolean;
+  /** 顶部是否显示时间 */
+  showHeaderClock?: boolean;
+  /** 页面缩放比例（0.8 - 1.5） */
+  uiScale?: number;
+  /** 读屏优化模式 */
+  screenReaderMode?: boolean;
+  /** 高对比度模式（独立于深色模式） */
+  highContrastMode?: boolean;
+  /** DevTools 精简版开关 */
+  devLiteTools?: boolean;
+  /** DevTools 标尺开关 */
+  devRuler?: boolean;
+  /** DevTools 网格开关 */
+  devGrid?: boolean;
+  /** DevTools 悬停检查开关 */
+  devHoverInspector?: boolean;
   /** 是否启用 */
   enable?: boolean;
 }

@@ -1,7 +1,7 @@
 <template>
   <el-config-provider :locale="elementPlusLocale">
     <RouteLoading />
-    <router-view :key="$route.fullPath" />
+    <router-view />
     <ReDialog />
   </el-config-provider>
 </template>

@@ -15,23 +15,19 @@ import {
 import { useI18n } from "vue-i18n";
 import { useNav } from "../../../hooks/useNav";
 import LayPanel from "../../lay-panel/index.vue";
-import {
-  getAvailableThemes,
-  ThemeType,
-  detectFestivalTheme,
-} from "../../../themes";
+import { getAvailableThemes, ThemeType } from "../../../themes";
 
-import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
+import { debounce, isNumber, useGlobal, storageLocal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
+import NewMenuAnimationSelector from "../components/base/NewMenuAnimationSelector.vue";
 import { ElMessage } from "element-plus";
-import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
+import { useTheme } from "../../../hooks/useThemeComponent";
+import { useThemeStore } from "../../../stores/themeStore";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import LayThemeSwitcher from "../../lay-theme-switcher/index.vue";
-import { useThemeStore } from "../../../stores/themeStore";
-import { storeToRefs } from "pinia";
 
 import DayIcon from "@repo/assets/svg/day.svg?component";
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
@@ -45,10 +41,19 @@ import DoubleIcon from "@repo/assets/svg/double.svg?component";
 
 const { t } = useI18n();
 const { device } = useNav();
-const { isDark } = useDark();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeStore = useThemeStore();
 const {
+  // 全局 theme 统一出口
+  isDark,
+  dataTheme,
+  overallStyle,
+  layoutTheme,
+  themeColors,
+  applyOverallStyle,
+  setLayoutThemeColor,
+  toggleClass,
+  // 性能监控相关
   fpsMonitorEnabled,
   memoryMonitorEnabled,
   cpuMonitorEnabled,
@@ -61,7 +66,7 @@ const {
   performanceMonitorLayout,
   performanceMonitorDirection,
   isPerformanceMonitorVisible,
-} = storeToRefs(themeStore);
+} = useTheme();
 
 // 预览数据
 const previewInput = ref("");
@@ -71,38 +76,28 @@ const previewCheck = ref(true);
 const previewRadio = ref("1");
 
 // 判断当前是否为非默认主题（节日主题优先级高于页签风格和整体风格）
+// 这里直接依据当前布局主题的 theme 字段，避免依赖存储中的历史值
 const isNonDefaultTheme = computed(() => {
-  const currentTheme = $storage?.configure?.systemTheme || "default";
+  const currentTheme = layoutTheme.value?.theme || "default";
   return currentTheme !== "default";
 });
-
-const mixRef = ref();
-const verticalRef = ref();
-const horizontalRef = ref();
-const hoverRef = ref();
-const mobileRef = ref();
-const doubleRef = ref();
-
-// 存储 tippy 实例的数组，用于组件销毁时清理
-const tippyInstances = ref([]);
-
-const {
-  dataTheme,
-  overallStyle,
-  layoutTheme,
-  themeColors,
-  toggleClass,
-  dataThemeChange,
-  setLayoutThemeColor,
-} = useDataThemeChange();
 
 const handleOverallStyleChange = (theme: any) => {
   useThemeAnimation(() => {
     theme.index === 1 && theme.index !== 2
       ? (dataTheme.value = true)
       : (dataTheme.value = false);
-    overallStyle.value = theme.option.theme;
-    dataThemeChange(theme.option.theme);
+
+    // 默认主题：不修改整体风格，保持用户当前整体风格不变
+    if (theme.option.theme === "default") {
+      applyOverallStyle(overallStyle.value);
+      return;
+    }
+
+    // 其他主题：统一使用浅色整体风格
+    overallStyle.value = "light";
+    applyOverallStyle("light");
+
     theme.index === 2 && watchSystemThemeChange();
   });
 };
@@ -153,6 +148,10 @@ const settings = reactive({
   // 高级功能
   keepAlive: $storage.configure.keepAlive ?? true,
   debugMode: $storage.configure.debugMode ?? false,
+  autoLogout:
+    $storage.configure?.autoLogout ??
+    getConfig().Session?.autoLogout ??
+    false,
   // 面包屑导航
   showBreadcrumb: $storage.configure.showBreadcrumb ?? true,
   breadcrumbIconOnly: $storage.configure.breadcrumbIconOnly ?? false,
@@ -167,22 +166,72 @@ const settings = reactive({
   // 双栏导航设置相关
   doubleNavExpandMode: $storage.configure.doubleNavExpandMode ?? "auto",
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
+  // 顶部工具栏（Header）
+  showSearch:
+    $storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true,
+  showFullscreen: $storage.configure?.showFullscreen ?? true,
+  showHeaderClock:
+    $storage.configure?.showHeaderClock ??
+    getConfig().PageBehavior?.showHeaderClock ??
+    false,
+  // 消息中心（Header）
+  showMessage: $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
+  // 默认下拉弹出位置调整为顶部右侧
+  messageDropdownPosition: $storage.configure?.messageDropdownPosition ?? "top-right",
   // AI 助手设置
   aiChatTheme: $storage.configure.aiChatTheme ?? "default",
+  aiChatEnabled:
+    $storage.configure?.aiChatEnabled ??
+    (getConfig().ShowAiChat ?? false),
+  aiChatPosition:
+    $storage.configure?.aiChatPosition ?? "bottom-right",
+  aiChatApiKey: $storage.configure?.aiChatApiKey ?? "",
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 false）
   enableFestivalTheme:
     $storage.configure?.enableFestivalTheme ??
     getConfig().EnableFestivalTheme ??
     false,
-  // 字体加密设置
+  // 字体加密设置（默认开启，保证初始环境即具备防护能力）
   fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? true,
   fontEncryptionNumbers: $storage.configure?.fontEncryptionNumbers ?? true,
   fontEncryptionChinese: $storage.configure?.fontEncryptionChinese ?? true,
-  fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? false,
-  fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? false,
+  fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? true,
+  fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? true,
   // 主题切换动画设置
   themeAnimationMode: $storage.configure?.themeAnimationMode ?? "fixed",
   themeAnimationDirection: $storage.configure?.themeAnimationDirection ?? "top-right",
+  // 无障碍与缩放
+  screenReaderMode:
+    $storage.configure?.screenReaderMode ??
+    getConfig().PageBehavior?.screenReaderMode ??
+    false,
+  highContrastMode:
+    $storage.configure?.highContrastMode ??
+    getConfig().PageBehavior?.highContrastMode ??
+    false,
+  uiScale:
+    $storage.configure?.uiScale ??
+    getConfig().PageBehavior?.uiScale ??
+    1,
+  // DevTools 精简版（仅开发/测试环境展示）
+  devLiteTools:
+    $storage.configure?.devLiteTools ??
+    getConfig().PageBehavior?.devLiteTools ??
+    false,
+  devRuler:
+    $storage.configure?.devRuler ??
+    getConfig().PageBehavior?.devRuler ??
+    false,
+  devGrid:
+    $storage.configure?.devGrid ??
+    getConfig().PageBehavior?.devGrid ??
+    false,
+  devHoverInspector:
+    $storage.configure?.devHoverInspector ??
+    getConfig().PageBehavior?.devHoverInspector ??
+    false,
+  // 开发模式下 AI 设置展示控制
+  showDevAiSetting: $storage.configure?.showDevAiSetting ?? true,
 });
 
 /** 主题动画模式选项 */
@@ -235,6 +284,25 @@ const aiChatThemeOptions = computed<Array<OptionsType>>(() => [
   },
 ]);
 
+/** AI 助手位置选项 */
+const aiChatPositionOptions = computed<Array<OptionsType>>(() => [
+  {
+    label: "右下角",
+    tip: "固定在页面右下角",
+    value: "bottom-right",
+  },
+  {
+    label: "左下角",
+    tip: "固定在页面左下角",
+    value: "bottom-left",
+  },
+  {
+    label: "底部居中",
+    tip: "固定在页面底部居中",
+    value: "bottom-center",
+  },
+]);
+
 /** 卡片颜色模式配置 */
 const cardColorMode = ref($storage.configure?.cardColorMode ?? "all");
 
@@ -279,28 +347,7 @@ const userRoles = computed(() => {
   return Array.isArray(roles) ? roles : [];
 });
 
-/**
- * 显示的主题列表（根据自动切换开关、环境和权限过滤）
- */
-const festivalThemesList = computed(() => {
-  const themes = getAvailableThemes(
-    settings.enableFestivalTheme,
-    userRoles.value,
-    isDevelopment,
-    isTest,
-  );
-
-  // 转换为设置面板需要的格式
-  return themes.map((t) => ({
-    color: t.color || "#409EFF",
-    themeColor: t.key,
-    name: t.name,
-    description: t.description,
-    icon: t.icon || "ri:palette-line",
-    type: t.type,
-    key: t.key,
-  }));
-});
+// 主题列表通过 getAvailableThemes 提供给主题切换组件使用，节日主题已从主题配置中移除
 
 /** 当网页整体为暗色风格时不显示亮白色主题配色切换选项 */
 const showThemeColors = computed(() => {
@@ -310,9 +357,17 @@ const showThemeColors = computed(() => {
 });
 
 function storageConfigureChange<T>(key: string, val: T): void {
-  const storageConfigure = $storage.configure;
+  const storageConfigure = $storage.configure || {};
   storageConfigure[key] = val;
   $storage.configure = storageConfigure;
+
+  // 同步写入本地存储，保证刷新后 useThemeAnimation 等能读取到最新配置
+  try {
+    storageLocal().setItem("responsive-configure", storageConfigure);
+  } catch (error) {
+    // 本地存储异常时不影响正常功能
+    console.warn("[BaseSetting] 写入本地配置失败:", error);
+  }
 }
 
 /** 设置内容宽度 */
@@ -370,25 +425,6 @@ const monochromeChange = (value: boolean): void => {
   storageConfigureChange("monochrome", value);
 };
 
-/** 节日主题自动切换设置 */
-const festivalThemeChange = (value: boolean): void => {
-  storageConfigureChange("enableFestivalTheme", value);
-
-  if (value) {
-    // 开启自动切换，检测并应用节日主题
-    const festivalTheme = detectFestivalTheme();
-
-    if (festivalTheme) {
-      switchSystemTheme(festivalTheme.key, true);
-    } else {
-      // 非节日期间，默认使用 Default 主题
-      switchSystemTheme("default", true);
-    }
-  } else {
-    // 关闭自动切换，但不移除当前主题，用户需要手动切换回默认主题
-    ElMessage.success(t("panel.festivalThemeDisabled"));
-  }
-};
 /**
  * 切换系统主题皮肤
  * @param themeKey 主题键值
@@ -398,40 +434,27 @@ const switchSystemTheme = (
   themeKey: string,
   showMessage: boolean = true,
 ): void => {
-  // 检查是否已经是当前主题，避免重复切换
   const currentTheme = $storage.configure?.systemTheme || "default";
   if (currentTheme === themeKey) {
     return;
   }
 
-  const htmlEl = document.documentElement;
+  useThemeAnimation(() => {
+    // 统一通过主题 store 设置，确保 data-skin、class 和样式表一致更新
+    themeStore.setTheme(themeKey as any);
 
-  // 使用 data-skin 属性而不是 class
-  htmlEl.setAttribute("data-skin", themeKey);
+    // 如果切换到非默认主题，强制切换到浅色模式，避免深色残留
+    if (themeKey !== "default") {
+      dataTheme.value = false;
+      dataThemeChange("light");
+    }
 
-  // 如果切换到非默认主题，强制切换到浅色模式
-  if (themeKey !== "default") {
-    dataTheme.value = false;
-    dataThemeChange("light");
-    // 更新 element-plus 主题色为默认蓝色 (避免之前的深色主题色残留)
-    // setLayoutThemeColor("light"); // 可选，视需求而定
-  }
+    // 持久化当前系统主题
+    storageConfigureChange("systemTheme", themeKey);
+  });
 
-  // 不再需要动态加载CSS，所有主题样式已在 @repo/skin 中
-
-  // 保存到本地存储
-  storageConfigureChange("systemTheme", themeKey);
-
-  // 发送主题切换事件
-  emitter.emit("systemThemeChange", themeKey);
-
-  // 只在明确要求显示消息时才显示
   if (showMessage) {
-    const themeName =
-      themeKey === "default"
-        ? "默认"
-        : festivalThemesList.value.find((t) => t.themeColor === themeKey)
-            ?.name || themeKey;
+    const themeName = themeKey === "default" ? "默认" : themeKey;
     ElMessage.success(`已切换到${themeName}主题`);
   }
 };
@@ -597,6 +620,18 @@ const setStretch = (value: number | boolean) => {
   storageConfigureChange("stretch", value);
 };
 
+/** 页宽开关变更：统一通过 setStretch 写入，保证 Segmented 与开关同步 */
+function stretchSwitchChange(enabled: boolean) {
+  if (enabled) {
+    const current = settings.stretch;
+    // 已经是自定义数值则保持不变，否则使用默认宽度 1440
+    const next = isNumber(current) ? (current as number) : 1440;
+    setStretch(next);
+  } else {
+    setStretch(false);
+  }
+}
+
 const stretchTypeChange = ({ option }: { option: OptionsType }) => {
   const { value } = option;
   value === "custom" ? setStretch(1440) : setStretch(false);
@@ -750,16 +785,6 @@ function watchSystemThemeChange() {
 const initializeTheme = () => {
   const savedTheme = $storage.configure?.systemTheme;
 
-  if (settings.enableFestivalTheme) {
-    // 如果开启了自动切换，检测节日主题
-    const festivalTheme = detectFestivalTheme();
-
-    if (festivalTheme) {
-      switchSystemTheme(festivalTheme.key, false); // 初始化时不显示消息
-      return;
-    }
-  }
-
   // 应用保存的主题或默认主题
   if (savedTheme && savedTheme !== "default") {
     switchSystemTheme(savedTheme, false); // 初始化时不显示消息
@@ -767,14 +792,6 @@ const initializeTheme = () => {
 };
 
 onBeforeMount(() => {
-  /* 强制重置节日主题自动切换默认为关闭 (针对旧版本缓存) */
-  const MIGRATION_KEY = "festival_theme_config_reset_v1";
-  if (!localStorage.getItem(MIGRATION_KEY)) {
-    settings.enableFestivalTheme = false;
-    storageConfigureChange("enableFestivalTheme", false);
-    localStorage.setItem(MIGRATION_KEY, "true");
-  }
-
   /* 初始化系统配置 */
   nextTick(() => {
     watchSystemThemeChange();
@@ -804,25 +821,6 @@ onBeforeMount(() => {
   });
 });
 
-// 收集 tippy 实例的函数
-const collectTippyInstances = () => {
-  nextTick(() => {
-    const elementsWithTippy = [
-      verticalRef.value,
-      horizontalRef.value,
-      mixRef.value,
-      hoverRef.value,
-      doubleRef.value,
-    ].filter(Boolean);
-
-    elementsWithTippy.forEach((element) => {
-      if (element && element._tippy) {
-        tippyInstances.value.push(element._tippy);
-      }
-    });
-  });
-};
-
 // 监听菜单动画设置
 watch(
   () => settings.menuAnimation,
@@ -842,50 +840,12 @@ watch(
   },
 );
 
-onMounted(() => {
-  collectTippyInstances();
-
-  // 监听面板关闭事件
-  emitter.on("settingPanelClosed", () => {
-    destroyAllTippyInstances();
-  });
-});
-
-// 销毁所有 tippy 实例的函数
-const destroyAllTippyInstances = () => {
-  // 销毁通过 v-tippy 指令创建的实例
-  const elementsWithTippy = [
-    verticalRef.value,
-    horizontalRef.value,
-    mixRef.value,
-    hoverRef.value,
-    doubleRef.value,
-  ].filter(Boolean);
-
-  elementsWithTippy.forEach((element) => {
-    if (element && element._tippy) {
-      element._tippy.destroy();
-    }
-  });
-
-  // 销毁存储在数组中的实例
-  tippyInstances.value.forEach((instance) => {
-    if (instance && typeof instance.destroy === "function") {
-      instance.destroy();
-    }
-  });
-
-  // 清空数组
-  tippyInstances.value = [];
-
-  // 清理可能残留的 tippy DOM 元素
-  const tippyElements = document.querySelectorAll("[data-tippy-root]");
-  tippyElements.forEach((element) => {
-    if (element.parentNode) {
-      element.parentNode.removeChild(element);
-    }
-  });
-};
+const mixRef = ref();
+const verticalRef = ref();
+const horizontalRef = ref();
+const hoverRef = ref();
+const mobileRef = ref();
+const doubleRef = ref();
 
 /** 重置到默认设置 */
 function resetToDefault() {
@@ -1023,6 +983,96 @@ function aiChatThemeChange({ option }: { option: OptionsType }) {
 }
 
 /**
+ * AI 助手启用状态变更
+ */
+function aiChatEnabledChange(value: boolean) {
+  settings.aiChatEnabled = value;
+  storageConfigureChange("aiChatEnabled", value);
+}
+
+/**
+ * AI 助手位置变更
+ */
+function aiChatPositionChange({ option }: { option: OptionsType }) {
+  const value = option.value as "bottom-right" | "bottom-left" | "bottom-center";
+  settings.aiChatPosition = value;
+  storageConfigureChange("aiChatPosition", value);
+}
+
+/**
+ * AI 助手 API Key 变更
+ */
+function aiChatApiKeyChange(value: string) {
+  settings.aiChatApiKey = value;
+  storageConfigureChange("aiChatApiKey", value);
+}
+
+/**
+ * 消息中心开关变更
+ */
+function showMessageChange(value: boolean) {
+  settings.showMessage = value;
+  storageConfigureChange("showMessage", value);
+  emitter.emit("showMessageChange", value);
+}
+
+/**
+ * 顶部搜索按钮开关变更
+ */
+function showSearchChange(value: boolean) {
+  settings.showSearch = value;
+  storageConfigureChange("showSearch", value);
+  emitter.emit("showSearchChange", value);
+}
+
+/**
+ * 顶部全屏按钮开关变更
+ */
+function showFullscreenChange(value: boolean) {
+  settings.showFullscreen = value;
+  storageConfigureChange("showFullscreen", value);
+  emitter.emit("showFullscreenChange", value);
+}
+
+/**
+ * 顶部时间显示开关变更
+ */
+function showHeaderClockChange(value: boolean) {
+  settings.showHeaderClock = value;
+  storageConfigureChange("showHeaderClock", value);
+  emitter.emit("showHeaderClockChange", value);
+}
+
+/**
+ * 消息中心下拉弹框位置变更
+ */
+function messageDropdownPositionChange(value: string) {
+  settings.messageDropdownPosition = value as any;
+  storageConfigureChange("messageDropdownPosition", value);
+  emitter.emit("messageDropdownPositionChange", value);
+}
+
+/**
+ * 开发模式：发送一条默认测试消息到消息中心
+ */
+function sendDevDefaultMessage() {
+  if (!isDevelopment && !isTest) {
+    return;
+  }
+  const now = new Date();
+  const payload = {
+    id: now.getTime(),
+    title: "开发环境默认测试消息",
+    content:
+      "这是通过设置面板发送的默认测试消息，用于验证消息中心展示和消息弹窗配置。",
+    type: "dev",
+    level: "info",
+    time: now.toLocaleString(),
+  };
+  emitter.emit("devMessagePush", payload);
+}
+
+/**
  * 调试模式切换
  * @param enabled - 是否启用调试模式
  */
@@ -1038,6 +1088,78 @@ emitter.on("debugModeChanged", (enabled: boolean) => {
   settings.debugMode = enabled;
   storageConfigureChange("debugMode", enabled);
 });
+
+/**
+ * 自动退出功能开关
+ */
+function autoLogoutChange(enabled: boolean) {
+  settings.autoLogout = enabled;
+  storageConfigureChange("autoLogout", enabled);
+}
+
+/**
+ * 读屏优化模式切换
+ */
+function screenReaderModeChange(enabled: boolean) {
+  settings.screenReaderMode = enabled;
+  storageConfigureChange("screenReaderMode", enabled);
+}
+
+/**
+ * 高对比度模式切换
+ */
+function highContrastModeChange(enabled: boolean) {
+  settings.highContrastMode = enabled;
+  storageConfigureChange("highContrastMode", enabled);
+}
+
+/**
+ * 页面缩放变更
+ */
+function uiScaleChange(scale: number) {
+  settings.uiScale = scale;
+  storageConfigureChange("uiScale", scale);
+}
+
+/**
+ * DevTools 精简版总开关
+ */
+function devLiteToolsChange(enabled: boolean) {
+  settings.devLiteTools = enabled;
+  storageConfigureChange("devLiteTools", enabled);
+}
+
+/**
+ * DevTools 标尺开关
+ */
+function devRulerChange(enabled: boolean) {
+  settings.devRuler = enabled;
+  storageConfigureChange("devRuler", enabled);
+}
+
+/**
+ * DevTools 网格开关
+ */
+function devGridChange(enabled: boolean) {
+  settings.devGrid = enabled;
+  storageConfigureChange("devGrid", enabled);
+}
+
+/**
+ * DevTools 悬停检查开关
+ */
+function devHoverInspectorChange(enabled: boolean) {
+  settings.devHoverInspector = enabled;
+  storageConfigureChange("devHoverInspector", enabled);
+}
+
+/**
+ * 开发模式下 AI 设置展示开关
+ */
+function showDevAiSettingChange(enabled: boolean) {
+  settings.showDevAiSetting = enabled;
+  storageConfigureChange("showDevAiSetting", enabled);
+}
 
 /**
  * 字体加密相关函数
@@ -1107,22 +1229,38 @@ function fontEncryptionOcrNoiseChange(enabled: boolean) {
 }
 
 function showNewMenuChange() {
-  storageConfigureChange("ShowNewMenu", settings.showNewMenu);
+  // 使用小写键写入本地存储，保持与初始化、Hook 配置一致
+  storageConfigureChange("showNewMenu", settings.showNewMenu);
+  // 关闭新菜单时，强制将动画模式重置为 none，避免残留动画配置
+  if (!settings.showNewMenu) {
+    settings.newMenuAnimation = "none";
+    storageConfigureChange("newMenuAnimation", "none");
+    emitter.emit("newMenuAnimationChange", "none");
+  }
+  // 同时通过事件总线通知菜单组件实时更新
   emitter.emit("showNewMenuChange", settings.showNewMenu);
 }
 
 function newMenuTextChange() {
-  storageConfigureChange("NewMenuText", settings.newMenuText);
+  const value = (settings.newMenuText || "").trim();
+  // 空字符串时回退到默认值，避免出现空标识
+  settings.newMenuText = value || "new";
+  // 写入统一的小写键，供布局配置和组件读取
+  storageConfigureChange("newMenuText", settings.newMenuText);
 }
 
 function newMenuTimeLimitChange() {
-  storageConfigureChange("NewMenuTimeLimit", settings.newMenuTimeLimit);
+  // 仅在数值有效时更新本地配置
+  const limit = Number(settings.newMenuTimeLimit) || 0;
+  settings.newMenuTimeLimit = limit;
+  storageConfigureChange("newMenuTimeLimit", settings.newMenuTimeLimit);
 }
 
 function newMenuAnimationChange({ option }: { option: OptionsType }) {
   const value = option.value as string;
   settings.newMenuAnimation = value as any;
-  storageConfigureChange("NewMenuAnimation", value);
+  // 使用小写键与 StorageConfig 保持一致
+  storageConfigureChange("newMenuAnimation", value);
   emitter.emit("newMenuAnimationChange", value);
 }
 
@@ -1200,7 +1338,6 @@ function importSettings() {
 
 onUnmounted(() => {
   removeMatchMedia();
-  destroyAllTippyInstances();
   // 移除事件监听器
   emitter.off("settingPanelClosed");
 });
@@ -1275,7 +1412,7 @@ onUnmounted(() => {
             <IconifyIconOnline icon="ri:movie-line" class="section-icon" />
             <h3 class="section-title">主题切换动画</h3>
             <div class="section-description">
-              设置主题切换时的过渡动画效果
+              控制主题切换时的动画效果
             </div>
           </div>
           <div class="setting-content">
@@ -1289,14 +1426,19 @@ onUnmounted(() => {
               "
             >
               <span class="setting-label" style="font-size: 14px"
-                >动画模式</span
-              >
+                >动画模式</span>
               <Segmented
-                v-model="settings.themeAnimationMode"
-                :options="themeAnimationModeOptions"
-                size="small"
-                @change="themeAnimationModeChange"
-              />
+              :modelValue="
+                settings.themeAnimationMode === 'random'
+                  ? 0
+                  : settings.themeAnimationMode === 'fixed'
+                      ? 1
+                       : 2
+                 "
+                 :options="themeAnimationModeOptions"
+                 size="small"
+                 @change="themeAnimationModeChange"
+               />
             </div>
 
             <div
@@ -1310,8 +1452,7 @@ onUnmounted(() => {
                   display: block;
                   margin-bottom: 8px;
                 "
-                >动画方向</span
-              >
+                >动画方向</span>
               <ScSelect
                 :model-value="settings.themeAnimationDirection"
                 layout="position"
@@ -1321,96 +1462,28 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 主题皮肤功能区域 -->
-        <div
-          v-if="getConfig().EnableThemeManagement !== false"
-          class="setting-section"
-        >
+        <!-- 主题皮肤功能区域：保留默认与内测主题，统一走 ThemeSkinProvider -->
+        <div class="setting-section">
           <div class="section-header">
-            <IconifyIconOnline icon="ri:palette-fill" class="section-icon" />
-            <h3 class="section-title">{{ t("panel.themeSkin") }}</h3>
+            <IconifyIconOnline icon="ri:shirt-line" class="section-icon" />
+            <h3 class="section-title">主题皮肤</h3>
             <div class="section-description">
-              {{ t("panel.themeSkinDesc") }}
+              选择默认和内测主题皮肤，实时预览整体风格
             </div>
           </div>
           <div class="setting-content">
-            <!-- 节日主题自动切换开关 -->
-            <div class="switch-card-grid">
-              <el-tooltip
-                :content="t('panel.festivalThemeAutoDesc')"
-                placement="top"
-              >
-                <div>
-                  <ScSwitch
-                    v-model="settings.enableFestivalTheme"
-                    layout="visual-card"
-                    size="small"
-                    :label="t('panel.festivalThemeAuto')"
-                    active-icon="ri:calendar-event-line"
-                    @change="festivalThemeChange"
-                  />
-                </div>
-              </el-tooltip>
-            </div>
-
-            <!-- 开启自动切换时：显示当前生效的主题提示 -->
-            <div v-if="settings.enableFestivalTheme" class="auto-theme-status">
-              <div class="status-card">
-                <div class="status-icon">
-                  <IconifyIconOnline icon="ri:calendar-check-line" />
-                </div>
-                <div class="status-content">
-                  <div class="status-title">
-                    {{ t("panel.autoThemeEnabled") }}
-                  </div>
-                  <div class="status-desc">
-                    {{ t("panel.autoThemeEnabledDesc") }}
-                  </div>
-                  <div class="status-current">
-                    <span class="label">{{
-                      t("panel.currentThemeLabel")
-                    }}</span>
-                    <span class="value">
-                      {{
-                        $storage.configure?.systemTheme === "default"
-                          ? t("panel.defaultTheme")
-                          : festivalThemesList.find(
-                              (th) =>
-                                th.themeColor ===
-                                $storage.configure?.systemTheme,
-                            )?.name || $storage.configure?.systemTheme
-                      }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 主题选择区域 - 始终显示，但根据自动切换开关过滤主题 -->
-            <div class="festival-themes-section">
-              <LayThemeSwitcher
-                :themes="festivalThemesList"
-                :showMeta="true"
-                :persist="false"
-                :modelValue="$storage.configure?.systemTheme || 'default'"
-                @change="
-                  (key: string) => {
-                    // 手动切换主题时，自动关闭节日主题自动切换功能
-                    if (settings.enableFestivalTheme) {
-                      settings.enableFestivalTheme = false;
-                      storageConfigureChange('enableFestivalTheme', false);
-                      ElMessage.info(t('panel.festivalThemeAutoDisabled'));
-                    }
-                    switchSystemTheme(key);
-                  }
-                "
-              />
-            </div>
+            <LayThemeSwitcher />
           </div>
         </div>
 
-        <!-- AI 助手皮肤设置区域 -->
-        <div v-if="getConfig().ShowAiChat !== false" class="setting-section">
+        <!-- AI 助手设置区域 -->
+        <div
+          v-if="
+            getConfig().ShowAiChat !== false &&
+            (!isDevelopment && !isTest || settings.showDevAiSetting)
+          "
+          class="setting-section"
+        >
           <div class="section-header">
             <IconifyIconOnline icon="ri:robot-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.aiChatSkin") }}</h3>
@@ -1419,6 +1492,54 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="setting-content">
+            <!-- 功能开关 -->
+            <div class="setting-item">
+              <div class="setting-item-label">
+                <span>启用 AI 助手</span>
+                <span class="setting-item-desc">控制页面是否显示 AI 聊天机器人</span>
+              </div>
+              <div class="setting-item-control">
+                <ScSwitch
+                  v-model="settings.aiChatEnabled"
+                  @change="aiChatEnabledChange"
+                />
+              </div>
+            </div>
+
+            <!-- 位置设置 -->
+            <div class="setting-item">
+              <div class="setting-item-label">
+                <span>机器人位置</span>
+                <span class="setting-item-desc">选择悬浮机器人在页面中的位置</span>
+              </div>
+              <div class="setting-item-control">
+                <Segmented
+                  :model-value="settings.aiChatPosition"
+                  :options="aiChatPositionOptions"
+                  @change="aiChatPositionChange"
+                />
+              </div>
+            </div>
+
+            <!-- API Key 设置 -->
+            <div class="setting-item">
+              <div class="setting-item-label">
+                <span>API Key</span>
+                <span class="setting-item-desc">用于访问后端 AI 接口的密钥，仅保存在本地浏览器</span>
+              </div>
+              <div class="setting-item-control">
+                <el-input
+                  v-model="settings.aiChatApiKey"
+                  type="password"
+                  show-password
+                  placeholder="请输入 AI 服务的 API Key"
+                  @change="aiChatApiKeyChange"
+                  style="max-width: 260px"
+                />
+              </div>
+            </div>
+
+            <!-- 皮肤设置 -->
             <div class="ai-theme-grid">
               <div
                 v-for="theme in aiChatThemeOptions"
@@ -1433,7 +1554,7 @@ onUnmounted(() => {
                 <div class="ai-theme-preview">
                   <div class="ai-theme-bubble"></div>
                   <div class="ai-theme-bot"></div>
-                </div>
+            </div>
                 <span class="ai-theme-label">{{ theme.label }}</span>
                 <div
                   v-if="settings.aiChatTheme === theme.value"
@@ -1441,6 +1562,121 @@ onUnmounted(() => {
                 >
                   <IconifyIconOnline icon="ri:check-line" />
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 顶部工具栏配置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOnline
+              icon="ri:menu-3-line"
+              class="section-icon"
+            />
+            <h3 class="section-title">顶部工具栏</h3>
+            <div class="section-description">
+              控制顶部搜索、全屏等工具按钮的显示
+            </div>
+          </div>
+          <div class="setting-content">
+            <div class="setting-item">
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.showSearch"
+                    layout="visual-card"
+                  label="显示搜索按钮"
+                  description="控制 lay-header 的搜索按钮是否显示"
+                  active-icon="ri:search-2-line"
+                  inactive-icon="ri:search-eye-line"
+                  @change="showSearchChange"
+                />
+                <ScSwitch
+                  v-model="settings.showFullscreen"
+                  layout="visual-card"
+                  label="显示全屏按钮"
+                  description="控制 lay-header 的全屏按钮是否显示"
+                  active-icon="ri:fullscreen-fill"
+                  inactive-icon="ri:fullscreen-exit-line"
+                  @change="showFullscreenChange"
+                />
+                <ScSwitch
+                  v-model="settings.showHeaderClock"
+                  layout="visual-card"
+                  label="显示顶部时间"
+                  description="在顶部工具栏显示当前时间，适合全屏和大屏展示"
+                  active-icon="ep:clock"
+                  @change="showHeaderClockChange"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 消息配置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOnline
+              icon="ri:notification-4-line"
+              class="section-icon"
+            />
+            <h3 class="section-title">消息配置</h3>
+            <div class="section-description">
+              控制消息中心按钮显示以及下拉弹框的弹出位置
+            </div>
+          </div>
+          <div class="setting-content">
+            <div class="setting-item">
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.showMessage"
+                  layout="visual-card"
+                  label="显示消息中心"
+                  description="控制 lay-header 的消息中心按钮是否显示"
+                  active-icon="ri:notification-4-fill"
+                  inactive-icon="ri:notification-off-line"
+                  @change="showMessageChange"
+                />
+          </div>
+        </div>
+
+            <div class="setting-item">
+            <div class="setting-item-label">
+            <span>弹出位置</span>
+            <el-tooltip
+            content="设置消息下拉弹框从哪个方向弹出"
+            placement="top"
+            >
+            <span class="setting-item-tip-trigger">
+            <IconifyIconOnline
+            icon="ri:question-line"
+            class="setting-item-tip-icon"
+            />
+            </span>
+            </el-tooltip>
+            </div>
+            <div class="setting-item-control">
+            <ScSelect
+            :model-value="settings.messageDropdownPosition"
+            layout="position"
+            :disabled="!settings.showMessage"
+            @change="messageDropdownPositionChange"
+                />
+          </div>
+            </div>
+
+                <!-- 开发模式：发送默认测试消息 -->
+            <div v-if="isDevelopment || isTest" class="setting-item">
+              <div class="setting-item-label">
+                <span>开发模式测试</span>
+                <span class="setting-item-desc">
+                  构造一条本地默认消息并推送到消息中心，仅用于开发/测试环境
+                </span>
+              </div>
+              <div class="setting-item-control">
+                <el-button type="primary" link @click="sendDevDefaultMessage">
+                  发送默认数据
+                </el-button>
               </div>
             </div>
           </div>
@@ -1457,14 +1693,16 @@ onUnmounted(() => {
           </div>
           <div class="setting-content">
             <div class="layout-mode-grid">
+              <el-tooltip
+                :content="t('panel.layoutVerticalTip')"
+                placement="top"
+                :append-to-body="true"
+                :z-index="41000"
+              >
               <div
                 ref="verticalRef"
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'vertical' }"
-                v-tippy="{
-                  content: t('panel.layoutVerticalTip'),
-                  zIndex: 41000,
-                }"
                 @click="setLayoutModel('vertical')"
               >
                 <div class="layout-mode-preview">
@@ -1485,16 +1723,19 @@ onUnmounted(() => {
                   <IconifyIconOnline icon="ri:check-line" />
                 </div>
               </div>
+              </el-tooltip>
 
-              <div
+              <el-tooltip
                 v-if="device !== 'mobile'"
+                :content="t('panel.layoutHorizontalTip')"
+                placement="top"
+                :append-to-body="true"
+                :z-index="41000"
+              >
+                <div
                 ref="horizontalRef"
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'horizontal' }"
-                v-tippy="{
-                  content: t('panel.layoutHorizontalTip'),
-                  zIndex: 41000,
-                }"
                 @click="setLayoutModel('horizontal')"
               >
                 <div class="layout-mode-preview">
@@ -1515,16 +1756,19 @@ onUnmounted(() => {
                   <IconifyIconOnline icon="ri:check-line" />
                 </div>
               </div>
+              </el-tooltip>
 
-              <div
+              <el-tooltip
                 v-if="device !== 'mobile'"
+                :content="t('panel.layoutMixTip')"
+                placement="top"
+                :append-to-body="true"
+                :z-index="41000"
+              >
+                <div
                 ref="mixRef"
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'mix' }"
-                v-tippy="{
-                  content: t('panel.layoutMixTip'),
-                  zIndex: 41000,
-                }"
                 @click="setLayoutModel('mix')"
               >
                 <div class="layout-mode-preview">
@@ -1545,16 +1789,19 @@ onUnmounted(() => {
                   <IconifyIconOnline icon="ri:check-line" />
                 </div>
               </div>
+              </el-tooltip>
 
-              <div
+              <el-tooltip
                 v-if="device !== 'mobile'"
+                :content="t('panel.layoutHoverTip')"
+                placement="top"
+                :append-to-body="true"
+                :z-index="41000"
+              >
+                <div
                 ref="hoverRef"
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'hover' }"
-                v-tippy="{
-                  content: t('panel.layoutHoverTip'),
-                  zIndex: 41000,
-                }"
                 @click="setLayoutModel('hover')"
               >
                 <div class="layout-mode-preview">
@@ -1575,15 +1822,18 @@ onUnmounted(() => {
                   <IconifyIconOnline icon="ri:check-line" />
                 </div>
               </div>
+              </el-tooltip>
 
+              <el-tooltip
+                :content="t('panel.layoutMobileTip')"
+                placement="top"
+                :append-to-body="true"
+                :z-index="41000"
+              >
               <div
                 ref="mobileRef"
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'mobile' }"
-                v-tippy="{
-                  content: t('panel.layoutMobileTip'),
-                  zIndex: 41000,
-                }"
                 @click="setLayoutModel('mobile')"
               >
                 <div class="layout-mode-preview">
@@ -1604,16 +1854,19 @@ onUnmounted(() => {
                   <IconifyIconOnline icon="ri:check-line" />
                 </div>
               </div>
+              </el-tooltip>
 
-              <div
+              <el-tooltip
                 v-if="device !== 'mobile'"
+                :content="t('panel.layoutDoubleTip')"
+                placement="top"
+                :append-to-body="true"
+                :z-index="41000"
+              >
+                <div
                 ref="doubleRef"
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'double' }"
-                v-tippy="{
-                  content: t('panel.layoutDoubleTip'),
-                  zIndex: 41000,
-                }"
                 @click="setLayoutModel('double')"
               >
                 <div class="layout-mode-preview">
@@ -1634,6 +1887,7 @@ onUnmounted(() => {
                   <IconifyIconOnline icon="ri:check-line" />
                 </div>
               </div>
+              </el-tooltip>
             </div>
           </div>
         </div>
@@ -2228,8 +2482,7 @@ onUnmounted(() => {
                         display: block;
                         color: var(--el-text-color-regular);
                       "
-                      >显示配置</span
-                    >
+                      >显示配置</span>
 
                     <!-- Layout Mode (Merged vs Split) -->
                     <div
@@ -2245,8 +2498,7 @@ onUnmounted(() => {
                           font-size: 12px;
                           color: var(--el-text-color-secondary);
                         "
-                        >布局模式</span
-                      >
+                        >布局模式</span>
                       <Segmented
                         v-model="performanceMonitorLayout"
                         :options="[
@@ -2254,12 +2506,7 @@ onUnmounted(() => {
                           { label: '分离', value: 'split' },
                         ]"
                         size="small"
-                        @change="
-                          (val) =>
-                            themeStore.setPerformanceMonitorLayout(
-                              val.option.value,
-                            )
-                        "
+                        @change="(val) => themeStore.setPerformanceMonitorLayout(val.option.value)"
                       />
                     </div>
 
@@ -2277,21 +2524,16 @@ onUnmounted(() => {
                           font-size: 12px;
                           color: var(--el-text-color-secondary);
                         "
-                        >布局方向</span
-                      >
+                        >布局方向</span>
                       <Segmented
                         v-model="performanceMonitorDirection"
                         :options="[
+                          { label: '自动', value: 'auto' },
                           { label: '垂直', value: 'vertical' },
                           { label: '水平', value: 'horizontal' },
                         ]"
                         size="small"
-                        @change="
-                          (val) =>
-                            themeStore.setPerformanceMonitorDirection(
-                              val.option.value,
-                            )
-                        "
+                        @change="(val) => themeStore.setPerformanceMonitorDirection(val.option.value)"
                       />
                     </div>
 
@@ -2309,21 +2551,16 @@ onUnmounted(() => {
                           font-size: 12px;
                           color: var(--el-text-color-secondary);
                         "
-                        >内容展示</span
-                      >
+                        >内容展示</span>
                       <Segmented
                         v-model="performanceMonitorMode"
                         :options="[
                           { label: '详细', value: 'detailed' },
                           { label: '简洁', value: 'simple' },
+                          { label: '极简', value: 'minimal' },
                         ]"
                         size="small"
-                        @change="
-                          (val) =>
-                            themeStore.setPerformanceMonitorMode(
-                              val.option.value,
-                            )
-                        "
+                        @change="(val) => themeStore.setPerformanceMonitorMode(val.option.value)"
                       />
                     </div>
 
@@ -2336,10 +2573,9 @@ onUnmounted(() => {
                           margin-bottom: 8px;
                           display: block;
                         "
-                        >显示位置</span
-                      >
+                        >显示位置</span>
                       <ScSelect
-                        :model-value="performanceMonitorPosition"
+                        v-model="performanceMonitorPosition"
                         layout="position"
                         @change="(val) => themeStore.setPerformanceMonitorPosition(val)"
                       />
@@ -2456,27 +2692,10 @@ onUnmounted(() => {
                       >动画</span
                     >
                   </div>
-                  <Segmented
-                    resize
-                    class="select-none modern-segmented w-full"
-                    :modelValue="
-                      settings.newMenuAnimation === 'none'
-                        ? 0
-                        : settings.newMenuAnimation === 'bounce'
-                          ? 1
-                          : settings.newMenuAnimation === 'pulse'
-                            ? 2
-                            : settings.newMenuAnimation === 'shake'
-                              ? 3
-                              : 1
-                    "
-                    :options="[
-                      { label: t('panel.animNone'), value: 'none' },
-                      { label: t('panel.animBounce'), value: 'bounce' },
-                      { label: t('panel.animPulse'), value: 'pulse' },
-                      { label: t('panel.animShake'), value: 'shake' },
-                    ]"
-                    @change="newMenuAnimationChange"
+                  <NewMenuAnimationSelector
+                    v-model="settings.newMenuAnimation"
+                    :disabled="!settings.showNewMenu"
+                    @change="(val) => newMenuAnimationChange({ option: { value: val } as any })"
                   />
                 </div>
 
@@ -2525,6 +2744,7 @@ onUnmounted(() => {
                   :description="t('panel.pageStretchDesc')"
                   active-icon="ri:fullscreen-line"
                   ribbon-color="var(--el-color-success)"
+                  @change="stretchSwitchChange"
                 />
 
                 <ScSwitch
@@ -2537,6 +2757,121 @@ onUnmounted(() => {
                   active-icon="ri:terminal-box-line"
                   ribbon-color="var(--el-color-warning)"
                   @change="debugModeChange"
+                />
+                <ScSwitch
+                  v-model="settings.autoLogout"
+                  layout="visual-card"
+                  size="small"
+                  label="超时自动退出"
+                  description="会话超时后自动登出账号，需要后端 Session.enable 与 timeout 配合"
+                  active-icon="ri:logout-circle-r-line"
+                  ribbon-color="var(--el-color-danger)"
+                  @change="autoLogoutChange"
+                />
+              </div>
+            </div>
+
+            <!-- 无障碍与缩放 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOnline icon="ri:eye-2-line" class="group-icon" />
+                无障碍与缩放
+              </h4>
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.screenReaderMode"
+                  layout="visual-card"
+                  size="small"
+                  label="读屏优化模式"
+                  description="为视障用户优化焦点高亮和可读性"
+                  active-icon="mdi:access-point"
+                  ribbon-color="var(--el-color-success)"
+                  @change="screenReaderModeChange"
+                />
+                <ScSwitch
+                  v-model="settings.highContrastMode"
+                  layout="visual-card"
+                  size="small"
+                  label="高对比度模式"
+                  description="提高文字与背景对比度，独立于深色模式"
+                  active-icon="mdi:contrast-circle"
+                  ribbon-color="var(--el-color-primary)"
+                  @change="highContrastModeChange"
+                />
+              </div>
+              <div class="setting-item" style="margin-top: 12px">
+                <div class="setting-item-label">
+                  <span>页面缩放</span>
+                  <span class="setting-item-desc">
+                    调整整体界面缩放比例，范围 80% - 150%
+                  </span>
+                </div>
+                <div class="setting-item-control">
+                  <el-slider
+                    v-model="settings.uiScale"
+                    :min="0.8"
+                    :max="1.5"
+                    :step="0.05"
+                    :format-tooltip="(val) => `${Math.round(val * 100)}%`"
+                    style="max-width: 260px"
+                    @change="uiScaleChange"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- DevTools 精简版（仅开发/测试环境） -->
+            <div v-if="isDevelopment || isTest" class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOnline icon="ri:bug-line" class="group-icon" />
+                DevTools 精简版
+              </h4>
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.devLiteTools"
+                  layout="visual-card"
+                  size="small"
+                  label="启用轻量调试"
+                  description="显示标尺、网格和悬停信息等调试辅助"
+                  active-icon="ri:bug-2-line"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="devLiteToolsChange"
+                />
+                <ScSwitch
+                  v-model="settings.devRuler"
+                  layout="visual-card"
+                  size="small"
+                  label="标尺"
+                  description="在顶部和左侧显示像素标尺"
+                  active-icon="ri:arrow-left-right-line"
+                  @change="devRulerChange"
+                />
+                <ScSwitch
+                  v-model="settings.devGrid"
+                  layout="visual-card"
+                  size="small"
+                  label="网格"
+                  description="显示布局网格辅助对齐"
+                  active-icon="ri:grid-line"
+                  @change="devGridChange"
+                />
+                <ScSwitch
+                  v-model="settings.devHoverInspector"
+                  layout="visual-card"
+                  size="small"
+                  label="悬停检查"
+                  description="悬停显示元素标签、类名和尺寸"
+                  active-icon="ri:focus-3-line"
+                  @change="devHoverInspectorChange"
+                />
+                <ScSwitch
+                  v-model="settings.showDevAiSetting"
+                  layout="visual-card"
+                  size="small"
+                  label="显示 AI 设置"
+                  description="开发模式下是否在系统设置中展示 AI 相关配置"
+                  active-icon="ri:robot-2-line"
+                  @change="showDevAiSettingChange"
                 />
               </div>
             </div>
@@ -2570,7 +2905,17 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
-.monitor-display-settings {
+// 设置项 tip 触发器（用于“弹出位置”等简短提示）
+.setting-item-tip-trigger {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  cursor: help;
+  color: var(--el-text-color-secondary);
+}
+
+.setting-item-tip-icon {
+  font-size: 12px;
 }
 
 // 现代化动画关键帧

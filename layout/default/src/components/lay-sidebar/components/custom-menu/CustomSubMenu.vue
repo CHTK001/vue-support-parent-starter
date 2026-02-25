@@ -152,23 +152,21 @@ onUnmounted(() => {
       </span>
     </div>
     
-    <!-- 弹出层：使用 Teleport 渲染到 body -->
+    <!-- 弹出层：使用 Teleport 渲染到 body（去除过渡动画，避免弹出/关闭时的动效） -->
     <Teleport to="body">
-      <Transition name="custom-popper-fade">
-        <div
-          v-show="isOpen"
-          ref="popperRef"
-          class="custom-sub-menu__popper"
-          :class="popperClass"
-          :style="popperStyle"
-          @mouseenter="isOpen = true"
-          @mouseleave="handlePopperMouseLeave"
-        >
-          <div class="custom-sub-menu__content">
-            <slot />
-          </div>
+      <div
+        v-show="isOpen"
+        ref="popperRef"
+        class="custom-sub-menu__popper"
+        :class="popperClass"
+        :style="popperStyle"
+        @mouseenter="isOpen = true"
+        @mouseleave="handlePopperMouseLeave"
+      >
+        <div class="custom-sub-menu__content">
+          <slot />
         </div>
-      </Transition>
+      </div>
     </Teleport>
   </div>
 </template>
@@ -186,7 +184,6 @@ onUnmounted(() => {
     margin: 4px 0;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.25s ease;
     color: var(--custom-menu-text-color, var(--el-text-color-primary));
     background: var(--custom-menu-item-bg, transparent);
     
@@ -205,7 +202,6 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     margin-left: 8px;
-    transition: transform 0.3s ease;
     transform: rotate(90deg); // 默认向下
   }
   
@@ -245,17 +241,5 @@ onUnmounted(() => {
 
 .custom-sub-menu__content {
   // 内容区域，子组件会继承这里的样式变量
-}
-
-// 弹出动画
-.custom-popper-fade-enter-active,
-.custom-popper-fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.custom-popper-fade-enter-from,
-.custom-popper-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
 }
 </style>

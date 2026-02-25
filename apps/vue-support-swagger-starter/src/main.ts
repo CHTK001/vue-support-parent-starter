@@ -1,21 +1,3 @@
-// 在应用启动早期检测并设置深色主题与皮肤，避免FOUC问题
-(function () {
-  try {
-    const layoutConfig = JSON.parse(localStorage.getItem("layout") || "{}");
-    if (layoutConfig.darkMode) {
-      document.documentElement.classList.add("dark");
-    }
-    if (layoutConfig.themeSkin) {
-      document.documentElement.setAttribute(
-        "data-theme-skin",
-        layoutConfig.themeSkin
-      );
-    }
-  } catch (e) {
-    console.warn("Failed to set theme from localStorage:", e);
-  }
-})();
-
 import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
 import { router, setupStore } from "@repo/core";
 import App from "./App.vue";
@@ -23,6 +5,8 @@ import { useElementPlus } from "@repo/plugins";
 import { createApp } from "vue";
 // 字体加密指令
 import { vFontEncryption } from "@layout/default";
+// 字体加密：随机注册两个加密字体（对外名称保持固定且普通）
+import { registerEncryptedFonts } from "@repo/font-encryption";
 
 // 引入重置样式
 import "@repo/assets/style/layout/default/reset.scss";
@@ -35,6 +19,8 @@ const app = createApp(App);
 
 // 注册字体加密指令
 app.directive("font-encryption", vFontEncryption);
+
+void registerEncryptedFonts();
 
 getPlatformConfig(app).then(async config => {
   setupStore(app);

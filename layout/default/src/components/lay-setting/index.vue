@@ -8,16 +8,18 @@ import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultSetting from "./themes/Default.vue";
 
-// 主题组件映射 - 默认主题静态导入，其他主题懒加载
+// 主题组件映射 - 默认主题静态导入，其他存在的主题懒加载
 const themeComponents = {
-  'default': DefaultSetting,
-  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
-  'halloween': defineAsyncComponent(() => import("./themes/Halloween.vue")),
-  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
-  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
-  'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
-  'future-tech': defineAsyncComponent(() => import("./themes/FutureTech.vue")),
-  'pixel-art': DefaultSetting, // pixel-art 主题使用默认设置组件
+  default: DefaultSetting,
+  // 仅保留实际存在的未来科技主题，其余已删除的节日主题不再注册
+  "future-tech": defineAsyncComponent(() => import("./themes/FutureTech.vue")),
+  // 其他旧主题统一使用默认设置组件
+  "spring-festival": DefaultSetting,
+  halloween: DefaultSetting,
+  "mid-autumn": DefaultSetting,
+  christmas: DefaultSetting,
+  "new-year": DefaultSetting,
+  "8bit": DefaultSetting,
 };
 
 // 使用统一的主题切换 Hook

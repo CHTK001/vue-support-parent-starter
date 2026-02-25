@@ -6,6 +6,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useGlobal } from "@pureadmin/utils";
 import { getConfig } from "@repo/config";
 
 /**
@@ -36,24 +37,33 @@ const props = withDefaults(defineProps<Props>(), {
   animation: "bounce"
 });
 
-// 获取配置
+// 获取静态平台配置
 const config = getConfig();
+
+// 获取本地响应式存储（用于覆盖平台默认配置）
+const { $storage } = useGlobal();
 
 /**
  * 计算是否显示新增标识
  */
 const showBadge = computed(() => {
-  // 如果强制显示，直接返回true
+  // 强制显示时直接返回
   if (props.forceShow) {
     return true;
   }
 
-  // 检查全局配置是否启用新菜单显示
-  if (!config.ShowNewMenu) {
+  // 读取本地覆盖配置（优先级高于平台配置）
+  const localShow = $storage?.configure?.showNewMenu as boolean | undefined;
+  const enabled =
+    typeof localShow === "boolean"
+      ? localShow
+      : (config.ShowNewMenu ?? true);
+
+  if (!enabled) {
     return false;
   }
 
-  // 如果没有创建时间，不显示
+  // 没有创建时间则不显示
   if (!props.createTime) {
     return false;
   }
@@ -63,10 +73,14 @@ const showBadge = computed(() => {
   const now = new Date();
   const diffHours = (now.getTime() - createTime.getTime()) / (1000 * 60 * 60);
 
-  // 获取时间限制配置（默认168小时，即7天）
-  const timeLimit = config.NewMenuTimeLimit || 168;
+  // 从本地配置读取时间限制，未配置时回退到平台默认
+  const localLimit = $storage?.configure?.newMenuTimeLimit as number | undefined;
+  const timeLimit =
+    typeof localLimit === "number" && localLimit > 0
+      ? localLimit
+      : (config.NewMenuTimeLimit || 168);
 
-  // 如果在时间限制内，显示标识
+  // 在时间限制内才显示标识
   return diffHours <= timeLimit;
 });
 
@@ -74,9 +88,18 @@ const showBadge = computed(() => {
  * 标识文本
  */
 const badgeText = computed(() => {
+  // 单个菜单自定义文本优先
   if (props.customText) {
     return props.customText;
   }
+
+  // 本地设置面板中的文本优先于平台默认配置
+  const localText = $storage?.configure?.newMenuText as string | undefined;
+  if (localText && localText.trim().length > 0) {
+    return localText.trim();
+  }
+
+  // 平台配置或默认值
   return config.NewMenuText || "new";
 });
 

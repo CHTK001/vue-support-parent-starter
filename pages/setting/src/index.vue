@@ -52,17 +52,8 @@ const drawerVisible = reactive({
   group: false,
   history: false,
 });
-// 默认配置项（作为后备）
+// 默认配置项（作为后备）——高频功能优先展示
 const defaultProductsConfig = [
-  {
-    group: "group",
-    description: "管理系统配置分组",
-    name: "系统组设置",
-    isSetup: true,
-    type: 4,
-    icon: "mdi:tune-variant",
-    hide: false,
-  },
   {
     group: "default",
     description: t("product.default"),
@@ -88,6 +79,15 @@ const defaultProductsConfig = [
     isSetup: true,
     type: 7,
     icon: "ri:history-line",
+    hide: false,
+  },
+  {
+    group: "group",
+    description: "管理系统配置分组",
+    name: "系统组设置",
+    isSetup: true,
+    type: 4,
+    icon: "mdi:tune-variant",
     hide: false,
   },
 ];
@@ -332,8 +332,17 @@ const loadProductsConfig = async () => {
       // 过滤掉远程配置中的 default 和 group 项（如果存在）
       const filteredApiGroups = apiGroups.filter((item) => item.group !== "default" && item.group !== "group");
 
-      // 合并配置：group（系统组设置）第一位 + default（基础配置）第二位 + 其他默认配置 + 远程配置
-      productsConfig.splice(0, productsConfig.length, groupItem, defaultItem, ...otherDefaults, ...filteredApiGroups);
+      // 合并配置：default（基础配置）第一位 + 其他默认配置（主题、历史等）+ group（系统组设置）最后 + 远程配置
+      const mergedConfig = [];
+      if (defaultItem) {
+        mergedConfig.push(defaultItem);
+      }
+      mergedConfig.push(...otherDefaults);
+      if (groupItem) {
+        mergedConfig.push(groupItem);
+      }
+      mergedConfig.push(...filteredApiGroups);
+      productsConfig.splice(0, productsConfig.length, ...mergedConfig);
     } else {
       // 接口失败时使用默认配置
       productsConfig.splice(0, productsConfig.length, ...defaultProductsConfig);

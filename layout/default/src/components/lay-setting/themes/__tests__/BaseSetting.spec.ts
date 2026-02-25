@@ -44,11 +44,12 @@ const {
       doubleNavAutoExpandAll: true,
       aiChatTheme: 'default',
       enableFestivalTheme: false,
+      // 字体加密默认开启，所有子项默认开启
       fontEncryptionEnabled: true,
       fontEncryptionNumbers: true,
       fontEncryptionChinese: true,
-      fontEncryptionGlobal: false,
-      fontEncryptionOcrNoise: false
+      fontEncryptionGlobal: true,
+      fontEncryptionOcrNoise: true
     },
     layout: {
       layout: 'vertical',

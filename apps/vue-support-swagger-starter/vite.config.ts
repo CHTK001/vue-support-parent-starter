@@ -1,6 +1,7 @@
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
-  root,
   wrapperEnv,
   pathResolve,
   createAlias,
@@ -11,15 +12,18 @@ import {
 } from "@repo/build-config";
 import pkg from "./package.json";
 
+// 当前应用的根目录（vite.config.ts 所在目录）
+const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), ".");
+
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
-  const env = loadEnv(newMode, root);
+  const env = loadEnv(newMode, appRoot);
   console.log("当前启动模式:" + newMode);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
 
   return {
     base: VITE_PUBLIC_PATH,
-    root,
+    root: appRoot,
     resolve: {
       alias: createAlias(import.meta.url),
       dedupe: ["vue", "vue-router", "vue-i18n"],

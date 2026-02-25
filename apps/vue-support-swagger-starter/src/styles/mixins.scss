@@ -1,0 +1,63 @@
+/**
+ * 公共样式 Mixins（Swagger 应用）
+ * 与其他前端应用保持基础布局与卡片样式一致
+ */
+
+@use "./variables.scss" as *;
+@forward "./variables.scss";
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-align-center {
+  display: flex;
+  align-items: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-ellipsis-multiline($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@mixin card-base {
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  border: 1px solid $border-light;
+  transition: all $duration-normal $ease-standard;
+}
+
+@mixin card-hover {
+  &:hover {
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+  }
+}
+
+@mixin card-style {
+  @include card-base;
+  @include card-hover;
+}

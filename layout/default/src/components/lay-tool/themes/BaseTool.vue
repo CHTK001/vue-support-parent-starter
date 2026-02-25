@@ -9,7 +9,7 @@ import UserDropdown from "../dropdowns/UserDropdown.vue";
 import Setting from "@iconify-icons/ri/settings-3-line";
 import { getConfig } from "@repo/config";
 import { emitter } from "@repo/core";
-import { ref, onBeforeUnmount, computed } from "vue";
+import { ref, onBeforeUnmount, onMounted, computed } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 
 // 接收主题类名
@@ -23,7 +23,7 @@ const { onPanel } = useNav();
 const { t } = useTranslationLang();
 
 // 当前主题 - 用于节日主题按钮显示
-const storageTheme = computed(() => $storage?.configure?.systemTheme || 'default');
+const storageTheme = computed(() => $storage?.configure?.systemTheme || "default");
 const currentTheme = ref<string>(storageTheme.value);
 
 const handleThemeChange = (themeKey: string) => {
@@ -34,13 +34,37 @@ const handleThemeChange = (themeKey: string) => {
 emitter.on("systemThemeChange", handleThemeChange);
 
 // 主题判断函数
-const isSpringFestival = () => currentTheme.value === 'spring-festival';
-const isMidAutumn = () => currentTheme.value === 'mid-autumn';
-const isHalloween = () => currentTheme.value === 'halloween';
+const isSpringFestival = () => currentTheme.value === "spring-festival";
+const isMidAutumn = () => currentTheme.value === "mid-autumn";
+const isHalloween = () => currentTheme.value === "halloween";
 
 // 界面元素显示状态 - 从存储中读取初始值
-const showSearch = ref($storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true);
+const showSearch = ref(
+  $storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true,
+);
 const showFullscreen = ref($storage.configure?.showFullscreen ?? true);
+const showHeaderClock = ref(
+  $storage.configure?.showHeaderClock ?? false,
+);
+
+const headerClockText = ref<string>("");
+let headerClockTimer: ReturnType<typeof setInterval> | null = null;
+
+function updateHeaderClock(): void {
+  const now = new Date();
+  const hours = `${now.getHours()}`.padStart(2, "0");
+  const minutes = `${now.getMinutes()}`.padStart(2, "0");
+  const seconds = `${now.getSeconds()}`.padStart(2, "0");
+  headerClockText.value = `${hours}:${minutes}:${seconds}`;
+}
+
+function startHeaderClock(): void {
+  if (headerClockTimer) {
+    return;
+  }
+  updateHeaderClock();
+  headerClockTimer = setInterval(updateHeaderClock, 1000);
+}
 
 // 监听界面元素显示设置变化
 emitter.on("showSearchChange", (val: boolean) => {
@@ -49,12 +73,29 @@ emitter.on("showSearchChange", (val: boolean) => {
 emitter.on("showFullscreenChange", (val: boolean) => {
   showFullscreen.value = val;
 });
+emitter.on("showHeaderClockChange", (val: boolean) => {
+  showHeaderClock.value = val;
+  if (val) {
+    startHeaderClock();
+  }
+});
+
+onMounted(() => {
+  if (showHeaderClock.value) {
+    startHeaderClock();
+  }
+});
 
 // 清理事件监听
 onBeforeUnmount(() => {
   emitter.off("showSearchChange");
   emitter.off("showFullscreenChange");
   emitter.off("systemThemeChange", handleThemeChange);
+  emitter.off("showHeaderClockChange");
+  if (headerClockTimer) {
+    clearInterval(headerClockTimer);
+    headerClockTimer = null;
+  }
 });
 </script>
 
@@ -86,6 +127,15 @@ onBeforeUnmount(() => {
 
     <!-- 用户头像下拉菜单 - 组件化 -->
     <UserDropdown />
+
+    <!-- 顶部时间显示（主要用于全屏/大屏场景） -->
+    <div
+      v-if="showHeaderClock"
+      class="tool-item header-clock"
+      aria-label="当前时间"
+    >
+      {{ headerClockText }}
+    </div>
 
     <!-- 系统设置 -->
     <span
@@ -181,6 +231,15 @@ onBeforeUnmount(() => {
       animation: spin 3s linear infinite;
     }
   }
+}
+
+.header-clock {
+  min-width: 88px;
+  padding: 0 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
+  justify-content: flex-start;
 }
 
 .fu-setting {

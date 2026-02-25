@@ -6,6 +6,7 @@
 import { computed, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { useThemeStore } from "../stores/themeStore";
+import { useDataThemeChange } from "./useDataThemeChange";
 import type { ThemeKey, ThemeComponentMap } from "../types/theme";
 import type { Component } from "vue";
 
@@ -62,17 +63,49 @@ export function useThemeComponent<T extends Component>(
 export function useTheme() {
   const themeStore = useThemeStore();
   const { currentTheme } = storeToRefs(themeStore);
+  const {
+    dataTheme,
+    overallStyle,
+    layoutTheme,
+    themeColors,
+    dataThemeChange,
+    setLayoutThemeColor,
+    toggleClass,
+  } = useDataThemeChange();
 
   onMounted(() => {
     themeStore.initThemeListener();
   });
 
   return {
+    // 主题皮肤层（节日/高级主题）
     currentTheme,
     themeConfig: themeStore.themeConfig,
     isDefaultTheme: themeStore.isDefaultTheme,
     isFestivalTheme: themeStore.isFestivalTheme,
     availableThemes: themeStore.availableThemes,
     setTheme: themeStore.setTheme,
+    // 全局暗黑 & 整体风格（统一出口）
+    isDark: dataTheme,
+    dataTheme,
+    overallStyle,
+    layoutTheme,
+    themeColors,
+    applyOverallStyle: dataThemeChange,
+    setLayoutThemeColor,
+    toggleClass,
+    // 性能监控等扩展配置透出，避免各处单独依赖 themeStore
+    fpsMonitorEnabled: themeStore.fpsMonitorEnabled,
+    memoryMonitorEnabled: themeStore.memoryMonitorEnabled,
+    cpuMonitorEnabled: themeStore.cpuMonitorEnabled,
+    bandwidthMonitorEnabled: themeStore.bandwidthMonitorEnabled,
+    batteryMonitorEnabled: themeStore.batteryMonitorEnabled,
+    bluetoothMonitorEnabled: themeStore.bluetoothMonitorEnabled,
+    screenMonitorEnabled: themeStore.screenMonitorEnabled,
+    performanceMonitorPosition: themeStore.performanceMonitorPosition,
+    performanceMonitorMode: themeStore.performanceMonitorMode,
+    performanceMonitorLayout: themeStore.performanceMonitorLayout,
+    performanceMonitorDirection: themeStore.performanceMonitorDirection,
+    isPerformanceMonitorVisible: themeStore.isPerformanceMonitorVisible,
   };
 }

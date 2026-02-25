@@ -17,8 +17,6 @@ const props = defineProps({
   }
 });
 
-const $slots = useSlots();
-
 const textRef = ref();
 const tippyFunc = ref();
 
@@ -32,9 +30,17 @@ const isTextEllipsis = (el: HTMLElement) => {
   }
 };
 
+const getTooltipContent = () => {
+  const el = (textRef.value?.$el ?? textRef.value) as HTMLElement | undefined;
+  if (el) {
+    return el.innerText;
+  }
+  return (props.tippyProps as TippyOptions)?.content ?? "";
+};
+
 const getTippyProps = () => ({
-  content: h(($slots.content || $slots.default) as any),
-  ...props.tippyProps
+  ...props.tippyProps,
+  content: getTooltipContent()
 });
 
 function handleHover(event: MouseEvent) {

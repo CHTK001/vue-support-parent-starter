@@ -4,9 +4,6 @@
     :style="providerStyles"
   >
     <slot />
-    
-    <!-- FPS Monitor -->
-    <FpsMonitor v-if="fpsMonitorEnabled" :visible="true" />
   </div>
 </template>
 
@@ -14,26 +11,24 @@
 /**
  * 主题皮肤提供者组件 - 增强版
  * 支持动态 CSS 变量注入、Glassmorphism 效果和响应式主题切换
- *
- * @author CH
- * @date 2025-12-12
- * @version 2.0.0
  */
 
-import { computed, onMounted, ref, watch, defineAsyncComponent } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useGlobal } from "@pureadmin/utils";
-import { useThemeStore } from "../stores/themeStore";
-import { storeToRefs } from "pinia";
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
-const FpsMonitor = defineAsyncComponent(() => import("../components/lay-performance/FpsMonitor.vue"));
-const themeStore = useThemeStore();
-const { fpsMonitorEnabled } = storeToRefs(themeStore);
 
 /**
- * 当前主题皮肤
+ * 主题 key 归一化（兼容旧值）
+ * @param themeKey 原始主题 key
  */
-const currentTheme = ref<string>($storage?.configure?.systemTheme ?? "default");
+const normalizeThemeKey = (themeKey?: string | null): string => {
+  if (!themeKey) return "default";
+  if (themeKey === "pixel-art" || themeKey === "8-bit") return "8bit";
+  return themeKey;
+};
+
+const currentTheme = ref<string>(normalizeThemeKey($storage?.configure?.systemTheme));
 
 /**
  * 计算动态样式
@@ -57,8 +52,9 @@ watch(
   () => $storage?.configure?.systemTheme,
   (newTheme) => {
     if (newTheme) {
-      currentTheme.value = newTheme;
-      applyThemeSkin(newTheme);
+      const normalizedTheme = normalizeThemeKey(newTheme);
+      currentTheme.value = normalizedTheme;
+      applyThemeSkin(normalizedTheme);
     }
   }
 );
@@ -79,8 +75,7 @@ const applyThemeSkin = (themeKey: string): void => {
     "theme-national-day",
     "theme-new-year",
     "theme-halloween",
-    "theme-pixel-art",
-    "theme-8-bit",
+    "theme-8bit",
     "theme-future-tech",
   ];
 

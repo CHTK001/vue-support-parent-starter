@@ -1,81 +1,31 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed } from "vue";
+import { useFullscreen } from "@vueuse/core";
 import ExitFullscreenIcon from "@iconify-icons/ri/fullscreen-exit-fill";
 import FullscreenIcon from "@iconify-icons/ri/fullscreen-fill";
 import { message } from "@repo/utils";
 
-const isFullscreen = ref(false);
-
-const updateState = () => {
-  isFullscreen.value = !!(
-    document.fullscreenElement ||
-    (document as any).webkitFullscreenElement ||
-    (document as any).mozFullScreenElement ||
-    (document as any).msFullscreenElement
-  );
-};
+// 使用 @vueuse/core 提供的全屏控制，自动处理多浏览器兼容
+const { isFullscreen, toggle: vueUseToggle } = useFullscreen();
 
 const toggle = async (event?: Event) => {
   if (event) {
     event.preventDefault();
     event.stopPropagation();
   }
-  
-  const element = document.documentElement;
+
   try {
-    if (isFullscreen.value) {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        await (document as any).webkitExitFullscreen();
-      } else if ((document as any).mozCancelFullScreen) {
-        await (document as any).mozCancelFullScreen();
-      } else if ((document as any).msExitFullscreen) {
-        await (document as any).msExitFullscreen();
-      }
-    } else {
-      if (element.requestFullscreen) {
-        await element.requestFullscreen();
-      } else if ((element as any).webkitRequestFullscreen) {
-        await (element as any).webkitRequestFullscreen();
-      } else if ((element as any).mozRequestFullScreen) {
-        await (element as any).mozRequestFullScreen();
-      } else if ((element as any).msRequestFullscreen) {
-        await (element as any).msRequestFullscreen();
-      }
-    }
-    // 手动更新状态，确保立即反映变化
-    setTimeout(() => {
-      updateState();
-    }, 100);
+    await vueUseToggle();
   } catch (err: any) {
     console.error("全屏切换错误:", err);
-    message(`全屏切换失败: ${err.message || "不支持全屏或被浏览器拦截"}`, { type: "error" });
+    message(
+      `全屏切换失败: ${err?.message || "浏览器不支持或被拦截，可尝试按键盘 F11 进入全屏"}`,
+      { type: "error" }
+    );
   }
 };
 
-onMounted(() => {
-  const events = [
-    "fullscreenchange",
-    "webkitfullscreenchange",
-    "mozfullscreenchange",
-    "MSFullscreenChange"
-  ];
-  events.forEach(event => document.addEventListener(event, updateState));
-  updateState();
-});
-
-onUnmounted(() => {
-  const events = [
-    "fullscreenchange",
-    "webkitfullscreenchange",
-    "mozfullscreenchange",
-    "MSFullscreenChange"
-  ];
-  events.forEach(event => document.removeEventListener(event, updateState));
-});
-
-const screenIcon = computed(() => 
+const screenIcon = computed(() =>
   isFullscreen.value ? ExitFullscreenIcon : FullscreenIcon
 );
 </script>

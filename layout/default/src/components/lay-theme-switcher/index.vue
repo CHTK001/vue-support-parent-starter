@@ -4,9 +4,6 @@ import { layoutThemes, loadThemeStylesheet } from '../../themes';
 import ScRibbon from '@repo/components/ScRibbon/index.vue';
 import { themeManager } from '../../utils/theme-manager';
 
-// 导入春节标签页样式
-import '../lay-tag/themes/spring-festival.css';
-
 interface ThemeItem {
   name: string;
   key: string;
