@@ -1,8 +1,10 @@
 <template>
   <div
     v-if="enabled"
+    ref="el"
     class="ai-chat-container"
     :class="[`position-${position}`, `theme-${theme}`, `skin-${skin}`]"
+    :style="style"
   >
     <!-- AI 机器人图标 -->
     <div class="ai-bot-trigger" @click="toggleChat">
@@ -15,7 +17,7 @@
     <!-- 聊天窗口 -->
     <transition name="chat-slide">
       <div v-if="isOpen" class="ai-chat-window">
-        <div class="ai-chat-header">
+        <div ref="handle" class="ai-chat-header">
           <div class="ai-chat-title">
             <component :is="currentSkinIcon" class="title-icon" />
             <span>AI 助手</span>
@@ -77,6 +79,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch } from "vue";
+import { useDraggable } from "@vueuse/core";
 import { useGlobal } from "@pureadmin/utils";
 
 // 皮肤图标组件
@@ -88,6 +91,15 @@ const PandaIcon = { template: '<div class="skin-panda">🐼</div>' };
 const UserIcon = { template: '<div class="skin-user">👤</div>' };
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+
+// 拖拽相关
+const el = ref<HTMLElement | null>(null);
+const handle = ref<HTMLElement | null>(null);
+const { style } = useDraggable(el, {
+  handle,
+  preventDefault: true,
+  stopPropagation: true,
+});
 
 const enabled = ref($storage?.configure?.aiChatEnabled ?? false);
 const position = ref($storage?.configure?.aiChatPosition ?? "bottom-right");
@@ -101,7 +113,8 @@ const inputMessage = ref("");
 const messages = ref<Array<{ role: string; content: string }>>([
   {
     role: "assistant",
-    content: "你好！我是 AI 助手，有什么可以帮助你的吗？",
+    content:
+      "你好！我是 AI 助手 🤖\n\n我使用 Hugging Face 的免费 AI 模型为您服务。\n\n💡 使用提示：\n- 首次使用时模型需要加载（约 20 秒）\n- 无需 API Key 即可使用\n- 可在系统设置中自定义模型\n\n有什么可以帮助你的吗？",
   },
 ]);
 const isLoading = ref(false);
@@ -149,17 +162,95 @@ const sendMessage = async () => {
   });
 
   try {
-    // 模拟 API 调用
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // 默认使用 Hugging Face 免费推理 API
+    const defaultApiUrl =
+      "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-7B-Instruct";
+    const url = apiUrl.value || defaultApiUrl;
+
+    // 构建对话历史（只保留最近 10 条消息以节省 token）
+    const conversationHistory = messages.value.slice(-10).map((msg) => ({
+      role: msg.role === "user" ? "user" : "assistant",
+      content: msg.content,
+    }));
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // 如果配置了 API Key，则添加到请求头
+    if (apiKey.value) {
+      headers["Authorization"] = `Bearer ${apiKey.value}`;
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        inputs: userMessage,
+        parameters: {
+          max_new_tokens: 512,
+          temperature: 0.7,
+          top_p: 0.95,
+          return_full_text: false,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+
+      // 处理常见错误
+      if (response.status === 503) {
+        throw new Error("模型正在加载中，请稍后再试（约 20 秒）");
+      } else if (response.status === 429) {
+        throw new Error("请求过于频繁，请稍后再试");
+      } else if (response.status === 401) {
+        throw new Error("API Key 无效或已过期");
+      } else {
+        throw new Error(errorData.error || `请求失败: ${response.status}`);
+      }
+    }
+
+    const data = await response.json();
+
+    // 处理不同的响应格式
+    let assistantMessage = "";
+    if (Array.isArray(data) && data.length > 0) {
+      assistantMessage =
+        data[0].generated_text || data[0].text || "抱歉，我无法生成回复。";
+    } else if (data.generated_text) {
+      assistantMessage = data.generated_text;
+    } else if (data.text) {
+      assistantMessage = data.text;
+    } else if (typeof data === "string") {
+      assistantMessage = data;
+    } else {
+      assistantMessage = "抱歉，我无法理解服务器的响应。";
+    }
 
     messages.value.push({
       role: "assistant",
-      content: "这是一个示例回复。请配置 API Key 和 URL 以使用真实的 AI 服务。",
+      content: assistantMessage.trim(),
     });
   } catch (error) {
+    console.error("AI Chat Error:", error);
+
+    let errorMessage = "抱歉，发生了错误。";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    // 如果是网络错误，提供更友好的提示
+    if (
+      errorMessage.includes("Failed to fetch") ||
+      errorMessage.includes("NetworkError")
+    ) {
+      errorMessage = "网络连接失败，请检查您的网络设置。";
+    }
+
     messages.value.push({
       role: "assistant",
-      content: "抱歉，发生了错误。请检查您的 API 配置。",
+      content: `❌ ${errorMessage}\n\n💡 提示：\n- 首次使用时模型需要加载（约 20 秒）\n- 可以在系统设置中配置自定义 API URL\n- 默认使用 Hugging Face 免费推理 API`,
     });
   } finally {
     isLoading.value = false;
@@ -260,6 +351,9 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: move;
+  user-select: none;
+  touch-action: none;
 }
 
 .ai-chat-title {
