@@ -8,7 +8,6 @@
 
 // 导入浅色主题颜色（默认）
 @use './default-theme';
-@use './stitch-theme-light';
 
 // 导入深色主题完整样式（整合了颜色变量和组件样式）
 @use './dark-theme'; 

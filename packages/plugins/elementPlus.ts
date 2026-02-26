@@ -249,7 +249,6 @@ const existingScComponentNames = new Set<string>([
   "ScDrawer",
   "ScDymaicTable",
   "ScEcharts",
-  "ScEchartsMap3D",
   "ScEditor",
   "ScFile",
   "ScFilterBar",

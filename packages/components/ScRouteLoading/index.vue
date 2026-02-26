@@ -47,7 +47,9 @@ const loaderStyles = {
   rings: { name: "彩色圆环" },
   simple: { name: "简约圆环" },
   pulse: { name: "脉冲圆点" },
-  blocks: { name: "跳动方块" }
+  blocks: { name: "跳动方块" },
+  book: { name: "翻书" },
+  writing: { name: "书写加载条" }
 };
 
 const getPreviewHTML = (key: string) => {
@@ -58,7 +60,11 @@ const getPreviewHTML = (key: string) => {
     simple: '<div style="width:30px;height:30px;border:3px solid rgba(64,110,235,0.2);border-top-color:#406eeb;border-radius:50%"></div>',
     pulse: '<div style="width:16px;height:16px;background:#406eeb;border-radius:50%"></div>',
     blocks:
-      '<div style="display:flex;gap:3px"><div style="width:8px;height:8px;background:#406eeb;border-radius:2px"></div><div style="width:8px;height:8px;background:#406eeb;border-radius:2px"></div><div style="width:8px;height:8px;background:#406eeb;border-radius:2px"></div></div>'
+      '<div style="display:flex;gap:3px"><div style="width:8px;height:8px;background:#406eeb;border-radius:2px"></div><div style="width:8px;height:8px;background:#406eeb;border-radius:2px"></div><div style="width:8px;height:8px;background:#406eeb;border-radius:2px"></div></div>',
+    book:
+      '<div style="width:24px;height:20px;border-radius:2px;border:1px solid #e5e7eb;background:linear-gradient(90deg,#f3f4f6 0%,#ffffff 50%,#f3f4f6 100%);position:relative;overflow:hidden"><div style="position:absolute;inset:2px 4px;border-radius:2px;border-left:1px solid #d1d5db"></div></div>',
+    writing:
+      '<div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:32px"><div style="width:100%;height:2px;background:#e5e7eb;border-radius:999px;overflow:hidden"><div style="width:60%;height:100%;background:#406eeb"></div></div><div style="width:80%;height:2px;background:#e5e7eb;border-radius:999px"></div><div style="width:50%;height:2px;background:#e5e7eb;border-radius:999px"></div></div>'
   };
   return previews[key] || previews.default;
 };
@@ -94,12 +100,14 @@ const hideHTMLLoader = () => {
 
 const getLoaderHTML = (type: string) => {
   const loaders: Record<string, string> = {
-    default: '<div class="loader"></div>',
-    rings: '<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div></div>',
-    simple: '<div class="simple-spinner"></div>',
-    pulse: '<div class="pulse-loader"></div>',
-    blocks: '<div class="blocks-loader"><div class="block"></div><div class="block"></div><div class="block"></div></div>'
-  };
+  default: '<div class="loader"></div>',
+  rings: '<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div></div>',
+  simple: '<div class="simple-spinner"></div>',
+  pulse: '<div class="pulse-loader"></div>',
+  blocks: '<div class="blocks-loader"><div class="block"></div><div class="block"></div><div class="block"></div></div>',
+  book: '<div class="book-loader"><div class="book"><div class="page"></div><div class="page"></div><div class="page"></div></div></div>',
+  writing: '<div class="writing-loader"><div class="pen">✒️</div><div class="paper"><div class="line"></div><div class="line"></div><div class="line"></div></div></div>'
+};
   return loaders[type] || loaders.default;
 };
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import { ElMessage } from "element-plus";
 import { LOADER_STYLES } from "@repo/components/ScRouteLoading/loader-manager";
 
@@ -17,14 +16,6 @@ const currentValue = ref<string>(
   props.modelValue || localStorage.getItem("sys-loader-style") || "default",
 );
 
-const loaderOptions = computed<Array<OptionsType>>(() =>
-  Object.entries(LOADER_STYLES).map(([value, item]) => ({
-    label: item.name,
-    tip: item.description,
-    value,
-  })),
-);
-
 const loaderEntries = computed(() =>
   Object.entries(LOADER_STYLES).map(([key, item]) => ({
     key,
@@ -36,12 +27,10 @@ const loaderEntries = computed(() =>
 
 let previewStyleTag: HTMLStyleElement | null = null;
 
-function applyPreviewStyle(type: string): void {
+function applyAllPreviewStyles(): void {
   if (typeof window === "undefined") {
     return;
   }
-
-  const loader = LOADER_STYLES[type] || LOADER_STYLES.default;
 
   if (!previewStyleTag) {
     previewStyleTag = document.createElement("style");
@@ -49,15 +38,11 @@ function applyPreviewStyle(type: string): void {
     document.head.appendChild(previewStyleTag);
   }
 
-  previewStyleTag.textContent = loader.css;
-}
+  const allCss = Object.values(LOADER_STYLES)
+    .map((item) => item.css)
+    .join("\n");
 
-function handleChange({ option }: { option: OptionsType }): void {
-  const value = option.value as string;
-  if (!value || value === currentValue.value) {
-    return;
-  }
-  setCurrentValue(value);
+  previewStyleTag.textContent = allCss;
 }
 
 function handleCardClick(key: string): void {
@@ -71,7 +56,6 @@ function setCurrentValue(value: string): void {
   currentValue.value = value;
   emit("update:modelValue", value);
   localStorage.setItem("sys-loader-style", value);
-  applyPreviewStyle(value);
 
   ElMessage.success({
     message: "加载样式已更改，刷新页面后生效",
@@ -84,13 +68,12 @@ watch(
   (val) => {
     if (val && val !== currentValue.value) {
       currentValue.value = val;
-      applyPreviewStyle(val);
     }
   },
 );
 
 onMounted(() => {
-  applyPreviewStyle(currentValue.value);
+  applyAllPreviewStyles();
 });
 
 onUnmounted(() => {
@@ -112,14 +95,7 @@ onUnmounted(() => {
       <div class="setting-item">
         <div class="setting-item-label">
           <span>动画样式</span>
-          <span class="setting-item-desc">更改后需刷新页面生效</span>
-        </div>
-        <div class="setting-item-control">
-          <Segmented
-            :model-value="currentValue"
-            :options="loaderOptions"
-            @change="handleChange"
-          />
+          <span class="setting-item-desc">点击下方预览进行选择，更改后需刷新页面生效</span>
         </div>
       </div>
 

@@ -88,17 +88,14 @@ const watermarkContainerRef = ref<HTMLElement>();
 const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 // ===== Composables =====
 // 加载页逻辑
-const {
-  isConfigLoaded,
-  isFirstLoad,
-  loadConfig,
-} = useLoadingPage();
+const { isConfigLoaded, isFirstLoad, loadConfig } = useLoadingPage();
 
 // 水印功能
 const { initWatermark } = useWatermarkSetup(watermarkContainerRef);
 
 // 调试模式
-const { debugMode, setDebugConsoleRef, handleDebugConsoleClose } = useDebugMode();
+const { debugMode, setDebugConsoleRef, handleDebugConsoleClose } =
+  useDebugMode();
 setDebugConsoleRef(debugConsoleRef);
 
 const pureSetting = useSettingStoreHook();
@@ -144,7 +141,11 @@ const layout = computed(() => {
 // 响应式布局
 const { isMobile, initResponsiveObserver, initMobile } = useResponsiveLayout(
   appWrapperRef,
-  { get isClickCollapse() { return set.sidebar.isClickCollapse; } },
+  {
+    get isClickCollapse() {
+      return set.sidebar.isClickCollapse;
+    },
+  },
 );
 
 // 监听 AI 助手皮肤变更
@@ -302,12 +303,18 @@ function getNewUrl(reg: RegExp): string {
 // 在 setup 顶层执行，但不使用异步导入
 if (!(window as any).__THEME_INITIALIZED__) {
   try {
-    const systemTheme = $storage?.configure?.systemTheme || "default" as ThemeKey;
-    const normalizedTheme = systemTheme === "8bit" as ThemeKey ? "8bit" : systemTheme;
+    const systemTheme =
+      $storage?.configure?.systemTheme || ("default" as ThemeKey);
+
+    // 直接使用保存的主题，如果没有则使用 default
+    const normalizedTheme = systemTheme;
+
+    // 设置 data-skin 属性
     document.documentElement.setAttribute("data-skin", normalizedTheme);
+
     (window as any).__THEME_INITIALIZED__ = true;
   } catch (error) {
-    // 忽略主题初始化错误
+    console.error("[App] Theme initialization error:", error);
   }
 }
 
@@ -405,7 +412,10 @@ const LayHeader = defineComponent({
               pureSetting.hiddenSideBar ? 'main-hidden' : '',
             ]"
           >
-            <div v-if="set.fixedHeader" style="display: flex; flex-direction: column; flex: 1">
+            <div
+              v-if="set.fixedHeader"
+              style="display: flex; flex-direction: column; flex: 1"
+            >
               <LayHeader />
               <!-- 主体内容 -->
               <div style="flex: 1">
@@ -449,7 +459,10 @@ const LayHeader = defineComponent({
             pureSetting.hiddenSideBar ? 'main-hidden' : '',
           ]"
         >
-          <div v-if="set.fixedHeader" style="display: flex; flex-direction: column; flex: 1">
+          <div
+            v-if="set.fixedHeader"
+            style="display: flex; flex-direction: column; flex: 1"
+          >
             <LayHeader />
             <!-- 主体内容 -->
             <div style="flex: 1">

@@ -115,6 +115,7 @@ export default {
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { GridType } from "../composables/GridManager";
 import type { ToolbarObject } from "../composables/ToolbarObject";
 import type { ToolItem, ToolbarConfig } from "../types";
@@ -166,6 +167,15 @@ const visibleTools = computed<ToolItem[]>(() => {
   const items = props.toolbarConfig.items || [];
   return Array.isArray(items) ? items.filter(tool => tool.show !== false) : [];
 });
+
+// 判断图标配置是否为 SVG 字符串
+const isSvgString = (icon: unknown): boolean => {
+  if (typeof icon !== "string") {
+    return false;
+  }
+  const value = icon.trim().toLowerCase();
+  return value.startsWith("<svg");
+};
 
 // 修改isToolActive方法，增强对子菜单项激活状态的判断
 const isToolActive = (toolId: string): boolean => {
@@ -316,7 +326,9 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
 
   // 2D/3D切换按钮
   if (tool.id === "dimension-switch") {
+    // 兼容两种事件命名，保证外层无多余事件监听告警
     emit("toggle-3d");
+    emit("toggle3d");
     return;
   }
 
@@ -694,8 +706,18 @@ const handleSubmenuItemClick = (parentTool: ToolItem, subTool: ToolItem, event: 
   closeAllSubMenus();
 };
 
-// 重新声明emit
-const emit = defineEmits(["tool-click", "tool-activated", "tool-deactivated", "collapse-change", "submenu-open", "submenu-close", "submenu-item-click", "toggle-3d"]);
+// 重新声明emit，兼容 toggle-3d 与 toggle3d 两种事件命名
+const emit = defineEmits([
+  "tool-click",
+  "tool-activated",
+  "tool-deactivated",
+  "collapse-change",
+  "submenu-open",
+  "submenu-close",
+  "submenu-item-click",
+  "toggle-3d",
+  "toggle3d"
+]);
 
 // 重新声明globalClickListener
 let globalClickListener: ((e: MouseEvent) => void) | null = null;
