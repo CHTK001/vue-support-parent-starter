@@ -790,8 +790,8 @@ const components = [
     icon: "ri:node-tree",
     category: "other",
     tags: ["可视化", "编辑器"],
-    description: "可视化节点编辑器组件，基于 Rete.js，支持节点拖拽、连接、小地图、右键菜单等功能（独立页面）",
-    route: "/example/rete-editor",
+    description: "可视化节点编辑器组件，基于 Rete.js，支持节点拖拽、连接、小地图、右键菜单等功能",
+    component: resolveComponent("./components/ScReteEditorExample.vue"),
   },
   {
     name: "ScAlert",
