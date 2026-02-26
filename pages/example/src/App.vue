@@ -1,5 +1,6 @@
 <template>
   <div class="system-container modern-bg app">
+    <ScRouteLoading />
     <header class="page-header">
       <div class="header-content">
         <div class="header-left">
@@ -31,6 +32,7 @@
 
 <script setup>
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScRouteLoading } from "@repo/components/ScRouteLoading";
 </script>
 
 <style scoped lang="scss">
@@ -74,7 +76,11 @@ import { IconifyIconOnline } from "@repo/components/ReIcon";
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
   border-radius: 12px;
   font-size: 24px;
   color: white;

@@ -4,6 +4,7 @@ import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { saveAs } from "file-saver";
 import QRCode from "qrcode";
+import { ScSlider } from "@repo/components";
 
 // 国际化
 const { t } = useI18n();
@@ -661,7 +662,7 @@ onMounted(() => {
 
                   <!-- 二维码大小 -->
                   <el-form-item label="二维码大小">
-                    <el-slider v-model="env.qrSize" :min="128" :max="512" :step="8" show-input :format-tooltip="(value) => `${value}px`" />
+                    <ScSlider v-model="env.qrSize" :min="128" :max="512" :step="8" show-input :format-tooltip="(value) => `${value}px`" />
                   </el-form-item>
 
                   <!-- 颜色选择 -->
@@ -710,7 +711,7 @@ onMounted(() => {
                         </el-upload>
                       </div>
 
-                      <el-slider v-if="env.logoPreview" v-model="env.logoSize" :min="20" :max="120" :step="5" :format-tooltip="(value) => `${value}px`" @change="generateQRCode" />
+                      <ScSlider v-if="env.logoPreview" v-model="env.logoSize" :min="20" :max="120" :step="5" :format-tooltip="(value) => `${value}px`" @change="generateQRCode" />
                     </div>
                   </el-form-item>
                   <!-- 输出格式 -->
@@ -727,7 +728,7 @@ onMounted(() => {
 
                   <!-- 边距设置 -->
                   <el-form-item label="边距">
-                    <el-slider v-model="env.margin" :min="0" :max="10" :step="1" show-input />
+                    <ScSlider v-model="env.margin" :min="0" :max="10" :step="1" show-input />
                   </el-form-item>
                 </el-form>
               </el-card>

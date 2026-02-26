@@ -1,10 +1,13 @@
 <template>
   <div
     class="pill-selector-item"
-    :class="{
-      active: isSelected,
-      disabled: isDisabled
-    }"
+    :class="[
+      {
+        active: isSelected,
+        disabled: isDisabled
+      },
+      `theme-${theme}`
+    ]"
     @click="handleSelect"
   >
     <div class="pill-icon">
@@ -38,6 +41,13 @@ const props = defineProps({
   isDisabled: {
     type: Boolean,
     default: false
+  },
+  theme: {
+    type: String,
+    default: "default",
+    validator: (value: string) => {
+      return ["default", "primary", "success", "warning", "danger", "info"].includes(value);
+    }
   }
 });
 

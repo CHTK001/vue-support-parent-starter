@@ -25,7 +25,7 @@
       <div class="password-options">
         <el-form label-position="left" :label-width="120">
           <el-form-item label="密码长度">
-            <el-slider v-model="passwordLength" :min="4" :max="64" show-input @change="generatePassword" />
+            <ScSlider v-model="passwordLength" :min="4" :max="64" show-input @change="generatePassword" />
           </el-form-item>
 
           <el-form-item label="密码字符集">

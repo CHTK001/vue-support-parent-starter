@@ -54,7 +54,6 @@ import { useThemeStoreHook } from "./stores/themeStore";
 import LiteInspector from "./components/lay-dev-tools/LiteInspector.vue";
 
 // 导入主题皮肤样式（节日主题仅保留已实现的圣诞皮肤）
-import "./themes/christmas.css";
 import "./themes/8bit.scss";
 import "./themes/future-tech.scss";
 import "./components/lay-sidebar/styles/hover-navigation-themes.scss";
@@ -303,9 +302,8 @@ function getNewUrl(reg: RegExp): string {
 // 在 setup 顶层执行，但不使用异步导入
 if (!(window as any).__THEME_INITIALIZED__) {
   try {
-    const systemTheme = $storage?.configure?.systemTheme || "default";
-    const normalizedTheme =
-      systemTheme === "pixel-art" || systemTheme === "8-bit" ? "8bit" : systemTheme;
+    const systemTheme = $storage?.configure?.systemTheme || "default" as ThemeKey;
+    const normalizedTheme = systemTheme === "8bit" as ThemeKey ? "8bit" : systemTheme;
     document.documentElement.setAttribute("data-skin", normalizedTheme);
     (window as any).__THEME_INITIALIZED__ = true;
   } catch (error) {

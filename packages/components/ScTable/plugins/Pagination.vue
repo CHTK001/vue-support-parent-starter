@@ -347,11 +347,11 @@ onMounted(() => {
 
     <!-- 操作按钮 -->
     <div class="table-actions">
-      <el-tooltip v-if="!props.hideRefresh" content="刷新" placement="top">
+      <ScTooltip v-if="!props.hideRefresh" content="刷新" placement="top">
         <el-button circle size="default" @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" />
         </el-button>
-      </el-tooltip>
+      </ScTooltip>
 
       <!-- 列设置按钮 - 在列表布局和卡片布局下隐藏 -->
       <template v-if="!!showColumnSettings">
@@ -469,9 +469,9 @@ onMounted(() => {
               <div class="setting-label">
                 <IconifyIconOnline icon="ep:document-copy" class="setting-icon" />
                 <span>数据缓存</span>
-                <el-tooltip content="开启后会预加载3页数据到缓存，翻页时优先使用缓存" placement="top" :show-after="200">
+                <ScTooltip content="开启后会预加载3页数据到缓存，翻页时优先使用缓存" placement="top" :show-after="200">
                   <IconifyIconOnline icon="ep:question-filled" class="help-icon" />
-                </el-tooltip>
+                </ScTooltip>
               </div>
               <div class="setting-control">
                 <el-switch :model-value="tableConfigData.cacheEnabled" @change="handleCacheEnabledChange" />
@@ -483,9 +483,9 @@ onMounted(() => {
               <div class="setting-label">
                 <IconifyIconOnline icon="ep:collection" class="setting-icon" />
                 <span>页码记忆</span>
-                <el-tooltip content="开启后，刷新或重新查询时从上次访问的页码开始" placement="top" :show-after="200">
+                <ScTooltip content="开启后，刷新或重新查询时从上次访问的页码开始" placement="top" :show-after="200">
                   <IconifyIconOnline icon="ep:question-filled" class="help-icon" />
-                </el-tooltip>
+                </ScTooltip>
               </div>
               <div class="setting-control">
                 <el-switch :model-value="tableConfigData.pageMemoryEnabled" @change="handlePageMemoryEnabledChange" />

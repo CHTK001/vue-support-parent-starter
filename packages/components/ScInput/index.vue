@@ -5,7 +5,7 @@
       v-bind="$attrs"
       :model-value="modelValue"
       :type="type"
-      :prefix-icon="theme === 'tech' ? '' : (prefixIcon || defaultIcon)"
+      :prefix-icon="theme === 'tech' ? '' : prefixIcon || defaultIcon"
       :show-prefix="theme === 'tech' ? false : showPrefix"
       :rules="rules"
       :show-validation-msg="showValidationMsg"
@@ -284,36 +284,27 @@ const loadData = async () => {
 
 // 监听选项变化 - 使用版本号避免深度监听
 const optionsVersion = computed(() => JSON.stringify(props.options));
-watch(
-  [() => props.options, optionsVersion],
-  ([newVal]) => {
-    if (!props.url || !optionsData.value.length) {
-      optionsData.value = newVal || [];
-    }
+watch([() => props.options, optionsVersion], ([newVal]) => {
+  if (!props.url || !optionsData.value.length) {
+    optionsData.value = newVal || [];
   }
-);
+});
 
 // 监听fetchParams变化 - 使用版本号避免深度监听
 const fetchParamsVersion = computed(() => JSON.stringify(props.fetchParams));
-watch(
-  fetchParamsVersion,
-  () => {
-    if (props.autoLoad && typeof props.url === "function") {
-      loadData();
-    }
+watch(fetchParamsVersion, () => {
+  if (props.autoLoad && typeof props.url === "function") {
+    loadData();
   }
-);
+});
 
 // 监听params变化 - 使用版本号避免深度监听
 const paramsVersion = computed(() => JSON.stringify(props.params));
-watch(
-  paramsVersion,
-  () => {
-    if (props.autoLoad && typeof props.url === "function") {
-      loadData();
-    }
+watch(paramsVersion, () => {
+  if (props.autoLoad && typeof props.url === "function") {
+    loadData();
   }
-);
+});
 
 // 监听url变化
 watch(
@@ -435,21 +426,21 @@ defineExpose({
       background: rgba(0, 20, 40, 0.8);
       border: 1px solid rgba(0, 246, 255, 0.3);
       border-radius: 2px;
-      box-shadow: 
+      box-shadow:
         0 0 10px rgba(0, 246, 255, 0.1),
         inset 0 0 10px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
 
       &:hover {
         border-color: rgba(0, 246, 255, 0.5);
-        box-shadow: 
+        box-shadow:
           0 0 15px rgba(0, 246, 255, 0.2),
           inset 0 0 10px rgba(0, 0, 0, 0.3);
       }
 
       &.is-focus {
         border-color: #00f6ff;
-        box-shadow: 
+        box-shadow:
           0 0 20px rgba(0, 246, 255, 0.4),
           inset 0 0 10px rgba(0, 0, 0, 0.3);
       }
@@ -470,7 +461,7 @@ defineExpose({
       border-radius: 2px;
       color: rgba(255, 255, 255, 0.9);
       caret-color: #00f6ff;
-      box-shadow: 
+      box-shadow:
         0 0 10px rgba(0, 246, 255, 0.1),
         inset 0 0 10px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
@@ -485,7 +476,7 @@ defineExpose({
 
       &:focus {
         border-color: #00f6ff;
-        box-shadow: 
+        box-shadow:
           0 0 20px rgba(0, 246, 255, 0.4),
           inset 0 0 10px rgba(0, 0, 0, 0.3);
       }

@@ -15,7 +15,7 @@
       <div class="crop-controls">
         <div class="control-group">
           <span class="control-label">缩放</span>
-          <el-slider
+          <ScSlider
             v-model="zoom"
             :min="0.1"
             :max="3"
@@ -25,7 +25,7 @@
         </div>
         <div class="control-group">
           <span class="control-label">旋转</span>
-          <el-slider
+          <ScSlider
             v-model="rotate"
             :min="-180"
             :max="180"
@@ -71,6 +71,7 @@
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import Cropper from "cropperjs";
+import { ScSlider } from "@repo/components";
 import "cropperjs/dist/cropper.css";
 
 interface Props {

@@ -21,7 +21,7 @@
           </el-input>
           <div class="font-size-control">
             <span class="font-label">字号</span>
-            <el-slider v-model="config.fontSize" :min="10" :max="20" :step="1" :show-tooltip="true" style="width: 80px" />
+            <ScSlider v-model="config.fontSize" :min="10" :max="20" :step="1" :show-tooltip="true" style="width: 80px" />
           </div>
           <div class="control-buttons">
             <el-tooltip :content="config.lock ? '已开启自动滚动' : '已停止自动滚动'" placement="top">
@@ -55,6 +55,7 @@ import { nextTick, ref, onUnmounted, reactive, onMounted, computed } from "vue";
 import { AnsiUp } from "ansi_up";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { wsService } from "@/utils/websocket";
+import { ScSlider } from "@repo/components";
 
 const ansiUp = new AnsiUp();
 const form = reactive({

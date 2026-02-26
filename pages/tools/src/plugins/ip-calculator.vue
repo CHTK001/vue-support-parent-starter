@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
+import { ScSlider } from "@repo/components";
 
 // 响应式数据
 const env = reactive({
@@ -650,7 +651,7 @@ onMounted(() => {
                     <template v-if="env.subnetFormat === 'cidr'">
                       <div class="ip-calculator__cidr-input">
                         <span class="ip-calculator__cidr-prefix">/</span>
-                        <el-slider v-model="env.cidrValue" :min="0" :max="32" :step="1" show-input @change="updateSubnetMask" />
+                        <ScSlider v-model="env.cidrValue" :min="0" :max="32" :step="1" show-input @change="updateSubnetMask" />
                       </div>
                     </template>
                     <template v-else>

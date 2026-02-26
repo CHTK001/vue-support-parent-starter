@@ -24,8 +24,37 @@
       "@build/*": ["build/*"],
       "@repo/codec-wasm": ["../../packages/codec-wasm/src/index.js"]
     },
-    "types": ["node", "vite/client", "element-plus/global", "@pureadmin/table/volar", "@pureadmin/descriptions/volar"]
+    "types": [
+      "node",
+      "vite/client",
+      "element-plus/global",
+      "@pureadmin/table/volar",
+      "@pureadmin/descriptions/volar"
+    ]
   },
-  "include": ["env.d.ts", "@repo/core", "src/types/*.d.ts", "types/*.d.ts", "mock/*.ts", "**/*.ts","src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts", "../../packages/core/src/api/common/sms.ts", "src/views/manage/template/camera/camera.vue", "src/views/ai/llm/chat copy.11", "src/views/manage/template/device/preview/camera-preview copy.1", "src/views/manage/dept/index.vue1"],
-  "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
+  "include": [
+    "env.d.ts",
+    "@repo/core",
+    "src/types/*.d.ts",
+    "../../packages/types/*.d.ts",
+    "mock/*.ts",
+    "**/*.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "vite.config.ts",
+    "../../packages/core/src/api/common/sms.ts",
+    "src/views/manage/template/camera/camera.vue",
+    "src/views/ai/llm/chat copy.11",
+    "src/views/manage/template/device/preview/camera-preview copy.1",
+    "src/views/manage/dept/index.vue1"
+  ],
+  "exclude": [
+    "dist",
+    "**/*.js",
+    "node_modules",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.turbo/**"
+  ]
 }

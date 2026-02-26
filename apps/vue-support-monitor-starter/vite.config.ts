@@ -19,6 +19,7 @@ import svgLoader from "vite-svg-loader";
 import removeNoMatch from "vite-plugin-router-warn";
 import {
   createAlias as createBuildAlias,
+  getSharedPublicConfig,
 } from "@repo/build-config";
 import pkg from "./package.json";
 
@@ -36,7 +37,6 @@ const createAlias = (metaUrl: string): Record<string, string> => {
   const repoRoot = pathResolve("../..", metaUrl);
   return {
     ...buildAlias,
-    "@repo/core/directives": resolve(repoRoot, "packages/core/src/directives/index.ts"),
     "@": pathResolve("./src", metaUrl),
   };
 };
@@ -67,7 +67,8 @@ const wrapperEnv = (envConf: Record<string, string>): any => {
 
   for (const envName of Object.keys(envConf)) {
     let realName = envConf[envName].replace(/\\n/g, "\n");
-    realName = realName === "true" ? true : realName === "false" ? false : realName;
+    realName =
+      realName === "true" ? true : realName === "false" ? false : realName;
     if (envName === "VITE_PORT") {
       realName = Number(realName);
     }
@@ -172,17 +173,18 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
 
   if (env.VITE_USE_MOCK === "true") {
     plugins.push(
-    vitePluginFakeServer({
-      logger: false,
-      include: [pathResolve("./mock", import.meta.url)],
-      infixName: false,
-      enableProd: true,
-      })
+      vitePluginFakeServer({
+        logger: false,
+        include: [pathResolve("./mock", import.meta.url)],
+        infixName: false,
+        enableProd: true,
+      }),
     );
   }
 
   return {
     base: VITE_PUBLIC_PATH,
+    ...getSharedPublicConfig(),
     define: {
       // 把源码里所有 `process.env` 替换成对象字面量
       "process.env": {},

@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
+import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import {
   computed,
   nextTick,
   onBeforeMount,
-  onMounted,
   onUnmounted,
   reactive,
   ref,
@@ -15,29 +14,28 @@ import {
 import { useI18n } from "vue-i18n";
 import { useNav } from "../../../hooks/useNav";
 import LayPanel from "../../lay-panel/index.vue";
-import { getAvailableThemes, ThemeType } from "../../../themes";
 
-import { debounce, isNumber, useGlobal, storageLocal } from "@pureadmin/utils";
+import { debounce, isNumber, storageLocal, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import ScRibbon from "@repo/components/ScRibbon/index.vue";
-import NewMenuAnimationSelector from "../components/base/NewMenuAnimationSelector.vue";
+import ScSlider from "@repo/components/ScSlider/src/index.vue";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { ElMessage } from "element-plus";
+import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useTheme } from "../../../hooks/useThemeComponent";
 import { useThemeStore } from "../../../stores/themeStore";
-import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import LayThemeSwitcher from "../../lay-theme-switcher/index.vue";
+import NewMenuAnimationSelector from "../components/base/NewMenuAnimationSelector.vue";
 
-import DayIcon from "@repo/assets/svg/day.svg?component";
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
+import DayIcon from "@repo/assets/svg/day.svg?component";
+import DoubleIcon from "@repo/assets/svg/double.svg?component";
+import HorizontalIcon from "@repo/assets/svg/horizontal.svg?component";
+import HoverIcon from "@repo/assets/svg/hover.svg?component";
+import MixIcon from "@repo/assets/svg/mix.svg?component";
+import MobileIcon from "@repo/assets/svg/mobile.svg?component";
 import SystemIcon from "@repo/assets/svg/system.svg?component";
 import VerticalIcon from "@repo/assets/svg/vertical.svg?component";
-import HorizontalIcon from "@repo/assets/svg/horizontal.svg?component";
-import MixIcon from "@repo/assets/svg/mix.svg?component";
-import HoverIcon from "@repo/assets/svg/hover.svg?component";
-import MobileIcon from "@repo/assets/svg/mobile.svg?component";
-import DoubleIcon from "@repo/assets/svg/double.svg?component";
 
 const { t } = useI18n();
 const { device } = useNav();
@@ -149,9 +147,7 @@ const settings = reactive({
   keepAlive: $storage.configure.keepAlive ?? true,
   debugMode: $storage.configure.debugMode ?? false,
   autoLogout:
-    $storage.configure?.autoLogout ??
-    getConfig().Session?.autoLogout ??
-    false,
+    $storage.configure?.autoLogout ?? getConfig().Session?.autoLogout ?? false,
   // 面包屑导航
   showBreadcrumb: $storage.configure.showBreadcrumb ?? true,
   breadcrumbIconOnly: $storage.configure.breadcrumbIconOnly ?? false,
@@ -175,17 +171,19 @@ const settings = reactive({
     getConfig().PageBehavior?.showHeaderClock ??
     false,
   // 消息中心（Header）
-  showMessage: $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
+  showMessage:
+    $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
   // 默认下拉弹出位置调整为顶部右侧
-  messageDropdownPosition: $storage.configure?.messageDropdownPosition ?? "top-right",
+  messageDropdownPosition:
+    $storage.configure?.messageDropdownPosition ?? "top-right",
   // AI 助手设置
   aiChatTheme: $storage.configure.aiChatTheme ?? "default",
   aiChatEnabled:
-    $storage.configure?.aiChatEnabled ??
-    (getConfig().ShowAiChat ?? false),
-  aiChatPosition:
-    $storage.configure?.aiChatPosition ?? "bottom-right",
+    $storage.configure?.aiChatEnabled ?? getConfig().ShowAiChat ?? false,
+  aiChatPosition: $storage.configure?.aiChatPosition ?? "bottom-right",
+  aiChatSkin: $storage.configure?.aiChatSkin ?? "robot",
   aiChatApiKey: $storage.configure?.aiChatApiKey ?? "",
+  aiChatApiUrl: $storage.configure?.aiChatApiUrl ?? "",
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 false）
   enableFestivalTheme:
     $storage.configure?.enableFestivalTheme ??
@@ -199,7 +197,8 @@ const settings = reactive({
   fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? true,
   // 主题切换动画设置
   themeAnimationMode: $storage.configure?.themeAnimationMode ?? "fixed",
-  themeAnimationDirection: $storage.configure?.themeAnimationDirection ?? "top-right",
+  themeAnimationDirection:
+    $storage.configure?.themeAnimationDirection ?? "top-right",
   // 无障碍与缩放
   screenReaderMode:
     $storage.configure?.screenReaderMode ??
@@ -210,28 +209,24 @@ const settings = reactive({
     getConfig().PageBehavior?.highContrastMode ??
     false,
   uiScale:
-    $storage.configure?.uiScale ??
-    getConfig().PageBehavior?.uiScale ??
-    1,
+    $storage.configure?.uiScale ?? getConfig().PageBehavior?.uiScale ?? 1,
   // DevTools 精简版（仅开发/测试环境展示）
   devLiteTools:
     $storage.configure?.devLiteTools ??
     getConfig().PageBehavior?.devLiteTools ??
     false,
   devRuler:
-    $storage.configure?.devRuler ??
-    getConfig().PageBehavior?.devRuler ??
-    false,
+    $storage.configure?.devRuler ?? getConfig().PageBehavior?.devRuler ?? false,
   devGrid:
-    $storage.configure?.devGrid ??
-    getConfig().PageBehavior?.devGrid ??
-    false,
+    $storage.configure?.devGrid ?? getConfig().PageBehavior?.devGrid ?? false,
   devHoverInspector:
     $storage.configure?.devHoverInspector ??
     getConfig().PageBehavior?.devHoverInspector ??
     false,
   // 开发模式下 AI 设置展示控制
   showDevAiSetting: $storage.configure?.showDevAiSetting ?? true,
+  // 加载动画样式
+  loaderStyle: localStorage.getItem("sys-loader-style") || "default",
 });
 
 /** 主题动画模式选项 */
@@ -241,13 +236,69 @@ const themeAnimationModeOptions = computed<Array<OptionsType>>(() => [
   { label: "禁用", value: "disabled" },
 ]);
 
-
 /** 过渡动画类型选项 */
 const transitionTypeOptions = computed<Array<OptionsType>>(() => [
   { label: "滑动淡入", tip: "平滑的上下滑动效果", value: "fade-slide" },
   { label: "缩放淡入", tip: "带缩放的淡入淡出效果", value: "fade-scale" },
   { label: "纯淡入", tip: "仅淡入淡出无位移", value: "fade-only" },
   { label: "右侧滑入", tip: "从右侧滑入的效果", value: "slide-right" },
+]);
+
+/** AI 助手皮肤主题选项 */
+// 此处的 AI 助手主题选项在下方已完整定义，这里移除重复的未完成定义
+
+/** 加载动画样式选项 */
+const loaderStyleOptions = computed<Array<OptionsType>>(() => [
+  {
+    label: "三个圆点",
+    tip: "经典的三个跳动圆点动画",
+    value: "default",
+  },
+  {
+    label: "彩色圆环",
+    tip: "多彩旋转圆环动画",
+    value: "rings",
+  },
+  {
+    label: "简约圆环",
+    tip: "简洁的单色旋转圆环",
+    value: "simple",
+  },
+  {
+    label: "脉冲圆点",
+    tip: "呼吸式脉冲动画",
+    value: "pulse",
+  },
+  {
+    label: "跳动方块",
+    tip: "三个跳动的方块",
+    value: "blocks",
+  },
+  {
+    label: "我的世界",
+    tip: "镐子挖矿动画",
+    value: "minecraft",
+  },
+  {
+    label: "口袋妖怪",
+    tip: "小火龙追杰尼龟",
+    value: "pokemon",
+  },
+  {
+    label: "赛博朋克",
+    tip: "赛博朋克2077风格",
+    value: "cyberpunk",
+  },
+  {
+    label: "翻书",
+    tip: "3D翻页效果",
+    value: "book",
+  },
+  {
+    label: "笔写书",
+    tip: "钢笔书写动画",
+    value: "writing",
+  },
 ]);
 
 /** AI 助手皮肤主题选项 */
@@ -300,6 +351,35 @@ const aiChatPositionOptions = computed<Array<OptionsType>>(() => [
     label: "底部居中",
     tip: "固定在页面底部居中",
     value: "bottom-center",
+  },
+]);
+
+/** AI 助手机器人皮肤选项 */
+const aiChatSkinOptions = computed<Array<OptionsType>>(() => [
+  {
+    label: "🤖 机器人",
+    value: "robot",
+    tip: "经典机器人造型",
+  },
+  {
+    label: "🦊 阿狸",
+    value: "fox",
+    tip: "可爱的小狐狸",
+  },
+  {
+    label: "🐱 猫咪",
+    value: "cat",
+    tip: "萌萌的小猫咪",
+  },
+  {
+    label: "🐻 小熊",
+    value: "bear",
+    tip: "憨厚的小熊",
+  },
+  {
+    label: "🐼 熊猫",
+    value: "panda",
+    tip: "国宝熊猫",
   },
 ]);
 
@@ -994,7 +1074,10 @@ function aiChatEnabledChange(value: boolean) {
  * AI 助手位置变更
  */
 function aiChatPositionChange({ option }: { option: OptionsType }) {
-  const value = option.value as "bottom-right" | "bottom-left" | "bottom-center";
+  const value = option.value as
+    | "bottom-right"
+    | "bottom-left"
+    | "bottom-center";
   settings.aiChatPosition = value;
   storageConfigureChange("aiChatPosition", value);
 }
@@ -1005,6 +1088,23 @@ function aiChatPositionChange({ option }: { option: OptionsType }) {
 function aiChatApiKeyChange(value: string) {
   settings.aiChatApiKey = value;
   storageConfigureChange("aiChatApiKey", value);
+}
+
+/**
+ * AI 助手 API URL 变更
+ */
+function aiChatApiUrlChange(value: string) {
+  settings.aiChatApiUrl = value;
+  storageConfigureChange("aiChatApiUrl", value);
+}
+
+/**
+ * AI 机器人皮肤变更
+ */
+function aiChatSkinChange({ option }: { option: OptionsType }) {
+  const value = option.value as string;
+  settings.aiChatSkin = value;
+  storageConfigureChange("aiChatSkin", value);
 }
 
 /**
@@ -1275,6 +1375,19 @@ function themeAnimationDirectionChange(value: string) {
   storageConfigureChange("themeAnimationDirection", value);
 }
 
+/**
+ * 加载动画样式变更
+ */
+function loaderStyleChange({ option }: { option: OptionsType }) {
+  const value = option.value as string;
+  settings.loaderStyle = value;
+  localStorage.setItem("sys-loader-style", value);
+  ElMessage.success({
+    message: "加载样式已更改，刷新页面后生效",
+    duration: 2000,
+  });
+}
+
 /** 导入设置 */
 function importSettings() {
   const input = document.createElement("input");
@@ -1411,9 +1524,7 @@ onUnmounted(() => {
           <div class="section-header">
             <IconifyIconOnline icon="ri:movie-line" class="section-icon" />
             <h3 class="section-title">主题切换动画</h3>
-            <div class="section-description">
-              控制主题切换时的动画效果
-            </div>
+            <div class="section-description">控制主题切换时的动画效果</div>
           </div>
           <div class="setting-content">
             <div
@@ -1426,19 +1537,20 @@ onUnmounted(() => {
               "
             >
               <span class="setting-label" style="font-size: 14px"
-                >动画模式</span>
+                >动画模式</span
+              >
               <Segmented
-              :modelValue="
-                settings.themeAnimationMode === 'random'
-                  ? 0
-                  : settings.themeAnimationMode === 'fixed'
+                :modelValue="
+                  settings.themeAnimationMode === 'random'
+                    ? 0
+                    : settings.themeAnimationMode === 'fixed'
                       ? 1
-                       : 2
-                 "
-                 :options="themeAnimationModeOptions"
-                 size="small"
-                 @change="themeAnimationModeChange"
-               />
+                      : 2
+                "
+                :options="themeAnimationModeOptions"
+                size="small"
+                @change="themeAnimationModeChange"
+              />
             </div>
 
             <div
@@ -1447,12 +1559,9 @@ onUnmounted(() => {
             >
               <span
                 class="setting-label"
-                style="
-                  font-size: 14px;
-                  display: block;
-                  margin-bottom: 8px;
-                "
-                >动画方向</span>
+                style="font-size: 14px; display: block; margin-bottom: 8px"
+                >动画方向</span
+              >
               <ScSelect
                 :model-value="settings.themeAnimationDirection"
                 layout="position"
@@ -1476,11 +1585,134 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <!-- 加载动画样式设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOnline icon="ri:loader-4-line" class="section-icon" />
+            <h3 class="section-title">加载动画样式</h3>
+            <div class="section-description">选择页面加载时显示的动画效果</div>
+          </div>
+          <div class="setting-content">
+            <div class="setting-item">
+              <div class="setting-item-label">
+                <span>动画样式</span>
+                <span class="setting-item-desc">更改后需刷新页面生效</span>
+              </div>
+              <div class="setting-item-control">
+                <Segmented
+                  :model-value="settings.loaderStyle"
+                  :options="loaderStyleOptions"
+                  @change="loaderStyleChange"
+                />
+              </div>
+            </div>
+
+            <!-- 样式预览 -->
+            <div class="loader-preview-grid">
+              <div
+                v-for="option in loaderStyleOptions"
+                :key="option.value"
+                class="loader-preview-item"
+                :class="{ 'is-active': settings.loaderStyle === option.value }"
+                @click="loaderStyleChange({ option })"
+              >
+                <div class="preview-box">
+                  <div
+                    v-if="option.value === 'default'"
+                    class="preview-loader-default"
+                  >
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                  </div>
+                  <div
+                    v-else-if="option.value === 'rings'"
+                    class="preview-loader-rings"
+                  >
+                    <div class="ring"></div>
+                    <div class="ring"></div>
+                    <div class="ring"></div>
+                  </div>
+                  <div
+                    v-else-if="option.value === 'simple'"
+                    class="preview-loader-simple"
+                  ></div>
+                  <div
+                    v-else-if="option.value === 'pulse'"
+                    class="preview-loader-pulse"
+                  ></div>
+                  <div
+                    v-else-if="option.value === 'blocks'"
+                    class="preview-loader-blocks"
+                  >
+                    <div class="block"></div>
+                    <div class="block"></div>
+                    <div class="block"></div>
+                  </div>
+                  <div
+                    v-else-if="option.value === 'minecraft'"
+                    class="preview-loader-minecraft"
+                  >
+                    <div class="pickaxe">⛏️</div>
+                    <div class="blocks-mc">
+                      <div class="block-mc"></div>
+                      <div class="block-mc"></div>
+                    </div>
+                  </div>
+                  <div
+                    v-else-if="option.value === 'pokemon'"
+                    class="preview-loader-pokemon"
+                  >
+                    <div class="charmander">🔥</div>
+                    <div class="squirtle">💧</div>
+                  </div>
+                  <div
+                    v-else-if="option.value === 'cyberpunk'"
+                    class="preview-loader-cyberpunk"
+                  >
+                    <div class="glitch">LOAD</div>
+                    <div class="bars-cp">
+                      <div class="bar-cp"></div>
+                      <div class="bar-cp"></div>
+                      <div class="bar-cp"></div>
+                    </div>
+                  </div>
+                  <div
+                    v-else-if="option.value === 'book'"
+                    class="preview-loader-book"
+                  >
+                    <div class="book-preview">
+                      <div class="page-preview"></div>
+                    </div>
+                  </div>
+                  <div
+                    v-else-if="option.value === 'writing'"
+                    class="preview-loader-writing"
+                  >
+                    <div class="pen">✒️</div>
+                    <div class="paper-preview">
+                      <div class="line-preview"></div>
+                      <div class="line-preview"></div>
+                    </div>
+                  </div>
+                </div>
+                <span class="preview-label">{{ option.label }}</span>
+                <div
+                  v-if="settings.loaderStyle === option.value"
+                  class="preview-check"
+                >
+                  <IconifyIconOnline icon="ri:check-line" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- AI 助手设置区域 -->
         <div
           v-if="
             getConfig().ShowAiChat !== false &&
-            (!isDevelopment && !isTest || settings.showDevAiSetting)
+            ((!isDevelopment && !isTest) || settings.showDevAiSetting)
           "
           class="setting-section"
         >
@@ -1496,7 +1728,9 @@ onUnmounted(() => {
             <div class="setting-item">
               <div class="setting-item-label">
                 <span>启用 AI 助手</span>
-                <span class="setting-item-desc">控制页面是否显示 AI 聊天机器人</span>
+                <span class="setting-item-desc"
+                  >控制页面是否显示 AI 聊天机器人</span
+                >
               </div>
               <div class="setting-item-control">
                 <ScSwitch
@@ -1510,7 +1744,9 @@ onUnmounted(() => {
             <div class="setting-item">
               <div class="setting-item-label">
                 <span>机器人位置</span>
-                <span class="setting-item-desc">选择悬浮机器人在页面中的位置</span>
+                <span class="setting-item-desc"
+                  >选择悬浮机器人在页面中的位置</span
+                >
               </div>
               <div class="setting-item-control">
                 <Segmented
@@ -1525,7 +1761,9 @@ onUnmounted(() => {
             <div class="setting-item">
               <div class="setting-item-label">
                 <span>API Key</span>
-                <span class="setting-item-desc">用于访问后端 AI 接口的密钥，仅保存在本地浏览器</span>
+                <span class="setting-item-desc"
+                  >用于访问后端 AI 接口的密钥，仅保存在本地浏览器</span
+                >
               </div>
               <div class="setting-item-control">
                 <el-input
@@ -1535,6 +1773,37 @@ onUnmounted(() => {
                   placeholder="请输入 AI 服务的 API Key"
                   @change="aiChatApiKeyChange"
                   style="max-width: 260px"
+                />
+              </div>
+            </div>
+
+            <!-- API URL 设置 -->
+            <div class="setting-item">
+              <div class="setting-item-label">
+                <span>API URL</span>
+                <span class="setting-item-desc">AI 服务的接口地址</span>
+              </div>
+              <div class="setting-item-control">
+                <el-input
+                  v-model="settings.aiChatApiUrl"
+                  placeholder="https://api.openai.com/v1/chat/completions"
+                  @change="aiChatApiUrlChange"
+                  style="max-width: 260px"
+                />
+              </div>
+            </div>
+
+            <!-- 机器人皮肤设置 -->
+            <div class="setting-item">
+              <div class="setting-item-label">
+                <span>机器人皮肤</span>
+                <span class="setting-item-desc">选择 AI 助手的外观造型</span>
+              </div>
+              <div class="setting-item-control">
+                <Segmented
+                  :model-value="settings.aiChatSkin"
+                  :options="aiChatSkinOptions"
+                  @change="aiChatSkinChange"
                 />
               </div>
             </div>
@@ -1554,7 +1823,7 @@ onUnmounted(() => {
                 <div class="ai-theme-preview">
                   <div class="ai-theme-bubble"></div>
                   <div class="ai-theme-bot"></div>
-            </div>
+                </div>
                 <span class="ai-theme-label">{{ theme.label }}</span>
                 <div
                   v-if="settings.aiChatTheme === theme.value"
@@ -1570,10 +1839,7 @@ onUnmounted(() => {
         <!-- 顶部工具栏配置区域 -->
         <div class="setting-section">
           <div class="section-header">
-            <IconifyIconOnline
-              icon="ri:menu-3-line"
-              class="section-icon"
-            />
+            <IconifyIconOnline icon="ri:menu-3-line" class="section-icon" />
             <h3 class="section-title">顶部工具栏</h3>
             <div class="section-description">
               控制顶部搜索、全屏等工具按钮的显示
@@ -1584,7 +1850,7 @@ onUnmounted(() => {
               <div class="switch-card-grid">
                 <ScSwitch
                   v-model="settings.showSearch"
-                    layout="visual-card"
+                  layout="visual-card"
                   label="显示搜索按钮"
                   description="控制 lay-header 的搜索按钮是否显示"
                   active-icon="ri:search-2-line"
@@ -1637,35 +1903,35 @@ onUnmounted(() => {
                   inactive-icon="ri:notification-off-line"
                   @change="showMessageChange"
                 />
-          </div>
-        </div>
+              </div>
+            </div>
 
             <div class="setting-item">
-            <div class="setting-item-label">
-            <span>弹出位置</span>
-            <el-tooltip
-            content="设置消息下拉弹框从哪个方向弹出"
-            placement="top"
-            >
-            <span class="setting-item-tip-trigger">
-            <IconifyIconOnline
-            icon="ri:question-line"
-            class="setting-item-tip-icon"
-            />
-            </span>
-            </el-tooltip>
-            </div>
-            <div class="setting-item-control">
-            <ScSelect
-            :model-value="settings.messageDropdownPosition"
-            layout="position"
-            :disabled="!settings.showMessage"
-            @change="messageDropdownPositionChange"
+              <div class="setting-item-label">
+                <span>弹出位置</span>
+                <el-tooltip
+                  content="设置消息下拉弹框从哪个方向弹出"
+                  placement="top"
+                >
+                  <span class="setting-item-tip-trigger">
+                    <IconifyIconOnline
+                      icon="ri:question-line"
+                      class="setting-item-tip-icon"
+                    />
+                  </span>
+                </el-tooltip>
+              </div>
+              <div class="setting-item-control">
+                <ScSelect
+                  :model-value="settings.messageDropdownPosition"
+                  layout="position"
+                  :disabled="!settings.showMessage"
+                  @change="messageDropdownPositionChange"
                 />
-          </div>
+              </div>
             </div>
 
-                <!-- 开发模式：发送默认测试消息 -->
+            <!-- 开发模式：发送默认测试消息 -->
             <div v-if="isDevelopment || isTest" class="setting-item">
               <div class="setting-item-label">
                 <span>开发模式测试</span>
@@ -1699,30 +1965,30 @@ onUnmounted(() => {
                 :append-to-body="true"
                 :z-index="41000"
               >
-              <div
-                ref="verticalRef"
-                class="layout-mode-item"
-                :class="{ 'is-active': layoutTheme.layout === 'vertical' }"
-                @click="setLayoutModel('vertical')"
-              >
-                <div class="layout-mode-preview">
-                  <VerticalIcon />
-                </div>
-                <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{
-                    t("panel.layoutVertical")
-                  }}</span>
-                  <span class="layout-mode-desc">{{
-                    t("panel.layoutVerticalDesc")
-                  }}</span>
-                </div>
                 <div
-                  v-if="layoutTheme.layout === 'vertical'"
-                  class="layout-mode-badge"
+                  ref="verticalRef"
+                  class="layout-mode-item"
+                  :class="{ 'is-active': layoutTheme.layout === 'vertical' }"
+                  @click="setLayoutModel('vertical')"
                 >
-                  <IconifyIconOnline icon="ri:check-line" />
+                  <div class="layout-mode-preview">
+                    <VerticalIcon />
+                  </div>
+                  <div class="layout-mode-info">
+                    <span class="layout-mode-name">{{
+                      t("panel.layoutVertical")
+                    }}</span>
+                    <span class="layout-mode-desc">{{
+                      t("panel.layoutVerticalDesc")
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="layoutTheme.layout === 'vertical'"
+                    class="layout-mode-badge"
+                  >
+                    <IconifyIconOnline icon="ri:check-line" />
+                  </div>
                 </div>
-              </div>
               </el-tooltip>
 
               <el-tooltip
@@ -1733,29 +1999,29 @@ onUnmounted(() => {
                 :z-index="41000"
               >
                 <div
-                ref="horizontalRef"
-                class="layout-mode-item"
-                :class="{ 'is-active': layoutTheme.layout === 'horizontal' }"
-                @click="setLayoutModel('horizontal')"
-              >
-                <div class="layout-mode-preview">
-                  <HorizontalIcon />
-                </div>
-                <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{
-                    t("panel.layoutHorizontal")
-                  }}</span>
-                  <span class="layout-mode-desc">{{
-                    t("panel.layoutHorizontalDesc")
-                  }}</span>
-                </div>
-                <div
-                  v-if="layoutTheme.layout === 'horizontal'"
-                  class="layout-mode-badge"
+                  ref="horizontalRef"
+                  class="layout-mode-item"
+                  :class="{ 'is-active': layoutTheme.layout === 'horizontal' }"
+                  @click="setLayoutModel('horizontal')"
                 >
-                  <IconifyIconOnline icon="ri:check-line" />
+                  <div class="layout-mode-preview">
+                    <HorizontalIcon />
+                  </div>
+                  <div class="layout-mode-info">
+                    <span class="layout-mode-name">{{
+                      t("panel.layoutHorizontal")
+                    }}</span>
+                    <span class="layout-mode-desc">{{
+                      t("panel.layoutHorizontalDesc")
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="layoutTheme.layout === 'horizontal'"
+                    class="layout-mode-badge"
+                  >
+                    <IconifyIconOnline icon="ri:check-line" />
+                  </div>
                 </div>
-              </div>
               </el-tooltip>
 
               <el-tooltip
@@ -1766,29 +2032,29 @@ onUnmounted(() => {
                 :z-index="41000"
               >
                 <div
-                ref="mixRef"
-                class="layout-mode-item"
-                :class="{ 'is-active': layoutTheme.layout === 'mix' }"
-                @click="setLayoutModel('mix')"
-              >
-                <div class="layout-mode-preview">
-                  <MixIcon />
-                </div>
-                <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{
-                    t("panel.layoutMix")
-                  }}</span>
-                  <span class="layout-mode-desc">{{
-                    t("panel.layoutMixDesc")
-                  }}</span>
-                </div>
-                <div
-                  v-if="layoutTheme.layout === 'mix'"
-                  class="layout-mode-badge"
+                  ref="mixRef"
+                  class="layout-mode-item"
+                  :class="{ 'is-active': layoutTheme.layout === 'mix' }"
+                  @click="setLayoutModel('mix')"
                 >
-                  <IconifyIconOnline icon="ri:check-line" />
+                  <div class="layout-mode-preview">
+                    <MixIcon />
+                  </div>
+                  <div class="layout-mode-info">
+                    <span class="layout-mode-name">{{
+                      t("panel.layoutMix")
+                    }}</span>
+                    <span class="layout-mode-desc">{{
+                      t("panel.layoutMixDesc")
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="layoutTheme.layout === 'mix'"
+                    class="layout-mode-badge"
+                  >
+                    <IconifyIconOnline icon="ri:check-line" />
+                  </div>
                 </div>
-              </div>
               </el-tooltip>
 
               <el-tooltip
@@ -1799,29 +2065,29 @@ onUnmounted(() => {
                 :z-index="41000"
               >
                 <div
-                ref="hoverRef"
-                class="layout-mode-item"
-                :class="{ 'is-active': layoutTheme.layout === 'hover' }"
-                @click="setLayoutModel('hover')"
-              >
-                <div class="layout-mode-preview">
-                  <HoverIcon />
-                </div>
-                <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{
-                    t("panel.layoutHover")
-                  }}</span>
-                  <span class="layout-mode-desc">{{
-                    t("panel.layoutHoverDesc")
-                  }}</span>
-                </div>
-                <div
-                  v-if="layoutTheme.layout === 'hover'"
-                  class="layout-mode-badge"
+                  ref="hoverRef"
+                  class="layout-mode-item"
+                  :class="{ 'is-active': layoutTheme.layout === 'hover' }"
+                  @click="setLayoutModel('hover')"
                 >
-                  <IconifyIconOnline icon="ri:check-line" />
+                  <div class="layout-mode-preview">
+                    <HoverIcon />
+                  </div>
+                  <div class="layout-mode-info">
+                    <span class="layout-mode-name">{{
+                      t("panel.layoutHover")
+                    }}</span>
+                    <span class="layout-mode-desc">{{
+                      t("panel.layoutHoverDesc")
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="layoutTheme.layout === 'hover'"
+                    class="layout-mode-badge"
+                  >
+                    <IconifyIconOnline icon="ri:check-line" />
+                  </div>
                 </div>
-              </div>
               </el-tooltip>
 
               <el-tooltip
@@ -1830,30 +2096,30 @@ onUnmounted(() => {
                 :append-to-body="true"
                 :z-index="41000"
               >
-              <div
-                ref="mobileRef"
-                class="layout-mode-item"
-                :class="{ 'is-active': layoutTheme.layout === 'mobile' }"
-                @click="setLayoutModel('mobile')"
-              >
-                <div class="layout-mode-preview">
-                  <MobileIcon />
-                </div>
-                <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{
-                    t("panel.layoutMobile")
-                  }}</span>
-                  <span class="layout-mode-desc">{{
-                    t("panel.layoutMobileDesc")
-                  }}</span>
-                </div>
                 <div
-                  v-if="layoutTheme.layout === 'mobile'"
-                  class="layout-mode-badge"
+                  ref="mobileRef"
+                  class="layout-mode-item"
+                  :class="{ 'is-active': layoutTheme.layout === 'mobile' }"
+                  @click="setLayoutModel('mobile')"
                 >
-                  <IconifyIconOnline icon="ri:check-line" />
+                  <div class="layout-mode-preview">
+                    <MobileIcon />
+                  </div>
+                  <div class="layout-mode-info">
+                    <span class="layout-mode-name">{{
+                      t("panel.layoutMobile")
+                    }}</span>
+                    <span class="layout-mode-desc">{{
+                      t("panel.layoutMobileDesc")
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="layoutTheme.layout === 'mobile'"
+                    class="layout-mode-badge"
+                  >
+                    <IconifyIconOnline icon="ri:check-line" />
+                  </div>
                 </div>
-              </div>
               </el-tooltip>
 
               <el-tooltip
@@ -1864,29 +2130,29 @@ onUnmounted(() => {
                 :z-index="41000"
               >
                 <div
-                ref="doubleRef"
-                class="layout-mode-item"
-                :class="{ 'is-active': layoutTheme.layout === 'double' }"
-                @click="setLayoutModel('double')"
-              >
-                <div class="layout-mode-preview">
-                  <DoubleIcon />
-                </div>
-                <div class="layout-mode-info">
-                  <span class="layout-mode-name">{{
-                    t("panel.layoutDouble")
-                  }}</span>
-                  <span class="layout-mode-desc">{{
-                    t("panel.layoutDoubleDesc")
-                  }}</span>
-                </div>
-                <div
-                  v-if="layoutTheme.layout === 'double'"
-                  class="layout-mode-badge"
+                  ref="doubleRef"
+                  class="layout-mode-item"
+                  :class="{ 'is-active': layoutTheme.layout === 'double' }"
+                  @click="setLayoutModel('double')"
                 >
-                  <IconifyIconOnline icon="ri:check-line" />
+                  <div class="layout-mode-preview">
+                    <DoubleIcon />
+                  </div>
+                  <div class="layout-mode-info">
+                    <span class="layout-mode-name">{{
+                      t("panel.layoutDouble")
+                    }}</span>
+                    <span class="layout-mode-desc">{{
+                      t("panel.layoutDoubleDesc")
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="layoutTheme.layout === 'double'"
+                    class="layout-mode-badge"
+                  >
+                    <IconifyIconOnline icon="ri:check-line" />
+                  </div>
                 </div>
-              </div>
               </el-tooltip>
             </div>
           </div>
@@ -2300,19 +2566,19 @@ onUnmounted(() => {
                 />
                 功能设置
               </h4>
-               <div class="switch-card-grid">
-              <ScSwitch
-                v-model="settings.multiTagsCache"
-                layout="visual-card"
-                size="small"
-                :label="t('panel.pureMultiTagsCache')"
-                description="持久化保存已打开的标签页"
-                active-icon="ri:save-line"
-                ribbon-color="var(--el-color-warning)"
-                @change="multiTagsCacheChange"
-              />
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.multiTagsCache"
+                  layout="visual-card"
+                  size="small"
+                  :label="t('panel.pureMultiTagsCache')"
+                  description="持久化保存已打开的标签页"
+                  active-icon="ri:save-line"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="multiTagsCacheChange"
+                />
 
-              <!-- <ScSwitch
+                <!-- <ScSwitch
                 v-model="themeStore.homeCustomizationEnabled"
                 layout="visual-card"
                 size="small"
@@ -2322,17 +2588,16 @@ onUnmounted(() => {
                 ribbon-color="var(--el-color-success)"
                 @change="themeStore.setHomeCustomizationEnabled"
               /> -->
-
-            </div>
+              </div>
               <!-- 性能监控 (仅在开发/测试环境或 SA 账号显示) -->
               <div v-if="isPerformanceMonitorVisible" class="setting-group">
-               <h4 class="group-title">
-                   <IconifyIconOnline
-                  icon="ri:settings-3-line"
-                  class="group-icon"
-                />
+                <h4 class="group-title">
+                  <IconifyIconOnline
+                    icon="ri:settings-3-line"
+                    class="group-icon"
+                  />
                   {{ t("search.performanceMonitor") }}
-               </h4>
+                </h4>
 
                 <div class="setting-item-content">
                   <!-- FPS Monitor -->
@@ -2355,13 +2620,13 @@ onUnmounted(() => {
                       />
                     </el-tooltip>
                     <!-- Memory Monitor -->
-                      <el-tooltip
-                        content="JS Heap Size: 当前页面使用的 JS 堆内存 (仅 Chrome/Edge 有效)"
-                        placement="top"
-                        :append-to-body="true"
-                        :z-index="3000"
-                      >
-                        <ScSwitch
+                    <el-tooltip
+                      content="JS Heap Size: 当前页面使用的 JS 堆内存 (仅 Chrome/Edge 有效)"
+                      placement="top"
+                      :append-to-body="true"
+                      :z-index="3000"
+                    >
+                      <ScSwitch
                         v-model="memoryMonitorEnabled"
                         layout="visual-card"
                         size="small"
@@ -2482,7 +2747,8 @@ onUnmounted(() => {
                         display: block;
                         color: var(--el-text-color-regular);
                       "
-                      >显示配置</span>
+                      >显示配置</span
+                    >
 
                     <!-- Layout Mode (Merged vs Split) -->
                     <div
@@ -2498,7 +2764,8 @@ onUnmounted(() => {
                           font-size: 12px;
                           color: var(--el-text-color-secondary);
                         "
-                        >布局模式</span>
+                        >布局模式</span
+                      >
                       <Segmented
                         v-model="performanceMonitorLayout"
                         :options="[
@@ -2506,7 +2773,12 @@ onUnmounted(() => {
                           { label: '分离', value: 'split' },
                         ]"
                         size="small"
-                        @change="(val) => themeStore.setPerformanceMonitorLayout(val.option.value)"
+                        @change="
+                          (val) =>
+                            themeStore.setPerformanceMonitorLayout(
+                              val.option.value,
+                            )
+                        "
                       />
                     </div>
 
@@ -2524,7 +2796,8 @@ onUnmounted(() => {
                           font-size: 12px;
                           color: var(--el-text-color-secondary);
                         "
-                        >布局方向</span>
+                        >布局方向</span
+                      >
                       <Segmented
                         v-model="performanceMonitorDirection"
                         :options="[
@@ -2533,7 +2806,12 @@ onUnmounted(() => {
                           { label: '水平', value: 'horizontal' },
                         ]"
                         size="small"
-                        @change="(val) => themeStore.setPerformanceMonitorDirection(val.option.value)"
+                        @change="
+                          (val) =>
+                            themeStore.setPerformanceMonitorDirection(
+                              val.option.value,
+                            )
+                        "
                       />
                     </div>
 
@@ -2551,7 +2829,8 @@ onUnmounted(() => {
                           font-size: 12px;
                           color: var(--el-text-color-secondary);
                         "
-                        >内容展示</span>
+                        >内容展示</span
+                      >
                       <Segmented
                         v-model="performanceMonitorMode"
                         :options="[
@@ -2560,7 +2839,12 @@ onUnmounted(() => {
                           { label: '极简', value: 'minimal' },
                         ]"
                         size="small"
-                        @change="(val) => themeStore.setPerformanceMonitorMode(val.option.value)"
+                        @change="
+                          (val) =>
+                            themeStore.setPerformanceMonitorMode(
+                              val.option.value,
+                            )
+                        "
                       />
                     </div>
 
@@ -2573,11 +2857,14 @@ onUnmounted(() => {
                           margin-bottom: 8px;
                           display: block;
                         "
-                        >显示位置</span>
+                        >显示位置</span
+                      >
                       <ScSelect
                         v-model="performanceMonitorPosition"
                         layout="position"
-                        @change="(val) => themeStore.setPerformanceMonitorPosition(val)"
+                        @change="
+                          (val) => themeStore.setPerformanceMonitorPosition(val)
+                        "
                       />
                     </div>
                   </div>
@@ -2695,7 +2982,12 @@ onUnmounted(() => {
                   <NewMenuAnimationSelector
                     v-model="settings.newMenuAnimation"
                     :disabled="!settings.showNewMenu"
-                    @change="(val) => newMenuAnimationChange({ option: { value: val } as any })"
+                    @change="
+                      (val) =>
+                        newMenuAnimationChange({
+                          option: { value: val } as any,
+                        })
+                    "
                   />
                 </div>
 
@@ -2807,7 +3099,7 @@ onUnmounted(() => {
                   </span>
                 </div>
                 <div class="setting-item-control">
-                  <el-slider
+                  <ScSlider
                     v-model="settings.uiScale"
                     :min="0.8"
                     :max="1.5"
@@ -2993,7 +3285,7 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.5);
   border-radius: 20px;
   min-height: 100vh;
-  width: 440px;
+  width: 540px;
   max-width: 100%;
   position: relative;
   overflow: hidden;
@@ -6879,3 +7171,109 @@ html.dark {
   }
 }
 </style>
+
+/* 加载动画预览样式 */ .loader-preview-grid { display: grid;
+grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;
+margin-top: 16px; } .loader-preview-item { position: relative; display: flex;
+flex-direction: column; align-items: center; gap: 8px; padding: 16px;
+background: var(--el-bg-color-overlay); border: 2px solid
+var(--el-border-color); border-radius: 12px; cursor: pointer; transition: all
+0.3s ease; } .loader-preview-item:hover { border-color: var(--el-color-primary);
+transform: translateY(-2px); box-shadow: 0 4px 12px rgba(64, 110, 235, 0.2); }
+.loader-preview-item.is-active { border-color: var(--el-color-primary);
+background: rgba(64, 110, 235, 0.05); } .preview-box { width: 100%; height:
+80px; display: flex; align-items: center; justify-content: center; background:
+rgba(0, 0, 0, 0.02); border-radius: 8px; } .preview-label { font-size: 13px;
+font-weight: 500; color: var(--el-text-color-primary); } .preview-check {
+position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; background:
+var(--el-color-primary); color: white; border-radius: 50%; display: flex;
+align-items: center; justify-content: center; font-size: 12px; } /* 三个圆点预览
+*/ .preview-loader-default { display: flex; gap: 6px; } .preview-loader-default
+.dot { width: 10px; height: 10px; background: #406eeb; border-radius: 50%;
+animation: dot-bounce 1.4s ease-in-out infinite; } .preview-loader-default
+.dot:nth-child(1) { animation-delay: 0s; } .preview-loader-default
+.dot:nth-child(2) { animation-delay: 0.2s; } .preview-loader-default
+.dot:nth-child(3) { animation-delay: 0.4s; } @keyframes dot-bounce { 0%, 80%,
+100% { transform: scale(0.8); opacity: 0.5; } 40% { transform: scale(1.2);
+opacity: 1; } } /* 彩色圆环预览 */ .preview-loader-rings { position: relative;
+width: 50px; height: 50px; } .preview-loader-rings .ring { position: absolute;
+width: 100%; height: 100%; border: 2px solid transparent; border-radius: 50%;
+animation: ring-spin 2s linear infinite; } .preview-loader-rings
+.ring:nth-child(1) { border-top-color: #ff6b6b; } .preview-loader-rings
+.ring:nth-child(2) { border-right-color: #4ecdc4; width: 80%; height: 80%; top:
+10%; left: 10%; animation-delay: 0.3s; } .preview-loader-rings
+.ring:nth-child(3) { border-bottom-color: #45b7d1; width: 60%; height: 60%; top:
+20%; left: 20%; animation-delay: 0.6s; } @keyframes ring-spin { to { transform:
+rotate(360deg); } } /* 简约圆环预览 */ .preview-loader-simple { width: 40px;
+height: 40px; border: 3px solid rgba(64, 110, 235, 0.2); border-top-color:
+#406eeb; border-radius: 50%; animation: simple-spin 1s linear infinite; }
+@keyframes simple-spin { to { transform: rotate(360deg); } } /* 脉冲圆点预览 */
+.preview-loader-pulse { width: 20px; height: 20px; background: #406eeb;
+border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; } @keyframes
+pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform:
+scale(1.5); opacity: 0.5; } } /* 跳动方块预览 */ .preview-loader-blocks {
+display: flex; gap: 6px; } .preview-loader-blocks .block { width: 12px; height:
+12px; background: #406eeb; border-radius: 3px; animation: block-jump 1.4s
+ease-in-out infinite; } .preview-loader-blocks .block:nth-child(1) {
+animation-delay: 0s; } .preview-loader-blocks .block:nth-child(2) {
+animation-delay: 0.2s; } .preview-loader-blocks .block:nth-child(3) {
+animation-delay: 0.4s; } @keyframes block-jump { 0%, 80%, 100% { transform:
+translateY(0); } 40% { transform: translateY(-15px); } } /* 我的世界挖矿预览 */
+.preview-loader-minecraft { display: flex; flex-direction: column; align-items:
+center; gap: 8px; } .preview-loader-minecraft .pickaxe { font-size: 24px;
+animation: mining-preview 0.8s ease-in-out infinite; } @keyframes mining-preview
+{ 0%, 100% { transform: rotate(-15deg) translateY(0); } 50% { transform:
+rotate(15deg) translateY(-5px); } } .preview-loader-minecraft .blocks-mc {
+display: flex; gap: 4px; } .preview-loader-minecraft .block-mc { width: 12px;
+height: 12px; background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
+border: 1px solid #000; animation: break-block-preview 2s ease-in-out infinite;
+} .preview-loader-minecraft .block-mc:nth-child(1) { animation-delay: 0s; }
+.preview-loader-minecraft .block-mc:nth-child(2) { animation-delay: 1s; }
+@keyframes break-block-preview { 0%, 100% { opacity: 1; transform: scale(1); }
+80% { opacity: 1; transform: scale(1); } 90% { opacity: 0.5; transform:
+scale(0.8); } 95% { opacity: 0; transform: scale(0); } } /* 口袋妖怪预览 */
+.preview-loader-pokemon { position: relative; width: 80px; height: 30px; }
+.preview-loader-pokemon .charmander, .preview-loader-pokemon .squirtle {
+position: absolute; font-size: 20px; animation: chase-preview 3s linear
+infinite; } .preview-loader-pokemon .charmander { left: 0; animation-delay: 0s;
+} .preview-loader-pokemon .squirtle { left: 0; animation-delay: 1.5s; }
+@keyframes chase-preview { 0% { left: 0; transform: scaleX(1); } 45% { left:
+calc(100% - 20px); transform: scaleX(1); } 50% { left: calc(100% - 20px);
+transform: scaleX(-1); } 95% { left: 0; transform: scaleX(-1); } 100% { left: 0;
+transform: scaleX(1); } } /* 赛博朋克预览 */ .preview-loader-cyberpunk {
+display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.preview-loader-cyberpunk .glitch { font-size: 16px; font-weight: bold; color:
+#00ff41; text-shadow: 1px 1px #ff00de, -1px -1px #00ffff; animation:
+glitch-preview 1s infinite; } @keyframes glitch-preview { 0%, 100% { transform:
+translate(0); } 20% { transform: translate(-1px, 1px); } 40% { transform:
+translate(1px, -1px); } 60% { transform: translate(-1px, -1px); } 80% {
+transform: translate(1px, 1px); } } .preview-loader-cyberpunk .bars-cp {
+display: flex; gap: 4px; } .preview-loader-cyberpunk .bar-cp { width: 4px;
+height: 20px; background: linear-gradient(180deg, #00ff41 0%, #ff00de 100%);
+animation: cyber-pulse-preview 1.2s ease-in-out infinite; }
+.preview-loader-cyberpunk .bar-cp:nth-child(1) { animation-delay: 0s; }
+.preview-loader-cyberpunk .bar-cp:nth-child(2) { animation-delay: 0.2s; }
+.preview-loader-cyberpunk .bar-cp:nth-child(3) { animation-delay: 0.4s; }
+@keyframes cyber-pulse-preview { 0%, 100% { height: 15px; opacity: 0.5; } 50% {
+height: 30px; opacity: 1; } } /* 翻书预览 */ .preview-loader-book { perspective:
+500px; } .preview-loader-book .book-preview { position: relative; width: 40px;
+height: 50px; transform-style: preserve-3d; animation: book-open-preview 2s
+ease-in-out infinite; } .preview-loader-book .page-preview { position: absolute;
+width: 100%; height: 100%; background: linear-gradient(90deg, #f0f0f0 0%, #fff
+50%, #f0f0f0 100%); border: 1px solid #333; border-radius: 0 4px 4px 0;
+transform-origin: left center; animation: flip-page-preview 2s ease-in-out
+infinite; } @keyframes flip-page-preview { 0%, 100% { transform: rotateY(0deg);
+} 50% { transform: rotateY(-180deg); } } @keyframes book-open-preview { 0%, 100%
+{ transform: rotateY(0deg); } 50% { transform: rotateY(5deg); } } /* 笔写书预览
+*/ .preview-loader-writing { display: flex; flex-direction: column; align-items:
+center; gap: 6px; } .preview-loader-writing .pen { font-size: 20px; animation:
+pen-move-preview 2s ease-in-out infinite; } @keyframes pen-move-preview { 0%,
+100% { transform: translateX(-15px) rotate(-45deg); } 50% { transform:
+translateX(15px) rotate(-45deg); } } .preview-loader-writing .paper-preview {
+width: 60px; padding: 8px; background: #fff; border: 1px solid #333;
+border-radius: 2px; } .preview-loader-writing .line-preview { height: 2px;
+background: #333; margin: 4px 0; border-radius: 1px; animation:
+write-line-preview 2s ease-in-out infinite; } .preview-loader-writing
+.line-preview:nth-child(1) { animation-delay: 0s; } .preview-loader-writing
+.line-preview:nth-child(2) { animation-delay: 0.3s; } @keyframes
+write-line-preview { 0%, 100% { width: 0; } 50% { width: 100%; } }

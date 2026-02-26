@@ -8,6 +8,7 @@ import {
   getPluginsList,
   include,
   exclude,
+  getSharedPublicConfig,
 } from "../../packages/build-config/dist/index.mjs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,17 +21,16 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   const env = loadEnv(newMode, localRoot);
   console.log("当前启动模式:" + newMode);
   console.log("Root:", localRoot);
-  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
-  
+  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
+    wrapperEnv(env);
+
   const currentFileDir = dirname(fileURLToPath(import.meta.url));
   const alias = createAlias(import.meta.url);
-  
+
   // Explicitly set aliases for local packages to avoid resolution issues
   // Order matters: more specific aliases first (though object keys order is not guaranteed, usually it works)
   // Use root variable for consistent path resolution
   alias["@layout/default"] = resolve(root, "layout/default/src");
-  // Point directly to index.ts for directives to be unambiguous
-  alias["@repo/core/directives"] = resolve(root, "packages/core/src/directives/index.ts");
   alias["@repo/core"] = resolve(root, "packages/core/src");
 
   // 构建 mock 路径（相对于 vite.config.ts 文件）
@@ -39,6 +39,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   return {
     base: VITE_PUBLIC_PATH,
     root: localRoot,
+    ...getSharedPublicConfig(),
     resolve: {
       alias,
       dedupe: ["vite", "vue", "vue-router", "vue-i18n"],
@@ -98,7 +99,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         "rete-auto-arrange-plugin",
         "rete-connection-reroute-plugin",
         "rete-minimap-plugin",
-        "@babel/runtime/regenerator"
+        "@babel/runtime/regenerator",
       ],
       exclude,
     },
@@ -113,7 +114,13 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         compress: {
           drop_console: true,
           drop_debugger: true,
-          pure_funcs: ["console.log", "console.info", "console.debug", "console.warn", "console.error"],
+          pure_funcs: [
+            "console.log",
+            "console.info",
+            "console.debug",
+            "console.warn",
+            "console.error",
+          ],
           passes: 3,
           dead_code: true,
           unused: true,

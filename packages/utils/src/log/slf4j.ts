@@ -2,8 +2,8 @@
  * SLF4J 风格的日志工具
  * @description 提供类似 Java SLF4J 的日志接口，支持按类名/模块创建 Logger 实例
  */
-import { LogLevel } from './types';
-import { initStackTrace, formatErrorStack } from './stack-trace';
+import { LogLevel } from "./types";
+import { initStackTrace, formatErrorStack } from "./stack-trace";
 
 // 初始化堆栈劫持（支持 Node.js 和浏览器环境）
 initStackTrace({
@@ -131,11 +131,11 @@ const LEVEL_PRIORITY: Record<LogLevel, number> = {
  * 日志级别颜色
  */
 const LEVEL_COLORS: Record<LogLevel, string> = {
-  [LogLevel.DEBUG]: '#8a8a8a',
-  [LogLevel.INFO]: '#2196f3',
-  [LogLevel.WARN]: '#ff9800',
-  [LogLevel.ERROR]: '#f44336',
-  [LogLevel.FATAL]: '#b71c1c',
+  [LogLevel.DEBUG]: "#8a8a8a",
+  [LogLevel.INFO]: "#2196f3",
+  [LogLevel.WARN]: "#ff9800",
+  [LogLevel.ERROR]: "#f44336",
+  [LogLevel.FATAL]: "#b71c1c",
 };
 
 /**
@@ -143,13 +143,13 @@ const LEVEL_COLORS: Record<LogLevel, string> = {
  */
 function formatDate(date: Date): string {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
-  
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
+
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
 
@@ -164,9 +164,9 @@ function safeStringify(value: any): string {
           stack: val.stack,
         };
       }
-      if (typeof val === 'object' && val !== null) {
+      if (typeof val === "object" && val !== null) {
         if (seen.has(val)) {
-          return '[Circular]';
+          return "[Circular]";
         }
         seen.add(val);
       }
@@ -176,7 +176,7 @@ function safeStringify(value: any): string {
     try {
       return String(value);
     } catch {
-      return '[Unserializable]';
+      return "[Unserializable]";
     }
   }
 }
@@ -199,7 +199,7 @@ function formatMessage(message: string, args: any[]): string {
       if (arg instanceof Error) {
         return `${arg.name}: ${arg.message}`;
       }
-      if (typeof arg === 'object') {
+      if (typeof arg === "object") {
         try {
           return safeStringify(arg);
         } catch {
@@ -208,7 +208,7 @@ function formatMessage(message: string, args: any[]): string {
       }
       return String(arg);
     }
-    return '{}';
+    return "{}";
   });
 
   return formatted;
@@ -238,7 +238,10 @@ class Slf4jLoggerImpl implements Slf4jLogger {
    * 判断是否应该记录该级别的日志
    */
   private shouldLog(level: LogLevel): boolean {
-    if (process.env.NODE_ENV === 'production' && !this.options.logInProduction) {
+    if (
+      process.env.NODE_ENV === "production" &&
+      !this.options.logInProduction
+    ) {
       return false;
     }
     return LEVEL_PRIORITY[level] >= LEVEL_PRIORITY[this.options.level];
@@ -249,21 +252,26 @@ class Slf4jLoggerImpl implements Slf4jLogger {
    */
   private getPrefix(level: LogLevel): string {
     const parts: string[] = [];
-    
+
     if (this.options.showTimestamp) {
       parts.push(formatDate(new Date()));
     }
-    
+
     parts.push(level.toUpperCase().padEnd(5));
     parts.push(`[${this.name}]`);
-    
-    return parts.join(' ');
+
+    return parts.join(" ");
   }
 
   /**
    * 记录日志
    */
-  private log(level: LogLevel, message: string, error?: Error, ...args: any[]): void {
+  private log(
+    level: LogLevel,
+    message: string,
+    error?: Error,
+    ...args: any[]
+  ): void {
     if (!this.shouldLog(level)) {
       return;
     }
@@ -274,26 +282,73 @@ class Slf4jLoggerImpl implements Slf4jLogger {
 
     if (this.options.console) {
       const style = `color: ${color}; font-weight: 500;`;
-      
+
+      // 如果有 name（分组），使用 console.group
+      const hasGroup = this.name && this.name.trim() !== "";
+
+      if (hasGroup) {
+        console.groupCollapsed(`%c${prefix}`, style, formattedMessage);
+      }
+
       switch (level) {
         case LogLevel.DEBUG:
-          console.debug(`%c${prefix}`, style, formattedMessage, ...(error ? [error] : []));
+          if (hasGroup) {
+            console.debug(formattedMessage, ...(error ? [error] : []));
+          } else {
+            console.debug(
+              `%c${prefix}`,
+              style,
+              formattedMessage,
+              ...(error ? [error] : []),
+            );
+          }
           break;
         case LogLevel.INFO:
-          console.info(`%c${prefix}`, style, formattedMessage, ...(error ? [error] : []));
+          if (hasGroup) {
+            console.info(formattedMessage, ...(error ? [error] : []));
+          } else {
+            console.info(
+              `%c${prefix}`,
+              style,
+              formattedMessage,
+              ...(error ? [error] : []),
+            );
+          }
           break;
         case LogLevel.WARN:
-          console.warn(`%c${prefix}`, style, formattedMessage, ...(error ? [error] : []));
+          if (hasGroup) {
+            console.warn(formattedMessage, ...(error ? [error] : []));
+          } else {
+            console.warn(
+              `%c${prefix}`,
+              style,
+              formattedMessage,
+              ...(error ? [error] : []),
+            );
+          }
           break;
         case LogLevel.ERROR:
         case LogLevel.FATAL:
           if (error) {
-            console.error(`%c${prefix}`, style, formattedMessage);
-            console.error(`%c${prefix}`, style, getErrorStack(error));
+            if (hasGroup) {
+              console.error(formattedMessage);
+              console.error(getErrorStack(error));
+            } else {
+              console.error(`%c${prefix}`, style, formattedMessage);
+              console.error(`%c${prefix}`, style, getErrorStack(error));
+            }
           } else {
-            console.error(`%c${prefix}`, style, formattedMessage);
+            if (hasGroup) {
+              console.error(formattedMessage);
+            } else {
+              console.error(`%c${prefix}`, style, formattedMessage);
+            }
           }
           break;
+      }
+
+      if (hasGroup) {
+        console.groupEnd();
       }
     }
   }
@@ -378,12 +433,12 @@ export class LoggerFactory {
    */
   static getLogger(name: string | (new () => any)): Slf4jLogger {
     let loggerName: string;
-    
-    if (typeof name === 'string') {
+
+    if (typeof name === "string") {
       loggerName = name;
     } else {
       // 从构造函数获取类名
-      loggerName = name.name || 'Unknown';
+      loggerName = name.name || "Unknown";
     }
 
     // 从缓存获取
@@ -412,4 +467,3 @@ export class LoggerFactory {
 export function getLogger(name: string | (new () => any)): Slf4jLogger {
   return LoggerFactory.getLogger(name);
 }
-

@@ -1,6 +1,7 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ref, reactive } from "vue";
+import { ScSlider } from "@repo/components";
 
 defineOptions({
   name: "GlassShowcase",
@@ -104,7 +105,7 @@ const cards = [
                </div>
                <div class="form-group">
                   <label>Slider</label>
-                  <el-slider v-model="sliderValue" class="glass-slider" />
+                  <ScSlider v-model="sliderValue" class="glass-slider" />
                </div>
             </div>
 

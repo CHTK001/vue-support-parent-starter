@@ -1,10 +1,7 @@
-import type { App, Component } from "vue";
-import CardSelector from "./index.vue";
+import { withInstall } from "@repo/utils";
+import ScSelectVue from "./src/index.vue";
 
-export { CardSelector };
+export const ScSelectComponent = withInstall(ScSelectVue);
+export const ScSelect = ScSelectComponent;
 
-export default {
-  install: (app: App) => {
-    app.component("CardSelector", CardSelector as Component);
-  }
-};
+export default ScSelectVue;

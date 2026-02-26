@@ -1,6 +1,7 @@
 <template>
   <div class="sc-tree-container" :class="{ 'is-draggable': draggable }">
-    <el-tree
+    <component
+      :is="currentComponent || ElTree"
       ref="treeRef"
       v-bind="$attrs"
       :data="treeData"
@@ -47,37 +48,19 @@
             <slot name="prefix" :node="node" :data="data"></slot>
             <span class="sc-tree-node__label">{{ node.label }}</span>
             <slot name="suffix" :node="node" :data="data"></slot>
-            
+
             <!-- 节点工具栏 -->
             <span v-if="showToolbar" class="sc-tree-node__toolbar" @click.stop>
               <slot name="toolbar" :node="node" :data="data">
-                <el-button 
-                  v-if="toolbarButtons.includes('add')" 
-                  type="primary" 
-                  link 
-                  size="small"
-                  @click="handleToolbarAdd(node, data)"
-                >
+                <ScButton v-if="toolbarButtons.includes('add')" type="primary" link size="small" @click="handleToolbarAdd(node, data)">
                   <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
-                </el-button>
-                <el-button 
-                  v-if="toolbarButtons.includes('edit')" 
-                  type="primary" 
-                  link 
-                  size="small"
-                  @click="handleToolbarEdit(node, data)"
-                >
+                </ScButton>
+                <ScButton v-if="toolbarButtons.includes('edit')" type="primary" link size="small" @click="handleToolbarEdit(node, data)">
                   <el-icon><component :is="useRenderIcon('ep:edit')" /></el-icon>
-                </el-button>
-                <el-button 
-                  v-if="toolbarButtons.includes('delete')" 
-                  type="danger" 
-                  link 
-                  size="small"
-                  @click="handleToolbarDelete(node, data)"
-                >
+                </ScButton>
+                <ScButton v-if="toolbarButtons.includes('delete')" type="danger" link size="small" @click="handleToolbarDelete(node, data)">
                   <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
-                </el-button>
+                </ScButton>
               </slot>
             </span>
           </span>
@@ -86,18 +69,21 @@
       <template v-if="$slots.empty" #empty>
         <slot name="empty"></slot>
       </template>
-    </el-tree>
+    </component>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, nextTick, onMounted, defineOptions } from 'vue';
-import type { TreeProps, TreeNodeData, TreeKey, TreeFilterValue, TreeNode, TreeComponentInstance } from './types';
+import { ref, watch, computed, nextTick, onMounted, defineOptions } from "vue";
+import { ElTree } from "element-plus";
+import type { TreeProps, TreeNodeData, TreeKey, TreeFilterValue, TreeNode, TreeComponentInstance } from "./types";
 import { useRenderIcon } from "../ReIcon/src/hooks";
+import { ScButton } from "../ScButton";
+import { useThemeComponent } from "../hooks/useThemeComponent";
 
 // 定义组件名称
 defineOptions({
-  name: 'ScTree'
+  name: "ScTree"
 });
 
 const props = defineProps({
@@ -110,9 +96,9 @@ const props = defineProps({
   props: {
     type: Object as () => TreeProps,
     default: () => ({
-      children: 'children',
-      label: 'label',
-      disabled: 'disabled'
+      children: "children",
+      label: "label",
+      disabled: "disabled"
     })
   },
   // 是否高亮当前选中节点
@@ -153,7 +139,7 @@ const props = defineProps({
   // 当前选中的节点
   currentNodeKey: {
     type: [String, Number],
-    default: ''
+    default: ""
   },
   // 对树节点进行筛选时执行的方法
   filterNodeMethod: {
@@ -173,7 +159,7 @@ const props = defineProps({
   // 自定义树节点图标
   icon: {
     type: String,
-    default: ''
+    default: ""
   },
   // 是否懒加载子节点数据
   lazy: {
@@ -203,7 +189,7 @@ const props = defineProps({
   // 每个树节点用来作为唯一标识的属性
   nodeKey: {
     type: String,
-    default: ''
+    default: ""
   },
   // 在显示复选框的情况下，是否严格的遵循父子不互相关联的做法
   checkStrictly: {
@@ -223,7 +209,7 @@ const props = defineProps({
   // 内容为空的时候展示的文本
   emptyText: {
     type: String,
-    default: ''
+    default: ""
   },
   // 是否显示节点工具栏
   showToolbar: {
@@ -233,35 +219,38 @@ const props = defineProps({
   // 工具栏按钮配置 ['add', 'edit', 'delete']
   toolbarButtons: {
     type: Array as () => string[],
-    default: () => ['add', 'edit', 'delete']
+    default: () => ["add", "edit", "delete"]
   }
 });
 
 const emit = defineEmits([
-  'node-click',
-  'node-contextmenu',
-  'check-change',
-  'check',
-  'current-change',
-  'node-expand',
-  'node-collapse',
-  'node-drag-start',
-  'node-drag-enter',
-  'node-drag-leave',
-  'node-drag-over',
-  'node-drag-end',
-  'node-drop',
-  'update:data',
+  "node-click",
+  "node-contextmenu",
+  "check-change",
+  "check",
+  "current-change",
+  "node-expand",
+  "node-collapse",
+  "node-drag-start",
+  "node-drag-enter",
+  "node-drag-leave",
+  "node-drag-over",
+  "node-drag-end",
+  "node-drop",
+  "update:data",
   // 工具栏事件
-  'toolbar-add',
-  'toolbar-edit',
-  'toolbar-delete'
+  "toolbar-add",
+  "toolbar-edit",
+  "toolbar-delete"
 ]);
 
 // 引用el-tree实例
 const treeRef = ref<TreeComponentInstance | null>(null);
 // 树形数据
 const treeData = ref<TreeNodeData[]>([...props.data]);
+
+// 使用主题组件系统 V2.0
+const { currentComponent } = useThemeComponent("ElTree");
 
 // 监听data变化 - 使用引用+长度作为触发条件，避免深度监听
 const dataVersion = computed(() => props.data?.length ?? 0);
@@ -398,7 +387,7 @@ const expandAll = () => {
         if (node && !node.isLeaf) {
           // 展开当前节点
           node.expanded = true;
-          
+
           // 如果有子节点，递归展开子节点
           if (item.children && Array.isArray(item.children) && item.children.length > 0) {
             expandAllNodes(item.children);
@@ -406,11 +395,11 @@ const expandAll = () => {
         }
       }
     };
-    
+
     // 开始展开所有节点
     expandAllNodes(JSON.parse(JSON.stringify(treeData.value)));
   } catch (e) {
-    console.error('展开所有节点失败:', e);
+    console.error("展开所有节点失败:", e);
   }
 };
 
@@ -421,7 +410,7 @@ const collapseAll = () => {
   try {
     // 获取所有节点
     const allNodes = getAllNodes();
-    
+
     // 将所有非叶子节点折叠
     allNodes.forEach(node => {
       if (!node.isLeaf) {
@@ -429,7 +418,7 @@ const collapseAll = () => {
       }
     });
   } catch (e) {
-    console.error('折叠所有节点失败:', e);
+    console.error("折叠所有节点失败:", e);
   }
 };
 
@@ -455,7 +444,7 @@ const expandNode = (node: TreeNode) => {
         // @ts-ignore - Element Plus内部store结构可能不一致
         treeRef.value.store._expandedKeys = undefined;
       }
-      nodes.forEach((node) => {
+      nodes.forEach(node => {
         node.expanded = true;
       });
     });
@@ -498,7 +487,7 @@ const getAllData = () => {
 // 辅助函数，递归获取所有节点
 const getAllNodes = () => {
   if (!treeRef.value) return [];
-  
+
   const nodes: TreeNode[] = [];
   const traverse = (node: TreeNode) => {
     nodes.push(node);
@@ -506,86 +495,86 @@ const getAllNodes = () => {
       node.childNodes.forEach(child => traverse(child));
     }
   };
-  
+
   if (treeRef.value.store.root.childNodes) {
     treeRef.value.store.root.childNodes.forEach(rootNode => {
       traverse(rootNode);
     });
   }
-  
+
   return nodes;
 };
 
 // 事件处理器
 const handleNodeClick = (data: TreeNodeData, node: TreeNode, e: MouseEvent) => {
-  emit('node-click', data, node, e);
+  emit("node-click", data, node, e);
 };
 
 const handleNodeContextmenu = (e: Event, data: TreeNodeData, node: TreeNode) => {
-  emit('node-contextmenu', e, data, node);
+  emit("node-contextmenu", e, data, node);
 };
 
 const handleCheckChange = (data: TreeNodeData, checked: boolean, indeterminate: boolean) => {
-  emit('check-change', data, checked, indeterminate);
+  emit("check-change", data, checked, indeterminate);
 };
 
-const handleCheck = (data: TreeNodeData, params: { checkedNodes: TreeNodeData[], checkedKeys: TreeKey[], halfCheckedNodes: TreeNodeData[], halfCheckedKeys: TreeKey[] }) => {
-  emit('check', data, params);
+const handleCheck = (data: TreeNodeData, params: { checkedNodes: TreeNodeData[]; checkedKeys: TreeKey[]; halfCheckedNodes: TreeNodeData[]; halfCheckedKeys: TreeKey[] }) => {
+  emit("check", data, params);
 };
 
 const handleCurrentChange = (data: TreeNodeData, node: TreeNode) => {
-  emit('current-change', data, node);
+  emit("current-change", data, node);
 };
 
 const handleNodeExpand = (data: TreeNodeData, node: TreeNode, e: MouseEvent) => {
-  emit('node-expand', data, node, e);
+  emit("node-expand", data, node, e);
 };
 
 const handleNodeCollapse = (data: TreeNodeData, node: TreeNode, e: MouseEvent) => {
-  emit('node-collapse', data, node, e);
+  emit("node-collapse", data, node, e);
 };
 
 const handleNodeDragStart = (node: TreeNode, e: DragEvent) => {
-  emit('node-drag-start', node, e);
+  emit("node-drag-start", node, e);
 };
 
 const handleNodeDragEnter = (draggingNode: TreeNode, dropNode: TreeNode, e: DragEvent) => {
-  emit('node-drag-enter', draggingNode, dropNode, e);
+  emit("node-drag-enter", draggingNode, dropNode, e);
 };
 
 const handleNodeDragLeave = (draggingNode: TreeNode, dropNode: TreeNode, e: DragEvent) => {
-  emit('node-drag-leave', draggingNode, dropNode, e);
+  emit("node-drag-leave", draggingNode, dropNode, e);
 };
 
 const handleNodeDragOver = (draggingNode: TreeNode, dropNode: TreeNode, e: DragEvent) => {
-  emit('node-drag-over', draggingNode, dropNode, e);
+  emit("node-drag-over", draggingNode, dropNode, e);
 };
 
-const handleNodeDragEnd = (draggingNode: TreeNode, dropNode: TreeNode | null, dropType: 'before' | 'after' | 'inner' | undefined, e: DragEvent) => {
-  emit('node-drag-end', draggingNode, dropNode, dropType, e);
+const handleNodeDragEnd = (draggingNode: TreeNode, dropNode: TreeNode | null, dropType: "before" | "after" | "inner" | undefined, e: DragEvent) => {
+  emit("node-drag-end", draggingNode, dropNode, dropType, e);
 };
 
-const handleNodeDrop = (draggingNode: TreeNode, dropNode: TreeNode | null, dropType: 'before' | 'after' | 'inner' | undefined, e: DragEvent) => {
-  emit('node-drop', draggingNode, dropNode, dropType, e);
-  
+const handleNodeDrop = (draggingNode: TreeNode, dropNode: TreeNode | null, dropType: "before" | "after" | "inner" | undefined, e: DragEvent) => {
+  emit("node-drop", draggingNode, dropNode, dropType, e);
+
   // 发出更新事件，通知父组件数据已经更新
   nextTick(() => {
     const updatedData = getAllData();
-    emit('update:data', updatedData);
+    emit("update:data", updatedData);
   });
 };
 
 // 工具栏操作处理
 const handleToolbarAdd = (node: TreeNode, data: TreeNodeData) => {
-  emit('toolbar-add', node, data);
+  emit("toolbar-add", node, data);
 };
 
 const handleToolbarEdit = (node: TreeNode, data: TreeNodeData) => {
-  emit('toolbar-edit', node, data);
+  emit("toolbar-edit", node, data);
 };
 
 const handleToolbarDelete = (node: TreeNode, data: TreeNodeData) => {
-  emit('toolbar-delete', node, data);
+  emit("toolbar-delete", node, data);
 };
 
 // 暴露组件方法
@@ -622,46 +611,46 @@ defineExpose({
 <style lang="scss" scoped>
 .sc-tree-container {
   width: 100%;
-  
+
   &.is-draggable {
     .el-tree-node__content {
       cursor: grab;
-      
+
       &:active {
         cursor: grabbing;
       }
     }
   }
-  
+
   .sc-tree-node {
     display: flex;
     align-items: center;
     flex: 1;
-    
+
     &__label {
       margin: 0 4px;
       flex: 1;
     }
-    
+
     &__toolbar {
       display: none;
       margin-left: auto;
       padding-left: 8px;
-      
+
       .el-button {
         padding: 2px 4px;
-        
+
         .el-icon {
           font-size: 14px;
         }
       }
     }
-    
+
     &.has-toolbar:hover &__toolbar {
       display: inline-flex;
       gap: 2px;
     }
-    
+
     &.is-leaf {
       // 叶子节点可以添加特殊样式
     }

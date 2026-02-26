@@ -1,12 +1,14 @@
 <template>
-  <div class="table-container" :class="[`theme--${theme}`, { 'cross-highlight-enabled': config.crossHighlight && config.border, 'is-draggable': draggable }]" :style="crossHighlightCssVars" @contextmenu.prevent="handleTableContextMenu" @wheel="handleWheel">
-    <VueDragScroll
-      v-if="dragScrollEnabled"
-      class="drag-scroll-wrapper"
-      :drag-direction="'horizontal'"
-      :drag-disabled="false"
-    >
-      <el-table
+  <div
+    class="table-container"
+    :class="[`theme--${theme}`, { 'cross-highlight-enabled': config.crossHighlight && config.border, 'is-draggable': draggable }]"
+    :style="crossHighlightCssVars"
+    @contextmenu.prevent="handleTableContextMenu"
+    @wheel="handleWheel"
+  >
+    <VueDragScroll v-if="dragScrollEnabled" class="drag-scroll-wrapper" :drag-direction="'horizontal'" :drag-disabled="false">
+      <component
+        :is="currentTableComponent"
         ref="scTable"
         v-bind="$attrs"
         :data="tableData"
@@ -27,13 +29,7 @@
         @expand-change="onExpandChange"
       >
         <!-- 拖拽手柄列 -->
-        <el-table-column
-          v-if="draggable"
-          :width="dragHandleWidth"
-          label=""
-          fixed="left"
-          class-name="drag-handle-column"
-        >
+        <el-table-column v-if="draggable" :width="dragHandleWidth" label="" fixed="left" class-name="drag-handle-column">
           <template #default>
             <div class="drag-handle">
               <IconifyIconOnline icon="ep:rank" />
@@ -41,11 +37,7 @@
           </template>
         </el-table-column>
         <template v-for="(col, index) in userColumn" :key="col.prop || index">
-          <el-table-column
-            v-if="!col.hide"
-            v-bind="col"
-            :column-key="col.prop"
-          >
+          <el-table-column v-if="!col.hide" v-bind="col" :column-key="col.prop">
             <template #default="scope" v-if="col.slot">
               <slot :name="col.slot" v-bind="scope"></slot>
             </template>
@@ -55,9 +47,10 @@
           </el-table-column>
         </template>
         <slot></slot>
-      </el-table>
+      </component>
     </VueDragScroll>
-    <el-table
+    <component
+      :is="currentTableComponent"
       v-else
       ref="scTable"
       v-bind="$attrs"
@@ -79,13 +72,7 @@
       @expand-change="onExpandChange"
     >
       <!-- 拖拽手柄列 -->
-      <el-table-column
-        v-if="draggable"
-        :width="dragHandleWidth"
-        label=""
-        fixed="left"
-        class-name="drag-handle-column"
-      >
+      <el-table-column v-if="draggable" :width="dragHandleWidth" label="" fixed="left" class-name="drag-handle-column">
         <template #default>
           <div class="drag-handle">
             <IconifyIconOnline icon="ep:rank" />
@@ -93,11 +80,7 @@
         </template>
       </el-table-column>
       <template v-for="(col, index) in userColumn" :key="col.prop || index">
-        <el-table-column
-          v-if="!col.hide"
-          v-bind="col"
-          :column-key="col.prop"
-        >
+        <el-table-column v-if="!col.hide" v-bind="col" :column-key="col.prop">
           <template #default="scope" v-if="col.slot">
             <slot :name="col.slot" v-bind="scope"></slot>
           </template>
@@ -107,28 +90,30 @@
         </el-table-column>
       </template>
       <slot></slot>
-    </el-table>
+    </component>
     <!-- 右键菜单组件 -->
     <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
   </div>
 </template>
 
 <script setup>
-import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed, defineComponent, h } from 'vue';
-import Sortable from 'sortablejs';
-import { IconifyIconOnline } from '@repo/components';
-import { getLogger } from '@repo/utils';
-import ContextMenu from '../plugins/ContextMenu.vue';
-import { useTableCrossHighlight } from '../composables/useTableCrossHighlight';
+import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed, defineComponent, h } from "vue";
+import { ElTable, ElTableColumn } from "element-plus";
+import Sortable from "sortablejs";
+import { IconifyIconOnline } from "@repo/components";
+import { getLogger } from "@repo/utils";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
+import ContextMenu from "../plugins/ContextMenu.vue";
+import { useTableCrossHighlight } from "../composables/useTableCrossHighlight";
 
 const logger = getLogger("[ScTable][TableView]");
 
 // 创建一个简单的拖拽滚动包装组件
 // 如果 vue-drag-scroll 包已安装，可以替换为实际导入
 const VueDragScroll = defineComponent({
-  name: 'VueDragScroll',
+  name: "VueDragScroll",
   props: {
-    dragDirection: { type: String, default: 'horizontal' },
+    dragDirection: { type: String, default: "horizontal" },
     dragDisabled: { type: Boolean, default: false }
   },
   setup(props, { slots }) {
@@ -137,28 +122,28 @@ const VueDragScroll = defineComponent({
     let startX = 0;
     let startScrollLeft = 0;
 
-    const handleMouseDown = (e) => {
+    const handleMouseDown = e => {
       if (props.dragDisabled || e.button !== 0) return;
       const target = e.target;
-      if (target.closest('button, a, input, select, textarea, .el-checkbox, .el-radio')) return;
-      
-      const scrollContainer = containerRef.value?.querySelector('.el-table__body-wrapper');
+      if (target.closest("button, a, input, select, textarea, .el-checkbox, .el-radio")) return;
+
+      const scrollContainer = containerRef.value?.querySelector(".el-table__body-wrapper");
       if (!scrollContainer || scrollContainer.scrollWidth <= scrollContainer.clientWidth) return;
 
       isDragging = true;
       startX = e.pageX;
       startScrollLeft = scrollContainer.scrollLeft;
-      document.body.style.cursor = 'grabbing';
-      document.body.style.userSelect = 'none';
-      
+      document.body.style.cursor = "grabbing";
+      document.body.style.userSelect = "none";
+
       e.preventDefault();
     };
 
-    const handleMouseMove = (e) => {
+    const handleMouseMove = e => {
       if (!isDragging) return;
-      const scrollContainer = containerRef.value?.querySelector('.el-table__body-wrapper');
+      const scrollContainer = containerRef.value?.querySelector(".el-table__body-wrapper");
       if (!scrollContainer) return;
-      
+
       const deltaX = e.pageX - startX;
       scrollContainer.scrollLeft = startScrollLeft - deltaX;
     };
@@ -166,32 +151,37 @@ const VueDragScroll = defineComponent({
     const handleMouseUp = () => {
       if (isDragging) {
         isDragging = false;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
       }
     };
 
     onMounted(() => {
       if (containerRef.value) {
-        containerRef.value.addEventListener('mousedown', handleMouseDown);
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
+        containerRef.value.addEventListener("mousedown", handleMouseDown);
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mouseup", handleMouseUp);
       }
     });
 
     onBeforeUnmount(() => {
       if (containerRef.value) {
-        containerRef.value.removeEventListener('mousedown', handleMouseDown);
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        containerRef.value.removeEventListener("mousedown", handleMouseDown);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
       }
     });
 
-    return () => h('div', { 
-      ref: containerRef,
-      class: 'vue-drag-scroll-wrapper',
-      style: { cursor: props.dragDisabled ? 'default' : 'grab' }
-    }, slots.default?.());
+    return () =>
+      h(
+        "div",
+        {
+          ref: containerRef,
+          class: "vue-drag-scroll-wrapper",
+          style: { cursor: props.dragDisabled ? "default" : "grab" }
+        },
+        slots.default?.()
+      );
   }
 });
 
@@ -199,30 +189,34 @@ const props = defineProps({
   tableData: { type: Array, default: () => [] },
   userColumn: { type: Array, default: () => [] },
   config: { type: Object, default: () => ({}) },
-  theme: { type: String, default: '' },
-  rowKey: { type: String, default: '' },
+  theme: { type: String, default: "" },
+  rowKey: { type: String, default: "" },
   loading: { type: Boolean, default: false },
   draggable: { type: Boolean, default: false },
-  dragRowKey: { type: String, default: 'id' },
+  dragRowKey: { type: String, default: "id" },
   dragHandleWidth: { type: Number, default: 50 },
   contextmenu: { type: Function, default: null },
   dragScrollEnabled: { type: Boolean, default: false }
 });
 
-const emit = defineEmits([
-  'row-click', 
-  'selection-change', 
-  'sort-change', 
-  'header-dragend', 
-  'expand-change',
-  'drag-sort-change'
-]);
+const emit = defineEmits(["row-click", "selection-change", "sort-change", "header-dragend", "expand-change", "drag-sort-change"]);
 
 const scTable = ref(null);
 const sortableInstance = ref(null);
 const isDragging = ref(false);
 let scrollContainer = null;
 let wheelHandler = null;
+
+// 使用 PixelUI 条件导入
+const { currentComponent } = useThemeComponent("ElTable");
+
+// 当前实际渲染的组件
+const currentTableComponent = computed(() => {
+  if (isPixelTheme.value && pixelComponent?.value) {
+    return pixelComponent.value;
+  }
+  return ElTable;
+});
 
 // 右键菜单相关
 const contextMenuRef = ref(null);
@@ -232,16 +226,19 @@ const currentRowData = ref({});
 // 十字高亮功能
 const crossHighlight = useTableCrossHighlight({
   enabled: computed(() => props.config.crossHighlight && props.config.border),
-  highlightColor: 'var(--stitch-lay-bg-hover)',
-  intersectionColor: 'var(--stitch-lay-primary-alpha)',
-  borderColor: 'var(--stitch-lay-primary)',
+  highlightColor: "var(--stitch-lay-bg-hover)",
+  intersectionColor: "var(--stitch-lay-primary-alpha)",
+  borderColor: "var(--stitch-lay-primary)",
   showBorder: true
 });
 
 // 监听crossHighlight启用状态
-watch(() => props.config.crossHighlight && props.config.border, (enabled) => {
-  crossHighlight.toggleEnabled(enabled);
-});
+watch(
+  () => props.config.crossHighlight && props.config.border,
+  enabled => {
+    crossHighlight.toggleEnabled(enabled);
+  }
+);
 
 // 获取十字高亮的CSS变量
 const crossHighlightCssVars = computed(() => {
@@ -252,13 +249,13 @@ const crossHighlightCssVars = computed(() => {
 });
 
 const onRowClick = (row, column, event) => {
-  emit('row-click', row, column, event);
+  emit("row-click", row, column, event);
 };
 
 // 获取行类名（用于十字高亮）
 const getRowClassName = ({ row, rowIndex }) => {
   if (!props.config.crossHighlight || !props.config.border) {
-    return '';
+    return "";
   }
   return crossHighlight.getRowClass(rowIndex);
 };
@@ -266,14 +263,14 @@ const getRowClassName = ({ row, rowIndex }) => {
 // 获取单元格类名（用于十字高亮）
 const getCellClassName = ({ row, rowIndex, column, columnIndex }) => {
   if (!props.config.crossHighlight || !props.config.border) {
-    return '';
+    return "";
   }
-  
+
   // 拖拽列不参与十字高亮
   if (props.draggable && columnIndex === 0) {
-    return '';
+    return "";
   }
-  
+
   // 计算实际的列索引（考虑拖拽列）
   // 如果 columnIndex 是通过 userColumn 的索引，需要减去拖拽列
   // 但 Element Plus 传递的 columnIndex 是包含拖拽列的，所以需要减去1
@@ -281,12 +278,12 @@ const getCellClassName = ({ row, rowIndex, column, columnIndex }) => {
   if (props.draggable) {
     actualColIndex = columnIndex - 1;
   }
-  
+
   // 确保索引有效
   if (actualColIndex < 0) {
-    return '';
+    return "";
   }
-  
+
   return crossHighlight.getCellClass(rowIndex, actualColIndex);
 };
 
@@ -295,7 +292,7 @@ const onCellClick = (row, column, cell, event) => {
   if (!props.config.crossHighlight || !props.config.border) {
     return;
   }
-  
+
   // 获取行索引
   const rowIndex = props.tableData.findIndex(item => {
     if (props.rowKey) {
@@ -303,9 +300,9 @@ const onCellClick = (row, column, cell, event) => {
     }
     return item === row;
   });
-  
+
   if (rowIndex < 0) return;
-  
+
   // 获取列索引（优先通过 userColumn 查找，这样索引不包含拖拽列）
   let colIndex = -1;
   if (column.property) {
@@ -314,15 +311,15 @@ const onCellClick = (row, column, cell, event) => {
       colIndex = userColIndex; // 不包含拖拽列，与 getCellClassName 中的逻辑一致
     }
   }
-  
+
   // 如果通过 userColumn 找不到，尝试通过 DOM 查找（需要考虑拖拽列）
   if (colIndex === -1) {
     const tableEl = scTable.value?.$el;
     if (tableEl) {
-      const headerCells = tableEl.querySelectorAll('.el-table__header-wrapper thead th');
+      const headerCells = tableEl.querySelectorAll(".el-table__header-wrapper thead th");
       for (let i = 0; i < headerCells.length; i++) {
         const cellEl = headerCells[i];
-        const columnKey = cellEl.getAttribute('column-key') || cellEl.getAttribute('data-column-key');
+        const columnKey = cellEl.getAttribute("column-key") || cellEl.getAttribute("data-column-key");
         if (columnKey === column.property || columnKey === column.columnKey) {
           // 如果有拖拽列，需要减去拖拽列的索引（通常是0）
           colIndex = props.draggable ? Math.max(0, i - 1) : i;
@@ -331,63 +328,63 @@ const onCellClick = (row, column, cell, event) => {
       }
     }
   }
-  
+
   if (rowIndex >= 0 && colIndex >= 0) {
     crossHighlight.handleCellClick(rowIndex, colIndex, column.property);
   }
 };
 
-const onSelectionChange = (selection) => {
-  emit('selection-change', selection);
+const onSelectionChange = selection => {
+  emit("selection-change", selection);
 };
 
-const onSortChange = (data) => {
-  emit('sort-change', data);
+const onSortChange = data => {
+  emit("sort-change", data);
 };
 
 const onHeaderDragend = (newWidth, oldWidth, column, event) => {
-  emit('header-dragend', newWidth, oldWidth, column, event);
+  emit("header-dragend", newWidth, oldWidth, column, event);
 };
 
 const onExpandChange = (row, expandedRows) => {
-  emit('expand-change', row, expandedRows);
+  emit("expand-change", row, expandedRows);
 };
 
 // 初始化拖拽排序
 const initDragSort = () => {
   if (!props.draggable || !scTable.value) return;
-  
+
   destroyDragSort();
-  
+
   nextTick(() => {
     const tableEl = scTable.value?.$el;
     if (!tableEl) return;
-    
-    const tbody = tableEl.querySelector('.el-table__body-wrapper tbody');
+
+    const tbody = tableEl.querySelector(".el-table__body-wrapper tbody");
     if (!tbody) return;
-    
+
     sortableInstance.value = Sortable.create(tbody, {
       animation: 150,
-      handle: '.drag-handle',
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      dragClass: 'sortable-drag',
-      filter: '.el-table__expand-column, .el-table__selection-column',
+      handle: ".drag-handle",
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-chosen",
+      dragClass: "sortable-drag",
+      filter: ".el-table__expand-column, .el-table__selection-column",
       onStart: () => {
         isDragging.value = true;
       },
-      onEnd: (evt) => {
+      onEnd: evt => {
         isDragging.value = false;
         const { oldIndex, newIndex } = evt;
         if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
-        
+
         // 创建新数组以避免直接修改原数组
         const newOrder = [...props.tableData];
         const movedItem = newOrder.splice(oldIndex, 1)[0];
         newOrder.splice(newIndex, 0, movedItem);
-        
+
         // 触发拖拽排序变化事件
-        emit('drag-sort-change', {
+        emit("drag-sort-change", {
           oldIndex,
           newIndex,
           newOrder,
@@ -409,7 +406,7 @@ const destroyDragSort = () => {
 // 监听 draggable 变化
 watch(
   () => props.draggable,
-  (newVal) => {
+  newVal => {
     if (newVal) {
       // 当启用拖拽时，先强制表格重新布局，确保拖拽列渲染完成
       if (scTable.value?.doLayout) {
@@ -440,42 +437,42 @@ watch(
 );
 
 // 处理滚轮事件（直接在模板中绑定）
-const handleWheel = (event) => {
+const handleWheel = event => {
   // 只处理 Shift+滚轮的情况
   if (!event.shiftKey) {
     return;
   }
-  
+
   // 查找表格的滚动容器
   if (!scTable.value) {
     return;
   }
-  
+
   const tableEl = scTable.value?.$el;
   if (!tableEl) {
     return;
   }
-  
+
   // 优先查找 el-table__body-wrapper，这是 el-table 的主要滚动容器
-  let targetScrollContainer = tableEl.querySelector('.el-table__body-wrapper');
+  let targetScrollContainer = tableEl.querySelector(".el-table__body-wrapper");
   if (!targetScrollContainer) {
     // 如果找不到，尝试查找 el-scrollbar__wrap
-    targetScrollContainer = tableEl.querySelector('.el-scrollbar__wrap');
+    targetScrollContainer = tableEl.querySelector(".el-scrollbar__wrap");
   }
   if (!targetScrollContainer) {
     // 最后尝试使用表格元素本身
     targetScrollContainer = tableEl;
   }
-  
+
   if (targetScrollContainer) {
     // 阻止默认的垂直滚动行为
     event.preventDefault();
     event.stopPropagation();
-    
+
     // 将垂直滚动转换为横向滚动
     // deltaY 是垂直滚动量，deltaX 是横向滚动量
-    const deltaX = event.deltaY !== 0 ? event.deltaY : (event.deltaX || 0);
-    
+    const deltaX = event.deltaY !== 0 ? event.deltaY : event.deltaX || 0;
+
     // 执行横向滚动
     targetScrollContainer.scrollLeft += deltaX;
   }
@@ -486,49 +483,49 @@ const initShiftWheelScroll = () => {
   if (!scTable.value) {
     return;
   }
-  
+
   nextTick(() => {
     const tableEl = scTable.value?.$el;
     if (!tableEl) {
       return;
     }
-    
+
     // 查找表格的滚动容器
-    scrollContainer = tableEl.querySelector('.el-table__body-wrapper');
+    scrollContainer = tableEl.querySelector(".el-table__body-wrapper");
     if (!scrollContainer) {
-      scrollContainer = tableEl.querySelector('.el-scrollbar__wrap');
+      scrollContainer = tableEl.querySelector(".el-scrollbar__wrap");
     }
     if (!scrollContainer) {
       scrollContainer = tableEl;
     }
-    
+
     if (!scrollContainer) {
       return;
     }
-    
+
     // 创建滚轮事件处理函数
-    wheelHandler = (event) => {
+    wheelHandler = event => {
       // 检查是否按下了 Shift 键
       if (event.shiftKey) {
         // 阻止默认的垂直滚动行为
         event.preventDefault();
         event.stopPropagation();
-        
+
         // 将垂直滚动转换为横向滚动
-        const deltaX = event.deltaY !== 0 ? event.deltaY : (event.deltaX || 0);
+        const deltaX = event.deltaY !== 0 ? event.deltaY : event.deltaX || 0;
         if (scrollContainer) {
           scrollContainer.scrollLeft += deltaX;
         }
       }
     };
-    
+
     // 添加滚轮事件监听器到滚动容器
     // 使用 capture 模式确保事件在捕获阶段被处理
-    scrollContainer.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
-    
+    scrollContainer.addEventListener("wheel", wheelHandler, { passive: false, capture: true });
+
     // 同时监听表格容器，确保在表格任何位置都能触发
     if (tableEl !== scrollContainer) {
-      tableEl.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
+      tableEl.addEventListener("wheel", wheelHandler, { passive: false, capture: true });
     }
   });
 };
@@ -538,11 +535,11 @@ const destroyShiftWheelScroll = () => {
   if (scTable.value && wheelHandler) {
     const tableEl = scTable.value?.$el;
     if (tableEl) {
-      tableEl.removeEventListener('wheel', wheelHandler, { capture: true });
+      tableEl.removeEventListener("wheel", wheelHandler, { capture: true });
     }
   }
   if (scrollContainer && wheelHandler) {
-    scrollContainer.removeEventListener('wheel', wheelHandler, { capture: true });
+    scrollContainer.removeEventListener("wheel", wheelHandler, { capture: true });
     scrollContainer = null;
   }
   wheelHandler = null;
@@ -567,37 +564,37 @@ onMounted(() => {
 });
 
 // 处理表格右键菜单
-const handleTableContextMenu = (event) => {
+const handleTableContextMenu = event => {
   if (!props.contextmenu || !scTable.value) return;
-  
+
   const tableEl = scTable.value.$el;
   if (!tableEl) return;
-  
+
   // 查找点击的行
   const target = event.target;
-  let rowElement = target.closest('.el-table__row');
-  
+  let rowElement = target.closest(".el-table__row");
+
   if (!rowElement) {
     // 如果点击的不是行，不处理
     return;
   }
-  
+
   // 获取行索引
-  const rows = tableEl.querySelectorAll('.el-table__body tbody tr');
+  const rows = tableEl.querySelectorAll(".el-table__body tbody tr");
   const rowIndex = Array.from(rows).indexOf(rowElement);
-  
+
   if (rowIndex === -1 || rowIndex >= props.tableData.length) {
     return;
   }
-  
+
   const row = props.tableData[rowIndex];
-  
+
   // 保存当前行数据
   currentRowData.value = row;
-  
+
   // 调用外部传入的contextmenu函数获取菜单项
   const items = props.contextmenu(row, null, event);
-  
+
   if (items && items.length > 0) {
     menuItems.value = items;
     // 显示右键菜单
@@ -608,9 +605,9 @@ const handleTableContextMenu = (event) => {
 };
 
 // 处理菜单动作
-const handleMenuAction = (action) => {
+const handleMenuAction = action => {
   // 如果需要，可以在这里处理菜单动作
-  logger.info('菜单动作: {}', action);
+  logger.info("菜单动作: {}", action);
 };
 
 onBeforeUnmount(() => {
@@ -623,14 +620,14 @@ const clearSelection = () => scTable.value?.clearSelection();
 const toggleRowSelection = (row, selected) => scTable.value?.toggleRowSelection(row, selected);
 const toggleAllSelection = () => scTable.value?.toggleAllSelection();
 const toggleRowExpansion = (row, expanded) => scTable.value?.toggleRowExpansion(row, expanded);
-const setCurrentRow = (row) => scTable.value?.setCurrentRow(row);
+const setCurrentRow = row => scTable.value?.setCurrentRow(row);
 const clearSort = () => scTable.value?.clearSort();
-const clearFilter = (columnKeys) => scTable.value?.clearFilter(columnKeys);
+const clearFilter = columnKeys => scTable.value?.clearFilter(columnKeys);
 const doLayout = () => scTable.value?.doLayout();
 const sort = (prop, order) => scTable.value?.sort(prop, order);
-const scrollTo = (options) => scTable.value?.scrollTo(options);
-const setScrollTop = (top) => scTable.value?.setScrollTop(top);
-const setScrollLeft = (left) => scTable.value?.setScrollLeft(left);
+const scrollTo = options => scTable.value?.scrollTo(options);
+const setScrollTop = top => scTable.value?.setScrollTop(top);
+const setScrollLeft = left => scTable.value?.setScrollLeft(left);
 
 defineExpose({
   scTable,
@@ -657,7 +654,7 @@ defineExpose({
   transition: var(--stitch-lay-transition);
   box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
   overflow-x: auto; /* 允许横向滚动 */
-  
+
   :deep(.el-table) {
     width: 100% !important;
     max-width: 100% !important; /* 限制表格最大宽度 */
@@ -703,11 +700,21 @@ defineExpose({
     }
   }
 
-  &.theme--primary { @include theme-variant('primary'); }
-  &.theme--success { @include theme-variant('success'); }
-  &.theme--warning { @include theme-variant('warning'); }
-  &.theme--danger { @include theme-variant('danger'); }
-  &.theme--info { @include theme-variant('info'); }
+  &.theme--primary {
+    @include theme-variant("primary");
+  }
+  &.theme--success {
+    @include theme-variant("success");
+  }
+  &.theme--warning {
+    @include theme-variant("warning");
+  }
+  &.theme--danger {
+    @include theme-variant("danger");
+  }
+  &.theme--info {
+    @include theme-variant("info");
+  }
 }
 
 .scroll-wrapper {
@@ -793,7 +800,7 @@ defineExpose({
 
     .cross-highlight-row::before,
     .cross-highlight-row::after {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       right: 0;
@@ -824,7 +831,7 @@ defineExpose({
 
     .cross-highlight-col-cell::before,
     .cross-highlight-col-cell::after {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       bottom: 0;
@@ -856,7 +863,7 @@ defineExpose({
       display: none;
     }
   }
-  
+
   /* 固定列也需要支持十字高亮 */
   :deep(.el-table__fixed),
   :deep(.el-table__fixed-right) {
@@ -887,27 +894,27 @@ defineExpose({
 :deep(.el-table__fixed),
 :deep(.el-table__fixed-right) {
   background-color: var(--stitch-lay-bg-panel) !important;
-  
+
   th.el-table__cell,
   td.el-table__cell {
     background-color: var(--stitch-lay-bg-panel) !important;
   }
-  
+
   /* 固定列表头背景 */
   .el-table__header-wrapper {
     background-color: var(--stitch-lay-bg-panel) !important;
   }
-  
+
   /* 固定列表体背景 */
   .el-table__body-wrapper {
     background-color: var(--stitch-lay-bg-panel) !important;
   }
-  
+
   /* 固定列斑马纹背景 */
   .el-table__row--striped td.el-table__cell {
     background-color: var(--stitch-lay-bg-group) !important;
   }
-  
+
   /* 固定列悬停背景 */
   .el-table__body tr:hover > td.el-table__cell {
     background-color: var(--stitch-lay-bg-hover) !important;
@@ -919,11 +926,11 @@ defineExpose({
   width: 100%;
   height: 100%;
   overflow: hidden;
-  
+
   &:active {
     cursor: grabbing !important;
   }
-  
+
   .el-table {
     width: 100%;
     height: 100%;

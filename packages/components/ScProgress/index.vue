@@ -1,9 +1,10 @@
 <template>
-  <el-tooltip :content="tooltipText" :placement="tooltipPlacement" :show-after="tooltipShowAfter">
+  <ScTooltip :content="tooltipText" :placement="tooltipPlacement" :show-after="tooltipShowAfter">
     <div class="sc-progress" :class="[`type-${innerType}`, `text-${textPosition}`]" :style="rootStyle">
       <!-- Element Plus 模式 -->
       <template v-if="innerType === 'el'">
-        <el-progress
+        <component
+          :is="currentComponent || ElProgress"
           :percentage="clamped"
           :stroke-width="strokeWidth"
           :text-inside="textPosition === 'inside' && showText"
@@ -75,11 +76,13 @@
         </div>
       </template>
     </div>
-  </el-tooltip>
+  </ScTooltip>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { ElProgress } from "element-plus";
+import { useThemeComponent } from "../hooks/useThemeComponent";
 
 interface Stage {
   /** 达到该阈值(<=)时使用的颜色 */
@@ -161,6 +164,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 const clamped = computed(() => Math.max(0, Math.min(100, props.percentage ?? 0)));
 const innerType = computed(() => props.type || "line");
+
+// 使用主题组件系统 V2.0
+const { currentComponent } = useThemeComponent("ElProgress");
 
 const stagesSorted = computed(() => {
   if (!props.stages || props.stages.length === 0) return [] as Stage[];

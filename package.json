@@ -7,6 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node ./scripts/turbo-run/bin/turbo-run.mjs dev",
+    "dev:iconify": "node ./scripts/iconify-run.mjs",
     "lint": "turbo lint",
     "build": "pnpm build:packages && pnpm build:apps",
     "build:packages": "node ./scripts/build-packages.mjs",
@@ -14,7 +15,9 @@
     "build:app": "node ./scripts/build-apps.mjs --app",
     "build:doc": "turbo build --filter=docs",
     "clean": "node ./scripts/clean.mjs",
-    "rmdist": "turbo rm dist"
+    "rmdist": "turbo rm dist",
+    "nw:dev": "node ./scripts/nw-run.mjs dev",
+    "nw:build": "node ./scripts/nw-run.mjs build"
   },
   "keywords": [],
   "author": "",
@@ -74,7 +77,6 @@
     "cssnano": "catalog:",
     "eslint": "catalog:",
     "eslint-config-prettier": "catalog:",
-    "eslint-define-config": "catalog:",
     "eslint-plugin-prettier": "catalog:",
     "eslint-plugin-vue": "catalog:",
     "gradient-string": "catalog:",

@@ -1,5 +1,6 @@
 <template>
-  <el-drawer
+  <component
+    :is="currentComponent || ElDrawer"
     v-model="visible"
     :title="title"
     :size="size"
@@ -15,7 +16,7 @@
     :modal-class="inMainArea ? 'drawer-in-main-area ' + modalClass : modalClass"
     :z-index="zIndex"
     :destroy-on-close="destroyOnClose"
-    :class="['sc-drawer', customClass]"
+    :class="['sc-drawer', `sc-drawer--${theme}`, customClass]"
     @open="handleOpen"
     @opened="handleOpened"
     @close="handleClose"
@@ -32,27 +33,31 @@
     <!-- 自定义底部插槽 -->
     <template v-if="$slots.footer || showFooter" #footer>
       <slot name="footer">
-        <el-button v-if="showCancelButton" @click="handleCancel">
+        <ScButton v-if="showCancelButton" @click="handleCancel">
           {{ cancelText }}
-        </el-button>
-        <el-button v-if="showConfirmButton" type="primary" :loading="loading" @click="handleConfirm">
+        </ScButton>
+        <ScButton v-if="showConfirmButton" type="primary" :loading="loading" @click="handleConfirm">
           {{ confirmText }}
-        </el-button>
+        </ScButton>
       </slot>
     </template>
-  </el-drawer>
+  </component>
 </template>
 
 <script setup lang="ts">
 /**
  * ScDrawer 抽屉组件
  * 继承 el-drawer 所有功能，并添加记忆功能
+ * 支持 data-skin 切换为像素风格
  * @author CH
  * @version 1.0.0
  * @since 2025-12-08
  */
 import { ref, computed, watch, onMounted, type PropType } from "vue";
+import { ElDrawer } from "element-plus";
 import { localStorageProxy } from "@repo/utils";
+import { ScButton } from "../ScButton";
+import { useThemeComponent } from "../hooks/useThemeComponent";
 
 /** 抽屉方向类型 */
 type DrawerDirection = "ltr" | "rtl" | "ttb" | "btt";
@@ -91,6 +96,8 @@ const props = withDefaults(
     destroyOnClose?: boolean;
     /** 自定义类名 */
     customClass?: string;
+    /** 主题 */
+    theme?: "default" | "primary" | "success" | "warning" | "danger" | "info" | "tech";
     /** 是否显示底部 */
     showFooter?: boolean;
     /** 是否显示取消按钮 */
@@ -112,7 +119,7 @@ const props = withDefaults(
     memoryId?: string | number;
     /** 是否启用记忆功能 */
     memoryEnabled?: boolean;
-    /** 
+    /**
      * 是否在主内容区域内显示（不遮挡顶部导航和侧边栏）
      * 设置为 true 时，drawer 将只在 main-container 区域内显示
      */
@@ -158,6 +165,9 @@ const emit = defineEmits<{
 
 // 内部可见状态
 const visible = ref(props.modelValue);
+
+// 使用主题组件系统 V2.0
+const { currentComponent } = useThemeComponent("ElDrawer");
 
 // 记忆存储 key
 const memoryStorageKey = computed(() => {

@@ -2,6 +2,7 @@
 import { reactive, ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
+import { ScSlider } from "@repo/components";
 
 // 国际化
 const { t } = useI18n();
@@ -741,7 +742,7 @@ onBeforeUnmount(() => {
                         "
                       />
                     </el-button>
-                    <el-slider
+                    <ScSlider
                       v-model="env.volume"
                       :min="0"
                       :max="100"

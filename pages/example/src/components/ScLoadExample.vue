@@ -105,7 +105,7 @@
             </el-form-item>
 
             <el-form-item label="圆角大小">
-              <el-slider
+              <ScSlider
                 v-model="borderRadius"
                 :min="0"
                 :max="20"
@@ -122,7 +122,7 @@
         <h4>进度控制</h4>
         <el-row :gutter="20">
           <el-col :span="16">
-            <el-slider
+            <ScSlider
               v-model="progress"
               :min="0"
               :max="100"
@@ -216,6 +216,7 @@ import { IconifyIconOnline } from "@repo/components/ReIcon";
 import CodePreview from "./CodePreview.vue";
 import ScLoading from "@repo/components/ScLoading/index.vue";
 import { computed, onUnmounted, ref } from "vue";
+import { ScSlider } from "@repo/components";
 
 // 加载组件引用
 const loadingRef = ref(null);

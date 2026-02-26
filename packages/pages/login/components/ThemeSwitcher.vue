@@ -7,17 +7,11 @@
 <template>
   <div class="theme-switcher">
     <!-- 下拉菜单触发器 -->
-    <el-dropdown
-      trigger="click"
-      popper-class="theme-dropdown-popper"
-    >
+    <el-dropdown trigger="click" popper-class="theme-dropdown-popper">
       <div class="switcher-trigger">
         <IconifyIconOnline :icon="currentThemeIcon" class="theme-icon" />
         <span class="theme-text">{{ currentThemeName }}</span>
-        <IconifyIconOnline 
-          icon="ri:arrow-down-s-line" 
-          class="arrow-icon"
-        />
+        <IconifyIconOnline icon="ri:arrow-down-s-line" class="arrow-icon" />
       </div>
       <template #dropdown>
         <el-dropdown-menu class="theme-menu">
@@ -45,9 +39,9 @@
                   <span class="item-name">{{ theme.name }}</span>
                   <span class="item-desc">{{ theme.description }}</span>
                 </div>
-                <IconifyIconOnline 
+                <IconifyIconOnline
                   v-show="currentTheme === theme.key"
-                  icon="ep:check" 
+                  icon="ep:check"
                   class="item-check"
                 />
               </el-dropdown-item>
@@ -58,7 +52,9 @@
           <div class="theme-group">
             <div class="group-title">
               <span>{{ t("theme.festivalThemes") }}</span>
-              <el-tag size="small" type="warning">{{ t("theme.festivalTag") }}</el-tag>
+              <el-tag size="small" type="warning">{{
+                t("theme.festivalTag")
+              }}</el-tag>
             </div>
             <div class="theme-items">
               <el-dropdown-item
@@ -75,9 +71,9 @@
                   <span class="item-name">{{ theme.name }}</span>
                   <span class="item-desc">{{ theme.description }}</span>
                 </div>
-                <IconifyIconOnline 
+                <IconifyIconOnline
                   v-show="currentTheme === theme.key"
-                  icon="ep:check" 
+                  icon="ep:check"
                   class="item-check"
                 />
               </el-dropdown-item>
@@ -92,7 +88,11 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { getLoginTheme, setLoginTheme, setEnableFestivalTheme } from "../utils/themeConfig";
+import {
+  getLoginTheme,
+  setLoginTheme,
+  setEnableFestivalTheme,
+} from "../utils/themeConfig";
 
 /**
  * @author CH
@@ -123,22 +123,10 @@ const regularThemes = computed(() => [
     icon: "ri:rocket-line",
   },
   {
-    key: "business",
-    name: t("theme.themes.business.name"),
-    description: t("theme.themes.business.desc"),
-    icon: "ri:briefcase-line",
-  },
-  {
     key: "pixel",
     name: t("theme.themes.pixel.name"),
     description: t("theme.themes.pixel.desc"),
     icon: "ri:gamepad-line",
-  },
-  {
-    key: "mc",
-    name: t("theme.themes.mc.name"),
-    description: t("theme.themes.mc.desc"),
-    icon: "ri:box-3-line",
   },
   {
     key: "random",
@@ -151,55 +139,15 @@ const regularThemes = computed(() => [
 /**
  * 节日主题列表
  */
-const festivalThemes = computed(() => [
-  {
-    key: "new-year",
-    name: t("theme.themes.newYear.name"),
-    description: t("theme.themes.newYear.desc"),
-    icon: "noto:party-popper",
-  },
-  {
-    key: "spring-festival",
-    name: t("theme.themes.springFestival.name"),
-    description: t("theme.themes.springFestival.desc"),
-    icon: "noto:firecracker",
-  },
-  {
-    key: "valentines-day",
-    name: t("theme.themes.valentinesDay.name"),
-    description: t("theme.themes.valentinesDay.desc"),
-    icon: "noto:red-heart",
-  },
-  {
-    key: "mid-autumn",
-    name: t("theme.themes.midAutumn.name"),
-    description: t("theme.themes.midAutumn.desc"),
-    icon: "noto:full-moon",
-  },
-  {
-    key: "national-day",
-    name: t("theme.themes.nationalDay.name"),
-    description: t("theme.themes.nationalDay.desc"),
-    icon: "twemoji:flag-china",
-  },
-  {
-    key: "christmas",
-    name: t("theme.themes.christmas.name"),
-    description: t("theme.themes.christmas.desc"),
-    icon: "noto:christmas-tree",
-  },
-  {
-    key: "halloween",
-    name: t("theme.themes.halloween.name"),
-    description: t("theme.themes.halloween.desc"),
-    icon: "noto:jack-o-lantern",
-  },
-]);
+const festivalThemes = computed(() => []);
 
 /**
  * 所有主题列表
  */
-const allThemes = computed(() => [...regularThemes.value, ...festivalThemes.value]);
+const allThemes = computed(() => [
+  ...regularThemes.value,
+  ...festivalThemes.value,
+]);
 
 /**
  * 当前选中的主题

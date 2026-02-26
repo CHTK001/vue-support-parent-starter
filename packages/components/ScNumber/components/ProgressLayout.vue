@@ -2,7 +2,7 @@
   <div class="sc-number-progress" :class="{ 'sc-number-progress--disabled': disabled }">
     <!-- 进度条 -->
     <div class="sc-number-progress__bar">
-      <el-progress
+      <ScProgress
         class="sc-number-progress__progress"
         :percentage="percentage"
         :stroke-width="strokeWidth"
@@ -16,35 +16,18 @@
 
     <!-- 可编辑输入框 -->
     <div v-if="showInput && editable" class="sc-number-progress__input">
-      <el-input-number
-        v-model="currentValue"
-        :min="min"
-        :max="max"
-        :step="step"
-        :disabled="disabled"
-        size="small"
-        controls-position="right"
-        @change="handleChange"
-      />
+      <ScInputNumber v-model="currentValue" :min="min" :max="max" :step="step" :disabled="disabled" size="small" controls-position="right" @change="handleChange" />
     </div>
 
     <!-- 快捷操作按钮 -->
     <div v-if="editable && !showInput" class="sc-number-progress__actions">
-      <button
-        class="sc-number-progress__btn"
-        :disabled="disabled || currentValue <= min"
-        @click="decrease"
-      >
+      <button class="sc-number-progress__btn" :disabled="disabled || currentValue <= min" @click="decrease">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
           <path d="M19 13H5v-2h14v2z" />
         </svg>
       </button>
       <span class="sc-number-progress__value">{{ displayValue }}</span>
-      <button
-        class="sc-number-progress__btn"
-        :disabled="disabled || currentValue >= max"
-        @click="increase"
-      >
+      <button class="sc-number-progress__btn" :disabled="disabled || currentValue >= max" @click="increase">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
           <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
         </svg>
@@ -55,6 +38,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { ScProgress } from "../../ScProgress";
+import ScInputNumber from "../../ScInputNumber/src/index.vue";
 
 interface Props {
   /**

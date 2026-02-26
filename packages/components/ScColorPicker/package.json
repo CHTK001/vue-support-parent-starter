@@ -1,0 +1,6 @@
+{
+  "name": "@repo/components/ScColorPicker",
+  "version": "0.0.0",
+  "main": "index.ts",
+  "license": "MIT"
+}

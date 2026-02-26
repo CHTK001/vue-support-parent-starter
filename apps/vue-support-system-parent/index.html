@@ -8,49 +8,23 @@
     <title>后台系统</title>
     <link rel="icon" href="/favicon.ico" />
     <script>
-      // 在页面加载早期就检查并设置深色主题，防止FOUC
+      // 深色主题检测
       try {
-        var storage = localStorage.getItem('layout');
+        var storage = localStorage.getItem('responsive-layout');
         if (storage) {
           var layoutConfig = JSON.parse(storage);
           if (layoutConfig.darkMode) {
             document.documentElement.classList.add('dark');
           }
         } else {
-          // 如果没有存储的配置，检查系统偏好
           if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.documentElement.classList.add('dark');
           }
         }
-      } catch (e) {
-        // 静默处理错误，不影响页面加载
-      }
+      } catch (e) {}
     </script>
+    <script src="/loader.js"></script>
   </head>
 
-  <body>
-    <div id="app"></div>
-    <script>
-      // 动态加载 JS 文件，如果文件不存在则不加载
-      (function() {
-        var scripts = ['/adapter.min.js', '/webrtcstreamer.js'];
-        
-        scripts.forEach(function(src) {
-          fetch(src, { method: 'HEAD' })
-            .then(function(response) {
-              if (response.ok) {
-                var script = document.createElement('script');
-                script.src = src;
-                script.async = true;
-                document.body.appendChild(script);
-              }
-            })
-            .catch(function() {
-              // 文件不存在，静默忽略
-            });
-        });
-      })();
-    </script>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+  <script type="module" src="/src/main.ts"></script>
 </html>

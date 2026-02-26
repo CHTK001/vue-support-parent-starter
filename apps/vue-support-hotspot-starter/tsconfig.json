@@ -43,7 +43,7 @@
     "env.d.ts",
     "@repo/core",
     "src/types/*.d.ts",
-    "types/*.d.ts",
+    "../../packages/types/*.d.ts",
     "mock/*.ts",
     "src/**/*.ts",
     "src/**/*.tsx",

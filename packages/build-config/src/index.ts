@@ -23,3 +23,6 @@ export { cdn } from "./cdn";
 
 // 构建信息
 export { viteBuildInfo } from "./info";
+
+// 共享 public 目录配置
+export { getSharedPublicConfig } from "./shared-public";

@@ -54,7 +54,7 @@
             <el-button circle @click="toggleMute" class="music-player__control-btn">
               <IconifyIconOnline :icon="isMuted ? 'ri:volume-mute-fill' : volume > 50 ? 'ri:volume-up-fill' : 'ri:volume-down-fill'" />
             </el-button>
-            <el-slider v-model="volume" :disabled="isMuted" @input="adjustVolume" class="music-player__volume-slider" />
+            <ScSlider v-model="volume" :disabled="isMuted" @input="adjustVolume" class="music-player__volume-slider" />
             <el-button circle @click="showLyrics = !showLyrics" class="music-player__control-btn" :class="{ 'is-active': showLyrics }">
               <IconifyIconOnline icon="ri:file-list-line" />
             </el-button>
@@ -155,6 +155,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { useRouter } from "vue-router";
+import { ScSlider } from "@repo/components";
 
 // 音乐信息接口
 interface MusicInfo {

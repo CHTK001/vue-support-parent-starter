@@ -6,9 +6,9 @@
  * @since 2025-12-05
 -->
 <template>
-  <el-tooltip v-if="showTooltip" :content="tooltipContent" :placement="tooltipPlacement" :effect="tooltipEffect" :disabled="!shouldShowTooltip" :raw-content="true">
+  <ScTooltip v-if="showTooltip" :content="tooltipContent" :placement="tooltipPlacement" :effect="tooltipEffect" :disabled="!shouldShowTooltip" :raw-content="true">
     <component :is="renderComponent" />
-  </el-tooltip>
+  </ScTooltip>
   <component v-else :is="renderComponent" />
 </template>
 
@@ -16,6 +16,7 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, h, type VNode } from "vue";
 import { message } from "@repo/utils";
 import TypeIt from "typeit";
+import { ScTooltip } from "../..";
 import type { ScTextProps, ScTextType, ScTextSize, ScTextEffect, TypeItInstance } from "./types";
 
 defineOptions({

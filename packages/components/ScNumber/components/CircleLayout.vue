@@ -2,36 +2,20 @@
   <div class="sc-number-circle" :class="{ 'sc-number-circle--disabled': disabled }">
     <!-- 圆形进度 -->
     <div class="sc-number-circle__wrapper" :style="{ width: `${size}px`, height: `${size}px` }">
-      <el-progress
-        type="circle"
-        class="sc-number-circle__progress"
-        :percentage="percentage"
-        :width="size"
-        :stroke-width="strokeWidth"
-        :color="color"
-        :show-text="false"
-      />
-      
+      <ScProgress type="circle" class="sc-number-circle__progress" :percentage="percentage" :width="size" :stroke-width="strokeWidth" :color="color" :show-text="false" />
+
       <!-- 中心内容 -->
       <div class="sc-number-circle__content">
         <div class="sc-number-circle__value">
           {{ displayValue }}
         </div>
         <div v-if="showInput && editable" class="sc-number-circle__controls">
-          <button
-            class="sc-number-circle__btn"
-            :disabled="disabled || currentValue <= min"
-            @click="decrease"
-          >
+          <button class="sc-number-circle__btn" :disabled="disabled || currentValue <= min" @click="decrease">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
               <path d="M19 13H5v-2h14v2z" />
             </svg>
           </button>
-          <button
-            class="sc-number-circle__btn"
-            :disabled="disabled || currentValue >= max"
-            @click="increase"
-          >
+          <button class="sc-number-circle__btn" :disabled="disabled || currentValue >= max" @click="increase">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
               <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
             </svg>
@@ -44,6 +28,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { ScProgress } from "../../ScProgress";
 
 interface Props {
   /**

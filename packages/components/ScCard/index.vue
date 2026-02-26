@@ -18,6 +18,7 @@ import StatsLayout from "./layouts/Stats.vue";
 import StatsSimpleLayout from "./layouts/StatsSimple.vue";
 import TechLayout from "./layouts/Tech.vue";
 import { getThemeConfig, type IotCardTheme } from "./themes";
+import { useThemeComponent } from "../hooks/useThemeComponent";
 
 // 布局类型
 type LayoutType = "default" | "media" | "header-content" | "panel-3d" | "compact" | "stats" | "stats-simple" | "tech" | "custom";
@@ -275,6 +276,12 @@ export default defineComponent({
   },
   emits: ["click"],
   setup(props, { emit }) {
+    /**
+     * 使用主题组件系统 V2.0
+     * 自动根据 data-skin 加载对应主题的 Card 组件
+     */
+    const { currentComponent } = useThemeComponent("ElCard");
+
     // IoT 主题配置
     const iotThemeConfig = computed(() => {
       if (props.iotTheme) {
@@ -291,7 +298,8 @@ export default defineComponent({
     // 根据布局类型和渲染模式决定使用哪个组件
     const renderComponent = computed(() => {
       if (props.renderAs === "el-card") {
-        return "el-card";
+        // 使用主题系统的 Card 组件（支持 8bit 等主题）
+        return currentComponent.value || ElCard;
       }
 
       switch (props.layout) {

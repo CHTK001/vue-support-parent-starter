@@ -4,37 +4,33 @@
     <div class="editor-toolbar" v-if="showToolbar">
       <div class="toolbar-left">
         <slot name="toolbar-left">
-          <el-button-group>
-            <el-tooltip content="撤销" placement="bottom">
-              <el-button size="small" @click="handleUndo" :disabled="!canUndo">
-                <IconifyIconOnline icon="ri:arrow-go-back-line" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="重做" placement="bottom">
-              <el-button size="small" @click="handleRedo" :disabled="!canRedo">
-                <IconifyIconOnline icon="ri:arrow-go-forward-line" />
-              </el-button>
-            </el-tooltip>
-          </el-button-group>
-          <el-divider direction="vertical" />
-          <el-button-group>
-            <el-tooltip content="放大" placement="bottom">
-              <el-button size="small" @click="handleZoomIn">
-                <IconifyIconOnline icon="ri:zoom-in-line" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="缩小" placement="bottom">
-              <el-button size="small" @click="handleZoomOut">
-                <IconifyIconOnline icon="ri:zoom-out-line" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="适应画布" placement="bottom">
-              <el-button size="small" @click="handleZoomFit">
-                <IconifyIconOnline icon="ri:aspect-ratio-line" />
-              </el-button>
-            </el-tooltip>
-          </el-button-group>
-          <el-divider direction="vertical" />
+          <ScButton size="small" @click="handleUndo" :disabled="!canUndo">
+            <ScTooltip content="撤销" placement="bottom">
+              <IconifyIconOnline icon="ri:arrow-go-back-line" />
+            </ScTooltip>
+          </ScButton>
+          <ScButton size="small" @click="handleRedo" :disabled="!canRedo">
+            <ScTooltip content="重做" placement="bottom">
+              <IconifyIconOnline icon="ri:arrow-go-forward-line" />
+            </ScTooltip>
+          </ScButton>
+          <ScDivider direction="vertical" />
+          <ScButton size="small" @click="handleZoomIn">
+            <ScTooltip content="放大" placement="bottom">
+              <IconifyIconOnline icon="ri:zoom-in-line" />
+            </ScTooltip>
+          </ScButton>
+          <ScButton size="small" @click="handleZoomOut">
+            <ScTooltip content="缩小" placement="bottom">
+              <IconifyIconOnline icon="ri:zoom-out-line" />
+            </ScTooltip>
+          </ScButton>
+          <ScButton size="small" @click="handleZoomFit">
+            <ScTooltip content="适应画布" placement="bottom">
+              <IconifyIconOnline icon="ri:aspect-ratio-line" />
+            </ScTooltip>
+          </ScButton>
+          <ScDivider direction="vertical" />
           <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
         </slot>
       </div>
@@ -43,26 +39,22 @@
       </div>
       <div class="toolbar-right">
         <slot name="toolbar-right">
-          <el-button-group v-if="autoArrange">
-            <el-tooltip content="自动排列" placement="bottom">
-              <el-button size="small" @click="handleArrange">
-                <IconifyIconOnline icon="ri:layout-grid-line" />
-              </el-button>
-            </el-tooltip>
-          </el-button-group>
-          <el-divider direction="vertical" v-if="autoArrange" />
-          <el-button-group>
-            <el-tooltip content="清空画布" placement="bottom">
-              <el-button size="small" @click="handleClear">
-                <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="全屏" placement="bottom">
-              <el-button size="small" @click="toggleFullscreen">
-                <IconifyIconOnline :icon="isFullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
-              </el-button>
-            </el-tooltip>
-          </el-button-group>
+          <ScButton v-if="autoArrange" size="small" @click="handleArrange">
+            <ScTooltip content="自动排列" placement="bottom">
+              <IconifyIconOnline icon="ri:layout-grid-line" />
+            </ScTooltip>
+          </ScButton>
+          <ScDivider v-if="autoArrange" direction="vertical" />
+          <ScButton size="small" @click="handleClear">
+            <ScTooltip content="清空画布" placement="bottom">
+              <IconifyIconOnline icon="ri:delete-bin-line" />
+            </ScTooltip>
+          </ScButton>
+          <ScButton size="small" @click="toggleFullscreen">
+            <ScTooltip content="全屏" placement="bottom">
+              <IconifyIconOnline :icon="isFullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
+            </ScTooltip>
+          </ScButton>
         </slot>
       </div>
     </div>
@@ -75,14 +67,7 @@
           <span>节点</span>
         </div>
         <div class="panel-content">
-          <div 
-            v-for="item in nodeMenuItems"
-            :key="item.type"
-            class="node-item"
-            draggable="true"
-            @dragstart="(e) => handleDragStart(e, item)"
-            @click="handleAddNode(item.type)"
-          >
+          <div v-for="item in nodeMenuItems" :key="item.type" class="node-item" draggable="true" @dragstart="e => handleDragStart(e, item)" @click="handleAddNode(item.type)">
             <div class="node-item-icon" :style="{ background: getNodeColor(item.type) }">
               <IconifyIconOnline :icon="item.icon || 'ri:box-3-line'" />
             </div>
@@ -92,20 +77,18 @@
       </div>
 
       <!-- 画布区域 -->
-      <div 
+      <div
         class="editor-canvas"
-        :class="{ 
+        :class="{
           [`bg-${background}`]: true,
-          'is-readonly': readonly 
+          'is-readonly': readonly
         }"
         ref="containerRef"
         @drop="handleDrop"
         @dragover.prevent
       >
         <div v-if="loading" class="editor-loading">
-          <el-icon class="is-loading">
-            <IconifyIconOnline icon="ri:loader-4-line" />
-          </el-icon>
+          <IconifyIconOnline icon="ri:loader-4-line" class="is-loading" />
           <span>加载中...</span>
         </div>
       </div>
@@ -114,23 +97,23 @@
       <div class="property-panel" v-if="showPropertyPanel && selectedNode">
         <div class="panel-header">
           <span>属性</span>
-          <el-button text size="small" @click="selectedNode = null">
+          <ScButton text size="small" @click="selectedNode = null">
             <IconifyIconOnline icon="ri:close-line" />
-          </el-button>
+          </ScButton>
         </div>
         <div class="panel-content">
           <slot name="property-panel" :node="selectedNode">
-            <el-form label-position="top" size="small">
-              <el-form-item label="节点ID">
-                <el-input :model-value="selectedNode.id" disabled />
-              </el-form-item>
-              <el-form-item label="节点名称">
-                <el-input v-model="selectedNode.label" @change="handleNodeLabelChange" />
-              </el-form-item>
-              <el-form-item label="节点类型">
-                <el-input :model-value="selectedNode.nodeType" disabled />
-              </el-form-item>
-            </el-form>
+            <ScForm label-position="top" size="small">
+              <ScFormItem label="节点ID">
+                <ScInput :model-value="selectedNode.id" disabled />
+              </ScFormItem>
+              <ScFormItem label="节点名称">
+                <ScInput v-model="selectedNode.label" @change="handleNodeLabelChange" />
+              </ScFormItem>
+              <ScFormItem label="节点类型">
+                <ScInput :model-value="selectedNode.nodeType" disabled />
+              </ScFormItem>
+            </ScForm>
           </slot>
         </div>
       </div>
@@ -154,9 +137,7 @@
         </span>
       </div>
       <div class="statusbar-right">
-        <span class="status-item" v-if="selectedNode">
-          选中: {{ selectedNode.label }}
-        </span>
+        <span class="status-item" v-if="selectedNode">选中: {{ selectedNode.label }}</span>
       </div>
     </div>
   </div>
@@ -167,30 +148,37 @@ import { ref, computed, onMounted, watch, type PropType } from "vue";
 import { ElMessageBox } from "element-plus";
 import { useReteEditor, type UseReteEditorOptions } from "./useReteEditor";
 import type { EditorData, NodeTypeName, BaseNode, EditorConfig } from "./types";
+import { ScTooltip } from "../ScTooltip";
+import { ScButton } from "../ScButton";
+import { ScDivider } from "../ScDivider";
+import { ScForm } from "../ScForm";
+import { ScFormItem } from "../ScFormItem";
+import { ScInput } from "../ScInput";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 /**
  * ScReteEditor - 可视化节点编辑器组件
- * 
+ *
  * 基于 Rete.js 的拖拽式节点编辑器，支持：
  * - 节点拖拽、连接
  * - 右键菜单
  * - 小地图
  * - 自动排列
  * - 数据导入/导出
- * 
+ *
  * 可用方法: getData, loadData, clear, addNode, removeNode, arrange, zoomToFit, setZoom
  */
 defineOptions({
-  name: "ScReteEditor",
+  name: "ScReteEditor"
 });
 
 // Props 定义
 const props = defineProps({
-  /** 
+  /**
    * 编辑器数据（v-model）
-   * 
+   *
    * 支持双向绑定，数据格式见 EditorData 类型定义
-   * 
+   *
    * @example
    * ```typescript
    * // 数据格式
@@ -207,91 +195,91 @@ const props = defineProps({
    */
   modelValue: {
     type: Object as PropType<EditorData>,
-    default: () => ({ nodes: [], connections: [] }),
+    default: () => ({ nodes: [], connections: [] })
   },
-  /** 
+  /**
    * 是否只读模式
-   * 
+   *
    * 启用后禁止所有编辑操作
    * @default false
    */
   readonly: {
     type: Boolean,
-    default: false,
+    default: false
   },
-  /** 
+  /**
    * 是否显示顶部工具栏
-   * 
+   *
    * 工具栏包含：撤销/重做、缩放、自动排列、清空、全屏等
    * @default true
    */
   showToolbar: {
     type: Boolean,
-    default: true,
+    default: true
   },
-  /** 
+  /**
    * 是否显示左侧节点面板
-   * 
+   *
    * 节点面板显示可拖拽的节点类型
    * @default true
    */
   showNodePanel: {
     type: Boolean,
-    default: true,
+    default: true
   },
-  /** 
+  /**
    * 是否显示右侧属性面板
-   * 
+   *
    * 选中节点后显示节点属性编辑面板
    * @default true
    */
   showPropertyPanel: {
     type: Boolean,
-    default: true,
+    default: true
   },
-  /** 
+  /**
    * 是否显示底部状态栏
-   * 
+   *
    * 状态栏显示节点数、连接数、选中节点等信息
    * @default true
    */
   showStatusbar: {
     type: Boolean,
-    default: true,
+    default: true
   },
-  /** 
+  /**
    * 是否显示小地图
-   * 
+   *
    * 小地图显示在右下角，方便概览和导航
    * @default false
    */
   minimap: {
     type: Boolean,
-    default: false,
+    default: false
   },
-  /** 
+  /**
    * 是否启用右键菜单
-   * 
+   *
    * 启用后可通过右键点击画布添加节点
    * @default true
    */
   contextMenu: {
     type: Boolean,
-    default: true,
+    default: true
   },
-  /** 
+  /**
    * 是否启用自动排列功能
-   * 
+   *
    * 启用后工具栏显示自动排列按钮
    * @default true
    */
   autoArrange: {
     type: Boolean,
-    default: true,
+    default: true
   },
-  /** 
+  /**
    * 背景类型
-   * 
+   *
    * - 'dots': 点阵背景（默认）
    * - 'lines': 网格线背景
    * - 'none': 无背景
@@ -299,23 +287,23 @@ const props = defineProps({
    */
   background: {
     type: String as PropType<"dots" | "lines" | "none">,
-    default: "dots",
+    default: "dots"
   },
-  /** 
+  /**
    * 缩放范围限制
-   * 
+   *
    * @example { min: 0.2, max: 2 } 表示 20%-200%
    * @default { min: 0.2, max: 2 }
    */
   zoom: {
     type: Object as PropType<{ min: number; max: number }>,
-    default: () => ({ min: 0.2, max: 2 }),
+    default: () => ({ min: 0.2, max: 2 })
   },
-  /** 
+  /**
    * 节点菜单项配置
-   * 
+   *
    * 配置左侧节点面板和右键菜单中显示的节点类型
-   * 
+   *
    * @example
    * ```typescript
    * // 自定义节点菜单
@@ -335,9 +323,9 @@ const props = defineProps({
       { label: "处理", type: "process", icon: "ri:settings-3-line" },
       { label: "条件", type: "condition", icon: "ri:git-branch-line" },
       { label: "合并", type: "merge", icon: "ri:git-merge-line" },
-      { label: "延迟", type: "delay", icon: "ri:time-line" },
-    ],
-  },
+      { label: "延迟", type: "delay", icon: "ri:time-line" }
+    ]
+  }
 });
 
 // Emits
@@ -358,40 +346,22 @@ const canUndo = ref(false);
 const canRedo = ref(false);
 
 // 使用 composable
-const {
-  containerRef,
-  editorInstance,
-  initialized,
-  loading,
-  selectedNode,
-  zoomLevel,
-  init,
-  destroy,
-  addNode,
-  removeNode,
-  getData,
-  loadData,
-  clear,
-  arrange,
-  zoomToFit,
-  setZoom,
-  undo,
-  redo,
-} = useReteEditor({
-  readonly: props.readonly,
-  minimap: props.minimap,
-  contextMenu: props.contextMenu,
-  autoArrange: props.autoArrange,
-  zoom: props.zoom,
-  initialData: props.modelValue,
-  onDataChange: (data) => {
-    emit("update:modelValue", data);
-    emit("data-changed", data);
-  },
-  onNodeSelect: (node) => {
-    emit("node-selected", node);
-  },
-});
+const { containerRef, editorInstance, initialized, loading, selectedNode, zoomLevel, init, destroy, addNode, removeNode, getData, loadData, clear, arrange, zoomToFit, setZoom, undo, redo } =
+  useReteEditor({
+    readonly: props.readonly,
+    minimap: props.minimap,
+    contextMenu: props.contextMenu,
+    autoArrange: props.autoArrange,
+    zoom: props.zoom,
+    initialData: props.modelValue,
+    onDataChange: data => {
+      emit("update:modelValue", data);
+      emit("data-changed", data);
+    },
+    onNodeSelect: node => {
+      emit("node-selected", node);
+    }
+  });
 
 // 计算属性
 const nodeCount = computed(() => {
@@ -410,7 +380,7 @@ function getNodeColor(type: NodeTypeName): string {
     process: "#6366f1",
     condition: "#8b5cf6",
     merge: "#ec4899",
-    delay: "#14b8a6",
+    delay: "#14b8a6"
   };
   return colors[type] || "#6366f1";
 }
@@ -443,7 +413,7 @@ async function handleArrange() {
 async function handleClear() {
   try {
     await ElMessageBox.confirm("确定要清空画布吗？此操作不可撤销。", "清空确认", {
-      type: "warning",
+      type: "warning"
     });
     await clear();
   } catch {
@@ -482,16 +452,16 @@ function handleDragStart(e: DragEvent, item: { type: NodeTypeName }) {
 
 async function handleDrop(e: DragEvent) {
   if (!draggedNodeType || !containerRef.value) return;
-  
+
   const rect = containerRef.value.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
-  
+
   const node = await addNode(draggedNodeType, undefined, { x, y });
   if (node) {
     emit("node-created", node);
   }
-  
+
   draggedNodeType = null;
 }
 
@@ -546,7 +516,7 @@ defineExpose({
   /** 重做 */
   redo,
   /** 编辑器实例 */
-  editorInstance,
+  editorInstance
 });
 </script>
 
@@ -679,9 +649,7 @@ defineExpose({
   }
 
   &.bg-lines {
-    background-image: 
-      linear-gradient(var(--el-border-color-lighter) 1px, transparent 1px),
-      linear-gradient(90deg, var(--el-border-color-lighter) 1px, transparent 1px);
+    background-image: linear-gradient(var(--el-border-color-lighter) 1px, transparent 1px), linear-gradient(90deg, var(--el-border-color-lighter) 1px, transparent 1px);
     background-size: 20px 20px;
   }
 

@@ -1,0 +1,12 @@
+<template>
+  <el-config-provider :locale="elementPlusLocale">
+    <router-view />
+    <ReDialog />
+  </el-config-provider>
+</template>
+
+<script setup lang="ts">
+import { ReDialog } from "@repo/components/ReDialog";
+import { ElConfigProvider } from "element-plus";
+import { elementPlusLocale } from "@repo/config";
+</script>

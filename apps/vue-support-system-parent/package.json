@@ -11,9 +11,6 @@
     "report": "rimraf dist && vite build",
     "preview": "vite preview",
     "preview:build": "pnpm build && vite preview",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
     "typecheck": "tsc --noEmit && vue-tsc --noEmit --skipLibCheck",
     "svgo": "svgo -f . -r",
     "clean:cache": "rimraf .eslintcache && rimraf pnpm-lock.yaml && rimraf node_modules && pnpm store prune && pnpm install",
@@ -95,13 +92,9 @@
     "vue-tippy": "catalog:",
     "vue-types": "catalog:",
     "vue3-puzzle-vcode": "catalog:",
-    "vuedraggable": "catalog:",
-    "@tauri-apps/api": "^2.0.0",
-    "@tauri-apps/plugin-opener": "^2.0.0",
-    "@tauri-apps/plugin-shell": "^2.0.0"
+    "vuedraggable": "catalog:"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0",
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@commitlint/types": "catalog:",
@@ -139,7 +132,6 @@
     "cssnano": "catalog:",
     "eslint": "catalog:",
     "eslint-config-prettier": "catalog:",
-    "eslint-define-config": "catalog:",
     "eslint-plugin-prettier": "catalog:",
     "eslint-plugin-vue": "catalog:",
     "gradient-string": "catalog:",

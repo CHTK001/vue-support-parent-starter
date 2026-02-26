@@ -37,6 +37,8 @@ export * from "./src/utils/fingerprintjs2";
 export * from "./src/utils/compatibility";
 export * from "./src/utils/propTypes";
 export * from "./src/config/socket";
+export * from "./src/directives";
+export * from "./src/app-bootstrap";
 
 export type * from "./src/utils/propTypes";
 export type * from "./src/types";

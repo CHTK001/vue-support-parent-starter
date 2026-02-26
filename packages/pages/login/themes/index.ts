@@ -21,13 +21,7 @@ export const loginThemes: LoginTheme[] = [
     // @ts-ignore
     component: () => import("./modern/index.vue"),
   },
-  {
-    name: "极光玻璃",
-    key: "glass",
-    description: "极致美感，玻璃拟态风格",
-    // @ts-ignore
-    component: () => import("./glass/index.vue"),
-  },
+
   {
     name: "科技未来",
     key: "tech",
@@ -35,13 +29,7 @@ export const loginThemes: LoginTheme[] = [
     // @ts-ignore
     component: () => import("./tech/index.vue"),
   },
-  {
-    name: "商务专业",
-    key: "business",
-    description: "商务风格，专业稳重",
-    // @ts-ignore
-    component: () => import("./business/index.vue"),
-  },
+
   {
     name: "像素风",
     key: "pixel",
@@ -49,67 +37,10 @@ export const loginThemes: LoginTheme[] = [
     // @ts-ignore
     component: () => import("./pixel/index.vue"),
   },
-  {
-    name: "Minecraft",
-    key: "mc",
-    description: "致敬经典方块世界",
-    // @ts-ignore
-    component: () => import("./mc/index.vue"),
-  },
 ];
 
 // 节日主题
-export const festivalThemes: LoginTheme[] = [
-  {
-    name: "元旦",
-    key: "new-year",
-    description: "元旦主题，新年新气象",
-    // @ts-ignore
-    component: () => import("./festival/new-year.vue"),
-  },
-  {
-    name: "春节",
-    key: "spring-festival",
-    description: "春节主题，喜庆祥和",
-    // @ts-ignore
-    component: () => import("./festival/spring-festival.vue"),
-  },
-  {
-    name: "情人节",
-    key: "valentines-day",
-    description: "情人节主题，浪漫甜蜜",
-    // @ts-ignore
-    component: () => import("./festival/valentines-day.vue"),
-  },
-  {
-    name: "中秋",
-    key: "mid-autumn",
-    description: "中秋主题，月圆人团圆",
-    // @ts-ignore
-    component: () => import("./festival/mid-autumn.vue"),
-  },
-  {
-    name: "国庆",
-    key: "national-day",
-    description: "国庆主题，祝福祖国",
-    // @ts-ignore
-    component: () => import("./festival/national-day.vue"),
-  },
-  {
-    name: "圣诞",
-    key: "christmas",
-    description: "圣诞主题，温馨浪漫",
-    // @ts-ignore
-    component: () => import("./festival/christmas.vue"),
-  },
-  {
-    name: "万圣节",
-    key: "halloween",
-    description: "万圣节主题，奇妙之夜",
-    // @ts-ignore
-    component: () => import("./festival/halloween.vue"),
-  },
-];
+export const festivalThemes: LoginTheme[] = [];
 
 /**
  * 根据配置获取主题
@@ -118,7 +49,7 @@ export const festivalThemes: LoginTheme[] = [
  */
 export const getLoginTheme = (
   themeKey: string = "modern",
-  enableFestival: boolean = true
+  enableFestival: boolean = true,
 ): LoginTheme => {
   // 检查是否在节日期间，自动启用节日主题
   if (enableFestival) {
@@ -177,7 +108,7 @@ const detectFestivalTheme = (): LoginTheme | null => {
 
   // 万圣节（10月25日-11月2日）
   if ((month === 10 && day >= 25) || (month === 11 && day <= 2)) {
-    return festivalThemes.find(t => t.key === "halloween") || null;
+    return festivalThemes.find((t) => t.key === "halloween") || null;
   }
 
   // 圣诞（12月15日-12月31日）

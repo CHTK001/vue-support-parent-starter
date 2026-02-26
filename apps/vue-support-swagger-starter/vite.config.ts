@@ -9,6 +9,7 @@ import {
   getPluginsList,
   include,
   exclude,
+  getSharedPublicConfig,
 } from "@repo/build-config";
 import pkg from "./package.json";
 
@@ -19,11 +20,13 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
   const env = loadEnv(newMode, appRoot);
   console.log("当前启动模式:" + newMode);
-  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
+  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
+    wrapperEnv(env);
 
   return {
     base: VITE_PUBLIC_PATH,
     root: appRoot,
+    ...getSharedPublicConfig(),
     resolve: {
       alias: createAlias(import.meta.url),
       dedupe: ["vue", "vue-router", "vue-i18n"],
@@ -97,4 +100,3 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
   };
 };
-

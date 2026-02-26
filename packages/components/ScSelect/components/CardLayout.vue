@@ -19,12 +19,12 @@
     <div v-if="isSelected" class="card-check-mark">
       <IconRenderer icon="ri:check-line" />
     </div>
-    
+
     <div class="card-icon">
       <IconRenderer :icon="icon || 'ri:settings-3-line'" />
     </div>
     <div class="card-label">{{ label }}</div>
-    
+
     <!-- 底部装饰条 -->
     <div class="card-bottom-bar"></div>
   </div>
@@ -74,9 +74,9 @@ const props = defineProps({
   },
   theme: {
     type: String,
-    default: "",
+    default: "default",
     validator: (value: string) => {
-      return ["", "techui", "glass"].includes(value);
+      return ["default", "primary", "success", "warning", "danger", "info"].includes(value);
     }
   }
 });
@@ -100,7 +100,7 @@ const handleSelect = () => {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(15px);
   border-radius: 16px;
-  box-shadow: 
+  box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(255, 255, 255, 0.5) inset;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -161,7 +161,7 @@ const handleSelect = () => {
   // 悬停效果
   &:hover {
     transform: translateY(-6px);
-    box-shadow: 
+    box-shadow:
       0 12px 32px rgba(0, 0, 0, 0.12),
       0 0 0 1px rgba(255, 255, 255, 0.6) inset;
     border-color: var(--el-color-primary-light-5);
@@ -181,7 +181,7 @@ const handleSelect = () => {
     border-color: var(--el-color-primary);
     background: linear-gradient(180deg, rgba(64, 158, 255, 0.15) 0%, rgba(255, 255, 255, 0.9) 100%);
     backdrop-filter: blur(20px);
-    box-shadow: 
+    box-shadow:
       0 8px 24px rgba(64, 158, 255, 0.25),
       0 0 0 1px rgba(255, 255, 255, 0.7) inset,
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -362,131 +362,166 @@ const handleSelect = () => {
   }
 }
 
-// ===== TechUI 主题 =====
-.card-selector-item.theme-techui {
-  background: linear-gradient(135deg, rgba(10, 20, 40, 0.95) 0%, rgba(20, 40, 80, 0.9) 100%);
-  border: 1px solid rgba(0, 200, 255, 0.3);
+// ===== Theme Styles =====
+.card-selector-item.theme-default {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow:
-    0 0 20px rgba(0, 200, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-
-  // 选中标记
-  .card-check-mark {
-    background: linear-gradient(135deg, #00c8ff, #00a0d0);
-    box-shadow: 0 0 12px rgba(0, 200, 255, 0.5);
-  }
-
-  // 底部装饰条
-  .card-bottom-bar {
-    background: linear-gradient(90deg, rgba(0, 200, 255, 0.3), #00c8ff, rgba(0, 200, 255, 0.3));
-  }
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
 
   .card-icon {
-    background: linear-gradient(135deg, rgba(0, 200, 255, 0.2) 0%, rgba(0, 150, 200, 0.3) 100%);
-    color: #00c8ff;
-    border: 1px solid rgba(0, 200, 255, 0.3);
-    box-shadow: 0 0 15px rgba(0, 200, 255, 0.2);
-  }
-
-  .card-label {
-    color: rgba(200, 230, 255, 0.9);
-    text-shadow: 0 0 10px rgba(0, 200, 255, 0.3);
-  }
-
-  &:hover {
-    border-color: rgba(0, 200, 255, 0.6);
-    box-shadow:
-      0 0 30px rgba(0, 200, 255, 0.2),
-      0 8px 20px rgba(0, 0, 0, 0.3);
-
-    .card-icon {
-      box-shadow: 0 0 25px rgba(0, 200, 255, 0.4);
-    }
-
-    .card-bottom-bar {
-      width: 50%;
-    }
-  }
-
-  &.active {
-    background: linear-gradient(135deg, rgba(0, 80, 120, 0.95) 0%, rgba(0, 50, 80, 0.9) 100%);
-    border-color: #00c8ff;
-    box-shadow:
-      0 0 40px rgba(0, 200, 255, 0.3),
-      inset 0 0 30px rgba(0, 200, 255, 0.1);
-
-    .card-bottom-bar {
-      width: 70%;
-    }
-
-    .card-icon {
-      background: linear-gradient(135deg, #00c8ff 0%, #0090c0 100%);
-      color: #fff;
-      box-shadow: 0 0 30px rgba(0, 200, 255, 0.5);
-    }
-
-    .card-label {
-      color: #fff;
-      text-shadow: 0 0 15px rgba(0, 200, 255, 0.5);
-    }
-  }
-}
-
-// ===== Glass 玻璃主题 =====
-.card-selector-item.theme-glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-
-  // 选中标记
-  .card-check-mark {
-    background: var(--el-color-primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(5px);
-  }
-
-  // 底部装饰条
-  .card-bottom-bar {
-    background: linear-gradient(90deg, 
-      rgba(var(--el-color-primary-rgb), 0.3), 
-      var(--el-color-primary), 
-      rgba(var(--el-color-primary-rgb), 0.3)
-    );
-  }
-
-  .card-icon {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(5px);
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    color: var(--el-color-primary);
   }
 
   .card-label {
     color: var(--el-text-color-primary);
   }
+}
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+.card-selector-item.theme-primary {
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(64, 158, 255, 0.05) 100%);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(64, 158, 255, 0.2);
+  box-shadow:
+    0 4px 16px rgba(64, 158, 255, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
 
-    .card-bottom-bar {
-      width: 50%;
-    }
+  .card-icon {
+    background: linear-gradient(135deg, rgba(64, 158, 255, 0.2), rgba(64, 158, 255, 0.1));
+    color: var(--el-color-primary);
+    border: 1px solid rgba(64, 158, 255, 0.3);
+  }
+
+  .card-label {
+    color: var(--el-color-primary);
   }
 
   &.active {
-    background: rgba(var(--el-color-primary-rgb), 0.2);
+    background: linear-gradient(135deg, rgba(64, 158, 255, 0.2) 0%, rgba(64, 158, 255, 0.1) 100%);
     border-color: var(--el-color-primary);
 
-    .card-bottom-bar {
-      width: 70%;
+    .card-icon {
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
+      color: #fff;
     }
+  }
+}
+
+.card-selector-item.theme-success {
+  background: linear-gradient(135deg, rgba(103, 194, 58, 0.1) 0%, rgba(103, 194, 58, 0.05) 100%);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(103, 194, 58, 0.2);
+  box-shadow:
+    0 4px 16px rgba(103, 194, 58, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+
+  .card-icon {
+    background: linear-gradient(135deg, rgba(103, 194, 58, 0.2), rgba(103, 194, 58, 0.1));
+    color: var(--el-color-success);
+    border: 1px solid rgba(103, 194, 58, 0.3);
+  }
+
+  .card-label {
+    color: var(--el-color-success);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba(103, 194, 58, 0.2) 0%, rgba(103, 194, 58, 0.1) 100%);
+    border-color: var(--el-color-success);
 
     .card-icon {
-      background: var(--el-color-primary);
+      background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-dark-2));
       color: #fff;
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+  }
+}
+
+.card-selector-item.theme-warning {
+  background: linear-gradient(135deg, rgba(230, 162, 60, 0.1) 0%, rgba(230, 162, 60, 0.05) 100%);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(230, 162, 60, 0.2);
+  box-shadow:
+    0 4px 16px rgba(230, 162, 60, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+
+  .card-icon {
+    background: linear-gradient(135deg, rgba(230, 162, 60, 0.2), rgba(230, 162, 60, 0.1));
+    color: var(--el-color-warning);
+    border: 1px solid rgba(230, 162, 60, 0.3);
+  }
+
+  .card-label {
+    color: var(--el-color-warning);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba(230, 162, 60, 0.2) 0%, rgba(230, 162, 60, 0.1) 100%);
+    border-color: var(--el-color-warning);
+
+    .card-icon {
+      background: linear-gradient(135deg, var(--el-color-warning), var(--el-color-warning-dark-2));
+      color: #fff;
+    }
+  }
+}
+
+.card-selector-item.theme-danger {
+  background: linear-gradient(135deg, rgba(245, 108, 108, 0.1) 0%, rgba(245, 108, 108, 0.05) 100%);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(245, 108, 108, 0.2);
+  box-shadow:
+    0 4px 16px rgba(245, 108, 108, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+
+  .card-icon {
+    background: linear-gradient(135deg, rgba(245, 108, 108, 0.2), rgba(245, 108, 108, 0.1));
+    color: var(--el-color-danger);
+    border: 1px solid rgba(245, 108, 108, 0.3);
+  }
+
+  .card-label {
+    color: var(--el-color-danger);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba(245, 108, 108, 0.2) 0%, rgba(245, 108, 108, 0.1) 100%);
+    border-color: var(--el-color-danger);
+
+    .card-icon {
+      background: linear-gradient(135deg, var(--el-color-danger), var(--el-color-danger-dark-2));
+      color: #fff;
+    }
+  }
+}
+
+.card-selector-item.theme-info {
+  background: linear-gradient(135deg, rgba(144, 147, 168, 0.1) 0%, rgba(144, 147, 168, 0.05) 100%);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(144, 147, 168, 0.2);
+  box-shadow:
+    0 4px 16px rgba(144, 147, 168, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+
+  .card-icon {
+    background: linear-gradient(135deg, rgba(144, 147, 168, 0.2), rgba(144, 147, 168, 0.1));
+    color: var(--el-color-info);
+    border: 1px solid rgba(144, 147, 168, 0.3);
+  }
+
+  .card-label {
+    color: var(--el-color-info);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba(144, 147, 168, 0.2) 0%, rgba(144, 147, 168, 0.1) 100%);
+    border-color: var(--el-color-info);
+
+    .card-icon {
+      background: linear-gradient(135deg, var(--el-color-info), var(--el-color-info-dark-2));
+      color: #fff;
     }
   }
 }

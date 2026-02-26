@@ -1,12 +1,6 @@
 <template>
-  <!-- Tech 主题模式：使用 scifiButton -->
-  <scifi-button v-if="theme === 'tech'" v-bind="scifiButtonProps" @click="handleClick">
-    <slot />
-  </scifi-button>
-
-  <!-- 默认模式：使用 el-button -->
-  <el-button
-    v-else
+  <component
+    :is="currentComponent || ElButton"
     :size="size"
     :type="type"
     :plain="plain"
@@ -27,104 +21,189 @@
     :tag="tag"
     @click="handleClick"
   >
-    <slot />
-  </el-button>
+    <template v-if="$slots.default" #default>
+      <slot />
+    </template>
+    <template v-if="$slots.loading" #loading>
+      <slot name="loading" />
+    </template>
+    <template v-if="$slots.icon" #icon>
+      <slot name="icon" />
+    </template>
+  </component>
 </template>
 
 <script setup lang="ts">
 /**
  * ScButton 按钮组件
- * 封装 el-button 和 scifiButton
+ * 封装 Element Plus Button 与 PixelUI PxButton
+ * 在 data-skin 为 8bit 时自动切换为像素风按钮
  * @author CH
- * @since 2025-12-03
- * @version 3.0.0
+ * @version 1.0.0
+ * @since 2026-02-26
  */
-import { computed, PropType } from "vue";
+import { computed } from "vue";
+import type { PropType, Component } from "vue";
 import { ElButton } from "element-plus";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
 
-interface Props {
-  /** 按钮类型 */
-  type?: "default" | "primary" | "success" | "warning" | "danger" | "info";
-  /** 按钮尺寸 */
-  size?: "large" | "default" | "small";
-  /** 主题风格 */
-  theme?: "default" | "tech";
-  /** 是否禁用 */
-  disabled?: boolean;
-  /** 是否加载中 */
-  loading?: boolean;
-  /** 是否朴素按钮 */
-  plain?: boolean;
-  /** 是否圆角按钮 */
-  round?: boolean;
-  /** 是否圆形按钮 */
-  circle?: boolean;
-  /** 是否文字按钮 */
-  text?: boolean;
-  /** 是否链接按钮 */
-  link?: boolean;
-  /** 图标 */
-  icon?: string;
-  /** 后置图标 */
-  suffixIcon?: string;
-  /** 原生 type 属性 */
-  nativeType?: "button" | "submit" | "reset";
-  /** 自动聚焦 */
-  autofocus?: boolean;
-  /** 自定义按钮颜色 */
-  color?: string;
-  /** 暗黑模式 */
-  dark?: boolean;
-  /** 自动在中文字符间插入空格 */
-  autoInsertSpace?: boolean;
-  /** 自定义元素标签 */
-  tag?: keyof HTMLElementTagNameMap;
-  /** 加载图标 */
-  loadingIcon?: string;
-  /** 是否显示背景色 */
-  bg?: boolean;
-}
+type ButtonType = "" | "default" | "primary" | "success" | "warning" | "info" | "danger" | "text";
+type ButtonSize = "" | "large" | "default" | "small";
+type ButtonNativeType = "button" | "submit" | "reset";
 
-const props = withDefaults(defineProps<Props>(), {
-  type: "default",
-  size: "default",
-  theme: "default",
-  disabled: false,
-  loading: false,
-  plain: false,
-  round: false,
-  circle: false,
-  text: false,
-  link: false,
-  icon: "",
-  suffixIcon: "",
-  nativeType: "button",
-  autofocus: false,
-  color: "",
-  dark: false,
-  autoInsertSpace: undefined,
-  tag: "button",
-  loadingIcon: "",
-  bg: false
+const props = defineProps({
+  /**
+   * 按钮尺寸
+   */
+  size: {
+    type: String as PropType<ButtonSize>,
+    default: ""
+  },
+  /**
+   * 按钮类型
+   */
+  type: {
+    type: String as PropType<ButtonType>,
+    default: ""
+  },
+  /**
+   * 是否为朴素按钮
+   */
+  plain: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 是否为文字按钮
+   */
+  text: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 是否显示文字按钮背景颜色
+   */
+  bg: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 是否为链接按钮
+   */
+  link: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 是否为圆角按钮
+   */
+  round: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 是否为圆形按钮
+   */
+  circle: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 是否为加载中状态
+   */
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 自定义加载中图标
+   */
+  loadingIcon: {
+    type: [String, Object] as PropType<string | Component>,
+    default: undefined
+  },
+  /**
+   * 是否禁用
+   */
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 图标组件
+   */
+  icon: {
+    type: [String, Object] as PropType<string | Component>,
+    default: ""
+  },
+  /**
+   * 是否默认聚焦
+   */
+  autofocus: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 原生 type 属性
+   */
+  nativeType: {
+    type: String as PropType<ButtonNativeType>,
+    default: "button"
+  },
+  /**
+   * 自动在两个中文字符之间插入空格
+   */
+  autoInsertSpace: {
+    type: Boolean,
+    default: undefined
+  },
+  /**
+   * 自定义按钮颜色
+   */
+  color: {
+    type: String,
+    default: ""
+  },
+  /**
+   * dark 模式
+   */
+  dark: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 自定义元素标签
+   */
+  tag: {
+    type: [String, Object] as PropType<string | Component>,
+    default: "button"
+  }
 });
 
 const emit = defineEmits<{
-  click: [event: MouseEvent];
+  (e: "click", event: MouseEvent): void;
 }>();
 
-const scifiButtonProps = computed(() => ({
-  disabled: props.disabled,
-  loading: props.loading
-  // scifiButton 的其他属性可以根据实际 API 调整
-}));
+/**
+ * 使用 PixelUI 条件导入
+ * 自动管理 CSS 加载/卸载，并提供 PxButton 组件条件导入
+ */
+const { currentComponent } = useThemeComponent("ElButton");
 
+/**
+ * 当前实际渲染的组件
+ * 像素主题下使用 PxButton，否则使用 ElButton
+ */
+
+
+/**
+ * 点击事件透传
+ */
 const handleClick = (event: MouseEvent) => {
-  if (!props.disabled && !props.loading) {
-    emit("click", event);
-  }
+  emit("click", event);
 };
 </script>
 
-<style lang="scss" scoped>
-// 可以添加一些自定义样式来调整 scifiButton 的显示
+<style scoped>
+/* 这里暂不做强样式覆盖，由外部主题控制 */
 </style>

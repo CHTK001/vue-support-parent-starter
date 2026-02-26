@@ -102,7 +102,7 @@
 
         <div class="setting-item">
           <label>边框宽度</label>
-          <el-slider v-model="options.strokeWidth" :min="1" :max="5" :step="0.5" />
+          <ScSlider v-model="options.strokeWidth" :min="1" :max="5" :step="0.5" />
         </div>
 
         <div class="setting-item">
@@ -112,7 +112,7 @@
 
         <div class="setting-item">
           <label>填充透明度</label>
-          <el-slider v-model="options.fillOpacity" :min="0" :max="1" :step="0.05" />
+          <ScSlider v-model="options.fillOpacity" :min="0" :max="1" :step="0.05" />
         </div>
 
         <div class="setting-item">
@@ -122,7 +122,7 @@
 
         <div class="setting-item" v-if="options.showLabel">
           <label>标签大小</label>
-          <el-slider v-model="options.labelOptions.fontSize" :min="10" :max="24" :step="1" />
+          <ScSlider v-model="options.labelOptions.fontSize" :min="10" :max="24" :step="1" />
         </div>
 
         <div class="setting-item" v-if="options.showLabel">
@@ -154,6 +154,7 @@ import { MapType } from "../types/map";
 import { ApiUrls } from "../types/api";
 import logger from "../composables/LogObject";
 import { message } from "@repo/utils";
+import { ScSlider } from "@repo/components";
 
 // 定义组件属性
 const props = defineProps({

@@ -115,7 +115,7 @@
             <div class="setting-item">
               <label>线条粗细</label>
               <div class="slider-wrap">
-                <el-slider v-model="lineSettings.width" :min="0.5" :max="5" :step="0.1" @change="updateLineSetting('width')" />
+                <ScSlider v-model="lineSettings.width" :min="0.5" :max="5" :step="0.1" @change="updateLineSetting('width')" />
               </div>
               <div class="setting-value">{{ lineSettings.width }}</div>
             </div>
@@ -123,7 +123,7 @@
             <div class="setting-item">
               <label>透明度</label>
               <div class="slider-wrap">
-                <el-slider v-model="lineSettings.opacity" :min="0.1" :max="1" :step="0.05" @change="updateLineSetting('opacity')" />
+                <ScSlider v-model="lineSettings.opacity" :min="0.1" :max="1" :step="0.05" @change="updateLineSetting('opacity')" />
               </div>
               <div class="setting-value">{{ lineSettings.opacity }}</div>
             </div>
@@ -131,14 +131,14 @@
             <div class="setting-item">
               <label>曲率</label>
               <div class="slider-wrap">
-                <el-slider v-model="lineSettings.curveness" :min="0" :max="1" :step="0.05" @change="updateLineSetting('curveness')" />
+                <ScSlider v-model="lineSettings.curveness" :min="0" :max="1" :step="0.05" @change="updateLineSetting('curveness')" />
               </div>
               <div class="setting-value">{{ lineSettings.curveness }}</div>
             </div>
 
             <div class="setting-item">
               <label>平滑曲线</label>
-              <el-switch v-model="lineSettings.smooth" @change="updateLineSetting('smooth')" />
+              <ScSwitch v-model="lineSettings.smooth" @change="updateLineSetting('smooth')" />
             </div>
           </div>
 
@@ -147,13 +147,13 @@
 
             <div class="setting-item">
               <label>飞线动画</label>
-              <el-switch v-model="lineSettings.showEffect" @change="updateLineSetting('showEffect')" />
+              <ScSwitch v-model="lineSettings.showEffect" @change="updateLineSetting('showEffect')" />
             </div>
 
             <div v-if="lineSettings.showEffect" class="setting-item">
               <label>动画周期(秒)</label>
               <div class="slider-wrap">
-                <el-slider v-model="lineSettings.effectPeriod" :min="1" :max="10" :step="0.5" @change="updateLineSetting('effectPeriod')" />
+                <ScSlider v-model="lineSettings.effectPeriod" :min="1" :max="10" :step="0.5" @change="updateLineSetting('effectPeriod')" />
               </div>
               <div class="setting-value">{{ lineSettings.effectPeriod }}</div>
             </div>
@@ -161,7 +161,7 @@
             <div v-if="lineSettings.showEffect" class="setting-item">
               <label>动画速度</label>
               <div class="slider-wrap">
-                <el-slider v-model="lineSettings.effectSpeed" :min="1" :max="50" :step="1" @change="updateLineSetting('effectSpeed')" />
+                <ScSlider v-model="lineSettings.effectSpeed" :min="1" :max="50" :step="1" @change="updateLineSetting('effectSpeed')" />
               </div>
               <div class="setting-value">{{ lineSettings.effectSpeed }}</div>
             </div>
@@ -169,7 +169,7 @@
             <div v-if="lineSettings.showEffect" class="setting-item">
               <label>轨迹长度</label>
               <div class="slider-wrap">
-                <el-slider v-model="lineSettings.effectTrailLength" :min="0" :max="1" :step="0.05" @change="updateLineSetting('effectTrailLength')" />
+                <ScSlider v-model="lineSettings.effectTrailLength" :min="0" :max="1" :step="0.05" @change="updateLineSetting('effectTrailLength')" />
               </div>
               <div class="setting-value">{{ lineSettings.effectTrailLength }}</div>
             </div>
@@ -179,7 +179,7 @@
               <div class="setting-item">
                 <label>拖尾颜色</label>
                 <div class="color-picker-wrap">
-                  <el-color-picker v-model="lineSettings.trailColor" @change="updateLineSetting('trailColor')" />
+                  <ScColorPicker v-model="lineSettings.trailColor" @change="updateLineSetting('trailColor')" />
                 </div>
                 <div class="setting-value color-value">{{ lineSettings.trailColor }}</div>
               </div>
@@ -187,7 +187,7 @@
               <div class="setting-item">
                 <label>拖尾透明度</label>
                 <div class="slider-wrap">
-                  <el-slider v-model="lineSettings.trailOpacity" :min="0.1" :max="1" :step="0.05" @change="updateLineSetting('trailOpacity')" />
+                  <ScSlider v-model="lineSettings.trailOpacity" :min="0.1" :max="1" :step="0.05" @change="updateLineSetting('trailOpacity')" />
                 </div>
                 <div class="setting-value">{{ lineSettings.trailOpacity }}</div>
               </div>
@@ -195,7 +195,7 @@
               <div class="setting-item">
                 <label>拖尾宽度</label>
                 <div class="slider-wrap">
-                  <el-slider v-model="lineSettings.trailWidth" :min="1" :max="5" :step="0.5" @change="updateLineSetting('trailWidth')" />
+                  <ScSlider v-model="lineSettings.trailWidth" :min="1" :max="5" :step="0.5" @change="updateLineSetting('trailWidth')" />
                 </div>
                 <div class="setting-value">{{ lineSettings.trailWidth }}</div>
               </div>
@@ -204,16 +204,16 @@
             <div v-if="lineSettings.showEffect" class="setting-item">
               <label>图标大小</label>
               <div class="slider-wrap">
-                <el-slider v-model="lineSettings.effectSymbolSize" :min="5" :max="40" :step="1" @change="updateLineSetting('effectSymbolSize')" />
+                <ScSlider v-model="lineSettings.effectSymbolSize" :min="5" :max="40" :step="1" @change="updateLineSetting('effectSymbolSize')" />
               </div>
               <div class="setting-value">{{ lineSettings.effectSymbolSize }}</div>
             </div>
 
             <div class="setting-item">
               <label>图标类型</label>
-              <el-select v-model="lineSettings.effectSymbol" style="width: 120px" @change="updateLineSetting('effectSymbol')">
+              <ScSelect v-model="lineSettings.effectSymbol" style="width: 120px" @change="updateLineSetting('effectSymbol')">
                 <el-option v-for="icon in iconOptions" :key="icon.value" :label="icon.label" :value="icon.value" />
-              </el-select>
+              </ScSelect>
             </div>
           </div>
 
@@ -222,27 +222,27 @@
 
             <div class="setting-item">
               <label>显示节点</label>
-              <el-switch v-model="lineSettings.showNodes" @change="updateLineSetting('showNodes')" />
+              <ScSwitch v-model="lineSettings.showNodes" @change="updateLineSetting('showNodes')" />
             </div>
 
             <div v-if="lineSettings.showNodes" class="setting-item">
               <label>节点大小</label>
               <div class="slider-wrap">
-                <el-slider v-model="lineSettings.nodeSymbolSize" :min="2" :max="20" :step="1" @change="updateLineSetting('nodeSymbolSize')" />
+                <ScSlider v-model="lineSettings.nodeSymbolSize" :min="2" :max="20" :step="1" @change="updateLineSetting('nodeSymbolSize')" />
               </div>
               <div class="setting-value">{{ lineSettings.nodeSymbolSize }}</div>
             </div>
 
             <div v-if="lineSettings.showNodes" class="setting-item">
               <label>节点特效</label>
-              <el-switch v-model="lineSettings.nodeEffect" @change="updateLineSetting('nodeEffect')" />
+              <ScSwitch v-model="lineSettings.nodeEffect" @change="updateLineSetting('nodeEffect')" />
             </div>
 
             <template v-if="lineSettings.showNodes && lineSettings.nodeEffect">
               <div class="setting-item">
                 <label>涟漪周期</label>
                 <div class="slider-wrap">
-                  <el-slider v-model="lineSettings.rippleEffect.period" :min="1" :max="5" :step="0.1" @change="updateRippleEffect('period')" />
+                  <ScSlider v-model="lineSettings.rippleEffect.period" :min="1" :max="5" :step="0.1" @change="updateRippleEffect('period')" />
                 </div>
                 <div class="setting-value">{{ lineSettings.rippleEffect.period }}</div>
               </div>
@@ -250,23 +250,23 @@
               <div class="setting-item">
                 <label>涟漪比例</label>
                 <div class="slider-wrap">
-                  <el-slider v-model="lineSettings.rippleEffect.scale" :min="2" :max="15" :step="0.5" @change="updateRippleEffect('scale')" />
+                  <ScSlider v-model="lineSettings.rippleEffect.scale" :min="2" :max="15" :step="0.5" @change="updateRippleEffect('scale')" />
                 </div>
                 <div class="setting-value">{{ lineSettings.rippleEffect.scale }}</div>
               </div>
 
               <div class="setting-item">
                 <label>涟漪类型</label>
-                <el-select v-model="lineSettings.rippleEffect.brushType" style="width: 120px" @change="updateRippleEffect('brushType')">
+                <ScSelect v-model="lineSettings.rippleEffect.brushType" style="width: 120px" @change="updateRippleEffect('brushType')">
                   <el-option label="填充" value="fill" />
                   <el-option label="描边" value="stroke" />
-                </el-select>
+                </ScSelect>
               </div>
 
               <div class="setting-item">
                 <label>阴影模糊度</label>
                 <div class="slider-wrap">
-                  <el-slider v-model="lineSettings.shadowBlur" :min="0" :max="30" :step="1" @change="updateLineSetting('shadowBlur')" />
+                  <ScSlider v-model="lineSettings.shadowBlur" :min="0" :max="30" :step="1" @change="updateLineSetting('shadowBlur')" />
                 </div>
                 <div class="setting-value">{{ lineSettings.shadowBlur }}</div>
               </div>
@@ -306,7 +306,7 @@ import { FLIGHT_LINE_ICON } from "../types/icon";
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import type { FlightLineData } from "../types/flightline";
 import { DEFAULT_FLIGHTLINE_CONFIG } from "../types/flightline";
-import { ElButton, ElTooltip, ElSlider, ElPopover } from "element-plus";
+import { ScSlider, ScSwitch, ScColorPicker, ScSelect } from "@repo/components";
 
 // 环境变量判断
 const isDevelopment = ref(process.env.NODE_ENV === "development");
@@ -568,7 +568,7 @@ const clearSelection = () => {
 // 解析CSS变量颜色
 const resolveColor = (color: string) => {
   if (!color) return color;
-  if (typeof color === 'string' && color.startsWith('var(')) {
+  if (typeof color === "string" && color.startsWith("var(")) {
     const varName = color.match(/var\(([^)]+)\)/)?.[1];
     if (varName) {
       // 尝试从文档根元素获取变量值

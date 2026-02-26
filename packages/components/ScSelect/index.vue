@@ -99,12 +99,7 @@
     </div>
 
     <!-- 位置选择器布局 -->
-    <PositionLayout
-      v-else-if="layout === 'position'"
-      v-model="selectValue"
-      :disabled="disabled"
-      @change="handleChange"
-    />
+    <PositionLayout v-else-if="layout === 'position'" v-model="selectValue" :disabled="disabled" @change="handleChange" />
 
     <!-- 下拉选择器布局 -->
     <DropdownLayout
@@ -356,9 +351,9 @@ const props = defineProps({
   // 主题样式
   theme: {
     type: String,
-    default: "",
+    default: "default",
     validator: (value: string) => {
-      return ["", "techui", "glass"].includes(value);
+      return ["default", "primary", "success", "warning", "danger", "info"].includes(value);
     }
   },
   // 下拉方向

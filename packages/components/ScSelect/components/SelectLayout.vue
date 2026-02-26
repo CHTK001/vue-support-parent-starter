@@ -1,6 +1,7 @@
 <template>
   <div class="selector-native-wrapper">
-    <el-select
+    <component
+      :is="currentSelectComponent || ElSelect"
       v-model="modelValue"
       :multiple="multiple"
       class="selector-native-select"
@@ -13,41 +14,44 @@
       @change="handleNativeSelectChange"
     >
       <!-- 多选模式下显示批量操作按钮作为第一个选项 -->
-      <el-option v-if="multiple && options.length > 1 && showBatchActions" :value="'__actions__'" :disabled="true" class="select-actions-option">
+      <component :is="currentOptionComponent || ElOption" v-if="multiple && options.length > 1 && showBatchActions" :value="'__actions__'" :disabled="true" class="select-actions-option">
         <div class="select-actions-container" @click.stop>
           <div class="select-action-title">
-            <el-button type="primary" plain size="small" @click.stop="handleSelectAll">
+            <ScButton type="primary" plain size="small" @click.stop="handleSelectAll">
               <IconifyIconOnline icon="ep:select" class="action-icon" />
               <span>全选</span>
-            </el-button>
-            <el-button type="info" plain size="small" @click.stop="handleInvertSelection">
+            </ScButton>
+            <ScButton type="info" plain size="small" @click.stop="handleInvertSelection">
               <IconifyIconOnline icon="ep:refresh-right" class="action-icon" />
               <span>反选</span>
-            </el-button>
-            <el-button type="danger" plain size="small" @click.stop="handleClearSelection">
+            </ScButton>
+            <ScButton type="danger" plain size="small" @click.stop="handleClearSelection">
               <IconifyIconOnline icon="ep:delete" class="action-icon" />
               <span>清空</span>
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-option>
+      </component>
 
       <!-- 选项列表 -->
-      <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value">
+      <component :is="currentOptionComponent || ElOption" v-for="item in options" :key="item.value" :label="item.label" :value="item.value">
         <div class="select-option-content select-flex">
           <div v-if="item.icon" class="select-option-icon">
             <IconRenderer :icon="item.icon" />
           </div>
           <span>{{ item.label }}</span>
         </div>
-      </el-option>
-    </el-select>
+      </component>
+    </component>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { ElSelect, ElOption } from "element-plus";
 import { IconifyIconOnline } from "../../ReIcon";
+import { ScButton } from "../../ScButton";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
 import IconRenderer from "./IconRenderer.vue";
 
 export interface CardOption {
@@ -84,6 +88,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue", "change", "selectAll", "invertSelection", "clearSelection"]);
+
+// 使用主题组件系统 V2.0
+const { currentComponent: currentSelectComponent } = useThemeComponent("ElSelect");
+// Note: ElOption 通常不需要单独主题化，因为它是 ElSelect 的子组件
+// 但为了完整性，我们也提供主题支持
+const currentOptionComponent = ref(ElOption);
 
 // 本地绑定值
 const modelValue = ref(props.modelValue);

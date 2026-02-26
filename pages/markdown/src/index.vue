@@ -720,7 +720,7 @@ onBeforeUnmount(() => {
                 </el-dropdown-item>
                 <el-dropdown-item divided>
                   <span>字体大小</span>
-                  <el-slider v-model="env.settings.fontSize" :min="12" :max="20" :step="1" style="width: 120px; margin-left: 10px" />
+                  <ScSlider v-model="env.settings.fontSize" :min="12" :max="20" :step="1" style="width: 120px; margin-left: 10px" />
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>

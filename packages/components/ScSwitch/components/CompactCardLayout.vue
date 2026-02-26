@@ -29,7 +29,7 @@
     </div>
 
     <!-- 右侧开关 -->
-    <el-switch
+    <ScSwitch
       :model-value="isChecked"
       :disabled="disabled"
       :loading="loading"
@@ -52,6 +52,7 @@
  */
 import { computed } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScSwitch from "../index.vue";
 
 interface Props {
   /**
