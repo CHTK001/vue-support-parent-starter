@@ -417,6 +417,54 @@ watch(
   { deep: true }
 );
 
+// 初始化拖拽排序
+const initDragSort = () => {
+  if (!props.draggable || !cardGridRef.value) return;
+
+  destroyDragSort();
+
+  nextTick(() => {
+    if (!cardGridRef.value) return;
+
+    sortableInstance.value = Sortable.create(cardGridRef.value, {
+      animation: 150,
+      handle: ".card-drag-handle",
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-chosen",
+      dragClass: "sortable-drag",
+      onStart: (evt) => {
+        draggingIndex.value = evt.oldIndex;
+      },
+      onEnd: (evt) => {
+        draggingIndex.value = -1;
+        const { oldIndex, newIndex } = evt;
+        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+
+        // 创建新数组以避免直接修改原数组
+        const newOrder = [...props.tableData];
+        const movedItem = newOrder.splice(oldIndex, 1)[0];
+        newOrder.splice(newIndex, 0, movedItem);
+
+        // 触发拖拽排序变化事件
+        emit("drag-sort-change", {
+          oldIndex,
+          newIndex,
+          newOrder,
+          movedItem
+        });
+      }
+    });
+  });
+};
+
+// 销毁拖拽排序
+const destroyDragSort = () => {
+  if (sortableInstance.value) {
+    sortableInstance.value.destroy();
+    sortableInstance.value = null;
+  }
+};
+
 // 更新容器样式
 const updateContainerStyles = () => {
   if (!cardContainer.value) return;
@@ -539,54 +587,6 @@ const resetScrollState = () => {
   // 如果是滚动分页模式，滚动到顶部
   if (isScrollPagination.value && cardContainer.value) {
     cardContainer.value.scrollTop = 0;
-  }
-};
-
-// 初始化拖拽排序
-const initDragSort = () => {
-  if (!props.draggable || !cardGridRef.value) return;
-  
-  destroyDragSort();
-  
-  nextTick(() => {
-    if (!cardGridRef.value) return;
-    
-    sortableInstance.value = Sortable.create(cardGridRef.value, {
-      animation: 150,
-      handle: ".card-drag-handle",
-      ghostClass: "sortable-ghost",
-      chosenClass: "sortable-chosen",
-      dragClass: "sortable-drag",
-      onStart: (evt) => {
-        draggingIndex.value = evt.oldIndex;
-      },
-      onEnd: (evt) => {
-        draggingIndex.value = -1;
-        const { oldIndex, newIndex } = evt;
-        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
-        
-        // 创建新数组以避免直接修改原数组
-        const newOrder = [...props.tableData];
-        const movedItem = newOrder.splice(oldIndex, 1)[0];
-        newOrder.splice(newIndex, 0, movedItem);
-        
-        // 触发拖拽排序变化事件
-        emit("drag-sort-change", {
-          oldIndex,
-          newIndex,
-          newOrder,
-          movedItem
-        });
-      }
-    });
-  });
-};
-
-// 销毁拖拽排序
-const destroyDragSort = () => {
-  if (sortableInstance.value) {
-    sortableInstance.value.destroy();
-    sortableInstance.value = null;
   }
 };
 
