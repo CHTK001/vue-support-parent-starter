@@ -8,6 +8,12 @@ import pkg from "./package.json";
 
 const root: string = process.cwd();
 
+// 获取共享 public 目录
+const getSharedPublicDir = () => {
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  return resolve(currentDir, "../../public");
+};
+
 const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
   const currentFileDir = dirname(fileURLToPath(metaUrl));
   return resolve(currentFileDir, dir);
@@ -43,7 +49,8 @@ const wrapperEnv = (envConf: Record<string, string>): any => {
 
   for (const envName of Object.keys(envConf)) {
     let realName = envConf[envName].replace(/\\n/g, "\n");
-    realName = realName === "true" ? true : realName === "false" ? false : realName;
+    realName =
+      realName === "true" ? true : realName === "false" ? false : realName;
     if (envName === "VITE_PORT") {
       realName = Number(realName);
     }
@@ -92,6 +99,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   return {
     base: VITE_PUBLIC_PATH || "/",
     root,
+    publicDir: getSharedPublicDir(),
     resolve: {
       alias: createAlias(import.meta.url),
       dedupe: ["vue", "vue-router"],
@@ -117,10 +125,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
       },
     },
-    plugins: [
-      vue(),
-      vueJsx(),
-    ],
+    plugins: [vue(), vueJsx()],
     optimizeDeps: {
       include,
       exclude,
@@ -153,4 +158,3 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
   };
 };
-

@@ -57,8 +57,17 @@ export const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
 export const createAlias = (metaUrl: string): Record<string, string> => {
   return {
     "@": pathResolve("./src", metaUrl),
-    "@pages": resolve(root, "pages"),
-    "@pages/setting": resolve(root, "pages/setting"),
+    // pages 下各业务模块在开发环境直接指向源码入口，方便被各个 app 以包名方式引入
+    "@pages/dict": resolve(root, "pages/dict/src"),
+    "@pages/example": resolve(root, "pages/example/src"),
+    "@pages/map": resolve(root, "pages/map/src"),
+    "@pages/project": resolve(root, "pages/project/src"),
+    "@pages/setting": resolve(root, "pages/setting/src"),
+    "@pages/system": resolve(root, "pages/system/src"),
+    "@pages/tools": resolve(root, "pages/tools/src"),
+    "@pages/video": resolve(root, "pages/video/src"),
+    "@pages/pay": resolve(root, "pages/pay/src"),
+    "@pages/doc": resolve(root, "pages/doc/src"),
     "@repo": resolve(root, "packages"),
     "@repo/assets": resolve(root, "packages/assets"),
     "@repo/components": resolve(root, "packages/components"),

@@ -4,7 +4,7 @@
     <slot name="header" :data="progressData">
       <div class="process-header">
         <span class="process-title">{{ title }}</span>
-        <el-tag :type="statusType" size="small">{{ statusText }}</el-tag>
+        <ScTag :type="statusType" size="small">{{ statusText }}</ScTag>
       </div>
     </slot>
 
@@ -13,11 +13,11 @@
 
     <!-- Process 布局 -->
     <template v-else-if="layout === 'process'">
-      <el-progress :percentage="percentage" :status="progressStatus" :stroke-width="10" :format="percentageFormat" />
+      <ScProgress :percentage="percentage" :status="progressStatus" :stroke-width="10" :format="percentageFormat" />
 
-      <div class="process-message" v-if="message">
+      <div class="process-message" v-if="progressMessage">
         <IconifyIconOnline :icon="messageIcon" class="message-icon" />
-        <span>{{ message }}</span>
+        <span>{{ progressMessage }}</span>
         <span v-if="currentStep" class="process-step">{{ currentStep }}</span>
       </div>
     </template>
@@ -32,7 +32,7 @@
       </div>
 
       <div class="log-progress">
-        <el-progress :percentage="percentage" :status="progressStatus" :stroke-width="8" :format="percentageFormat" />
+        <ScProgress :percentage="percentage" :status="progressStatus" :stroke-width="8" :format="percentageFormat" />
       </div>
     </template>
   </div>
@@ -45,12 +45,12 @@
         <div class="header-title">
           <IconifyIconOnline v-if="icon" :icon="icon" class="title-icon" />
           <span class="title-text">{{ title }}</span>
-          <el-tag :type="statusType" size="small" class="ml-2">{{ statusText }}</el-tag>
+          <ScTag :type="statusType" size="small" class="ml-2">{{ statusText }}</ScTag>
         </div>
         <div class="header-controls">
-          <el-button v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
+          <ScButton v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
             <IconifyIconOnline icon="ri:close-line" width="16" />
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -60,10 +60,10 @@
 
         <!-- Process 布局 -->
         <template v-else-if="layout === 'process'">
-          <el-progress :percentage="percentage" :status="progressStatus" :stroke-width="10" :format="percentageFormat" />
-          <div class="process-message" v-if="message">
+          <ScProgress :percentage="percentage" :status="progressStatus" :stroke-width="10" :format="percentageFormat" />
+          <div class="process-message" v-if="progressMessage">
             <IconifyIconOnline :icon="messageIcon" class="message-icon" />
-            <span>{{ message }}</span>
+            <span>{{ progressMessage }}</span>
           </div>
         </template>
 
@@ -76,7 +76,7 @@
             </div>
           </div>
           <div class="log-progress">
-            <el-progress :percentage="percentage" :status="progressStatus" :stroke-width="8" :format="percentageFormat" />
+            <ScProgress :percentage="percentage" :status="progressStatus" :stroke-width="8" :format="percentageFormat" />
           </div>
         </template>
       </div>
@@ -97,6 +97,9 @@ import { ref, computed, inject, onMounted, onUnmounted, watch, nextTick, type Pr
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useSocketService } from "@repo/core";
 import interact from "interactjs";
+import { ScTag } from "../ScTag";
+import { ScProgress } from "../ScProgress";
+import { ScButton } from "../ScButton";
 
 interface LogItem {
   time: Date;
@@ -159,7 +162,7 @@ const socketService = ref<SocketService | null>(null);
 // 进度状态
 const percentage = ref(0);
 const status = ref("waiting");
-const message = ref("");
+const progressMessage = ref("");
 const currentStep = ref("");
 const showProgress = ref(false);
 const logs = ref<LogItem[]>([]);
@@ -223,7 +226,7 @@ const handleProgressData = (data: ProgressData) => {
 
   // 处理消息
   if (data.message) {
-    message.value = data.message;
+    progressMessage.value = data.message;
 
     // 如果是日志布局，添加到日志列表
     if (props.layout === "log") {
@@ -456,7 +459,7 @@ defineExpose({
   resetProgress() {
     percentage.value = 0;
     status.value = "waiting";
-    message.value = "";
+    progressMessage.value = "";
     logs.value = [];
     showProgress.value = false;
     progressData.value = {};

@@ -10,7 +10,20 @@ const target = ref(null);
 const show = ref<Boolean>(false);
 
 const iconClass = computed(() => {
-  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+  return [
+    "w-[22px]",
+    "h-[22px]",
+    "flex",
+    "justify-center",
+    "items-center",
+    "outline-none",
+    "rounded-[4px]",
+    "cursor-pointer",
+    "transition-colors",
+    "hover:bg-[#0000000f]",
+    "dark:hover:bg-[#ffffff1f]",
+    "dark:hover:text-[#ffffffd9]",
+  ];
 });
 
 const { t } = useI18n();
@@ -51,7 +64,18 @@ onBeforeUnmount(() => {
             }"
             :class="iconClass"
           >
-            <IconifyIconOffline class="dark:text-white close-icon" width="18px" height="18px" :icon="CloseIcon" @click="() => { show = !show; emitter.emit('settingPanelClosed'); }" />
+            <IconifyIconOffline
+              class="dark:text-white close-icon"
+              width="18px"
+              height="18px"
+              :icon="CloseIcon"
+              @click="
+                () => {
+                  show = !show;
+                  emitter.emit('settingPanelClosed');
+                }
+              "
+            />
           </span>
         </div>
         <el-scrollbar>
@@ -105,7 +129,7 @@ onBeforeUnmount(() => {
   right: 0;
   z-index: 40000;
   width: 100%;
-  max-width: 420px;
+  max-width: 520px;
   height: 100vh;
   // box-shadow: -4px 0 20px rgb(0 0 0 / 10%); // Moved to stitch-glass-panel
   transition: transform 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
@@ -144,7 +168,7 @@ onBeforeUnmount(() => {
 
   /* Decorative indicator */
   &::before {
-    content: '';
+    content: "";
     display: inline-block;
     width: 4px;
     height: 18px;
@@ -156,9 +180,9 @@ onBeforeUnmount(() => {
 }
 
 .panel-footer {
-  display: flex; 
-  justify-content: flex-end; 
-  padding: 16px 20px; 
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 20px;
   border-top: 1px solid var(--stitch-glass-border);
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.02), transparent);
 }
@@ -170,7 +194,7 @@ onBeforeUnmount(() => {
 
 .close-icon {
   transition: all 0.3s;
-  
+
   &:hover {
     color: var(--stitch-accent);
     transform: rotate(90deg);

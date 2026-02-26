@@ -188,7 +188,7 @@
 
             <div class="pomodoro-tool__settings-item">
               <div class="pomodoro-tool__settings-label">声音音量:</div>
-              <el-slider
+              <ScSlider
                 v-model="soundVolume"
                 :min="0"
                 :max="100"
@@ -250,6 +250,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { ScSlider } from "@repo/components";
 import { message } from "@repo/utils";
 import { ElNotification } from "element-plus";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";

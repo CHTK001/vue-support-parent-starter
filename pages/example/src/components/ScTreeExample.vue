@@ -77,7 +77,7 @@
             </el-form-item>
 
             <el-form-item label="缩进大小">
-              <el-slider
+              <ScSlider
                 v-model="indent"
                 :min="8"
                 :max="32"
@@ -196,6 +196,7 @@ import type {
   TreeProps,
 } from "@repo/components/ScTree/types";
 import { computed, reactive, ref } from "vue";
+import { ScSlider } from "@repo/components";
 
 // 初始树形数据
 const initialTreeData: TreeNodeData[] = [

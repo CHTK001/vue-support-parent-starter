@@ -128,7 +128,6 @@ import 'cesium/Build/Cesium/Widgets/widgets.css';
 // 导入CesiumObject和其他类型
 import BoundarySelector from './components/BoundarySelector.vue'; // 导入区划选择器组件
 import SearchBox from './components/SearchBox.vue';
-import { message } from "@repo/utils";
 import { message } from '@repo/utils';
 
 // 设置全局Cesium对象

@@ -13,22 +13,24 @@
       <div v-if="showIcon" class="sc-ip__icon" :class="{ 'sc-ip__icon--animated': animated }">
         <!-- 优先显示国旗或城市 -->
         <template v-if="!isLocal && ipInfo">
-           <span v-if="isChina" class="sc-ip__icon-text">{{ cityAbbr }}</span>
-           <IconifyIconOnline v-else :icon="countryFlagIcon" style="font-size: 24px;" />
+          <span v-if="isChina" class="sc-ip__icon-text">{{ cityAbbr }}</span>
+          <IconifyIconOnline v-else :icon="countryFlagIcon" style="font-size: 24px" />
         </template>
         <!-- 默认图标 -->
         <template v-else>
           <svg v-if="iconType === 'location'" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
           </svg>
           <svg v-else-if="iconType === 'globe'" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+            />
           </svg>
           <svg v-else viewBox="0 0 24 24" fill="currentColor">
-            <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM3 17V7h18v10H3z"/>
-            <circle cx="7.5" cy="12" r="1.5"/>
-            <circle cx="12" cy="12" r="1.5"/>
-            <circle cx="16.5" cy="12" r="1.5"/>
+            <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM3 17V7h18v10H3z" />
+            <circle cx="7.5" cy="12" r="1.5" />
+            <circle cx="12" cy="12" r="1.5" />
+            <circle cx="16.5" cy="12" r="1.5" />
           </svg>
         </template>
       </div>
@@ -42,26 +44,22 @@
 
         <!-- IP 地址 -->
         <div v-if="showOriginal && ip" class="sc-ip__ip">
-          <span
-            v-if="openSearchOriginal"
-            class="sc-ip__ip-text sc-ip__ip-text--link"
-            @click="handleOpenIpAddress"
-          >
+          <span v-if="openSearchOriginal" class="sc-ip__ip-text sc-ip__ip-text--link" @click="handleOpenIpAddress">
             {{ ip }}
           </span>
           <span v-else class="sc-ip__ip-text">{{ ip }}</span>
 
           <!-- 复制按钮 -->
-          <el-tooltip v-if="copyable" :content="copied ? '已复制' : '复制IP'" placement="top">
+          <ScTooltip v-if="copyable" :content="copied ? '已复制' : '复制IP'" placement="top">
             <button class="sc-ip__copy" :class="{ 'sc-ip__copy--success': copied }" @click="handleCopy">
               <svg v-if="!copied" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
               </svg>
               <svg v-else viewBox="0 0 24 24" fill="currentColor">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
               </svg>
             </button>
-          </el-tooltip>
+          </ScTooltip>
         </div>
 
         <!-- 空状态 -->
@@ -72,7 +70,7 @@
 
       <!-- 状态标签 -->
       <el-tag v-if="showTag && displayAddress" :type="tagType" size="small" class="sc-ip__tag" effect="light">
-        {{ isLocal ? '本地' : '公网' }}
+        {{ isLocal ? "本地" : "公网" }}
       </el-tag>
     </template>
   </div>
@@ -83,40 +81,40 @@ import { defineComponent, ref, watch, onMounted, computed } from "vue";
 import { getPhysicalAddressByIp, getIpInfo } from "@repo/utils";
 
 const PROVINCE_ABBR_MAP = {
-  "Beijing": "京",
-  "Shanghai": "沪",
-  "Tianjin": "津",
-  "Chongqing": "渝",
-  "Hebei": "冀",
-  "Shanxi": "晋",
-  "Liaoning": "辽",
-  "Jilin": "吉",
-  "Heilongjiang": "黑",
-  "Jiangsu": "苏",
-  "Zhejiang": "浙",
-  "Anhui": "皖",
-  "Fujian": "闽",
-  "Jiangxi": "赣",
-  "Shandong": "鲁",
-  "Henan": "豫",
-  "Hubei": "鄂",
-  "Hunan": "湘",
-  "Guangdong": "粤",
-  "Hainan": "琼",
-  "Sichuan": "川",
-  "Guizhou": "贵",
-  "Yunnan": "云",
-  "Shaanxi": "陕",
-  "Gansu": "甘",
-  "Qinghai": "青",
-  "Taiwan": "台",
+  Beijing: "京",
+  Shanghai: "沪",
+  Tianjin: "津",
+  Chongqing: "渝",
+  Hebei: "冀",
+  Shanxi: "晋",
+  Liaoning: "辽",
+  Jilin: "吉",
+  Heilongjiang: "黑",
+  Jiangsu: "苏",
+  Zhejiang: "浙",
+  Anhui: "皖",
+  Fujian: "闽",
+  Jiangxi: "赣",
+  Shandong: "鲁",
+  Henan: "豫",
+  Hubei: "鄂",
+  Hunan: "湘",
+  Guangdong: "粤",
+  Hainan: "琼",
+  Sichuan: "川",
+  Guizhou: "贵",
+  Yunnan: "云",
+  Shaanxi: "陕",
+  Gansu: "甘",
+  Qinghai: "青",
+  Taiwan: "台",
   "Inner Mongolia": "蒙",
-  "Guangxi": "桂",
-  "Tibet": "藏",
-  "Ningxia": "宁",
-  "Xinjiang": "新",
+  Guangxi: "桂",
+  Tibet: "藏",
+  Ningxia: "宁",
+  Xinjiang: "新",
   "Hong Kong": "港",
-  "Macao": "澳"
+  Macao: "澳"
 };
 
 export default defineComponent({
@@ -170,7 +168,7 @@ export default defineComponent({
     variant: {
       type: String,
       default: "default",
-      validator: (val) => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
+      validator: val => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
     },
     /**
      * 尺寸
@@ -178,7 +176,7 @@ export default defineComponent({
     size: {
       type: String,
       default: "default",
-      validator: (val) => ["small", "default", "large"].includes(val)
+      validator: val => ["small", "default", "large"].includes(val)
     },
     /**
      * 是否显示图标
@@ -193,7 +191,7 @@ export default defineComponent({
     iconType: {
       type: String,
       default: "location",
-      validator: (val) => ["location", "globe", "network"].includes(val)
+      validator: val => ["location", "globe", "network"].includes(val)
     },
     /**
      * 是否显示为卡片样式
@@ -234,35 +232,29 @@ export default defineComponent({
     const isLocal = computed(() => {
       if (!props.ip) return false;
       const ip = props.ip.split(":")[0];
-      return (
-        ip.startsWith("192.168.") ||
-        ip.startsWith("10.") ||
-        ip.startsWith("172.16.") ||
-        ip.startsWith("127.") ||
-        ip === "localhost"
-      );
+      return ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.16.") || ip.startsWith("127.") || ip === "localhost";
     });
 
     const isChina = computed(() => {
-        return ipInfo.value?.country_code === 'CN';
+      return ipInfo.value?.country_code === "CN";
     });
 
     const countryFlagIcon = computed(() => {
-        if (!ipInfo.value?.country_code) return "";
-        return `circle-flags:${ipInfo.value.country_code.toLowerCase()}`;
+      if (!ipInfo.value?.country_code) return "";
+      return `circle-flags:${ipInfo.value.country_code.toLowerCase()}`;
     });
 
     const cityAbbr = computed(() => {
-        if (!ipInfo.value) return "";
-        const region = ipInfo.value.region || "";
-        const city = ipInfo.value.city || "";
-        
-        for (const key in PROVINCE_ABBR_MAP) {
-             if (region.includes(key) || city.includes(key)) {
-                  return PROVINCE_ABBR_MAP[key];
-             }
+      if (!ipInfo.value) return "";
+      const region = ipInfo.value.region || "";
+      const city = ipInfo.value.city || "";
+
+      for (const key in PROVINCE_ABBR_MAP) {
+        if (region.includes(key) || city.includes(key)) {
+          return PROVINCE_ABBR_MAP[key];
         }
-        return "中";
+      }
+      return "中";
     });
 
     // 标签类型
@@ -304,9 +296,9 @@ export default defineComponent({
       } else if (props.ip) {
         fetchPhysicalAddress();
         if (!isLocal.value) {
-            getIpInfo(props.ip).then(info => {
-                ipInfo.value = info;
-            });
+          getIpInfo(props.ip).then(info => {
+            ipInfo.value = info;
+          });
         }
       } else {
         displayAddress.value = "";
@@ -387,7 +379,7 @@ export default defineComponent({
       animation: pulse 2s infinite;
     }
   }
-  
+
   &__icon-text {
     font-weight: bold;
     font-size: 16px;
@@ -567,7 +559,8 @@ export default defineComponent({
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

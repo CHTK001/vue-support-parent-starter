@@ -129,7 +129,12 @@ export interface StorageConfig {
   /** 消息弹窗启用 */
   messagePopupEnabled?: boolean;
   /** 消息弹窗位置 */
-  messagePopupPosition?: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-right";
+  messagePopupPosition?:
+    | "top-left"
+    | "top-center"
+    | "top-right"
+    | "bottom-left"
+    | "bottom-right";
   /** 消息弹窗持续时间 */
   messagePopupDuration?: number;
   /** AI 助手主题 */
@@ -138,8 +143,12 @@ export interface StorageConfig {
   aiChatEnabled?: boolean;
   /** AI 助手位置 */
   aiChatPosition?: "bottom-right" | "bottom-left" | "bottom-center";
+  /** AI 助手机器人皮肤 */
+  aiChatSkin?: string;
   /** AI 助手 API Key（用于请求头） */
   aiChatApiKey?: string;
+  /** AI 助手 API URL */
+  aiChatApiUrl?: string;
   /** 显示新菜单标识 */
   forceNewMenu?: boolean;
   /** 菜单动画开关 */

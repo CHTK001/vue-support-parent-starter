@@ -208,7 +208,7 @@
           />
 
           <!-- 滑块 -->
-          <el-slider
+          <ScSlider
             v-else-if="param.type === 'slider'"
             v-model="formData.config[param.name]"
             :min="param.min || 0"
@@ -320,6 +320,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { ScSlider } from "@repo/components";
 import {
   InfoFilled,
   Setting,

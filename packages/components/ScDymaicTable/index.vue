@@ -34,9 +34,9 @@
               <span v-if="!remark[item.prop] || remarkTitle == 'NONE'">{{ item.prop }}</span>
               <span v-else class="clampSize">
                 <span v-if="remarkTitle != 'INNER'">
-                  <el-tooltip v-if="remarkTitle == 'TITLE'" :content="remark[item.prop]">
+                  <ScTooltip v-if="remarkTitle == 'TITLE'" :content="remark[item.prop]">
                     {{ item.prop }}
-                  </el-tooltip>
+                  </ScTooltip>
 
                   <span v-else>
                     {{ item.prop }}

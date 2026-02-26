@@ -1,84 +1,19 @@
-import App from "./App.vue";
-import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
-import { router, setupStore } from "@repo/core";
-import { MotionPlugin } from "@vueuse/motion";
-// import { useEcharts } from "@/plugins/echarts";
-import { createApp, type Directive } from "vue";
-import { useElementPlus } from "@repo/plugins";
-import Table from "@pureadmin/table";
-// import PureDescriptions from "@pureadmin/descriptions";
-// 引入重置样式
+import { createStandardApp } from "@repo/core";
+import { wsService } from "./utils/websocket";
+
+// 样式导入
 import "@repo/assets/style/layout/default/reset.scss";
-// 一定要在main.ts中导入tailwind.css，防止vite每次hmr都会请求src/style/index.scss整体css文件导致热更新慢的问题
 import "@repo/assets/style/layout/default/tailwind.css";
 import "element-plus/dist/index.css";
-// 导入字体图标
-import "@repo/assets/iconfont/iconfont.js";
-import "@repo/assets/iconfont/iconfont.css";
-// 导入公共样式
+import "@repo/assets/fonts/iconfont.js";
+import "@repo/assets/fonts/iconfont.css";
 import "@repo/assets/style/layout/default/index.scss";
 import "@repo/assets/style/modern-page.scss";
-// 自定义指令
-// @ts-ignore
-import * as directives from "@repo/core";
-// 字体加密指令
-import { vFontEncryption } from "@layout/default";
-// 字体加密：随机注册两个加密字体（对外名称保持固定且普通）
-import { registerEncryptedFonts } from "@repo/font-encryption";
-// 全局注册@iconify/vue图标库
-import { FontIcon, IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
-// 全局注册按钮级别权限组件
-import { Auth } from "@repo/components/ReAuth";
-import ScTable from "@repo/components/ScTable/index.vue";
-import ScDialog from "@repo/components/ScDialog/src/index.vue";
-import ScDrawer from "@repo/components/ScDrawer/index.vue";
-// 全局注册vue-tippy
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
-import VueTippy from "vue-tippy";
 
-// 异步加载WASM模块
-import { initializeWasmModule } from "@repo/codec-wasm";
-
-async function bootstrapApp() {
-  await registerEncryptedFonts();
-
-  const app = createApp(App);
-  Object.keys(directives).forEach(key => {
-    app.directive(key, (directives as { [key: string]: Directive })[key]);
-  });
-  // 注册字体加密指令
-  app.directive("font-encryption", vFontEncryption);
-
-  app.component("IconifyIconOffline", IconifyIconOffline);
-  app.component("IconifyIconOnline", IconifyIconOnline);
-  app.component("FontIcon", FontIcon);
-
-  app.component("Auth", Auth);
-  app.component("ScTable", ScTable);
-  app.component("ScDialog", ScDialog);
-  app.component("ScDrawer", ScDrawer);
-
-  app.use(VueTippy);
-
-  const config = await getPlatformConfig(app);
-  setupStore(app);
-  app.use(router);
-  await router.isReady();
-  injectResponsiveStorage(app, config);
-  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-  // .use(PureDescriptions)
-  // .use(useEcharts);
-  app.mount("#app");
-}
-
-// 先加载WASM模块，再启动应用
-initializeWasmModule()
-  .catch(error => {
-    console.error("Failed to initialize WASM module:", error);
-    // 即使WASM加载失败，也启动应用，但可能会缺少某些功能
-  })
-  .finally(() => {
-    // 无论WASM是否加载成功都启动应用，避免重复代码
-    void bootstrapApp();
-  });
+createStandardApp({
+  setup: () => {
+    wsService.connect();
+  }
+}).then(bootstrap => bootstrap.mount("#app"));

@@ -1,0 +1,11 @@
+{
+  "name": "@repo/app-root",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.vue",
+  "module": "./index.vue",
+  "exports": {
+    ".": "./index.vue"
+  }
+}

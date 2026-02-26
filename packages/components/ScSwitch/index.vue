@@ -119,7 +119,8 @@
     />
 
     <!-- 默认布局 -->
-    <el-switch
+    <component
+      :is="currentSwitchComponent || ElSwitch"
       v-else
       v-model="currentValue"
       :disabled="disabled"
@@ -146,6 +147,7 @@
  * @since 2.1.0 新增 compact-card 紧凑卡片布局
  */
 import { computed } from "vue";
+import { ElSwitch } from "element-plus";
 import CardLayout from "./components/CardLayout.vue";
 import SliderLayout from "./components/SliderLayout.vue";
 import ModernLayout from "./components/ModernLayout.vue";
@@ -153,6 +155,7 @@ import VisualCardLayout from "./components/VisualCardLayout.vue";
 import CompactCardLayout from "./components/CompactCardLayout.vue";
 import Rect8Layout from "./components/Rect8Layout.vue";
 import { getThemeConfig, type IotSwitchTheme } from "./themes";
+import { useThemeComponent } from "../hooks/useThemeComponent";
 
 const props = defineProps({
   /**
@@ -189,8 +192,7 @@ const props = defineProps({
   layout: {
     type: String,
     default: "default",
-    validator: (val: string) =>
-      ["default", "card", "slider", "modern", "visual-card", "compact-card", "rect-8"].includes(val)
+    validator: (val: string) => ["default", "card", "slider", "modern", "visual-card", "compact-card", "rect-8"].includes(val)
   },
   /**
    * 物联网主题
@@ -335,6 +337,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue", "change"]);
+
+// 使用主题组件系统 V2.0
+const { currentComponent: currentSwitchComponent } = useThemeComponent("ElSwitch");
 
 // 内部值，用于双向绑定
 const currentValue = computed({

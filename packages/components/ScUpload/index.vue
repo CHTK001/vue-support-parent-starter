@@ -1,11 +1,11 @@
 ﻿<template>
-  <div class="sc-upload" :class="{ 'sc-upload-round': round }" :style="style">
+  <div class="sc-upload" :class="[{ 'sc-upload-round': round }, `sc-upload--${theme}`]" :style="style">
     <div v-if="file && file.status != 'success'" class="sc-upload__uploading">
       <div v-if="autoUpload" class="sc-upload__progress">
-        <el-progress :percentage="file.percentage" :text-inside="true" :stroke-width="16" />
+        <ScProgress :percentage="file.percentage" :text-inside="true" :stroke-width="16" />
       </div>
       <!-- 图片文件显示预览 -->
-      <el-image v-if="file.isImage || isImageFile(file.raw?.type)" class="image" :src="file.tempFile" fit="cover" />
+      <ScImage v-if="file.isImage || isImageFile(file.raw?.type)" class="image" :src="file.tempFile" fit="cover" />
       <!-- 非图片文件显示文件图标 -->
       <div v-else class="sc-upload__file-preview">
         <el-icon class="file-icon"><component :is="useRenderIcon('ep:document')" /></el-icon>
@@ -20,19 +20,19 @@
     <div v-if="file && file.status == 'success'" class="sc-upload__img">
       <!-- 图片文件显示预览 -->
       <template v-if="file.isImage || isImageFile(file.raw?.type) || isImageUrl(file.url)">
-        <el-image class="image" :src="file.url" :preview-src-list="[file.url]" fit="cover" hide-on-click-modal append-to-body :z-index="9999">
+        <ScImage class="image" :src="file.url" :preview-src-list="[file.url]" fit="cover" hide-on-click-modal append-to-body :z-index="9999">
           <template #placeholder>
             <div class="sc-upload__img-slot">Loading...</div>
           </template>
           <template #error>
-            <img class="image" :src="file.tempFile" fit="cover">
+            <img class="image" :src="file.tempFile" fit="cover" />
           </template>
-        </el-image>
+        </ScImage>
       </template>
       <!-- 非图片文件显示文件信息 -->
       <div v-else class="sc-upload__file-preview">
         <el-icon class="file-icon"><component :is="useRenderIcon('ep:document')" /></el-icon>
-        <span class="file-name">{{ file.name || '文件已上传' }}</span>
+        <span class="file-name">{{ file.name || "文件已上传" }}</span>
       </div>
       <div v-if="!disabled" class="sc-upload__img-actions">
         <span class="del" @click="handleRemove()">
@@ -40,7 +40,8 @@
         </span>
       </div>
     </div>
-    <el-upload
+    <component
+      :is="uploadComponent || ElUpload"
       v-show="!file"
       ref="uploader"
       class="uploader"
@@ -69,33 +70,51 @@
           </div>
         </div>
       </slot>
-    </el-upload>
+    </component>
     <span style="display: none !important">
       <el-input v-model="value" />
     </span>
     <sc-dialog :append-to-body="true" v-model="cropperDialogVisible" title="剪裁" draggable :width="680" destroy-on-close @closed="cropperClosed">
       <sc-cropper ref="cropper" :src="cropperFile.tempCropperFile" :compress="compress" :aspectRatio="aspectRatio" />
       <template #footer>
-        <el-button @click="cropperDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="cropperSave">确 定</el-button>
+        <ScButton @click="cropperDialogVisible = false">取 消</ScButton>
+        <ScButton type="primary" @click="cropperSave">确 定</ScButton>
       </template>
     </sc-dialog>
   </div>
 </template>
 
 <script>
-import { defineAsyncComponent } from "vue";
-import { genFileId } from "element-plus";
+import { defineAsyncComponent, computed } from "vue";
+import { genFileId, ElUpload } from "element-plus";
 import { useRenderIcon } from "../ReIcon/src/hooks";
+import { useThemeComponent } from "../hooks/useThemeComponent";
+import ScButton from "@repo/components/ScButton/index.vue";
+import ScProgress from "@repo/components/ScProgress/index.vue";
+import { ScImage } from "@repo/components/ScImage";
 
 const scCropper = defineAsyncComponent(() => import("../scCropper/index.vue"));
-import {config, parseData} from "./setting";
+import { config, parseData } from "./setting";
 import { getConfig } from "@repo/config";
 import { formatFilePath } from "@repo/utils";
 
 export default {
   components: {
-    scCropper
+    scCropper,
+    ScButton,
+    ScProgress,
+    ScImage
+  },
+  setup() {
+    /**
+     * 使用主题组件系统 V2.0
+     * 自动根据 data-skin 加载对应主题的 Upload 组件
+     */
+    const { currentComponent: uploadComponent } = useThemeComponent("ElUpload");
+
+    return {
+      uploadComponent
+    };
   },
   props: {
     modelValue: { type: String, default: "" },
@@ -127,7 +146,14 @@ export default {
     aspectRatio: { type: Number, default: NaN },
     enablePaste: { type: Boolean, default: true },
     enableDrag: { type: Boolean, default: true },
-    placeholder: { type: String, default: '点击或拖拽上传图片，支持 Ctrl+V 粘贴' }
+    placeholder: { type: String, default: "点击或拖拽上传图片，支持 Ctrl+V 粘贴" },
+    theme: {
+      type: String,
+      default: "default",
+      validator: value => {
+        return ["default", "primary", "success", "warning", "danger", "info"].includes(value);
+      }
+    }
   },
   data() {
     return {
@@ -140,7 +166,7 @@ export default {
       cropperDialogVisible: false,
       cropperFile: null,
       // 缓存 OssAddress 避免重复调用 getConfig()
-      cachedOssAddress: getConfig().OssAddress || ''
+      cachedOssAddress: getConfig().OssAddress || ""
     };
   },
   watch: {
@@ -161,23 +187,22 @@ export default {
     this.newFile(this.modelValue);
     // 添加粘贴事件监听
     if (this.enablePaste) {
-      document.addEventListener('paste', this.handlePaste);
+      document.addEventListener("paste", this.handlePaste);
     }
   },
   beforeUnmount() {
     // 移除粘贴事件监听
     if (this.enablePaste) {
-      document.removeEventListener('paste', this.handlePaste);
+      document.removeEventListener("paste", this.handlePaste);
     }
   },
   methods: {
-
     useRenderIcon,
     newFile(url) {
       if (url) {
         this.file = {
           status: "success",
-          url: formatFilePath(this.urlPrefix || this.cachedOssAddress, (url?.tempFile || url))
+          url: formatFilePath(this.urlPrefix || this.cachedOssAddress, url?.tempFile || url)
         };
       } else {
         this.file = null;
@@ -221,14 +246,14 @@ export default {
       if (files.length > 1) {
         files.splice(0, 1);
       }
-      
+
       // 先验证文件格式
       if (file.status == "ready") {
         var acceptIncludes = true;
         if (this.accept !== "*/*") {
           acceptIncludes = this.accept.replace(/\s/g, "").split(",").includes(file.raw.type);
         }
-        
+
         if (!acceptIncludes) {
           this.$notify.warning({
             title: "上传文件警告",
@@ -240,7 +265,7 @@ export default {
           });
           return false;
         }
-        
+
         // 检查文件大小
         const maxSize = file.raw.size / 1024 / 1024 < this.maxSize;
         if (!maxSize) {
@@ -251,7 +276,7 @@ export default {
           return false;
         }
       }
-      
+
       if (this.cropper && file.status == "ready") {
         const acceptIncludes = ["image/gif", "image/jpeg", "image/png"].includes(file.raw.type);
         if (!acceptIncludes) {
@@ -277,12 +302,12 @@ export default {
     },
     // 判断是否是图片文件
     isImageFile(type) {
-      return type && type.startsWith('image/');
+      return type && type.startsWith("image/");
     },
     // 判断URL是否是图片
     isImageUrl(url) {
       if (!url) return false;
-      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico'];
+      const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico"];
       const lowerUrl = url.toLowerCase();
       return imageExtensions.some(ext => lowerUrl.includes(ext));
     },
@@ -324,13 +349,13 @@ export default {
      */
     handlePaste(event) {
       if (this.disabled || this.file) return;
-      
+
       const items = event.clipboardData?.items;
       if (!items) return;
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        if (item.type.indexOf('image') !== -1) {
+        if (item.type.indexOf("image") !== -1) {
           event.preventDefault();
           const file = item.getAsFile();
           if (file) {
@@ -348,7 +373,7 @@ export default {
         uid: genFileId(),
         name: `paste-${Date.now()}.png`,
         raw: file,
-        status: 'ready',
+        status: "ready",
         size: file.size,
         type: file.type,
         percentage: 0
@@ -416,11 +441,11 @@ export default {
         data.append(key, param.data[key]);
       }
       apiObj(data, {
-          onUploadProgress: e => {
-            const complete = parseInt(((e.loaded / e.total) * 100) | 0, 10);
-            param.onProgress({ percent: complete });
-          }
-        })
+        onUploadProgress: e => {
+          const complete = parseInt(((e.loaded / e.total) * 100) | 0, 10);
+          param.onProgress({ percent: complete });
+        }
+      })
         .then(res => {
           var response = parseData(res);
           if (response.code == config.successCode) {
@@ -606,5 +631,75 @@ export default {
 
 .sc-upload.sc-upload-round .sc-upload__img-actions span {
   width: 100%;
+}
+
+/* ===== Theme Styles ===== */
+.sc-upload--default {
+  border-color: var(--el-border-color-light);
+}
+
+.sc-upload--primary {
+  border-color: var(--el-color-primary);
+}
+
+.sc-upload--primary .el-upload--picture-card {
+  border-color: var(--el-color-primary);
+}
+
+.sc-upload--primary .el-upload--picture-card:hover {
+  border-color: var(--el-color-primary);
+  background-color: rgba(64, 158, 255, 0.05);
+}
+
+.sc-upload--success {
+  border-color: var(--el-color-success);
+}
+
+.sc-upload--success .el-upload--picture-card {
+  border-color: var(--el-color-success);
+}
+
+.sc-upload--success .el-upload--picture-card:hover {
+  border-color: var(--el-color-success);
+  background-color: rgba(103, 194, 58, 0.05);
+}
+
+.sc-upload--warning {
+  border-color: var(--el-color-warning);
+}
+
+.sc-upload--warning .el-upload--picture-card {
+  border-color: var(--el-color-warning);
+}
+
+.sc-upload--warning .el-upload--picture-card:hover {
+  border-color: var(--el-color-warning);
+  background-color: rgba(230, 162, 60, 0.05);
+}
+
+.sc-upload--danger {
+  border-color: var(--el-color-danger);
+}
+
+.sc-upload--danger .el-upload--picture-card {
+  border-color: var(--el-color-danger);
+}
+
+.sc-upload--danger .el-upload--picture-card:hover {
+  border-color: var(--el-color-danger);
+  background-color: rgba(245, 108, 108, 0.05);
+}
+
+.sc-upload--info {
+  border-color: var(--el-color-info);
+}
+
+.sc-upload--info .el-upload--picture-card {
+  border-color: var(--el-color-info);
+}
+
+.sc-upload--info .el-upload--picture-card:hover {
+  border-color: var(--el-color-info);
+  background-color: rgba(144, 147, 168, 0.05);
 }
 </style>

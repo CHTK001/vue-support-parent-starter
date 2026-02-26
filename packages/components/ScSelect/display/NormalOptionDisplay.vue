@@ -9,9 +9,9 @@
       </slot>
       <div class="option-overlay">
         <div class="option-label truncate">
-          <el-tooltip v-if="option.description || option.name" :content="option.description || option.name">
+          <ScTooltip v-if="option.description || option.name" :content="option.description || option.name">
             {{ option.label || option.name }}
-          </el-tooltip>
+          </ScTooltip>
           <template v-else>
             {{ option.label || option.name }}
           </template>

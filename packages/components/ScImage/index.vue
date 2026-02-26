@@ -14,33 +14,34 @@
         @change="handleCompareChange"
       />
       <div v-if="!disabled" class="sc-image-actions compare-actions">
-        <el-tooltip :content="useScCompare ? '切换为滑动比较' : '切换为并排比较'" placement="left">
+        <ScTooltip :content="useScCompare ? '切换为滑动比较' : '切换为并排比较'" placement="left">
           <div class="action-btn" @click="toggleCompareMode">
             <el-icon>
               <component :is="useRenderIcon('ep:grid')" />
             </el-icon>
           </div>
-        </el-tooltip>
-        <el-tooltip v-if="!useScCompare" content="切换比较方向" placement="left">
+        </ScTooltip>
+        <ScTooltip v-if="!useScCompare" content="切换比较方向" placement="left">
           <div class="action-btn" @click="toggleCompareDirection">
             <el-icon>
               <component :is="useRenderIcon(compareDirection === 'horizontal' ? 'ep:sort' : 'ep:menu')" />
             </el-icon>
           </div>
-        </el-tooltip>
-        <el-tooltip content="退出比较" placement="left">
+        </ScTooltip>
+        <ScTooltip content="退出比较" placement="left">
           <div class="action-btn" @click="exitCompareMode">
             <el-icon>
               <component :is="useRenderIcon('ep:close')" />
             </el-icon>
           </div>
-        </el-tooltip>
+        </ScTooltip>
       </div>
     </div>
 
     <!-- 普通图片显示模式 -->
     <div v-else-if="currentImage" class="sc-image-wrapper">
-      <el-image
+      <component
+        :is="currentImageComponent || ElImage"
         ref="imageRef"
         :src="currentImage"
         :fit="fit"
@@ -91,62 +92,62 @@
         <template v-if="$slots.viewer" #viewer>
           <slot name="viewer" />
         </template>
-      </el-image>
+      </component>
 
       <!-- 操作按钮 -->
       <div v-if="!disabled && showActions" class="sc-image-actions">
-        <el-tooltip content="查看" placement="left">
+        <ScTooltip content="查看" placement="left">
           <div class="action-btn" @click="handlePreview">
             <el-icon>
               <component :is="useRenderIcon('ep:zoom-in')" />
             </el-icon>
           </div>
-        </el-tooltip>
+        </ScTooltip>
 
-        <el-tooltip content="编辑" placement="left">
+        <ScTooltip content="编辑" placement="left">
           <div class="action-btn" @click="handleEdit">
             <el-icon>
               <component :is="useRenderIcon('ep:edit')" />
             </el-icon>
           </div>
-        </el-tooltip>
+        </ScTooltip>
 
-        <el-tooltip v-if="enableCompare" content="图片比较" placement="left">
+        <ScTooltip v-if="enableCompare" content="图片比较" placement="left">
           <div class="action-btn" @click="handleStartCompare">
             <el-icon>
               <component :is="useRenderIcon('ep:picture')" />
             </el-icon>
           </div>
-        </el-tooltip>
+        </ScTooltip>
 
-        <el-tooltip v-if="enableBackgroundRemoval" content="去除背景" placement="left">
+        <ScTooltip v-if="enableBackgroundRemoval" content="去除背景" placement="left">
           <div class="action-btn" @click="handleRemoveBackground">
             <el-icon>
               <component :is="useRenderIcon('ep:magic-stick')" />
             </el-icon>
           </div>
-        </el-tooltip>
+        </ScTooltip>
 
-        <el-tooltip v-if="showDownload" content="下载" placement="left">
+        <ScTooltip v-if="showDownload" content="下载" placement="left">
           <div class="action-btn" @click="handleDownload">
             <el-icon>
               <component :is="useRenderIcon('ep:download')" />
             </el-icon>
           </div>
-        </el-tooltip>
+        </ScTooltip>
 
-        <el-tooltip content="删除" placement="left">
+        <ScTooltip content="删除" placement="left">
           <div class="action-btn delete" @click="handleRemove">
             <el-icon>
               <component :is="useRenderIcon('ep:delete')" />
             </el-icon>
           </div>
-        </el-tooltip>
+        </ScTooltip>
       </div>
 
       <!-- 处理进度 -->
       <div v-if="processing" class="sc-image-processing">
-        <el-progress :percentage="processingProgress" :stroke-width="8" />
+        <ScProgress :percentage="processingProgress" :stroke-width="8" />
         <span class="processing-text">{{ processingText }}</span>
       </div>
     </div>
@@ -197,16 +198,16 @@
         </div>
       </el-upload>
       <template #footer>
-        <el-button @click="compareDialogVisible = false">取消</el-button>
-        <el-button type="primary" :disabled="!tempCompareImage" @click="confirmCompare">开始比较</el-button>
+        <ScButton @click="compareDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :disabled="!tempCompareImage" @click="confirmCompare">开始比较</ScButton>
       </template>
     </sc-dialog>
 
     <!-- 图片编辑器 -->
-    <ImageEditor 
-      v-model="editorVisible" 
-      :imageSrc="currentImage" 
-      :imageBlob="originalImageBlob" 
+    <ImageEditor
+      v-model="editorVisible"
+      :imageSrc="currentImage"
+      :imageBlob="originalImageBlob"
       :show-upload="editorShowUpload"
       :show-crop="editorShowCrop"
       :show-rotate="editorShowRotate"
@@ -214,16 +215,20 @@
       :show-remove-background="editorShowRemoveBackground"
       :show-scale="editorShowScale"
       :show-background-tools="editorShowBackgroundTools"
-      @confirm="handleEditorConfirm" 
-      @cancel="handleEditorCancel" 
+      @confirm="handleEditorConfirm"
+      @cancel="handleEditorCancel"
     />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ElImage, ElUpload, ElIcon } from "element-plus";
 import { message } from "@repo/utils";
 import { useRenderIcon } from "../ReIcon/src/hooks";
+import { ScProgress } from "../ScProgress";
+import { ScButton } from "../ScButton";
+import { useThemeComponent } from "../hooks/useThemeComponent";
 import Viewer from "viewerjs";
 import "viewerjs/dist/viewer.css";
 import ImageCompare from "./components/ImageCompare.vue";
@@ -402,6 +407,9 @@ const imageRef = ref(null);
 const uploadRef = ref(null);
 const compareUploadRef = ref(null);
 const viewerInstance = ref(null);
+
+// 使用主题组件系统 V2.0
+const { currentComponent: currentImageComponent } = useThemeComponent("ElImage");
 
 // State
 const currentImage = ref("");

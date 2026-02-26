@@ -181,20 +181,20 @@
           </el-button>
 
           <!-- 搜索按钮 -->
-          <el-tooltip v-if="showSearch" :content="searchText" :disabled="!iconOnly" placement="top">
+          <ScTooltip v-if="showSearch" :content="searchText" :disabled="!iconOnly" placement="top">
             <el-button type="primary" :loading="loading" :circle="iconOnly" @click="handleSearch">
               <IconifyIconOnline icon="ep:search" />
               <template v-if="!iconOnly">{{ searchText }}</template>
             </el-button>
-          </el-tooltip>
+          </ScTooltip>
 
           <!-- 重置按钮 -->
-          <el-tooltip v-if="showReset" :content="resetText" :disabled="!iconOnly" placement="top">
+          <ScTooltip v-if="showReset" :content="resetText" :disabled="!iconOnly" placement="top">
             <el-button :circle="iconOnly" @click="handleReset">
               <IconifyIconOnline icon="ep:refresh" />
               <template v-if="!iconOnly">{{ resetText }}</template>
             </el-button>
-          </el-tooltip>
+          </ScTooltip>
 
           <!-- 自定义操作插槽 -->
           <slot name="actions" :values="formModel" :search="handleSearch" :reset="handleReset" />

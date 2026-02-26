@@ -40,7 +40,7 @@
         </el-form-item>
 
         <el-form-item label="响应延迟(ms)">
-          <el-slider
+          <ScSlider
             v-model="mockConfig.delay"
             :min="0"
             :max="5000"
@@ -227,6 +227,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import type { ApiInfo } from "../types";
 import { DocStorage, type MockRule } from "../storage";
 import { aiService, type AIServiceConfig, type AIProvider } from "../ai-service";
+import { ScSlider } from "@repo/components";
 
 const props = defineProps<{
   /** 当前选中的 API */

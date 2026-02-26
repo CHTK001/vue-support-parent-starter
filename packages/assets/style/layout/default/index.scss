@@ -104,6 +104,8 @@ html.dark svg {
 html.a11y-screen-reader {
   scroll-behavior: auto;
 
+  /* 鼠标和键盘聚焦都高亮，方便直接看到效果 */
+  *:focus,
   *:focus-visible {
     outline: 2px solid var(--el-color-primary);
     outline-offset: 2px;

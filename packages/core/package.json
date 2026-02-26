@@ -31,7 +31,7 @@
     "@vueuse/core": "catalog:",
     "click-outside-vue3": "catalog:",
     "echarts": "catalog:",
-    "fingerprintjs2": "catalog:",
+    "@fingerprintjs/fingerprintjs": "catalog:",
     "gridstack": "catalog:",
     "js-cookie": "catalog:",
     "js-yaml": "catalog:",

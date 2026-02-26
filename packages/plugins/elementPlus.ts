@@ -228,7 +228,72 @@ const components = [
 
 const plugins = [ElLoading, ElInfiniteScroll, ElPopoverDirective, ElMessage, ElMessageBox, ElNotification];
 
-/** 按需引入`element-plus` */
+/**
+ * 已存在的 `ScXxx` 组件名称
+ * 这些组件在 `@repo/components` 中已有自定义实现，避免在此处用别名覆盖
+ */
+const existingScComponentNames = new Set<string>([
+  "ScButton",
+  "ScCard",
+  "ScCode",
+  "ScCompare",
+  "ScContainer",
+  "ScContextMenu",
+  "ScCron",
+  "ScCropper",
+  "ScDebugConsole",
+  "ScDeco",
+  "ScDialog",
+  "ScDictSelect",
+  "ScDrag",
+  "ScDrawer",
+  "ScDymaicTable",
+  "ScEcharts",
+  "ScEchartsMap3D",
+  "ScEditor",
+  "ScFile",
+  "ScFilterBar",
+  "ScFormTable",
+  "ScFullscreenLoading",
+  "ScHeader",
+  "ScIcon",
+  "ScImage",
+  "ScInput",
+  "ScIp",
+  "ScLayer",
+  "ScLazy",
+  "ScLoadCompent",
+  "ScLoading",
+  "ScMap",
+  "ScMessageDialog",
+  "ScMini",
+  "ScNumber",
+  "ScPagintion",
+  "ScPanel",
+  "ScPanelTitle",
+  "ScPasswordStrength",
+  "ScProgress",
+  "ScPromQL",
+  "ScRegion",
+  "ScReteEditor",
+  "ScRibbon",
+  "ScSelect",
+  "ScSelectFilter",
+  "ScSlider",
+  "ScSocketMessageDialog",
+  "ScSwitch",
+  "ScTable",
+  "ScTableSelect",
+  "ScText",
+  "ScThree",
+  "ScTip",
+  "ScTree",
+  "ScUpload",
+  "ScVideo",
+  "ScWorkflow"
+]);
+
+/** 按需引入 `element-plus`，并为每个组件补充 `ScXxx` 别名（如 `ElButton` => `ScButton`） */
 export function useElementPlus(app: App) {
   // 设置 ElDialog 和 ElDrawer 默认挂载到 body
   if (ElDialog.props) {
@@ -247,6 +312,26 @@ export function useElementPlus(app: App) {
   // 全局注册组件
   components.forEach((component: Component) => {
     app.component(component.name, component);
+
+    // 自动生成 ScXxx 别名组件，便于在模板中统一使用 Sc 前缀
+    const originalName = component.name as string | undefined;
+    if (!originalName || !originalName.startsWith("El")) {
+      return;
+    }
+
+    const scName = `Sc${originalName.slice(2)}`;
+    // 已有自定义 Sc 组件的情况交给各自实现，这里不重复注册
+    if (existingScComponentNames.has(scName)) {
+      return;
+    }
+
+    // 直接复用原组件实例，仅修改 name 以便调试区分
+    const alias = {
+      ...component,
+      name: scName
+    } as Component;
+
+    app.component(scName, alias);
   });
   // 全局注册插件
   plugins.forEach(plugin => {

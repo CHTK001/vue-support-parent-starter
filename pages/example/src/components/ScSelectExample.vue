@@ -30,7 +30,7 @@
           </el-form-item>
 
           <el-form-item label="gap 卡片间距">
-            <el-slider v-model="config.gap" :min="4" :max="24" :step="4" show-stops />
+            <ScSlider v-model="config.gap" :min="4" :max="24" :step="4" show-stops />
           </el-form-item>
 
           <el-form-item label="width 卡片宽度">
@@ -60,7 +60,7 @@
               <el-tooltip content="多选限制数量" placement="left">
                 <span>limit 限制 ({{ config.limit || '不限' }})</span>
               </el-tooltip>
-              <el-slider v-model="config.limit" :min="0" :max="10" :step="1" style="width: 100px" />
+              <ScSlider v-model="config.limit" :min="0" :max="10" :step="1" style="width: 100px" />
             </div>
           </div>
         </el-form>
@@ -112,6 +112,7 @@ import { reactive, ref, computed, watch } from "vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
+import { ScSlider } from "@repo/components";
 
 // 布局选项
 const layoutOptions = [

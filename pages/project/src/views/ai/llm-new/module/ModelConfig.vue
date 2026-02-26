@@ -82,7 +82,7 @@
               <span class="text-purple-600 font-mono">{{ form?.tokens }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <el-slider :min="1" :max="8192" v-model="form.tokens" class="flex-1" />
+              <ScSlider :min="1" :max="8192" v-model="form.tokens" class="flex-1" />
               <el-input-number :min="1" :max="8192" v-model="form.tokens" class="w-20" :controls="false" />
             </div>
             <div class="text-sm text-gray-500 mt-1 dark:text-gray-400">控制 AI 回复的最大长度，1 token ≈ 1.5 个中文字符</div>
@@ -95,7 +95,7 @@
               <span class="text-purple-600 font-mono">{{ form.temperature }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <el-slider :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="flex-1" />
+              <ScSlider :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="flex-1" />
               <el-input-number :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="w-20" :controls="false" />
             </div>
             <div class="text-sm text-gray-500 mt-1 dark:text-gray-400">值越高回复越有创意，值越低回复越稳定</div>
@@ -108,7 +108,7 @@
               <span class="text-purple-600 font-mono">{{ form.topK }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <el-slider :min="1" :max="16" v-model="form.topK" class="flex-1" />
+              <ScSlider :min="1" :max="16" v-model="form.topK" class="flex-1" />
               <el-input-number :min="1" :max="16" v-model="form.topK" class="w-20" :controls="false" />
             </div>
             <div class="text-sm text-gray-500 mt-1 dark:text-gray-400">控制词汇选择的多样性，影响回复的丰富程度</div>
@@ -121,7 +121,7 @@
               <span class="text-purple-600 font-mono">{{ form.topP }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <el-slider :min="0.1" :max="1" :step="0.1" v-model="form.topP" class="flex-1" />
+              <ScSlider :min="0.1" :max="1" :step="0.1" v-model="form.topP" class="flex-1" />
               <el-input-number :min="0.1" :step="0.1" :max="1" v-model="form.topP" class="w-20" :controls="false" />
             </div>
             <div class="text-sm text-gray-500 mt-1 dark:text-gray-400">动态调整词汇选择范围，平衡质量与多样性</div>
@@ -149,6 +149,7 @@
 <script setup>
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { computed } from "vue";
+import { ScSlider } from "@repo/components";
 
 // Props
 const props = defineProps({

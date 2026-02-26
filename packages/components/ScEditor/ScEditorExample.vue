@@ -31,7 +31,7 @@
       <p>可以自定义编辑器的高度</p>
       <div class="example-demo">
         <div class="height-controls">
-          <el-slider
+          <ScSlider
             v-model="editorHeight"
             :min="200"
             :max="800"
@@ -352,6 +352,7 @@ import { ref, reactive, shallowRef, onBeforeUnmount, nextTick } from 'vue'
 import { message } from "@repo/utils";
 import ScEditor from './index.vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
+import { ScSlider } from "@repo/components";
 
 // 基础编辑器内容
 const basicContent = ref('<p>这是一个基础的富文本编辑器示例。</p><p>你可以在这里输入和编辑文本。</p>')

@@ -1,9 +1,5 @@
 // lay-message 主题样式入口
 // 将主题样式拆分到独立文件，提高可维护性
-
-@use './halloween';
-@use './mid-autumn';
-@use './christmas';
 @use './future-tech';
 // 8-bit 主题使用显式命名空间，避免以数字开头的默认命名空间
 @use './8bit' as bit;

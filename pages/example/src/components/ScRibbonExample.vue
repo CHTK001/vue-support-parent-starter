@@ -41,7 +41,7 @@
           </el-form-item>
 
           <el-form-item label="width 宽度" v-if="showWidth">
-            <el-slider v-model="config.width" :min="50" :max="100" :format-tooltip="v => v + '%'" />
+            <ScSlider v-model="config.width" :min="50" :max="100" :format-tooltip="v => v + '%'" />
           </el-form-item>
         </el-form>
       </div>
@@ -90,6 +90,7 @@ import { reactive, computed } from "vue";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScSlider } from "@repo/components";
 
 // 样式选项
 const variantOptions = [
