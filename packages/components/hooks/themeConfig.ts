@@ -55,6 +55,74 @@ export interface ThemeConfig {
  */
 export const THEME_CONFIGS: Record<string, ThemeConfig> = {
   /**
+   * default 默认主题（Element Plus 原生组件）
+   */
+  default: {
+    name: "default",
+    displayName: "默认主题",
+    packageName: "element-plus",
+    enabled: true,
+    componentMap: {
+      // 表单输入组件
+      ElButton: "ElButton",
+      ElInput: "ElInput",
+      ElSelect: "ElSelect",
+      ElCheckbox: "ElCheckbox",
+      ElRadio: "ElRadio",
+      ElSlider: "ElSlider",
+      ElInputNumber: "ElInputNumber",
+      ElRate: "ElRate",
+      ElColorPicker: "ElColorPicker",
+      ElTimePicker: "ElTimePicker",
+      ElDatePicker: "ElDatePicker",
+      ElCascader: "ElCascader",
+      ElAutocomplete: "ElAutocomplete",
+      ElSwitch: "ElSwitch",
+
+      // 基础组件
+      ElTag: "ElTag",
+      ElBadge: "ElBadge",
+      ElAlert: "ElAlert",
+      ElLink: "ElLink",
+      ElDivider: "ElDivider",
+      ElAvatar: "ElAvatar",
+      ElProgress: "ElProgress",
+
+      // 弹出层组件
+      ElTooltip: "ElTooltip",
+      ElPopover: "ElPopover",
+      ElPopconfirm: "ElPopconfirm",
+
+      // 表单容器
+      ElForm: "ElForm",
+      ElFormItem: "ElFormItem",
+
+      // 布局组件
+      ElRow: "ElRow",
+      ElCol: "ElCol",
+      ElTabs: "ElTabs",
+
+      // 导航组件
+      ElMenu: "ElMenu",
+      ElBreadcrumb: "ElBreadcrumb",
+      ElSteps: "ElSteps",
+
+      // 对话框组件
+      ElDialog: "ElDialog",
+      ElDrawer: "ElDrawer",
+
+      // 高级组件
+      ElCard: "ElCard",
+      ElTable: "ElTable",
+
+      // 其他组件
+      ElUpload: "ElUpload",
+      ElImage: "ElImage",
+      ElTree: "ElTree"
+    }
+  },
+
+  /**
    * 8bit 像素风格主题
    */
   "8bit": {
@@ -91,7 +159,7 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
 
       // 弹出层组件
       ElTooltip: "PxTooltip",
-      ElPopover: "PxPopover",
+      ElPopover: "ElPopover",
       ElPopconfirm: "PxPopconfirm",
 
       // 表单容器

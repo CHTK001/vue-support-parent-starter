@@ -1,7 +1,7 @@
 <template>
   <!-- 根据 data-skin 自动切换主题组件 -->
   <component
-    :is="currentComponent || ElSlider"
+    :is="currentComponent"
     v-model="currentValue"
     :min="min"
     :max="max"
@@ -162,12 +162,19 @@ const currentValue = computed<SliderValue>({
 /**
  * 使用主题组件系统 V2.0
  * 自动根据 data-skin 加载对应主题的 Slider 组件
+ * - data-skin="default" → ElSlider (Element Plus)
  * - data-skin="8bit" → PxSlider (PixelUI)
  * - data-skin="material" → MdSlider (Material Design)
  * - data-skin="fluent" → FlSlider (Fluent Design)
- * - 无 data-skin → ElSlider (Element Plus)
+ *
+ * 所有主题（包括 default）都通过配置映射，currentComponent 始终有值
  */
 const { currentComponent } = useThemeComponent("ElSlider");
+
+// 开发环境下检查组件是否加载成功
+if (import.meta.env.DEV && !currentComponent.value) {
+  console.error("[ScSlider] currentComponent 为空，请检查主题配置");
+}
 
 /**
  * 变更事件透传
