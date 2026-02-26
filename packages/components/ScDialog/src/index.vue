@@ -1,6 +1,7 @@
 <template>
   <!-- ElementPlus 原生模式 -->
-  <el-dialog
+  <component
+    :is="currentDialogComponent"
     v-if="mode === 'element'"
     v-model="dialogVisible"
     :title="iconMode === 'inline' && icon ? undefined : title"
@@ -43,15 +44,15 @@
 
     <template v-if="showFooter" #footer>
       <slot name="footer">
-        <el-button v-if="showCancelButton" @click="handleCancel">
+        <ScButton v-if="showCancelButton" @click="handleCancel">
           {{ cancelText }}
-        </el-button>
-        <el-button v-if="showConfirmButton" type="primary" :loading="loading" @click="handleConfirm">
+        </ScButton>
+        <ScButton v-if="showConfirmButton" type="primary" :loading="loading" @click="handleConfirm">
           {{ confirmText }}
-        </el-button>
+        </ScButton>
       </slot>
     </template>
-  </el-dialog>
+  </component>
 
   <!-- 自定义模式（使用 interact.js） -->
   <template v-else>
@@ -153,12 +154,12 @@
             <!-- 底部 -->
             <div v-if="showFooter" class="sc-dialog__footer">
               <slot name="footer">
-                <el-button v-if="showCancelButton" @click="handleCancel">
+                <ScButton v-if="showCancelButton" @click="handleCancel">
                   {{ cancelText }}
-                </el-button>
-                <el-button v-if="showConfirmButton" type="primary" :loading="loading" @click="handleConfirm">
+                </ScButton>
+                <ScButton v-if="showConfirmButton" type="primary" :loading="loading" @click="handleConfirm">
                   {{ confirmText }}
-                </el-button>
+                </ScButton>
               </slot>
             </div>
 
@@ -189,7 +190,9 @@
  * @updated 2025-12-02 简化架构，删除布局系统
  */
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, type PropType, type CSSProperties } from "vue";
-import { ElDialog, ElButton } from "element-plus";
+import { ElDialog } from "element-plus";
+import { ScButton } from "../../ScButton";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
 import interact from "interactjs";
 import { localStorageProxy } from "@repo/utils";
 import { useTaskbar, type TaskbarItem } from "./useTaskbar";
@@ -354,18 +357,7 @@ const props = withDefaults(
   }
 );
 
-const emit = defineEmits([
-  "update:modelValue",
-  "open",
-  "opened",
-  "close",
-  "closed",
-  "confirm",
-  "cancel",
-  "minimize",
-  "maximize",
-  "restore"
-]);
+const emit = defineEmits(["update:modelValue", "open", "opened", "close", "closed", "confirm", "cancel", "minimize", "maximize", "restore"]);
 
 // 内部状态
 const dialogVisible = computed({
@@ -379,38 +371,17 @@ const minimizedIconRef = ref<HTMLElement | null>(null);
 const alignGuidesRef = ref<HTMLElement | null>(null);
 
 // Composables
-const {
-  currentZIndex,
-  activateDialog,
-  registerDialog,
-  unregisterDialog,
-  updateDialogRect
-} = useDialogZIndex({
+const { currentZIndex, activateDialog, registerDialog, unregisterDialog, updateDialogRect } = useDialogZIndex({
   initialZIndex: 2000
 });
 
-const {
-  isMinimized,
-  isMaximized,
-  dockPosition,
-  minimizedIconPosition,
-  minimizeTransitionName,
-  minimizeToEdge,
-  restoreFromMinimized,
-  toggleMaximize
-} = useDialogMinimize({
+const { isMinimized, isMaximized, dockPosition, minimizedIconPosition, minimizeTransitionName, minimizeToEdge, restoreFromMinimized, toggleMaximize } = useDialogMinimize({
   edgeThreshold: props.edgeThreshold,
   edgeDock: props.edgeDock,
   minimizeShowTitle: props.minimizeShowTitle
 });
 
-const {
-  isDragging,
-  isResizing,
-  initInteract,
-  destroyInteract,
-  updatePosition
-} = useDialogInteract({
+const { isDragging, isResizing, initInteract, destroyInteract, updatePosition } = useDialogInteract({
   draggable: props.draggable,
   resizable: props.resizable,
   dragHandle: ".sc-dialog__header",
@@ -426,13 +397,26 @@ const {
 const iconComponentName = computed(() => (props.icon ? IconifyIconOnline : ""));
 const actualMinimizeIcon = computed(() => (props.icon ? props.icon : props.minimizeIcon));
 
+// 使用 PixelUI 条件导入
+const { currentComponent } = useThemeComponent("ElDialog");
+
+// 当前实际渲染的组件（仅用于 element 模式）
+const currentDialogComponent = computed(() => {
+  return currentComponent;
+});
+
 const typeColor = computed(() => {
   switch (props.type) {
-    case "info": return "var(--el-color-info)";
-    case "success": return "var(--el-color-success)";
-    case "warning": return "var(--el-color-warning)";
-    case "error": return "var(--el-color-danger)";
-    default: return "var(--el-color-primary)";
+    case "info":
+      return "var(--el-color-info)";
+    case "success":
+      return "var(--el-color-success)";
+    case "warning":
+      return "var(--el-color-warning)";
+    case "error":
+      return "var(--el-color-danger)";
+    default:
+      return "var(--el-color-primary)";
   }
 });
 
@@ -442,7 +426,7 @@ const floatIconStyle = computed<CSSProperties>(() => ({
 }));
 
 const dialogStyle = computed<CSSProperties>(() => ({
-  width: typeof props.width === 'number' ? `${props.width}px` : props.width,
+  width: typeof props.width === "number" ? `${props.width}px` : props.width,
   marginTop: props.top
 }));
 
@@ -482,13 +466,13 @@ const handleConfirm = () => {
 
 const handleMinimize = () => {
   if (!dialogRef.value) return;
-  
+
   if (props.useTaskbar) {
     // 任务栏最小化逻辑
     isMinimized.value = true;
   } else {
     // 边缘吸附最小化
-    const pos = dockPosition.value || 'bottom';
+    const pos = dockPosition.value || "bottom";
     minimizeToEdge(pos, dialogRef.value);
   }
   emit("minimize");
@@ -533,7 +517,7 @@ const handleAfterLeave = () => {
 
 // 生命周期
 onMounted(() => {
-  if (props.mode === 'custom' && dialogRef.value) {
+  if (props.mode === "custom" && dialogRef.value) {
     registerDialog(internalDialogId, dialogRef.value);
     initInteract(dialogRef.value);
     activateDialog(internalDialogId);
@@ -545,24 +529,26 @@ onUnmounted(() => {
   destroyInteract();
 });
 
-watch(() => props.modelValue, (val) => {
-  if (val) {
-    nextTick(() => {
-      if (props.mode === 'custom' && dialogRef.value) {
-        registerDialog(internalDialogId, dialogRef.value);
-        initInteract(dialogRef.value);
-        activateDialog(internalDialogId);
+watch(
+  () => props.modelValue,
+  val => {
+    if (val) {
+      nextTick(() => {
+        if (props.mode === "custom" && dialogRef.value) {
+          registerDialog(internalDialogId, dialogRef.value);
+          initInteract(dialogRef.value);
+          activateDialog(internalDialogId);
+        }
+        emit("open");
+      });
+    } else {
+      // 对话框关闭时注销
+      if (props.mode === "custom") {
+        unregisterDialog(internalDialogId);
       }
-      emit("open");
-    });
-  } else {
-    // 对话框关闭时注销
-    if (props.mode === 'custom') {
-      unregisterDialog(internalDialogId);
     }
   }
-});
-
+);
 </script>
 
 <style lang="scss">
@@ -786,7 +772,7 @@ watch(() => props.modelValue, (val) => {
     background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-#{$type}), transparent 95%) 0%, color-mix(in srgb, var(--el-color-#{$type}), transparent 90%) 100%);
     border-top: 1px solid var(--el-color-#{$type}-light-7);
   }
-  
+
   // 按钮适配
   .sc-dialog__btn:hover {
     background: var(--el-color-#{$type}-light-9);
@@ -818,7 +804,6 @@ watch(() => props.modelValue, (val) => {
 .sc-dialog--theme-info {
   @include dialog-theme-variant(info);
 }
-
 
 // Tech 主题样式
 .sc-dialog--theme-tech {
@@ -981,7 +966,7 @@ watch(() => props.modelValue, (val) => {
   color: #fff;
   font-size: 20px;
   cursor: pointer;
-  box-shadow: 
+  box-shadow:
     0 8px 24px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   transition:
@@ -994,7 +979,7 @@ watch(() => props.modelValue, (val) => {
   position: fixed; // 确保固定定位
 
   &:hover {
-    box-shadow: 
+    box-shadow:
       0 12px 32px rgba(0, 0, 0, 0.3),
       0 0 0 1px rgba(255, 255, 255, 0.2) inset;
     transform: translateY(-2px) scale(1.05);
@@ -1125,7 +1110,7 @@ watch(() => props.modelValue, (val) => {
   &--theme-tech {
     background: color-mix(in srgb, var(--el-color-primary-dark-2), transparent 10%);
     border: 1px solid var(--el-color-primary-light-5);
-    box-shadow: 
+    box-shadow:
       0 0 15px var(--el-color-primary-light-5),
       inset 0 0 10px rgba(0, 0, 0, 0.5);
     color: var(--el-color-primary-light-3);
@@ -1133,7 +1118,7 @@ watch(() => props.modelValue, (val) => {
 
     &:hover {
       background: color-mix(in srgb, var(--el-color-primary-dark-2), transparent 5%);
-      box-shadow: 
+      box-shadow:
         0 0 20px var(--el-color-primary-light-3),
         inset 0 0 15px rgba(0, 0, 0, 0.5);
       color: #fff;

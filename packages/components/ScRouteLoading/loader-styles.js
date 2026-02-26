@@ -1,0 +1,302 @@
+/**
+ * 加载动画样式配置
+ * 用于 HTML 中动态注入加载动画
+ */
+
+export const loaderStyles = {
+  // 默认：三个圆点
+  default: {
+    name: "三个圆点",
+    html: '<div class="loader"></div>',
+    css: `
+      .loader,
+      .loader::before,
+      .loader::after {
+        width: 2.5em;
+        height: 2.5em;
+        border-radius: 50%;
+        animation: load-animation 1.8s infinite ease-in-out;
+        animation-fill-mode: both;
+      }
+
+      .loader {
+        position: relative;
+        margin: 0 auto;
+        font-size: 10px;
+        color: #406eeb;
+        text-indent: -9999em;
+        transform: translateZ(0);
+        animation-delay: -0.16s;
+      }
+
+      .loader::before,
+      .loader::after {
+        position: absolute;
+        top: 0;
+        content: "";
+      }
+
+      .loader::before {
+        left: -3.5em;
+        animation-delay: -0.32s;
+      }
+
+      .loader::after {
+        left: 3.5em;
+      }
+
+      @keyframes load-animation {
+        0%, 80%, 100% {
+          box-shadow: 0 2.5em 0 -1.3em;
+        }
+        40% {
+          box-shadow: 0 2.5em 0 0;
+        }
+      }
+    `
+  },
+
+  // 彩色圆环
+  rings: {
+    name: "彩色圆环",
+    html: `
+      <div class="loading-spinner">
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring"></div>
+      </div>
+    `,
+    css: `
+      .loading-spinner {
+        position: relative;
+        width: 120px;
+        height: 120px;
+      }
+
+      .spinner-ring {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 3px solid transparent;
+        border-radius: 50%;
+        animation: spin 2s linear infinite;
+      }
+
+      .spinner-ring:nth-child(1) {
+        border-top-color: #ff6b6b;
+        animation-delay: 0s;
+      }
+
+      .spinner-ring:nth-child(2) {
+        border-right-color: #4ecdc4;
+        animation-delay: 0.5s;
+        width: 90%;
+        height: 90%;
+        top: 5%;
+        left: 5%;
+      }
+
+      .spinner-ring:nth-child(3) {
+        border-bottom-color: #45b7d1;
+        animation-delay: 1s;
+        width: 80%;
+        height: 80%;
+        top: 10%;
+        left: 10%;
+      }
+
+      .spinner-ring:nth-child(4) {
+        border-left-color: #f9ca24;
+        animation-delay: 1.5s;
+        width: 70%;
+        height: 70%;
+        top: 15%;
+        left: 15%;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `
+  },
+
+  // 简约圆环
+  simple: {
+    name: "简约圆环",
+    html: '<div class="simple-spinner"></div>',
+    css: `
+      .simple-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(64, 110, 235, 0.2);
+        border-top-color: #406eeb;
+        border-radius: 50%;
+        animation: simple-spin 1s linear infinite;
+      }
+
+      @keyframes simple-spin {
+        to { transform: rotate(360deg); }
+      }
+    `
+  },
+
+  // 脉冲圆点
+  pulse: {
+    name: "脉冲圆点",
+    html: '<div class="pulse-loader"></div>',
+    css: `
+      .pulse-loader {
+        width: 20px;
+        height: 20px;
+        background: #406eeb;
+        border-radius: 50%;
+        animation: pulse-animation 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse-animation {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.5);
+          opacity: 0.5;
+        }
+      }
+    `
+  },
+
+  // 跳动方块
+  blocks: {
+    name: "跳动方块",
+    html: `
+      <div class="blocks-loader">
+        <div class="block"></div>
+        <div class="block"></div>
+        <div class="block"></div>
+      </div>
+    `,
+    css: `
+      .blocks-loader {
+        display: flex;
+        gap: 8px;
+      }
+
+      .block {
+        width: 15px;
+        height: 15px;
+        background: #406eeb;
+        border-radius: 3px;
+        animation: block-jump 1.4s ease-in-out infinite;
+      }
+
+      .block:nth-child(1) {
+        animation-delay: 0s;
+      }
+
+      .block:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .block:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes block-jump {
+        0%, 80%, 100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-20px);
+        }
+      }
+    `
+  }
+};
+
+/**
+ * 生成完整的 loader HTML（包含样式）
+ */
+export function generateLoaderHTML(type = "default") {
+  const loader = loaderStyles[type] || loaderStyles.default;
+
+  return `
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      #app {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        background: #ffffff;
+      }
+
+      html.dark #app {
+        background: #1a1a1a;
+      }
+
+      ${loader.css}
+    </style>
+    ${loader.html}
+  `;
+}
+
+/**
+ * 在浏览器中动态更新 loader
+ */
+export function updateLoader(type = "default") {
+  if (typeof window === "undefined") return;
+
+  const app = document.getElementById("app");
+  if (!app) return;
+
+  const loader = loaderStyles[type] || loaderStyles.default;
+
+  // 查找并更新样式
+  let styleTag = document.querySelector("#loader-style");
+  if (!styleTag) {
+    styleTag = document.createElement("style");
+    styleTag.id = "loader-style";
+    document.head.appendChild(styleTag);
+  }
+
+  styleTag.textContent = `
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #app {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+    }
+
+    html.dark #app {
+      background: #1a1a1a;
+    }
+
+    ${loader.css}
+  `;
+
+  // 更新 HTML
+  app.innerHTML = loader.html;
+}

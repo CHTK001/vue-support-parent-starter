@@ -18,9 +18,9 @@
           <IconifyIconOnline :icon="prefixIcon || defaultPrefixIcon" class="sc-password-input__prefix-icon" />
         </template>
         <template v-if="tip && tipPosition === 'right'" #suffix>
-          <el-tooltip :content="tip" placement="top">
+          <ScTooltip :content="tip" placement="top">
             <IconifyIconOnline icon="ri:question-line" class="sc-password-input__tip-icon" />
-          </el-tooltip>
+          </ScTooltip>
         </template>
         <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">
           <slot :name="name" v-bind="slotData || {}" />

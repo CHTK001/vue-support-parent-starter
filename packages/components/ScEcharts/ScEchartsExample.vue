@@ -135,10 +135,10 @@
           <ScEcharts :option="responsiveOption" width="100%" height="100%" />
         </div>
         <div class="chart-controls">
-          <el-slider v-model="containerWidth" :min="300" :max="800" show-input style="margin-bottom: 20px;">
+          <ScSlider v-model="containerWidth" :min="300" :max="800" show-input style="margin-bottom: 20px;">
             <template #prepend>宽度:</template>
           </el-slider>
-          <el-slider v-model="containerHeight" :min="200" :max="500" show-input>
+          <ScSlider v-model="containerHeight" :min="200" :max="500" show-input>
             <template #prepend>高度:</template>
           </el-slider>
         </div>
@@ -238,6 +238,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import ScEcharts from './index.vue'
+import { ScSlider } from "@repo/components";
 
 // 响应式数据
 const containerWidth = ref(600)

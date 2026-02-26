@@ -65,7 +65,7 @@ defineProps({
       <el-button circle @click="toggleMute">
         <IconifyIconOnline :icon="env.isMuted ? 'ri:volume-mute-fill' : env.volume > 50 ? 'ri:volume-up-fill' : 'ri:volume-down-fill'" />
       </el-button>
-      <el-slider v-model="env.volume" :disabled="env.isMuted" @input="adjustVolume" class="music-player__volume-slider" />
+      <ScSlider v-model="env.volume" :disabled="env.isMuted" @input="adjustVolume" class="music-player__volume-slider" />
       <el-button circle @click="env.showLyrics = !env.showLyrics">
         <IconifyIconOnline icon="ri:file-list-line" :style="{ color: env.showLyrics ? 'var(--el-color-primary)' : '' }" />
       </el-button>

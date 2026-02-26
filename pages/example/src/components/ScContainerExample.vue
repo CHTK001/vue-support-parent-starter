@@ -11,25 +11,25 @@
           <el-col :span="6">
             <div class="config-item">
               <label>容器高度</label>
-              <el-slider v-model="config.height" :min="200" :max="600" :step="10" show-input />
+              <ScSlider v-model="config.height" :min="200" :max="600" :step="10" show-input />
             </div>
           </el-col>
           <el-col :span="6">
             <div class="config-item">
               <label>侧边栏宽度</label>
-              <el-slider v-model="config.asideWidth" :min="100" :max="300" :step="10" show-input />
+              <ScSlider v-model="config.asideWidth" :min="100" :max="300" :step="10" show-input />
             </div>
           </el-col>
           <el-col :span="6">
             <div class="config-item">
               <label>右侧栏宽度</label>
-              <el-slider v-model="config.rightWidth" :min="100" :max="300" :step="10" show-input />
+              <ScSlider v-model="config.rightWidth" :min="100" :max="300" :step="10" show-input />
             </div>
           </el-col>
           <el-col :span="6">
             <div class="config-item">
               <label>头部高度</label>
-              <el-slider v-model="config.headerHeight" :min="40" :max="100" :step="5" show-input />
+              <ScSlider v-model="config.headerHeight" :min="40" :max="100" :step="5" show-input />
             </div>
           </el-col>
         </el-row>
@@ -164,6 +164,7 @@
  */
 import { ref, reactive } from "vue";
 import { ScContainer } from "@repo/components/ScContainer";
+import { ScSlider } from "@repo/components";
 
 const containerRef = ref();
 

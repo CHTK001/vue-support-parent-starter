@@ -5,14 +5,14 @@
       <div class="editor-toolbar">
         <!-- 上传新图片 -->
         <div v-if="showUpload" class="toolbar-section">
-          <el-tooltip content="上传新图片" placement="top">
+          <ScTooltip content="上传新图片" placement="top">
             <el-button @click="triggerUpload">
               <el-icon>
                 <component :is="useRenderIcon('ep:upload')" />
               </el-icon>
               上传
             </el-button>
-          </el-tooltip>
+          </ScTooltip>
           <input ref="uploadInput" type="file" accept="image/*" style="display: none" @change="handleUploadChange" />
         </div>
 
@@ -20,34 +20,34 @@
         <div class="toolbar-section">
           <span class="section-title">基础工具</span>
           <el-button-group>
-            <el-tooltip v-if="showCrop" content="裁剪" placement="top">
+            <ScTooltip v-if="showCrop" content="裁剪" placement="top">
               <el-button :type="currentTool === 'crop' ? 'primary' : 'default'" @click="selectTool('crop')">
                 <el-icon>
                   <component :is="useRenderIcon('ep:crop')" />
                 </el-icon>
               </el-button>
-            </el-tooltip>
-            <el-tooltip v-if="showRotate" content="旋转" placement="top">
+            </ScTooltip>
+            <ScTooltip v-if="showRotate" content="旋转" placement="top">
               <el-button @click="rotate(90)">
                 <el-icon>
                   <component :is="useRenderIcon('ep:refresh-right')" />
                 </el-icon>
               </el-button>
-            </el-tooltip>
-            <el-tooltip v-if="showFlip" content="翻转" placement="top">
+            </ScTooltip>
+            <ScTooltip v-if="showFlip" content="翻转" placement="top">
               <el-button @click="flip('horizontal')">
                 <el-icon>
                   <component :is="useRenderIcon('ep:sort')" />
                 </el-icon>
               </el-button>
-            </el-tooltip>
-            <el-tooltip v-if="showRemoveBackground" content="去除背景" placement="top">
+            </ScTooltip>
+            <ScTooltip v-if="showRemoveBackground" content="去除背景" placement="top">
               <el-button :loading="removing" @click="removeBackground">
                 <el-icon v-if="!removing">
                   <component :is="useRenderIcon('ep:magic-stick')" />
                 </el-icon>
               </el-button>
-            </el-tooltip>
+            </ScTooltip>
           </el-button-group>
         </div>
 
@@ -66,37 +66,37 @@
         <div v-if="showBackgroundTools && hasTransparentBackground" class="toolbar-section">
           <span class="section-title">背景</span>
           <el-button-group>
-            <el-tooltip content="纯色背景" placement="top">
+            <ScTooltip content="纯色背景" placement="top">
               <el-button @click="showBackgroundPicker = true">
                 <el-icon>
                   <component :is="useRenderIcon('ep:brush')" />
                 </el-icon>
                 纯色
               </el-button>
-            </el-tooltip>
-            <el-tooltip content="图片背景" placement="top">
+            </ScTooltip>
+            <ScTooltip content="图片背景" placement="top">
               <el-button @click="selectBackgroundImage">
                 <el-icon>
                   <component :is="useRenderIcon('ep:picture')" />
                 </el-icon>
                 图片
               </el-button>
-            </el-tooltip>
-            <el-tooltip content="移除背景" placement="top">
+            </ScTooltip>
+            <ScTooltip content="移除背景" placement="top">
               <el-button @click="clearBackground">
                 <el-icon>
                   <component :is="useRenderIcon('ep:delete')" />
                 </el-icon>
                 清除
               </el-button>
-            </el-tooltip>
+            </ScTooltip>
           </el-button-group>
         </div>
 
         <!-- 缩放 -->
         <div v-if="showScale" class="toolbar-section">
           <span class="section-title">缩放</span>
-          <el-slider v-model="scale" :min="10" :max="300" :step="10" style="width: 150px" @change="handleScaleChange" />
+          <ScSlider v-model="scale" :min="10" :max="300" :step="10" style="width: 150px" @change="handleScaleChange" />
           <span class="scale-value">{{ scale }}%</span>
         </div>
       </div>
@@ -150,6 +150,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { message } from "@repo/utils";
 import { useRenderIcon } from "../../ReIcon/src/hooks";
+import ScSlider from "../../ScSlider/src/index.vue";
 import Cropper from "cropperjs";
 import "cropperjs/dist/cropper.css";
 

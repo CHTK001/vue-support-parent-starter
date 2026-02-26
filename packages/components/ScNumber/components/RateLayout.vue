@@ -1,6 +1,6 @@
 <template>
   <div class="sc-number-rate" :class="[`sc-number-rate--${size}`]">
-    <el-rate
+    <ScRate
       v-model="currentValue"
       class="sc-number-rate__rate"
       :max="max"
@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { computed, type Component } from "vue";
+import ScRate from "../../ScRate/src/index.vue";
 
 interface Props {
   /**

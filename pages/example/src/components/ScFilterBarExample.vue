@@ -115,10 +115,10 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item label="显示数量">
-              <el-slider v-model="config.visibleCount" :min="1" :max="10" show-input />
+              <ScSlider v-model="config.visibleCount" :min="1" :max="10" show-input />
             </el-form-item>
             <el-form-item label="网格列数" v-if="config.layout === 'grid'">
-              <el-slider v-model="config.columns" :min="1" :max="6" show-input />
+              <ScSlider v-model="config.columns" :min="1" :max="6" show-input />
             </el-form-item>
             <el-form-item label="边框">
               <el-switch v-model="config.border" />
@@ -136,7 +136,7 @@
               <el-switch v-model="config.showDrawer" />
             </el-form-item>
             <el-form-item label="输入框宽度">
-              <el-slider v-model="config.inputWidth" :min="100" :max="300" :step="10" show-input />
+              <ScSlider v-model="config.inputWidth" :min="100" :max="300" :step="10" show-input />
             </el-form-item>
           </el-form>
         </div>
@@ -182,6 +182,7 @@ import ScFilterBar from "@repo/components/ScFilterBar/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import DemoBlock from "./DemoBlock.vue";
 import { message } from "@repo/utils";
+import { ScSlider } from "@repo/components";
 import draggable from "vuedraggable";
 
 // ==================== 类型定义 ====================

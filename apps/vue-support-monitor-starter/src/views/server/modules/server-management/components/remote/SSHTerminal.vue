@@ -86,11 +86,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from "vue";
 import { message } from "@repo/utils";
-import 'xterm/css/xterm.css'
-import { Terminal } from 'xterm'
-import { Unicode11Addon } from 'xterm-addon-unicode11'
-import { WebLinksAddon } from 'xterm-addon-web-links';
-import { FitAddon } from 'xterm-addon-fit'
+import "xterm/css/xterm.css";
+import { Terminal } from "xterm";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
+import { WebLinksAddon } from "xterm-addon-web-links";
+import { FitAddon } from "xterm-addon-fit";
 import { createNamedSocketService, closeNamedSocketService, getNamedSocketService, parseSocketMessage, type SocketTemplate, RemoteTopics } from "@repo/core";
 import { getConfig } from "@repo/config";
 

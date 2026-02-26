@@ -24,15 +24,21 @@
     "lib": ["ESNext", "DOM"],
     "paths": {
       "@/*": ["src/*"],
-      "@build/*": ["build/*"],
+      "@build/*": ["build/*"]
     },
-    "types": ["node", "vite/client", "element-plus/global", "@pureadmin/table/volar", "@pureadmin/descriptions/volar"]
+    "types": [
+      "node",
+      "vite/client",
+      "element-plus/global",
+      "@pureadmin/table/volar",
+      "@pureadmin/descriptions/volar"
+    ]
   },
   "include": [
     "env.d.ts",
     "@repo/core",
     "src/types/*.d.ts",
-    "types/*.d.ts",
+    "../../packages/types/*.d.ts",
     "mock/*.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
@@ -43,7 +49,15 @@
     "src/router/modules/tools.ts1",
     "src/router/modules/soft.ts1",
     "src/router/modules/protect-redrect.ts1",
-    "src/router/modules/montor.ts1"
-, "src/router/modules/infrastructure.ts1"  ],
-  "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
+    "src/router/modules/montor.ts1",
+    "src/router/modules/infrastructure.ts1"
+  ],
+  "exclude": [
+    "dist",
+    "**/*.js",
+    "node_modules",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.turbo/**"
+  ]
 }

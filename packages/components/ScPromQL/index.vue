@@ -45,7 +45,7 @@
                 readonly
               />
               <div class="example-actions">
-                <el-tooltip :content="t('promql.copy')" placement="top">
+                <ScTooltip :content="t('promql.copy')" placement="top">
                   <el-button 
                     type="primary" 
                     size="small" 
@@ -54,8 +54,8 @@
                   >
                     <el-icon><CopyDocument /></el-icon>
                   </el-button>
-                </el-tooltip>
-                <el-tooltip :content="t('promql.use')" placement="top">
+                </ScTooltip>
+                <ScTooltip :content="t('promql.use')" placement="top">
                   <el-button 
                     type="success" 
                     size="small" 
@@ -64,7 +64,7 @@
                   >
                     <el-icon><Check /></el-icon>
                   </el-button>
-                </el-tooltip>
+                </ScTooltip>
               </div>
             </div>
           </div>

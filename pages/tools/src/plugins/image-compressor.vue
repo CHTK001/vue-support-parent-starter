@@ -78,7 +78,7 @@
                 <h3>压缩设置</h3>
                 <div class="image-compressor-tool__quality-slider">
                   <span>压缩质量：{{ quality }}%</span>
-                  <el-slider v-model="quality" :min="1" :max="100" @change="compressImage" />
+                  <ScSlider v-model="quality" :min="1" :max="100" @change="compressImage" />
                 </div>
                 <div class="image-compressor-tool__format-selector">
                   <span>输出格式：</span>
@@ -133,6 +133,7 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { message } from "@repo/utils";
+import { ScSlider } from "@repo/components";
 
 // 图片数据
 const originalImage = ref({

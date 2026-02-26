@@ -1,5 +1,6 @@
 <template>
-  <el-switch
+  <component
+    :is="currentComponent || ElSwitch"
     v-model="switchValue"
     :disabled="disabled"
     :loading="loading"
@@ -21,7 +22,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
+import { ElSwitch } from "element-plus";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
 
 const props = defineProps({
   modelValue: {
@@ -91,6 +94,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue", "change"]);
+
+// 使用 PixelUI 条件导入
+const { currentComponent } = useThemeComponent("ElSwitch");
+
+// 当前实际渲染的组件
+
 
 // 开关绑定值
 const switchValue = ref(props.modelValue);

@@ -43,7 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
   cameraPosition: () => [0, 0, 5] as [number, number, number],
   cameraLookAt: () => [0, 0, 0] as [number, number, number],
   preset: "none",
-  modelUrls: () => [],
+  modelUrls: () => []
 });
 
 const emits = defineEmits<{
@@ -118,7 +118,7 @@ function setupPresetScene(scene: THREE.Scene, camera: THREE.Camera): void {
     const planeMat = new THREE.MeshPhongMaterial({
       color: 0x004a8f,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.9
     });
     const plane = new THREE.Mesh(planeGeo, planeMat);
     plane.rotation.x = -Math.PI / 2;
@@ -168,21 +168,9 @@ function initScene() {
 
   if (props.cameraType === "orthographic") {
     const size = 5;
-    camera = new THREE.OrthographicCamera(
-      -size * aspect,
-      size * aspect,
-      size,
-      -size,
-      props.cameraNear,
-      props.cameraFar
-    );
+    camera = new THREE.OrthographicCamera(-size * aspect, size * aspect, size, -size, props.cameraNear, props.cameraFar);
   } else {
-    camera = new THREE.PerspectiveCamera(
-      props.cameraFov,
-      aspect,
-      props.cameraNear,
-      props.cameraFar
-    );
+    camera = new THREE.PerspectiveCamera(props.cameraFov, aspect, props.cameraNear, props.cameraFar);
   }
 
   camera.position.set(...props.cameraPosition);
@@ -194,7 +182,7 @@ function initScene() {
   // 创建渲染器
   const renderer = new THREE.WebGLRenderer({
     antialias: props.antialias,
-    alpha: props.alpha,
+    alpha: props.alpha
   });
   renderer.setSize(containerRef.value.clientWidth, containerRef.value.clientHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -202,7 +190,7 @@ function initScene() {
   rendererRef.value = renderer;
 
   // 预设场景 + 模型加载
-  loadModels(scene).then((models) => {
+  loadModels(scene).then(models => {
     if (models.length > 0) {
       emits("modelLoaded", models);
     }
@@ -285,11 +273,11 @@ onBeforeUnmount(() => {
   }
 
   if (sceneRef.value) {
-    sceneRef.value.traverse((object) => {
+    sceneRef.value.traverse(object => {
       if (object instanceof THREE.Mesh) {
         object.geometry.dispose();
         if (Array.isArray(object.material)) {
-          object.material.forEach((material) => material.dispose());
+          object.material.forEach(material => material.dispose());
         } else {
           object.material.dispose();
         }
@@ -308,7 +296,7 @@ defineExpose({
       rendererRef.value.render(sceneRef.value, cameraRef.value);
     }
   },
-  resize: handleResize,
+  resize: handleResize
 });
 </script>
 
@@ -330,4 +318,3 @@ defineExpose({
   }
 }
 </style>
-

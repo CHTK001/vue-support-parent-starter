@@ -1,6 +1,7 @@
 <template>
   <div class="sc-number-default" :class="[`sc-number-default--${size}`]">
-    <el-input-number
+    <component
+      :is="currentComponent || ElInputNumber"
       v-model="currentValue"
       class="sc-number-default__input"
       v-bind="$attrs"
@@ -26,6 +27,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { ElInputNumber } from "element-plus";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
 
 interface Props {
   /**
@@ -104,6 +107,12 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits(["update:modelValue", "change", "focus", "blur"]);
+
+// 使用 PixelUI 条件导入
+const { currentComponent } = useThemeComponent("ElInputNumber");
+
+// 当前实际渲染的组件
+
 
 const currentValue = computed({
   get: () => props.modelValue,

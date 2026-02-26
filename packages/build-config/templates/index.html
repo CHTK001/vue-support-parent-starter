@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="renderer" content="webkit" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+    <title>{{TITLE}}</title>
+    <link rel="icon" href="/favicon.ico" />
+    {{EXTRA_HEAD_SCRIPTS}}
+    <script>
+      // 深色主题检测
+      try {
+        var storage = localStorage.getItem('layout');
+        if (storage) {
+          var layoutConfig = JSON.parse(storage);
+          if (layoutConfig.darkMode) {
+            document.documentElement.classList.add('dark');
+          }
+        } else {
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+          }
+        }
+      } catch (e) {}
+    </script>
+    <script src="/loader.js"></script>
+  </head>
+
+  {{EXTRA_BODY_SCRIPTS}}
+  <script type="module" src="/src/main.ts"></script>
+</html>

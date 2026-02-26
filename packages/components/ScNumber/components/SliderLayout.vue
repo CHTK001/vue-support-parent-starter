@@ -1,6 +1,6 @@
 <template>
   <div class="sc-number-slider" :class="{ 'sc-number-slider--vertical': vertical }">
-    <el-slider
+    <ScSlider
       v-model="currentValue"
       class="sc-number-slider__slider"
       :min="min"
@@ -24,6 +24,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import ScSlider from "../../ScSlider/src/index.vue";
 
 interface Props {
   /**

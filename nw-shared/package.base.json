@@ -1,0 +1,26 @@
+{
+  "name": "vue-support-app",
+  "version": "1.0.0",
+  "description": "Vue Support Desktop Application",
+  "main": "index.html",
+  "node-remote": "*",
+  "chromium-args": "--disable-gpu --disable-software-rasterizer",
+  "window": {
+    "title": "Vue Support App",
+    "icon": "logo.png",
+    "toolbar": false,
+    "frame": true,
+    "width": 1200,
+    "height": 800,
+    "position": "center",
+    "min_width": 800,
+    "min_height": 600,
+    "resizable": true,
+    "show": true,
+    "fullscreen": false,
+    "show_in_taskbar": true
+  },
+  "webkit": {
+    "plugin": true
+  }
+}

@@ -46,7 +46,7 @@
             </el-form-item>
 
             <el-form-item label="length 长度">
-              <el-slider v-model="config.totpLength" :min="4" :max="8" :show-stops="true" />
+              <ScSlider v-model="config.totpLength" :min="4" :max="8" :show-stops="true" />
             </el-form-item>
           </template>
 
@@ -166,6 +166,7 @@ import { reactive, ref, computed } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScSlider } from "@repo/components";
 
 // 类型选项
 const typeOptions = [

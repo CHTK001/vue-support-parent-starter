@@ -86,7 +86,7 @@
               <span class="param-value">{{ form.tokens }}</span>
             </div>
             <div class="param-control">
-              <el-slider :min="1" :max="8192" v-model="form.tokens" class="modern-slider" />
+              <ScSlider :min="1" :max="8192" v-model="form.tokens" class="modern-slider" />
               <el-input-number :min="1" :max="8192" v-model="form.tokens" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">控制 AI 回复的最大长度，1 token ≈ 1.5 个中文字符</div>
@@ -99,7 +99,7 @@
               <span class="param-value">{{ form.temperature }}</span>
             </div>
             <div class="param-control">
-              <el-slider :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="modern-slider" />
+              <ScSlider :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="modern-slider" />
               <el-input-number :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">值越高回复越有创意，值越低回复越稳定</div>
@@ -112,7 +112,7 @@
               <span class="param-value">{{ form.topK }}</span>
             </div>
             <div class="param-control">
-              <el-slider :min="1" :max="16" v-model="form.topK" class="modern-slider" />
+              <ScSlider :min="1" :max="16" v-model="form.topK" class="modern-slider" />
               <el-input-number :min="1" :max="16" v-model="form.topK" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">控制词汇选择的多样性，影响回复的丰富程度</div>
@@ -125,7 +125,7 @@
               <span class="param-value">{{ form.topP }}</span>
             </div>
             <div class="param-control">
-              <el-slider :min="0.1" :max="1" :step="0.1" v-model="form.topP" class="modern-slider" />
+              <ScSlider :min="0.1" :max="1" :step="0.1" v-model="form.topP" class="modern-slider" />
               <el-input-number :min="0.1" :step="0.1" :max="1" v-model="form.topP" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">动态调整词汇选择范围，平衡质量与多样性</div>
@@ -152,6 +152,7 @@
 
 <script setup>
 import { computed, ref, watch } from "vue";
+import { ScSlider } from "@repo/components";
 
 // Props
 const props = defineProps({
