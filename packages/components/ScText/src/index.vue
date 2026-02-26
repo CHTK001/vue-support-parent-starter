@@ -16,7 +16,7 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, h, type VNode } from "vue";
 import { message } from "@repo/utils";
 import TypeIt from "typeit";
-import { ScTooltip } from "../..";
+import { ScTooltip } from "../../ScTooltip";
 import type { ScTextProps, ScTextType, ScTextSize, ScTextEffect, TypeItInstance } from "./types";
 
 defineOptions({
@@ -477,7 +477,7 @@ function initTypeIt(text?: string): void {
       speed: props.typeItOptions?.speed ?? props.typingSpeed ?? 50,
       deleteSpeed: props.typeItOptions?.deleteSpeed,
       cursor: props.typeItOptions?.cursor ?? true,
-      cursorChar: props.typeItOptions?.cursorChar ?? "|",
+      cursorChar: props.typeItOptions?.cursorChar ?? "",
       cursorSpeed: props.typeItOptions?.cursorSpeed,
       loop: props.typeItOptions?.loop ?? props.typingLoop ?? false,
       loopDelay: props.typeItOptions?.loopDelay,

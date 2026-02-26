@@ -17,7 +17,6 @@ import ScDictSelect from "./ScDictSelect/index.vue";
 import ScDrawer from "./ScDrawer/index.vue";
 import { ScReteEditor, useReteEditor } from "./ScReteEditor";
 import { ScThree } from "./ScThree";
-import { ScEchartsMap3D } from "./ScEchartsMap3D";
 import { ScSlider } from "./ScSlider";
 import { ScSelect } from "./ScSelect";
 import { ScRadio, ScRadioGroup } from "./ScRadio";
@@ -74,7 +73,6 @@ export {
   ScMap,
   ScRouteLoading,
   ScThree,
-  ScEchartsMap3D,
   ScSlider,
   ScSelect,
   ScRadio,
@@ -135,7 +133,6 @@ export default {
   ScLayer,
   ScMap,
   ScThree,
-  ScEchartsMap3D,
   ScSlider,
   ScSelect,
   ScRadio,

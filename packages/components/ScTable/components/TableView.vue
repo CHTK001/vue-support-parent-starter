@@ -207,16 +207,11 @@ const isDragging = ref(false);
 let scrollContainer = null;
 let wheelHandler = null;
 
-// 使用 PixelUI 条件导入
+// 使用主题组件系统
 const { currentComponent } = useThemeComponent("ElTable");
 
 // 当前实际渲染的组件
-const currentTableComponent = computed(() => {
-  if (isPixelTheme.value && pixelComponent?.value) {
-    return pixelComponent.value;
-  }
-  return ElTable;
-});
+const currentTableComponent = currentComponent;
 
 // 右键菜单相关
 const contextMenuRef = ref(null);

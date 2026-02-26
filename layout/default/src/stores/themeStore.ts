@@ -23,14 +23,14 @@ export const useThemeStore = defineStore("theme", () => {
    * @returns 归一化后的主题 key
    */
   function normalizeThemeKey(themeKey?: string | null): ThemeKey {
-    if (!themeKey) return "default";
+    if (!themeKey) return "default"; // 默认使用 default 主题
     if (themeKey === "pixel-art" || themeKey === "8-bit") return "8bit";
     return themeKey as ThemeKey;
   }
 
   // ===== 状态 =====
   const currentTheme = ref<ThemeKey>(
-    normalizeThemeKey($storage?.configure?.systemTheme)
+    normalizeThemeKey($storage?.configure?.systemTheme),
   );
 
   // FPS Monitor State
@@ -38,7 +38,9 @@ export const useThemeStore = defineStore("theme", () => {
   const STORAGE_KEY_FPS = "sys-fps-monitor-enabled";
   const storedFps = localStorage.getItem(STORAGE_KEY_FPS);
   const defaultFps = getConfig("ShowFpsMonitor") ?? false;
-  const fpsMonitorEnabled = ref(storedFps !== null ? storedFps === "true" : defaultFps);
+  const fpsMonitorEnabled = ref(
+    storedFps !== null ? storedFps === "true" : defaultFps,
+  );
 
   // Memory & CPU Monitor State
   const STORAGE_KEY_MEMORY = "sys-memory-monitor-enabled";
@@ -46,41 +48,54 @@ export const useThemeStore = defineStore("theme", () => {
 
   const storedMemory = localStorage.getItem(STORAGE_KEY_MEMORY);
   const defaultMemory = getConfig("ShowMemoryMonitor") ?? false;
-  const memoryMonitorEnabled = ref(storedMemory !== null ? storedMemory === "true" : defaultMemory);
+  const memoryMonitorEnabled = ref(
+    storedMemory !== null ? storedMemory === "true" : defaultMemory,
+  );
 
   const storedCpu = localStorage.getItem(STORAGE_KEY_CPU);
   const defaultCpu = getConfig("ShowCpuMonitor") ?? false;
-  const cpuMonitorEnabled = ref(storedCpu !== null ? storedCpu === "true" : defaultCpu);
+  const cpuMonitorEnabled = ref(
+    storedCpu !== null ? storedCpu === "true" : defaultCpu,
+  );
 
   // Bandwidth Monitor State
   const STORAGE_KEY_BANDWIDTH = "sys-bandwidth-monitor-enabled";
   const storedBandwidth = localStorage.getItem(STORAGE_KEY_BANDWIDTH);
   const defaultBandwidth = getConfig("ShowBandwidthMonitor") ?? false;
-  const bandwidthMonitorEnabled = ref(storedBandwidth !== null ? storedBandwidth === "true" : defaultBandwidth);
+  const bandwidthMonitorEnabled = ref(
+    storedBandwidth !== null ? storedBandwidth === "true" : defaultBandwidth,
+  );
 
   // Battery Monitor State
   const STORAGE_KEY_BATTERY = "sys-battery-monitor-enabled";
   const storedBattery = localStorage.getItem(STORAGE_KEY_BATTERY);
   const defaultBattery = getConfig("ShowBatteryMonitor") ?? false;
-  const batteryMonitorEnabled = ref(storedBattery !== null ? storedBattery === "true" : defaultBattery);
+  const batteryMonitorEnabled = ref(
+    storedBattery !== null ? storedBattery === "true" : defaultBattery,
+  );
 
   // Bluetooth Monitor State
   const STORAGE_KEY_BLUETOOTH = "sys-bluetooth-monitor-enabled";
   const storedBluetooth = localStorage.getItem(STORAGE_KEY_BLUETOOTH);
   const defaultBluetooth = getConfig("ShowBluetoothMonitor") ?? false;
-  const bluetoothMonitorEnabled = ref(storedBluetooth !== null ? storedBluetooth === "true" : defaultBluetooth);
+  const bluetoothMonitorEnabled = ref(
+    storedBluetooth !== null ? storedBluetooth === "true" : defaultBluetooth,
+  );
 
   // Screen Monitor State
   const STORAGE_KEY_SCREEN = "sys-screen-monitor-enabled";
   const storedScreen = localStorage.getItem(STORAGE_KEY_SCREEN);
   const defaultScreen = getConfig("ShowScreenMonitor") ?? false;
-  const screenMonitorEnabled = ref(storedScreen !== null ? storedScreen === "true" : defaultScreen);
+  const screenMonitorEnabled = ref(
+    storedScreen !== null ? storedScreen === "true" : defaultScreen,
+  );
 
   // Monitor Position State
   const STORAGE_KEY_MONITOR_POS = "sys-performance-monitor-position";
   const storedMonitorPos = localStorage.getItem(STORAGE_KEY_MONITOR_POS);
   // 默认显示在左上角，便于快速观察性能
-  const defaultMonitorPos = getConfig("PerformanceMonitorPosition") ?? "top-left";
+  const defaultMonitorPos =
+    getConfig("PerformanceMonitorPosition") ?? "top-left";
   const performanceMonitorPosition = ref(storedMonitorPos || defaultMonitorPos);
 
   // Monitor Display Mode (Simple/Text vs Detailed/Graph)
@@ -95,31 +110,49 @@ export const useThemeStore = defineStore("theme", () => {
   const STORAGE_KEY_MONITOR_LAYOUT = "sys-performance-monitor-layout";
   const storedMonitorLayout = localStorage.getItem(STORAGE_KEY_MONITOR_LAYOUT);
   // Migrate legacy split values to 'split' if needed, or just let them fall through if robust
-  const defaultMonitorLayout = getConfig("PerformanceMonitorLayout") ?? "merged";
-  const performanceMonitorLayout = ref(storedMonitorLayout && !storedMonitorLayout.startsWith('split-') ? storedMonitorLayout : 'merged');
+  const defaultMonitorLayout =
+    getConfig("PerformanceMonitorLayout") ?? "merged";
+  const performanceMonitorLayout = ref(
+    storedMonitorLayout && !storedMonitorLayout.startsWith("split-")
+      ? storedMonitorLayout
+      : "merged",
+  );
 
   // Monitor Direction (Vertical / Horizontal / Auto)
   const STORAGE_KEY_MONITOR_DIRECTION = "sys-performance-monitor-direction"; // 'vertical' | 'horizontal' | 'auto'
-  const storedMonitorDirection = localStorage.getItem(STORAGE_KEY_MONITOR_DIRECTION);
+  const storedMonitorDirection = localStorage.getItem(
+    STORAGE_KEY_MONITOR_DIRECTION,
+  );
   // 默认使用 auto，由组件根据位置自动计算方向
   const defaultMonitorDirection = "auto";
-  const performanceMonitorDirection = ref(storedMonitorDirection || defaultMonitorDirection);
+  const performanceMonitorDirection = ref(
+    storedMonitorDirection || defaultMonitorDirection,
+  );
 
   // Home Customization Config
   const STORAGE_KEY_HOME_CUSTOMIZATION = "sys-home-customization-enabled";
-  const storedHomeCustomization = localStorage.getItem(STORAGE_KEY_HOME_CUSTOMIZATION);
+  const storedHomeCustomization = localStorage.getItem(
+    STORAGE_KEY_HOME_CUSTOMIZATION,
+  );
   const defaultHomeCustomization = true;
-  const homeCustomizationEnabled = ref(storedHomeCustomization !== null ? storedHomeCustomization === "true" : defaultHomeCustomization);
+  const homeCustomizationEnabled = ref(
+    storedHomeCustomization !== null
+      ? storedHomeCustomization === "true"
+      : defaultHomeCustomization,
+  );
 
   // Access Control Logic
   const isPerformanceMonitorVisible = computed(() => {
     // 1. Check Environment: Show if DEV or TEST
-    const isDevOrTest = import.meta.env.DEV || import.meta.env.MODE === 'test';
-    
+    const isDevOrTest = import.meta.env.DEV || import.meta.env.MODE === "test";
+
     // 2. Check User Role: Show if user is 'sa' or has 'sa' role (assuming username check for now as role structure varies)
     // Note: Adjust 'sa' check based on actual user store structure if needed.
     const userStore = useUserStoreHook();
-    const isSa = userStore.username === 'sa' || userStore.roles.includes('sa') || userStore.roles.includes('admin'); // Broaden to admin for safety, but user asked for 'sa'
+    const isSa =
+      userStore.username === "sa" ||
+      userStore.roles.includes("sa") ||
+      userStore.roles.includes("admin"); // Broaden to admin for safety, but user asked for 'sa'
 
     return isDevOrTest || isSa;
   });
@@ -135,7 +168,7 @@ export const useThemeStore = defineStore("theme", () => {
   const isDefaultTheme = computed(() => currentTheme.value === "default");
 
   const isFestivalTheme = computed(
-    () => themeConfig.value?.type === "festival"
+    () => themeConfig.value?.type === "festival",
   );
 
   // ===== 方法 =====

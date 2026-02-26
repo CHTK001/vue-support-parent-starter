@@ -1,317 +1,202 @@
-<script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import { layoutThemes, loadThemeStylesheet } from '../../themes';
-import ScRibbon from '@repo/components/ScRibbon/index.vue';
-import { themeManager } from '../../utils/theme-manager';
-
-interface ThemeItem {
-  name: string;
-  key: string;
-  description: string;
-  stylesheet?: string;
-  color?: string;
-  icon?: string;
-  type?: string; // 主题类型
-  baseStyle?: 'light' | 'dark';
-}
-
-const props = withDefaults(defineProps<{
-  modelValue?: string;
-  // 自定义主题列表（不传则自动从 themes/index.ts 读取）
-  themes?: ThemeItem[];
-  // 是否显示标题与描述
-  showMeta?: boolean;
-  // 是否在组件内部持久化（父组件不处理时可开启）
-  persist?: boolean;
-  // 本地存储键名（当 persist 为 true 时生效）
-  storageKey?: string;
-}>(), {
-  modelValue: 'default',
-  themes: undefined,
-  showMeta: true,
-  persist: false,
-  storageKey: 'systemTheme',
-});
-
-const emit = defineEmits<{
-  (e: 'update:modelValue', val: string): void;
-  (e: 'change', val: string): void;
-}>();
-
-const internalTheme = ref<string>(props.modelValue);
-
-const availableThemes = computed<ThemeItem[]>(() => {
-  const src: any[] = (props.themes && props.themes.length > 0) ? (props.themes as any[]) : (layoutThemes as any[]);
-  // 规范化：兼容 { key } 或 { themeColor }
-  const mapped = src.map((t) => ({
-    key: (t.key ?? t.themeColor) as string,
-    name: t.name ?? t.title ?? '',
-    description: t.description ?? '',
-    stylesheet: t.stylesheet,
-    icon: t.icon,
-    color: t.color,
-    type: t.type,
-    baseStyle: t.baseStyle,
-  }));
-  // 过滤掉国庆与无效 key
-  return mapped.filter(t => !!t.key && t.key !== 'national-day');
-});
-
-// 按类型分组主题
-const regularThemes = computed(() => availableThemes.value.filter(t => t.type === 'regular'));
-const betaThemes = computed(() => availableThemes.value.filter(t => t.type === 'beta'));
-const festivalThemes = computed(() => availableThemes.value.filter(t => t.type === 'festival'));
-
-function removeAllThemeClasses() {
-  const htmlEl = document.documentElement;
-  [...htmlEl.classList]
-    .filter((cls) => cls.startsWith('theme-'))
-    .forEach((cls) => htmlEl.classList.remove(cls));
-}
-
-import { useThemeAnimation } from "../../hooks/useThemeAnimation";
-
-function applyTheme(themeKey: string) {
-  const htmlEl = document.documentElement;
-  removeAllThemeClasses();
-
-  // 查找主题定义以获取 baseStyle
-  const theme = availableThemes.value.find(t => t.key === themeKey);
-  const baseStyle = theme?.baseStyle || 'light';
-  
-  // 如果是默认主题，使用当前的 activeStyleId
-  // 如果是其他主题，强制使用该主题定义的 baseStyle
-  if (themeKey === 'default') {
-    themeManager.setStyle(themeManager.getActiveStyleId());
-  } else {
-    const styleId = baseStyle === 'dark' ? 'default-dark' : 'default-light';
-    themeManager.setStyle(styleId);
-  }
-
-  // 应用主题特定样式
-  if (themeKey !== 'default') {
-    const themeClass = `theme-${themeKey}`;
-    htmlEl.classList.add(themeClass);
-    loadThemeStylesheet(themeKey);
-  } else {
-    const existingLink = document.getElementById('layout-theme-stylesheet');
-    if (existingLink) existingLink.remove();
-  }
-}
-
-function onSelect(themeKey: string, event?: MouseEvent) {
-  useThemeAnimation(() => {
-    internalTheme.value = themeKey;
-    
-    applyTheme(themeKey);
-    if (props.persist) {
-      try { localStorage.setItem(props.storageKey, themeKey); } catch {}
-    }
-    emit('update:modelValue', themeKey);
-    emit('change', themeKey);
-  }, event);
-}
-
-watch(() => props.modelValue, (val) => {
-  if (val && val !== internalTheme.value) {
-    internalTheme.value = val;
-    applyTheme(val);
-  }
-});
-
-onMounted(() => {
-    // 初始应用
-    applyTheme(internalTheme.value);
-  });
-</script>
-
 <template>
-  <div class="lay-theme-switcher">
-    <!-- 主题皮肤 -->
-    <el-divider content-position="left">
-      <span class="divider-text">
-        <IconifyIconOnline icon="ri:shirt-line" class="divider-icon" />
-        主题皮肤
-      </span>
-    </el-divider>
-
-    <!-- 常规主题 -->
+  <div class="theme-switcher">
     <div class="theme-grid">
       <div
-        v-for="item in regularThemes"
-        :key="item.key"
+        v-for="theme in availableThemes"
+        :key="theme.name"
         class="theme-card"
-        :class="{ 'is-active': internalTheme === item.key }"
-        @click="(e) => onSelect(item.key, e)"
+        :class="{
+          'is-active': currentTheme === theme.name,
+          'is-switching': switching,
+        }"
+        @click="handleSwitchTheme(theme.name)"
       >
-        <div class="card-icon">
-          <IconifyIconOnline :icon="item.icon || 'ri:palette-line'" />
+        <div class="theme-preview">
+          <div class="theme-icon">
+            <IconifyIconOnline
+              :icon="getThemeIcon(theme.name)"
+              :style="{ fontSize: '32px' }"
+            />
+          </div>
         </div>
-        <div v-if="showMeta" class="card-meta">
-          <div class="card-name">{{ item.name }}</div>
-          <div class="card-desc">{{ item.description }}</div>
+        <div class="theme-info">
+          <span class="theme-name">{{ theme.displayName }}</span>
+          <span class="theme-desc">{{ getThemeDescription(theme.name) }}</span>
         </div>
-        <div v-if="internalTheme === item.key" class="card-check">
-          <IconifyIconOnline icon="ep:check" />
+        <div v-if="currentTheme === theme.name" class="theme-check">
+          <IconifyIconOnline icon="ri:check-line" />
         </div>
       </div>
     </div>
-
-    <!-- 内测主题 -->
-    <template v-if="betaThemes.length > 0">
-      <el-divider content-position="left">
-        <span class="divider-text">
-          <IconifyIconOnline icon="ri:flask-line" class="divider-icon" />
-          内测主题
-        </span>
-      </el-divider>
-      <div class="theme-grid">
-        <div
-          v-for="item in betaThemes"
-          :key="item.key"
-          class="theme-card beta"
-          :class="{ 'is-active': internalTheme === item.key }"
-          @click="(e) => onSelect(item.key, e)"
-        >
-          <!-- 斜向绸带标识 -->
-          <ScRibbon
-            text="BETA"
-            variant="diagonal"
-            position="rt"
-            size="sm"
-            color="#00d4d4"
-          />
-          <div class="card-icon">
-            <IconifyIconOnline :icon="item.icon || 'ri:palette-line'" />
-          </div>
-          <div v-if="showMeta" class="card-meta">
-            <div class="card-name">{{ item.name }}</div>
-            <div class="card-desc">{{ item.description }}</div>
-          </div>
-          <div v-if="internalTheme === item.key" class="card-check">
-            <IconifyIconOnline icon="ep:check" />
-          </div>
-        </div>
-      </div>
-    </template>
-
-    <!-- 节日主题 -->
-    <template v-if="festivalThemes.length > 0">
-      <el-divider content-position="left">
-        <span class="divider-text">
-          <IconifyIconOnline icon="ri:gift-line" class="divider-icon" />
-          节日主题
-        </span>
-      </el-divider>
-      <div class="theme-grid">
-        <div
-          v-for="item in festivalThemes"
-          :key="item.key"
-          class="theme-card festival"
-          :class="{ 'is-active': internalTheme === item.key }"
-          @click="(e) => onSelect(item.key, e)"
-        >
-          <div class="card-icon">
-            <IconifyIconOnline :icon="item.icon || 'ri:palette-line'" />
-          </div>
-          <div v-if="showMeta" class="card-meta">
-            <div class="card-name">{{ item.name }}</div>
-            <div class="card-desc">{{ item.description }}</div>
-          </div>
-          <div v-if="internalTheme === item.key" class="card-check">
-            <IconifyIconOnline icon="ep:check" />
-          </div>
-        </div>
-      </div>
-    </template>
   </div>
 </template>
 
-<style scoped>
-.lay-theme-switcher { width: 100%; }
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { IconifyIconOnline } from "@repo/components";
+import { getEnabledThemes } from "@repo/components/hooks/themeConfig";
+import { switchTheme as switchThemeUtil } from "@repo/components/hooks/useThemeComponent";
+import { useThemeStore } from "../../stores/themeStore";
+import { useGlobal } from "@pureadmin/utils";
+import { ElMessage } from "element-plus";
+import { useThemeAnimation } from "../../hooks/useThemeAnimation";
+
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+const themeStore = useThemeStore();
+
+// 获取所有可用主题
+const availableThemes = computed(() => getEnabledThemes());
+
+// 当前主题
+const currentTheme = computed(() => {
+  return $storage.configure?.systemTheme || "default";
+});
+
+// 主题切换中状态
+const switching = ref(false);
+
+// 获取主题图标
+const getThemeIcon = (themeName: string): string => {
+  const icons: Record<string, string> = {
+    default: "ri:palette-line",
+    "8bit": "ri:gamepad-line",
+  };
+  return icons[themeName] || "ri:brush-line";
+};
+
+// 获取主题描述
+const getThemeDescription = (themeName: string): string => {
+  const descriptions: Record<string, string> = {
+    default: "使用 Element Plus 原生组件",
+    "8bit": "像素风格，复古游戏风",
+  };
+  return descriptions[themeName] || "自定义主题";
+};
+
+// 切换主题
+const handleSwitchTheme = async (themeName: string) => {
+  if (currentTheme.value === themeName || switching.value) {
+    return;
+  }
+
+  switching.value = true;
+
+  try {
+    await useThemeAnimation(async () => {
+      // 使用新的 switchTheme 函数，先预加载再切换
+      await switchThemeUtil(themeName);
+
+      // 通过主题 store 更新状态
+      themeStore.setTheme(themeName as any);
+
+      // 持久化到本地存储
+      const storageConfigure = $storage.configure || {};
+      storageConfigure.systemTheme = themeName;
+      $storage.configure = storageConfigure;
+
+      // 如果切换到非默认主题，强制切换到浅色模式
+      if (themeName !== "default") {
+        const dataTheme = document.documentElement.dataset.theme;
+        if (dataTheme === "dark") {
+          document.documentElement.dataset.theme = "light";
+          storageConfigure.dataTheme = false;
+          $storage.configure = storageConfigure;
+        }
+      }
+    });
+
+    const themeName显示 = themeName === "default" ? "默认" : themeName;
+    ElMessage.success(`已切换到${themeName显示}主题`);
+  } catch (error) {
+    console.error("[ThemeSwitcher] 切换主题失败:", error);
+    ElMessage.error("主题切换失败，请重试");
+  } finally {
+    switching.value = false;
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.theme-switcher {
+  width: 100%;
+}
+
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
 }
+
 .theme-card {
   position: relative;
-  padding: 14px;
-  border-radius: 14px;
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-light);
+  padding: 16px;
+  border: 2px solid var(--el-border-color);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all .25s ease;
+  transition: all 0.3s ease;
+  background: var(--el-bg-color);
+
+  &:hover {
+    border-color: var(--el-color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &.is-active {
+    border-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+
+    .theme-preview {
+      .theme-icon {
+        color: var(--el-color-primary);
+      }
+    }
+  }
 }
-.theme-card:hover { 
-  transform: translateY(-2px); 
-  box-shadow: var(--el-box-shadow-light); 
-  border-color: var(--el-color-primary);
-}
-.theme-card.is-active { 
-  border-color: var(--el-color-primary); 
-  box-shadow: 0 0 0 1px var(--el-color-primary);
-}
-.card-icon { font-size: 22px; color: var(--el-color-primary); margin-bottom: 6px; }
-.card-meta { text-align: left; }
-.card-name { 
-  font-weight: 600; 
-  font-size: 14px; 
+
+.theme-preview {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 6px;
+  margin-bottom: 12px;
+
+  .theme-icon {
+    color: var(--el-text-color-regular);
+    transition: color 0.3s ease;
+  }
 }
-.card-desc { font-size: 12px; color: var(--el-text-color-secondary); }
-.card-check { 
-  position: absolute; 
-  right: 8px; 
-  top: 8px; 
+
+.theme-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+
+  .theme-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+
+  .theme-desc {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.4;
+  }
+}
+
+.theme-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--el-color-primary); 
-  color: #fff;
+  background: var(--el-color-primary);
+  color: white;
   border-radius: 50%;
   font-size: 12px;
-}
-
-/* 内测主题卡片 */
-.theme-card.beta {
-  overflow: hidden;
-}
-
-/* 分隔线样式 */
-:deep(.el-divider) {
-  margin: 16px 0 12px;
-}
-
-:deep(.el-divider__text) {
-  background-color: var(--el-bg-color);
-  padding: 0 10px;
-}
-
-.divider-text {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-secondary);
-}
-
-.divider-icon {
-  font-size: 14px;
-}
-
-/* 内测主题卡片特殊样式 */
-.theme-card.beta .card-icon {
-  color: #00d4d4;
-}
-
-/* 节日主题卡片特殊样式 */
-.theme-card.festival .card-icon {
-  color: #f5222d;
 }
 </style>

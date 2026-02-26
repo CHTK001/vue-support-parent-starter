@@ -69,7 +69,9 @@ export class AppBootstrap {
    * @param directives 指令对象集合
    */
   registerDirectives(directives?: Record<string, Directive>): this {
-    if (!directives) return this;
+    if (!directives) {
+      return this;
+    }
 
     Object.keys(directives).forEach((key) => {
       this.app.directive(key, directives[key]);
@@ -84,6 +86,12 @@ export class AppBootstrap {
    * @param directive 指令定义
    */
   registerDirective(name: string, directive: Directive): this {
+    const existing = this.app.directive(name);
+    if (existing && existing === directive) {
+      // 已注册且实现相同，避免重复注册告警
+      return this;
+    }
+
     this.app.directive(name, directive);
     return this;
   }
@@ -93,10 +101,20 @@ export class AppBootstrap {
    * @param components 组件对象集合
    */
   registerGlobalComponents(components?: Record<string, any>): this {
-    if (!components) return this;
+    if (!components) {
+      return this;
+    }
 
     Object.keys(components).forEach((key) => {
-      this.app.component(key, components[key]);
+      const component = components[key];
+      const existing = this.app.component(key);
+
+      if (existing && existing === component) {
+        // 已注册且实现相同，避免重复注册告警
+        return;
+      }
+
+      this.app.component(key, component);
     });
 
     return this;
@@ -108,6 +126,12 @@ export class AppBootstrap {
    * @param component 组件定义
    */
   registerComponent(name: string, component: any): this {
+    const existing = this.app.component(name);
+    if (existing && existing === component) {
+      // 已注册且实现相同，避免重复注册告警
+      return this;
+    }
+
     this.app.component(name, component);
     return this;
   }
@@ -389,6 +413,9 @@ export async function createStandardApp(
     .default;
   const ScDrawer = (await import("@repo/components/ScDrawer/index.vue"))
     .default;
+  const ScCard = (await import("@repo/components/ScCard/index.vue")).default;
+  const ScSwitch = (await import("@repo/components/ScSwitch/index.vue"))
+    .default;
 
   // 3. 创建应用实例
   const app = createApp(AppRoot);
@@ -417,6 +444,8 @@ export async function createStandardApp(
     .registerComponent("IconifyIconOnline", IconifyIconOnline)
     .registerComponent("FontIcon", FontIcon)
     .registerComponent("Auth", Auth)
+    .registerComponent("ScCard", ScCard)
+    .registerComponent("ScSwitch", ScSwitch)
     .registerComponent("ScTable", ScTable)
     .registerComponent("ScDialog", ScDialog)
     .registerComponent("ScDrawer", ScDrawer);

@@ -288,42 +288,6 @@ const defaultErrorMessage = computed(() => {
   }
 });
 
-// 监听modelValue变化
-watch(
-  () => props.modelValue,
-  newVal => {
-    currentValue.value = newVal;
-    validateValue();
-  },
-  { immediate: true }
-);
-
-// 监听currentValue变化
-watch(currentValue, newVal => {
-  if (!props.disabled) {
-    emit("update:modelValue", newVal);
-    validateValue();
-  }
-});
-
-// 监听禁用状态变化
-watch(
-  () => props.disabled,
-  newVal => {
-    if (newVal && validationResult.value.valid === false) {
-      // 如果禁用状态，则不显示错误
-      validationResult.value = { valid: true, message: "" };
-    } else if (!newVal) {
-      // 恢复启用状态时，重新校验
-      validateValue();
-    }
-  }
-);
-
-onMounted(() => {
-  validateValue();
-});
-
 // 处理值变更
 const handleChange = (value: any) => {
   emit("change", value);
@@ -362,6 +326,42 @@ const validateValue = () => {
     validationResult.value = validate(currentValue.value, rules);
   }
 };
+
+// 监听modelValue变化
+watch(
+  () => props.modelValue,
+  newVal => {
+    currentValue.value = newVal;
+    validateValue();
+  },
+  { immediate: true }
+);
+
+// 监听currentValue变化
+watch(currentValue, newVal => {
+  if (!props.disabled) {
+    emit("update:modelValue", newVal);
+    validateValue();
+  }
+});
+
+// 监听禁用状态变化
+watch(
+  () => props.disabled,
+  newVal => {
+    if (newVal && validationResult.value.valid === false) {
+      // 如果禁用状态，则不显示错误
+      validationResult.value = { valid: true, message: "" };
+    } else if (!newVal) {
+      // 恢复启用状态时，重新校验
+      validateValue();
+    }
+  }
+);
+
+onMounted(() => {
+  validateValue();
+});
 
 defineExpose({
   focus: () => datePickerRef.value?.focus(),

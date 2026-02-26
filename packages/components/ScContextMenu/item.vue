@@ -10,7 +10,7 @@
               'border-b-[1px] border-b-[var(--el-border-color)] border-solid w-[80%] ml-[10%] !p-0': item.type == 'LINE'
             }
           ]"
-          @click="item.handle(data, node)"
+          @click="onItemClick(item)"
         >
           <RightMenuItem key="RightMenuItem" class="menu" :menu="item" :data="data" :node="node" :theme="theme" :top="position.y" :left="position.x" />
         </li>
@@ -37,6 +37,11 @@ export default {
   methods: {
     showMenu(item) {
       return !item.show || item.show(this.data) == true;
+    },
+    onItemClick(item) {
+      if (typeof item?.handle === "function") {
+        item.handle(this.data, this.node);
+      }
     }
   }
 };

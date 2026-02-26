@@ -812,10 +812,11 @@ function watchSystemThemeChange() {
 const initializeTheme = () => {
   const savedTheme = $storage.configure?.systemTheme;
 
-  // 应用保存的主题或默认主题
+  // 如果有保存的主题且不是 default，则应用该主题
   if (savedTheme && savedTheme !== "default") {
     switchSystemTheme(savedTheme, false); // 初始化时不显示消息
   }
+  // 如果没有保存的主题或主题是 default，不做任何操作（使用默认组件）
 };
 
 onBeforeMount(() => {
@@ -6988,442 +6989,92 @@ html.dark {
 }
 </style>
 
-/* 三个圆点预览 */
-.preview-loader-default {
-  display: flex;
-  gap: 6px;
-}
-
-.preview-loader-default .dot {
-  width: 10px;
-  height: 10px;
-  background: #406eeb;
-  border-radius: 50%;
-  animation: dot-bounce 1.4s ease-in-out infinite;
-}
-
-.preview-loader-default .dot:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.preview-loader-default .dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.preview-loader-default .dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes dot-bounce {
-  0%,
-  80%,
-  100% {
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
-  40% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-}
-
-/* 彩色圆环预览 */
-.preview-loader-rings {
-  position: relative;
-  width: 50px;
-  height: 50px;
-}
-
-.preview-loader-rings .ring {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  animation: ring-spin 2s linear infinite;
-}
-
-.preview-loader-rings .ring:nth-child(1) {
-  border-top-color: #ff6b6b;
-}
-
-.preview-loader-rings .ring:nth-child(2) {
-  border-right-color: #4ecdc4;
-  width: 80%;
-  height: 80%;
-  top: 10%;
-  left: 10%;
-  animation-delay: 0.3s;
-}
-
-.preview-loader-rings .ring:nth-child(3) {
-  border-bottom-color: #45b7d1;
-  width: 60%;
-  height: 60%;
-  top: 20%;
-  left: 20%;
-  animation-delay: 0.6s;
-}
-
-@keyframes ring-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* 简约圆环预览 */
-.preview-loader-simple {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(64, 110, 235, 0.2);
-  border-top-color: #406eeb;
-  border-radius: 50%;
-  animation: simple-spin 1s linear infinite;
-}
-
-@keyframes simple-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* 脉冲圆点预览 */
-.preview-loader-pulse {
-  width: 20px;
-  height: 20px;
-  background: #406eeb;
-  border-radius: 50%;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.5);
-    opacity: 0.5;
-  }
-}
-
-/* 跳动方块预览 */
-.preview-loader-blocks {
-  display: flex;
-  gap: 6px;
-}
-
-.preview-loader-blocks .block {
-  width: 12px;
-  height: 12px;
-  background: #406eeb;
-  border-radius: 3px;
-  animation: block-jump 1.4s ease-in-out infinite;
-}
-
-.preview-loader-blocks .block:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.preview-loader-blocks .block:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.preview-loader-blocks .block:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes block-jump {
-  0%,
-  80%,
-  100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-15px);
-  }
-}
-
-/* 我的世界挖矿预览 */
-.preview-loader-minecraft {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.preview-loader-minecraft .pickaxe {
-  font-size: 24px;
-  animation: mining-preview 0.8s ease-in-out infinite;
-}
-
-@keyframes mining-preview {
-  0%,
-  100% {
-    transform: rotate(-15deg) translateY(0);
-  }
-  50% {
-    transform: rotate(15deg) translateY(-5px);
-  }
-}
-
-.preview-loader-minecraft .blocks-mc {
-  display: flex;
-  gap: 4px;
-}
-
-.preview-loader-minecraft .block-mc {
-  width: 12px;
-  height: 12px;
-  background: linear-gradient(135deg, #8b4513 0%, #654321 100%);
-  border: 1px solid #000;
-  animation: break-block-preview 2s ease-in-out infinite;
-}
-
-.preview-loader-minecraft .block-mc:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.preview-loader-minecraft .block-mc:nth-child(2) {
-  animation-delay: 1s;
-}
-
-@keyframes break-block-preview {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  80% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  90% {
-    opacity: 0.5;
-    transform: scale(0.8);
-  }
-  95% {
-    opacity: 0;
-    transform: scale(0);
-  }
-}
-
-/* 口袋妖怪预览 */
-.preview-loader-pokemon {
-  position: relative;
-  width: 80px;
-  height: 30px;
-}
-
-.preview-loader-pokemon .charmander,
-.preview-loader-pokemon .squirtle {
-  position: absolute;
-  font-size: 20px;
-  animation: chase-preview 3s linear infinite;
-}
-
-.preview-loader-pokemon .charmander {
-  left: 0;
-  animation-delay: 0s;
-}
-
-.preview-loader-pokemon .squirtle {
-  left: 0;
-  animation-delay: 1.5s;
-}
-
-@keyframes chase-preview {
-  0% {
-    left: 0;
-    transform: scaleX(1);
-  }
-  45% {
-    left: calc(100% - 20px);
-    transform: scaleX(1);
-  }
-  50% {
-    left: calc(100% - 20px);
-    transform: scaleX(-1);
-  }
-  95% {
-    left: 0;
-    transform: scaleX(-1);
-  }
-  100% {
-    left: 0;
-    transform: scaleX(1);
-  }
-}
-
-/* 赛博朋克预览 */
-.preview-loader-cyberpunk {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.preview-loader-cyberpunk .glitch {
-  font-size: 16px;
-  font-weight: bold;
-  color: #00ff41;
-  text-shadow: 1px 1px #ff00de, -1px -1px #00ffff;
-  animation: glitch-preview 1s infinite;
-}
-
-@keyframes glitch-preview {
-  0%,
-  100% {
-    transform: translate(0);
-  }
-  20% {
-    transform: translate(-1px, 1px);
-  }
-  40% {
-    transform: translate(1px, -1px);
-  }
-  60% {
-    transform: translate(-1px, -1px);
-  }
-  80% {
-    transform: translate(1px, 1px);
-  }
-}
-
-.preview-loader-cyberpunk .bars-cp {
-  display: flex;
-  gap: 4px;
-}
-
-.preview-loader-cyberpunk .bar-cp {
-  width: 4px;
-  height: 20px;
-  background: linear-gradient(180deg, #00ff41 0%, #ff00de 100%);
-  animation: cyber-pulse-preview 1.2s ease-in-out infinite;
-}
-
-.preview-loader-cyberpunk .bar-cp:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.preview-loader-cyberpunk .bar-cp:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.preview-loader-cyberpunk .bar-cp:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes cyber-pulse-preview {
-  0%,
-  100% {
-    height: 15px;
-    opacity: 0.5;
-  }
-  50% {
-    height: 30px;
-    opacity: 1;
-  }
-}
-
-/* 翻书预览 */
-.preview-loader-book {
-  perspective: 500px;
-}
-
-.preview-loader-book .book-preview {
-  position: relative;
-  width: 40px;
-  height: 50px;
-  transform-style: preserve-3d;
-  animation: book-open-preview 2s ease-in-out infinite;
-}
-
-.preview-loader-book .page-preview {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, #f0f0f0 0%, #ffffff 50%, #f0f0f0 100%);
-  border: 1px solid #333;
-  border-radius: 0 4px 4px 0;
-  transform-origin: left center;
-  animation: flip-page-preview 2s ease-in-out infinite;
-}
-
-@keyframes flip-page-preview {
-  0%,
-  100% {
-    transform: rotateY(0deg);
-  }
-  50% {
-    transform: rotateY(-180deg);
-  }
-}
-
-@keyframes book-open-preview {
-  0%,
-  100% {
-    transform: rotateY(0deg);
-  }
-  50% {
-    transform: rotateY(5deg);
-  }
-}
-
-/* 笔写书预览 */
-.preview-loader-writing {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.preview-loader-writing .pen {
-  font-size: 20px;
-  animation: pen-move-preview 2s ease-in-out infinite;
-}
-
-@keyframes pen-move-preview {
-  0%,
-  100% {
-    transform: translateX(-15px) rotate(-45deg);
-  }
-  50% {
-    transform: translateX(15px) rotate(-45deg);
-  }
-}
-
-.preview-loader-writing .paper-preview {
-  width: 60px;
-  padding: 8px;
-  background: #ffffff;
-  border: 1px solid #333;
-  border-radius: 2px;
-}
-
-.preview-loader-writing .line-preview {
-  height: 2px;
-  background: #333;
-  margin: 4px 0;
-  border-radius: 1px;
-  animation: write-line-preview 2s ease-in-out infinite;
-}
-
-.preview-loader-writing .line-preview:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.preview-loader-writing .line-preview:nth-child(2) {
-  animation-delay: 0.3s;
-}
-
-@keyframes write-line-preview {
-  0%,
-  100% {
-    width: 0;
-  }
-  50% {
-    width: 100%;
-  }
-}
+/* 三个圆点预览 */ .preview-loader-default { display: flex; gap: 6px; }
+.preview-loader-default .dot { width: 10px; height: 10px; background: #406eeb;
+border-radius: 50%; animation: dot-bounce 1.4s ease-in-out infinite; }
+.preview-loader-default .dot:nth-child(1) { animation-delay: 0s; }
+.preview-loader-default .dot:nth-child(2) { animation-delay: 0.2s; }
+.preview-loader-default .dot:nth-child(3) { animation-delay: 0.4s; } @keyframes
+dot-bounce { 0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; } 40% {
+transform: scale(1.2); opacity: 1; } } /* 彩色圆环预览 */ .preview-loader-rings
+{ position: relative; width: 50px; height: 50px; } .preview-loader-rings .ring {
+position: absolute; width: 100%; height: 100%; border: 2px solid transparent;
+border-radius: 50%; animation: ring-spin 2s linear infinite; }
+.preview-loader-rings .ring:nth-child(1) { border-top-color: #ff6b6b; }
+.preview-loader-rings .ring:nth-child(2) { border-right-color: #4ecdc4; width:
+80%; height: 80%; top: 10%; left: 10%; animation-delay: 0.3s; }
+.preview-loader-rings .ring:nth-child(3) { border-bottom-color: #45b7d1; width:
+60%; height: 60%; top: 20%; left: 20%; animation-delay: 0.6s; } @keyframes
+ring-spin { to { transform: rotate(360deg); } } /* 简约圆环预览 */
+.preview-loader-simple { width: 40px; height: 40px; border: 3px solid rgba(64,
+110, 235, 0.2); border-top-color: #406eeb; border-radius: 50%; animation:
+simple-spin 1s linear infinite; } @keyframes simple-spin { to { transform:
+rotate(360deg); } } /* 脉冲圆点预览 */ .preview-loader-pulse { width: 20px;
+height: 20px; background: #406eeb; border-radius: 50%; animation: pulse 1.5s
+ease-in-out infinite; } @keyframes pulse { 0%, 100% { transform: scale(1);
+opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } } /* 跳动方块预览 */
+.preview-loader-blocks { display: flex; gap: 6px; } .preview-loader-blocks
+.block { width: 12px; height: 12px; background: #406eeb; border-radius: 3px;
+animation: block-jump 1.4s ease-in-out infinite; } .preview-loader-blocks
+.block:nth-child(1) { animation-delay: 0s; } .preview-loader-blocks
+.block:nth-child(2) { animation-delay: 0.2s; } .preview-loader-blocks
+.block:nth-child(3) { animation-delay: 0.4s; } @keyframes block-jump { 0%, 80%,
+100% { transform: translateY(0); } 40% { transform: translateY(-15px); } } /*
+我的世界挖矿预览 */ .preview-loader-minecraft { display: flex; flex-direction:
+column; align-items: center; gap: 8px; } .preview-loader-minecraft .pickaxe {
+font-size: 24px; animation: mining-preview 0.8s ease-in-out infinite; }
+@keyframes mining-preview { 0%, 100% { transform: rotate(-15deg) translateY(0);
+} 50% { transform: rotate(15deg) translateY(-5px); } } .preview-loader-minecraft
+.blocks-mc { display: flex; gap: 4px; } .preview-loader-minecraft .block-mc {
+width: 12px; height: 12px; background: linear-gradient(135deg, #8b4513 0%,
+#654321 100%); border: 1px solid #000; animation: break-block-preview 2s
+ease-in-out infinite; } .preview-loader-minecraft .block-mc:nth-child(1) {
+animation-delay: 0s; } .preview-loader-minecraft .block-mc:nth-child(2) {
+animation-delay: 1s; } @keyframes break-block-preview { 0%, 100% { opacity: 1;
+transform: scale(1); } 80% { opacity: 1; transform: scale(1); } 90% { opacity:
+0.5; transform: scale(0.8); } 95% { opacity: 0; transform: scale(0); } } /*
+口袋妖怪预览 */ .preview-loader-pokemon { position: relative; width: 80px;
+height: 30px; } .preview-loader-pokemon .charmander, .preview-loader-pokemon
+.squirtle { position: absolute; font-size: 20px; animation: chase-preview 3s
+linear infinite; } .preview-loader-pokemon .charmander { left: 0;
+animation-delay: 0s; } .preview-loader-pokemon .squirtle { left: 0;
+animation-delay: 1.5s; } @keyframes chase-preview { 0% { left: 0; transform:
+scaleX(1); } 45% { left: calc(100% - 20px); transform: scaleX(1); } 50% { left:
+calc(100% - 20px); transform: scaleX(-1); } 95% { left: 0; transform:
+scaleX(-1); } 100% { left: 0; transform: scaleX(1); } } /* 赛博朋克预览 */
+.preview-loader-cyberpunk { display: flex; flex-direction: column; align-items:
+center; gap: 8px; } .preview-loader-cyberpunk .glitch { font-size: 16px;
+font-weight: bold; color: #00ff41; text-shadow: 1px 1px #ff00de, -1px -1px
+#00ffff; animation: glitch-preview 1s infinite; } @keyframes glitch-preview {
+0%, 100% { transform: translate(0); } 20% { transform: translate(-1px, 1px); }
+40% { transform: translate(1px, -1px); } 60% { transform: translate(-1px, -1px);
+} 80% { transform: translate(1px, 1px); } } .preview-loader-cyberpunk .bars-cp {
+display: flex; gap: 4px; } .preview-loader-cyberpunk .bar-cp { width: 4px;
+height: 20px; background: linear-gradient(180deg, #00ff41 0%, #ff00de 100%);
+animation: cyber-pulse-preview 1.2s ease-in-out infinite; }
+.preview-loader-cyberpunk .bar-cp:nth-child(1) { animation-delay: 0s; }
+.preview-loader-cyberpunk .bar-cp:nth-child(2) { animation-delay: 0.2s; }
+.preview-loader-cyberpunk .bar-cp:nth-child(3) { animation-delay: 0.4s; }
+@keyframes cyber-pulse-preview { 0%, 100% { height: 15px; opacity: 0.5; } 50% {
+height: 30px; opacity: 1; } } /* 翻书预览 */ .preview-loader-book { perspective:
+500px; } .preview-loader-book .book-preview { position: relative; width: 40px;
+height: 50px; transform-style: preserve-3d; animation: book-open-preview 2s
+ease-in-out infinite; } .preview-loader-book .page-preview { position: absolute;
+width: 100%; height: 100%; background: linear-gradient(90deg, #f0f0f0 0%,
+#ffffff 50%, #f0f0f0 100%); border: 1px solid #333; border-radius: 0 4px 4px 0;
+transform-origin: left center; animation: flip-page-preview 2s ease-in-out
+infinite; } @keyframes flip-page-preview { 0%, 100% { transform: rotateY(0deg);
+} 50% { transform: rotateY(-180deg); } } @keyframes book-open-preview { 0%, 100%
+{ transform: rotateY(0deg); } 50% { transform: rotateY(5deg); } } /* 笔写书预览
+*/ .preview-loader-writing { display: flex; flex-direction: column; align-items:
+center; gap: 6px; } .preview-loader-writing .pen { font-size: 20px; animation:
+pen-move-preview 2s ease-in-out infinite; } @keyframes pen-move-preview { 0%,
+100% { transform: translateX(-15px) rotate(-45deg); } 50% { transform:
+translateX(15px) rotate(-45deg); } } .preview-loader-writing .paper-preview {
+width: 60px; padding: 8px; background: #ffffff; border: 1px solid #333;
+border-radius: 2px; } .preview-loader-writing .line-preview { height: 2px;
+background: #333; margin: 4px 0; border-radius: 1px; animation:
+write-line-preview 2s ease-in-out infinite; } .preview-loader-writing
+.line-preview:nth-child(1) { animation-delay: 0s; } .preview-loader-writing
+.line-preview:nth-child(2) { animation-delay: 0.3s; } @keyframes
+write-line-preview { 0%, 100% { width: 0; } 50% { width: 100%; } }

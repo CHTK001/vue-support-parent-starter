@@ -4,6 +4,7 @@ import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
 import GlobalSocketPlugin from "./plugins/globalSocket";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { ScDialog } from "@repo/components/ScDialog";
 
 // 样式导入
 import "@/styles/threshold.scss";
@@ -20,7 +21,7 @@ import "tippy.js/themes/light.css";
 
 createStandardApp({
   enableElementPlusX: true,
-  components: { ScCard, ScSwitch },
+  components: { ScCard, ScSwitch, ScDialog },
   setup: async (app, config) => {
     // 过滤无害告警
     app.config.warnHandler = (msg, instance, trace) => {

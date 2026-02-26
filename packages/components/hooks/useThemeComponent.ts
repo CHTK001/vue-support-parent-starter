@@ -5,7 +5,94 @@
  */
 
 import { computed, watch, onBeforeUnmount, ref, type Component } from "vue";
-import { getThemeConfig, getThemeComponentName } from "./themeConfig";
+import { getThemeConfig, getThemeComponentName, THEME_CONFIGS } from "./themeConfig";
+import * as ElementPlusModule from "element-plus";
+
+/**
+ * Element Plus 组件映射表
+ * 用于 default 主题的组件查找
+ */
+const ELEMENT_PLUS_COMPONENTS: Record<string, Component> = ElementPlusModule as any;
+
+/**
+ * 主题预加载状态
+ */
+const themePreloadStatus = new Map<string, boolean>();
+
+/**
+ * 预加载指定主题的所有组件
+ * @param themeName 主题名称
+ */
+export async function preloadTheme(themeName: string): Promise<void> {
+  // 如果已经预加载过，直接返回
+  if (themePreloadStatus.get(themeName)) {
+    return;
+  }
+
+  const config = getThemeConfig(themeName);
+  if (!config) {
+    console.warn(`[useThemeComponent] 主题 ${themeName} 不存在`);
+    return;
+  }
+
+  // default 主题不需要预加载（已经静态导入）
+  if (themeName === "default") {
+    themePreloadStatus.set(themeName, true);
+    return;
+  }
+
+  try {
+    console.log(`[useThemeComponent] 开始预加载主题: ${themeName}`);
+
+    // 预加载主题组件库
+    await import(/* @vite-ignore */ config.packageName);
+
+    // 预加载主题 CSS
+    if (config.cssPath) {
+      await loadThemeCss(themeName);
+    }
+
+    themePreloadStatus.set(themeName, true);
+    console.log(`[useThemeComponent] 主题 ${themeName} 预加载完成`);
+  } catch (error) {
+    console.error(`[useThemeComponent] 预加载主题 ${themeName} 失败:`, error);
+  }
+}
+
+/**
+ * 预加载所有启用的主题
+ */
+export async function preloadAllThemes(): Promise<void> {
+  const themes = Object.values(THEME_CONFIGS).filter(config => config.enabled !== false);
+
+  console.log(`[useThemeComponent] 开始预加载 ${themes.length} 个主题`);
+
+  await Promise.all(themes.map(theme => preloadTheme(theme.name)));
+
+  console.log(`[useThemeComponent] 所有主题预加载完成`);
+}
+
+/**
+ * 切换主题（带预加载）
+ * 先加载主题资源，加载完成后再切换 data-skin，避免闪烁
+ * @param themeName 主题名称
+ * @returns Promise，加载完成后 resolve
+ */
+export async function switchTheme(themeName: string): Promise<void> {
+  const config = getThemeConfig(themeName);
+  if (!config) {
+    console.warn(`[useThemeComponent] 主题 ${themeName} 不存在`);
+    return;
+  }
+
+  // 先预加载主题资源
+  await preloadTheme(themeName);
+
+  // 加载完成后再切换 data-skin
+  document.documentElement.setAttribute("data-skin", themeName);
+
+  console.log(`[useThemeComponent] 主题已切换到: ${themeName}`);
+}
 
 /**
  * 当前激活的 data-skin 值
@@ -14,7 +101,9 @@ const getCurrentSkin = (): string | undefined => {
   if (typeof document === "undefined") {
     return undefined;
   }
-  return document.documentElement.dataset.skin;
+  const skin = document.documentElement.dataset.skin;
+  // 如果没有设置 skin，返回 "default"
+  return skin || "default";
 };
 
 /**
@@ -147,7 +236,20 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string)
   }
 
   try {
-    // 动态导入主题组件库
+    // default 主题：从静态导入的 Element Plus 中获取组件
+    if (themeName === "default") {
+      const component = ELEMENT_PLUS_COMPONENTS[themeComponentName];
+
+      if (component) {
+        cache.set(themeComponentName, component);
+        return component;
+      }
+
+      console.warn(`[useThemeComponent] 在 element-plus 中找不到组件 ${themeComponentName}`);
+      return null;
+    }
+
+    // 其他主题：动态导入主题组件库
     const themeModule = await import(/* @vite-ignore */ config.packageName);
     const component = (themeModule as any)[themeComponentName] || themeModule.default;
 
@@ -174,13 +276,12 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string)
  * @example
  * ```ts
  * // 在组件中使用
- * import { ElSlider } from 'element-plus';
  * import { useThemeComponent } from '@/hooks/useThemeComponent';
  *
  * const { currentComponent } = useThemeComponent('ElSlider');
  *
- * // 在模板中使用
- * <component :is="currentComponent || ElSlider" ... />
+ * // 在模板中使用（currentComponent 始终有值）
+ * <component :is="currentComponent" ... />
  * ```
  */
 export function useThemeComponent(elementComponentName: string) {
@@ -210,16 +311,38 @@ export function useThemeComponent(elementComponentName: string) {
   const themeComponent = ref<Component | null>(null);
 
   /**
-   * 当前实际使用的组件（主题组件或 null）
+   * 当前实际使用的组件（始终有值）
+   * - default 主题：同步返回 Element Plus 组件
+   * - 其他主题：异步加载后返回对应的主题组件
    */
-  const currentComponent = computed(() => themeComponent.value);
+  const currentComponent = computed(() => {
+    const skin = currentSkin.value;
+    const componentName = themeComponentName.value;
+
+    // default 主题：直接同步返回 Element Plus 组件
+    if (skin === "default" && componentName) {
+      const component = ELEMENT_PLUS_COMPONENTS[componentName];
+      if (!component && import.meta.env.DEV) {
+        console.warn(`[useThemeComponent] 在 Element Plus 中找不到组件: ${componentName}`);
+      }
+      return component || null;
+    }
+
+    // 其他主题：返回异步加载的组件
+    return themeComponent.value;
+  });
 
   /**
-   * 加载主题组件
+   * 加载主题组件（仅用于非 default 主题）
    */
   const loadComponent = async (): Promise<void> => {
     const skin = currentSkin.value;
     const componentName = themeComponentName.value;
+
+    // default 主题不需要异步加载
+    if (skin === "default") {
+      return;
+    }
 
     if (!skin || !componentName) {
       themeComponent.value = null;
@@ -241,16 +364,20 @@ export function useThemeComponent(elementComponentName: string) {
   watch(
     [currentSkin, themeComponentName],
     async ([newSkin, newComponentName], [oldSkin]) => {
-      // 移除旧主题的 CSS
-      if (oldSkin && oldSkin !== newSkin) {
+      // 移除旧主题的 CSS（如果旧主题存在且不是 default）
+      if (oldSkin && oldSkin !== "default" && oldSkin !== newSkin) {
         removeThemeCss(oldSkin);
       }
 
-      // 加载新主题
+      // 加载主题组件（仅非 default 主题需要异步加载）
       if (newSkin && newComponentName) {
-        await loadThemeCss(newSkin);
-        await loadComponent();
+        // default 主题不需要加载 CSS 和异步加载组件
+        if (newSkin !== "default") {
+          await loadThemeCss(newSkin);
+          await loadComponent();
+        }
       } else {
+        // 配置不存在，清空组件
         themeComponent.value = null;
       }
     },
@@ -262,7 +389,7 @@ export function useThemeComponent(elementComponentName: string) {
    */
   onBeforeUnmount(() => {
     const skin = currentSkin.value;
-    if (skin) {
+    if (skin && skin !== "default") {
       removeThemeCss(skin);
     }
   });
@@ -289,8 +416,10 @@ export function useThemeComponent(elementComponentName: string) {
     themeComponentName,
 
     /**
-     * 当前实际使用的组件（主题组件或 null）
-     * 如果为 null，应该使用默认的 Element Plus 组件
+     * 当前实际使用的组件（始终有值）
+     * - default: Element Plus 组件
+     * - 8bit: Pixel UI 组件
+     * - 其他: 对应主题组件
      */
     currentComponent,
 
@@ -302,3 +431,15 @@ export function useThemeComponent(elementComponentName: string) {
 }
 
 export default useThemeComponent;
+
+/**
+ * 初始化主题系统
+ * 在应用启动时调用，预加载当前主题
+ */
+export async function initThemeSystem(): Promise<void> {
+  const currentSkin = getCurrentSkin();
+  if (currentSkin) {
+    console.log(`[useThemeComponent] 初始化主题系统，当前主题: ${currentSkin}`);
+    await preloadTheme(currentSkin);
+  }
+}
