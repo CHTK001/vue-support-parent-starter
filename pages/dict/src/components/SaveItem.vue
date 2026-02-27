@@ -128,7 +128,7 @@ export default defineComponent({
       @close="close"
     >
       <div class="dialog-content">
-        <el-form
+        <ScForm 
           ref="dialogForm"
           :model="form"
           :rules="rules"
@@ -141,10 +141,10 @@ export default defineComponent({
               <IconifyIconOnline icon="ri:information-line" />
               基本信息
             </div>
-            <el-row :gutter="16">
-              <el-col :span="12">
-                <el-form-item label="字典项名称" prop="sysDictItemName">
-                  <el-input
+            <ScRow :gutter="16">
+              <ScCol :span="12">
+                <ScFormItem label="字典项名称" prop="sysDictItemName">
+                  <ScInput 
                     v-model="form.sysDictItemName"
                     placeholder="输入名称"
                     clearable
@@ -152,12 +152,12 @@ export default defineComponent({
                     <template #prefix>
                       <IconifyIconOnline icon="ri:bookmark-line" />
                     </template>
-                  </el-input>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="字典项编码" prop="sysDictItemCode">
-                  <el-input
+                  </ScInput>
+                </ScFormItem>
+              </ScCol>
+              <ScCol :span="12">
+                <ScFormItem label="字典项编码" prop="sysDictItemCode">
+                  <ScInput 
                     v-model="form.sysDictItemCode"
                     placeholder="输入编码"
                     clearable
@@ -165,10 +165,10 @@ export default defineComponent({
                     <template #prefix>
                       <IconifyIconOnline icon="ri:code-line" />
                     </template>
-                  </el-input>
-                </el-form-item>
-              </el-col>
-            </el-row>
+                  </ScInput>
+                </ScFormItem>
+              </ScCol>
+            </ScRow>
           </div>
 
           <!-- 图标与排序 -->
@@ -177,23 +177,23 @@ export default defineComponent({
               <IconifyIconOnline icon="ri:palette-line" />
               外观设置
             </div>
-            <el-row :gutter="16">
-              <el-col :span="16">
-                <el-form-item label="字典项图标" prop="sysDictItemIcon">
+            <ScRow :gutter="16">
+              <ScCol :span="16">
+                <ScFormItem label="字典项图标" prop="sysDictItemIcon">
                   <IconSelect v-model="form.sysDictItemIcon" class="w-full" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="优先级" prop="sysDictItemSort">
-                  <el-input-number
+                </ScFormItem>
+              </ScCol>
+              <ScCol :span="8">
+                <ScFormItem label="优先级" prop="sysDictItemSort">
+                  <ScInputNumber 
                     v-model="form.sysDictItemSort"
                     :min="1"
                     :max="999"
                     class="w-full"
                   />
-                </el-form-item>
-              </el-col>
-            </el-row>
+                </ScFormItem>
+              </ScCol>
+            </ScRow>
           </div>
 
           <!-- 高级设置 -->
@@ -202,8 +202,8 @@ export default defineComponent({
               <IconifyIconOnline icon="ri:settings-3-line" />
               高级设置
             </div>
-            <el-form-item label="国际化标识 (i18n)" prop="sysDictItemI18n">
-              <el-input
+            <ScFormItem label="国际化标识 (i18n)" prop="sysDictItemI18n">
+              <ScInput 
                 v-model="form.sysDictItemI18n"
                 placeholder="输入i18n标识"
                 clearable
@@ -211,10 +211,10 @@ export default defineComponent({
                 <template #prefix>
                   <IconifyIconOnline icon="ri:translate-2" />
                 </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item label="备注描述" prop="sysDictItemRemark">
-              <el-input
+              </ScInput>
+            </ScFormItem>
+            <ScFormItem label="备注描述" prop="sysDictItemRemark">
+              <ScInput 
                 v-model="form.sysDictItemRemark"
                 type="textarea"
                 :rows="3"
@@ -222,15 +222,15 @@ export default defineComponent({
                 maxlength="200"
                 show-word-limit
               />
-            </el-form-item>
+            </ScFormItem>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="visible = false">取消</el-button>
-          <el-button
+          <ScButton @click="visible = false">取消</ScButton>
+          <ScButton 
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"
@@ -241,7 +241,7 @@ export default defineComponent({
               class="mr-1"
             />
             {{ mode === "save" ? "创建" : "保存" }}
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

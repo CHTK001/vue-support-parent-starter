@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-layer-example">
     <h2>ScLayer 地图组件示例</h2>
 
@@ -144,7 +144,7 @@
             <div class="controls">
               <div class="control-row">
                 <span>高德</span>
-                <el-input v-model="gaodeKey" type="password" show-password/>
+                <ScInput v-model="gaodeKey" type="password" show-password/>
               </div>
             </div>
             <div class="label">标记点操作</div>

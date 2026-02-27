@@ -1,9 +1,5 @@
-<script setup lang="ts">
-import { message } from "@repo/utils";
-import { ElMessageBox,
-  type FormInstance,
-  type FormRules,
-} from "element-plus";
+﻿<script setup lang="ts">
+import { message, ScMessageBox, type FormInstance, type FormRules } from "@repo/utils";
 import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
 import draggable from "vuedraggable";
 
@@ -149,7 +145,7 @@ const handleEdit = (row: SysSettingGroup): void => {
  */
 const handleDelete = async (row: SysSettingGroup): Promise<void> => {
   try {
-    await ElMessageBox.confirm(
+    await ScMessageBox.confirm(
       `确定要删除组 "${row.sysSettingGroupName}" 吗？`,
       "确认删除",
       {
@@ -257,14 +253,14 @@ onUnmounted((): void => {
         </div>
       </div>
       <div class="header-actions">
-        <el-button class="refresh-btn" @click="getGroupList">
+        <ScButton class="refresh-btn" @click="getGroupList">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
-        </el-button>
-        <el-button type="primary" class="add-btn" @click="handleAdd">
+        </ScButton>
+        <ScButton type="primary" class="add-btn" @click="handleAdd">
           <IconifyIconOnline icon="ri:add-line" />
           新增配置组
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -311,13 +307,13 @@ onUnmounted((): void => {
                   <span class="card-code">{{ item.sysSettingGroupCode }}</span>
                 </div>
                 <div class="card-status">
-                  <el-tag
+                  <ScTag 
                     :type="item.sysSettingGroupEnable ? 'success' : 'info'"
                     size="small"
                     effect="light"
                   >
                     {{ item.sysSettingGroupEnable ? "启用" : "禁用" }}
-                  </el-tag>
+                  </ScTag>
                 </div>
               </div>
 
@@ -335,22 +331,22 @@ onUnmounted((): void => {
                   <span>拖拽排序</span>
                 </div>
                 <div class="card-actions">
-                  <el-button
+                  <ScButton 
                     class="action-btn edit"
                     size="small"
                     @click="handleEdit(item)"
                   >
                     <IconifyIconOnline icon="ri:edit-line" />
                     编辑
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton 
                     class="action-btn delete"
                     size="small"
                     @click="handleDelete(item)"
                   >
                     <IconifyIconOnline icon="ri:delete-bin-line" />
                     删除
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
 
@@ -367,10 +363,10 @@ onUnmounted((): void => {
           </div>
           <h3 class="empty-title">暂无配置组</h3>
           <p class="empty-desc">点击下方按钮创建第一个配置组</p>
-          <el-button type="primary" class="empty-btn" @click="handleAdd">
+          <ScButton type="primary" class="empty-btn" @click="handleAdd">
             <IconifyIconOnline icon="ri:add-line" />
             创建配置组
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </div>
@@ -398,15 +394,15 @@ onUnmounted((): void => {
         </div>
       </template>
 
-      <el-form
+      <ScForm 
         ref="formRef"
         :model="formData"
         :rules="formRules"
         label-width="90px"
         class="group-form"
       >
-        <el-form-item label="组名称" prop="sysSettingGroupName">
-          <el-input
+        <ScFormItem label="组名称" prop="sysSettingGroupName">
+          <ScInput 
             v-model="formData.sysSettingGroupName"
             placeholder="请输入组名称"
             clearable
@@ -414,10 +410,10 @@ onUnmounted((): void => {
             <template #prefix>
               <IconifyIconOnline icon="ri:text" class="input-icon" />
             </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="组编码" prop="sysSettingGroupCode">
-          <el-input
+          </ScInput>
+        </ScFormItem>
+        <ScFormItem label="组编码" prop="sysSettingGroupCode">
+          <ScInput 
             v-model="formData.sysSettingGroupCode"
             placeholder="请输入组编码（唯一标识）"
             clearable
@@ -425,10 +421,10 @@ onUnmounted((): void => {
             <template #prefix>
               <IconifyIconOnline icon="ri:code-line" class="input-icon" />
             </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="图标">
-          <el-input
+          </ScInput>
+        </ScFormItem>
+        <ScFormItem label="图标">
+          <ScInput 
             v-model="formData.sysSettingGroupIcon"
             placeholder="如：ri:settings-line"
             clearable
@@ -443,45 +439,45 @@ onUnmounted((): void => {
                 class="icon-preview"
               />
             </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="启用状态">
-          <el-switch
+          </ScInput>
+        </ScFormItem>
+        <ScFormItem label="启用状态">
+          <ScSwitch 
             v-model="formData.sysSettingGroupEnable"
             active-text="启用"
             inactive-text="禁用"
             inline-prompt
           />
-        </el-form-item>
-        <el-form-item label="项目接口">
-          <el-switch
+        </ScFormItem>
+        <ScFormItem label="项目接口">
+          <ScSwitch 
             v-model="formData.sysSettingGroupUseProjectInterface"
             active-text="是"
             inactive-text="否"
             inline-prompt
           />
           <span class="form-tip">开启后使用项目组接口管理</span>
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="描述">
+          <ScInput 
             v-model="formData.sysSettingGroupRemark"
             type="textarea"
             :rows="3"
             placeholder="请输入组描述"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button class="cancel-btn" @click="handleClose">
+          <ScButton class="cancel-btn" @click="handleClose">
             <IconifyIconOnline icon="ri:close-line" />
             取消
-          </el-button>
-          <el-button type="primary" class="save-btn" @click="handleSave">
+          </ScButton>
+          <ScButton type="primary" class="save-btn" @click="handleSave">
             <IconifyIconOnline icon="ri:save-line" />
             {{ isEdit ? "保存更改" : "创建" }}
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

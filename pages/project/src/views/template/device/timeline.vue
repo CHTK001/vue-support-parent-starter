@@ -10,16 +10,16 @@
     >
       <el-skeleton :loading="env.loading">
         <template #default>
-          <el-empty v-if="tableData.length == 0" />
+          <ScEmpty v-if="tableData.length == 0" />
           <el-timeline v-else>
             <el-timeline-item
               v-for="(activity, index) in tableData"
               :key="index"
               :timestamp="activity.collectTime"
             >
-              <el-tag :type="activity.online == 1 ? 'success' : 'danger'">
+              <ScTag :type="activity.online == 1 ? 'success' : 'danger'">
                 {{ activity.online == 1 ? "上线" : "下线" }}
-              </el-tag>
+              </ScTag>
             </el-timeline-item>
           </el-timeline>
         </template>

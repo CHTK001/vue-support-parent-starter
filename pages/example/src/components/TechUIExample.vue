@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div class="techui-example">
     <h2 class="example-title">TechUI 科幻风格组件</h2>
     <p class="example-desc">基于 @techui/scifi 的科幻风格组件封装，支持多种变体和自定义配置</p>
 
     <!-- TechButton 示例 -->
-    <el-divider content-position="left">TechButton 科幻按钮</el-divider>
+    <ScDivider content-position="left">TechButton 科幻按钮</ScDivider>
     <div class="demo-section">
       <h4>按钮变体 A1 (variant: A1, appearance: A/B/C)</h4>
       <div class="demo-row">
@@ -121,7 +121,7 @@
     </div>
 
     <!-- TechPanel 示例 -->
-    <el-divider content-position="left">TechPanel 科幻面板</el-divider>
+    <ScDivider content-position="left">TechPanel 科幻面板</ScDivider>
     <div class="demo-section">
       <h4>面板变体 A 系列 (variant: A1-A3)</h4>
       <div class="demo-grid panel-grid">
@@ -167,7 +167,7 @@
     </div>
 
     <!-- TechHeader 示例 -->
-    <el-divider content-position="left">TechHeader 科幻头部</el-divider>
+    <ScDivider content-position="left">TechHeader 科幻头部</ScDivider>
     <div class="demo-section">
       <h4>头部变体 (variant: A1-A4)</h4>
       <div class="demo-col">
@@ -186,7 +186,7 @@
     </div>
 
     <!-- TechPanelTitle 示例 -->
-    <el-divider content-position="left">TechPanelTitle 科幻标题</el-divider>
+    <ScDivider content-position="left">TechPanelTitle 科幻标题</ScDivider>
     <div class="demo-section">
       <h4>标题变体 (variant: A1-A3)</h4>
       <div class="demo-col">
@@ -203,7 +203,7 @@
     </div>
 
     <!-- TechDeco 示例 -->
-    <el-divider content-position="left">TechDeco 科幻装饰</el-divider>
+    <ScDivider content-position="left">TechDeco 科幻装饰</ScDivider>
     <div class="demo-section">
       <h4>可用装饰变体 (variant: A1, B1-B3, D1)</h4>
       <div class="demo-row deco-row">
@@ -247,7 +247,7 @@
     </div>
 
     <!-- TechGeometry 示例 -->
-    <el-divider content-position="left">TechGeometry 科幻几何</el-divider>
+    <ScDivider content-position="left">TechGeometry 科幻几何</ScDivider>
     <div class="demo-section">
       <h4>几何形状 (variant: Rectangle, Triangle, Parallelogram, Trapezoid, Hexagon)</h4>
       <div class="demo-row geometry-row">
@@ -291,7 +291,7 @@
     </div>
 
     <!-- 综合布局示例 -->
-    <el-divider content-position="left">综合布局示例</el-divider>
+    <ScDivider content-position="left">综合布局示例</ScDivider>
     <div class="demo-section layout-demo">
       <TechHeader variant="A1" title="科幻数据大屏" sub-title="SCI-FI DATA DASHBOARD" />
       
@@ -338,57 +338,57 @@
     </div>
 
     <!-- 代码示例 -->
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
     <CodePreview :tabs="codeTabs" />
 
     <!-- 属性说明 -->
-    <el-divider content-position="left">TechButton 属性</el-divider>
-    <el-table :data="buttonProps" border stripe>
-      <el-table-column prop="name" label="属性" width="180" />
-      <el-table-column prop="type" label="类型" width="250" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="desc" label="说明" />
-    </el-table>
+    <ScDivider content-position="left">TechButton 属性</ScDivider>
+    <ScTable :data="buttonProps" border stripe>
+      <ScTableColumn prop="name" label="属性" width="180" />
+      <ScTableColumn prop="type" label="类型" width="250" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="desc" label="说明" />
+    </ScTable>
 
-    <el-divider content-position="left">TechPanel 属性</el-divider>
-    <el-table :data="panelProps" border stripe>
-      <el-table-column prop="name" label="属性" width="180" />
-      <el-table-column prop="type" label="类型" width="250" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="desc" label="说明" />
-    </el-table>
+    <ScDivider content-position="left">TechPanel 属性</ScDivider>
+    <ScTable :data="panelProps" border stripe>
+      <ScTableColumn prop="name" label="属性" width="180" />
+      <ScTableColumn prop="type" label="类型" width="250" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="desc" label="说明" />
+    </ScTable>
 
-    <el-divider content-position="left">TechHeader 属性</el-divider>
-    <el-table :data="headerProps" border stripe>
-      <el-table-column prop="name" label="属性" width="180" />
-      <el-table-column prop="type" label="类型" width="250" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="desc" label="说明" />
-    </el-table>
+    <ScDivider content-position="left">TechHeader 属性</ScDivider>
+    <ScTable :data="headerProps" border stripe>
+      <ScTableColumn prop="name" label="属性" width="180" />
+      <ScTableColumn prop="type" label="类型" width="250" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="desc" label="说明" />
+    </ScTable>
 
-    <el-divider content-position="left">TechDeco 属性</el-divider>
-    <el-table :data="decoProps" border stripe>
-      <el-table-column prop="name" label="属性" width="180" />
-      <el-table-column prop="type" label="类型" width="250" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="desc" label="说明" />
-    </el-table>
+    <ScDivider content-position="left">TechDeco 属性</ScDivider>
+    <ScTable :data="decoProps" border stripe>
+      <ScTableColumn prop="name" label="属性" width="180" />
+      <ScTableColumn prop="type" label="类型" width="250" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="desc" label="说明" />
+    </ScTable>
 
-    <el-divider content-position="left">TechGeometry 属性</el-divider>
-    <el-table :data="geometryProps" border stripe>
-      <el-table-column prop="name" label="属性" width="180" />
-      <el-table-column prop="type" label="类型" width="350" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="desc" label="说明" />
-    </el-table>
+    <ScDivider content-position="left">TechGeometry 属性</ScDivider>
+    <ScTable :data="geometryProps" border stripe>
+      <ScTableColumn prop="name" label="属性" width="180" />
+      <ScTableColumn prop="type" label="类型" width="350" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="desc" label="说明" />
+    </ScTable>
 
-    <el-divider content-position="left">TechPanelTitle 属性</el-divider>
-    <el-table :data="panelTitleProps" border stripe>
-      <el-table-column prop="name" label="属性" width="180" />
-      <el-table-column prop="type" label="类型" width="250" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="desc" label="说明" />
-    </el-table>
+    <ScDivider content-position="left">TechPanelTitle 属性</ScDivider>
+    <ScTable :data="panelTitleProps" border stripe>
+      <ScTableColumn prop="name" label="属性" width="180" />
+      <ScTableColumn prop="type" label="类型" width="250" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="desc" label="说明" />
+    </ScTable>
   </div>
 </template>
 

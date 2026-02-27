@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="project-workspace system-container modern-bg">
     <div class="modern-workspace">
       <div class="project-dashboard">
@@ -27,7 +27,7 @@
                     <div class="card-header">
                       <div class="project-image">
                         <div class="image-container">
-                          <el-image
+                          <ScImage 
                             :src="row?.sysProjectIcon"
                             fit="cover"
                             lazy
@@ -36,11 +36,11 @@
                             <template #error>
                               <div class="image-placeholder">
                                 <div class="placeholder-icon-wrapper">
-                                  <el-icon class="placeholder-icon">
+                                  <ScIcon class="placeholder-icon">
                                     <component
                                       :is="useRenderIcon('ri:image-2-line')"
                                     />
-                                  </el-icon>
+                                  </ScIcon>
                                   <div class="icon-ripple"></div>
                                 </div>
                                 <div class="placeholder-text">
@@ -48,7 +48,7 @@
                                 </div>
                               </div>
                             </template>
-                          </el-image>
+                          </ScImage>
                           <div class="image-overlay" />
                           <div class="image-shine"></div>
                         </div>
@@ -92,7 +92,7 @@
                       </div>
                     </div>
                     <div class="project-tags">
-                      <el-tag
+                      <ScTag 
                         type="primary"
                         effect="plain"
                         class="project-name-tag"
@@ -106,13 +106,13 @@
                         ) || []"
                         :key="index"
                       >
-                        <el-tooltip
+                        <ScTooltip 
                           :content="functionMap[item]?.sysDictItemName"
                           placement="top"
                           effect="light"
                           :offset="8"
                         >
-                          <el-button
+                          <ScButton 
                             v-if="functionMap[item]"
                             type="primary"
                             circle
@@ -123,7 +123,7 @@
                             "
                             :style="{ animationDelay: index * 0.05 + 's' }"
                           />
-                        </el-tooltip>
+                        </ScTooltip>
                       </template>
                     </div>
                     <div class="more" @click.stop>
@@ -131,7 +131,7 @@
                         v-if="row?.sysProjectFunction"
                         class="ml-[1px] z-[100]"
                       >
-                        <el-button
+                        <ScButton 
                           v-if="row?.source?.length > 0"
                           :icon="useRenderIcon('ri:landscape-ai-fill')"
                           title="设置默认"
@@ -144,7 +144,7 @@
                           placement="right"
                           @command="handleDropdownCommand"
                         >
-                          <el-button
+                          <ScButton 
                             :icon="useRenderIcon('ri:more-2-line')"
                             size="small"
                             title="更多"

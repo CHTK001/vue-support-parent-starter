@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="sc-card-input-example" :class="{ 'el-dark': isDarkMode }">
-    <el-card>
+    <ScCard>
       <template #header>
         <div class="card-header">
           <div class="header-content">
@@ -10,13 +10,13 @@
             </p>
           </div>
           <div class="theme-switch">
-            <el-tooltip content="切换主题">
-              <el-button circle @click="toggleTheme">
+            <ScTooltip content="切换主题">
+              <ScButton circle @click="toggleTheme">
                 <IconifyIconOnline
                   :icon="isDarkMode ? 'ep:sunny' : 'ep:moon'"
                 />
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
           </div>
         </div>
       </template>
@@ -41,7 +41,7 @@
             </div>
 
             <div class="result-display mt-4">
-              <el-alert
+              <ScAlert 
                 :title="`当前选择值: ${selectedValue}`"
                 type="success"
                 :closable="false"
@@ -123,43 +123,43 @@
         <!-- 右侧配置面板 -->
         <div class="config-panel">
           <h4>配置选项</h4>
-          <el-form label-position="top">
-            <el-form-item label="当前选项集">
-              <el-select
+          <ScForm label-position="top">
+            <ScFormItem label="当前选项集">
+              <ScSelect 
                 v-model="currentOptionSet"
                 placeholder="选择选项集"
                 class="w-100"
               >
-                <el-option label="设备类型" value="devices" />
-                <el-option label="交通工具" value="vehicles" />
-                <el-option label="动物" value="animals" />
-                <el-option label="远程数据" value="remote" />
-              </el-select>
-            </el-form-item>
+                <ScOption label="设备类型" value="devices" />
+                <ScOption label="交通工具" value="vehicles" />
+                <ScOption label="动物" value="animals" />
+                <ScOption label="远程数据" value="remote" />
+              </ScSelect>
+            </ScFormItem>
 
-            <el-form-item label="占位文本">
-              <el-input v-model="placeholder" placeholder="请输入占位文本" />
-            </el-form-item>
+            <ScFormItem label="占位文本">
+              <ScInput v-model="placeholder" placeholder="请输入占位文本" />
+            </ScFormItem>
 
-            <el-form-item label="组件尺寸">
-              <el-radio-group v-model="size">
-                <el-radio label="small">小</el-radio>
-                <el-radio label="default">默认</el-radio>
-                <el-radio label="large">大</el-radio>
-              </el-radio-group>
-            </el-form-item>
+            <ScFormItem label="组件尺寸">
+              <ScRadioGroup v-model="size">
+                <ScRadio label="small">小</ScRadio>
+                <ScRadio label="default">默认</ScRadio>
+                <ScRadio label="large">大</ScRadio>
+              </ScRadioGroup>
+            </ScFormItem>
 
-            <el-form-item label="UI主题">
-              <el-radio-group v-model="isDarkMode">
-                <el-radio :label="false">亮色</el-radio>
-                <el-radio :label="true">暗色</el-radio>
-              </el-radio-group>
-            </el-form-item>
+            <ScFormItem label="UI主题">
+              <ScRadioGroup v-model="isDarkMode">
+                <ScRadio :label="false">亮色</ScRadio>
+                <ScRadio :label="true">暗色</ScRadio>
+              </ScRadioGroup>
+            </ScFormItem>
 
-            <el-form-item label="禁用状态">
-              <el-switch v-model="disabled" />
-            </el-form-item>
-          </el-form>
+            <ScFormItem label="禁用状态">
+              <ScSwitch v-model="disabled" />
+            </ScFormItem>
+          </ScForm>
         </div>
       </div>
 
@@ -178,7 +178,7 @@
           description="根据当前配置生成的代码示例"
         />
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

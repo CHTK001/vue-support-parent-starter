@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="limit-record-container system-container modern-bg">
     <!-- 搜索和筛选 -->
     <div class="search-section">
-      <el-card class="search-card" shadow="never">
+      <ScCard class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
-            <el-input
+            <ScInput 
               v-model="searchForm.sysLimitPath"
               placeholder="搜索接口路径"
               class="path-input"
@@ -15,22 +15,22 @@
               <template #prefix>
                 <i class="ri-search-line"></i>
               </template>
-            </el-input>
-            <el-input
+            </ScInput>
+            <ScInput 
               v-model="searchForm.clientIp"
               placeholder="IP地址"
               class="ip-input"
               clearable
               @keyup.enter="handleSearch"
             />
-            <el-input
+            <ScInput 
               v-model="searchForm.sysUserId"
               placeholder="用户ID"
               class="user-input"
               clearable
               @keyup.enter="handleSearch"
             />
-            <el-date-picker
+            <ScDatePicker 
               v-model="dateRange"
               type="datetimerange"
               range-separator="至"
@@ -42,35 +42,35 @@
             />
           </div>
           <div class="search-right">
-            <el-button type="primary" @click="handleSearch">
+            <ScButton type="primary" @click="handleSearch">
               <i class="ri-search-line"></i>
               搜索
-            </el-button>
-            <el-button @click="handleReset">
+            </ScButton>
+            <ScButton @click="handleReset">
               <i class="ri-refresh-line"></i>
               重置
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               type="danger"
               :disabled="selectedRows.length === 0"
               @click="handleBatchDelete"
             >
               <i class="ri-delete-bin-line"></i>
               批量删除
-            </el-button>
-            <el-button type="primary" @click="handleAdd">
+            </ScButton>
+            <ScButton type="primary" @click="handleAdd">
               <i class="ri-add-line"></i>
               新增记录
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 记录列表 -->
     <div class="list-section">
-      <el-card shadow="never">
-        <el-table
+      <ScCard shadow="never">
+        <ScTable 
           v-loading="loading"
           :data="recordList"
           row-key="sysLimitRecordId"
@@ -78,59 +78,59 @@
           border
           @selection-change="handleSelectionChange"
         >
-          <el-table-column type="selection" width="50" align="center" />
-          <el-table-column prop="sysLimitRecordId" label="ID" width="80" align="center" />
-          <el-table-column prop="sysLimitPath" label="接口路径" min-width="200">
+          <ScTableColumn type="selection" width="50" align="center" />
+          <ScTableColumn prop="sysLimitRecordId" label="ID" width="80" align="center" />
+          <ScTableColumn prop="sysLimitPath" label="接口路径" min-width="200">
             <template #default="{ row }">
-              <el-tag type="warning" size="small">{{ row.sysLimitPath }}</el-tag>
+              <ScTag type="warning" size="small">{{ row.sysLimitPath }}</ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysLimitName" label="规则名称" min-width="120" />
-          <el-table-column prop="clientIp" label="IP地址" width="130">
+          </ScTableColumn>
+          <ScTableColumn prop="sysLimitName" label="规则名称" min-width="120" />
+          <ScTableColumn prop="clientIp" label="IP地址" width="130">
             <template #default="{ row }">
               <span class="ip-text">{{ row.clientIp || '-' }}</span>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysUserId" label="用户" width="120" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="sysUserId" label="用户" width="120" align="center">
             <template #default="{ row }">
               <span>{{ row.sysUserName || row.sysUserId || '-' }}</span>
             </template>
-          </el-table-column>
-          <el-table-column prop="requestMethod" label="请求方法" width="90" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="requestMethod" label="请求方法" width="90" align="center">
             <template #default="{ row }">
-              <el-tag :type="getMethodType(row.requestMethod)" size="small">
+              <ScTag :type="getMethodType(row.requestMethod)" size="small">
                 {{ row.requestMethod || '-' }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysLimitKey" label="限流键" min-width="150">
+          </ScTableColumn>
+          <ScTableColumn prop="sysLimitKey" label="限流键" min-width="150">
             <template #default="{ row }">
-              <el-tooltip v-if="row.sysLimitKey" :content="row.sysLimitKey" placement="top">
+              <ScTooltip v-if="row.sysLimitKey" :content="row.sysLimitKey" placement="top">
                 <span class="key-text">{{ truncateText(row.sysLimitKey, 20) }}</span>
-              </el-tooltip>
+              </ScTooltip>
               <span v-else>-</span>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysLimitDimension" label="限流维度" width="100" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="sysLimitDimension" label="限流维度" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="getDimensionType(row.sysLimitDimension)" size="small">
+              <ScTag :type="getDimensionType(row.sysLimitDimension)" size="small">
                 {{ getDimensionLabel(row.sysLimitDimension) }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysLimitTime" label="限流时间" width="170" />
-          <el-table-column prop="createTime" label="记录时间" width="170" />
-          <el-table-column label="操作" width="100" align="center" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn prop="sysLimitTime" label="限流时间" width="170" />
+          <ScTableColumn prop="createTime" label="记录时间" width="170" />
+          <ScTableColumn label="操作" width="100" align="center" fixed="right">
             <template #default="{ row }">
               <el-button-group size="small">
-                <el-button @click="handleViewDetail(row)">
+                <ScButton @click="handleViewDetail(row)">
                   <i class="ri-eye-line"></i>
                   详情
-                </el-button>
+                </ScButton>
               </el-button-group>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
 
         <!-- 分页 -->
         <div class="pagination-container">
@@ -144,7 +144,7 @@
             @current-change="loadRecordList"
           />
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 详情对话框 -->
@@ -161,7 +161,7 @@
           {{ currentRecord?.sysLimitName }}
         </el-descriptions-item>
         <el-descriptions-item label="接口路径" :span="2">
-          <el-tag type="warning" size="small">{{ currentRecord?.sysLimitPath }}</el-tag>
+          <ScTag type="warning" size="small">{{ currentRecord?.sysLimitPath }}</ScTag>
         </el-descriptions-item>
         <el-descriptions-item label="IP地址">
           {{ currentRecord?.clientIp || '-' }}
@@ -170,14 +170,14 @@
           {{ currentRecord?.sysUserName || currentRecord?.sysUserId || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="限流维度">
-          <el-tag :type="getDimensionType(currentRecord?.sysLimitDimension)" size="small">
+          <ScTag :type="getDimensionType(currentRecord?.sysLimitDimension)" size="small">
             {{ getDimensionLabel(currentRecord?.sysLimitDimension) }}
-          </el-tag>
+          </ScTag>
         </el-descriptions-item>
         <el-descriptions-item label="请求方法">
-          <el-tag :type="getMethodType(currentRecord?.requestMethod)" size="small">
+          <ScTag :type="getMethodType(currentRecord?.requestMethod)" size="small">
             {{ currentRecord?.requestMethod || '-' }}
-          </el-tag>
+          </ScTag>
         </el-descriptions-item>
         <el-descriptions-item label="限流键" :span="2">
           <span class="detail-key">{{ currentRecord?.sysLimitKey || '-' }}</span>
@@ -199,10 +199,10 @@
         </el-descriptions-item>
       </el-descriptions>
       <template #footer>
-        <el-button @click="detailDialogVisible = false">关闭</el-button>
-        <el-button type="danger" @click="handleDeleteSingle(currentRecord)">
+        <ScButton @click="detailDialogVisible = false">关闭</ScButton>
+        <ScButton type="danger" @click="handleDeleteSingle(currentRecord)">
           删除此记录
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
@@ -213,88 +213,88 @@
       width="650px"
       :close-on-click-modal="false"
     >
-      <el-form
+      <ScForm 
         ref="formRef"
         :model="formData"
         :rules="formRules"
         label-width="100px"
       >
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="规则名称" prop="sysLimitName">
-              <el-input v-model="formData.sysLimitName" placeholder="请输入规则名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="接口路径" prop="sysLimitPath">
-              <el-input v-model="formData.sysLimitPath" placeholder="如: /api/users" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="客户端IP" prop="clientIp">
-              <el-input v-model="formData.clientIp" placeholder="如: 192.168.1.100" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="请求方法" prop="requestMethod">
-              <el-select v-model="formData.requestMethod" placeholder="请选择" style="width: 100%">
-                <el-option label="GET" value="GET" />
-                <el-option label="POST" value="POST" />
-                <el-option label="PUT" value="PUT" />
-                <el-option label="DELETE" value="DELETE" />
-                <el-option label="PATCH" value="PATCH" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="用户ID">
-              <el-input-number v-model="formData.sysUserId" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="用户名">
-              <el-input v-model="formData.sysUserName" placeholder="请输入用户名" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="限流维度">
-              <el-select v-model="formData.sysLimitDimension" placeholder="请选择" style="width: 100%">
-                <el-option label="全局" value="GLOBAL" />
-                <el-option label="IP" value="IP" />
-                <el-option label="用户" value="USER" />
-                <el-option label="接口" value="API" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="限流键">
-              <el-input v-model="formData.sysLimitKey" placeholder="限流键值" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="用户代理">
-          <el-input v-model="formData.userAgent" placeholder="User-Agent" />
-        </el-form-item>
-        <el-form-item label="请求参数">
-          <el-input
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="规则名称" prop="sysLimitName">
+              <ScInput v-model="formData.sysLimitName" placeholder="请输入规则名称" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="接口路径" prop="sysLimitPath">
+              <ScInput v-model="formData.sysLimitPath" placeholder="如: /api/users" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="客户端IP" prop="clientIp">
+              <ScInput v-model="formData.clientIp" placeholder="如: 192.168.1.100" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="请求方法" prop="requestMethod">
+              <ScSelect v-model="formData.requestMethod" placeholder="请选择" style="width: 100%">
+                <ScOption label="GET" value="GET" />
+                <ScOption label="POST" value="POST" />
+                <ScOption label="PUT" value="PUT" />
+                <ScOption label="DELETE" value="DELETE" />
+                <ScOption label="PATCH" value="PATCH" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="用户ID">
+              <ScInputNumber v-model="formData.sysUserId" :min="0" style="width: 100%" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="用户名">
+              <ScInput v-model="formData.sysUserName" placeholder="请输入用户名" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="限流维度">
+              <ScSelect v-model="formData.sysLimitDimension" placeholder="请选择" style="width: 100%">
+                <ScOption label="全局" value="GLOBAL" />
+                <ScOption label="IP" value="IP" />
+                <ScOption label="用户" value="USER" />
+                <ScOption label="接口" value="API" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="限流键">
+              <ScInput v-model="formData.sysLimitKey" placeholder="限流键值" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScFormItem label="用户代理">
+          <ScInput v-model="formData.userAgent" placeholder="User-Agent" />
+        </ScFormItem>
+        <ScFormItem label="请求参数">
+          <ScInput 
             v-model="formData.requestParams"
             type="textarea"
             :rows="3"
             placeholder="JSON格式的请求参数"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="addDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+        <ScButton @click="addDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="submitLoading" @click="handleSubmit">
           确定
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>
@@ -302,7 +302,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
+import { ScMessage, ScMessageBox, type FormInstance, type FormRules } from "@repo/utils";
 import {
   fetchLimitRecordPageForStrategy,
   saveLimitRecordForStrategy,
@@ -433,11 +433,11 @@ const loadRecordList = async () => {
       recordList.value = response.data?.records || [];
       pagination.total = response.data?.total || 0;
     } else {
-      ElMessage.error(response.msg || "加载记录列表失败");
+      ScMessage.error(response.msg || "加载记录列表失败");
     }
   } catch (error) {
     console.error("加载记录列表失败:", error);
-    ElMessage.error("加载记录列表失败");
+    ScMessage.error("加载记录列表失败");
   } finally {
     loading.value = false;
   }
@@ -514,15 +514,15 @@ const handleSubmit = async () => {
   try {
     const response = await saveLimitRecordForStrategy(formData);
     if (response.success) {
-      ElMessage.success("新增成功");
+      ScMessage.success("新增成功");
       addDialogVisible.value = false;
       loadRecordList();
     } else {
-      ElMessage.error(response.msg || "新增失败");
+      ScMessage.error(response.msg || "新增失败");
     }
   } catch (error) {
     console.error("新增失败:", error);
-    ElMessage.error("新增失败");
+    ScMessage.error("新增失败");
   } finally {
     submitLoading.value = false;
   }
@@ -532,21 +532,21 @@ const handleSubmit = async () => {
 const handleDeleteSingle = async (record: SysLimitRecord | null) => {
   if (!record) return;
   try {
-    await ElMessageBox.confirm("确定要删除该记录吗？", "删除确认", {
+    await ScMessageBox.confirm("确定要删除该记录吗？", "删除确认", {
       type: "warning",
     });
     const response = await deleteLimitRecordForStrategy(record.sysLimitRecordId!);
     if (response.success) {
-      ElMessage.success("删除成功");
+      ScMessage.success("删除成功");
       detailDialogVisible.value = false;
       loadRecordList();
     } else {
-      ElMessage.error(response.msg || "删除失败");
+      ScMessage.error(response.msg || "删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除失败:", error);
-      ElMessage.error("删除失败");
+      ScMessage.error("删除失败");
     }
   }
 };
@@ -554,11 +554,11 @@ const handleDeleteSingle = async (record: SysLimitRecord | null) => {
 // 批量删除
 const handleBatchDelete = async () => {
   if (selectedRows.value.length === 0) {
-    ElMessage.warning("请选择要删除的记录");
+    ScMessage.warning("请选择要删除的记录");
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await ScMessageBox.confirm(
       `确定要删除选中的 ${selectedRows.value.length} 条记录吗？`,
       "批量删除确认",
       { type: "warning" }
@@ -566,15 +566,15 @@ const handleBatchDelete = async () => {
     const ids = selectedRows.value.map((row) => row.sysLimitRecordId!);
     const response = await deleteBatchLimitRecordForStrategy(ids);
     if (response.success) {
-      ElMessage.success("批量删除成功");
+      ScMessage.success("批量删除成功");
       loadRecordList();
     } else {
-      ElMessage.error(response.msg || "批量删除失败");
+      ScMessage.error(response.msg || "批量删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("批量删除失败:", error);
-      ElMessage.error("批量删除失败");
+      ScMessage.error("批量删除失败");
     }
   }
 };

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 // 引入 ReIcon 组件的钩子函数，用于渲染图标
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 // 引入 Vue 的响应式和生命周期相关函数
@@ -149,35 +149,35 @@ const moduleOptions = reactive([
       <el-header class="log-header">
         <div class="log-left-panel">
           <!-- 搜索表单 -->
-          <el-form ref="formRef" label-width="40px" :inline="true" :model="form" class="log-search-form">
+          <ScForm ref="formRef" label-width="40px" :inline="true" :model="form" class="log-search-form">
             <!-- 账号输入框 -->
-            <el-form-item label="账号" prop="sysLogUsername" class="log-form-item">
-              <el-input v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="log-input" />
-            </el-form-item>
+            <ScFormItem label="账号" prop="sysLogUsername" class="log-form-item">
+              <ScInput v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="log-input" />
+            </ScFormItem>
             <!-- 模块选择框 -->
-            <el-form-item label="模块" prop="sysLogFrom" class="log-form-item">
-              <el-select v-model="form.sysLogFrom" placeholder="请选择模块" clearable class="log-select">
-                <el-option v-for="item in moduleOptions" :key="item.value" :value="item.value" :label="item.label">
+            <ScFormItem label="模块" prop="sysLogFrom" class="log-form-item">
+              <ScSelect v-model="form.sysLogFrom" placeholder="请选择模块" clearable class="log-select">
+                <ScOption v-for="item in moduleOptions" :key="item.value" :value="item.value" :label="item.label">
                   {{ item.label }}
-                </el-option>
-              </el-select>
-            </el-form-item>
+                </ScOption>
+              </ScSelect>
+            </ScFormItem>
             <!-- 状态选择框 -->
-            <el-form-item label="状态" prop="sysLogStatus" class="log-form-item">
-              <el-select v-model="form.sysLogStatus" class="log-select" clearable>
-                <el-option :value="1" label="成功">成功</el-option>
-                <el-option :value="0" label="失败">失败</el-option>
-              </el-select>
-            </el-form-item>
+            <ScFormItem label="状态" prop="sysLogStatus" class="log-form-item">
+              <ScSelect v-model="form.sysLogStatus" class="log-select" clearable>
+                <ScOption :value="1" label="成功">成功</ScOption>
+                <ScOption :value="0" label="失败">失败</ScOption>
+              </ScSelect>
+            </ScFormItem>
             <!-- IP 输入框 -->
-            <el-form-item label=" IP" prop="sysLogIp" class="log-form-item">
-              <el-input v-model="form.sysLogIp" placeholder="请输入IP" clearable class="log-input" />
-            </el-form-item>
+            <ScFormItem label=" IP" prop="sysLogIp" class="log-form-item">
+              <ScInput v-model="form.sysLogIp" placeholder="请输入IP" clearable class="log-input" />
+            </ScFormItem>
             <!-- 日期时间范围选择器 -->
-            <el-form-item label="时间" prop="sysLogTime" class="log-form-item">
-              <el-date-picker v-model="sysLogTime" type="datetimerange" :start-placeholder="transformI18n('module.startDate')" :end-placeholder="transformI18n('module.endDate')" format="YYYY-MM-DD HH:mm:ss" date-format="YYYY-MM-DD ddd" time-format="A hh:mm:ss" class="log-date-picker" />
-            </el-form-item>
-          </el-form>
+            <ScFormItem label="时间" prop="sysLogTime" class="log-form-item">
+              <ScDatePicker v-model="sysLogTime" type="datetimerange" :start-placeholder="transformI18n('module.startDate')" :end-placeholder="transformI18n('module.endDate')" format="YYYY-MM-DD HH:mm:ss" date-format="YYYY-MM-DD ddd" time-format="A hh:mm:ss" class="log-date-picker" />
+            </ScFormItem>
+          </ScForm>
         </div>
         <div class="log-right-panel">
           <div class="log-right-panel-search">
@@ -187,9 +187,9 @@ const moduleOptions = reactive([
                   <div class="log-flex-1" />
                   <div class="log-button-container">
                     <!-- 搜索按钮 -->
-                    <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" class="log-button log-search-button" />
+                    <ScButton type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" class="log-button log-search-button" />
                     <!-- 重置按钮 -->
-                    <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" class="log-button log-reset-button" />
+                    <ScButton :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" class="log-button log-reset-button" />
                   </div>
                 </div>
               </div>
@@ -204,14 +204,14 @@ const moduleOptions = reactive([
             <!-- 表格组件 -->
             <ScTable ref="table" :url="fetchPageLog" :rowClick="openDetail" class="log-table">
               <!-- 表格列保持不变 -->
-              <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip min-width="120px" />
-              <el-table-column label="模块" prop="sysLogFrom" align="center" show-overflow-tooltip>
+              <ScTableColumn label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip min-width="120px" />
+              <ScTableColumn label="模块" prop="sysLogFrom" align="center" show-overflow-tooltip>
                 <template #default="{ row }">
                   <span class="log-module-text">{{ transform(row.sysLogFrom) }}</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 请求 IP 列，显示物理地址和 IP 地址 -->
-              <el-table-column label="请求IP" prop="sysLogIp" align="left" show-overflow-tooltip min-width="160px">
+              <ScTableColumn label="请求IP" prop="sysLogIp" align="left" show-overflow-tooltip min-width="160px">
                 <template #default="{ row }">
                   <div v-if="!row.sysLogAddress">
                     <span v-if="row.sysLogIp && registerPhysicalAddressByIp(row.sysLogIp)">{{ ipTable[row.sysLogIp] || "-" }}</span>
@@ -227,21 +227,21 @@ const moduleOptions = reactive([
                   </div>
                   <span class="text-gray-400">{{ row.sysLogIsp }}</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 地址列 -->
-              <el-table-column label="地址" prop="sysLogUrl" align="center" show-overflow-tooltip width="180px" />
+              <ScTableColumn label="地址" prop="sysLogUrl" align="center" show-overflow-tooltip width="180px" />
               <!-- 浏览器指纹列 -->
-              <el-table-column label="浏览器指纹" prop="sysLogFingerprint" align="center" show-overflow-tooltip />
+              <ScTableColumn label="浏览器指纹" prop="sysLogFingerprint" align="center" show-overflow-tooltip />
               <!-- 登录方式列，使用国际化转换显示值 -->
-              <el-table-column label="登录方式" prop="sysLogLoginType" align="center" width="140px">
+              <ScTableColumn label="登录方式" prop="sysLogLoginType" align="center" width="140px">
                 <template #default="{ row }">
                   {{ transformI18n(row.sysLogLoginType) }}
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- userAgent 列 -->
-              <el-table-column label="userAgent" prop="sysLogUa" align="center" show-overflow-tooltip min-width="120px" />
+              <ScTableColumn label="userAgent" prop="sysLogUa" align="center" show-overflow-tooltip min-width="120px" />
               <!-- 请求时间列，显示时间差和具体时间 -->
-              <el-table-column label="请求时间" prop="createTime" align="left" show-overflow-tooltip min-width="120px">
+              <ScTableColumn label="请求时间" prop="createTime" align="left" show-overflow-tooltip min-width="120px">
                 <template #default="{ row }">
                   <div>
                     <span>{{ getTimeAgo(row.createTime) }}</span>
@@ -249,22 +249,22 @@ const moduleOptions = reactive([
                     <span class="text-gray-400">{{ row.createTime }}</span>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 状态列，根据状态显示不同标签 -->
-              <el-table-column label="状态" prop="sysLogStatus" align="center" width="100px" show-overflow-tooltip>
+              <ScTableColumn label="状态" prop="sysLogStatus" align="center" width="100px" show-overflow-tooltip>
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogStatus === 1" type="success">成功</el-tag>
-                  <el-tag v-else-if="row.sysLogStatus === 0" type="danger">失败</el-tag>
+                  <ScTag v-if="row.sysLogStatus === 1" type="success">成功</ScTag>
+                  <ScTag v-else-if="row.sysLogStatus === 0" type="danger">失败</ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 耗时列，根据耗时显示不同标签 -->
-              <el-table-column label="耗时" prop="sysLogCost" align="center">
+              <ScTableColumn label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogCost <= 1000" type="success">{{ row.sysLogCost || 0 }} ms</el-tag>
-                  <el-tag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning">{{ row.sysLogCost || 0 }} ms</el-tag>
-                  <el-tag v-else type="danger">{{ row.sysLogCost || 0 }} ms</el-tag>
+                  <ScTag v-if="row.sysLogCost <= 1000" type="success">{{ row.sysLogCost || 0 }} ms</ScTag>
+                  <ScTag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning">{{ row.sysLogCost || 0 }} ms</ScTag>
+                  <ScTag v-else type="danger">{{ row.sysLogCost || 0 }} ms</ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
             </ScTable>
           </div>
         </div>

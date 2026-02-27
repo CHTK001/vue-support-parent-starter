@@ -41,26 +41,26 @@ defineExpose({
         :search="false"
         :height="400"
       >
-        <el-table-column
+        <ScTableColumn 
           prop="sysDeviceCardEventTime"
           label="事件时间"
-        ></el-table-column>
-        <el-table-column
+        ></ScTableColumn>
+        <ScTableColumn 
           prop="sysDeviceSerialNumber"
           label="设备序列号"
-        ></el-table-column>
-        <el-table-column
+        ></ScTableColumn>
+        <ScTableColumn 
           prop="sysDeviceCardEventMajorName"
           label="主事件类型"
-        ></el-table-column>
-        <el-table-column
+        ></ScTableColumn>
+        <ScTableColumn 
           prop="sysDeviceCardEventMinorName"
           label="次事件类型"
-        ></el-table-column>
-        <el-table-column
+        ></ScTableColumn>
+        <ScTableColumn 
           prop="sysDeviceCardEventMessageId"
           label="事件ID"
-        ></el-table-column>
+        ></ScTableColumn>
       </ScTable>
     </sc-dialog>
   </div>

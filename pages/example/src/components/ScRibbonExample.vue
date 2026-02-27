@@ -8,8 +8,8 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="variant 样式类型">
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="variant 样式类型">
             <ScSelect 
               v-model="config.variant" 
               layout="dropdown" 
@@ -18,32 +18,32 @@
               dropdown-placeholder="请选择类型"
               :dropdown-col="3"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="position 位置" v-if="showPosition">
+          <ScFormItem label="position 位置" v-if="showPosition">
             <ScSelect v-model="config.position" layout="card" :options="positionOptions" :gap="6" width="70px" />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="size 尺寸">
+          <ScFormItem label="size 尺寸">
             <ScSelect v-model="config.size" layout="card" :options="sizeOptions" :gap="6" width="70px" />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="color 颜色">
+          <ScFormItem label="color 颜色">
             <ScSelect v-model="config.color" layout="card" :options="colorOptions" :gap="6" width="60px" />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="text 文本">
-            <el-input v-model="config.text" placeholder="绸带文本" />
-          </el-form-item>
+          <ScFormItem label="text 文本">
+            <ScInput v-model="config.text" placeholder="绸带文本" />
+          </ScFormItem>
 
-          <el-form-item label="icon 图标">
+          <ScFormItem label="icon 图标">
             <ScSelect v-model="config.icon" layout="card" :options="iconOptions" :gap="6" width="50px" />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="width 宽度" v-if="showWidth">
+          <ScFormItem label="width 宽度" v-if="showWidth">
             <ScSlider v-model="config.width" :min="50" :max="100" :format-tooltip="v => v + '%'" />
-          </el-form-item>
-        </el-form>
+          </ScFormItem>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

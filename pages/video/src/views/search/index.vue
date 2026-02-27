@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg">
     <div class="search-container">
       <!-- Logo -->
@@ -20,10 +20,10 @@
             @keyup.enter="handleSearch"
           />
         </div>
-        <el-button type="primary" class="search-btn" @click="handleSearch">
+        <ScButton type="primary" class="search-btn" @click="handleSearch">
           <IconifyIconOnline icon="ep:search" />
           搜索
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 热词 -->

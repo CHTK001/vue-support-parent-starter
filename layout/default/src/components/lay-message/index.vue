@@ -1,4 +1,5 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
+import ScTabPane from "@repo/components/ScTabs";
 /**
  * 消息菜单组件
  * 支持异步请求获取消息列表，以及通过Socket.IO实时推�?
@@ -32,7 +33,7 @@ const configStore = useConfigStore();
 
 // 消息功能开�?- 从配置中读取
 const messageEnabled = ref(
-  $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true
+  $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
 );
 
 type MessageDropdownPosition =
@@ -87,7 +88,7 @@ const messages = ref<MessageItem[]>([]);
 const loading = ref(false);
 // 未读消息数量
 const unreadCount = computed(
-  () => messages.value.filter((m) => !m.read).length
+  () => messages.value.filter((m) => !m.read).length,
 );
 
 /**
@@ -128,7 +129,7 @@ const fetchMessages = async () => {
     console.error("获取消息列表失败:", error);
     messages.value = [];
   } finally {
-  loading.value = false;
+    loading.value = false;
   }
 };
 
@@ -158,7 +159,7 @@ const messageDropdownPositionChangeHandler = (val: MessageDropdownPosition) => {
 const handleSocketMessage = (data: any) => {
   // 开关关闭时不处理推送
   if (!messageEnabled.value) return;
-  
+
   if (data) {
     const newMessage: MessageItem = {
       id: data.messageId || data.id || Date.now(),
@@ -175,7 +176,7 @@ const handleSocketMessage = (data: any) => {
     const exists = messages.value.some((m) => m.id === newMessage.id);
     if (!exists) {
       messages.value.unshift(newMessage);
-      
+
       // 触发消息弹窗推送事�?
       emitter.emit("messageToastPush", {
         messageId: newMessage.id,
@@ -321,15 +322,15 @@ const handleMessageClick = (msg: MessageItem) => {
  */
 const handleDevMessagePush = (payload?: any) => {
   const now = new Date();
-  const data =
-    payload || {
-      id: now.getTime(),
-      title: "开发环境默认测试消息",
-      content: "这是通过设置面板发送的默认测试消息，用于验证消息中心展示和弹窗配置。",
-      type: "dev",
-      level: "info",
-      time: now.toLocaleString(),
-    };
+  const data = payload || {
+    id: now.getTime(),
+    title: "开发环境默认测试消息",
+    content:
+      "这是通过设置面板发送的默认测试消息，用于验证消息中心展示和弹窗配置。",
+    type: "dev",
+    level: "info",
+    time: now.toLocaleString(),
+  };
   handleSocketMessage(data);
 };
 
@@ -384,172 +385,190 @@ onUnmounted(() => {
       popper-class="message-dropdown-popper"
     >
       <div class="message-trigger flex-c cursor-pointer navbar-bg-hover">
-        <el-badge
+        <ScBadge
           :value="unreadCount > 0 ? unreadCount : ''"
           :max="99"
           :hidden="unreadCount === 0"
         >
           <IconifyIconOffline :icon="MessageIcon" />
-        </el-badge>
+        </ScBadge>
       </div>
-    <template #dropdown>
-      <div class="message-panel">
-        <!-- 头部 -->
-        <div class="panel-header">
-          <span class="header-title">消息中心</span>
-          <div class="header-actions">
-            <el-button
-              v-if="unreadCount > 0"
-              link
-              size="small"
-              @click="markAllAsRead"
+      <template #dropdown>
+        <div class="message-panel">
+          <!-- 头部 -->
+          <div class="panel-header">
+            <span class="header-title">消息中心</span>
+            <div class="header-actions">
+              <ScButton
+                v-if="unreadCount > 0"
+                link
+                size="small"
+                @click="markAllAsRead"
+              >
+                全部已读
+              </ScButton>
+            </div>
+          </div>
+
+          <!-- 消息列表 -->
+          <div class="panel-body">
+            <el-scrollbar max-height="320px">
+              <div v-if="loading" class="loading-wrapper">
+                <ScIcon class="is-loading"
+                  ><IconifyIconOnline icon="ri:loader-4-line"
+                /></ScIcon>
+                <span>加载�?..</span>
+              </div>
+              <ScEmpty
+                v-else-if="messages.length === 0"
+                description="暂无消息"
+                :image-size="80"
+              />
+              <div v-else class="message-list">
+                <div
+                  v-for="msg in messages"
+                  :key="msg.id"
+                  :class="['message-item', { unread: !msg.read }]"
+                  @click="handleMessageClick(msg)"
+                >
+                  <div class="item-avatar">
+                    <ScAvatar v-if="msg.avatar" :size="36" :src="msg.avatar" />
+                    <div v-else class="default-avatar">
+                      <IconifyIconOnline icon="ri:notification-3-line" />
+                    </div>
+                  </div>
+                  <div class="item-content">
+                    <div class="item-title">{{ msg.title }}</div>
+                    <div class="item-desc">{{ msg.content }}</div>
+                    <div class="item-time">{{ msg.time }}</div>
+                  </div>
+                  <span v-if="!msg.read" class="unread-dot"></span>
+                </div>
+              </div>
+            </el-scrollbar>
+          </div>
+
+          <!-- 底部 -->
+          <div class="panel-footer">
+            <ScButton link @click="clearAll">清空消息</ScButton>
+            <ScButton link type="primary" @click="openMessageCenter"
+              >查看全部</ScButton
             >
-              全部已读
-            </el-button>
+            >
           </div>
         </div>
-
-        <!-- 消息列表 -->
-        <div class="panel-body">
-          <el-scrollbar max-height="320px">
-            <div v-if="loading" class="loading-wrapper">
-              <el-icon class="is-loading"
-                ><IconifyIconOnline icon="ri:loader-4-line"
-              /></el-icon>
-              <span>加载�?..</span>
-            </div>
-            <el-empty
-              v-else-if="messages.length === 0"
-              description="暂无消息"
-              :image-size="80"
-            />
-            <div v-else class="message-list">
-              <div
-                v-for="msg in messages"
-                :key="msg.id"
-                :class="['message-item', { unread: !msg.read }]"
-                @click="handleMessageClick(msg)"
-              >
-                <div class="item-avatar">
-                  <el-avatar v-if="msg.avatar" :size="36" :src="msg.avatar" />
-                  <div v-else class="default-avatar">
-                    <IconifyIconOnline icon="ri:notification-3-line" />
-                  </div>
-                </div>
-                <div class="item-content">
-                  <div class="item-title">{{ msg.title }}</div>
-                  <div class="item-desc">{{ msg.content }}</div>
-                  <div class="item-time">{{ msg.time }}</div>
-                </div>
-                <span v-if="!msg.read" class="unread-dot"></span>
-              </div>
-            </div>
-          </el-scrollbar>
-        </div>
-
-        <!-- 底部 -->
-        <div class="panel-footer">
-          <el-button link @click="clearAll">清空消息</el-button>
-          <el-button link type="primary" @click="openMessageCenter"
-            >查看全部</el-button
-          >
-        </div>
-      </div>
-    </template>
+      </template>
     </el-dropdown>
 
     <!-- 消息中心 Drawer - 使用 Teleport 避免父元素堆叠上下文限制 -->
     <Teleport to="body">
-    <sc-drawer
-      v-model="drawerVisible"
-      title="消息中心"
-      direction="rtl"
-      size="420px"
-      :show-close="true"
-      :z-index="2000"
-      class="message-center-drawer"
-    >
-    <template #header>
-      <div class="drawer-header">
-        <span class="drawer-title">消息中心</span>
-        <el-badge :value="unreadCount" :hidden="unreadCount === 0" />
-      </div>
-    </template>
-
-    <!-- 选项�?-->
-    <el-tabs v-model="activeTab" class="message-tabs">
-      <el-tab-pane label="全部消息" name="all" />
-      <el-tab-pane name="unread">
-        <template #label>
-          <span>未读消息</span>
-          <el-badge v-if="unreadCount > 0" :value="unreadCount" class="tab-badge" />
+      <sc-drawer
+        v-model="drawerVisible"
+        title="消息中心"
+        direction="rtl"
+        size="420px"
+        :show-close="true"
+        :z-index="2000"
+        class="message-center-drawer"
+      >
+        <template #header>
+          <div class="drawer-header">
+            <span class="drawer-title">消息中心</span>
+            <ScBadge :value="unreadCount" :hidden="unreadCount === 0" />
+          </div>
         </template>
-      </el-tab-pane>
-      <el-tab-pane label="系统通知" name="system" />
-    </el-tabs>
 
-    <!-- 操作栏 -->
-    <div class="drawer-actions">
-      <el-button round size="small" @click="markAllAsRead" :disabled="unreadCount === 0">
-        <IconifyIconOnline icon="ri:check-double-line" class="mr-1" />
-        全部已读
-      </el-button>
-      <el-button round size="small" @click="clearAll" :disabled="messages.length === 0">
-        <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-        清空全部
-      </el-button>
-    </div>
+        <!-- 选项�?-->
+        <ScTabs v-model="activeTab" class="message-tabs">
+          <ScTabPane label="全部消息" name="all" />
+          <ScTabPane name="unread">
+            <template #label>
+              <span>未读消息</span>
+              <ScBadge
+                v-if="unreadCount > 0"
+                :value="unreadCount"
+                class="tab-badge"
+              />
+            </template>
+          </ScTabPane>
+          <ScTabPane label="系统通知" name="system" />
+        </ScTabs>
 
-    <!-- 消息列表 -->
-    <el-scrollbar class="drawer-content">
-      <el-empty v-if="filteredMessages.length === 0" description="暂无消息" />
-      <div v-else class="drawer-message-list">
-        <div
-          v-for="msg in filteredMessages"
-          :key="msg.id"
-          :class="['drawer-message-item', { unread: !msg.read }]"
-        >
-          <div class="msg-avatar">
-            <el-avatar v-if="msg.avatar" :size="40" :src="msg.avatar" />
-            <div v-else class="default-avatar">
-              <IconifyIconOnline icon="ri:notification-3-line" />
-            </div>
-          </div>
-          <div class="msg-body" @click="handleMessageClick(msg)">
-            <div class="msg-header">
-              <span class="msg-title">{{ msg.title }}</span>
-              <span class="msg-time">
-                <IconifyIconOnline icon="ri:time-line" />
-                {{ msg.time }}
-              </span>
-            </div>
-            <div class="msg-content">{{ msg.content }}</div>
-          </div>
-          <div class="msg-actions">
-            <el-button
-              v-if="!msg.read"
-              circle
-              size="small"
-              @click="markAsRead(msg)"
-              title="标记已读"
-            >
-              <IconifyIconOnline icon="ri:check-line" />
-            </el-button>
-            <el-button
-              circle
-              size="small"
-              @click="deleteMessage(msg)"
-              title="删除"
-            >
-              <IconifyIconOnline icon="ri:close-line" />
-            </el-button>
-          </div>
+        <!-- 操作栏 -->
+        <div class="drawer-actions">
+          <ScButton
+            round
+            size="small"
+            @click="markAllAsRead"
+            :disabled="unreadCount === 0"
+          >
+            <IconifyIconOnline icon="ri:check-double-line" class="mr-1" />
+            全部已读
+          </ScButton>
+          <ScButton
+            round
+            size="small"
+            @click="clearAll"
+            :disabled="messages.length === 0"
+          >
+            <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+            清空全部
+          </ScButton>
         </div>
-      </div>
-    </el-scrollbar>
-    </sc-drawer>
+
+        <!-- 消息列表 -->
+        <el-scrollbar class="drawer-content">
+          <ScEmpty
+            v-if="filteredMessages.length === 0"
+            description="暂无消息"
+          />
+          <div v-else class="drawer-message-list">
+            <div
+              v-for="msg in filteredMessages"
+              :key="msg.id"
+              :class="['drawer-message-item', { unread: !msg.read }]"
+            >
+              <div class="msg-avatar">
+                <ScAvatar v-if="msg.avatar" :size="40" :src="msg.avatar" />
+                <div v-else class="default-avatar">
+                  <IconifyIconOnline icon="ri:notification-3-line" />
+                </div>
+              </div>
+              <div class="msg-body" @click="handleMessageClick(msg)">
+                <div class="msg-header">
+                  <span class="msg-title">{{ msg.title }}</span>
+                  <span class="msg-time">
+                    <IconifyIconOnline icon="ri:time-line" />
+                    {{ msg.time }}
+                  </span>
+                </div>
+                <div class="msg-content">{{ msg.content }}</div>
+              </div>
+              <div class="msg-actions">
+                <ScButton
+                  v-if="!msg.read"
+                  circle
+                  size="small"
+                  @click="markAsRead(msg)"
+                  title="标记已读"
+                >
+                  <IconifyIconOnline icon="ri:check-line" />
+                </ScButton>
+                <ScButton
+                  circle
+                  size="small"
+                  @click="deleteMessage(msg)"
+                  title="删除"
+                >
+                  <IconifyIconOnline icon="ri:close-line" />
+                </ScButton>
+              </div>
+            </div>
+          </div>
+        </el-scrollbar>
+      </sc-drawer>
     </Teleport>
-    
+
     <!-- 消息弹窗组件 -->
     <LayMessageToast />
   </div>
@@ -600,7 +619,7 @@ onUnmounted(() => {
 
 <style lang="scss">
 // 引入主题样式
-@use './themes/index';
+@use "./themes/index";
 
 .message-dropdown-popper {
   .el-dropdown-menu {
@@ -609,10 +628,12 @@ onUnmounted(() => {
     border: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
     background: var(--stitch-lay-bg-overlay, var(--el-bg-color-overlay));
     backdrop-filter: blur(20px);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.18),
+      0 4px 16px rgba(0, 0, 0, 0.08);
     overflow: hidden;
   }
-  
+
   // 去除箭头
   .el-popper__arrow {
     display: none;
@@ -629,7 +650,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+  border-bottom: 1px solid
+    var(--stitch-lay-border, var(--el-border-color-lighter));
   background: rgba(var(--el-fill-color-lighter-rgb), 0.5);
 
   .header-title {
@@ -658,7 +680,7 @@ onUnmounted(() => {
 .panel-body {
   min-height: 200px;
   max-height: 400px;
-  
+
   .loading-wrapper {
     display: flex;
     flex-direction: column;
@@ -677,8 +699,12 @@ onUnmounted(() => {
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .message-list {
@@ -713,7 +739,7 @@ onUnmounted(() => {
       background: rgba(var(--el-color-primary-rgb), 0.08);
       border-color: rgba(var(--el-color-primary-rgb), 0.2);
     }
-    
+
     .item-title {
       color: var(--el-color-primary);
       font-weight: 600;
@@ -773,7 +799,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 4px;
-    
+
     &::before {
       content: "";
       width: 6px;
@@ -797,9 +823,15 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(var(--el-color-primary-rgb), 0); }
-  100% { box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(var(--el-color-primary-rgb), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
+  }
 }
 
 .panel-footer {
@@ -829,7 +861,8 @@ html.dark {
   .el-drawer__header {
     margin-bottom: 0;
     padding: 20px 24px;
-    border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+    border-bottom: 1px solid
+      var(--stitch-lay-border, var(--el-border-color-lighter));
     background: var(--stitch-lay-bg-overlay, var(--el-bg-color));
   }
 
@@ -855,12 +888,13 @@ html.dark {
   .message-tabs {
     padding: 0 24px;
     background: var(--stitch-lay-bg-overlay, var(--el-bg-color));
-    border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+    border-bottom: 1px solid
+      var(--stitch-lay-border, var(--el-border-color-lighter));
 
     .el-tabs__header {
       margin: 0;
     }
-    
+
     .el-tabs__item {
       height: 48px;
       font-size: 15px;
@@ -878,9 +912,10 @@ html.dark {
     display: flex;
     gap: 12px;
     padding: 16px 24px;
-    border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+    border-bottom: 1px solid
+      var(--stitch-lay-border, var(--el-border-color-lighter));
     background: var(--stitch-lay-bg-overlay, var(--el-bg-color));
-    
+
     .el-button {
       flex: 1;
     }
@@ -926,7 +961,7 @@ html.dark {
       border-color: var(--el-color-primary-light-5);
       transform: translateY(-2px);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-      
+
       .msg-actions {
         opacity: 1;
         transform: translateX(0);
@@ -935,7 +970,7 @@ html.dark {
 
     &.unread {
       background: rgba(var(--el-color-primary-rgb), 0.02);
-      
+
       &::before {
         opacity: 1;
       }

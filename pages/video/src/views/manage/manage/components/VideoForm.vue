@@ -1,72 +1,72 @@
-<template>
+﻿<template>
   <div class="modern-form video-form-container">
-    <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" label-position="right" :disabled="loading">
-      <el-form-item label="视频名称" prop="videoName">
-        <el-input v-model="formData.videoName" placeholder="请输入视频名称" />
-      </el-form-item>
+    <ScForm ref="formRef" :model="formData" :rules="rules" label-width="100px" label-position="right" :disabled="loading">
+      <ScFormItem label="视频名称" prop="videoName">
+        <ScInput v-model="formData.videoName" placeholder="请输入视频名称" />
+      </ScFormItem>
 
-      <el-form-item label="视频描述" prop="videoDescription">
-        <el-input v-model="formData.videoDescription" type="textarea" :rows="3" placeholder="请输入视频描述" />
-      </el-form-item>
+      <ScFormItem label="视频描述" prop="videoDescription">
+        <ScInput v-model="formData.videoDescription" type="textarea" :rows="3" placeholder="请输入视频描述" />
+      </ScFormItem>
 
-      <el-form-item label="视频封面" prop="videoCover">
-        <el-input v-model="formData.videoCover" placeholder="请输入视频封面URL" />
+      <ScFormItem label="视频封面" prop="videoCover">
+        <ScInput v-model="formData.videoCover" placeholder="请输入视频封面URL" />
         <div class="preview-container" v-if="formData.videoCover">
-          <el-image :src="formData.videoCover" class="cover-image" fit="cover" />
+          <ScImage :src="formData.videoCover" class="cover-image" fit="cover" />
         </div>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="视频地址" prop="videoUrl">
-        <el-input v-model="formData.videoUrl" placeholder="请输入视频URL" />
-      </el-form-item>
+      <ScFormItem label="视频地址" prop="videoUrl">
+        <ScInput v-model="formData.videoUrl" placeholder="请输入视频URL" />
+      </ScFormItem>
 
-      <el-form-item label="视频路径" prop="videoPath">
-        <el-input v-model="formData.videoPath" placeholder="请输入视频路径" />
-      </el-form-item>
+      <ScFormItem label="视频路径" prop="videoPath">
+        <ScInput v-model="formData.videoPath" placeholder="请输入视频路径" />
+      </ScFormItem>
 
-      <el-form-item label="视频标签" prop="videoTags">
-        <el-tag v-for="tag in tags" :key="tag" class="mx-1" closable :disable-transitions="false" @close="handleRemoveTag(tag)">
+      <ScFormItem label="视频标签" prop="videoTags">
+        <ScTag v-for="tag in tags" :key="tag" class="mx-1" closable :disable-transitions="false" @close="handleRemoveTag(tag)">
           {{ tag }}
-        </el-tag>
-        <el-input v-if="inputTagVisible" ref="tagInputRef" v-model="inputTagValue" class="tag-input" size="small" @keyup.enter="handleAddTag" @blur="handleAddTag" />
-        <el-button v-else class="button-new-tag" size="small" @click="showTagInput">
+        </ScTag>
+        <ScInput v-if="inputTagVisible" ref="tagInputRef" v-model="inputTagValue" class="tag-input" size="small" @keyup.enter="handleAddTag" @blur="handleAddTag" />
+        <ScButton v-else class="button-new-tag" size="small" @click="showTagInput">
           <IconifyIconOnline icon="ep:plus" />
           添加标签
-        </el-button>
-      </el-form-item>
+        </ScButton>
+      </ScFormItem>
 
-      <el-form-item label="视频类型" prop="videoType">
-        <el-select v-model="formData.videoType" placeholder="请选择视频类型">
-          <el-option label="MP4" value="mp4" />
-          <el-option label="AVI" value="avi" />
-          <el-option label="MKV" value="mkv" />
-          <el-option label="MOV" value="mov" />
-          <el-option label="WMV" value="wmv" />
-        </el-select>
-      </el-form-item>
+      <ScFormItem label="视频类型" prop="videoType">
+        <ScSelect v-model="formData.videoType" placeholder="请选择视频类型">
+          <ScOption label="MP4" value="mp4" />
+          <ScOption label="AVI" value="avi" />
+          <ScOption label="MKV" value="mkv" />
+          <ScOption label="MOV" value="mov" />
+          <ScOption label="WMV" value="wmv" />
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="视频大小" prop="videoSize">
-        <el-input-number v-model="formData.videoSize" :min="0" :precision="0" :step="1024" placeholder="视频大小（字节）" />
-      </el-form-item>
+      <ScFormItem label="视频大小" prop="videoSize">
+        <ScInputNumber v-model="formData.videoSize" :min="0" :precision="0" :step="1024" placeholder="视频大小（字节）" />
+      </ScFormItem>
 
-      <el-form-item label="视频时长" prop="videoDuration">
-        <el-input-number v-model="formData.videoDuration" :min="0" :precision="0" :step="1" placeholder="视频时长（秒）" />
-      </el-form-item>
+      <ScFormItem label="视频时长" prop="videoDuration">
+        <ScInputNumber v-model="formData.videoDuration" :min="0" :precision="0" :step="1" placeholder="视频时长（秒）" />
+      </ScFormItem>
 
-      <el-form-item label="视频状态" prop="videoStatus">
-        <el-radio-group v-model="formData.videoStatus">
-          <el-radio :label="1">启用</el-radio>
-          <el-radio :label="0">禁用</el-radio>
-        </el-radio-group>
-      </el-form-item>
+      <ScFormItem label="视频状态" prop="videoStatus">
+        <ScRadioGroup v-model="formData.videoStatus">
+          <ScRadio :label="1">启用</ScRadio>
+          <ScRadio :label="0">禁用</ScRadio>
+        </ScRadioGroup>
+      </ScFormItem>
 
-      <el-form-item>
-        <el-button type="primary" @click="submitForm" :loading="loading">
+      <ScFormItem>
+        <ScButton type="primary" @click="submitForm" :loading="loading">
           {{ isEdit ? "更新" : "保存" }}
-        </el-button>
-        <el-button @click="goBack">取消</el-button>
-      </el-form-item>
-    </el-form>
+        </ScButton>
+        <ScButton @click="goBack">取消</ScButton>
+      </ScFormItem>
+    </ScForm>
   </div>
 </template>
 

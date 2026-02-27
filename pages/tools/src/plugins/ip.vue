@@ -1,4 +1,6 @@
-<script setup>
+﻿<script setup>
+
+import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed } from "vue";
 import { getCurrentIP, message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -607,9 +609,9 @@ onMounted(async () => {
           <div class="ip-tool__header-info-item ip-tool__header-info-ip">
             <IconifyIconOnline icon="ri:ip-line" class="ip-tool__header-info-icon" />
             <span>{{ env.currentIP }}</span>
-            <el-button type="primary" link size="small" @click="copyToClipboard(env.currentIP)" class="ip-tool__copy-ip-btn">
+            <ScButton type="primary" link size="small" @click="copyToClipboard(env.currentIP)" class="ip-tool__copy-ip-btn">
               <IconifyIconOnline icon="ri:file-copy-line" />
-            </el-button>
+            </ScButton>
           </div>
 
           <!-- 位置信息显示 -->
@@ -626,10 +628,10 @@ onMounted(async () => {
         </div>
       </div>
 
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 左侧输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="ip-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="ip-tool__input-card" shadow="hover">
             <template #header>
               <div class="ip-tool__card-header">
                 <IconifyIconOnline icon="ri:input-method-line" class="ip-tool__card-icon" />
@@ -637,27 +639,27 @@ onMounted(async () => {
               </div>
             </template>
 
-            <el-form label-position="top">
+            <ScForm label-position="top">
               <!-- IP 类型选择 -->
-              <el-form-item label="IP 类型">
-                <el-radio-group v-model="env.ipType" class="ip-tool__radio-group">
-                  <el-radio v-for="item in env.ipTypes" :key="item.value" :label="item.value">
+              <ScFormItem label="IP 类型">
+                <ScRadioGroup v-model="env.ipType" class="ip-tool__radio-group">
+                  <ScRadio v-for="item in env.ipTypes" :key="item.value" :label="item.value">
                     <div class="ip-tool__radio-content">
                       <IconifyIconOnline :icon="ipTypeIcon" />
                       <span>{{ item.label }}</span>
                     </div>
-                  </el-radio>
-                </el-radio-group>
-              </el-form-item>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
 
               <!-- IP 输入框 -->
-              <el-form-item label="输入值">
-                <el-input v-model="env.inputValue" :placeholder="`请输入 ${env.ipTypes.find((t) => t.value === env.ipType)?.label} 地址，如：${env.ipTypes.find((t) => t.value === env.ipType)?.example}`" clearable class="ip-tool__input" @input="debounceParseIP">
+              <ScFormItem label="输入值">
+                <ScInput v-model="env.inputValue" :placeholder="`请输入 ${env.ipTypes.find((t) => t.value === env.ipType)?.label} 地址，如：${env.ipTypes.find((t) => t.value === env.ipType)?.example}`" clearable class="ip-tool__input" @input="debounceParseIP">
                   <template #prefix>
                     <IconifyIconOnline icon="ri:global-line" />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
               <!-- 历史记录区域 -->
               <div class="ip-tool__history" v-if="env.ipHistory.length > 0">
@@ -666,34 +668,34 @@ onMounted(async () => {
                   <span>历史记录:</span>
                 </div>
                 <div class="ip-tool__history-tags">
-                  <el-tag v-for="(ip, index) in env.ipHistory" :key="index" class="ip-tool__history-tag" @click="selectFromHistory(ip)" :effect="env.inputValue === ip ? 'dark' : 'plain'" size="small">
+                  <ScTag v-for="(ip, index) in env.ipHistory" :key="index" class="ip-tool__history-tag" @click="selectFromHistory(ip)" :effect="env.inputValue === ip ? 'dark' : 'plain'" size="small">
                     {{ ip }}
-                  </el-tag>
+                  </ScTag>
                 </div>
               </div>
 
               <!-- 操作按钮区域 -->
               <div class="ip-tool__actions flex">
-                <el-button type="primary" :loading="env.loading" class="ip-tool__parse-btn" @click="parseIP">
+                <ScButton type="primary" :loading="env.loading" class="ip-tool__parse-btn" @click="parseIP">
                   <IconifyIconOnline icon="ri:search-line" />
                   <span>解析 IP</span>
-                </el-button>
+                </ScButton>
 
-                <el-button type="success" class="ip-tool__now-btn" @click="fetchCurrentIP" :loading="env.isLoading">
+                <ScButton type="success" class="ip-tool__now-btn" @click="fetchCurrentIP" :loading="env.isLoading">
                   <IconifyIconOnline icon="ri:radar-line" />
                   <span>获取当前 IP</span>
-                </el-button>
+                </ScButton>
 
-                <el-button class="ip-tool__reset-btn" @click="resetForm">
+                <ScButton class="ip-tool__reset-btn" @click="resetForm">
                   <IconifyIconOnline icon="ri:refresh-line" />
                   <span>重置</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
-          </el-card>
+            </ScForm>
+          </ScCard>
 
           <!-- 高级功能卡片 -->
-          <el-card class="ip-tool__advanced-card" shadow="hover">
+          <ScCard class="ip-tool__advanced-card" shadow="hover">
             <template #header>
               <div class="ip-tool__card-header">
                 <IconifyIconOnline icon="ri:tools-line" class="ip-tool__card-icon" />
@@ -701,16 +703,16 @@ onMounted(async () => {
               </div>
             </template>
 
-            <el-tabs v-model="env.activeTab" class="ip-tool__tabs">
+            <ScTabs v-model="env.activeTab" class="ip-tool__tabs">
               <!-- Ping 功能 -->
-              <el-tab-pane label="Ping" name="ping">
+              <ScTabPane label="Ping" name="ping">
                 <div class="ip-tool__tab-content">
                   <div class="ip-tool__tab-header">
                     <span class="ip-tool__tab-title">
                       <IconifyIconOnline icon="ri:radar-line" class="ip-tool__tab-icon" />
                       Ping 测试
                     </span>
-                    <el-button type="primary" size="small" @click="pingIP" :loading="env.pingStatus === 'running'" :disabled="!env.inputValue"> 开始测试 </el-button>
+                    <ScButton type="primary" size="small" @click="pingIP" :loading="env.pingStatus === 'running'" :disabled="!env.inputValue"> 开始测试 </ScButton>
                   </div>
 
                   <div class="ip-tool__ping-results" v-if="env.pingResults.length > 0">
@@ -721,19 +723,19 @@ onMounted(async () => {
                     </div>
                   </div>
 
-                  <el-empty v-else description="点击开始测试按钮进行 Ping 测试" />
+                  <ScEmpty v-else description="点击开始测试按钮进行 Ping 测试" />
                 </div>
-              </el-tab-pane>
+              </ScTabPane>
 
               <!-- Traceroute 功能 -->
-              <el-tab-pane label="路由追踪" name="traceroute">
+              <ScTabPane label="路由追踪" name="traceroute">
                 <div class="ip-tool__tab-content">
                   <div class="ip-tool__tab-header">
                     <span class="ip-tool__tab-title">
                       <IconifyIconOnline icon="ri:route-line" class="ip-tool__tab-icon" />
                       路由追踪
                     </span>
-                    <el-button type="primary" size="small" @click="tracerouteIP" :loading="env.tracerouteStatus === 'running'" :disabled="!env.inputValue"> 开始追踪 </el-button>
+                    <ScButton type="primary" size="small" @click="tracerouteIP" :loading="env.tracerouteStatus === 'running'" :disabled="!env.inputValue"> 开始追踪 </ScButton>
                   </div>
 
                   <div class="ip-tool__traceroute-results" v-if="env.tracerouteResults.length > 0">
@@ -749,19 +751,19 @@ onMounted(async () => {
                     </div>
                   </div>
 
-                  <el-empty v-else description="点击开始追踪按钮进行路由追踪" />
+                  <ScEmpty v-else description="点击开始追踪按钮进行路由追踪" />
                 </div>
-              </el-tab-pane>
+              </ScTabPane>
 
               <!-- WHOIS 查询 -->
-              <el-tab-pane label="WHOIS" name="whois">
+              <ScTabPane label="WHOIS" name="whois">
                 <div class="ip-tool__tab-content">
                   <div class="ip-tool__tab-header">
                     <span class="ip-tool__tab-title">
                       <IconifyIconOnline icon="ri:information-line" class="ip-tool__tab-icon" />
                       WHOIS 查询
                     </span>
-                    <el-button type="primary" size="small" @click="queryWhois" :loading="env.whoisLoading" :disabled="!env.inputValue"> 查询信息 </el-button>
+                    <ScButton type="primary" size="small" @click="queryWhois" :loading="env.whoisLoading" :disabled="!env.inputValue"> 查询信息 </ScButton>
                   </div>
 
                   <div class="ip-tool__whois-results" v-if="env.whoisData">
@@ -775,16 +777,16 @@ onMounted(async () => {
                     </el-descriptions>
                   </div>
 
-                  <el-empty v-else description="点击查询信息按钮获取 WHOIS 数据" />
+                  <ScEmpty v-else description="点击查询信息按钮获取 WHOIS 数据" />
                 </div>
-              </el-tab-pane>
-            </el-tabs>
-          </el-card>
-        </el-col>
+              </ScTabPane>
+            </ScTabs>
+          </ScCard>
+        </ScCol>
 
         <!-- 右侧结果区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="ip-tool__result-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="ip-tool__result-card" shadow="hover">
             <template #header>
               <div class="ip-tool__card-header">
                 <IconifyIconOnline icon="ri:file-list-line" class="ip-tool__card-icon" />
@@ -793,11 +795,11 @@ onMounted(async () => {
             </template>
 
             <!-- 空状态提示 -->
-            <el-empty v-if="!env.outputResults.length" description="请先输入并解析 IP 地址" class="ip-tool__empty">
+            <ScEmpty v-if="!env.outputResults.length" description="请先输入并解析 IP 地址" class="ip-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:global-line" class="ip-tool__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <!-- 结果列表 -->
             <div v-else class="ip-tool__results">
@@ -808,9 +810,9 @@ onMounted(async () => {
                 </div>
                 <div class="ip-tool__result-value">
                   <span>{{ result.value }}</span>
-                  <el-button type="primary" link size="small" class="ip-tool__copy-btn" @click="copyToClipboard(result.value)">
+                  <ScButton type="primary" link size="small" class="ip-tool__copy-btn" @click="copyToClipboard(result.value)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
@@ -842,10 +844,10 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- IP 地理位置卡片 -->
-          <el-card class="ip-tool__map-card" shadow="hover" v-if="env.outputResults.length">
+          <ScCard class="ip-tool__map-card" shadow="hover" v-if="env.outputResults.length">
             <template #header>
               <div class="ip-tool__card-header">
                 <IconifyIconOnline icon="ri:map-pin-line" class="ip-tool__card-icon" />
@@ -909,9 +911,9 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

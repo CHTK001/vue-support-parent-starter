@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg video-detail-container">
     <!-- 美化后的页面头部 -->
     <div class="detail-header">
@@ -16,9 +16,9 @@
       <div class="poster-section">
         <div class="poster-wrapper">
           <div class="poster-container">
-            <el-image v-if="videoData.videoCover" referrerpolicy="no-referrer" :src="videoData.videoCover?.split(',')?.[0]" :preview-src-list="videoData.videoCover?.split(',')" fit="cover" class="poster-image">
+            <ScImage v-if="videoData.videoCover" referrerpolicy="no-referrer" :src="videoData.videoCover?.split(',')?.[0]" :preview-src-list="videoData.videoCover?.split(',')" fit="cover" class="poster-image">
               <template #error>
-                <el-image
+                <ScImage 
                   v-if="videoData.videoCover"
                   referrerpolicy="no-referrer"
                   :src="createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)"
@@ -32,9 +32,9 @@
                       <span>暂无海报</span>
                     </div>
                   </template>
-                </el-image>
+                </ScImage>
               </template>
-            </el-image>
+            </ScImage>
             <div v-else class="no-poster">
               <IconifyIconOnline icon="ep:picture" class="no-poster-icon" />
               <span>暂无海报</span>
@@ -61,14 +61,14 @@
         </div>
 
         <div class="action-buttons">
-          <el-button type="primary" @click="handleEdit" class="action-btn primary-btn">
+          <ScButton type="primary" @click="handleEdit" class="action-btn primary-btn">
             <IconifyIconOnline icon="ep:edit" />
             <span>编辑视频</span>
-          </el-button>
-          <el-button type="success" @click="handlePlay" class="action-btn play-btn" v-if="videoData.videoUrl">
+          </ScButton>
+          <ScButton type="success" @click="handlePlay" class="action-btn play-btn" v-if="videoData.videoUrl">
             <IconifyIconOnline icon="ep:video-play" />
             <span>播放视频</span>
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -122,16 +122,16 @@
               <IconifyIconOnline icon="ep:download" class="title-icon" />
               <h3>下载信息</h3>
             </div>
-            <el-button type="primary" size="small" @click="showAddLinkDialog" class="add-link-btn">
+            <ScButton type="primary" size="small" @click="showAddLinkDialog" class="add-link-btn">
               <IconifyIconOnline icon="ep:plus" />
               <span>新增链接</span>
-            </el-button>
+            </ScButton>
           </div>
 
           <div class="download-tabs">
-            <el-tabs type="border-card" class="modern-tabs">
+            <ScTabs type="border-card" class="modern-tabs">
               <!-- 下载资源选项卡 -->
-              <el-tab-pane label="下载资源">
+              <ScTabPane label="下载资源">
                 <!-- 过滤器 -->
                 <div class="filter-container">
                   <div class="filter-row">
@@ -157,26 +157,26 @@
                       </div>
                     </div>
                     <div class="download-actions">
-                      <el-button type="primary" size="small" @click="copyDownloadLink(download)">
+                      <ScButton type="primary" size="small" @click="copyDownloadLink(download)">
                         <IconifyIconOnline icon="ep:copy-document" />
                         复制
-                      </el-button>
-                      <el-button type="success" size="small" @click="handleDownload(download)">
+                      </ScButton>
+                      <ScButton type="success" size="small" @click="handleDownload(download)">
                         <IconifyIconOnline icon="ep:download" />
                         下载
-                      </el-button>
-                      <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(download)">
+                      </ScButton>
+                      <ScButton v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(download)">
                         <IconifyIconOnline icon="ep:delete" />
                         删除
-                      </el-button>
+                      </ScButton>
                     </div>
                   </div>
                 </div>
                 <div v-else class="no-data">暂无下载资源</div>
-              </el-tab-pane>
+              </ScTabPane>
 
               <!-- 磁力资源选项卡 - 更紧凑的布局 -->
-              <el-tab-pane label="磁力资源">
+              <ScTabPane label="磁力资源">
                 <!-- 高清度和磁力类型过滤 -->
                 <div class="filter-container flex flex-row">
                   <el-segmented v-model="qualityFilter" :options="qualityFilterOptions" @change="debounceFilter(() => {})"> </el-segmented>
@@ -206,14 +206,14 @@
                             </div>
                           </div>
                           <div class="download-actions">
-                            <el-button type="primary" size="small" @click="copyMagnetLink(magnet.videoDownloadUrl)">
+                            <ScButton type="primary" size="small" @click="copyMagnetLink(magnet.videoDownloadUrl)">
                               <IconifyIconOnline icon="ep:copy-document" />
                               复制
-                            </el-button>
-                            <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(magnet)">
+                            </ScButton>
+                            <ScButton v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(magnet)">
                               <IconifyIconOnline icon="ep:delete" />
                               删除
-                            </el-button>
+                            </ScButton>
                           </div>
                         </div>
                       </transition-group>
@@ -221,17 +221,17 @@
                     <div v-if="!filteredMagnetLinks.length" class="no-data">暂无磁力资源</div>
                   </div>
                 </div>
-              </el-tab-pane>
+              </ScTabPane>
 
               <!-- 网盘资源选项卡 - 更紧凑的布局 -->
-              <el-tab-pane label="网盘资源">
+              <ScTabPane label="网盘资源">
                 <!-- 添加网盘类型过滤 -->
                 <div class="filter-container">
                   <div class="pan-type-tags">
-                    <el-tag :effect="panTypeFilter === '' ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === '' }" @click="debounceFilter(() => (panTypeFilter = ''))"> 全部 </el-tag>
-                    <el-tag v-for="type in panTypes" :key="type.value" :effect="panTypeFilter === type.value ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === type.value }" @click="debounceFilter(() => (panTypeFilter = type.value))">
+                    <ScTag :effect="panTypeFilter === '' ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === '' }" @click="debounceFilter(() => (panTypeFilter = ''))"> 全部 </ScTag>
+                    <ScTag v-for="type in panTypes" :key="type.value" :effect="panTypeFilter === type.value ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === type.value }" @click="debounceFilter(() => (panTypeFilter = type.value))">
                       {{ type.label }}
-                    </el-tag>
+                    </ScTag>
                   </div>
                 </div>
 
@@ -254,18 +254,18 @@
                             </div>
                           </div>
                           <div class="download-actions">
-                            <el-button type="primary" size="small" @click="copyPanLink(pan.videoDownloadUrl)">
+                            <ScButton type="primary" size="small" @click="copyPanLink(pan.videoDownloadUrl)">
                               <IconifyIconOnline icon="ep:copy-document" />
                               复制
-                            </el-button>
-                            <el-button type="success" size="small" @click="openPanLink(pan.videoDownloadUrl)">
+                            </ScButton>
+                            <ScButton type="success" size="small" @click="openPanLink(pan.videoDownloadUrl)">
                               <IconifyIconOnline icon="ep:link" />
                               打开
-                            </el-button>
-                            <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(pan)">
+                            </ScButton>
+                            <ScButton v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(pan)">
                               <IconifyIconOnline icon="ep:delete" />
                               删除
-                            </el-button>
+                            </ScButton>
                           </div>
                         </div>
                       </transition-group>
@@ -273,10 +273,10 @@
                     <div v-if="!filteredPanLinks.length" class="no-data">暂无网盘资源</div>
                   </div>
                 </div>
-              </el-tab-pane>
+              </ScTabPane>
 
               <!-- 在线播放选项卡 - 更紧凑的布局 -->
-              <el-tab-pane label="在线播放">
+              <ScTabPane label="在线播放">
                 <div class="download-list compact" v-if="playAddressList">
                   <div v-for="(online, index) in playAddressList" :key="'online-' + index" class="download-item">
                     <div class="download-info">
@@ -290,33 +290,33 @@
                       </div>
                       <div>
                         <template v-for="channel in online.videoPlayAddressChannels" :key="channel">
-                          <el-button class="inline-channel" @click="openOnlineLink(channel.videoPlayAddressUrl)">
+                          <ScButton class="inline-channel" @click="openOnlineLink(channel.videoPlayAddressUrl)">
                             <IconifyIconOnline icon="ep:video-play" />
                             {{ channel.videoPlayAddressChannelName }}
-                          </el-button>
+                          </ScButton>
                         </template>
                       </div>
                     </div>
                     <div class="download-actions" v-if="online.videoPlayAddressChannels.length == 1">
-                      <el-button type="success" size="small" @click="openOnlineLink(online.videoPlayAddressChannels[0].videoPlayAddressUrl)">
+                      <ScButton type="success" size="small" @click="openOnlineLink(online.videoPlayAddressChannels[0].videoPlayAddressUrl)">
                         <IconifyIconOnline icon="ep:video-play" />
                         播放
-                      </el-button>
+                      </ScButton>
                     </div>
                   </div>
                   <div v-if="!playAddressList" class="no-data">暂无在线资源</div>
                 </div>
-              </el-tab-pane>
-            </el-tabs>
+              </ScTabPane>
+            </ScTabs>
           </div>
         </div>
 
         <div class="tags-section" v-if="videoData.videoTags">
           <h3 class="section-title">标签</h3>
           <div class="tags-list">
-            <el-tag v-for="(tag, index) in videoData.videoTags?.split(',').filter((t) => t)" :key="index" class="tag-item" effect="plain">
+            <ScTag v-for="(tag, index) in videoData.videoTags?.split(',').filter((t) => t)" :key="index" class="tag-item" effect="plain">
               {{ tag }}
-            </el-tag>
+            </ScTag>
             <span v-if="!videoData.videoTags || videoData.videoTags.split(',').filter((t) => t).length === 0" class="no-data"> 暂无标签 </span>
           </div>
         </div>
@@ -328,9 +328,11 @@
 </template>
 
 <script setup lang="ts">
+
+import ScTabPane from "@repo/components/ScTabs";
 import { getConfig } from "@repo/config";
-import { formatDateTime, getRandomString, message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { formatDateTime, getRandomString, message , ScMessageBox} from "@repo/utils";
+
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { deleteDownload, getDownloadsByVideoId } from "../../../api/download";
@@ -769,7 +771,7 @@ const handleDeleteDownload = (download) => {
     return;
   }
 
-  ElMessageBox.confirm("确定要删除该下载链接吗？删除后无法恢复。", "删除确认", {
+  ScMessageBox.confirm("确定要删除该下载链接吗？删除后无法恢复。", "删除确认", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning",

@@ -1,36 +1,36 @@
-<template>
+﻿<template>
   <div class="config-actions">
     <!-- 快速操作 -->
     <div class="quick-actions">
-      <el-button v-if="config.videoSyncConfigStatus === 0" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
+      <ScButton v-if="config.videoSyncConfigStatus === 0" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
         <IconifyIconOnline icon="ep:video-play" />
-      </el-button>
-      <el-button v-else type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
+      </ScButton>
+      <ScButton v-else type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
         <IconifyIconOnline icon="ep:video-pause" />
-      </el-button>
-      <el-button type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
+      </ScButton>
+      <ScButton type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
         <IconifyIconOnline icon="ep:refresh" />
-      </el-button>
+      </ScButton>
     </div>
 
     <!-- 主要操作 -->
     <div class="primary-actions">
-      <el-button type="primary" size="small" @click="handleAction('edit')">
+      <ScButton type="primary" size="small" @click="handleAction('edit')">
         <IconifyIconOnline icon="ep:edit" class="mr-1" />
         编辑
-      </el-button>
-      <el-button type="info" size="small" @click="handleAction('test')">
+      </ScButton>
+      <ScButton type="info" size="small" @click="handleAction('test')">
         <IconifyIconOnline icon="ep:connection" class="mr-1" />
         测试
-      </el-button>
+      </ScButton>
     </div>
 
     <!-- 次要操作 -->
     <div class="secondary-actions">
-      <el-button type="danger" size="small" text @click="handleAction('delete')">
+      <ScButton type="danger" size="small" text @click="handleAction('delete')">
         <IconifyIconOnline icon="ep:delete" class="mr-1" />
         删除
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="video-nav">
     <div class="video-nav__category">
       <!-- 首页选项 -->
@@ -12,14 +12,14 @@
         <span>{{ category.label }}</span>
       </div>
       <div class="video-nav__search">
-        <el-input v-model="searchKeyword" placeholder="请输入视频名称、演员、导演等关键词" class="video-nav__input" clearable @keyup.enter="handleSearch">
+        <ScInput v-model="searchKeyword" placeholder="请输入视频名称、演员、导演等关键词" class="video-nav__input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
-        </el-input>
-        <el-button type="primary" class="video-nav__button" @click="handleSearch">
+        </ScInput>
+        <ScButton type="primary" class="video-nav__button" @click="handleSearch">
           <IconifyIconOnline icon="ep:search" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
   </div>

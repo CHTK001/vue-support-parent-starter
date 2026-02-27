@@ -1,26 +1,26 @@
-<template>
+﻿<template>
   <div class="tools-container system-container modern-bg">
     <!-- 当没有plugin参数时显示工具列表 -->
     <template v-if="!currentPlugin || currentPlugin == 1">
-      <el-card class="tools-header">
+      <ScCard class="tools-header">
         <template #header>
           <div class="card-header">
             <span>在线工具箱</span>
             <div class="search-box">
-              <el-input v-model="searchText" placeholder="搜索工具" clearable>
+              <ScInput v-model="searchText" placeholder="搜索工具" clearable>
                 <template #prefix>
                   <IconifyIconOnline icon="ep:search" />
                 </template>
-              </el-input>
+              </ScInput>
             </div>
           </div>
         </template>
         <div class="tools-description">
           <p>这里提供了各种实用的在线工具，点击卡片可以使用对应的功能。</p>
         </div>
-      </el-card>
+      </ScCard>
 
-      <el-card class="tools-content">
+      <ScCard class="tools-content">
         <ScTable
           layout="card"
           ref="tableRef"
@@ -41,18 +41,18 @@
             </div>
           </template>
         </ScTable>
-      </el-card>
+      </ScCard>
     </template>
 
     <!-- 当有plugin参数时显示对应的工具组件 -->
     <template v-else>
-      <el-card class="plugin-container">
+      <ScCard class="plugin-container">
         <template #header>
           <div class="plugin-header">
-            <el-button type="primary" text @click="backToList">
+            <ScButton type="primary" text @click="backToList">
               <IconifyIconOnline icon="ep:back" />
               返回工具列表
-            </el-button>
+            </ScButton>
             <span class="plugin-title">{{
               currentToolInfo?.name || "工具详情"
             }}</span>
@@ -66,7 +66,7 @@
           sub-title="请检查路径是否正确"
         >
           <template #extra>
-            <el-button type="primary" @click="backToList"
+            <ScButton type="primary" @click="backToList"
               >返回工具列表</el-button
             >
           </template>
@@ -74,7 +74,7 @@
         <div v-else class="loading-container">
           <el-skeleton :rows="10" animated />
         </div>
-      </el-card>
+      </ScCard>
     </template>
   </div>
 </template>

@@ -1,4 +1,4 @@
-<!--
+﻿<!--
  * ScText 组件示例
  * @author CH
  * @version 1.0.0
@@ -138,7 +138,7 @@
           :fetch-text="fetchRemoteText"
           @fetch-success="handleFetchSuccess"
         />
-        <el-button size="small" @click="refreshText">刷新</el-button>
+        <ScButton size="small" @click="refreshText">刷新</ScButton>
       </div>
     </DemoBlock>
 

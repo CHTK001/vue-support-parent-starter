@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import {
   clearObject,
@@ -236,20 +236,20 @@ onMounted(async () => {
       ref="moduleDialogRef"
       @success="handleRefreshEnvironment"
     ></ModuleDialog>
-    <el-button
+    <ScButton 
       :icon="useRenderIcon('ep:setting')"
       @click="handleOpenModuleManager"
       class="fixed right-4 top-1/2 sidebar-custom-v2 z-[99] bg-primary text-white hover:bg-primary-dark settings-btn"
       circle
       size="large"
     >
-    </el-button>
+    </ScButton>
     <el-container class="h-full">
       <el-header
         class="header-panel h-auto flex w-full items-center justify-between px-6 py-3 mb-2"
       >
         <div class="panel-left flex-1 mr-4">
-          <el-form
+          <ScForm 
             ref="formRef"
             :model="form"
             :rules="rules"
@@ -257,9 +257,9 @@ onMounted(async () => {
             :inline="true"
             class="w-full"
           >
-            <el-form-item prop="model" class="w-full mb-0">
+            <ScFormItem prop="model" class="w-full mb-0">
               <div class="flex justify-start w-full">
-                <el-select
+                <ScSelect 
                   filterable
                   v-model="form.model"
                   placeholder="请选择模型"
@@ -267,7 +267,7 @@ onMounted(async () => {
                   @change="handleChangeModule"
                   class="model-select !w-[200px]"
                 >
-                  <el-option
+                  <ScOption 
                     v-for="item in modelList"
                     class="!h-[70px]"
                     :key="item"
@@ -275,7 +275,7 @@ onMounted(async () => {
                     :value="item.sysAiModuleCode"
                   >
                     <template #default>
-                      <el-tooltip
+                      <ScTooltip 
                         placement="right"
                         :raw-content="true"
                         :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
@@ -283,7 +283,7 @@ onMounted(async () => {
                         <div
                           class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300"
                         >
-                          <el-image
+                          <ScImage 
                             :src="item.sysProjectIcon"
                             fit="scale-down"
                             class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
@@ -300,12 +300,12 @@ onMounted(async () => {
                             }}</span>
                           </div>
                         </div>
-                      </el-tooltip>
+                      </ScTooltip>
                     </template>
-                  </el-option>
+                  </ScOption>
                   <template #label="{ label }">
                     <div class="flex items-center gap-3">
-                      <el-image
+                      <ScImage 
                         class="!w-[32px] !h-[32px] rounded-lg"
                         :src="modelSelectLabel?.sysProjectIcon"
                         ><template #error
@@ -314,20 +314,20 @@ onMounted(async () => {
                       ><span>{{ label }}</span>
                     </div>
                   </template>
-                </el-select>
-                <el-button
+                </ScSelect>
+                <ScButton 
                   v-if="env.showEdit"
                   class="ml-2 btn-text bg-primary text-white hover:bg-primary-dark add-btn"
                   :icon="useRenderIcon('ep:plus')"
                   @click="handleOpenModule"
                 >
-                </el-button>
+                </ScButton>
               </div>
-            </el-form-item>
-          </el-form>
+            </ScFormItem>
+          </ScForm>
         </div>
         <div class="panel-right">
-          <el-upload
+          <ScUpload 
             :show-file-list="false"
             :auto-upload="false"
             accept="image/*"
@@ -335,19 +335,19 @@ onMounted(async () => {
             class="upload-demo"
           >
             <template #trigger>
-              <el-button
+              <ScButton 
                 type="primary"
                 class="bg-primary text-white hover:bg-primary-dark upload-btn"
               >
                 <span class="flex items-center">
-                  <el-icon class="mr-1 upload-icon"
+                  <ScIcon class="mr-1 upload-icon"
                     ><component :is="useRenderIcon('ep:upload')"
-                  /></el-icon>
+                  /></ScIcon>
                   上传图片
                 </span>
-              </el-button>
+              </ScButton>
             </template>
-          </el-upload>
+          </ScUpload>
         </div>
       </el-header>
       <el-main class="pt-0 pb-4 px-0 overflow-hidden">
@@ -363,18 +363,18 @@ onMounted(async () => {
               class="w-full h-full relative flex justify-center items-center"
             >
               <div v-if="!resolutionImage" class="h-full image-container">
-                <el-empty v-if="!showImageUrl" class="h-full empty-state">
+                <ScEmpty v-if="!showImageUrl" class="h-full empty-state">
                   <template #description>
                     <p class="empty-text">请上传一张需要上色的图片</p>
                   </template>
-                </el-empty>
-                <el-image
+                </ScEmpty>
+                <ScImage 
                   v-else
                   :src="showImageUrl"
                   class="h-full img rounded-lg image-preview"
                   fit="contain"
                   transition="fade"
-                ></el-image>
+                ></ScImage>
                 <ScLoading
                   ref="scLoadingRef"
                   v-model="loadingConfig.export"
@@ -396,13 +396,13 @@ onMounted(async () => {
                 class="absolute bottom-4 right-4 action-buttons"
               >
                 <a :href="resolutionImage" download>
-                  <el-button
+                  <ScButton 
                     :icon="useRenderIcon('ep:download')"
                     circle
                     size="large"
                     class="bg-primary text-white hover:bg-primary-dark download-btn"
                   >
-                  </el-button>
+                  </ScButton>
                 </a>
               </div>
             </div>

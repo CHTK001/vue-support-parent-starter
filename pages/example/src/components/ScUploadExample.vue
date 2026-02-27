@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-upload-example">
     <!-- 基础用法 -->
     <DemoBlock title="基础用法" :code="codes.basic">
@@ -14,7 +14,7 @@
       <p class="demo-tip">设置 :auto-upload="false"，选择文件后不会自动上传，需手动调用 submit()</p>
       <div class="demo-row">
         <ScUpload ref="manualUploadRef" v-model="url2" :auto-upload="false" @handleFile="handleFileSelect" />
-        <el-button type="primary" @click="handleManualUpload">手动上传</el-button>
+        <ScButton type="primary" @click="handleManualUpload">手动上传</ScButton>
       </div>
       <div class="demo-result">选择的文件: {{ selectedFile?.name || '(未选择)' }}</div>
     </DemoBlock>
@@ -183,7 +183,7 @@ const imageUrl = ref("");
   :auto-upload="false"
   @handleFile="handleFileSelect"
 />
-<el-button @click="uploadRef.submit()">手动上传</el-button>
+<ScButton @click="uploadRef.submit()">手动上传</ScButton>
 
 <script setup>
 const uploadRef = ref();

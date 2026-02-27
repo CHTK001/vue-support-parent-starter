@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 import Sortable from "sortablejs";
 import { defineComponent } from "vue";
 import Caret from "@iconify-icons/ep/d-caret";
@@ -67,11 +67,11 @@ export default defineComponent({
       <ul>
         <li v-for="item in usercolumn" :key="item.prop">
           <span class="move_b">
-            <el-tag class="move" style="cursor: move">
-              <el-icon style="width: 1em; height: 1em">
+            <ScTag class="move" style="cursor: move">
+              <ScIcon style="width: 1em; height: 1em">
                 <component :is="icon.Caret" />
-              </el-icon>
-            </el-tag>
+              </ScIcon>
+            </ScTag>
           </span>
           <span class="show_b">
             <ScSwitch
@@ -85,7 +85,7 @@ export default defineComponent({
             {{ item.label || item.name }}
           </span>
           <span class="width_b">
-            <el-input v-model="item.width" placeholder="auto" size="small" />
+            <ScInput v-model="item.width" placeholder="auto" size="small" />
           </span>
           <span class="sortable_b">
             <ScSwitch v-model="item.sortable" layout="modern" />
@@ -97,11 +97,11 @@ export default defineComponent({
       </ul>
     </div>
     <div class="setting-column__bottom">
-      <el-button :disabled="isSave" @click="backDefaul">重置</el-button>
-      <el-button type="primary" @click="save">保存</el-button>
+      <ScButton :disabled="isSave" @click="backDefaul">重置</ScButton>
+      <ScButton type="primary" @click="save">保存</ScButton>
     </div>
   </div>
-  <el-empty v-else description="暂无可配置的列" :image-size="80" />
+  <ScEmpty v-else description="暂无可配置的列" :image-size="80" />
 </template>
 
 <style scoped lang="scss">

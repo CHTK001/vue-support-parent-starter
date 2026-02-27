@@ -7,7 +7,7 @@
         <span>Mock 数据</span>
       </div>
       <div class="header-actions">
-        <el-switch
+        <ScSwitch 
           v-model="mockEnabled"
           active-text="启用"
           inactive-text="禁用"
@@ -19,27 +19,27 @@
     <!-- 当前 API Mock 配置 -->
     <div class="mock-content" v-if="api">
       <div class="api-info">
-        <el-tag :type="getMethodTagType(api.method)" size="small">
+        <ScTag :type="getMethodTagType(api.method)" size="small">
           {{ api.method.toUpperCase() }}
-        </el-tag>
+        </ScTag>
         <span class="api-path">{{ api.path }}</span>
       </div>
 
       <!-- Mock 配置表单 -->
-      <el-form label-position="top" size="small">
-        <el-form-item label="响应状态码">
-          <el-select v-model="mockConfig.statusCode" style="width: 100%">
-            <el-option :value="200" label="200 OK" />
-            <el-option :value="201" label="201 Created" />
-            <el-option :value="400" label="400 Bad Request" />
-            <el-option :value="401" label="401 Unauthorized" />
-            <el-option :value="403" label="403 Forbidden" />
-            <el-option :value="404" label="404 Not Found" />
-            <el-option :value="500" label="500 Internal Server Error" />
-          </el-select>
-        </el-form-item>
+      <ScForm label-position="top" size="small">
+        <ScFormItem label="响应状态码">
+          <ScSelect v-model="mockConfig.statusCode" style="width: 100%">
+            <ScOption :value="200" label="200 OK" />
+            <ScOption :value="201" label="201 Created" />
+            <ScOption :value="400" label="400 Bad Request" />
+            <ScOption :value="401" label="401 Unauthorized" />
+            <ScOption :value="403" label="403 Forbidden" />
+            <ScOption :value="404" label="404 Not Found" />
+            <ScOption :value="500" label="500 Internal Server Error" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="响应延迟(ms)">
+        <ScFormItem label="响应延迟(ms)">
           <ScSlider
             v-model="mockConfig.delay"
             :min="0"
@@ -47,15 +47,15 @@
             :step="100"
             show-input
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="Mock 响应数据">
+        <ScFormItem label="Mock 响应数据">
           <div class="editor-toolbar">
-            <el-button size="small" @click="generateMockData">
+            <ScButton size="small" @click="generateMockData">
               <i class="ri-magic-line"></i>
               自动生成
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               size="small"
               type="primary"
               @click="generateWithAI"
@@ -64,44 +64,44 @@
             >
               <i class="ri-robot-line"></i>
               AI 生成
-            </el-button>
-            <el-button size="small" @click="formatJson">
+            </ScButton>
+            <ScButton size="small" @click="formatJson">
               <i class="ri-code-line"></i>
               格式化
-            </el-button>
-            <el-button size="small" @click="clearMockData">
+            </ScButton>
+            <ScButton size="small" @click="clearMockData">
               <i class="ri-delete-bin-line"></i>
               清空
-            </el-button>
-            <el-button size="small" @click="showAIConfigDialog = true">
+            </ScButton>
+            <ScButton size="small" @click="showAIConfigDialog = true">
               <i class="ri-settings-4-line"></i>
               AI 配置
-            </el-button>
+            </ScButton>
           </div>
-          <el-input
+          <ScInput 
             v-model="mockConfig.responseData"
             type="textarea"
             :rows="12"
             placeholder="输入 JSON 格式的 Mock 数据..."
             class="mock-editor"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
 
       <!-- 操作按钮 -->
       <div class="mock-actions">
-        <el-button type="primary" @click="saveMockRule" :loading="saving">
+        <ScButton type="primary" @click="saveMockRule" :loading="saving">
           <i class="ri-save-line"></i>
           保存配置
-        </el-button>
-        <el-button @click="testMock">
+        </ScButton>
+        <ScButton @click="testMock">
           <i class="ri-play-line"></i>
           测试 Mock
-        </el-button>
-        <el-button type="danger" @click="deleteMockRule" v-if="currentRule">
+        </ScButton>
+        <ScButton type="danger" @click="deleteMockRule" v-if="currentRule">
           <i class="ri-delete-bin-line"></i>
           删除规则
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -113,9 +113,9 @@
 
     <!-- Mock 规则列表 -->
     <div class="mock-rules-section" v-if="mockRules.length > 0">
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <span class="rules-title">已配置的 Mock 规则</span>
-      </el-divider>
+      </ScDivider>
       <el-scrollbar max-height="200px">
         <div
           v-for="rule in mockRules"
@@ -124,25 +124,25 @@
           :class="{ active: rule.path === api?.path && rule.method === api?.method }"
         >
           <div class="rule-info">
-            <el-tag :type="getMethodTagType(rule.method)" size="small">
+            <ScTag :type="getMethodTagType(rule.method)" size="small">
               {{ rule.method.toUpperCase() }}
-            </el-tag>
+            </ScTag>
             <span class="rule-path">{{ rule.path }}</span>
           </div>
           <div class="rule-actions">
-            <el-switch
+            <ScSwitch 
               v-model="rule.enabled"
               size="small"
               @change="handleRuleToggle(rule)"
             />
-            <el-button
+            <ScButton 
               size="small"
               text
               type="danger"
               @click="handleDeleteRule(rule)"
             >
               <i class="ri-delete-bin-line"></i>
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </el-scrollbar>
@@ -150,33 +150,33 @@
 
     <!-- AI 配置对话框 -->
     <sc-dialog v-model="showAIConfigDialog" title="AI 服务配置" width="550px">
-      <el-form label-width="100px" size="small">
-        <el-form-item label="启用 AI">
-          <el-switch v-model="aiConfig.enabled" />
-        </el-form-item>
-        <el-form-item label="服务提供商">
-          <el-select v-model="aiConfig.provider" @change="handleProviderChange" style="width: 100%">
-            <el-option label="OpenAI" value="openai" />
-            <el-option label="Anthropic (Claude)" value="anthropic" />
-            <el-option label="Google Gemini" value="gemini" />
-            <el-option label="HuggingFace" value="huggingface" />
-            <el-option label="Cloudflare Workers AI" value="cloudflare" />
-            <el-option label="Ollama (本地)" value="ollama" />
-            <el-option label="自定义" value="custom" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="API 地址">
-          <el-input v-model="aiConfig.apiUrl" placeholder="API 端点地址" />
-        </el-form-item>
-        <el-form-item label="API Key">
-          <el-input v-model="aiConfig.apiKey" type="password" placeholder="输入 API Key" show-password />
-        </el-form-item>
-        <el-form-item label="模型名称">
-          <el-input v-model="aiConfig.model" placeholder="模型名称" />
-        </el-form-item>
-      </el-form>
+      <ScForm label-width="100px" size="small">
+        <ScFormItem label="启用 AI">
+          <ScSwitch v-model="aiConfig.enabled" />
+        </ScFormItem>
+        <ScFormItem label="服务提供商">
+          <ScSelect v-model="aiConfig.provider" @change="handleProviderChange" style="width: 100%">
+            <ScOption label="OpenAI" value="openai" />
+            <ScOption label="Anthropic (Claude)" value="anthropic" />
+            <ScOption label="Google Gemini" value="gemini" />
+            <ScOption label="HuggingFace" value="huggingface" />
+            <ScOption label="Cloudflare Workers AI" value="cloudflare" />
+            <ScOption label="Ollama (本地)" value="ollama" />
+            <ScOption label="自定义" value="custom" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="API 地址">
+          <ScInput v-model="aiConfig.apiUrl" placeholder="API 端点地址" />
+        </ScFormItem>
+        <ScFormItem label="API Key">
+          <ScInput v-model="aiConfig.apiKey" type="password" placeholder="输入 API Key" show-password />
+        </ScFormItem>
+        <ScFormItem label="模型名称">
+          <ScInput v-model="aiConfig.model" placeholder="模型名称" />
+        </ScFormItem>
+      </ScForm>
       <div class="ai-tips">
-        <el-alert type="info" :closable="false">
+        <ScAlert type="info" :closable="false">
           <template #title>
             <div class="tips-content">
               <p>提示：</p>
@@ -188,11 +188,11 @@
               </ul>
             </div>
           </template>
-        </el-alert>
+        </ScAlert>
       </div>
       <template #footer>
-        <el-button @click="showAIConfigDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveAIConfig">保存配置</el-button>
+        <ScButton @click="showAIConfigDialog = false">取消</ScButton>
+        <ScButton type="primary" @click="saveAIConfig">保存配置</ScButton>
       </template>
     </sc-dialog>
 
@@ -201,9 +201,9 @@
       <div class="test-result">
         <el-descriptions :column="2" border size="small">
           <el-descriptions-item label="状态码">
-            <el-tag :type="testResult?.statusCode === 200 ? 'success' : 'danger'" size="small">
+            <ScTag :type="testResult?.statusCode === 200 ? 'success' : 'danger'" size="small">
               {{ testResult?.statusCode }}
-            </el-tag>
+            </ScTag>
           </el-descriptions-item>
           <el-descriptions-item label="延迟">
             {{ testResult?.delay }}ms
@@ -215,7 +215,7 @@
         </div>
       </div>
       <template #footer>
-        <el-button @click="testDialogVisible = false">关闭</el-button>
+        <ScButton @click="testDialogVisible = false">关闭</ScButton>
       </template>
     </sc-dialog>
   </div>
@@ -223,7 +223,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted, computed } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ScMessage, ScMessageBox } from "@repo/utils";
 import type { ApiInfo } from "../types";
 import { DocStorage, type MockRule } from "../storage";
 import { aiService, type AIServiceConfig, type AIProvider } from "../ai-service";
@@ -311,11 +311,11 @@ const handleProviderChange = (provider: AIProvider) => {
 const saveAIConfig = async () => {
   try {
     await aiService.saveConfig({ ...aiConfig });
-    ElMessage.success("AI 配置已保存");
+    ScMessage.success("AI 配置已保存");
     showAIConfigDialog.value = false;
   } catch (error) {
     console.error("Failed to save AI config:", error);
-    ElMessage.error("保存 AI 配置失败");
+    ScMessage.error("保存 AI 配置失败");
   }
 };
 
@@ -324,7 +324,7 @@ const generateWithAI = async () => {
   if (!props.api) return;
 
   if (!aiConfig.enabled || !aiConfig.apiKey) {
-    ElMessage.warning("请先配置并启用 AI 服务");
+    ScMessage.warning("请先配置并启用 AI 服务");
     showAIConfigDialog.value = true;
     return;
   }
@@ -342,13 +342,13 @@ const generateWithAI = async () => {
 
     if (result.success && result.data) {
       mockConfig.responseData = JSON.stringify(result.data, null, 2);
-      ElMessage.success("AI 生成成功");
+      ScMessage.success("AI 生成成功");
     } else {
-      ElMessage.error(result.error || "AI 生成失败");
+      ScMessage.error(result.error || "AI 生成失败");
     }
   } catch (error: any) {
     console.error("AI generation error:", error);
-    ElMessage.error(error.message || "AI 生成失败");
+    ScMessage.error(error.message || "AI 生成失败");
   } finally {
     aiGenerating.value = false;
   }
@@ -484,9 +484,9 @@ const formatJson = () => {
   try {
     const parsed = JSON.parse(mockConfig.responseData);
     mockConfig.responseData = JSON.stringify(parsed, null, 2);
-    ElMessage.success("格式化成功");
+    ScMessage.success("格式化成功");
   } catch {
-    ElMessage.error("JSON 格式错误");
+    ScMessage.error("JSON 格式错误");
   }
 };
 
@@ -504,7 +504,7 @@ const saveMockRule = async () => {
   try {
     responseData = mockConfig.responseData ? JSON.parse(mockConfig.responseData) : null;
   } catch {
-    ElMessage.error("Mock 数据必须是有效的 JSON 格式");
+    ScMessage.error("Mock 数据必须是有效的 JSON 格式");
     return;
   }
 
@@ -518,12 +518,12 @@ const saveMockRule = async () => {
       delay: mockConfig.delay,
       responseData,
     });
-    ElMessage.success("Mock 规则保存成功");
+    ScMessage.success("Mock 规则保存成功");
     await loadMockRules();
     await loadCurrentRule();
   } catch (error) {
     console.error("Failed to save mock rule:", error);
-    ElMessage.error("保存失败");
+    ScMessage.error("保存失败");
   } finally {
     saving.value = false;
   }
@@ -534,11 +534,11 @@ const deleteMockRule = async () => {
   if (!currentRule.value) return;
 
   try {
-    await ElMessageBox.confirm("确定要删除此 Mock 规则吗？", "删除确认", {
+    await ScMessageBox.confirm("确定要删除此 Mock 规则吗？", "删除确认", {
       type: "warning",
     });
     await DocStorage.deleteMockRule(currentRule.value.id!);
-    ElMessage.success("删除成功");
+    ScMessage.success("删除成功");
     currentRule.value = null;
     mockConfig.responseData = "";
     mockEnabled.value = false;
@@ -546,7 +546,7 @@ const deleteMockRule = async () => {
   } catch (error) {
     if (error !== "cancel") {
       console.error("Failed to delete mock rule:", error);
-      ElMessage.error("删除失败");
+      ScMessage.error("删除失败");
     }
   }
 };
@@ -557,7 +557,7 @@ const testMock = () => {
   try {
     responseData = mockConfig.responseData ? JSON.parse(mockConfig.responseData) : null;
   } catch {
-    ElMessage.error("Mock 数据必须是有效的 JSON 格式");
+    ScMessage.error("Mock 数据必须是有效的 JSON 格式");
     return;
   }
 
@@ -593,7 +593,7 @@ const handleRuleToggle = async (rule: MockRule) => {
 // 删除规则
 const handleDeleteRule = async (rule: MockRule) => {
   try {
-    await ElMessageBox.confirm("确定要删除此 Mock 规则吗？", "删除确认", {
+    await ScMessageBox.confirm("确定要删除此 Mock 规则吗？", "删除确认", {
       type: "warning",
     });
     await DocStorage.deleteMockRule(rule.id!);
@@ -601,7 +601,7 @@ const handleDeleteRule = async (rule: MockRule) => {
     if (rule.path === props.api?.path && rule.method === props.api?.method) {
       await loadCurrentRule();
     }
-    ElMessage.success("删除成功");
+    ScMessage.success("删除成功");
   } catch (error) {
     if (error !== "cancel") {
       console.error("Failed to delete rule:", error);

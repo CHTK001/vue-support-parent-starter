@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg download-add-container">
     <div class="download-add-header">
       <h1 class="download-add-title">添加下载链接</h1>
-      <el-button @click="goBack" icon="ArrowLeft">返回</el-button>
+      <ScButton @click="goBack" icon="ArrowLeft">返回</ScButton>
     </div>
 
     <div class="download-add-content">

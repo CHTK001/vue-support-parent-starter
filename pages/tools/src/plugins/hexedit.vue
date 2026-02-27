@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import {
   reactive,
   ref,
@@ -629,25 +629,25 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 工具栏 -->
-      <el-card class="hexedit-tool__toolbar-card" shadow="hover">
+      <ScCard class="hexedit-tool__toolbar-card" shadow="hover">
         <div class="hexedit-tool__toolbar">
           <div class="hexedit-tool__toolbar-group">
-            <el-button type="primary" @click="createNewFile">
+            <ScButton type="primary" @click="createNewFile">
               <IconifyIconOnline icon="ri:file-add-line" />
               <span>新建</span>
-            </el-button>
-            <el-button type="primary" @click="openFile">
+            </ScButton>
+            <ScButton type="primary" @click="openFile">
               <IconifyIconOnline icon="ri:folder-open-line" />
               <span>打开</span>
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               type="primary"
               @click="saveFile"
               :disabled="!env.hexData.length"
             >
               <IconifyIconOnline icon="ri:save-line" />
               <span>保存</span>
-            </el-button>
+            </ScButton>
             <input
               ref="fileInputRef"
               type="file"
@@ -657,78 +657,78 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="hexedit-tool__toolbar-group">
-            <el-button @click="undo" :disabled="!canUndo">
+            <ScButton @click="undo" :disabled="!canUndo">
               <IconifyIconOnline icon="ri:arrow-go-back-line" />
               <span>撤销</span>
-            </el-button>
-            <el-button @click="redo" :disabled="!canRedo">
+            </ScButton>
+            <ScButton @click="redo" :disabled="!canRedo">
               <IconifyIconOnline icon="ri:arrow-go-forward-line" />
               <span>重做</span>
-            </el-button>
+            </ScButton>
           </div>
 
           <div class="hexedit-tool__toolbar-group">
-            <el-button @click="selectAll" :disabled="!env.hexData.length">
+            <ScButton @click="selectAll" :disabled="!env.hexData.length">
               <IconifyIconOnline icon="ri:select-all" />
               <span>全选</span>
-            </el-button>
-            <el-button @click="copySelection" :disabled="!hasSelection">
+            </ScButton>
+            <ScButton @click="copySelection" :disabled="!hasSelection">
               <IconifyIconOnline icon="ri:file-copy-line" />
               <span>复制</span>
-            </el-button>
-            <el-button @click="cutSelection" :disabled="!hasSelection">
+            </ScButton>
+            <ScButton @click="cutSelection" :disabled="!hasSelection">
               <IconifyIconOnline icon="ri:scissors-cut-line" />
               <span>剪切</span>
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               @click="paste(env.selection.start)"
               :disabled="!env.clipboard"
             >
               <IconifyIconOnline icon="ri:clipboard-line" />
               <span>粘贴</span>
-            </el-button>
+            </ScButton>
           </div>
 
           <div class="hexedit-tool__toolbar-group">
-            <el-input
+            <ScInput 
               v-model="env.searchQuery"
               placeholder="搜索十六进制或文本"
               class="hexedit-tool__search-input"
             >
               <template #append>
-                <el-button @click="search">
+                <ScButton @click="search">
                   <IconifyIconOnline icon="ri:search-line" />
-                </el-button>
+                </ScButton>
               </template>
-            </el-input>
-            <el-button
+            </ScInput>
+            <ScButton 
               @click="findPrev"
               :disabled="env.searchResults.length === 0"
             >
               <IconifyIconOnline icon="ri:arrow-up-s-line" />
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               @click="findNext"
               :disabled="env.searchResults.length === 0"
             >
               <IconifyIconOnline icon="ri:arrow-down-s-line" />
-            </el-button>
+            </ScButton>
           </div>
 
           <div class="hexedit-tool__toolbar-group">
-            <el-input
+            <ScInput 
               placeholder="跳转到偏移量"
               class="hexedit-tool__goto-input"
             >
               <template #prepend>0x</template>
               <template #append>
-                <el-button
+                <ScButton 
                   @click="goToOffset(parseInt($event.target.value, 16))"
                 >
                   <IconifyIconOnline icon="ri:arrow-right-line" />
-                </el-button>
+                </ScButton>
               </template>
-            </el-input>
+            </ScInput>
           </div>
         </div>
 
@@ -743,10 +743,10 @@ onBeforeUnmount(() => {
             <span>{{ (env.fileSize / 1024).toFixed(2) }} KB</span>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 编辑器区域 -->
-      <el-card
+      <ScCard 
         class="hexedit-tool__editor-card"
         shadow="hover"
         v-loading="env.loading"
@@ -758,14 +758,14 @@ onBeforeUnmount(() => {
           />
           <div class="hexedit-tool__empty-text">没有打开的文件</div>
           <div class="hexedit-tool__empty-actions">
-            <el-button type="primary" @click="createNewFile">
+            <ScButton type="primary" @click="createNewFile">
               <IconifyIconOnline icon="ri:file-add-line" />
               <span>新建文件</span>
-            </el-button>
-            <el-button type="success" @click="openFile">
+            </ScButton>
+            <ScButton type="success" @click="openFile">
               <IconifyIconOnline icon="ri:folder-open-line" />
               <span>打开文件</span>
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -857,10 +857,10 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 使用说明 -->
-      <el-card class="hexedit-tool__tips-card" shadow="hover">
+      <ScCard class="hexedit-tool__tips-card" shadow="hover">
         <template #header>
           <div class="hexedit-tool__card-header">
             <IconifyIconOnline
@@ -917,7 +917,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
   </div>
 </template>

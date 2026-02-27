@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="code-display">
     <div class="code-header">
       <h4 v-if="title">{{ title }}</h4>
       <div class="code-actions">
-        <el-button
+        <ScButton 
           type="primary"
           size="small"
           :icon="useRenderIcon('ep:copy-document')"
@@ -12,8 +12,8 @@
           :loading="copying"
         >
           {{ copyButtonText }}
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton 
           v-if="showFullscreen"
           type="default"
           size="small"
@@ -22,13 +22,13 @@
           class="fullscreen-btn"
         >
           {{ isFullscreen ? "退出全屏" : "全屏" }}
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
-    <el-alert v-if="description" type="info" :closable="false" class="mb-3">
+    <ScAlert v-if="description" type="info" :closable="false" class="mb-3">
       <div class="code-desc">{{ description }}</div>
-    </el-alert>
+    </ScAlert>
 
     <div class="code-container" :class="{ fullscreen: isFullscreen }">
       <pre><code :class="`language-${language}`">{{ formattedCode }}</code></pre>

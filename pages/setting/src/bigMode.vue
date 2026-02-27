@@ -1,18 +1,18 @@
-<template>
+﻿<template>
   <div class="animate relative h-full system-container modern-bg">
-    <el-form :form="form">
-      <el-form-item label="模型" prop="model">
-        <el-select v-model="form.model">
-          <el-option v-for="model in models" :key="model" :value="model" :label="model" />
-        </el-select>
-      </el-form-item>
-    </el-form>
+    <ScForm :form="form">
+      <ScFormItem label="模型" prop="model">
+        <ScSelect v-model="form.model">
+          <ScOption v-for="model in models" :key="model" :value="model" :label="model" />
+        </ScSelect>
+      </ScFormItem>
+    </ScForm>
     <div>
       <ul class="h-full overflow-auto max-h-[600px]">
         <li v-for="(row, index) in dataList" :key="index">
-          <el-card class="big-model border-radius mt-[4px]" shadow="hover">
+          <ScCard class="big-model border-radius mt-[4px]" shadow="hover">
             <div v-if="row.role != 'user'" class="flex flex-row">
-              <el-avatar class="justify-start min-w-[40px]" />
+              <ScAvatar class="justify-start min-w-[40px]" />
               <span :id="'ref' + row?.requestId" class="leading-10 pl-2 text-[13px] w-full">
                 <span class="mdTextBox w-full" v-html="renderMdText(row.message)" />
                 <!-- <span v-for="(item, index) in row.message" :key="index">{{ item }}</span> -->
@@ -22,15 +22,15 @@
               <span class="leading-10 pr-2 text-[13px]">
                 {{ row.message }}
               </span>
-              <el-avatar class="justify-start min-w-[40px]" />
+              <ScAvatar class="justify-start min-w-[40px]" />
             </div>
-          </el-card>
+          </ScCard>
         </li>
       </ul>
     </div>
     <div class="absolute bottom-0 w-full">
-      <el-input v-model="question" type="textarea" :readonly="loading" :disabled="loading" :rows="4" resize="none" :show-word-limit="true" placeholder="请输入问题" />
-      <el-button :icon="useRenderIcon('ep:search')" :loading="loading" class="!absolute !right-0 !h-full" type="primary" @click="send">{{ $t("buttons.send") }}</el-button>
+      <ScInput v-model="question" type="textarea" :readonly="loading" :disabled="loading" :rows="4" resize="none" :show-word-limit="true" placeholder="请输入问题" />
+      <ScButton :icon="useRenderIcon('ep:search')" :loading="loading" class="!absolute !right-0 !h-full" type="primary" @click="send">{{ $t("buttons.send") }}</ScButton>
     </div>
   </div>
 </template>

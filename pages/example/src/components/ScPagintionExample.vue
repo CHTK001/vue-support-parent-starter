@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-pagination-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,28 +8,28 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="total 总条数">
-            <el-input-number v-model="config.total" :min="1" :max="1000" style="width: 100%" />
-          </el-form-item>
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="total 总条数">
+            <ScInputNumber v-model="config.total" :min="1" :max="1000" style="width: 100%" />
+          </ScFormItem>
 
-          <el-form-item label="pageSize 每页条数">
-            <el-input-number v-model="config.size" :min="5" :max="100" style="width: 100%" />
-          </el-form-item>
+          <ScFormItem label="pageSize 每页条数">
+            <ScInputNumber v-model="config.size" :min="5" :max="100" style="width: 100%" />
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="action-buttons">
-            <el-button type="primary" size="small" @click="goFirst">
+            <ScButton type="primary" size="small" @click="goFirst">
               <IconifyIconOnline icon="ri:skip-back-line" />
               首页
-            </el-button>
-            <el-button size="small" @click="goLast">
+            </ScButton>
+            <ScButton size="small" @click="goLast">
               <IconifyIconOnline icon="ri:skip-forward-line" />
               末页
-            </el-button>
+            </ScButton>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

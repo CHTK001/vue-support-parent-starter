@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 路由加载骨架屏组件
  * 用于 Suspense fallback 和路由切换时的加载状态
@@ -81,13 +81,13 @@ const containerStyle = computed(() => ({
 
     <!-- 加载提示 -->
     <div class="loading-indicator">
-      <el-icon class="loading-icon">
+      <ScIcon class="loading-icon">
         <svg viewBox="0 0 24 24" class="spin-icon">
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31.4" stroke-linecap="round">
             <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
           </circle>
         </svg>
-      </el-icon>
+      </ScIcon>
       <span class="loading-text">{{ loadingText }}</span>
     </div>
   </div>

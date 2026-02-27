@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { IconifyIconOnline } from '@iconify/vue';
 
 defineProps({
@@ -12,13 +12,13 @@ defineProps({
     <div class="music-lyrics__header">
       <div class="music-lyrics__title">
         <span>歌词</span>
-        <el-button 
+        <ScButton 
           circle 
           size="small" 
           @click="env.showLyrics = false"
         >
           <IconifyIconOnline icon="ri:close-line" />
-        </el-button>
+        </ScButton>
       </div>
       <div class="music-lyrics__music-info" v-if="env.currentMusic">
         <div class="music-lyrics__music-title">{{ env.currentMusic.title }}</div>

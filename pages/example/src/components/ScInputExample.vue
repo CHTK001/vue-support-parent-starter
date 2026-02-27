@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-input-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,8 +8,8 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="type 输入类型">
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="type 输入类型">
             <ScSelect
               v-model="config.type"
               layout="card"
@@ -17,9 +17,9 @@
               :gap="4"
               width="80px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="size 尺寸">
+          <ScFormItem label="size 尺寸">
             <ScSelect
               v-model="config.size"
               layout="card"
@@ -27,15 +27,15 @@
               :gap="6"
               width="70px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="placeholder 占位文本">
-            <el-input v-model="config.placeholder" placeholder="请输入占位文本" />
-          </el-form-item>
+          <ScFormItem label="placeholder 占位文本">
+            <ScInput v-model="config.placeholder" placeholder="请输入占位文本" />
+          </ScFormItem>
 
           <!-- TOTP特定配置 -->
           <template v-if="config.type === 'totp'">
-            <el-form-item label="totpValueType 值类型">
+            <ScFormItem label="totpValueType 值类型">
               <ScSelect
                 v-model="config.totpValueType"
                 layout="card"
@@ -43,55 +43,55 @@
                 :gap="6"
                 width="70px"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="length 长度">
+            <ScFormItem label="length 长度">
               <ScSlider v-model="config.totpLength" :min="4" :max="8" :show-stops="true" />
-            </el-form-item>
+            </ScFormItem>
           </template>
 
           <!-- Select特定配置 -->
           <template v-if="config.type === 'select'">
-            <el-form-item label="options 选项">
-              <el-tag type="info" size="small">已配置 {{ mockOptions.length }} 个选项</el-tag>
-            </el-form-item>
+            <ScFormItem label="options 选项">
+              <ScTag type="info" size="small">已配置 {{ mockOptions.length }} 个选项</ScTag>
+            </ScFormItem>
           </template>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="switch-group">
             <div class="switch-item">
-              <el-tooltip content="禁用输入" placement="left">
+              <ScTooltip content="禁用输入" placement="left">
                 <span>disabled 禁用</span>
-              </el-tooltip>
-              <el-switch v-model="config.disabled" />
+              </ScTooltip>
+              <ScSwitch v-model="config.disabled" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="可清空输入" placement="left">
+              <ScTooltip content="可清空输入" placement="left">
                 <span>clearable 可清空</span>
-              </el-tooltip>
-              <el-switch v-model="config.clearable" />
+              </ScTooltip>
+              <ScSwitch v-model="config.clearable" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="显示前缀图标" placement="left">
+              <ScTooltip content="显示前缀图标" placement="left">
                 <span>showPrefix 前缀图标</span>
-              </el-tooltip>
-              <el-switch v-model="config.showPrefix" />
+              </ScTooltip>
+              <ScSwitch v-model="config.showPrefix" />
             </div>
             <div class="switch-item" v-if="config.type === 'totp'">
-              <el-tooltip content="显示已输入数量" placement="left">
+              <ScTooltip content="显示已输入数量" placement="left">
                 <span>count 显示数量</span>
-              </el-tooltip>
-              <el-switch v-model="config.showCount" />
+              </ScTooltip>
+              <ScSwitch v-model="config.showCount" />
             </div>
             <div class="switch-item" v-if="config.type === 'select'">
-              <el-tooltip content="多选模式" placement="left">
+              <ScTooltip content="多选模式" placement="left">
                 <span>multiple 多选</span>
-              </el-tooltip>
-              <el-switch v-model="config.multiple" />
+              </ScTooltip>
+              <ScSwitch v-model="config.multiple" />
             </div>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

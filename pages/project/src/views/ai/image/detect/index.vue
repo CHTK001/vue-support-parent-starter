@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fileToBase64, localStorageProxy, message } from "@repo/utils";
 import {
@@ -299,14 +299,14 @@ onMounted(() => {
     ></ModuleDialog>
 
     <!-- 现代化设置按钮 -->
-    <el-button
+    <ScButton 
       :icon="useRenderIcon('ep:setting')"
       @click="handleOpenModuleManager"
       class="fixed right-6 top-1/2 transform -translate-y-1/2 z-[99] settings-btn-modern"
       circle
       size="large"
     >
-    </el-button>
+    </ScButton>
 
     <div class="container-wrapper h-full">
       <el-container class="h-full">
@@ -315,16 +315,16 @@ onMounted(() => {
         >
           <div class="panel-left mr-6">
             <div class="model-selection-card flex flex-row">
-              <el-form
+              <ScForm 
                 ref="formRef"
                 :model="form"
                 :rules="rules"
                 label-width="0"
                 class="w-full"
               >
-                <el-form-item prop="model" class="mb-0">
+                <ScFormItem prop="model" class="mb-0">
                   <div class="flex items-center gap-1 w-full">
-                    <el-select
+                    <ScSelect 
                       filterable
                       v-model="form.model"
                       placeholder="请选择人脸检测模型"
@@ -333,7 +333,7 @@ onMounted(() => {
                       class="model-select-modern flex-1"
                       size="large"
                     >
-                      <el-option
+                      <ScOption 
                         v-for="item in modelList"
                         class="!h-[80px]"
                         :key="item"
@@ -341,14 +341,14 @@ onMounted(() => {
                         :value="item.sysAiModuleCode"
                       >
                         <template #default>
-                          <el-tooltip
+                          <ScTooltip 
                             placement="right"
                             :raw-content="true"
                             :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
                           >
                             <div class="model-option">
                               <div class="model-icon-wrapper">
-                                <el-image
+                                <ScImage 
                                   :src="item.sysProjectIcon"
                                   fit="scale-down"
                                   class="model-icon"
@@ -356,7 +356,7 @@ onMounted(() => {
                                   <template #error>
                                     <div class="error-icon-modern">AI</div>
                                   </template>
-                                </el-image>
+                                </ScImage>
                               </div>
                               <div class="model-info">
                                 <span class="model-name">{{
@@ -370,43 +370,43 @@ onMounted(() => {
                                 <span class="badge-text">推荐</span>
                               </div>
                             </div>
-                          </el-tooltip>
+                          </ScTooltip>
                         </template>
-                      </el-option>
+                      </ScOption>
                       <template #label="{ label }">
                         <div class="selected-model">
                           <div class="selected-icon-wrapper">
-                            <el-image
+                            <ScImage 
                               class="selected-icon"
                               :src="modelSelectLabel?.sysProjectIcon"
                             >
                               <template #error>
                                 <div class="error-icon-modern">AI</div>
                               </template>
-                            </el-image>
+                            </ScImage>
                           </div>
                           <span class="selected-label">{{ label }}</span>
                         </div>
                       </template>
-                    </el-select>
+                    </ScSelect>
 
-                    <el-button
+                    <ScButton 
                       v-if="env.showEdit"
                       class="add-model-btn"
                       :icon="useRenderIcon('ep:plus')"
                       @click="handleOpenModule"
                       circle
                     >
-                    </el-button>
+                    </ScButton>
                   </div>
-                </el-form-item>
-              </el-form>
+                </ScFormItem>
+              </ScForm>
             </div>
           </div>
 
           <div class="panel-right">
             <div class="action-buttons-group">
-              <el-upload
+              <ScUpload 
                 :show-file-list="false"
                 :auto-upload="false"
                 accept="image/*"
@@ -414,18 +414,18 @@ onMounted(() => {
                 class="upload-wrapper"
               >
                 <template #trigger>
-                  <el-button class="upload-btn-modern" size="large">
+                  <ScButton class="upload-btn-modern" size="large">
                     <div class="btn-content">
-                      <el-icon class="btn-icon">
+                      <ScIcon class="btn-icon">
                         <component :is="useRenderIcon('ep:upload')" />
-                      </el-icon>
+                      </ScIcon>
                       <span class="btn-text">上传图片</span>
                     </div>
-                  </el-button>
+                  </ScButton>
                 </template>
-              </el-upload>
+              </ScUpload>
 
-              <el-button
+              <ScButton 
                 v-if="showImageUrl && !detectionImage"
                 class="detect-btn-modern"
                 @click="handleDetection"
@@ -433,14 +433,14 @@ onMounted(() => {
                 size="large"
               >
                 <div class="btn-content">
-                  <el-icon class="btn-icon">
+                  <ScIcon class="btn-icon">
                     <component :is="useRenderIcon('ep:search')" />
-                  </el-icon>
+                  </ScIcon>
                   <span class="btn-text">开始检测</span>
                 </div>
-              </el-button>
+              </ScButton>
 
-              <el-button
+              <ScButton 
                 v-if="detectionImage"
                 class="reset-btn-modern"
                 @click="
@@ -452,12 +452,12 @@ onMounted(() => {
                 size="large"
               >
                 <div class="btn-content">
-                  <el-icon class="btn-icon">
+                  <ScIcon class="btn-icon">
                     <component :is="useRenderIcon('ep:refresh')" />
-                  </el-icon>
+                  </ScIcon>
                   <span class="btn-text">重新检测</span>
                 </div>
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </el-header>
@@ -474,9 +474,9 @@ onMounted(() => {
               <!-- 空状态 -->
               <div v-if="!showImageUrl" class="empty-state-modern">
                 <div class="empty-icon-wrapper">
-                  <el-icon class="empty-icon">
+                  <ScIcon class="empty-icon">
                     <component :is="useRenderIcon('ep:picture')" />
-                  </el-icon>
+                  </ScIcon>
                 </div>
                 <h3 class="empty-title">开始您的AI人脸检测之旅</h3>
                 <p class="empty-description">
@@ -484,21 +484,21 @@ onMounted(() => {
                 </p>
                 <div class="empty-features">
                   <div class="feature-item">
-                    <el-icon
+                    <ScIcon 
                       ><component :is="useRenderIcon('ep:check')"
-                    /></el-icon>
+                    /></ScIcon>
                     <span>高精度检测</span>
                   </div>
                   <div class="feature-item">
-                    <el-icon
+                    <ScIcon 
                       ><component :is="useRenderIcon('ep:check')"
-                    /></el-icon>
+                    /></ScIcon>
                     <span>实时处理</span>
                   </div>
                   <div class="feature-item">
-                    <el-icon
+                    <ScIcon 
                       ><component :is="useRenderIcon('ep:check')"
-                    /></el-icon>
+                    /></ScIcon>
                     <span>多人脸识别</span>
                   </div>
                 </div>
@@ -507,7 +507,7 @@ onMounted(() => {
               <!-- 图片预览状态 -->
               <div v-else-if="!detectionImage" class="image-preview-container">
                 <div class="image-wrapper">
-                  <el-image
+                  <ScImage 
                     :src="showImageUrl"
                     class="preview-image"
                     fit="contain"
@@ -517,20 +517,20 @@ onMounted(() => {
                   >
                     <template #error>
                       <div class="image-error">
-                        <el-icon
+                        <ScIcon 
                           ><component :is="useRenderIcon('ep:picture-filled')"
-                        /></el-icon>
+                        /></ScIcon>
                         <span>图片加载失败</span>
                       </div>
                     </template>
-                  </el-image>
+                  </ScImage>
 
                   <!-- 加载状态 -->
                   <div v-if="loadingConfig.export" class="loading-overlay">
                     <div class="loading-content">
-                      <el-icon class="loading-icon is-loading">
+                      <ScIcon class="loading-icon is-loading">
                         <component :is="useRenderIcon('ep:loading')" />
-                      </el-icon>
+                      </ScIcon>
                       <p class="loading-text">AI正在分析图片中的人脸...</p>
                       <div class="loading-progress">
                         <div class="progress-bar"></div>
@@ -552,34 +552,34 @@ onMounted(() => {
 
                 <!-- 浮动操作按钮 -->
                 <div class="floating-actions">
-                  <el-tooltip content="下载检测结果" placement="left">
+                  <ScTooltip content="下载检测结果" placement="left">
                     <a
                       :href="detectionImage"
                       download="face-detection-result.jpg"
                     >
-                      <el-button
+                      <ScButton 
                         class="action-btn download-action"
                         circle
                         size="large"
                       >
-                        <el-icon
+                        <ScIcon 
                           ><component :is="useRenderIcon('ep:download')"
-                        /></el-icon>
-                      </el-button>
+                        /></ScIcon>
+                      </ScButton>
                     </a>
-                  </el-tooltip>
+                  </ScTooltip>
 
-                  <el-tooltip content="分享结果" placement="left">
-                    <el-button
+                  <ScTooltip content="分享结果" placement="left">
+                    <ScButton 
                       class="action-btn share-action"
                       circle
                       size="large"
                     >
-                      <el-icon
+                      <ScIcon 
                         ><component :is="useRenderIcon('ep:share')"
-                      /></el-icon>
-                    </el-button>
-                  </el-tooltip>
+                      /></ScIcon>
+                    </ScButton>
+                  </ScTooltip>
                 </div>
               </div>
 
@@ -589,9 +589,9 @@ onMounted(() => {
                 class="result-info-card"
               >
                 <div class="result-header">
-                  <el-icon class="result-icon">
+                  <ScIcon class="result-icon">
                     <component :is="useRenderIcon('ep:user')" />
-                  </el-icon>
+                  </ScIcon>
                   <span class="result-title">检测结果</span>
                 </div>
                 <div class="result-content">

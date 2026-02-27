@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import Error from "@repo/assets/images/error.png";
 import Wait from "@repo/assets/images/wait.apng";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -147,15 +147,15 @@ const handleDownload = (url, localUrl) => {
       </div>
 
       <!-- 图片展示 -->
-      <el-image v-else-if="mediaType === 'VINCENT' && (mediaUrls[index] || localMediaUrls[index])" :src="mediaUrls[index]" class="media-content" @click.prevent="handlePreview(mediaUrls[index], localMediaUrls[index])">
+      <ScImage v-else-if="mediaType === 'VINCENT' && (mediaUrls[index] || localMediaUrls[index])" :src="mediaUrls[index]" class="media-content" @click.prevent="handlePreview(mediaUrls[index], localMediaUrls[index])">
         <template #error>
-          <el-image :src="localMediaUrls[index]" class="media-content-fallback">
+          <ScImage :src="localMediaUrls[index]" class="media-content-fallback">
             <template #error>
               <img :src="Error" alt="加载失败" class="error-img" />
             </template>
-          </el-image>
+          </ScImage>
         </template>
-      </el-image>
+      </ScImage>
 
       <!-- 视频展示 -->
       <VideoPlayer
@@ -177,16 +177,16 @@ const handleDownload = (url, localUrl) => {
         class="video-player"
       />
 
-      <el-image v-else :src="Error" class="media-content-fallback"></el-image>
+      <ScImage v-else :src="Error" class="media-content-fallback"></ScImage>
 
       <!-- 鼠标悬停显示的操作按钮 -->
       <div class="hover-tools" v-if="toolShow[`${rowId}_${index}`] && mediaUrls[index]">
-        <el-tooltip content="查看" placement="top">
-          <el-button circle size="small" :icon="useRenderIcon('ep:view')" @click.stop="handlePreview(mediaUrls[index], localMediaUrls[index])"></el-button>
-        </el-tooltip>
-        <el-tooltip content="下载" placement="top">
-          <el-button circle size="small" :icon="useRenderIcon('ep:download')" @click.stop="handleDownload(mediaUrls[index], localMediaUrls[index])"></el-button>
-        </el-tooltip>
+        <ScTooltip content="查看" placement="top">
+          <ScButton circle size="small" :icon="useRenderIcon('ep:view')" @click.stop="handlePreview(mediaUrls[index], localMediaUrls[index])"></ScButton>
+        </ScTooltip>
+        <ScTooltip content="下载" placement="top">
+          <ScButton circle size="small" :icon="useRenderIcon('ep:download')" @click.stop="handleDownload(mediaUrls[index], localMediaUrls[index])"></ScButton>
+        </ScTooltip>
       </div>
     </div>
   </div>

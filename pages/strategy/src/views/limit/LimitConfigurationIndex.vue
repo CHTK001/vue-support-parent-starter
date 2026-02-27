@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="limit-configuration-container system-container modern-bg">
     <!-- 搜索和筛选 -->
     <div class="search-section">
-      <el-card class="search-card" shadow="never">
+      <ScCard class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
-            <el-input
+            <ScInput 
               v-model="searchForm.sysLimitName"
               placeholder="搜索限流规则名称"
               class="search-input"
@@ -15,109 +15,109 @@
               <template #prefix>
                 <i class="ri-search-line"></i>
               </template>
-            </el-input>
-            <el-input
+            </ScInput>
+            <ScInput 
               v-model="searchForm.sysLimitPath"
               placeholder="搜索接口路径"
               class="path-input"
               clearable
               @input="handleSearch"
             />
-            <el-select
+            <ScSelect 
               v-model="searchForm.sysLimitStatus"
               placeholder="状态"
               class="status-filter"
               clearable
               @change="handleSearch"
             >
-              <el-option label="启用" :value="1" />
-              <el-option label="禁用" :value="0" />
-            </el-select>
+              <ScOption label="启用" :value="1" />
+              <ScOption label="禁用" :value="0" />
+            </ScSelect>
           </div>
           <div class="search-right">
-            <el-button type="primary" @click="handleAdd">
+            <ScButton type="primary" @click="handleAdd">
               <i class="ri-add-line"></i>
               新建配置
-            </el-button>
-            <el-button @click="handleRefresh">
+            </ScButton>
+            <ScButton @click="handleRefresh">
               <i class="ri-refresh-line"></i>
               刷新
-            </el-button>
-            <el-button type="success" @click="handleRefreshConfig">
+            </ScButton>
+            <ScButton type="success" @click="handleRefreshConfig">
               <i class="ri-restart-line"></i>
               刷新配置
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 配置列表 -->
     <div class="list-section">
-      <el-card shadow="never">
-        <el-table
+      <ScCard shadow="never">
+        <ScTable 
           v-loading="loading"
           :data="configList"
           row-key="sysLimitConfigurationId"
           stripe
           border
         >
-          <el-table-column prop="sysLimitConfigurationId" label="ID" width="80" align="center" />
-          <el-table-column prop="sysLimitName" label="规则名称" min-width="150">
+          <ScTableColumn prop="sysLimitConfigurationId" label="ID" width="80" align="center" />
+          <ScTableColumn prop="sysLimitName" label="规则名称" min-width="150">
             <template #default="{ row }">
               <div class="name-cell">
                 <span class="name">{{ row.sysLimitName }}</span>
-                <el-tag v-if="row.sysLimitDescription" size="small" type="info">
+                <ScTag v-if="row.sysLimitDescription" size="small" type="info">
                   {{ row.sysLimitDescription }}
-                </el-tag>
+                </ScTag>
               </div>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysLimitPath" label="接口路径" min-width="200">
+          </ScTableColumn>
+          <ScTableColumn prop="sysLimitPath" label="接口路径" min-width="200">
             <template #default="{ row }">
-              <el-tag type="warning" size="small">{{ row.sysLimitPath }}</el-tag>
+              <ScTag type="warning" size="small">{{ row.sysLimitPath }}</ScTag>
             </template>
-          </el-table-column>
-          <el-table-column label="限流配置" width="180">
+          </ScTableColumn>
+          <ScTableColumn label="限流配置" width="180">
             <template #default="{ row }">
               <div class="config-cell">
                 <span>{{ row.sysLimitForPeriod }} 次/{{ row.sysLimitRefreshPeriodSeconds }}秒</span>
               </div>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysLimitDimension" label="限流维度" width="100" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="sysLimitDimension" label="限流维度" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="getDimensionType(row.sysLimitDimension)" size="small">
+              <ScTag :type="getDimensionType(row.sysLimitDimension)" size="small">
                 {{ getDimensionLabel(row.sysLimitDimension) }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysLimitStatus" label="状态" width="80" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="sysLimitStatus" label="状态" width="80" align="center">
             <template #default="{ row }">
-              <el-switch
+              <ScSwitch 
                 v-model="row.sysLimitStatus"
                 :active-value="1"
                 :inactive-value="0"
                 @change="handleStatusChange(row)"
               />
             </template>
-          </el-table-column>
-          <el-table-column prop="createTime" label="创建时间" width="170" />
-          <el-table-column label="操作" width="150" align="center" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn prop="createTime" label="创建时间" width="170" />
+          <ScTableColumn label="操作" width="150" align="center" fixed="right">
             <template #default="{ row }">
               <el-button-group size="small">
-                <el-button @click="handleEdit(row)">
+                <ScButton @click="handleEdit(row)">
                   <i class="ri-edit-line"></i>
                   编辑
-                </el-button>
-                <el-button type="danger" @click="handleDelete(row)">
+                </ScButton>
+                <ScButton type="danger" @click="handleDelete(row)">
                   <i class="ri-delete-bin-line"></i>
                   删除
-                </el-button>
+                </ScButton>
               </el-button-group>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
 
         <!-- 分页 -->
         <div class="pagination-container">
@@ -131,7 +131,7 @@
             @current-change="handleSearch"
           />
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 新增/编辑对话框 -->
@@ -141,94 +141,94 @@
       width="700px"
       :close-on-click-modal="false"
     >
-      <el-form
+      <ScForm 
         ref="formRef"
         :model="formData"
         :rules="formRules"
         label-width="120px"
       >
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="规则名称" prop="sysLimitName">
-              <el-input v-model="formData.sysLimitName" placeholder="请输入规则名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="接口路径" prop="sysLimitPath">
-              <el-input v-model="formData.sysLimitPath" placeholder="如: /api/users/**" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="许可数量" prop="sysLimitForPeriod">
-              <el-input-number v-model="formData.sysLimitForPeriod" :min="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="刷新周期(秒)" prop="sysLimitRefreshPeriodSeconds">
-              <el-input-number v-model="formData.sysLimitRefreshPeriodSeconds" :min="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="超时时间(毫秒)">
-              <el-input-number v-model="formData.sysLimitTimeoutDurationMillis" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="限流维度" prop="sysLimitDimension">
-              <el-select v-model="formData.sysLimitDimension" placeholder="请选择限流维度" style="width: 100%">
-                <el-option label="全局" value="GLOBAL" />
-                <el-option label="IP" value="IP" />
-                <el-option label="用户" value="USER" />
-                <el-option label="接口" value="API" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="自定义键表达式">
-              <el-input v-model="formData.sysLimitKeyExpression" placeholder="SpEL表达式" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="降级方法">
-              <el-input v-model="formData.sysLimitFallbackMethod" placeholder="降级方法名称" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="排序">
-              <el-input-number v-model="formData.sysLimitSort" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="状态">
-              <el-switch v-model="formData.sysLimitStatus" :active-value="1" :inactive-value="0" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="错误消息">
-          <el-input v-model="formData.sysLimitMessage" placeholder="请输入限流错误提示消息" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="规则名称" prop="sysLimitName">
+              <ScInput v-model="formData.sysLimitName" placeholder="请输入规则名称" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="接口路径" prop="sysLimitPath">
+              <ScInput v-model="formData.sysLimitPath" placeholder="如: /api/users/**" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="许可数量" prop="sysLimitForPeriod">
+              <ScInputNumber v-model="formData.sysLimitForPeriod" :min="1" style="width: 100%" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="刷新周期(秒)" prop="sysLimitRefreshPeriodSeconds">
+              <ScInputNumber v-model="formData.sysLimitRefreshPeriodSeconds" :min="1" style="width: 100%" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="超时时间(毫秒)">
+              <ScInputNumber v-model="formData.sysLimitTimeoutDurationMillis" :min="0" style="width: 100%" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="限流维度" prop="sysLimitDimension">
+              <ScSelect v-model="formData.sysLimitDimension" placeholder="请选择限流维度" style="width: 100%">
+                <ScOption label="全局" value="GLOBAL" />
+                <ScOption label="IP" value="IP" />
+                <ScOption label="用户" value="USER" />
+                <ScOption label="接口" value="API" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="自定义键表达式">
+              <ScInput v-model="formData.sysLimitKeyExpression" placeholder="SpEL表达式" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="降级方法">
+              <ScInput v-model="formData.sysLimitFallbackMethod" placeholder="降级方法名称" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="排序">
+              <ScInputNumber v-model="formData.sysLimitSort" :min="0" style="width: 100%" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="状态">
+              <ScSwitch v-model="formData.sysLimitStatus" :active-value="1" :inactive-value="0" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScFormItem label="错误消息">
+          <ScInput v-model="formData.sysLimitMessage" placeholder="请输入限流错误提示消息" />
+        </ScFormItem>
+        <ScFormItem label="描述">
+          <ScInput 
             v-model="formData.sysLimitDescription"
             type="textarea"
             :rows="3"
             placeholder="请输入描述信息"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+        <ScButton @click="dialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="submitLoading" @click="handleSubmit">
           确定
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>
@@ -236,7 +236,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
+import { ScMessage, ScMessageBox, type FormInstance, type FormRules } from "@repo/utils";
 import {
   fetchLimitConfigurationPageForStrategy,
   saveLimitConfigurationForStrategy,
@@ -334,11 +334,11 @@ const loadConfigList = async () => {
       configList.value = response.data?.records || [];
       pagination.total = response.data?.total || 0;
     } else {
-      ElMessage.error(response.msg || "加载配置列表失败");
+      ScMessage.error(response.msg || "加载配置列表失败");
     }
   } catch (error) {
     console.error("加载配置列表失败:", error);
-    ElMessage.error("加载配置列表失败");
+    ScMessage.error("加载配置列表失败");
   } finally {
     loading.value = false;
   }
@@ -360,13 +360,13 @@ const handleRefreshConfig = async () => {
   try {
     const response = await refreshLimitConfigurationForStrategy();
     if (response.success) {
-      ElMessage.success("配置刷新成功");
+      ScMessage.success("配置刷新成功");
     } else {
-      ElMessage.error(response.msg || "配置刷新失败");
+      ScMessage.error(response.msg || "配置刷新失败");
     }
   } catch (error) {
     console.error("配置刷新失败:", error);
-    ElMessage.error("配置刷新失败");
+    ScMessage.error("配置刷新失败");
   }
 };
 
@@ -421,15 +421,15 @@ const handleSubmit = async () => {
       : formData;
     const response = await api(data);
     if (response.success) {
-      ElMessage.success(currentConfig.value ? "修改成功" : "新增成功");
+      ScMessage.success(currentConfig.value ? "修改成功" : "新增成功");
       dialogVisible.value = false;
       loadConfigList();
     } else {
-      ElMessage.error(response.msg || "操作失败");
+      ScMessage.error(response.msg || "操作失败");
     }
   } catch (error) {
     console.error("操作失败:", error);
-    ElMessage.error("操作失败");
+    ScMessage.error("操作失败");
   } finally {
     submitLoading.value = false;
   }
@@ -438,20 +438,20 @@ const handleSubmit = async () => {
 // 删除
 const handleDelete = async (row: SysLimitConfiguration) => {
   try {
-    await ElMessageBox.confirm(`确定要删除配置"${row.sysLimitName}"吗？`, "删除确认", {
+    await ScMessageBox.confirm(`确定要删除配置"${row.sysLimitName}"吗？`, "删除确认", {
       type: "warning",
     });
     const response = await deleteLimitConfigurationForStrategy(row.sysLimitConfigurationId!);
     if (response.success) {
-      ElMessage.success("删除成功");
+      ScMessage.success("删除成功");
       loadConfigList();
     } else {
-      ElMessage.error(response.msg || "删除失败");
+      ScMessage.error(response.msg || "删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除失败:", error);
-      ElMessage.error("删除失败");
+      ScMessage.error("删除失败");
     }
   }
 };
@@ -464,17 +464,17 @@ const handleStatusChange = async (row: SysLimitConfiguration) => {
       sysLimitStatus: row.sysLimitStatus,
     });
     if (response.success) {
-      ElMessage.success("状态更新成功");
+      ScMessage.success("状态更新成功");
     } else {
       // 恢复原状态
       row.sysLimitStatus = row.sysLimitStatus === 1 ? 0 : 1;
-      ElMessage.error(response.msg || "状态更新失败");
+      ScMessage.error(response.msg || "状态更新失败");
     }
   } catch (error) {
     // 恢复原状态
     row.sysLimitStatus = row.sysLimitStatus === 1 ? 0 : 1;
     console.error("状态更新失败:", error);
-    ElMessage.error("状态更新失败");
+    ScMessage.error("状态更新失败");
   }
 };
 

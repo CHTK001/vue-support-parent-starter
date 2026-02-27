@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="example-page sc-code-example">
     <div class="example-header">
       <h2>ScCode 验证码输入组件示例</h2>
@@ -25,8 +25,8 @@
           </p>
         </div>
         <div class="example-actions">
-          <el-button @click="clearBasic">清空</el-button>
-          <el-button @click="setBasicError" type="danger"
+          <ScButton @click="clearBasic">清空</ScButton>
+          <ScButton @click="setBasicError" type="danger"
             >设置错误状态</el-button
           >
         </div>
@@ -77,9 +77,9 @@
           </div>
         </div>
         <div class="example-actions">
-          <el-button @click="clearEvent">清空验证码</el-button>
-          <el-button @click="clearLogs" type="info">清空日志</el-button>
-          <el-button @click="setEventError" type="danger">触发错误</el-button>
+          <ScButton @click="clearEvent">清空验证码</ScButton>
+          <ScButton @click="clearLogs" type="info">清空日志</ScButton>
+          <ScButton @click="setEventError" type="danger">触发错误</ScButton>
         </div>
       </div>
 
@@ -98,7 +98,7 @@
           <p><strong>当前值:</strong> {{ demoValue }}</p>
           <p>
             <strong>验证状态:</strong>
-            <el-tag
+            <ScTag 
               :type="
                 demoStatus === 'success'
                   ? 'success'
@@ -108,17 +108,17 @@
               "
             >
               {{ demoStatusText }}
-            </el-tag>
+            </ScTag>
           </p>
         </div>
         <div class="example-actions">
-          <el-button @click="simulateSuccess" type="success"
+          <ScButton @click="simulateSuccess" type="success"
             >模拟验证成功</el-button
           >
-          <el-button @click="simulateError" type="danger"
+          <ScButton @click="simulateError" type="danger"
             >模拟验证失败</el-button
           >
-          <el-button @click="resetDemo">重置</el-button>
+          <ScButton @click="resetDemo">重置</ScButton>
         </div>
       </div>
     </div>

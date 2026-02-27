@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="node-selector">
     <!-- 节点选择下拉框 -->
-    <el-select
+    <ScSelect 
       v-model="currentNodeId"
       placeholder="选择节点"
       size="small"
@@ -11,7 +11,7 @@
       <template #prefix>
         <i class="ri-server-line"></i>
       </template>
-      <el-option
+      <ScOption 
         v-for="node in nodes"
         :key="node.id"
         :label="node.name"
@@ -19,25 +19,25 @@
       >
         <div class="node-option">
           <span class="node-name">{{ node.name }}</span>
-          <el-tag
+          <ScTag 
             v-if="node.status"
             :type="getStatusType(node.status)"
             size="small"
           >
             {{ getStatusLabel(node.status) }}
-          </el-tag>
+          </ScTag>
         </div>
-      </el-option>
-    </el-select>
+      </ScOption>
+    </ScSelect>
 
     <!-- 节点管理按钮 -->
-    <el-button
+    <ScButton 
       v-if="showManageButton"
       size="small"
       @click="showManageDialog = true"
     >
       <i class="ri-settings-3-line"></i>
-    </el-button>
+    </ScButton>
 
     <!-- 节点管理对话框 -->
     <sc-dialog
@@ -47,65 +47,65 @@
     >
       <div class="node-manage">
         <!-- 节点列表 -->
-        <el-table :data="editableNodes" border size="small">
-          <el-table-column prop="id" label="ID" width="100" />
-          <el-table-column prop="name" label="名称" width="150">
+        <ScTable :data="editableNodes" border size="small">
+          <ScTableColumn prop="id" label="ID" width="100" />
+          <ScTableColumn prop="name" label="名称" width="150">
             <template #default="{ row, $index }">
-              <el-input
+              <ScInput 
                 v-model="editableNodes[$index].name"
                 size="small"
                 placeholder="节点名称"
               />
             </template>
-          </el-table-column>
-          <el-table-column prop="baseUrl" label="Base URL" min-width="200">
+          </ScTableColumn>
+          <ScTableColumn prop="baseUrl" label="Base URL" min-width="200">
             <template #default="{ row, $index }">
-              <el-input
+              <ScInput 
                 v-model="editableNodes[$index].baseUrl"
                 size="small"
                 placeholder="如: http://localhost:8080"
               />
             </template>
-          </el-table-column>
-          <el-table-column prop="status" label="状态" width="100">
+          </ScTableColumn>
+          <ScTableColumn prop="status" label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)" size="small">
+              <ScTag :type="getStatusType(row.status)" size="small">
                 {{ getStatusLabel(row.status) }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="150" align="center">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="150" align="center">
             <template #default="{ row, $index }">
               <el-button-group size="small">
-                <el-button @click="testNode(row)">
+                <ScButton @click="testNode(row)">
                   <i class="ri-pulse-line"></i>
                   测试
-                </el-button>
-                <el-button
+                </ScButton>
+                <ScButton 
                   type="danger"
                   @click="removeNode($index)"
                   :disabled="editableNodes.length <= 1"
                 >
                   <i class="ri-delete-bin-line"></i>
-                </el-button>
+                </ScButton>
               </el-button-group>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
 
         <!-- 添加节点 -->
         <div class="add-node-section">
-          <el-button type="primary" plain @click="addNode">
+          <ScButton type="primary" plain @click="addNode">
             <i class="ri-add-line"></i>
             添加节点
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
       <template #footer>
-        <el-button @click="resetNodes">重置</el-button>
-        <el-button @click="showManageDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveNodes">保存</el-button>
+        <ScButton @click="resetNodes">重置</ScButton>
+        <ScButton @click="showManageDialog = false">取消</ScButton>
+        <ScButton type="primary" @click="saveNodes">保存</ScButton>
       </template>
     </sc-dialog>
   </div>
@@ -113,7 +113,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ScMessage } from "@repo/utils";
 import type { NodeInfo, NodeStatus } from "../types";
 import { DocStorage } from "../storage";
 
@@ -195,7 +195,7 @@ const removeNode = (index: number) => {
 // 测试节点
 const testNode = async (node: NodeInfo) => {
   if (!node.baseUrl) {
-    ElMessage.warning("请先填写 Base URL");
+    ScMessage.warning("请先填写 Base URL");
     return;
   }
 
@@ -216,16 +216,16 @@ const testNode = async (node: NodeInfo) => {
     }
 
     if (response?.ok) {
-      ElMessage.success(`节点 ${node.name} 连接成功`);
+      ScMessage.success(`节点 ${node.name} 连接成功`);
     } else {
-      ElMessage.warning(`节点 ${node.name} 连接失败`);
+      ScMessage.warning(`节点 ${node.name} 连接失败`);
     }
   } catch (error) {
     const index = editableNodes.value.findIndex((n) => n.id === node.id);
     if (index !== -1) {
       editableNodes.value[index].status = "offline";
     }
-    ElMessage.error(`节点 ${node.name} 连接超时`);
+    ScMessage.error(`节点 ${node.name} 连接超时`);
   }
 };
 
@@ -239,11 +239,11 @@ const saveNodes = async () => {
   // 验证
   for (const node of editableNodes.value) {
     if (!node.name.trim()) {
-      ElMessage.warning("节点名称不能为空");
+      ScMessage.warning("节点名称不能为空");
       return;
     }
     if (!node.baseUrl.trim()) {
-      ElMessage.warning("Base URL 不能为空");
+      ScMessage.warning("Base URL 不能为空");
       return;
     }
   }
@@ -253,7 +253,7 @@ const saveNodes = async () => {
   // 保存到存储
   await DocStorage.setConfig(`${props.storageKeyPrefix}_nodes`, editableNodes.value);
 
-  ElMessage.success("节点配置已保存");
+  ScMessage.success("节点配置已保存");
   showManageDialog.value = false;
 };
 

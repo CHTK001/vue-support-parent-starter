@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="jvm-info-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -11,31 +11,31 @@
           <p class="page-subtitle">实时查看 JVM 运行状态与性能指标</p>
         </div>
         <div class="header-actions">
-          <el-button type="success" @click="showOptimizationDialog">
+          <ScButton type="success" @click="showOptimizationDialog">
             <IconifyIconOnline icon="ri:magic-line" />
             优化建议
-          </el-button>
-          <el-button type="info" @click="showThreadDumpDialog">
+          </ScButton>
+          <ScButton type="info" @click="showThreadDumpDialog">
             <IconifyIconOnline icon="ri:file-list-3-line" />
             线程Dump
-          </el-button>
-          <el-button type="primary" @click="showMemoryLeakDialog">
+          </ScButton>
+          <ScButton type="primary" @click="showMemoryLeakDialog">
             <IconifyIconOnline icon="ri:bug-line" />
             泄漏检测
-          </el-button>
-          <el-button @click="showDiagnosticDialog">
+          </ScButton>
+          <ScButton @click="showDiagnosticDialog">
             <IconifyIconOnline icon="ri:tools-line" />
             诊断信息
-          </el-button>
-          <el-button @click="loadData" :loading="loading">
+          </ScButton>
+          <ScButton @click="loadData" :loading="loading">
             <IconifyIconOnline icon="ri:refresh-line" />
             刷新
-          </el-button>
-          <el-button type="warning" @click="handleGc" :loading="gcLoading">
+          </ScButton>
+          <ScButton type="warning" @click="handleGc" :loading="gcLoading">
             <IconifyIconOnline icon="ri:recycle-line" />
             手动 GC
-          </el-button>
-          <el-switch
+          </ScButton>
+          <ScSwitch 
             v-model="autoRefresh"
             active-text="自动刷新"
             inactive-text=""
@@ -58,7 +58,7 @@
               <div class="metric-card-value">{{ (jvmInfo.cpuInfo?.processCpuLoad || 0).toFixed(1) }}%</div>
               <div class="metric-card-label">进程CPU</div>
             </div>
-            <el-progress
+            <ScProgress 
               type="circle"
               :percentage="jvmInfo.cpuInfo?.processCpuLoad || 0"
               :width="50"
@@ -76,7 +76,7 @@
               <div class="metric-card-label">堆内存</div>
               <div class="metric-card-detail">{{ formatBytes(jvmInfo.heapMemory?.used) }} / {{ formatBytes(jvmInfo.heapMemory?.max) }}</div>
             </div>
-            <el-progress
+            <ScProgress 
               type="circle"
               :percentage="jvmInfo.heapMemory?.usagePercent || 0"
               :width="50"
@@ -138,7 +138,7 @@
 
       <!-- JVM & 系统信息 -->
       <div class="stats-row">
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:information-line" />
@@ -154,9 +154,9 @@
               <el-text truncated>{{ jvmInfo.javaHome || '-' }}</el-text>
             </el-descriptions-item>
           </el-descriptions>
-        </el-card>
+        </ScCard>
 
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:computer-line" />
@@ -173,12 +173,12 @@
             </el-descriptions-item>
             <el-descriptions-item label="系统CPU">{{ (jvmInfo.cpuInfo?.systemCpuLoad || 0).toFixed(1) }}%</el-descriptions-item>
           </el-descriptions>
-        </el-card>
+        </ScCard>
       </div>
 
       <!-- 编译 & 运行时信息 -->
       <div class="stats-row">
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:code-s-slash-line" />
@@ -193,14 +193,14 @@
               {{ formatDuration(jvmInfo.compilationInfo?.totalCompilationTime) }}
             </el-descriptions-item>
             <el-descriptions-item label="时间监控">
-              <el-tag :type="jvmInfo.compilationInfo?.compilationTimeMonitoringSupported ? 'success' : 'info'" size="small">
+              <ScTag :type="jvmInfo.compilationInfo?.compilationTimeMonitoringSupported ? 'success' : 'info'" size="small">
                 {{ jvmInfo.compilationInfo?.compilationTimeMonitoringSupported ? '支持' : '不支持' }}
-              </el-tag>
+              </ScTag>
             </el-descriptions-item>
           </el-descriptions>
-        </el-card>
+        </ScCard>
 
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:terminal-box-line" />
@@ -209,19 +209,19 @@
           </template>
           <el-descriptions :column="2" size="small">
             <el-descriptions-item label="进程ID">
-              <el-tag type="primary" size="small">{{ jvmInfo.runtimeInfo?.pid || '-' }}</el-tag>
+              <ScTag type="primary" size="small">{{ jvmInfo.runtimeInfo?.pid || '-' }}</ScTag>
             </el-descriptions-item>
             <el-descriptions-item label="管理规范版本">{{ jvmInfo.runtimeInfo?.managementSpecVersion || '-' }}</el-descriptions-item>
             <el-descriptions-item label="规范名称" :span="2">
               <el-text truncated>{{ jvmInfo.runtimeInfo?.specName || '-' }}</el-text>
             </el-descriptions-item>
           </el-descriptions>
-        </el-card>
+        </ScCard>
       </div>
 
       <!-- 缓冲池 & 文件描述符 -->
       <div class="stats-row">
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:ram-line" />
@@ -238,17 +238,17 @@
                 <span>已用: {{ formatBytes(pool.memoryUsed) }}</span>
                 <span>容量: {{ formatBytes(pool.totalCapacity) }}</span>
               </div>
-              <el-progress
+              <ScProgress 
                 :percentage="pool.totalCapacity ? ((pool.memoryUsed || 0) / pool.totalCapacity * 100) : 0"
                 :stroke-width="6"
                 :color="getProgressColor(pool.totalCapacity ? ((pool.memoryUsed || 0) / pool.totalCapacity * 100) : 0)"
               />
             </div>
           </div>
-          <el-empty v-else description="无缓冲池信息" :image-size="40" />
-        </el-card>
+          <ScEmpty v-else description="无缓冲池信息" :image-size="40" />
+        </ScCard>
 
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:file-list-2-line" />
@@ -266,7 +266,7 @@
                 <div class="metric-label">最大限制</div>
               </div>
             </div>
-            <el-progress
+            <ScProgress 
               :percentage="jvmInfo.fileDescriptorInfo?.usagePercent || 0"
               :stroke-width="10"
               :color="getProgressColor(jvmInfo.fileDescriptorInfo?.usagePercent || 0)"
@@ -275,13 +275,13 @@
             />
             <div class="fd-usage-text">文件描述符使用率</div>
           </div>
-          <el-empty v-else description="无文件描述符信息 (仅Unix系统可用)" :image-size="40" />
-        </el-card>
+          <ScEmpty v-else description="无文件描述符信息 (仅Unix系统可用)" :image-size="40" />
+        </ScCard>
       </div>
 
       <!-- CPU & 内存详情 -->
       <div class="stats-row">
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:cpu-line" />
@@ -290,7 +290,7 @@
           </template>
           <div class="gauge-container">
             <div class="gauge-item">
-              <el-progress
+              <ScProgress 
                 type="dashboard"
                 :percentage="jvmInfo.cpuInfo?.processCpuLoad || 0"
                 :color="getProgressColor(jvmInfo.cpuInfo?.processCpuLoad || 0)"
@@ -299,7 +299,7 @@
               <div class="gauge-label">进程 CPU</div>
             </div>
             <div class="gauge-item">
-              <el-progress
+              <ScProgress 
                 type="dashboard"
                 :percentage="jvmInfo.cpuInfo?.systemCpuLoad || 0"
                 :color="getProgressColor(jvmInfo.cpuInfo?.systemCpuLoad || 0)"
@@ -308,22 +308,22 @@
               <div class="gauge-label">系统 CPU</div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
 
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:hard-drive-2-line" />
               <span>内存使用</span>
-              <el-button type="primary" link style="margin-left: auto" @click="showHeapDialog">
+              <ScButton type="primary" link style="margin-left: auto" @click="showHeapDialog">
                 <IconifyIconOnline icon="ri:pie-chart-line" />
                 内存分析
-              </el-button>
+              </ScButton>
             </div>
           </template>
           <div class="gauge-container">
             <div class="gauge-item">
-              <el-progress
+              <ScProgress 
                 type="dashboard"
                 :percentage="jvmInfo.heapMemory?.usagePercent || 0"
                 :color="getProgressColor(jvmInfo.heapMemory?.usagePercent || 0)"
@@ -335,7 +335,7 @@
               </div>
             </div>
             <div class="gauge-item">
-              <el-progress
+              <ScProgress 
                 type="dashboard"
                 :percentage="jvmInfo.nonHeapMemory?.usagePercent || 0"
                 :color="getProgressColor(jvmInfo.nonHeapMemory?.usagePercent || 0)"
@@ -347,12 +347,12 @@
               </div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </div>
 
       <!-- 线程 & 类加载 -->
       <div class="stats-row">
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:stack-line" />
@@ -379,9 +379,9 @@
               <div class="metric-label">死锁线程</div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
 
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:file-code-line" />
@@ -402,12 +402,12 @@
               <div class="metric-label">已卸载类</div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </div>
 
       <!-- 线程状态分布 & JIT编译统计 -->
       <div class="stats-row">
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:pie-chart-2-line" />
@@ -421,7 +421,7 @@
                   <span class="state-name">{{ state.name }}</span>
                   <span class="state-count">{{ state.count }}</span>
                 </div>
-                <el-progress
+                <ScProgress 
                   :percentage="state.percent"
                   :stroke-width="8"
                   :color="state.color"
@@ -433,9 +433,9 @@
               <span>总线程: {{ jvmInfo.threadStateDistribution?.totalCount || 0 }}</span>
             </div>
           </div>
-        </el-card>
+        </ScCard>
 
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:speed-line" />
@@ -458,23 +458,23 @@
               </el-descriptions-item>
             </el-descriptions>
           </div>
-          <el-empty v-else description="无JIT编译信息" :image-size="40" />
-        </el-card>
+          <ScEmpty v-else description="无JIT编译信息" :image-size="40" />
+        </ScCard>
       </div>
 
       <!-- 代码缓存信息 -->
       <div class="stats-row" v-if="jvmInfo.codeCacheInfo">
-        <el-card class="stat-card code-cache-card" shadow="never">
+        <ScCard class="stat-card code-cache-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:database-line" />
               <span>代码缓存 (Code Cache)</span>
-              <el-tag v-if="jvmInfo.codeCacheInfo?.nearFull" type="danger" size="small" style="margin-left: 8px">接近满</el-tag>
+              <ScTag v-if="jvmInfo.codeCacheInfo?.nearFull" type="danger" size="small" style="margin-left: 8px">接近满</ScTag>
             </div>
           </template>
           <div class="code-cache-info">
             <div class="cache-progress">
-              <el-progress
+              <ScProgress 
                 type="dashboard"
                 :percentage="jvmInfo.codeCacheInfo?.usagePercent || 0"
                 :color="getProgressColor(jvmInfo.codeCacheInfo?.usagePercent || 0)"
@@ -498,12 +498,12 @@
               </div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </div>
 
       <!-- GC统计 & 元空间 -->
       <div class="stats-row">
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:recycle-line" />
@@ -525,17 +525,17 @@
                 <div class="gc-stat-label">平均时间</div>
               </div>
             </div>
-            <el-divider style="margin: 12px 0" />
+            <ScDivider style="margin: 12px 0" />
             <div class="gc-detail-stats">
               <div class="gc-type-row">
                 <span class="gc-type-label">
-                  <el-tag type="success" size="small">Young GC</el-tag>
+                  <ScTag type="success" size="small">Young GC</ScTag>
                 </span>
                 <span class="gc-type-value">{{ jvmInfo.gcStats?.youngGcCount || 0 }} 次 / {{ formatDuration(jvmInfo.gcStats?.youngGcTime) }}</span>
               </div>
               <div class="gc-type-row">
                 <span class="gc-type-label">
-                  <el-tag type="warning" size="small">Old GC</el-tag>
+                  <ScTag type="warning" size="small">Old GC</ScTag>
                 </span>
                 <span class="gc-type-value">{{ jvmInfo.gcStats?.oldGcCount || 0 }} 次 / {{ formatDuration(jvmInfo.gcStats?.oldGcTime) }}</span>
               </div>
@@ -551,10 +551,10 @@
               </div>
             </div>
           </div>
-          <el-empty v-else description="无GC统计信息" :image-size="40" />
-        </el-card>
+          <ScEmpty v-else description="无GC统计信息" :image-size="40" />
+        </ScCard>
 
-        <el-card class="stat-card" shadow="never">
+        <ScCard class="stat-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:archive-line" />
@@ -563,7 +563,7 @@
           </template>
           <div v-if="jvmInfo.metaspaceInfo" class="metaspace-panel">
             <div class="metaspace-main">
-              <el-progress
+              <ScProgress 
                 type="dashboard"
                 :percentage="jvmInfo.metaspaceInfo?.usagePercent || 0"
                 :color="getProgressColor(jvmInfo.metaspaceInfo?.usagePercent || 0)"
@@ -585,10 +585,10 @@
                 </div>
               </div>
             </div>
-            <el-divider style="margin: 12px 0" />
+            <ScDivider style="margin: 12px 0" />
             <div class="compressed-class-space" v-if="jvmInfo.metaspaceInfo?.compressedClassSpaceUsed">
               <div class="ccs-header">压缩类空间</div>
-              <el-progress
+              <ScProgress 
                 :percentage="jvmInfo.metaspaceInfo?.compressedClassSpaceUsagePercent || 0"
                 :stroke-width="6"
                 :color="getProgressColor(jvmInfo.metaspaceInfo?.compressedClassSpaceUsagePercent || 0)"
@@ -598,13 +598,13 @@
               </div>
             </div>
           </div>
-          <el-empty v-else description="无元空间信息" :image-size="40" />
-        </el-card>
+          <ScEmpty v-else description="无元空间信息" :image-size="40" />
+        </ScCard>
       </div>
 
       <!-- 直接内存 -->
       <div class="stats-row" v-if="jvmInfo.directMemoryInfo?.used">
-        <el-card class="stat-card direct-memory-card" shadow="never">
+        <ScCard class="stat-card direct-memory-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:ram-2-line" />
@@ -628,7 +628,7 @@
                   <span class="value">{{ jvmInfo.directMemoryInfo?.count || 0 }}</span>
                 </div>
               </div>
-              <el-progress
+              <ScProgress 
                 v-if="jvmInfo.directMemoryInfo?.usagePercent"
                 :percentage="jvmInfo.directMemoryInfo?.usagePercent || 0"
                 :stroke-width="8"
@@ -657,12 +657,12 @@
               <span>最大直接内存: {{ formatBytes(jvmInfo.directMemoryInfo?.maxDirectMemory) }}</span>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </div>
 
       <!-- 内存分配速率 -->
       <div class="stats-row" v-if="jvmInfo.memoryAllocationRate">
-        <el-card class="stat-card memory-allocation-card" shadow="never">
+        <ScCard class="stat-card memory-allocation-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:speed-line" />
@@ -673,7 +673,7 @@
             <div class="allocation-sections">
               <div class="allocation-section">
                 <div class="section-title">Eden 区</div>
-                <el-progress
+                <ScProgress 
                   :percentage="jvmInfo.memoryAllocationRate?.edenUsagePercent || 0"
                   :stroke-width="10"
                   :color="getProgressColor(jvmInfo.memoryAllocationRate?.edenUsagePercent || 0)"
@@ -693,7 +693,7 @@
               </div>
               <div class="allocation-section">
                 <div class="section-title">Old 区</div>
-                <el-progress
+                <ScProgress 
                   :percentage="jvmInfo.memoryAllocationRate?.oldUsagePercent || 0"
                   :stroke-width="10"
                   :color="getProgressColor(jvmInfo.memoryAllocationRate?.oldUsagePercent || 0)"
@@ -703,7 +703,7 @@
                 </div>
               </div>
             </div>
-            <el-divider style="margin: 12px 0" />
+            <ScDivider style="margin: 12px 0" />
             <div class="rate-stats">
               <div class="rate-item">
                 <span class="rate-label">分配速率</span>
@@ -715,12 +715,12 @@
               </div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </div>
 
       <!-- 类加载详情 & 安全信息 -->
       <div class="stats-row" v-if="jvmInfo.classLoadingDetail || jvmInfo.securityInfo">
-        <el-card class="stat-card class-loading-detail-card" shadow="never" v-if="jvmInfo.classLoadingDetail">
+        <ScCard class="stat-card class-loading-detail-card" shadow="never" v-if="jvmInfo.classLoadingDetail">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:file-code-line" />
@@ -738,9 +738,9 @@
               {{ jvmInfo.classLoadingDetail?.unloadedCount?.toLocaleString() }}
             </el-descriptions-item>
             <el-descriptions-item label="详细输出">
-              <el-tag :type="jvmInfo.classLoadingDetail?.verbose ? 'success' : 'info'" size="small">
+              <ScTag :type="jvmInfo.classLoadingDetail?.verbose ? 'success' : 'info'" size="small">
                 {{ jvmInfo.classLoadingDetail?.verbose ? '已启用' : '未启用' }}
-              </el-tag>
+              </ScTag>
             </el-descriptions-item>
             <el-descriptions-item label="加载速率">
               {{ (jvmInfo.classLoadingDetail?.loadRatePerMinute || 0).toFixed(2) }} 类/分钟
@@ -749,9 +749,9 @@
               {{ (jvmInfo.classLoadingDetail?.unloadRatePerMinute || 0).toFixed(2) }} 类/分钟
             </el-descriptions-item>
           </el-descriptions>
-        </el-card>
+        </ScCard>
 
-        <el-card class="stat-card security-info-card" shadow="never" v-if="jvmInfo.securityInfo">
+        <ScCard class="stat-card security-info-card" shadow="never" v-if="jvmInfo.securityInfo">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:shield-check-line" />
@@ -760,9 +760,9 @@
           </template>
           <el-descriptions :column="1" border size="small">
             <el-descriptions-item label="状态">
-              <el-tag :type="jvmInfo.securityInfo?.securityManagerEnabled ? 'success' : 'info'" size="small">
+              <ScTag :type="jvmInfo.securityInfo?.securityManagerEnabled ? 'success' : 'info'" size="small">
                 {{ jvmInfo.securityInfo?.securityManagerEnabled ? '已启用' : '未启用' }}
-              </el-tag>
+              </ScTag>
             </el-descriptions-item>
             <el-descriptions-item label="管理器类" v-if="jvmInfo.securityInfo?.securityManagerClass">
               <span class="mono-text">{{ jvmInfo.securityInfo?.securityManagerClass }}</span>
@@ -772,29 +772,29 @@
             </el-descriptions-item>
           </el-descriptions>
           <div class="security-tip" v-if="!jvmInfo.securityInfo?.securityManagerEnabled">
-            <el-alert type="info" :closable="false" show-icon>
+            <ScAlert type="info" :closable="false" show-icon>
               <template #title>
                 安全管理器未启用，应用运行无额外安全限制
               </template>
-            </el-alert>
+            </ScAlert>
           </div>
-        </el-card>
+        </ScCard>
       </div>
 
       <!-- CPU 热点代码分析 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:fire-line" />
             <span>CPU 热点代码分析</span>
-            <el-button type="success" link style="margin-left: auto" @click="showBusinessAnalysisDialog">
+            <ScButton type="success" link style="margin-left: auto" @click="showBusinessAnalysisDialog">
               <IconifyIconOnline icon="ri:code-box-line" />
               业务归因分析
-            </el-button>
-            <el-button type="primary" link @click="showHotspotDialog">
+            </ScButton>
+            <ScButton type="primary" link @click="showHotspotDialog">
               <IconifyIconOnline icon="ri:search-line" />
               详细分析
-            </el-button>
+            </ScButton>
           </div>
         </template>
         <div class="hotspot-quick-view" v-loading="hotspotLoading">
@@ -810,7 +810,7 @@
                 </div>
               </div>
               <div class="hotspot-stats">
-                <el-progress
+                <ScProgress 
                   :percentage="hotspot.percentage || 0"
                   :stroke-width="6"
                   :color="getProgressColor((hotspot.percentage || 0) * 1.5)"
@@ -821,147 +821,147 @@
             </div>
           </div>
           <div v-else class="hotspot-empty">
-            <el-button type="primary" @click="runHotspotAnalysis" :loading="hotspotLoading">
+            <ScButton type="primary" @click="runHotspotAnalysis" :loading="hotspotLoading">
               <IconifyIconOnline icon="ri:play-line" />
               开始分析
-            </el-button>
+            </ScButton>
             <p>点击开始采样分析 CPU 热点代码</p>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 线程 CPU 占用分析 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:bar-chart-line" />
             <span>线程 CPU 占用分析 (Top 20)</span>
-            <el-button type="primary" link style="margin-left: auto" @click="showAllThreads">
+            <ScButton type="primary" link style="margin-left: auto" @click="showAllThreads">
               <IconifyIconOnline icon="ri:list-check" />
               查看全部线程
-            </el-button>
+            </ScButton>
           </div>
         </template>
-        <el-table :data="jvmInfo.topCpuThreads || []" stripe border max-height="400">
-          <el-table-column prop="threadId" label="ID" width="70" />
-          <el-table-column prop="threadName" label="线程名称" min-width="200" show-overflow-tooltip />
-          <el-table-column label="状态" width="100">
+        <ScTable :data="jvmInfo.topCpuThreads || []" stripe border max-height="400">
+          <ScTableColumn prop="threadId" label="ID" width="70" />
+          <ScTableColumn prop="threadName" label="线程名称" min-width="200" show-overflow-tooltip />
+          <ScTableColumn label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="getStateType(row.state)" size="small">{{ row.state }}</el-tag>
+              <ScTag :type="getStateType(row.state)" size="small">{{ row.state }}</ScTag>
             </template>
-          </el-table-column>
-          <el-table-column label="CPU 占比" width="140">
+          </ScTableColumn>
+          <ScTableColumn label="CPU 占比" width="140">
             <template #default="{ row }">
-              <el-progress
+              <ScProgress 
                 :percentage="row.cpuUsage || 0"
                 :color="getProgressColor(row.cpuUsage || 0)"
                 :stroke-width="8"
                 :format="(p: number) => p.toFixed(2) + '%'"
               />
             </template>
-          </el-table-column>
-          <el-table-column label="CPU 时间" width="100">
+          </ScTableColumn>
+          <ScTableColumn label="CPU 时间" width="100">
             <template #default="{ row }">
               {{ formatNanoTime(row.cpuTime) }}
             </template>
-          </el-table-column>
-          <el-table-column label="用户时间" width="100">
+          </ScTableColumn>
+          <ScTableColumn label="用户时间" width="100">
             <template #default="{ row }">
               {{ formatNanoTime(row.userTime) }}
             </template>
-          </el-table-column>
-          <el-table-column label="阻塞" width="80">
+          </ScTableColumn>
+          <ScTableColumn label="阻塞" width="80">
             <template #default="{ row }">
               <span :class="{ 'danger-text': (row.blockedCount || 0) > 100 }">{{ row.blockedCount || 0 }}</span>
             </template>
-          </el-table-column>
-          <el-table-column label="等待" width="80">
+          </ScTableColumn>
+          <ScTableColumn label="等待" width="80">
             <template #default="{ row }">
               {{ row.waitedCount || 0 }}
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="80" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="80" fixed="right">
             <template #default="{ row }">
-              <el-button type="primary" link size="small" @click="viewThreadStack(row)">
+              <ScButton type="primary" link size="small" @click="viewThreadStack(row)">
                 堆栈
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+          </ScTableColumn>
+        </ScTable>
+      </ScCard>
 
       <!-- GC 信息 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:recycle-line" />
             <span>垃圾收集器</span>
           </div>
         </template>
-        <el-table :data="jvmInfo.garbageCollectors || []" stripe border>
-          <el-table-column prop="name" label="收集器名称" min-width="150" />
-          <el-table-column prop="collectionCount" label="收集次数" min-width="100" />
-          <el-table-column label="收集时间" min-width="120">
+        <ScTable :data="jvmInfo.garbageCollectors || []" stripe border>
+          <ScTableColumn prop="name" label="收集器名称" min-width="150" />
+          <ScTableColumn prop="collectionCount" label="收集次数" min-width="100" />
+          <ScTableColumn label="收集时间" min-width="120">
             <template #default="{ row }">
               {{ formatDuration(row.collectionTime) }}
             </template>
-          </el-table-column>
-          <el-table-column label="内存池" min-width="200">
+          </ScTableColumn>
+          <ScTableColumn label="内存池" min-width="200">
             <template #default="{ row }">
-              <el-tag v-for="pool in row.memoryPoolNames" :key="pool" size="small" style="margin: 2px;">
+              <ScTag v-for="pool in row.memoryPoolNames" :key="pool" size="small" style="margin: 2px;">
                 {{ pool }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+          </ScTableColumn>
+        </ScTable>
+      </ScCard>
 
       <!-- 内存池信息 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:database-2-line" />
             <span>内存池</span>
           </div>
         </template>
-        <el-table :data="jvmInfo.memoryPools || []" stripe border>
-          <el-table-column prop="name" label="内存池名称" min-width="180" />
-          <el-table-column prop="type" label="类型" min-width="100">
+        <ScTable :data="jvmInfo.memoryPools || []" stripe border>
+          <ScTableColumn prop="name" label="内存池名称" min-width="180" />
+          <ScTableColumn prop="type" label="类型" min-width="100">
             <template #default="{ row }">
-              <el-tag :type="row.type === 'HEAP' ? 'success' : 'info'" size="small">
+              <ScTag :type="row.type === 'HEAP' ? 'success' : 'info'" size="small">
                 {{ row.type }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column label="已使用" min-width="120">
+          </ScTableColumn>
+          <ScTableColumn label="已使用" min-width="120">
             <template #default="{ row }">
               {{ formatBytes(row.usage?.used) }}
             </template>
-          </el-table-column>
-          <el-table-column label="已提交" min-width="120">
+          </ScTableColumn>
+          <ScTableColumn label="已提交" min-width="120">
             <template #default="{ row }">
               {{ formatBytes(row.usage?.committed) }}
             </template>
-          </el-table-column>
-          <el-table-column label="最大" min-width="120">
+          </ScTableColumn>
+          <ScTableColumn label="最大" min-width="120">
             <template #default="{ row }">
               {{ formatBytes(row.usage?.max) }}
             </template>
-          </el-table-column>
-          <el-table-column label="使用率" min-width="150">
+          </ScTableColumn>
+          <ScTableColumn label="使用率" min-width="150">
             <template #default="{ row }">
-              <el-progress
+              <ScProgress 
                 :percentage="row.usage?.usagePercent || 0"
                 :color="getProgressColor(row.usage?.usagePercent || 0)"
                 :stroke-width="8"
               />
             </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+          </ScTableColumn>
+        </ScTable>
+      </ScCard>
 
       <!-- 操作系统信息 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:computer-line" />
@@ -981,10 +981,10 @@
             {{ formatBytes(jvmInfo.osInfo?.freeSwapSpace) }} / {{ formatBytes(jvmInfo.osInfo?.totalSwapSpace) }}
           </el-descriptions-item>
         </el-descriptions>
-      </el-card>
+      </ScCard>
 
       <!-- JVM 参数 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:settings-3-line" />
@@ -992,36 +992,36 @@
           </div>
         </template>
         <div class="args-container">
-          <el-tag
+          <ScTag 
             v-for="(arg, index) in jvmInfo.inputArguments"
             :key="index"
             class="arg-tag"
             type="info"
           >
             {{ arg }}
-          </el-tag>
-          <el-empty v-if="!jvmInfo.inputArguments?.length" description="无启动参数" :image-size="60" />
+          </ScTag>
+          <ScEmpty v-if="!jvmInfo.inputArguments?.length" description="无启动参数" :image-size="60" />
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 线程Dump概览 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:file-list-3-line" />
             <span>线程 Dump</span>
-            <el-button type="primary" link style="margin-left: auto" @click="runThreadDump" :loading="threadDumpLoading">
+            <ScButton type="primary" link style="margin-left: auto" @click="runThreadDump" :loading="threadDumpLoading">
               <IconifyIconOnline icon="ri:refresh-line" />
               刷新
-            </el-button>
-            <el-button type="success" link @click="downloadThreadDump" :disabled="!threadDumpData">
+            </ScButton>
+            <ScButton type="success" link @click="downloadThreadDump" :disabled="!threadDumpData">
               <IconifyIconOnline icon="ri:download-line" />
               下载
-            </el-button>
-            <el-button link @click="showThreadDumpDialog">
+            </ScButton>
+            <ScButton link @click="showThreadDumpDialog">
               <IconifyIconOnline icon="ri:fullscreen-line" />
               详情
-            </el-button>
+            </ScButton>
           </div>
         </template>
         <div v-loading="threadDumpLoading">
@@ -1040,50 +1040,50 @@
                 <div class="stat-label">采集时间</div>
               </div>
             </div>
-            <el-table :data="(threadDumpData.threads || []).slice(0, 10)" stripe border size="small" max-height="300">
-              <el-table-column prop="threadId" label="ID" width="60" />
-              <el-table-column prop="threadName" label="线程名" min-width="180" show-overflow-tooltip />
-              <el-table-column label="状态" width="100">
+            <ScTable :data="(threadDumpData.threads || []).slice(0, 10)" stripe border size="small" max-height="300">
+              <ScTableColumn prop="threadId" label="ID" width="60" />
+              <ScTableColumn prop="threadName" label="线程名" min-width="180" show-overflow-tooltip />
+              <ScTableColumn label="状态" width="100">
                 <template #default="{ row }">
-                  <el-tag :type="getThreadStateType(row.state)" size="small">{{ row.state }}</el-tag>
+                  <ScTag :type="getThreadStateType(row.state)" size="small">{{ row.state }}</ScTag>
                 </template>
-              </el-table-column>
-              <el-table-column label="堆栈深度" width="80">
+              </ScTableColumn>
+              <ScTableColumn label="堆栈深度" width="80">
                 <template #default="{ row }">{{ row.stackTrace?.length || 0 }}</template>
-              </el-table-column>
-              <el-table-column label="操作" width="70">
+              </ScTableColumn>
+              <ScTableColumn label="操作" width="70">
                 <template #default="{ row }">
-                  <el-button type="primary" link size="small" @click="showThreadDumpStack(row)">查看</el-button>
+                  <ScButton type="primary" link size="small" @click="showThreadDumpStack(row)">查看</ScButton>
                 </template>
-              </el-table-column>
-            </el-table>
+              </ScTableColumn>
+            </ScTable>
           </div>
           <div v-else class="empty-panel">
-            <el-button type="primary" @click="runThreadDump" :loading="threadDumpLoading">
+            <ScButton type="primary" @click="runThreadDump" :loading="threadDumpLoading">
               <IconifyIconOnline icon="ri:play-line" />
               获取线程Dump
-            </el-button>
+            </ScButton>
             <p>点击获取当前 JVM 的线程Dump信息</p>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 内存泄漏检测概览 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:bug-line" />
             <span>内存泄漏检测</span>
-            <el-input-number v-model="leakIntervalSeconds" :min="3" :max="30" :step="1" size="small" style="width: 100px; margin-left: auto" />
+            <ScInputNumber v-model="leakIntervalSeconds" :min="3" :max="30" :step="1" size="small" style="width: 100px; margin-left: auto" />
             <span style="font-size: 12px; color: #909399; margin: 0 8px">秒</span>
-            <el-button type="primary" link @click="runMemoryLeakAnalysis" :loading="memoryLeakLoading">
+            <ScButton type="primary" link @click="runMemoryLeakAnalysis" :loading="memoryLeakLoading">
               <IconifyIconOnline icon="ri:play-line" />
               开始检测
-            </el-button>
-            <el-button link @click="showMemoryLeakDialog">
+            </ScButton>
+            <ScButton link @click="showMemoryLeakDialog">
               <IconifyIconOnline icon="ri:fullscreen-line" />
               详情
-            </el-button>
+            </ScButton>
           </div>
         </template>
         <div v-loading="memoryLeakLoading" :element-loading-text="`正在采集内存快照，请等待 ${leakIntervalSeconds} 秒...`">
@@ -1099,113 +1099,113 @@
                 <div>间隔: {{ ((memoryLeakAnalysis.intervalMs || 0) / 1000).toFixed(1) }}秒</div>
               </div>
             </div>
-            <el-table :data="(memoryLeakAnalysis.growingObjects || []).slice(0, 8)" stripe border size="small" max-height="250">
-              <el-table-column label="#" width="40">
+            <ScTable :data="(memoryLeakAnalysis.growingObjects || []).slice(0, 8)" stripe border size="small" max-height="250">
+              <ScTableColumn label="#" width="40">
                 <template #default="{ $index }">
                   <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column prop="simpleClassName" label="类名" min-width="200" show-overflow-tooltip />
-              <el-table-column label="内存增长" width="100">
+              </ScTableColumn>
+              <ScTableColumn prop="simpleClassName" label="类名" min-width="200" show-overflow-tooltip />
+              <ScTableColumn label="内存增长" width="100">
                 <template #default="{ row }">
                   <span class="text-danger">+{{ formatBytes(row.bytesGrowth) }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="实例增长" width="80">
+              </ScTableColumn>
+              <ScTableColumn label="实例增长" width="80">
                 <template #default="{ row }">
                   <span class="text-warning">+{{ formatNumber(row.countGrowth) }}</span>
                 </template>
-              </el-table-column>
-            </el-table>
+              </ScTableColumn>
+            </ScTable>
           </div>
           <div v-else class="empty-panel">
-            <el-button type="primary" @click="runMemoryLeakAnalysis" :loading="memoryLeakLoading">
+            <ScButton type="primary" @click="runMemoryLeakAnalysis" :loading="memoryLeakLoading">
               <IconifyIconOnline icon="ri:play-line" />
               开始内存泄漏检测
-            </el-button>
+            </ScButton>
             <p>对比两次堆快照，检测内存增长情况</p>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- JVM诊断信息概览 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:tools-line" />
             <span>JVM 诊断信息</span>
-            <el-button type="primary" link style="margin-left: auto" @click="runDiagnostic" :loading="diagnosticLoading">
+            <ScButton type="primary" link style="margin-left: auto" @click="runDiagnostic" :loading="diagnosticLoading">
               <IconifyIconOnline icon="ri:refresh-line" />
               刷新
-            </el-button>
-            <el-button link @click="showDiagnosticDialog">
+            </ScButton>
+            <ScButton link @click="showDiagnosticDialog">
               <IconifyIconOnline icon="ri:fullscreen-line" />
               详情
-            </el-button>
+            </ScButton>
           </div>
         </template>
         <div v-loading="diagnosticLoading">
           <div v-if="diagnosticInfo" class="diagnostic-overview">
-            <el-tabs v-model="diagnosticOverviewTab" type="border-card" class="compact-tabs">
-              <el-tab-pane label="VM Flags" name="flags">
-                <el-table :data="(diagnosticInfo.vmFlags || []).slice(0, 10)" stripe size="small" max-height="250">
-                  <el-table-column prop="name" label="参数" min-width="200" show-overflow-tooltip />
-                  <el-table-column prop="value" label="值" min-width="120" show-overflow-tooltip />
-                  <el-table-column prop="origin" label="来源" width="100">
+            <ScTabs v-model="diagnosticOverviewTab" type="border-card" class="compact-tabs">
+              <ScTabPane label="VM Flags" name="flags">
+                <ScTable :data="(diagnosticInfo.vmFlags || []).slice(0, 10)" stripe size="small" max-height="250">
+                  <ScTableColumn prop="name" label="参数" min-width="200" show-overflow-tooltip />
+                  <ScTableColumn prop="value" label="值" min-width="120" show-overflow-tooltip />
+                  <ScTableColumn prop="origin" label="来源" width="100">
                     <template #default="{ row }">
-                      <el-tag :type="getFlagOriginType(row.origin)" size="small">{{ row.origin }}</el-tag>
+                      <ScTag :type="getFlagOriginType(row.origin)" size="small">{{ row.origin }}</ScTag>
                     </template>
-                  </el-table-column>
-                </el-table>
-              </el-tab-pane>
-              <el-tab-pane label="系统属性" name="sysProps">
-                <el-table :data="Object.entries(diagnosticInfo.systemProperties || {}).slice(0, 10).map(([k, v]) => ({key: k, value: v}))" stripe size="small" max-height="250">
-                  <el-table-column prop="key" label="属性名" width="150" />
-                  <el-table-column prop="value" label="值" min-width="300" show-overflow-tooltip />
-                </el-table>
-              </el-tab-pane>
-              <el-tab-pane label="内存池" name="memoryPools">
-                <el-table :data="diagnosticInfo.memoryPoolDetails || []" stripe size="small" max-height="250">
-                  <el-table-column prop="name" label="名称" width="150" show-overflow-tooltip />
-                  <el-table-column label="使用率" width="120">
+                  </ScTableColumn>
+                </ScTable>
+              </ScTabPane>
+              <ScTabPane label="系统属性" name="sysProps">
+                <ScTable :data="Object.entries(diagnosticInfo.systemProperties || {}).slice(0, 10).map(([k, v]) => ({key: k, value: v}))" stripe size="small" max-height="250">
+                  <ScTableColumn prop="key" label="属性名" width="150" />
+                  <ScTableColumn prop="value" label="值" min-width="300" show-overflow-tooltip />
+                </ScTable>
+              </ScTabPane>
+              <ScTabPane label="内存池" name="memoryPools">
+                <ScTable :data="diagnosticInfo.memoryPoolDetails || []" stripe size="small" max-height="250">
+                  <ScTableColumn prop="name" label="名称" width="150" show-overflow-tooltip />
+                  <ScTableColumn label="使用率" width="120">
                     <template #default="{ row }">
-                      <el-progress
+                      <ScProgress 
                         :percentage="row.usage?.usagePercent || 0"
                         :stroke-width="6"
                         :color="getProgressColor(row.usage?.usagePercent || 0)"
                         :format="(p: number) => p.toFixed(0) + '%'"
                       />
                     </template>
-                  </el-table-column>
-                  <el-table-column label="已用/最大" min-width="120">
+                  </ScTableColumn>
+                  <ScTableColumn label="已用/最大" min-width="120">
                     <template #default="{ row }">{{ formatBytes(row.usage?.used) }} / {{ formatBytes(row.usage?.max) }}</template>
-                  </el-table-column>
-                </el-table>
-              </el-tab-pane>
-              <el-tab-pane label="类加载器" name="classLoaders">
-                <el-table :data="diagnosticInfo.classLoaders || []" stripe size="small" max-height="250">
-                  <el-table-column prop="name" label="名称" width="150" />
-                  <el-table-column prop="type" label="类型" min-width="250" show-overflow-tooltip />
-                  <el-table-column prop="parent" label="父加载器" min-width="200" show-overflow-tooltip />
-                </el-table>
-              </el-tab-pane>
-            </el-tabs>
+                  </ScTableColumn>
+                </ScTable>
+              </ScTabPane>
+              <ScTabPane label="类加载器" name="classLoaders">
+                <ScTable :data="diagnosticInfo.classLoaders || []" stripe size="small" max-height="250">
+                  <ScTableColumn prop="name" label="名称" width="150" />
+                  <ScTableColumn prop="type" label="类型" min-width="250" show-overflow-tooltip />
+                  <ScTableColumn prop="parent" label="父加载器" min-width="200" show-overflow-tooltip />
+                </ScTable>
+              </ScTabPane>
+            </ScTabs>
           </div>
           <div v-else class="empty-panel">
-            <el-button type="primary" @click="runDiagnostic" :loading="diagnosticLoading">
+            <ScButton type="primary" @click="runDiagnostic" :loading="diagnosticLoading">
               <IconifyIconOnline icon="ri:play-line" />
               获取诊断信息
-            </el-button>
+            </ScButton>
             <p>获取 JVM 详细诊断信息，包括 VM Flags、系统属性等</p>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 线程列表对话框 -->
     <sc-dialog v-model="threadDialogVisible" title="线程列表" width="90%" top="5vh">
       <div class="thread-dialog-toolbar">
-        <el-input
+        <ScInput 
           v-model="threadSearchKey"
           placeholder="搜索线程名称..."
           clearable
@@ -1215,81 +1215,81 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </el-input>
-        <el-select v-model="threadStateFilter" placeholder="线程状态" clearable style="width: 140px" @change="filterThreads">
-          <el-option label="全部" value="" />
-          <el-option label="RUNNABLE" value="RUNNABLE" />
-          <el-option label="BLOCKED" value="BLOCKED" />
-          <el-option label="WAITING" value="WAITING" />
-          <el-option label="TIMED_WAITING" value="TIMED_WAITING" />
-          <el-option label="NEW" value="NEW" />
-          <el-option label="TERMINATED" value="TERMINATED" />
-        </el-select>
-        <el-button @click="loadAllThreads" :loading="threadsLoading">
+        </ScInput>
+        <ScSelect v-model="threadStateFilter" placeholder="线程状态" clearable style="width: 140px" @change="filterThreads">
+          <ScOption label="全部" value="" />
+          <ScOption label="RUNNABLE" value="RUNNABLE" />
+          <ScOption label="BLOCKED" value="BLOCKED" />
+          <ScOption label="WAITING" value="WAITING" />
+          <ScOption label="TIMED_WAITING" value="TIMED_WAITING" />
+          <ScOption label="NEW" value="NEW" />
+          <ScOption label="TERMINATED" value="TERMINATED" />
+        </ScSelect>
+        <ScButton @click="loadAllThreads" :loading="threadsLoading">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
-      <el-table :data="filteredThreads" stripe border max-height="60vh" v-loading="threadsLoading">
-        <el-table-column prop="threadId" label="ID" width="70" sortable />
-        <el-table-column prop="threadName" label="线程名称" min-width="200" show-overflow-tooltip />
-        <el-table-column label="状态" width="120" sortable prop="state">
+      <ScTable :data="filteredThreads" stripe border max-height="60vh" v-loading="threadsLoading">
+        <ScTableColumn prop="threadId" label="ID" width="70" sortable />
+        <ScTableColumn prop="threadName" label="线程名称" min-width="200" show-overflow-tooltip />
+        <ScTableColumn label="状态" width="120" sortable prop="state">
           <template #default="{ row }">
-            <el-tag :type="getStateType(row.state)" size="small">{{ row.state }}</el-tag>
+            <ScTag :type="getStateType(row.state)" size="small">{{ row.state }}</ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="CPU 占比" width="140" sortable prop="cpuUsage">
+        </ScTableColumn>
+        <ScTableColumn label="CPU 占比" width="140" sortable prop="cpuUsage">
           <template #default="{ row }">
-            <el-progress
+            <ScProgress 
               :percentage="row.cpuUsage || 0"
               :color="getProgressColor(row.cpuUsage || 0)"
               :stroke-width="8"
               :format="(p: number) => p.toFixed(2) + '%'"
             />
           </template>
-        </el-table-column>
-        <el-table-column label="CPU 时间" width="100" sortable prop="cpuTime">
+        </ScTableColumn>
+        <ScTableColumn label="CPU 时间" width="100" sortable prop="cpuTime">
           <template #default="{ row }">
             {{ formatNanoTime(row.cpuTime) }}
           </template>
-        </el-table-column>
-        <el-table-column label="用户时间" width="100">
+        </ScTableColumn>
+        <ScTableColumn label="用户时间" width="100">
           <template #default="{ row }">
             {{ formatNanoTime(row.userTime) }}
           </template>
-        </el-table-column>
-        <el-table-column label="守护" width="70">
+        </ScTableColumn>
+        <ScTableColumn label="守护" width="70">
           <template #default="{ row }">
-            <el-tag :type="row.daemon ? 'info' : 'success'" size="small">
+            <ScTag :type="row.daemon ? 'info' : 'success'" size="small">
               {{ row.daemon ? '是' : '否' }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="priority" label="优先级" width="80" />
-        <el-table-column label="阻塞" width="80" sortable prop="blockedCount">
+        </ScTableColumn>
+        <ScTableColumn prop="priority" label="优先级" width="80" />
+        <ScTableColumn label="阻塞" width="80" sortable prop="blockedCount">
           <template #default="{ row }">
             <span :class="{ 'danger-text': (row.blockedCount || 0) > 100 }">{{ row.blockedCount || 0 }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="等待" width="80" sortable prop="waitedCount">
+        </ScTableColumn>
+        <ScTableColumn label="等待" width="80" sortable prop="waitedCount">
           <template #default="{ row }">
             {{ row.waitedCount || 0 }}
           </template>
-        </el-table-column>
-        <el-table-column label="锁信息" min-width="150" show-overflow-tooltip>
+        </ScTableColumn>
+        <ScTableColumn label="锁信息" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">
             <span v-if="row.lockName">{{ row.lockName }}</span>
             <span v-else class="text-muted">-</span>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="80" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="80" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="viewThreadStack(row)">
+            <ScButton type="primary" link size="small" @click="viewThreadStack(row)">
               堆栈
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
     </sc-dialog>
 
     <!-- 线程堆栈对话框 -->
@@ -1299,7 +1299,7 @@
           <el-descriptions-item label="线程 ID">{{ selectedThread.threadId }}</el-descriptions-item>
           <el-descriptions-item label="线程名称">{{ selectedThread.threadName }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="getStateType(selectedThread.state)" size="small">{{ selectedThread.state }}</el-tag>
+            <ScTag :type="getStateType(selectedThread.state)" size="small">{{ selectedThread.state }}</ScTag>
           </el-descriptions-item>
           <el-descriptions-item label="CPU 时间">{{ formatNanoTime(selectedThread.cpuTime) }}</el-descriptions-item>
           <el-descriptions-item label="阻塞次数/时间">{{ selectedThread.blockedCount }} / {{ formatDuration(selectedThread.blockedTime) }}</el-descriptions-item>
@@ -1318,46 +1318,46 @@
             </div>
           </div>
         </div>
-        <el-empty v-else description="无堆栈信息" />
+        <ScEmpty v-else description="无堆栈信息" />
       </div>
     </sc-dialog>
 
     <!-- CPU 热点分析对话框 -->
     <sc-dialog v-model="hotspotDialogVisible" title="CPU 热点代码分析" width="90%" top="3vh">
       <div class="hotspot-dialog-toolbar">
-        <el-input
+        <ScInput 
           v-model="hotspotPackageFilter"
           placeholder="包名过滤 (如: com.example)"
           clearable
           style="width: 200px"
         />
-        <el-input-number v-model="hotspotSampleCount" :min="5" :max="100" :step="5" style="width: 130px">
+        <ScInputNumber v-model="hotspotSampleCount" :min="5" :max="100" :step="5" style="width: 130px">
           <template #prefix>采样次数</template>
-        </el-input-number>
-        <el-input-number v-model="hotspotInterval" :min="10" :max="500" :step="10" style="width: 130px">
+        </ScInputNumber>
+        <ScInputNumber v-model="hotspotInterval" :min="10" :max="500" :step="10" style="width: 130px">
           <template #prefix>间隔(ms)</template>
-        </el-input-number>
-        <el-button type="primary" @click="runHotspotAnalysis" :loading="hotspotLoading">
+        </ScInputNumber>
+        <ScButton type="primary" @click="runHotspotAnalysis" :loading="hotspotLoading">
           <IconifyIconOnline icon="ri:play-line" />
           开始分析
-        </el-button>
+        </ScButton>
       </div>
 
       <div v-if="hotspotAnalysis" class="hotspot-summary">
-        <el-tag type="info">采样 {{ hotspotAnalysis.sampleCount }} 次</el-tag>
-        <el-tag type="info">耗时 {{ hotspotAnalysis.sampleDuration }} ms</el-tag>
-        <el-tag type="info">分析线程 {{ hotspotAnalysis.threadCount }} 个</el-tag>
+        <ScTag type="info">采样 {{ hotspotAnalysis.sampleCount }} 次</ScTag>
+        <ScTag type="info">耗时 {{ hotspotAnalysis.sampleDuration }} ms</ScTag>
+        <ScTag type="info">分析线程 {{ hotspotAnalysis.threadCount }} 个</ScTag>
       </div>
 
-      <el-tabs v-model="hotspotActiveTab" v-loading="hotspotLoading">
-        <el-tab-pane label="热点方法" name="methods">
-          <el-table :data="hotspotAnalysis?.hotspots || []" stripe border max-height="50vh">
-            <el-table-column label="排名" width="60">
+      <ScTabs v-model="hotspotActiveTab" v-loading="hotspotLoading">
+        <ScTabPane label="热点方法" name="methods">
+          <ScTable :data="hotspotAnalysis?.hotspots || []" stripe border max-height="50vh">
+            <ScTableColumn label="排名" width="60">
               <template #default="{ $index }">
                 <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
               </template>
-            </el-table-column>
-            <el-table-column label="方法" min-width="300">
+            </ScTableColumn>
+            <ScTableColumn label="方法" min-width="300">
               <template #default="{ row }">
                 <div class="method-cell">
                   <div class="method-name-full" :title="row.fullMethod">
@@ -1369,118 +1369,118 @@
                   </div>
                 </div>
               </template>
-            </el-table-column>
-            <el-table-column label="占比" width="150" sortable prop="percentage">
+            </ScTableColumn>
+            <ScTableColumn label="占比" width="150" sortable prop="percentage">
               <template #default="{ row }">
-                <el-progress
+                <ScProgress 
                   :percentage="row.percentage || 0"
                   :stroke-width="8"
                   :color="getProgressColor((row.percentage || 0) * 1.5)"
                   :format="(p: number) => p.toFixed(2) + '%'"
                 />
               </template>
-            </el-table-column>
-            <el-table-column prop="hitCount" label="命中次数" width="100" sortable />
-            <el-table-column label="调用者" min-width="200">
+            </ScTableColumn>
+            <ScTableColumn prop="hitCount" label="命中次数" width="100" sortable />
+            <ScTableColumn label="调用者" min-width="200">
               <template #default="{ row }">
                 <div v-if="row.callers?.length" class="callers-list">
                   <div v-for="caller in row.callers" :key="caller" class="caller-item">{{ caller }}</div>
                 </div>
                 <span v-else class="text-muted">-</span>
               </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
+            </ScTableColumn>
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="热点类" name="classes">
-          <el-table :data="hotspotAnalysis?.classHotspots || []" stripe border max-height="50vh">
-            <el-table-column label="排名" width="60">
+        <ScTabPane label="热点类" name="classes">
+          <ScTable :data="hotspotAnalysis?.classHotspots || []" stripe border max-height="50vh">
+            <ScTableColumn label="排名" width="60">
               <template #default="{ $index }">
                 <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
               </template>
-            </el-table-column>
-            <el-table-column prop="className" label="类名" min-width="300" show-overflow-tooltip />
-            <el-table-column label="占比" width="150" sortable prop="percentage">
+            </ScTableColumn>
+            <ScTableColumn prop="className" label="类名" min-width="300" show-overflow-tooltip />
+            <ScTableColumn label="占比" width="150" sortable prop="percentage">
               <template #default="{ row }">
-                <el-progress
+                <ScProgress 
                   :percentage="row.percentage || 0"
                   :stroke-width="8"
                   :color="getProgressColor((row.percentage || 0) * 1.5)"
                   :format="(p: number) => p.toFixed(2) + '%'"
                 />
               </template>
-            </el-table-column>
-            <el-table-column prop="hitCount" label="命中次数" width="100" sortable />
-            <el-table-column prop="methodCount" label="方法数" width="100" />
-          </el-table>
-        </el-tab-pane>
+            </ScTableColumn>
+            <ScTableColumn prop="hitCount" label="命中次数" width="100" sortable />
+            <ScTableColumn prop="methodCount" label="方法数" width="100" />
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="热点包" name="packages">
-          <el-table :data="hotspotAnalysis?.packageHotspots || []" stripe border max-height="50vh">
-            <el-table-column label="排名" width="60">
+        <ScTabPane label="热点包" name="packages">
+          <ScTable :data="hotspotAnalysis?.packageHotspots || []" stripe border max-height="50vh">
+            <ScTableColumn label="排名" width="60">
               <template #default="{ $index }">
                 <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
               </template>
-            </el-table-column>
-            <el-table-column prop="packageName" label="包名" min-width="300" show-overflow-tooltip />
-            <el-table-column label="占比" width="150" sortable prop="percentage">
+            </ScTableColumn>
+            <ScTableColumn prop="packageName" label="包名" min-width="300" show-overflow-tooltip />
+            <ScTableColumn label="占比" width="150" sortable prop="percentage">
               <template #default="{ row }">
-                <el-progress
+                <ScProgress 
                   :percentage="row.percentage || 0"
                   :stroke-width="8"
                   :color="getProgressColor((row.percentage || 0) * 1.5)"
                   :format="(p: number) => p.toFixed(2) + '%'"
                 />
               </template>
-            </el-table-column>
-            <el-table-column prop="hitCount" label="命中次数" width="100" sortable />
-            <el-table-column prop="classCount" label="类数" width="100" />
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
+            </ScTableColumn>
+            <ScTableColumn prop="hitCount" label="命中次数" width="100" sortable />
+            <ScTableColumn prop="classCount" label="类数" width="100" />
+          </ScTable>
+        </ScTabPane>
+      </ScTabs>
     </sc-dialog>
 
     <!-- 业务代码归因分析对话框 -->
     <sc-dialog v-model="businessAnalysisDialogVisible" title="业务代码归因分析" width="90%" top="3vh">
       <div class="hotspot-dialog-toolbar">
-        <el-input
+        <ScInput 
           v-model="businessPackageFilter"
           placeholder="业务包前缀 (如: com.chua)"
           clearable
           style="width: 200px"
         />
-        <el-input-number v-model="businessSampleCount" :min="10" :max="100" :step="5" style="width: 130px">
+        <ScInputNumber v-model="businessSampleCount" :min="10" :max="100" :step="5" style="width: 130px">
           <template #prefix>采样次数</template>
-        </el-input-number>
-        <el-input-number v-model="businessInterval" :min="10" :max="500" :step="10" style="width: 130px">
+        </ScInputNumber>
+        <ScInputNumber v-model="businessInterval" :min="10" :max="500" :step="10" style="width: 130px">
           <template #prefix>间隔(ms)</template>
-        </el-input-number>
-        <el-button type="primary" @click="runBusinessAnalysis" :loading="businessAnalysisLoading">
+        </ScInputNumber>
+        <ScButton type="primary" @click="runBusinessAnalysis" :loading="businessAnalysisLoading">
           <IconifyIconOnline icon="ri:play-line" />
           开始分析
-        </el-button>
+        </ScButton>
       </div>
 
       <div v-if="businessAnalysis" class="hotspot-summary">
-        <el-tag type="info">采样 {{ businessAnalysis.sampleCount }} 次</el-tag>
-        <el-tag type="info">耗时 {{ businessAnalysis.analysisTime }} ms</el-tag>
-        <el-tag type="success">业务包 {{ businessAnalysis.businessPackage }}</el-tag>
+        <ScTag type="info">采样 {{ businessAnalysis.sampleCount }} 次</ScTag>
+        <ScTag type="info">耗时 {{ businessAnalysis.analysisTime }} ms</ScTag>
+        <ScTag type="success">业务包 {{ businessAnalysis.businessPackage }}</ScTag>
       </div>
 
-      <el-tabs v-model="businessActiveTab" v-loading="businessAnalysisLoading">
-        <el-tab-pane label="CPU 影响" name="cpu">
+      <ScTabs v-model="businessActiveTab" v-loading="businessAnalysisLoading">
+        <ScTabPane label="CPU 影响" name="cpu">
           <div class="business-analysis-section">
             <div class="section-title">
               <IconifyIconOnline icon="ri:cpu-line" />
               业务代码对 CPU 的影响
             </div>
-            <el-table :data="businessAnalysis?.cpuImpacts || []" stripe border max-height="45vh">
-              <el-table-column label="排名" width="60">
+            <ScTable :data="businessAnalysis?.cpuImpacts || []" stripe border max-height="45vh">
+              <ScTableColumn label="排名" width="60">
                 <template #default="{ $index }">
                   <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="业务方法" min-width="280">
+              </ScTableColumn>
+              <ScTableColumn label="业务方法" min-width="280">
                 <template #default="{ row }">
                   <div class="method-cell">
                     <div class="method-name-full" :title="row.businessMethod">
@@ -1492,49 +1492,49 @@
                     </div>
                   </div>
                 </template>
-              </el-table-column>
-              <el-table-column label="影响占比" width="140" sortable prop="impactPercentage">
+              </ScTableColumn>
+              <ScTableColumn label="影响占比" width="140" sortable prop="impactPercentage">
                 <template #default="{ row }">
-                  <el-progress
+                  <ScProgress 
                     :percentage="row.impactPercentage || 0"
                     :stroke-width="8"
                     :color="getProgressColor((row.impactPercentage || 0) * 1.5)"
                     :format="(p: number) => p.toFixed(1) + '%'"
                   />
                 </template>
-              </el-table-column>
-              <el-table-column prop="impactScore" label="影响分数" width="90" sortable />
-              <el-table-column prop="callCount" label="调用次数" width="90" sortable />
-              <el-table-column label="关联热点" min-width="200">
+              </ScTableColumn>
+              <ScTableColumn prop="impactScore" label="影响分数" width="90" sortable />
+              <ScTableColumn prop="callCount" label="调用次数" width="90" sortable />
+              <ScTableColumn label="关联热点" min-width="200">
                 <template #default="{ row }">
                   <div v-if="row.relatedHotspots?.length" class="callers-list">
                     <div v-for="hp in row.relatedHotspots" :key="hp" class="caller-item">{{ hp }}</div>
                   </div>
                   <span v-else class="text-muted">-</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="描述" min-width="180" show-overflow-tooltip>
+              </ScTableColumn>
+              <ScTableColumn label="描述" min-width="180" show-overflow-tooltip>
                 <template #default="{ row }">
                   {{ row.description }}
                 </template>
-              </el-table-column>
-            </el-table>
+              </ScTableColumn>
+            </ScTable>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="内存影响" name="memory">
+        <ScTabPane label="内存影响" name="memory">
           <div class="business-analysis-section">
             <div class="section-title">
               <IconifyIconOnline icon="ri:hard-drive-2-line" />
               业务代码对内存的影响
             </div>
-            <el-table :data="businessAnalysis?.memoryImpacts || []" stripe border max-height="45vh">
-              <el-table-column label="排名" width="60">
+            <ScTable :data="businessAnalysis?.memoryImpacts || []" stripe border max-height="45vh">
+              <ScTableColumn label="排名" width="60">
                 <template #default="{ $index }">
                   <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="业务方法" min-width="280">
+              </ScTableColumn>
+              <ScTableColumn label="业务方法" min-width="280">
                 <template #default="{ row }">
                   <div class="method-cell">
                     <div class="method-name-full" :title="row.businessMethod">
@@ -1546,73 +1546,73 @@
                     </div>
                   </div>
                 </template>
-              </el-table-column>
-              <el-table-column label="影响占比" width="140" sortable prop="impactPercentage">
+              </ScTableColumn>
+              <ScTableColumn label="影响占比" width="140" sortable prop="impactPercentage">
                 <template #default="{ row }">
-                  <el-progress
+                  <ScProgress 
                     :percentage="row.impactPercentage || 0"
                     :stroke-width="8"
                     :color="getProgressColor((row.impactPercentage || 0) * 1.5)"
                     :format="(p: number) => p.toFixed(1) + '%'"
                   />
                 </template>
-              </el-table-column>
-              <el-table-column prop="impactScore" label="影响分数" width="90" sortable />
-              <el-table-column prop="callCount" label="调用次数" width="90" sortable />
-              <el-table-column label="内存操作" min-width="200">
+              </ScTableColumn>
+              <ScTableColumn prop="impactScore" label="影响分数" width="90" sortable />
+              <ScTableColumn prop="callCount" label="调用次数" width="90" sortable />
+              <ScTableColumn label="内存操作" min-width="200">
                 <template #default="{ row }">
                   <div v-if="row.relatedHotspots?.length" class="memory-ops-list">
-                    <el-tag v-for="op in row.relatedHotspots" :key="op" size="small" type="warning" class="memory-op-tag">
+                    <ScTag v-for="op in row.relatedHotspots" :key="op" size="small" type="warning" class="memory-op-tag">
                       {{ op }}
-                    </el-tag>
+                    </ScTag>
                   </div>
                   <span v-else class="text-muted">-</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="描述" min-width="150" show-overflow-tooltip>
+              </ScTableColumn>
+              <ScTableColumn label="描述" min-width="150" show-overflow-tooltip>
                 <template #default="{ row }">
                   {{ row.description }}
                 </template>
-              </el-table-column>
-            </el-table>
-            <el-empty v-if="!businessAnalysis?.memoryImpacts?.length && !businessAnalysisLoading" description="未检测到明显的内存分配" />
+              </ScTableColumn>
+            </ScTable>
+            <ScEmpty v-if="!businessAnalysis?.memoryImpacts?.length && !businessAnalysisLoading" description="未检测到明显的内存分配" />
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="调用链" name="chains">
+        <ScTabPane label="调用链" name="chains">
           <div class="business-analysis-section">
             <div class="section-title">
               <IconifyIconOnline icon="ri:flow-chart" />
               业务调用链分析
             </div>
-            <el-table :data="businessAnalysis?.callChains || []" stripe border max-height="45vh">
-              <el-table-column label="排名" width="60">
+            <ScTable :data="businessAnalysis?.callChains || []" stripe border max-height="45vh">
+              <ScTableColumn label="排名" width="60">
                 <template #default="{ $index }">
                   <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="业务入口" min-width="200" show-overflow-tooltip>
+              </ScTableColumn>
+              <ScTableColumn label="业务入口" min-width="200" show-overflow-tooltip>
                 <template #default="{ row }">
                   <span class="entry-method">{{ row.businessEntry }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="热点方法" min-width="200" show-overflow-tooltip>
+              </ScTableColumn>
+              <ScTableColumn label="热点方法" min-width="200" show-overflow-tooltip>
                 <template #default="{ row }">
                   <span class="hotspot-method-text">{{ row.hotspotMethod }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="出现占比" width="140" sortable prop="percentage">
+              </ScTableColumn>
+              <ScTableColumn label="出现占比" width="140" sortable prop="percentage">
                 <template #default="{ row }">
-                  <el-progress
+                  <ScProgress 
                     :percentage="row.percentage || 0"
                     :stroke-width="8"
                     :color="getProgressColor((row.percentage || 0) * 1.5)"
                     :format="(p: number) => p.toFixed(1) + '%'"
                   />
                 </template>
-              </el-table-column>
-              <el-table-column prop="occurrenceCount" label="出现次数" width="90" sortable />
-              <el-table-column label="调用链路" min-width="300">
+              </ScTableColumn>
+              <ScTableColumn prop="occurrenceCount" label="出现次数" width="90" sortable />
+              <ScTableColumn label="调用链路" min-width="300">
                 <template #default="{ row }">
                   <div v-if="row.callChain?.length" class="call-chain">
                     <span v-for="(step, idx) in row.callChain" :key="idx" class="chain-step">
@@ -1622,24 +1622,24 @@
                   </div>
                   <span v-else class="text-muted">-</span>
                 </template>
-              </el-table-column>
-            </el-table>
+              </ScTableColumn>
+            </ScTable>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="入口点" name="entries">
+        <ScTabPane label="入口点" name="entries">
           <div class="business-analysis-section">
             <div class="section-title">
               <IconifyIconOnline icon="ri:login-box-line" />
               业务入口点分析
             </div>
-            <el-table :data="businessAnalysis?.entryPoints || []" stripe border max-height="45vh">
-              <el-table-column label="排名" width="60">
+            <ScTable :data="businessAnalysis?.entryPoints || []" stripe border max-height="45vh">
+              <ScTableColumn label="排名" width="60">
                 <template #default="{ $index }">
                   <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="入口方法" min-width="280">
+              </ScTableColumn>
+              <ScTableColumn label="入口方法" min-width="280">
                 <template #default="{ row }">
                   <div class="method-cell">
                     <div class="method-name-full" :title="row.entryMethod">
@@ -1647,59 +1647,59 @@
                     </div>
                   </div>
                 </template>
-              </el-table-column>
-              <el-table-column label="入口类型" width="120">
+              </ScTableColumn>
+              <ScTableColumn label="入口类型" width="120">
                 <template #default="{ row }">
-                  <el-tag :type="getEntryTypeTag(row.entryType)" size="small">
+                  <ScTag :type="getEntryTypeTag(row.entryType)" size="small">
                     {{ row.entryType }}
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
-              <el-table-column prop="triggerCount" label="触发次数" width="100" sortable />
-              <el-table-column prop="cpuImpactScore" label="CPU 影响" width="100" sortable />
-              <el-table-column prop="relatedHotspotCount" label="关联热点" width="100" />
-              <el-table-column label="描述" min-width="200" show-overflow-tooltip>
+              </ScTableColumn>
+              <ScTableColumn prop="triggerCount" label="触发次数" width="100" sortable />
+              <ScTableColumn prop="cpuImpactScore" label="CPU 影响" width="100" sortable />
+              <ScTableColumn prop="relatedHotspotCount" label="关联热点" width="100" />
+              <ScTableColumn label="描述" min-width="200" show-overflow-tooltip>
                 <template #default="{ row }">
                   {{ row.description }}
                 </template>
-              </el-table-column>
-            </el-table>
+              </ScTableColumn>
+            </ScTable>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </sc-dialog>
 
     <!-- 内存分析对话框 -->
     <sc-dialog v-model="heapDialogVisible" title="堆内存分析" width="90%" top="3vh">
       <div class="hotspot-dialog-toolbar">
-        <el-input
+        <ScInput 
           v-model="heapPackageFilter"
           placeholder="包名过滤 (如: com.example)"
           clearable
           style="width: 200px"
         />
-        <el-button type="primary" @click="runHeapAnalysis" :loading="heapLoading">
+        <ScButton type="primary" @click="runHeapAnalysis" :loading="heapLoading">
           <IconifyIconOnline icon="ri:play-line" />
           开始分析
-        </el-button>
+        </ScButton>
       </div>
 
       <div v-if="heapAnalysis" class="hotspot-summary">
-        <el-tag type="success">对象总数 {{ formatNumber(heapAnalysis.totalObjects) }}</el-tag>
-        <el-tag type="warning">内存占用 {{ formatBytes(heapAnalysis.totalBytes) }}</el-tag>
-        <el-tag type="info">类数量 {{ heapAnalysis.classCount }}</el-tag>
-        <el-tag type="primary">堆使用 {{ formatBytes(heapAnalysis.heapUsage?.used) }} / {{ formatBytes(heapAnalysis.heapUsage?.max) }}</el-tag>
+        <ScTag type="success">对象总数 {{ formatNumber(heapAnalysis.totalObjects) }}</ScTag>
+        <ScTag type="warning">内存占用 {{ formatBytes(heapAnalysis.totalBytes) }}</ScTag>
+        <ScTag type="info">类数量 {{ heapAnalysis.classCount }}</ScTag>
+        <ScTag type="primary">堆使用 {{ formatBytes(heapAnalysis.heapUsage?.used) }} / {{ formatBytes(heapAnalysis.heapUsage?.max) }}</ScTag>
       </div>
 
-      <el-tabs v-model="heapActiveTab" v-loading="heapLoading">
-        <el-tab-pane label="按内存排序" name="byBytes">
-          <el-table :data="heapAnalysis?.topByBytes || []" stripe border max-height="50vh">
-            <el-table-column label="排名" width="60">
+      <ScTabs v-model="heapActiveTab" v-loading="heapLoading">
+        <ScTabPane label="按内存排序" name="byBytes">
+          <ScTable :data="heapAnalysis?.topByBytes || []" stripe border max-height="50vh">
+            <ScTableColumn label="排名" width="60">
               <template #default="{ $index }">
                 <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
               </template>
-            </el-table-column>
-            <el-table-column label="类名" min-width="300">
+            </ScTableColumn>
+            <ScTableColumn label="类名" min-width="300">
               <template #default="{ row }">
                 <div class="class-cell">
                   <div class="class-simple">{{ row.simpleClassName }}</div>
@@ -1708,38 +1708,38 @@
                   </div>
                 </div>
               </template>
-            </el-table-column>
-            <el-table-column label="内存占比" width="150" sortable prop="percentage">
+            </ScTableColumn>
+            <ScTableColumn label="内存占比" width="150" sortable prop="percentage">
               <template #default="{ row }">
-                <el-progress
+                <ScProgress 
                   :percentage="row.percentage || 0"
                   :stroke-width="8"
                   :color="getProgressColor((row.percentage || 0) * 2)"
                   :format="(p: number) => p.toFixed(2) + '%'"
                 />
               </template>
-            </el-table-column>
-            <el-table-column label="占用内存" width="120" sortable prop="bytes">
+            </ScTableColumn>
+            <ScTableColumn label="占用内存" width="120" sortable prop="bytes">
               <template #default="{ row }">
                 {{ formatBytes(row.bytes) }}
               </template>
-            </el-table-column>
-            <el-table-column label="实例数" width="120" sortable prop="instanceCount">
+            </ScTableColumn>
+            <ScTableColumn label="实例数" width="120" sortable prop="instanceCount">
               <template #default="{ row }">
                 {{ formatNumber(row.instanceCount) }}
               </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
+            </ScTableColumn>
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="按数量排序" name="byCount">
-          <el-table :data="heapAnalysis?.topByCount || []" stripe border max-height="50vh">
-            <el-table-column label="排名" width="60">
+        <ScTabPane label="按数量排序" name="byCount">
+          <ScTable :data="heapAnalysis?.topByCount || []" stripe border max-height="50vh">
+            <ScTableColumn label="排名" width="60">
               <template #default="{ $index }">
                 <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
               </template>
-            </el-table-column>
-            <el-table-column label="类名" min-width="300">
+            </ScTableColumn>
+            <ScTableColumn label="类名" min-width="300">
               <template #default="{ row }">
                 <div class="class-cell">
                   <div class="class-simple">{{ row.simpleClassName }}</div>
@@ -1748,77 +1748,77 @@
                   </div>
                 </div>
               </template>
-            </el-table-column>
-            <el-table-column label="实例数" width="120" sortable prop="instanceCount">
+            </ScTableColumn>
+            <ScTableColumn label="实例数" width="120" sortable prop="instanceCount">
               <template #default="{ row }">
                 {{ formatNumber(row.instanceCount) }}
               </template>
-            </el-table-column>
-            <el-table-column label="占用内存" width="120" sortable prop="bytes">
+            </ScTableColumn>
+            <ScTableColumn label="占用内存" width="120" sortable prop="bytes">
               <template #default="{ row }">
                 {{ formatBytes(row.bytes) }}
               </template>
-            </el-table-column>
-            <el-table-column label="内存占比" width="150" sortable prop="percentage">
+            </ScTableColumn>
+            <ScTableColumn label="内存占比" width="150" sortable prop="percentage">
               <template #default="{ row }">
-                <el-progress
+                <ScProgress 
                   :percentage="row.percentage || 0"
                   :stroke-width="8"
                   :color="getProgressColor((row.percentage || 0) * 2)"
                   :format="(p: number) => p.toFixed(2) + '%'"
                 />
               </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
+            </ScTableColumn>
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="按包统计" name="byPackage">
-          <el-table :data="heapAnalysis?.packageMemory || []" stripe border max-height="50vh">
-            <el-table-column label="排名" width="60">
+        <ScTabPane label="按包统计" name="byPackage">
+          <ScTable :data="heapAnalysis?.packageMemory || []" stripe border max-height="50vh">
+            <ScTableColumn label="排名" width="60">
               <template #default="{ $index }">
                 <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
               </template>
-            </el-table-column>
-            <el-table-column prop="packageName" label="包名" min-width="300" show-overflow-tooltip />
-            <el-table-column label="内存占比" width="150" sortable prop="percentage">
+            </ScTableColumn>
+            <ScTableColumn prop="packageName" label="包名" min-width="300" show-overflow-tooltip />
+            <ScTableColumn label="内存占比" width="150" sortable prop="percentage">
               <template #default="{ row }">
-                <el-progress
+                <ScProgress 
                   :percentage="row.percentage || 0"
                   :stroke-width="8"
                   :color="getProgressColor((row.percentage || 0) * 2)"
                   :format="(p: number) => p.toFixed(2) + '%'"
                 />
               </template>
-            </el-table-column>
-            <el-table-column label="占用内存" width="120" sortable prop="bytes">
+            </ScTableColumn>
+            <ScTableColumn label="占用内存" width="120" sortable prop="bytes">
               <template #default="{ row }">
                 {{ formatBytes(row.bytes) }}
               </template>
-            </el-table-column>
-            <el-table-column label="实例数" width="120" sortable prop="instanceCount">
+            </ScTableColumn>
+            <ScTableColumn label="实例数" width="120" sortable prop="instanceCount">
               <template #default="{ row }">
                 {{ formatNumber(row.instanceCount) }}
               </template>
-            </el-table-column>
-            <el-table-column prop="classCount" label="类数" width="100" />
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
+            </ScTableColumn>
+            <ScTableColumn prop="classCount" label="类数" width="100" />
+          </ScTable>
+        </ScTabPane>
+      </ScTabs>
     </sc-dialog>
 
     <!-- JVM优化建议对话框 -->
     <sc-dialog v-model="optimizationDialogVisible" title="JVM 优化建议" width="90%" top="3vh">
       <div class="hotspot-dialog-toolbar">
-        <el-input-number v-model="targetLatency" :min="50" :max="1000" :step="50" style="width: 180px">
+        <ScInputNumber v-model="targetLatency" :min="50" :max="1000" :step="50" style="width: 180px">
           <template #prefix>目标延迟(ms)</template>
-        </el-input-number>
-        <el-input-number v-model="targetThroughput" :min="80" :max="99" :step="1" style="width: 180px">
+        </ScInputNumber>
+        <ScInputNumber v-model="targetThroughput" :min="80" :max="99" :step="1" style="width: 180px">
           <template #prefix>目标吞吐量(%)</template>
-        </el-input-number>
-        <el-button type="primary" @click="runOptimizationAnalysis" :loading="optimizationLoading">
+        </ScInputNumber>
+        <ScButton type="primary" @click="runOptimizationAnalysis" :loading="optimizationLoading">
           <IconifyIconOnline icon="ri:play-line" />
           重新分析
-        </el-button>
+        </ScButton>
       </div>
 
       <div v-if="optimizationAdvice" class="optimization-header">
@@ -1833,18 +1833,18 @@
         </div>
       </div>
 
-      <el-tabs v-model="optimizationActiveTab" v-loading="optimizationLoading">
-        <el-tab-pane label="概览" name="overview">
+      <ScTabs v-model="optimizationActiveTab" v-loading="optimizationLoading">
+        <ScTabPane label="概览" name="overview">
           <div class="optimization-overview" v-if="optimizationAdvice">
             <!-- 推荐启动命令 -->
             <div class="command-section">
               <div class="section-title">
                 <IconifyIconOnline icon="ri:terminal-line" />
                 推荐启动命令
-                <el-button type="primary" link size="small" @click="copyCommand" style="margin-left: auto">
+                <ScButton type="primary" link size="small" @click="copyCommand" style="margin-left: auto">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   复制
-                </el-button>
+                </ScButton>
               </div>
               <div class="command-text">
                 <code>{{ optimizationAdvice.fullCommand }}</code>
@@ -1889,7 +1889,7 @@
                 <div v-for="(issue, idx) in optimizationAdvice.performanceAdvices" :key="idx" 
                      class="issue-item" :class="issue.level?.toLowerCase()">
                   <div class="issue-header">
-                    <el-tag :type="getIssueLevelType(issue.level)" size="small">{{ issue.category }}</el-tag>
+                    <ScTag :type="getIssueLevelType(issue.level)" size="small">{{ issue.category }}</ScTag>
                     <span class="issue-title">{{ issue.title }}</span>
                   </div>
                   <div class="issue-desc">{{ issue.description }}</div>
@@ -1900,9 +1900,9 @@
               </div>
             </div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="内存参数" name="memory">
+        <ScTabPane label="内存参数" name="memory">
           <div class="param-section" v-if="optimizationAdvice?.memoryAdvice">
             <el-descriptions :column="2" border>
               <el-descriptions-item label="推荐堆大小">{{ optimizationAdvice.memoryAdvice.recommendedHeapSize }}</el-descriptions-item>
@@ -1914,26 +1914,26 @@
               <el-descriptions-item label="建议说明" :span="2">{{ optimizationAdvice.memoryAdvice.advice }}</el-descriptions-item>
             </el-descriptions>
 
-            <el-table :data="optimizationAdvice.memoryAdvice.memoryParams || []" stripe border style="margin-top: 16px">
-              <el-table-column prop="name" label="参数" width="180" />
-              <el-table-column prop="currentValue" label="当前值" width="120" />
-              <el-table-column prop="recommendedValue" label="推荐值" width="120">
+            <ScTable :data="optimizationAdvice.memoryAdvice.memoryParams || []" stripe border style="margin-top: 16px">
+              <ScTableColumn prop="name" label="参数" width="180" />
+              <ScTableColumn prop="currentValue" label="当前值" width="120" />
+              <ScTableColumn prop="recommendedValue" label="推荐值" width="120">
                 <template #default="{ row }">
                   <span class="recommended-value">{{ row.recommendedValue }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="优先级" width="100">
+              </ScTableColumn>
+              <ScTableColumn label="优先级" width="100">
                 <template #default="{ row }">
-                  <el-tag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</el-tag>
+                  <ScTag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</ScTag>
                 </template>
-              </el-table-column>
-              <el-table-column prop="description" label="说明" min-width="150" />
-              <el-table-column prop="reason" label="推荐原因" min-width="200" />
-            </el-table>
+              </ScTableColumn>
+              <ScTableColumn prop="description" label="说明" min-width="150" />
+              <ScTableColumn prop="reason" label="推荐原因" min-width="200" />
+            </ScTable>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="GC 参数" name="gc">
+        <ScTabPane label="GC 参数" name="gc">
           <div class="param-section" v-if="optimizationAdvice?.gcAdvice">
             <el-descriptions :column="2" border>
               <el-descriptions-item label="当前GC收集器">{{ optimizationAdvice.gcAdvice.currentGc || '未知' }}</el-descriptions-item>
@@ -1945,26 +1945,26 @@
               <el-descriptions-item label="推荐原因" :span="2">{{ optimizationAdvice.gcAdvice.reason }}</el-descriptions-item>
             </el-descriptions>
 
-            <el-table :data="optimizationAdvice.gcAdvice.gcParams || []" stripe border style="margin-top: 16px">
-              <el-table-column prop="name" label="参数" width="200" />
-              <el-table-column prop="currentValue" label="当前值" width="120" />
-              <el-table-column prop="recommendedValue" label="推荐值" width="120">
+            <ScTable :data="optimizationAdvice.gcAdvice.gcParams || []" stripe border style="margin-top: 16px">
+              <ScTableColumn prop="name" label="参数" width="200" />
+              <ScTableColumn prop="currentValue" label="当前值" width="120" />
+              <ScTableColumn prop="recommendedValue" label="推荐值" width="120">
                 <template #default="{ row }">
                   <span class="recommended-value">{{ row.recommendedValue }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="优先级" width="100">
+              </ScTableColumn>
+              <ScTableColumn label="优先级" width="100">
                 <template #default="{ row }">
-                  <el-tag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</el-tag>
+                  <ScTag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</ScTag>
                 </template>
-              </el-table-column>
-              <el-table-column prop="description" label="说明" min-width="150" />
-              <el-table-column prop="reason" label="推荐原因" min-width="200" />
-            </el-table>
+              </ScTableColumn>
+              <ScTableColumn prop="description" label="说明" min-width="150" />
+              <ScTableColumn prop="reason" label="推荐原因" min-width="200" />
+            </ScTable>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="线程参数" name="thread">
+        <ScTabPane label="线程参数" name="thread">
           <div class="param-section" v-if="optimizationAdvice?.threadAdvice">
             <el-descriptions :column="2" border>
               <el-descriptions-item label="当前线程数">{{ optimizationAdvice.threadAdvice.currentThreadCount }}</el-descriptions-item>
@@ -1975,77 +1975,77 @@
               <el-descriptions-item label="建议说明">{{ optimizationAdvice.threadAdvice.advice }}</el-descriptions-item>
             </el-descriptions>
 
-            <el-table :data="optimizationAdvice.threadAdvice.threadParams || []" stripe border style="margin-top: 16px">
-              <el-table-column prop="name" label="参数" width="120" />
-              <el-table-column prop="currentValue" label="当前值" width="120" />
-              <el-table-column prop="recommendedValue" label="推荐值" width="120">
+            <ScTable :data="optimizationAdvice.threadAdvice.threadParams || []" stripe border style="margin-top: 16px">
+              <ScTableColumn prop="name" label="参数" width="120" />
+              <ScTableColumn prop="currentValue" label="当前值" width="120" />
+              <ScTableColumn prop="recommendedValue" label="推荐值" width="120">
                 <template #default="{ row }">
                   <span class="recommended-value">{{ row.recommendedValue }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="优先级" width="100">
+              </ScTableColumn>
+              <ScTableColumn label="优先级" width="100">
                 <template #default="{ row }">
-                  <el-tag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</el-tag>
+                  <ScTag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</ScTag>
                 </template>
-              </el-table-column>
-              <el-table-column prop="description" label="说明" min-width="150" />
-              <el-table-column prop="reason" label="推荐原因" min-width="200" />
-            </el-table>
+              </ScTableColumn>
+              <ScTableColumn prop="description" label="说明" min-width="150" />
+              <ScTableColumn prop="reason" label="推荐原因" min-width="200" />
+            </ScTable>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="全部参数" name="all">
-          <el-table :data="optimizationAdvice?.recommendedParams || []" stripe border max-height="50vh">
-            <el-table-column prop="name" label="参数" width="200" />
-            <el-table-column prop="currentValue" label="当前值" width="120" />
-            <el-table-column prop="recommendedValue" label="推荐值" width="120">
+        <ScTabPane label="全部参数" name="all">
+          <ScTable :data="optimizationAdvice?.recommendedParams || []" stripe border max-height="50vh">
+            <ScTableColumn prop="name" label="参数" width="200" />
+            <ScTableColumn prop="currentValue" label="当前值" width="120" />
+            <ScTableColumn prop="recommendedValue" label="推荐值" width="120">
               <template #default="{ row }">
                 <span class="recommended-value">{{ row.recommendedValue }}</span>
               </template>
-            </el-table-column>
-            <el-table-column label="类型" width="100">
+            </ScTableColumn>
+            <ScTableColumn label="类型" width="100">
               <template #default="{ row }">
-                <el-tag size="small">{{ row.type }}</el-tag>
+                <ScTag size="small">{{ row.type }}</ScTag>
               </template>
-            </el-table-column>
-            <el-table-column label="优先级" width="100">
+            </ScTableColumn>
+            <ScTableColumn label="优先级" width="100">
               <template #default="{ row }">
-                <el-tag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</el-tag>
+                <ScTag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</ScTag>
               </template>
-            </el-table-column>
-            <el-table-column prop="description" label="说明" min-width="150" />
-            <el-table-column prop="reason" label="推荐原因" min-width="200" />
-          </el-table>
-        </el-tab-pane>
+            </ScTableColumn>
+            <ScTableColumn prop="description" label="说明" min-width="150" />
+            <ScTableColumn prop="reason" label="推荐原因" min-width="200" />
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="当前参数" name="current">
+        <ScTabPane label="当前参数" name="current">
           <div class="current-args">
             <div v-if="optimizationAdvice?.currentArgs?.length" class="args-list">
-              <el-tag v-for="(arg, idx) in optimizationAdvice.currentArgs" :key="idx" type="info" class="arg-tag">
+              <ScTag v-for="(arg, idx) in optimizationAdvice.currentArgs" :key="idx" type="info" class="arg-tag">
                 {{ arg }}
-              </el-tag>
+              </ScTag>
             </div>
-            <el-empty v-else description="未获取到当前JVM参数" />
+            <ScEmpty v-else description="未获取到当前JVM参数" />
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </sc-dialog>
 
     <!-- 线程Dump导出对话框 -->
     <sc-dialog v-model="threadDumpDialogVisible" title="线程 Dump" width="80%" top="3vh">
       <div class="hotspot-dialog-toolbar">
-        <el-button type="primary" @click="runThreadDump" :loading="threadDumpLoading">
+        <ScButton type="primary" @click="runThreadDump" :loading="threadDumpLoading">
           <IconifyIconOnline icon="ri:refresh-line" />
           重新获取
-        </el-button>
-        <el-button type="success" @click="downloadThreadDump" :disabled="!threadDumpData">
+        </ScButton>
+        <ScButton type="success" @click="downloadThreadDump" :disabled="!threadDumpData">
           <IconifyIconOnline icon="ri:download-line" />
           下载
-        </el-button>
-        <el-button @click="copyThreadDump" :disabled="!threadDumpData">
+        </ScButton>
+        <ScButton @click="copyThreadDump" :disabled="!threadDumpData">
           <IconifyIconOnline icon="ri:file-copy-line" />
           复制
-        </el-button>
+        </ScButton>
       </div>
 
       <div v-if="threadDumpData" class="thread-dump-summary">
@@ -2056,45 +2056,45 @@
           </el-descriptions-item>
           <el-descriptions-item label="线程数">{{ threadDumpData.threadCount }}</el-descriptions-item>
           <el-descriptions-item label="死锁数">
-            <el-tag :type="(threadDumpData.deadlockedCount || 0) > 0 ? 'danger' : 'success'">
+            <ScTag :type="(threadDumpData.deadlockedCount || 0) > 0 ? 'danger' : 'success'">
               {{ threadDumpData.deadlockedCount || 0 }}
-            </el-tag>
+            </ScTag>
           </el-descriptions-item>
         </el-descriptions>
       </div>
 
-      <el-tabs v-model="threadDumpActiveTab" v-loading="threadDumpLoading">
-        <el-tab-pane label="线程列表" name="threads">
-          <el-table :data="threadDumpData?.threads || []" stripe border max-height="50vh">
-            <el-table-column prop="threadId" label="ID" width="80" />
-            <el-table-column prop="threadName" label="线程名" min-width="200" show-overflow-tooltip />
-            <el-table-column label="状态" width="100">
+      <ScTabs v-model="threadDumpActiveTab" v-loading="threadDumpLoading">
+        <ScTabPane label="线程列表" name="threads">
+          <ScTable :data="threadDumpData?.threads || []" stripe border max-height="50vh">
+            <ScTableColumn prop="threadId" label="ID" width="80" />
+            <ScTableColumn prop="threadName" label="线程名" min-width="200" show-overflow-tooltip />
+            <ScTableColumn label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="getThreadStateType(row.state)" size="small">{{ row.state }}</el-tag>
+                <ScTag :type="getThreadStateType(row.state)" size="small">{{ row.state }}</ScTag>
               </template>
-            </el-table-column>
-            <el-table-column label="守护" width="70">
+            </ScTableColumn>
+            <ScTableColumn label="守护" width="70">
               <template #default="{ row }">
-                <el-tag v-if="row.daemon" type="info" size="small">是</el-tag>
+                <ScTag v-if="row.daemon" type="info" size="small">是</ScTag>
                 <span v-else>-</span>
               </template>
-            </el-table-column>
-            <el-table-column prop="priority" label="优先级" width="80" />
-            <el-table-column prop="lockInfo" label="等待锁" min-width="200" show-overflow-tooltip />
-            <el-table-column label="堆栈" width="100">
+            </ScTableColumn>
+            <ScTableColumn prop="priority" label="优先级" width="80" />
+            <ScTableColumn prop="lockInfo" label="等待锁" min-width="200" show-overflow-tooltip />
+            <ScTableColumn label="堆栈" width="100">
               <template #default="{ row }">
-                <el-button type="primary" link @click="showThreadDumpStack(row)">
+                <ScButton type="primary" link @click="showThreadDumpStack(row)">
                   查看({{ row.stackTrace?.length || 0 }})
-                </el-button>
+                </ScButton>
               </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
+            </ScTableColumn>
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="文本格式" name="text">
+        <ScTabPane label="文本格式" name="text">
           <pre class="thread-dump-text">{{ threadDumpData?.dumpContent || '暂无数据' }}</pre>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </sc-dialog>
 
     <!-- 线程Dump堆栈详情 -->
@@ -2104,7 +2104,7 @@
           <el-descriptions-item label="线程ID">{{ selectedDumpThread.threadId }}</el-descriptions-item>
           <el-descriptions-item label="线程名">{{ selectedDumpThread.threadName }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="getThreadStateType(selectedDumpThread.state)">{{ selectedDumpThread.state }}</el-tag>
+            <ScTag :type="getThreadStateType(selectedDumpThread.state)">{{ selectedDumpThread.state }}</ScTag>
           </el-descriptions-item>
           <el-descriptions-item label="优先级">{{ selectedDumpThread.priority }}</el-descriptions-item>
           <el-descriptions-item label="等待锁" :span="2">{{ selectedDumpThread.lockInfo || '-' }}</el-descriptions-item>
@@ -2113,12 +2113,12 @@
 
         <div v-if="selectedDumpThread.lockedMonitors?.length" style="margin-top: 12px">
           <div class="section-title">持有的监视器</div>
-          <el-tag v-for="(m, i) in selectedDumpThread.lockedMonitors" :key="i" style="margin: 4px">{{ m }}</el-tag>
+          <ScTag v-for="(m, i) in selectedDumpThread.lockedMonitors" :key="i" style="margin: 4px">{{ m }}</ScTag>
         </div>
 
         <div v-if="selectedDumpThread.lockedSynchronizers?.length" style="margin-top: 12px">
           <div class="section-title">持有的同步器</div>
-          <el-tag v-for="(s, i) in selectedDumpThread.lockedSynchronizers" :key="i" style="margin: 4px" type="warning">{{ s }}</el-tag>
+          <ScTag v-for="(s, i) in selectedDumpThread.lockedSynchronizers" :key="i" style="margin: 4px" type="warning">{{ s }}</ScTag>
         </div>
 
         <div style="margin-top: 12px">
@@ -2131,19 +2131,19 @@
     <!-- 内存泄漏检测对话框 -->
     <sc-dialog v-model="memoryLeakDialogVisible" title="内存泄漏检测" width="85%" top="3vh">
       <div class="hotspot-dialog-toolbar">
-        <el-input-number v-model="leakIntervalSeconds" :min="3" :max="60" :step="1" style="width: 180px">
+        <ScInputNumber v-model="leakIntervalSeconds" :min="3" :max="60" :step="1" style="width: 180px">
           <template #prefix>检测间隔(秒)</template>
-        </el-input-number>
-        <el-input-number v-model="leakTopN" :min="10" :max="100" :step="10" style="width: 150px">
+        </ScInputNumber>
+        <ScInputNumber v-model="leakTopN" :min="10" :max="100" :step="10" style="width: 150px">
           <template #prefix>显示数量</template>
-        </el-input-number>
-        <el-button type="primary" @click="runMemoryLeakAnalysis" :loading="memoryLeakLoading">
+        </ScInputNumber>
+        <ScButton type="primary" @click="runMemoryLeakAnalysis" :loading="memoryLeakLoading">
           <IconifyIconOnline icon="ri:play-line" />
           开始检测
-        </el-button>
+        </ScButton>
       </div>
 
-      <el-alert
+      <ScAlert 
         v-if="memoryLeakLoading"
         type="info"
         :closable="false"
@@ -2151,7 +2151,7 @@
         style="margin-bottom: 16px"
       >
         正在采集内存快照，请等待 {{ leakIntervalSeconds }} 秒...
-      </el-alert>
+      </ScAlert>
 
       <div v-if="memoryLeakAnalysis" class="memory-leak-result">
         <div class="leak-summary">
@@ -2189,151 +2189,153 @@
           <IconifyIconOnline icon="ri:bar-chart-box-line" />
           增长最快的对象
         </div>
-        <el-table :data="memoryLeakAnalysis.growingObjects || []" stripe border max-height="45vh">
-          <el-table-column label="排名" width="60">
+        <ScTable :data="memoryLeakAnalysis.growingObjects || []" stripe border max-height="45vh">
+          <ScTableColumn label="排名" width="60">
             <template #default="{ $index }">
               <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
             </template>
-          </el-table-column>
-          <el-table-column prop="simpleClassName" label="类名" min-width="250" show-overflow-tooltip />
-          <el-table-column label="内存增长" width="130" sortable prop="bytesGrowth">
+          </ScTableColumn>
+          <ScTableColumn prop="simpleClassName" label="类名" min-width="250" show-overflow-tooltip />
+          <ScTableColumn label="内存增长" width="130" sortable prop="bytesGrowth">
             <template #default="{ row }">
               <span class="text-danger">+{{ formatBytes(row.bytesGrowth) }}</span>
             </template>
-          </el-table-column>
-          <el-table-column label="内存增长率" width="120">
+          </ScTableColumn>
+          <ScTableColumn label="内存增长率" width="120">
             <template #default="{ row }">
               <span :class="{'text-danger': (row.bytesGrowthPercent || 0) > 50}">
                 {{ (row.bytesGrowthPercent || 0).toFixed(1) }}%
               </span>
             </template>
-          </el-table-column>
-          <el-table-column label="实例增长" width="100" sortable prop="countGrowth">
+          </ScTableColumn>
+          <ScTableColumn label="实例增长" width="100" sortable prop="countGrowth">
             <template #default="{ row }">
               <span class="text-warning">+{{ formatNumber(row.countGrowth) }}</span>
             </template>
-          </el-table-column>
-          <el-table-column label="第一次" width="100">
+          </ScTableColumn>
+          <ScTableColumn label="第一次" width="100">
             <template #default="{ row }">{{ formatNumber(row.firstCount) }}</template>
-          </el-table-column>
-          <el-table-column label="第二次" width="100">
+          </ScTableColumn>
+          <ScTableColumn label="第二次" width="100">
             <template #default="{ row }">{{ formatNumber(row.secondCount) }}</template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
       </div>
 
-      <el-empty v-else-if="!memoryLeakLoading" description="点击“开始检测”进行内存泄漏分析" />
+      <ScEmpty v-else-if="!memoryLeakLoading" description="点击“开始检测”进行内存泄漏分析" />
     </sc-dialog>
 
     <!-- JVM诊断信息对话框 -->
     <sc-dialog v-model="diagnosticDialogVisible" title="JVM 诊断信息" width="85%" top="3vh">
       <div class="hotspot-dialog-toolbar">
-        <el-checkbox v-model="includeEnvVars">包含环境变量</el-checkbox>
-        <el-button type="primary" @click="runDiagnostic" :loading="diagnosticLoading">
+        <ScCheckbox v-model="includeEnvVars">包含环境变量</ScCheckbox>
+        <ScButton type="primary" @click="runDiagnostic" :loading="diagnosticLoading">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
 
-      <el-tabs v-model="diagnosticActiveTab" v-loading="diagnosticLoading">
-        <el-tab-pane label="VM Flags" name="flags">
-          <el-table :data="diagnosticInfo?.vmFlags || []" stripe border max-height="50vh">
-            <el-table-column prop="name" label="参数名" min-width="250" show-overflow-tooltip />
-            <el-table-column prop="value" label="值" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="origin" label="来源" width="150">
+      <ScTabs v-model="diagnosticActiveTab" v-loading="diagnosticLoading">
+        <ScTabPane label="VM Flags" name="flags">
+          <ScTable :data="diagnosticInfo?.vmFlags || []" stripe border max-height="50vh">
+            <ScTableColumn prop="name" label="参数名" min-width="250" show-overflow-tooltip />
+            <ScTableColumn prop="value" label="值" min-width="150" show-overflow-tooltip />
+            <ScTableColumn prop="origin" label="来源" width="150">
               <template #default="{ row }">
-                <el-tag :type="getFlagOriginType(row.origin)" size="small">{{ row.origin }}</el-tag>
+                <ScTag :type="getFlagOriginType(row.origin)" size="small">{{ row.origin }}</ScTag>
               </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
+            </ScTableColumn>
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="系统属性" name="sysProps">
-          <el-table :data="Object.entries(diagnosticInfo?.systemProperties || {}).map(([k, v]) => ({key: k, value: v}))" stripe border max-height="50vh">
-            <el-table-column prop="key" label="属性名" width="200" />
-            <el-table-column prop="value" label="值" min-width="400" show-overflow-tooltip />
-          </el-table>
-        </el-tab-pane>
+        <ScTabPane label="系统属性" name="sysProps">
+          <ScTable :data="Object.entries(diagnosticInfo?.systemProperties || {}).map(([k, v]) => ({key: k, value: v}))" stripe border max-height="50vh">
+            <ScTableColumn prop="key" label="属性名" width="200" />
+            <ScTableColumn prop="value" label="值" min-width="400" show-overflow-tooltip />
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="环境变量" name="envVars" v-if="includeEnvVars && diagnosticInfo?.environmentVariables">
-          <el-table :data="Object.entries(diagnosticInfo?.environmentVariables || {}).map(([k, v]) => ({key: k, value: v}))" stripe border max-height="50vh">
-            <el-table-column prop="key" label="变量名" width="200" />
-            <el-table-column prop="value" label="值" min-width="400" show-overflow-tooltip />
-          </el-table>
-        </el-tab-pane>
+        <ScTabPane label="环境变量" name="envVars" v-if="includeEnvVars && diagnosticInfo?.environmentVariables">
+          <ScTable :data="Object.entries(diagnosticInfo?.environmentVariables || {}).map(([k, v]) => ({key: k, value: v}))" stripe border max-height="50vh">
+            <ScTableColumn prop="key" label="变量名" width="200" />
+            <ScTableColumn prop="value" label="值" min-width="400" show-overflow-tooltip />
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="类加载器" name="classLoaders">
-          <el-table :data="diagnosticInfo?.classLoaders || []" stripe border max-height="50vh">
-            <el-table-column prop="name" label="名称" width="200" />
-            <el-table-column prop="type" label="类型" min-width="300" show-overflow-tooltip />
-            <el-table-column prop="parent" label="父加载器" min-width="250" show-overflow-tooltip />
-          </el-table>
-        </el-tab-pane>
+        <ScTabPane label="类加载器" name="classLoaders">
+          <ScTable :data="diagnosticInfo?.classLoaders || []" stripe border max-height="50vh">
+            <ScTableColumn prop="name" label="名称" width="200" />
+            <ScTableColumn prop="type" label="类型" min-width="300" show-overflow-tooltip />
+            <ScTableColumn prop="parent" label="父加载器" min-width="250" show-overflow-tooltip />
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="内存池" name="memoryPools">
-          <el-table :data="diagnosticInfo?.memoryPoolDetails || []" stripe border max-height="50vh">
-            <el-table-column prop="name" label="名称" width="200" />
-            <el-table-column prop="type" label="类型" width="100">
+        <ScTabPane label="内存池" name="memoryPools">
+          <ScTable :data="diagnosticInfo?.memoryPoolDetails || []" stripe border max-height="50vh">
+            <ScTableColumn prop="name" label="名称" width="200" />
+            <ScTableColumn prop="type" label="类型" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.type === 'HEAP' ? 'success' : 'info'" size="small">{{ row.type }}</el-tag>
+                <ScTag :type="row.type === 'HEAP' ? 'success' : 'info'" size="small">{{ row.type }}</ScTag>
               </template>
-            </el-table-column>
-            <el-table-column label="当前使用" width="150">
+            </ScTableColumn>
+            <ScTableColumn label="当前使用" width="150">
               <template #default="{ row }">
-                <el-progress
+                <ScProgress 
                   :percentage="row.usage?.usagePercent || 0"
                   :stroke-width="8"
                   :color="getProgressColor(row.usage?.usagePercent || 0)"
                   :format="(p: number) => p.toFixed(0) + '%'"
                 />
               </template>
-            </el-table-column>
-            <el-table-column label="已用/最大" min-width="150">
+            </ScTableColumn>
+            <ScTableColumn label="已用/最大" min-width="150">
               <template #default="{ row }">
                 {{ formatBytes(row.usage?.used) }} / {{ formatBytes(row.usage?.max) }}
               </template>
-            </el-table-column>
-            <el-table-column label="峰值" width="120">
+            </ScTableColumn>
+            <ScTableColumn label="峰值" width="120">
               <template #default="{ row }">{{ formatBytes(row.peakUsage?.used) }}</template>
-            </el-table-column>
-            <el-table-column label="超阈值" width="80">
+            </ScTableColumn>
+            <ScTableColumn label="超阈值" width="80">
               <template #default="{ row }">
-                <el-tag v-if="row.usageThresholdExceeded" type="danger" size="small">是</el-tag>
+                <ScTag v-if="row.usageThresholdExceeded" type="danger" size="small">是</ScTag>
                 <span v-else>-</span>
               </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
+            </ScTableColumn>
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="VM命令" name="vmCommands">
+        <ScTabPane label="VM命令" name="vmCommands">
           <div class="vm-command-section">
             <div class="command-selector">
-              <el-select v-model="selectedVmCommand" placeholder="选择命令" style="width: 200px">
-                <el-option label="vmFlags - VM参数" value="vmFlags" />
-                <el-option label="vmInfo - VM信息" value="vmInfo" />
-                <el-option label="vmVersion - VM版本" value="vmVersion" />
-                <el-option label="vmCommandLine - 启动命令" value="vmCommandLine" />
-                <el-option label="vmUptime - 运行时间" value="vmUptime" />
-                <el-option label="gcHeapInfo - GC堆信息" value="gcHeapInfo" />
-                <el-option label="vmSystemProperties - 系统属性" value="vmSystemProperties" />
-                <el-option label="threadPrint - 线程信息" value="threadPrint" />
-              </el-select>
-              <el-button type="primary" @click="runVmCommand" :loading="vmCommandLoading">
+              <ScSelect v-model="selectedVmCommand" placeholder="选择命令" style="width: 200px">
+                <ScOption label="vmFlags - VM参数" value="vmFlags" />
+                <ScOption label="vmInfo - VM信息" value="vmInfo" />
+                <ScOption label="vmVersion - VM版本" value="vmVersion" />
+                <ScOption label="vmCommandLine - 启动命令" value="vmCommandLine" />
+                <ScOption label="vmUptime - 运行时间" value="vmUptime" />
+                <ScOption label="gcHeapInfo - GC堆信息" value="gcHeapInfo" />
+                <ScOption label="vmSystemProperties - 系统属性" value="vmSystemProperties" />
+                <ScOption label="threadPrint - 线程信息" value="threadPrint" />
+              </ScSelect>
+              <ScButton type="primary" @click="runVmCommand" :loading="vmCommandLoading">
                 <IconifyIconOnline icon="ri:terminal-line" />
                 执行
-              </el-button>
+              </ScButton>
             </div>
             <pre class="vm-command-output">{{ vmCommandOutput || '选择命令并点击执行' }}</pre>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </sc-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+
+import ScTabPane from "@repo/components/ScTabs";
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ScMessage, ScMessageBox } from "@repo/utils";
 import { fetchJvmInfo, triggerGc, fetchThreadDetails, fetchThreadDetail, analyzeCpuHotspots, analyzeHeap, analyzeBusinessCode, getJvmOptimization, getThreadDump, analyzeMemoryLeak, getJvmDiagnostic, executeVmCommand, type JvmInfo, type ThreadDetail, type CpuHotspotAnalysis, type HeapAnalysis, type BusinessCodeAnalysis, type JvmOptimizationAdvice, type ThreadDump, type ThreadDumpDetail, type MemoryLeakAnalysis, type JvmDiagnostic } from "../api/jvm";
 
 defineOptions({
@@ -2464,10 +2466,10 @@ const loadData = async () => {
     if (res.success) {
       jvmInfo.value = res.data || {};
     } else {
-      ElMessage.error(res.msg || "获取 JVM 信息失败");
+      ScMessage.error(res.msg || "获取 JVM 信息失败");
     }
   } catch (error) {
-    ElMessage.error("获取 JVM 信息失败");
+    ScMessage.error("获取 JVM 信息失败");
   } finally {
     loading.value = false;
   }
@@ -2478,7 +2480,7 @@ const loadData = async () => {
  */
 const handleGc = async () => {
   try {
-    await ElMessageBox.confirm(
+    await ScMessageBox.confirm(
       "确定要执行手动垃圾回收吗？这可能会导致短暂的性能波动。",
       "确认执行 GC",
       {
@@ -2491,14 +2493,14 @@ const handleGc = async () => {
     gcLoading.value = true;
     const res = await triggerGc();
     if (res.success) {
-      ElMessage.success(res.data || "GC 执行成功");
+      ScMessage.success(res.data || "GC 执行成功");
       await loadData();
     } else {
-      ElMessage.error(res.msg || "GC 执行失败");
+      ScMessage.error(res.msg || "GC 执行失败");
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("GC 执行失败");
+      ScMessage.error("GC 执行失败");
     }
   } finally {
     gcLoading.value = false;
@@ -2623,10 +2625,10 @@ const loadAllThreads = async () => {
     if (res.success) {
       allThreads.value = res.data || [];
     } else {
-      ElMessage.error(res.msg || "获取线程列表失败");
+      ScMessage.error(res.msg || "获取线程列表失败");
     }
   } catch (error) {
-    ElMessage.error("获取线程列表失败");
+    ScMessage.error("获取线程列表失败");
   } finally {
     threadsLoading.value = false;
   }
@@ -2644,10 +2646,10 @@ const viewThreadStack = async (thread: ThreadDetail) => {
     if (res.success) {
       selectedThread.value = res.data || thread;
     } else {
-      ElMessage.error(res.msg || "获取线程堆栈失败");
+      ScMessage.error(res.msg || "获取线程堆栈失败");
     }
   } catch (error) {
-    ElMessage.error("获取线程堆栈失败");
+    ScMessage.error("获取线程堆栈失败");
   } finally {
     stackLoading.value = false;
   }
@@ -2669,10 +2671,10 @@ const runHotspotAnalysis = async () => {
     if (res.success) {
       hotspotAnalysis.value = res.data || null;
     } else {
-      ElMessage.error(res.msg || "CPU 热点分析失败");
+      ScMessage.error(res.msg || "CPU 热点分析失败");
     }
   } catch (error) {
-    ElMessage.error("CPU 热点分析失败");
+    ScMessage.error("CPU 热点分析失败");
   } finally {
     hotspotLoading.value = false;
   }
@@ -2733,10 +2735,10 @@ const runHeapAnalysis = async () => {
     if (res.success) {
       heapAnalysis.value = res.data || null;
     } else {
-      ElMessage.error(res.msg || "内存分析失败");
+      ScMessage.error(res.msg || "内存分析失败");
     }
   } catch (error) {
-    ElMessage.error("内存分析失败");
+    ScMessage.error("内存分析失败");
   } finally {
     heapLoading.value = false;
   }
@@ -2767,10 +2769,10 @@ const runBusinessAnalysis = async () => {
     if (res.success) {
       businessAnalysis.value = res.data || null;
     } else {
-      ElMessage.error(res.msg || "业务代码归因分析失败");
+      ScMessage.error(res.msg || "业务代码归因分析失败");
     }
   } catch (error) {
-    ElMessage.error("业务代码归因分析失败");
+    ScMessage.error("业务代码归因分析失败");
   } finally {
     businessAnalysisLoading.value = false;
   }
@@ -2796,10 +2798,10 @@ const runOptimizationAnalysis = async () => {
     if (res.success) {
       optimizationAdvice.value = res.data || null;
     } else {
-      ElMessage.error(res.msg || "JVM优化分析失败");
+      ScMessage.error(res.msg || "JVM优化分析失败");
     }
   } catch (error) {
-    ElMessage.error("JVM优化分析失败");
+    ScMessage.error("JVM优化分析失败");
   } finally {
     optimizationLoading.value = false;
   }
@@ -2846,9 +2848,9 @@ const copyCommand = async () => {
   if (optimizationAdvice.value?.fullCommand) {
     try {
       await navigator.clipboard.writeText(optimizationAdvice.value.fullCommand);
-      ElMessage.success("启动命令已复制到剪贴板");
+      ScMessage.success("启动命令已复制到剪贴板");
     } catch (error) {
-      ElMessage.error("复制失败");
+      ScMessage.error("复制失败");
     }
   }
 };
@@ -2875,10 +2877,10 @@ const runThreadDump = async () => {
     if (res.success) {
       threadDumpData.value = res.data || null;
     } else {
-      ElMessage.error(res.msg || "获取线程Dump失败");
+      ScMessage.error(res.msg || "获取线程Dump失败");
     }
   } catch (error) {
-    ElMessage.error("获取线程Dump失败");
+    ScMessage.error("获取线程Dump失败");
   } finally {
     threadDumpLoading.value = false;
   }
@@ -2896,7 +2898,7 @@ const downloadThreadDump = () => {
   a.download = `thread-dump-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`;
   a.click();
   URL.revokeObjectURL(url);
-  ElMessage.success("线程Dump已下载");
+  ScMessage.success("线程Dump已下载");
 };
 
 /**
@@ -2906,9 +2908,9 @@ const copyThreadDump = async () => {
   if (!threadDumpData.value?.dumpContent) return;
   try {
     await navigator.clipboard.writeText(threadDumpData.value.dumpContent);
-    ElMessage.success("线程Dump已复制到剪贴板");
+    ScMessage.success("线程Dump已复制到剪贴板");
   } catch (error) {
-    ElMessage.error("复制失败");
+    ScMessage.error("复制失败");
   }
 };
 
@@ -2955,10 +2957,10 @@ const runMemoryLeakAnalysis = async () => {
     if (res.success) {
       memoryLeakAnalysis.value = res.data || null;
     } else {
-      ElMessage.error(res.msg || "内存泄漏检测失败");
+      ScMessage.error(res.msg || "内存泄漏检测失败");
     }
   } catch (error) {
-    ElMessage.error("内存泄漏检测失败");
+    ScMessage.error("内存泄漏检测失败");
   } finally {
     memoryLeakLoading.value = false;
   }
@@ -2998,10 +3000,10 @@ const runDiagnostic = async () => {
     if (res.success) {
       diagnosticInfo.value = res.data || null;
     } else {
-      ElMessage.error(res.msg || "获取JVM诊断信息失败");
+      ScMessage.error(res.msg || "获取JVM诊断信息失败");
     }
   } catch (error) {
-    ElMessage.error("获取JVM诊断信息失败");
+    ScMessage.error("获取JVM诊断信息失败");
   } finally {
     diagnosticLoading.value = false;
   }
@@ -3012,7 +3014,7 @@ const runDiagnostic = async () => {
  */
 const runVmCommand = async () => {
   if (!selectedVmCommand.value) {
-    ElMessage.warning("请选择命令");
+    ScMessage.warning("请选择命令");
     return;
   }
   vmCommandLoading.value = true;

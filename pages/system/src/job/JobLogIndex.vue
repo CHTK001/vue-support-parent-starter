@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="job-log-container">
     <!-- 搜索和筛选 -->
     <div class="search-section">
-      <el-card class="search-card" shadow="never">
+      <ScCard class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
-            <el-select
+            <ScSelect 
               v-model="searchForm.jobId"
               placeholder="选择任务"
               class="job-filter"
@@ -13,24 +13,24 @@
               filterable
               @change="handleSearch"
             >
-              <el-option
+              <ScOption 
                 v-for="job in jobList"
                 :key="job.jobId"
                 :label="job.jobName"
                 :value="job.jobId"
               />
-            </el-select>
-            <el-select
+            </ScSelect>
+            <ScSelect 
               v-model="searchForm.logStatus"
               placeholder="执行状态"
               class="status-filter"
               clearable
               @change="handleSearch"
             >
-              <el-option label="成功" :value="1" />
-              <el-option label="失败" :value="0" />
-            </el-select>
-            <el-date-picker
+              <ScOption label="成功" :value="1" />
+              <ScOption label="失败" :value="0" />
+            </ScSelect>
+            <ScDatePicker 
               v-model="dateRange"
               type="datetimerange"
               range-separator="至"
@@ -41,67 +41,67 @@
             />
           </div>
           <div class="search-right">
-            <el-button @click="handleRefresh">
+            <ScButton @click="handleRefresh">
               <i class="ri-refresh-line"></i>
               刷新
-            </el-button>
-            <el-button type="danger" @click="handleClearLog">
+            </ScButton>
+            <ScButton type="danger" @click="handleClearLog">
               <i class="ri-delete-bin-line"></i>
               清理日志
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 日志列表 -->
     <div class="logs-section">
-      <el-card shadow="never">
-        <el-table
+      <ScCard shadow="never">
+        <ScTable 
           v-loading="loading"
           :data="logList"
           row-key="logId"
           stripe
           border
         >
-          <el-table-column prop="logId" label="日志ID" width="100" align="center" />
-          <el-table-column prop="jobId" label="任务ID" width="80" align="center" />
-          <el-table-column label="任务信息" min-width="200">
+          <ScTableColumn prop="logId" label="日志ID" width="100" align="center" />
+          <ScTableColumn prop="jobId" label="任务ID" width="80" align="center" />
+          <ScTableColumn label="任务信息" min-width="200">
             <template #default="{ row }">
               <div class="job-info-cell">
                 <span class="handler">{{ row.executorHandler }}</span>
-                <el-tag v-if="row.executorParam" size="small" type="info">
+                <ScTag v-if="row.executorParam" size="small" type="info">
                   {{ row.executorParam }}
-                </el-tag>
+                </ScTag>
               </div>
             </template>
-          </el-table-column>
-          <el-table-column prop="executorAddress" label="执行器地址" width="150" />
-          <el-table-column prop="triggerTime" label="调度时间" width="170" />
-          <el-table-column label="调度结果" width="100" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="executorAddress" label="执行器地址" width="150" />
+          <ScTableColumn prop="triggerTime" label="调度时间" width="170" />
+          <ScTableColumn label="调度结果" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="row.triggerCode === 200 ? 'success' : 'danger'" size="small">
+              <ScTag :type="row.triggerCode === 200 ? 'success' : 'danger'" size="small">
                 {{ row.triggerCode === 200 ? '成功' : '失败' }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="handleTime" label="执行时间" width="170" />
-          <el-table-column label="执行结果" width="100" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="handleTime" label="执行时间" width="170" />
+          <ScTableColumn label="执行结果" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="row.handleCode === 200 ? 'success' : 'danger'" size="small">
+              <ScTag :type="row.handleCode === 200 ? 'success' : 'danger'" size="small">
                 {{ row.handleCode === 200 ? '成功' : '失败' }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="120" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" type="primary" @click="handleViewDetail(row)">
+              <ScButton size="small" type="primary" @click="handleViewDetail(row)">
                 <i class="ri-eye-line"></i>
                 详情
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
 
         <!-- 分页 -->
         <div class="pagination-container">
@@ -115,7 +115,7 @@
             @current-change="handleSearch"
           />
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 日志详情对话框 -->
@@ -131,18 +131,18 @@
           </el-descriptions-item>
           <el-descriptions-item label="调度时间">{{ currentLog.triggerTime }}</el-descriptions-item>
           <el-descriptions-item label="调度结果">
-            <el-tag :type="currentLog.triggerCode === 200 ? 'success' : 'danger'">
+            <ScTag :type="currentLog.triggerCode === 200 ? 'success' : 'danger'">
               {{ currentLog.triggerCode === 200 ? '成功' : '失败' }} ({{ currentLog.triggerCode }})
-            </el-tag>
+            </ScTag>
           </el-descriptions-item>
           <el-descriptions-item label="调度日志" :span="2">
             <pre class="log-content">{{ currentLog.triggerMsg || '-' }}</pre>
           </el-descriptions-item>
           <el-descriptions-item label="执行时间">{{ currentLog.handleTime }}</el-descriptions-item>
           <el-descriptions-item label="执行结果">
-            <el-tag :type="currentLog.handleCode === 200 ? 'success' : 'danger'">
+            <ScTag :type="currentLog.handleCode === 200 ? 'success' : 'danger'">
               {{ currentLog.handleCode === 200 ? '成功' : '失败' }} ({{ currentLog.handleCode }})
-            </el-tag>
+            </ScTag>
           </el-descriptions-item>
           <el-descriptions-item label="执行日志" :span="2">
             <pre class="log-content">{{ currentLog.handleMsg || '-' }}</pre>
@@ -153,46 +153,46 @@
         <div class="realtime-log-section" v-if="realtimeLog">
           <div class="section-title">
             <span>实时日志</span>
-            <el-button size="small" @click="loadRealtimeLog">
+            <ScButton size="small" @click="loadRealtimeLog">
               <i class="ri-refresh-line"></i>
               刷新
-            </el-button>
+            </ScButton>
           </div>
           <pre class="realtime-log-content">{{ realtimeLog }}</pre>
         </div>
       </div>
       <template #footer>
-        <el-button @click="detailDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="loadRealtimeLog">
+        <ScButton @click="detailDialogVisible = false">关闭</ScButton>
+        <ScButton type="primary" @click="loadRealtimeLog">
           <i class="ri-refresh-line"></i>
           加载实时日志
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
     <!-- 清理日志对话框 -->
     <sc-dialog v-model="clearDialogVisible" title="清理日志" width="500px">
-      <el-form label-width="120px">
-        <el-form-item label="清理方式">
-          <el-radio-group v-model="clearType">
-            <el-radio value="days">按天数</el-radio>
-            <el-radio value="count">按条数</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="clearType === 'days'" label="保留天数">
-          <el-input-number v-model="clearDays" :min="1" :max="365" />
+      <ScForm label-width="120px">
+        <ScFormItem label="清理方式">
+          <ScRadioGroup v-model="clearType">
+            <ScRadio value="days">按天数</ScRadio>
+            <ScRadio value="count">按条数</ScRadio>
+          </ScRadioGroup>
+        </ScFormItem>
+        <ScFormItem v-if="clearType === 'days'" label="保留天数">
+          <ScInputNumber v-model="clearDays" :min="1" :max="365" />
           <span class="form-tip">将删除 {{ clearDays }} 天前的日志</span>
-        </el-form-item>
-        <el-form-item v-if="clearType === 'count'" label="保留条数">
-          <el-input-number v-model="clearCount" :min="100" :max="100000" :step="100" />
+        </ScFormItem>
+        <ScFormItem v-if="clearType === 'count'" label="保留条数">
+          <ScInputNumber v-model="clearCount" :min="100" :max="100000" :step="100" />
           <span class="form-tip">将保留最近 {{ clearCount }} 条日志</span>
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="clearDialogVisible = false">取消</el-button>
-        <el-button type="danger" :loading="clearLoading" @click="confirmClear">
+        <ScButton @click="clearDialogVisible = false">取消</ScButton>
+        <ScButton type="danger" :loading="clearLoading" @click="confirmClear">
           确认清理
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>
@@ -200,7 +200,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ScMessage, ScMessageBox } from "@repo/utils";
 import {
   fetchJobLogPage,
   fetchJobLogCat,
@@ -283,11 +283,11 @@ const loadLogList = async () => {
       logList.value = response.data?.records || response.data || [];
       pagination.total = response.data?.total || logList.value.length;
     } else {
-      ElMessage.error(response.msg || "加载日志列表失败");
+      ScMessage.error(response.msg || "加载日志列表失败");
     }
   } catch (error) {
     console.error("加载日志列表失败:", error);
-    ElMessage.error("加载日志列表失败");
+    ScMessage.error("加载日志列表失败");
   } finally {
     loading.value = false;
   }
@@ -331,11 +331,11 @@ const loadRealtimeLog = async () => {
     if (response.success) {
       realtimeLog.value = response.data?.logContent || response.data || "暂无日志内容";
     } else {
-      ElMessage.error(response.msg || "加载实时日志失败");
+      ScMessage.error(response.msg || "加载实时日志失败");
     }
   } catch (error) {
     console.error("加载实时日志失败:", error);
-    ElMessage.error("加载实时日志失败");
+    ScMessage.error("加载实时日志失败");
   }
 };
 
@@ -347,7 +347,7 @@ const handleClearLog = () => {
 // 确认清理
 const confirmClear = async () => {
   try {
-    await ElMessageBox.confirm("确定要清理日志吗？此操作不可恢复！", "警告", {
+    await ScMessageBox.confirm("确定要清理日志吗？此操作不可恢复！", "警告", {
       type: "warning",
     });
 
@@ -363,16 +363,16 @@ const confirmClear = async () => {
 
     const response = await fetchJobLogClear(params);
     if (response.success) {
-      ElMessage.success("清理成功");
+      ScMessage.success("清理成功");
       clearDialogVisible.value = false;
       loadLogList();
     } else {
-      ElMessage.error(response.msg || "清理失败");
+      ScMessage.error(response.msg || "清理失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("清理失败:", error);
-      ElMessage.error("清理失败");
+      ScMessage.error("清理失败");
     }
   } finally {
     clearLoading.value = false;

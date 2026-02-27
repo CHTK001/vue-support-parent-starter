@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-form-example">
     <DemoBlock title="基础表单" :code="codes.basic">
       <ScForm
@@ -54,6 +54,8 @@
 </template>
 
 <script setup lang="ts">
+
+import ScRegion from "@repo/components/ScRegion";
 import { reactive } from "vue";
 import {
   ScButton,

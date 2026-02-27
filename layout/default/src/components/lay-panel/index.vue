@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
 import { onClickOutside } from "@vueuse/core";
@@ -83,7 +83,7 @@ onBeforeUnmount(() => {
         </el-scrollbar>
 
         <div class="panel-footer">
-          <el-button
+          <ScButton 
             v-tippy="{
               content: t('panel.pureClearCacheAndToLogin'),
               placement: 'left-start',
@@ -95,7 +95,7 @@ onBeforeUnmount(() => {
             @click="onReset"
           >
             {{ t("panel.pureClearCache") }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>

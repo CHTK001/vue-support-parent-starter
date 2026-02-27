@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="timeline-card">
     <div class="timeline-card__line"></div>
     <div class="timeline-card__items">
@@ -21,14 +21,14 @@
           </div>
           <p class="timeline-card__description">{{ item.description }}</p>
           <div v-if="item.tags" class="timeline-card__tags">
-            <el-tag
+            <ScTag 
               v-for="(tag, tagIndex) in item.tags"
               :key="tagIndex"
               size="small"
               :type="tag.type || 'info'"
             >
               {{ tag.label || tag }}
-            </el-tag>
+            </ScTag>
           </div>
         </div>
       </div>

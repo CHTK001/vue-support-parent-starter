@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { nextTick, reactive, ref } from "vue";
 import { des } from "@repo/config";
 import { deviceDetection } from "@pureadmin/utils";
@@ -60,11 +60,11 @@ async function onClick(item) {
           <p>{{ item.title }}</p>
           <el-text class="mx-1" type="info">{{ item.illustrate }}</el-text>
         </div>
-        <el-button type="primary" text @click="onClick(item)">
+        <ScButton type="primary" text @click="onClick(item)">
           {{ item.button }}
-        </el-button>
+        </ScButton>
       </div>
-      <el-divider />
+      <ScDivider />
     </div>
   </div>
 </template>

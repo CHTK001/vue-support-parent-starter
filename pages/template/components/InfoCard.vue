@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="info-card" :class="`info-card--${type}`">
     <div class="info-card__header">
       <div class="info-card__icon">
@@ -17,7 +17,7 @@
     </div>
     <div v-if="showAction" class="info-card__footer">
       <slot name="action">
-        <el-button :type="type" text>{{ actionText }}</el-button>
+        <ScButton :type="type" text>{{ actionText }}</ScButton>
       </slot>
     </div>
   </div>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg example-container thin-scroller">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -15,7 +15,7 @@
         <div class="header-right">
           <div class="search-wrapper">
             <IconifyIconOnline icon="ri:search-line" class="search-icon" />
-            <el-input
+            <ScInput 
               v-model="searchText"
               placeholder="搜索组件..."
               clearable
@@ -110,10 +110,10 @@
       </div>
       <h3>未找到匹配的组件</h3>
       <p>尝试使用其他关键词搜索或切换分类</p>
-      <el-button type="primary" @click="clearFilters" class="empty-action">
+      <ScButton type="primary" @click="clearFilters" class="empty-action">
         <IconifyIconOnline icon="ri:refresh-line" />
         清除筛选
-      </el-button>
+      </ScButton>
     </div>
 
     <!-- 组件详情对话框 -->
@@ -288,7 +288,7 @@ const asyncComponentOptions = {
   errorComponent: {
     template: `
       <div class="error-component">
-        <el-alert
+        <ScAlert 
           title="组件加载失败"
           type="error"
           description="无法加载组件，请检查组件文件是否存在或者是否有错误"

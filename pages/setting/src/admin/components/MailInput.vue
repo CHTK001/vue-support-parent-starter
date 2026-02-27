@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="sc-mail-input">
     <!-- 邮件配置表单 -->
-    <el-form :model="mailConfig" label-position="top" class="mail-form">
-      <el-form-item label="SMTP服务器">
-        <el-input
+    <ScForm :model="mailConfig" label-position="top" class="mail-form">
+      <ScFormItem label="SMTP服务器">
+        <ScInput 
           v-model="mailConfig.host"
           placeholder="例如: smtp.example.com"
           :disabled="disabled"
@@ -11,11 +11,11 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:connection" />
           </template>
-        </el-input>
-      </el-form-item>
+        </ScInput>
+      </ScFormItem>
 
-      <el-form-item label="端口">
-        <el-input-number
+      <ScFormItem label="端口">
+        <ScInputNumber 
           v-model="mailConfig.port"
           :min="1"
           :max="65535"
@@ -23,10 +23,10 @@
           :disabled="disabled"
           class="port-input"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="用户名">
-        <el-input
+      <ScFormItem label="用户名">
+        <ScInput 
           v-model="mailConfig.username"
           placeholder="邮箱账号"
           :disabled="disabled"
@@ -34,11 +34,11 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:user" />
           </template>
-        </el-input>
-      </el-form-item>
+        </ScInput>
+      </ScFormItem>
 
-      <el-form-item label="密码">
-        <el-input
+      <ScFormItem label="密码">
+        <ScInput 
           v-model="mailConfig.password"
           type="password"
           placeholder="邮箱密码或授权码"
@@ -48,11 +48,11 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:lock" />
           </template>
-        </el-input>
-      </el-form-item>
+        </ScInput>
+      </ScFormItem>
 
-      <el-form-item label="发件人">
-        <el-input
+      <ScFormItem label="发件人">
+        <ScInput 
           v-model="mailConfig.from"
           placeholder="发件人邮箱"
           :disabled="disabled"
@@ -60,10 +60,10 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:message" />
           </template>
-        </el-input>
-      </el-form-item>
+        </ScInput>
+      </ScFormItem>
 
-      <el-form-item label="安全连接">
+      <ScFormItem label="安全连接">
         <ScSwitch
           v-model="mailConfig.secure"
           :disabled="disabled"
@@ -71,8 +71,8 @@
           inactive-text="不启用"
           layout="modern"
         />
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+    </ScForm>
   </div>
 </template>
 

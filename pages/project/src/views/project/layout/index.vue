@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 /**
     id: 452,
     blog_class: '42',
@@ -569,7 +569,7 @@ export default defineComponent({
       </div>
     </div>
   </div>
-  <el-empty v-else class="h-full"></el-empty>
+  <ScEmpty v-else class="h-full"></ScEmpty>
   <div
     style="display: flex; justify-content: start; margin-top: 20px"
     class="scTable-page-parent"
@@ -593,14 +593,14 @@ export default defineComponent({
         <div v-if="config.countDownable">
           <slot :row="countDown" name="time" />
         </div>
-        <el-button
+        <ScButton 
           v-if="!hideRefresh"
           :icon="icon('ep:refresh')"
           circle
           style="margin-left: 15px"
           @click="refresh"
         />
-        <el-popover
+        <ScPopover 
           v-if="columns"
           placement="top"
           title="列设置"
@@ -611,7 +611,7 @@ export default defineComponent({
           @after-leave="customColumnShow = false"
         >
           <template #reference>
-            <el-button
+            <ScButton 
               :icon="icon('ep:set-up')"
               circle
               style="margin-left: 15px"
@@ -625,8 +625,8 @@ export default defineComponent({
             @save="columnSettingSaveHandler"
             @back="columnSettingBackHandler"
           />
-        </el-popover>
-        <el-popover
+        </ScPopover>
+        <ScPopover 
           v-if="!hideSetting"
           placement="top"
           title="表格设置"
@@ -635,15 +635,15 @@ export default defineComponent({
           :hide-after="0"
         >
           <template #reference>
-            <el-button
+            <ScButton 
               :icon="icon('ep:setting')"
               circle
               style="margin-left: 15px"
             />
           </template>
-          <el-form label-width="80px" label-position="left">
-            <el-form-item label="表格尺寸">
-              <el-radio-group
+          <ScForm label-width="80px" label-position="left">
+            <ScFormItem label="表格尺寸">
+              <ScRadioGroup 
                 v-model="config.size"
                 size="small"
                 @change="configSizeChange"
@@ -651,21 +651,21 @@ export default defineComponent({
                 <el-radio-button value="large">大</el-radio-button>
                 <el-radio-button value="default">正常</el-radio-button>
                 <el-radio-button value="small">小</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="样式">
-              <el-checkbox v-model="config.border" label="纵向边框" />
-              <el-checkbox v-model="config.stripe" label="斑马纹" />
-            </el-form-item>
+              </ScRadioGroup>
+            </ScFormItem>
+            <ScFormItem label="样式">
+              <ScCheckbox v-model="config.border" label="纵向边框" />
+              <ScCheckbox v-model="config.stripe" label="斑马纹" />
+            </ScFormItem>
 
-            <el-form-item :label="'刷新' + customCountDownTime + 's'">
-              <el-radio-group v-model="config.countDownable" size="small">
+            <ScFormItem :label="'刷新' + customCountDownTime + 's'">
+              <ScRadioGroup v-model="config.countDownable" size="small">
                 <el-radio-button :value="true">开启</el-radio-button>
                 <el-radio-button :value="false">关闭</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-form>
-        </el-popover>
+              </ScRadioGroup>
+            </ScFormItem>
+          </ScForm>
+        </ScPopover>
       </div>
     </div>
   </div>

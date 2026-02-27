@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div
     class="pricing-card"
     :class="{ 'is-featured': featured, 'is-popular': popular }"
@@ -42,13 +42,13 @@
     </ul>
     <div class="pricing-card__action">
       <slot name="action">
-        <el-button
+        <ScButton 
           :type="featured ? 'primary' : 'default'"
           size="large"
           class="pricing-card__btn"
         >
           {{ actionText }}
-        </el-button>
+        </ScButton>
       </slot>
     </div>
   </div>

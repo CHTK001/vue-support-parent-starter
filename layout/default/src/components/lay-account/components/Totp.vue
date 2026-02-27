@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { nextTick, reactive, ref } from "vue";
 import { fetchBindTotp, fetchUnbindTotp, fetchGetTotpUri } from "@repo/core";
 import { deviceDetection } from "@pureadmin/utils";
@@ -66,14 +66,14 @@ async function handleCloseTopt() {
         <div class="flex-1">
           <p>{{ $t("buttons.totp") }}</p>
         </div>
-        <el-button type="primary" text @click="handleUpdateTopt">
+        <ScButton type="primary" text @click="handleUpdateTopt">
           {{ $t("buttons.update") }}
-        </el-button>
-        <el-button type="primary" text @click="handleCloseTopt">
+        </ScButton>
+        <ScButton type="primary" text @click="handleCloseTopt">
           {{ $t("buttons.close") }}
-        </el-button>
+        </ScButton>
       </div>
-      <el-divider />
+      <ScDivider />
       <div class="flex-1" v-if="title">
         <qrcode-vue :value="title" :size="widthValue" />
       </div>

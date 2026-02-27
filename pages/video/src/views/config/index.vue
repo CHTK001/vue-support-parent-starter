@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -40,7 +40,7 @@
           </div>
 
           <div class="table-actions">
-            <el-input
+            <ScInput 
               v-model="searchKeyword"
               placeholder="搜索配置名称"
               clearable
@@ -48,30 +48,30 @@
               @input="handleSearch"
             >
               <template #prefix>
-                <el-icon><IconifyIconOnline icon="ep:search" /></el-icon>
+                <ScIcon><IconifyIconOnline icon="ep:search" /></ScIcon>
               </template>
-            </el-input>
+            </ScInput>
 
-            <el-select
+            <ScSelect 
               v-model="statusFilter"
               placeholder="状态筛选"
               style="width: 120px"
               @change="handleFilter"
             >
-              <el-option label="全部" value="" />
-              <el-option label="启用" value="enabled" />
-              <el-option label="禁用" value="disabled" />
-              <el-option label="同步中" value="syncing" />
-              <el-option label="异常" value="error" />
-            </el-select>
+              <ScOption label="全部" value="" />
+              <ScOption label="启用" value="enabled" />
+              <ScOption label="禁用" value="disabled" />
+              <ScOption label="同步中" value="syncing" />
+              <ScOption label="异常" value="error" />
+            </ScSelect>
 
-            <el-button type="primary" @click="showAddDialog = true">
+            <ScButton type="primary" @click="showAddDialog = true">
               <IconifyIconOnline icon="ep:plus" class="mr-1" />
               新增配置
-            </el-button>
-            <el-button @click="refreshConfigs">
-              <el-icon><IconifyIconOnline icon="ep:refresh" /></el-icon>
-            </el-button>
+            </ScButton>
+            <ScButton @click="refreshConfigs">
+              <ScIcon><IconifyIconOnline icon="ep:refresh" /></ScIcon>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -100,13 +100,13 @@
               <div class="empty-description">
                 还没有创建任何视频同步配置，点击上方按钮开始创建
               </div>
-              <el-button
+              <ScButton 
                 type="primary"
                 @click="showAddDialog = true"
                 class="empty-action"
               >
                 <IconifyIconOnline icon="ep:plus" class="mr-2" />
-              </el-button>
+              </ScButton>
             </div>
           </template>
 
@@ -144,7 +144,7 @@
 <script setup lang="ts">
 // 直接使用IconifyIconOnline组件，无需变量赋值
 import ScTable from "@repo/components/ScTable/index.vue";
-import { ElMessageBox } from "element-plus";
+
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import {
   deleteSyncConfig,
@@ -159,7 +159,7 @@ import type { VideoSyncConfig } from "../../api/types";
 // 导入组件
 import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 import { useGlobalSocket } from "@repo/core";
-import { message } from "@repo/utils";
+import { message , ScMessageBox} from "@repo/utils";
 import ConfigCard from "./components/ConfigCard.vue";
 import ConfigForm from "./components/ConfigForm.vue";
 import ConfigStats from "./components/ConfigStats.vue";
@@ -382,7 +382,7 @@ const handleCommand = (command: string, config: VideoSyncConfig) => {
  * @param config 配置信息
  */
 const handleStop = (config: VideoSyncConfig) => {
-  ElMessageBox.confirm(
+  ScMessageBox.confirm(
     `确定要停止配置 "${config.videoSyncConfigName}" 的同步任务吗？`,
     "确认停止",
     {
@@ -432,7 +432,7 @@ const toggleConfigStatus = (config: VideoSyncConfig, enable: boolean) => {
  * 删除配置
  */
 const deleteConfig = (config: VideoSyncConfig) => {
-  ElMessageBox.confirm(
+  ScMessageBox.confirm(
     `确定要删除配置 "${config.videoSyncConfigName}" 吗？`,
     "确认删除",
     {

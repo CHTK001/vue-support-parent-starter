@@ -1,58 +1,58 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ScEditor 富文本编辑器示例</h2>
     <p class="example-desc">
       基于 WangEditor 的富文本编辑器，支持图片上传、视频插入等功能
     </p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="demo-controls">
-        <el-button type="primary" @click="insertText">
+        <ScButton type="primary" @click="insertText">
           <IconifyIconOnline icon="ri:text" class="mr-1" />
           插入文本
-        </el-button>
-        <el-button @click="clearContent">
+        </ScButton>
+        <ScButton @click="clearContent">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           清空内容
-        </el-button>
-        <el-button @click="getContent">
+        </ScButton>
+        <ScButton @click="getContent">
           <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
           获取内容
-        </el-button>
+        </ScButton>
       </div>
 
       <ScEditor v-model="content" :height="config.height" />
 
-      <el-divider content-position="left">属性配置</el-divider>
+      <ScDivider content-position="left">属性配置</ScDivider>
 
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="编辑器高度">
-              <el-input v-model="config.height" placeholder="如 300px" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+      <ScForm label-width="120px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="编辑器高度">
+              <ScInput v-model="config.height" placeholder="如 300px" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
 
-      <el-divider content-position="left">当前内容预览</el-divider>
+      <ScDivider content-position="left">当前内容预览</ScDivider>
       <div class="content-preview" v-html="content"></div>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="150" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 

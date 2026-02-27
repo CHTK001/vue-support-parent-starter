@@ -10,159 +10,159 @@
           </div>
         </div>
       </template>
-      <el-form ref="formRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="project-form">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="项目名称" prop="sysProjectName">
-              <el-input v-model="form.sysProjectName" placeholder="请输入项目名称" class="custom-input">
+      <ScForm ref="formRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="project-form">
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="项目名称" prop="sysProjectName">
+              <ScInput v-model="form.sysProjectName" placeholder="请输入项目名称" class="custom-input">
                 <template #prefix>
                   <IconifyIconOnline icon="mdi:projector" />
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="项目图标" prop="sysProjectIcon">
-              <el-input v-model="form.sysProjectIcon" class="custom-input" placeholder="请输入图标地址">
+          <ScCol :span="12">
+            <ScFormItem label="项目图标" prop="sysProjectIcon">
+              <ScInput v-model="form.sysProjectIcon" class="custom-input" placeholder="请输入图标地址">
                 <template #prefix>
                   <IconifyIconOnline icon="mdi:image" />
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="密钥分组" prop="sysProjectGroup">
-              <el-input v-model="form.sysProjectGroup" placeholder="请输入密钥分组" />
-            </el-form-item>
-          </el-col>
+          <ScCol :span="12">
+            <ScFormItem label="密钥分组" prop="sysProjectGroup">
+              <ScInput v-model="form.sysProjectGroup" placeholder="请输入密钥分组" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="接入方式" prop="sysProjectVender">
-              <el-select v-model="form.sysProjectVender" placeholder="请选择厂家" filterable @change="handleChangeVender">
-                <el-option v-for="item in venderDataList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
-              </el-select>
-            </el-form-item>
-          </el-col>
+          <ScCol :span="12">
+            <ScFormItem label="接入方式" prop="sysProjectVender">
+              <ScSelect v-model="form.sysProjectVender" placeholder="请选择厂家" filterable @change="handleChangeVender">
+                <ScOption v-for="item in venderDataList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
 
           <template v-if="form.sysProjectVender">
-            <el-col :span="12" v-if="showPropertyFromVender('sysProjectAppId')">
-              <el-form-item label="项目AppId" prop="sysProjectAppId">
-                <el-input v-model="form.sysProjectAppId" placeholder="请输入AppId" />
-              </el-form-item>
-            </el-col>
+            <ScCol :span="12" v-if="showPropertyFromVender('sysProjectAppId')">
+              <ScFormItem label="项目AppId" prop="sysProjectAppId">
+                <ScInput v-model="form.sysProjectAppId" placeholder="请输入AppId" />
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12" v-if="showPropertyFromVender('sysProjectAppSecret')">
-              <el-form-item label="项目密钥" prop="sysProjectAppSecret">
-                <el-input v-model="form.sysProjectAppSecret" placeholder="请输入AppSecret" type="password" show-password />
-              </el-form-item>
-            </el-col>
+            <ScCol :span="12" v-if="showPropertyFromVender('sysProjectAppSecret')">
+              <ScFormItem label="项目密钥" prop="sysProjectAppSecret">
+                <ScInput v-model="form.sysProjectAppSecret" placeholder="请输入AppSecret" type="password" show-password />
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12" v-if="showPropertyFromVender('sysProjectAppKey')">
-              <el-form-item label="AppKey" prop="sysProjectAppKey">
+            <ScCol :span="12" v-if="showPropertyFromVender('sysProjectAppKey')">
+              <ScFormItem label="AppKey" prop="sysProjectAppKey">
                 <template #label>
                   <div>
                     <span>AppKey</span>
                     <span v-if="form.sysProjectAppKey"
-                      ><el-icon v-copy:click="form.sysProjectAppKey" class="top-[2px] cursor-pointer"> <component :is="useRenderIcon('ep:copy-document')"></component> </el-icon
+                      ><ScIcon v-copy:click="form.sysProjectAppKey" class="top-[2px] cursor-pointer"> <component :is="useRenderIcon('ep:copy-document')"></component> </el-icon
                     ></span>
                   </div>
                 </template>
-                <el-input v-model="form.sysProjectAppKey" placeholder="请输入AppKey" type="password" show-password />
-              </el-form-item>
-            </el-col>
+                <ScInput v-model="form.sysProjectAppKey" placeholder="请输入AppKey" type="password" show-password />
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12" v-if="showPropertyFromVender('sysProjectSign')">
-              <el-form-item label="签名" prop="sysProjectSign">
-                <el-input v-model="form.sysProjectSign" placeholder="请输入签名" />
+            <ScCol :span="12" v-if="showPropertyFromVender('sysProjectSign')">
+              <ScFormItem label="签名" prop="sysProjectSign">
+                <ScInput v-model="form.sysProjectSign" placeholder="请输入签名" />
                 <span class="el-form-item-msg">项目签名/项目标识</span>
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12" v-if="showPropertyFromVender('sysProjectSignCode')">
-              <el-form-item label="项目编码" prop="sysProjectSignCode">
-                <el-input v-model="form.sysProjectSignCode" placeholder="请输入项目编码" />
+            <ScCol :span="12" v-if="showPropertyFromVender('sysProjectSignCode')">
+              <ScFormItem label="项目编码" prop="sysProjectSignCode">
+                <ScInput v-model="form.sysProjectSignCode" placeholder="请输入项目编码" />
                 <span class="el-form-item-msg">项目编码</span>
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12" v-if="showPropertyFromVender('sysProjectEndpoint')">
-              <el-form-item label="切入点" prop="sysProjectEndpoint">
-                <el-input v-model="form.sysProjectEndpoint" placeholder="请输入Endpoint" />
+            <ScCol :span="12" v-if="showPropertyFromVender('sysProjectEndpoint')">
+              <ScFormItem label="切入点" prop="sysProjectEndpoint">
+                <ScInput v-model="form.sysProjectEndpoint" placeholder="请输入Endpoint" />
                 <span class="el-form-item-msg">平台接口地址</span>
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12" v-if="showPropertyFromVender('sysProjectCdn')">
-              <el-form-item label="cdn" prop="sysProjectCdn">
-                <el-input v-model="form.sysProjectCdn" placeholder="请输入cdn" />
-              </el-form-item>
-            </el-col>
+            <ScCol :span="12" v-if="showPropertyFromVender('sysProjectCdn')">
+              <ScFormItem label="cdn" prop="sysProjectCdn">
+                <ScInput v-model="form.sysProjectCdn" placeholder="请输入cdn" />
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="功能" prop="sysProjectFunction">
-                <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple @change="handleChangeFunction">
-                  <el-option v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
-                </el-select>
-              </el-form-item>
-            </el-col>
+            <ScCol :span="12">
+              <ScFormItem label="功能" prop="sysProjectFunction">
+                <ScSelect v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple @change="handleChangeFunction">
+                  <ScOption v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+                </ScSelect>
+              </ScFormItem>
+            </ScCol>
           </template>
 
-          <el-col :span="24" v-role="'ADMIN'">
-            <el-form-item label="临时目录" prop="sysProjectLocationTempPath">
-              <el-input v-model="form.sysProjectLocationTempPath" placeholder="请输入服务器下临时目录(联系管理员操作)" />
-            </el-form-item>
-          </el-col>
+          <ScCol :span="24" v-role="'ADMIN'">
+            <ScFormItem label="临时目录" prop="sysProjectLocationTempPath">
+              <ScInput v-model="form.sysProjectLocationTempPath" placeholder="请输入服务器下临时目录(联系管理员操作)" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="24" v-role="'ADMIN'">
-            <el-form-item label="oss地址" prop="sysProjectLocationOssAddress">
-              <el-input v-model="form.sysProjectLocationOssAddress" placeholder="请输入服务器下临时目录(联系管理员操作)" />
-            </el-form-item>
-          </el-col>
+          <ScCol :span="24" v-role="'ADMIN'">
+            <ScFormItem label="oss地址" prop="sysProjectLocationOssAddress">
+              <ScInput v-model="form.sysProjectLocationOssAddress" placeholder="请输入服务器下临时目录(联系管理员操作)" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="24">
-            <el-form-item label="优先级" prop="sysProjectSort">
-              <el-input-number v-model="form.sysProjectSort" placeholder="请输入优先级" />
-            </el-form-item>
-          </el-col>
+          <ScCol :span="24">
+            <ScFormItem label="优先级" prop="sysProjectSort">
+              <ScInputNumber v-model="form.sysProjectSort" placeholder="请输入优先级" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="24">
-            <el-form-item label="备注" prop="sysProjectRemark">
-              <el-input v-model="form.sysProjectRemark" placeholder="请输入备注" type="textarea" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-divider v-if="show.smtp">
+          <ScCol :span="24">
+            <ScFormItem label="备注" prop="sysProjectRemark">
+              <ScInput v-model="form.sysProjectRemark" placeholder="请输入备注" type="textarea" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScDivider v-if="show.smtp">
           <template #default>SMTP</template>
-        </el-divider>
-        <el-row v-if="show.smtp">
-          <el-col :span="12">
-            <el-form-item label="smtp主机" prop="sysProjectSmtpHost" placeholder="smtp.163.com">
-              <el-input v-model="form.sysProjectSmtpHost" placeholder="请输入smtp主机" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="smtp端口" prop="sysProjectSmtpPort" placeholder="25">
-              <el-input v-model="form.sysProjectSmtpPort" placeholder="请输入smtp端口" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="smtp密码" prop="sysProjectSmtpPassword">
-              <el-input v-model="form.sysProjectSmtpPassword" placeholder="请输入smtp密码" type="password" show-password />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="主体账号" prop="sysProjectSmtpFrom">
-              <el-autocomplete v-model="form.sysProjectSmtpFrom" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入主体账号邮箱" clearable class="w-full" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+        </ScDivider>
+        <ScRow v-if="show.smtp">
+          <ScCol :span="12">
+            <ScFormItem label="smtp主机" prop="sysProjectSmtpHost" placeholder="smtp.163.com">
+              <ScInput v-model="form.sysProjectSmtpHost" placeholder="请输入smtp主机" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="smtp端口" prop="sysProjectSmtpPort" placeholder="25">
+              <ScInput v-model="form.sysProjectSmtpPort" placeholder="请输入smtp端口" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="smtp密码" prop="sysProjectSmtpPassword">
+              <ScInput v-model="form.sysProjectSmtpPassword" placeholder="请输入smtp密码" type="password" show-password />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="主体账号" prop="sysProjectSmtpFrom">
+              <ScAutocomplete v-model="form.sysProjectSmtpFrom" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入主体账号邮箱" clearable class="w-full" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
 
       <template #footer>
-        <el-button @click="handleClose" class="cancel-btn"> 取消 </el-button>
-        <el-button v-if="mode != 'show'" type="primary" :loading="env.loading" @click="debounce(handleSaveOrUpdate(), 1000, true)" class="save-btn"> 保存 </el-button>
+        <ScButton @click="handleClose" class="cancel-btn"> 取消 </ScButton>
+        <ScButton v-if="mode != 'show'" type="primary" :loading="env.loading" @click="debounce(handleSaveOrUpdate(), 1000, true)" class="save-btn"> 保存 </ScButton>
       </template>
     </sc-dialog>
   </div>

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import {
   defineExpose,
   nextTick,
@@ -54,7 +54,7 @@ defineExpose({
       @close="handleClose"
     >
       <el-header class="flex !justify-end">
-        <el-button
+        <ScButton 
           :icon="useRenderIcon('ep:plus')"
           @click="handleUpdate({}, 'add')"
           class="text-btn"
@@ -62,31 +62,31 @@ defineExpose({
       </el-header>
       <el-main class="setting-content">
         <ScTable border :url="fetchSettingPage">
-          <el-table-column prop="sysSettingGroup" label="数据分组">
+          <ScTableColumn prop="sysSettingGroup" label="数据分组">
             <template #default="scope">
-              <el-tag>{{ scope.row.sysSettingGroup }}</el-tag>
+              <ScTag>{{ scope.row.sysSettingGroup }}</ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysSettingName" label="字段" />
-          <el-table-column prop="sysSettingValue" label="当前值" />
-          <el-table-column prop="sysSettingRemark" label="描述" />
-          <el-table-column prop="sysSettingValueType" label="数据类型" />
-          <el-table-column prop="sysSettingSort" label="数据优先级" />
-          <el-table-column prop="sysSettingInSystem" label="系统配置">
+          </ScTableColumn>
+          <ScTableColumn prop="sysSettingName" label="字段" />
+          <ScTableColumn prop="sysSettingValue" label="当前值" />
+          <ScTableColumn prop="sysSettingRemark" label="描述" />
+          <ScTableColumn prop="sysSettingValueType" label="数据类型" />
+          <ScTableColumn prop="sysSettingSort" label="数据优先级" />
+          <ScTableColumn prop="sysSettingInSystem" label="系统配置">
             <template #default="scope">
-              <el-tag>{{ scope.row.sysSettingInSystem ? "是" : "否" }}</el-tag>
+              <ScTag>{{ scope.row.sysSettingInSystem ? "是" : "否" }}</ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysSettingConfig" label="设置">
+          </ScTableColumn>
+          <ScTableColumn prop="sysSettingConfig" label="设置">
             <template #default="{ row }">
-              <el-button
+              <ScButton 
                 :icon="useRenderIcon('ep:setting')"
                 plain
                 circle
                 @click="handleUpdate(row, 'edit')"
               />
             </template>
-          </el-table-column>
+          </ScTableColumn>
         </ScTable>
       </el-main>
     </sc-drawer>

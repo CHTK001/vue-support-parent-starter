@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="api-params-editor">
     <div v-if="!api" class="no-selection">
-      <el-empty description="请选择一个API接口" :image-size="120" />
+      <ScEmpty description="请选择一个API接口" :image-size="120" />
     </div>
     <div v-else class="api-details">
       <!-- API 基本信息 -->
@@ -17,26 +17,26 @@
         <!-- 参数控制按钮 -->
         <div class="param-controls">
           <el-button-group size="small">
-            <el-button
+            <ScButton 
               :type="showOnlyRequired ? 'primary' : ''"
               @click="showOnlyRequired = !showOnlyRequired"
             >
               <i class="ri-star-line"></i>
               {{ showOnlyRequired ? "显示全部" : "仅必填" }}
-            </el-button>
-            <el-button @click="clearAllParams">
+            </ScButton>
+            <ScButton @click="clearAllParams">
               <i class="ri-delete-bin-line"></i>
               清空参数
-            </el-button>
+            </ScButton>
           </el-button-group>
         </div>
       </div>
 
       <!-- 参数表单 -->
       <div class="params-section">
-        <el-tabs v-model="activeParamTab" class="params-tabs">
+        <ScTabs v-model="activeParamTab" class="params-tabs">
           <!-- 路径参数 -->
-          <el-tab-pane
+          <ScTabPane 
             v-if="filteredPathParams.length"
             label="路径参数"
             name="path"
@@ -50,16 +50,16 @@
                 <label class="param-label">
                   {{ param.name }}
                   <span v-if="param.required" class="required">*</span>
-                  <el-tag
+                  <ScTag 
                     v-if="param.required"
                     type="danger"
                     size="small"
                     class="required-tag"
                   >
                     必填
-                  </el-tag>
+                  </ScTag>
                 </label>
-                <el-input
+                <ScInput 
                   v-model="internalParamValues.path[param.name]"
                   :placeholder="param.description || `请输入${param.name}`"
                   size="small"
@@ -68,10 +68,10 @@
                 <div class="param-desc">{{ param.description }}</div>
               </div>
             </div>
-          </el-tab-pane>
+          </ScTabPane>
 
           <!-- 查询参数 -->
-          <el-tab-pane
+          <ScTabPane 
             v-if="filteredQueryParams.length"
             label="查询参数"
             name="query"
@@ -85,16 +85,16 @@
                 <label class="param-label">
                   {{ param.name }}
                   <span v-if="param.required" class="required">*</span>
-                  <el-tag
+                  <ScTag 
                     v-if="param.required"
                     type="danger"
                     size="small"
                     class="required-tag"
                   >
                     必填
-                  </el-tag>
+                  </ScTag>
                 </label>
-                <el-input
+                <ScInput 
                   v-model="internalParamValues.query[param.name]"
                   :placeholder="param.description || `请输入${param.name}`"
                   size="small"
@@ -103,10 +103,10 @@
                 <div class="param-desc">{{ param.description }}</div>
               </div>
             </div>
-          </el-tab-pane>
+          </ScTabPane>
 
           <!-- 请求体 -->
-          <el-tab-pane v-if="hasRequestBody" label="请求体" name="body">
+          <ScTabPane v-if="hasRequestBody" label="请求体" name="body">
             <div class="body-editor">
               <codemirror-editor-vue3
                 v-model:value="internalRequestBody"
@@ -116,14 +116,14 @@
                 @change="emitBodyChange"
               />
             </div>
-          </el-tab-pane>
-        </el-tabs>
+          </ScTabPane>
+        </ScTabs>
 
         <!-- 请求配置 -->
         <div class="request-config">
           <div class="config-item">
             <span class="config-label">超时时间:</span>
-            <el-input-number
+            <ScInputNumber 
               v-model="requestTimeout"
               :min="1000"
               :max="300000"
@@ -135,7 +135,7 @@
           </div>
           <div class="config-item">
             <span class="config-label">重试次数:</span>
-            <el-input-number
+            <ScInputNumber 
               v-model="retryCount"
               :min="0"
               :max="5"
@@ -147,7 +147,7 @@
 
         <!-- 执行按钮 -->
         <div class="execute-section">
-          <el-button
+          <ScButton 
             type="primary"
             @click="executeApi"
             :loading="executing"
@@ -155,7 +155,7 @@
           >
             <i class="ri-play-line"></i>
             执行请求
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
@@ -163,6 +163,8 @@
 </template>
 
 <script setup lang="ts">
+
+import ScTabPane from "@repo/components/ScTabs";
 import { computed, ref, watch, reactive } from "vue";
 import CodemirrorEditorVue3 from "codemirror-editor-vue3";
 import type { ApiInfo, ParamValues } from "../types";

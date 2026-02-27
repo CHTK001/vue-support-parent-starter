@@ -1,87 +1,87 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ScSocketMessageDialog Socket消息对话框示例</h2>
     <p class="example-desc">
       用于显示实时Socket消息、进度等，支持多种布局模式和 interact.js 拖拽/缩放
     </p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="demo-controls">
-        <el-button type="primary" @click="showDialog">
+        <ScButton type="primary" @click="showDialog">
           <IconifyIconOnline icon="ri:broadcast-line" class="mr-1" />
           显示对话框
-        </el-button>
-        <el-button @click="simulateProgress">
+        </ScButton>
+        <ScButton @click="simulateProgress">
           <IconifyIconOnline icon="ri:play-line" class="mr-1" />
           模拟进度
-        </el-button>
-        <el-button @click="addLog">
+        </ScButton>
+        <ScButton @click="addLog">
           <IconifyIconOnline icon="ri:file-list-line" class="mr-1" />
           添加日志
-        </el-button>
-        <el-button type="warning" plain @click="resetDialog">
+        </ScButton>
+        <ScButton type="warning" plain @click="resetDialog">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           重置
-        </el-button>
+        </ScButton>
       </div>
 
-      <el-divider content-position="left">属性配置</el-divider>
+      <ScDivider content-position="left">属性配置</ScDivider>
 
-      <el-form label-width="140px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="布局模式">
-              <el-select v-model="config.layout" style="width: 100%">
-                <el-option label="进度条" value="process" />
-                <el-option label="日志" value="log" />
-                <el-option label="自定义" value="custom" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="显示模式">
-              <el-select v-model="config.mode" style="width: 100%">
-                <el-option label="内嵌" value="embed" />
-                <el-option label="弹框" value="dialog" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="位置">
-              <el-select v-model="config.position" style="width: 100%">
-                <el-option label="右下角" value="bottom-right" />
-                <el-option label="左下角" value="bottom-left" />
-                <el-option label="右上角" value="top-right" />
-                <el-option label="左上角" value="top-left" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="高度">
-              <el-input-number
+      <ScForm label-width="140px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="布局模式">
+              <ScSelect v-model="config.layout" style="width: 100%">
+                <ScOption label="进度条" value="process" />
+                <ScOption label="日志" value="log" />
+                <ScOption label="自定义" value="custom" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="显示模式">
+              <ScSelect v-model="config.mode" style="width: 100%">
+                <ScOption label="内嵌" value="embed" />
+                <ScOption label="弹框" value="dialog" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="位置">
+              <ScSelect v-model="config.position" style="width: 100%">
+                <ScOption label="右下角" value="bottom-right" />
+                <ScOption label="左下角" value="bottom-left" />
+                <ScOption label="右上角" value="top-right" />
+                <ScOption label="左上角" value="top-left" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="高度">
+              <ScInputNumber 
                 v-model="config.height"
                 :min="100"
                 :max="400"
                 style="width: 100%"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="宽度">
-              <el-input-number
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="宽度">
+              <ScInputNumber 
                 v-model="config.width"
                 :min="300"
                 :max="600"
                 style="width: 100%"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
 
       <!-- 内嵌模式预览 -->
       <div v-if="config.mode === 'embed'" class="embed-preview">
@@ -99,18 +99,18 @@
       </div>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">新增属性说明</el-divider>
+    <ScDivider content-position="left">新增属性说明</ScDivider>
 
-    <el-table :data="newProps" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="200" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="newProps" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="200" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
 
     <!-- 弹框模式实例 -->
     <ScSocketMessageDialog

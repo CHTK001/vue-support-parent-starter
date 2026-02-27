@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="video-results">
     <div class="video-results__container">
       <div class="video-results__header">
@@ -6,12 +6,12 @@
           共找到 <span class="video-results__count-num">{{ totalResults }}</span> 个结果
         </div>
         <div class="video-results__sort">
-          <el-radio-group v-model="sortValue" size="small" @change="handleSortChange">
+          <ScRadioGroup v-model="sortValue" size="small" @change="handleSortChange">
             <el-radio-button label="recommend">推荐</el-radio-button>
             <el-radio-button label="newest">最新上线</el-radio-button>
             <el-radio-button label="videoViews desc">最多播放</el-radio-button>
             <el-radio-button label="videoScore desc">评分最高</el-radio-button>
-          </el-radio-group>
+          </ScRadioGroup>
         </div>
       </div>
 
@@ -20,30 +20,30 @@
         <template #default="{ row }">
           <div class="video-results__card" @click="handleVideoClick(row)">
             <div class="video-results__cover">
-              <el-image referrerpolicy="no-referrer" v-if="row.videoCover" :src="row.videoCover?.split(',')?.[0]" fit="cover">
+              <ScImage referrerpolicy="no-referrer" v-if="row.videoCover" :src="row.videoCover?.split(',')?.[0]" fit="cover">
                 <template #error>
-                  <el-image referrerpolicy="no-referrer" v-if="row.videoCover" :src="createCompatibleImageUrl(row.videoCover?.split(',')?.[1], row.videoPlatform)" fit="cover">
+                  <ScImage referrerpolicy="no-referrer" v-if="row.videoCover" :src="createCompatibleImageUrl(row.videoCover?.split(',')?.[1], row.videoPlatform)" fit="cover">
                     <div class="no-cover">暂无封面</div>
-                  </el-image>
+                  </ScImage>
                 </template>
-              </el-image>
+              </ScImage>
               <div v-else class="video-results__no-cover">暂无封面</div>
               <div class="video-results__rating" v-if="row.videoScore">{{ row.videoScore }}分</div>
               <div class="video-results__views" v-if="row.videoViews">{{ formatViews(row.videoViews) }}次播放</div>
             </div>
             <div class="video-results__info">
               <div class="video-results__name">{{ row.videoTitle || row.videoName }}</div>
-              <el-tooltip :content="`${row.videoYear || ''}年 ${row.videoDistrict || ''} ${row.videoLanguage || ''}`" placement="top">
+              <ScTooltip :content="`${row.videoYear || ''}年 ${row.videoDistrict || ''} ${row.videoLanguage || ''}`" placement="top">
                 <div class="video-results__meta">
                   <span v-if="row.videoYear">{{ row.videoYear }}年</span><span v-if="row.videoDistrict">· {{ row.videoDistrict }}</span
                   ><span v-if="row.videoLanguage">· {{ row.videoLanguage }}</span>
                 </div>
-              </el-tooltip>
-              <el-tooltip :content="row.videoType || '未分类'" placement="top">
+              </ScTooltip>
+              <ScTooltip :content="row.videoType || '未分类'" placement="top">
                 <div class="video-results__type" v-if="row.videoType">
-                  <el-tag size="small" class="type-tag mx-[1px]" v-for="(item, index) in (row.videoType || '未分类')?.split(',')" :key="index">{{ item }}</el-tag>
+                  <ScTag size="small" class="type-tag mx-[1px]" v-for="(item, index) in (row.videoType || '未分类')?.split(',')" :key="index">{{ item }}</ScTag>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </div>
         </template>

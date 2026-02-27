@@ -1,31 +1,31 @@
-<template>
+﻿<template>
   <div class="file-management system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header modern-header">
       <div class="header-right">
-        <el-button
+        <ScButton 
           v-auth="'file:upload'"
           type="primary"
           @click="showUploadDialog = true"
         >
           <IconifyIconOnline icon="ri:upload-cloud-2-line" />
           上传文件
-        </el-button>
-        <el-tooltip v-if="hasAdminRole" content="文件服务设置" placement="top">
-          <el-button
+        </ScButton>
+        <ScTooltip v-if="hasAdminRole" content="文件服务设置" placement="top">
+          <ScButton 
             v-auth="'file:setting'"
             type="primary"
             plain
             @click="showSettingDialog = true"
           >
             <IconifyIconOnline icon="ri:settings-4-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="刷新" placement="top">
-          <el-button v-auth="'file:list'" type="primary" plain @click="refresh">
+          </ScButton>
+        </ScTooltip>
+        <ScTooltip content="刷新" placement="top">
+          <ScButton v-auth="'file:list'" type="primary" plain @click="refresh">
             <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
-        </el-tooltip>
+          </ScButton>
+        </ScTooltip>
       </div>
     </div>
 
@@ -75,37 +75,37 @@
     <div class="toolbar-section">
       <div class="toolbar-left">
         <!-- 分组选择 -->
-        <el-select
+        <ScSelect 
           v-model="queryParams.groupId"
           placeholder="选择分组"
           clearable
           style="width: 180px"
           @change="handleSearch"
         >
-          <el-option
+          <ScOption 
             v-for="group in groupList"
             :key="group.sysFileSystemGroupId"
             :label="group.sysFileSystemGroupName"
             :value="group.sysFileSystemGroupId"
           />
-        </el-select>
+        </ScSelect>
         <!-- 状态筛选 -->
-        <el-select
+        <ScSelect 
           v-model="queryParams.status"
           placeholder="文件状态"
           clearable
           style="width: 140px"
           @change="handleSearch"
         >
-          <el-option label="待上传" :value="0" />
-          <el-option label="上传中" :value="1" />
-          <el-option label="待合并" :value="2" />
-          <el-option label="合并中" :value="3" />
-          <el-option label="已完成" :value="4" />
-          <el-option label="处理异常" :value="-1" />
-        </el-select>
+          <ScOption label="待上传" :value="0" />
+          <ScOption label="上传中" :value="1" />
+          <ScOption label="待合并" :value="2" />
+          <ScOption label="合并中" :value="3" />
+          <ScOption label="已完成" :value="4" />
+          <ScOption label="处理异常" :value="-1" />
+        </ScSelect>
         <!-- 关键词搜索 -->
-        <el-input
+        <ScInput 
           v-model="queryParams.keyword"
           placeholder="搜索文件名"
           clearable
@@ -115,24 +115,24 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </el-input>
-        <el-button type="primary" @click="handleSearch">搜索</el-button>
+        </ScInput>
+        <ScButton type="primary" @click="handleSearch">搜索</ScButton>
       </div>
       <div class="toolbar-right">
         <!-- 分组管理 -->
-        <el-button v-auth="'file:group'" plain @click="showGroupDialog = true">
+        <ScButton v-auth="'file:group'" plain @click="showGroupDialog = true">
           <IconifyIconOnline icon="ri:folder-settings-line" />
           分组管理
-        </el-button>
+        </ScButton>
         <!-- 视图切换 -->
-        <el-radio-group v-model="viewMode" size="default">
+        <ScRadioGroup v-model="viewMode" size="default">
           <el-radio-button value="table">
             <IconifyIconOnline icon="ri:list-check" />
           </el-radio-button>
           <el-radio-button value="card">
             <IconifyIconOnline icon="ri:grid-line" />
           </el-radio-button>
-        </el-radio-group>
+        </ScRadioGroup>
       </div>
     </div>
 
@@ -160,12 +160,12 @@
           {{ formatFileSize(row.sysFileSystemSize) }}
         </template>
         <template #sysFileSystemStatus="{ row }">
-          <el-tag :type="getStatusType(row.sysFileSystemStatus)" size="small">
+          <ScTag :type="getStatusType(row.sysFileSystemStatus)" size="small">
             {{ getStatusText(row.sysFileSystemStatus) }}
-          </el-tag>
+          </ScTag>
         </template>
         <template #actions="{ row }">
-          <el-button
+          <ScButton 
             v-if="
               row.sysFileSystemStatus === 2 &&
               setting?.sysFileSystemSettingManualMergeEnabled
@@ -177,8 +177,8 @@
             @click="handleMerge(row)"
           >
             合并
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             v-if="row.sysFileSystemHttpUrl"
             v-auth="'file:preview'"
             type="primary"
@@ -187,8 +187,8 @@
             @click="handlePreview(row)"
           >
             预览
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             v-if="row.sysFileSystemHttpUrl"
             v-auth="'file:copy'"
             type="primary"
@@ -197,8 +197,8 @@
             @click="handleCopyUrl(row)"
           >
             复制
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             v-auth="'file:delete'"
             type="danger"
             link
@@ -206,7 +206,7 @@
             @click="handleDelete(row)"
           >
             删除
-          </el-button>
+          </ScButton>
         </template>
       </ScTable>
     </div>
@@ -245,16 +245,16 @@
             </div>
             <div class="card-meta">
               <span>{{ formatFileSize(file.sysFileSystemSize) }}</span>
-              <el-tag
+              <ScTag 
                 :type="getStatusType(file.sysFileSystemStatus)"
                 size="small"
               >
                 {{ getStatusText(file.sysFileSystemStatus) }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
           <div class="card-actions">
-            <el-button
+            <ScButton 
               v-if="file.sysFileSystemStatus === 2"
               size="small"
               type="primary"
@@ -262,19 +262,19 @@
               @click.stop="handleMerge(file)"
             >
               <IconifyIconOnline icon="ri:merge-cells-horizontal" />
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               size="small"
               type="danger"
               circle
               @click.stop="handleDelete(file)"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
-      <el-empty v-else description="暂无文件" />
+      <ScEmpty v-else description="暂无文件" />
 
       <!-- 卡片视图分页 -->
       <div class="card-pagination">
@@ -323,8 +323,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { message , ScMessageBox} from "@repo/utils";
+
 import { useUserStoreHook } from "@repo/core";
 import {
   getFileStats,
@@ -551,7 +551,7 @@ const handleSelectionChange = (rows: SysFileSystem[]) => {
 const handleMerge = async (file: SysFileSystem) => {
   if (!file.sysFileSystemId) return;
   try {
-    await ElMessageBox.confirm("确定要合并该文件吗？", "确认合并", {
+    await ScMessageBox.confirm("确定要合并该文件吗？", "确认合并", {
       type: "warning",
     });
     const res = await mergeFile(file.sysFileSystemId);
@@ -570,7 +570,7 @@ const handleMerge = async (file: SysFileSystem) => {
 const handleDelete = async (file: SysFileSystem) => {
   if (!file.sysFileSystemId) return;
   try {
-    await ElMessageBox.confirm("确定要删除该文件吗？", "确认删除", {
+    await ScMessageBox.confirm("确定要删除该文件吗？", "确认删除", {
       type: "warning",
     });
     const res = await deleteFile(file.sysFileSystemId);

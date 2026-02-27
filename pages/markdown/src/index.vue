@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { message } from "@repo/utils";
 import Prism from "prismjs";
 import "prismjs/components/prism-css";
@@ -662,21 +662,21 @@ onBeforeUnmount(() => {
 
         <div class="markdown-tool__toolbar-actions">
           <!-- 文件名输入 -->
-          <el-input v-model="env.currentFileName" placeholder="文件名" size="small" class="markdown-tool__filename-input" />
+          <ScInput v-model="env.currentFileName" placeholder="文件名" size="small" class="markdown-tool__filename-input" />
 
           <!-- 导入按钮 -->
-          <el-tooltip content="导入Markdown文件" placement="top">
-            <el-button type="primary" size="small" @click="$refs.fileInput.click()">
+          <ScTooltip content="导入Markdown文件" placement="top">
+            <ScButton type="primary" size="small" @click="$refs.fileInput.click()">
               <IconifyIconOnline icon="ri:file-upload-line" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
           <input ref="fileInput" type="file" accept=".md,.markdown,.txt" style="display: none" @change="importMarkdown" />
 
           <!-- 导出下拉菜单 -->
           <el-dropdown trigger="click">
-            <el-button type="primary" size="small">
+            <ScButton type="primary" size="small">
               <IconifyIconOnline icon="ri:file-download-line" />
-            </el-button>
+            </ScButton>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item @click="exportMarkdown">
@@ -693,9 +693,9 @@ onBeforeUnmount(() => {
 
           <!-- 设置下拉菜单 -->
           <el-dropdown trigger="click">
-            <el-button size="small">
+            <ScButton size="small">
               <IconifyIconOnline icon="ri:settings-line" />
-            </el-button>
+            </ScButton>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item @click="toggleSetting('autoSave')">
@@ -728,9 +728,9 @@ onBeforeUnmount(() => {
 
           <!-- 模板下拉菜单 -->
           <el-dropdown trigger="click">
-            <el-button size="small">
+            <ScButton size="small">
               <IconifyIconOnline icon="ri:file-list-line" />
-            </el-button>
+            </ScButton>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item v-for="template in env.templates" :key="template.name" @click="applyTemplate(template)">
@@ -742,18 +742,18 @@ onBeforeUnmount(() => {
           </el-dropdown>
 
           <!-- 清空按钮 -->
-          <el-tooltip content="清空编辑器" placement="top">
-            <el-button size="small" @click="clearEditor">
+          <ScTooltip content="清空编辑器" placement="top">
+            <ScButton size="small" @click="clearEditor">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </div>
       </div>
 
       <!-- 编辑器和预览区域 -->
-      <el-row :gutter="16" class="markdown-tool__main">
+      <ScRow :gutter="16" class="markdown-tool__main">
         <!-- 编辑器区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
           <div class="markdown-tool__editor-container">
             <div class="markdown-tool__editor-header">
               <IconifyIconOnline icon="ri:edit-line" />
@@ -782,20 +782,20 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
-        </el-col>
+        </ScCol>
 
         <!-- 预览区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
           <div class="markdown-tool__preview-container">
             <div class="markdown-tool__preview-header">
               <IconifyIconOnline icon="ri:eye-line" />
               <span>预览</span>
               <div class="markdown-tool__preview-actions">
-                <el-tooltip content="复制HTML" placement="top">
-                  <el-button type="primary" link size="small" @click="copyToClipboard(env.previewHtml)">
+                <ScTooltip content="复制HTML" placement="top">
+                  <ScButton type="primary" link size="small" @click="copyToClipboard(env.previewHtml)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
-                </el-tooltip>
+                  </ScButton>
+                </ScTooltip>
               </div>
             </div>
             <div ref="previewRef" class="markdown-tool__preview markdown-body" :class="{ 'word-wrap': env.settings.wordWrap }" :style="{ fontSize: `${env.settings.fontSize}px` }" v-html="env.previewHtml"></div>
@@ -803,11 +803,11 @@ onBeforeUnmount(() => {
               <span>预览模式</span>
             </div>
           </div>
-        </el-col>
-      </el-row>
+        </ScCol>
+      </ScRow>
 
       <!-- 历史记录 -->
-      <el-card class="markdown-tool__history-card" shadow="hover">
+      <ScCard class="markdown-tool__history-card" shadow="hover">
         <template #header>
           <div class="markdown-tool__card-header">
             <IconifyIconOnline icon="ri:history-line" class="markdown-tool__card-icon" />
@@ -815,24 +815,24 @@ onBeforeUnmount(() => {
           </div>
         </template>
 
-        <el-empty v-if="!env.history.length" description="暂无历史记录" class="markdown-tool__empty">
+        <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="markdown-tool__empty">
           <template #image>
             <IconifyIconOnline icon="ri:history-line" class="markdown-tool__empty-icon" />
           </template>
-        </el-empty>
+        </ScEmpty>
 
-        <el-table v-else :data="env.history" style="width: 100%">
-          <el-table-column prop="date" label="日期" width="180" />
-          <el-table-column prop="filename" label="文件名" width="180" />
-          <el-table-column prop="preview" label="预览" show-overflow-tooltip />
-          <el-table-column label="操作" width="120">
+        <ScTable v-else :data="env.history" style="width: 100%">
+          <ScTableColumn prop="date" label="日期" width="180" />
+          <ScTableColumn prop="filename" label="文件名" width="180" />
+          <ScTableColumn prop="preview" label="预览" show-overflow-tooltip />
+          <ScTableColumn label="操作" width="120">
             <template #default="scope">
-              <el-button type="primary" link @click="loadFromHistory(scope.row)"> 加载 </el-button>
-              <el-button type="danger" link @click="env.history.splice(env.history.indexOf(scope.row), 1)"> 删除 </el-button>
+              <ScButton type="primary" link @click="loadFromHistory(scope.row)"> 加载 </ScButton>
+              <ScButton type="danger" link @click="env.history.splice(env.history.indexOf(scope.row), 1)"> 删除 </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+          </ScTableColumn>
+        </ScTable>
+      </ScCard>
     </div>
   </div>
 </template>

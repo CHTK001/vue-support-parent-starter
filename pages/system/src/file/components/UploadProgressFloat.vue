@@ -1,21 +1,21 @@
-<template>
+﻿<template>
   <transition name="slide-up">
     <div v-if="visible && tasks.length > 0" class="upload-progress-float">
       <div class="float-header">
         <div class="header-title">
           <IconifyIconOnline icon="ri:upload-cloud-2-line" class="title-icon" />
           <span>上传进度</span>
-          <el-badge :value="tasks.length" class="task-badge" />
+          <ScBadge :value="tasks.length" class="task-badge" />
         </div>
         <div class="header-actions">
-          <el-button link @click="toggleCollapse">
+          <ScButton link @click="toggleCollapse">
             <IconifyIconOnline
               :icon="collapsed ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'"
             />
-          </el-button>
-          <el-button link @click="handleClose">
+          </ScButton>
+          <ScButton link @click="handleClose">
             <IconifyIconOnline icon="ri:close-line" />
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -37,7 +37,7 @@
                 </div>
               </div>
               <div class="task-progress">
-                <el-progress
+                <ScProgress 
                   :percentage="task.progress"
                   :status="getProgressStatus(task.status)"
                   :stroke-width="6"
@@ -51,7 +51,7 @@
           <!-- 总体进度 -->
           <div v-if="tasks.length > 1" class="total-progress">
             <span class="total-label">总进度</span>
-            <el-progress :percentage="totalProgress" :stroke-width="8" />
+            <ScProgress :percentage="totalProgress" :stroke-width="8" />
           </div>
         </div>
       </transition>

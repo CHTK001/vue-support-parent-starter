@@ -1,48 +1,48 @@
-<template>
+﻿<template>
   <sc-dialog :model-value="visible" @update:model-value="handleClose" :title="editing ? '编辑配置' : '新增配置'" width="600px" @close="handleClose">
-    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" class="modern-form">
-      <el-form-item label="配置名称" prop="videoSyncConfigName">
-        <el-input v-model="formData.videoSyncConfigName" placeholder="请输入配置名称" />
-      </el-form-item>
+    <ScForm ref="formRef" :model="formData" :rules="formRules" label-width="100px" class="modern-form">
+      <ScFormItem label="配置名称" prop="videoSyncConfigName">
+        <ScInput v-model="formData.videoSyncConfigName" placeholder="请输入配置名称" />
+      </ScFormItem>
 
-      <el-form-item label="同步源" prop="videoSourceId">
+      <ScFormItem label="同步源" prop="videoSourceId">
         <ScSelect v-model="formData.videoSourceId" :props="selectProps" :url="getSourceList" :is-remote="true" layout="card" style="width: 100%" />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="同步间隔">
-        <el-select v-model="formData.videoSyncInterval" placeholder="选择同步间隔">
-          <el-option label="手动同步" :value="0" />
-          <el-option label="每5分钟" :value="5" />
-          <el-option label="每15分钟" :value="15" />
-          <el-option label="每30分钟" :value="30" />
-          <el-option label="每小时" :value="60" />
-          <el-option label="每6小时" :value="360" />
-          <el-option label="每天" :value="1440" />
-        </el-select>
-      </el-form-item>
+      <ScFormItem label="同步间隔">
+        <ScSelect v-model="formData.videoSyncInterval" placeholder="选择同步间隔">
+          <ScOption label="手动同步" :value="0" />
+          <ScOption label="每5分钟" :value="5" />
+          <ScOption label="每15分钟" :value="15" />
+          <ScOption label="每30分钟" :value="30" />
+          <ScOption label="每小时" :value="60" />
+          <ScOption label="每6小时" :value="360" />
+          <ScOption label="每天" :value="1440" />
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="请求头">
-        <el-input v-model="formData.videoConfigHeaders" type="textarea" :rows="3" placeholder="JSON格式的请求头" />
-      </el-form-item>
+      <ScFormItem label="请求头">
+        <ScInput v-model="formData.videoConfigHeaders" type="textarea" :rows="3" placeholder="JSON格式的请求头" />
+      </ScFormItem>
 
-      <el-form-item label="配置说明">
-        <el-input v-model="formData.videoConfigRemark" type="textarea" :rows="2" placeholder="请输入配置说明" />
-      </el-form-item>
+      <ScFormItem label="配置说明">
+        <ScInput v-model="formData.videoConfigRemark" type="textarea" :rows="2" placeholder="请输入配置说明" />
+      </ScFormItem>
 
-      <el-form-item label="当前索引">
-        <el-tooltip content="点击刷新当前索引" placement="top">
+      <ScFormItem label="当前索引">
+        <ScTooltip content="点击刷新当前索引" placement="top">
           <el-text>{{ formData.videoSyncConfigLastOffset }} </el-text>
           <IconifyIcon icon="ep:refresh" @click="handleReset" />
-        </el-tooltip>
-      </el-form-item>
-    </el-form>
+        </ScTooltip>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" @click="handleSave" :loading="saving">
           {{ editing ? "更新" : "保存" }}
-        </el-button>
+        </ScButton>
       </span>
     </template>
   </sc-dialog>

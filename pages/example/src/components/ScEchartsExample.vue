@@ -1,63 +1,63 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ScEcharts 图表示例</h2>
     <p class="example-desc">
       基于 ECharts 的图表组件，支持多种图表类型和自适应大小
     </p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="demo-controls">
-        <el-button type="primary" @click="changeChartType('line')">
+        <ScButton type="primary" @click="changeChartType('line')">
           <IconifyIconOnline icon="ri:line-chart-line" class="mr-1" />
           折线图
-        </el-button>
-        <el-button @click="changeChartType('bar')">
+        </ScButton>
+        <ScButton @click="changeChartType('bar')">
           <IconifyIconOnline icon="ri:bar-chart-line" class="mr-1" />
           柱状图
-        </el-button>
-        <el-button @click="refreshData">
+        </ScButton>
+        <ScButton @click="refreshData">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新数据
-        </el-button>
+        </ScButton>
       </div>
 
       <ScEcharts :option="chartOption" :height="config.height" />
 
-      <el-divider content-position="left">属性配置</el-divider>
+      <ScDivider content-position="left">属性配置</ScDivider>
 
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="图表高度">
-              <el-input v-model="config.height" placeholder="如 360px" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="图表类型">
-              <el-select v-model="config.type" style="width: 100%">
-                <el-option label="折线图" value="line" />
-                <el-option label="柱状图" value="bar" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+      <ScForm label-width="120px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="图表高度">
+              <ScInput v-model="config.height" placeholder="如 360px" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="图表类型">
+              <ScSelect v-model="config.type" style="width: 100%">
+                <ScOption label="折线图" value="line" />
+                <ScOption label="柱状图" value="bar" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="150" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 
