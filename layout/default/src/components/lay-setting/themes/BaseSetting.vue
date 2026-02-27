@@ -20,7 +20,7 @@ import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import ScSlider from "@repo/components/ScSlider/src/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useTheme } from "../../../hooks/useThemeComponent";
 import { useThemeStore } from "../../../stores/themeStore";
@@ -482,7 +482,7 @@ const switchSystemTheme = (
 
   if (showMessage) {
     const themeName = themeKey === "default" ? "默认" : themeKey;
-    ElMessage.success(`已切换到${themeName}主题`);
+    message.success(`已切换到${themeName}主题`);
   }
 };
 
@@ -509,7 +509,7 @@ const loadThemeStylesheet = (themeKey: string): void => {
 
   // 添加加载事件监听
   link.onerror = () => {
-    ElMessage.error(t("panel.themeStyleLoadFailed"));
+    message.error(t("panel.themeStyleLoadFailed"));
   };
 
   document.head.appendChild(link);
@@ -927,7 +927,7 @@ function resetToDefault() {
   storageConfigureChange("themeAnimationMode", "fixed");
   storageConfigureChange("themeAnimationDirection", "top-right");
 
-  ElMessage.success(t("panel.settingsRestored"));
+  message.success(t("panel.settingsRestored"));
 }
 
 /** 导出设置 */
@@ -951,7 +951,7 @@ function exportSettings() {
   link.click();
 
   URL.revokeObjectURL(url);
-  ElMessage.success(t("panel.settingsExported"));
+  message.success(t("panel.settingsExported"));
 }
 
 /**
@@ -1372,9 +1372,9 @@ function importSettings() {
         newMenuTextChange();
         newMenuTimeLimitChange();
 
-        ElMessage.success(t("panel.settingsImported"));
+        message.success(t("panel.settingsImported"));
       } catch (error) {
-        ElMessage.error(t("panel.importFailed"));
+        message.error(t("panel.importFailed"));
       }
     };
 

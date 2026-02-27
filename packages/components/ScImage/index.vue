@@ -226,6 +226,7 @@ import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { ElImage, ElUpload, ElIcon } from "element-plus";
 import { message } from "@repo/utils";
 import { useRenderIcon } from "../ReIcon/src/hooks";
+import { ScIcon } from "../ScIcon";
 import { ScProgress } from "../ScProgress";
 import { ScButton } from "../ScButton";
 import { useThemeComponent } from "../hooks/useThemeComponent";
