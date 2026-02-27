@@ -149,6 +149,10 @@ export interface StorageConfig {
   aiChatApiKey?: string;
   /** AI 助手 API URL */
   aiChatApiUrl?: string;
+  /** AI 助手厂商（hf / chrome / other） */
+  aiChatVendor?: "hf" | "chrome" | "other";
+  /** AI 助手模型名称（如 Hugging Face 模型 ID） */
+  aiChatModel?: string;
   /** 显示新菜单标识 */
   forceNewMenu?: boolean;
   /** 菜单动画开关 */
@@ -186,5 +190,4 @@ export interface StorageConfig {
   /** DevTools 悬停检查开关 */
   devHoverInspector?: boolean;
   /** 开发模式下 AI 设置展示控制 */
-  showDevAiSetting?: boolean;
 }

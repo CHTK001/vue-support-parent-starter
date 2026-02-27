@@ -1,6 +1,7 @@
 <template>
   <div
-    class="sc-card-default"
+    v-if="!currentComponent"
+    class="sc-card-default h-full"
     :class="{
       'is-hoverable': hoverable,
       'is-shadow': shadow !== 'never',
@@ -23,52 +24,95 @@
       <slot name="footer" />
     </div>
   </div>
+
+  <component
+    :is="currentComponent"
+    v-else
+    v-bind="cardProps"
+    class="sc-card-default h-full"
+    :class="{
+      'is-hoverable': hoverable,
+      'is-shadow': shadow !== 'never',
+      'is-shadow-always': shadow === 'always',
+      [`border-position--${borderPosition}`]: true,
+      [`theme--${theme}`]: true
+    }"
+  >
+    <template v-if="$slots.header || title" #header>
+      <slot name="header">
+        <div class="sc-card-default__title">{{ title }}</div>
+      </slot>
+    </template>
+
+    <template #default>
+      <slot />
+    </template>
+
+    <template v-if="$slots.footer" #footer>
+      <slot name="footer" />
+    </template>
+  </component>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
+/**
+ * ScCard Default Layout
+ * 封装 Element Plus Card 与其他主题的 Card 组件
+ * 在 data-skin 变化时自动切换为对应主题的卡片组件
+ */
+import { computed } from "vue";
+import type { PropType } from "vue";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
 
-export default defineComponent({
-  name: "DefaultLayout",
-  props: {
-    /**
-     * 卡片标题
-     */
-    title: {
-      type: String,
-      default: ""
-    },
-    /**
-     * 是否可悬停
-     */
-    hoverable: {
-      type: Boolean,
-      default: false
-    },
-    /**
-     * 阴影显示时机
-     */
-    shadow: {
-      type: String,
-      default: "hover",
-      validator: (val: string) => ["always", "hover", "never"].includes(val)
-    },
-    /**
-     * 边框加粗显示位置
-     */
-    borderPosition: {
-      type: String,
-      default: "top",
-      validator: (val: string) => ["top", "right", "bottom", "left", "none"].includes(val)
-    },
-    /**
-     * 主题色
-     */
-    theme: {
-      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
-      default: "default"
-    }
+const props = defineProps({
+  /**
+   * 卡片标题
+   */
+  title: {
+    type: String,
+    default: ""
+  },
+  /**
+   * 是否可悬停
+   */
+  hoverable: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 阴影显示时机
+   */
+  shadow: {
+    type: String,
+    default: "hover",
+    validator: (val: string) => ["always", "hover", "never"].includes(val)
+  },
+  /**
+   * 边框加粗显示位置
+   */
+  borderPosition: {
+    type: String,
+    default: "top",
+    validator: (val: string) => ["top", "right", "bottom", "left", "none"].includes(val)
+  },
+  /**
+   * 主题色
+   */
+  theme: {
+    type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
+    default: "default"
   }
+});
+
+const { currentComponent } = useThemeComponent("ElCard");
+
+// 只在使用 ElCard 时传递 shadow 属性
+const cardProps = computed(() => {
+  const componentValue = currentComponent.value;
+  if (componentValue && typeof componentValue !== "string") {
+    return { shadow: props.shadow };
+  }
+  return {};
 });
 </script>
 
@@ -102,11 +146,21 @@ export default defineComponent({
     }
   }
 
-  &.theme--primary { @include theme-variant('primary'); }
-  &.theme--success { @include theme-variant('success'); }
-  &.theme--warning { @include theme-variant('warning'); }
-  &.theme--danger { @include theme-variant('danger'); }
-  &.theme--info { @include theme-variant('info'); }
+  &.theme--primary {
+    @include theme-variant("primary");
+  }
+  &.theme--success {
+    @include theme-variant("success");
+  }
+  &.theme--warning {
+    @include theme-variant("warning");
+  }
+  &.theme--danger {
+    @include theme-variant("danger");
+  }
+  &.theme--info {
+    @include theme-variant("info");
+  }
 
   // 边框位置样式
   &.border-position--top::before {

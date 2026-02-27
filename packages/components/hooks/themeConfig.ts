@@ -47,6 +47,16 @@ export interface ThemeConfig {
    * 是否启用
    */
   enabled?: boolean;
+
+  /**
+   * 主题分组（用于分类显示）
+   */
+  group?: "stable" | "beta" | "experimental";
+
+  /**
+   * 主题描述
+   */
+  description?: string;
 }
 
 /**
@@ -62,6 +72,8 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
     displayName: "默认主题",
     packageName: "element-plus",
     enabled: true,
+    group: "stable",
+    description: "使用 Element Plus 原生组件",
     componentMap: {
       // 表单输入组件
       ElButton: "ElButton",
@@ -135,6 +147,8 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
     packageName: "@mmt817/pixel-ui",
     cssPath: "dist/index.css",
     enabled: true,
+    group: "beta",
+    description: "像素风格，复古游戏风",
     componentMap: {
       // 表单输入组件
       ElButton: "PxButton",
@@ -267,6 +281,29 @@ export function getThemeComponentName(skinValue: string | undefined, elementComp
  */
 export function getEnabledThemes(): ThemeConfig[] {
   return Object.values(THEME_CONFIGS).filter(config => config.enabled !== false);
+}
+
+/**
+ * 按分组获取主题列表
+ * @returns 按分组分类的主题配置对象
+ */
+export function getThemesByGroup(): Record<string, ThemeConfig[]> {
+  const themes = getEnabledThemes();
+  const grouped: Record<string, ThemeConfig[]> = {
+    stable: [],
+    beta: [],
+    experimental: []
+  };
+
+  themes.forEach(theme => {
+    const group = theme.group || "stable";
+    if (!grouped[group]) {
+      grouped[group] = [];
+    }
+    grouped[group].push(theme);
+  });
+
+  return grouped;
 }
 
 /**
