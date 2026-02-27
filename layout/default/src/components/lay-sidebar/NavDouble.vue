@@ -34,21 +34,34 @@ const emit = defineEmits<Emits>();
 
 const route = useRoute();
 const isShow = ref(false);
-const showLogo = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.showLogo ?? true);
+const showLogo = ref(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`,
+  )?.showLogo ?? true,
+);
 
 const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
 const forceNewMenu = ref(false);
 const menuAnimation = ref(getConfig().MenuAnimation ?? false);
-const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || "bounce");
 
-const { device, pureApp, isCollapse, tooltipEffect, menuSelect, toggleSideBar } = useNav();
+const {
+  device,
+  pureApp,
+  isCollapse,
+  tooltipEffect,
+  menuSelect,
+  toggleSideBar,
+} = useNav();
 
 // 提取 permissionStore 到顶层避免重复调用
 const permissionStore = usePermissionStoreHook();
 
 // 双栏导航配置
 const doubleNavConfig = computed(() => {
-  const config = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`);
+  const config = localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`,
+  );
   return {
     expandMode: config?.doubleNavExpandMode ?? "auto",
     autoExpandAll: config?.doubleNavAutoExpandAll ?? true,
@@ -70,7 +83,9 @@ const selectedFirstLevelMenu = ref(null);
 const subMenuData = ref([]);
 
 // 当前激活的菜单路径
-const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path));
+const defaultActive = computed(() =>
+  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path,
+);
 
 // 获取当前路由对应的一级菜单
 function getCurrentFirstLevelMenu() {
@@ -81,13 +96,20 @@ function getCurrentFirstLevelMenu() {
   const topLevelPath = parentPaths.length > 0 ? parentPaths[0] : currentPath;
 
   // 在一级菜单中查找，优先精确匹配，然后按路径长度降序匹配
-  let matchedMenu = firstLevelMenus.value.find((menu) => menu.path === topLevelPath);
+  let matchedMenu = firstLevelMenus.value.find(
+    (menu) => menu.path === topLevelPath,
+  );
 
   if (!matchedMenu) {
     // 如果没有精确匹配，找到最长匹配的路径
-    const matchingMenus = firstLevelMenus.value.filter((menu) => currentPath.startsWith(menu.path + "/") || currentPath === menu.path);
+    const matchingMenus = firstLevelMenus.value.filter(
+      (menu) =>
+        currentPath.startsWith(menu.path + "/") || currentPath === menu.path,
+    );
     // 按路径长度降序排序，选择最长匹配的
-    matchedMenu = matchingMenus.sort((a, b) => b.path.length - a.path.length)[0];
+    matchedMenu = matchingMenus.sort(
+      (a, b) => b.path.length - a.path.length,
+    )[0];
   }
 
   return matchedMenu;
@@ -139,7 +161,10 @@ const defaultOpeneds = computed(() => {
     return getAllMenuPaths(subMenuData.value);
   }
 
-  if (doubleNavConfig.value.expandMode === "manual" && doubleNavConfig.value.autoExpandAll) {
+  if (
+    doubleNavConfig.value.expandMode === "manual" &&
+    doubleNavConfig.value.autoExpandAll
+  ) {
     return subMenuData.value.map((item) => item.path);
   }
 
@@ -169,7 +194,7 @@ watch(
 
     menuSelect(newPath);
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听菜单数据变化
@@ -181,7 +206,7 @@ watch(
       selectedFirstLevelMenu.value = currentFirstLevel;
       getSubMenuData(currentFirstLevel);
     }
-  }
+  },
 );
 
 onMounted(() => {
@@ -199,7 +224,7 @@ onMounted(() => {
   emitter.on("logoChange", (key) => {
     showLogo.value = key;
   });
-  
+
   emitter.on("showNewMenuChange", (val) => {
     showNewMenu.value = val;
   });
@@ -222,17 +247,33 @@ const defer = useDefer(firstLevelMenus.value.length);
 </script>
 
 <template>
-<div :class="['double-nav-container', { collapsed: isCollapse }]" @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
+  <div
+    :class="['double-nav-container', { collapsed: isCollapse }]"
+    @mouseenter.prevent="isShow = true"
+    @mouseleave.prevent="isShow = false"
+  >
     <!-- 左栏：一级菜单 -->
-    <div :class="['double-nav-left', showLogo ? 'has-logo' : 'no-logo', { collapsed: isCollapse }]">
+    <div
+      :class="[
+        'double-nav-left',
+        showLogo ? 'has-logo' : 'no-logo',
+        { collapsed: isCollapse },
+      ]"
+    >
       <LaySidebarLogo v-if="showLogo" :collapse="isCollapse" />
-      <el-scrollbar wrap-class="scrollbar-wrapper" :class="[device === 'mobile' ? 'mobile' : 'pc']">
+      <el-scrollbar
+        wrap-class="scrollbar-wrapper"
+        :class="[device === 'mobile' ? 'mobile' : 'pc']"
+      >
         <el-menu mode="vertical" class="first-level-menu">
           <el-menu-item
             v-for="menu in firstLevelMenus"
             :key="menu.path"
             :index="menu.path"
-            :class="{ 'is-active': selectedFirstLevelMenu?.path === menu.path, 'menu-animation': menuAnimation }"
+            :class="{
+              'is-active': selectedFirstLevelMenu?.path === menu.path,
+              'menu-animation': menuAnimation,
+            }"
             @click="handleFirstLevelMenuClick(menu)"
             :title="menu.meta?.title || menu.name || ''"
             v-tippy="{
@@ -243,9 +284,12 @@ const defer = useDefer(firstLevelMenus.value.length);
             }"
           >
             <div class="menu-icon-only">
-              <component :is="useRenderIcon(menu.meta?.icon)" v-if="menu.meta?.icon" />
+              <component
+                :is="useRenderIcon(menu.meta?.icon)"
+                v-if="menu.meta?.icon"
+              />
               <component :is="useRenderIcon('ep:menu')" v-else />
-              
+
               <ReMenuNewBadge
                 v-if="showNewMenu"
                 :createTime="menu.meta?.createTime"
@@ -256,16 +300,33 @@ const defer = useDefer(firstLevelMenus.value.length);
                 class="absolute right-0 top-0 scale-75 origin-top-right"
               />
             </div>
+            <span v-if="!isCollapse" class="menu-label">{{
+              menu.meta?.title || menu.name || ""
+            }}</span>
           </el-menu-item>
         </el-menu>
       </el-scrollbar>
       <!-- 折叠按钮 - 移入左栏内部 -->
-      <LaySidebarLeftCollapse v-if="device !== 'mobile'" :is-active="pureApp?.sidebar?.opened" class="double-nav-collapse-inner" @toggleClick="toggleSideBar" />
+      <LaySidebarLeftCollapse
+        v-if="device !== 'mobile'"
+        :is-active="pureApp?.sidebar?.opened"
+        class="double-nav-collapse-inner"
+        @toggleClick="toggleSideBar"
+      />
     </div>
 
     <!-- 右栏：子菜单 -->
-    <div :class="['double-nav-right', showLogo ? 'has-logo' : 'no-logo', { collapsed: isCollapse }]">
-      <el-scrollbar wrap-class="scrollbar-wrapper" :class="[device === 'mobile' ? 'mobile' : 'pc']">
+    <div
+      :class="[
+        'double-nav-right',
+        showLogo ? 'has-logo' : 'no-logo',
+        { collapsed: isCollapse },
+      ]"
+    >
+      <el-scrollbar
+        wrap-class="scrollbar-wrapper"
+        :class="[device === 'mobile' ? 'mobile' : 'pc']"
+      >
         <!-- 自动展开模式：使用el-menu，但禁用折叠功能 -->
         <el-menu
           v-if="doubleNavConfig.expandMode === 'auto'"
@@ -282,7 +343,15 @@ const defer = useDefer(firstLevelMenus.value.length);
           :default-openeds="defaultOpeneds"
         >
           <span v-for="(routes, index) in subMenuData" :key="index">
-            <DoubleNavSidebarItem :key="routes.path" :item="routes" :base-path="routes.path" :expand-mode="doubleNavConfig.expandMode" class="sub-menu-item select-none" @menu-click="handleSubMenuClick" @favorite-toggle="handleFavoriteToggle" />
+            <DoubleNavSidebarItem
+              :key="routes.path"
+              :item="routes"
+              :base-path="routes.path"
+              :expand-mode="doubleNavConfig.expandMode"
+              class="sub-menu-item select-none"
+              @menu-click="handleSubMenuClick"
+              @favorite-toggle="handleFavoriteToggle"
+            />
           </span>
         </el-menu>
 
@@ -302,7 +371,15 @@ const defer = useDefer(firstLevelMenus.value.length);
           :default-openeds="defaultOpeneds"
         >
           <span v-for="(routes, index) in subMenuData" :key="index">
-            <DoubleNavSidebarItem :key="routes.path" :item="routes" :base-path="routes.path" :expand-mode="doubleNavConfig.expandMode" class="sub-menu-item select-none" @menu-click="handleSubMenuClick" @favorite-toggle="handleFavoriteToggle" />
+            <DoubleNavSidebarItem
+              :key="routes.path"
+              :item="routes"
+              :base-path="routes.path"
+              :expand-mode="doubleNavConfig.expandMode"
+              class="sub-menu-item select-none"
+              @menu-click="handleSubMenuClick"
+              @favorite-toggle="handleFavoriteToggle"
+            />
           </span>
         </el-menu>
       </el-scrollbar>
@@ -342,15 +419,21 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .el-menu-item.is-active {
-  svg{
+  svg {
     color: #ffffff !important; /* 强制设置为白色确保可见性 */
   }
 }
 
 @keyframes menu-bounce {
-  0% { transform: scale(1); }
-  50% { transform: scale(0.95); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 // 左栏样式
@@ -379,14 +462,15 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   .first-level-menu {
     .el-menu-item {
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
-      padding: 0 !important;
+      padding: 0 8px !important;
       height: 56px;
       color: var(--el-text-color-primary);
       transition: $stitch-transition;
       border-radius: $stitch-radius-base;
       margin: 4px 6px;
+      gap: 8px;
 
       // 图标容器增强
       .menu-icon-only {
@@ -398,7 +482,8 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         height: 40px;
         border-radius: $stitch-radius-base;
         transition: $stitch-transition;
-        
+        flex-shrink: 0;
+
         svg,
         i {
           font-size: 24px; // 稍微调大图标以符合 Stitch 风格
@@ -410,13 +495,22 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
       }
 
+      // 菜单标签
+      .menu-label {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+      }
+
       &:hover {
         background: var(--el-fill-color-light);
         color: var(--el-color-primary); // 悬停时使用主色
-        
+
         .menu-icon-only {
           background: rgba(var(--el-color-primary-rgb), 0.1); // 添加淡淡的背景
-          
+
           svg,
           i {
             opacity: 1;
@@ -424,12 +518,12 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             color: var(--el-color-primary); // 悬停时图标变为主色
           }
         }
-        
+
         /* 深色主题下悬停样式 */
         html.dark & {
           background: rgba(255, 255, 255, 0.08);
           color: #ffffff;
-          
+
           .menu-icon-only {
             background: rgba(255, 255, 255, 0.1);
             svg,
@@ -443,7 +537,7 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       &.is-active {
         background: var(--el-color-primary) !important;
         box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4); // 增强阴影
-        
+
         .menu-icon-only {
           svg,
           i {
@@ -452,7 +546,7 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
           }
         }
-        
+
         &:hover {
           .menu-icon-only {
             svg,
@@ -464,26 +558,26 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
       }
 
-// 关闭点击后触发的菜单缩放动画，避免左侧整体有“弹跳”感
-&.menu-animation {
-  &.is-active {
-    .menu-icon-only {
-      animation: none;
-    }
-  }
-}
+      // 关闭点击后触发的菜单缩放动画，避免左侧整体有“弹跳”感
+      &.menu-animation {
+        &.is-active {
+          .menu-icon-only {
+            animation: none;
+          }
+        }
+      }
     }
   }
 }
 
 // 右栏样式
-  .double-nav-right {
-    width: 200px;
-    min-width: 200px;
-    background-color: var(--el-bg-color-page);
-    border-right: 1px solid var(--el-border-color-lighter);
-    // 去除宽度/位移过渡，点击菜单或切换折叠状态不再有整体动画
-    transition: none !important;
+.double-nav-right {
+  width: 200px;
+  min-width: 200px;
+  background-color: var(--el-bg-color-page);
+  border-right: 1px solid var(--el-border-color-lighter);
+  // 去除宽度/位移过渡，点击菜单或切换折叠状态不再有整体动画
+  transition: none !important;
 
   // 折叠状态
   &.collapsed {
@@ -512,12 +606,12 @@ $stitch-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         border-radius: $stitch-radius-base;
         margin: 2px $stitch-spacing-base;
         transition: $stitch-transition;
-        
+
         /* 确保选中状态为白色 */
         &.is-active {
           background: var(--el-color-primary) !important;
           color: #ffffff !important; /* 强制设置为白色确保可见性 */
-          
+
           .el-icon,
           svg,
           i {
@@ -554,7 +648,11 @@ html[data-skin="halloween"] {
 
       // Logo区域
       .sidebar-logo-container {
-        background: linear-gradient(135deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.95)) !important;
+        background: linear-gradient(
+          135deg,
+          rgba(44, 0, 62, 0.95),
+          rgba(26, 0, 38, 0.95)
+        ) !important;
         border-bottom: 1px solid $hw-border !important;
 
         .sidebar-title {
@@ -584,7 +682,7 @@ html[data-skin="halloween"] {
           &:hover {
             background: rgba(255, 117, 24, 0.15) !important;
             transform: translateY(-2px);
-            
+
             .menu-icon-only svg,
             .menu-icon-only i {
               color: $hw-green !important;
@@ -593,7 +691,11 @@ html[data-skin="halloween"] {
           }
 
           &.is-active {
-            background: linear-gradient(135deg, $hw-pumpkin, #ff9f5a) !important;
+            background: linear-gradient(
+              135deg,
+              $hw-pumpkin,
+              #ff9f5a
+            ) !important;
             color: $hw-purple !important;
             box-shadow: 0 0 15px rgba(255, 117, 24, 0.4) !important;
 
@@ -625,25 +727,31 @@ html[data-skin="halloween"] {
           border-radius: 8px !important;
           margin: 4px 8px !important;
           background: transparent !important;
-          
-          span, div, .el-text {
-             color: $hw-white !important;
+
+          span,
+          div,
+          .el-text {
+            color: $hw-white !important;
           }
-          
-          .el-icon, svg {
-              color: $hw-pumpkin !important;
+
+          .el-icon,
+          svg {
+            color: $hw-pumpkin !important;
           }
-          
+
           &:hover {
             background: rgba(118, 255, 3, 0.1) !important;
             color: $hw-green !important;
             padding-left: 24px !important;
-            
-            span, div, .el-text {
-                color: $hw-green !important;
+
+            span,
+            div,
+            .el-text {
+              color: $hw-green !important;
             }
-            
-            .el-icon, svg {
+
+            .el-icon,
+            svg {
               color: $hw-green !important;
             }
           }
@@ -653,79 +761,95 @@ html[data-skin="halloween"] {
             color: $hw-pumpkin !important;
             border: 1px solid rgba(255, 117, 24, 0.5) !important;
             font-weight: bold;
-            
-            span, div, .el-text {
-                color: $hw-pumpkin !important;
+
+            span,
+            div,
+            .el-text {
+              color: $hw-pumpkin !important;
             }
 
-            .el-icon, svg {
+            .el-icon,
+            svg {
               color: $hw-pumpkin !important;
             }
           }
         }
-        
+
         // 父菜单标题
         .el-sub-menu__title {
-           color: $hw-pumpkin !important;
-           background: transparent !important;
-           
-           span, div, .el-text {
-               color: $hw-pumpkin !important;
-           }
-           
-           .el-icon, svg {
-               color: $hw-pumpkin !important;
-           }
-           
-           &:hover {
-             color: $hw-green !important;
-             background: rgba(118, 255, 3, 0.05) !important;
-             
-             span, div, .el-text {
-                 color: $hw-green !important;
-             }
-             
-             .el-icon, svg {
-                 color: $hw-green !important;
-             }
-           }
+          color: $hw-pumpkin !important;
+          background: transparent !important;
+
+          span,
+          div,
+          .el-text {
+            color: $hw-pumpkin !important;
+          }
+
+          .el-icon,
+          svg {
+            color: $hw-pumpkin !important;
+          }
+
+          &:hover {
+            color: $hw-green !important;
+            background: rgba(118, 255, 3, 0.05) !important;
+
+            span,
+            div,
+            .el-text {
+              color: $hw-green !important;
+            }
+
+            .el-icon,
+            svg {
+              color: $hw-green !important;
+            }
+          }
         }
-        
+
         .el-sub-menu.is-active > .el-sub-menu__title {
+          color: $hw-white !important;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 117, 24, 0.8),
+            rgba(204, 94, 19, 0.8)
+          ) !important;
+
+          span,
+          div,
+          .el-text {
             color: $hw-white !important;
-            background: linear-gradient(135deg, rgba(255, 117, 24, 0.8), rgba(204, 94, 19, 0.8)) !important;
-            
-            span, div, .el-text {
-                color: $hw-white !important;
-            }
-            
-            .el-icon, svg {
-                color: $hw-white !important;
-            }
+          }
+
+          .el-icon,
+          svg {
+            color: $hw-white !important;
+          }
         }
       }
     }
-    
+
     // 折叠按钮
     .double-nav-collapse {
-        .left-collapse {
-           background: rgba(44, 0, 62, 0.8) !important;
-           border-top: 1px solid $hw-border !important;
-           color: $hw-pumpkin !important;
-           
-           svg {
-               color: $hw-pumpkin !important;
-           }
-           
-           &:hover {
-             color: $hw-green !important;
-             background: rgba(255, 255, 255, 0.05) !important;
-             
-             svg {
-                 color: $hw-green !important;
-             }
-           }
+      .left-collapse {
+        background: rgba(44, 0, 62, 0.8) !important;
+        border-top: 1px solid $hw-border !important;
+        color: $hw-pumpkin !important;
+
+        svg {
+          color: $hw-pumpkin !important;
         }
+
+        &:hover {
+          color: $hw-green !important;
+          background: rgba(255, 255, 255, 0.05) !important;
+
+          svg {
+            color: $hw-green !important;
+          }
+        }
+      }
     }
   }
 }
@@ -752,7 +876,11 @@ html[data-skin="spring-festival"] {
 
       // Logo区域
       .sidebar-logo-container {
-        background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(100, 0, 0, 0.95)) !important;
+        background: linear-gradient(
+          180deg,
+          rgba(139, 0, 0, 0.95),
+          rgba(100, 0, 0, 0.95)
+        ) !important;
         border-bottom: 1px solid $spring-border !important;
 
         .sidebar-title {
@@ -789,7 +917,11 @@ html[data-skin="spring-festival"] {
           }
 
           &.is-active {
-            background: linear-gradient(135deg, $spring-gold, #ffc107) !important;
+            background: linear-gradient(
+              135deg,
+              $spring-gold,
+              #ffc107
+            ) !important;
             color: $spring-red-dark !important;
             box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4) !important;
 
@@ -810,7 +942,7 @@ html[data-skin="spring-festival"] {
       // 子菜单列表 - 参考垂直导航样式
       .sub-menu-list {
         padding: 8px !important;
-        
+
         .el-menu {
           background: transparent !important;
         }
@@ -826,7 +958,9 @@ html[data-skin="spring-festival"] {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
           // 文字样式 - 与垂直导航一致
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             height: 46px !important;
             line-height: 46px !important;
             font-size: 14px !important;
@@ -846,7 +980,9 @@ html[data-skin="spring-festival"] {
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             color: #fff !important;
 
-            span, div, .el-text {
+            span,
+            div,
+            .el-text {
               color: #fff !important;
             }
 
@@ -858,12 +994,18 @@ html[data-skin="spring-festival"] {
 
           // 选中状态 - 与垂直导航一致（金色背景深红文字）
           &.is-active {
-            background: linear-gradient(135deg, $spring-gold 0%, #FFA500 100%) !important;
+            background: linear-gradient(
+              135deg,
+              $spring-gold 0%,
+              #ffa500 100%
+            ) !important;
             color: $spring-red-dark !important;
             font-weight: 600;
             box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4) !important;
 
-            span, div, .el-text {
+            span,
+            div,
+            .el-text {
               color: $spring-red-dark !important;
             }
 
@@ -878,7 +1020,11 @@ html[data-skin="spring-festival"] {
         .el-sub-menu__title {
           height: 46px !important;
           color: $spring-gold !important;
-          background: linear-gradient(135deg, rgba(139, 0, 0, 0.7) 0%, rgba(178, 34, 34, 0.7) 100%) !important;
+          background: linear-gradient(
+            135deg,
+            rgba(139, 0, 0, 0.7) 0%,
+            rgba(178, 34, 34, 0.7) 100%
+          ) !important;
           border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
           border-radius: 8px !important;
           margin: 4px 8px !important;
@@ -887,7 +1033,9 @@ html[data-skin="spring-festival"] {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
           // 文字样式
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             height: 46px !important;
             line-height: 46px !important;
             font-size: 14px !important;
@@ -903,13 +1051,21 @@ html[data-skin="spring-festival"] {
           }
 
           &:hover {
-            background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(178, 34, 34, 0.9) 100%) !important;
+            background: linear-gradient(
+              135deg,
+              rgba(220, 20, 60, 0.9) 0%,
+              rgba(178, 34, 34, 0.9) 100%
+            ) !important;
             border-color: rgba(255, 215, 0, 0.6) !important;
             transform: translateX(2px);
             color: #fff !important;
             box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
-            
-            span, div, .el-text, .el-icon, svg {
+
+            span,
+            div,
+            .el-text,
+            .el-icon,
+            svg {
               color: #fff !important;
             }
           }
@@ -918,11 +1074,17 @@ html[data-skin="spring-festival"] {
         .el-sub-menu.is-active > .el-sub-menu__title {
           color: #fff !important;
           font-weight: 600;
-          background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+          background: linear-gradient(
+            135deg,
+            rgba(220, 20, 60, 0.95) 0%,
+            rgba(178, 34, 34, 0.95) 100%
+          ) !important;
           border-color: $spring-gold !important;
           box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
 
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             color: #fff !important;
           }
 
@@ -931,11 +1093,11 @@ html[data-skin="spring-festival"] {
             color: #fff !important;
           }
         }
-        
+
         // 嵌套子菜单样式
         .el-sub-menu .el-menu {
           background: transparent !important;
-          
+
           .el-menu-item {
             height: 44px !important;
             color: $spring-gold !important;
@@ -944,33 +1106,48 @@ html[data-skin="spring-festival"] {
             border-radius: 8px !important;
             margin: 2px 8px 2px 16px !important;
             padding: 0 16px !important;
-            
-            span, div, .el-text {
+
+            span,
+            div,
+            .el-text {
               height: 44px !important;
               line-height: 44px !important;
               font-size: 14px !important;
               color: $spring-gold !important;
             }
-            
-            .el-icon, svg {
+
+            .el-icon,
+            svg {
               color: $spring-gold !important;
             }
-            
+
             &:hover {
               background: rgba(255, 215, 0, 0.15) !important;
               color: #fff !important;
-              
-              span, div, .el-text, .el-icon, svg {
+
+              span,
+              div,
+              .el-text,
+              .el-icon,
+              svg {
                 color: #fff !important;
               }
             }
-            
+
             &.is-active {
-              background: linear-gradient(135deg, $spring-gold 0%, #FFA500 100%) !important;
+              background: linear-gradient(
+                135deg,
+                $spring-gold 0%,
+                #ffa500 100%
+              ) !important;
               color: $spring-red-dark !important;
               box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4) !important;
-              
-              span, div, .el-text, .el-icon, svg {
+
+              span,
+              div,
+              .el-text,
+              .el-icon,
+              svg {
                 color: $spring-red-dark !important;
               }
             }
@@ -1001,8 +1178,6 @@ html[data-skin="spring-festival"] {
   }
 }
 
-
-
 // ==================== 中秋主题样式 ====================
 html[data-skin="mid-autumn"] {
   $mid-blue: #1a237e;
@@ -1016,12 +1191,20 @@ html[data-skin="mid-autumn"] {
   .double-nav-container {
     // 左栏
     .double-nav-left {
-      background: linear-gradient(180deg, $mid-blue, $mid-blue-light) !important;
+      background: linear-gradient(
+        180deg,
+        $mid-blue,
+        $mid-blue-light
+      ) !important;
       border-right: 2px solid $mid-border !important;
 
       // Logo区域
       .sidebar-logo-container {
-        background: linear-gradient(135deg, rgba(13, 27, 66, 0.95), rgba($mid-blue, 0.95)) !important;
+        background: linear-gradient(
+          135deg,
+          rgba(13, 27, 66, 0.95),
+          rgba($mid-blue, 0.95)
+        ) !important;
         border-bottom: 2px solid $mid-border !important;
 
         .sidebar-title {
@@ -1052,7 +1235,11 @@ html[data-skin="mid-autumn"] {
           }
 
           &.is-active {
-            background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+            background: linear-gradient(
+              135deg,
+              $mid-gold,
+              $mid-gold-light
+            ) !important;
             color: $mid-blue !important;
             box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
 
@@ -1067,12 +1254,16 @@ html[data-skin="mid-autumn"] {
 
     // 右栏 - 参考垂直导航样式
     .double-nav-right {
-      background: linear-gradient(180deg, rgba($mid-blue, 0.95), rgba($mid-blue-light, 0.95)) !important;
+      background: linear-gradient(
+        180deg,
+        rgba($mid-blue, 0.95),
+        rgba($mid-blue-light, 0.95)
+      ) !important;
 
       // 子菜单列表 - 参考垂直导航样式
       .sub-menu-list {
         padding: 8px !important;
-        
+
         .el-menu-item {
           height: 46px !important;
           color: $mid-gold !important;
@@ -1084,7 +1275,9 @@ html[data-skin="mid-autumn"] {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
           // 文字样式 - 与垂直导航一致
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             height: 46px !important;
             line-height: 46px !important;
             font-size: 14px !important;
@@ -1104,7 +1297,9 @@ html[data-skin="mid-autumn"] {
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             color: #fff !important;
 
-            span, div, .el-text {
+            span,
+            div,
+            .el-text {
               color: #fff !important;
             }
 
@@ -1116,12 +1311,18 @@ html[data-skin="mid-autumn"] {
 
           // 选中状态 - 与垂直导航一致（金色背景深蓝文字）
           &.is-active {
-            background: linear-gradient(135deg, $mid-gold 0%, $mid-gold-light 100%) !important;
+            background: linear-gradient(
+              135deg,
+              $mid-gold 0%,
+              $mid-gold-light 100%
+            ) !important;
             color: $mid-blue !important;
             font-weight: 600;
             box-shadow: 0 2px 8px rgba(255, 213, 79, 0.4) !important;
 
-            span, div, .el-text {
+            span,
+            div,
+            .el-text {
               color: $mid-blue !important;
             }
 
@@ -1144,7 +1345,9 @@ html[data-skin="mid-autumn"] {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
           // 文字样式
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             height: 46px !important;
             line-height: 46px !important;
             font-size: 14px !important;
@@ -1164,8 +1367,12 @@ html[data-skin="mid-autumn"] {
             transform: translateX(2px);
             color: #fff !important;
             box-shadow: 0 2px 8px rgba(255, 213, 79, 0.3);
-            
-            span, div, .el-text, .el-icon, svg {
+
+            span,
+            div,
+            .el-text,
+            .el-icon,
+            svg {
               color: #fff !important;
             }
           }
@@ -1177,20 +1384,23 @@ html[data-skin="mid-autumn"] {
           background: rgba($mid-gold, 0.3) !important;
           border-color: $mid-gold !important;
           box-shadow: 0 2px 8px rgba(255, 213, 79, 0.4);
-          
-          span, div, .el-text {
+
+          span,
+          div,
+          .el-text {
             color: #fff !important;
           }
-          
-          .el-icon, svg {
+
+          .el-icon,
+          svg {
             color: #fff !important;
           }
         }
-        
+
         // 嵌套子菜单样式
         .el-sub-menu .el-menu {
           background: transparent !important;
-          
+
           .el-menu-item {
             height: 44px !important;
             color: $mid-gold !important;
@@ -1199,33 +1409,48 @@ html[data-skin="mid-autumn"] {
             border-radius: 8px !important;
             margin: 2px 8px 2px 16px !important;
             padding: 0 16px !important;
-            
-            span, div, .el-text {
+
+            span,
+            div,
+            .el-text {
               height: 44px !important;
               line-height: 44px !important;
               font-size: 14px !important;
               color: $mid-gold !important;
             }
-            
-            .el-icon, svg {
+
+            .el-icon,
+            svg {
               color: $mid-gold !important;
             }
-            
+
             &:hover {
               background: rgba($mid-gold, 0.15) !important;
               color: #fff !important;
-              
-              span, div, .el-text, .el-icon, svg {
+
+              span,
+              div,
+              .el-text,
+              .el-icon,
+              svg {
                 color: #fff !important;
               }
             }
-            
+
             &.is-active {
-              background: linear-gradient(135deg, $mid-gold 0%, $mid-gold-light 100%) !important;
+              background: linear-gradient(
+                135deg,
+                $mid-gold 0%,
+                $mid-gold-light 100%
+              ) !important;
               color: $mid-blue !important;
               box-shadow: 0 2px 8px rgba(255, 213, 79, 0.4) !important;
-              
-              span, div, .el-text, .el-icon, svg {
+
+              span,
+              div,
+              .el-text,
+              .el-icon,
+              svg {
                 color: $mid-blue !important;
               }
             }
@@ -1237,7 +1462,11 @@ html[data-skin="mid-autumn"] {
     // 折叠按钮
     .double-nav-collapse {
       .left-collapse {
-        background: linear-gradient(135deg, rgba(13, 27, 66, 0.95), rgba($mid-blue, 0.95)) !important;
+        background: linear-gradient(
+          135deg,
+          rgba(13, 27, 66, 0.95),
+          rgba($mid-blue, 0.95)
+        ) !important;
         border-top: 2px solid $mid-border !important;
 
         svg {
@@ -1270,12 +1499,20 @@ html[data-skin="christmas"] {
   .double-nav-container {
     // 左栏
     .double-nav-left {
-      background: linear-gradient(180deg, $xmas-green, color.adjust($xmas-green, $lightness: -5%)) !important;
+      background: linear-gradient(
+        180deg,
+        $xmas-green,
+        color.adjust($xmas-green, $lightness: -5%)
+      ) !important;
       border-right: 3px solid $xmas-border !important;
 
       // Logo区域
       .sidebar-logo-container {
-        background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%), color.adjust($xmas-green, $lightness: -5%)) !important;
+        background: linear-gradient(
+          180deg,
+          color.adjust($xmas-green, $lightness: -8%),
+          color.adjust($xmas-green, $lightness: -5%)
+        ) !important;
         border-bottom: 2px solid $xmas-border !important;
 
         .sidebar-title {
@@ -1297,7 +1534,11 @@ html[data-skin="christmas"] {
           }
 
           &:hover {
-            background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+            background: linear-gradient(
+              135deg,
+              rgba($xmas-red, 0.8),
+              rgba($xmas-red-light, 0.7)
+            ) !important;
             color: $xmas-white !important;
 
             .menu-icon-only svg,
@@ -1307,7 +1548,11 @@ html[data-skin="christmas"] {
           }
 
           &.is-active {
-            background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+            background: linear-gradient(
+              135deg,
+              $xmas-red,
+              $xmas-red-light
+            ) !important;
             color: $xmas-white !important;
             box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
 
@@ -1322,12 +1567,16 @@ html[data-skin="christmas"] {
 
     // 右栏 - 参考垂直导航样式
     .double-nav-right {
-      background: linear-gradient(180deg, $xmas-green-light, $xmas-green) !important;
+      background: linear-gradient(
+        180deg,
+        $xmas-green-light,
+        $xmas-green
+      ) !important;
 
       // 子菜单列表 - 参考垂直导航样式
       .sub-menu-list {
         padding: 8px !important;
-        
+
         .el-menu-item {
           height: 46px !important;
           color: $xmas-white !important;
@@ -1339,7 +1588,9 @@ html[data-skin="christmas"] {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
           // 文字样式 - 与垂直导航一致
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             height: 46px !important;
             line-height: 46px !important;
             font-size: 14px !important;
@@ -1367,12 +1618,18 @@ html[data-skin="christmas"] {
 
           // 选中状态 - 与垂直导航一致（红色背景白色文字）
           &.is-active {
-            background: linear-gradient(135deg, $xmas-red 0%, $xmas-red-light 100%) !important;
+            background: linear-gradient(
+              135deg,
+              $xmas-red 0%,
+              $xmas-red-light 100%
+            ) !important;
             color: $xmas-white !important;
             font-weight: 600;
             box-shadow: 0 2px 8px rgba($xmas-red, 0.4) !important;
 
-            span, div, .el-text {
+            span,
+            div,
+            .el-text {
               color: $xmas-white !important;
             }
 
@@ -1387,7 +1644,11 @@ html[data-skin="christmas"] {
         .el-sub-menu__title {
           height: 46px !important;
           color: $xmas-white !important;
-          background: linear-gradient(135deg, rgba($xmas-green-light, 0.7), rgba($xmas-green, 0.7)) !important;
+          background: linear-gradient(
+            135deg,
+            rgba($xmas-green-light, 0.7),
+            rgba($xmas-green, 0.7)
+          ) !important;
           border: 1.5px solid rgba($xmas-gold, 0.3) !important;
           border-radius: 8px !important;
           margin: 4px 8px !important;
@@ -1396,7 +1657,9 @@ html[data-skin="christmas"] {
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 
           // 文字样式
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             height: 46px !important;
             line-height: 46px !important;
             font-size: 14px !important;
@@ -1418,13 +1681,19 @@ html[data-skin="christmas"] {
           }
 
           &:hover {
-            background: linear-gradient(135deg, rgba($xmas-red, 0.6), rgba($xmas-red-light, 0.6)) !important;
+            background: linear-gradient(
+              135deg,
+              rgba($xmas-red, 0.6),
+              rgba($xmas-red-light, 0.6)
+            ) !important;
             border-color: rgba($xmas-gold, 0.5) !important;
             transform: translateX(2px);
             box-shadow: 0 4px 12px rgba($xmas-red, 0.3);
             color: $xmas-white !important;
 
-            .el-icon, svg, .el-sub-menu__icon-arrow {
+            .el-icon,
+            svg,
+            .el-sub-menu__icon-arrow {
               color: $xmas-white !important;
             }
           }
@@ -1433,26 +1702,34 @@ html[data-skin="christmas"] {
         // 父菜单选中状态
         .el-sub-menu.is-active > .el-sub-menu__title,
         .el-sub-menu.is-opened > .el-sub-menu__title {
-          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+          background: linear-gradient(
+            135deg,
+            rgba($xmas-red, 0.8),
+            rgba($xmas-red-light, 0.7)
+          ) !important;
           border-color: rgba($xmas-gold, 0.5) !important;
           color: $xmas-white !important;
           font-weight: 600;
           box-shadow: 0 4px 12px rgba($xmas-red, 0.4);
 
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             color: $xmas-white !important;
             font-weight: 600 !important;
           }
 
-          .el-icon, svg, .el-sub-menu__icon-arrow {
+          .el-icon,
+          svg,
+          .el-sub-menu__icon-arrow {
             color: $xmas-white !important;
           }
         }
-        
+
         // 嵌套子菜单样式
         .el-sub-menu .el-menu {
           background: transparent !important;
-          
+
           .el-menu-item {
             height: 44px !important;
             color: $xmas-white !important;
@@ -1461,33 +1738,45 @@ html[data-skin="christmas"] {
             border-radius: 8px !important;
             margin: 2px 8px 2px 16px !important;
             padding: 0 16px !important;
-            
-            span, div, .el-text {
+
+            span,
+            div,
+            .el-text {
               height: 44px !important;
               line-height: 44px !important;
               font-size: 14px !important;
               color: $xmas-white !important;
             }
-            
-            .el-icon, svg {
+
+            .el-icon,
+            svg {
               color: $xmas-gold !important;
             }
-            
+
             &:hover {
               background: rgba($xmas-red, 0.3) !important;
               color: $xmas-white !important;
-              
-              .el-icon, svg {
+
+              .el-icon,
+              svg {
                 color: $xmas-white !important;
               }
             }
-            
+
             &.is-active {
-              background: linear-gradient(135deg, $xmas-red 0%, $xmas-red-light 100%) !important;
+              background: linear-gradient(
+                135deg,
+                $xmas-red 0%,
+                $xmas-red-light 100%
+              ) !important;
               color: $xmas-white !important;
               box-shadow: 0 2px 8px rgba($xmas-red, 0.4) !important;
-              
-              span, div, .el-text, .el-icon, svg {
+
+              span,
+              div,
+              .el-text,
+              .el-icon,
+              svg {
                 color: $xmas-white !important;
               }
             }
@@ -1499,7 +1788,11 @@ html[data-skin="christmas"] {
     // 折叠按钮
     .double-nav-collapse {
       .left-collapse {
-        background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%), color.adjust($xmas-green, $lightness: -10%)) !important;
+        background: linear-gradient(
+          180deg,
+          color.adjust($xmas-green, $lightness: -8%),
+          color.adjust($xmas-green, $lightness: -10%)
+        ) !important;
         border-top: 2px solid $xmas-border !important;
 
         svg {
@@ -1507,7 +1800,11 @@ html[data-skin="christmas"] {
         }
 
         &:hover {
-          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+          background: linear-gradient(
+            135deg,
+            rgba($xmas-red, 0.8),
+            rgba($xmas-red-light, 0.7)
+          ) !important;
 
           svg {
             color: $xmas-white !important;
@@ -1521,27 +1818,35 @@ html[data-skin="christmas"] {
 // ==================== 元旦主题样式 ====================
 html[data-skin="new-year"] {
   // 元旦冰雪主题色 - 浅色风格（与悬停导航保持一致）
-  $ice-lightest: #F5FBFF;
-  $ice-light: #B8E0F2;
-  $ice-medium: #7CC2E8;
-  $ice-primary: #4EA8DE;
-  $ice-deep: #2A7AB8;
-  $ice-darker: #1E5F8C;
-  $frost-white: #FFFFFF;
-  $frost-purple: #E0E7F5;
+  $ice-lightest: #f5fbff;
+  $ice-light: #b8e0f2;
+  $ice-medium: #7cc2e8;
+  $ice-primary: #4ea8de;
+  $ice-deep: #2a7ab8;
+  $ice-darker: #1e5f8c;
+  $frost-white: #ffffff;
+  $frost-purple: #e0e7f5;
   $ice-border: rgba(78, 168, 222, 0.3);
 
   // 双栏导航容器
   .double-nav-container {
     // 左栏 - 浅色背景
     .double-nav-left {
-      background: linear-gradient(180deg, rgba($frost-white, 0.98), rgba($frost-purple, 0.95)) !important;
+      background: linear-gradient(
+        180deg,
+        rgba($frost-white, 0.98),
+        rgba($frost-purple, 0.95)
+      ) !important;
       border-right: 2px solid $ice-border !important;
       backdrop-filter: blur(12px);
 
       // Logo区域
       .sidebar-logo-container {
-        background: linear-gradient(180deg, rgba($frost-white, 0.95), rgba($ice-lightest, 0.9)) !important;
+        background: linear-gradient(
+          180deg,
+          rgba($frost-white, 0.95),
+          rgba($ice-lightest, 0.9)
+        ) !important;
         border-bottom: 1px solid rgba($ice-medium, 0.3) !important;
 
         .sidebar-title {
@@ -1573,7 +1878,11 @@ html[data-skin="new-year"] {
           }
 
           &.is-active {
-            background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+            background: linear-gradient(
+              135deg,
+              $ice-primary,
+              $ice-medium
+            ) !important;
             color: $frost-white !important;
             box-shadow: 0 4px 16px rgba($ice-primary, 0.4) !important;
 
@@ -1588,12 +1897,16 @@ html[data-skin="new-year"] {
 
     // 右栏 - 浅色背景
     .double-nav-right {
-      background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.95)) !important;
+      background: linear-gradient(
+        180deg,
+        rgba($ice-lightest, 0.98),
+        rgba($frost-purple, 0.95)
+      ) !important;
       backdrop-filter: blur(12px);
 
       .sub-menu-list {
         padding: 8px !important;
-        
+
         .el-menu-item {
           height: 46px !important;
           color: $ice-darker !important;
@@ -1604,7 +1917,9 @@ html[data-skin="new-year"] {
           padding: 0 16px !important;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             height: 46px !important;
             line-height: 46px !important;
             font-size: 14px !important;
@@ -1625,7 +1940,9 @@ html[data-skin="new-year"] {
             box-shadow: 0 4px 12px rgba($ice-primary, 0.2) !important;
             color: $ice-deep !important;
 
-            span, div, .el-text {
+            span,
+            div,
+            .el-text {
               color: $ice-deep !important;
             }
 
@@ -1636,13 +1953,19 @@ html[data-skin="new-year"] {
           }
 
           &.is-active {
-            background: linear-gradient(135deg, $ice-primary 0%, $ice-medium 100%) !important;
+            background: linear-gradient(
+              135deg,
+              $ice-primary 0%,
+              $ice-medium 100%
+            ) !important;
             color: $frost-white !important;
             border: 1px solid rgba($frost-white, 0.5) !important;
             font-weight: 600;
             box-shadow: 0 4px 16px rgba($ice-primary, 0.4) !important;
 
-            span, div, .el-text {
+            span,
+            div,
+            .el-text {
               color: $frost-white !important;
             }
 
@@ -1663,7 +1986,9 @@ html[data-skin="new-year"] {
           padding: 0 16px !important;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-          span, div, .el-text {
+          span,
+          div,
+          .el-text {
             height: 46px !important;
             line-height: 46px !important;
             font-size: 14px !important;
@@ -1683,8 +2008,12 @@ html[data-skin="new-year"] {
             transform: translateX(2px);
             color: $ice-deep !important;
             box-shadow: 0 4px 12px rgba($ice-primary, 0.2);
-            
-            span, div, .el-text, .el-icon, svg {
+
+            span,
+            div,
+            .el-text,
+            .el-icon,
+            svg {
               color: $ice-deep !important;
             }
           }
@@ -1693,24 +2022,31 @@ html[data-skin="new-year"] {
         .el-sub-menu.is-active > .el-sub-menu__title {
           color: $frost-white !important;
           font-weight: 600;
-          background: linear-gradient(135deg, rgba($ice-primary, 0.8), rgba($ice-medium, 0.7)) !important;
+          background: linear-gradient(
+            135deg,
+            rgba($ice-primary, 0.8),
+            rgba($ice-medium, 0.7)
+          ) !important;
           border-color: rgba($frost-white, 0.4) !important;
           box-shadow: 0 4px 16px rgba($ice-primary, 0.35);
-          
-          span, div, .el-text {
+
+          span,
+          div,
+          .el-text {
             color: $frost-white !important;
           }
-          
-          .el-icon, svg {
+
+          .el-icon,
+          svg {
             color: $frost-white !important;
           }
         }
-        
+
         .el-sub-menu .el-menu {
           background: rgba($ice-lightest, 0.6) !important;
           border-radius: 8px;
           margin: 4px 8px;
-          
+
           .el-menu-item {
             height: 44px !important;
             color: $ice-darker !important;
@@ -1719,35 +2055,50 @@ html[data-skin="new-year"] {
             border-radius: 8px !important;
             margin: 4px 6px !important;
             padding: 0 16px !important;
-            
-            span, div, .el-text {
+
+            span,
+            div,
+            .el-text {
               height: 44px !important;
               line-height: 44px !important;
               font-size: 14px !important;
               color: $ice-darker !important;
             }
-            
-            .el-icon, svg {
+
+            .el-icon,
+            svg {
               color: $ice-primary !important;
             }
-            
+
             &:hover {
               background: rgba($frost-white, 0.8) !important;
               border-color: rgba($ice-primary, 0.3) !important;
               color: $ice-deep !important;
-              
-              span, div, .el-text, .el-icon, svg {
+
+              span,
+              div,
+              .el-text,
+              .el-icon,
+              svg {
                 color: $ice-deep !important;
               }
             }
-            
+
             &.is-active {
-              background: linear-gradient(135deg, $ice-primary 0%, $ice-medium 100%) !important;
+              background: linear-gradient(
+                135deg,
+                $ice-primary 0%,
+                $ice-medium 100%
+              ) !important;
               color: $frost-white !important;
               border: 1px solid rgba($ice-deep, 0.2) !important;
               box-shadow: 0 4px 16px rgba($ice-primary, 0.4) !important;
-              
-              span, div, .el-text, .el-icon, svg {
+
+              span,
+              div,
+              .el-text,
+              .el-icon,
+              svg {
                 color: $frost-white !important;
               }
             }
@@ -1759,7 +2110,11 @@ html[data-skin="new-year"] {
     // 折叠按钮 - 浅色风格
     .double-nav-collapse {
       .left-collapse {
-        background: linear-gradient(180deg, rgba($frost-white, 0.95), rgba($ice-lightest, 0.9)) !important;
+        background: linear-gradient(
+          180deg,
+          rgba($frost-white, 0.95),
+          rgba($ice-lightest, 0.9)
+        ) !important;
         border-top: 1px solid rgba($ice-medium, 0.3) !important;
 
         svg {
@@ -1791,10 +2146,14 @@ html[data-skin="future-tech"] {
   .double-nav-container {
     // 左栏 - 深色科技背景
     .double-nav-left {
-      background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+      background: linear-gradient(
+        180deg,
+        rgba(5, 10, 31, 0.95),
+        rgba(10, 26, 58, 0.9)
+      ) !important;
       border-right: 2px solid $ft-border !important;
       backdrop-filter: blur(10px);
-      box-shadow: 
+      box-shadow:
         2px 0 20px rgba(0, 255, 255, 0.15),
         inset 0 0 20px rgba(0, 255, 255, 0.05) !important;
       position: relative;
@@ -1802,13 +2161,13 @@ html[data-skin="future-tech"] {
 
       // 网格背景
       &::before {
-        content: '';
+        content: "";
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background-image: 
+        background-image:
           linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
           linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
         background-size: 20px 20px;
@@ -1818,13 +2177,17 @@ html[data-skin="future-tech"] {
 
       // Logo区域
       .sidebar-logo-container {
-        background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+        background: linear-gradient(
+          180deg,
+          rgba(5, 10, 31, 0.95),
+          rgba(10, 26, 58, 0.9)
+        ) !important;
         border-bottom: 1px solid $ft-border !important;
         box-shadow: 0 2px 10px rgba(0, 255, 255, 0.1) !important;
 
         .sidebar-title {
           color: $ft-cyan !important;
-          text-shadow: 
+          text-shadow:
             0 1px 2px rgba(0, 0, 0, 0.8),
             0 0 10px rgba(0, 255, 255, 0.6) !important;
         }
@@ -1862,13 +2225,17 @@ html[data-skin="future-tech"] {
           }
 
           &.is-active {
-            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(5, 10, 31, 0.6)) !important;
+            background: linear-gradient(
+              135deg,
+              rgba(0, 255, 255, 0.2),
+              rgba(5, 10, 31, 0.6)
+            ) !important;
             border-color: $ft-cyan !important;
             color: $ft-cyan !important;
-            box-shadow: 
+            box-shadow:
               0 0 15px rgba(0, 255, 255, 0.5),
               inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
-            text-shadow: 
+            text-shadow:
               0 0 10px rgba(0, 255, 255, 0.8),
               0 0 20px rgba(0, 255, 255, 0.4) !important;
 
@@ -1884,9 +2251,13 @@ html[data-skin="future-tech"] {
 
     // 右栏 - 深色科技背景
     .double-nav-right {
-      background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+      background: linear-gradient(
+        180deg,
+        rgba(5, 10, 31, 0.95),
+        rgba(10, 26, 58, 0.9)
+      ) !important;
       backdrop-filter: blur(10px);
-      box-shadow: 
+      box-shadow:
         -2px 0 20px rgba(0, 255, 255, 0.15),
         inset 0 0 20px rgba(0, 255, 255, 0.05) !important;
       position: relative;
@@ -1894,13 +2265,13 @@ html[data-skin="future-tech"] {
 
       // 网格背景
       &::before {
-        content: '';
+        content: "";
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background-image: 
+        background-image:
           linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
           linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
         background-size: 20px 20px;
@@ -1910,7 +2281,7 @@ html[data-skin="future-tech"] {
 
       .sub-menu-list {
         padding: 8px !important;
-        
+
         .el-menu-item {
           height: 46px !important;
           color: rgba(0, 255, 255, 0.7) !important;
@@ -1921,54 +2292,71 @@ html[data-skin="future-tech"] {
           padding: 0 16px !important;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
           box-shadow: 0 0 5px rgba(0, 255, 255, 0.1) !important;
-          
-          span, div, .el-text {
+
+          span,
+          div,
+          .el-text {
             height: 46px !important;
             line-height: 46px !important;
             font-size: 14px !important;
             color: rgba(0, 255, 255, 0.7) !important;
           }
-          
-          .el-icon, svg {
+
+          .el-icon,
+          svg {
             color: rgba(0, 255, 255, 0.6) !important;
             filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.4));
           }
-          
+
           &:hover {
             background: rgba(0, 255, 255, 0.15) !important;
             border-color: rgba(0, 255, 255, 0.5) !important;
             color: $ft-cyan !important;
-            box-shadow: 
+            box-shadow:
               0 0 10px rgba(0, 255, 255, 0.3),
               inset 0 0 10px rgba(0, 255, 255, 0.05) !important;
             text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
-            
-            span, div, .el-text, .el-icon, svg {
+
+            span,
+            div,
+            .el-text,
+            .el-icon,
+            svg {
               color: $ft-cyan !important;
             }
-            
-            .el-icon, svg {
+
+            .el-icon,
+            svg {
               filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
             }
           }
-          
+
           &.is-active {
-            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(5, 10, 31, 0.6)) !important;
+            background: linear-gradient(
+              135deg,
+              rgba(0, 255, 255, 0.2),
+              rgba(5, 10, 31, 0.6)
+            ) !important;
             color: $ft-cyan !important;
             border: 1px solid $ft-cyan !important;
-            box-shadow: 
+            box-shadow:
               0 0 15px rgba(0, 255, 255, 0.5),
               inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
-            text-shadow: 
+            text-shadow:
               0 0 10px rgba(0, 255, 255, 0.8),
               0 0 20px rgba(0, 255, 255, 0.4) !important;
-            
-            span, div, .el-text, .el-icon, svg {
+
+            span,
+            div,
+            .el-text,
+            .el-icon,
+            svg {
               color: $ft-cyan !important;
               font-weight: 600;
             }
-            
-            .el-icon, svg {
+
+            .el-icon,
+            svg {
               filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.9));
             }
           }
@@ -1979,7 +2367,11 @@ html[data-skin="future-tech"] {
     // 折叠按钮
     .double-nav-collapse {
       .left-collapse {
-        background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+        background: linear-gradient(
+          180deg,
+          rgba(5, 10, 31, 0.95),
+          rgba(10, 26, 58, 0.9)
+        ) !important;
         border-top: 2px solid $ft-border !important;
         box-shadow: 0 -2px 10px rgba(0, 255, 255, 0.1) !important;
 
