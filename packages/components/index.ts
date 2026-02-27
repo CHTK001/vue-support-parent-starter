@@ -46,6 +46,9 @@ import { ScRow } from "./ScRow";
 import { ScCol } from "./ScCol";
 import { ScTabs } from "./ScTabs";
 import { ScMenu } from "./ScMenu";
+import { ScMenuItem } from "./ScMenuItem";
+import { ScSubMenu } from "./ScSubMenu";
+import { ScScrollbar } from "./ScScrollbar";
 import { ScBreadcrumb } from "./ScBreadcrumb";
 import { ScSteps } from "./ScSteps";
 import { ScLayer } from "./ScLayer";
@@ -115,6 +118,9 @@ export {
   ScCol,
   ScTabs,
   ScMenu,
+  ScMenuItem,
+  ScSubMenu,
+  ScScrollbar,
   ScBreadcrumb,
   ScSteps,
   ScIcon,
@@ -181,6 +187,8 @@ export default {
   ScCol,
   ScTabs,
   ScMenu,
+  ScMenuItem,
+  ScSubMenu,
   ScBreadcrumb,
   ScSteps,
   useReteEditor
