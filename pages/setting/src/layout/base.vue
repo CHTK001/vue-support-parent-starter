@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { queryEmail, transformI18n } from "@repo/config";
 import { fetchListDictItem } from "@repo/core";
@@ -195,9 +195,9 @@ export default defineComponent({
       >
         <div class="h-full">
           <div class="relative h-full">
-            <el-form label-width="200px" class="h-full thin-scrollbar">
-              <el-row :gutter="20" class="h-full">
-                <el-col class="w-2/3" :lg="16" ref="list">
+            <ScForm label-width="200px" class="h-full thin-scrollbar">
+              <ScRow :gutter="20" class="h-full">
+                <ScCol class="w-2/3" :lg="16" ref="list">
                   <!-- 加载状态 -->
                   <div v-if="layoutLoading" class="loading-container">
                     <el-skeleton :rows="5" animated />
@@ -208,15 +208,15 @@ export default defineComponent({
                     v-else-if="!layoutLoading && groupList.length === 0"
                     class="empty-container"
                   >
-                    <el-empty description="该分组暂无配置项">
-                      <el-button type="primary" @click="close">返回</el-button>
-                    </el-empty>
+                    <ScEmpty description="该分组暂无配置项">
+                      <ScButton type="primary" @click="close">返回</ScButton>
+                    </ScEmpty>
                   </div>
 
                   <!-- 配置项列表 -->
                   <draggable v-else v-model="groupList" @end="handleChange">
                     <template #item="{ element }">
-                      <el-form-item
+                      <ScFormItem 
                         :key="$index"
                         :label="
                           element.sysSettingRemark || element.sysSettingName
@@ -318,23 +318,23 @@ export default defineComponent({
                             :readonly="element.sysSettingAppInner == 1"
                           />
                         </div>
-                      </el-form-item>
+                      </ScFormItem>
                     </template>
                   </draggable>
-                  <el-row class="mt-24" />
-                  <el-form-item class="justify-start custom-button">
-                    <el-button
+                  <ScRow class="mt-24" />
+                  <ScFormItem class="justify-start custom-button">
+                    <ScButton 
                       class="ml-1"
                       :icon="useRenderIcon('ri:save-2-fill')"
                       type="primary"
                       @click="submit"
                     >
                       {{ $t("buttons.update") }}
-                    </el-button>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-            </el-form>
+                    </ScButton>
+                  </ScFormItem>
+                </ScCol>
+              </ScRow>
+            </ScForm>
           </div>
         </div>
       </div>

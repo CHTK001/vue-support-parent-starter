@@ -1,15 +1,15 @@
-<template>
+﻿<template>
   <div class="sc-password-input">
-    <el-input v-model="innerValue" :type="showPassword ? 'text' : 'password'" :disabled="disabled" :placeholder="placeholder" :show-password="!showPassword" class="password-field">
+    <ScInput v-model="innerValue" :type="showPassword ? 'text' : 'password'" :disabled="disabled" :placeholder="placeholder" :show-password="!showPassword" class="password-field">
       <template #prefix>
         <IconifyIconOnline icon="ep:lock" />
       </template>
       <template #suffix v-if="showPassword">
-        <el-icon class="el-input__icon" @click="showPassword = false">
+        <ScIcon class="el-input__icon" @click="showPassword = false">
           <IconifyIconOnline icon="ep:view" />
-        </el-icon>
+        </ScIcon>
       </template>
-    </el-input>
+    </ScInput>
 
     <div class="password-strength" v-if="showStrength && !disabled">
       <div class="strength-label">密码强度:</div>

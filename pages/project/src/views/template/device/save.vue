@@ -569,7 +569,7 @@ export default defineComponent({
       width="750px"
       class="device-dialog"
     >
-      <el-form
+      <ScForm 
         ref="dialogForm"
         :model="form"
         :rules="rules"
@@ -580,32 +580,32 @@ export default defineComponent({
         <!-- 基础信息区域 -->
         <div class="form-section">
           <div class="section-title">基础信息</div>
-          <el-row :gutter="16">
-            <el-col :span="24">
-              <el-form-item label="名称" prop="sysDeviceName">
-                <el-input
+          <ScRow :gutter="16">
+            <ScCol :span="24">
+              <ScFormItem label="名称" prop="sysDeviceName">
+                <ScInput 
                   v-model="form.sysDeviceName"
                   placeholder="请输入摄像头名称"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item label="序列号" prop="sysDeviceSerialNumber">
-                <el-input
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="24">
+              <ScFormItem label="序列号" prop="sysDeviceSerialNumber">
+                <ScInput 
                   v-model="form.sysDeviceSerialNumber"
                   placeholder="请输入序列号"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item label="设备类型" prop="sysDeviceResourceType">
-                <el-select
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="24">
+              <ScFormItem label="设备类型" prop="sysDeviceResourceType">
+                <ScSelect 
                   v-model="form.sysDeviceResourceType"
                   placeholder="请选择设备类型"
                   clearable
                   class="w-full"
                 >
-                  <el-option
+                  <ScOption 
                     v-for="item in deviceResourceTypes"
                     :key="item.sysDictItemCode"
                     :label="item.sysDictItemName"
@@ -615,13 +615,13 @@ export default defineComponent({
                     <span class="text-gray-400 text-xs ml-2">{{
                       item.sysDictItemCode
                     }}</span>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-            </el-col>
+                  </ScOption>
+                </ScSelect>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="状态" prop="sysDeviceOnline">
+            <ScCol :span="24">
+              <ScFormItem label="状态" prop="sysDeviceOnline">
                 <el-segmented
                   v-model="form.sysDeviceOnline"
                   :options="[
@@ -630,22 +630,22 @@ export default defineComponent({
                   ]"
                   class="device-segmented"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="描述" prop="sysDeviceDescription">
-                <el-input
+            <ScCol :span="24">
+              <ScFormItem label="描述" prop="sysDeviceDescription">
+                <ScInput 
                   v-model="form.sysDeviceDescription"
                   placeholder="请输入设备描述信息"
                   type="textarea"
                   :rows="2"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="高级配置" prop="showAdvice">
+            <ScCol :span="24">
+              <ScFormItem label="高级配置" prop="showAdvice">
                 <el-segmented
                   v-model="showAdvice"
                   :options="[
@@ -654,30 +654,30 @@ export default defineComponent({
                   ]"
                   class="device-segmented"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
         </div>
 
         <!-- 高级配置区域 -->
         <div v-if="showAdvice" class="form-section">
           <div class="section-title">高级配置</div>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="设备账号" prop="sysDeviceAccount">
-                <el-input
+          <ScRow :gutter="16">
+            <ScCol :span="12">
+              <ScFormItem label="设备账号" prop="sysDeviceAccount">
+                <ScInput 
                   v-model="form.sysDeviceAccount"
                   placeholder="请输入设备账号"
                 >
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:account" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="设备密码" prop="sysDevicePassword">
-                <el-input
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="设备密码" prop="sysDevicePassword">
+                <ScInput 
                   v-model="form.sysDevicePassword"
                   placeholder="推流设备密码"
                   show-password
@@ -686,30 +686,30 @@ export default defineComponent({
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:lock" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="网络地址" prop="sysDeviceNetAddress">
-                <el-input
+            <ScCol :span="24">
+              <ScFormItem label="网络地址" prop="sysDeviceNetAddress">
+                <ScInput 
                   v-model="form.sysDeviceNetAddress"
                   placeholder="请输入设备IP地址"
                 >
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:ip-network" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="推流地址" prop="sysDeviceRtsp">
+            <ScCol :span="24">
+              <ScFormItem label="推流地址" prop="sysDeviceRtsp">
                 <!-- 添加帮助图标到标签旁边 -->
                 <template #label>
                   <div class="label-with-help">
                     <span>推流地址</span>
-                    <el-tooltip
+                    <ScTooltip 
                       v-if="selectedTemplateParams"
                       placement="top"
                       :show-after="200"
@@ -731,19 +731,19 @@ export default defineComponent({
                         icon="mdi:help-circle-outline"
                         class="help-icon-inline"
                       />
-                    </el-tooltip>
+                    </ScTooltip>
                   </div>
                 </template>
 
                 <!-- 摄像头厂商模板选择 -->
-                <el-select
+                <ScSelect 
                   v-model="selectedRtspTemplate"
                   placeholder="请选择摄像头厂商模板"
                   clearable
                   class="w-full mb-2"
                   @change="handleRtspTemplateChange"
                 >
-                  <el-option
+                  <ScOption 
                     v-for="item in rtspTemplates"
                     :key="item.manufacturer"
                     :label="`${item.manufacturer} (${item.version})`"
@@ -757,90 +757,90 @@ export default defineComponent({
                         {{ item.description }}
                       </div>
                     </div>
-                  </el-option>
-                </el-select>
+                  </ScOption>
+                </ScSelect>
 
                 <!-- RTSP地址输入框 -->
-                <el-input
+                <ScInput 
                   v-model="form.sysDeviceRtsp"
                   placeholder="请输入推流地址"
                   type="textarea"
                   :rows="3"
                   class="rtsp-input"
                 >
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="主码流编码" prop="sysDeviceMainSubtype">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="主码流编码" prop="sysDeviceMainSubtype">
+                <ScInput 
                   v-model="form.sysDeviceMainSubtype"
                   placeholder="请输入主码流编码"
                 >
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="子码流编码" prop="sysDeviceSubSubtype">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="子码流编码" prop="sysDeviceSubSubtype">
+                <ScInput 
                   v-model="form.sysDeviceSubSubtype"
                   placeholder="请输入子码流编码"
                 >
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="webtrc地址" prop="sysDeviceRtspWebrtc">
-                <el-input
+            <ScCol :span="24">
+              <ScFormItem label="webtrc地址" prop="sysDeviceRtspWebrtc">
+                <ScInput 
                   v-model="form.sysDeviceRtspWebrtc"
                   placeholder="请输入webrtc地址"
                 >
-                </el-input>
+                </ScInput>
                 <div class="form-help">用于解析rtsp流，支持浏览器播放</div>
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="位置" prop="sysDevicePosition">
-                <el-input
+            <ScCol :span="24">
+              <ScFormItem label="位置" prop="sysDevicePosition">
+                <ScInput 
                   v-model="form.sysDevicePosition"
                   placeholder="请输入设备安装位置"
                 >
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:map-marker" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="版本号" prop="sysDeviceVersion">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="版本号" prop="sysDeviceVersion">
+                <ScInput 
                   v-model="form.sysDeviceVersion"
                   placeholder="请输入设备版本号"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="所属编码" prop="sysDeviceOwner">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="所属编码" prop="sysDeviceOwner">
+                <ScInput 
                   v-model="form.sysDeviceOwner"
                   placeholder="请输入所属者唯一编码"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
         </div>
-      </el-form>
+      </ScForm>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="visible = false">取 消</el-button>
-          <el-button
+          <ScButton @click="visible = false">取 消</ScButton>
+          <ScButton 
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"

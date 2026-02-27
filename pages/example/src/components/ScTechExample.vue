@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-tech-demo">
     <div class="demo-header">
       <h1 class="demo-title">科技风格组件展示</h1>
@@ -266,15 +266,15 @@
         <div class="dialog-content">
           <div class="config-item">
             <label class="config-label">服务器地址</label>
-            <el-input v-model="config.server" placeholder="请输入服务器地址" />
+            <ScInput v-model="config.server" placeholder="请输入服务器地址" />
           </div>
           <div class="config-item">
             <label class="config-label">端口号</label>
-            <el-input v-model="config.port" placeholder="请输入端口号" />
+            <ScInput v-model="config.port" placeholder="请输入端口号" />
           </div>
           <div class="config-item">
             <label class="config-label">超时时间</label>
-            <el-input
+            <ScInput 
               v-model="config.timeout"
               placeholder="请输入超时时间(秒)"
             />

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="control-panel-wrapper">
     <div class="panel-header">
       <div class="header-title" v-if="settingOpen">
@@ -12,53 +12,53 @@
     </div>
 
     <div class="panel-content" v-show="settingOpen">
-      <el-form :model="form" :rules="rules" class="modern-form">
+      <ScForm :model="form" :rules="rules" class="modern-form">
         <!-- 模型选择 -->
         <div class="form-section">
           <div class="section-title">
             <IconifyIconOnline icon="mdi:robot" class="section-icon" />
             <span>AI 模型</span>
           </div>
-          <el-form-item prop="model">
+          <ScFormItem prop="model">
             <div class="model-selector">
-              <el-select filterable v-model="form.model" placeholder="选择 AI 模型" clearable @change="$emit('change-module', $event)" class="modern-select">
-                <el-option v-for="item in modelList" class="model-option" :key="item.sysAiModuleCode" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+              <ScSelect filterable v-model="form.model" placeholder="选择 AI 模型" clearable @change="$emit('change-module', $event)" class="modern-select">
+                <ScOption v-for="item in modelList" class="model-option" :key="item.sysAiModuleCode" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
                   <template #default>
-                    <el-tooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
+                    <ScTooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
                       <div class="option-content">
                         <div class="option-avatar">
-                          <el-image :src="item.sysProjectIcon" fit="cover" class="avatar-image">
+                          <ScImage :src="item.sysProjectIcon" fit="cover" class="avatar-image">
                             <template #error>
                               <div class="avatar-fallback">
                                 <IconifyIconOnline icon="mdi:robot" />
                               </div>
                             </template>
-                          </el-image>
+                          </ScImage>
                         </div>
                         <div class="option-info">
                           <div class="option-name">{{ item.sysAiModuleName }}</div>
                           <div class="option-project">{{ item.sysProjectName }}</div>
                         </div>
                       </div>
-                    </el-tooltip>
+                    </ScTooltip>
                   </template>
-                </el-option>
+                </ScOption>
                 <template #label="{ label }">
                   <div class="selected-label">
-                    <el-image class="label-avatar" :src="modelSelectLabel?.sysProjectIcon" fit="cover">
+                    <ScImage class="label-avatar" :src="modelSelectLabel?.sysProjectIcon" fit="cover">
                       <template #error>
                         <IconifyIconOnline icon="mdi:robot" />
                       </template>
-                    </el-image>
+                    </ScImage>
                     <span class="label-text">{{ label }}</span>
                   </div>
                 </template>
-              </el-select>
-              <el-button v-if="env.showEdit" circle class="add-model-btn" @click="$emit('open-module')" type="primary">
+              </ScSelect>
+              <ScButton v-if="env.showEdit" circle class="add-model-btn" @click="$emit('open-module')" type="primary">
                 <IconifyIconOnline icon="ep:plus" />
-              </el-button>
+              </ScButton>
             </div>
-          </el-form-item>
+          </ScFormItem>
         </div>
 
         <!-- 角色设定 -->
@@ -67,9 +67,9 @@
             <IconifyIconOnline icon="mdi:account-tie" class="section-icon" />
             <span>角色设定</span>
           </div>
-          <el-form-item prop="system">
-            <el-input :rows="6" type="textarea" placeholder="定义 AI 的角色和行为特征，例如：你是一个专业的商业文案专家，擅长创作吸引人的营销内容..." v-model="form.system" class="modern-textarea" />
-          </el-form-item>
+          <ScFormItem prop="system">
+            <ScInput :rows="6" type="textarea" placeholder="定义 AI 的角色和行为特征，例如：你是一个专业的商业文案专家，擅长创作吸引人的营销内容..." v-model="form.system" class="modern-textarea" />
+          </ScFormItem>
         </div>
 
         <!-- 参数配置 -->
@@ -87,7 +87,7 @@
             </div>
             <div class="param-control">
               <ScSlider :min="1" :max="8192" v-model="form.tokens" class="modern-slider" />
-              <el-input-number :min="1" :max="8192" v-model="form.tokens" class="modern-number" :controls="false" />
+              <ScInputNumber :min="1" :max="8192" v-model="form.tokens" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">控制 AI 回复的最大长度，1 token ≈ 1.5 个中文字符</div>
           </div>
@@ -100,7 +100,7 @@
             </div>
             <div class="param-control">
               <ScSlider :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="modern-slider" />
-              <el-input-number :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="modern-number" :controls="false" />
+              <ScInputNumber :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">值越高回复越有创意，值越低回复越稳定</div>
           </div>
@@ -113,7 +113,7 @@
             </div>
             <div class="param-control">
               <ScSlider :min="1" :max="16" v-model="form.topK" class="modern-slider" />
-              <el-input-number :min="1" :max="16" v-model="form.topK" class="modern-number" :controls="false" />
+              <ScInputNumber :min="1" :max="16" v-model="form.topK" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">控制词汇选择的多样性，影响回复的丰富程度</div>
           </div>
@@ -126,7 +126,7 @@
             </div>
             <div class="param-control">
               <ScSlider :min="0.1" :max="1" :step="0.1" v-model="form.topP" class="modern-slider" />
-              <el-input-number :min="0.1" :step="0.1" :max="1" v-model="form.topP" class="modern-number" :controls="false" />
+              <ScInputNumber :min="0.1" :step="0.1" :max="1" v-model="form.topP" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">动态调整词汇选择范围，平衡质量与多样性</div>
           </div>
@@ -138,14 +138,14 @@
               <span class="param-value seed-value">{{ form.seed }}</span>
             </div>
             <div class="param-control seed-control">
-              <el-button circle @click="$emit('click-seed')" class="seed-refresh-btn" type="primary">
+              <ScButton circle @click="$emit('click-seed')" class="seed-refresh-btn" type="primary">
                 <IconifyIconOnline icon="ep:refresh" />
-              </el-button>
+              </ScButton>
               <div class="seed-desc">点击生成新的随机种子</div>
             </div>
           </div>
         </div>
-      </el-form>
+      </ScForm>
     </div>
   </div>
 </template>

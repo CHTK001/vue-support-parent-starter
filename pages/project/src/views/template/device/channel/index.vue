@@ -77,7 +77,7 @@ const handleDelete = async (item, event) => {
   event.stopPropagation();
 
   // 确认删除
-  ElMessageBox.confirm("确定要删除该通道吗？", "提示", {
+  ScMessageBox.confirm("确定要删除该通道吗？", "提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning",
@@ -204,7 +204,7 @@ defineExpose({
         >
           <div class="section-header">
             <h3 class="section-title">通道列表</h3>
-            <el-button
+            <ScButton 
               type="primary"
               size="small"
               class="add-button"
@@ -212,7 +212,7 @@ defineExpose({
             >
               <IconifyIconOnline icon="mdi:plus" />
               <span>添加通道</span>
-            </el-button>
+            </ScButton>
           </div>
 
           <div class="channel-grid">
@@ -222,7 +222,7 @@ defineExpose({
               class="channel-card-wrapper"
               @click="handleClickItem(item)"
             >
-              <el-card
+              <ScCard 
                 :class="{
                   'is-selected':
                     selectedItem.sysDeviceChannelId === item.sysDeviceChannelId,
@@ -234,7 +234,7 @@ defineExpose({
                     {{ item.sysDeviceChannelName || "未命名通道" }}
                   </div>
                   <div class="channel-info">
-                    <el-tag
+                    <ScTag 
                       size="small"
                       :type="
                         item.sysDeviceChannelStatus === 1 ? 'success' : 'danger'
@@ -246,13 +246,13 @@ defineExpose({
                             status.value === item.sysDeviceChannelStatus
                         )?.label || "未知"
                       }}
-                    </el-tag>
+                    </ScTag>
                     <span class="channel-id">{{
                       item.sysDeviceChannelId
                     }}</span>
                   </div>
                 </div>
-                <el-button
+                <ScButton 
                   class="delete-btn"
                   type="danger"
                   size="small"
@@ -260,8 +260,8 @@ defineExpose({
                   @click="handleDelete(item, $event)"
                 >
                   <IconifyIconOnline icon="mdi:delete" />
-                </el-button>
-              </el-card>
+                </ScButton>
+              </ScCard>
             </div>
 
             <!-- 空状态提示 -->
@@ -284,53 +284,53 @@ defineExpose({
             <h3 class="section-title">
               {{ isAddingNew ? "添加通道" : "通道详情" }}
             </h3>
-            <el-button type="primary" size="small" @click="handleSaveIntoList">
+            <ScButton type="primary" size="small" @click="handleSaveIntoList">
               <IconifyIconOnline icon="mdi:content-save" />
               <span>{{ isAddingNew ? "添加" : "保存" }}</span>
-            </el-button>
+            </ScButton>
           </div>
 
-          <el-form
+          <ScForm 
             :model="selectedItem"
             label-position="top"
             class="detail-form"
           >
-            <el-form-item label="通道编码">
-              <el-input
+            <ScFormItem label="通道编码">
+              <ScInput 
                 v-model="selectedItem.sysDeviceChannelId"
                 placeholder="系统自动生成"
                 disabled
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="通道名称" required>
-              <el-input
+            <ScFormItem label="通道名称" required>
+              <ScInput 
                 v-model="selectedItem.sysDeviceChannelName"
                 placeholder="请输入通道名称"
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="通道号">
-              <el-input
+            <ScFormItem label="通道号">
+              <ScInput 
                 v-model="selectedItem.sysDeviceChannelNo"
                 placeholder="请输入通道号"
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="通道类型">
-              <el-input
+            <ScFormItem label="通道类型">
+              <ScInput 
                 v-model="selectedItem.sysDeviceChannelType"
                 placeholder="请输入通道类型"
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="通道状态">
-              <el-select
+            <ScFormItem label="通道状态">
+              <ScSelect 
                 v-model="selectedItem.sysDeviceChannelStatus"
                 placeholder="请选择通道状态"
                 class="w-full"
               >
-                <el-option
+                <ScOption 
                   v-for="item in channelStatusList"
                   :key="item.value"
                   :label="item.label"
@@ -343,11 +343,11 @@ defineExpose({
                     ></div>
                     <span>{{ item.label }}</span>
                   </div>
-                </el-option>
-              </el-select>
-            </el-form-item>
+                </ScOption>
+              </ScSelect>
+            </ScFormItem>
 
-            <el-form-item label="通道启用状态">
+            <ScFormItem label="通道启用状态">
               <el-segmented
                 v-model="selectedItem.sysDeviceChannelUse"
                 :options="[
@@ -362,15 +362,15 @@ defineExpose({
                 ]"
                 class="w-full"
               />
-            </el-form-item>
-          </el-form>
+            </ScFormItem>
+          </ScForm>
         </div>
       </div>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleClose">取 消</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="loading"
+          <ScButton @click="handleClose">取 消</ScButton>
+          <ScButton type="primary" @click="handleSubmit" :loading="loading"
             >保 存</el-button
           >
         </div>

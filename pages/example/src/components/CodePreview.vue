@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="code-preview">
     <div class="code-header">
       <div class="code-tabs">
@@ -14,14 +14,14 @@
         </button>
       </div>
       <div class="code-actions">
-        <el-tooltip content="复制代码" placement="top">
+        <ScTooltip content="复制代码" placement="top">
           <button class="action-btn" @click="copyCode">
             <IconifyIconOnline
               :icon="copied ? 'ri:check-line' : 'ri:file-copy-line'"
             />
           </button>
-        </el-tooltip>
-        <el-tooltip content="展开/收起" placement="top">
+        </ScTooltip>
+        <ScTooltip content="展开/收起" placement="top">
           <button class="action-btn" @click="expanded = !expanded">
             <IconifyIconOnline
               :icon="
@@ -29,7 +29,7 @@
               "
             />
           </button>
-        </el-tooltip>
+        </ScTooltip>
       </div>
     </div>
     <div class="code-content" :class="{ expanded }">

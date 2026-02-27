@@ -9,18 +9,18 @@
     >
       <el-skeleton animated :loading="loadingConfig.loading">
         <template #default>
-          <el-form
+          <ScForm 
             :model="form"
             ref="formRef"
             :rules="rules"
             label-width="100px"
           >
-            <el-form-item label="模块名称" prop="sysAiModuleName">
+            <ScFormItem label="模块名称" prop="sysAiModuleName">
               <el-text>{{ form.sysAiModuleName }}</el-text>
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="放大倍数" prop="sysAiVincentSupportedSizeList">
-              <el-select
+            <ScFormItem label="放大倍数" prop="sysAiVincentSupportedSizeList">
+              <ScSelect 
                 multiple
                 v-model="form.sysAiVincentSupportedSizeList"
                 placeholder="请选择模块类型"
@@ -28,29 +28,29 @@
                 filterable
                 allow-create
               >
-                <el-option
+                <ScOption 
                   v-for="item in env.sysAiVincentSupportedSize"
                   :key="item"
                   :label="`${item}倍`"
                   :value="item"
                 />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="最大尺寸" prop="sysAiVincentSupportedMaxSize">
-              <el-input-number
+              </ScSelect>
+            </ScFormItem>
+            <ScFormItem label="最大尺寸" prop="sysAiVincentSupportedMaxSize">
+              <ScInputNumber 
                 v-model="form.sysAiVincentSupportedMaxSize"
                 placeholder="请输入最大尺寸"
                 clearable
               >
-              </el-input-number>
-            </el-form-item>
-          </el-form>
+              </ScInputNumber>
+            </ScFormItem>
+          </ScForm>
         </template>
       </el-skeleton>
 
       <template #footer>
-        <el-button @click="env.visible = false">取 消</el-button>
-        <el-button type="primary" @click="debounce(handleUpdate(), 1000, true)"
+        <ScButton @click="env.visible = false">取 消</ScButton>
+        <ScButton type="primary" @click="debounce(handleUpdate(), 1000, true)"
           >确 定</el-button
         >
       </template>

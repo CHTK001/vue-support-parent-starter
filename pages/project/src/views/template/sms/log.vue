@@ -3,12 +3,12 @@
     <sc-dialog draggable :title="env.title" width="80%" v-model="env.visible" @close="handleClose" :close-on-click-modal="false">
       <div class="h-[600px]">
         <ScTable :url="fetchPageProjectForSmsLog" :columns="env.columns">
-          <el-table-column prop="sysSmsCode" label="状态">
+          <ScTableColumn prop="sysSmsCode" label="状态">
             <template #default="{ row }">
-              <el-tag v-if="row.sysSmsCode === 'SUCCESS'" type="success">成功</el-tag>
-              <el-tag v-else type="danger">失败</el-tag>
+              <ScTag v-if="row.sysSmsCode === 'SUCCESS'" type="success">成功</ScTag>
+              <ScTag v-else type="danger">失败</ScTag>
             </template>
-          </el-table-column>
+          </ScTableColumn>
         </ScTable>
       </div>
     </sc-dialog>

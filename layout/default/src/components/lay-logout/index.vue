@@ -1,9 +1,9 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 </script>
 
 <template>
-  <el-tooltip
+  <ScTooltip 
     :content="$t('module.logout')"
     placement="bottom"
     :show-after="300"
@@ -11,7 +11,7 @@ import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
     <button class="logout-btn" :title="$t('module.logout')">
       <IconifyIconOffline :icon="LogoutCircleRLine" class="logout-icon" />
     </button>
-  </el-tooltip>
+  </ScTooltip>
 </template>
 
 <style scoped lang="scss">

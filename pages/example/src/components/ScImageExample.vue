@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="image-example">
-    <el-card class="intro-card">
+    <ScCard class="intro-card">
       <template #header>
         <div class="card-header-content">
           <IconifyIconOnline
@@ -14,16 +14,16 @@
         </div>
       </template>
 
-      <el-alert title="提示" type="info" :closable="false">
+      <ScAlert title="提示" type="info" :closable="false">
         <p>
           本组件基于 Element Plus 的 Image
           组件扩展，支持图片编辑、比较、背景去除等高级功能
         </p>
-      </el-alert>
-    </el-card>
+      </ScAlert>
+    </ScCard>
 
     <!-- 基础用法 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:upload-2-line" /> 基础用法</h3>
       </template>
@@ -68,10 +68,10 @@
         ]"
         class="mt-3"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 不同尺寸 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:layout-grid-line" /> 不同尺寸</h3>
       </template>
@@ -101,10 +101,10 @@
         ]"
         class="mt-3"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 不同填充模式 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:aspect-ratio-line" /> 填充模式</h3>
       </template>
@@ -153,10 +153,10 @@
         ]"
         class="mt-3"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 图片编辑 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:edit-line" /> 图片编辑功能</h3>
       </template>
@@ -176,23 +176,23 @@
           <h4>编辑功能：</h4>
           <ul>
             <li>
-              <el-icon><IconifyIconOnline icon="ri:scissors-line" /></el-icon>
+              <ScIcon><IconifyIconOnline icon="ri:scissors-line" /></ScIcon>
               裁剪
             </li>
             <li>
-              <el-icon
+              <ScIcon 
                 ><IconifyIconOnline icon="ri:rotate-lock-line"
-              /></el-icon>
+              /></ScIcon>
               旋转
             </li>
             <li>
-              <el-icon><IconifyIconOnline icon="ri:zoom-in-line" /></el-icon>
+              <ScIcon><IconifyIconOnline icon="ri:zoom-in-line" /></ScIcon>
               缩放
             </li>
             <li>
-              <el-icon
+              <ScIcon 
                 ><IconifyIconOnline icon="ri:flip-horizontal-line"
-              /></el-icon>
+              /></ScIcon>
               翻转
             </li>
           </ul>
@@ -210,10 +210,10 @@
         ]"
         class="mt-3"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 编辑器工具栏自定义 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:tools-line" /> 编辑器工具栏自定义</h3>
       </template>
@@ -261,10 +261,10 @@
         ]"
         class="mt-3"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 图片比较 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:contrast-line" /> 图片比较功能</h3>
       </template>
@@ -296,10 +296,10 @@
         ]"
         class="mt-3"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 自定义配置 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:settings-3-line" /> 自定义配置</h3>
       </template>
@@ -346,10 +346,10 @@
         ]"
         class="mt-3"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 事件回调 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:code-s-slash-line" /> 事件回调</h3>
       </template>
@@ -393,32 +393,32 @@
         ]"
         class="mt-3"
       />
-    </el-card>
+    </ScCard>
 
     <!-- Props 说明 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:file-list-3-line" /> Props 说明</h3>
       </template>
-      <el-table :data="propsData" stripe border>
-        <el-table-column prop="prop" label="属性" width="200" />
-        <el-table-column prop="type" label="类型" width="150" />
-        <el-table-column prop="default" label="默认值" width="150" />
-        <el-table-column prop="description" label="说明" />
-      </el-table>
-    </el-card>
+      <ScTable :data="propsData" stripe border>
+        <ScTableColumn prop="prop" label="属性" width="200" />
+        <ScTableColumn prop="type" label="类型" width="150" />
+        <ScTableColumn prop="default" label="默认值" width="150" />
+        <ScTableColumn prop="description" label="说明" />
+      </ScTable>
+    </ScCard>
 
     <!-- Events 说明 -->
-    <el-card class="section-card">
+    <ScCard class="section-card">
       <template #header>
         <h3><IconifyIconOnline icon="ri:flashlight-line" /> Events 说明</h3>
       </template>
-      <el-table :data="eventsData" stripe border>
-        <el-table-column prop="event" label="事件名" width="200" />
-        <el-table-column prop="params" label="参数" width="200" />
-        <el-table-column prop="description" label="说明" />
-      </el-table>
-    </el-card>
+      <ScTable :data="eventsData" stripe border>
+        <ScTableColumn prop="event" label="事件名" width="200" />
+        <ScTableColumn prop="params" label="参数" width="200" />
+        <ScTableColumn prop="description" label="说明" />
+      </ScTable>
+    </ScCard>
   </div>
 </template>
 

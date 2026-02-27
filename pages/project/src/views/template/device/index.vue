@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
@@ -165,28 +165,28 @@ const handlePreview = async () => {
     <el-container>
       <el-header>
         <div class="left-panel">
-          <el-form
+          <ScForm 
             ref="formRef"
             :inline="true"
             :model="form"
             class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto"
           >
-            <el-form-item label="序列号" prop="sysDeviceSerialNumber">
-              <el-input
+            <ScFormItem label="序列号" prop="sysDeviceSerialNumber">
+              <ScInput 
                 v-model="form.sysDeviceSerialNumber"
                 placeholder="请输入序列号"
                 clearable
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="设备名称" prop="sysDeviceName">
-              <el-input
+            <ScFormItem label="设备名称" prop="sysDeviceName">
+              <ScInput 
                 v-model="form.sysDeviceName"
                 placeholder="请输入设备名称"
                 clearable
               />
-            </el-form-item>
-            <el-form-item label="设备状态" prop="sysCameraTemplateOnline">
+            </ScFormItem>
+            <ScFormItem label="设备状态" prop="sysCameraTemplateOnline">
               <el-segmented
                 @change="onSearch"
                 v-model="form.sysCameraTemplateOnline"
@@ -196,23 +196,23 @@ const handlePreview = async () => {
                   { label: '离线', value: 0 },
                 ]"
               ></el-segmented>
-            </el-form-item>
-          </el-form>
+            </ScFormItem>
+          </ScForm>
         </div>
         <div class="right-panel">
           <div class="right-panel-search">
-            <el-button
+            <ScButton 
               type="primary"
               :icon="useRenderIcon('ri:search-line')"
               :loading="loading.query"
               @click="onSearch"
             />
-            <el-button
+            <ScButton 
               title="预览"
               :icon="useRenderIcon('mingcute:eye-2-fill')"
               @click="handlePreview(formRef)"
             />
-            <el-button
+            <ScButton 
               title="新增"
               :icon="useRenderIcon('ep:plus')"
               @click="
@@ -227,40 +227,40 @@ const handlePreview = async () => {
               class="mr-3"
             />
             <el-dropdown trigger="click">
-              <el-button
+              <ScButton 
                 title="同步"
                 :icon="useRenderIcon('ri:more-2-fill')"
-              ></el-button>
+              ></ScButton>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item
                     class="h-[38px]"
                     @click="deviceInstance.handleSync(env)"
                   >
-                    <el-icon class="pr-1" size="21">
+                    <ScIcon class="pr-1" size="21">
                       <component :is="useRenderIcon('bi:database-down')" />
-                    </el-icon>
+                    </ScIcon>
                     同步信息
                   </el-dropdown-item>
                   <el-dropdown-item
                     class="h-[38px]"
                     @click="deviceInstance.handleSyncOrg(env)"
                   >
-                    <el-icon class="pr-1" size="21">
+                    <ScIcon class="pr-1" size="21">
                       <component :is="useRenderIcon('bi:database-down')" />
-                    </el-icon>
+                    </ScIcon>
                     同步组织
                   </el-dropdown-item>
                   <el-dropdown-item class="h-[38px]" @click="handleOrg">
-                    <el-icon class="pr-1" size="21">
+                    <ScIcon class="pr-1" size="21">
                       <component :is="useRenderIcon('humbleicons:droplet')" />
-                    </el-icon>
+                    </ScIcon>
                     项目组织
                   </el-dropdown-item>
                   <el-dropdown-item class="h-[38px]" @click="handleLog">
-                    <el-icon class="pr-1" size="21">
+                    <ScIcon class="pr-1" size="21">
                       <component :is="useRenderIcon('bi:files')" />
-                    </el-icon>
+                    </ScIcon>
                     项目日志
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -279,15 +279,15 @@ const handlePreview = async () => {
           class="custom-table-row overflow-auto w-[90vw]"
           rowKey="sysDeviceId"
         >
-          <el-table-column type="selection" />
-          <el-table-column
+          <ScTableColumn type="selection" />
+          <ScTableColumn 
             label="序号"
             type="index"
             align="center"
             fixed
             width="60px"
           />
-          <el-table-column
+          <ScTableColumn 
             prop="sysDeviceSerialNumber"
             label="设备序列号"
             align="center"
@@ -295,9 +295,9 @@ const handlePreview = async () => {
             width="340px"
           >
             <template #default="{ row }">
-              <el-tag
+              <ScTag 
                 >{{ row.sysDeviceSerialNumber }}
-                <el-icon
+                <ScIcon 
                   v-if="row.sysDeviceSerialNumber"
                   class="cursor-pointer"
                   v-copy:click="row.sysDeviceSerialNumber || ''"
@@ -305,50 +305,50 @@ const handlePreview = async () => {
                   <component
                     :is="useRenderIcon('ep:copy-document')"
                   ></component>
-                </el-icon>
-                <el-icon v-else class="cursor-pointer">
+                </ScIcon>
+                <ScIcon v-else class="cursor-pointer">
                   <component
                     :is="useRenderIcon('ep:copy-document')"
                   ></component>
-                </el-icon>
-              </el-tag>
+                </ScIcon>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="sysDeviceName"
             label="设备名称"
             show-overflow-tooltip
             width="200"
           >
             <template #default="{ row }">
-              <el-icon
+              <ScIcon 
                 v-if="row.sysDeviceOnline === 1"
                 title="在线"
                 color="blue"
               >
                 <component :is="useRenderIcon('humbleicons:wifi')" />
-              </el-icon>
-              <el-icon v-else color="red" title="离线">
+              </ScIcon>
+              <ScIcon v-else color="red" title="离线">
                 <component
                   :is="useRenderIcon('humbleicons:wifi-off')"
                 /> </el-icon
               >{{ row.sysDeviceName }}
               <div class="absolute top-2 right-0 z-[99]" title="管道数量">
-                <el-badge type="primary" :value="row.sysDeviceChannelCount">
-                </el-badge>
+                <ScBadge type="primary" :value="row.sysDeviceChannelCount">
+                </ScBadge>
               </div>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="sysDeviceNetAddress"
             label="网路地址"
             align="center"
             show-overflow-tooltip
             width="180px"
           >
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column
+          <ScTableColumn 
             prop="sysDeviceOrgCode"
             label="组织编码"
             align="center"
@@ -361,8 +361,8 @@ const handlePreview = async () => {
                 scope.row.sysDeviceOrgCode
               }}</span>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="sysDeviceChannelNumber"
             label="管道号"
             align="center"
@@ -374,16 +374,16 @@ const handlePreview = async () => {
                 scope.row.sysDeviceChannelName
               }}</span>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="sysDevicePosition"
             label="位置"
             align="center"
             show-overflow-tooltip
             width="200"
           >
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="sysDeviceResourceType"
             label="资源类型"
             align="center"
@@ -391,19 +391,19 @@ const handlePreview = async () => {
             width="200px"
           >
             <template #default="{ row }">
-              <el-button
+              <ScButton 
                 :icon="getResourceIcon(row.sysDeviceResourceType)"
                 :title="row.sysDeviceResourceType"
                 text
                 plain
                 class="btn-text !text-[14px]"
-              ></el-button>
+              ></ScButton>
               <span class="el-form-item-msg">
                 {{ row.sysDeviceVersion }}
               </span>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="updateTime"
             label="最后一次更新时间"
             align="center"
@@ -414,16 +414,16 @@ const handlePreview = async () => {
                 row.updateTime || row.createTime
               }}</span>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column
+          <ScTableColumn 
             label="操作"
             fixed="right"
             align="center"
             width="240px"
           >
             <template #default="{ row }">
-              <el-button
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -432,8 +432,8 @@ const handlePreview = async () => {
                 @click="deviceInstance.dialogOpen(saveDialog, row, 'edit')"
               >
                 {{ $t("buttons.update") }}
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -443,8 +443,8 @@ const handlePreview = async () => {
                 @click="deviceInstance.handleOnline(row)"
               >
                 {{ $t("buttons.online") }}
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -454,9 +454,9 @@ const handlePreview = async () => {
                 @click="deviceInstance.handleOnline(row)"
               >
                 {{ $t("buttons.offline") }}
-              </el-button>
+              </ScButton>
 
-              <el-button
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -471,9 +471,9 @@ const handlePreview = async () => {
                 "
               >
                 {{ $t("buttons.preview-url") }}
-              </el-button>
+              </ScButton>
 
-              <el-button
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -482,9 +482,9 @@ const handlePreview = async () => {
                 @click="deviceInstance.handleTimeline(timelineDialogRef, row)"
               >
                 {{ $t("buttons.timeline") }}
-              </el-button>
+              </ScButton>
 
-              <el-button
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -500,15 +500,15 @@ const handlePreview = async () => {
                 "
               >
                 历史信息
-              </el-button>
+              </ScButton>
 
-              <el-popconfirm
+              <ScPopconfirm 
                 v-if="row.sysDeviceDisabled == 0"
                 :title="$t('message.confimDelete')"
                 @confirm="deviceInstance.onDelete(tableRef, row, form)"
               >
                 <template #reference>
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="danger"
                     plain
@@ -517,9 +517,9 @@ const handlePreview = async () => {
                     >{{ $t("buttons.delete") }}</el-button
                   >
                 </template>
-              </el-popconfirm>
+              </ScPopconfirm>
             </template>
-          </el-table-column>
+          </ScTableColumn>
         </ScTable>
       </el-main>
     </el-container>

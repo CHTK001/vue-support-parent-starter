@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <sc-dialog
     v-model="visible"
     title="分组管理"
@@ -9,19 +9,19 @@
     <div class="group-manager">
       <!-- 工具栏 -->
       <div class="toolbar">
-        <el-button type="primary" @click="handleAdd">
+        <ScButton type="primary" @click="handleAdd">
           <IconifyIconOnline icon="ri:add-line" />
           新增分组
-        </el-button>
-        <el-button @click="handleInitDefault">
+        </ScButton>
+        <ScButton @click="handleInitDefault">
           <IconifyIconOnline icon="ri:refresh-line" />
           初始化默认分组
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 分组列表 -->
-      <el-table :data="localGroups" row-key="sysFileSystemGroupId" border>
-        <el-table-column
+      <ScTable :data="localGroups" row-key="sysFileSystemGroupId" border>
+        <ScTableColumn 
           prop="sysFileSystemGroupName"
           label="分组名称"
           width="180"
@@ -36,7 +36,7 @@
                 }"
               />
               <span>{{ row.sysFileSystemGroupName }}</span>
-              <el-tag
+              <ScTag 
                 v-if="row.sysFileSystemGroupIsDefault"
                 size="small"
                 type="success"
@@ -44,44 +44,44 @@
               >
             </div>
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn 
           prop="sysFileSystemGroupPath"
           label="路径"
           width="120"
         />
-        <el-table-column
+        <ScTableColumn 
           prop="sysFileSystemGroupDescription"
           label="描述"
           min-width="150"
         />
-        <el-table-column
+        <ScTableColumn 
           prop="sysFileSystemGroupSort"
           label="排序"
           width="80"
           align="center"
         />
-        <el-table-column
+        <ScTableColumn 
           prop="sysFileSystemGroupStatus"
           label="状态"
           width="80"
           align="center"
         >
           <template #default="{ row }">
-            <el-tag
+            <ScTag 
               :type="row.sysFileSystemGroupStatus === 1 ? 'success' : 'info'"
               size="small"
             >
               {{ row.sysFileSystemGroupStatus === 1 ? "启用" : "禁用" }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleEdit(row)"
+            <ScButton type="primary" link size="small" @click="handleEdit(row)"
               >编辑</el-button
             >
-            <el-button
+            <ScButton 
               type="danger"
               link
               size="small"
@@ -89,10 +89,10 @@
               @click="handleDelete(row)"
             >
               删除
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
     </div>
 
     <!-- 编辑对话框 -->
@@ -102,57 +102,57 @@
       width="500px"
       append-to-body
     >
-      <el-form
+      <ScForm 
         ref="formRef"
         :model="editForm"
         :rules="rules"
         label-width="100px"
       >
-        <el-form-item label="分组名称" prop="sysFileSystemGroupName">
-          <el-input
+        <ScFormItem label="分组名称" prop="sysFileSystemGroupName">
+          <ScInput 
             v-model="editForm.sysFileSystemGroupName"
             placeholder="请输入分组名称"
           />
-        </el-form-item>
-        <el-form-item label="分组路径" prop="sysFileSystemGroupPath">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="分组路径" prop="sysFileSystemGroupPath">
+          <ScInput 
             v-model="editForm.sysFileSystemGroupPath"
             placeholder="请输入分组路径，如 images"
           />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="描述">
+          <ScInput 
             v-model="editForm.sysFileSystemGroupDescription"
             type="textarea"
             :rows="2"
           />
-        </el-form-item>
-        <el-form-item label="图标">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="图标">
+          <ScInput 
             v-model="editForm.sysFileSystemGroupIcon"
             placeholder="ri:folder-line"
           />
-        </el-form-item>
-        <el-form-item label="颜色">
-          <el-color-picker v-model="editForm.sysFileSystemGroupColor" />
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number
+        </ScFormItem>
+        <ScFormItem label="颜色">
+          <ScColorPicker v-model="editForm.sysFileSystemGroupColor" />
+        </ScFormItem>
+        <ScFormItem label="排序">
+          <ScInputNumber 
             v-model="editForm.sysFileSystemGroupSort"
             :min="0"
             :max="999"
           />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-radio-group v-model="editForm.sysFileSystemGroupStatus">
-            <el-radio :value="1">启用</el-radio>
-            <el-radio :value="0">禁用</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+        <ScFormItem label="状态">
+          <ScRadioGroup v-model="editForm.sysFileSystemGroupStatus">
+            <ScRadio :value="1">启用</ScRadio>
+            <ScRadio :value="0">禁用</ScRadio>
+          </ScRadioGroup>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="showEditDialog = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave"
+        <ScButton @click="showEditDialog = false">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="handleSave"
           >保存</el-button
         >
       </template>
@@ -162,8 +162,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { message , ScMessageBox} from "@repo/utils";
+
 import type { FormInstance, FormRules } from "element-plus";
 import {
   addGroup,
@@ -263,7 +263,7 @@ const handleDelete = async (row: SysFileSystemGroup) => {
   if (!row.sysFileSystemGroupId) return;
 
   try {
-    await ElMessageBox.confirm("确定要删除该分组吗？", "确认删除", {
+    await ScMessageBox.confirm("确定要删除该分组吗？", "确认删除", {
       type: "warning",
     });
     const res = await deleteGroup(row.sysFileSystemGroupId);
@@ -281,7 +281,7 @@ const handleDelete = async (row: SysFileSystemGroup) => {
 // 初始化默认分组
 const handleInitDefault = async () => {
   try {
-    await ElMessageBox.confirm(
+    await ScMessageBox.confirm(
       "确定要初始化默认分组吗？这将创建默认分组。",
       "确认",
       { type: "info" }

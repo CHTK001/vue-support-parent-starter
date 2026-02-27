@@ -9,18 +9,18 @@
     >
       <el-skeleton animated :loading="loadingConfig.loading">
         <template #default>
-          <el-form
+          <ScForm 
             :model="form"
             ref="formRef"
             :rules="rules"
             label-width="100px"
           >
-            <el-form-item label="模块名称" prop="sysAiModuleName">
+            <ScFormItem label="模块名称" prop="sysAiModuleName">
               <el-text>{{ form.sysAiModuleName }}</el-text>
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="支持尺寸" prop="sysAiVincentSupportedSizeList">
-              <el-select
+            <ScFormItem label="支持尺寸" prop="sysAiVincentSupportedSizeList">
+              <ScSelect 
                 multiple
                 v-model="form.sysAiVincentSupportedSizeList"
                 placeholder="请选择模块类型"
@@ -28,16 +28,16 @@
                 filterable
                 allow-create
               >
-                <el-option
+                <ScOption 
                   v-for="item in env.sysAiVincentSupportedSize"
                   :key="item"
                   :label="item"
                   :value="item"
                 />
-              </el-select>
-            </el-form-item>
+              </ScSelect>
+            </ScFormItem>
 
-            <el-form-item label="支持异步" prop="sysAiVincentSupportAsync">
+            <ScFormItem label="支持异步" prop="sysAiVincentSupportAsync">
               <el-segmented
                 v-model="form.sysAiVincentSupportAsync"
                 :options="[
@@ -51,9 +51,9 @@
                   },
                 ]"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="支持参考图" prop="sysAiVincentSupportRefImage">
+            <ScFormItem label="支持参考图" prop="sysAiVincentSupportRefImage">
               <el-segmented
                 v-model="form.sysAiVincentSupportRefImage"
                 :options="[
@@ -67,21 +67,21 @@
                   },
                 ]"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="输出张数" prop="sysAiVincentSupportedNumber">
-              <el-input-number
+            <ScFormItem label="输出张数" prop="sysAiVincentSupportedNumber">
+              <ScInputNumber 
                 v-model="form.sysAiVincentSupportedNumber"
                 placeholder="请输入支持输出张数"
-              ></el-input-number>
-            </el-form-item>
-          </el-form>
+              ></ScInputNumber>
+            </ScFormItem>
+          </ScForm>
         </template>
       </el-skeleton>
 
       <template #footer>
-        <el-button @click="env.visible = false">取 消</el-button>
-        <el-button type="primary" @click="debounce(handleUpdate(), 1000, true)"
+        <ScButton @click="env.visible = false">取 消</ScButton>
+        <ScButton type="primary" @click="debounce(handleUpdate(), 1000, true)"
           >确 定</el-button
         >
       </template>

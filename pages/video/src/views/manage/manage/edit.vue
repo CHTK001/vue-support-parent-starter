@@ -1,17 +1,17 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg video-container">
     <div class="video-page-header">
       <el-space>
-        <el-button @click="goBack">
+        <ScButton @click="goBack">
           <IconifyIconOnline icon="ep:arrow-left" />
           返回
-        </el-button>
+        </ScButton>
         <h2>{{ isEdit ? "编辑视频" : "新增视频" }}</h2>
       </el-space>
     </div>
 
-    <el-card class="video-card">
-      <el-form :model="formState" :rules="rules" ref="formRef" label-position="right" label-width="120px" class="video-form">
+    <ScCard class="video-card">
+      <ScForm :model="formState" :rules="rules" ref="formRef" label-position="right" label-width="120px" class="video-form">
         <!-- 表单内容分栏 -->
         <div class="video-form-layout">
           <!-- 左侧区域 -->
@@ -19,102 +19,102 @@
             <!-- 基础信息 -->
             <div class="video-section">
               <h3 class="video-section-title">基础信息</h3>
-              <el-form-item label="视频标题" prop="videoTitle">
-                <el-input v-model="formState.videoTitle" placeholder="请输入视频标题">
+              <ScFormItem label="视频标题" prop="videoTitle">
+                <ScInput v-model="formState.videoTitle" placeholder="请输入视频标题">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:film" />
                   </template>
-                </el-input>
+                </ScInput>
                 <div class="form-item-tip">视频的主要标题，将显示在列表和详情页</div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="视频名称" prop="videoName">
-                <el-input v-model="formState.videoName" placeholder="请输入视频名称">
+              <ScFormItem label="视频名称" prop="videoName">
+                <ScInput v-model="formState.videoName" placeholder="请输入视频名称">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:video-camera" />
                   </template>
                   <template #append>
                     <OnlineResourceFinder :keyword="formState.videoName" @select="handleSelectResource" />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
-              <el-form-item label="视频别名">
-                <el-input v-model="formState.videoAliasName" placeholder="请输入视频别名">
+              <ScFormItem label="视频别名">
+                <ScInput v-model="formState.videoAliasName" placeholder="请输入视频别名">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:price-tag" />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
-              <el-form-item label="视频类型" prop="videoType">
-                <el-select v-model="formState.videoType" placeholder="请选择视频类型" class="video-full-width">
-                  <el-option label="电影" value="电影" />
-                  <el-option label="电视剧" value="电视剧" />
-                  <el-option label="动漫" value="动漫" />
-                  <el-option label="综艺" value="综艺" />
-                  <el-option label="纪录片" value="纪录片" />
-                </el-select>
-              </el-form-item>
+              <ScFormItem label="视频类型" prop="videoType">
+                <ScSelect v-model="formState.videoType" placeholder="请选择视频类型" class="video-full-width">
+                  <ScOption label="电影" value="电影" />
+                  <ScOption label="电视剧" value="电视剧" />
+                  <ScOption label="动漫" value="动漫" />
+                  <ScOption label="综艺" value="综艺" />
+                  <ScOption label="纪录片" value="纪录片" />
+                </ScSelect>
+              </ScFormItem>
 
-              <el-form-item label="所属平台">
-                <el-input v-model="formState.videoPlatform" placeholder="请输入所属平台" />
-              </el-form-item>
+              <ScFormItem label="所属平台">
+                <ScInput v-model="formState.videoPlatform" placeholder="请输入所属平台" />
+              </ScFormItem>
             </div>
 
             <!-- 详情信息 -->
             <div class="video-section">
               <h3 class="video-section-title">详情信息</h3>
-              <el-form-item label="视频年份">
-                <el-date-picker v-model="formState.videoYear" type="year" placeholder="选择年份" format="YYYY" value-format="YYYY" />
-              </el-form-item>
+              <ScFormItem label="视频年份">
+                <ScDatePicker v-model="formState.videoYear" type="year" placeholder="选择年份" format="YYYY" value-format="YYYY" />
+              </ScFormItem>
 
-              <el-form-item label="上映日期">
-                <el-input v-model="formState.videoRelease" placeholder="例如：2023-01-01中国上映" />
-              </el-form-item>
+              <ScFormItem label="上映日期">
+                <ScInput v-model="formState.videoRelease" placeholder="例如：2023-01-01中国上映" />
+              </ScFormItem>
 
-              <el-form-item label="视频地区">
-                <el-select v-model="selectedDistricts" placeholder="请选择或输入视频地区" filterable allow-create default-first-option multiple class="video-full-width" @change="handleDistrictChange">
-                  <el-option v-for="item in districtOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
+              <ScFormItem label="视频地区">
+                <ScSelect v-model="selectedDistricts" placeholder="请选择或输入视频地区" filterable allow-create default-first-option multiple class="video-full-width" @change="handleDistrictChange">
+                  <ScOption v-for="item in districtOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </ScSelect>
                 <div class="form-item-tip">可多选或输入新的地区，自动以逗号分隔</div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="视频导演">
-                <el-select v-model="selectedDirectors" placeholder="请选择或输入导演" filterable allow-create default-first-option multiple class="video-full-width" @change="handleDirectorChange">
-                  <el-option v-for="item in directorOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
+              <ScFormItem label="视频导演">
+                <ScSelect v-model="selectedDirectors" placeholder="请选择或输入导演" filterable allow-create default-first-option multiple class="video-full-width" @change="handleDirectorChange">
+                  <ScOption v-for="item in directorOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </ScSelect>
                 <div class="form-item-tip">可多选或输入新的导演，自动以逗号分隔</div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="视频编剧">
-                <el-select v-model="selectedWriters" placeholder="请选择或输入编剧" filterable allow-create default-first-option multiple class="video-full-width" @change="handleWriterChange">
-                  <el-option v-for="item in writerOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
+              <ScFormItem label="视频编剧">
+                <ScSelect v-model="selectedWriters" placeholder="请选择或输入编剧" filterable allow-create default-first-option multiple class="video-full-width" @change="handleWriterChange">
+                  <ScOption v-for="item in writerOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </ScSelect>
                 <div class="form-item-tip">可多选或输入新的编剧，自动以逗号分隔</div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="视频主演">
-                <el-select v-model="selectedActors" placeholder="请选择或输入主演" filterable allow-create default-first-option multiple class="video-full-width" @change="handleActorChange">
-                  <el-option v-for="item in actorOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
+              <ScFormItem label="视频主演">
+                <ScSelect v-model="selectedActors" placeholder="请选择或输入主演" filterable allow-create default-first-option multiple class="video-full-width" @change="handleActorChange">
+                  <ScOption v-for="item in actorOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </ScSelect>
                 <div class="form-item-tip">可多选或输入新的演员名称，自动以逗号分隔</div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="发布日期">
-                <el-date-picker v-model="formState.videoPublishDate" type="datetime" placeholder="选择发布日期时间" />
-              </el-form-item>
+              <ScFormItem label="发布日期">
+                <ScDatePicker v-model="formState.videoPublishDate" type="datetime" placeholder="选择发布日期时间" />
+              </ScFormItem>
 
-              <el-form-item label="豆瓣ID">
-                <el-input v-model="formState.videoDouBanId" placeholder="请输入豆瓣视频ID" />
-              </el-form-item>
+              <ScFormItem label="豆瓣ID">
+                <ScInput v-model="formState.videoDouBanId" placeholder="请输入豆瓣视频ID" />
+              </ScFormItem>
 
-              <el-form-item label="视频状态" prop="videoStatus">
-                <el-radio-group v-model="formState.videoStatus">
-                  <el-radio :label="0">启用</el-radio>
-                  <el-radio :label="1">禁用</el-radio>
-                </el-radio-group>
-              </el-form-item>
+              <ScFormItem label="视频状态" prop="videoStatus">
+                <ScRadioGroup v-model="formState.videoStatus">
+                  <ScRadio :label="0">启用</ScRadio>
+                  <ScRadio :label="1">禁用</ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
             </div>
           </div>
 
@@ -123,96 +123,96 @@
             <!-- 媒体信息 -->
             <div class="video-section">
               <h3 class="video-section-title">媒体信息</h3>
-              <el-form-item label="视频封面" prop="videoCover">
-                <el-input v-model="formState.videoCover" placeholder="请输入封面图片URL地址">
+              <ScFormItem label="视频封面" prop="videoCover">
+                <ScInput v-model="formState.videoCover" placeholder="请输入封面图片URL地址">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:picture" />
                   </template>
-                </el-input>
+                </ScInput>
                 <div v-if="formState.videoCover" class="video-cover-preview w-full">
-                  <el-image :src="formState.videoCover" fit="cover" alt="视频封面" class="video-preview-image">
+                  <ScImage :src="formState.videoCover" fit="cover" alt="视频封面" class="video-preview-image">
                     <template #error>
                       <div class="image-error-placeholder">
                         <IconifyIconOnline icon="ep:picture-filled" />
                         <span>图片加载失败</span>
                       </div>
                     </template>
-                  </el-image>
+                  </ScImage>
                 </div>
                 <div v-else class="upload-tip">添加封面图片可以提高视频的点击率</div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="视频缩略图">
-                <el-input v-model="formState.videoThumbnail" placeholder="请输入缩略图URL地址">
+              <ScFormItem label="视频缩略图">
+                <ScInput v-model="formState.videoThumbnail" placeholder="请输入缩略图URL地址">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:picture-rounded" />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
-              <el-form-item label="视频时长(分钟)">
-                <el-input-number v-model="formState.videoDuration" :min="0" placeholder="请输入视频时长" />
-              </el-form-item>
+              <ScFormItem label="视频时长(分钟)">
+                <ScInputNumber v-model="formState.videoDuration" :min="0" placeholder="请输入视频时长" />
+              </ScFormItem>
 
-              <el-form-item label="视频大小">
-                <el-input v-model="formState.videoSize" placeholder="例如：1.2GB" />
-              </el-form-item>
+              <ScFormItem label="视频大小">
+                <ScInput v-model="formState.videoSize" placeholder="例如：1.2GB" />
+              </ScFormItem>
 
-              <el-form-item label="视频清晰度">
-                <el-select v-model="formState.videoQuality" placeholder="请选择视频清晰度" class="video-full-width">
-                  <el-option label="标清SD" value="标清SD" />
-                  <el-option label="高清HD" value="高清HD" />
-                  <el-option label="超清UHD" value="超清UHD" />
-                  <el-option label="蓝光1080P" value="蓝光1080P" />
-                  <el-option label="4K" value="4K" />
-                </el-select>
-              </el-form-item>
+              <ScFormItem label="视频清晰度">
+                <ScSelect v-model="formState.videoQuality" placeholder="请选择视频清晰度" class="video-full-width">
+                  <ScOption label="标清SD" value="标清SD" />
+                  <ScOption label="高清HD" value="高清HD" />
+                  <ScOption label="超清UHD" value="超清UHD" />
+                  <ScOption label="蓝光1080P" value="蓝光1080P" />
+                  <ScOption label="4K" value="4K" />
+                </ScSelect>
+              </ScFormItem>
 
-              <el-form-item label="视频语言">
-                <el-select v-model="selectedLanguages" placeholder="请选择或输入视频语言" filterable allow-create default-first-option multiple class="video-full-width" @change="handleLanguageChange">
-                  <el-option v-for="item in languageOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
+              <ScFormItem label="视频语言">
+                <ScSelect v-model="selectedLanguages" placeholder="请选择或输入视频语言" filterable allow-create default-first-option multiple class="video-full-width" @change="handleLanguageChange">
+                  <ScOption v-for="item in languageOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </ScSelect>
                 <div class="form-item-tip">可多选或输入新的语言，自动以逗号分隔</div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="视频评分">
-                <el-rate v-model="formState.videoScore" :max="10" :allow-half="true" show-score />
-              </el-form-item>
+              <ScFormItem label="视频评分">
+                <ScRate v-model="formState.videoScore" :max="10" :allow-half="true" show-score />
+              </ScFormItem>
             </div>
 
             <!-- 视频描述 -->
             <div class="video-section">
               <h3 class="video-section-title">视频描述</h3>
-              <el-form-item label="视频描述" prop="videoDescription">
-                <el-input v-model="formState.videoDescription" type="textarea" placeholder="请输入视频描述内容" :rows="12" class="video-description-textarea" />
-              </el-form-item>
+              <ScFormItem label="视频描述" prop="videoDescription">
+                <ScInput v-model="formState.videoDescription" type="textarea" placeholder="请输入视频描述内容" :rows="12" class="video-description-textarea" />
+              </ScFormItem>
             </div>
           </div>
         </div>
 
         <!-- 表单底部操作区 -->
         <div class="video-form-footer">
-          <el-tooltip content="保存当前视频信息" placement="top" :effect="'light'">
-            <el-button type="primary" @click="handleSubmit" :loading="submitLoading" size="large">
+          <ScTooltip content="保存当前视频信息" placement="top" :effect="'light'">
+            <ScButton type="primary" @click="handleSubmit" :loading="submitLoading" size="large">
               <IconifyIconOnline icon="ep:check" />
               {{ isEdit ? "更新视频" : "保存视频" }}
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="重置表单内容" placement="top" :effect="'light'">
-            <el-button @click="resetForm" size="large" :disabled="submitLoading">
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip content="重置表单内容" placement="top" :effect="'light'">
+            <ScButton @click="resetForm" size="large" :disabled="submitLoading">
               <IconifyIconOnline icon="ep:refresh" />
               重置
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="返回视频列表" placement="top" :effect="'light'">
-            <el-button @click="goBack" size="large" :disabled="submitLoading">
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip content="返回视频列表" placement="top" :effect="'light'">
+            <ScButton @click="goBack" size="large" :disabled="submitLoading">
               <IconifyIconOnline icon="ep:close" />
               取消
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </div>
-      </el-form>
-    </el-card>
+      </ScForm>
+    </ScCard>
   </div>
 </template>
 

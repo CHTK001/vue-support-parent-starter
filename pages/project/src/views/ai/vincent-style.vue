@@ -10,36 +10,36 @@
       :close-on-click-modal="false"
       @close="handleClose"
     >
-      <el-row class="justify-end mb-2">
-        <el-button
+      <ScRow class="justify-end mb-2">
+        <ScButton 
           class="btn-text"
           :icon="useRenderIcon('ep:plus')"
           @click="handleSaveForm"
-        ></el-button>
-        <el-button
+        ></ScButton>
+        <ScButton 
           class="btn-text"
           :icon="useRenderIcon('ri:save-2-line')"
           type="primary"
           @click="handleUpdate"
-        ></el-button>
-      </el-row>
-      <el-row class="h-[65vh]">
-        <el-col :span="12" class="h-full overflow-auto">
+        ></ScButton>
+      </ScRow>
+      <ScRow class="h-[65vh]">
+        <ScCol :span="12" class="h-full overflow-auto">
           <el-skeleton animated :loading="loadingConfig.loading">
             <template #default>
-              <el-empty v-if="listData.length == 0"></el-empty>
-              <el-row v-else>
-                <el-col
+              <ScEmpty v-if="listData.length == 0"></ScEmpty>
+              <ScRow v-else>
+                <ScCol 
                   :span="7"
                   v-for="item in listData"
                   @click="handleSetForm(item)"
                   class="m-2 cursor-pointer z-0"
                 >
                   <div class="relative">
-                    <el-tag class="!absolute top-0 left-0 z-[10]">
+                    <ScTag class="!absolute top-0 left-0 z-[10]">
                       {{ item.sysAiVincentStyleName }}
-                    </el-tag>
-                    <el-button
+                    </ScTag>
+                    <ScButton 
                       type="default"
                       size="small"
                       plain
@@ -48,67 +48,67 @@
                       class="!absolute top-0 right-0 z-[10] text-white"
                       @click="handleDelete(item)"
                     >
-                    </el-button>
+                    </ScButton>
                   </div>
                   <div class="template-item z-1">
-                    <el-image :src="item.sysAiVincentStyleImage" :z-index="2">
-                    </el-image>
+                    <ScImage :src="item.sysAiVincentStyleImage" :z-index="2">
+                    </ScImage>
                   </div>
-                </el-col>
-              </el-row>
+                </ScCol>
+              </ScRow>
             </template>
           </el-skeleton>
-        </el-col>
-        <el-col :span="12" class="h-full overflow-auto">
-          <el-empty v-if="!form.sysAiModuleId"></el-empty>
-          <el-form
+        </ScCol>
+        <ScCol :span="12" class="h-full overflow-auto">
+          <ScEmpty v-if="!form.sysAiModuleId"></ScEmpty>
+          <ScForm 
             :model="form"
             ref="formRef"
             :rules="rules"
             label-width="100px"
             v-else
           >
-            <el-form-item label="所属模块" prop="sysAiModuleName">
+            <ScFormItem label="所属模块" prop="sysAiModuleName">
               <el-text
                 >{{ form.sysAiModuleName }}({{ form.sysAiModuleId }})</el-text
               >
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="风格名称" prop="sysAiVincentStyleName">
-              <el-input
+            <ScFormItem label="风格名称" prop="sysAiVincentStyleName">
+              <ScInput 
                 v-model="form.sysAiVincentStyleName"
                 placeholder="请输入风格名称"
                 clearable
-              ></el-input>
-            </el-form-item>
-            <el-form-item label="风格编码" prop="sysAiVincentStyleCode">
-              <el-input
+              ></ScInput>
+            </ScFormItem>
+            <ScFormItem label="风格编码" prop="sysAiVincentStyleCode">
+              <ScInput 
                 v-model="form.sysAiVincentStyleCode"
                 placeholder="请输入风格编码"
                 clearable
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="风格图片" prop="sysAiVincentStyleImage">
+            <ScFormItem label="风格图片" prop="sysAiVincentStyleImage">
               <div class="flex justify-between gap-1 h-[50px] w-full">
-                <el-image
+                <ScImage 
                   class="!h-[50px] !w-[50px]"
                   fit="cover"
                   v-if="form.sysAiVincentStyleImage"
                   :src="form.sysAiVincentStyleImage"
-                ></el-image>
-                <el-input
+                ></ScImage>
+                <ScInput 
                   type="textarea"
                   class="w-full"
                   v-model="form.sysAiVincentStyleImage"
                   placeholder="请输入风格名称"
                   clearable
-                ></el-input>
+                ></ScInput>
               </div>
-            </el-form-item>
-          </el-form>
-        </el-col>
-      </el-row>
+            </ScFormItem>
+          </ScForm>
+        </ScCol>
+      </ScRow>
     </sc-dialog>
   </div>
 </template>

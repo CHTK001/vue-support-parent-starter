@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <sc-dialog
     v-model="visible"
     title="上传文件"
@@ -9,31 +9,31 @@
   >
     <!-- 上传配置 -->
     <div class="upload-config">
-      <el-form :model="config" label-width="100px" inline>
-        <el-form-item label="目标分组">
-          <el-select
+      <ScForm :model="config" label-width="100px" inline>
+        <ScFormItem label="目标分组">
+          <ScSelect 
             v-model="config.groupId"
             placeholder="选择分组"
             style="width: 160px"
           >
-            <el-option
+            <ScOption 
               v-for="group in groups"
               :key="group.sysFileSystemGroupId"
               :label="group.sysFileSystemGroupName"
               :value="group.sysFileSystemGroupId"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="上传方式">
-          <el-radio-group
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="上传方式">
+          <ScRadioGroup 
             v-model="config.uploadMode"
             :disabled="!setting?.sysFileSystemSettingChunkEnabled"
           >
-            <el-radio value="normal">普通上传</el-radio>
-            <el-radio value="chunk">分片上传</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item
+            <ScRadio value="normal">普通上传</ScRadio>
+            <ScRadio value="chunk">分片上传</ScRadio>
+          </ScRadioGroup>
+        </ScFormItem>
+        <ScFormItem 
           v-if="
             config.uploadMode === 'chunk' &&
             setting?.sysFileSystemSettingAutoMergeEnabled
@@ -41,8 +41,8 @@
           label="自动合并"
         >
           <ScSwitch v-model="config.autoMerge" />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
     </div>
 
     <!-- 上传区域 -->
@@ -83,10 +83,10 @@
       <div class="list-header">
         <span class="file-count">已选择 {{ fileList.length }} 个文件</span>
         <span class="total-size">总大小: {{ formatTotalSize }}</span>
-        <el-button type="danger" link @click="clearFiles">
+        <ScButton type="danger" link @click="clearFiles">
           <IconifyIconOnline icon="ri:delete-bin-line" />
           清空
-        </el-button>
+        </ScButton>
       </div>
 
       <div class="file-items">
@@ -118,7 +118,7 @@
                 {{ getStatusText(file.status) }}
               </span>
             </div>
-            <el-progress
+            <ScProgress 
               v-if="file.status === 'uploading'"
               :percentage="file.progress"
               :stroke-width="4"
@@ -127,7 +127,7 @@
           </div>
 
           <div class="file-actions">
-            <el-button
+            <ScButton 
               v-if="file.previewUrl"
               type="primary"
               circle
@@ -135,8 +135,8 @@
               @click="showImageEditor(file)"
             >
               <IconifyIconOnline icon="ri:crop-line" />
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               v-if="file.status !== 'uploading'"
               type="danger"
               circle
@@ -144,7 +144,7 @@
               @click="removeFile(index)"
             >
               <IconifyIconOnline icon="ri:close-line" />
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -166,15 +166,15 @@
           </span>
         </div>
         <div class="footer-buttons">
-          <el-button @click="visible = false">取消</el-button>
-          <el-button
+          <ScButton @click="visible = false">取消</ScButton>
+          <ScButton 
             type="primary"
             :disabled="fileList.length === 0"
             :loading="isUploading"
             @click="startUpload"
           >
             {{ isUploading ? "上传中..." : "开始上传" }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>

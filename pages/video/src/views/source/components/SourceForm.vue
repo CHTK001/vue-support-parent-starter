@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="source-form thin-scroller">
-    <el-form
+    <ScForm 
       ref="formRef"
       :model="formData"
       :rules="formRules"
@@ -14,8 +14,8 @@
           基础信息
         </h4>
 
-        <el-form-item label="数据源名称" prop="videoSourceName">
-          <el-input
+        <ScFormItem label="数据源名称" prop="videoSourceName">
+          <ScInput 
             v-model="formData.videoSourceName"
             placeholder="请输入数据源名称，如：观影AC、PanSou等"
             maxlength="50"
@@ -24,11 +24,11 @@
             <template #prefix>
               <IconifyIconOnline icon="ep:video-camera" />
             </template>
-          </el-input>
-        </el-form-item>
+          </ScInput>
+        </ScFormItem>
 
-        <el-form-item label="平台名称" prop="videoSourcePlatform">
-          <el-input
+        <ScFormItem label="平台名称" prop="videoSourcePlatform">
+          <ScInput 
             v-model="formData.videoSourcePlatform"
             placeholder="请输入视频源平台名称，如：观影AC、PanSou等"
             maxlength="50"
@@ -37,15 +37,15 @@
             <template #prefix>
               <IconifyIconOnline icon="ep:video-camera" />
             </template>
-          </el-input>
-        </el-form-item>
+          </ScInput>
+        </ScFormItem>
 
-        <el-form-item label="数据源图标" prop="videoSourceIcon">
+        <ScFormItem label="数据源图标" prop="videoSourceIcon">
           <IconSelect v-model="formData.videoSourceIcon"> </IconSelect>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="视频源URL" prop="videoSourceUrl">
-          <el-input
+        <ScFormItem label="视频源URL" prop="videoSourceUrl">
+          <ScInput 
             v-model="formData.videoSourceUrl"
             placeholder="请输入视频源的API地址或网站URL"
             type="url"
@@ -53,10 +53,10 @@
             <template #prefix>
               <IconifyIconOnline icon="ep:link" />
             </template>
-          </el-input>
-        </el-form-item>
+          </ScInput>
+        </ScFormItem>
 
-        <el-form-item label="启用状态" prop="videoSourceEnable">
+        <ScFormItem label="启用状态" prop="videoSourceEnable">
           <ScSwitch
             v-model="formData.videoSourceEnable"
             :active-value="1"
@@ -65,7 +65,7 @@
             inactive-text="禁用"
             layout="modern"
           />
-        </el-form-item>
+        </ScFormItem>
       </div>
 
       <div class="form-section flex-1">
@@ -74,8 +74,8 @@
           配置参数
         </h4>
 
-        <el-form-item label="最大查询数" prop="videoSourceMaxResource">
-          <el-input-number
+        <ScFormItem label="最大查询数" prop="videoSourceMaxResource">
+          <ScInputNumber 
             v-model="formData.videoSourceMaxResource"
             :min="0"
             :max="10000"
@@ -87,20 +87,20 @@
           <div class="form-tip">
             设置单次查询返回的最大资源数量，0表示无限制
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="最大查询时间" prop="videoSourceConnectTimeout">
-          <el-input-number
+        <ScFormItem label="最大查询时间" prop="videoSourceConnectTimeout">
+          <ScInputNumber 
             v-model="formData.videoSourceConnectTimeout"
             type="number"
             placeholder="最大查询时间"
             controls-position="right"
             class="w-full"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="访问Token" prop="videoSourceToken">
-          <el-input
+        <ScFormItem label="访问Token" prop="videoSourceToken">
+          <ScInput 
             v-model="formData.videoSourceToken"
             placeholder="如果API需要认证，请输入访问Token"
             type="password"
@@ -109,26 +109,26 @@
             <template #prefix>
               <IconifyIconOnline icon="ep:key" />
             </template>
-          </el-input>
+          </ScInput>
           <div class="form-tip">用于API认证的Token，如果不需要认证可留空</div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="支持类型" prop="videoSourceType">
-          <el-select
+        <ScFormItem label="支持类型" prop="videoSourceType">
+          <ScSelect 
             v-model="formData.videoSourceType"
             multiple
             placeholder="请输入支持的视频类型，如：movie、tv等"
           >
-            <el-option
+            <ScOption 
               v-for="item in allCategories"
               :key="item.value"
               :label="item.label"
               :value="item.value"
             />
-          </el-select>
-        </el-form-item>
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="支持检索">
+        <ScFormItem label="支持检索">
           <ScSwitch
             v-model="formData.videoSourceSupportSearch"
             layout="modern"
@@ -137,9 +137,9 @@
             :active-value="1"
             :inactive-value="0"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="支持同步">
+        <ScFormItem label="支持同步">
           <ScSwitch
             v-model="formData.videoSourceSupportSync"
             layout="modern"
@@ -148,10 +148,10 @@
             :active-value="1"
             :inactive-value="0"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="User Agent" prop="videoSourceUserAgent">
-          <el-input
+        <ScFormItem label="User Agent" prop="videoSourceUserAgent">
+          <ScInput 
             class="w-[80%]"
             v-model="formData.videoSourceUserAgent"
             placeholder="请输入User Agent，或点击生成按钮自动生成"
@@ -160,7 +160,7 @@
             maxlength="500"
             show-word-limit
           >
-          </el-input>
+          </ScInput>
           <div class="form-tip flex flex-row items-center gap-2">
             <span>自定义请求头User Agent，用于模拟不同浏览器访问</span>
             <IconifyIconOnline
@@ -170,10 +170,10 @@
               icon="ep:refresh"
             />
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="最小年份" prop="videoSourceMinYear">
-          <el-input-number
+        <ScFormItem label="最小年份" prop="videoSourceMinYear">
+          <ScInputNumber 
             v-model="formData.videoSourceMinYear"
             :min="1900"
             :max="2024"
@@ -183,9 +183,9 @@
             class="w-full"
           />
           <div class="form-tip">设置查询的最小年份，0表示无限制</div>
-        </el-form-item>
+        </ScFormItem>
       </div>
-    </el-form>
+    </ScForm>
     <div class="form-section flex-1">
       <h4 class="section-title">
         <IconifyIconOnline icon="ep:cpu" class="section-icon" />
@@ -212,9 +212,9 @@
     </div>
 
     <div class="form-actions absolute bottom-2 right-10">
-      <el-button type="primary" @click="handleSubmit" :loading="submitting">
+      <ScButton type="primary" @click="handleSubmit" :loading="submitting">
         {{ isEdit ? "更新" : "添加" }}
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { message } from "@repo/utils";
 import { computed, onMounted, reactive } from "vue";
 
@@ -137,18 +137,18 @@ onMounted(() => {
     <div class="input-section">
 
       <div class="input-box">
-        <el-select v-model="env.selectedApi" class="api-select">
+        <ScSelect v-model="env.selectedApi" class="api-select">
           <template #prefix>
             <IconifyIconOnline icon="ep:connection" />
           </template>
-          <el-option
+          <ScOption 
             v-for="item in env.apis"
             :key="item.value"
             :label="item.label"
             :value="item.value"
           />
-        </el-select>
-        <el-input
+        </ScSelect>
+        <ScInput 
           v-model="env.inputValue"
           placeholder="请粘贴视频链接，如：https://v.qq.com/..."
           clearable
@@ -158,11 +158,11 @@ onMounted(() => {
           <template #prefix>
             <IconifyIconOnline icon="ep:link" />
           </template>
-        </el-input>
-        <el-button type="primary" :loading="env.loading" @click="parseUrl">
+        </ScInput>
+        <ScButton type="primary" :loading="env.loading" @click="parseUrl">
           <IconifyIconOnline icon="ep:video-play" />
           解析
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 热门网站 -->

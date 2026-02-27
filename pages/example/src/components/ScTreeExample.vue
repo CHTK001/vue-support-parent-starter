@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-tree-example">
     <!-- 预览区域 -->
     <div class="preview-area">
@@ -8,16 +8,16 @@
         :class="{ fullscreen: isFullscreen }"
         :style="customContainerStyle"
       >
-        <el-button
+        <ScButton 
           class="fullscreen-btn"
           type="primary"
           circle
           size="small"
           @click="toggleFullscreen"
         >
-          <el-icon v-if="isFullscreen"><i class="el-icon-close" /></el-icon>
-          <el-icon v-else><i class="el-icon-full-screen" /></el-icon>
-        </el-button>
+          <ScIcon v-if="isFullscreen"><i class="el-icon-close" /></ScIcon>
+          <ScIcon v-else><i class="el-icon-full-screen" /></ScIcon>
+        </ScButton>
 
         <div class="panel-preview">
           <ScTree
@@ -46,37 +46,37 @@
 
     <!-- 操作按钮区域 -->
     <div class="action-bar">
-      <el-button @click="expandAll" type="primary" size="small" plain
+      <ScButton @click="expandAll" type="primary" size="small" plain
         >展开所有</el-button
       >
-      <el-button @click="collapseAll" type="info" size="small" plain
+      <ScButton @click="collapseAll" type="info" size="small" plain
         >折叠所有</el-button
       >
-      <el-button @click="getSelectedData" type="success" size="small" plain
+      <ScButton @click="getSelectedData" type="success" size="small" plain
         >获取选中节点</el-button
       >
-      <el-button @click="getAllData" type="warning" size="small" plain
+      <ScButton @click="getAllData" type="warning" size="small" plain
         >获取所有数据</el-button
       >
-      <el-button @click="resetData" type="danger" size="small" plain
+      <ScButton @click="resetData" type="danger" size="small" plain
         >重置数据</el-button
       >
-      <el-button @click="addNode" size="small" plain>添加节点</el-button>
+      <ScButton @click="addNode" size="small" plain>添加节点</ScButton>
     </div>
 
     <!-- 配置面板 -->
     <div class="config-panel mt-4">
       <h4>配置选项</h4>
-      <el-row :gutter="20">
+      <ScRow :gutter="20">
         <!-- 基本配置 -->
-        <el-col :xs="24" :sm="12">
+        <ScCol :xs="24" :sm="12">
           <h5>基础配置</h5>
-          <el-form label-position="top" size="default">
-            <el-form-item label="节点键名">
-              <el-input v-model="nodeKey" placeholder="节点唯一标识的属性名" />
-            </el-form-item>
+          <ScForm label-position="top" size="default">
+            <ScFormItem label="节点键名">
+              <ScInput v-model="nodeKey" placeholder="节点唯一标识的属性名" />
+            </ScFormItem>
 
-            <el-form-item label="缩进大小">
+            <ScFormItem label="缩进大小">
               <ScSlider
                 v-model="indent"
                 :min="8"
@@ -84,76 +84,76 @@
                 :step="4"
                 show-stops
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-divider content-position="center">树节点属性</el-divider>
+            <ScDivider content-position="center">树节点属性</ScDivider>
 
-            <el-form-item label="子节点属性名">
-              <el-input
+            <ScFormItem label="子节点属性名">
+              <ScInput 
                 v-model="treeProps.children"
                 placeholder="子节点属性名"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="标签属性名">
-              <el-input v-model="treeProps.label" placeholder="标签属性名" />
-            </el-form-item>
+            <ScFormItem label="标签属性名">
+              <ScInput v-model="treeProps.label" placeholder="标签属性名" />
+            </ScFormItem>
 
-            <el-form-item label="禁用属性名">
-              <el-input v-model="treeProps.disabled" placeholder="禁用属性名" />
-            </el-form-item>
-          </el-form>
-        </el-col>
+            <ScFormItem label="禁用属性名">
+              <ScInput v-model="treeProps.disabled" placeholder="禁用属性名" />
+            </ScFormItem>
+          </ScForm>
+        </ScCol>
 
         <!-- 功能配置 -->
-        <el-col :xs="24" :sm="12">
+        <ScCol :xs="24" :sm="12">
           <h5>功能配置</h5>
-          <el-form label-position="top" size="default">
-            <el-form-item label="基本功能">
+          <ScForm label-position="top" size="default">
+            <ScFormItem label="基本功能">
               <div class="option-switches">
-                <el-switch
+                <ScSwitch 
                   v-model="highlightCurrent"
                   active-text="高亮当前节点"
                 />
-                <el-switch
+                <ScSwitch 
                   v-model="defaultExpandAll"
                   active-text="默认展开所有"
                 />
-                <el-switch
+                <ScSwitch 
                   v-model="autoExpandParent"
                   active-text="自动展开父节点"
                 />
-                <el-switch
+                <ScSwitch 
                   v-model="expandOnClickNode"
                   active-text="点击节点展开"
                 />
               </div>
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="选择功能">
+            <ScFormItem label="选择功能">
               <div class="option-switches">
-                <el-switch v-model="showCheckbox" active-text="显示复选框" />
-                <el-switch
+                <ScSwitch v-model="showCheckbox" active-text="显示复选框" />
+                <ScSwitch 
                   v-model="checkStrictly"
                   :disabled="!showCheckbox"
                   active-text="严格选择模式"
                 />
-                <el-switch
+                <ScSwitch 
                   v-model="checkOnClickNode"
                   active-text="点击节点选中"
                 />
               </div>
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="高级功能">
+            <ScFormItem label="高级功能">
               <div class="option-switches">
-                <el-switch v-model="draggable" active-text="启用拖拽功能" />
-                <el-switch v-model="accordion" active-text="手风琴模式" />
+                <ScSwitch v-model="draggable" active-text="启用拖拽功能" />
+                <ScSwitch v-model="accordion" active-text="手风琴模式" />
               </div>
-            </el-form-item>
-          </el-form>
-        </el-col>
-      </el-row>
+            </ScFormItem>
+          </ScForm>
+        </ScCol>
+      </ScRow>
     </div>
 
     <!-- 操作结果 -->
@@ -162,7 +162,7 @@
       <div class="result-container">
         <div class="result-header">
           <span>{{ operationResultTitle }}</span>
-          <el-button type="text" @click="operationResult = null"
+          <ScButton type="text" @click="operationResult = null"
             >关闭</el-button
           >
         </div>

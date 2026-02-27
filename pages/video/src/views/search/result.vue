@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg">
     <!-- 顶部栏 -->
     <div class="page-header">
@@ -8,10 +8,10 @@
           <h2 class="page-header-title">「{{ searchKeyword }}」的搜索结果</h2>
           <p class="page-header-desc">共找到 {{ totalCount }} 条结果</p>
         </div>
-        <el-button @click="goBack" type="primary" class="back-btn">
+        <ScButton @click="goBack" type="primary" class="back-btn">
           <IconifyIconOnline icon="ep:arrow-left" />
           返回搜索
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -35,7 +35,7 @@
           <div class="movie-item" @click="goToDetail(row)">
             <!-- 海报 -->
             <div class="poster">
-              <el-image
+              <ScImage 
                 :src="row.videoCover || '/placeholder.jpg'"
                 fit="cover"
                 class="poster-img"
@@ -56,13 +56,13 @@
             </div>
             <!-- 操作 -->
             <div class="actions">
-              <el-button
+              <ScButton 
                 type="primary"
                 size="small"
                 @click.stop="downloadFile(row)"
               >
                 下载
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </template>
@@ -71,7 +71,7 @@
       <!-- 空状态 -->
       <div v-if="!loading && totalCount === 0" class="empty">
         <p>暂无搜索结果</p>
-        <el-button @click="goBack">返回搜索</el-button>
+        <ScButton @click="goBack">返回搜索</ScButton>
       </div>
     </main>
 
@@ -82,10 +82,10 @@
           <span>{{ task.fileName }}</span>
           <span>{{ task.progress }}%</span>
         </div>
-        <el-progress :percentage="task.progress" :status="task.status" />
+        <ScProgress :percentage="task.progress" :status="task.status" />
       </div>
       <template #footer>
-        <el-button @click="downloadDialogVisible = false">关闭</el-button>
+        <ScButton @click="downloadDialogVisible = false">关闭</ScButton>
       </template>
     </sc-dialog>
   </div>
@@ -93,8 +93,8 @@
 
 <script setup lang="ts">
 // 已使用 IconifyIconOnline 替代 Element Plus 图标
-import { message } from "@repo/utils";
-import { ElNotification } from "element-plus";
+import { message , ScNotification} from "@repo/utils";
+
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { findOnlineResources } from "../../api/online";
@@ -187,7 +187,7 @@ const downloadFile = async (item: VideoItem) => {
     link.click();
     document.body.removeChild(link);
 
-    ElNotification({
+    ScNotification({
       title: "开始下载",
       message: `${item.videoTitle} 开始下载`,
       type: "success",

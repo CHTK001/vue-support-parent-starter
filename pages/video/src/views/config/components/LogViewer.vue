@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <sc-dialog 
     :model-value="visible" 
     @update:model-value="handleClose"
@@ -13,14 +13,14 @@
           <span class="header-title">同步日志</span>
         </div>
         <div class="logs-header-actions">
-          <el-button @click="handleRefresh" size="small" type="primary">
+          <ScButton @click="handleRefresh" size="small" type="primary">
             <IconifyIconOnline icon="ep:refresh" />
             刷新
-          </el-button>
-          <el-button @click="handleClear" size="small" type="danger">
+          </ScButton>
+          <ScButton @click="handleClear" size="small" type="danger">
             <IconifyIconOnline icon="ep:delete" />
             清空日志
-          </el-button>
+          </ScButton>
         </div>
       </div>
 

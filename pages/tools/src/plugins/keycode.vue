@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, onMounted, onBeforeUnmount } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -327,7 +327,7 @@ onBeforeUnmount(() => {
               <span class="keycode-tool__detail-value">{{
                 env.currentKey.code
               }}</span>
-              <el-button
+              <ScButton 
                 type="primary"
                 link
                 size="small"
@@ -335,7 +335,7 @@ onBeforeUnmount(() => {
                 @click="copyToClipboard(env.currentKey.code)"
               >
                 <IconifyIconOnline icon="ri:file-copy-line" />
-              </el-button>
+              </ScButton>
             </div>
 
             <div class="keycode-tool__key-detail-item">
@@ -347,7 +347,7 @@ onBeforeUnmount(() => {
               <span class="keycode-tool__detail-value">{{
                 env.currentKey.key
               }}</span>
-              <el-button
+              <ScButton 
                 type="primary"
                 link
                 size="small"
@@ -355,7 +355,7 @@ onBeforeUnmount(() => {
                 @click="copyToClipboard(env.currentKey.key)"
               >
                 <IconifyIconOnline icon="ri:file-copy-line" />
-              </el-button>
+              </ScButton>
             </div>
 
             <div class="keycode-tool__key-detail-item">
@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
               <span class="keycode-tool__detail-value">{{
                 env.currentKey.keyCode
               }}</span>
-              <el-button
+              <ScButton 
                 type="primary"
                 link
                 size="small"
@@ -375,7 +375,7 @@ onBeforeUnmount(() => {
                 @click="copyToClipboard(env.currentKey.keyCode.toString())"
               >
                 <IconifyIconOnline icon="ri:file-copy-line" />
-              </el-button>
+              </ScButton>
             </div>
 
             <div class="keycode-tool__key-detail-item">
@@ -387,7 +387,7 @@ onBeforeUnmount(() => {
               <span class="keycode-tool__detail-value">{{
                 env.currentKey.which
               }}</span>
-              <el-button
+              <ScButton 
                 type="primary"
                 link
                 size="small"
@@ -395,7 +395,7 @@ onBeforeUnmount(() => {
                 @click="copyToClipboard(env.currentKey.which.toString())"
               >
                 <IconifyIconOnline icon="ri:file-copy-line" />
-              </el-button>
+              </ScButton>
             </div>
 
             <div class="keycode-tool__key-detail-item">
@@ -418,25 +418,25 @@ onBeforeUnmount(() => {
               />
               <span class="keycode-tool__detail-label">修饰键:</span>
               <span class="keycode-tool__detail-value">
-                <el-tag
+                <ScTag 
                   size="small"
                   :type="env.currentKey.ctrlKey ? 'success' : 'info'"
                   class="keycode-tool__modifier-tag"
                   >Ctrl</el-tag
                 >
-                <el-tag
+                <ScTag 
                   size="small"
                   :type="env.currentKey.altKey ? 'success' : 'info'"
                   class="keycode-tool__modifier-tag"
                   >Alt</el-tag
                 >
-                <el-tag
+                <ScTag 
                   size="small"
                   :type="env.currentKey.shiftKey ? 'success' : 'info'"
                   class="keycode-tool__modifier-tag"
                   >Shift</el-tag
                 >
-                <el-tag
+                <ScTag 
                   size="small"
                   :type="env.currentKey.metaKey ? 'success' : 'info'"
                   class="keycode-tool__modifier-tag"
@@ -452,7 +452,7 @@ onBeforeUnmount(() => {
               />
               <span class="keycode-tool__detail-label">Repeat:</span>
               <span class="keycode-tool__detail-value">
-                <el-tag
+                <ScTag 
                   size="small"
                   :type="env.currentKey.repeat ? 'warning' : 'info'"
                   >{{ env.currentKey.repeat ? "是" : "否" }}</el-tag
@@ -463,10 +463,10 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 键盘区域 -->
-        <el-col :xs="24" :sm="24" :md="24" :lg="16">
-          <el-card class="keycode-tool__keyboard-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="24" :lg="16">
+          <ScCard class="keycode-tool__keyboard-card" shadow="hover">
             <template #header>
               <div class="keycode-tool__card-header">
                 <IconifyIconOnline
@@ -773,12 +773,12 @@ onBeforeUnmount(() => {
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 历史记录区域 -->
-        <el-col :xs="24" :sm="24" :md="24" :lg="8">
-          <el-card class="keycode-tool__history-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="24" :lg="8">
+          <ScCard class="keycode-tool__history-card" shadow="hover">
             <template #header>
               <div class="keycode-tool__card-header">
                 <IconifyIconOnline
@@ -787,7 +787,7 @@ onBeforeUnmount(() => {
                 />
                 <span>按键历史记录</span>
                 <div class="keycode-tool__card-actions">
-                  <el-button
+                  <ScButton 
                     type="danger"
                     link
                     size="small"
@@ -795,7 +795,7 @@ onBeforeUnmount(() => {
                   >
                     <IconifyIconOnline icon="ri:delete-bin-line" />
                     <span>清空</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
@@ -838,19 +838,19 @@ onBeforeUnmount(() => {
                       >修饰键:</span
                     >
                     <span class="keycode-tool__history-detail-value">
-                      <el-tag
+                      <ScTag 
                         size="small"
                         :type="item.ctrlKey ? 'success' : 'info'"
                         class="keycode-tool__modifier-tag"
                         >Ctrl</el-tag
                       >
-                      <el-tag
+                      <ScTag 
                         size="small"
                         :type="item.altKey ? 'success' : 'info'"
                         class="keycode-tool__modifier-tag"
                         >Alt</el-tag
                       >
-                      <el-tag
+                      <ScTag 
                         size="small"
                         :type="item.shiftKey ? 'success' : 'info'"
                         class="keycode-tool__modifier-tag"
@@ -865,20 +865,20 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="keycode-tool__history-actions">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     link
                     size="small"
                     @click="copyToClipboard(item.code)"
                   >
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

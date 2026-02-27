@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg video-add-page">
     <div class="page-header">
       <div class="header-background"></div>
       <div class="header-content">
-        <el-button class="back-button" @click="goBack" circle>
+        <ScButton class="back-button" @click="goBack" circle>
           <IconifyIconOnline icon="ep:arrow-left" />
-        </el-button>
+        </ScButton>
         <div class="header-title">
           <h2 class="page-title">
             <IconifyIconOnline icon="ep:video-camera" class="title-icon" />

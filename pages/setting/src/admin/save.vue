@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
 import { fetchUpdateSetting, fetchSaveSetting } from "../api";
 import { $t } from "@repo/config";
@@ -275,7 +275,7 @@ defineExpose({
       :destroy-on-close="true"
       @close="handleClose"
     >
-      <el-form
+      <ScForm 
         v-if="config.mode == 'edit'"
         ref="itemSaveRef"
         :rules="config.rules"
@@ -283,36 +283,36 @@ defineExpose({
         class="w-full modern-form"
         label-width="120px"
       >
-        <el-form-item label="数据分组" prop="sysSettingGroup">
-          <el-input
+        <ScFormItem label="数据分组" prop="sysSettingGroup">
+          <ScInput 
             v-model="config.data.sysSettingGroup"
             placeholder="请输入配置所属分组"
           >
             <template #prefix>
               <IconifyIconOnline icon="ep:folder" />
             </template>
-          </el-input>
+          </ScInput>
           <div class="form-tip">配置项所属的功能分组，用于组织和管理配置</div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="名称" prop="sysSettingName">
-          <el-input
+        <ScFormItem label="名称" prop="sysSettingName">
+          <ScInput 
             v-model="config.data.sysSettingName"
             placeholder="请输入配置名称"
           >
             <template #prefix>
               <IconifyIconOnline icon="ep:edit" />
             </template>
-          </el-input>
+          </ScInput>
           <div class="form-tip">配置项的唯一标识名称，建议使用英文</div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="数据类型" prop="sysSettingValueType">
-          <el-select
+        <ScFormItem label="数据类型" prop="sysSettingValueType">
+          <ScSelect 
             v-model="config.data.sysSettingValueType"
             placeholder="请选择"
           >
-            <el-option
+            <ScOption 
               v-for="item in config.valueType"
               :key="item.value"
               :label="item.label"
@@ -325,14 +325,14 @@ defineExpose({
                 />
                 <span>{{ item.label }}</span>
               </div>
-            </el-option>
-          </el-select>
+            </ScOption>
+          </ScSelect>
           <div class="form-tip">
             选择配置项的数据类型，不同类型有不同的编辑方式
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="配置值" prop="sysSettingValue">
+        <ScFormItem label="配置值" prop="sysSettingValue">
           <!-- 根据类型显示不同的输入组件 -->
           <config-value-input
             v-model="config.data.sysSettingValue"
@@ -340,10 +340,10 @@ defineExpose({
             :placeholder="getValuePlaceholder()"
           />
           <div class="form-tip">{{ getValueDescription() }}</div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="描述" prop="sysSettingRemark">
-          <el-input
+        <ScFormItem label="描述" prop="sysSettingRemark">
+          <ScInput 
             v-model="config.data.sysSettingRemark"
             placeholder="请输入描述"
             type="textarea"
@@ -352,10 +352,10 @@ defineExpose({
           <div class="form-tip">
             配置项的详细描述，帮助其他用户理解该配置的用途
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="数据优先级" prop="sysSettingSort">
-          <el-input
+        <ScFormItem label="数据优先级" prop="sysSettingSort">
+          <ScInput 
             v-model="config.data.sysSettingSort"
             placeholder="请输入数据优先级"
             type="number"
@@ -363,13 +363,13 @@ defineExpose({
             <template #prefix>
               <IconifyIconOnline icon="ep:sort" />
             </template>
-          </el-input>
+          </ScInput>
           <div class="form-tip">数字越小优先级越高，影响配置项的显示顺序</div>
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
 
       <!-- 新增表单 - 先选择类型 -->
-      <el-form
+      <ScForm 
         v-else-if="config.mode == 'add'"
         ref="itemSaveRef"
         :rules="config.rules"
@@ -410,37 +410,37 @@ defineExpose({
               />
               <span>{{ getTypeLabel(config.data.sysSettingValueType) }}</span>
             </div>
-            <el-button type="text" @click="resetTypeSelection">
+            <ScButton type="text" @click="resetTypeSelection">
               <IconifyIconOnline icon="ep:refresh-right" />
               重新选择
-            </el-button>
+            </ScButton>
           </div>
 
-          <el-form-item label="数据分组" prop="sysSettingGroup">
-            <el-input
+          <ScFormItem label="数据分组" prop="sysSettingGroup">
+            <ScInput 
               v-model="config.data.sysSettingGroup"
               placeholder="请输入配置所属分组"
             >
               <template #prefix>
                 <IconifyIconOnline icon="ep:folder" />
               </template>
-            </el-input>
+            </ScInput>
             <div class="form-tip">配置项所属的功能分组，用于组织和管理配置</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="名称" prop="sysSettingName">
-            <el-input
+          <ScFormItem label="名称" prop="sysSettingName">
+            <ScInput 
               v-model="config.data.sysSettingName"
               placeholder="请输入配置名称"
             >
               <template #prefix>
                 <IconifyIconOnline icon="ep:edit" />
               </template>
-            </el-input>
+            </ScInput>
             <div class="form-tip">配置项的唯一标识名称，建议使用英文</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="配置值" prop="sysSettingValue">
+          <ScFormItem label="配置值" prop="sysSettingValue">
             <!-- 根据类型显示不同的输入组件 -->
             <config-value-input
               v-model="config.data.sysSettingValue"
@@ -448,10 +448,10 @@ defineExpose({
               :placeholder="getValuePlaceholder()"
             />
             <div class="form-tip">{{ getValueDescription() }}</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="描述" prop="sysSettingRemark">
-            <el-input
+          <ScFormItem label="描述" prop="sysSettingRemark">
+            <ScInput 
               v-model="config.data.sysSettingRemark"
               placeholder="请输入描述"
               type="textarea"
@@ -460,10 +460,10 @@ defineExpose({
             <div class="form-tip">
               配置项的详细描述，帮助其他用户理解该配置的用途
             </div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="数据优先级" prop="sysSettingSort">
-            <el-input
+          <ScFormItem label="数据优先级" prop="sysSettingSort">
+            <ScInput 
               v-model="config.data.sysSettingSort"
               placeholder="请输入数据优先级"
               type="number"
@@ -471,34 +471,34 @@ defineExpose({
               <template #prefix>
                 <IconifyIconOnline icon="ep:sort" />
               </template>
-            </el-input>
+            </ScInput>
             <div class="form-tip">数字越小优先级越高，影响配置项的显示顺序</div>
-          </el-form-item>
+          </ScFormItem>
         </template>
-      </el-form>
+      </ScForm>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="config.visible = false">
+          <ScButton @click="config.visible = false">
             <IconifyIconOnline icon="ep:close" />
             取 消
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             v-if="config.mode == 'edit'"
             type="primary"
             @click="handleUpdate"
           >
             <IconifyIconOnline icon="ep:check" />
             更 新
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             v-if="config.mode == 'add' && config.data.sysSettingValueType"
             type="primary"
             @click="handleSave"
           >
             <IconifyIconOnline icon="ep:plus" />
             保 存
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </ScDialog>

@@ -1,20 +1,20 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ReSeamlessScroll 无缝滚动示例</h2>
     <p class="example-desc">无缝滚动组件，支持上下左右滚动、自动播放等功能</p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="demo-controls">
-        <el-button type="primary" @click="addItem">
+        <ScButton type="primary" @click="addItem">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加条目
-        </el-button>
-        <el-button @click="resetList">
+        </ScButton>
+        <ScButton @click="resetList">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           重置
-        </el-button>
+        </ScButton>
       </div>
 
       <div class="scroll-wrapper">
@@ -27,51 +27,51 @@
         </ReSeamlessScroll>
       </div>
 
-      <el-divider content-position="left">属性配置</el-divider>
+      <ScDivider content-position="left">属性配置</ScDivider>
 
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="滚动方向">
-              <el-select v-model="config.direction" style="width: 100%">
-                <el-option label="向上" value="top" />
-                <el-option label="向下" value="bottom" />
-                <el-option label="向左" value="left" />
-                <el-option label="向右" value="right" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="滚动速度">
-              <el-input-number
+      <ScForm label-width="120px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="滚动方向">
+              <ScSelect v-model="config.direction" style="width: 100%">
+                <ScOption label="向上" value="top" />
+                <ScOption label="向下" value="bottom" />
+                <ScOption label="向左" value="left" />
+                <ScOption label="向右" value="right" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="滚动速度">
+              <ScInputNumber 
                 v-model="config.step"
                 :min="1"
                 :max="10"
                 style="width: 100%"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="自动播放">
-              <el-switch v-model="config.autoPlay" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="自动播放">
+              <ScSwitch v-model="config.autoPlay" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="150" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 

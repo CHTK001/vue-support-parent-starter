@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <sc-dialog
     v-model="visible"
     title="文件服务设置"
@@ -6,7 +6,7 @@
     destroy-on-close
     :close-on-click-modal="false"
   >
-    <el-form
+    <ScForm 
       ref="formRef"
       :model="formData"
       :rules="rules"
@@ -14,121 +14,121 @@
       label-position="right"
     >
       <!-- 基础配置 -->
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <IconifyIconOnline icon="ri:settings-4-line" />
         基础配置
-      </el-divider>
+      </ScDivider>
 
-      <el-form-item label="配置名称" prop="sysFileSystemSettingName">
-        <el-input
+      <ScFormItem label="配置名称" prop="sysFileSystemSettingName">
+        <ScInput 
           v-model="formData.sysFileSystemSettingName"
           placeholder="请输入配置名称"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="默认存储类型">
-        <el-select
+      <ScFormItem label="默认存储类型">
+        <ScSelect 
           v-model="formData.sysFileSystemSettingDefaultStorageType"
           style="width: 100%"
         >
-          <el-option label="本地存储" value="local" />
-          <el-option label="阿里云 OSS" value="oss" />
-          <el-option label="腾讯云 COS" value="cos" />
-          <el-option label="七牛云" value="qiniu" />
-          <el-option label="MinIO" value="minio" />
-        </el-select>
-      </el-form-item>
+          <ScOption label="本地存储" value="local" />
+          <ScOption label="阿里云 OSS" value="oss" />
+          <ScOption label="腾讯云 COS" value="cos" />
+          <ScOption label="七牛云" value="qiniu" />
+          <ScOption label="MinIO" value="minio" />
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="单文件最大(MB)">
-        <el-input-number
+      <ScFormItem label="单文件最大(MB)">
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingMaxFileSizeMb"
           :min="1"
           :max="10240"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="文件保留天数">
-        <el-input-number
+      <ScFormItem label="文件保留天数">
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingRetentionDays"
           :min="0"
           :max="365"
         />
         <span class="form-tip">0 表示永久保留</span>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 分片上传配置 -->
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <IconifyIconOnline icon="ri:upload-cloud-line" />
         分片上传
-      </el-divider>
+      </ScDivider>
 
-      <el-form-item label="启用分片上传">
+      <ScFormItem label="启用分片上传">
         <ScSwitch v-model="formData.sysFileSystemSettingChunkEnabled" />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem 
         v-if="formData.sysFileSystemSettingChunkEnabled"
         label="分片大小(MB)"
       >
-        <el-input-number
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingChunkSizeMb"
           :min="1"
           :max="500"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="启用自动合并">
+      <ScFormItem label="启用自动合并">
         <ScSwitch v-model="formData.sysFileSystemSettingAutoMergeEnabled" />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="支持手动合并">
+      <ScFormItem label="支持手动合并">
         <ScSwitch v-model="formData.sysFileSystemSettingManualMergeEnabled" />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem 
         v-if="formData.sysFileSystemSettingAutoMergeEnabled"
         label="合并任务限制"
       >
-        <el-input-number
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingMergeTaskLimit"
           :min="1"
           :max="100"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 文件存储配置 -->
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <IconifyIconOnline icon="ri:folder-line" />
         存储配置
-      </el-divider>
+      </ScDivider>
 
-      <el-form-item
+      <ScFormItem 
         label="存储根路径"
         prop="sysFileSystemSettingStorageRootPath"
       >
-        <el-input
+        <ScInput 
           v-model="formData.sysFileSystemSettingStorageRootPath"
           placeholder="请输入存储根路径，如: /data/files 或 D:/files"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="临时文件路径">
-        <el-input
+      <ScFormItem label="临时文件路径">
+        <ScInput 
           v-model="formData.sysFileSystemSettingTempPath"
           placeholder="请输入临时文件路径，如: /data/temp 或 D:/temp"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- HTTP 服务配置 -->
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <IconifyIconOnline icon="ri:global-line" />
         HTTP 文件服务
-      </el-divider>
+      </ScDivider>
 
       <!-- 服务器状态和控制 -->
-      <el-form-item label="服务器状态">
+      <ScFormItem label="服务器状态">
         <div class="server-control">
-          <el-tag
+          <ScTag 
             :type="serverStatus === 'running' ? 'success' : 'info'"
             size="large"
           >
@@ -140,8 +140,8 @@
               "
             />
             {{ serverStatus === "running" ? "运行中" : "已停止" }}
-          </el-tag>
-          <el-button
+          </ScTag>
+          <ScButton 
             v-if="serverStatus === 'stopped'"
             type="success"
             size="small"
@@ -150,8 +150,8 @@
           >
             <IconifyIconOnline icon="ri:play-circle-line" />
             启动服务
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             v-else
             type="danger"
             size="small"
@@ -160,85 +160,85 @@
           >
             <IconifyIconOnline icon="ri:stop-circle-line" />
             停止服务
-          </el-button>
+          </ScButton>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="服务端口" prop="sysFileSystemSettingHttpServerPort">
-        <el-input-number
+      <ScFormItem label="服务端口" prop="sysFileSystemSettingHttpServerPort">
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingHttpServerPort"
           :min="1"
           :max="65535"
           @change="handlePortChange"
         />
-        <el-tag
+        <ScTag 
           v-if="portStatus !== null"
           :type="portStatus ? 'success' : 'danger'"
           size="small"
           style="margin-left: 12px"
         >
           {{ portStatus ? "端口可用" : "端口已占用" }}
-        </el-tag>
-      </el-form-item>
+        </ScTag>
+      </ScFormItem>
 
-      <el-form-item label="服务主机">
-        <el-input
+      <ScFormItem label="服务主机">
+        <ScInput 
           v-model="formData.sysFileSystemSettingHttpServerHost"
           placeholder="0.0.0.0"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="上下文路径">
-        <el-input
+      <ScFormItem label="上下文路径">
+        <ScInput 
           v-model="formData.sysFileSystemSettingHttpServerContext"
           placeholder="/file"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="访问域名">
-        <el-input
+      <ScFormItem label="访问域名">
+        <ScInput 
           v-model="formData.sysFileSystemSettingHttpAccessDomain"
           placeholder="http://example.com"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 功能开关 -->
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <IconifyIconOnline icon="ri:toggle-line" />
         功能开关
-      </el-divider>
+      </ScDivider>
 
-      <el-form-item label="启用文件下载">
+      <ScFormItem label="启用文件下载">
         <ScSwitch v-model="formData.sysFileSystemSettingDownloadEnabled" />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="启用文件预览">
+      <ScFormItem label="启用文件预览">
         <ScSwitch v-model="formData.sysFileSystemSettingPreviewEnabled" />
         <span class="form-tip">开启后可实时监听上传进度</span>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="允许的文件类型">
-        <el-input
+      <ScFormItem label="允许的文件类型">
+        <ScInput 
           v-model="formData.sysFileSystemSettingAllowedTypes"
           type="textarea"
           :rows="2"
           placeholder="留空表示允许所有类型，多个用逗号分隔，如: jpg,png,pdf,doc"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="备注">
-        <el-input
+      <ScFormItem label="备注">
+        <ScInput 
           v-model="formData.sysFileSystemSettingRemark"
           type="textarea"
           :rows="2"
           placeholder="请输入备注"
         />
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="handleSubmit"
+      <ScButton @click="visible = false">取消</ScButton>
+      <ScButton type="primary" :loading="loading" @click="handleSubmit"
         >保存</el-button
       >
     </template>

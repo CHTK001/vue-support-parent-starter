@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { getConfig } from "@repo/config";
 import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import {
@@ -1423,8 +1423,7 @@ onUnmounted(() => {
           </div>
           <div class="setting-content">
             <div class="theme-color-grid">
-              <el-tooltip
-                v-for="(item, index) in themeColors"
+              <ScTooltip                 v-for="(item, index) in themeColors"
                 v-show="showThemeColors(item.themeColor)"
                 :key="index"
                 :content="item.description || item.themeColor"
@@ -1449,7 +1448,7 @@ onUnmounted(() => {
                   <!-- 光泽效果层 -->
                   <div class="shine-effect"></div>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </div>
         </div>
@@ -1581,8 +1580,7 @@ onUnmounted(() => {
                 >
               </div>
               <div class="setting-item-control">
-                <el-input
-                  v-model="settings.aiChatApiKey"
+                <ScInput                   v-model="settings.aiChatApiKey"
                   type="password"
                   show-password
                   placeholder="请输入 AI 服务的 API Key"
@@ -1601,8 +1599,7 @@ onUnmounted(() => {
                 >
               </div>
               <div class="setting-item-control">
-                <el-input
-                  v-model="settings.aiChatApiUrl"
+                <ScInput                   v-model="settings.aiChatApiUrl"
                   placeholder="默认: Hugging Face Qwen2.5-7B-Instruct"
                   @change="aiChatApiUrlChange"
                   style="max-width: 260px"
@@ -1726,8 +1723,7 @@ onUnmounted(() => {
             <div class="setting-item">
               <div class="setting-item-label">
                 <span>弹出位置</span>
-                <el-tooltip
-                  content="设置消息下拉弹框从哪个方向弹出"
+                <ScTooltip                   content="设置消息下拉弹框从哪个方向弹出"
                   placement="top"
                 >
                   <span class="setting-item-tip-trigger">
@@ -1736,7 +1732,7 @@ onUnmounted(() => {
                       class="setting-item-tip-icon"
                     />
                   </span>
-                </el-tooltip>
+                </ScTooltip>
               </div>
               <div class="setting-item-control">
                 <ScSelect
@@ -1757,9 +1753,9 @@ onUnmounted(() => {
                 </span>
               </div>
               <div class="setting-item-control">
-                <el-button type="primary" link @click="sendDevDefaultMessage">
+                <ScButton type="primary" link @click="sendDevDefaultMessage">
                   发送默认数据
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>
@@ -1776,8 +1772,7 @@ onUnmounted(() => {
           </div>
           <div class="setting-content">
             <div class="layout-mode-grid">
-              <el-tooltip
-                :content="t('panel.layoutVerticalTip')"
+              <ScTooltip                 :content="t('panel.layoutVerticalTip')"
                 placement="top"
                 :append-to-body="true"
                 :z-index="41000"
@@ -1806,10 +1801,9 @@ onUnmounted(() => {
                     <IconifyIconOnline icon="ri:check-line" />
                   </div>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
 
-              <el-tooltip
-                v-if="device !== 'mobile'"
+              <ScTooltip                 v-if="device !== 'mobile'"
                 :content="t('panel.layoutHorizontalTip')"
                 placement="top"
                 :append-to-body="true"
@@ -1839,10 +1833,9 @@ onUnmounted(() => {
                     <IconifyIconOnline icon="ri:check-line" />
                   </div>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
 
-              <el-tooltip
-                v-if="device !== 'mobile'"
+              <ScTooltip                 v-if="device !== 'mobile'"
                 :content="t('panel.layoutMixTip')"
                 placement="top"
                 :append-to-body="true"
@@ -1872,10 +1865,9 @@ onUnmounted(() => {
                     <IconifyIconOnline icon="ri:check-line" />
                   </div>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
 
-              <el-tooltip
-                v-if="device !== 'mobile'"
+              <ScTooltip                 v-if="device !== 'mobile'"
                 :content="t('panel.layoutHoverTip')"
                 placement="top"
                 :append-to-body="true"
@@ -1905,10 +1897,9 @@ onUnmounted(() => {
                     <IconifyIconOnline icon="ri:check-line" />
                   </div>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
 
-              <el-tooltip
-                :content="t('panel.layoutMobileTip')"
+              <ScTooltip                 :content="t('panel.layoutMobileTip')"
                 placement="top"
                 :append-to-body="true"
                 :z-index="41000"
@@ -1937,10 +1928,9 @@ onUnmounted(() => {
                     <IconifyIconOnline icon="ri:check-line" />
                   </div>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
 
-              <el-tooltip
-                v-if="device !== 'mobile'"
+              <ScTooltip                 v-if="device !== 'mobile'"
                 :content="t('panel.layoutDoubleTip')"
                 placement="top"
                 :append-to-body="true"
@@ -1970,7 +1960,7 @@ onUnmounted(() => {
                     <IconifyIconOnline icon="ri:check-line" />
                   </div>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </div>
         </div>
@@ -2020,13 +2010,12 @@ onUnmounted(() => {
             <div class="switch-item">
               <label class="switch-label">{{ t("panel.expandMode") }}</label>
               <div class="radio-group">
-                <el-radio-group
-                  v-model="settings.doubleNavExpandMode"
+                <ScRadioGroup                   v-model="settings.doubleNavExpandMode"
                   @change="doubleNavExpandModeChange"
                 >
-                  <el-radio value="auto">自动展开</el-radio>
-                  <el-radio value="manual">手动展开</el-radio>
-                </el-radio-group>
+                  <ScRadio value="auto">自动展开</ScRadio>
+                  <ScRadio value="manual">手动展开</ScRadio>
+                </ScRadioGroup>
               </div>
             </div>
             <div
@@ -2064,8 +2053,7 @@ onUnmounted(() => {
               :options="stretchTypeOptions"
               @change="stretchTypeChange"
             />
-            <el-input-number
-              v-if="isNumber(settings.stretch)"
+            <ScInputNumber               v-if="isNumber(settings.stretch)"
               v-model="settings.stretch as number"
               :min="1280"
               :max="1600"
@@ -2419,8 +2407,7 @@ onUnmounted(() => {
                 <div class="setting-item-content">
                   <!-- FPS Monitor -->
                   <div class="switch-card-grid">
-                    <el-tooltip
-                      content="Frames Per Second: 衡量页面流畅度，60FPS 为最佳"
+                    <ScTooltip                       content="Frames Per Second: 衡量页面流畅度，60FPS 为最佳"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2435,10 +2422,9 @@ onUnmounted(() => {
                         ribbon-color="var(--el-color-danger)"
                         @change="themeStore.setFpsMonitor"
                       />
-                    </el-tooltip>
+                    </ScTooltip>
                     <!-- Memory Monitor -->
-                    <el-tooltip
-                      content="JS Heap Size: 当前页面使用的 JS 堆内存 (仅 Chrome/Edge 有效)"
+                    <ScTooltip                       content="JS Heap Size: 当前页面使用的 JS 堆内存 (仅 Chrome/Edge 有效)"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2453,10 +2439,9 @@ onUnmounted(() => {
                         ribbon-color="var(--el-color-primary)"
                         @change="themeStore.setMemoryMonitor"
                       />
-                    </el-tooltip>
+                    </ScTooltip>
 
-                    <el-tooltip
-                      content="CPU Load Estimation: 基于主线程帧间隔估算的负载值 (非系统真实 CPU)"
+                    <ScTooltip                       content="CPU Load Estimation: 基于主线程帧间隔估算的负载值 (非系统真实 CPU)"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2471,10 +2456,9 @@ onUnmounted(() => {
                         ribbon-color="var(--el-color-warning)"
                         @change="themeStore.setCpuMonitor"
                       />
-                    </el-tooltip>
+                    </ScTooltip>
 
-                    <el-tooltip
-                      content="Bandwidth: 显示当前页面网络请求的传输速率"
+                    <ScTooltip                       content="Bandwidth: 显示当前页面网络请求的传输速率"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2489,10 +2473,9 @@ onUnmounted(() => {
                         ribbon-color="var(--el-color-info)"
                         @change="themeStore.setBandwidthMonitor"
                       />
-                    </el-tooltip>
+                    </ScTooltip>
 
-                    <el-tooltip
-                      content="Battery: 显示电池电量和充电状态"
+                    <ScTooltip                       content="Battery: 显示电池电量和充电状态"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2507,10 +2490,9 @@ onUnmounted(() => {
                         ribbon-color="var(--el-color-success)"
                         @change="themeStore.setBatteryMonitor"
                       />
-                    </el-tooltip>
+                    </ScTooltip>
 
-                    <el-tooltip
-                      content="Bluetooth: 显示蓝牙功能可用性"
+                    <ScTooltip                       content="Bluetooth: 显示蓝牙功能可用性"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2525,10 +2507,9 @@ onUnmounted(() => {
                         ribbon-color="var(--el-color-primary)"
                         @change="themeStore.setBluetoothMonitor"
                       />
-                    </el-tooltip>
+                    </ScTooltip>
 
-                    <el-tooltip
-                      content="Screen: 显示屏幕分辨率"
+                    <ScTooltip                       content="Screen: 显示屏幕分辨率"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2543,7 +2524,7 @@ onUnmounted(() => {
                         ribbon-color="var(--el-color-primary)"
                         @change="themeStore.setScreenMonitor"
                       />
-                    </el-tooltip>
+                    </ScTooltip>
                   </div>
 
                   <!-- Display Settings Group -->
@@ -2759,8 +2740,7 @@ onUnmounted(() => {
                     <span class="text-sm text-[var(--el-text-color-regular)]"
                       >标识文本</span
                     >
-                    <el-input
-                      v-model="settings.newMenuText"
+                    <ScInput                       v-model="settings.newMenuText"
                       placeholder="NEW"
                       maxlength="10"
                       size="small"
@@ -2777,8 +2757,7 @@ onUnmounted(() => {
                     <span class="text-sm text-[var(--el-text-color-regular)]"
                       >显示时长(小时)</span
                     >
-                    <el-input-number
-                      v-model="settings.newMenuTimeLimit"
+                    <ScInputNumber                       v-model="settings.newMenuTimeLimit"
                       :min="1"
                       :max="8760"
                       :step="1"
@@ -2992,18 +2971,18 @@ onUnmounted(() => {
                 {{ t("panel.resetOptions") }}
               </h4>
               <div class="reset-actions">
-                <el-button type="warning" plain @click="resetToDefault">
+                <ScButton type="warning" plain @click="resetToDefault">
                   <IconifyIconOnline icon="ri:restart-line" />
                   {{ t("panel.restoreDefault") }}
-                </el-button>
-                <el-button type="info" plain @click="exportSettings">
+                </ScButton>
+                <ScButton type="info" plain @click="exportSettings">
                   <IconifyIconOnline icon="ri:download-line" />
                   {{ t("panel.exportConfig") }}
-                </el-button>
-                <el-button type="success" plain @click="importSettings">
+                </ScButton>
+                <ScButton type="success" plain @click="importSettings">
                   <IconifyIconOnline icon="ri:upload-line" />
                   {{ t("panel.importConfig") }}
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>

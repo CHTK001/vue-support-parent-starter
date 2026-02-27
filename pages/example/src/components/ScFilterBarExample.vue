@@ -1,4 +1,4 @@
-<!--
+﻿<!--
  * ScFilterBar 组件示例 - 拖拽式字段配置器
  * @author CH
  * @version 2.0.0
@@ -16,9 +16,9 @@
               <IconifyIconOnline icon="ri:apps-line" />
               字段类型
             </h4>
-            <el-tooltip content="只显示图标" placement="top">
-              <el-switch v-model="config.iconOnly" size="small" />
-            </el-tooltip>
+            <ScTooltip content="只显示图标" placement="top">
+              <ScSwitch v-model="config.iconOnly" size="small" />
+            </ScTooltip>
           </div>
           <div class="palette-list" :class="{ 'icon-only': config.iconOnly }">
             <div
@@ -28,12 +28,12 @@
               draggable="true"
               @dragstart="handleDragStart($event, type)"
             >
-              <el-tooltip :content="type.label" :disabled="!config.iconOnly" placement="right">
+              <ScTooltip :content="type.label" :disabled="!config.iconOnly" placement="right">
                 <div class="palette-item-content">
                   <IconifyIconOnline :icon="type.icon" />
                   <span v-if="!config.iconOnly">{{ type.label }}</span>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </div>
         </div>
@@ -42,10 +42,10 @@
         <div class="builder-main">
           <div class="builder-header">
             <h4>已配置字段 ({{ builderFields.length }})</h4>
-            <el-button type="danger" size="small" text @click="clearFields" :disabled="builderFields.length === 0">
+            <ScButton type="danger" size="small" text @click="clearFields" :disabled="builderFields.length === 0">
               <IconifyIconOnline icon="ri:delete-bin-line" />
               清空
-            </el-button>
+            </ScButton>
           </div>
           
           <div
@@ -77,13 +77,13 @@
                     <span>{{ getFieldLabel(field.type) }}</span>
                   </div>
                   <div class="field-info">
-                    <el-input
+                    <ScInput 
                       v-model="field.label"
                       size="small"
                       placeholder="标签"
                       class="field-label-input"
                     />
-                    <el-input
+                    <ScInput 
                       v-model="field.prop"
                       size="small"
                       placeholder="字段名"
@@ -91,9 +91,9 @@
                     />
                   </div>
                   <div class="field-actions">
-                    <el-button type="danger" size="small" text @click="removeField(index)">
+                    <ScButton type="danger" size="small" text @click="removeField(index)">
                       <IconifyIconOnline icon="ri:close-line" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
               </template>
@@ -107,38 +107,38 @@
             <IconifyIconOnline icon="ri:settings-3-line" />
             组件配置
           </h4>
-          <el-form label-position="top" size="small">
-            <el-form-item label="布局模式">
-              <el-radio-group v-model="config.layout">
+          <ScForm label-position="top" size="small">
+            <ScFormItem label="布局模式">
+              <ScRadioGroup v-model="config.layout">
                 <el-radio-button value="inline">行内</el-radio-button>
                 <el-radio-button value="grid">网格</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="显示数量">
+              </ScRadioGroup>
+            </ScFormItem>
+            <ScFormItem label="显示数量">
               <ScSlider v-model="config.visibleCount" :min="1" :max="10" show-input />
-            </el-form-item>
-            <el-form-item label="网格列数" v-if="config.layout === 'grid'">
+            </ScFormItem>
+            <ScFormItem label="网格列数" v-if="config.layout === 'grid'">
               <ScSlider v-model="config.columns" :min="1" :max="6" show-input />
-            </el-form-item>
-            <el-form-item label="边框">
-              <el-switch v-model="config.border" />
-            </el-form-item>
-            <el-form-item label="背景">
-              <el-switch v-model="config.background" />
-            </el-form-item>
-            <el-form-item label="实时搜索">
-              <el-switch v-model="config.realtime" />
-            </el-form-item>
-            <el-form-item label="防抖时间(ms)" v-if="config.realtime">
-              <el-input-number v-model="config.debounceTime" :min="100" :max="2000" :step="100" />
-            </el-form-item>
-            <el-form-item label="高级筛选">
-              <el-switch v-model="config.showDrawer" />
-            </el-form-item>
-            <el-form-item label="输入框宽度">
+            </ScFormItem>
+            <ScFormItem label="边框">
+              <ScSwitch v-model="config.border" />
+            </ScFormItem>
+            <ScFormItem label="背景">
+              <ScSwitch v-model="config.background" />
+            </ScFormItem>
+            <ScFormItem label="实时搜索">
+              <ScSwitch v-model="config.realtime" />
+            </ScFormItem>
+            <ScFormItem label="防抖时间(ms)" v-if="config.realtime">
+              <ScInputNumber v-model="config.debounceTime" :min="100" :max="2000" :step="100" />
+            </ScFormItem>
+            <ScFormItem label="高级筛选">
+              <ScSwitch v-model="config.showDrawer" />
+            </ScFormItem>
+            <ScFormItem label="输入框宽度">
               <ScSlider v-model="config.inputWidth" :min="100" :max="300" :step="10" show-input />
-            </el-form-item>
-          </el-form>
+            </ScFormItem>
+          </ScForm>
         </div>
       </div>
 

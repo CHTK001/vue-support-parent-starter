@@ -1,40 +1,40 @@
-<template>
+﻿<template>
   <div class="device-container system-container modern-bg">
     <div class="device-header-wrapper">
       <el-header class="device-header">
         <div class="device-left-panel">
-          <el-form
+          <ScForm 
             ref="formRef"
             :inline="true"
             :model="deviceForm"
             class="device-search-form"
           >
-            <el-form-item
+            <ScFormItem 
               label="序列号"
               prop="sysDeviceSerialNumber"
               class="device-form-item"
             >
-              <el-input
+              <ScInput 
                 v-model="deviceForm.sysDeviceSerialNumber"
                 placeholder="请输入序列号"
                 clearable
                 class="device-input"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item
+            <ScFormItem 
               label="设备名称"
               prop="sysDeviceName"
               class="device-form-item"
             >
-              <el-input
+              <ScInput 
                 v-model="deviceForm.sysDeviceName"
                 placeholder="请输入设备名称"
                 clearable
                 class="device-input"
               />
-            </el-form-item>
-            <el-form-item
+            </ScFormItem>
+            <ScFormItem 
               label="在线状态"
               prop="sysCameraTemplateOnline"
               class="device-form-item"
@@ -49,8 +49,8 @@
                 ]"
                 @change="onSearch"
               />
-            </el-form-item>
-            <el-form-item
+            </ScFormItem>
+            <ScFormItem 
               label="设备状态"
               prop="sysDeviceStatus"
               class="device-form-item"
@@ -65,13 +65,13 @@
                 ]"
                 @change="onSearch"
               />
-            </el-form-item>
-          </el-form>
+            </ScFormItem>
+          </ScForm>
         </div>
         <div class="device-right-panel">
           <div class="device-right-panel-search">
             <!-- 添加批量播放按钮，仅在有选中项时显示 -->
-            <el-button
+            <ScButton 
               v-if="selectedRows.length > 0"
               type="success"
               class="device-btn device-play-btn"
@@ -79,14 +79,14 @@
             >
               <IconifyIconOnline icon="mdi:play-circle" />
               <span class="ml-1">批量播放 ({{ selectedRows.length }})</span>
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               type="primary"
               :icon="useRenderIcon('ri:search-line')"
               class="device-btn device-search-btn"
               @click="onSearch"
             />
-            <el-button
+            <ScButton 
               title="新增"
               :icon="useRenderIcon('ep:plus')"
               class="device-btn device-add-btn"
@@ -106,15 +106,15 @@
       @selection-change="handleSelectionChange"
     >
       <!-- 添加多选列 -->
-      <el-table-column type="selection" width="55" fixed="left" />
-      <el-table-column
+      <ScTableColumn type="selection" width="55" fixed="left" />
+      <ScTableColumn 
         label="序号"
         type="index"
         align="center"
         fixed
         width="60px"
       />
-      <el-table-column
+      <ScTableColumn 
         prop="sysDeviceSerialNumber"
         label="设备序列号"
         align="left"
@@ -124,7 +124,7 @@
         <template #default="{ row }">
           <div>
             <span v-if="row.sysDeviceSerialNumber" class="cursor-default">
-              <el-popover width="300px" placement="right" trigger="hover">
+              <ScPopover width="300px" placement="right" trigger="hover">
                 <template #reference>
                   <div class="flex flex-row justify-between relative">
                     <div
@@ -274,14 +274,14 @@
                     }}</span>
                   </div>
                 </div>
-              </el-popover>
+              </ScPopover>
             </span>
-            <el-tag v-else>{{ row.sysDeviceSerialNumber }}</el-tag>
+            <ScTag v-else>{{ row.sysDeviceSerialNumber }}</ScTag>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column
+      <ScTableColumn 
         prop="sysDeviceOrgCode"
         label="组织编码"
         align="left"
@@ -295,9 +295,9 @@
           </span>
           <span v-else class="text-empty">暂无</span>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column
+      <ScTableColumn 
         prop="sysDeviceNetAddress"
         label="网路地址"
         align="center"
@@ -311,9 +311,9 @@
             :physical-address="row.sysDeviceNetPhysicalAddress"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column
+      <ScTableColumn 
         prop="updateTime"
         label="最后一次更新时间"
         align="left"
@@ -330,9 +330,9 @@
             }}</span>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column
+      <ScTableColumn 
         prop="sysDevicePosition"
         label="位置"
         align="center"
@@ -344,9 +344,9 @@
           }}</span>
           <span v-else class="text-empty">暂无</span>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column
+      <ScTableColumn 
         label="是否禁用"
         prop="sysDeviceStatus"
         width="160px"
@@ -362,8 +362,8 @@
             @change="deviceInstance.handleUpdateData(row)"
           />
         </template>
-      </el-table-column>
-      <el-table-column
+      </ScTableColumn>
+      <ScTableColumn 
         label="设备状态"
         prop="sysDeviceOnline"
         width="240px"
@@ -380,9 +380,9 @@
             ]"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column
+      <ScTableColumn 
         label="操作"
         fixed="right"
         align="center"
@@ -390,7 +390,7 @@
       >
         <template #default="{ row }">
           <div class="flex justify-start">
-            <el-button
+            <ScButton 
               class="btn-text"
               :icon="useRenderIcon('ep:edit')"
               @click.stop="
@@ -398,7 +398,7 @@
               "
             />
 
-            <el-button
+            <ScButton 
               class="btn-text"
               title="历史在线"
               type="warning"
@@ -407,7 +407,7 @@
                 deviceInstance.handleTimeline(timelineDialogRef, row)
               "
             />
-            <el-button
+            <ScButton 
               class="btn-text"
               title="管道管理"
               :icon="useRenderIcon('bi:pip')"
@@ -416,13 +416,13 @@
               "
             />
 
-            <el-popconfirm
+            <ScPopconfirm 
               v-if="row.sysDeviceDisabled == 0"
               :title="$t('message.confimDelete')"
               @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)"
             >
               <template #reference>
-                <el-button
+                <ScButton 
                   class="btn-text"
                   type="danger"
                   plain
@@ -430,10 +430,10 @@
                   :icon="useRenderIcon('ep:delete')"
                 />
               </template>
-            </el-popconfirm>
+            </ScPopconfirm>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
     </ScTable>
     <SaveDialog ref="saveDialogRef" @success="onSearch" />
     <TimelineDialog ref="timelineDialogRef" />

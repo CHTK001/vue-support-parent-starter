@@ -9,7 +9,7 @@
       <h3>支付配置 - {{ merchant?.payMerchantName || '' }}</h3>
     </div>
     <div class="grid grid-cols-4 gap-4">
-      <el-card v-for="item in configList" :key="item.type" shadow="hover">
+      <ScCard v-for="item in configList" :key="item.type" shadow="hover">
         <template #header>
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -28,7 +28,7 @@
 
         <div class="flex items-center justify-end gap-2">
           <template v-if="item.type === 'timeout'">
-            <el-input-number
+            <ScInputNumber 
               v-model="merchant.payMerchantOpenTimeoutTime"
               :min="1"
               :max="1440"
@@ -42,9 +42,9 @@
                   })
               "
             />
-            <el-tag effect="plain">min</el-tag>
+            <ScTag effect="plain">min</ScTag>
           </template>
-          <el-button
+          <ScButton 
             v-else
             size="small"
             type="primary"
@@ -52,9 +52,9 @@
             @click="openConfig(item)"
           >
             <iconifyIconOnline icon="ep:setting" /> 配置
-          </el-button>
+          </ScButton>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 配置弹窗（微信） -->
@@ -67,55 +67,55 @@
       <div class="dialog-header">
         <h3>配置 - {{ config.current?.title || '' }}</h3>
       </div>
-      <el-form :model="config.form" label-width="140px" class="modern-form">
+      <ScForm :model="config.form" label-width="140px" class="modern-form">
         <template v-if="config.current?.type !== 'wallet'">
-          <el-form-item label="AppId">
-            <el-input v-model="config.form.payMerchantConfigWechatAppId" />
-          </el-form-item>
-          <el-form-item label="商户号(MchId)">
-            <el-input v-model="config.form.payMerchantConfigWechatMchId" />
-          </el-form-item>
-          <el-form-item label="证书序列号">
-            <el-input
+          <ScFormItem label="AppId">
+            <ScInput v-model="config.form.payMerchantConfigWechatAppId" />
+          </ScFormItem>
+          <ScFormItem label="商户号(MchId)">
+            <ScInput v-model="config.form.payMerchantConfigWechatMchId" />
+          </ScFormItem>
+          <ScFormItem label="证书序列号">
+            <ScInput 
               v-model="config.form.payMerchantConfigWechatMchSerialNo"
             />
-          </el-form-item>
-          <el-form-item label="AppSecret">
-            <el-input v-model="config.form.payMerchantConfigWechatAppSecret" />
-          </el-form-item>
-          <el-form-item label="API Key V3">
-            <el-input v-model="config.form.payMerchantConfigWechatApiKeyV3" />
-          </el-form-item>
-          <el-form-item label="私钥路径">
-            <el-input
+          </ScFormItem>
+          <ScFormItem label="AppSecret">
+            <ScInput v-model="config.form.payMerchantConfigWechatAppSecret" />
+          </ScFormItem>
+          <ScFormItem label="API Key V3">
+            <ScInput v-model="config.form.payMerchantConfigWechatApiKeyV3" />
+          </ScFormItem>
+          <ScFormItem label="私钥路径">
+            <ScInput 
               v-model="config.form.payMerchantConfigWechatPrivateKeyPath"
             />
-          </el-form-item>
-          <el-form-item label="支付回调URL">
-            <el-input
+          </ScFormItem>
+          <ScFormItem label="支付回调URL">
+            <ScInput 
               v-model="config.form.payMerchantConfigWechatPayNotifyUrl"
             />
-          </el-form-item>
-          <el-form-item label="退款回调URL">
-            <el-input
+          </ScFormItem>
+          <ScFormItem label="退款回调URL">
+            <ScInput 
               v-model="config.form.payMerchantConfigWechatRefundNotifyUrl"
             />
-          </el-form-item>
+          </ScFormItem>
         </template>
         <template v-else>
-          <el-form-item label="钱包开关">
+          <ScFormItem label="钱包开关">
             <ScSwitch
               v-model="walletSwitch"
               :active-value="1"
               :inactive-value="0"
               layout="modern"
             />
-          </el-form-item>
+          </ScFormItem>
         </template>
-      </el-form>
+      </ScForm>
       <template #footer>
-        <el-button @click="config.visible = false">取消</el-button>
-        <el-button type="primary" @click="handleSaveConfig">保存</el-button>
+        <ScButton @click="config.visible = false">取消</ScButton>
+        <ScButton type="primary" @click="handleSaveConfig">保存</ScButton>
       </template>
     </sc-dialog>
   </sc-drawer>

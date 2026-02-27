@@ -1,21 +1,21 @@
-<template>
+﻿<template>
   <div class="sc-object-input">
-    <el-input v-model="jsonString" type="textarea" :rows="rows" :disabled="disabled" :placeholder="placeholder" @blur="validateAndUpdate" class="object-textarea" />
+    <ScInput v-model="jsonString" type="textarea" :rows="rows" :disabled="disabled" :placeholder="placeholder" @blur="validateAndUpdate" class="object-textarea" />
 
     <div class="object-error" v-if="error">
       {{ error }}
     </div>
 
     <div class="object-actions" v-if="!disabled">
-      <el-button type="primary" plain size="small" @click="formatJson" :disabled="!isValidJson">
+      <ScButton type="primary" plain size="small" @click="formatJson" :disabled="!isValidJson">
         <IconifyIconOnline icon="ep:magic-stick" />
         格式化JSON
-      </el-button>
+      </ScButton>
 
-      <el-button type="info" plain size="small" @click="compactJson" :disabled="!isValidJson">
+      <ScButton type="info" plain size="small" @click="compactJson" :disabled="!isValidJson">
         <IconifyIconOnline icon="ep:compress" />
         压缩JSON
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

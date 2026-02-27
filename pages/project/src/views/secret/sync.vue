@@ -11,31 +11,31 @@
         :title="title"
         @close="close"
       >
-        <el-form :model="form">
-          <el-row>
-            <el-col :span="24">
-              <el-form-item label="模板类型" prop="syncType">
-                <el-select
+        <ScForm :model="form">
+          <ScRow>
+            <ScCol :span="24">
+              <ScFormItem label="模板类型" prop="syncType">
+                <ScSelect 
                   v-model="form.syncType"
                   placeholder="请选择类型"
                   class="w-full min-w-[240px]"
                 >
-                  <el-option
+                  <ScOption 
                     v-for="item in sysSecretFunctions"
                     :key="item.value"
                     :label="item.label"
                     :value="item.value"
                   />
-                </el-select>
-              </el-form-item>
-            </el-col>
+                </ScSelect>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col />
-          </el-row>
-        </el-form>
+            <ScCol />
+          </ScRow>
+        </ScForm>
         <template #footer>
-          <el-button @click="visible = false">取 消</el-button>
-          <el-button
+          <ScButton @click="visible = false">取 消</ScButton>
+          <ScButton 
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"

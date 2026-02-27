@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-container-example">
     <!-- 配置面板 -->
     <div class="config-panel">
@@ -7,58 +7,58 @@
         <span>动态配置</span>
       </div>
       <div class="config-body">
-        <el-row :gutter="20">
-          <el-col :span="6">
+        <ScRow :gutter="20">
+          <ScCol :span="6">
             <div class="config-item">
               <label>容器高度</label>
               <ScSlider v-model="config.height" :min="200" :max="600" :step="10" show-input />
             </div>
-          </el-col>
-          <el-col :span="6">
+          </ScCol>
+          <ScCol :span="6">
             <div class="config-item">
               <label>侧边栏宽度</label>
               <ScSlider v-model="config.asideWidth" :min="100" :max="300" :step="10" show-input />
             </div>
-          </el-col>
-          <el-col :span="6">
+          </ScCol>
+          <ScCol :span="6">
             <div class="config-item">
               <label>右侧栏宽度</label>
               <ScSlider v-model="config.rightWidth" :min="100" :max="300" :step="10" show-input />
             </div>
-          </el-col>
-          <el-col :span="6">
+          </ScCol>
+          <ScCol :span="6">
             <div class="config-item">
               <label>头部高度</label>
               <ScSlider v-model="config.headerHeight" :min="40" :max="100" :step="5" show-input />
             </div>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" class="mt-4">
-          <el-col :span="3">
-            <el-checkbox v-model="config.showHeader">显示头部</el-checkbox>
-          </el-col>
-          <el-col :span="3">
-            <el-checkbox v-model="config.showAside">显示侧边栏</el-checkbox>
-          </el-col>
-          <el-col :span="3">
-            <el-checkbox v-model="config.showRight">显示右侧栏</el-checkbox>
-          </el-col>
-          <el-col :span="3">
-            <el-checkbox v-model="config.showFooter">显示底部</el-checkbox>
-          </el-col>
-          <el-col :span="3">
-            <el-checkbox v-model="config.border">显示边框</el-checkbox>
-          </el-col>
-          <el-col :span="3">
-            <el-checkbox v-model="config.rounded">圆角</el-checkbox>
-          </el-col>
-          <el-col :span="3">
-            <el-checkbox v-model="config.resizable">可拖拽</el-checkbox>
-          </el-col>
-          <el-col :span="3">
-            <el-checkbox v-model="config.collapsible">可折叠</el-checkbox>
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20" class="mt-4">
+          <ScCol :span="3">
+            <ScCheckbox v-model="config.showHeader">显示头部</ScCheckbox>
+          </ScCol>
+          <ScCol :span="3">
+            <ScCheckbox v-model="config.showAside">显示侧边栏</ScCheckbox>
+          </ScCol>
+          <ScCol :span="3">
+            <ScCheckbox v-model="config.showRight">显示右侧栏</ScCheckbox>
+          </ScCol>
+          <ScCol :span="3">
+            <ScCheckbox v-model="config.showFooter">显示底部</ScCheckbox>
+          </ScCol>
+          <ScCol :span="3">
+            <ScCheckbox v-model="config.border">显示边框</ScCheckbox>
+          </ScCol>
+          <ScCol :span="3">
+            <ScCheckbox v-model="config.rounded">圆角</ScCheckbox>
+          </ScCol>
+          <ScCol :span="3">
+            <ScCheckbox v-model="config.resizable">可拖拽</ScCheckbox>
+          </ScCol>
+          <ScCol :span="3">
+            <ScCheckbox v-model="config.collapsible">可折叠</ScCheckbox>
+          </ScCol>
+        </ScRow>
       </div>
     </div>
 

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-generator-layout system-container modern-bg">
     <!-- 对话框组件 -->
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
@@ -24,70 +24,70 @@
             <!-- 模型选择 -->
             <div class="setting-item">
               <label class="setting-label">模型</label>
-              <el-select v-model="form.model" placeholder="选择模型" size="small" @change="handleChangeModule" class="compact-select">
-                <el-option v-for="item in modelList" :key="item.sysAiModuleCode" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+              <ScSelect v-model="form.model" placeholder="选择模型" size="small" @change="handleChangeModule" class="compact-select">
+                <ScOption v-for="item in modelList" :key="item.sysAiModuleCode" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
                   <div class="model-option">
-                    <el-image :src="item.sysProjectIcon" class="model-icon" />
+                    <ScImage :src="item.sysProjectIcon" class="model-icon" />
                     <span>{{ item.sysAiModuleName }}</span>
                   </div>
-                </el-option>
-              </el-select>
+                </ScOption>
+              </ScSelect>
             </div>
 
             <!-- 比例选择 -->
             <div class="setting-item">
               <label class="setting-label">比例</label>
-              <el-radio-group v-model="form.parameters.size" size="small" class="compact-radio-group">
+              <ScRadioGroup v-model="form.parameters.size" size="small" class="compact-radio-group">
                 <el-radio-button v-for="size in formSetting.sysAiVincentSupportedSize?.split(',') || []" :key="size" :value="size" class="ratio-button">
                   <div class="ratio-content">
                     <i :style="{ 'aspect-ratio': getRatio(size) }" class="ratio-visual"></i>
                     <span class="ratio-text">{{ size }}</span>
                   </div>
                 </el-radio-button>
-              </el-radio-group>
+              </ScRadioGroup>
             </div>
 
             <!-- 风格选择 -->
             <div class="setting-item" v-if="form.sysAiModuleType == 'VINCENT' && styleData.length > 0">
               <label class="setting-label">风格</label>
-              <el-select v-model="form.parameters.style" placeholder="选择风格" size="small" class="compact-select">
-                <el-option v-for="item in styleData" :key="item.sysAiVincentStyleCode" :label="item.sysAiVincentStyleName" :value="item.sysAiVincentStyleCode">
+              <ScSelect v-model="form.parameters.style" placeholder="选择风格" size="small" class="compact-select">
+                <ScOption v-for="item in styleData" :key="item.sysAiVincentStyleCode" :label="item.sysAiVincentStyleName" :value="item.sysAiVincentStyleCode">
                   <div class="style-option">
-                    <el-image :src="item.sysAiVincentStyleImage" class="style-icon" />
+                    <ScImage :src="item.sysAiVincentStyleImage" class="style-icon" />
                     <span>{{ item.sysAiVincentStyleName }}</span>
                   </div>
-                </el-option>
-              </el-select>
+                </ScOption>
+              </ScSelect>
             </div>
 
             <!-- 输出数量 -->
             <div class="setting-item">
               <label class="setting-label">数量</label>
-              <el-input-number v-model="form.parameters.number" :min="1" :max="formSetting.sysAiVincentSupportedNumber || 4" size="small" class="compact-number" controls-position="right" />
+              <ScInputNumber v-model="form.parameters.number" :min="1" :max="formSetting.sysAiVincentSupportedNumber || 4" size="small" class="compact-number" controls-position="right" />
             </div>
 
             <!-- 质量选择（视频模式） -->
             <div class="setting-item" v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportedQuality">
               <label class="setting-label">质量</label>
-              <el-radio-group v-model="form.parameters.quality" size="small" class="compact-radio-group">
+              <ScRadioGroup v-model="form.parameters.quality" size="small" class="compact-radio-group">
                 <el-radio-button v-for="item in formSetting.sysAiVincentSupportedQuality?.split(',') || []" :key="item" :value="item">
                   {{ getQuality(item)?.name || item }}
                 </el-radio-button>
-              </el-radio-group>
+              </ScRadioGroup>
             </div>
 
             <!-- 帧率选择（视频模式） -->
             <div class="setting-item" v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportedFps">
               <label class="setting-label">帧率</label>
-              <el-select v-model="form.parameters.fps" placeholder="选择帧率" size="small" class="compact-select">
-                <el-option v-for="fps in formSetting.sysAiVincentSupportedFps?.split(',') || []" :key="fps" :label="fps + ' FPS'" :value="fps" />
-              </el-select>
+              <ScSelect v-model="form.parameters.fps" placeholder="选择帧率" size="small" class="compact-select">
+                <ScOption v-for="fps in formSetting.sysAiVincentSupportedFps?.split(',') || []" :key="fps" :label="fps + ' FPS'" :value="fps" />
+              </ScSelect>
             </div>
 
             <!-- AI音效（视频模式） -->
             <div class="setting-item" v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportAudio">
               <label class="setting-label">音效</label>
-              <el-switch v-model="form.parameters.withAudio" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" size="small" />
+              <ScSwitch v-model="form.parameters.withAudio" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" size="small" />
             </div>
           </div>
         </el-scrollbar>
@@ -120,23 +120,23 @@
               <!-- 自定义前缀 -->
               <template #prefix>
                 <div class="input-prefix">
-                  <el-tooltip content="高级设置" placement="top">
-                    <el-button circle @click="toggleAdvanced" :type="showAdvanced ? 'primary' : 'default'">
+                  <ScTooltip content="高级设置" placement="top">
+                    <ScButton circle @click="toggleAdvanced" :type="showAdvanced ? 'primary' : 'default'">
                       <IconifyIconOnline icon="mdi:tune-variant" />
-                    </el-button>
-                  </el-tooltip>
+                    </ScButton>
+                  </ScTooltip>
 
-                  <el-tooltip content="随机描述词" placement="top">
-                    <el-button circle @click="handleRandomPrompt" type="default">
+                  <ScTooltip content="随机描述词" placement="top">
+                    <ScButton circle @click="handleRandomPrompt" type="default">
                       <IconifyIconOnline icon="ep:refresh" />
-                    </el-button>
-                  </el-tooltip>
+                    </ScButton>
+                  </ScTooltip>
 
-                  <el-tooltip content="模型配置" placement="top">
-                    <el-button circle @click="toggleModelConfig" :type="showModelConfig ? 'primary' : 'default'">
+                  <ScTooltip content="模型配置" placement="top">
+                    <ScButton circle @click="toggleModelConfig" :type="showModelConfig ? 'primary' : 'default'">
                       <IconifyIconOnline icon="ri:settings-4-line" />
-                    </el-button>
-                  </el-tooltip>
+                    </ScButton>
+                  </ScTooltip>
                 </div>
               </template>
 
@@ -175,12 +175,12 @@
                   <ScSelect v-model="form.parameters.number" :options="numberOptions" layout="dropdown" class="min-w-[150px]" dropdown-icon="ri:hashtag" dropdown-title="数量" dropdown-placeholder="选择数量" @change="handleNumberSelect" />
 
                   <!-- 生成/停止按钮 -->
-                  <el-button v-if="loadingConfig.export" circle @click="stopGeneration" class="stop-btn">
+                  <ScButton v-if="loadingConfig.export" circle @click="stopGeneration" class="stop-btn">
                     <IconifyIconOnline icon="ri:stop-circle-line" />
-                  </el-button>
-                  <el-button v-else circle @click="handleGenerate" :disabled="!canGenerate" class="generate-btn" type="primary">
+                  </ScButton>
+                  <ScButton v-else circle @click="handleGenerate" :disabled="!canGenerate" class="generate-btn" type="primary">
                     <IconifyIconOnline icon="ri:magic-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </template>
 
@@ -191,7 +191,7 @@
                     <IconifyIconOnline icon="ri:subtract-line" />
                     <span>反向提示词</span>
                   </div>
-                  <el-input v-model="form.input.negativePrompt" type="textarea" :rows="1" placeholder="不希望出现的内容..." class="negative-prompt-input"></el-input>
+                  <ScInput v-model="form.input.negativePrompt" type="textarea" :rows="1" placeholder="不希望出现的内容..." class="negative-prompt-input"></ScInput>
                 </div>
               </template>
             </EditorSender>

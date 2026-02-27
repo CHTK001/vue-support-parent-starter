@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-region-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,8 +8,8 @@
           属性配置
         </h3>
         
-        <el-form label-position="top" size="small">
-          <el-form-item label="dataSource 数据源">
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="dataSource 数据源">
             <ScSelect
               v-model="config.dataSource"
               layout="card"
@@ -18,13 +18,13 @@
               width="120px"
               @change="handleDataSourceChange"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="placeholder">
-            <el-input v-model="config.placeholder" />
-          </el-form-item>
+          <ScFormItem label="placeholder">
+            <ScInput v-model="config.placeholder" />
+          </ScFormItem>
           
-          <el-form-item label="size 尺寸">
+          <ScFormItem label="size 尺寸">
             <ScSelect
               v-model="config.size"
               layout="card"
@@ -32,81 +32,81 @@
               :gap="6"
               width="70px"
             />
-          </el-form-item>
+          </ScFormItem>
           
-          <el-form-item label="separator 分隔符">
-            <el-input v-model="config.separator" style="width: 80px" />
-          </el-form-item>
+          <ScFormItem label="separator 分隔符">
+            <ScInput v-model="config.separator" style="width: 80px" />
+          </ScFormItem>
           
-          <el-form-item label="maxCollapseTags 最大标签数">
-            <el-input-number v-model="config.maxCollapseTags" :min="1" :max="10" />
-          </el-form-item>
+          <ScFormItem label="maxCollapseTags 最大标签数">
+            <ScInputNumber v-model="config.maxCollapseTags" :min="1" :max="10" />
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
           
           <div class="switch-group">
             <div class="switch-item">
-              <el-tooltip content="禁用整个选择器" placement="left">
+              <ScTooltip content="禁用整个选择器" placement="left">
                 <span>disabled 禁用</span>
-              </el-tooltip>
-              <el-switch v-model="config.disabled" />
+              </ScTooltip>
+              <ScSwitch v-model="config.disabled" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="是否显示清空按钮" placement="left">
+              <ScTooltip content="是否显示清空按钮" placement="left">
                 <span>clearable 可清空</span>
-              </el-tooltip>
-              <el-switch v-model="config.clearable" />
+              </ScTooltip>
+              <ScSwitch v-model="config.clearable" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="是否可输入搜索" placement="left">
+              <ScTooltip content="是否可输入搜索" placement="left">
                 <span>filterable 可搜索</span>
-              </el-tooltip>
-              <el-switch v-model="config.filterable" />
+              </ScTooltip>
+              <ScSwitch v-model="config.filterable" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="输入框显示完整路径还是只显示最后一级" placement="left">
+              <ScTooltip content="输入框显示完整路径还是只显示最后一级" placement="left">
                 <span>showAllLevels 显示完整路径</span>
-              </el-tooltip>
-              <el-switch v-model="config.showAllLevels" />
+              </ScTooltip>
+              <ScSwitch v-model="config.showAllLevels" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="可选择任意一级，不必选到最后一级" placement="left">
+              <ScTooltip content="可选择任意一级，不必选到最后一级" placement="left">
                 <span>checkStrictly 任意级选择</span>
-              </el-tooltip>
-              <el-switch v-model="config.checkStrictly" />
+              </ScTooltip>
+              <ScSwitch v-model="config.checkStrictly" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="在下拉选项中显示地区编码" placement="left">
+              <ScTooltip content="在下拉选项中显示地区编码" placement="left">
                 <span>showCode 显示编码</span>
-              </el-tooltip>
-              <el-switch v-model="config.showCode" />
+              </ScTooltip>
+              <ScSwitch v-model="config.showCode" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="输入框只显示编码不显示名称" placement="left">
+              <ScTooltip content="输入框只显示编码不显示名称" placement="left">
                 <span>showCodeOnly 只显示编码</span>
-              </el-tooltip>
-              <el-switch v-model="config.showCodeOnly" />
+              </ScTooltip>
+              <ScSwitch v-model="config.showCodeOnly" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="是否支持选择多个地区" placement="left">
+              <ScTooltip content="是否支持选择多个地区" placement="left">
                 <span>multiple 多选</span>
-              </el-tooltip>
-              <el-switch v-model="config.multiple" @change="handleMultipleChange" />
+              </ScTooltip>
+              <ScSwitch v-model="config.multiple" @change="handleMultipleChange" />
             </div>
             <div class="switch-item">
-              <el-tooltip :content="!config.multiple ? '仅多选模式下可用' : '多选时折叠已选标签'" placement="left">
+              <ScTooltip :content="!config.multiple ? '仅多选模式下可用' : '多选时折叠已选标签'" placement="left">
                 <span :class="{ 'is-disabled': !config.multiple }">collapseTags 折叠标签</span>
-              </el-tooltip>
-              <el-switch v-model="config.collapseTags" :disabled="!config.multiple" />
+              </ScTooltip>
+              <ScSwitch v-model="config.collapseTags" :disabled="!config.multiple" />
             </div>
             <div class="switch-item">
-              <el-tooltip :content="config.multiple ? '多选模式下始终返回完整路径' : (config.emitPath ? '开启: 返回完整路径 [省,市,区]' : '关闭: 只返回选中级的编码')" placement="left">
+              <ScTooltip :content="config.multiple ? '多选模式下始终返回完整路径' : (config.emitPath ? '开启: 返回完整路径 [省,市,区]' : '关闭: 只返回选中级的编码')" placement="left">
                 <span :class="{ 'is-disabled': config.multiple }">emitPath 返回完整路径</span>
-              </el-tooltip>
-              <el-switch v-model="config.emitPath" :disabled="config.multiple" />
+              </ScTooltip>
+              <ScSwitch v-model="config.emitPath" :disabled="config.multiple" />
             </div>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

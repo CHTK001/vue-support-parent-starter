@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg">
     <!-- 筛选栏 -->
     <div class="filter-bar">
@@ -67,7 +67,7 @@
         <IconifyIconOnline icon="ep:video-camera" class="result-icon" />
         <span class="result-count">共找到 <strong>{{ totalResults }}</strong> 部视频</span>
       </div>
-      <el-select
+      <ScSelect 
         v-model="sortBy"
         size="default"
         class="sort-select"
@@ -76,13 +76,13 @@
         <template #prefix>
           <IconifyIconOnline icon="ep:sort" />
         </template>
-        <el-option
+        <ScOption 
           v-for="item in VideoOrderByOptions"
           :key="item.value"
           :value="item.value"
           :label="item.label"
         />
-      </el-select>
+      </ScSelect>
     </div>
 
     <!-- 视频列表 -->
@@ -102,7 +102,7 @@
       <template #default="{ row }">
         <div class="video-card">
           <div class="poster">
-            <el-image
+            <ScImage 
               v-if="row.videoCover"
               :src="(row.videoCover || '').split(',')[0]"
               fit="cover"
@@ -111,7 +111,7 @@
               <template #error>
                 <div class="poster-error">暂无封面</div>
               </template>
-            </el-image>
+            </ScImage>
             <div v-else class="poster-error">暂无封面</div>
             <span v-if="row.videoScore" class="score">{{
               row.videoScore

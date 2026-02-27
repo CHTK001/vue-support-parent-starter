@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="chat-container">
     <!-- 左侧会话管理面板 -->
     <div
@@ -12,7 +12,7 @@
           </div>
           <span class="conversation-title">会话管理</span>
         </div>
-        <el-button
+        <ScButton 
           :icon="
             useRenderIcon(
               isConversationCollapsed ? 'ep:d-arrow-right' : 'ep:d-arrow-left'
@@ -138,26 +138,26 @@
           </template>
           <template #footer="{ item }" v-if="!isLoading">
             <div class="footer-container">
-              <el-tooltip content="复制内容" placement="top">
-                <el-button
+              <ScTooltip content="复制内容" placement="top">
+                <ScButton 
                   :icon="useRenderIcon('ep:copy-document')"
                   size="small"
                   circle
                   @click="handleCopyMessage(item)"
                 />
-              </el-tooltip>
-              <el-tooltip
+              </ScTooltip>
+              <ScTooltip 
                 content="重新发送"
                 placement="top"
                 v-if="item.type === 'sent'"
               >
-                <el-button
+                <ScButton 
                   :icon="useRenderIcon('ep:refresh')"
                   size="small"
                   circle
                   @click="handleResendMessage(item)"
                 />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
         </BubbleList>
@@ -196,31 +196,31 @@
           <!-- 自定义前缀 -->
           <template #prefix>
             <div class="input-prefix">
-              <el-tooltip content="上传文件" placement="top">
-                <el-upload
+              <ScTooltip content="上传文件" placement="top">
+                <ScUpload 
                   :show-file-list="false"
                   :before-upload="handleFileUpload"
                   accept="image/*,.pdf,.doc,.docx,.txt,.md"
                   class="file-upload-btn"
                 >
-                  <el-button size="small" text>
+                  <ScButton size="small" text>
                     <IconifyIconOnline icon="ri:attachment-line" />
-                  </el-button>
-                </el-upload>
-              </el-tooltip>
+                  </ScButton>
+                </ScUpload>
+              </ScTooltip>
 
-              <el-tooltip content="插入提示词模板" placement="top">
-                <el-button size="small" text @click="openPromptTemplateDialog">
+              <ScTooltip content="插入提示词模板" placement="top">
+                <ScButton size="small" text @click="openPromptTemplateDialog">
                   <IconifyIconOnline icon="ri:magic-line" />
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </div>
           </template>
 
           <!-- 自定义操作列表 -->
           <template #action-list>
             <div class="action-buttons">
-              <el-button circle @click="handleClearInput">
+              <ScButton circle @click="handleClearInput">
                 <svg
                   data-v-a84afe1a=""
                   xmlns="http://www.w3.org/2000/svg"
@@ -233,7 +233,7 @@
                     d="M896 448H128v192a64 64 0 0 0 64 64h192v192h256V704h192a64 64 0 0 0 64-64zm-770.752-64c0-47.552 5.248-90.24 15.552-128 14.72-54.016 42.496-107.392 83.2-160h417.28l-15.36 70.336L736 96h211.2c-24.832 42.88-41.92 96.256-51.2 160a664 664 0 0 0-6.144 128H960v256a128 128 0 0 1-128 128H704v160a32 32 0 0 1-32 32H352a32 32 0 0 1-32-32V768H192A128 128 0 0 1 64 640V384zm64 0h636.544c-2.048-45.824.256-91.584 6.848-137.216 4.48-30.848 10.688-59.776 18.688-86.784h-96.64l-221.12 141.248L561.92 160H256.512c-25.856 37.888-43.776 75.456-53.952 112.832-8.768 32.064-13.248 69.12-13.312 111.168"
                   ></path>
                 </svg>
-              </el-button>
+              </ScButton>
 
               <!-- 模型配置浮动面板 -->
               <ScContainer
@@ -243,14 +243,14 @@
                 @close="showModelConfig = false"
               >
                 <template #reference>
-                  <el-button
+                  <ScButton 
                     circle
                     @click="toggleModelConfig"
                     class="config-btn"
                     title="高级功能"
                   >
                     <IconifyIconOnline icon="mdi:tune-variant" />
-                  </el-button>
+                  </ScButton>
                 </template>
                 <ModelConfig
                   :form="form"
@@ -266,15 +266,15 @@
                 />
               </ScContainer>
 
-              <el-button
+              <ScButton 
                 v-if="isLoading"
                 circle
                 @click="stopGeneration"
                 class="stop-btn"
               >
                 <IconifyIconOnline icon="ri:stop-circle-line" />
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton 
                 v-else
                 circle
                 @click="handleSendMessage"
@@ -282,7 +282,7 @@
                 class="send-btn"
               >
                 <IconifyIconOnline icon="ep:top" />
-              </el-button>
+              </ScButton>
             </div>
           </template>
 
@@ -305,14 +305,14 @@
                       >({{ formatFileSize(file.size) }})</span
                     >
                   </div>
-                  <el-button
+                  <ScButton 
                     size="small"
                     text
                     @click="removeFile(index)"
                     class="remove-btn"
                   >
                     <IconifyIconOnline icon="ri:close-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
@@ -328,8 +328,8 @@ import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ScContainer } from "@repo/components/ScContainer";
 import { fetchCallStream } from "@repo/core";
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { message , ScMessageBox} from "@repo/utils";
+
 import { computed, nextTick, ref, watch } from "vue";
 import {
   createConversation,
@@ -1124,7 +1124,7 @@ function handleMenuCommand(command, item) {
   }
   if (command === "rename") {
     // 弹出编辑框
-    ElMessageBox.prompt("请输入新的会话名称", "重命名会话", {
+    ScMessageBox.prompt("请输入新的会话名称", "重命名会话", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       inputValue: conversationList.value[index].label,

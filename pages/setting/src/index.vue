@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, defineComponent, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
 // 将同步组件改为异步组件
 const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
@@ -6,9 +6,8 @@ const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
 const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { localStorageProxy } from "@repo/utils";
-import { message } from "@repo/utils";
-import { ElLoading } from "element-plus";
+import { localStorageProxy, message, ScLoading } from "@repo/utils";
+
 import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
 import { useGlobal } from "@pureadmin/utils";
@@ -384,9 +383,9 @@ onUnmounted(() => {
 <template>
   <div class="app-container modern-setting-container system-container modern-bg">
 
-    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="floating-settings-btn" type="primary" circle
+    <ScButton :icon="useRenderIcon('ri:settings-4-line')" class="floating-settings-btn" type="primary" circle
       @click="handleOpenItemDialog" />
-    <el-button :icon="useRenderIcon('ri:group-line')" class="floating-group-btn" type="success" circle
+    <ScButton :icon="useRenderIcon('ri:group-line')" class="floating-group-btn" type="success" circle
       @click="openGroupManagement" />
 
     <!-- 页面标题 -->
@@ -410,9 +409,9 @@ onUnmounted(() => {
               onRowClick(item.group);
               ">
               <div class="setting-card-icon">
-                <el-icon>
+                <ScIcon>
                   <component :is="useRenderIcon(item.icon)" />
-                </el-icon>
+                </ScIcon>
               </div>
               <div class="setting-card-content">
                 <h3 class="setting-card-title">{{ item.name }}</h3>

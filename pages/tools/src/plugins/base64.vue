@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -409,9 +409,9 @@ onMounted(() => {
       </div>
 
       <!-- 模式选择 -->
-      <el-card class="base64-tool__mode-card" shadow="hover">
+      <ScCard class="base64-tool__mode-card" shadow="hover">
         <div class="base64-tool__mode-selector">
-          <el-radio-group v-model="env.mode" size="large" @change="clearAll">
+          <ScRadioGroup v-model="env.mode" size="large" @change="clearAll">
             <el-radio-button label="encode">
               <IconifyIconOnline icon="ri:lock-line" />
               <span>编码</span>
@@ -420,7 +420,7 @@ onMounted(() => {
               <IconifyIconOnline icon="ri:lock-unlock-line" />
               <span>解码</span>
             </el-radio-button>
-          </el-radio-group>
+          </ScRadioGroup>
 
           <ScSwitch
             v-model="env.urlMode"
@@ -435,7 +435,7 @@ onMounted(() => {
           v-if="env.mode === 'encode'"
           class="base64-tool__input-type-selector"
         >
-          <el-radio-group
+          <ScRadioGroup 
             v-model="env.inputType"
             size="default"
             @change="clearAll"
@@ -448,14 +448,14 @@ onMounted(() => {
               <IconifyIconOnline icon="ri:file-line" />
               <span>文件</span>
             </el-radio-button>
-          </el-radio-group>
+          </ScRadioGroup>
         </div>
-      </el-card>
+      </ScCard>
 
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="base64-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="base64-tool__input-card" shadow="hover">
             <template #header>
               <div class="base64-tool__card-header">
                 <IconifyIconOnline
@@ -471,22 +471,22 @@ onMounted(() => {
             <!-- 文本输入 -->
             <template v-if="env.inputType === 'text' || env.mode === 'decode'">
               <div class="base64-tool__actions-top">
-                <el-button @click="clearAll" size="small">
+                <ScButton @click="clearAll" size="small">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                   <span>清空</span>
-                </el-button>
+                </ScButton>
 
-                <el-button
+                <ScButton 
                   @click="generateExample"
                   size="small"
                   v-if="env.mode === 'encode'"
                 >
                   <IconifyIconOnline icon="ri:magic-line" />
                   <span>示例</span>
-                </el-button>
+                </ScButton>
               </div>
 
-              <el-input
+              <ScInput 
                 v-model="env.inputText"
                 type="textarea"
                 :rows="12"
@@ -556,7 +556,7 @@ onMounted(() => {
             </template>
 
             <div class="base64-tool__actions-bottom">
-              <el-button
+              <ScButton 
                 type="primary"
                 @click="
                   env.mode === 'encode'
@@ -576,14 +576,14 @@ onMounted(() => {
                   "
                 />
                 <span>{{ env.mode === "encode" ? "编码" : "解码" }}</span>
-              </el-button>
+              </ScButton>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 输出区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="base64-tool__output-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="base64-tool__output-card" shadow="hover">
             <template #header>
               <div class="base64-tool__card-header">
                 <IconifyIconOnline
@@ -626,7 +626,7 @@ onMounted(() => {
 
             <div v-else class="base64-tool__result">
               <div class="base64-tool__result-actions">
-                <el-button
+                <ScButton 
                   type="primary"
                   link
                   size="small"
@@ -635,9 +635,9 @@ onMounted(() => {
                 >
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   <span>复制</span>
-                </el-button>
+                </ScButton>
 
-                <el-button
+                <ScButton 
                   type="success"
                   link
                   size="small"
@@ -646,7 +646,7 @@ onMounted(() => {
                 >
                   <IconifyIconOnline icon="ri:download-line" />
                   <span>下载</span>
-                </el-button>
+                </ScButton>
               </div>
 
               <div
@@ -660,7 +660,7 @@ onMounted(() => {
             </div>
 
             <div class="base64-tool__actions-bottom">
-              <el-button type="default" @click="toggleMode">
+              <ScButton type="default" @click="toggleMode">
                 <IconifyIconOnline
                   :icon="
                     env.mode === 'encode'
@@ -669,14 +669,14 @@ onMounted(() => {
                   "
                 />
                 <span>切换到{{ env.mode === "encode" ? "解码" : "编码" }}</span>
-              </el-button>
+              </ScButton>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
       <!-- 历史记录 -->
-      <el-card
+      <ScCard 
         class="base64-tool__history-card"
         shadow="hover"
         v-if="env.history.length > 0"
@@ -688,7 +688,7 @@ onMounted(() => {
               class="base64-tool__card-icon"
             />
             <span>历史记录</span>
-            <el-button
+            <ScButton 
               type="danger"
               link
               size="small"
@@ -697,39 +697,39 @@ onMounted(() => {
             >
               <IconifyIconOnline icon="ri:delete-bin-line" />
               <span>清空历史</span>
-            </el-button>
+            </ScButton>
           </div>
         </template>
 
-        <el-table :data="env.history" style="width: 100%" size="small">
-          <el-table-column label="操作" width="100">
+        <ScTable :data="env.history" style="width: 100%" size="small">
+          <ScTableColumn label="操作" width="100">
             <template #default="scope">
-              <el-tag
+              <ScTag 
                 :type="scope.row.operation === 'encode' ? 'primary' : 'success'"
                 size="small"
               >
                 {{ scope.row.operation === "encode" ? "编码" : "解码" }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column label="输入" show-overflow-tooltip>
+          </ScTableColumn>
+          <ScTableColumn label="输入" show-overflow-tooltip>
             <template #default="scope">
               <span>{{ scope.row.input }}</span>
             </template>
-          </el-table-column>
-          <el-table-column label="输出" show-overflow-tooltip>
+          </ScTableColumn>
+          <ScTableColumn label="输出" show-overflow-tooltip>
             <template #default="scope">
               <span>{{ scope.row.output }}</span>
             </template>
-          </el-table-column>
-          <el-table-column label="时间" width="180">
+          </ScTableColumn>
+          <ScTableColumn label="时间" width="180">
             <template #default="scope">
               <span>{{ scope.row.date }}</span>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="100" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="100" fixed="right">
             <template #default="scope">
-              <el-button
+              <ScButton 
                 type="primary"
                 link
                 size="small"
@@ -737,11 +737,11 @@ onMounted(() => {
               >
                 <IconifyIconOnline icon="ri:arrow-go-back-line" />
                 <span>加载</span>
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+          </ScTableColumn>
+        </ScTable>
+      </ScCard>
     </div>
   </div>
 </template>

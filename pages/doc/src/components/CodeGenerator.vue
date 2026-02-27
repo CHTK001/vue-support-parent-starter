@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="code-generator">
     <div v-if="!api" class="no-selection">
-      <el-empty description="请选择一个API接口" :image-size="100" />
+      <ScEmpty description="请选择一个API接口" :image-size="100" />
     </div>
     <div v-else class="examples-container">
-      <el-tabs v-model="activeLanguage" class="language-tabs">
-        <el-tab-pane
+      <ScTabs v-model="activeLanguage" class="language-tabs">
+        <ScTabPane 
           v-for="lang in languages"
           :key="lang.value"
           :label="lang.label"
@@ -14,10 +14,10 @@
           <div class="code-block">
             <div class="code-header">
               <span class="language-label">{{ lang.label }}</span>
-              <el-button size="small" text @click="copyCode">
+              <ScButton size="small" text @click="copyCode">
                 <i class="ri-file-copy-line"></i>
                 复制代码
-              </el-button>
+              </ScButton>
             </div>
             <div class="code-content">
               <codemirror-editor-vue3
@@ -28,20 +28,22 @@
                 :read-only="true"
               />
               <div v-else class="empty-code">
-                <el-empty
+                <ScEmpty 
                   :description="api ? '正在生成代码...' : '请先选择一个API接口'"
                   :image-size="80"
                 />
               </div>
             </div>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+
+import ScTabPane from "@repo/components/ScTabs";
 import { computed, ref, watch } from "vue";
 import CodemirrorEditorVue3 from "codemirror-editor-vue3";
 import type { ApiInfo, CodeLanguage } from "../types";

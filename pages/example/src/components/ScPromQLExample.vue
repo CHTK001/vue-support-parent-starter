@@ -1,26 +1,26 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ScPromQL PromQL编辑器示例</h2>
     <p class="example-desc">
       PromQL 表达式编辑器，用于 Prometheus 查询语句编辑
     </p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="demo-controls">
-        <el-button type="primary" @click="setExample('up')">
+        <ScButton type="primary" @click="setExample('up')">
           <IconifyIconOnline icon="ri:pulse-line" class="mr-1" />
           服务状态
-        </el-button>
-        <el-button @click="setExample('cpu')">
+        </ScButton>
+        <ScButton @click="setExample('cpu')">
           <IconifyIconOnline icon="ri:cpu-line" class="mr-1" />
           CPU使用率
-        </el-button>
-        <el-button @click="setExample('memory')">
+        </ScButton>
+        <ScButton @click="setExample('memory')">
           <IconifyIconOnline icon="ri:database-2-line" class="mr-1" />
           内存使用
-        </el-button>
+        </ScButton>
       </div>
 
       <ScPromQL v-model="config.expr" />
@@ -30,18 +30,18 @@
       </div>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="150" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="load-example">
     <!-- 预览区域 -->
     <div class="preview-area">
@@ -8,7 +8,7 @@
         :class="{ fullscreen: isFullscreen }"
         :style="customContainerStyle"
       >
-        <el-button
+        <ScButton 
           class="close-preview-btn"
           type="danger"
           circle
@@ -17,9 +17,9 @@
           v-if="loadingVisible"
         >
           <IconifyIconOnline icon="ep:close" />
-        </el-button>
+        </ScButton>
 
-        <el-button
+        <ScButton 
           class="fullscreen-btn"
           type="primary"
           circle
@@ -30,7 +30,7 @@
           <IconifyIconOnline
             :icon="isFullscreen ? 'ep:close-bold' : 'ep:full-screen'"
           />
-        </el-button>
+        </ScButton>
 
         <div class="loading-area">
           <ScLoading
@@ -51,60 +51,60 @@
     <!-- 配置面板 -->
     <div class="config-panel mt-4">
       <h4>配置选项</h4>
-      <el-row :gutter="20">
+      <ScRow :gutter="20">
         <!-- 布局和显示选项 -->
-        <el-col :xs="24" :sm="12">
-          <el-form label-position="top" size="default">
-            <el-form-item label="布局类型">
-              <el-select v-model="selectedLayout" class="w-100">
-                <el-option
+        <ScCol :xs="24" :sm="12">
+          <ScForm label-position="top" size="default">
+            <ScFormItem label="布局类型">
+              <ScSelect v-model="selectedLayout" class="w-100">
+                <ScOption 
                   v-for="layout in layouts"
                   :key="layout.value"
                   :label="layout.label"
                   :value="layout.value"
                 />
-              </el-select>
-            </el-form-item>
+              </ScSelect>
+            </ScFormItem>
 
-            <el-form-item label="显示选项">
+            <ScFormItem label="显示选项">
               <div class="display-options">
-                <el-switch v-model="showNumber" active-text="显示进度数字" />
-                <el-switch
+                <ScSwitch v-model="showNumber" active-text="显示进度数字" />
+                <ScSwitch 
                   v-model="showLoadingText"
                   active-text="显示加载文本"
                 />
-                <el-switch
+                <ScSwitch 
                   v-model="autoCloseFinished"
                   active-text="完成自动关闭"
                 />
               </div>
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="加载文本" v-if="showLoadingText">
-              <el-input
+            <ScFormItem label="加载文本" v-if="showLoadingText">
+              <ScInput 
                 v-model="loadingLabel"
                 placeholder="请输入加载提示文本"
               />
-            </el-form-item>
-          </el-form>
-        </el-col>
+            </ScFormItem>
+          </ScForm>
+        </ScCol>
 
         <!-- 样式选项 -->
-        <el-col :xs="24" :sm="12">
-          <el-form label-position="top" size="default">
-            <el-form-item label="背景颜色">
-              <el-color-picker
+        <ScCol :xs="24" :sm="12">
+          <ScForm label-position="top" size="default">
+            <ScFormItem label="背景颜色">
+              <ScColorPicker 
                 v-model="customBgColor"
                 show-alpha
                 class="w-100"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="进度条颜色">
-              <el-color-picker v-model="customColor" class="w-100" />
-            </el-form-item>
+            <ScFormItem label="进度条颜色">
+              <ScColorPicker v-model="customColor" class="w-100" />
+            </ScFormItem>
 
-            <el-form-item label="圆角大小">
+            <ScFormItem label="圆角大小">
               <ScSlider
                 v-model="borderRadius"
                 :min="0"
@@ -112,16 +112,16 @@
                 :step="1"
                 show-stops
               />
-            </el-form-item>
-          </el-form>
-        </el-col>
-      </el-row>
+            </ScFormItem>
+          </ScForm>
+        </ScCol>
+      </ScRow>
 
       <!-- 进度控制 -->
       <div class="progress-control mt-4">
         <h4>进度控制</h4>
-        <el-row :gutter="20">
-          <el-col :span="16">
+        <ScRow :gutter="20">
+          <ScCol :span="16">
             <ScSlider
               v-model="progress"
               :min="0"
@@ -131,30 +131,30 @@
               :format-tooltip="(value) => `${value}%`"
               @change="handleProgressChange"
             />
-          </el-col>
-          <el-col :span="8">
+          </ScCol>
+          <ScCol :span="8">
             <div class="action-buttons">
               <el-button-group>
-                <el-button type="primary" @click="showLoading">
+                <ScButton type="primary" @click="showLoading">
                   <IconifyIconOnline icon="ep:view" />
                   <span>显示</span>
-                </el-button>
-                <el-button type="success" @click="simulateProgress">
+                </ScButton>
+                <ScButton type="success" @click="simulateProgress">
                   <IconifyIconOnline icon="ep:video-play" />
                   <span>自动进度</span>
-                </el-button>
-                <el-button type="warning" @click="resetProgress">
+                </ScButton>
+                <ScButton type="warning" @click="resetProgress">
                   <IconifyIconOnline icon="ep:refresh-right" />
                   <span>重置</span>
-                </el-button>
-                <el-button type="danger" @click="closeLoading">
+                </ScButton>
+                <ScButton type="danger" @click="closeLoading">
                   <IconifyIconOnline icon="ep:close" />
                   <span>关闭</span>
-                </el-button>
+                </ScButton>
               </el-button-group>
             </div>
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
       </div>
     </div>
 
@@ -181,7 +181,7 @@
           </div>
           <div class="layout-name">
             {{ layout.label }}
-            <el-tag
+            <ScTag 
               v-if="selectedLayout === layout.value"
               size="small"
               effect="dark"

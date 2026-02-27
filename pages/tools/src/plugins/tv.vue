@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -509,10 +509,10 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <el-row :gutter="20">
+      <ScRow :gutter="20">
         <!-- 左侧：频道列表 -->
-        <el-col :xs="24" :sm="24" :md="8" :lg="6">
-          <el-card class="tv-tool__channels-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="8" :lg="6">
+          <ScCard class="tv-tool__channels-card" shadow="hover">
             <template #header>
               <div class="tv-tool__card-header">
                 <IconifyIconOnline
@@ -525,12 +525,12 @@ onBeforeUnmount(() => {
 
             <!-- 频道分类 -->
             <div class="tv-tool__category-tabs">
-              <el-radio-group
+              <ScRadioGroup 
                 v-model="env.selectedCategory"
                 size="large"
                 class="tv-tool__radio-group"
               >
-                <el-radio
+                <ScRadio 
                   v-for="category in env.categories"
                   :key="category.value"
                   :label="category.value"
@@ -539,8 +539,8 @@ onBeforeUnmount(() => {
                   <div class="tv-tool__radio-content">
                     <span>{{ category.label }}</span>
                   </div>
-                </el-radio>
-              </el-radio-group>
+                </ScRadio>
+              </ScRadioGroup>
             </div>
 
             <!-- 频道列表 -->
@@ -563,7 +563,7 @@ onBeforeUnmount(() => {
                   <div class="tv-tool__channel-name">{{ channel.name }}</div>
                 </div>
                 <div class="tv-tool__channel-actions">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     link
                     @click.stop="toggleFavorite(channel)"
@@ -578,14 +578,14 @@ onBeforeUnmount(() => {
                           : '',
                       }"
                     />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 收藏频道 -->
-          <el-card
+          <ScCard 
             class="tv-tool__favorites-card"
             shadow="hover"
             v-if="env.favorites.length > 0"
@@ -620,20 +620,20 @@ onBeforeUnmount(() => {
                   <div class="tv-tool__channel-name">{{ channel.name }}</div>
                 </div>
                 <div class="tv-tool__channel-actions">
-                  <el-button
+                  <ScButton 
                     type="danger"
                     link
                     @click.stop="toggleFavorite(channel)"
                   >
                     <IconifyIconOnline icon="ri:delete-bin-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 历史记录 -->
-          <el-card
+          <ScCard 
             class="tv-tool__history-card"
             shadow="hover"
             v-if="env.history.length > 0"
@@ -668,12 +668,12 @@ onBeforeUnmount(() => {
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 右侧：播放器 -->
-        <el-col :xs="24" :sm="24" :md="16" :lg="18">
-          <el-card class="tv-tool__player-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="16" :lg="18">
+          <ScCard class="tv-tool__player-card" shadow="hover">
             <template #header>
               <div class="tv-tool__card-header">
                 <IconifyIconOnline
@@ -684,7 +684,7 @@ onBeforeUnmount(() => {
                   env.currentChannel ? env.currentChannel.name : "电视直播"
                 }}</span>
                 <div class="tv-tool__player-controls" v-if="env.currentChannel">
-                  <el-button type="primary" link @click="toggleFullscreen">
+                  <ScButton type="primary" link @click="toggleFullscreen">
                     <IconifyIconOnline
                       :icon="
                         env.isFullscreen
@@ -692,7 +692,7 @@ onBeforeUnmount(() => {
                           : 'ri:fullscreen-line'
                       "
                     />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
@@ -712,7 +712,7 @@ onBeforeUnmount(() => {
               </div>
               <div v-else class="tv-tool__player-wrapper">
                 <div v-if="env.loading" class="tv-tool__player-loading">
-                  <el-icon class="is-loading"><Loading /></el-icon>
+                  <ScIcon class="is-loading"><Loading /></ScIcon>
                   <span>正在加载频道，请稍候...</span>
                 </div>
                 <video
@@ -731,7 +731,7 @@ onBeforeUnmount(() => {
                 <!-- 播放器控制栏 -->
                 <div class="tv-tool__player-controls-bar">
                   <div class="tv-tool__player-volume">
-                    <el-button type="primary" link @click="toggleMute">
+                    <ScButton type="primary" link @click="toggleMute">
                       <IconifyIconOnline
                         :icon="
                           env.isMuted
@@ -741,7 +741,7 @@ onBeforeUnmount(() => {
                               : 'ri:volume-down-line'
                         "
                       />
-                    </el-button>
+                    </ScButton>
                     <ScSlider
                       v-model="env.volume"
                       :min="0"
@@ -753,7 +753,7 @@ onBeforeUnmount(() => {
                   </div>
 
                   <div class="tv-tool__player-actions">
-                    <el-button
+                    <ScButton 
                       type="primary"
                       @click="toggleFavorite(env.currentChannel)"
                     >
@@ -767,9 +767,9 @@ onBeforeUnmount(() => {
                       <span>{{
                         isFavorite(env.currentChannel) ? "取消收藏" : "收藏频道"
                       }}</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button type="success" @click="toggleFullscreen">
+                    <ScButton type="success" @click="toggleFullscreen">
                       <IconifyIconOnline
                         :icon="
                           env.isFullscreen
@@ -780,15 +780,15 @@ onBeforeUnmount(() => {
                       <span>{{
                         env.isFullscreen ? "退出全屏" : "全屏观看"
                       }}</span>
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 使用说明 -->
-          <el-card
+          <ScCard 
             class="tv-tool__tips-card"
             shadow="hover"
             v-if="!env.currentChannel"
@@ -834,9 +834,9 @@ onBeforeUnmount(() => {
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

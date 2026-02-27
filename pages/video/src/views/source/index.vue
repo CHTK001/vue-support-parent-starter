@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -15,51 +15,50 @@
     <div class="source-list flex flex-col h-full">
       <div class="list-header">
         <div class="list-header-content">
-
           <div class="list-actions">
             <div class="search-input">
-              <el-input
+              <ScInput 
                 v-model="searchKeyword"
                 placeholder="搜索视频源平台或URL"
                 @input="handleSearch"
               >
                 <template #prefix>
-                  <el-icon>
+                  <ScIcon>
                     <IconifyIconOnline icon="ep:search" />
-                  </el-icon>
+                  </ScIcon>
                 </template>
-              </el-input>
+              </ScInput>
             </div>
 
             <div class="filter-select">
-              <el-select
+              <ScSelect 
                 v-model="statusFilter"
                 placeholder="状态筛选"
                 @change="handleFilter"
               >
-                <el-option label="全部" value="" />
-                <el-option label="启用" value="1" />
-                <el-option label="禁用" value="0" />
-              </el-select>
+                <ScOption label="全部" value="" />
+                <ScOption label="启用" value="1" />
+                <ScOption label="禁用" value="0" />
+              </ScSelect>
             </div>
 
             <div class="header-actions">
-              <el-button
+              <ScButton 
                 type="primary"
                 @click="showAddDialog = true"
                 class="action-btn primary-action"
               >
                 <IconifyIconOnline icon="ep:plus" />
                 新增视频源
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton 
                 @click="refreshSources"
                 class="action-btn secondary-action"
               >
-                <el-icon>
+                <ScIcon>
                   <IconifyIconOnline icon="ep:refresh" />
-                </el-icon>
-              </el-button>
+                </ScIcon>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -90,14 +89,14 @@
               <div class="empty-description">
                 还没有添加任何视频源，点击上方按钮开始添加
               </div>
-              <el-button
+              <ScButton 
                 type="primary"
                 @click="showAddDialog = true"
                 class="empty-action"
               >
                 <IconifyIconOnline icon="ep:plus" class="mr-2" />
                 新增视频源
-              </el-button>
+              </ScButton>
             </div>
           </template>
 
@@ -139,8 +138,7 @@
  * @version 1.0.0
  * @since 2024-12-19
  */
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { message, ScMessageBox } from "@repo/utils";
 import { onMounted, onUnmounted, ref } from "vue";
 import {
   deleteSource,
@@ -221,14 +219,14 @@ const editSource = (source: VideoSource) => {
  * 删除视频源
  */
 const deleteSourceItem = (source: VideoSource) => {
-  ElMessageBox.confirm(
+  ScMessageBox.confirm(
     `确定要删除视频源 "${source.videoSourcePlatform}" 吗？`,
     "确认删除",
     {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning",
-    }
+    },
   )
     .then(() => {
       deleteSource(source.videoSourceId)
@@ -336,7 +334,11 @@ onUnmounted(() => {
 <style scoped lang="scss">
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-3) 0%,
+    var(--el-color-primary) 100%
+  );
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
@@ -422,7 +424,7 @@ onUnmounted(() => {
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color);
   color: var(--el-text-color-regular);
-  
+
   &:hover {
     border-color: var(--el-color-primary);
     color: var(--el-color-primary);
@@ -473,7 +475,11 @@ onUnmounted(() => {
 }
 
 .source-dialog :deep(.el-dialog__header) {
-  background: linear-gradient(135deg, var(--el-color-primary-light-5) 0%, var(--el-color-primary-light-3) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-5) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
   border-bottom: 1px solid var(--el-border-color-lighter);
   padding: 20px 24px;
   border-radius: 12px 12px 0 0;

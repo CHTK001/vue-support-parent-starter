@@ -1,72 +1,72 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ScMessageDialog 消息对话框示例</h2>
     <p class="example-desc">
       用于显示操作进度、消息通知等，支持 interact.js 拖拽功能
     </p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="demo-controls">
-        <el-button type="primary" @click="showDialog">
+        <ScButton type="primary" @click="showDialog">
           <IconifyIconOnline icon="ri:message-3-line" class="mr-1" />
           显示对话框
-        </el-button>
-        <el-button @click="addOperation">
+        </ScButton>
+        <ScButton @click="addOperation">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加操作
-        </el-button>
-        <el-button @click="simulateProgress" :disabled="!hasRunningOp">
+        </ScButton>
+        <ScButton @click="simulateProgress" :disabled="!hasRunningOp">
           <IconifyIconOnline icon="ri:play-line" class="mr-1" />
           模拟进度
-        </el-button>
-        <el-button type="danger" plain @click="clearOperations">
+        </ScButton>
+        <ScButton type="danger" plain @click="clearOperations">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           清空
-        </el-button>
+        </ScButton>
       </div>
 
-      <el-divider content-position="left">属性配置</el-divider>
+      <ScDivider content-position="left">属性配置</ScDivider>
 
-      <el-form label-width="100px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="位置">
-              <el-select v-model="config.position" style="width: 100%">
-                <el-option label="右下角" value="bottom-right" />
-                <el-option label="左下角" value="bottom-left" />
-                <el-option label="右上角" value="top-right" />
-                <el-option label="左上角" value="top-left" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="主题色">
-              <el-color-picker v-model="config.themeColor" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="标题">
-              <el-input v-model="config.title" placeholder="对话框标题" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+      <ScForm label-width="100px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="位置">
+              <ScSelect v-model="config.position" style="width: 100%">
+                <ScOption label="右下角" value="bottom-right" />
+                <ScOption label="左下角" value="bottom-left" />
+                <ScOption label="右上角" value="top-right" />
+                <ScOption label="左上角" value="top-left" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="主题色">
+              <ScColorPicker v-model="config.themeColor" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="标题">
+              <ScInput v-model="config.title" placeholder="对话框标题" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="150" />
-      <el-table-column prop="type" label="类型" width="200" />
-      <el-table-column prop="default" label="默认值" width="150" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="150" />
+      <ScTableColumn prop="type" label="类型" width="200" />
+      <ScTableColumn prop="default" label="默认值" width="150" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
 
     <!-- ScMessageDialog 组件实例 -->
     <ScMessageDialog

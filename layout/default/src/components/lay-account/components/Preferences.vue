@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from "vue";
 import { message } from "@repo/utils";
 import { deviceDetection } from "@pureadmin/utils";
@@ -43,9 +43,9 @@ function onChange(val, item) {
             </el-text>
           </p>
         </div>
-        <el-switch v-model="item.checked" inline-prompt active-text="是" inactive-text="否" @change="val => onChange(val, item)" />
+        <ScSwitch v-model="item.checked" inline-prompt active-text="是" inactive-text="否" @change="val => onChange(val, item)" />
       </div>
-      <el-divider />
+      <ScDivider />
     </div>
   </div>
 </template>

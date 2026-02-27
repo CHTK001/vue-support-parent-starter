@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -311,10 +311,10 @@ const resetForm = () => {
         </div>
       </div>
 
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="martian-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="martian-tool__input-card" shadow="hover">
             <template #header>
               <div class="martian-tool__card-header">
                 <IconifyIconOnline icon="ri:input-method-line" class="martian-tool__card-icon" />
@@ -322,33 +322,33 @@ const resetForm = () => {
               </div>
             </template>
 
-            <el-form label-position="top">
-              <el-form-item label="转换风格">
-                <el-radio-group v-model="env.selectedStyle" class="martian-tool__style-group">
-                  <el-radio v-for="style in env.styles" :key="style.value" :label="style.value">
+            <ScForm label-position="top">
+              <ScFormItem label="转换风格">
+                <ScRadioGroup v-model="env.selectedStyle" class="martian-tool__style-group">
+                  <ScRadio v-for="style in env.styles" :key="style.value" :label="style.value">
                     <div class="martian-tool__style-item">
                       <IconifyIconOnline :icon="style.icon" />
                       <span>{{ style.label }}</span>
-                      <el-tooltip :content="style.example" placement="top">
+                      <ScTooltip :content="style.example" placement="top">
                         <IconifyIconOnline icon="ri:question-line" class="martian-tool__help-icon" />
-                      </el-tooltip>
+                      </ScTooltip>
                     </div>
-                  </el-radio>
-                </el-radio-group>
-              </el-form-item>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
 
-              <el-form-item label="输入文本">
-                <el-input
+              <ScFormItem label="输入文本">
+                <ScInput 
                   v-model="env.inputText"
                   type="textarea"
                   :rows="4"
                   placeholder="请输入要转换的文本"
                   class="martian-tool__textarea"
                 />
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item v-if="env.selectedStyle === 'custom'" label="自定义映射规则">
-                <el-input
+              <ScFormItem v-if="env.selectedStyle === 'custom'" label="自定义映射规则">
+                <ScInput 
                   v-model="env.customMapping"
                   type="textarea"
                   :rows="3"
@@ -360,26 +360,26 @@ const resetForm = () => {
                   你=>尓<br/>
                   好=>㚚
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
               <div class="martian-tool__actions">
-                <el-button type="primary" :loading="env.loading" @click="convertText">
+                <ScButton type="primary" :loading="env.loading" @click="convertText">
                   <IconifyIconOnline icon="ri:translate-2" />
                   <span>转换</span>
-                </el-button>
+                </ScButton>
 
-                <el-button @click="resetForm">
+                <ScButton @click="resetForm">
                   <IconifyIconOnline icon="ri:refresh-line" />
                   <span>重置</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
-          </el-card>
-        </el-col>
+            </ScForm>
+          </ScCard>
+        </ScCol>
 
         <!-- 输出区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="martian-tool__output-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="martian-tool__output-card" shadow="hover">
             <template #header>
               <div class="martian-tool__card-header">
                 <IconifyIconOnline icon="ri:alien-fill" class="martian-tool__card-icon" />
@@ -396,21 +396,21 @@ const resetForm = () => {
               <div class="martian-tool__output">
                 <div class="martian-tool__output-text">{{ env.outputText }}</div>
                 <div class="martian-tool__output-actions">
-                  <el-button type="primary" link @click="copyToClipboard(env.outputText)">
+                  <ScButton type="primary" link @click="copyToClipboard(env.outputText)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                     <span>复制</span>
-                  </el-button>
-                  <el-button type="success" link @click="addToFavorites(env.outputText)">
+                  </ScButton>
+                  <ScButton type="success" link @click="addToFavorites(env.outputText)">
                     <IconifyIconOnline icon="ri:star-line" />
                     <span>收藏</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
-          </el-card>
+          </ScCard>
 
           <!-- 历史记录 -->
-          <el-card class="martian-tool__history-card" shadow="hover">
+          <ScCard class="martian-tool__history-card" shadow="hover">
             <template #header>
               <div class="martian-tool__card-header">
                 <IconifyIconOnline icon="ri:history-line" class="martian-tool__card-icon" />
@@ -431,23 +431,23 @@ const resetForm = () => {
                     <div>转换：{{ item.output }}</div>
                   </div>
                   <div class="martian-tool__history-info">
-                    <el-tag size="small" :type="item.style === 'custom' ? 'warning' : 'info'">
+                    <ScTag size="small" :type="item.style === 'custom' ? 'warning' : 'info'">
                       {{ env.styles.find(s => s.value === item.style)?.label }}
-                    </el-tag>
+                    </ScTag>
                     <span class="martian-tool__history-time">{{ item.timestamp }}</span>
                   </div>
                 </div>
                 <div class="martian-tool__history-actions">
-                  <el-button type="primary" link @click="copyToClipboard(item.output)">
+                  <ScButton type="primary" link @click="copyToClipboard(item.output)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 收藏夹 -->
-          <el-card class="martian-tool__favorites-card" shadow="hover">
+          <ScCard class="martian-tool__favorites-card" shadow="hover">
             <template #header>
               <div class="martian-tool__card-header">
                 <IconifyIconOnline icon="ri:star-line" class="martian-tool__card-icon" />
@@ -464,18 +464,18 @@ const resetForm = () => {
               <div v-for="(text, index) in env.favoriteTexts" :key="index" class="martian-tool__favorite-item">
                 <span class="martian-tool__favorite-text">{{ text }}</span>
                 <div class="martian-tool__favorite-actions">
-                  <el-button type="primary" link @click="copyToClipboard(text)">
+                  <ScButton type="primary" link @click="copyToClipboard(text)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
-                  <el-button type="danger" link @click="removeFromFavorites(text)">
+                  </ScButton>
+                  <ScButton type="danger" link @click="removeFromFavorites(text)">
                     <IconifyIconOnline icon="ri:delete-bin-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

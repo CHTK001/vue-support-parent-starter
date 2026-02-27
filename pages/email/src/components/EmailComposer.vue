@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, watch } from "vue";
 import { IconifyIconOnline } from "@iconify/vue";
 
@@ -273,12 +273,12 @@ const closeComposer = () => {
         {{ mode === "compose" ? "写邮件" : mode === "reply" ? "回复" : mode === "replyAll" ? "回复全部" : "转发" }}
       </div>
       <div class="email-composer__actions">
-        <el-button type="primary" @click="sendEmail">发送</el-button>
-        <el-button @click="saveDraft">保存草稿</el-button>
-        <el-button @click="discardEmail">丢弃</el-button>
-        <el-button type="text" circle @click="closeComposer">
+        <ScButton type="primary" @click="sendEmail">发送</ScButton>
+        <ScButton @click="saveDraft">保存草稿</ScButton>
+        <ScButton @click="discardEmail">丢弃</ScButton>
+        <ScButton type="text" circle @click="closeComposer">
           <IconifyIconOnline icon="ri:close-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -287,8 +287,8 @@ const closeComposer = () => {
       <div class="email-composer__field">
         <div class="email-composer__label">发件人</div>
         <div class="email-composer__input">
-          <el-select v-model="emailForm.emailAccountId" class="email-composer__account-select">
-            <el-option v-for="account in accounts" :key="account.emailAccountId" :label="`${account.emailAccountName} <${account.emailAccountAddress}>`" :value="account.emailAccountId">
+          <ScSelect v-model="emailForm.emailAccountId" class="email-composer__account-select">
+            <ScOption v-for="account in accounts" :key="account.emailAccountId" :label="`${account.emailAccountName} <${account.emailAccountAddress}>`" :value="account.emailAccountId">
               <div class="email-composer__account-option">
                 <img :src="account.emailAccountAvatar" :alt="account.emailAccountName" class="email-composer__account-avatar" />
                 <div class="email-composer__account-info">
@@ -296,8 +296,8 @@ const closeComposer = () => {
                   <div class="email-composer__account-address">{{ account.emailAccountAddress }}</div>
                 </div>
               </div>
-            </el-option>
-          </el-select>
+            </ScOption>
+          </ScSelect>
         </div>
       </div>
 
@@ -305,8 +305,8 @@ const closeComposer = () => {
       <div class="email-composer__field">
         <div class="email-composer__label">收件人</div>
         <div class="email-composer__input">
-          <el-tag v-for="(recipient, index) in emailForm.emailRecipients.emailTo" :key="index" closable @close="removeRecipient('to', index)" class="email-composer__tag"> {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt; </el-tag>
-          <el-input placeholder="输入邮箱地址并按回车添加" @keyup.enter="(e) => (e.target.value = addRecipient('to', e.target.value))" class="email-composer__recipient-input" />
+          <ScTag v-for="(recipient, index) in emailForm.emailRecipients.emailTo" :key="index" closable @close="removeRecipient('to', index)" class="email-composer__tag"> {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt; </ScTag>
+          <ScInput placeholder="输入邮箱地址并按回车添加" @keyup.enter="(e) => (e.target.value = addRecipient('to', e.target.value))" class="email-composer__recipient-input" />
         </div>
       </div>
 
@@ -320,8 +320,8 @@ const closeComposer = () => {
       <div class="email-composer__field" v-if="showCc">
         <div class="email-composer__label">抄送</div>
         <div class="email-composer__input">
-          <el-tag v-for="(recipient, index) in emailForm.emailRecipients.emailCc" :key="index" closable @close="removeRecipient('cc', index)" class="email-composer__tag"> {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt; </el-tag>
-          <el-input placeholder="输入邮箱地址并按回车添加" @keyup.enter="(e) => (e.target.value = addRecipient('cc', e.target.value))" class="email-composer__recipient-input" />
+          <ScTag v-for="(recipient, index) in emailForm.emailRecipients.emailCc" :key="index" closable @close="removeRecipient('cc', index)" class="email-composer__tag"> {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt; </ScTag>
+          <ScInput placeholder="输入邮箱地址并按回车添加" @keyup.enter="(e) => (e.target.value = addRecipient('cc', e.target.value))" class="email-composer__recipient-input" />
         </div>
       </div>
 
@@ -329,8 +329,8 @@ const closeComposer = () => {
       <div class="email-composer__field" v-if="showBcc">
         <div class="email-composer__label">密送</div>
         <div class="email-composer__input">
-          <el-tag v-for="(recipient, index) in emailForm.emailRecipients.emailBcc" :key="index" closable @close="removeRecipient('bcc', index)" class="email-composer__tag"> {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt; </el-tag>
-          <el-input placeholder="输入邮箱地址并按回车添加" @keyup.enter="(e) => (e.target.value = addRecipient('bcc', e.target.value))" class="email-composer__recipient-input" />
+          <ScTag v-for="(recipient, index) in emailForm.emailRecipients.emailBcc" :key="index" closable @close="removeRecipient('bcc', index)" class="email-composer__tag"> {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt; </ScTag>
+          <ScInput placeholder="输入邮箱地址并按回车添加" @keyup.enter="(e) => (e.target.value = addRecipient('bcc', e.target.value))" class="email-composer__recipient-input" />
         </div>
       </div>
 
@@ -338,13 +338,13 @@ const closeComposer = () => {
       <div class="email-composer__field">
         <div class="email-composer__label">主题</div>
         <div class="email-composer__input">
-          <el-input v-model="emailForm.emailSubject" placeholder="请输入邮件主题" />
+          <ScInput v-model="emailForm.emailSubject" placeholder="请输入邮件主题" />
         </div>
       </div>
 
       <!-- 正文 -->
       <div class="email-composer__content">
-        <el-input v-model="emailForm.emailContent" type="textarea" :rows="12" placeholder="请输入邮件正文" />
+        <ScInput v-model="emailForm.emailContent" type="textarea" :rows="12" placeholder="请输入邮件正文" />
       </div>
 
       <!-- 附件 -->
@@ -372,9 +372,9 @@ const closeComposer = () => {
               <div class="email-composer__attachment-size">{{ formatFileSize(attachment.emailAttachmentSize) }}</div>
             </div>
             <div class="email-composer__attachment-actions">
-              <el-button type="danger" text size="small" @click="removeAttachment(index)">
+              <ScButton type="danger" text size="small" @click="removeAttachment(index)">
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -383,14 +383,14 @@ const closeComposer = () => {
       <!-- 底部工具栏 -->
       <div class="email-composer__toolbar">
         <div class="email-composer__toolbar-left">
-          <el-button @click="uploadAttachment">
+          <ScButton @click="uploadAttachment">
             <IconifyIconOnline icon="ri:attachment-2" />
             <span>添加附件</span>
-          </el-button>
+          </ScButton>
           <input type="file" ref="fileInput" @change="handleFileChange" multiple style="display: none" />
         </div>
         <div class="email-composer__toolbar-right">
-          <el-button type="primary" @click="sendEmail">发送</el-button>
+          <ScButton type="primary" @click="sendEmail">发送</ScButton>
         </div>
       </div>
     </div>

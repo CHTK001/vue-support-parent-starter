@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 import { defineComponent } from "vue";
 
 import Delete from "@iconify-icons/ep/delete";
@@ -188,7 +188,7 @@ export default defineComponent({
     <div class="main h-full">
       <el-container>
         <el-header class="header-height">
-          <el-input
+          <ScInput 
             v-model="dicFilterText"
             :placeholder="useI18n('input.keywordSearch')"
             clearable
@@ -197,7 +197,7 @@ export default defineComponent({
         <el-main class="nopadding">
           <div class="h-full">
             <el-skeleton v-if="loading.query" animated :count="6" />
-            <el-tree
+            <ScTree 
               v-else
               ref="treeRef"
               :load="loadNode"
@@ -215,41 +215,41 @@ export default defineComponent({
               <template #default="{ data }">
                 <span class="custom-tree-node">
                   <span class="label">
-                    <el-tag class="label" size="small">{{
+                    <ScTag class="label" size="small">{{
                       data.sysDictId
-                    }}</el-tag>
+                    }}</ScTag>
                     {{ data.sysDictName }}
                   </span>
                   <span class="code">{{ data?.sysDictCode }}</span>
                   <span v-if="data?.sysDictId" class="do">
                     <el-button-group>
-                      <el-button
+                      <ScButton 
                         :icon="icon.EditPen"
                         size="small"
                         @click.stop="dialogOpen(data, 'edit')"
                       />
-                      <el-popconfirm
+                      <ScPopconfirm 
                         :title="$t('message.confimDelete')"
                         @confirm="onDelete(row, $index)"
                       >
                         <template #reference>
-                          <el-button
+                          <ScButton 
                             v-if="data?.sysDictInSystem == 1"
                             :icon="icon.Delete"
                             size="small"
                             @click.stop="onDelete(data)"
                           />
                         </template>
-                      </el-popconfirm>
+                      </ScPopconfirm>
                     </el-button-group>
                   </span>
                 </span>
               </template>
-            </el-tree>
+            </ScTree>
           </div>
         </el-main>
         <el-footer class="footer-height">
-          <el-button
+          <ScButton 
             type="primary"
             size="small"
             icon="el-icon-plus"
@@ -257,7 +257,7 @@ export default defineComponent({
             @click="dialogOpen({}, 'save')"
           >
             {{ useI18n("buttons.addDict") }}
-          </el-button>
+          </ScButton>
         </el-footer>
       </el-container>
     </div>

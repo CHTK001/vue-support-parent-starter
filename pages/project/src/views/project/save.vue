@@ -4,9 +4,9 @@
       <!-- 表单头部 -->
       <div class="form-header" v-if="!isViewMode">
         <div class="header-icon">
-          <el-icon class="icon">
+          <ScIcon class="icon">
             <component :is="useRenderIcon(getHeaderIcon())" />
-          </el-icon>
+          </ScIcon>
         </div>
         <div class="header-content">
           <h3 class="header-title">{{ getHeaderTitle() }}</h3>
@@ -20,17 +20,17 @@
           <div class="project-avatar">
             <img v-if="formData.sysProjectIcon" :src="formData.sysProjectIcon" :alt="formData.sysProjectName" class="avatar-image" @error="handleImageError" />
             <div v-else class="avatar-placeholder">
-              <el-icon class="placeholder-icon">
+              <ScIcon class="placeholder-icon">
                 <component :is="useRenderIcon('ri:apps-line')" />
-              </el-icon>
+              </ScIcon>
             </div>
           </div>
           <div class="project-info">
             <h2 class="project-name">{{ formData.sysProjectName }}</h2>
             <div class="project-meta">
-              <el-tag :type="formData.sysProjectStatus === 1 ? 'success' : 'danger'" class="status-tag">
+              <ScTag :type="formData.sysProjectStatus === 1 ? 'success' : 'danger'" class="status-tag">
                 {{ formData.sysProjectStatus === 1 ? "启用" : "禁用" }}
-              </el-tag>
+              </ScTag>
               <span class="meta-divider">•</span>
               <span class="meta-text">{{ getVenderName(formData.sysProjectVender) }}</span>
             </div>
@@ -60,9 +60,9 @@
           <div class="info-section" v-if="formData.sysProjectFunction">
             <label class="section-label">项目功能</label>
             <div class="function-tags">
-              <el-tag v-for="funcId in getFunctionIds(formData.sysProjectFunction)" :key="funcId" type="primary" class="function-tag">
+              <ScTag v-for="funcId in getFunctionIds(formData.sysProjectFunction)" :key="funcId" type="primary" class="function-tag">
                 {{ getFunctionName(funcId) }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
 
@@ -74,140 +74,140 @@
       </div>
 
       <!-- 编辑表单 -->
-      <el-form v-else ref="formRef" :model="formData" :rules="formRules" label-width="120px" class="modern-form" @submit.prevent>
+      <ScForm v-else ref="formRef" :model="formData" :rules="formRules" label-width="120px" class="modern-form" @submit.prevent>
         <div class="form-grid">
           <!-- 基本信息 -->
           <div class="form-section">
             <div class="section-title">
-              <el-icon class="section-icon">
+              <ScIcon class="section-icon">
                 <component :is="useRenderIcon('ri:information-line')" />
-              </el-icon>
+              </ScIcon>
               <span>基本信息</span>
             </div>
 
             <div class="form-row">
-              <el-form-item label="项目名称" prop="sysProjectName" class="form-item">
-                <el-input v-model="formData.sysProjectName" placeholder="请输入项目名称" clearable maxlength="50" show-word-limit class="form-input">
+              <ScFormItem label="项目名称" prop="sysProjectName" class="form-item">
+                <ScInput v-model="formData.sysProjectName" placeholder="请输入项目名称" clearable maxlength="50" show-word-limit class="form-input">
                   <template #prefix>
-                    <el-icon><component :is="useRenderIcon('ri:apps-line')" /></el-icon>
+                    <ScIcon><component :is="useRenderIcon('ri:apps-line')" /></ScIcon>
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
-              <el-form-item label="项目分组" prop="sysProjectGroup" class="form-item">
-                <el-input v-model="formData.sysProjectGroup" placeholder="请输入项目分组" clearable maxlength="30" show-word-limit class="form-input">
+              <ScFormItem label="项目分组" prop="sysProjectGroup" class="form-item">
+                <ScInput v-model="formData.sysProjectGroup" placeholder="请输入项目分组" clearable maxlength="30" show-word-limit class="form-input">
                   <template #prefix>
-                    <el-icon><component :is="useRenderIcon('ri:folder-line')" /></el-icon>
+                    <ScIcon><component :is="useRenderIcon('ri:folder-line')" /></ScIcon>
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
             </div>
 
             <div class="form-row">
-              <el-form-item label="项目厂商" prop="sysProjectVender" class="form-item">
-                <el-select v-model="formData.sysProjectVender" placeholder="请选择项目厂商" clearable filterable class="form-select">
-                  <el-option v-for="item in venderOptions" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId">
+              <ScFormItem label="项目厂商" prop="sysProjectVender" class="form-item">
+                <ScSelect v-model="formData.sysProjectVender" placeholder="请选择项目厂商" clearable filterable class="form-select">
+                  <ScOption v-for="item in venderOptions" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId">
                     <div class="option-content">
                       <span class="option-name">{{ item.sysDictItemName }}</span>
                       <span class="option-code">{{ item.sysDictItemCode }}</span>
                     </div>
-                  </el-option>
-                </el-select>
-              </el-form-item>
+                  </ScOption>
+                </ScSelect>
+              </ScFormItem>
 
-              <el-form-item label="项目状态" prop="sysProjectStatus" class="form-item">
-                <el-radio-group v-model="formData.sysProjectStatus" class="status-radio">
-                  <el-radio :label="1" class="status-option">
+              <ScFormItem label="项目状态" prop="sysProjectStatus" class="form-item">
+                <ScRadioGroup v-model="formData.sysProjectStatus" class="status-radio">
+                  <ScRadio :label="1" class="status-option">
                     <div class="radio-content">
-                      <el-icon class="radio-icon success">
+                      <ScIcon class="radio-icon success">
                         <component :is="useRenderIcon('ri:checkbox-circle-line')" />
-                      </el-icon>
+                      </ScIcon>
                       <span>启用</span>
                     </div>
-                  </el-radio>
-                  <el-radio :label="0" class="status-option">
+                  </ScRadio>
+                  <ScRadio :label="0" class="status-option">
                     <div class="radio-content">
-                      <el-icon class="radio-icon danger">
+                      <ScIcon class="radio-icon danger">
                         <component :is="useRenderIcon('ri:close-circle-line')" />
-                      </el-icon>
+                      </ScIcon>
                       <span>禁用</span>
                     </div>
-                  </el-radio>
-                </el-radio-group>
-              </el-form-item>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
             </div>
 
-            <el-form-item label="排序值" prop="sysProjectSort" class="form-item full-width">
-              <el-input-number v-model="formData.sysProjectSort" :min="0" :max="9999" :step="1" placeholder="请输入排序值" class="form-number" />
+            <ScFormItem label="排序值" prop="sysProjectSort" class="form-item full-width">
+              <ScInputNumber v-model="formData.sysProjectSort" :min="0" :max="9999" :step="1" placeholder="请输入排序值" class="form-number" />
               <div class="form-tip">
-                <el-icon><component :is="useRenderIcon('ri:information-line')" /></el-icon>
+                <ScIcon><component :is="useRenderIcon('ri:information-line')" /></ScIcon>
                 数值越小排序越靠前，默认为0
               </div>
-            </el-form-item>
+            </ScFormItem>
           </div>
 
           <!-- 功能配置 -->
           <div class="form-section">
             <div class="section-title">
-              <el-icon class="section-icon">
+              <ScIcon class="section-icon">
                 <component :is="useRenderIcon('ri:settings-3-line')" />
-              </el-icon>
+              </ScIcon>
               <span>功能配置</span>
             </div>
 
-            <el-form-item label="项目功能" prop="sysProjectFunction" class="form-item full-width">
-              <el-select v-model="selectedFunctions" :max-collapse-tags="5" placeholder="请选择项目功能" multiple collapse-tags collapse-tags-tooltip filterable class="form-select multiple">
-                <el-option v-for="item in functionOptions" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId">
+            <ScFormItem label="项目功能" prop="sysProjectFunction" class="form-item full-width">
+              <ScSelect v-model="selectedFunctions" :max-collapse-tags="5" placeholder="请选择项目功能" multiple collapse-tags collapse-tags-tooltip filterable class="form-select multiple">
+                <ScOption v-for="item in functionOptions" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId">
                   <div class="option-content">
                     <span class="option-name">{{ item.sysDictItemName }}</span>
                     <span class="option-code">{{ item.sysDictItemCode }}</span>
                   </div>
-                </el-option>
-              </el-select>
-            </el-form-item>
+                </ScOption>
+              </ScSelect>
+            </ScFormItem>
           </div>
 
           <!-- 图标和描述 -->
           <div class="form-section">
             <div class="section-title">
-              <el-icon class="section-icon">
+              <ScIcon class="section-icon">
                 <component :is="useRenderIcon('ri:image-line')" />
-              </el-icon>
+              </ScIcon>
               <span>图标和描述</span>
             </div>
 
-            <el-form-item label="项目图标" prop="sysProjectIcon" class="form-item full-width">
+            <ScFormItem label="项目图标" prop="sysProjectIcon" class="form-item full-width">
               <div class="icon-upload">
                 <div class="icon-preview">
                   <img v-if="formData.sysProjectIcon" :src="formData.sysProjectIcon" :alt="formData.sysProjectName" class="preview-image" @error="handleImageError" />
                   <div v-else class="preview-placeholder">
-                    <el-icon class="placeholder-icon">
+                    <ScIcon class="placeholder-icon">
                       <component :is="useRenderIcon('ri:image-add-line')" />
-                    </el-icon>
+                    </ScIcon>
                     <span class="placeholder-text">暂无图标</span>
                   </div>
                 </div>
                 <div class="icon-actions">
-                  <el-input v-model="formData.sysProjectIcon" placeholder="请输入图标URL地址" clearable class="icon-input">
+                  <ScInput v-model="formData.sysProjectIcon" placeholder="请输入图标URL地址" clearable class="icon-input">
                     <template #prefix>
-                      <el-icon><component :is="useRenderIcon('ri:link')" /></el-icon>
+                      <ScIcon><component :is="useRenderIcon('ri:link')" /></ScIcon>
                     </template>
-                  </el-input>
-                  <el-button type="primary" :icon="useRenderIcon('ri:upload-line')" @click="handleUploadIcon" class="upload-btn"> 上传图标 </el-button>
+                  </ScInput>
+                  <ScButton type="primary" :icon="useRenderIcon('ri:upload-line')" @click="handleUploadIcon" class="upload-btn"> 上传图标 </ScButton>
                 </div>
               </div>
               <div class="form-tip">
-                <el-icon><component :is="useRenderIcon('ri:information-line')" /></el-icon>
+                <ScIcon><component :is="useRenderIcon('ri:information-line')" /></ScIcon>
                 支持JPG、PNG格式，建议尺寸64x64像素
               </div>
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="项目描述" prop="sysProjectRemark" class="form-item full-width">
-              <el-input v-model="formData.sysProjectRemark" type="textarea" placeholder="请输入项目描述信息..." :rows="4" maxlength="200" show-word-limit resize="none" class="form-textarea" />
-            </el-form-item>
+            <ScFormItem label="项目描述" prop="sysProjectRemark" class="form-item full-width">
+              <ScInput v-model="formData.sysProjectRemark" type="textarea" placeholder="请输入项目描述信息..." :rows="4" maxlength="200" show-word-limit resize="none" class="form-textarea" />
+            </ScFormItem>
           </div>
         </div>
-      </el-form>
+      </ScForm>
     </div>
 
     <!-- 对话框底部 -->
@@ -215,27 +215,27 @@
       <div class="dialog-footer">
         <div class="footer-left">
           <div class="operation-info" v-if="!isViewMode">
-            <el-icon class="info-icon">
+            <ScIcon class="info-icon">
               <component :is="useRenderIcon('ri:information-line')" />
-            </el-icon>
+            </ScIcon>
             <span class="info-text">{{ getOperationInfo() }}</span>
           </div>
         </div>
         <div class="footer-right">
-          <el-button @click="handleClose" class="cancel-btn">
+          <ScButton @click="handleClose" class="cancel-btn">
             {{ isViewMode ? "关闭" : "取消" }}
-          </el-button>
-          <el-button v-if="!isViewMode" type="primary" :loading="submitLoading" @click="handleSubmit" class="submit-btn">
+          </ScButton>
+          <ScButton v-if="!isViewMode" type="primary" :loading="submitLoading" @click="handleSubmit" class="submit-btn">
             <template #loading>
               <div class="loading-content">
-                <el-icon class="loading-icon">
+                <ScIcon class="loading-icon">
                   <component :is="useRenderIcon('ri:loader-line')" />
-                </el-icon>
+                </ScIcon>
                 <span>{{ getSubmitLoadingText() }}</span>
               </div>
             </template>
             {{ getSubmitText() }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>

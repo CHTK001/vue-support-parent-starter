@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -400,26 +400,26 @@ onMounted(() => {
 
       <!-- 搜索区域 -->
       <div class="meme-tool__search-container">
-        <el-input v-model="env.searchKeyword" placeholder="搜索表情包关键词，如：滑稽、狗头、熊猫..." clearable @input="debounceSearch" @clear="searchMemes" class="meme-tool__search-input">
+        <ScInput v-model="env.searchKeyword" placeholder="搜索表情包关键词，如：滑稽、狗头、熊猫..." clearable @input="debounceSearch" @clear="searchMemes" class="meme-tool__search-input">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
           <template #append>
-            <el-button :loading="env.searchLoading" @click="searchMemes">
+            <ScButton :loading="env.searchLoading" @click="searchMemes">
               <IconifyIconOnline icon="ri:search-eye-line" />
               <span>搜索</span>
-            </el-button>
+            </ScButton>
           </template>
-        </el-input>
+        </ScInput>
 
         <!-- 历史记录下拉 -->
         <div v-if="env.history.length" class="meme-tool__search-history">
           <div class="meme-tool__search-history-header">
             <span>搜索历史</span>
-            <el-button type="danger" link size="small" @click="clearHistory">
+            <ScButton type="danger" link size="small" @click="clearHistory">
               <IconifyIconOnline icon="ri:delete-bin-line" />
               <span>清空</span>
-            </el-button>
+            </ScButton>
           </div>
           <div class="meme-tool__search-history-list">
             <div v-for="(item, index) in env.history" :key="index" class="meme-tool__search-history-item">
@@ -433,9 +433,9 @@ onMounted(() => {
                 <IconifyIconOnline icon="ri:history-line" />
                 <span>{{ item }}</span>
               </div>
-              <el-button type="danger" link size="small" @click="removeFromHistory(item)">
+              <ScButton type="danger" link size="small" @click="removeFromHistory(item)">
                 <IconifyIconOnline icon="ri:close-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -449,23 +449,23 @@ onMounted(() => {
         </div>
       </div>
 
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 表情包展示区域 -->
-        <el-col :xs="24" :sm="24" :md="16" :lg="18">
-          <el-card class="meme-tool__results-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="16" :lg="18">
+          <ScCard class="meme-tool__results-card" shadow="hover">
             <template #header>
               <div class="meme-tool__card-header">
                 <IconifyIconOnline icon="ri:image-line" class="meme-tool__card-icon" />
                 <span>表情包 ({{ filteredMemes.length }})</span>
                 <div class="meme-tool__card-actions">
-                  <el-button type="success" link @click="refreshMemes" :loading="env.loading">
+                  <ScButton type="success" link @click="refreshMemes" :loading="env.loading">
                     <IconifyIconOnline icon="ri:refresh-line" />
                     <span>换一换</span>
-                  </el-button>
-                  <el-button type="primary" link @click="resetSearch">
+                  </ScButton>
+                  <ScButton type="primary" link @click="resetSearch">
                     <IconifyIconOnline icon="ri:restart-line" />
                     <span>重置</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
@@ -476,15 +476,15 @@ onMounted(() => {
             </div>
 
             <!-- 空状态 -->
-            <el-empty v-else-if="!filteredMemes.length" description="没有找到相关表情包" class="meme-tool__empty">
+            <ScEmpty v-else-if="!filteredMemes.length" description="没有找到相关表情包" class="meme-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:emotion-sad-line" class="meme-tool__empty-icon" />
               </template>
               <el-button-group>
-                <el-button type="primary" @click="resetSearch">重置搜索</el-button>
-                <el-button type="success" @click="refreshMemes">换一张</el-button>
+                <ScButton type="primary" @click="resetSearch">重置搜索</ScButton>
+                <ScButton type="success" @click="refreshMemes">换一张</ScButton>
               </el-button-group>
-            </el-empty>
+            </ScEmpty>
 
             <!-- 表情包网格 -->
             <div v-else class="meme-tool__grid">
@@ -494,27 +494,27 @@ onMounted(() => {
                     <img :src="meme.url" :alt="meme.title" class="meme-tool__meme-image" />
                     <div class="meme-tool__meme-overlay">
                       <div class="meme-tool__meme-actions">
-                        <el-button type="primary" circle @click="copyToClipboard(meme.url)">
+                        <ScButton type="primary" circle @click="copyToClipboard(meme.url)">
                           <IconifyIconOnline icon="ri:file-copy-line" />
-                        </el-button>
-                        <el-button type="success" circle @click="downloadMeme(meme)">
+                        </ScButton>
+                        <ScButton type="success" circle @click="downloadMeme(meme)">
                           <IconifyIconOnline icon="ri:download-line" />
-                        </el-button>
-                        <el-button type="warning" circle @click="addToFavorites(meme)">
+                        </ScButton>
+                        <ScButton type="warning" circle @click="addToFavorites(meme)">
                           <IconifyIconOnline icon="ri:star-line" />
-                        </el-button>
+                        </ScButton>
                       </div>
                     </div>
                   </div>
                   <div class="meme-tool__meme-info">
                     <div class="meme-tool__meme-title">{{ meme.title }}</div>
-                    <el-tag size="small" :type="meme.category === '热门' ? 'danger' : 'info'">
+                    <ScTag size="small" :type="meme.category === '热门' ? 'danger' : 'info'">
                       <IconifyIconOnline :icon="getCategoryIcon(meme.category)" />
                       {{ meme.category }}
-                    </el-tag>
+                    </ScTag>
                   </div>
                   <div class="meme-tool__meme-tags">
-                    <el-tag
+                    <ScTag 
                       v-for="(tag, tagIndex) in meme.tags"
                       :key="tagIndex"
                       size="small"
@@ -526,17 +526,17 @@ onMounted(() => {
                       "
                     >
                       #{{ tag }}
-                    </el-tag>
+                    </ScTag>
                   </div>
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 收藏夹区域 -->
-        <el-col :xs="24" :sm="24" :md="8" :lg="6">
-          <el-card class="meme-tool__favorites-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="8" :lg="6">
+          <ScCard class="meme-tool__favorites-card" shadow="hover">
             <template #header>
               <div class="meme-tool__card-header">
                 <IconifyIconOnline icon="ri:star-line" class="meme-tool__card-icon" />
@@ -545,11 +545,11 @@ onMounted(() => {
             </template>
 
             <!-- 空状态 -->
-            <el-empty v-if="!env.favorites.length" description="暂无收藏表情包" class="meme-tool__empty">
+            <ScEmpty v-if="!env.favorites.length" description="暂无收藏表情包" class="meme-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:star-line" class="meme-tool__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <!-- 收藏列表 -->
             <div v-else class="meme-tool__favorites-list">
@@ -560,20 +560,20 @@ onMounted(() => {
                 <div class="meme-tool__favorite-info">
                   <div class="meme-tool__favorite-title">{{ meme.title }}</div>
                   <div class="meme-tool__favorite-actions">
-                    <el-button type="primary" link size="small" @click="copyToClipboard(meme.url)">
+                    <ScButton type="primary" link size="small" @click="copyToClipboard(meme.url)">
                       <IconifyIconOnline icon="ri:file-copy-line" />
-                    </el-button>
-                    <el-button type="danger" link size="small" @click="removeFromFavorites(meme)">
+                    </ScButton>
+                    <ScButton type="danger" link size="small" @click="removeFromFavorites(meme)">
                       <IconifyIconOnline icon="ri:delete-bin-line" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 使用技巧卡片 -->
-          <el-card class="meme-tool__tips-card" shadow="hover">
+          <ScCard class="meme-tool__tips-card" shadow="hover">
             <template #header>
               <div class="meme-tool__card-header">
                 <IconifyIconOnline icon="ri:lightbulb-flash-line" class="meme-tool__card-icon" />
@@ -603,9 +603,9 @@ onMounted(() => {
                 <span>下载表情包到本地收藏</span>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

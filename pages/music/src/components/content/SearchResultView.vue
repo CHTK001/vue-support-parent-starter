@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { IconifyIconOnline } from '@iconify/vue';
 
 defineProps({
@@ -15,19 +15,19 @@ defineProps({
     <div class="search-result-view__filters">
       <div class="search-result-view__filter-group">
         <span class="search-result-view__filter-label">音乐类型:</span>
-        <el-radio-group v-model="env.selectedType" size="small">
+        <ScRadioGroup v-model="env.selectedType" size="small">
           <el-radio-button v-for="type in env.musicTypes" :key="type.musicId" :label="type.musicId">
             {{ type.musicName }}
           </el-radio-button>
-        </el-radio-group>
+        </ScRadioGroup>
       </div>
       <div class="search-result-view__filter-group">
         <span class="search-result-view__filter-label">音乐平台:</span>
-        <el-radio-group v-model="env.selectedPlatform" size="small">
+        <ScRadioGroup v-model="env.selectedPlatform" size="small">
           <el-radio-button v-for="platform in env.musicPlatforms" :key="platform.musicId" :label="platform.musicId">
             {{ platform.musicName }}
           </el-radio-button>
-        </el-radio-group>
+        </ScRadioGroup>
       </div>
     </div>
 
@@ -63,14 +63,14 @@ defineProps({
             </div>
           </div>
           <div class="search-result-view__music-actions">
-            <el-button
+            <ScButton 
               circle
               size="small"
               :type="isFavorite(music) ? 'danger' : 'default'"
               @click="toggleFavorite(music)"
             >
               <IconifyIconOnline :icon="isFavorite(music) ? 'ri:heart-fill' : 'ri:heart-line'" />
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import Calendar from "@iconify-icons/ep/calendar";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -249,67 +249,67 @@ onMounted(() => {
               <div class="flex items-center gap-2 ml-4">
                 <!-- 视图切换按钮 -->
                 <el-button-group>
-                  <el-button
+                  <ScButton 
                     :type="viewMode === 'table' ? 'primary' : 'default'"
                     @click="switchViewMode('table')"
                   >
-                    <el-icon><ep-list /></el-icon>
+                    <ScIcon><ep-list /></ScIcon>
                     列表
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton 
                     :type="viewMode === 'calendar' ? 'primary' : 'default'"
                     @click="switchViewMode('calendar')"
                   >
-                    <el-icon
+                    <ScIcon 
                       ><component :is="useRenderIcon(Calendar)"
-                    /></el-icon>
+                    /></ScIcon>
                     日历
-                  </el-button>
+                  </ScButton>
                 </el-button-group>
 
                 <!-- 海报模式切换 -->
-                <el-button
+                <ScButton 
                   v-if="viewMode === 'calendar'"
                   :type="posterMode ? 'success' : 'default'"
                   @click="posterMode = !posterMode"
                 >
                   <IconifyIconOnline icon="mdi:image-frame" />
                   海报
-                </el-button>
+                </ScButton>
 
                 <!-- 海报模式开关 -->
-                <el-popover
+                <ScPopover 
                   v-if="viewMode === 'calendar' && posterMode"
                   placement="bottom"
                   :width="200"
                   trigger="click"
                 >
                   <template #reference>
-                    <el-button>
+                    <ScButton>
                       <IconifyIconOnline icon="ep:setting" />
-                    </el-button>
+                    </ScButton>
                   </template>
                   <div class="poster-settings">
                     <div class="setting-item">
                       <span>放假倒计时</span>
-                      <el-switch v-model="showHolidayCountdown" size="small" />
+                      <ScSwitch v-model="showHolidayCountdown" size="small" />
                     </div>
                     <div class="setting-item">
                       <span>下班倒计时</span>
-                      <el-switch v-model="showWorkCountdown" size="small" />
+                      <ScSwitch v-model="showWorkCountdown" size="small" />
                     </div>
                   </div>
-                </el-popover>
+                </ScPopover>
 
                 <!-- 同步按钮 -->
-                <el-button
+                <ScButton 
                   v-auth="'holiday:sync'"
                   type="primary"
                   :loading="syncLoading"
                   @click="handleSync"
                 >
-                  <el-icon><component :is="useRenderIcon(Refresh)" /></el-icon>
-                </el-button>
+                  <ScIcon><component :is="useRenderIcon(Refresh)" /></ScIcon>
+                </ScButton>
               </div>
 
               <div class="flex-1 flex items-center">
@@ -332,7 +332,7 @@ onMounted(() => {
               v-loading="loading"
               class="thin-scroller"
             >
-              <el-table
+              <ScTable 
                 :data="sortedHolidayData"
                 border
                 stripe
@@ -343,21 +343,21 @@ onMounted(() => {
                     isNearestFuture(row) ? 'nearest-future-row' : ''
                 "
               >
-                <el-table-column
+                <ScTableColumn 
                   label="序号"
                   type="index"
                   align="center"
                   width="60px"
                 />
 
-                <el-table-column
+                <ScTableColumn 
                   prop="sysHolidayYear"
                   label="年份"
                   align="center"
                   width="100px"
                 />
 
-                <el-table-column
+                <ScTableColumn 
                   prop="sysHolidayDate"
                   label="日期"
                   align="center"
@@ -366,7 +366,7 @@ onMounted(() => {
                   <template #default="{ row }">
                     <div class="date-cell">
                       <span>{{ formatDate(row.sysHolidayDate) }}</span>
-                      <el-tag
+                      <ScTag 
                         v-if="isNearestFuture(row)"
                         type="success"
                         size="small"
@@ -374,45 +374,45 @@ onMounted(() => {
                         class="countdown-tag"
                       >
                         还剩 {{ getDaysFromToday(row.sysHolidayDate) }} 天
-                      </el-tag>
+                      </ScTag>
                     </div>
                   </template>
-                </el-table-column>
+                </ScTableColumn>
 
-                <el-table-column
+                <ScTableColumn 
                   prop="sysHolidayName"
                   label="节假日名称"
                   align="center"
                   min-width="150px"
                 >
                   <template #default="{ row }">
-                    <el-tag
+                    <ScTag 
                       :type="getHolidayTagType(row.sysHolidayIsHoliday)"
                       effect="dark"
                       size="small"
                     >
                       {{ row.sysHolidayName }}
-                    </el-tag>
+                    </ScTag>
                   </template>
-                </el-table-column>
+                </ScTableColumn>
 
-                <el-table-column
+                <ScTableColumn 
                   prop="sysHolidayIsHoliday"
                   label="类型"
                   align="center"
                   width="100px"
                 >
                   <template #default="{ row }">
-                    <el-tag
+                    <ScTag 
                       :type="getHolidayTagType(row.sysHolidayIsHoliday)"
                       effect="plain"
                       size="small"
                     >
                       {{ getHolidayText(row.sysHolidayIsHoliday) }}
-                    </el-tag>
+                    </ScTag>
                   </template>
-                </el-table-column>
-              </el-table>
+                </ScTableColumn>
+              </ScTable>
             </div>
 
             <!-- 日历视图 -->

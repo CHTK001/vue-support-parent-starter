@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <sc-dialog
     v-model="visible"
     title="图片裁剪"
@@ -34,33 +34,33 @@
           />
         </div>
         <div class="control-buttons">
-          <el-button @click="handleRotateLeft">
+          <ScButton @click="handleRotateLeft">
             <IconifyIconOnline icon="ri:rotate-left-line" />
             左旋 90°
-          </el-button>
-          <el-button @click="handleRotateRight">
+          </ScButton>
+          <ScButton @click="handleRotateRight">
             <IconifyIconOnline icon="ri:rotate-right-line" />
             右旋 90°
-          </el-button>
-          <el-button @click="handleFlipH">
+          </ScButton>
+          <ScButton @click="handleFlipH">
             <IconifyIconOnline icon="ri:swap-line" />
             水平翻转
-          </el-button>
-          <el-button @click="handleFlipV">
+          </ScButton>
+          <ScButton @click="handleFlipV">
             <IconifyIconOnline icon="ri:arrow-up-down-line" />
             垂直翻转
-          </el-button>
-          <el-button @click="handleReset">
+          </ScButton>
+          <ScButton @click="handleReset">
             <IconifyIconOnline icon="ri:refresh-line" />
             重置
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="processing" @click="handleCrop"
+      <ScButton @click="visible = false">取消</ScButton>
+      <ScButton type="primary" :loading="processing" @click="handleCrop"
         >确定裁剪</el-button
       >
     </template>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container merchant-page">
     <div class="merchant-header">
       <div class="left">
@@ -6,25 +6,25 @@
         <span class="title">商户管理</span>
       </div>
       <div class="right">
-        <el-form :inline="true" :model="form">
-          <el-form-item label="商户名称">
-            <el-input
+        <ScForm :inline="true" :model="form">
+          <ScFormItem label="商户名称">
+            <ScInput 
               v-model="form.payMerchantName"
               placeholder="请输入商户名称"
               clearable
               @keyup.enter="handleRefresh"
             />
-          </el-form-item>
-          <el-form-item>
-            <el-button @click="handleRefresh">
+          </ScFormItem>
+          <ScFormItem>
+            <ScButton @click="handleRefresh">
               <iconifyIconOnline icon="ep:refresh" />
-            </el-button>
-            <el-button type="primary" @click="handleOpen('add', {})">
+            </ScButton>
+            <ScButton type="primary" @click="handleOpen('add', {})">
               <iconifyIconOnline icon="ep:plus" />
               新增商户
-            </el-button>
-          </el-form-item>
-        </el-form>
+            </ScButton>
+          </ScFormItem>
+        </ScForm>
       </div>
     </div>
 
@@ -39,12 +39,12 @@
       @data-loaded="handleDataLoaded"
     >
       <template #default="{ row }">
-        <el-card shadow="hover" class="w-full">
+        <ScCard shadow="hover" class="w-full">
           <template #header>
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <iconifyIconOnline icon="ri:store-2-fill" />
-                <el-tag effect="plain">{{ row.payMerchantName }}</el-tag>
+                <ScTag effect="plain">{{ row.payMerchantName }}</ScTag>
                 <el-text type="info">#{{ row.payMerchantCode }}</el-text>
               </div>
               <div class="flex items-center gap-2">
@@ -55,24 +55,24 @@
                   layout="modern"
                   @change="() => onToggle(row)"
                 />
-                <el-button size="small" @click.stop="handleSetting(row)"
+                <ScButton size="small" @click.stop="handleSetting(row)"
                   ><iconifyIconOnline
                     icon="ri:settings-2-line"
                   />设置</el-button
                 >
-                <el-button size="small" @click.stop="handleOpen('edit', row)"
+                <ScButton size="small" @click.stop="handleOpen('edit', row)"
                   ><iconifyIconOnline icon="ep:edit" />编辑</el-button
                 >
-                <el-popconfirm
+                <ScPopconfirm 
                   title="确认删除该商户？"
                   @confirm="onDelete(row)"
                 >
                   <template #reference>
-                    <el-button size="small" type="danger"
+                    <ScButton size="small" type="danger"
                       ><iconifyIconOnline icon="ep:delete" />删除</el-button
                     >
                   </template>
-                </el-popconfirm>
+                </ScPopconfirm>
               </div>
             </div>
           </template>
@@ -98,20 +98,20 @@
                   @change="() => onToggle(row)"
                 />
                 <template v-if="row.payMerchantOpenTimeout === 1">
-                  <el-input-number
+                  <ScInputNumber 
                     v-model="row.payMerchantOpenTimeoutTime"
                     :min="1"
                     :max="1440"
                     size="small"
                     @change="() => onToggle(row)"
                   />
-                  <el-tag effect="plain">min</el-tag>
+                  <ScTag effect="plain">min</ScTag>
                 </template>
               </div>
             </div>
             <el-text type="info">创建时间：{{ row.createTime || "-" }}</el-text>
           </div>
-        </el-card>
+        </ScCard>
       </template>
     </ScTable>
 

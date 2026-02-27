@@ -1,4 +1,6 @@
-<script setup>
+﻿<script setup>
+
+import ScTabPane from "@repo/components/ScTabs";
 import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
 import { message } from "@repo/utils";
@@ -278,12 +280,12 @@ const handleCronChange = (val) => {
       </div>
 
       <!-- 主要内容区域 -->
-      <el-tabs v-model="env.selectedTab" class="crontab-tool__main-tabs">
-        <el-tab-pane label="Cron 编辑器" name="editor">
-          <el-row :gutter="24">
+      <ScTabs v-model="env.selectedTab" class="crontab-tool__main-tabs">
+        <ScTabPane label="Cron 编辑器" name="editor">
+          <ScRow :gutter="24">
             <!-- 左侧输入区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="crontab-tool__input-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="crontab-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="crontab-tool__card-header">
                     <IconifyIconOnline
@@ -294,9 +296,9 @@ const handleCronChange = (val) => {
                   </div>
                 </template>
 
-                <el-form label-position="top">
+                <ScForm label-position="top">
                   <!-- Cron 表达式输入 - 使用 ScCron 替换 -->
-                  <el-form-item label="Cron 表达式">
+                  <ScFormItem label="Cron 表达式">
                     <div class="crontab-tool__vcrontab-wrapper w-full">
                       <ScCron
                         v-model="env.inputValue"
@@ -307,26 +309,26 @@ const handleCronChange = (val) => {
                       />
                     </div>
                     <div class="crontab-tool__input-actions">
-                      <el-button
+                      <ScButton 
                         type="primary"
                         :loading="env.loading"
                         @click="calculateNextExecutions"
                       >
                         <IconifyIconOnline icon="ri:play-line" />
                         <span>解析表达式</span>
-                      </el-button>
-                      <el-button
+                      </ScButton>
+                      <ScButton 
                         type="success"
                         @click="copyToClipboard(env.inputValue)"
                       >
                         <IconifyIconOnline icon="ri:file-copy-line" />
                         <span>复制</span>
-                      </el-button>
+                      </ScButton>
                     </div>
-                  </el-form-item>
+                  </ScFormItem>
 
                   <!-- 常用表达式 -->
-                  <el-form-item label="常用表达式">
+                  <ScFormItem label="常用表达式">
                     <div class="crontab-tool__expressions">
                       <el-scrollbar height="200px">
                         <div
@@ -349,11 +351,11 @@ const handleCronChange = (val) => {
                         </div>
                       </el-scrollbar>
                     </div>
-                  </el-form-item>
+                  </ScFormItem>
 
                   <!-- 操作按钮 -->
                   <div class="crontab-tool__actions">
-                    <el-button
+                    <ScButton 
                       type="primary"
                       :loading="env.loading"
                       class="crontab-tool__parse-btn"
@@ -361,32 +363,32 @@ const handleCronChange = (val) => {
                     >
                       <IconifyIconOnline icon="ri:time-line" />
                       <span>解析表达式</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button
+                    <ScButton 
                       class="crontab-tool__reset-btn"
                       @click="resetForm"
                     >
                       <IconifyIconOnline icon="ri:refresh-line" />
                       <span>重置</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button
+                    <ScButton 
                       type="success"
                       class="crontab-tool__copy-btn"
                       @click="copyToClipboard(env.inputValue)"
                     >
                       <IconifyIconOnline icon="ri:file-copy-line" />
                       <span>复制</span>
-                    </el-button>
+                    </ScButton>
                   </div>
-                </el-form>
-              </el-card>
-            </el-col>
+                </ScForm>
+              </ScCard>
+            </ScCol>
 
             <!-- 右侧结果区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="crontab-tool__result-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="crontab-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="crontab-tool__card-header">
                     <IconifyIconOnline
@@ -397,7 +399,7 @@ const handleCronChange = (val) => {
                   </div>
                 </template>
 
-                <el-empty
+                <ScEmpty 
                   v-if="!env.nextExecutions.length"
                   description="请先解析 Cron 表达式"
                   class="crontab-tool__empty"
@@ -408,7 +410,7 @@ const handleCronChange = (val) => {
                       class="crontab-tool__empty-icon"
                     />
                   </template>
-                </el-empty>
+                </ScEmpty>
 
                 <div v-else class="crontab-tool__results">
                   <div class="crontab-tool__result-section">
@@ -435,10 +437,10 @@ const handleCronChange = (val) => {
                     </div>
                   </div>
                 </div>
-              </el-card>
+              </ScCard>
 
               <!-- Cron 语法参考 -->
-              <el-card class="crontab-tool__reference-card" shadow="hover">
+              <ScCard class="crontab-tool__reference-card" shadow="hover">
                 <template #header>
                   <div class="crontab-tool__card-header">
                     <IconifyIconOnline
@@ -523,15 +525,15 @@ const handleCronChange = (val) => {
                     </div>
                   </div>
                 </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-tab-pane>
+              </ScCard>
+            </ScCol>
+          </ScRow>
+        </ScTabPane>
 
-        <el-tab-pane label="Cron 在线测试" name="tester">
-          <el-row :gutter="24">
-            <el-col :span="24">
-              <el-card class="crontab-tool__tester-card" shadow="hover">
+        <ScTabPane label="Cron 在线测试" name="tester">
+          <ScRow :gutter="24">
+            <ScCol :span="24">
+              <ScCard class="crontab-tool__tester-card" shadow="hover">
                 <template #header>
                   <div class="crontab-tool__card-header">
                     <IconifyIconOnline
@@ -555,11 +557,11 @@ const handleCronChange = (val) => {
                     </p>
                   </div>
                 </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-tab-pane>
-      </el-tabs>
+              </ScCard>
+            </ScCol>
+          </ScRow>
+        </ScTabPane>
+      </ScTabs>
     </div>
   </div>
 </template>

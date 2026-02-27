@@ -99,33 +99,33 @@ defineExpose({
 <template>
   <div>
     <sc-dialog v-model="visible" :title="title" :close-on-click-modal="false" draggable width="40%" @close="handleClose">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="模板" class="w-full">
+      <ScForm ref="formRef" :model="form" :rules="rules" label-width="100px">
+        <ScFormItem label="模板" class="w-full">
           <ScTableSelect v-model="sysTemplateObject" placeholder="请选择模板" :keywords="keywords" remoteParameterName="sysEmailTemplateName" :columns="env.columns" :url="fetchPageProjectForEmail" :params="params" class="w-full" @selectionChange="handleSelectionChange" />
           <div v-if="sysTemplateObject?.sysTemplateContent">
             {{ sysTemplateObject?.sysTemplateContent }}
           </div>
-        </el-form-item>
-        <el-form-item prop="target" label="被叫号码">
-          <el-input v-model="form.target" placeholder="请输入被叫号码" />
-        </el-form-item>
-        <el-form-item prop="参数">
+        </ScFormItem>
+        <ScFormItem prop="target" label="被叫号码">
+          <ScInput v-model="form.target" placeholder="请输入被叫号码" />
+        </ScFormItem>
+        <ScFormItem prop="参数">
           <ScFormTable v-model="tempData" :add-template="template">
-            <el-table-column prop="key" label="参数名" width="120px">
+            <ScTableColumn prop="key" label="参数名" width="120px">
               <template #default="{ row }">
-                <el-input v-model="row.key" placeholder="请输入参数名" />
+                <ScInput v-model="row.key" placeholder="请输入参数名" />
               </template>
-            </el-table-column>
-            <el-table-column prop="value" label="参数值">
+            </ScTableColumn>
+            <ScTableColumn prop="value" label="参数值">
               <template #default="{ row }">
-                <el-input v-model="row.value" placeholder="请输入参数值" />
+                <ScInput v-model="row.value" placeholder="请输入参数值" />
               </template>
-            </el-table-column>
+            </ScTableColumn>
           </ScFormTable>
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button type="primary" size="default" :icon="useRenderIcon('bi:send')" @click="handleSubmit" />
+        <ScButton type="primary" size="default" :icon="useRenderIcon('bi:send')" @click="handleSubmit" />
       </template>
     </sc-dialog>
   </div>

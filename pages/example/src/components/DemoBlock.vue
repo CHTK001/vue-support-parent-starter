@@ -1,4 +1,4 @@
-<!--
+﻿<!--
  * DemoBlock 示例区域组件
  * 用于展示组件示例，支持查看/复制源码
  * @author CH
@@ -10,16 +10,16 @@
     <div class="demo-block__header">
       <h4 class="demo-block__title">{{ title }}</h4>
       <div class="demo-block__actions">
-        <el-tooltip :content="showCode ? '收起代码' : '查看代码'" placement="top">
+        <ScTooltip :content="showCode ? '收起代码' : '查看代码'" placement="top">
           <div class="action-btn" @click="toggleCode">
             <IconifyIconOnline :icon="showCode ? 'ri:arrow-up-s-line' : 'ri:code-s-slash-line'" />
           </div>
-        </el-tooltip>
-        <el-tooltip content="复制代码" placement="top">
+        </ScTooltip>
+        <ScTooltip content="复制代码" placement="top">
           <div class="action-btn" @click="copyCode">
             <IconifyIconOnline :icon="copied ? 'ri:check-line' : 'ri:file-copy-line'" />
           </div>
-        </el-tooltip>
+        </ScTooltip>
       </div>
     </div>
     <div class="demo-block__content">

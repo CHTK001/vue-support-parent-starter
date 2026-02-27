@@ -8,17 +8,17 @@
       :close-on-click-modal="false"
       class="org-dialog"
     >
-      <el-table
+      <ScTable 
         :data="tableData"
         :tree-props="treeProps"
         row-key="sysDeviceOrgId"
         height="600px"
         border
       >
-        <el-table-column prop="sysDeviceOrgId" label="组织编码" />
-        <el-table-column prop="sysDeviceOrgName" label="组织名称" />
-        <el-table-column prop="sysDeviceOrgPid" label="父组织" />
-      </el-table>
+        <ScTableColumn prop="sysDeviceOrgId" label="组织编码" />
+        <ScTableColumn prop="sysDeviceOrgName" label="组织名称" />
+        <ScTableColumn prop="sysDeviceOrgPid" label="父组织" />
+      </ScTable>
     </sc-dialog>
   </div>
 </template>

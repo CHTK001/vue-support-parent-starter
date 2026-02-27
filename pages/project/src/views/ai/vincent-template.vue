@@ -10,36 +10,36 @@
       :close-on-click-modal="false"
       @close="handleClose"
     >
-      <el-row class="justify-end mb-2">
-        <el-button
+      <ScRow class="justify-end mb-2">
+        <ScButton 
           class="btn-text"
           :icon="useRenderIcon('ep:plus')"
           @click="handleSaveForm"
-        ></el-button>
-        <el-button
+        ></ScButton>
+        <ScButton 
           class="btn-text"
           :icon="useRenderIcon('ri:save-2-line')"
           type="primary"
           @click="handleUpdate"
-        ></el-button>
-      </el-row>
-      <el-row class="h-[65vh]">
-        <el-col :span="12" class="h-full overflow-auto">
+        ></ScButton>
+      </ScRow>
+      <ScRow class="h-[65vh]">
+        <ScCol :span="12" class="h-full overflow-auto">
           <el-skeleton animated :loading="loadingConfig.loading">
             <template #default>
-              <el-empty v-if="listData.length == 0"></el-empty>
-              <el-row v-else>
-                <el-col
+              <ScEmpty v-if="listData.length == 0"></ScEmpty>
+              <ScRow v-else>
+                <ScCol 
                   :span="7"
                   v-for="item in listData"
                   @click="handleSetForm(item)"
                   class="m-2 cursor-pointer z-0"
                 >
                   <div class="relative">
-                    <el-tag class="!absolute top-0 left-0 z-[10]">
+                    <ScTag class="!absolute top-0 left-0 z-[10]">
                       {{ item.sysAiVincentTemplateName }}
-                    </el-tag>
-                    <el-button
+                    </ScTag>
+                    <ScButton 
                       type="default"
                       size="small"
                       plain
@@ -48,168 +48,168 @@
                       class="!absolute top-0 right-0 z-[10] text-white"
                       @click="handleDelete(item)"
                     >
-                    </el-button>
+                    </ScButton>
                   </div>
                   <div class="template-item z-1">
-                    <el-image
+                    <ScImage 
                       :src="item.sysAiVincentTemplateAddress"
                       :z-index="2"
                     >
-                    </el-image>
+                    </ScImage>
                   </div>
-                </el-col>
-              </el-row>
+                </ScCol>
+              </ScRow>
             </template>
           </el-skeleton>
-        </el-col>
-        <el-col :span="12" class="h-full overflow-auto">
-          <el-empty v-if="!form.sysAiModuleId"></el-empty>
-          <el-form
+        </ScCol>
+        <ScCol :span="12" class="h-full overflow-auto">
+          <ScEmpty v-if="!form.sysAiModuleId"></ScEmpty>
+          <ScForm 
             :model="form"
             ref="formRef"
             :rules="rules"
             label-width="100px"
             v-else
           >
-            <el-form-item label="所属模块" prop="sysAiModuleName">
+            <ScFormItem label="所属模块" prop="sysAiModuleName">
               <el-text
                 >{{ form.sysAiModuleName }}({{ form.sysAiModuleId }})</el-text
               >
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="模板名称" prop="sysAiVincentTemplateName">
-              <el-input
+            <ScFormItem label="模板名称" prop="sysAiVincentTemplateName">
+              <ScInput 
                 v-model="form.sysAiVincentTemplateName"
                 placeholder="请输入模板名称"
                 clearable
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="模板图片" prop="sysAiVincentTemplateAddress">
+            <ScFormItem label="模板图片" prop="sysAiVincentTemplateAddress">
               <div class="flex justify-between gap-1 h-[50px] w-full">
-                <el-image
+                <ScImage 
                   class="!h-[50px] !w-[50px]"
                   fit="cover"
                   v-if="form.sysAiVincentTemplateAddress"
                   :src="form.sysAiVincentTemplateAddress"
-                ></el-image>
-                <el-input
+                ></ScImage>
+                <ScInput 
                   type="textarea"
                   class="w-full"
                   v-model="form.sysAiVincentTemplateAddress"
                   placeholder="请输入模板名称"
                   clearable
-                ></el-input>
+                ></ScInput>
               </div>
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="分类" prop="sysAiVincentTemplateCategory">
-              <el-select
+            <ScFormItem label="分类" prop="sysAiVincentTemplateCategory">
+              <ScSelect 
                 v-model="form.sysAiVincentTemplateCategory"
                 clearable
                 filterable
                 allow-create
               >
-                <el-option
+                <ScOption 
                   v-for="item in CATEGORY_TEMPLATE"
                   :key="item.value"
                   :label="item.label"
                   :value="item.value"
-                ></el-option>
-              </el-select>
-            </el-form-item>
+                ></ScOption>
+              </ScSelect>
+            </ScFormItem>
 
-            <el-form-item label="分辨率" prop="sysAiVincentTemplateResolutions">
-              <el-select
+            <ScFormItem label="分辨率" prop="sysAiVincentTemplateResolutions">
+              <ScSelect 
                 multiple
                 v-model="form.sysAiVincentTemplateResolutionsList"
                 clearable
                 filterable
                 allow-create
               >
-                <el-option
+                <ScOption 
                   v-for="item in DEFAULT_TEMPLATE_RESOLUTION"
                   :key="item"
                   :label="item"
                   :value="item"
-                ></el-option>
-              </el-select>
-            </el-form-item>
+                ></ScOption>
+              </ScSelect>
+            </ScFormItem>
 
-            <el-form-item
+            <ScFormItem 
               label="分辨率"
               prop="sysAiVincentTemplateRecommendPrompt"
             >
-              <el-select
+              <ScSelect 
                 multiple
                 v-model="form.sysAiVincentTemplateRecommendPromptList"
                 clearable
                 filterable
                 allow-create
               >
-                <el-option
+                <ScOption 
                   v-for="item in DEFAULT_TEMPLATE_PROMPT"
                   :key="item"
                   :label="item"
                   :value="item"
-                ></el-option>
-              </el-select>
-            </el-form-item>
+                ></ScOption>
+              </ScSelect>
+            </ScFormItem>
 
-            <el-form-item label="关键词" prop="sysAiVincentTemplateWord">
-              <el-input
+            <ScFormItem label="关键词" prop="sysAiVincentTemplateWord">
+              <ScInput 
                 v-model="form.sysAiVincentTemplateWord"
                 placeholder="请输入关键词"
                 clearable
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="模板模型ID" prop="sysAiVincentTemplateModelId">
-              <el-input
+            <ScFormItem label="模板模型ID" prop="sysAiVincentTemplateModelId">
+              <ScInput 
                 v-model="form.sysAiVincentTemplateModelId"
                 placeholder="请输入模型ID"
                 clearable
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item
+            <ScFormItem 
               label="模板模型名称"
               prop="sysAiVincentTemplateModelName"
             >
-              <el-input
+              <ScInput 
                 v-model="form.sysAiVincentTemplateModelName"
                 placeholder="请输入模板模型名称"
                 clearable
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item
+            <ScFormItem 
               label="训练模型名称"
               prop="sysAiVincentTemplateTrainModel"
             >
-              <el-input
+              <ScInput 
                 v-model="form.sysAiVincentTemplateTrainModel"
                 placeholder="请输入训练模型名称"
                 clearable
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="优先级" prop="sysAiVincentTemplateSort">
-              <el-input-number
+            <ScFormItem label="优先级" prop="sysAiVincentTemplateSort">
+              <ScInputNumber 
                 v-model="form.sysAiVincentTemplateSort"
                 placeholder="请输入优先级"
-              ></el-input-number>
-            </el-form-item>
+              ></ScInputNumber>
+            </ScFormItem>
 
-            <el-form-item label="备注" prop="sysAiVincentTemplateRemark">
-              <el-input
+            <ScFormItem label="备注" prop="sysAiVincentTemplateRemark">
+              <ScInput 
                 type="textarea"
                 v-model="form.sysAiVincentTemplateRemark"
                 placeholder="请输入备注"
-              ></el-input>
-            </el-form-item> </el-form
-        ></el-col>
-      </el-row>
+              ></ScInput>
+            </ScFormItem> </el-form
+        ></ScCol>
+      </ScRow>
     </sc-dialog>
   </div>
 </template>

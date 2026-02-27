@@ -1,28 +1,28 @@
-<template>
+﻿<template>
   <div>
     <h3 v-if="showTitle" class="my-8">{{ $t("buttons.password") }}</h3>
-    <el-alert :title="$t('message.updatePassword')" type="warning" show-icon :closable="false" style="margin-bottom: 15px" />
-    <el-form ref="form" :model="form" :rules="rules" label-width="150px" style="margin-top: 20px">
-      <el-form-item :label="$t('field.currentPassword')" prop="oldPassword">
-        <el-input v-model="form.oldPassword" type="password" show-password :placeholder="$t('message.pleaseInput') + ' ' + $t('field.currentPassword')" />
+    <ScAlert :title="$t('message.updatePassword')" type="warning" show-icon :closable="false" style="margin-bottom: 15px" />
+    <ScForm ref="form" :model="form" :rules="rules" label-width="150px" style="margin-top: 20px">
+      <ScFormItem :label="$t('field.currentPassword')" prop="oldPassword">
+        <ScInput v-model="form.oldPassword" type="password" show-password :placeholder="$t('message.pleaseInput') + ' ' + $t('field.currentPassword')" />
         <div class="el-form-item-msg">必须提供当前登录用户密码才能进行更改</div>
-      </el-form-item>
-      <el-form-item :label="$t('field.newPassword')" prop="newPassword">
-        <el-input v-model="form.newPassword" type="password" show-password :placeholder="$t('message.pleaseInput') + ' ' + $t('field.newPassword')" />
+      </ScFormItem>
+      <ScFormItem :label="$t('field.newPassword')" prop="newPassword">
+        <ScInput v-model="form.newPassword" type="password" show-password :placeholder="$t('message.pleaseInput') + ' ' + $t('field.newPassword')" />
         <sc-password-strength v-model="form.newPassword" />
         <div class="el-form-item-msg">
           {{ $t("message.newPassword") }}
         </div>
-      </el-form-item>
-      <el-form-item :label="$t('field.confirmPassword')" prop="confirmNewPassword">
-        <el-input v-model="form.confirmNewPassword" type="password" show-password :placeholder="$t('message.pleaseInput') + ' ' + $t('field.confirmPassword')" />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="save">
+      </ScFormItem>
+      <ScFormItem :label="$t('field.confirmPassword')" prop="confirmNewPassword">
+        <ScInput v-model="form.confirmNewPassword" type="password" show-password :placeholder="$t('message.pleaseInput') + ' ' + $t('field.confirmPassword')" />
+      </ScFormItem>
+      <ScFormItem>
+        <ScButton type="primary" @click="save">
           {{ $t("buttons.update") }}
-        </el-button>
-      </el-form-item>
-    </el-form>
+        </ScButton>
+      </ScFormItem>
+    </ScForm>
   </div>
 </template>
 

@@ -5,10 +5,10 @@
       <div class="header-title">
         <i class="ri-history-line"></i>
         <span>请求历史</span>
-        <el-badge :value="historyList.length" :max="99" type="info" />
+        <ScBadge :value="historyList.length" :max="99" type="info" />
       </div>
       <div class="header-actions">
-        <el-input
+        <ScInput 
           v-model="searchKeyword"
           placeholder="搜索..."
           size="small"
@@ -18,21 +18,21 @@
           <template #prefix>
             <i class="ri-search-line"></i>
           </template>
-        </el-input>
-        <el-button size="small" @click="loadHistory">
+        </ScInput>
+        <ScButton size="small" @click="loadHistory">
           <i class="ri-refresh-line"></i>
-        </el-button>
-        <el-popconfirm
+        </ScButton>
+        <ScPopconfirm 
           title="确定要清空所有历史记录吗？"
           @confirm="handleClearAll"
         >
           <template #reference>
-            <el-button size="small" type="danger" :disabled="historyList.length === 0">
+            <ScButton size="small" type="danger" :disabled="historyList.length === 0">
               <i class="ri-delete-bin-line"></i>
               清空
-            </el-button>
+            </ScButton>
           </template>
-        </el-popconfirm>
+        </ScPopconfirm>
       </div>
     </div>
 
@@ -52,22 +52,22 @@
           @click="handleSelect(item)"
         >
           <div class="item-header">
-            <el-tag
+            <ScTag 
               :type="getMethodTagType(item.method)"
               size="small"
               class="method-tag"
             >
               {{ item.method }}
-            </el-tag>
+            </ScTag>
             <span class="item-path" :title="item.path">{{ item.path }}</span>
-            <el-tag
+            <ScTag 
               v-if="item.statusCode"
               :type="getStatusTagType(item.statusCode)"
               size="small"
               class="status-tag"
             >
               {{ item.statusCode }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="item-footer">
             <span class="item-time">
@@ -77,7 +77,7 @@
             <span v-if="item.duration" class="item-duration">
               {{ item.duration }}ms
             </span>
-            <el-button
+            <ScButton 
               class="delete-btn"
               size="small"
               text
@@ -85,7 +85,7 @@
               @click.stop="handleDelete(item)"
             >
               <i class="ri-delete-bin-line"></i>
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </el-scrollbar>
@@ -101,22 +101,22 @@
       <template v-if="selectedItem">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="请求方法">
-            <el-tag :type="getMethodTagType(selectedItem.method)" size="small">
+            <ScTag :type="getMethodTagType(selectedItem.method)" size="small">
               {{ selectedItem.method }}
-            </el-tag>
+            </ScTag>
           </el-descriptions-item>
           <el-descriptions-item label="请求路径">
             {{ selectedItem.path }}
           </el-descriptions-item>
           <el-descriptions-item label="完整URL">
-            <el-link type="primary" :href="selectedItem.url" target="_blank">
+            <ScLink type="primary" :href="selectedItem.url" target="_blank">
               {{ selectedItem.url }}
-            </el-link>
+            </ScLink>
           </el-descriptions-item>
           <el-descriptions-item label="状态码">
-            <el-tag :type="getStatusTagType(selectedItem.statusCode || 0)" size="small">
+            <ScTag :type="getStatusTagType(selectedItem.statusCode || 0)" size="small">
               {{ selectedItem.statusCode || '-' }}
-            </el-tag>
+            </ScTag>
           </el-descriptions-item>
           <el-descriptions-item label="耗时">
             {{ selectedItem.duration ? selectedItem.duration + 'ms' : '-' }}
@@ -126,33 +126,33 @@
           </el-descriptions-item>
         </el-descriptions>
 
-        <el-divider content-position="left">请求头</el-divider>
+        <ScDivider content-position="left">请求头</ScDivider>
         <div class="json-block">
           <pre>{{ formatJson(selectedItem.headers) }}</pre>
         </div>
 
-        <el-divider content-position="left">请求参数</el-divider>
+        <ScDivider content-position="left">请求参数</ScDivider>
         <div class="json-block">
           <pre>{{ formatJson(selectedItem.params) }}</pre>
         </div>
 
-        <el-divider v-if="selectedItem.requestBody" content-position="left">请求体</el-divider>
+        <ScDivider v-if="selectedItem.requestBody" content-position="left">请求体</ScDivider>
         <div v-if="selectedItem.requestBody" class="json-block">
           <pre>{{ formatJson(selectedItem.requestBody) }}</pre>
         </div>
 
-        <el-divider content-position="left">响应数据</el-divider>
+        <ScDivider content-position="left">响应数据</ScDivider>
         <div class="json-block response-block">
           <pre>{{ formatJson(selectedItem.responseData) }}</pre>
         </div>
       </template>
 
       <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleReplay">
+        <ScButton @click="detailVisible = false">关闭</ScButton>
+        <ScButton type="primary" @click="handleReplay">
           <i class="ri-repeat-line"></i>
           重新请求
-        </el-button>
+        </ScButton>
       </template>
     </sc-drawer>
   </div>
@@ -160,7 +160,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ScMessage } from "@repo/utils";
 import { DocStorage, type ApiHistoryRecord } from "../storage";
 
 const emit = defineEmits<{
@@ -245,7 +245,7 @@ const loadHistory = async () => {
     historyList.value = await DocStorage.getHistoryList(200);
   } catch (error) {
     console.error("Failed to load history:", error);
-    ElMessage.error("加载历史记录失败");
+    ScMessage.error("加载历史记录失败");
   } finally {
     loading.value = false;
   }
@@ -264,10 +264,10 @@ const handleDelete = async (item: ApiHistoryRecord) => {
   try {
     await DocStorage.deleteHistory(item.id!);
     historyList.value = historyList.value.filter((h) => h.id !== item.id);
-    ElMessage.success("删除成功");
+    ScMessage.success("删除成功");
   } catch (error) {
     console.error("Failed to delete history:", error);
-    ElMessage.error("删除失败");
+    ScMessage.error("删除失败");
   }
 };
 
@@ -276,10 +276,10 @@ const handleClearAll = async () => {
   try {
     await DocStorage.clearHistory();
     historyList.value = [];
-    ElMessage.success("已清空所有历史记录");
+    ScMessage.success("已清空所有历史记录");
   } catch (error) {
     console.error("Failed to clear history:", error);
-    ElMessage.error("清空失败");
+    ScMessage.error("清空失败");
   }
 };
 

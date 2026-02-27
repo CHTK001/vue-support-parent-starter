@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="sc-socket-event-process-example">
-    <el-card>
+    <ScCard>
       <template #header>
         <div class="card-header">
           <h3>Socket事件进度条组件 (ScSocketEventProcess) - 增强版</h3>
@@ -24,9 +24,9 @@
 
       <!-- 内嵌模式示例 -->
       <div v-if="currentMode === 'embed'" class="embed-examples">
-        <el-row :gutter="20">
+        <ScRow :gutter="20">
           <!-- 示例1: Process布局 -->
-          <el-col :span="12">
+          <ScCol :span="12">
             <div class="example-card">
               <h4>示例1: Process布局（进度条）</h4>
               <ScSocketEventProcess
@@ -42,31 +42,31 @@
 
               <div class="action-buttons mt-3">
                 <el-button-group>
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="primary"
                     @click="simulateProgress(processRef1, 0)"
                     >开始</el-button
                   >
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="success"
                     @click="simulateProgress(processRef1, 100)"
                     >完成</el-button
                   >
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="warning"
                     @click="simulateProgress(processRef1, 50)"
                     >进行中</el-button
                   >
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="danger"
                     @click="simulateError(processRef1)"
                     >错误</el-button
                   >
-                  <el-button size="small" @click="processRef1?.resetProgress()"
+                  <ScButton size="small" @click="processRef1?.resetProgress()"
                     >重置</el-button
                   >
                 </el-button-group>
@@ -85,10 +85,10 @@
                 class="mt-3"
               />
             </div>
-          </el-col>
+          </ScCol>
 
           <!-- 示例2: Log布局 -->
-          <el-col :span="12">
+          <ScCol :span="12">
             <div class="example-card">
               <h4>示例2: Log布局（日志）</h4>
               <ScSocketEventProcess
@@ -105,22 +105,22 @@
 
               <div class="action-buttons mt-3">
                 <el-button-group>
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="primary"
                     @click="addRandomLog(processRef2)"
                     >添加日志</el-button
                   >
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="success"
                     @click="simulateLogComplete(processRef2)"
                     >完成</el-button
                   >
-                  <el-button size="small" @click="processRef2?.clearLogs()"
+                  <ScButton size="small" @click="processRef2?.clearLogs()"
                     >清空日志</el-button
                   >
-                  <el-button size="small" @click="processRef2?.resetProgress()"
+                  <ScButton size="small" @click="processRef2?.resetProgress()"
                     >重置</el-button
                   >
                 </el-button-group>
@@ -139,12 +139,12 @@
                 class="mt-3"
               />
             </div>
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
 
         <!-- 示例3: 自定义布局 -->
-        <el-row :gutter="20" class="mt-4">
-          <el-col :span="12">
+        <ScRow :gutter="20" class="mt-4">
+          <ScCol :span="12">
             <div class="example-card">
               <h4>示例3: 自定义布局（Custom Slot）</h4>
               <ScSocketEventProcess
@@ -159,13 +159,13 @@
                 <template #default="{ data, percentage, status }">
                   <div class="custom-layout">
                     <div class="custom-header">
-                      <el-tag :type="getStatusType(status)" size="large">{{
+                      <ScTag :type="getStatusType(status)" size="large">{{
                         status
-                      }}</el-tag>
+                      }}</ScTag>
                       <span class="custom-percentage">{{ percentage }}%</span>
                     </div>
                     <div class="custom-content">
-                      <el-progress
+                      <ScProgress 
                         :percentage="percentage"
                         :color="getProgressColor(percentage)"
                         :stroke-width="20"
@@ -186,19 +186,19 @@
 
               <div class="action-buttons mt-3">
                 <el-button-group>
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="primary"
                     @click="simulateProgress(processRef3, 30)"
                     >30%</el-button
                   >
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="success"
                     @click="simulateProgress(processRef3, 70)"
                     >70%</el-button
                   >
-                  <el-button size="small" @click="processRef3?.resetProgress()"
+                  <ScButton size="small" @click="processRef3?.resetProgress()"
                     >重置</el-button
                   >
                 </el-button-group>
@@ -217,10 +217,10 @@
                 class="mt-3"
               />
             </div>
-          </el-col>
+          </ScCol>
 
           <!-- 示例4: 多事件监听 -->
-          <el-col :span="12">
+          <ScCol :span="12">
             <div class="example-card">
               <h4>示例4: 多事件监听</h4>
               <p class="description">
@@ -252,13 +252,13 @@
                 class="mt-3"
               />
             </div>
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
       </div>
 
       <!-- 弹框模式示例 -->
       <div v-if="currentMode === 'dialog'" class="dialog-examples">
-        <el-alert
+        <ScAlert 
           title="弹框模式说明"
           type="info"
           :closable="false"
@@ -282,66 +282,66 @@
             <strong>提示：</strong
             >点击下方按钮显示弹框，弹框支持拖拽移动和调整大小，刷新页面后位置会保持。
           </p>
-        </el-alert>
+        </ScAlert>
 
-        <el-row :gutter="20">
+        <ScRow :gutter="20">
           <!-- 控制面板 -->
-          <el-col :span="24">
+          <ScCol :span="24">
             <div class="control-panel">
               <h4>🎮 控制面板</h4>
               <div class="control-section">
                 <span class="control-label">显示/隐藏弹框：</span>
                 <el-space wrap>
-                  <el-button type="primary" @click="showDialog1 = !showDialog1">
+                  <ScButton type="primary" @click="showDialog1 = !showDialog1">
                     <IconifyIconOnline
                       :icon="showDialog1 ? 'ri:eye-off-line' : 'ri:eye-line'"
                       class="mr-1"
                     />
                     {{ showDialog1 ? "隐藏" : "显示" }} 右下角弹框
-                  </el-button>
-                  <el-button type="success" @click="showDialog2 = !showDialog2">
+                  </ScButton>
+                  <ScButton type="success" @click="showDialog2 = !showDialog2">
                     <IconifyIconOnline
                       :icon="showDialog2 ? 'ri:eye-off-line' : 'ri:eye-line'"
                       class="mr-1"
                     />
                     {{ showDialog2 ? "隐藏" : "显示" }} 左上角弹框
-                  </el-button>
-                  <el-button type="warning" @click="showDialog3 = !showDialog3">
+                  </ScButton>
+                  <ScButton type="warning" @click="showDialog3 = !showDialog3">
                     <IconifyIconOnline
                       :icon="showDialog3 ? 'ri:eye-off-line' : 'ri:eye-line'"
                       class="mr-1"
                     />
                     {{ showDialog3 ? "隐藏" : "显示" }} 右上角弹框
-                  </el-button>
-                  <el-button type="info" @click="showDialog4 = !showDialog4">
+                  </ScButton>
+                  <ScButton type="info" @click="showDialog4 = !showDialog4">
                     <IconifyIconOnline
                       :icon="showDialog4 ? 'ri:eye-off-line' : 'ri:eye-line'"
                       class="mr-1"
                     />
                     {{ showDialog4 ? "隐藏" : "显示" }} 左下角弹框
-                  </el-button>
+                  </ScButton>
                 </el-space>
               </div>
 
-              <el-divider />
+              <ScDivider />
 
               <div class="control-section">
                 <span class="control-label">测试进度更新：</span>
                 <el-space wrap>
-                  <el-button
+                  <ScButton 
                     size="small"
                     @click="simulateProgress(dialogRef1, 30)"
                     >更新弹框1进度</el-button
                   >
-                  <el-button size="small" @click="addRandomLog(dialogRef2)"
+                  <ScButton size="small" @click="addRandomLog(dialogRef2)"
                     >添加弹框2日志</el-button
                   >
-                  <el-button
+                  <ScButton 
                     size="small"
                     @click="simulateProgress(dialogRef3, 70)"
                     >更新弹框3进度</el-button
                   >
-                  <el-button
+                  <ScButton 
                     size="small"
                     @click="simulateProgress(dialogRef4, 100)"
                     >完成弹框4</el-button
@@ -349,11 +349,11 @@
                 </el-space>
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
 
-        <el-row :gutter="20" class="mt-4">
-          <el-col :span="12">
+        <ScRow :gutter="20" class="mt-4">
+          <ScCol :span="12">
             <CodePreview
               :tabs="[
                 {
@@ -365,8 +365,8 @@
                 },
               ]"
             />
-          </el-col>
-          <el-col :span="12">
+          </ScCol>
+          <ScCol :span="12">
             <CodePreview
               :tabs="[
                 {
@@ -378,10 +378,10 @@
                 },
               ]"
             />
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 弹框实例 -->
     <ScSocketEventProcess
@@ -461,7 +461,7 @@
             :sub-title="`进度: ${percentage}%`"
           >
             <template #extra>
-              <el-progress
+              <ScProgress 
                 type="circle"
                 :percentage="percentage"
                 :color="getProgressColor(percentage)"
@@ -637,13 +637,13 @@ const code1 = `<ScSocketEventProcess
 />
 
 <!-- 手动更新进度 -->
-<el-button @click="processRef.updateProgress({
+<ScButton @click="processRef.updateProgress({
   message: '正在同步...',
   percentage: 50,
   status: 'processing',
   step: 5,
   total: 10
-})">更新进度</el-button>`;
+})">更新进度</ScButton>`;
 
 const code2 = `<ScSocketEventProcess
   eventId="demo-event-2"
@@ -658,9 +658,9 @@ const code2 = `<ScSocketEventProcess
 />
 
 <!-- 添加日志 -->
-<el-button @click="processRef.addLog('编译完成')">
+<ScButton @click="processRef.addLog('编译完成')">
   添加日志
-</el-button>`;
+</ScButton>`;
 
 const code3 = `<ScSocketEventProcess
   eventId="demo-event-3"
@@ -672,9 +672,9 @@ const code3 = `<ScSocketEventProcess
 >
   <template #default="{ data, percentage, status }">
     <div class="custom-layout">
-      <el-tag :type="getStatusType(status)">{{ status }}</el-tag>
+      <ScTag :type="getStatusType(status)">{{ status }}</ScTag>
       <span>{{ percentage }}%</span>
-      <el-progress :percentage="percentage" />
+      <ScProgress :percentage="percentage" />
       <pre>{{ JSON.stringify(data, null, 2) }}</pre>
     </div>
   </template>

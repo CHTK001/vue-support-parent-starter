@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { reactive, ref } from "vue";
 import { message } from "@repo/utils";
 import { fetchUpdateUser, getMine } from "@repo/core";
@@ -104,42 +104,42 @@ getMine().then(res => {
 <template>
   <div :class="['min-w-[180px]', showTitle ? (deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]') : 'max-w-[100%]']">
     <h3 v-if="showTitle" class="my-8">{{ $t("buttons.profile") }}</h3>
-    <el-form ref="userInfoFormRef" label-position="top" :rules="rules" :model="userInfos">
-      <el-form-item :label="$t('field.avatar')">
-        <el-avatar :size="80" :src="userInfos.avatar" />
-        <el-upload ref="uploadRef" accept="image/*" action="#" :limit="1" :auto-upload="false" :show-file-list="false" :on-change="onChange">
-          <el-button plain class="ml-4">
+    <ScForm ref="userInfoFormRef" label-position="top" :rules="rules" :model="userInfos">
+      <ScFormItem :label="$t('field.avatar')">
+        <ScAvatar :size="80" :src="userInfos.avatar" />
+        <ScUpload ref="uploadRef" accept="image/*" action="#" :limit="1" :auto-upload="false" :show-file-list="false" :on-change="onChange">
+          <ScButton plain class="ml-4">
             <IconifyIconOffline :icon="uploadLine" />
             <span class="ml-2">{{ $t("buttons.updateAvatar") }}</span>
-          </el-button>
-        </el-upload>
-      </el-form-item>
-      <el-form-item :label="$t('field.nickname')" prop="sysUserNickname">
-        <el-input v-model="userInfos.sysUserNickname" placeholder="请输入昵称" />
-      </el-form-item>
-      <el-form-item :label="$t('field.email')" prop="sysUserEmail">
-        <el-autocomplete v-model="userInfos.sysUserEmail" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入邮箱" clearable class="w-full" />
-      </el-form-item>
-      <el-form-item :label="$t('field.phone')">
-        <el-input v-model="userInfos.sysUserPhone" placeholder="请输入联系电话" clearable />
-      </el-form-item>
-      <el-form-item :label="$t('field.description')">
-        <el-input v-model="userInfos.description" placeholder="请输入简介" type="textarea" :autosize="{ minRows: 6, maxRows: 8 }" maxlength="56" show-word-limit />
-      </el-form-item>
-      <el-button type="primary" @click="onSubmit(userInfoFormRef)">
+          </ScButton>
+        </ScUpload>
+      </ScFormItem>
+      <ScFormItem :label="$t('field.nickname')" prop="sysUserNickname">
+        <ScInput v-model="userInfos.sysUserNickname" placeholder="请输入昵称" />
+      </ScFormItem>
+      <ScFormItem :label="$t('field.email')" prop="sysUserEmail">
+        <ScAutocomplete v-model="userInfos.sysUserEmail" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入邮箱" clearable class="w-full" />
+      </ScFormItem>
+      <ScFormItem :label="$t('field.phone')">
+        <ScInput v-model="userInfos.sysUserPhone" placeholder="请输入联系电话" clearable />
+      </ScFormItem>
+      <ScFormItem :label="$t('field.description')">
+        <ScInput v-model="userInfos.description" placeholder="请输入简介" type="textarea" :autosize="{ minRows: 6, maxRows: 8 }" maxlength="56" show-word-limit />
+      </ScFormItem>
+      <ScButton type="primary" @click="onSubmit(userInfoFormRef)">
         {{ $t("buttons.updateInfo") }}
-      </el-button>
-    </el-form>
+      </ScButton>
+    </ScForm>
     <sc-dialog v-model="isShow" width="40%" :title="$t('button.updateAvatar')" destroy-on-close :closeOnClickModal="false" :before-close="handleClose" :fullscreen="deviceDetection()">
       <sc-cropper ref="cropper" :src="imgSrc" />
       <template #footer>
         <div class="dialog-footer">
-          <el-button bg text @click="handleClose">
+          <ScButton bg text @click="handleClose">
             {{ $t("buttons.cancel") }}
-          </el-button>
-          <el-button bg text type="primary" @click="handleSubmitImage">
+          </ScButton>
+          <ScButton bg text type="primary" @click="handleSubmitImage">
             {{ $t("buttons.confirm") }}
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

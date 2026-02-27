@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed } from "vue";
 import { IconifyIconOnline } from "@iconify/vue";
 import EmailListItem from "./EmailListItem.vue";
@@ -76,9 +76,9 @@ const handleRefresh = () => {
         <span class="email-list__count" v-if="totalEmails > 0">({{ totalEmails }})</span>
       </div>
       <div class="email-list__actions">
-        <el-button type="primary" text circle @click="handleRefresh">
+        <ScButton type="primary" text circle @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 

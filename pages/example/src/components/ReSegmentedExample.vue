@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ReSegmented 分段控制器示例</h2>
     <p class="example-desc">分段控制器组件，支持图标、多种尺寸等功能</p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <ReSegmented
@@ -17,35 +17,35 @@
         >（索引：{{ config.index }}）
       </div>
 
-      <el-divider content-position="left">属性配置</el-divider>
+      <ScDivider content-position="left">属性配置</ScDivider>
 
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="尺寸">
-              <el-select v-model="config.size" style="width: 100%">
-                <el-option label="小" value="small" />
-                <el-option label="默认" value="default" />
-                <el-option label="大" value="large" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+      <ScForm label-width="120px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="尺寸">
+              <ScSelect v-model="config.size" style="width: 100%">
+                <ScOption label="小" value="small" />
+                <ScOption label="默认" value="default" />
+                <ScOption label="大" value="large" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="200" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="200" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 

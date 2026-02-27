@@ -408,14 +408,66 @@ export async function createStandardApp(
   const { FontIcon, IconifyIconOffline, IconifyIconOnline } =
     await import("@repo/components/ReIcon");
   const { Auth } = await import("@repo/components/ReAuth");
-  const ScTable = (await import("@repo/components/ScTable/index.vue")).default;
-  const ScDialog = (await import("@repo/components/ScDialog/src/index.vue"))
-    .default;
-  const ScDrawer = (await import("@repo/components/ScDrawer/index.vue"))
-    .default;
-  const ScCard = (await import("@repo/components/ScCard/index.vue")).default;
-  const ScSwitch = (await import("@repo/components/ScSwitch/index.vue"))
-    .default;
+
+  // 导入所有 Sc 组件
+  const {
+    ScButton,
+    ScInput,
+    ScSelect,
+    ScCheckbox,
+    ScCheckboxGroup,
+    ScRadio,
+    ScRadioGroup,
+    ScSlider,
+    ScInputNumber,
+    ScRate,
+    ScColorPicker,
+    ScTag,
+    ScBadge,
+    ScAlert,
+    ScLink,
+    ScDivider,
+    ScAvatar,
+    ScProgress,
+    ScTooltip,
+    ScPopover,
+    ScPopconfirm,
+    ScForm,
+    ScFormItem,
+    ScRow,
+    ScCol,
+    ScTabs,
+    ScMenu,
+    ScBreadcrumb,
+    ScSteps,
+    ScUpload,
+    ScImage,
+    ScTree,
+    ScIcon,
+    ScEmpty,
+    ScTableColumn,
+    ScOption,
+    ScTimePicker,
+    ScDatePicker,
+    ScCascader,
+    ScAutocomplete,
+    ScCard,
+    ScTable,
+    ScRibbon,
+    ScMessageDialog,
+    ScDebugConsole,
+    ScText,
+    ScFilterBar,
+    ScContainer,
+    ScPanel,
+    ScNumber,
+    ScDictSelect,
+    ScDrawer,
+    ScReteEditor,
+    ScLayer,
+    ScThree,
+    ScSwitch,
+  } = await import("@repo/components");
 
   // 3. 创建应用实例
   const app = createApp(AppRoot);
@@ -443,12 +495,66 @@ export async function createStandardApp(
     .registerComponent("IconifyIconOffline", IconifyIconOffline)
     .registerComponent("IconifyIconOnline", IconifyIconOnline)
     .registerComponent("FontIcon", FontIcon)
-    .registerComponent("Auth", Auth)
+    .registerComponent("Auth", Auth);
+
+  // 注册所有自定义 Sc 组件（这些组件在 existingScComponentNames 中，不会被 useElementPlus 自动注册）
+  bootstrap
+    .registerComponent("ScButton", ScButton)
+    .registerComponent("ScInput", ScInput)
+    .registerComponent("ScSelect", ScSelect)
+    .registerComponent("ScCheckbox", ScCheckbox)
+    .registerComponent("ScCheckboxGroup", ScCheckboxGroup)
+    .registerComponent("ScRadio", ScRadio)
+    .registerComponent("ScRadioGroup", ScRadioGroup)
+    .registerComponent("ScSlider", ScSlider)
+    .registerComponent("ScInputNumber", ScInputNumber)
+    .registerComponent("ScRate", ScRate)
+    .registerComponent("ScColorPicker", ScColorPicker)
+    .registerComponent("ScTag", ScTag)
+    .registerComponent("ScBadge", ScBadge)
+    .registerComponent("ScAlert", ScAlert)
+    .registerComponent("ScLink", ScLink)
+    .registerComponent("ScDivider", ScDivider)
+    .registerComponent("ScAvatar", ScAvatar)
+    .registerComponent("ScProgress", ScProgress)
+    .registerComponent("ScTooltip", ScTooltip)
+    .registerComponent("ScPopover", ScPopover)
+    .registerComponent("ScPopconfirm", ScPopconfirm)
+    .registerComponent("ScForm", ScForm)
+    .registerComponent("ScFormItem", ScFormItem)
+    .registerComponent("ScRow", ScRow)
+    .registerComponent("ScCol", ScCol)
+    .registerComponent("ScTabs", ScTabs)
+    .registerComponent("ScMenu", ScMenu)
+    .registerComponent("ScBreadcrumb", ScBreadcrumb)
+    .registerComponent("ScSteps", ScSteps)
+    .registerComponent("ScUpload", ScUpload)
+    .registerComponent("ScImage", ScImage)
+    .registerComponent("ScTree", ScTree)
+    .registerComponent("ScIcon", ScIcon)
+    .registerComponent("ScEmpty", ScEmpty)
+    .registerComponent("ScTableColumn", ScTableColumn)
+    .registerComponent("ScOption", ScOption)
+    .registerComponent("ScTimePicker", ScTimePicker)
+    .registerComponent("ScDatePicker", ScDatePicker)
+    .registerComponent("ScCascader", ScCascader)
+    .registerComponent("ScAutocomplete", ScAutocomplete)
     .registerComponent("ScCard", ScCard)
-    .registerComponent("ScSwitch", ScSwitch)
     .registerComponent("ScTable", ScTable)
-    .registerComponent("ScDialog", ScDialog)
-    .registerComponent("ScDrawer", ScDrawer);
+    .registerComponent("ScRibbon", ScRibbon)
+    .registerComponent("ScMessageDialog", ScMessageDialog)
+    .registerComponent("ScDebugConsole", ScDebugConsole)
+    .registerComponent("ScText", ScText)
+    .registerComponent("ScFilterBar", ScFilterBar)
+    .registerComponent("ScContainer", ScContainer)
+    .registerComponent("ScPanel", ScPanel)
+    .registerComponent("ScNumber", ScNumber)
+    .registerComponent("ScDictSelect", ScDictSelect)
+    .registerComponent("ScDrawer", ScDrawer)
+    .registerComponent("ScReteEditor", ScReteEditor)
+    .registerComponent("ScLayer", ScLayer)
+    .registerComponent("ScThree", ScThree)
+    .registerComponent("ScSwitch", ScSwitch);
 
   // 注册自定义组件
   if (Object.keys(components).length > 0) {

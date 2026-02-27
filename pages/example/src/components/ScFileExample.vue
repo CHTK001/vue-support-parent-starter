@@ -1,16 +1,16 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ScFile 文件选择器示例</h2>
     <p class="example-desc">文件选择器组件，支持树形目录浏览、文件选择等功能</p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="demo-controls">
-        <el-button @click="clearPath">
+        <ScButton @click="clearPath">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           清空选择
-        </el-button>
+        </ScButton>
       </div>
 
       <ScFile
@@ -24,31 +24,31 @@
         已选择：<code>{{ config.path || "(未选择)" }}</code>
       </div>
 
-      <el-divider content-position="left">属性配置</el-divider>
+      <ScDivider content-position="left">属性配置</ScDivider>
 
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="占位文本">
-              <el-input v-model="config.placeholder" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+      <ScForm label-width="120px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="占位文本">
+              <ScInput v-model="config.placeholder" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="150" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 

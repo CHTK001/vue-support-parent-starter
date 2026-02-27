@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="doc-exporter">
     <el-dropdown trigger="click" @command="handleExport">
-      <el-button type="primary" plain>
+      <ScButton type="primary" plain>
         <i class="ri-download-2-line"></i>
         导出文档
         <i class="ri-arrow-down-s-line"></i>
-      </el-button>
+      </ScButton>
       <template #dropdown>
         <el-dropdown-menu>
           <el-dropdown-item command="html">
@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from "element-plus";
+import { ScMessage } from "@repo/utils";
 import type { ApiGroup, ApiInfo } from "../types";
 
 const props = defineProps<{
@@ -57,7 +57,7 @@ const handleExport = (format: string) => {
     }
   } catch (error) {
     console.error("Export failed:", error);
-    ElMessage.error("导出失败");
+    ScMessage.error("导出失败");
   }
 };
 
@@ -65,14 +65,14 @@ const handleExport = (format: string) => {
 const exportHtml = () => {
   const html = generateHtml();
   downloadFile(html, `${props.title || "API文档"}.html`, "text/html");
-  ElMessage.success("HTML 文档导出成功");
+  ScMessage.success("HTML 文档导出成功");
 };
 
 // 导出 Markdown
 const exportMarkdown = () => {
   const markdown = generateMarkdown();
   downloadFile(markdown, `${props.title || "API文档"}.md`, "text/markdown");
-  ElMessage.success("Markdown 文档导出成功");
+  ScMessage.success("Markdown 文档导出成功");
 };
 
 // 导出 JSON
@@ -89,7 +89,7 @@ const exportJson = () => {
     2
   );
   downloadFile(json, `${props.title || "API文档"}.json`, "application/json");
-  ElMessage.success("JSON 文档导出成功");
+  ScMessage.success("JSON 文档导出成功");
 };
 
 // 生成 HTML

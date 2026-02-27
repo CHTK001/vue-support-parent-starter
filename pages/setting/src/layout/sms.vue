@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="fullscreen">
-    <el-row v-if="hasAuth">
-      <el-col :span="16">
-        <el-form :model="form" label-width="200px" class="h-full">
-          <el-form-item label="项目" prop="sysProjectId">
+    <ScRow v-if="hasAuth">
+      <ScCol :span="16">
+        <ScForm :model="form" label-width="200px" class="h-full">
+          <ScFormItem label="项目" prop="sysProjectId">
             <ScTableSelect
               class="w-full"
               v-model="form.sysProjectId"
@@ -18,65 +18,65 @@
               @selectionChange="selectionChange"
               @failure="handleFailure"
             ></ScTableSelect>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item
+          <ScFormItem 
             v-if="form.sysProjectId"
             label="名称"
             prop="sysProjectName"
           >
-            <el-input
+            <ScInput 
               v-model="form.sysProjectName"
               readonly
               disabled
-            ></el-input>
-          </el-form-item>
-          <el-form-item
+            ></ScInput>
+          </ScFormItem>
+          <ScFormItem 
             v-if="form.sysProjectId"
             label="AppId"
             prop="sysProjectAppId"
           >
-            <el-input v-model="form.sysProjectAppId"></el-input>
-          </el-form-item>
-          <el-form-item
+            <ScInput v-model="form.sysProjectAppId"></ScInput>
+          </ScFormItem>
+          <ScFormItem 
             v-if="form.sysProjectId"
             label="密钥"
             prop="sysProjectAppSecret"
           >
-            <el-input
+            <ScInput 
               type="password"
               show-password
               v-model="form.sysProjectAppSecret"
             >
-            </el-input>
-          </el-form-item>
-          <el-form-item
+            </ScInput>
+          </ScFormItem>
+          <ScFormItem 
             v-if="form.sysProjectId"
             label="签名"
             prop="sysProjectSign"
           >
-            <el-input
+            <ScInput 
               type="password"
               show-password
               v-model="form.sysProjectSign"
             >
-            </el-input>
-          </el-form-item>
+            </ScInput>
+          </ScFormItem>
 
-          <el-form-item class="justify-start custom-button">
-            <el-button
+          <ScFormItem class="justify-start custom-button">
+            <ScButton 
               class="ml-1"
               :icon="useRenderIcon('ri:save-2-fill')"
               type="primary"
               @click="handleSubmit"
             >
               {{ $t("buttons.update") }}
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </el-col>
-    </el-row>
-    <el-empty v-else></el-empty>
+            </ScButton>
+          </ScFormItem>
+        </ScForm>
+      </ScCol>
+    </ScRow>
+    <ScEmpty v-else></ScEmpty>
   </div>
 </template>
 <script setup>

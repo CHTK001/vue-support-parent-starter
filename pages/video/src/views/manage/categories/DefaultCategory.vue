@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="video-default">
     <div class="video-default__container">
       <div class="video-default__header">
         <h2 class="video-default__title">热门推荐</h2>
-        <el-button type="primary" plain size="small" @click="navigateToAll">查看全部</el-button>
+        <ScButton type="primary" plain size="small" @click="navigateToAll">查看全部</ScButton>
       </div>
 
       <!-- 热门推荐视频卡片 -->
@@ -24,7 +24,7 @@
       <div class="video-default__section">
         <div class="video-default__header">
           <h2 class="video-default__title">最新上线</h2>
-          <el-button type="primary" plain size="small" @click="navigateToNew">查看全部</el-button>
+          <ScButton type="primary" plain size="small" @click="navigateToNew">查看全部</ScButton>
         </div>
 
         <div class="video-default__grid">

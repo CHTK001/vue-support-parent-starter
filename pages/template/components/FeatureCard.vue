@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="feature-card" :class="{ 'is-active': active }">
     <div class="feature-card__glow"></div>
     <div class="feature-card__icon-wrapper">
@@ -12,10 +12,10 @@
     </div>
     <div v-if="$slots.footer || showAction" class="feature-card__footer">
       <slot name="footer">
-        <el-button type="primary" text>
+        <ScButton type="primary" text>
           <IconifyIconOnline icon="ri:arrow-right-line" />
           了解更多
-        </el-button>
+        </ScButton>
       </slot>
     </div>
   </div>

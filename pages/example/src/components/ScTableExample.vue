@@ -1,67 +1,67 @@
-<template>
+﻿<template>
   <div class="sc-table-example">
     <div class="example-container">
       <div class="config-panel">
         <h3>配置面板</h3>
-        <el-form :model="config" label-width="120px" size="small">
-          <el-form-item label="边框">
-            <el-switch v-model="config.border" />
-          </el-form-item>
-          <el-form-item label="斑马纹">
-            <el-switch v-model="config.stripe" />
-          </el-form-item>
-          <el-form-item label="显示分页">
-            <el-switch v-model="config.showPagination" />
-          </el-form-item>
-          <el-form-item label="每页条数">
-            <el-select
+        <ScForm :model="config" label-width="120px" size="small">
+          <ScFormItem label="边框">
+            <ScSwitch v-model="config.border" />
+          </ScFormItem>
+          <ScFormItem label="斑马纹">
+            <ScSwitch v-model="config.stripe" />
+          </ScFormItem>
+          <ScFormItem label="显示分页">
+            <ScSwitch v-model="config.showPagination" />
+          </ScFormItem>
+          <ScFormItem label="每页条数">
+            <ScSelect 
               v-model="config.pageSize"
               :disabled="!config.showPagination"
             >
-              <el-option
+              <ScOption 
                 v-for="size in [5, 10, 20, 50, 1000, 10000, 100000]"
                 :key="size"
                 :label="size"
                 :value="size"
               />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="分页类型">
-            <el-select
+            </ScSelect>
+          </ScFormItem>
+          <ScFormItem label="分页类型">
+            <ScSelect 
               v-model="config.paginationType"
               :disabled="!config.showPagination"
             >
-              <el-option label="当前分页" value="default" />
-              <el-option label="滚动分页" value="scroll" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="自动加载" v-if="config.showPagination">
-            <el-switch
+              <ScOption label="当前分页" value="default" />
+              <ScOption label="滚动分页" value="scroll" />
+            </ScSelect>
+          </ScFormItem>
+          <ScFormItem label="自动加载" v-if="config.showPagination">
+            <ScSwitch 
               v-model="config.autoLoad"
               :disabled="config.paginationType !== 'scroll'"
             />
-          </el-form-item>
-          <el-form-item label="加载距离(px)" v-if="config.showPagination">
-            <el-input-number
+          </ScFormItem>
+          <ScFormItem label="加载距离(px)" v-if="config.showPagination">
+            <ScInputNumber 
               v-model="config.loadDistance"
               :min="0"
               :max="400"
               :step="20"
               :disabled="config.paginationType !== 'scroll'"
             />
-          </el-form-item>
-          <el-form-item label="高度(px)">
-            <el-input-number v-model="config.height" :min="0" :step="50" />
-          </el-form-item>
-          <el-form-item label="表格宽度">
-            <el-select v-model="config.width">
-              <el-option label="自适应" value="auto" />
-              <el-option label="100%" value="100%" />
-              <el-option label="1200px" value="1200px" />
-              <el-option label="800px" value="800px" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="布局方式">
+          </ScFormItem>
+          <ScFormItem label="高度(px)">
+            <ScInputNumber v-model="config.height" :min="0" :step="50" />
+          </ScFormItem>
+          <ScFormItem label="表格宽度">
+            <ScSelect v-model="config.width">
+              <ScOption label="自适应" value="auto" />
+              <ScOption label="100%" value="100%" />
+              <ScOption label="1200px" value="1200px" />
+              <ScOption label="800px" value="800px" />
+            </ScSelect>
+          </ScFormItem>
+          <ScFormItem label="布局方式">
             <ScSelect
               v-model="config.layout"
               :options="[
@@ -75,30 +75,30 @@
               layout="pill"
               :columns="6"
             />
-          </el-form-item>
-          <el-form-item label="启用右键菜单">
-            <el-switch v-model="config.contextMenu" />
-          </el-form-item>
-          <el-form-item label="启用拖拽排序">
-            <el-switch v-model="config.draggable" />
-          </el-form-item>
-          <el-form-item v-if="config.draggable" label="交互次数">
-            <el-radio-group v-model="config.dragInteractionCount">
-              <el-radio :label="1">即时保存</el-radio>
-              <el-radio :label="5">批量保存</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="数据数量">
+          </ScFormItem>
+          <ScFormItem label="启用右键菜单">
+            <ScSwitch v-model="config.contextMenu" />
+          </ScFormItem>
+          <ScFormItem label="启用拖拽排序">
+            <ScSwitch v-model="config.draggable" />
+          </ScFormItem>
+          <ScFormItem v-if="config.draggable" label="交互次数">
+            <ScRadioGroup v-model="config.dragInteractionCount">
+              <ScRadio :label="1">即时保存</ScRadio>
+              <ScRadio :label="5">批量保存</ScRadio>
+            </ScRadioGroup>
+          </ScFormItem>
+          <ScFormItem label="数据数量">
             <div class="data-count-control">
-              <el-input-number
+              <ScInputNumber 
                 v-model="config.dataCount"
                 :min="1"
                 :max="10000"
                 @change="generateData"
               />
             </div>
-          </el-form-item>
-        </el-form>
+          </ScFormItem>
+        </ScForm>
       </div>
 
       <div
@@ -132,47 +132,47 @@
             @drag-sort-success="handleDragSortSuccess"
             overflow-x="auto"
           >
-            <el-table-column type="selection" width="55"></el-table-column>
-            <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
-            <el-table-column prop="name" label="名称" width="150"></el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
+            <ScTableColumn type="selection" width="55"></ScTableColumn>
+            <ScTableColumn prop="id" label="ID" width="80" sortable></ScTableColumn>
+            <ScTableColumn prop="name" label="名称" width="150"></ScTableColumn>
+            <ScTableColumn prop="status" label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'active' ? 'success' : 'info'">
+                <ScTag :type="row.status === 'active' ? 'success' : 'info'">
                   {{ row.status === "active" ? "启用" : "禁用" }}
-                </el-tag>
+                </ScTag>
               </template>
-            </el-table-column>
-            <el-table-column prop="description" label="描述" width="200"></el-table-column>
-            <el-table-column
+            </ScTableColumn>
+            <ScTableColumn prop="description" label="描述" width="200"></ScTableColumn>
+            <ScTableColumn 
               prop="createTime"
               label="创建时间"
               width="180"
               sortable
-            ></el-table-column>
-            <el-table-column prop="author" label="作者" width="120"></el-table-column>
-            <el-table-column prop="category" label="分类" width="100"></el-table-column>
-            <el-table-column prop="priority" label="优先级" width="100" sortable>
+            ></ScTableColumn>
+            <ScTableColumn prop="author" label="作者" width="120"></ScTableColumn>
+            <ScTableColumn prop="category" label="分类" width="100"></ScTableColumn>
+            <ScTableColumn prop="priority" label="优先级" width="100" sortable>
               <template #default="{ row }">
-                <el-tag :type="row.priority === 'high' ? 'danger' : row.priority === 'medium' ? 'warning' : 'info'">
+                <ScTag :type="row.priority === 'high' ? 'danger' : row.priority === 'medium' ? 'warning' : 'info'">
                   {{ row.priority === 'high' ? '高' : row.priority === 'medium' ? '中' : '低' }}
-                </el-tag>
+                </ScTag>
               </template>
-            </el-table-column>
-            <el-table-column prop="department" label="部门" width="150"></el-table-column>
-            <el-table-column prop="location" label="位置" width="150"></el-table-column>
-            <el-table-column prop="phone" label="联系电话" width="150"></el-table-column>
-            <el-table-column prop="email" label="邮箱" width="200"></el-table-column>
-            <el-table-column prop="remark" label="备注" width="250"></el-table-column>
-            <el-table-column label="操作" width="150" fixed="right">
+            </ScTableColumn>
+            <ScTableColumn prop="department" label="部门" width="150"></ScTableColumn>
+            <ScTableColumn prop="location" label="位置" width="150"></ScTableColumn>
+            <ScTableColumn prop="phone" label="联系电话" width="150"></ScTableColumn>
+            <ScTableColumn prop="email" label="邮箱" width="200"></ScTableColumn>
+            <ScTableColumn prop="remark" label="备注" width="250"></ScTableColumn>
+            <ScTableColumn label="操作" width="150" fixed="right">
               <template #default="{ row }">
-                <el-button type="primary" size="small" @click="handleEdit(row)"
+                <ScButton type="primary" size="small" @click="handleEdit(row)"
                   >编辑</el-button
                 >
-                <el-button type="danger" size="small" @click="handleDelete(row)"
+                <ScButton type="danger" size="small" @click="handleDelete(row)"
                   >删除</el-button
                 >
               </template>
-            </el-table-column>
+            </ScTableColumn>
           </ScTable>
 
           <ScTable
@@ -200,12 +200,12 @@
               <div class="custom-card">
                 <div class="card-header">
                   <span class="card-title">{{ row.name }}</span>
-                  <el-tag
+                  <ScTag 
                     :type="row.status === 'active' ? 'success' : 'info'"
                     size="small"
                   >
                     {{ row.status === "active" ? "启用" : "禁用" }}
-                  </el-tag>
+                  </ScTag>
                 </div>
                 <div class="card-content">
                   <div class="card-field">
@@ -222,13 +222,13 @@
                   </div>
                 </div>
                 <div class="card-actions">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     size="small"
                     @click="handleEdit(row)"
                     >编辑</el-button
                   >
-                  <el-button
+                  <ScButton 
                     type="danger"
                     size="small"
                     @click="handleDelete(row)"
@@ -268,12 +268,12 @@
               >
                 <div class="waterfall-card-header">
                   <span class="waterfall-card-title">{{ row.name }}</span>
-                  <el-tag
+                  <ScTag 
                     :type="row.status === 'active' ? 'success' : 'info'"
                     size="small"
                   >
                     {{ row.status === "active" ? "启用" : "禁用" }}
-                  </el-tag>
+                  </ScTag>
                 </div>
                 <div class="waterfall-card-content">
                   <p class="waterfall-card-desc">{{ row.description }}</p>
@@ -289,7 +289,7 @@
                   </div>
                 </div>
                 <div class="waterfall-card-footer">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     size="small"
                     text
@@ -297,8 +297,8 @@
                   >
                     <IconifyIconOnline icon="ep:edit" />
                     编辑
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton 
                     type="danger"
                     size="small"
                     text
@@ -306,7 +306,7 @@
                   >
                     <IconifyIconOnline icon="ep:delete" />
                     删除
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
@@ -335,7 +335,7 @@
             <template #table-header>
               <div class="canvas-header">
                 <h4>Canvas表格 - 高性能渲染</h4>
-                <el-tag type="success">适合大数据量渲染</el-tag>
+                <ScTag type="success">适合大数据量渲染</ScTag>
               </div>
             </template>
           </ScTable>
@@ -389,22 +389,22 @@
                   <p>{{ row.description }}</p>
                 </div>
                 <div class="list-item-meta">
-                  <el-tag
+                  <ScTag 
                     :type="row.status === 'active' ? 'success' : 'info'"
                     size="small"
                   >
                     {{ row.status === "active" ? "启用" : "禁用" }}
-                  </el-tag>
+                  </ScTag>
                   <span class="list-time">{{ row.createTime }}</span>
                 </div>
                 <div class="list-item-actions">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     size="small"
                     @click="handleEdit(row)"
                     >编辑</el-button
                   >
-                  <el-button
+                  <ScButton 
                     type="danger"
                     size="small"
                     @click="handleDelete(row)"
@@ -418,7 +418,7 @@
       </div>
     </div>
 
-    <el-divider></el-divider>
+    <ScDivider></ScDivider>
     <div class="code-panel">
       <CodePreview
         :tabs="[
@@ -859,38 +859,38 @@ const generatedCode = computed(() => {
     }
 
     code += `>
-  <el-table-column type="selection" width="55"></el-table-column>
-  <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
-  <el-table-column prop="name" label="名称" width="150"></el-table-column>
-  <el-table-column prop="status" label="状态" width="100">
+  <ScTableColumn type="selection" width="55"></ScTableColumn>
+  <ScTableColumn prop="id" label="ID" width="80" sortable></ScTableColumn>
+  <ScTableColumn prop="name" label="名称" width="150"></ScTableColumn>
+  <ScTableColumn prop="status" label="状态" width="100">
     <template #default="{ row }">
-      <el-tag :type="row.status === 'active' ? 'success' : 'info'">
+      <ScTag :type="row.status === 'active' ? 'success' : 'info'">
         {{ row.status === "active" ? "启用" : "禁用" }}
-      </el-tag>
+      </ScTag>
     </template>
-  </el-table-column>
-  <el-table-column prop="description" label="描述" width="200"></el-table-column>
-  <el-table-column prop="createTime" label="创建时间" width="180" sortable></el-table-column>
-  <el-table-column prop="author" label="作者" width="120"></el-table-column>
-  <el-table-column prop="category" label="分类" width="100"></el-table-column>
-  <el-table-column prop="priority" label="优先级" width="100" sortable>
+  </ScTableColumn>
+  <ScTableColumn prop="description" label="描述" width="200"></ScTableColumn>
+  <ScTableColumn prop="createTime" label="创建时间" width="180" sortable></ScTableColumn>
+  <ScTableColumn prop="author" label="作者" width="120"></ScTableColumn>
+  <ScTableColumn prop="category" label="分类" width="100"></ScTableColumn>
+  <ScTableColumn prop="priority" label="优先级" width="100" sortable>
     <template #default="{ row }">
-      <el-tag :type="row.priority === 'high' ? 'danger' : row.priority === 'medium' ? 'warning' : 'info'">
+      <ScTag :type="row.priority === 'high' ? 'danger' : row.priority === 'medium' ? 'warning' : 'info'">
         {{ row.priority === 'high' ? '高' : row.priority === 'medium' ? '中' : '低' }}
-      </el-tag>
+      </ScTag>
     </template>
-  </el-table-column>
-  <el-table-column prop="department" label="部门" width="150"></el-table-column>
-  <el-table-column prop="location" label="位置" width="150"></el-table-column>
-  <el-table-column prop="phone" label="联系电话" width="150"></el-table-column>
-  <el-table-column prop="email" label="邮箱" width="200"></el-table-column>
-  <el-table-column prop="remark" label="备注" width="250"></el-table-column>
-  <el-table-column label="操作" width="150" fixed="right">
+  </ScTableColumn>
+  <ScTableColumn prop="department" label="部门" width="150"></ScTableColumn>
+  <ScTableColumn prop="location" label="位置" width="150"></ScTableColumn>
+  <ScTableColumn prop="phone" label="联系电话" width="150"></ScTableColumn>
+  <ScTableColumn prop="email" label="邮箱" width="200"></ScTableColumn>
+  <ScTableColumn prop="remark" label="备注" width="250"></ScTableColumn>
+  <ScTableColumn label="操作" width="150" fixed="right">
     <template #default="{ row }">
-      <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-      <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+      <ScButton type="primary" size="small" @click="handleEdit(row)">编辑</ScButton>
+      <ScButton type="danger" size="small" @click="handleDelete(row)">删除</ScButton>
     </template>
-  </el-table-column>
+  </ScTableColumn>
 </ScTable>`;
 
     // 如果启用了右键菜单，添加菜单实现代码
@@ -984,9 +984,9 @@ const handleContextMenu = (row, column, event) => {
     <div class="custom-card">
       <div class="card-header">
         <span class="card-title">{{ row.name }}</span>
-        <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+        <ScTag :type="row.status === 'active' ? 'success' : 'info'" size="small">
           {{ row.status === "active" ? "启用" : "禁用" }}
-        </el-tag>
+        </ScTag>
       </div>
       <div class="card-content">
         <div class="card-field">
@@ -1003,8 +1003,8 @@ const handleContextMenu = (row, column, event) => {
         </div>
       </div>
       <div class="card-actions">
-        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+        <ScButton type="primary" size="small" @click="handleEdit(row)">编辑</ScButton>
+        <ScButton type="danger" size="small" @click="handleDelete(row)">删除</ScButton>
       </div>
     </div>
   </template>
@@ -1025,7 +1025,7 @@ const handleContextMenu = (row, column, event) => {
   <template #table-header>
     <div class="canvas-header">
       <h4>Canvas表格 - 高性能渲染</h4>
-      <el-tag type="success">适合大数据量渲染</el-tag>
+      <ScTag type="success">适合大数据量渲染</ScTag>
     </div>
   </template>
 </ScTable>`;
@@ -1060,9 +1060,9 @@ const handleContextMenu = (row, column, event) => {
     <div class="waterfall-card">
       <div class="waterfall-card-header">
         <span class="waterfall-card-title">{{ row.name }}</span>
-        <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+        <ScTag :type="row.status === 'active' ? 'success' : 'info'" size="small">
           {{ row.status === "active" ? "启用" : "禁用" }}
-        </el-tag>
+        </ScTag>
       </div>
       <div class="waterfall-card-content">
         <p class="waterfall-card-desc">{{ row.description }}</p>
@@ -1071,8 +1071,8 @@ const handleContextMenu = (row, column, event) => {
         </div>
       </div>
       <div class="waterfall-card-footer">
-        <el-button type="primary" size="small" text @click.stop="handleEdit(row)">编辑</el-button>
-        <el-button type="danger" size="small" text @click.stop="handleDelete(row)">删除</el-button>
+        <ScButton type="primary" size="small" text @click.stop="handleEdit(row)">编辑</ScButton>
+        <ScButton type="danger" size="small" text @click.stop="handleDelete(row)">删除</ScButton>
       </div>
     </div>
   </template>
@@ -1095,14 +1095,14 @@ const handleContextMenu = (row, column, event) => {
         <p>{{ row.description }}</p>
       </div>
       <div class="list-item-meta">
-        <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+        <ScTag :type="row.status === 'active' ? 'success' : 'info'" size="small">
           {{ row.status === "active" ? "启用" : "禁用" }}
-        </el-tag>
+        </ScTag>
         <span class="list-time">{{ row.createTime }}</span>
       </div>
       <div class="list-item-actions">
-        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+        <ScButton type="primary" size="small" @click="handleEdit(row)">编辑</ScButton>
+        <ScButton type="danger" size="small" @click="handleDelete(row)">删除</ScButton>
       </div>
     </div>
   </template>

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { match } from "pinyin-pro";
 import { useI18n } from "vue-i18n";
 import { getConfig } from "@repo/config";
@@ -294,7 +294,7 @@ onKeyStroke("ArrowDown", handleDown);
     @opened="inputRef.focus()"
     @closed="inputRef.blur()"
   >
-    <el-input
+    <ScInput 
       ref="inputRef"
       v-model="keyword"
       size="large"
@@ -308,10 +308,10 @@ onKeyStroke("ArrowDown", handleDown);
           class="text-primary w-[24px] h-[24px]"
         />
       </template>
-    </el-input>
+    </ScInput>
     <div class="search-content">
       <el-scrollbar ref="scrollbarRef" max-height="calc(90vh - 140px)">
-        <el-empty v-if="showEmpty" :description="t('search.pureEmpty')" />
+        <ScEmpty v-if="showEmpty" :description="t('search.pureEmpty')" />
         <SearchHistory
           v-if="showSearchHistory"
           ref="historyRef"

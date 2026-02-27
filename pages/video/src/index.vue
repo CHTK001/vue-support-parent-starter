@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="video-module system-container modern-bg">
     <div class="video-header">
       <h1 class="text-2xl font-bold text-[var(--app-text-primary)] mb-4">视频管理</h1>
@@ -9,9 +9,9 @@
       <!-- 视频搜索 -->
       <div class="nav-card bg-[var(--app-bg-primary)] rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer" @click="navigateTo('/video/search')">
         <div class="flex items-center mb-4">
-          <el-icon class="text-3xl text-[var(--app-primary)] mr-3">
+          <ScIcon class="text-3xl text-[var(--app-primary)] mr-3">
             <Search />
-          </el-icon>
+          </ScIcon>
           <h3 class="text-lg font-semibold text-[var(--app-text-primary)]">视频搜索</h3>
         </div>
         <p class="text-[var(--app-text-secondary)] text-sm">搜索各大平台视频资源</p>
@@ -20,9 +20,9 @@
       <!-- 视频管理 -->
       <div class="nav-card bg-[var(--app-bg-primary)] rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer" @click="navigateTo('/video/manage')">
         <div class="flex items-center mb-4">
-          <el-icon class="text-3xl text-[var(--app-success)] mr-3">
+          <ScIcon class="text-3xl text-[var(--app-success)] mr-3">
             <VideoPlay />
-          </el-icon>
+          </ScIcon>
           <h3 class="text-lg font-semibold text-[var(--app-text-primary)]">视频管理</h3>
         </div>
         <p class="text-[var(--app-text-secondary)] text-sm">管理本地视频资源</p>
@@ -31,9 +31,9 @@
       <!-- 配置管理 -->
       <div class="nav-card bg-[var(--app-bg-primary)] rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer" @click="navigateTo('/video/config')">
         <div class="flex items-center mb-4">
-          <el-icon class="text-3xl text-[var(--app-warning)] mr-3">
+          <ScIcon class="text-3xl text-[var(--app-warning)] mr-3">
             <Setting />
-          </el-icon>
+          </ScIcon>
           <h3 class="text-lg font-semibold text-[var(--app-text-primary)]">配置管理</h3>
         </div>
         <p class="text-[var(--app-text-secondary)] text-sm">视频同步渠道配置</p>
@@ -42,9 +42,9 @@
       <!-- 视频解析 -->
       <div class="nav-card bg-[var(--app-bg-primary)] rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer" @click="navigateTo('/video/parse')">
         <div class="flex items-center mb-4">
-          <el-icon class="text-3xl text-[var(--app-info)] mr-3">
+          <ScIcon class="text-3xl text-[var(--app-info)] mr-3">
             <Link />
-          </el-icon>
+          </ScIcon>
           <h3 class="text-lg font-semibold text-[var(--app-text-primary)]">视频解析</h3>
         </div>
         <p class="text-[var(--app-text-secondary)] text-sm">VIP视频解析工具</p>
@@ -60,9 +60,9 @@
               <p class="text-[var(--app-primary-lighter)] text-sm">总视频数</p>
               <p class="text-2xl font-bold">{{ stats.totalVideos }}</p>
             </div>
-            <el-icon class="text-3xl text-[var(--app-primary-light)]">
+            <ScIcon class="text-3xl text-[var(--app-primary-light)]">
               <VideoPlay />
-            </el-icon>
+            </ScIcon>
           </div>
         </div>
         
@@ -72,9 +72,9 @@
               <p class="text-[var(--app-success-lighter)] text-sm">同步配置</p>
               <p class="text-2xl font-bold">{{ stats.syncConfigs }}</p>
             </div>
-            <el-icon class="text-3xl text-[var(--app-success-light)]">
+            <ScIcon class="text-3xl text-[var(--app-success-light)]">
               <Refresh />
-            </el-icon>
+            </ScIcon>
           </div>
         </div>
         
@@ -84,9 +84,9 @@
               <p class="text-[var(--app-warning-lighter)] text-sm">今日搜索</p>
               <p class="text-2xl font-bold">{{ stats.todaySearches }}</p>
             </div>
-            <el-icon class="text-3xl text-[var(--app-warning-light)]">
+            <ScIcon class="text-3xl text-[var(--app-warning-light)]">
               <Search />
-            </el-icon>
+            </ScIcon>
           </div>
         </div>
         
@@ -96,9 +96,9 @@
               <p class="text-[var(--app-info-lighter)] text-sm">解析次数</p>
               <p class="text-2xl font-bold">{{ stats.parseCount }}</p>
             </div>
-            <el-icon class="text-3xl text-[var(--app-info-light)]">
+            <ScIcon class="text-3xl text-[var(--app-info-light)]">
               <Link />
-            </el-icon>
+            </ScIcon>
           </div>
         </div>
       </div>

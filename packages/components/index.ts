@@ -22,11 +22,13 @@ import { ScSelect } from "./ScSelect";
 import { ScRadio, ScRadioGroup } from "./ScRadio";
 import { ScCheckbox, ScCheckboxGroup } from "./ScCheckbox";
 import { ScInputNumberComponent as ScInputNumber } from "./ScInputNumber";
+import { ScInputComponent as ScInput } from "./ScInput";
 import { ScRateComponent as ScRate } from "./ScRate";
 import { ScColorPickerComponent as ScColorPicker } from "./ScColorPicker";
 import { ScTag } from "./ScTag";
 import { ScBadge } from "./ScBadge";
 import { ScAlert } from "./ScAlert";
+import { ScMessage as ScMessageComponent } from "./ScMessage";
 import { ScLink } from "./ScLink";
 import { ScButton } from "./ScButton";
 import { ScDivider } from "./ScDivider";
@@ -54,6 +56,10 @@ import { ScTableColumn } from "./ScTableColumn";
 import { ScOption } from "./ScOption";
 import ScSwitch from "./ScSwitch/index.vue";
 import ScRouteLoading from "./ScRouteLoading/index.vue";
+// 导入 ScMessage 和 ScMessageBox 函数，用于在导出对象中使用
+import { ScMessage, ScMessageBox } from "@repo/utils";
+// 重新导出 ScMessage 和 ScMessageBox 函数，统一从 @repo/components 导入
+export { ScMessage, ScMessageBox } from "@repo/utils";
 
 export {
   ReMenuNewBadge,
@@ -83,6 +89,7 @@ export {
   ScRadioGroup,
   ScCheckbox,
   ScCheckboxGroup,
+  ScInput,
   ScInputNumber,
   ScRate,
   ScColorPicker,
@@ -90,6 +97,7 @@ export {
   ScTag,
   ScBadge,
   ScAlert,
+  ScMessageComponent,
   ScLink,
   ScButton,
   ScDivider,
@@ -147,6 +155,7 @@ export default {
   ScRadioGroup,
   ScCheckbox,
   ScCheckboxGroup,
+  ScInput,
   ScInputNumber,
   ScRate,
   ScColorPicker,
@@ -154,6 +163,7 @@ export default {
   ScTag,
   ScBadge,
   ScAlert,
+  ScMessageComponent,
   ScLink,
   ScButton,
   ScDivider,

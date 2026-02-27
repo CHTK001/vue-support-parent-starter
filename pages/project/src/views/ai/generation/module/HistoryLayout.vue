@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, defineExpose, onMounted, shallowRef } from "vue";
 import { fetchHistoryTaskForVincent } from "../../../../api/ai/text-generations";
 import MediaDisplay from "./MediaDisplay.vue";
@@ -207,7 +207,7 @@ defineExpose({
         <!-- 参考图像 -->
         <div class="ref-image-section" v-if="row?.input?.refImage">
           <span class="ref-label">参考图像</span>
-          <el-image :src="row.input.refImage" class="ref-image" />
+          <ScImage :src="row.input.refImage" class="ref-image" />
         </div>
 
         <!-- 反向提示词 -->

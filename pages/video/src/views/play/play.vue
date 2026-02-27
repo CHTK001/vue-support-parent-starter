@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -32,7 +32,7 @@
 
         <!-- 加载状态 -->
         <div v-if="loading" class="loading-overlay">
-          <el-icon class="loading-icon"><Loading /></el-icon>
+          <ScIcon class="loading-icon"><Loading /></ScIcon>
           <p class="loading-text">正在加载视频...</p>
         </div>
 
@@ -40,10 +40,10 @@
         <div v-if="error" class="error-overlay">
           <IconifyIconOnline icon="ep:warning-filled" class="error-icon" />
           <p class="error-message">{{ error }}</p>
-          <el-button type="primary" @click="retryLoad" class="retry-btn">
+          <ScButton type="primary" @click="retryLoad" class="retry-btn">
             <IconifyIconOnline icon="ep:refresh" />
             重试
-          </el-button>
+          </ScButton>
         </div>
       </div>
 

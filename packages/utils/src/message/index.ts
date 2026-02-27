@@ -1,7 +1,19 @@
 import type { VNode } from "vue";
 import { isFunction } from "@pureadmin/utils";
-import { type MessageHandler, ElMessage, ElMessageBox } from "element-plus";
-import { ElLoading } from "element-plus";
+import {
+  type MessageHandler,
+  ElMessage,
+  ElMessageBox,
+  ElNotification,
+  type MessageOptions,
+  type MessageBoxOptions,
+  type NotificationOptions,
+} from "element-plus";
+import {
+  ElLoading,
+  type LoadingOptions,
+  type LoadingInstance,
+} from "element-plus";
 
 type messageStyle = "el" | "antd";
 type messageTypes = "info" | "success" | "warning" | "error";
@@ -19,8 +31,6 @@ interface MessageParams {
   duration?: number;
   /** 是否显示关闭按钮，默认值 `false` */
   showClose?: boolean;
-  /** 文字是否居中，默认值 `false` */
-  center?: boolean;
   /** `Message` 距离窗口顶部的偏移量，默认 `20` */
   offset?: number;
   /** 设置组件的根元素，默认 `document.body` */
@@ -36,14 +46,29 @@ interface MessageParams {
 /**
  * `Message` 消息提示函数
  */
-const messageFunction = (message: string | VNode | (() => VNode), params?: MessageParams): MessageHandler => {
+const messageFunction = (
+  message: string | VNode | (() => VNode),
+  params?: MessageParams,
+): MessageHandler => {
   if (!params) {
     return ElMessage({
       message,
       customClass: "pure-message",
     });
   } else {
-    const { icon, type = "info", dangerouslyUseHTMLString = false, customClass = "antd", duration = 2000, showClose = false, center = false, offset = 20, appendTo = document.body, grouping = false, onClose } = params;
+    const {
+      icon,
+      type = "info",
+      dangerouslyUseHTMLString = false,
+      customClass = "antd",
+      duration = 2000,
+      showClose = false,
+      center = false,
+      offset = 20,
+      appendTo = document.body,
+      grouping = false,
+      onClose,
+    } = params;
 
     return ElMessage({
       message,
@@ -69,15 +94,33 @@ const messageFunction = (message: string | VNode | (() => VNode), params?: Messa
 const closeAllMessage = (): void => ElMessage.closeAll();
 
 // Loading实例存储映射
-const loadingInstances: Record<string, ReturnType<typeof ElLoading.service>> = {};
+const loadingInstances: Record<
+  string,
+  ReturnType<typeof ElLoading.service>
+> = {};
 
 // 创建包含便捷方法的消息对象
 interface MessageFunction {
-  (message: string | VNode | (() => VNode), params?: MessageParams): MessageHandler;
-  info: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
-  success: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
-  warning: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
-  error: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
+  (
+    message: string | VNode | (() => VNode),
+    params?: MessageParams,
+  ): MessageHandler;
+  info: (
+    message: string | VNode | (() => VNode),
+    params?: Omit<MessageParams, "type">,
+  ) => MessageHandler;
+  success: (
+    message: string | VNode | (() => VNode),
+    params?: Omit<MessageParams, "type">,
+  ) => MessageHandler;
+  warning: (
+    message: string | VNode | (() => VNode),
+    params?: Omit<MessageParams, "type">,
+  ) => MessageHandler;
+  error: (
+    message: string | VNode | (() => VNode),
+    params?: Omit<MessageParams, "type">,
+  ) => MessageHandler;
   loading: (
     text?: string,
     options?: {
@@ -86,7 +129,7 @@ interface MessageFunction {
       fullscreen?: boolean;
       name?: string;
       duration?: number;
-    }
+    },
   ) => void;
   closeLoading: (name?: string) => void;
   closeAllLoading: () => void;
@@ -97,10 +140,14 @@ interface MessageFunction {
 const message = messageFunction as MessageFunction;
 
 // 添加便捷方法
-message.info = (msg, params = {}) => messageFunction(msg, { ...params, type: "info" });
-message.success = (msg, params = {}) => messageFunction(msg, { ...params, type: "success" });
-message.warning = (msg, params = {}) => messageFunction(msg, { ...params, type: "warning" });
-message.error = (msg, params = {}) => messageFunction(msg, { ...params, type: "error" });
+message.info = (msg, params = {}) =>
+  messageFunction(msg, { ...params, type: "info" });
+message.success = (msg, params = {}) =>
+  messageFunction(msg, { ...params, type: "success" });
+message.warning = (msg, params = {}) =>
+  messageFunction(msg, { ...params, type: "warning" });
+message.error = (msg, params = {}) =>
+  messageFunction(msg, { ...params, type: "error" });
 
 // 加载中方法 - 使用Element Plus的ElLoading服务
 message.loading = (text = "加载中...", options = {}) => {
@@ -162,12 +209,18 @@ export const messageBox = ElMessageBox;
  * 确认对话框
  */
 export const confirm = (message: string, title?: string, options?: any) => {
-  return ElMessageBox.confirm(message, title || '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-    ...options
+  return ElMessageBox.confirm(message, title || "提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+    ...options,
   });
 };
 
 export { message, closeAllMessage };
+
+// 导出别名，保持向后兼容
+export const ScMessage = message;
+export const ScMessageBox = messageBox;
+export const ScNotification = ElNotification;
+export const ScLoading = ElLoading;

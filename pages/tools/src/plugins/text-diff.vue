@@ -1,4 +1,6 @@
-<script setup>
+﻿<script setup>
+
+import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import Prism from "prismjs";
@@ -375,10 +377,10 @@ onMounted(() => {
       </div>
 
       <!-- 主要内容区域 -->
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 左侧输入区域 -->
-        <el-col :xs="24" :sm="24" :md="24" :lg="24">
-          <el-card class="text-diff-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="24" :lg="24">
+          <ScCard class="text-diff-tool__input-card" shadow="hover">
             <template #header>
               <div class="text-diff-tool__card-header">
                 <IconifyIconOnline icon="ri:settings-line" class="text-diff-tool__card-icon" />
@@ -386,57 +388,57 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-form label-position="top">
+            <ScForm label-position="top">
               <!-- 语言选择 -->
-              <el-form-item label="语言">
-                <el-select v-model="env.language" class="text-diff-tool__select">
-                  <el-option v-for="lang in env.languages" :key="lang.value" :label="lang.label" :value="lang.value">
+              <ScFormItem label="语言">
+                <ScSelect v-model="env.language" class="text-diff-tool__select">
+                  <ScOption v-for="lang in env.languages" :key="lang.value" :label="lang.label" :value="lang.value">
                     <div class="text-diff-tool__language-option">
                       <IconifyIconOnline :icon="getLanguageIcon(lang.value)" />
                       <span>{{ lang.label }}</span>
                     </div>
-                  </el-option>
-                </el-select>
-              </el-form-item>
+                  </ScOption>
+                </ScSelect>
+              </ScFormItem>
 
               <!-- 比较方式 -->
-              <el-form-item label="比较方式">
-                <el-radio-group v-model="env.diffType" class="text-diff-tool__radio-group">
-                  <el-radio v-for="type in env.diffTypes" :key="type.value" :label="type.value">
+              <ScFormItem label="比较方式">
+                <ScRadioGroup v-model="env.diffType" class="text-diff-tool__radio-group">
+                  <ScRadio v-for="type in env.diffTypes" :key="type.value" :label="type.value">
                     <div class="text-diff-tool__radio-content">
                       <IconifyIconOnline :icon="type.icon" />
                       <span>{{ type.label }}</span>
                     </div>
-                  </el-radio>
-                </el-radio-group>
-              </el-form-item>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
 
               <!-- 显示选项 -->
-              <el-form-item label="显示选项">
+              <ScFormItem label="显示选项">
                 <div class="text-diff-tool__options">
-                  <el-checkbox v-model="env.showLineNumbers" label="显示行号" />
-                  <el-checkbox v-model="env.ignoreWhitespace" label="忽略空白" />
-                  <el-checkbox v-model="env.ignoreCase" label="忽略大小写" />
+                  <ScCheckbox v-model="env.showLineNumbers" label="显示行号" />
+                  <ScCheckbox v-model="env.ignoreWhitespace" label="忽略空白" />
+                  <ScCheckbox v-model="env.ignoreCase" label="忽略大小写" />
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 示例选择 -->
-              <el-form-item label="示例">
+              <ScFormItem label="示例">
                 <div class="text-diff-tool__examples">
-                  <el-button v-for="example in env.examples" :key="example.name" size="small" @click="applyExample(example)">
+                  <ScButton v-for="example in env.examples" :key="example.name" size="small" @click="applyExample(example)">
                     {{ example.name }}
-                  </el-button>
+                  </ScButton>
                 </div>
-              </el-form-item>
-            </el-form>
-          </el-card>
-        </el-col>
-      </el-row>
+              </ScFormItem>
+            </ScForm>
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
-      <el-row :gutter="24" class="text-diff-tool__editors-row">
+      <ScRow :gutter="24" class="text-diff-tool__editors-row">
         <!-- 原始文本 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="text-diff-tool__editor-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="text-diff-tool__editor-card" shadow="hover">
             <template #header>
               <div class="text-diff-tool__card-header">
                 <IconifyIconOnline icon="ri:file-text-line" class="text-diff-tool__card-icon" />
@@ -444,13 +446,13 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-input v-model="env.originalText" type="textarea" :rows="15" placeholder="输入原始文本或代码" resize="vertical" class="text-diff-tool__input" />
-          </el-card>
-        </el-col>
+            <ScInput v-model="env.originalText" type="textarea" :rows="15" placeholder="输入原始文本或代码" resize="vertical" class="text-diff-tool__input" />
+          </ScCard>
+        </ScCol>
 
         <!-- 修改后文本 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="text-diff-tool__editor-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="text-diff-tool__editor-card" shadow="hover">
             <template #header>
               <div class="text-diff-tool__card-header">
                 <IconifyIconOnline icon="ri:file-edit-line" class="text-diff-tool__card-icon" />
@@ -458,60 +460,60 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-input v-model="env.modifiedText" type="textarea" :rows="15" placeholder="输入修改后文本或代码" resize="vertical" class="text-diff-tool__input" />
-          </el-card>
-        </el-col>
-      </el-row>
+            <ScInput v-model="env.modifiedText" type="textarea" :rows="15" placeholder="输入修改后文本或代码" resize="vertical" class="text-diff-tool__input" />
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
       <!-- 操作按钮 -->
       <div class="text-diff-tool__actions">
-        <el-button type="primary" :loading="env.loading" :disabled="!canCompare" class="text-diff-tool__compare-btn" @click="compareTexts">
+        <ScButton type="primary" :loading="env.loading" :disabled="!canCompare" class="text-diff-tool__compare-btn" @click="compareTexts">
           <IconifyIconOnline icon="ri:contrast-2-line" />
           <span>比较文本</span>
-        </el-button>
+        </ScButton>
 
-        <el-button type="success" class="text-diff-tool__swap-btn" @click="swapTexts">
+        <ScButton type="success" class="text-diff-tool__swap-btn" @click="swapTexts">
           <IconifyIconOnline icon="ri:swap-line" />
           <span>交换文本</span>
-        </el-button>
+        </ScButton>
 
-        <el-button class="text-diff-tool__clear-btn" @click="clearForm">
+        <ScButton class="text-diff-tool__clear-btn" @click="clearForm">
           <IconifyIconOnline icon="ri:delete-bin-line" />
           <span>清空</span>
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 比较结果 -->
-      <el-card v-if="env.diffResult" class="text-diff-tool__result-card" shadow="hover">
+      <ScCard v-if="env.diffResult" class="text-diff-tool__result-card" shadow="hover">
         <template #header>
           <div class="text-diff-tool__card-header">
             <IconifyIconOnline icon="ri:contrast-2-line" class="text-diff-tool__card-icon" />
             <span>比较结果</span>
             <div class="text-diff-tool__result-actions">
-              <el-button type="primary" link size="small" @click="copyToClipboard(env.unifiedDiff)">
+              <ScButton type="primary" link size="small" @click="copyToClipboard(env.unifiedDiff)">
                 <IconifyIconOnline icon="ri:file-copy-line" />
                 <span>复制差异</span>
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </template>
 
-        <el-tabs type="border-card">
-          <el-tab-pane label="内联视图">
+        <ScTabs type="border-card">
+          <ScTabPane label="内联视图">
             <div class="text-diff-tool__diff-result">
               <pre :class="{ 'line-numbers': env.showLineNumbers }"><code :class="`language-${env.language}`" v-html="env.diffResult"></code></pre>
             </div>
-          </el-tab-pane>
-          <el-tab-pane label="统一视图">
+          </ScTabPane>
+          <ScTabPane label="统一视图">
             <div class="text-diff-tool__unified-diff">
               <pre :class="{ 'line-numbers': env.showLineNumbers }"><code class="language-diff">{{ env.unifiedDiff }}</code></pre>
             </div>
-          </el-tab-pane>
-        </el-tabs>
-      </el-card>
+          </ScTabPane>
+        </ScTabs>
+      </ScCard>
 
       <!-- 历史记录 -->
-      <el-card class="text-diff-tool__history-card" shadow="hover">
+      <ScCard class="text-diff-tool__history-card" shadow="hover">
         <template #header>
           <div class="text-diff-tool__card-header">
             <IconifyIconOnline icon="ri:history-line" class="text-diff-tool__card-icon" />
@@ -519,35 +521,35 @@ onMounted(() => {
           </div>
         </template>
 
-        <el-empty v-if="!env.history.length" description="暂无历史记录" class="text-diff-tool__empty">
+        <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="text-diff-tool__empty">
           <template #image>
             <IconifyIconOnline icon="ri:history-line" class="text-diff-tool__empty-icon" />
           </template>
-        </el-empty>
+        </ScEmpty>
 
-        <el-table v-else :data="env.history" style="width: 100%">
-          <el-table-column prop="date" label="日期" width="180" />
-          <el-table-column prop="language" label="语言" width="120">
+        <ScTable v-else :data="env.history" style="width: 100%">
+          <ScTableColumn prop="date" label="日期" width="180" />
+          <ScTableColumn prop="language" label="语言" width="120">
             <template #default="{ row }">
               <div class="text-diff-tool__language-tag">
                 <IconifyIconOnline :icon="getLanguageIcon(row.language)" />
                 <span>{{ env.languages.find((lang) => lang.value === row.language)?.label || row.language }}</span>
               </div>
             </template>
-          </el-table-column>
-          <el-table-column prop="diffType" label="比较方式" width="120">
+          </ScTableColumn>
+          <ScTableColumn prop="diffType" label="比较方式" width="120">
             <template #default="{ row }">
               <span>{{ env.diffTypes.find((type) => type.value === row.diffType)?.label || row.diffType }}</span>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="120">
             <template #default="scope">
-              <el-button type="primary" link @click="loadFromHistory(scope.row)"> 加载 </el-button>
-              <el-button type="danger" link @click="env.history.splice(env.history.indexOf(scope.row), 1)"> 删除 </el-button>
+              <ScButton type="primary" link @click="loadFromHistory(scope.row)"> 加载 </ScButton>
+              <ScButton type="danger" link @click="env.history.splice(env.history.indexOf(scope.row), 1)"> 删除 </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+          </ScTableColumn>
+        </ScTable>
+      </ScCard>
     </div>
   </div>
 </template>

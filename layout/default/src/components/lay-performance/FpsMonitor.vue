@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div
     v-if="visible && isPerformanceMonitorVisible"
     class="fps-monitor-container"
@@ -237,7 +237,6 @@ onBeforeUnmount(() => {
 .fps-monitor-container.mode-minimal :deep(.monitor-item .item-content) {
   padding: 0;
 }
-
 
 /* Position Styles */
 .fps-monitor-container.position-top-left { top: 10px; left: 10px; }

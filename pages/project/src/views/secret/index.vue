@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
@@ -110,43 +110,43 @@ const dialogClose = async () => {
       <el-container>
         <el-header>
           <div class="left-panel">
-            <el-form
+            <ScForm 
               ref="formRef"
               :inline="true"
               :model="form"
               class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
             >
-              <el-form-item label="密钥分组" prop="sysRoleName">
-                <el-input
+              <ScFormItem label="密钥分组" prop="sysRoleName">
+                <ScInput 
                   v-model="form.sysSecretGroup"
                   placeholder="请输入密钥分组"
                   clearable
                   class="!w-[180px]"
                 />
-              </el-form-item>
-              <el-form-item label="密钥编码" prop="SysRoleCode">
-                <el-input
+              </ScFormItem>
+              <ScFormItem label="密钥编码" prop="SysRoleCode">
+                <ScInput 
                   v-model="form.sysSecretCode"
                   placeholder="请输入密钥编码"
                   clearable
                   class="!w-[180px]"
                 />
-              </el-form-item>
-            </el-form>
+              </ScFormItem>
+            </ScForm>
           </div>
           <div class="right-panel">
             <div class="right-panel-search">
-              <el-button
+              <ScButton 
                 type="primary"
                 :icon="useRenderIcon('ri:search-line')"
                 :loading="loading.query"
                 @click="onSearch()"
               />
-              <el-button
+              <ScButton 
                 :icon="useRenderIcon(Refresh)"
                 @click="resetForm(formRef)"
               />
-              <el-button
+              <ScButton 
                 :icon="useRenderIcon(Edit)"
                 @click="dialogOpen({}, 'save')"
               />
@@ -160,23 +160,23 @@ const dialogClose = async () => {
               style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
             >
               <ScTable ref="table" :url="fetchPageSecret">
-                <el-table-column
+                <ScTableColumn 
                   label="序号"
                   type="index"
                   align="center"
                   width="60px"
                   fixed
                 />
-                <el-table-column
+                <ScTableColumn 
                   label="密钥分组"
                   prop="sysSecretGroup"
                   align="center"
                   show-overflow-tooltip
                 >
                   <template #default="{ row }">
-                    <el-tag v-if="row.sysSecretGroup">{{
+                    <ScTag v-if="row.sysSecretGroup">{{
                       row.sysSecretGroup
-                    }}</el-tag>
+                    }}</ScTag>
                     <span v-else>/</span>
                     <span
                       class="flex-col justify-end"
@@ -189,34 +189,34 @@ const dialogClose = async () => {
                       {{ row.sysSecretCode }}
                     </span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn 
                   label="所属厂家"
                   prop="sysSecretDictItemName"
                   align="center"
                   show-overflow-tooltip
                 >
                   <template #default="{ row }">
-                    <el-tag v-if="row.sysSecretDictItemName">{{
+                    <ScTag v-if="row.sysSecretDictItemName">{{
                       row.sysSecretDictItemName
-                    }}</el-tag>
+                    }}</ScTag>
                     <span v-else>/</span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn 
                   label="签名"
                   prop="sysSecretSign"
                   align="center"
                   show-overflow-tooltip
                 >
                   <template #default="{ row }">
-                    <el-tag v-if="row.sysSecretSign">{{
+                    <ScTag v-if="row.sysSecretSign">{{
                       row.sysSecretSign
-                    }}</el-tag>
+                    }}</ScTag>
                     <span v-else>/</span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn 
                   label="appId"
                   prop="sysSecretAppId"
                   align="center"
@@ -228,8 +228,8 @@ const dialogClose = async () => {
                     }}</span>
                     <span v-else>/</span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn 
                   label="appSecret"
                   prop="sysSecretAppSecret"
                   align="center"
@@ -241,8 +241,8 @@ const dialogClose = async () => {
                     }}</span>
                     <span v-else>/</span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn 
                   label="endpoint"
                   prop="sysSecretAppEndpoint"
                   align="center"
@@ -254,8 +254,8 @@ const dialogClose = async () => {
                     }}</span>
                     <span v-else>/</span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn 
                   label="cdn"
                   prop="sysSecretCdn"
                   align="center"
@@ -265,8 +265,8 @@ const dialogClose = async () => {
                     <span v-if="row.sysSecretCdn">{{ row.sysSecretCdn }}</span>
                     <span v-else>/</span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn 
                   label="启用"
                   prop="sysSecretStatus"
                   align="center"
@@ -282,14 +282,14 @@ const dialogClose = async () => {
                       @change="fetchUpdateSecret(row)"
                     />
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn 
                   label="创建时间"
                   prop="createTime"
                   align="center"
                   show-overflow-tooltip
                 />
-                <el-table-column
+                <ScTableColumn 
                   label="更新时间"
                   prop="updateTime"
                   align="center"
@@ -299,15 +299,15 @@ const dialogClose = async () => {
                     <span v-if="row.updateTime">{{ row.updateTime }}</span>
                     <span v-else>/</span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn 
                   label="操作"
                   fixed="right"
                   min-width="130px"
                   align="center"
                 >
                   <template #default="{ row }">
-                    <el-button
+                    <ScButton 
                       v-if="hasSyncFunction(row)"
                       size="small"
                       plain
@@ -317,8 +317,8 @@ const dialogClose = async () => {
                       @click="syncOpen(row, 'edit')"
                     >
                       同步
-                    </el-button>
-                    <el-button
+                    </ScButton>
+                    <ScButton 
                       size="small"
                       plain
                       link
@@ -327,14 +327,14 @@ const dialogClose = async () => {
                       @click="dialogOpen(row, 'edit')"
                     >
                       编辑
-                    </el-button>
+                    </ScButton>
 
-                    <el-popconfirm
+                    <ScPopconfirm 
                       title="确认删除吗？"
                       @confirm="onDelete(row)"
                     >
                       <template #reference>
-                        <el-button
+                        <ScButton 
                           size="small"
                           type="danger"
                           plain
@@ -343,9 +343,9 @@ const dialogClose = async () => {
                           >删除</el-button
                         >
                       </template>
-                    </el-popconfirm>
+                    </ScPopconfirm>
                   </template>
-                </el-table-column>
+                </ScTableColumn>
               </ScTable>
             </div>
           </div>

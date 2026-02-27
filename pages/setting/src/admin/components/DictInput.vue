@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="sc-dict-input">
     <div class="dict-header">
-      <el-input
+      <ScInput 
         v-model="jsonString"
         type="textarea"
         :rows="3"

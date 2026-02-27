@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ReTypeit 打字机效果示例</h2>
     <p class="example-desc">打字机效果组件，支持多文本循环、自定义速度等功能</p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="typeit-wrapper">
@@ -12,50 +12,50 @@
         </ReTypeit>
       </div>
 
-      <el-divider content-position="left">属性配置</el-divider>
+      <ScDivider content-position="left">属性配置</ScDivider>
 
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="打字速度">
-              <el-input-number
+      <ScForm label-width="120px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="打字速度">
+              <ScInputNumber 
                 v-model="config.speed"
                 :min="50"
                 :max="500"
                 :step="50"
                 style="width: 100%"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="循环播放">
-              <el-switch v-model="config.loop" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="">
-              <el-button type="primary" @click="refreshTypeit">
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="循环播放">
+              <ScSwitch v-model="config.loop" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="">
+              <ScButton type="primary" @click="refreshTypeit">
                 <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
                 重新播放
-              </el-button>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+              </ScButton>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="200" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="200" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 

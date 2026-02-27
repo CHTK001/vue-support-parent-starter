@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="limit-record-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -23,11 +23,11 @@
       </div>
     </div>
 
-    <el-card class="limit-record-card" shadow="never">
+    <ScCard class="limit-record-card" shadow="never">
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-input
+          <ScInput 
             v-model="searchForm.sysLimitPath"
             placeholder="接口路径"
             clearable
@@ -36,16 +36,16 @@
             <template #prefix
               ><IconifyIconOnline icon="ri:links-line"
             /></template>
-          </el-input>
-          <el-input
+          </ScInput>
+          <ScInput 
             v-model="searchForm.sysLimitName"
             placeholder="规则名称"
             clearable
             style="width: 140px"
           >
             <template #prefix><IconifyIconOnline icon="ri:text" /></template>
-          </el-input>
-          <el-input
+          </ScInput>
+          <ScInput 
             v-model="searchForm.clientIp"
             placeholder="客户端IP"
             clearable
@@ -54,8 +54,8 @@
             <template #prefix
               ><IconifyIconOnline icon="ri:computer-line"
             /></template>
-          </el-input>
-          <el-date-picker
+          </ScInput>
+          <ScDatePicker 
             v-model="searchForm.sysLimitTime"
             type="date"
             placeholder="限流时间"
@@ -65,26 +65,26 @@
           />
         </div>
         <div class="toolbar-right">
-          <el-button @click="handleReset">
+          <ScButton @click="handleReset">
             <IconifyIconOnline icon="ri:refresh-line" />
             重置
-          </el-button>
-          <el-button type="primary" @click="handleSearch">
+          </ScButton>
+          <ScButton type="primary" @click="handleSearch">
             <IconifyIconOnline icon="ri:search-line" />
             查询
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             type="danger"
             @click="handleBatchDelete"
             :disabled="selectedRows.length === 0"
           >
             <IconifyIconOnline icon="ri:delete-bin-line" />
             批量删除
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
-      <el-table
+      <ScTable 
         :data="tableData"
         v-loading="loading"
         border
@@ -93,32 +93,32 @@
         row-key="sysLimitRecordId"
         @selection-change="handleSelectionChange"
       >
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="sysLimitName" label="规则名称" min-width="120" />
-        <el-table-column prop="sysLimitPath" label="接口路径" min-width="150" />
-        <el-table-column
+        <ScTableColumn type="selection" width="55" />
+        <ScTableColumn prop="sysLimitName" label="规则名称" min-width="120" />
+        <ScTableColumn prop="sysLimitPath" label="接口路径" min-width="150" />
+        <ScTableColumn 
           prop="sysLimitDimension"
           label="限流维度"
           min-width="100"
         />
-        <el-table-column prop="sysLimitKey" label="限流键值" min-width="120" />
-        <el-table-column prop="sysUserName" label="用户名" min-width="100" />
-        <el-table-column prop="clientIp" label="客户端IP" min-width="120" />
-        <el-table-column prop="requestMethod" label="请求方法" min-width="80" />
-        <el-table-column prop="sysLimitTime" label="限流时间" min-width="150" />
-        <el-table-column label="操作" fixed="right" min-width="100">
+        <ScTableColumn prop="sysLimitKey" label="限流键值" min-width="120" />
+        <ScTableColumn prop="sysUserName" label="用户名" min-width="100" />
+        <ScTableColumn prop="clientIp" label="客户端IP" min-width="120" />
+        <ScTableColumn prop="requestMethod" label="请求方法" min-width="80" />
+        <ScTableColumn prop="sysLimitTime" label="限流时间" min-width="150" />
+        <ScTableColumn label="操作" fixed="right" min-width="100">
           <template #default="scope">
-            <el-button
+            <ScButton 
               type="danger"
               link
               :icon="useRenderIcon('ep:delete')"
               @click="handleDelete(scope.row)"
             >
               删除
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
 
       <div class="pagination-container">
         <el-pagination
@@ -131,14 +131,14 @@
           @current-change="handleCurrentChange"
         />
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { message , ScMessageBox} from "@repo/utils";
+
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import {
   fetchLimitRecordPage,
@@ -217,7 +217,7 @@ const handleSelectionChange = (rows: SysLimitRecord[]) => {
 
 // 删除
 const handleDelete = (row: SysLimitRecord) => {
-  ElMessageBox.confirm("确定要删除该限流记录吗？", "提示", {
+  ScMessageBox.confirm("确定要删除该限流记录吗？", "提示", {
     type: "warning",
   })
     .then(async () => {
@@ -245,7 +245,7 @@ const handleBatchDelete = () => {
     return;
   }
 
-  ElMessageBox.confirm(
+  ScMessageBox.confirm(
     `确定要删除选中的${selectedRows.value.length}条限流记录吗？`,
     "提示",
     {

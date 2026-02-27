@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="llm-container system-container modern-bg">
     <!-- 保持原有结构，添加新的类名 -->
     <ModuleUpdateDialog
@@ -9,7 +9,7 @@
       ref="moduleDialogRef"
       @success="handleRefreshEnvironment"
     ></ModuleDialog>
-    <el-button
+    <ScButton 
       @click="handleOpenModuleManager"
       class="settings-btn"
       circle
@@ -17,7 +17,7 @@
       type="primary"
     >
       <IconifyIconOnline icon="ep:setting" />
-    </el-button>
+    </ScButton>
     <div class="llm-main-container">
       <div class="chat-main">
         <ChatComponent

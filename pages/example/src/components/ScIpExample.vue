@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-ip-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,12 +8,12 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="ip 地址">
-            <el-input v-model="config.ip" placeholder="请输入IP地址" />
-          </el-form-item>
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="ip 地址">
+            <ScInput v-model="config.ip" placeholder="请输入IP地址" />
+          </ScFormItem>
 
-          <el-form-item label="快捷选择">
+          <ScFormItem label="快捷选择">
             <ScSelect
               v-model="config.ip"
               layout="card"
@@ -21,33 +21,33 @@
               :gap="6"
               width="90px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="physicalAddress 物理地址（可选）">
-            <el-input v-model="config.physicalAddress" placeholder="直接传入则不查询" />
-          </el-form-item>
+          <ScFormItem label="physicalAddress 物理地址（可选）">
+            <ScInput v-model="config.physicalAddress" placeholder="直接传入则不查询" />
+          </ScFormItem>
 
-          <el-form-item label="emptyText 空文本">
-            <el-input v-model="config.emptyText" placeholder="无法获取时显示" />
-          </el-form-item>
+          <ScFormItem label="emptyText 空文本">
+            <ScInput v-model="config.emptyText" placeholder="无法获取时显示" />
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="switch-group">
             <div class="switch-item">
-              <el-tooltip content="是否显示原始IP地址" placement="left">
+              <ScTooltip content="是否显示原始IP地址" placement="left">
                 <span>showOriginal 显示IP</span>
-              </el-tooltip>
-              <el-switch v-model="config.showOriginal" />
+              </ScTooltip>
+              <ScSwitch v-model="config.showOriginal" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="IP地址是否可点击跳转搜索" placement="left">
+              <ScTooltip content="IP地址是否可点击跳转搜索" placement="left">
                 <span>openSearchOriginal 可搜索</span>
-              </el-tooltip>
-              <el-switch v-model="config.openSearchOriginal" />
+              </ScTooltip>
+              <ScSwitch v-model="config.openSearchOriginal" />
             </div>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

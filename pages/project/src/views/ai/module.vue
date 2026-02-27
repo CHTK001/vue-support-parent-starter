@@ -12,12 +12,12 @@
     >
       <el-header v-if="env.params.sysProjectId" class="drawer-header">
         <div class="panel-right">
-          <el-button
+          <ScButton 
             @click="handleOpenEditDialog({}, 'save')"
             title="新增"
             :icon="useRenderIcon('ep:plus')"
             class="btn-text btn-add"
-          ></el-button>
+          ></ScButton>
         </div>
       </el-header>
       {{ env }}
@@ -28,7 +28,7 @@
         class="overflow-auto table-custom"
       >
         <!-- 表格列 -->
-        <el-table-column
+        <ScTableColumn 
           prop="sysAiModuleName"
           label="模型名称"
           width="300px"
@@ -37,7 +37,7 @@
         >
           <template #default="{ row }">
             <div class="flex flex-col">
-              <el-tag
+              <ScTag 
                 type="primary"
                 :class="{
                   'tag-custom': true,
@@ -47,9 +47,9 @@
               >
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
         <!-- 其他表格列 -->
-        <el-table-column
+        <ScTableColumn 
           prop="sysAiModuleCode"
           label="模型编码"
           width="240px"
@@ -58,7 +58,7 @@
           <template #default="{ row }">
             <div>
               <p>
-                <el-tooltip
+                <ScTooltip 
                   :content="`编码:${row.sysAiModuleCode || '-'}`"
                   placement="top"
                 >
@@ -73,23 +73,23 @@
                     }"
                     >模型编码:{{ row.sysAiModuleCode || "-" }}
                   </span>
-                </el-tooltip>
+                </ScTooltip>
               </p>
               <p v-if="row.sysAiModuleType == 'LLM'">
                 <span>图片解析: </span>
-                <el-tag :type="row.sysAiModuleVlm == 1 ? 'success' : 'warning'">
+                <ScTag :type="row.sysAiModuleVlm == 1 ? 'success' : 'warning'">
                   {{
                     row.sysAiModuleVlm == 0 ? "不支持图片解析" : "支持图片解析"
                   }}
-                </el-tag>
+                </ScTag>
               </p>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column label="支持尺寸" width="220px" align="center">
+        </ScTableColumn>
+        <ScTableColumn label="支持尺寸" width="220px" align="center">
           <template #default="{ row }">
             <div class="flex flex-wrap">
-              <el-tag
+              <ScTag 
                 type="success"
                 v-for="item in row.vincentSetting?.sysAiVincentSupportedSize?.split(
                   ','
@@ -100,13 +100,13 @@
               >
             </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="sysAiModuleSort" label="排序" align="center">
+        </ScTableColumn>
+        <ScTableColumn prop="sysAiModuleSort" label="排序" align="center">
           <template #default="{ row }">
-            <el-tag size="small"> {{ row.sysAiModuleSort || 0 }}</el-tag>
+            <ScTag size="small"> {{ row.sysAiModuleSort || 0 }}</ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="sysAiModuleVersion" label="版本" align="center">
+        </ScTableColumn>
+        <ScTableColumn prop="sysAiModuleVersion" label="版本" align="center">
           <template #default="{ row }">
             <span
               :class="{
@@ -117,8 +117,8 @@
               {{ row.sysAiModuleVersion || "暂无" }}</span
             >
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn 
           prop="sysApiModuleManufacturersLabel"
           label="厂家代码"
           width="200px"
@@ -134,8 +134,8 @@
               {{ row.sysApiModuleManufacturersLabel || "暂无" }}</span
             >
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn 
           prop="sysAiModuleType"
           label="模型类型"
           width="160px"
@@ -151,8 +151,8 @@
               {{ row.sysAiModuleType || "暂无" }}</span
             >
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn 
           prop="sysAiModuleRemark"
           label="说明"
           show-overflow-tooltip
@@ -169,8 +169,8 @@
               {{ row.sysAiModuleRemark || "暂无" }}</span
             >
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn 
           prop="sysAiModuleRoleSetting"
           label="是否存在角色设置"
           width="180px"
@@ -187,8 +187,8 @@
               class="segmented-custom"
             />
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn 
           prop="sysAiModuleStatus"
           label="是否启用"
           width="160px"
@@ -205,83 +205,83 @@
               class="segmented-custom"
             />
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="220px" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="220px" fixed="right">
           <template #default="scope">
-            <el-row class="justify-end">
-              <el-button
+            <ScRow class="justify-end">
+              <ScButton 
                 v-if="scope.row.sysAiModuleType === 'LLM'"
                 title="大语言模型配置"
                 @click="handleOpenLlmConfigDialog(scope.row, 'edit')"
                 :icon="useRenderIcon('mdi:tune-variant')"
                 class="btn-text btn-operation"
-              ></el-button>
-              <el-button
+              ></ScButton>
+              <ScButton 
                 v-if="scope.row.sysAiModuleType === 'FACE_DETECTION'"
                 title="图像检测配置"
                 @click="handleOpenImageDetectionDialog(scope.row, 'edit')"
                 :icon="useRenderIcon('mdi:face-recognition')"
                 class="btn-text btn-operation"
-              ></el-button>
-              <el-button
+              ></ScButton>
+              <ScButton 
                 v-if="scope.row.sysAiModuleType === 'VIDEO'"
                 title="文生视频模型设置"
                 @click="handleOpenVideoSettingDialog(scope.row, 'edit')"
                 :icon="useRenderIcon('ri:settings-2-fill')"
                 class="btn-text btn-operation"
-              ></el-button>
-              <el-button
+              ></ScButton>
+              <ScButton 
                 v-if="scope.row.sysAiModuleType === 'VINCENT'"
                 title="文生图模型设置"
                 @click="handleOpenSettingDialog(scope.row, 'edit')"
                 :icon="useRenderIcon('ri:settings-2-fill')"
                 class="btn-text btn-operation"
-              ></el-button>
-              <el-button
+              ></ScButton>
+              <ScButton 
                 v-if="scope.row.sysAiModuleType === 'RESOLUTION'"
                 title="超分辨率模型设置"
                 @click="handleOpenResolutionSettingDialog(scope.row, 'edit')"
                 :icon="useRenderIcon('ri:settings-2-fill')"
                 class="btn-text btn-operation"
-              ></el-button>
-              <el-button
+              ></ScButton>
+              <ScButton 
                 v-if="scope.row.sysAiModuleType === 'VINCENT'"
                 title="文生图模板设置"
                 @click="handleOpenTemplateDialog(scope.row, 'edit')"
                 :icon="useRenderIcon('ri:menu-add-line')"
                 class="btn-text btn-operation"
-              ></el-button>
-              <el-button
+              ></ScButton>
+              <ScButton 
                 v-if="scope.row.sysAiModuleType === 'VINCENT'"
                 title="文生图样式设置"
                 @click="handleEditStyle(scope.row, 'edit')"
                 :icon="useRenderIcon('bi:border-style')"
                 class="btn-text btn-operation"
-              ></el-button>
-            </el-row>
-            <el-row class="pt-1 justify-end">
-              <el-button
+              ></ScButton>
+            </ScRow>
+            <ScRow class="pt-1 justify-end">
+              <ScButton 
                 @click="handleOpenEditDialog(scope.row, 'edit')"
                 title="编辑"
                 :icon="useRenderIcon('ep:edit')"
                 class="btn-text btn-operation"
-              ></el-button>
-              <el-button
+              ></ScButton>
+              <ScButton 
                 @click="handleCopy(scope.row, 'add')"
                 title="复制"
                 :icon="useRenderIcon('ep:copy-document')"
                 class="btn-text btn-operation"
-              ></el-button>
-              <el-button
+              ></ScButton>
+              <ScButton 
                 @click="handleDelete(scope.row)"
                 type="danger"
                 title="删除"
                 :icon="useRenderIcon('ep:delete')"
                 class="btn-text btn-operation btn-delete"
-              ></el-button>
-            </el-row>
+              ></ScButton>
+            </ScRow>
           </template>
-        </el-table-column>
+        </ScTableColumn>
       </ScTable>
     </sc-drawer>
     <!-- 弹窗组件 -->

@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="sc-color-picker">
-    <el-color-picker
+    <ScColorPicker 
       v-model="innerValue"
       :disabled="disabled"
       :show-alpha="showAlpha"
@@ -8,7 +8,7 @@
       class="color-picker"
     />
     
-    <el-input
+    <ScInput 
       v-model="innerValue"
       :disabled="disabled"
       :placeholder="placeholder"
@@ -17,7 +17,7 @@
       <template #prefix>
         <div class="color-preview" :style="{ backgroundColor: innerValue }"></div>
       </template>
-    </el-input>
+    </ScInput>
   </div>
 </template>
 

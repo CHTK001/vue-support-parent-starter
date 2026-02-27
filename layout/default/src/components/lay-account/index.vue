@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { getMine, useUserStore } from "@repo/core";
 import { ReText } from "@repo/components/ReText";
 import { LaySidebarTopCollapse, useDataThemeChange } from "@layout/default";
@@ -153,7 +153,7 @@ const findComponent = () => {
         <!-- 用户信息卡片 -->
         <div class="user-card">
           <div class="user-avatar-wrapper">
-            <el-avatar :size="64" :src="userInfo?.avatar" class="user-avatar" />
+            <ScAvatar :size="64" :src="userInfo?.avatar" class="user-avatar" />
             <span class="online-badge"></span>
           </div>
           <div class="user-details">

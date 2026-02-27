@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="strategy-standalone-app">
     <!-- 顶部导航 -->
     <header class="app-header">
@@ -20,9 +20,9 @@
       </nav>
       <div class="header-right">
         <el-dropdown>
-          <el-button text>
+          <ScButton text>
             <i class="ri-settings-3-line"></i>
-          </el-button>
+          </ScButton>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="toggleTheme">

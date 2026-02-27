@@ -1,4 +1,6 @@
-<script setup>
+﻿<script setup>
+
+import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -572,13 +574,13 @@ onMounted(() => {
         </div>
       </div>
 
-      <el-tabs v-model="env.activeTab" class="qrcode-tool__main-tabs">
+      <ScTabs v-model="env.activeTab" class="qrcode-tool__main-tabs">
         <!-- 生成二维码选项卡 -->
-        <el-tab-pane label="生成二维码" name="generate">
-          <el-row :gutter="24">
+        <ScTabPane label="生成二维码" name="generate">
+          <ScRow :gutter="24">
             <!-- 左侧输入区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="qrcode-tool__input-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="qrcode-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
                     <IconifyIconOnline icon="ri:qr-code-line" class="qrcode-tool__card-icon" />
@@ -586,11 +588,11 @@ onMounted(() => {
                   </div>
                 </template>
 
-                <el-form label-position="top">
+                <ScForm label-position="top">
                   <!-- 内容输入框 -->
-                  <el-form-item label="输入文本、网址或其他内容">
-                    <el-input v-model="env.inputValue" type="textarea" :rows="4" placeholder="请输入要生成二维码的内容" clearable class="qrcode-tool__input" @input="debounceGenerateQR" />
-                  </el-form-item>
+                  <ScFormItem label="输入文本、网址或其他内容">
+                    <ScInput v-model="env.inputValue" type="textarea" :rows="4" placeholder="请输入要生成二维码的内容" clearable class="qrcode-tool__input" @input="debounceGenerateQR" />
+                  </ScFormItem>
 
                   <!-- 历史记录区域 -->
                   <div class="qrcode-tool__history" v-if="env.qrCodeHistory.length > 0">
@@ -612,21 +614,21 @@ onMounted(() => {
 
                   <!-- 操作按钮区域 -->
                   <div class="qrcode-tool__actions">
-                    <el-button type="primary" :loading="env.loading" class="qrcode-tool__generate-btn" @click="generateQRCode">
+                    <ScButton type="primary" :loading="env.loading" class="qrcode-tool__generate-btn" @click="generateQRCode">
                       <IconifyIconOnline icon="ri:qr-code-line" />
                       <span>生成二维码</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button class="qrcode-tool__reset-btn" @click="resetForm">
+                    <ScButton class="qrcode-tool__reset-btn" @click="resetForm">
                       <IconifyIconOnline icon="ri:refresh-line" />
                       <span>重置</span>
-                    </el-button>
+                    </ScButton>
                   </div>
-                </el-form>
-              </el-card>
+                </ScForm>
+              </ScCard>
 
               <!-- 自定义选项卡片 -->
-              <el-card class="qrcode-tool__options-card" shadow="hover">
+              <ScCard class="qrcode-tool__options-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
                     <IconifyIconOnline icon="ri:settings-line" class="qrcode-tool__card-icon" />
@@ -634,7 +636,7 @@ onMounted(() => {
                   </div>
                 </template>
 
-                <el-form label-position="top">
+                <ScForm label-position="top">
                   <!-- 预设模板 -->
                   <div class="qrcode-tool__templates">
                     <div class="qrcode-tool__templates-label">预设模板:</div>
@@ -649,73 +651,73 @@ onMounted(() => {
                   </div>
 
                   <!-- 错误纠正级别 -->
-                  <el-form-item label="错误纠正级别">
-                    <el-select v-model="env.errorCorrectionLevel" class="qrcode-tool__select">
-                      <el-option v-for="item in env.errorCorrectionLevels" :key="item.value" :label="item.label" :value="item.value">
+                  <ScFormItem label="错误纠正级别">
+                    <ScSelect v-model="env.errorCorrectionLevel" class="qrcode-tool__select">
+                      <ScOption v-for="item in env.errorCorrectionLevels" :key="item.value" :label="item.label" :value="item.value">
                         <div class="qrcode-tool__option-content">
                           <span>{{ item.label }}</span>
                           <span class="qrcode-tool__option-description">{{ item.description }}</span>
                         </div>
-                      </el-option>
-                    </el-select>
-                  </el-form-item>
+                      </ScOption>
+                    </ScSelect>
+                  </ScFormItem>
 
                   <!-- 二维码大小 -->
-                  <el-form-item label="二维码大小">
+                  <ScFormItem label="二维码大小">
                     <ScSlider v-model="env.qrSize" :min="128" :max="512" :step="8" show-input :format-tooltip="(value) => `${value}px`" />
-                  </el-form-item>
+                  </ScFormItem>
 
                   <!-- 颜色选择 -->
-                  <el-row :gutter="12">
-                    <el-col :span="12">
-                      <el-form-item label="前景色">
-                        <el-color-picker v-model="env.darkColor" show-alpha />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="背景色">
-                        <el-color-picker v-model="env.lightColor" show-alpha />
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
+                  <ScRow :gutter="12">
+                    <ScCol :span="12">
+                      <ScFormItem label="前景色">
+                        <ScColorPicker v-model="env.darkColor" show-alpha />
+                      </ScFormItem>
+                    </ScCol>
+                    <ScCol :span="12">
+                      <ScFormItem label="背景色">
+                        <ScColorPicker v-model="env.lightColor" show-alpha />
+                      </ScFormItem>
+                    </ScCol>
+                  </ScRow>
 
                   <!-- 样式选择 -->
-                  <el-form-item label="二维码样式">
-                    <el-radio-group v-model="env.customStyle" class="qrcode-tool__style-group">
-                      <el-radio v-for="style in env.customStyles" :key="style.value" :label="style.value">
+                  <ScFormItem label="二维码样式">
+                    <ScRadioGroup v-model="env.customStyle" class="qrcode-tool__style-group">
+                      <ScRadio v-for="style in env.customStyles" :key="style.value" :label="style.value">
                         <div class="qrcode-tool__style-option">
                           <IconifyIconOnline :icon="style.icon" />
                           <span>{{ style.label }}</span>
                         </div>
-                      </el-radio>
-                    </el-radio-group>
-                  </el-form-item>
+                      </ScRadio>
+                    </ScRadioGroup>
+                  </ScFormItem>
 
                   <!-- Logo设置 -->
-                  <el-form-item label="添加Logo">
+                  <ScFormItem label="添加Logo">
                     <div class="qrcode-tool__logo-container">
                       <div class="qrcode-tool__logo-preview" v-if="env.logoPreview">
                         <img :src="env.logoPreview" alt="Logo" />
                         <div class="qrcode-tool__logo-actions">
-                          <el-button type="danger" size="small" circle @click="removeLogo">
+                          <ScButton type="danger" size="small" circle @click="removeLogo">
                             <IconifyIconOnline icon="ri:delete-bin-line" />
-                          </el-button>
+                          </ScButton>
                         </div>
                       </div>
                       <div class="qrcode-tool__logo-upload" v-else>
-                        <el-upload action="" :auto-upload="false" :show-file-list="false" accept="image/*" @change="uploadLogo">
-                          <el-button type="primary">
+                        <ScUpload action="" :auto-upload="false" :show-file-list="false" accept="image/*" @change="uploadLogo">
+                          <ScButton type="primary">
                             <IconifyIconOnline icon="ri:image-add-line" />
                             <span>上传Logo</span>
-                          </el-button>
-                        </el-upload>
+                          </ScButton>
+                        </ScUpload>
                       </div>
 
                       <ScSlider v-if="env.logoPreview" v-model="env.logoSize" :min="20" :max="120" :step="5" :format-tooltip="(value) => `${value}px`" @change="generateQRCode" />
                     </div>
-                  </el-form-item>
+                  </ScFormItem>
                   <!-- 输出格式 -->
-                  <el-form-item label="输出格式">
+                  <ScFormItem label="输出格式">
                     <div class="qrcode-tool__format-cards">
                       <div v-for="item in env.outputFormats" :key="item.value" class="qrcode-tool__format-card" :class="{ 'is-active': env.outputFormat === item.value }" @click="env.outputFormat = item.value">
                         <div class="qrcode-tool__format-icon">
@@ -724,19 +726,19 @@ onMounted(() => {
                         <div class="qrcode-tool__format-label">{{ item.label }}</div>
                       </div>
                     </div>
-                  </el-form-item>
+                  </ScFormItem>
 
                   <!-- 边距设置 -->
-                  <el-form-item label="边距">
+                  <ScFormItem label="边距">
                     <ScSlider v-model="env.margin" :min="0" :max="10" :step="1" show-input />
-                  </el-form-item>
-                </el-form>
-              </el-card>
-            </el-col>
+                  </ScFormItem>
+                </ScForm>
+              </ScCard>
+            </ScCol>
 
             <!-- 右侧预览区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="qrcode-tool__result-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="qrcode-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
                     <IconifyIconOnline icon="ri:qr-scan-line" class="qrcode-tool__card-icon" />
@@ -745,11 +747,11 @@ onMounted(() => {
                 </template>
 
                 <!-- 空状态提示 -->
-                <el-empty v-if="!env.qrCodeDataUrl" description="请先输入内容并生成二维码" class="qrcode-tool__empty">
+                <ScEmpty v-if="!env.qrCodeDataUrl" description="请先输入内容并生成二维码" class="qrcode-tool__empty">
                   <template #image>
                     <IconifyIconOnline icon="ri:qr-code-line" class="qrcode-tool__empty-icon" />
                   </template>
-                </el-empty>
+                </ScEmpty>
 
                 <!-- 二维码预览 -->
                 <div v-else class="qrcode-tool__preview">
@@ -758,15 +760,15 @@ onMounted(() => {
                   </div>
 
                   <div class="qrcode-tool__preview-actions">
-                    <el-button type="primary" @click="downloadQRCode">
+                    <ScButton type="primary" @click="downloadQRCode">
                       <IconifyIconOnline icon="ri:download-line" />
                       <span>下载</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button type="success" @click="copyQRCodeToClipboard">
+                    <ScButton type="success" @click="copyQRCodeToClipboard">
                       <IconifyIconOnline icon="ri:clipboard-line" />
                       <span>复制</span>
-                    </el-button>
+                    </ScButton>
                   </div>
 
                   <div class="qrcode-tool__preview-info">
@@ -784,17 +786,17 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-tab-pane>
+              </ScCard>
+            </ScCol>
+          </ScRow>
+        </ScTabPane>
 
         <!-- 解析二维码选项卡 -->
-        <el-tab-pane label="解析二维码" name="scan">
-          <el-row :gutter="24">
+        <ScTabPane label="解析二维码" name="scan">
+          <ScRow :gutter="24">
             <!-- 左侧上传区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="qrcode-tool__scan-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="qrcode-tool__scan-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
                     <IconifyIconOnline icon="ri:qr-scan-line" class="qrcode-tool__card-icon" />
@@ -803,16 +805,16 @@ onMounted(() => {
                 </template>
 
                 <div class="qrcode-tool__scan-upload">
-                  <el-upload action="" :auto-upload="false" :show-file-list="false" accept="image/*" drag @change="parseQRCodeImage">
+                  <ScUpload action="" :auto-upload="false" :show-file-list="false" accept="image/*" drag @change="parseQRCodeImage">
                     <div class="qrcode-tool__upload-content">
                       <IconifyIconOnline icon="ri:upload-cloud-line" class="qrcode-tool__upload-icon" />
                       <div class="qrcode-tool__upload-text">
                         <span>拖拽二维码图片到此处，或</span>
-                        <el-button type="primary" size="small">点击上传</el-button>
+                        <ScButton type="primary" size="small">点击上传</ScButton>
                       </div>
                       <div class="qrcode-tool__upload-tip">支持 JPG、PNG、GIF 等常见图片格式</div>
                     </div>
-                  </el-upload>
+                  </ScUpload>
                 </div>
 
                 <!-- 历史记录区域 -->
@@ -832,12 +834,12 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-              </el-card>
-            </el-col>
+              </ScCard>
+            </ScCol>
 
             <!-- 右侧结果区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="qrcode-tool__scan-result-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="qrcode-tool__scan-result-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
                     <IconifyIconOnline icon="ri:file-list-line" class="qrcode-tool__card-icon" />
@@ -846,28 +848,28 @@ onMounted(() => {
                 </template>
 
                 <!-- 空状态提示 -->
-                <el-empty v-if="!env.scanResult" description="请先上传二维码图片" class="qrcode-tool__empty">
+                <ScEmpty v-if="!env.scanResult" description="请先上传二维码图片" class="qrcode-tool__empty">
                   <template #image>
                     <IconifyIconOnline icon="ri:qr-scan-line" class="qrcode-tool__empty-icon" />
                   </template>
-                </el-empty>
+                </ScEmpty>
 
                 <!-- 结果显示 -->
                 <div v-else class="qrcode-tool__scan-result">
                   <div class="qrcode-tool__scan-result-content">
-                    <el-input v-model="env.scanResult" type="textarea" :rows="6" readonly class="qrcode-tool__scan-result-text" />
+                    <ScInput v-model="env.scanResult" type="textarea" :rows="6" readonly class="qrcode-tool__scan-result-text" />
                   </div>
 
                   <div class="qrcode-tool__scan-result-actions">
-                    <el-button type="primary" @click="copyResultToClipboard">
+                    <ScButton type="primary" @click="copyResultToClipboard">
                       <IconifyIconOnline icon="ri:clipboard-line" />
                       <span>复制结果</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button type="success" @click="openUrl" v-if="env.scanResult.startsWith('http')">
+                    <ScButton type="success" @click="openUrl" v-if="env.scanResult.startsWith('http')">
                       <IconifyIconOnline icon="ri:external-link-line" />
                       <span>打开链接</span>
-                    </el-button>
+                    </ScButton>
                   </div>
 
                   <!-- 智能识别区域 -->
@@ -884,10 +886,10 @@ onMounted(() => {
                           <IconifyIconOnline icon="ri:links-line" />
                           <span>网址链接</span>
                         </div>
-                        <el-button type="primary" size="small" @click="openUrl">
+                        <ScButton type="primary" size="small" @click="openUrl">
                           <IconifyIconOnline icon="ri:external-link-line" />
                           <span>访问网站</span>
-                        </el-button>
+                        </ScButton>
                       </div>
 
                       <!-- 电话号码识别 -->
@@ -896,10 +898,10 @@ onMounted(() => {
                           <IconifyIconOnline icon="ri:phone-line" />
                           <span>电话号码</span>
                         </div>
-                        <el-button type="primary" size="small" @click="window.location.href = `tel:${env.scanResult.replace('tel:', '')}`">
+                        <ScButton type="primary" size="small" @click="window.location.href = `tel:${env.scanResult.replace('tel:', '')}`">
                           <IconifyIconOnline icon="ri:phone-line" />
                           <span>拨打电话</span>
-                        </el-button>
+                        </ScButton>
                       </div>
 
                       <!-- 邮箱识别 -->
@@ -908,10 +910,10 @@ onMounted(() => {
                           <IconifyIconOnline icon="ri:mail-line" />
                           <span>电子邮箱</span>
                         </div>
-                        <el-button type="primary" size="small" @click="window.location.href = `mailto:${env.scanResult.replace('mailto:', '')}`">
+                        <ScButton type="primary" size="small" @click="window.location.href = `mailto:${env.scanResult.replace('mailto:', '')}`">
                           <IconifyIconOnline icon="ri:mail-send-line" />
                           <span>发送邮件</span>
-                        </el-button>
+                        </ScButton>
                       </div>
 
                       <!-- WiFi 识别 -->
@@ -929,11 +931,11 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-tab-pane>
-      </el-tabs>
+              </ScCard>
+            </ScCol>
+          </ScRow>
+        </ScTabPane>
+      </ScTabs>
     </div>
   </div>
 </template>

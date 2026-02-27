@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="css-beautify-tool">
     <!-- 头部区域 -->
     <div class="css-beautify-tool__header">
@@ -12,7 +12,7 @@
     </div>
 
     <div class="css-beautify-tool__content">
-      <el-card class="css-beautify-tool__editor-card" shadow="hover">
+      <ScCard class="css-beautify-tool__editor-card" shadow="hover">
         <template #header>
           <div class="css-beautify-tool__card-header">
             <IconifyIconOnline icon="ri:code-s-slash-line" class="css-beautify-tool__card-icon" />
@@ -21,12 +21,12 @@
         </template>
 
         <div class="css-beautify-tool__option-bar">
-        <el-radio-group v-model="indentType" size="small">
+        <ScRadioGroup v-model="indentType" size="small">
           <el-radio-button label="space">空格缩进</el-radio-button>
           <el-radio-button label="tab">Tab 缩进</el-radio-button>
-        </el-radio-group>
+        </ScRadioGroup>
 
-        <el-input-number
+        <ScInputNumber 
           v-model="indentSize"
           :min="1"
           :max="8"
@@ -36,18 +36,18 @@
         />
 
           <el-button-group class="css-beautify-tool__action-buttons">
-          <el-button type="primary" @click="formatCss">
+          <ScButton type="primary" @click="formatCss">
             <IconifyIconOnline icon="ep:refresh" />
             格式化
-          </el-button>
-          <el-button type="success" @click="copyCode">
+          </ScButton>
+          <ScButton type="success" @click="copyCode">
             <IconifyIconOnline icon="ep:document-copy" />
             复制
-          </el-button>
-          <el-button @click="clearCode">
+          </ScButton>
+          <ScButton @click="clearCode">
             <IconifyIconOnline icon="ep:delete" />
             清空
-          </el-button>
+          </ScButton>
         </el-button-group>
       </div>
 
@@ -55,7 +55,7 @@
             <div class="css-beautify-tool__editor-wrapper">
               <div class="css-beautify-tool__editor-header">输入 CSS 代码</div>
               <div class="css-beautify-tool__editor-body">
-            <el-input
+            <ScInput 
               v-model="inputCss"
               type="textarea"
               :rows="15"
@@ -75,94 +75,94 @@
               </div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
 
-    <el-divider>格式化选项</el-divider>
+    <ScDivider>格式化选项</ScDivider>
 
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-card class="css-beautify-tool__settings-card" shadow="hover">
+      <ScRow :gutter="20">
+        <ScCol :span="12">
+          <ScCard class="css-beautify-tool__settings-card" shadow="hover">
             <template #header>
               <div class="css-beautify-tool__card-header">
                 <IconifyIconOnline icon="ri:settings-3-line" class="css-beautify-tool__card-icon" />
                 <span>基本设置</span>
               </div>
             </template>
-          <el-form label-position="top">
-            <el-form-item label="换行规则">
-              <el-select
+          <ScForm label-position="top">
+            <ScFormItem label="换行规则">
+              <ScSelect 
                 v-model="newLineOption"
                 @change="formatCss"
                 style="width: 100%"
               >
-                <el-option label="系统默认 (LF/CRLF)" value="auto" />
-                <el-option label="Unix 风格 (LF)" value="lf" />
-                <el-option label="Windows 风格 (CRLF)" value="crlf" />
-              </el-select>
-            </el-form-item>
+                <ScOption label="系统默认 (LF/CRLF)" value="auto" />
+                <ScOption label="Unix 风格 (LF)" value="lf" />
+                <ScOption label="Windows 风格 (CRLF)" value="crlf" />
+              </ScSelect>
+            </ScFormItem>
 
-            <el-form-item label="每个属性单独一行">
+            <ScFormItem label="每个属性单独一行">
               <ScSwitch
                 v-model="onePropertyPerLine"
                 layout="modern"
                 @change="formatCss"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="选择器之后换行">
+            <ScFormItem label="选择器之后换行">
               <ScSwitch
                 v-model="newLineAfterSelector"
                 layout="modern"
                 @change="formatCss"
               />
-            </el-form-item>
-            </el-form>
-          </el-card>
-        </el-col>
+            </ScFormItem>
+            </ScForm>
+          </ScCard>
+        </ScCol>
 
-        <el-col :span="12">
-          <el-card class="css-beautify-tool__settings-card" shadow="hover">
+        <ScCol :span="12">
+          <ScCard class="css-beautify-tool__settings-card" shadow="hover">
             <template #header>
               <div class="css-beautify-tool__card-header">
                 <IconifyIconOnline icon="ri:settings-4-line" class="css-beautify-tool__card-icon" />
                 <span>高级设置</span>
               </div>
             </template>
-          <el-form label-position="top">
-            <el-form-item label="自动修复简单错误">
+          <ScForm label-position="top">
+            <ScFormItem label="自动修复简单错误">
               <ScSwitch v-model="autoFix" layout="modern" @change="formatCss" />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="属性排序">
-              <el-select
+            <ScFormItem label="属性排序">
+              <ScSelect 
                 v-model="sortProperties"
                 @change="formatCss"
                 style="width: 100%"
               >
-                <el-option label="不排序" value="none" />
-                <el-option label="按字母排序" value="alphabetical" />
-                <el-option label="按类型分组" value="grouped" />
-              </el-select>
-            </el-form-item>
+                <ScOption label="不排序" value="none" />
+                <ScOption label="按字母排序" value="alphabetical" />
+                <ScOption label="按类型分组" value="grouped" />
+              </ScSelect>
+            </ScFormItem>
 
-            <el-form-item label="颜色格式">
-              <el-select
+            <ScFormItem label="颜色格式">
+              <ScSelect 
                 v-model="colorFormat"
                 @change="formatCss"
                 style="width: 100%"
               >
-                <el-option label="保持不变" value="preserve" />
-                <el-option label="HEX 格式" value="hex" />
-                <el-option label="RGB 格式" value="rgb" />
-                <el-option label="HSL 格式" value="hsl" />
-              </el-select>
-            </el-form-item>
-            </el-form>
-          </el-card>
-        </el-col>
-      </el-row>
+                <ScOption label="保持不变" value="preserve" />
+                <ScOption label="HEX 格式" value="hex" />
+                <ScOption label="RGB 格式" value="rgb" />
+                <ScOption label="HSL 格式" value="hsl" />
+              </ScSelect>
+            </ScFormItem>
+            </ScForm>
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
-      <el-card class="css-beautify-tool__help-card" shadow="hover">
+      <ScCard class="css-beautify-tool__help-card" shadow="hover">
         <template #header>
           <div class="css-beautify-tool__card-header">
             <IconifyIconOnline icon="ri:question-line" class="css-beautify-tool__card-icon" />
@@ -202,7 +202,7 @@
         <li><strong>属性排序：</strong> 按字母顺序或类型对属性进行排序。</li>
         <li><strong>颜色格式：</strong> 统一颜色值的表示方式。</li>
         </ul>
-      </el-card>
+      </ScCard>
     </div>
   </div>
 </template>

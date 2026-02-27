@@ -4,10 +4,10 @@
     <div class="headers-preview">
       <div class="preview-header">
         <label class="label">全局请求头:</label>
-        <el-button @click="showDialog = true" size="small" type="primary" plain>
+        <ScButton @click="showDialog = true" size="small" type="primary" plain>
           <i class="ri-settings-3-line"></i>
           设置
-        </el-button>
+        </ScButton>
       </div>
       <div class="preview-content" v-if="headerCount > 0">
         <div
@@ -42,19 +42,19 @@
             :key="index"
             class="header-row"
           >
-            <el-input
+            <ScInput 
               v-model="header.key"
               placeholder="请求头名称"
               size="small"
               style="flex: 1"
             />
-            <el-input
+            <ScInput 
               v-model="header.value"
               placeholder="请求头值"
               size="small"
               style="flex: 2; margin-left: 8px"
             />
-            <el-button
+            <ScButton 
               @click="removeHeader(index)"
               size="small"
               type="danger"
@@ -62,19 +62,19 @@
               style="margin-left: 8px"
             >
               <i class="ri-delete-bin-line"></i>
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
         <div class="header-actions">
-          <el-button @click="addHeader" size="small" type="primary" plain>
+          <ScButton @click="addHeader" size="small" type="primary" plain>
             <i class="ri-add-line"></i>
             添加请求头
-          </el-button>
-          <el-button @click="addCommonHeaders" size="small" type="success" plain>
+          </ScButton>
+          <ScButton @click="addCommonHeaders" size="small" type="success" plain>
             <i class="ri-magic-line"></i>
             添加常用请求头
-          </el-button>
+          </ScButton>
         </div>
 
         <div class="common-headers-tips">
@@ -104,15 +104,15 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="resetHeaders" size="small">
+          <ScButton @click="resetHeaders" size="small">
             <i class="ri-refresh-line"></i>
             重置
-          </el-button>
-          <el-button @click="showDialog = false" size="small"> 取消 </el-button>
-          <el-button @click="saveHeaders" type="primary" size="small">
+          </ScButton>
+          <ScButton @click="showDialog = false" size="small"> 取消 </ScButton>
+          <ScButton @click="saveHeaders" type="primary" size="small">
             <i class="ri-save-line"></i>
             保存
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

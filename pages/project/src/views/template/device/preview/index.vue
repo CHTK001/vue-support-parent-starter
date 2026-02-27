@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="device-camera-container">
     <div class="device-camera-setting">
       <div
@@ -8,8 +8,8 @@
         <div v-if="showSetting" class="device-camera-setting-inner">
           <div class="device-camera-options">
             <div class="device-camera-option-group">
-              <el-row><b>设备选择</b></el-row>
-              <el-row class="device-camera-select-layout">
+              <ScRow><b>设备选择</b></ScRow>
+              <ScRow class="device-camera-select-layout">
                 <el-segmented
                   v-model="env.showOrHide"
                   @change="handleShowOrHide"
@@ -25,81 +25,77 @@
                     },
                   ]"
                 ></el-segmented>
-              </el-row>
+              </ScRow>
             </div>
             <div
               class="device-camera-option-group device-camera-layout-options"
             >
-              <el-row><b>布局方式</b></el-row>
-              <el-row class="device-camera-select-layout">
-                <el-col
-                  :span="3"
+              <ScRow><b>布局方式</b></ScRow>
+              <ScRow class="device-camera-select-layout">
+                <ScCol                   :span="3"
                   class="device-camera-layout-item device-camera-item00"
                   :class="{ 'device-camera-active': env.layout == 1 }"
                   @click="setLayout(1)"
                   title="1"
                 >
-                  <el-row :gutter="2">
-                    <el-col :span="24"><span /></el-col>
-                  </el-row>
-                </el-col>
-                <el-col
-                  :span="3"
+                  <ScRow :gutter="2">
+                    <ScCol :span="24"><span /></ScCol>
+                  </ScRow>
+                </ScCol>
+                <ScCol                   :span="3"
                   class="device-camera-layout-item device-camera-item03"
                   :class="{ 'device-camera-active': env.layout == 2 }"
                   @click="setLayout(2)"
                   title="2x2"
                 >
-                  <el-row :gutter="2" class="h-[45px]">
-                    <el-col :span="12"><span /></el-col>
-                    <el-col :span="12"><span /></el-col>
-                    <el-col :span="12"><span /></el-col>
-                    <el-col :span="12"><span /></el-col>
-                  </el-row>
-                </el-col>
-                <el-col
-                  :span="3"
+                  <ScRow :gutter="2" class="h-[45px]">
+                    <ScCol :span="12"><span /></ScCol>
+                    <ScCol :span="12"><span /></ScCol>
+                    <ScCol :span="12"><span /></ScCol>
+                    <ScCol :span="12"><span /></ScCol>
+                  </ScRow>
+                </ScCol>
+                <ScCol                   :span="3"
                   class="device-camera-layout-item device-camera-item04"
                   :class="{ 'device-camera-active': env.layout == 3 }"
                   @click="setLayout(3)"
                   title="3x3"
                 >
-                  <el-row :gutter="2">
-                    <el-col :span="8"><span /></el-col>
-                    <el-col :span="8"><span /></el-col>
-                    <el-col :span="8"><span /></el-col>
-                    <el-col :span="8"><span /></el-col>
-                    <el-col :span="8"><span /></el-col>
-                    <el-col :span="8"><span /></el-col>
-                    <el-col :span="8"><span /></el-col>
-                    <el-col :span="8"><span /></el-col>
-                    <el-col :span="8"><span /></el-col>
-                  </el-row>
-                </el-col>
-              </el-row>
+                  <ScRow :gutter="2">
+                    <ScCol :span="8"><span /></ScCol>
+                    <ScCol :span="8"><span /></ScCol>
+                    <ScCol :span="8"><span /></ScCol>
+                    <ScCol :span="8"><span /></ScCol>
+                    <ScCol :span="8"><span /></ScCol>
+                    <ScCol :span="8"><span /></ScCol>
+                    <ScCol :span="8"><span /></ScCol>
+                    <ScCol :span="8"><span /></ScCol>
+                    <ScCol :span="8"><span /></ScCol>
+                  </ScRow>
+                </ScCol>
+              </ScRow>
             </div>
           </div>
         </div>
       </div>
       <div class="device-camera-toggle">
         <div></div>
-        <el-icon
-          class="device-camera-toggle-btn"
+        <ScIcon           class="device-camera-toggle-btn"
           color="white"
           size="24"
           @click="() => (showSetting = !showSetting)"
         >
           <component :is="useRenderIcon('ep:arrow-down')" v-if="showSetting" />
           <component :is="useRenderIcon('ep:arrow-up')" v-else />
-        </el-icon>
+        </ScIcon>
         <div></div>
       </div>
     </div>
     <el-container ref="videoAreaRef" class="device-camera-video-area">
       <div class="device-camera-video-container">
         <template v-if="env.layout == 1">
-          <el-row class="device-camera-video-row device-camera-single">
-            <el-col :span="24">
+          <ScRow class="device-camera-video-row device-camera-single">
+            <ScCol :span="24">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['01'] = el)"
@@ -108,15 +104,14 @@
                 key="01"
                 diff="01"
               />
-            </el-col>
-          </el-row>
+            </ScCol>
+          </ScRow>
         </template>
         <template v-else-if="env.layout == 2">
-          <el-row
-            :gutter="2"
+          <ScRow             :gutter="2"
             class="device-camera-video-row device-camera-grid-2"
           >
-            <el-col :span="12" class="device-camera-video-item">
+            <ScCol :span="12" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['01'] = el)"
@@ -125,8 +120,8 @@
                 key="01"
                 diff="01"
               />
-            </el-col>
-            <el-col :span="12" class="device-camera-video-item">
+            </ScCol>
+            <ScCol :span="12" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['02'] = el)"
@@ -135,13 +130,12 @@
                 key="02"
                 diff="02"
               />
-            </el-col>
-          </el-row>
-          <el-row
-            :gutter="2"
+            </ScCol>
+          </ScRow>
+          <ScRow             :gutter="2"
             class="device-camera-video-row device-camera-grid-2"
           >
-            <el-col :span="12" class="device-camera-video-item">
+            <ScCol :span="12" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['11'] = el)"
@@ -150,8 +144,8 @@
                 key="11"
                 diff="11"
               />
-            </el-col>
-            <el-col :span="12" class="device-camera-video-item">
+            </ScCol>
+            <ScCol :span="12" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['12'] = el)"
@@ -160,15 +154,14 @@
                 key="12"
                 diff="12"
               />
-            </el-col>
-          </el-row>
+            </ScCol>
+          </ScRow>
         </template>
         <template v-else-if="env.layout == 3">
-          <el-row
-            :gutter="2"
+          <ScRow             :gutter="2"
             class="device-camera-video-row device-camera-grid-3"
           >
-            <el-col :span="8" class="device-camera-video-item">
+            <ScCol :span="8" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['01'] = el)"
@@ -177,8 +170,8 @@
                 key="01"
                 diff="01"
               />
-            </el-col>
-            <el-col :span="8" class="device-camera-video-item">
+            </ScCol>
+            <ScCol :span="8" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['02'] = el)"
@@ -187,8 +180,8 @@
                 key="02"
                 diff="02"
               />
-            </el-col>
-            <el-col :span="8" class="device-camera-video-item">
+            </ScCol>
+            <ScCol :span="8" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['03'] = el)"
@@ -197,13 +190,12 @@
                 key="03"
                 diff="03"
               />
-            </el-col>
-          </el-row>
-          <el-row
-            :gutter="2"
+            </ScCol>
+          </ScRow>
+          <ScRow             :gutter="2"
             class="device-camera-video-row device-camera-grid-3"
           >
-            <el-col :span="8" class="device-camera-video-item">
+            <ScCol :span="8" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['11'] = el)"
@@ -212,8 +204,8 @@
                 key="11"
                 diff="11"
               />
-            </el-col>
-            <el-col :span="8" class="device-camera-video-item">
+            </ScCol>
+            <ScCol :span="8" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['12'] = el)"
@@ -222,8 +214,8 @@
                 key="12"
                 diff="12"
               />
-            </el-col>
-            <el-col :span="8" class="device-camera-video-item">
+            </ScCol>
+            <ScCol :span="8" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['13'] = el)"
@@ -232,13 +224,12 @@
                 key="13"
                 diff="13"
               />
-            </el-col>
-          </el-row>
-          <el-row
-            :gutter="2"
+            </ScCol>
+          </ScRow>
+          <ScRow             :gutter="2"
             class="device-camera-video-row device-camera-grid-3"
           >
-            <el-col :span="8" class="device-camera-video-item">
+            <ScCol :span="8" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['21'] = el)"
@@ -247,8 +238,8 @@
                 key="21"
                 name="21"
               />
-            </el-col>
-            <el-col :span="8" class="device-camera-video-item">
+            </ScCol>
+            <ScCol :span="8" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['22'] = el)"
@@ -257,8 +248,8 @@
                 key="22"
                 name="22"
               />
-            </el-col>
-            <el-col :span="8" class="device-camera-video-item">
+            </ScCol>
+            <ScCol :span="8" class="device-camera-video-item">
               <CameraPreviewDialog
                 :autoOrHide="env.autoOrHide"
                 :ref="(el) => (refs['23'] = el)"
@@ -267,8 +258,8 @@
                 key="23"
                 name="23"
               />
-            </el-col>
-          </el-row>
+            </ScCol>
+          </ScRow>
         </template>
       </div>
     </el-container>

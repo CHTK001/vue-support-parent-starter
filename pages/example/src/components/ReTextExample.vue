@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="re-text-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,8 +8,8 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="lineClamp 省略行数">
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="lineClamp 省略行数">
             <ScSelect
               v-model="config.lineClamp"
               layout="card"
@@ -17,23 +17,23 @@
               :gap="6"
               width="50px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="text 文本内容">
-            <el-input v-model="config.text" type="textarea" :rows="4" />
-          </el-form-item>
+          <ScFormItem label="text 文本内容">
+            <ScInput v-model="config.text" type="textarea" :rows="4" />
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="switch-group">
             <div class="switch-item">
-              <el-tooltip content="鼠标悬停时显示完整文本" placement="left">
+              <ScTooltip content="鼠标悬停时显示完整文本" placement="left">
                 <span>showTooltip 显示提示</span>
-              </el-tooltip>
-              <el-switch v-model="config.showTooltip" />
+              </ScTooltip>
+              <ScSwitch v-model="config.showTooltip" />
             </div>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

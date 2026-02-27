@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 defineProps({
   env: Object,
   searchMusic: Function,
@@ -13,14 +13,14 @@ defineProps({
       <p class="music-header__subtitle">发现和享受你喜爱的音乐</p>
     </div>
     <div class="music-header__search">
-      <el-input v-model="env.keyword" placeholder="搜索音乐、歌手、专辑..." class="music-header__search-input" @keyup.enter="searchMusic">
+      <ScInput v-model="env.keyword" placeholder="搜索音乐、歌手、专辑..." class="music-header__search-input" @keyup.enter="searchMusic">
         <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
         <template #append>
-          <el-button @click="searchMusic" :loading="env.searchLoading"> 搜索 </el-button>
+          <ScButton @click="searchMusic" :loading="env.searchLoading"> 搜索 </ScButton>
         </template>
-      </el-input>
+      </ScInput>
     </div>
 
     <!-- 热门搜索和历史 -->
@@ -31,7 +31,7 @@ defineProps({
           <span>热门搜索</span>
         </div>
         <div class="music-header__keyword-list">
-          <el-tag
+          <ScTag 
             v-for="keyword in env.hotKeywords"
             :key="keyword"
             class="music-header__keyword"
@@ -41,7 +41,7 @@ defineProps({
             "
           >
             {{ keyword }}
-          </el-tag>
+          </ScTag>
         </div>
       </div>
 
@@ -49,10 +49,10 @@ defineProps({
         <div class="music-header__section-title">
           <IconifyIconOnline icon="ri:history-line" />
           <span>搜索历史</span>
-          <el-button link type="danger" @click="clearSearchHistory"> 清空 </el-button>
+          <ScButton link type="danger" @click="clearSearchHistory"> 清空 </ScButton>
         </div>
         <div class="music-header__keyword-list">
-          <el-tag
+          <ScTag 
             v-for="keyword in env.searchHistory"
             :key="keyword"
             class="music-header__keyword"
@@ -63,7 +63,7 @@ defineProps({
             "
           >
             {{ keyword }}
-          </el-tag>
+          </ScTag>
         </div>
       </div>
     </div>

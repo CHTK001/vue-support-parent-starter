@@ -1,166 +1,166 @@
-<template>
+﻿<template>
   <div class="example-page sc-dialog2-example">
-    <el-row :gutter="20">
+    <ScRow :gutter="20">
       <!-- 左侧配置面板 -->
-      <el-col :span="8">
+      <ScCol :span="8">
         <div class="config-panel">
           <h3>自定义对话框配置</h3>
-          <el-form label-position="top" :model="config">
+          <ScForm label-position="top" :model="config">
             <!-- 基础设置 -->
-            <el-divider content-position="left">基础设置</el-divider>
-            <el-form-item label="标题">
-              <el-input v-model="config.title" placeholder="请输入对话框标题" />
-            </el-form-item>
+            <ScDivider content-position="left">基础设置</ScDivider>
+            <ScFormItem label="标题">
+              <ScInput v-model="config.title" placeholder="请输入对话框标题" />
+            </ScFormItem>
 
-            <el-form-item label="宽度">
-              <el-input-number
+            <ScFormItem label="宽度">
+              <ScInputNumber 
                 v-model="config.width"
                 :min="300"
                 :max="1200"
                 :step="50"
                 style="width: 100%"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="类型">
-              <el-radio-group v-model="config.type">
-                <el-radio label="default">默认</el-radio>
-                <el-radio label="info">信息</el-radio>
-                <el-radio label="success">成功</el-radio>
-                <el-radio label="warning">警告</el-radio>
-                <el-radio label="error">错误</el-radio>
-              </el-radio-group>
-            </el-form-item>
+            <ScFormItem label="类型">
+              <ScRadioGroup v-model="config.type">
+                <ScRadio label="default">默认</ScRadio>
+                <ScRadio label="info">信息</ScRadio>
+                <ScRadio label="success">成功</ScRadio>
+                <ScRadio label="warning">警告</ScRadio>
+                <ScRadio label="error">错误</ScRadio>
+              </ScRadioGroup>
+            </ScFormItem>
 
             <!-- 图标设置 -->
-            <el-divider content-position="left">图标设置</el-divider>
-            <el-form-item label="图标">
-              <el-input v-model="config.icon" placeholder="如 ep:setting" />
-            </el-form-item>
-            <el-form-item v-if="config.icon" label="图标模式">
-              <el-radio-group v-model="config.iconMode">
-                <el-radio label="inline">标题左侧</el-radio>
-                <el-radio label="float">顶部浮动</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item v-if="config.icon" label="图标大小">
-              <el-input-number
+            <ScDivider content-position="left">图标设置</ScDivider>
+            <ScFormItem label="图标">
+              <ScInput v-model="config.icon" placeholder="如 ep:setting" />
+            </ScFormItem>
+            <ScFormItem v-if="config.icon" label="图标模式">
+              <ScRadioGroup v-model="config.iconMode">
+                <ScRadio label="inline">标题左侧</ScRadio>
+                <ScRadio label="float">顶部浮动</ScRadio>
+              </ScRadioGroup>
+            </ScFormItem>
+            <ScFormItem v-if="config.icon" label="图标大小">
+              <ScInputNumber 
                 v-model="config.iconSize"
                 :min="16"
                 :max="48"
                 :step="4"
                 style="width: 100%"
               />
-            </el-form-item>
+            </ScFormItem>
 
             <!-- 功能设置 -->
-            <el-divider content-position="left">功能设置</el-divider>
-            <el-form-item>
-              <el-switch
+            <ScDivider content-position="left">功能设置</ScDivider>
+            <ScFormItem>
+              <ScSwitch 
                 v-model="config.draggable"
                 active-text="允许拖拽"
                 class="mb-2 block"
               />
-              <el-switch
+              <ScSwitch 
                 v-model="config.resizable"
                 active-text="允许缩放"
                 class="mb-2 block"
               />
-              <el-switch
+              <ScSwitch 
                 v-model="config.modal"
                 active-text="显示遮罩"
                 class="mb-2 block"
               />
-              <el-switch
+              <ScSwitch 
                 v-model="config.showClose"
                 active-text="显示关闭按钮"
                 class="mb-2 block"
               />
-              <el-switch
+              <ScSwitch 
                 v-model="config.showMinimize"
                 active-text="显示最小化按钮"
                 class="mb-2 block"
               />
-              <el-switch
+              <ScSwitch 
                 v-model="config.showMaximize"
                 active-text="显示最大化按钮"
                 class="mb-2 block"
               />
-            </el-form-item>
+            </ScFormItem>
 
             <!-- 边缘吸附 -->
-            <el-divider content-position="left">边缘吸附</el-divider>
-            <el-form-item>
-              <el-switch
+            <ScDivider content-position="left">边缘吸附</ScDivider>
+            <ScFormItem>
+              <ScSwitch 
                 v-model="config.edgeDock"
                 active-text="启用边缘吸附"
                 class="mb-2 block"
               />
-            </el-form-item>
-            <el-form-item v-if="config.edgeDock" label="吸附阈值">
-              <el-input-number
+            </ScFormItem>
+            <ScFormItem v-if="config.edgeDock" label="吸附阈值">
+              <ScInputNumber 
                 v-model="config.edgeThreshold"
                 :min="20"
                 :max="100"
                 :step="10"
                 style="width: 100%"
               />
-            </el-form-item>
+            </ScFormItem>
 
             <!-- 任务栏设置 -->
-            <el-divider content-position="left">任务栏设置</el-divider>
-            <el-form-item>
-              <el-switch
+            <ScDivider content-position="left">任务栏设置</ScDivider>
+            <ScFormItem>
+              <ScSwitch 
                 v-model="config.useTaskbar"
                 active-text="启用任务栏"
                 class="mb-2 block"
               />
-            </el-form-item>
+            </ScFormItem>
             <template v-if="config.useTaskbar">
-              <el-form-item label="分组标识">
-                <el-input
+              <ScFormItem label="分组标识">
+                <ScInput 
                   v-model="config.group"
                   placeholder="同分组可合并显示"
                 />
-              </el-form-item>
-              <el-form-item label="任务栏位置">
-                <el-select v-model="taskbarConfig.position" style="width: 100%">
-                  <el-option label="底部" value="bottom" />
-                  <el-option label="顶部" value="top" />
-                  <el-option label="左侧" value="left" />
-                  <el-option label="右侧" value="right" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="任务栏高度">
-                <el-input-number
+              </ScFormItem>
+              <ScFormItem label="任务栏位置">
+                <ScSelect v-model="taskbarConfig.position" style="width: 100%">
+                  <ScOption label="底部" value="bottom" />
+                  <ScOption label="顶部" value="top" />
+                  <ScOption label="左侧" value="left" />
+                  <ScOption label="右侧" value="right" />
+                </ScSelect>
+              </ScFormItem>
+              <ScFormItem label="任务栏高度">
+                <ScInputNumber 
                   v-model="taskbarConfig.height"
                   :min="32"
                   :max="80"
                   style="width: 100%"
                 />
-              </el-form-item>
-              <el-form-item>
-                <el-switch
+              </ScFormItem>
+              <ScFormItem>
+                <ScSwitch 
                   v-model="taskbarConfig.alwaysVisible"
                   active-text="永久显示"
                   class="mb-2 block"
                 />
-                <el-switch
+                <ScSwitch 
                   v-model="taskbarConfig.groupCollapse"
                   active-text="分组合并"
                   class="mb-2 block"
                 />
-              </el-form-item>
+              </ScFormItem>
             </template>
 
-            <el-button
+            <ScButton 
               type="primary"
               @click="dialogVisible = true"
               style="width: 100%; margin-top: 16px"
             >
               打开对话框
-            </el-button>
-          </el-form>
+            </ScButton>
+          </ScForm>
 
           <!-- 代码示例 -->
           <div class="code-section">
@@ -177,10 +177,10 @@
             />
           </div>
         </div>
-      </el-col>
+      </ScCol>
 
       <!-- 右侧预览区 -->
-      <el-col :span="16">
+      <ScCol :span="16">
         <div class="preview-panel">
           <h3>实时预览</h3>
           <p class="example-desc">
@@ -194,18 +194,18 @@
               点击按钮打开多个对话框，然后点击最小化按钮查看任务栏效果
             </p>
             <div class="demo-buttons">
-              <el-button type="primary" @click="dialog1Visible = true">
+              <ScButton type="primary" @click="dialog1Visible = true">
                 <IconifyIconOnline icon="ep:setting" class="mr-1" />
                 系统设置
-              </el-button>
-              <el-button type="success" @click="dialog2Visible = true">
+              </ScButton>
+              <ScButton type="success" @click="dialog2Visible = true">
                 <IconifyIconOnline icon="ep:user" class="mr-1" />
                 用户管理
-              </el-button>
-              <el-button type="warning" @click="dialog3Visible = true">
+              </ScButton>
+              <ScButton type="warning" @click="dialog3Visible = true">
                 <IconifyIconOnline icon="ep:document" class="mr-1" />
                 文档编辑
-              </el-button>
+              </ScButton>
             </div>
           </div>
 
@@ -226,8 +226,8 @@
             </ul>
           </div>
         </div>
-      </el-col>
-    </el-row>
+      </ScCol>
+    </ScRow>
 
     <!-- 任务栏组件 -->
     <ScDialogTaskbar
@@ -273,8 +273,8 @@
       </div>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="dialogVisible = false"
+        <ScButton @click="dialogVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="dialogVisible = false"
           >确定</el-button
         >
       </template>

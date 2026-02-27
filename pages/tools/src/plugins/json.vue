@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -218,10 +218,10 @@ const handleFileUpload = (event) => {
         </div>
       </div>
 
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="json-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="json-tool__input-card" shadow="hover">
             <template #header>
               <div class="json-tool__card-header">
                 <IconifyIconOnline
@@ -233,31 +233,31 @@ const handleFileUpload = (event) => {
             </template>
 
             <div class="json-tool__actions-top">
-              <el-button type="primary" @click="loadExample" size="small">
+              <ScButton type="primary" @click="loadExample" size="small">
                 <IconifyIconOnline icon="ri:file-list-line" />
                 <span>加载示例</span>
-              </el-button>
+              </ScButton>
 
-              <el-button @click="clearInput" size="small">
+              <ScButton @click="clearInput" size="small">
                 <IconifyIconOnline icon="ri:delete-bin-line" />
                 <span>清空</span>
-              </el-button>
+              </ScButton>
 
-              <el-upload
+              <ScUpload 
                 action=""
                 :auto-upload="false"
                 :show-file-list="false"
                 accept=".json"
                 @change="handleFileUpload"
               >
-                <el-button size="small">
+                <ScButton size="small">
                   <IconifyIconOnline icon="ri:upload-2-line" />
                   <span>上传文件</span>
-                </el-button>
-              </el-upload>
+                </ScButton>
+              </ScUpload>
             </div>
 
-            <el-input
+            <ScInput 
               v-model="env.inputJson"
               type="textarea"
               :rows="12"
@@ -266,24 +266,24 @@ const handleFileUpload = (event) => {
             />
 
             <div class="json-tool__options">
-              <el-form :inline="true" size="small">
-                <el-form-item label="缩进大小">
-                  <el-input-number
+              <ScForm :inline="true" size="small">
+                <ScFormItem label="缩进大小">
+                  <ScInputNumber 
                     v-model="env.indentSize"
                     :min="0"
                     :max="8"
                     size="small"
                   />
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="排序键">
+                <ScFormItem label="排序键">
                   <ScSwitch v-model="env.sortKeys" layout="modern" />
-                </el-form-item>
-              </el-form>
+                </ScFormItem>
+              </ScForm>
             </div>
 
             <div class="json-tool__actions">
-              <el-button
+              <ScButton 
                 type="primary"
                 :loading="env.loading"
                 class="json-tool__format-btn"
@@ -291,32 +291,32 @@ const handleFileUpload = (event) => {
               >
                 <IconifyIconOnline icon="ri:braces-line" />
                 <span>格式化</span>
-              </el-button>
+              </ScButton>
 
-              <el-button
+              <ScButton 
                 type="success"
                 class="json-tool__beautify-btn"
                 @click="beautifyJson"
               >
                 <IconifyIconOnline icon="ri:layout-line" />
                 <span>美化</span>
-              </el-button>
+              </ScButton>
 
-              <el-button
+              <ScButton 
                 type="warning"
                 class="json-tool__compact-btn"
                 @click="compactJson"
               >
                 <IconifyIconOnline icon="ri:compress-line" />
                 <span>压缩</span>
-              </el-button>
+              </ScButton>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 结果区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="json-tool__result-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="json-tool__result-card" shadow="hover">
             <template #header>
               <div class="json-tool__card-header">
                 <IconifyIconOnline
@@ -327,7 +327,7 @@ const handleFileUpload = (event) => {
               </div>
             </template>
 
-            <el-empty
+            <ScEmpty 
               v-if="!env.outputJson && !env.errorMessage"
               description="请先输入并格式化 JSON"
               class="json-tool__empty"
@@ -338,7 +338,7 @@ const handleFileUpload = (event) => {
                   class="json-tool__empty-icon"
                 />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else-if="env.errorMessage" class="json-tool__error">
               <IconifyIconOnline
@@ -350,7 +350,7 @@ const handleFileUpload = (event) => {
 
             <div v-else class="json-tool__result">
               <div class="json-tool__result-actions">
-                <el-button
+                <ScButton 
                   type="primary"
                   link
                   size="small"
@@ -359,9 +359,9 @@ const handleFileUpload = (event) => {
                 >
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   <span>复制</span>
-                </el-button>
+                </ScButton>
 
-                <el-button
+                <ScButton 
                   type="success"
                   link
                   size="small"
@@ -370,7 +370,7 @@ const handleFileUpload = (event) => {
                 >
                   <IconifyIconOnline icon="ri:download-line" />
                   <span>下载</span>
-                </el-button>
+                </ScButton>
 
                 <ScSwitch
                   v-model="env.showLineNumbers"
@@ -389,12 +389,12 @@ const handleFileUpload = (event) => {
                 }"
               ><code v-html="highlightedJson"></code></pre>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
       <!-- 使用说明 -->
-      <el-card class="json-tool__tips-card" shadow="hover">
+      <ScCard class="json-tool__tips-card" shadow="hover">
         <template #header>
           <div class="json-tool__card-header">
             <IconifyIconOnline
@@ -441,7 +441,7 @@ const handleFileUpload = (event) => {
             </div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
   </div>
 </template>

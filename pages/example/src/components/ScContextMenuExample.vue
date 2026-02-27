@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ScContextMenu 右键菜单示例</h2>
     <p class="example-desc">
       自定义右键菜单组件，支持多级菜单、图标、分割线等功能
     </p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="context-area" @contextmenu.prevent.stop="open($event)">
@@ -15,39 +15,39 @@
 
       <ScContextMenu ref="menuRef" :menus="menus" />
 
-      <el-divider content-position="left">菜单配置</el-divider>
+      <ScDivider content-position="left">菜单配置</ScDivider>
 
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="显示图标">
-              <el-switch v-model="config.showIcon" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+      <ScForm label-width="120px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="显示图标">
+              <ScSwitch v-model="config.showIcon" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="150" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
 
-    <el-divider content-position="left">菜单项配置</el-divider>
+    <ScDivider content-position="left">菜单项配置</ScDivider>
 
-    <el-table :data="menuItemProps" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="menuItemProps" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="150" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 

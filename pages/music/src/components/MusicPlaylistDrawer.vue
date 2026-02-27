@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { IconifyIconOnline } from '@iconify/vue';
 
 defineProps({
@@ -15,7 +15,7 @@ defineProps({
     <div class="music-playlist-drawer__header">
       <div class="music-playlist-drawer__title">
         <span>当前播放列表</span>
-        <el-button 
+        <ScButton 
           link 
           type="danger" 
           size="small" 
@@ -23,15 +23,15 @@ defineProps({
           v-if="env.currentPlaylist.length"
         >
           清空
-        </el-button>
+        </ScButton>
       </div>
-      <el-button 
+      <ScButton 
         circle 
         size="small" 
         @click="env.showPlaylistDrawer = false"
       >
         <IconifyIconOnline icon="ri:close-line" />
-      </el-button>
+      </ScButton>
     </div>
     
     <div class="music-playlist-drawer__empty" v-if="!env.currentPlaylist.length">
@@ -54,14 +54,14 @@ defineProps({
         </div>
         <div class="music-playlist-drawer__item-duration">{{ formatTime(music.musicDuration) }}</div>
         <div class="music-playlist-drawer__item-actions">
-          <el-button
+          <ScButton 
             circle
             size="small"
             :type="isFavorite(music) ? 'danger' : 'default'"
             @click.stop="toggleFavorite(music)"
           >
             <IconifyIconOnline :icon="isFavorite(music) ? 'ri:heart-fill' : 'ri:heart-line'" />
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>

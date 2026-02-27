@@ -26,7 +26,7 @@
           <el-descriptions-item label="设备序列号" class="device-detail-item">
             <div class="device-detail-copy-container">
               <span class="device-detail-value">{{ deviceData.sysDeviceSerialNumber || "暂无" }}</span>
-              <el-button v-if="deviceData.sysDeviceSerialNumber" v-copy:click="deviceData.sysDeviceSerialNumber" type="primary" link size="small" :icon="useRenderIcon('ep:copy-document')" class="device-detail-copy-btn"></el-button>
+              <ScButton v-if="deviceData.sysDeviceSerialNumber" v-copy:click="deviceData.sysDeviceSerialNumber" type="primary" link size="small" :icon="useRenderIcon('ep:copy-document')" class="device-detail-copy-btn"></ScButton>
             </div>
           </el-descriptions-item>
           <el-descriptions-item label="网络地址" class="device-detail-item">
@@ -55,9 +55,9 @@
             </div>
           </el-descriptions-item>
           <el-descriptions-item label="设备状态" class="device-detail-item">
-            <el-tag :type="deviceData.sysDeviceStatus === 0 ? 'success' : 'danger'" class="device-detail-tag">
+            <ScTag :type="deviceData.sysDeviceStatus === 0 ? 'success' : 'danger'" class="device-detail-tag">
               {{ deviceData.sysDeviceStatus === 0 ? "启用" : "禁用" }}
-            </el-tag>
+            </ScTag>
           </el-descriptions-item>
         </el-descriptions>
 
@@ -68,10 +68,10 @@
             <span>管道信息</span>
           </div>
           <div class="device-detail-channels-list">
-            <el-tag v-for="(channel, index) in deviceData.channelList" :key="index" :type="channel.sysDeviceChannelStatus === 1 ? 'success' : 'danger'" class="device-detail-channel-tag">
+            <ScTag v-for="(channel, index) in deviceData.channelList" :key="index" :type="channel.sysDeviceChannelStatus === 1 ? 'success' : 'danger'" class="device-detail-channel-tag">
               {{ channel.sysDeviceChannelName || "未命名" }}
               <span class="device-detail-channel-no">({{ channel.sysDeviceChannelNo || "无编号" }})</span>
-            </el-tag>
+            </ScTag>
 
             <div v-if="!deviceData.channelList || deviceData.channelList.length === 0" class="device-detail-empty">暂无管道信息</div>
           </div>

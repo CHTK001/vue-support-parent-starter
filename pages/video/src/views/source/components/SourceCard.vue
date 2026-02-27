@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="source-card" :class="{ disabled: !source.videoSourceEnable }">
     <div class="card-header">
       <div class="platform-info">
@@ -12,9 +12,9 @@
       </div>
       <div class="card-actions">
         <el-dropdown @command="handleCommand" trigger="click">
-          <el-button type="text" class="more-btn">
+          <ScButton type="text" class="more-btn">
             <IconifyIconOnline icon="ep:more" />
-          </el-button>
+          </ScButton>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="edit">
@@ -39,9 +39,9 @@
       <div class="config-grid">
         <div class="config-item">
           <span class="config-label">状态</span>
-          <el-tag :type="source.videoSourceEnable ? 'success' : 'danger'" size="small" class="config-value">
+          <ScTag :type="source.videoSourceEnable ? 'success' : 'danger'" size="small" class="config-value">
             {{ source.videoSourceEnable ? "启用" : "禁用" }}
-          </el-tag>
+          </ScTag>
         </div>
         <div class="config-item">
           <span class="config-label">最大查询数</span>
@@ -60,10 +60,10 @@
 
     <div class="card-footer">
       <div class="footer-actions">
-        <el-button size="small" @click="handleEdit" class="edit-btn">
+        <ScButton size="small" @click="handleEdit" class="edit-btn">
           <IconifyIconOnline icon="ep:edit" class="mr-1" />
           编辑
-        </el-button>
+        </ScButton>
       </div>
     </div>
   </div>

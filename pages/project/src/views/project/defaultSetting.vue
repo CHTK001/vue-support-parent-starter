@@ -7,8 +7,8 @@
       width="400px"
       class="default-setting-dialog"
     >
-      <el-form>
-        <el-form-item
+      <ScForm>
+        <ScFormItem 
           v-for="item in currentValue"
           :key="item.value"
           prop="label"
@@ -27,11 +27,11 @@
               },
             ]"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="handleClose">取消</el-button>
-        <el-button
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton 
           type="primary"
           :icon="useRenderIcon('ri:save-2-line')"
           @click="handleSubmit"

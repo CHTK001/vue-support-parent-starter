@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div class="api-tree-list">
     <!-- 搜索框 -->
     <div class="search-box" v-if="showSearch">
-      <el-input
+      <ScInput 
         v-model="searchKeyword"
         placeholder="搜索接口..."
         size="small"
@@ -11,7 +11,7 @@
         <template #prefix>
           <i class="ri-search-line"></i>
         </template>
-      </el-input>
+      </ScInput>
     </div>
 
     <!-- API 树 -->
@@ -20,7 +20,7 @@
         <el-skeleton :rows="5" animated />
       </div>
       <div v-else-if="!filteredApiGroups.length" class="empty-container">
-        <el-empty description="暂无API文档" :image-size="80" />
+        <ScEmpty description="暂无API文档" :image-size="80" />
       </div>
       <div v-else class="api-groups">
         <div

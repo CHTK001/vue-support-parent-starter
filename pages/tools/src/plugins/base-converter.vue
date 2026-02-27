@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
 
@@ -286,66 +286,66 @@ onMounted(() => {
       </div>
 
       <!-- 主要内容区域 -->
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 左侧输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="base-converter__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="base-converter__input-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
                 <IconifyIconOnline icon="ri:exchange-line" class="base-converter__card-icon" />
                 <span>进制转换</span>
                 <div class="base-converter__header-actions">
-                  <el-button type="primary" link size="small" @click="toggleExtendedBases">
+                  <ScButton type="primary" link size="small" @click="toggleExtendedBases">
                     <IconifyIconOnline :icon="env.showExtendedBases ? 'ri:subtract-line' : 'ri:add-line'" />
                     <span>{{ env.showExtendedBases ? "隐藏扩展进制" : "显示扩展进制" }}</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
 
-            <el-form label-position="top">
+            <ScForm label-position="top">
               <!-- 输入值 -->
-              <el-form-item label="输入值">
-                <el-input @keyup.stop="convertBase" v-model="env.inputValue" placeholder="输入要转换的数值" clearable>
+              <ScFormItem label="输入值">
+                <ScInput @keyup.stop="convertBase" v-model="env.inputValue" placeholder="输入要转换的数值" clearable>
                   <template #suffix></template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
               <!-- 输入进制选择 -->
-              <el-form-item label="输入进制">
-                <el-radio-group v-model="env.inputBase" class="base-converter__radio-group">
-                  <el-radio v-for="option in env.baseOptions" :key="option.value" :label="option.value">
+              <ScFormItem label="输入进制">
+                <ScRadioGroup v-model="env.inputBase" class="base-converter__radio-group">
+                  <ScRadio v-for="option in env.baseOptions" :key="option.value" :label="option.value">
                     <div class="base-converter__radio-content">
                       <IconifyIconOnline icon="ri:code-box-line" />
                       <span>{{ option.label }}</span>
                     </div>
-                  </el-radio>
-                </el-radio-group>
+                  </ScRadio>
+                </ScRadioGroup>
 
                 <div v-if="env.showExtendedBases" class="base-converter__extended-bases">
-                  <el-select v-model="env.inputBase" placeholder="选择其他进制" class="base-converter__select">
-                    <el-option v-for="option in env.extendedBaseOptions" :key="option.value" :label="option.label" :value="option.value" />
-                  </el-select>
+                  <ScSelect v-model="env.inputBase" placeholder="选择其他进制" class="base-converter__select">
+                    <ScOption v-for="option in env.extendedBaseOptions" :key="option.value" :label="option.label" :value="option.value" />
+                  </ScSelect>
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 操作按钮 -->
               <div class="base-converter__actions">
-                <el-button type="primary" :loading="env.loading" class="base-converter__convert-btn" @click="convertBase">
+                <ScButton type="primary" :loading="env.loading" class="base-converter__convert-btn" @click="convertBase">
                   <IconifyIconOnline icon="ri:exchange-line" />
                   <span>转换进制</span>
-                </el-button>
+                </ScButton>
 
-                <el-button class="base-converter__clear-btn" @click="clearForm">
+                <ScButton class="base-converter__clear-btn" @click="clearForm">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                   <span>清空</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
-          </el-card>
+            </ScForm>
+          </ScCard>
 
           <!-- 字符转换卡片 -->
-          <el-card class="base-converter__char-card" shadow="hover">
+          <ScCard class="base-converter__char-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
                 <IconifyIconOnline icon="ri:text" class="base-converter__card-icon" />
@@ -353,18 +353,18 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-form label-position="top">
-              <el-form-item label="输入字符">
-                <el-input @keyup.stop="convertChar" v-model="env.charInput" placeholder="输入要转换的字符" clearable />
-              </el-form-item>
+            <ScForm label-position="top">
+              <ScFormItem label="输入字符">
+                <ScInput @keyup.stop="convertChar" v-model="env.charInput" placeholder="输入要转换的字符" clearable />
+              </ScFormItem>
 
               <div class="base-converter__actions">
-                <el-button type="primary" class="base-converter__convert-btn" @click="convertChar">
+                <ScButton type="primary" class="base-converter__convert-btn" @click="convertChar">
                   <IconifyIconOnline icon="ri:exchange-line" />
                   <span>转换字符</span>
-                </el-button>
+                </ScButton>
 
-                <el-button
+                <ScButton 
                   class="base-converter__clear-btn"
                   @click="
                     env.charInput = '';
@@ -373,26 +373,26 @@ onMounted(() => {
                 >
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                   <span>清空</span>
-                </el-button>
+                </ScButton>
               </div>
 
               <div v-if="env.charOutput && env.charOutput.length > 0" class="base-converter__char-results">
-                <el-table :data="env.charOutput" style="width: 100%">
-                  <el-table-column prop="char" label="字符" width="80" />
-                  <el-table-column prop="decimal" label="十进制" />
-                  <el-table-column prop="hex" label="十六进制" />
-                  <el-table-column prop="binary" label="二进制" />
-                  <el-table-column prop="octal" label="八进制" />
-                </el-table>
+                <ScTable :data="env.charOutput" style="width: 100%">
+                  <ScTableColumn prop="char" label="字符" width="80" />
+                  <ScTableColumn prop="decimal" label="十进制" />
+                  <ScTableColumn prop="hex" label="十六进制" />
+                  <ScTableColumn prop="binary" label="二进制" />
+                  <ScTableColumn prop="octal" label="八进制" />
+                </ScTable>
               </div>
-            </el-form>
-          </el-card>
-        </el-col>
+            </ScForm>
+          </ScCard>
+        </ScCol>
 
         <!-- 右侧结果区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
           <!-- 结果卡片 -->
-          <el-card class="base-converter__result-card" shadow="hover">
+          <ScCard class="base-converter__result-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
                 <IconifyIconOnline icon="ri:code-box-line" class="base-converter__card-icon" />
@@ -400,11 +400,11 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-empty v-if="!env.outputResults.length" description="请先进行进制转换" class="base-converter__empty">
+            <ScEmpty v-if="!env.outputResults.length" description="请先进行进制转换" class="base-converter__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:exchange-line" class="base-converter__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="base-converter__results">
               <div v-for="(result, index) in env.outputResults" :key="index" class="base-converter__result-item">
@@ -414,16 +414,16 @@ onMounted(() => {
                 </div>
                 <div class="base-converter__result-value">
                   <span>{{ result.value }}</span>
-                  <el-button type="primary" link size="small" @click="copyToClipboard(result.value)">
+                  <ScButton type="primary" link size="small" @click="copyToClipboard(result.value)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 历史记录卡片 -->
-          <el-card class="base-converter__history-card" shadow="hover">
+          <ScCard class="base-converter__history-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
                 <IconifyIconOnline icon="ri:history-line" class="base-converter__card-icon" />
@@ -431,11 +431,11 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-empty v-if="!env.history.length" description="暂无历史记录" class="base-converter__empty">
+            <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="base-converter__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:history-line" class="base-converter__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="base-converter__history">
               <div v-for="item in env.history" :key="item.id" class="base-converter__history-item">
@@ -446,17 +446,17 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="base-converter__history-actions">
-                  <el-button type="primary" link size="small" @click="loadFromHistory(item)">
+                  <ScButton type="primary" link size="small" @click="loadFromHistory(item)">
                     <IconifyIconOnline icon="ri:arrow-go-back-line" />
                     <span>加载</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 参考卡片 -->
-          <el-card class="base-converter__reference-card" shadow="hover">
+          <ScCard class="base-converter__reference-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
                 <IconifyIconOnline icon="ri:information-line" class="base-converter__card-icon" />
@@ -502,9 +502,9 @@ onMounted(() => {
                 </el-collapse-item>
               </el-collapse>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

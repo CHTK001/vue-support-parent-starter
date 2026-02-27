@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
 import { message } from "@repo/utils";
@@ -376,10 +376,10 @@ const getResultIcon = (label) => {
       </div>
 
       <!-- 主要内容区域 -->
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 左侧输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="unit-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="unit-tool__input-card" shadow="hover">
             <template #header>
               <div class="unit-tool__card-header">
                 <IconifyIconOnline
@@ -390,71 +390,71 @@ const getResultIcon = (label) => {
               </div>
             </template>
 
-            <el-form label-position="top">
+            <ScForm label-position="top">
               <!-- 单位类型选择 -->
-              <el-form-item label="单位类型">
-                <el-select
+              <ScFormItem label="单位类型">
+                <ScSelect 
                   v-model="env.unitType"
                   placeholder="选择单位类型"
                   class="unit-tool__select"
                   @change="handleUnitTypeChange"
                 >
-                  <el-option
+                  <ScOption 
                     v-for="item in env.unitTypes"
                     :key="item.value"
                     :label="item.label"
                     :value="item.value"
                   />
-                </el-select>
-              </el-form-item>
+                </ScSelect>
+              </ScFormItem>
 
               <!-- 转换单位选择 -->
               <div class="unit-tool__unit-row">
-                <el-form-item label="从">
-                  <el-select
+                <ScFormItem label="从">
+                  <ScSelect 
                     v-model="env.fromUnit"
                     placeholder="选择源单位"
                     class="unit-tool__select"
                   >
-                    <el-option
+                    <ScOption 
                       v-for="item in env.units[env.unitType]"
                       :key="item.value"
                       :label="item.label"
                       :value="item.value"
                     />
-                  </el-select>
-                </el-form-item>
+                  </ScSelect>
+                </ScFormItem>
 
                 <div class="unit-tool__swap-btn-container">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     circle
                     @click="swapUnits"
                     class="unit-tool__swap-btn"
                   >
                     <IconifyIconOnline icon="ri:arrow-left-right-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
 
-                <el-form-item label="到">
-                  <el-select
+                <ScFormItem label="到">
+                  <ScSelect 
                     v-model="env.toUnit"
                     placeholder="选择目标单位"
                     class="unit-tool__select"
                   >
-                    <el-option
+                    <ScOption 
                       v-for="item in env.units[env.unitType]"
                       :key="item.value"
                       :label="item.label"
                       :value="item.value"
                     />
-                  </el-select>
-                </el-form-item>
+                  </ScSelect>
+                </ScFormItem>
               </div>
 
               <!-- 输入值 -->
-              <el-form-item label="输入值">
-                <el-input
+              <ScFormItem label="输入值">
+                <ScInput 
                   @keyup.stop="convertUnit"
                   v-model="env.inputValue"
                   placeholder="请输入数值"
@@ -465,12 +465,12 @@ const getResultIcon = (label) => {
                   <template #prefix>
                     <IconifyIconOnline icon="ri:number-5" />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
               <!-- 操作按钮 -->
               <div class="unit-tool__actions">
-                <el-button
+                <ScButton 
                   type="primary"
                   :loading="env.loading"
                   class="unit-tool__convert-btn"
@@ -478,18 +478,18 @@ const getResultIcon = (label) => {
                 >
                   <IconifyIconOnline icon="ri:exchange-line" />
                   <span>转换</span>
-                </el-button>
+                </ScButton>
 
-                <el-button class="unit-tool__reset-btn" @click="resetForm">
+                <ScButton class="unit-tool__reset-btn" @click="resetForm">
                   <IconifyIconOnline icon="ri:refresh-line" />
                   <span>重置</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
-          </el-card>
+            </ScForm>
+          </ScCard>
 
           <!-- 历史记录 -->
-          <el-card class="unit-tool__history-card" shadow="hover">
+          <ScCard class="unit-tool__history-card" shadow="hover">
             <template #header>
               <div class="unit-tool__card-header">
                 <IconifyIconOnline
@@ -500,7 +500,7 @@ const getResultIcon = (label) => {
               </div>
             </template>
 
-            <el-empty
+            <ScEmpty 
               v-if="!env.history.length"
               description="暂无历史记录"
               class="unit-tool__empty"
@@ -511,7 +511,7 @@ const getResultIcon = (label) => {
                   class="unit-tool__empty-icon"
                 />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="unit-tool__history">
               <div
@@ -534,12 +534,12 @@ const getResultIcon = (label) => {
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 右侧结果区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="unit-tool__result-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="unit-tool__result-card" shadow="hover">
             <template #header>
               <div class="unit-tool__card-header">
                 <IconifyIconOnline
@@ -550,7 +550,7 @@ const getResultIcon = (label) => {
               </div>
             </template>
 
-            <el-empty
+            <ScEmpty 
               v-if="!env.outputResults.length"
               description="请先输入并转换单位"
               class="unit-tool__empty"
@@ -561,7 +561,7 @@ const getResultIcon = (label) => {
                   class="unit-tool__empty-icon"
                 />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="unit-tool__results">
               <div
@@ -579,7 +579,7 @@ const getResultIcon = (label) => {
                 </div>
                 <div class="unit-tool__result-value">
                   <span>{{ result.value }}</span>
-                  <el-button
+                  <ScButton 
                     type="primary"
                     link
                     size="small"
@@ -587,14 +587,14 @@ const getResultIcon = (label) => {
                     @click="copyToClipboard(result.value)"
                   >
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 单位参考卡片 -->
-          <el-card class="unit-tool__reference-card" shadow="hover">
+          <ScCard class="unit-tool__reference-card" shadow="hover">
             <template #header>
               <div class="unit-tool__card-header">
                 <IconifyIconOnline
@@ -729,9 +729,9 @@ const getResultIcon = (label) => {
                 </el-collapse-item>
               </el-collapse>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

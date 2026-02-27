@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="rete-editor-example system-container modern-bg">
     <!-- 页面标题 -->
     <div class="page-header">
@@ -9,9 +9,9 @@
     </div>
 
     <!-- 示例切换 -->
-    <el-tabs v-model="activeTab" class="example-tabs">
+    <ScTabs v-model="activeTab" class="example-tabs">
       <!-- 基础用法 -->
-      <el-tab-pane label="基础用法" name="basic">
+      <ScTabPane label="基础用法" name="basic">
         <div class="example-section">
           <h3>基础编辑器</h3>
           <p>包含完整的工具栏、节点面板、属性面板和状态栏。</p>
@@ -32,10 +32,10 @@
           </div>
 
           <div class="example-actions">
-            <el-button @click="handleBasicGetData">获取数据</el-button>
-            <el-button @click="handleBasicLoadSample">加载示例数据</el-button>
-            <el-button @click="handleBasicClear">清空</el-button>
-            <el-button @click="handleBasicArrange">自动排列</el-button>
+            <ScButton @click="handleBasicGetData">获取数据</ScButton>
+            <ScButton @click="handleBasicLoadSample">加载示例数据</ScButton>
+            <ScButton @click="handleBasicClear">清空</ScButton>
+            <ScButton @click="handleBasicArrange">自动排列</ScButton>
           </div>
 
           <el-collapse>
@@ -44,10 +44,10 @@
             </el-collapse-item>
           </el-collapse>
         </div>
-      </el-tab-pane>
+      </ScTabPane>
 
       <!-- 简洁模式 -->
-      <el-tab-pane label="简洁模式" name="minimal">
+      <ScTabPane label="简洁模式" name="minimal">
         <div class="example-section">
           <h3>简洁编辑器</h3>
           <p>隐藏部分面板，只保留画布区域，适合嵌入到其他页面中。</p>
@@ -67,10 +67,10 @@
             />
           </div>
         </div>
-      </el-tab-pane>
+      </ScTabPane>
 
       <!-- 只读模式 -->
-      <el-tab-pane label="只读模式" name="readonly">
+      <ScTabPane label="只读模式" name="readonly">
         <div class="example-section">
           <h3>只读编辑器</h3>
           <p>禁用所有编辑操作，只能查看节点和连接。</p>
@@ -88,10 +88,10 @@
             />
           </div>
         </div>
-      </el-tab-pane>
+      </ScTabPane>
 
       <!-- 自定义节点 -->
-      <el-tab-pane label="自定义节点菜单" name="custom">
+      <ScTabPane label="自定义节点菜单" name="custom">
         <div class="example-section">
           <h3>自定义节点菜单</h3>
           <p>通过 nodeMenuItems 配置自定义节点类型和图标。</p>
@@ -112,17 +112,17 @@
           </div>
 
           <div class="selected-node-info" v-if="selectedNodeInfo">
-            <el-alert type="info" :closable="false">
+            <ScAlert type="info" :closable="false">
               <template #title>
                 选中节点: {{ selectedNodeInfo.label }} (ID: {{ selectedNodeInfo.id }})
               </template>
-            </el-alert>
+            </ScAlert>
           </div>
         </div>
-      </el-tab-pane>
+      </ScTabPane>
 
       <!-- API 方法 -->
-      <el-tab-pane label="API 方法" name="api">
+      <ScTabPane label="API 方法" name="api">
         <div class="example-section">
           <h3>编辑器 API</h3>
           <p>通过 ref 调用编辑器的方法进行程序化操作。</p>
@@ -141,24 +141,24 @@
 
           <div class="api-actions">
             <el-space wrap>
-              <el-button type="primary" @click="apiAddInputNode">添加输入节点</el-button>
-              <el-button type="primary" @click="apiAddProcessNode">添加处理节点</el-button>
-              <el-button type="primary" @click="apiAddOutputNode">添加输出节点</el-button>
-              <el-divider direction="vertical" />
-              <el-button @click="apiArrange">自动排列</el-button>
-              <el-button @click="apiZoomToFit">适应画布</el-button>
-              <el-button @click="apiSetZoom(0.5)">缩放 50%</el-button>
-              <el-button @click="apiSetZoom(1)">缩放 100%</el-button>
-              <el-button @click="apiSetZoom(1.5)">缩放 150%</el-button>
-              <el-divider direction="vertical" />
-              <el-button type="danger" @click="apiClear">清空</el-button>
+              <ScButton type="primary" @click="apiAddInputNode">添加输入节点</ScButton>
+              <ScButton type="primary" @click="apiAddProcessNode">添加处理节点</ScButton>
+              <ScButton type="primary" @click="apiAddOutputNode">添加输出节点</ScButton>
+              <ScDivider direction="vertical" />
+              <ScButton @click="apiArrange">自动排列</ScButton>
+              <ScButton @click="apiZoomToFit">适应画布</ScButton>
+              <ScButton @click="apiSetZoom(0.5)">缩放 50%</ScButton>
+              <ScButton @click="apiSetZoom(1)">缩放 100%</ScButton>
+              <ScButton @click="apiSetZoom(1.5)">缩放 150%</ScButton>
+              <ScDivider direction="vertical" />
+              <ScButton type="danger" @click="apiClear">清空</ScButton>
             </el-space>
           </div>
         </div>
-      </el-tab-pane>
+      </ScTabPane>
 
       <!-- 代码示例 -->
-      <el-tab-pane label="代码示例" name="code">
+      <ScTabPane label="代码示例" name="code">
         <div class="example-section">
           <h3>使用说明</h3>
           
@@ -180,14 +180,16 @@
             </el-collapse-item>
           </el-collapse>
         </div>
-      </el-tab-pane>
-    </el-tabs>
+      </ScTabPane>
+    </ScTabs>
   </div>
 </template>
 
 <script setup lang="ts">
+
+import ScTabPane from "@repo/components/ScTabs";
 import { ref, reactive } from "vue";
-import { ElMessage } from "element-plus";
+import { ScMessage } from "@repo/utils";
 import { ScReteEditor, type EditorData, type BaseNode, type NodeTypeName } from "@repo/components";
 
 // =============== 基础用法 ===============
@@ -204,7 +206,7 @@ const handleBasicDataChange = (data: EditorData) => {
 const handleBasicGetData = () => {
   const data = basicEditorRef.value?.getData();
   console.log("获取数据:", data);
-  ElMessage.success("数据已输出到控制台");
+  ScMessage.success("数据已输出到控制台");
 };
 
 const handleBasicLoadSample = async () => {
@@ -225,17 +227,17 @@ const handleBasicLoadSample = async () => {
   };
   
   await basicEditorRef.value?.loadData(sampleData);
-  ElMessage.success("示例数据已加载");
+  ScMessage.success("示例数据已加载");
 };
 
 const handleBasicClear = async () => {
   await basicEditorRef.value?.clear();
-  ElMessage.success("已清空");
+  ScMessage.success("已清空");
 };
 
 const handleBasicArrange = async () => {
   await basicEditorRef.value?.arrange();
-  ElMessage.success("已自动排列");
+  ScMessage.success("已自动排列");
 };
 
 // =============== 简洁模式 ===============
@@ -284,7 +286,7 @@ const customNodeMenuItems = [
 const selectedNodeInfo = ref<{ id: string; label: string } | null>(null);
 
 const handleNodeCreated = (node: BaseNode) => {
-  ElMessage.success(`创建节点: ${node.label}`);
+  ScMessage.success(`创建节点: ${node.label}`);
 };
 
 const handleNodeSelected = (node: BaseNode | null) => {
@@ -308,7 +310,7 @@ const apiAddInputNode = async () => {
     y: Math.random() * 200 + 50 
   });
   if (node) {
-    ElMessage.success(`添加节点: ${node.label}`);
+    ScMessage.success(`添加节点: ${node.label}`);
   }
 };
 
@@ -318,7 +320,7 @@ const apiAddProcessNode = async () => {
     y: Math.random() * 200 + 50 
   });
   if (node) {
-    ElMessage.success(`添加节点: ${node.label}`);
+    ScMessage.success(`添加节点: ${node.label}`);
   }
 };
 
@@ -328,7 +330,7 @@ const apiAddOutputNode = async () => {
     y: Math.random() * 200 + 50 
   });
   if (node) {
-    ElMessage.success(`添加节点: ${node.label}`);
+    ScMessage.success(`添加节点: ${node.label}`);
   }
 };
 
@@ -365,6 +367,8 @@ const basicCodeExample = `<template>
 </template>
 
 <script setup>
+
+import ScTabPane from "@repo/components/ScTabs";
 import { ref } from 'vue';
 import { ScReteEditor, type EditorData } from '@repo/components';
 
@@ -417,6 +421,8 @@ const apiCodeExample = `<template>
 </template>
 
 <script setup>
+
+import ScTabPane from "@repo/components/ScTabs";
 import { ref } from 'vue';
 import { ScReteEditor } from '@repo/components';
 
@@ -465,6 +471,8 @@ const customNodeCodeExample = `<template>
 </template>
 
 <script setup>
+
+import ScTabPane from "@repo/components/ScTabs";
 import { ref } from 'vue';
 import { ScReteEditor, type NodeTypeName } from '@repo/components';
 

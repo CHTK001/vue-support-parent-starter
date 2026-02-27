@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { defineEmits } from "vue";
 import { IconifyIconOnline } from "@iconify/vue";
 import EmailAccountSelector from "./EmailAccountSelector.vue";
@@ -58,10 +58,10 @@ const composeEmail = () => {
 
     <!-- 写邮件按钮 -->
     <div class="email-sidebar__compose">
-      <el-button type="primary" @click="composeEmail" class="email-sidebar__compose-btn">
+      <ScButton type="primary" @click="composeEmail" class="email-sidebar__compose-btn">
         <IconifyIconOnline icon="ri:add-line" class="email-sidebar__compose-icon" />
         <span>写邮件</span>
-      </el-button>
+      </ScButton>
     </div>
 
     <!-- 文件夹列表 -->

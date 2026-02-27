@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="pomodoro-tool">
     <div class="pomodoro-tool__header">
       <div class="pomodoro-tool__header-content">
@@ -10,9 +10,9 @@
       </div>
     </div>
 
-    <el-row :gutter="20" class="pomodoro-tool__main-content">
-      <el-col :span="16">
-        <el-card class="pomodoro-tool__card" shadow="hover">
+    <ScRow :gutter="20" class="pomodoro-tool__main-content">
+      <ScCol :span="16">
+        <ScCard class="pomodoro-tool__card" shadow="hover">
           <div
             class="pomodoro-tool__timer-display"
             :class="{ 'pomodoro-tool__timer-display--work': isWorkMode, 'pomodoro-tool__timer-display--break': !isWorkMode }"
@@ -22,7 +22,7 @@
             </div>
             <div class="pomodoro-tool__timer-clock">{{ formatTime(currentTime) }}</div>
             <div class="pomodoro-tool__timer-progress">
-              <el-progress
+              <ScProgress 
                 :percentage="progressPercentage"
                 :stroke-width="10"
                 :color="isWorkMode ? '#ff6b6b' : '#4caf50'"
@@ -33,7 +33,7 @@
 
           <div class="pomodoro-tool__timer-controls">
             <el-button-group>
-              <el-button
+              <ScButton 
                 v-if="!isRunning"
                 type="primary"
                 @click="startTimer"
@@ -41,8 +41,8 @@
                 :icon="renderIcon('ri:play-circle-line')"
               >
                 开始
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton 
                 v-else
                 type="danger"
                 @click="pauseTimer"
@@ -50,23 +50,23 @@
                 :icon="renderIcon('ri:pause-circle-line')"
               >
                 暂停
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton 
                 type="warning"
                 @click="resetTimer"
                 round
                 :icon="renderIcon('ri:restart-line')"
               >
                 重置
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton 
                 type="info"
                 @click="skipToNext"
                 round
                 :icon="renderIcon('ri:skip-forward-line')"
               >
                 跳过
-              </el-button>
+              </ScButton>
             </el-button-group>
           </div>
 
@@ -104,11 +104,11 @@
               <div class="pomodoro-tool__stats-label">总休息时间</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
+        </ScCard>
+      </ScCol>
 
-      <el-col :span="8">
-        <el-card class="pomodoro-tool__card" shadow="hover">
+      <ScCol :span="8">
+        <ScCard class="pomodoro-tool__card" shadow="hover">
           <template #header>
             <div class="pomodoro-tool__card-header">
               <IconifyIconOnline icon="ri:settings-3-line" class="pomodoro-tool__card-icon" />
@@ -119,7 +119,7 @@
           <div class="pomodoro-tool__settings-content">
             <div class="pomodoro-tool__settings-item">
               <div class="pomodoro-tool__settings-label">工作时间 (分钟):</div>
-              <el-input-number
+              <ScInputNumber 
                 v-model="workTime"
                 :min="1"
                 :max="60"
@@ -130,7 +130,7 @@
 
             <div class="pomodoro-tool__settings-item">
               <div class="pomodoro-tool__settings-label">短休息时间 (分钟):</div>
-              <el-input-number
+              <ScInputNumber 
                 v-model="shortBreakTime"
                 :min="1"
                 :max="30"
@@ -141,7 +141,7 @@
 
             <div class="pomodoro-tool__settings-item">
               <div class="pomodoro-tool__settings-label">长休息时间 (分钟):</div>
-              <el-input-number
+              <ScInputNumber 
                 v-model="longBreakTime"
                 :min="1"
                 :max="60"
@@ -152,7 +152,7 @@
 
             <div class="pomodoro-tool__settings-item">
               <div class="pomodoro-tool__settings-label">长休息周期 (工作次数):</div>
-              <el-input-number
+              <ScInputNumber 
                 v-model="workCyclesTarget"
                 :min="1"
                 :max="10"
@@ -161,7 +161,7 @@
               />
             </div>
 
-            <el-divider />
+            <ScDivider />
 
             <div class="pomodoro-tool__settings-item">
               <div class="pomodoro-tool__settings-label">自动开始休息:</div>
@@ -196,13 +196,13 @@
               />
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
-    <el-row>
-      <el-col :span="24">
-        <el-card class="pomodoro-tool__card" shadow="hover">
+    <ScRow>
+      <ScCol :span="24">
+        <ScCard class="pomodoro-tool__card" shadow="hover">
           <template #header>
             <div class="pomodoro-tool__card-header">
               <IconifyIconOnline icon="ri:lightbulb-line" class="pomodoro-tool__card-icon" />
@@ -230,9 +230,9 @@
               </li>
             </ul>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 隐藏的音频元素 -->
     <audio
@@ -251,8 +251,8 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { ScSlider } from "@repo/components";
-import { message } from "@repo/utils";
-import { ElNotification } from "element-plus";
+import { message , ScNotification} from "@repo/utils";
+
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
 // 状态变量
@@ -417,7 +417,7 @@ const playSound = (audioElement) => {
 
 // 显示通知
 const showNotification = (title, message) => {
-  ElNotification({
+  ScNotification({
     title: title,
     message: message,
     type: isWorkMode.value ? "success" : "warning",

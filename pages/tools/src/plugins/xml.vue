@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
 import Prism from "prismjs";
@@ -603,10 +603,10 @@ onMounted(() => {
       </div>
 
       <!-- 主要内容区域 -->
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 左侧输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="xml-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="xml-tool__input-card" shadow="hover">
             <template #header>
               <div class="xml-tool__card-header">
                 <IconifyIconOnline icon="ri:code-box-line" class="xml-tool__card-icon" />
@@ -614,93 +614,93 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-form label-position="top">
+            <ScForm label-position="top">
               <!-- 操作类型选择 -->
-              <el-form-item label="操作类型">
-                <el-radio-group v-model="env.operationType" class="xml-tool__radio-group">
-                  <el-radio label="format">
+              <ScFormItem label="操作类型">
+                <ScRadioGroup v-model="env.operationType" class="xml-tool__radio-group">
+                  <ScRadio label="format">
                     <div class="xml-tool__radio-content">
                       <IconifyIconOnline icon="ri:format-line" />
                       <span>格式化</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="minify">
+                  </ScRadio>
+                  <ScRadio label="minify">
                     <div class="xml-tool__radio-content">
                       <IconifyIconOnline icon="ri:file-reduce-line" />
                       <span>压缩</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="validate">
+                  </ScRadio>
+                  <ScRadio label="validate">
                     <div class="xml-tool__radio-content">
                       <IconifyIconOnline icon="ri:check-line" />
                       <span>验证</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="xml2json">
+                  </ScRadio>
+                  <ScRadio label="xml2json">
                     <div class="xml-tool__radio-content">
                       <IconifyIconOnline icon="ri:arrow-right-line" />
                       <span>XML转JSON</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="json2xml">
+                  </ScRadio>
+                  <ScRadio label="json2xml">
                     <div class="xml-tool__radio-content">
                       <IconifyIconOnline icon="ri:arrow-left-line" />
                       <span>JSON转XML</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="xpath">
+                  </ScRadio>
+                  <ScRadio label="xpath">
                     <div class="xml-tool__radio-content">
                       <IconifyIconOnline icon="ri:search-line" />
                       <span>XPath查询</span>
                     </div>
-                  </el-radio>
-                </el-radio-group>
-              </el-form-item>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
 
               <!-- XML输入 -->
-              <el-form-item v-if="env.operationType !== 'json2xml'" label="XML内容">
-                <el-input v-model="env.inputXML" type="textarea" :rows="12" placeholder="请输入XML内容" resize="vertical" class="xml-tool__input" />
-              </el-form-item>
+              <ScFormItem v-if="env.operationType !== 'json2xml'" label="XML内容">
+                <ScInput v-model="env.inputXML" type="textarea" :rows="12" placeholder="请输入XML内容" resize="vertical" class="xml-tool__input" />
+              </ScFormItem>
 
               <!-- JSON输入 (仅JSON转XML模式) -->
-              <el-form-item v-if="env.operationType === 'json2xml'" label="JSON内容">
-                <el-input v-model="env.convertOptions.inputJSON" type="textarea" :rows="12" placeholder="请输入JSON内容" resize="vertical" class="xml-tool__input" />
-              </el-form-item>
+              <ScFormItem v-if="env.operationType === 'json2xml'" label="JSON内容">
+                <ScInput v-model="env.convertOptions.inputJSON" type="textarea" :rows="12" placeholder="请输入JSON内容" resize="vertical" class="xml-tool__input" />
+              </ScFormItem>
 
               <!-- XPath查询 (仅XPath查询模式) -->
-              <el-form-item v-if="env.operationType === 'xpath'" label="XPath表达式">
-                <el-input v-model="env.xpathOptions.query" placeholder="例如: //person[@id='1']/name" class="xml-tool__input" />
-              </el-form-item>
+              <ScFormItem v-if="env.operationType === 'xpath'" label="XPath表达式">
+                <ScInput v-model="env.xpathOptions.query" placeholder="例如: //person[@id='1']/name" class="xml-tool__input" />
+              </ScFormItem>
 
               <!-- 示例选择 -->
-              <el-form-item v-if="env.operationType !== 'json2xml'" label="示例">
+              <ScFormItem v-if="env.operationType !== 'json2xml'" label="示例">
                 <div class="xml-tool__examples">
-                  <el-button v-for="example in env.examples" :key="example.name" size="small" @click="applyExample(example)">
+                  <ScButton v-for="example in env.examples" :key="example.name" size="small" @click="applyExample(example)">
                     {{ example.name }}
-                  </el-button>
+                  </ScButton>
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 操作按钮 -->
               <div class="xml-tool__actions">
-                <el-button type="primary" :loading="env.loading" class="xml-tool__execute-btn" @click="executeOperation">
+                <ScButton type="primary" :loading="env.loading" class="xml-tool__execute-btn" @click="executeOperation">
                   <IconifyIconOnline icon="ri:play-line" />
                   <span>执行操作</span>
-                </el-button>
+                </ScButton>
 
-                <el-button class="xml-tool__clear-btn" @click="clearForm">
+                <ScButton class="xml-tool__clear-btn" @click="clearForm">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                   <span>清空</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
-          </el-card>
-        </el-col>
+            </ScForm>
+          </ScCard>
+        </ScCol>
 
         <!-- 右侧结果区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
           <!-- 结果卡片 -->
-          <el-card class="xml-tool__result-card" shadow="hover">
+          <ScCard class="xml-tool__result-card" shadow="hover">
             <template #header>
               <div class="xml-tool__card-header">
                 <IconifyIconOnline icon="ri:file-list-line" class="xml-tool__card-icon" />
@@ -708,20 +708,20 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-empty v-if="!env.outputXML && !env.convertOptions.outputJSON && !env.xpathOptions.results.length" description="请先执行操作" class="xml-tool__empty">
+            <ScEmpty v-if="!env.outputXML && !env.convertOptions.outputJSON && !env.xpathOptions.results.length" description="请先执行操作" class="xml-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:code-box-line" class="xml-tool__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <!-- XML输出结果 -->
             <div v-if="env.outputXML && env.operationType !== 'xml2json'" class="xml-tool__result-content">
               <div class="xml-tool__result-header">
                 <span>XML结果</span>
-                <el-button type="primary" link size="small" @click="copyToClipboard(env.outputXML)">
+                <ScButton type="primary" link size="small" @click="copyToClipboard(env.outputXML)">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   <span>复制</span>
-                </el-button>
+                </ScButton>
               </div>
               <pre class="language-xml">
 <code>{{ env.outputXML }}</code>
@@ -732,10 +732,10 @@ onMounted(() => {
             <div v-if="env.convertOptions.outputJSON && env.operationType === 'xml2json'" class="xml-tool__result-content">
               <div class="xml-tool__result-header">
                 <span>JSON结果</span>
-                <el-button type="primary" link size="small" @click="copyToClipboard(env.convertOptions.outputJSON)">
+                <ScButton type="primary" link size="small" @click="copyToClipboard(env.convertOptions.outputJSON)">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   <span>复制</span>
-                </el-button>
+                </ScButton>
               </div>
               <pre class="language-json line-numbers"><code>{{ env.convertOptions.outputJSON }}</code></pre>
             </div>
@@ -748,18 +748,18 @@ onMounted(() => {
               <div v-for="(result, index) in env.xpathOptions.results" :key="index" class="xml-tool__xpath-result">
                 <div class="xml-tool__xpath-result-header">
                   <span>结果 #{{ index + 1 }} ({{ result.type }})</span>
-                  <el-button type="primary" link size="small" @click="copyToClipboard(result.value)">
+                  <ScButton type="primary" link size="small" @click="copyToClipboard(result.value)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
                 <pre v-if="result.type === '节点'" class="language-xml"><code>{{ result.value }}</code></pre>
                 <div v-else class="xml-tool__xpath-value">{{ result.value }}</div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 历史记录卡片 -->
-          <el-card class="xml-tool__history-card" shadow="hover">
+          <ScCard class="xml-tool__history-card" shadow="hover">
             <template #header>
               <div class="xml-tool__card-header">
                 <IconifyIconOnline icon="ri:history-line" class="xml-tool__card-icon" />
@@ -767,11 +767,11 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-empty v-if="!env.history.length" description="暂无历史记录" class="xml-tool__empty">
+            <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="xml-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:history-line" class="xml-tool__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="xml-tool__history">
               <div v-for="item in env.history" :key="item.id" class="xml-tool__history-item">
@@ -782,17 +782,17 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="xml-tool__history-actions">
-                  <el-button type="primary" link size="small" @click="loadFromHistory(item)">
+                  <ScButton type="primary" link size="small" @click="loadFromHistory(item)">
                     <IconifyIconOnline icon="ri:arrow-go-back-line" />
                     <span>加载</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 帮助卡片 -->
-          <el-card class="xml-tool__help-card" shadow="hover">
+          <ScCard class="xml-tool__help-card" shadow="hover">
             <template #header>
               <div class="xml-tool__card-header">
                 <IconifyIconOnline icon="ri:question-line" class="xml-tool__card-icon" />
@@ -852,9 +852,9 @@ onMounted(() => {
                 </div>
               </el-collapse-item>
             </el-collapse>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

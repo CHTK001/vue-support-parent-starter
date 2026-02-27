@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="device-camera-container">
     <div
       class="device-camera-settings-toggle"
@@ -8,32 +8,32 @@
         }
       "
     >
-      <el-icon color="white" size="24">
+      <ScIcon color="white" size="24">
         <component :is="useRenderIcon('ri:list-settings-fill')" />
-      </el-icon>
+      </ScIcon>
     </div>
     <div class="device-camera-tool" v-if="isShow" :class="{ 'device-camera-tool-show': isShow }">
-      <el-form :inline="true" class="device-camera-form">
-        <el-form-item>
-          <el-select size="small" class="device-camera-select" v-model="playSetting.sysDeviceId" @change="handleChangeDeviceId" placeholder="选择设备" clearable>
-            <el-option v-for="device in devices" :key="device.sysDeviceId" :label="device.sysDeviceName" :value="device.sysDeviceId"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item v-if="playSetting.sysDeviceId">
-          <el-select size="small" class="device-camera-select" v-model="playSetting.channelNo" placeholder="选择通道" clearable>
-            <el-option v-for="item in getChannel" :key="item.sysDeviceChannelId" :label="item.sysDeviceChannelName" :value="item.sysDeviceChannelNo"> </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item v-if="playSetting.sysDeviceId">
-          <el-select size="small" class="device-camera-select" v-model="playSetting.subtype" placeholder="选择通道" clearable>
-            <el-option label="主码流" :value="getMainSubtype"></el-option>
-            <el-option label="子码流" :value="getSubSubtype"></el-option>
-          </el-select>
-        </el-form-item>
-      </el-form>
+      <ScForm :inline="true" class="device-camera-form">
+        <ScFormItem>
+          <ScSelect size="small" class="device-camera-select" v-model="playSetting.sysDeviceId" @change="handleChangeDeviceId" placeholder="选择设备" clearable>
+            <ScOption v-for="device in devices" :key="device.sysDeviceId" :label="device.sysDeviceName" :value="device.sysDeviceId"></ScOption>
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem v-if="playSetting.sysDeviceId">
+          <ScSelect size="small" class="device-camera-select" v-model="playSetting.channelNo" placeholder="选择通道" clearable>
+            <ScOption v-for="item in getChannel" :key="item.sysDeviceChannelId" :label="item.sysDeviceChannelName" :value="item.sysDeviceChannelNo"> </ScOption>
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem v-if="playSetting.sysDeviceId">
+          <ScSelect size="small" class="device-camera-select" v-model="playSetting.subtype" placeholder="选择通道" clearable>
+            <ScOption label="主码流" :value="getMainSubtype"></ScOption>
+            <ScOption label="子码流" :value="getSubSubtype"></ScOption>
+          </ScSelect>
+        </ScFormItem>
+      </ScForm>
     </div>
     <div v-if="hideVideo" class="device-camera-placeholder">
-      <el-button @click="handlePlayer" :icon="useRenderIcon('ri:play-line')" class="device-camera-play-button"></el-button>
+      <ScButton @click="handlePlayer" :icon="useRenderIcon('ri:play-line')" class="device-camera-play-button"></ScButton>
     </div>
     <div v-else class="device-camera-video-wrapper">
       <video :id="'video' + diff" ref="videoPlayer" controls class="device-camera-video"></video>

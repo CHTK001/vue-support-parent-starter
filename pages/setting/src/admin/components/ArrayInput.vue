@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="sc-array-input">
-    <el-input v-model="jsonString" type="textarea" :rows="rows" :disabled="disabled" :placeholder="placeholder" @blur="validateAndUpdate" class="array-textarea" />
+    <ScInput v-model="jsonString" type="textarea" :rows="rows" :disabled="disabled" :placeholder="placeholder" @blur="validateAndUpdate" class="array-textarea" />
 
     <div class="array-error" v-if="error">
       {{ error }}
@@ -15,9 +15,9 @@
             </div>
             <div class="item-content">{{ element.value }}</div>
             <div class="item-actions" v-if="!disabled">
-              <el-button type="danger" size="small" circle @click="removeItem(index)" class="delete-btn">
+              <ScButton type="danger" size="small" circle @click="removeItem(index)" class="delete-btn">
                 <IconifyIconOnline icon="ep:delete" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </template>
@@ -26,14 +26,14 @@
       <div class="array-empty" v-if="arrayItems.length === 0">数组为空，请添加项目</div>
 
       <div class="array-add" v-if="!disabled">
-        <el-input v-model="newItem" placeholder="输入新项目，多个项目用逗号分隔" @keyup.enter="addItem" class="add-input">
+        <ScInput v-model="newItem" placeholder="输入新项目，多个项目用逗号分隔" @keyup.enter="addItem" class="add-input">
           <template #append>
-            <el-button @click="addItem">
+            <ScButton @click="addItem">
               <IconifyIconOnline icon="ep:plus" />
               添加
-            </el-button>
+            </ScButton>
           </template>
-        </el-input>
+        </ScInput>
         <div class="add-tip">
           <IconifyIconOnline icon="ep:info-filled" class="info-icon" />
           <span>提示：可以使用{{ props.separator }}分隔添加多个项目</span>

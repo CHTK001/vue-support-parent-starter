@@ -1,19 +1,19 @@
-<template>
+﻿<template>
   <div class="color-picker-container">
     <div class="tool-description">
-      <el-alert type="info" show-icon :closable="false">
+      <ScAlert type="info" show-icon :closable="false">
         <p>
           颜色选择器工具可以帮助您选择颜色并获取不同格式（HEX、RGB、HSL）的颜色值，还可以生成颜色渐变。
         </p>
         <p>选择颜色后，您可以复制颜色代码或将其添加到收藏夹。</p>
-      </el-alert>
+      </ScAlert>
     </div>
 
-    <el-tabs v-model="activeTab" class="color-tabs">
-      <el-tab-pane label="颜色选择器" name="picker">
-        <el-row :gutter="20" class="main-content">
-          <el-col :span="16">
-            <el-card class="picker-card">
+    <ScTabs v-model="activeTab" class="color-tabs">
+      <ScTabPane label="颜色选择器" name="picker">
+        <ScRow :gutter="20" class="main-content">
+          <ScCol :span="16">
+            <ScCard class="picker-card">
               <div class="color-picker-section">
                 <div class="color-display-group">
                   <div
@@ -28,47 +28,47 @@
                       <div class="format-item">
                         <div class="format-label">HEX</div>
                         <div class="format-value">
-                          <el-input
+                          <ScInput 
                             v-model="hexColor"
                             @change="updateFromHex"
                             @focus="$event.target.select()"
                           >
                             <template #append>
-                              <el-button @click="copyToClipboard(hexColor)">
+                              <ScButton @click="copyToClipboard(hexColor)">
                                 <IconifyIconOnline icon="ri:clipboard-line" />
-                              </el-button>
+                              </ScButton>
                             </template>
-                          </el-input>
+                          </ScInput>
                         </div>
                       </div>
                       <div class="format-item">
                         <div class="format-label">RGB</div>
                         <div class="format-value">
-                          <el-input
+                          <ScInput 
                             v-model="rgbColor"
                             @focus="$event.target.select()"
                           >
                             <template #append>
-                              <el-button @click="copyToClipboard(rgbColor)">
+                              <ScButton @click="copyToClipboard(rgbColor)">
                                 <IconifyIconOnline icon="ri:clipboard-line" />
-                              </el-button>
+                              </ScButton>
                             </template>
-                          </el-input>
+                          </ScInput>
                         </div>
                       </div>
                       <div class="format-item">
                         <div class="format-label">HSL</div>
                         <div class="format-value">
-                          <el-input
+                          <ScInput 
                             v-model="hslColor"
                             @focus="$event.target.select()"
                           >
                             <template #append>
-                              <el-button @click="copyToClipboard(hslColor)">
+                              <ScButton @click="copyToClipboard(hslColor)">
                                 <IconifyIconOnline icon="ri:clipboard-line" />
-                              </el-button>
+                              </ScButton>
                             </template>
-                          </el-input>
+                          </ScInput>
                         </div>
                       </div>
                     </div>
@@ -76,7 +76,7 @@
                 </div>
 
                 <div class="color-picker-main">
-                  <el-color-picker
+                  <ScColorPicker 
                     v-model="currentColor"
                     show-alpha
                     :predefine="predefineColors"
@@ -85,22 +85,22 @@
                   />
                 </div>
               </div>
-            </el-card>
-          </el-col>
+            </ScCard>
+          </ScCol>
 
-          <el-col :span="8">
-            <el-card class="favorites-card">
+          <ScCol :span="8">
+            <ScCard class="favorites-card">
               <template #header>
                 <div class="favorites-header">
                   <span>我的收藏颜色</span>
-                  <el-button
+                  <ScButton 
                     type="primary"
                     @click="addToFavorites"
                     :disabled="isFavorite"
                   >
                     <IconifyIconOnline icon="ri:star-line" />
                     添加到收藏
-                  </el-button>
+                  </ScButton>
                 </div>
               </template>
               <div class="favorites-list" v-if="favoriteColors.length > 0">
@@ -119,12 +119,12 @@
                     <div class="favorite-name">{{ getColorName(color) }}</div>
                   </div>
                   <div class="favorite-actions">
-                    <el-button type="text" @click="copyToClipboard(color)">
+                    <ScButton type="text" @click="copyToClipboard(color)">
                       <IconifyIconOnline icon="ri:clipboard-line" />
-                    </el-button>
-                    <el-button type="text" @click="removeFromFavorites(index)">
+                    </ScButton>
+                    <ScButton type="text" @click="removeFromFavorites(index)">
                       <IconifyIconOnline icon="ri:delete-bin-line" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
               </div>
@@ -133,36 +133,36 @@
                 <p>暂无收藏颜色</p>
                 <p class="empty-tip">选择一个颜色后点击"添加到收藏"按钮</p>
               </div>
-            </el-card>
-          </el-col>
-        </el-row>
-      </el-tab-pane>
+            </ScCard>
+          </ScCol>
+        </ScRow>
+      </ScTabPane>
 
-      <el-tab-pane label="渐变生成器" name="gradient">
-        <el-card class="gradient-card">
+      <ScTabPane label="渐变生成器" name="gradient">
+        <ScCard class="gradient-card">
           <div class="gradient-controls">
             <div class="gradient-section">
               <h3>渐变设置</h3>
               <div class="gradient-type">
                 <span>渐变类型：</span>
-                <el-radio-group v-model="gradientType" @change="updateGradient">
-                  <el-radio label="linear">线性渐变</el-radio>
-                  <el-radio label="radial">径向渐变</el-radio>
-                </el-radio-group>
+                <ScRadioGroup v-model="gradientType" @change="updateGradient">
+                  <ScRadio label="linear">线性渐变</ScRadio>
+                  <ScRadio label="radial">径向渐变</ScRadio>
+                </ScRadioGroup>
               </div>
 
               <div class="gradient-direction" v-if="gradientType === 'linear'">
                 <span>渐变方向：</span>
-                <el-select v-model="gradientDirection" @change="updateGradient">
-                  <el-option label="从左到右" value="to right" />
-                  <el-option label="从右到左" value="to left" />
-                  <el-option label="从上到下" value="to bottom" />
-                  <el-option label="从下到上" value="to top" />
-                  <el-option label="从左上到右下" value="to bottom right" />
-                  <el-option label="从右上到左下" value="to bottom left" />
-                  <el-option label="从左下到右上" value="to top right" />
-                  <el-option label="从右下到左上" value="to top left" />
-                </el-select>
+                <ScSelect v-model="gradientDirection" @change="updateGradient">
+                  <ScOption label="从左到右" value="to right" />
+                  <ScOption label="从右到左" value="to left" />
+                  <ScOption label="从上到下" value="to bottom" />
+                  <ScOption label="从下到上" value="to top" />
+                  <ScOption label="从左上到右下" value="to bottom right" />
+                  <ScOption label="从右上到左下" value="to bottom left" />
+                  <ScOption label="从左下到右上" value="to top right" />
+                  <ScOption label="从右下到左上" value="to top left" />
+                </ScSelect>
               </div>
 
               <div class="gradient-colors">
@@ -179,13 +179,13 @@
                       <div class="color-handle">
                         <IconifyIconOnline icon="ri:drag-move-line" />
                       </div>
-                      <el-color-picker
+                      <ScColorPicker 
                         v-model="element.color"
                         show-alpha
                         @change="updateGradient"
                         size="small"
                       />
-                      <el-input-number
+                      <ScInputNumber 
                         v-model="element.position"
                         :min="0"
                         :max="100"
@@ -194,7 +194,7 @@
                         class="position-input"
                       />
                       <span class="position-label">%</span>
-                      <el-button
+                      <ScButton 
                         type="danger"
                         icon="delete"
                         size="small"
@@ -203,19 +203,19 @@
                         :disabled="gradientColors.length <= 2"
                       >
                         <IconifyIconOnline icon="ri:close-line" />
-                      </el-button>
+                      </ScButton>
                     </div>
                   </template>
                 </draggable>
                 <div class="add-color">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     @click="addGradientColor"
                     :disabled="gradientColors.length >= 10"
                   >
                     <IconifyIconOnline icon="ri:add-line" />
                     添加颜色
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
@@ -228,31 +228,33 @@
               ></div>
               <div class="gradient-code">
                 <h4>CSS 代码:</h4>
-                <el-input
+                <ScInput 
                   type="textarea"
                   v-model="gradientCSS"
                   readonly
                   rows="4"
                   class="gradient-textarea"
                 />
-                <el-button
+                <ScButton 
                   type="primary"
                   @click="copyToClipboard(gradientCSS)"
                   class="copy-gradient"
                 >
                   <IconifyIconOnline icon="ri:clipboard-line" />
                   复制CSS代码
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>
-        </el-card>
-      </el-tab-pane>
-    </el-tabs>
+        </ScCard>
+      </ScTabPane>
+    </ScTabs>
   </div>
 </template>
 
 <script setup>
+
+import ScTabPane from "@repo/components/ScTabs";
 import { ref, computed, watch, onMounted } from "vue";
 import { message } from "@repo/utils";
 import draggable from "vuedraggable";

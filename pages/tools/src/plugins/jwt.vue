@@ -1,4 +1,6 @@
-<script setup>
+﻿<script setup>
+
+import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -410,13 +412,13 @@ onMounted(() => {
         </div>
       </div>
 
-      <el-tabs v-model="env.activeTab" class="jwt-tool__main-tabs">
+      <ScTabs v-model="env.activeTab" class="jwt-tool__main-tabs">
         <!-- 解码选项卡 -->
-        <el-tab-pane label="解码 JWT" name="decode">
-          <el-row :gutter="24">
+        <ScTabPane label="解码 JWT" name="decode">
+          <ScRow :gutter="24">
             <!-- 左侧输入区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="jwt-tool__input-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="jwt-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
                     <IconifyIconOnline icon="ri:key-line" class="jwt-tool__card-icon" />
@@ -424,11 +426,11 @@ onMounted(() => {
                   </div>
                 </template>
 
-                <el-form label-position="top">
+                <ScForm label-position="top">
                   <!-- JWT输入框 -->
-                  <el-form-item label="输入需要解码的 JWT">
-                    <el-input v-model="env.jwtInput" type="textarea" :rows="6" placeholder="请输入 JWT 令牌" clearable class="jwt-tool__input" @input="() => debounceProcess(decodeJWT)" />
-                  </el-form-item>
+                  <ScFormItem label="输入需要解码的 JWT">
+                    <ScInput v-model="env.jwtInput" type="textarea" :rows="6" placeholder="请输入 JWT 令牌" clearable class="jwt-tool__input" @input="() => debounceProcess(decodeJWT)" />
+                  </ScFormItem>
 
                   <!-- 历史记录区域 -->
                   <div class="jwt-tool__history" v-if="env.history.length > 0">
@@ -450,23 +452,23 @@ onMounted(() => {
 
                   <!-- 操作按钮区域 -->
                   <div class="jwt-tool__actions">
-                    <el-button type="primary" :loading="env.loading" class="jwt-tool__decode-btn" @click="decodeJWT">
+                    <ScButton type="primary" :loading="env.loading" class="jwt-tool__decode-btn" @click="decodeJWT">
                       <IconifyIconOnline icon="ri:key-line" />
                       <span>解码 JWT</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button class="jwt-tool__reset-btn" @click="resetForm">
+                    <ScButton class="jwt-tool__reset-btn" @click="resetForm">
                       <IconifyIconOnline icon="ri:refresh-line" />
                       <span>重置</span>
-                    </el-button>
+                    </ScButton>
                   </div>
-                </el-form>
-              </el-card>
-            </el-col>
+                </ScForm>
+              </ScCard>
+            </ScCol>
 
             <!-- 右侧结果区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="jwt-tool__result-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="jwt-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
                     <IconifyIconOnline icon="ri:file-list-line" class="jwt-tool__card-icon" />
@@ -474,11 +476,11 @@ onMounted(() => {
                   </div>
                 </template>
 
-                <el-empty v-if="!env.header && !env.payload" description="请先输入并解码 JWT" class="jwt-tool__empty">
+                <ScEmpty v-if="!env.header && !env.payload" description="请先输入并解码 JWT" class="jwt-tool__empty">
                   <template #image>
                     <IconifyIconOnline icon="ri:key-line" class="jwt-tool__empty-icon" />
                   </template>
-                </el-empty>
+                </ScEmpty>
 
                 <div v-else class="jwt-tool__results">
                   <!-- 头部信息 -->
@@ -486,9 +488,9 @@ onMounted(() => {
                     <div class="jwt-tool__result-section-header">
                       <IconifyIconOnline icon="ri:file-info-line" class="jwt-tool__result-section-icon" />
                       <span>头部 (Header)</span>
-                      <el-button type="primary" size="small" class="jwt-tool__copy-btn" @click="copyToClipboard(JSON.stringify(env.header, null, 2), message)">
+                      <ScButton type="primary" size="small" class="jwt-tool__copy-btn" @click="copyToClipboard(JSON.stringify(env.header, null, 2), message)">
                         <IconifyIconOnline icon="ri:clipboard-line" />
-                      </el-button>
+                      </ScButton>
                     </div>
                     <div class="jwt-tool__result-content">
                       <pre class="jwt-tool__json-display">{{ formatJSON(env.header) }}</pre>
@@ -500,9 +502,9 @@ onMounted(() => {
                     <div class="jwt-tool__result-section-header">
                       <IconifyIconOnline icon="ri:file-text-line" class="jwt-tool__result-section-icon" />
                       <span>载荷 (Payload)</span>
-                      <el-button type="primary" size="small" class="jwt-tool__copy-btn" @click="copyToClipboard(JSON.stringify(env.payload, null, 2), message)">
+                      <ScButton type="primary" size="small" class="jwt-tool__copy-btn" @click="copyToClipboard(JSON.stringify(env.payload, null, 2), message)">
                         <IconifyIconOnline icon="ri:clipboard-line" />
-                      </el-button>
+                      </ScButton>
                     </div>
                     <div class="jwt-tool__result-content">
                       <pre class="jwt-tool__json-display">{{ formatJSON(env.payload) }}</pre>
@@ -514,9 +516,9 @@ onMounted(() => {
                     <div class="jwt-tool__result-section-header">
                       <IconifyIconOnline icon="ri:shield-check-line" class="jwt-tool__result-section-icon" />
                       <span>签名 (Signature)</span>
-                      <el-button type="primary" size="small" class="jwt-tool__copy-btn" @click="copyToClipboard(env.signature, message)">
+                      <ScButton type="primary" size="small" class="jwt-tool__copy-btn" @click="copyToClipboard(env.signature, message)">
                         <IconifyIconOnline icon="ri:clipboard-line" />
-                      </el-button>
+                      </ScButton>
                     </div>
                     <div class="jwt-tool__result-content">
                       <div class="jwt-tool__signature">{{ env.signature }}</div>
@@ -545,17 +547,17 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-tab-pane>
+              </ScCard>
+            </ScCol>
+          </ScRow>
+        </ScTabPane>
 
         <!-- 编码选项卡 -->
-        <el-tab-pane label="编码 JWT" name="encode">
-          <el-row :gutter="24">
+        <ScTabPane label="编码 JWT" name="encode">
+          <ScRow :gutter="24">
             <!-- 左侧输入区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="jwt-tool__input-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="jwt-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
                     <IconifyIconOnline icon="ri:lock-line" class="jwt-tool__card-icon" />
@@ -563,61 +565,61 @@ onMounted(() => {
                   </div>
                 </template>
 
-                <el-form label-position="top">
+                <ScForm label-position="top">
                   <!-- 模板选择 -->
                   <div class="jwt-tool__templates">
                     <div class="jwt-tool__templates-label">预设模板:</div>
                     <div class="jwt-tool__templates-items">
-                      <el-button v-for="(template, index) in env.templates" :key="index" size="small" @click="applyTemplate(template)">
+                      <ScButton v-for="(template, index) in env.templates" :key="index" size="small" @click="applyTemplate(template)">
                         {{ template.name }}
-                      </el-button>
+                      </ScButton>
                     </div>
                   </div>
 
                   <!-- 头部输入 -->
-                  <el-form-item label="头部 (Header)">
-                    <el-input v-model="env.headerInput" type="textarea" :rows="4" placeholder="请输入 JWT 头部 JSON" class="jwt-tool__input" />
-                  </el-form-item>
+                  <ScFormItem label="头部 (Header)">
+                    <ScInput v-model="env.headerInput" type="textarea" :rows="4" placeholder="请输入 JWT 头部 JSON" class="jwt-tool__input" />
+                  </ScFormItem>
 
                   <!-- 载荷输入 -->
-                  <el-form-item label="载荷 (Payload)">
-                    <el-input v-model="env.payloadInput" type="textarea" :rows="6" placeholder="请输入 JWT 载荷 JSON" class="jwt-tool__input" />
-                  </el-form-item>
+                  <ScFormItem label="载荷 (Payload)">
+                    <ScInput v-model="env.payloadInput" type="textarea" :rows="6" placeholder="请输入 JWT 载荷 JSON" class="jwt-tool__input" />
+                  </ScFormItem>
 
                   <!-- 算法选择 -->
-                  <el-form-item label="签名算法">
-                    <el-select v-model="env.algorithm" class="jwt-tool__select">
-                      <el-option v-for="item in env.algorithms" :key="item.value" :label="item.label" :value="item.value" />
-                    </el-select>
-                  </el-form-item>
+                  <ScFormItem label="签名算法">
+                    <ScSelect v-model="env.algorithm" class="jwt-tool__select">
+                      <ScOption v-for="item in env.algorithms" :key="item.value" :label="item.label" :value="item.value" />
+                    </ScSelect>
+                  </ScFormItem>
 
                   <!-- 密钥输入 -->
-                  <el-form-item label="密钥">
-                    <el-input v-model="env.secretKey" placeholder="请输入密钥" :type="env.algorithm.startsWith('HS') ? 'password' : 'textarea'" :rows="env.algorithm.startsWith('HS') ? 1 : 4" show-password class="jwt-tool__input" />
+                  <ScFormItem label="密钥">
+                    <ScInput v-model="env.secretKey" placeholder="请输入密钥" :type="env.algorithm.startsWith('HS') ? 'password' : 'textarea'" :rows="env.algorithm.startsWith('HS') ? 1 : 4" show-password class="jwt-tool__input" />
                     <div class="jwt-tool__input-tip">
                       {{ env.algorithm.startsWith("HS") ? "对称密钥" : "非对称密钥 (目前仅支持HMAC算法)" }}
                     </div>
-                  </el-form-item>
+                  </ScFormItem>
 
                   <!-- 操作按钮区域 -->
                   <div class="jwt-tool__actions">
-                    <el-button type="primary" :loading="env.loading" class="jwt-tool__encode-btn" @click="encodeJWT">
+                    <ScButton type="primary" :loading="env.loading" class="jwt-tool__encode-btn" @click="encodeJWT">
                       <IconifyIconOnline icon="ri:lock-line" />
                       <span>生成 JWT</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button class="jwt-tool__reset-btn" @click="resetForm">
+                    <ScButton class="jwt-tool__reset-btn" @click="resetForm">
                       <IconifyIconOnline icon="ri:refresh-line" />
                       <span>重置</span>
-                    </el-button>
+                    </ScButton>
                   </div>
-                </el-form>
-              </el-card>
-            </el-col>
+                </ScForm>
+              </ScCard>
+            </ScCol>
 
             <!-- 右侧结果区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="jwt-tool__result-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="jwt-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
                     <IconifyIconOnline icon="ri:key-line" class="jwt-tool__card-icon" />
@@ -625,11 +627,11 @@ onMounted(() => {
                   </div>
                 </template>
 
-                <el-empty v-if="!env.encodedJWT" description="请先创建 JWT" class="jwt-tool__empty">
+                <ScEmpty v-if="!env.encodedJWT" description="请先创建 JWT" class="jwt-tool__empty">
                   <template #image>
                     <IconifyIconOnline icon="ri:lock-line" class="jwt-tool__empty-icon" />
                   </template>
-                </el-empty>
+                </ScEmpty>
 
                 <div v-else class="jwt-tool__results">
                   <div class="jwt-tool__result-section">
@@ -649,15 +651,15 @@ onMounted(() => {
                   </div>
 
                   <div class="jwt-tool__result-actions">
-                    <el-button type="primary" @click="copyToClipboard(env.encodedJWT, message)">
+                    <ScButton type="primary" @click="copyToClipboard(env.encodedJWT, message)">
                       <IconifyIconOnline icon="ri:clipboard-line" />
                       <span>复制 JWT</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button type="success" @click="downloadJWT">
+                    <ScButton type="success" @click="downloadJWT">
                       <IconifyIconOnline icon="ri:download-line" />
                       <span>下载 JWT</span>
-                    </el-button>
+                    </ScButton>
                   </div>
 
                   <div class="jwt-tool__result-info">
@@ -673,17 +675,17 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-tab-pane>
+              </ScCard>
+            </ScCol>
+          </ScRow>
+        </ScTabPane>
 
         <!-- 验证选项卡 -->
-        <el-tab-pane label="验证 JWT" name="verify">
-          <el-row :gutter="24">
+        <ScTabPane label="验证 JWT" name="verify">
+          <ScRow :gutter="24">
             <!-- 左侧输入区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="jwt-tool__input-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="jwt-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
                     <IconifyIconOnline icon="ri:shield-check-line" class="jwt-tool__card-icon" />
@@ -691,46 +693,46 @@ onMounted(() => {
                   </div>
                 </template>
 
-                <el-form label-position="top">
+                <ScForm label-position="top">
                   <!-- JWT输入框 -->
-                  <el-form-item label="输入需要验证的 JWT">
-                    <el-input v-model="env.verifyJwtInput" type="textarea" :rows="6" placeholder="请输入 JWT 令牌" clearable class="jwt-tool__input" />
-                  </el-form-item>
+                  <ScFormItem label="输入需要验证的 JWT">
+                    <ScInput v-model="env.verifyJwtInput" type="textarea" :rows="6" placeholder="请输入 JWT 令牌" clearable class="jwt-tool__input" />
+                  </ScFormItem>
 
                   <!-- 算法选择 -->
-                  <el-form-item label="签名算法">
-                    <el-select v-model="env.verifyAlgorithm" class="jwt-tool__select">
-                      <el-option v-for="item in env.algorithms" :key="item.value" :label="item.label" :value="item.value" />
-                    </el-select>
-                  </el-form-item>
+                  <ScFormItem label="签名算法">
+                    <ScSelect v-model="env.verifyAlgorithm" class="jwt-tool__select">
+                      <ScOption v-for="item in env.algorithms" :key="item.value" :label="item.label" :value="item.value" />
+                    </ScSelect>
+                  </ScFormItem>
 
                   <!-- 密钥输入 -->
-                  <el-form-item label="密钥">
-                    <el-input v-model="env.verifySecretKey" placeholder="请输入密钥" :type="env.verifyAlgorithm.startsWith('HS') ? 'password' : 'textarea'" :rows="env.verifyAlgorithm.startsWith('HS') ? 1 : 4" show-password class="jwt-tool__input" />
+                  <ScFormItem label="密钥">
+                    <ScInput v-model="env.verifySecretKey" placeholder="请输入密钥" :type="env.verifyAlgorithm.startsWith('HS') ? 'password' : 'textarea'" :rows="env.verifyAlgorithm.startsWith('HS') ? 1 : 4" show-password class="jwt-tool__input" />
                     <div class="jwt-tool__input-tip">
                       {{ env.verifyAlgorithm.startsWith("HS") ? "对称密钥" : "非对称密钥 (目前仅支持HMAC算法)" }}
                     </div>
-                  </el-form-item>
+                  </ScFormItem>
 
                   <!-- 操作按钮区域 -->
                   <div class="jwt-tool__actions">
-                    <el-button type="primary" :loading="env.loading" class="jwt-tool__verify-btn" @click="verifyJWT">
+                    <ScButton type="primary" :loading="env.loading" class="jwt-tool__verify-btn" @click="verifyJWT">
                       <IconifyIconOnline icon="ri:shield-check-line" />
                       <span>验证 JWT</span>
-                    </el-button>
+                    </ScButton>
 
-                    <el-button class="jwt-tool__reset-btn" @click="resetForm">
+                    <ScButton class="jwt-tool__reset-btn" @click="resetForm">
                       <IconifyIconOnline icon="ri:refresh-line" />
                       <span>重置</span>
-                    </el-button>
+                    </ScButton>
                   </div>
-                </el-form>
-              </el-card>
-            </el-col>
+                </ScForm>
+              </ScCard>
+            </ScCol>
 
             <!-- 右侧结果区域 -->
-            <el-col :xs="24" :sm="24" :md="12" :lg="12">
-              <el-card class="jwt-tool__result-card" shadow="hover">
+            <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+              <ScCard class="jwt-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
                     <IconifyIconOnline icon="ri:check-double-line" class="jwt-tool__card-icon" />
@@ -738,11 +740,11 @@ onMounted(() => {
                   </div>
                 </template>
 
-                <el-empty v-if="!env.verifyResult" description="请先验证 JWT" class="jwt-tool__empty">
+                <ScEmpty v-if="!env.verifyResult" description="请先验证 JWT" class="jwt-tool__empty">
                   <template #image>
                     <IconifyIconOnline icon="ri:shield-check-line" class="jwt-tool__empty-icon" />
                   </template>
-                </el-empty>
+                </ScEmpty>
 
                 <div v-else class="jwt-tool__results">
                   <!-- 验证状态 -->
@@ -797,11 +799,11 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-tab-pane>
-      </el-tabs>
+              </ScCard>
+            </ScCol>
+          </ScRow>
+        </ScTabPane>
+      </ScTabs>
     </div>
   </div>
 </template>

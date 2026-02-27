@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="config-card">
     <!-- 状态指示器 -->
     <div class="status-indicator" :class="getStatusClass(config.videoSyncConfigStatus)"></div>
@@ -16,20 +16,20 @@
 
       <!-- 快速操作 -->
       <div class="quick-actions">
-        <el-button v-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
+        <ScButton v-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
           <IconifyIconOnline icon="ep:video-play" />
-        </el-button>
-        <el-button v-else-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
+        </ScButton>
+        <ScButton v-else-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
           <IconifyIconOnline icon="ep:video-pause" />
-        </el-button>
+        </ScButton>
 
-        <el-button v-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
+        <ScButton v-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
           <IconifyIconOnline icon="ep:refresh" />
-        </el-button>
+        </ScButton>
 
-        <el-button v-else type="danger" size="small" circle @click="handleAction('stop')" title="停止同步">
+        <ScButton v-else type="danger" size="small" circle @click="handleAction('stop')" title="停止同步">
           <IconifyIconOnline icon="ep:close" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -55,16 +55,16 @@
     <!-- 卡片底部操作 -->
     <div class="config-card-actions">
       <div class="primary-actions">
-        <el-button type="primary" size="small" @click="handleAction('edit')">
+        <ScButton type="primary" size="small" @click="handleAction('edit')">
           <IconifyIconOnline icon="ep:edit" class="mr-1" />
           编辑
-        </el-button>
+        </ScButton>
       </div>
       <div class="secondary-actions">
-        <el-button type="danger" size="small" text @click="handleAction('delete')">
+        <ScButton type="danger" size="small" text @click="handleAction('delete')">
           <IconifyIconOnline icon="ep:delete" class="mr-1" />
           删除
-        </el-button>
+        </ScButton>
       </div>
     </div>
 

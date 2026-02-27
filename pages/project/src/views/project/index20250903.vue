@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="project-workspace">
     <div class="workspace-background">
       <div class="gradient-orb orb-1"></div>
@@ -17,9 +17,9 @@
               <div class="header-title">
                 <div class="title-wrapper">
                   <div class="title-icon-wrapper">
-                    <el-icon class="title-icon">
+                    <ScIcon class="title-icon">
                       <component :is="useRenderIcon('ri:apps-2-line')" />
-                    </el-icon>
+                    </ScIcon>
                     <div class="icon-glow"></div>
                   </div>
                   <div class="title-content">
@@ -28,7 +28,7 @@
                       <span class="title-badge">Pro</span>
                     </h1>
                     <p class="title-subtitle">
-                      <el-icon><component :is="useRenderIcon('ri:data-line')" /></el-icon>
+                      <ScIcon><component :is="useRenderIcon('ri:data-line')" /></ScIcon>
                       智能管理和监控您的所有AI项目
                       <span class="project-count">{{ projectStats.total }} 个项目</span>
                     </p>
@@ -46,11 +46,11 @@
                     <div class="stat-label">已完成</div>
                   </div>
                 </div>
-                <el-button type="primary" class="add-project-btn" @click="handleSave('add', {})">
-                  <el-icon><component :is="useRenderIcon('ri:add-line')" /></el-icon>
+                <ScButton type="primary" class="add-project-btn" @click="handleSave('add', {})">
+                  <ScIcon><component :is="useRenderIcon('ri:add-line')" /></ScIcon>
                   <span class="btn-text">新建项目</span>
                   <div class="btn-glow"></div>
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </el-header>
@@ -64,19 +64,19 @@
                     <div class="card-header">
                       <div class="project-image">
                         <div class="image-container">
-                          <el-image :src="row?.sysProjectIcon" fit="cover" lazy class="project-img">
+                          <ScImage :src="row?.sysProjectIcon" fit="cover" lazy class="project-img">
                             <template #error>
                               <div class="image-placeholder">
                                 <div class="placeholder-icon-wrapper">
-                                  <el-icon class="placeholder-icon">
+                                  <ScIcon class="placeholder-icon">
                                     <component :is="useRenderIcon('ri:image-2-line')" />
-                                  </el-icon>
+                                  </ScIcon>
                                   <div class="icon-ripple"></div>
                                 </div>
                                 <div class="placeholder-text">{{ row?.sysProjectName }}</div>
                               </div>
                             </template>
-                          </el-image>
+                          </ScImage>
                           <div class="image-overlay" />
                           <div class="image-shine"></div>
                         </div>
@@ -106,34 +106,34 @@
 
                       <div class="project-stats">
                         <div class="stat-item">
-                          <el-icon><component :is="useRenderIcon('ri:eye-line')" /></el-icon>
+                          <ScIcon><component :is="useRenderIcon('ri:eye-line')" /></ScIcon>
                           <span>{{ row?.views || Math.floor(Math.random() * 1000) + 100 }}</span>
                         </div>
                         <div class="stat-item">
-                          <el-icon><component :is="useRenderIcon('ri:star-line')" /></el-icon>
+                          <ScIcon><component :is="useRenderIcon('ri:star-line')" /></ScIcon>
                           <span>{{ row?.stars || Math.floor(Math.random() * 50) + 10 }}</span>
                         </div>
                         <div class="stat-item">
-                          <el-icon><component :is="useRenderIcon('ri:time-line')" /></el-icon>
+                          <ScIcon><component :is="useRenderIcon('ri:time-line')" /></ScIcon>
                           <span>{{ getTimeAgo(row?.updateTime) }}</span>
                         </div>
                       </div>
                     </div>
                     <div class="project-tags">
-                      <el-tag type="primary" effect="plain" class="project-name-tag">{{ row?.sysProjectName }}</el-tag>
+                      <ScTag type="primary" effect="plain" class="project-name-tag">{{ row?.sysProjectName }}</ScTag>
                     </div>
                     <div class="project-actions">
                       <template v-for="(item, index) in row?.sysProjectFunction?.split(',') || []" :key="index">
-                        <el-tooltip :content="functionMap[item]?.sysDictItemName" placement="top" effect="light" :offset="8">
-                          <el-button v-if="functionMap[item]" type="primary" circle size="small" class="action-button" :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)" :style="{ animationDelay: index * 0.05 + 's' }" />
-                        </el-tooltip>
+                        <ScTooltip :content="functionMap[item]?.sysDictItemName" placement="top" effect="light" :offset="8">
+                          <ScButton v-if="functionMap[item]" type="primary" circle size="small" class="action-button" :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)" :style="{ animationDelay: index * 0.05 + 's' }" />
+                        </ScTooltip>
                       </template>
                     </div>
                     <div class="more" @click.stop>
                       <el-button-group v-if="row?.sysProjectFunction" class="ml-[1px] z-[100]">
-                        <el-button v-if="row?.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
+                        <ScButton v-if="row?.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
                         <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right" @command.stop="handleDropdownCommand">
-                          <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" @click.stop />
+                          <ScButton :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" @click.stop />
                           <template #dropdown>
                             <el-dropdown-menu>
                               <el-dropdown-item v-if="defer(0) && row?.source?.length > 0" class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">

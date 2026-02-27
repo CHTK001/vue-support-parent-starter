@@ -6,47 +6,47 @@
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <el-form :model="form" ref="formRef" :rules="rules" label-width="100px">
-      <el-form-item label="模块名称" prop="sysAiModuleName">
-        <el-input
+    <ScForm :model="form" ref="formRef" :rules="rules" label-width="100px">
+      <ScFormItem label="模块名称" prop="sysAiModuleName">
+        <ScInput 
           v-model="form.sysAiModuleName"
           placeholder="请输入模块名称"
-        ></el-input>
-      </el-form-item>
+        ></ScInput>
+      </ScFormItem>
 
-      <el-form-item label="模块标识" prop="sysAiModuleCode">
-        <el-input
+      <ScFormItem label="模块标识" prop="sysAiModuleCode">
+        <ScInput 
           v-model="form.sysAiModuleCode"
           placeholder="请输入模块标识"
-        ></el-input>
-      </el-form-item>
+        ></ScInput>
+      </ScFormItem>
 
-      <el-form-item label="模型类型" prop="sysAiModuleType">
-        <el-select v-model="form.sysAiModuleType" placeholder="请选择模块类型">
-          <el-option
+      <ScFormItem label="模型类型" prop="sysAiModuleType">
+        <ScSelect v-model="form.sysAiModuleType" placeholder="请选择模块类型">
+          <ScOption 
             v-for="item in moduleType"
             :key="item.value"
             :label="item.label"
             :value="item.value"
           />
-        </el-select>
-      </el-form-item>
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="模块厂家" prop="sysAiModuleManufacturers">
-        <el-select
+      <ScFormItem label="模块厂家" prop="sysAiModuleManufacturers">
+        <ScSelect 
           v-model="form.sysAiModuleManufacturers"
           placeholder="请选择模块类型"
         >
-          <el-option
+          <ScOption 
             v-for="item in manufacturers"
             :key="item.sysDictItemId"
             :label="item.sysDictItemName"
             :value="item.sysDictItemId"
           />
-        </el-select>
-      </el-form-item>
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="vlm模型" prop="sysAiModuleVlm">
+      <ScFormItem label="vlm模型" prop="sysAiModuleVlm">
         <el-segmented
           v-model="form.sysAiModuleVlm"
           :options="[
@@ -54,40 +54,40 @@
             { label: '否', value: 0 },
           ]"
         ></el-segmented>
-      </el-form-item>
-      <el-form-item label="模型地址" prop="sysAiModuleUrl">
-        <el-input
+      </ScFormItem>
+      <ScFormItem label="模型地址" prop="sysAiModuleUrl">
+        <ScInput 
           v-model="form.sysAiModuleUrl"
           placeholder="请输入模型地址"
-        ></el-input>
-      </el-form-item>
+        ></ScInput>
+      </ScFormItem>
 
-      <el-form-item label="优先级" prop="sysAiModuleSort">
-        <el-input-number
+      <ScFormItem label="优先级" prop="sysAiModuleSort">
+        <ScInputNumber 
           v-model="form.sysAiModuleSort"
           placeholder="请输入模块优先级"
-        ></el-input-number>
-      </el-form-item>
+        ></ScInputNumber>
+      </ScFormItem>
 
-      <el-form-item label="版本" prop="sysAiModuleVersion">
-        <el-input
+      <ScFormItem label="版本" prop="sysAiModuleVersion">
+        <ScInput 
           v-model="form.sysAiModuleVersion"
           placeholder="请输入版本"
-        ></el-input>
-      </el-form-item>
+        ></ScInput>
+      </ScFormItem>
 
-      <el-form-item label="模块描述" prop="sysAiModuleRemark">
-        <el-input
+      <ScFormItem label="模块描述" prop="sysAiModuleRemark">
+        <ScInput 
           v-model="form.sysAiModuleRemark"
           placeholder="请输入模块描述"
           type="textarea"
-        ></el-input>
-      </el-form-item>
-    </el-form>
+        ></ScInput>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
-      <el-button @click="env.visible = false">取 消</el-button>
-      <el-button type="primary" @click="debounce(handleUpdate(), 1000, true)"
+      <ScButton @click="env.visible = false">取 消</ScButton>
+      <ScButton type="primary" @click="debounce(handleUpdate(), 1000, true)"
         >确 定</el-button
       >
     </template>

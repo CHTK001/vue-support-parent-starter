@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="profile-card">
     <div class="profile-card__cover" :style="coverStyle"></div>
     <div class="profile-card__content">
@@ -25,14 +25,14 @@
       </div>
       <div class="profile-card__actions">
         <slot name="actions">
-          <el-button type="primary" class="profile-card__btn">
+          <ScButton type="primary" class="profile-card__btn">
             <IconifyIconOnline icon="ri:user-add-line" />
             关注
-          </el-button>
-          <el-button class="profile-card__btn">
+          </ScButton>
+          <ScButton class="profile-card__btn">
             <IconifyIconOnline icon="ri:message-3-line" />
             消息
-          </el-button>
+          </ScButton>
         </slot>
       </div>
     </div>
