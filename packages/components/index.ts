@@ -48,6 +48,10 @@ import { ScBreadcrumb } from "./ScBreadcrumb";
 import { ScSteps } from "./ScSteps";
 import { ScLayer } from "./ScLayer";
 import ScMap from "./ScMap/index.vue";
+import { ScIcon } from "./ScIcon";
+import { ScEmpty } from "./ScEmpty";
+import { ScTableColumn } from "./ScTableColumn";
+import { ScOption } from "./ScOption";
 import ScSwitch from "./ScSwitch/index.vue";
 import ScRouteLoading from "./ScRouteLoading/index.vue";
 
@@ -105,6 +109,10 @@ export {
   ScMenu,
   ScBreadcrumb,
   ScSteps,
+  ScIcon,
+  ScEmpty,
+  ScTableColumn,
+  ScOption,
   useReteEditor,
   useRenderIcon
 };

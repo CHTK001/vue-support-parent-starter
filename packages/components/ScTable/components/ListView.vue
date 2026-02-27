@@ -31,10 +31,7 @@
         v-for="(row, index) in currentDataList"
         :key="rowKey ? row[rowKey] : index"
         class="list-item"
-        :class="[
-          { 'is-selected': isSelected(row), 'has-index': showIndex, 'is-dragging': isDragging, 'has-border': border },
-          `theme--${theme}`
-        ]"
+        :class="[{ 'is-selected': isSelected(row), 'has-index': showIndex, 'is-dragging': isDragging, 'has-border': border }, `theme--${theme}`]"
         @click="onRowClick(row)"
         @contextmenu.prevent="handleContextMenu($event, row)"
       >
@@ -96,6 +93,9 @@ import Sortable from "sortablejs";
 import { IconifyIconOnline } from "@repo/components";
 import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
+import { ScIcon } from "../../ScIcon";
+import { ScEmpty } from "../../ScEmpty";
+import { ScCheckbox } from "../../ScCheckbox";
 
 const logger = getLogger("[ScTable][ListView]");
 
@@ -116,7 +116,7 @@ const props = defineProps({
   theme: {
     type: String,
     default: "default",
-    validator: (val) => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
+    validator: val => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
   },
   config: {
     type: Object,
@@ -504,12 +504,12 @@ const handleMenuAction = action => {
 // 初始化拖拽排序
 const initDragSort = () => {
   if (!props.draggable || !listItemsContainer.value) return;
-  
+
   destroyDragSort();
-  
+
   nextTick(() => {
     if (!listItemsContainer.value) return;
-    
+
     sortableInstance.value = Sortable.create(listItemsContainer.value, {
       animation: 150,
       handle: ".list-item-drag-handle",
@@ -519,16 +519,16 @@ const initDragSort = () => {
       onStart: () => {
         isDragging.value = true;
       },
-      onEnd: (evt) => {
+      onEnd: evt => {
         isDragging.value = false;
         const { oldIndex, newIndex } = evt;
         if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
-        
+
         // 创建新数组以避免直接修改原数组
         const newOrder = [...props.tableData];
         const movedItem = newOrder.splice(oldIndex, 1)[0];
         newOrder.splice(newIndex, 0, movedItem);
-        
+
         // 触发拖拽排序变化事件
         emit("drag-sort-change", {
           oldIndex,
@@ -552,7 +552,7 @@ const destroyDragSort = () => {
 // 监听 draggable 变化
 watch(
   () => props.draggable,
-  (newVal) => {
+  newVal => {
     if (newVal) {
       nextTick(() => {
         initDragSort();
@@ -626,7 +626,7 @@ defineExpose({
 
     // 左侧装饰条
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       top: 50%;
@@ -688,11 +688,21 @@ defineExpose({
       }
     }
 
-    &.theme--primary { @include theme-variant('primary'); }
-    &.theme--success { @include theme-variant('success'); }
-    &.theme--warning { @include theme-variant('warning'); }
-    &.theme--danger { @include theme-variant('danger'); }
-    &.theme--info { @include theme-variant('info'); }
+    &.theme--primary {
+      @include theme-variant("primary");
+    }
+    &.theme--success {
+      @include theme-variant("success");
+    }
+    &.theme--warning {
+      @include theme-variant("warning");
+    }
+    &.theme--danger {
+      @include theme-variant("danger");
+    }
+    &.theme--info {
+      @include theme-variant("info");
+    }
 
     .list-item-drag-handle {
       display: flex;
@@ -852,8 +862,6 @@ defineExpose({
     border-radius: 10px;
   }
 }
-
-
 
 @keyframes rotating {
   0% {

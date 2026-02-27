@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { LOADER_STYLES } from "@repo/components/ScRouteLoading/loader-manager";
 
 interface Props {
@@ -57,7 +57,7 @@ function setCurrentValue(value: string): void {
   emit("update:modelValue", value);
   localStorage.setItem("sys-loader-style", value);
 
-  ElMessage.success({
+  message.success({
     message: "加载样式已更改，刷新页面后生效",
     duration: 2000,
   });
@@ -95,7 +95,9 @@ onUnmounted(() => {
       <div class="setting-item">
         <div class="setting-item-label">
           <span>动画样式</span>
-          <span class="setting-item-desc">点击下方预览进行选择，更改后需刷新页面生效</span>
+          <span class="setting-item-desc"
+            >点击下方预览进行选择，更改后需刷新页面生效</span
+          >
         </div>
       </div>
 
@@ -111,10 +113,7 @@ onUnmounted(() => {
             <div class="loader-preview-inner" v-html="item.html"></div>
           </div>
           <span class="preview-label">{{ item.name }}</span>
-          <div
-            v-if="currentValue === item.key"
-            class="preview-check"
-          >
+          <div v-if="currentValue === item.key" class="preview-check">
             <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
@@ -195,7 +194,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 16px;
-  background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.12), transparent),
+  background:
+    radial-gradient(circle at top left, rgba(148, 163, 184, 0.12), transparent),
     var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color);
   border-radius: 14px;
@@ -257,7 +257,8 @@ onUnmounted(() => {
   right: 8px;
   width: 22px;
   height: 22px;
-  background: radial-gradient(circle at 30% 0, #ffffff, transparent 60%),
+  background:
+    radial-gradient(circle at 30% 0, #ffffff, transparent 60%),
     var(--el-color-primary);
   color: #fff;
   border-radius: 999px;
@@ -270,5 +271,3 @@ onUnmounted(() => {
     0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 </style>
-
-

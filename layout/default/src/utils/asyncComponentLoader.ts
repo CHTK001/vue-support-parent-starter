@@ -4,8 +4,14 @@
  * @author Auto-generated
  * @version 1.0.0
  */
-import { defineAsyncComponent, h, type AsyncComponentLoader, type Component } from "vue";
-import { ElSkeleton, ElIcon, ElButton } from "element-plus";
+import {
+  defineAsyncComponent,
+  h,
+  type AsyncComponentLoader,
+  type Component,
+} from "vue";
+import ScIcon from "@repo/components/ScIcon/index.vue";
+import { ScButton } from "@repo/components/ScButton";
 
 /**
  * 默认加载组件（三个点动画）
@@ -71,9 +77,9 @@ const DefaultLoadingComponent = {
                 animationDelay: "0",
               },
             }),
-          ]
+          ],
         ),
-      ]
+      ],
     );
   },
 };
@@ -120,9 +126,9 @@ const DefaultErrorComponent = {
                   h("circle", { cx: "12", cy: "12", r: "10" }),
                   h("line", { x1: "12", y1: "8", x2: "12", y2: "12" }),
                   h("line", { x1: "12", y1: "16", x2: "12.01", y2: "16" }),
-                ]
+                ],
               ),
-          }
+          },
         ),
         h("span", { style: { fontSize: "14px" } }, "组件加载失败"),
         h(
@@ -133,9 +139,9 @@ const DefaultErrorComponent = {
             // @ts-ignore
             onClick: () => this.retry?.(),
           },
-          { default: () => "重试" }
+          { default: () => "重试" },
         ),
-      ]
+      ],
     );
   },
 };
@@ -159,7 +165,7 @@ export interface AsyncComponentOptions {
     error: Error,
     retry: () => void,
     fail: () => void,
-    attempts: number
+    attempts: number,
   ) => void;
 }
 
@@ -171,7 +177,7 @@ export interface AsyncComponentOptions {
  */
 export function createAsyncComponent(
   loader: AsyncComponentLoader,
-  options: AsyncComponentOptions = {}
+  options: AsyncComponentOptions = {},
 ) {
   const {
     delay = 200,

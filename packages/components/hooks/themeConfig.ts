@@ -118,7 +118,11 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
       // 其他组件
       ElUpload: "ElUpload",
       ElImage: "ElImage",
-      ElTree: "ElTree"
+      ElTree: "ElTree",
+      ElIcon: "ElIcon",
+      ElEmpty: "ElEmpty",
+      ElTableColumn: "ElTableColumn",
+      ElOption: "ElOption"
     }
   },
 
@@ -187,7 +191,11 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
       // 其他组件
       ElUpload: "PxUpload",
       ElImage: "PxImage",
-      ElTree: "PxTree"
+      ElTree: "PxTree",
+      ElIcon: "PxIcon",
+      ElEmpty: "PxEmpty",
+      ElTableColumn: "PxTableColumn",
+      ElOption: "PxOption"
     }
   }
 

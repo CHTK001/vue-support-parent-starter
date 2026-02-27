@@ -1,5 +1,6 @@
 <template>
-  <ElMenu
+  <component
+    :is="currentComponent"
     class="sc-menu"
     :mode="mode"
     :collapse="collapse"
@@ -16,7 +17,7 @@
     @close="(index, indexPath) => emit('close', index, indexPath)"
   >
     <slot />
-  </ElMenu>
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -25,6 +26,9 @@
  * 简单封装 Element Plus 的 ElMenu，统一项目内菜单用法
  */
 import { ElMenu } from "element-plus";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
+
+const { currentComponent } = useThemeComponent("ElMenu", ElMenu);
 import type { PropType } from "vue";
 
 const emit = defineEmits<{

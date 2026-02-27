@@ -3,7 +3,7 @@
     v-if="enabled"
     ref="el"
     class="ai-chat-container"
-    :class="[`position-${position}`, `theme-${theme}`, `skin-${skin}`]"
+    :class="[`position-${position}`, `theme-${theme}`, `skin-${skin.value}`]"
     :style="style"
   >
     <!-- AI 机器人图标 -->
@@ -90,6 +90,21 @@ const BearIcon = { template: '<div class="skin-bear">🐻</div>' };
 const PandaIcon = { template: '<div class="skin-panda">🐼</div>' };
 const UserIcon = { template: '<div class="skin-user">👤</div>' };
 
+// Props
+interface Props {
+  visible?: boolean;
+  theme?: string;
+  position?: string;
+  headers?: Record<string, string>;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  visible: false,
+  theme: "default",
+  position: "bottom-right",
+  headers: () => ({}),
+});
+
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 // 拖拽相关
@@ -101,9 +116,10 @@ const { style } = useDraggable(el, {
   stopPropagation: true,
 });
 
-const enabled = ref($storage?.configure?.aiChatEnabled ?? false);
-const position = ref($storage?.configure?.aiChatPosition ?? "bottom-right");
-const theme = ref($storage?.configure?.aiChatTheme ?? "default");
+// 使用 props 或从 storage 读取配置
+const enabled = computed(() => props.visible);
+const position = computed(() => props.position || $storage?.configure?.aiChatPosition || "bottom-right");
+const theme = computed(() => props.theme || $storage?.configure?.aiChatTheme || "default");
 const skin = ref($storage?.configure?.aiChatSkin ?? "robot");
 const apiKey = ref($storage?.configure?.aiChatApiKey ?? "");
 const apiUrl = ref($storage?.configure?.aiChatApiUrl ?? "");
@@ -264,9 +280,6 @@ const sendMessage = async () => {
 watch(
   () => $storage?.configure,
   (newConfig) => {
-    enabled.value = newConfig?.aiChatEnabled ?? false;
-    position.value = newConfig?.aiChatPosition ?? "bottom-right";
-    theme.value = newConfig?.aiChatTheme ?? "default";
     skin.value = newConfig?.aiChatSkin ?? "robot";
     apiKey.value = newConfig?.aiChatApiKey ?? "";
     apiUrl.value = newConfig?.aiChatApiUrl ?? "";

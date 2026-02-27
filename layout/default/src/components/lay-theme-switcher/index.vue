@@ -38,7 +38,7 @@ import { getEnabledThemes } from "@repo/components/hooks/themeConfig";
 import { switchTheme as switchThemeUtil } from "@repo/components/hooks/useThemeComponent";
 import { useThemeStore } from "../../stores/themeStore";
 import { useGlobal } from "@pureadmin/utils";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { useThemeAnimation } from "../../hooks/useThemeAnimation";
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -106,10 +106,10 @@ const handleSwitchTheme = async (themeName: string) => {
     });
 
     const themeName显示 = themeName === "default" ? "默认" : themeName;
-    ElMessage.success(`已切换到${themeName显示}主题`);
+    message.success(`已切换到${themeName显示}主题`);
   } catch (error) {
     console.error("[ThemeSwitcher] 切换主题失败:", error);
-    ElMessage.error("主题切换失败，请重试");
+    message.error("主题切换失败，请重试");
   } finally {
     switching.value = false;
   }
