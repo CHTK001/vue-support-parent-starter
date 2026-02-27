@@ -14,7 +14,7 @@ import {
   reactive,
   ref,
   shallowRef,
-  watch
+  watch,
 } from "vue";
 
 const widgets = shallowRef();
@@ -23,15 +23,15 @@ const userStore = useUserStoreHook();
 
 // 错误捕获组件
 const SafePreview = defineComponent({
-  name: 'SafePreview',
-  emits: ['error'],
+  name: "SafePreview",
+  emits: ["error"],
   setup(props, { slots, emit }) {
     onErrorCaptured((err) => {
-      emit('error', err);
+      emit("error", err);
       return false; // 阻止错误继续向上传播
     });
-    return () => slots.default ? slots.default() : null;
-  }
+    return () => (slots.default ? slots.default() : null);
+  },
 });
 
 const previewErrors = reactive({});
@@ -40,7 +40,7 @@ const handlePreviewError = (id) => {
 };
 
 const CustomLayout = defineAsyncComponent(
-  () => import("./layout/CustomLayout.vue")
+  () => import("./layout/CustomLayout.vue"),
 );
 const openRemoteLayout = getConfig().RemoteLayout;
 const openLocationLayout = getConfig().LocationLayout;
@@ -54,7 +54,9 @@ const searchKeyword = ref("");
 const selectedCategory = ref("all");
 
 // 设置项
-const showHeaderInfo = ref(localStorage.getItem("home-show-header-info") !== "false");
+const showHeaderInfo = ref(
+  localStorage.getItem("home-show-header-info") !== "false",
+);
 watch(showHeaderInfo, (val) => {
   localStorage.setItem("home-show-header-info", String(val));
 });
@@ -74,7 +76,15 @@ const formattedTime = computed(() => {
 
 const formattedDate = computed(() => {
   const date = currentTime.value;
-  const weekDays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+  const weekDays = [
+    "星期日",
+    "星期一",
+    "星期二",
+    "星期三",
+    "星期四",
+    "星期五",
+    "星期六",
+  ];
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const weekDay = weekDays[date.getDay()];
@@ -105,16 +115,19 @@ const widgetStats = computed(() => {
 const categories = computed(() => {
   const cats = new Map();
   cats.set("all", { label: "全部", count: 0 });
-  
+
   userLayoutObject.allCompsList()?.forEach((item) => {
     cats.get("all").count++;
     const type = item.type === 1 ? "local" : "remote";
     if (!cats.has(type)) {
-      cats.set(type, { label: type === "local" ? "本地部件" : "远程部件", count: 0 });
+      cats.set(type, {
+        label: type === "local" ? "本地部件" : "远程部件",
+        count: 0,
+      });
     }
     cats.get(type).count++;
   });
-  
+
   return Array.from(cats.entries()).map(([key, value]) => ({
     value: key,
     ...value,
@@ -124,7 +137,7 @@ const categories = computed(() => {
 // 过滤后的部件列表
 const filteredWidgetList = computed(() => {
   let list = userLayoutObject.myCompsList() || [];
-  
+
   // 按分类筛选
   if (selectedCategory.value !== "all") {
     list = list.filter((item) => {
@@ -133,17 +146,17 @@ const filteredWidgetList = computed(() => {
       return true;
     });
   }
-  
+
   // 按关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
     list = list.filter(
       (item) =>
         item.title?.toLowerCase().includes(keyword) ||
-        item.description?.toLowerCase().includes(keyword)
+        item.description?.toLowerCase().includes(keyword),
     );
   }
-  
+
   return list;
 });
 
@@ -204,19 +217,21 @@ onUnmounted(() => {
 <template>
   <div
     ref="main"
-    :class="[
-      'el-card widgets-home',
-      customizing.customizing ? 'customizing' : '',
-    ]"
+    :class="['widgets-home', customizing.customizing ? 'customizing' : '']"
   >
     <div class="widgets-content">
       <!-- 优化后的头部区域 -->
-      <div class="widgets-header" :class="{ 'header-compact': !showHeaderInfo }">
+      <div
+        class="widgets-header"
+        :class="{ 'header-compact': !showHeaderInfo }"
+      >
         <div class="header-left" v-if="showHeaderInfo">
           <div class="header-greeting">
             <div class="greeting-text">
               <span class="greeting-hello">{{ greeting }}，</span>
-              <span class="greeting-name">{{ userStore?.username || '用户' }}</span>
+              <span class="greeting-name">{{
+                userStore?.username || "用户"
+              }}</span>
             </div>
             <div class="greeting-subtitle">{{ $t("buttons.board") }}</div>
           </div>
@@ -231,7 +246,10 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="header-right">
-          <div class="header-stats" v-if="showHeaderInfo && customizing.hasLayout">
+          <div
+            class="header-stats"
+            v-if="showHeaderInfo && customizing.hasLayout"
+          >
             <div class="stat-item">
               <span class="stat-value">{{ widgetStats.active }}</span>
               <span class="stat-label">已添加</span>
@@ -249,18 +267,20 @@ onUnmounted(() => {
               :icon="useRenderIcon('ep:check')"
               round
               @click="handleUpdate"
-            >{{ $t("buttons.finish") }}</el-button>
+              >{{ $t("buttons.finish") }}</el-button
+            >
             <el-button
               v-else
               type="primary"
               :icon="useRenderIcon('ep:edit')"
               round
               @click="handeCustom"
-            >{{ $t("buttons.custom") }}</el-button>
+              >{{ $t("buttons.custom") }}</el-button
+            >
           </div>
         </div>
       </div>
-      
+
       <!-- 部件内容区域 -->
       <div ref="widgets" class="widgets">
         <div class="widgets-wrapper">
@@ -271,7 +291,7 @@ onUnmounted(() => {
               </el-icon>
             </div>
             <div class="empty-title">暂无可用部件</div>
-            <div class="empty-desc">{{ $t('message.noPlugin') }}</div>
+            <div class="empty-desc">{{ $t("message.noPlugin") }}</div>
           </div>
           <div v-else class="h-full">
             <div
@@ -285,7 +305,12 @@ onUnmounted(() => {
               </div>
               <div class="empty-title">开始自定义您的仪表板</div>
               <div class="empty-desc">点击右上角「自定义」按钮添加部件</div>
-              <el-button type="primary" round @click="handeCustom" class="empty-action">
+              <el-button
+                type="primary"
+                round
+                @click="handeCustom"
+                class="empty-action"
+              >
                 <el-icon class="mr-1">
                   <component :is="useRenderIcon('ep:plus')" />
                 </el-icon>
@@ -300,7 +325,7 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
-    
+
     <!-- 优化后的部件选择侧边栏 -->
     <div v-if="customizing.customizing" class="widgets-aside">
       <div class="aside-header">
@@ -316,7 +341,7 @@ onUnmounted(() => {
           </el-icon>
         </div>
       </div>
-      
+
       <!-- 搜索栏 -->
       <div class="aside-search">
         <el-input
@@ -326,7 +351,7 @@ onUnmounted(() => {
           :prefix-icon="useRenderIcon('ep:search')"
         />
       </div>
-      
+
       <!-- 分类筛选 -->
       <div class="aside-categories">
         <el-radio-group v-model="selectedCategory" size="small">
@@ -339,7 +364,7 @@ onUnmounted(() => {
           </el-radio-button>
         </el-radio-group>
       </div>
-      
+
       <!-- 部件列表 -->
       <div class="aside-list">
         <div v-if="filteredWidgetList.length === 0" class="list-empty">
@@ -349,22 +374,27 @@ onUnmounted(() => {
           <p>没有找到匹配的部件</p>
         </div>
         <div
-            v-for="item in filteredWidgetList"
-            :key="item.key"
-            class="widget-card"
-            @click="push(item)"
-          >
-            <div class="widget-card-icon">
+          v-for="item in filteredWidgetList"
+          :key="item.key"
+          class="widget-card"
+          @click="push(item)"
+        >
+          <div class="widget-card-icon">
             <el-icon :size="24">
               <component :is="useRenderIcon(item.icon || 'ri:apps-line')" />
             </el-icon>
           </div>
           <div class="widget-card-content">
             <div class="widget-card-title">{{ item.title }}</div>
-            <div class="widget-card-desc">{{ item.description || '暂无描述' }}</div>
+            <div class="widget-card-desc">
+              {{ item.description || "暂无描述" }}
+            </div>
             <div class="widget-card-meta">
-              <el-tag size="small" :type="item.type === 1 ? 'success' : 'primary'">
-                {{ item.type === 1 ? '本地' : '远程' }}
+              <el-tag
+                size="small"
+                :type="item.type === 1 ? 'success' : 'primary'"
+              >
+                {{ item.type === 1 ? "本地" : "远程" }}
               </el-tag>
             </div>
           </div>
@@ -375,14 +405,18 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-      
+
       <!-- 底部操作 -->
       <div class="aside-footer">
         <div class="footer-settings">
-          <el-checkbox v-model="showHeaderInfo" size="small">显示头部信息</el-checkbox>
+          <el-checkbox v-model="showHeaderInfo" size="small"
+            >显示头部信息</el-checkbox
+          >
         </div>
         <el-button size="small" @click="backDefault()">
-          <el-icon class="mr-1"><component :is="useRenderIcon('ep:refresh')" /></el-icon>
+          <el-icon class="mr-1"
+            ><component :is="useRenderIcon('ep:refresh')"
+          /></el-icon>
           {{ $t("buttons.default") }}
         </el-button>
       </div>
@@ -403,7 +437,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: row;
   flex: 1;
-  height: 100%;
+  min-height: 100%;
   background: var(--el-bg-color-page);
 }
 
@@ -438,16 +472,16 @@ onUnmounted(() => {
     font-weight: 600;
     color: var(--el-text-color-primary);
     margin-bottom: 4px;
-    
+
     .greeting-hello {
       color: var(--el-color-primary);
     }
-    
+
     .greeting-name {
       color: var(--el-text-color-primary);
     }
   }
-  
+
   .greeting-subtitle {
     font-size: 14px;
     color: var(--el-text-color-secondary);
@@ -472,7 +506,7 @@ onUnmounted(() => {
 
 .header-time {
   text-align: center;
-  
+
   .time-display {
     font-size: 32px;
     font-weight: 700;
@@ -480,7 +514,7 @@ onUnmounted(() => {
     font-variant-numeric: tabular-nums;
     letter-spacing: 2px;
   }
-  
+
   .date-display {
     font-size: 13px;
     color: var(--el-text-color-secondary);
@@ -503,23 +537,23 @@ onUnmounted(() => {
   padding: 8px 16px;
   background: var(--el-fill-color-light);
   border-radius: 8px;
-  
+
   .stat-item {
     text-align: center;
-    
+
     .stat-value {
       display: block;
       font-size: 20px;
       font-weight: 700;
       color: var(--el-color-primary);
     }
-    
+
     .stat-label {
       font-size: 12px;
       color: var(--el-text-color-secondary);
     }
   }
-  
+
   .stat-divider {
     width: 1px;
     height: 30px;
@@ -563,32 +597,36 @@ onUnmounted(() => {
   min-height: 400px;
   text-align: center;
   padding: 40px;
-  
+
   .empty-icon {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-7));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9),
+      var(--el-color-primary-light-7)
+    );
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
     color: var(--el-color-primary);
   }
-  
+
   .empty-title {
     font-size: 20px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     margin-bottom: 8px;
   }
-  
+
   .empty-desc {
     font-size: 14px;
     color: var(--el-text-color-secondary);
     margin-bottom: 24px;
   }
-  
+
   .empty-action {
     padding: 12px 28px;
     font-size: 15px;
@@ -617,7 +655,11 @@ html.dark .widgets-aside {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary),
+    var(--el-color-primary-dark-2)
+  );
   color: #fff;
 }
 
@@ -639,7 +681,7 @@ html.dark .widgets-aside {
   cursor: pointer;
   transition: all 0.2s;
   color: rgba(255, 255, 255, 0.85);
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.15);
     color: #fff;
@@ -648,12 +690,13 @@ html.dark .widgets-aside {
 
 .aside-search {
   padding: 16px 20px 12px;
-  
+
   :deep(.el-input__wrapper) {
     border-radius: 8px;
     box-shadow: 0 0 0 1px var(--el-border-color) inset;
-    
-    &:hover, &.is-focus {
+
+    &:hover,
+    &.is-focus {
       box-shadow: 0 0 0 1px var(--el-color-primary) inset;
     }
   }
@@ -661,13 +704,13 @@ html.dark .widgets-aside {
 
 .aside-categories {
   padding: 0 20px 16px;
-  
+
   :deep(.el-radio-group) {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
   }
-  
+
   :deep(.el-radio-button) {
     .el-radio-button__inner {
       border-radius: 16px !important;
@@ -675,7 +718,7 @@ html.dark .widgets-aside {
       padding: 6px 14px;
       font-size: 12px;
     }
-    
+
     &.is-active .el-radio-button__inner {
       background: var(--el-color-primary);
       border-color: var(--el-color-primary) !important;
@@ -687,11 +730,11 @@ html.dark .widgets-aside {
   flex: 1;
   overflow-y: auto;
   padding: 0 20px 20px;
-  
+
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: var(--el-border-color);
     border-radius: 3px;
@@ -705,7 +748,7 @@ html.dark .widgets-aside {
   justify-content: center;
   padding: 40px 20px;
   color: var(--el-text-color-placeholder);
-  
+
   p {
     margin-top: 12px;
     font-size: 14px;
@@ -722,20 +765,20 @@ html.dark .widgets-aside {
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.25s ease;
-  
+
   &:hover {
     background: var(--el-bg-color);
     border-color: var(--el-color-primary-light-5);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     transform: translateY(-4px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     .widget-card-action .el-button {
       background: var(--el-color-primary);
       border-color: var(--el-color-primary);
     }
   }
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -745,7 +788,11 @@ html.dark .widgets-aside {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-7), var(--el-color-primary-light-5));
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-7),
+    var(--el-color-primary-light-5)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -776,12 +823,12 @@ html.dark .widgets-aside {
   padding: 0;
   overflow: hidden;
   position: relative;
-  
+
   .widget-card-content {
     padding: 12px 16px;
     width: 100%;
   }
-  
+
   .widget-card-action {
     position: absolute;
     top: 8px;
@@ -838,7 +885,7 @@ html.dark .widgets-aside {
 .widget-card-action {
   flex-shrink: 0;
   margin-left: 12px;
-  
+
   :deep(.el-button) {
     width: 32px;
     height: 32px;
@@ -854,17 +901,17 @@ html.dark .widgets-aside {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  
+
   .footer-settings {
     display: flex;
     align-items: center;
     gap: 12px;
-    
+
     :deep(.el-checkbox) {
       margin-right: 0;
     }
   }
-  
+
   :deep(.el-button) {
     padding: 8px 20px;
   }
@@ -951,17 +998,21 @@ html.dark .widgets-aside {
   .widgets-aside {
     background: var(--el-bg-color);
   }
-  
+
   .customize-overlay {
     background: rgba(0, 0, 0, 0.6);
   }
-  
+
   .widget-card:hover {
     background: var(--el-fill-color);
   }
-  
+
   .empty-state .empty-icon {
-    background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-dark-2),
+      var(--el-color-primary)
+    );
     color: #fff;
   }
 }
@@ -979,16 +1030,16 @@ html.dark .widgets-aside {
     gap: 16px;
     align-items: flex-start;
   }
-  
+
   .header-right {
     width: 100%;
     justify-content: space-between;
   }
-  
+
   .customizing .widgets {
     transform: scale(1) !important;
   }
-  
+
   .customizing .widgets-aside {
     width: 100%;
     position: absolute;
@@ -997,7 +1048,7 @@ html.dark .widgets-aside {
     bottom: 0;
     border-radius: 16px 16px 0 0;
   }
-  
+
   .customizing .widgets-wrapper {
     margin-right: 0;
   }
@@ -1007,11 +1058,11 @@ html.dark .widgets-aside {
   .widgets-content {
     padding: 12px;
   }
-  
+
   .widgets-header {
     padding: 16px;
   }
-  
+
   .header-stats {
     display: none;
   }

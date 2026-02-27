@@ -1,30 +1,52 @@
 <template>
   <div class="theme-switcher">
-    <div class="theme-grid">
-      <div
-        v-for="theme in availableThemes"
-        :key="theme.name"
-        class="theme-card"
-        :class="{
-          'is-active': currentTheme === theme.name,
-          'is-switching': switching,
-        }"
-        @click="handleSwitchTheme(theme.name)"
-      >
-        <div class="theme-preview">
-          <div class="theme-icon">
-            <IconifyIconOnline
-              :icon="getThemeIcon(theme.name)"
-              :style="{ fontSize: '32px' }"
-            />
+    <div
+      v-for="(themes, group) in themesByGroup"
+      :key="group"
+      class="theme-group"
+    >
+      <div v-if="themes.length > 0" class="theme-group-header">
+        <span class="theme-group-title">{{ getGroupTitle(group) }}</span>
+        <span class="theme-group-badge">{{ getGroupBadge(group) }}</span>
+      </div>
+      <div class="theme-grid">
+        <div
+          v-for="theme in themes"
+          :key="theme.name"
+          class="theme-card"
+          :class="{
+            'is-active': currentTheme === theme.name,
+            'is-switching': switching,
+          }"
+          @click="handleSwitchTheme(theme.name)"
+        >
+          <!-- 内测主题绸带 -->
+          <ScRibbon
+            v-if="theme.group === 'beta'"
+            text="内测"
+            variant="corner"
+            position="rt"
+            color="#ff6b6b"
+            size="sm"
+          />
+
+          <div class="theme-preview">
+            <div class="theme-icon">
+              <IconifyIconOnline
+                :icon="getThemeIcon(theme.name)"
+                :style="{ fontSize: '32px' }"
+              />
+            </div>
           </div>
-        </div>
-        <div class="theme-info">
-          <span class="theme-name">{{ theme.displayName }}</span>
-          <span class="theme-desc">{{ getThemeDescription(theme.name) }}</span>
-        </div>
-        <div v-if="currentTheme === theme.name" class="theme-check">
-          <IconifyIconOnline icon="ri:check-line" />
+          <div class="theme-info">
+            <span class="theme-name">{{ theme.displayName }}</span>
+            <span class="theme-desc">{{
+              theme.description || getThemeDescription(theme.name)
+            }}</span>
+          </div>
+          <div v-if="currentTheme === theme.name" class="theme-check">
+            <IconifyIconOnline icon="ri:check-line" />
+          </div>
         </div>
       </div>
     </div>
@@ -34,8 +56,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { IconifyIconOnline } from "@repo/components";
-import { getEnabledThemes } from "@repo/components/hooks/themeConfig";
-import { switchTheme as switchThemeUtil } from "@repo/components/hooks/useThemeComponent";
+import ScRibbon from "@repo/components/ScRibbon/index.vue";
+import {
+  getThemesByGroup,
+  switchTheme as switchThemeUtil,
+} from "@repo/components/hooks";
 import { useThemeStore } from "../../stores/themeStore";
 import { useGlobal } from "@pureadmin/utils";
 import { message } from "@repo/utils";
@@ -44,8 +69,8 @@ import { useThemeAnimation } from "../../hooks/useThemeAnimation";
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeStore = useThemeStore();
 
-// 获取所有可用主题
-const availableThemes = computed(() => getEnabledThemes());
+// 按分组获取所有可用主题
+const themesByGroup = computed(() => getThemesByGroup());
 
 // 当前主题
 const currentTheme = computed(() => {
@@ -71,6 +96,26 @@ const getThemeDescription = (themeName: string): string => {
     "8bit": "像素风格，复古游戏风",
   };
   return descriptions[themeName] || "自定义主题";
+};
+
+// 获取分组标题
+const getGroupTitle = (group: string): string => {
+  const titles: Record<string, string> = {
+    stable: "稳定版主题",
+    beta: "内测主题",
+    experimental: "实验性主题",
+  };
+  return titles[group] || group;
+};
+
+// 获取分组徽章
+const getGroupBadge = (group: string): string => {
+  const badges: Record<string, string> = {
+    stable: "",
+    beta: "Beta",
+    experimental: "实验",
+  };
+  return badges[group] || "";
 };
 
 // 切换主题
@@ -121,6 +166,40 @@ const handleSwitchTheme = async (themeName: string) => {
   width: 100%;
 }
 
+.theme-group {
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.theme-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .theme-group-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  .theme-group-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--el-color-warning);
+    background: var(--el-color-warning-light-9);
+    border-radius: 4px;
+    border: 1px solid var(--el-color-warning-light-7);
+  }
+}
+
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -135,6 +214,7 @@ const handleSwitchTheme = async (themeName: string) => {
   cursor: pointer;
   transition: all 0.3s ease;
   background: var(--el-bg-color);
+  overflow: hidden;
 
   &:hover {
     border-color: var(--el-color-primary);

@@ -23,23 +23,6 @@ createStandardApp({
   enableElementPlusX: true,
   components: { ScCard, ScSwitch, ScDialog },
   setup: async (app, config) => {
-    // 过滤无害告警
-    app.config.warnHandler = (msg, instance, trace) => {
-      if (typeof msg === "string") {
-        if (
-          msg.includes('Slot "default" invoked outside of the render function')
-        )
-          return;
-        if (
-          msg.includes(
-            "Runtime directive used on component with non-element root node",
-          )
-        )
-          return;
-      }
-      console.warn(msg, trace);
-    };
-
     setupDirectives(app);
     app.use(GlobalSocketPlugin);
 

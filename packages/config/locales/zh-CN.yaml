@@ -330,8 +330,8 @@ panel:
   autoThemeEnabledDesc: 系统将根据当前日期自动应用节日主题，节日主题已隐藏
   currentThemeLabel: 当前主题：
   defaultTheme: 默认
-  aiChatSkin: AI 助手皮肤
-  aiChatSkinDesc: 自定义 AI 助手的外观主题
+  aiChatSkin: AI 设置
+  aiChatSkinDesc: 配置 AI 助手
   aiThemePurple: 紫色
   aiThemePurpleTip: 默认紫色渐变
   aiThemeBlue: 蓝色

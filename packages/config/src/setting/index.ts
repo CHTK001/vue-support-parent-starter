@@ -91,7 +91,7 @@ export const globalSetting: PlatformConfigs = {
   /** 是否显示搜索按钮 */
   ShowBarSearch: true,
   /** 是否显示AI助手 */
-  ShowAiChat: false,
+  ShowAiChat: true,
   /** AI助手皮肤主题 */
   AiChatTheme: "default",
 

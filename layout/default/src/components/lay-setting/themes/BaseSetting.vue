@@ -18,6 +18,7 @@ import LayPanel from "../../lay-panel/index.vue";
 import { debounce, isNumber, storageLocal, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSelect from "@repo/components/ScSelect/index.vue";
+import AiChatAppearanceSetting from "./components/AiChatAppearanceSetting.vue";
 import ScSlider from "@repo/components/ScSlider/src/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { message } from "@repo/utils";
@@ -160,6 +161,9 @@ const settings = reactive({
   newMenuTimeLimit: $storage.configure.newMenuTimeLimit ?? 168,
   // 新菜单动画
   newMenuAnimation: $storage.configure.newMenuAnimation ?? "bounce",
+  // 新菜单标识类型和颜色
+  newMenuBadgeType: $storage.configure.newMenuBadgeType ?? "primary",
+  newMenuBadgeColor: $storage.configure.newMenuBadgeColor ?? "#409eff",
   // 双栏导航设置相关
   doubleNavExpandMode: $storage.configure.doubleNavExpandMode ?? "auto",
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
@@ -185,6 +189,9 @@ const settings = reactive({
   aiChatSkin: $storage.configure?.aiChatSkin ?? "robot",
   aiChatApiKey: $storage.configure?.aiChatApiKey ?? "",
   aiChatApiUrl: $storage.configure?.aiChatApiUrl ?? "",
+  aiChatVendor: $storage.configure?.aiChatVendor ?? "hf",
+  aiChatModel:
+    $storage.configure?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct",
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 false）
   enableFestivalTheme:
     $storage.configure?.enableFestivalTheme ??
@@ -224,8 +231,6 @@ const settings = reactive({
     $storage.configure?.devHoverInspector ??
     getConfig().PageBehavior?.devHoverInspector ??
     false,
-  // 开发模式下 AI 设置展示控制
-  showDevAiSetting: $storage.configure?.showDevAiSetting ?? true,
   // 加载动画样式
   loaderStyle: localStorage.getItem("sys-loader-style") || "default",
 });
@@ -245,42 +250,8 @@ const transitionTypeOptions = computed<Array<OptionsType>>(() => [
   { label: "右侧滑入", tip: "从右侧滑入的效果", value: "slide-right" },
 ]);
 
-/** AI 助手皮肤主题选项 */
-// 此处的 AI 助手主题选项在下方已完整定义，这里移除重复的未完成定义
-
-/** AI 助手皮肤主题选项 */
-const aiChatThemeOptions = computed<Array<OptionsType>>(() => [
-  {
-    label: t("panel.aiThemePurple"),
-    tip: t("panel.aiThemePurpleTip"),
-    value: "default",
-  },
-  {
-    label: t("panel.aiThemeBlue"),
-    tip: t("panel.aiThemeBlueTip"),
-    value: "blue",
-  },
-  {
-    label: t("panel.aiThemeGreen"),
-    tip: t("panel.aiThemeGreenTip"),
-    value: "green",
-  },
-  {
-    label: t("panel.aiThemeOrange"),
-    tip: t("panel.aiThemeOrangeTip"),
-    value: "orange",
-  },
-  {
-    label: t("panel.aiThemePink"),
-    tip: t("panel.aiThemePinkTip"),
-    value: "pink",
-  },
-  {
-    label: t("panel.aiThemeDark"),
-    tip: t("panel.aiThemeDarkTip"),
-    value: "dark",
-  },
-]);
+// AI 助手颜色主题功能已下线，相关选项保留占位以便后续可能恢复，但当前不再在界面中使用
+const aiChatThemeOptions = computed<Array<OptionsType>>(() => []);
 
 /** AI 助手位置选项 */
 const aiChatPositionOptions = computed<Array<OptionsType>>(() => [
@@ -327,6 +298,44 @@ const aiChatSkinOptions = computed<Array<OptionsType>>(() => [
     label: "🐼 熊猫",
     value: "panda",
     tip: "国宝熊猫",
+  },
+]);
+
+/** AI 厂商选项 */
+const aiChatVendorOptions = computed<Array<OptionsType>>(() => [
+  {
+    label: "Hugging Face",
+    value: "hf",
+    tip: "使用 Hugging Face / hf-mirror 的开源模型",
+  },
+  {
+    label: "Chrome",
+    value: "chrome",
+    tip: "使用 Chrome 浏览器内置 AI 能力（实验性）",
+  },
+  {
+    label: "其它厂商",
+    value: "other",
+    tip: "自定义第三方厂商，需要手动配置 API 信息",
+  },
+]);
+
+/** Hugging Face 小参数模型选项（约 1-3B） */
+const aiChatModelOptions = computed<Array<OptionsType>>(() => [
+  {
+    label: "Qwen2.5-1.5B-Instruct",
+    value: "Qwen/Qwen2.5-1.5B-Instruct",
+    tip: "阿里 Qwen 1.5B 指令模型，体积小、加载快",
+  },
+  {
+    label: "Qwen2.5-3B-Instruct",
+    value: "Qwen/Qwen2.5-3B-Instruct",
+    tip: "阿里 Qwen 3B 指令模型，能力更强",
+  },
+  {
+    label: "Llama-3.2-1B-Instruct",
+    value: "meta-llama/Llama-3.2-1B-Instruct",
+    tip: "Meta Llama 3.2 1B 指令模型，轻量场景适用",
   },
 ]);
 
@@ -1047,6 +1056,24 @@ function aiChatApiUrlChange(value: string) {
 }
 
 /**
+ * AI 厂商变更
+ */
+function aiChatVendorChange({ option }: { option: OptionsType }) {
+  const value = option.value as "hf" | "chrome" | "other";
+  settings.aiChatVendor = value;
+  storageConfigureChange("aiChatVendor", value);
+}
+
+/**
+ * AI 模型变更（主要用于 Hugging Face / hf-mirror）
+ */
+function aiChatModelChange({ option }: { option: OptionsType }) {
+  const value = option.value as string;
+  settings.aiChatModel = value;
+  storageConfigureChange("aiChatModel", value);
+}
+
+/**
  * AI 机器人皮肤变更
  */
 function aiChatSkinChange({ option }: { option: OptionsType }) {
@@ -1199,14 +1226,6 @@ function devGridChange(enabled: boolean) {
 function devHoverInspectorChange(enabled: boolean) {
   settings.devHoverInspector = enabled;
   storageConfigureChange("devHoverInspector", enabled);
-}
-
-/**
- * 开发模式下 AI 设置展示开关
- */
-function showDevAiSettingChange(enabled: boolean) {
-  settings.showDevAiSetting = enabled;
-  storageConfigureChange("showDevAiSetting", enabled);
 }
 
 /**
@@ -1423,7 +1442,8 @@ onUnmounted(() => {
           </div>
           <div class="setting-content">
             <div class="theme-color-grid">
-              <ScTooltip                 v-for="(item, index) in themeColors"
+              <ScTooltip
+                v-for="(item, index) in themeColors"
                 v-show="showThemeColors(item.themeColor)"
                 :key="index"
                 :content="item.description || item.themeColor"
@@ -1522,11 +1542,10 @@ onUnmounted(() => {
         <!-- 加载动画样式设置区域 -->
         <LoaderStyleSetting v-model="settings.loaderStyle" />
 
-        <!-- AI 助手设置区域 -->
+        <!-- AI 设置区域 -->
         <div
           v-if="
-            getConfig().ShowAiChat !== false &&
-            ((!isDevelopment && !isTest) || settings.showDevAiSetting)
+            getConfig().ShowAiChat !== false
           "
           class="setting-section"
         >
@@ -1540,113 +1559,116 @@ onUnmounted(() => {
           <div class="setting-content">
             <!-- 功能开关 -->
             <div class="setting-item">
-              <div class="setting-item-label">
-                <span>启用 AI 助手</span>
-                <span class="setting-item-desc"
-                  >控制页面是否显示 AI 聊天机器人</span
-                >
-              </div>
-              <div class="setting-item-control">
+              <div class="switch-card-grid">
                 <ScSwitch
                   v-model="settings.aiChatEnabled"
+                  layout="visual-card"
+                  label="AI 显示"
+                  description="控制页面悬浮 AI 助手入口是否显示"
+                  active-icon="ri:robot-2-line"
+                  inactive-icon="ri:robot-off-line"
                   @change="aiChatEnabledChange"
                 />
               </div>
             </div>
 
-            <!-- 位置设置 -->
-            <div class="setting-item">
-              <div class="setting-item-label">
-                <span>机器人位置</span>
-                <span class="setting-item-desc"
-                  >选择悬浮机器人在页面中的位置</span
-                >
+            <!-- 其余 AI 配置：仅在显示开启时展示 -->
+            <template v-if="settings.aiChatEnabled">
+              <!-- 厂商设置 -->
+              <div class="setting-item">
+                <div class="setting-item-label">
+                  <span class="setting-item-desc">服务厂商</span>
+                </div>
+                <div class="setting-item-control">
+                  <Segmented
+                    :model-value="settings.aiChatVendor"
+                    :options="aiChatVendorOptions"
+                    @change="aiChatVendorChange"
+                  />
+                </div>
               </div>
-              <div class="setting-item-control">
-                <Segmented
-                  :model-value="settings.aiChatPosition"
-                  :options="aiChatPositionOptions"
-                  @change="aiChatPositionChange"
-                />
-              </div>
-            </div>
 
-            <!-- API Key 设置 -->
-            <div class="setting-item">
-              <div class="setting-item-label">
-                <span>API Key</span>
-                <span class="setting-item-desc"
-                  >用于访问后端 AI 接口的密钥，仅保存在本地浏览器</span
-                >
-              </div>
-              <div class="setting-item-control">
-                <ScInput                   v-model="settings.aiChatApiKey"
-                  type="password"
-                  show-password
-                  placeholder="请输入 AI 服务的 API Key"
-                  @change="aiChatApiKeyChange"
-                  style="max-width: 260px"
-                />
-              </div>
-            </div>
-
-            <!-- API URL 设置 -->
-            <div class="setting-item">
-              <div class="setting-item-label">
-                <span>API URL</span>
-                <span class="setting-item-desc"
-                  >AI 服务的接口地址（留空使用默认免费模型）</span
-                >
-              </div>
-              <div class="setting-item-control">
-                <ScInput                   v-model="settings.aiChatApiUrl"
-                  placeholder="默认: Hugging Face Qwen2.5-7B-Instruct"
-                  @change="aiChatApiUrlChange"
-                  style="max-width: 260px"
-                />
-              </div>
-            </div>
-
-            <!-- 机器人皮肤设置 -->
-            <div class="setting-item">
-              <div class="setting-item-label">
-                <span>机器人皮肤</span>
-                <span class="setting-item-desc">选择 AI 助手的外观造型</span>
-              </div>
-              <div class="setting-item-control">
-                <Segmented
-                  :model-value="settings.aiChatSkin"
-                  :options="aiChatSkinOptions"
-                  @change="aiChatSkinChange"
-                />
-              </div>
-            </div>
-
-            <!-- 皮肤设置 -->
-            <div class="ai-theme-grid">
+              <!-- 模型选择（仅 HF / hf-mirror 时显示） -->
               <div
-                v-for="theme in aiChatThemeOptions"
-                :key="theme.value"
-                class="ai-theme-item"
-                :class="[
-                  `ai-theme-${theme.value}`,
-                  { 'is-active': settings.aiChatTheme === theme.value },
-                ]"
-                @click="aiChatThemeChange({ option: theme })"
+                v-if="settings.aiChatVendor === 'hf'"
+                class="setting-item"
               >
-                <div class="ai-theme-preview">
-                  <div class="ai-theme-bubble"></div>
-                  <div class="ai-theme-bot"></div>
+                <div class="setting-item-label">
+                  <span class="setting-item-desc">模型</span>
                 </div>
-                <span class="ai-theme-label">{{ theme.label }}</span>
-                <div
-                  v-if="settings.aiChatTheme === theme.value"
-                  class="ai-theme-check"
-                >
-                  <IconifyIconOnline icon="ri:check-line" />
+                <div class="setting-item-control">
+                  <ScSelect
+                    v-model="settings.aiChatModel"
+                    layout="dropdown"
+                    :options="aiChatModelOptions"
+                    dropdown-direction="horizontal"
+                    :dropdown-col="3"
+                    dropdown-title="选择推理模型"
+                    dropdown-placeholder="请选择 Hugging Face 模型"
+                    width="420px"
+                    height="260px"
+                    @change="aiChatModelChange"
+                  />
                 </div>
               </div>
-            </div>
+
+              <!-- API Key 设置 -->
+              <div
+                v-if="settings.aiChatVendor !== 'chrome' && settings.aiChatVendor !== 'hf'"
+                class="setting-item"
+              >
+                <div class="setting-item-label">
+                  <span>API Key</span>
+                </div>
+                <div class="setting-item-control">
+                  <ScInput
+                    v-model="settings.aiChatApiKey"
+                    type="password"
+                    show-password
+                    placeholder="请输入 API Key"
+                    @change="aiChatApiKeyChange"
+                    style="max-width: 260px"
+                  />
+                </div>
+              </div>
+
+              <!-- API URL 设置（Chrome 模式下不需要） -->
+              <div
+                v-if="settings.aiChatVendor !== 'chrome' && settings.aiChatVendor !== 'hf'"
+                class="setting-item"
+              >
+                <div class="setting-item-label">
+                  <span>API URL</span>
+                </div>
+                <div class="setting-item-control">
+                  <ScInput
+                    v-model="settings.aiChatApiUrl"
+                    :placeholder="
+                      settings.aiChatVendor === 'hf'
+                        ? '留空使用模型默认地址'
+                        : '填模型提供的地址'
+                    "
+                    @change="aiChatApiUrlChange"
+                    style="max-width: 260px"
+                  />
+                </div>
+              </div>
+
+              <!-- 机器人外观样式设置（含实时预览） -->
+              <div class="setting-item">
+                <div class="setting-item-label">
+                  <span>外观</span>
+                  <span class="setting-item-desc">外观样式</span>
+                </div>
+                <div class="setting-item-control">
+                  <AiChatAppearanceSetting
+                    v-model="settings.aiChatSkin"
+                    :options="aiChatSkinOptions"
+                    @change="aiChatSkinChange"
+                  />
+                </div>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -1720,10 +1742,11 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div class="setting-item">
+            <div v-if="settings.showMessage" class="setting-item">
               <div class="setting-item-label">
                 <span>弹出位置</span>
-                <ScTooltip                   content="设置消息下拉弹框从哪个方向弹出"
+                <ScTooltip
+                  content="设置消息下拉弹框从哪个方向弹出"
                   placement="top"
                 >
                   <span class="setting-item-tip-trigger">
@@ -1772,7 +1795,8 @@ onUnmounted(() => {
           </div>
           <div class="setting-content">
             <div class="layout-mode-grid">
-              <ScTooltip                 :content="t('panel.layoutVerticalTip')"
+              <ScTooltip
+                :content="t('panel.layoutVerticalTip')"
                 placement="top"
                 :append-to-body="true"
                 :z-index="41000"
@@ -1803,7 +1827,8 @@ onUnmounted(() => {
                 </div>
               </ScTooltip>
 
-              <ScTooltip                 v-if="device !== 'mobile'"
+              <ScTooltip
+                v-if="device !== 'mobile'"
                 :content="t('panel.layoutHorizontalTip')"
                 placement="top"
                 :append-to-body="true"
@@ -1835,7 +1860,8 @@ onUnmounted(() => {
                 </div>
               </ScTooltip>
 
-              <ScTooltip                 v-if="device !== 'mobile'"
+              <ScTooltip
+                v-if="device !== 'mobile'"
                 :content="t('panel.layoutMixTip')"
                 placement="top"
                 :append-to-body="true"
@@ -1867,7 +1893,8 @@ onUnmounted(() => {
                 </div>
               </ScTooltip>
 
-              <ScTooltip                 v-if="device !== 'mobile'"
+              <ScTooltip
+                v-if="device !== 'mobile'"
                 :content="t('panel.layoutHoverTip')"
                 placement="top"
                 :append-to-body="true"
@@ -1899,7 +1926,8 @@ onUnmounted(() => {
                 </div>
               </ScTooltip>
 
-              <ScTooltip                 :content="t('panel.layoutMobileTip')"
+              <ScTooltip
+                :content="t('panel.layoutMobileTip')"
                 placement="top"
                 :append-to-body="true"
                 :z-index="41000"
@@ -1930,7 +1958,8 @@ onUnmounted(() => {
                 </div>
               </ScTooltip>
 
-              <ScTooltip                 v-if="device !== 'mobile'"
+              <ScTooltip
+                v-if="device !== 'mobile'"
                 :content="t('panel.layoutDoubleTip')"
                 placement="top"
                 :append-to-body="true"
@@ -2010,7 +2039,8 @@ onUnmounted(() => {
             <div class="switch-item">
               <label class="switch-label">{{ t("panel.expandMode") }}</label>
               <div class="radio-group">
-                <ScRadioGroup                   v-model="settings.doubleNavExpandMode"
+                <ScRadioGroup
+                  v-model="settings.doubleNavExpandMode"
                   @change="doubleNavExpandModeChange"
                 >
                   <ScRadio value="auto">自动展开</ScRadio>
@@ -2053,7 +2083,8 @@ onUnmounted(() => {
               :options="stretchTypeOptions"
               @change="stretchTypeChange"
             />
-            <ScInputNumber               v-if="isNumber(settings.stretch)"
+            <ScInputNumber
+              v-if="isNumber(settings.stretch)"
               v-model="settings.stretch as number"
               :min="1280"
               :max="1600"
@@ -2407,7 +2438,8 @@ onUnmounted(() => {
                 <div class="setting-item-content">
                   <!-- FPS Monitor -->
                   <div class="switch-card-grid">
-                    <ScTooltip                       content="Frames Per Second: 衡量页面流畅度，60FPS 为最佳"
+                    <ScTooltip
+                      content="Frames Per Second: 衡量页面流畅度，60FPS 为最佳"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2423,8 +2455,12 @@ onUnmounted(() => {
                         @change="themeStore.setFpsMonitor"
                       />
                     </ScTooltip>
+
+                    <!-- 仅在性能监控开启时展示其余指标和配置 -->
                     <!-- Memory Monitor -->
-                    <ScTooltip                       content="JS Heap Size: 当前页面使用的 JS 堆内存 (仅 Chrome/Edge 有效)"
+                    <ScTooltip
+                      v-if="fpsMonitorEnabled"
+                      content="JS Heap Size: 当前页面使用的 JS 堆内存 (仅 Chrome/Edge 有效)"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2441,7 +2477,9 @@ onUnmounted(() => {
                       />
                     </ScTooltip>
 
-                    <ScTooltip                       content="CPU Load Estimation: 基于主线程帧间隔估算的负载值 (非系统真实 CPU)"
+                    <ScTooltip
+                      v-if="fpsMonitorEnabled"
+                      content="CPU Load Estimation: 基于主线程帧间隔估算的负载值 (非系统真实 CPU)"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2458,7 +2496,9 @@ onUnmounted(() => {
                       />
                     </ScTooltip>
 
-                    <ScTooltip                       content="Bandwidth: 显示当前页面网络请求的传输速率"
+                    <ScTooltip
+                      v-if="fpsMonitorEnabled"
+                      content="Bandwidth: 显示当前页面网络请求的传输速率"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2475,7 +2515,9 @@ onUnmounted(() => {
                       />
                     </ScTooltip>
 
-                    <ScTooltip                       content="Battery: 显示电池电量和充电状态"
+                    <ScTooltip
+                      v-if="fpsMonitorEnabled"
+                      content="Battery: 显示电池电量和充电状态"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2492,7 +2534,9 @@ onUnmounted(() => {
                       />
                     </ScTooltip>
 
-                    <ScTooltip                       content="Bluetooth: 显示蓝牙功能可用性"
+                    <ScTooltip
+                      v-if="fpsMonitorEnabled"
+                      content="Bluetooth: 显示蓝牙功能可用性"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2509,7 +2553,9 @@ onUnmounted(() => {
                       />
                     </ScTooltip>
 
-                    <ScTooltip                       content="Screen: 显示屏幕分辨率"
+                    <ScTooltip
+                      v-if="fpsMonitorEnabled"
+                      content="Screen: 显示屏幕分辨率"
                       placement="top"
                       :append-to-body="true"
                       :z-index="3000"
@@ -2527,8 +2573,9 @@ onUnmounted(() => {
                     </ScTooltip>
                   </div>
 
-                  <!-- Display Settings Group -->
+                  <!-- Display Settings Group：仅在性能监控开启时展示 -->
                   <div
+                    v-if="fpsMonitorEnabled"
                     class="monitor-display-settings"
                     style="
                       margin-top: 16px;
@@ -2740,9 +2787,10 @@ onUnmounted(() => {
                     <span class="text-sm text-[var(--el-text-color-regular)]"
                       >标识文本</span
                     >
-                    <ScInput                       v-model="settings.newMenuText"
+                    <ScInput
+                      v-model="settings.newMenuText"
                       placeholder="NEW"
-                      maxlength="10"
+                      :maxlength="10"
                       size="small"
                       show-word-limit
                       @blur="newMenuTextChange"
@@ -2757,7 +2805,8 @@ onUnmounted(() => {
                     <span class="text-sm text-[var(--el-text-color-regular)]"
                       >显示时长(小时)</span
                     >
-                    <ScInputNumber                       v-model="settings.newMenuTimeLimit"
+                    <ScInputNumber
+                      v-model="settings.newMenuTimeLimit"
                       :min="1"
                       :max="8760"
                       :step="1"
@@ -2951,15 +3000,6 @@ onUnmounted(() => {
                   description="悬停显示元素标签、类名和尺寸"
                   active-icon="ri:focus-3-line"
                   @change="devHoverInspectorChange"
-                />
-                <ScSwitch
-                  v-model="settings.showDevAiSetting"
-                  layout="visual-card"
-                  size="small"
-                  label="显示 AI 设置"
-                  description="开发模式下是否在系统设置中展示 AI 相关配置"
-                  active-icon="ri:robot-2-line"
-                  @change="showDevAiSettingChange"
                 />
               </div>
             </div>

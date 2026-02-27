@@ -49,6 +49,8 @@ export interface SettingsState {
   newMenuText: string;
   newMenuTimeLimit: number;
   newMenuAnimation: string;
+  newMenuBadgeType: string;
+  newMenuBadgeColor: string;
   // 双栏导航
   doubleNavExpandMode: string;
   doubleNavAutoExpandAll: boolean;
@@ -124,6 +126,8 @@ export function useSettings() {
     newMenuText: $storage.configure?.newMenuText ?? "new",
     newMenuTimeLimit: $storage.configure?.newMenuTimeLimit ?? 168,
     newMenuAnimation: $storage.configure?.newMenuAnimation ?? "bounce",
+    newMenuBadgeType: $storage.configure?.newMenuBadgeType ?? "primary",
+    newMenuBadgeColor: $storage.configure?.newMenuBadgeColor ?? "#409eff",
     doubleNavExpandMode: $storage.configure?.doubleNavExpandMode ?? "auto",
     doubleNavAutoExpandAll: $storage.configure?.doubleNavAutoExpandAll ?? true,
     aiChatTheme: $storage.configure?.aiChatTheme ?? "default",
@@ -312,6 +316,16 @@ export function useSettings() {
     saveToStorage("newMenuAnimation", value);
   }
 
+  function setNewMenuBadgeType(value: string): void {
+    settings.newMenuBadgeType = value;
+    saveToStorage("newMenuBadgeType", value);
+  }
+
+  function setNewMenuBadgeColor(value: string): void {
+    settings.newMenuBadgeColor = value;
+    saveToStorage("newMenuBadgeColor", value);
+  }
+
   // ===== 消息弹窗设置 =====
   
   function setMessagePopupEnabled(value: boolean): void {
@@ -439,25 +453,14 @@ export function useSettings() {
     setNewMenuText,
     setNewMenuTimeLimit,
     setNewMenuAnimation,
+    setNewMenuBadgeType,
+    setNewMenuBadgeColor,
     // 消息弹窗
     setMessagePopupEnabled,
     setMessagePopupPosition,
     setMessagePopupDuration,
     // 字体加密
     setFontEncryptionEnabled,
-    setFontEncryptionNumbers,
-    setFontEncryptionChinese,
-    setFontEncryptionGlobal,
-    setFontEncryptionOcrNoise,
-    // 重置
-    resetToDefault,
-    // 工具方法
-    saveToStorage,
-    toggleHtmlClass,
-    setCssVariable,
-  };
-}
-
     setFontEncryptionNumbers,
     setFontEncryptionChinese,
     setFontEncryptionGlobal,

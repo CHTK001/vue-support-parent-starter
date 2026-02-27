@@ -243,8 +243,8 @@ panel:
   autoThemeEnabledDesc: System will automatically apply festival themes based on current date
   currentThemeLabel: "Current Theme:"
   defaultTheme: Default
-  aiChatSkin: AI Assistant Skin
-  aiChatSkinDesc: Customize AI assistant appearance
+  aiChatSkin: AI Settings
+  aiChatSkinDesc: Configure AI assistant
   aiThemePurple: Purple
   aiThemePurpleTip: Default purple gradient
   aiThemeBlue: Blue

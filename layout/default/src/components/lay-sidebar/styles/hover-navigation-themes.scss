@@ -16,7 +16,7 @@
   --hover-nav-menu-active-color: var(--el-color-primary);
   --hover-nav-submenu-bg: rgba(255, 255, 255, 0.98);
   --hover-nav-submenu-border: rgba(0, 0, 0, 0.08);
-  --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.15);
+  --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.25);
 }
 
 // 深色模式
@@ -27,6 +27,7 @@ html.dark {
   --hover-nav-menu-color: #ffffff;
   --hover-nav-submenu-bg: rgba(30, 30, 40, 0.98);
   --hover-nav-submenu-border: rgba(255, 255, 255, 0.08);
+  --hover-nav-submenu-shadow: rgba(0, 0, 0, 0.4);
 }
 
 // ==================== 万圣节主题 ====================

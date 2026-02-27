@@ -160,7 +160,7 @@
                 >
                   <el-input
                     v-model="form.jobScheduleTime"
-                    maxlength="10"
+                    :maxlength="10"
                     placeholder="单位：秒"
                     clearable
                   >
