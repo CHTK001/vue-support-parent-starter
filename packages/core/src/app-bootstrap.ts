@@ -582,6 +582,38 @@ export async function createStandardApp(
 
   // 自定义初始化
   if (setup) {
+        /**
+     * 兼容浏览器注入脚本（通常来自扩展）在 render 期间读取组件代理字段导致的告警：
+     * Property "__proxyIdCheat__" was accessed during render but is not defined on instance.
+     *
+     * 该字段不参与业务逻辑，仅用于避免无意义的控制台噪音。
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (app.config.globalProperties as any).__proxyIdCheat__ = 0;
+
+    // 过滤无害告警
+    app.config.warnHandler = (msg, instance, trace) => {
+      if (typeof msg === "string") {
+        // 兼容浏览器注入脚本/扩展在渲染期探测组件代理字段导致的无意义告警
+        if (
+          msg.includes("__proxyIdCheat__") &&
+          msg.includes("was accessed during render but is not defined on instance")
+        ) {
+          return;
+        }
+        if (
+          msg.includes('Slot "default" invoked outside of the render function')
+        )
+          return;
+        if (
+          msg.includes(
+            "Runtime directive used on component with non-element root node",
+          )
+        )
+          return;
+      }
+      console.warn(msg, trace);
+    };
     await bootstrap.useAsync(async (app) => {
       await setup(app, config);
     });

@@ -1,23 +1,29 @@
 <template>
   <div
     v-if="enabled"
-    ref="el"
+    ref="containerRef"
     class="ai-chat-container"
     :class="[`position-${position}`, `theme-${theme}`, `skin-${skin.value}`]"
-    :style="style"
   >
     <!-- AI 机器人图标 -->
-    <div class="ai-bot-trigger" @click="toggleChat">
+    <div ref="botTriggerRef" class="ai-bot-trigger" @click="toggleChat">
       <div class="ai-bot-icon">
         <component :is="currentSkinIcon" />
       </div>
-      <div v-if="!isOpen" class="ai-bot-pulse"></div>
+      <!-- 关闭状态提示：五球悬挂碰撞（牛顿摆效果） -->
+      <div v-if="!isOpen" class="ai-bot-cradle" aria-hidden="true">
+        <span class="cradle-ball ball-1"></span>
+        <span class="cradle-ball ball-2"></span>
+        <span class="cradle-ball ball-3"></span>
+        <span class="cradle-ball ball-4"></span>
+        <span class="cradle-ball ball-5"></span>
+      </div>
     </div>
 
     <!-- 聊天窗口 -->
     <transition name="chat-slide">
       <div v-if="isOpen" class="ai-chat-window">
-        <div ref="handle" class="ai-chat-header">
+        <div class="ai-chat-header">
           <div class="ai-chat-title">
             <component :is="currentSkinIcon" class="title-icon" />
             <span>AI 助手</span>
@@ -107,22 +113,21 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
-// 拖拽相关
-const el = ref<HTMLElement | null>(null);
-const handle = ref<HTMLElement | null>(null);
-const { style } = useDraggable(el, {
-  handle,
-  preventDefault: true,
-  stopPropagation: true,
-});
-
 // 使用 props 或从 storage 读取配置
 const enabled = computed(() => props.visible);
-const position = computed(() => props.position || $storage?.configure?.aiChatPosition || "bottom-right");
-const theme = computed(() => props.theme || $storage?.configure?.aiChatTheme || "default");
+const position = computed(
+  () => props.position || $storage?.configure?.aiChatPosition || "bottom-right",
+);
+const theme = computed(
+  () => props.theme || $storage?.configure?.aiChatTheme || "default",
+);
 const skin = ref($storage?.configure?.aiChatSkin ?? "robot");
 const apiKey = ref($storage?.configure?.aiChatApiKey ?? "");
 const apiUrl = ref($storage?.configure?.aiChatApiUrl ?? "");
+const vendor = ref($storage?.configure?.aiChatVendor ?? "hf");
+const model = ref(
+  $storage?.configure?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct",
+);
 
 const isOpen = ref(false);
 const inputMessage = ref("");
@@ -135,6 +140,8 @@ const messages = ref<Array<{ role: string; content: string }>>([
 ]);
 const isLoading = ref(false);
 const messagesContainer = ref<HTMLElement>();
+const containerRef = ref<HTMLElement | null>(null);
+const botTriggerRef = ref<HTMLElement | null>(null);
 
 const skinIcons = {
   robot: RobotIcon,
@@ -145,6 +152,13 @@ const skinIcons = {
 };
 
 const currentSkinIcon = computed(() => skinIcons[skin.value] || RobotIcon);
+
+// 机器人与聊天窗口整体拖拽
+useDraggable(containerRef, {
+  handle: botTriggerRef,
+  preventDefault: true,
+  stopPropagation: true,
+});
 
 const toggleChat = () => {
   isOpen.value = !isOpen.value;
@@ -178,16 +192,27 @@ const sendMessage = async () => {
   });
 
   try {
-    // 默认使用 Hugging Face 免费推理 API
-    const defaultApiUrl =
-      "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-7B-Instruct";
-    const url = apiUrl.value || defaultApiUrl;
-
     // 构建对话历史（只保留最近 10 条消息以节省 token）
     const conversationHistory = messages.value.slice(-10).map((msg) => ({
       role: msg.role === "user" ? "user" : "assistant",
       content: msg.content,
     }));
+
+    // 根据厂商分发请求
+    const currentVendor = vendor.value || "hf";
+
+    if (currentVendor === "chrome") {
+      await sendByChrome(userMessage, conversationHistory);
+      return;
+    }
+
+    // 默认使用 Hugging Face 免费推理 API（小参数模型）
+    const resolvedModel =
+      model.value && model.value.trim().length > 0
+        ? model.value.trim()
+        : "Qwen/Qwen2.5-1.5B-Instruct";
+    const defaultApiUrl = `https://api-inference.huggingface.co/models/${resolvedModel}`;
+    const url = apiUrl.value || defaultApiUrl;
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -234,10 +259,10 @@ const sendMessage = async () => {
     if (Array.isArray(data) && data.length > 0) {
       assistantMessage =
         data[0].generated_text || data[0].text || "抱歉，我无法生成回复。";
-    } else if (data.generated_text) {
-      assistantMessage = data.generated_text;
-    } else if (data.text) {
-      assistantMessage = data.text;
+    } else if ((data as any).generated_text) {
+      assistantMessage = (data as any).generated_text;
+    } else if ((data as any).text) {
+      assistantMessage = (data as any).text;
     } else if (typeof data === "string") {
       assistantMessage = data;
     } else {
@@ -249,7 +274,7 @@ const sendMessage = async () => {
       content: assistantMessage.trim(),
     });
   } catch (error) {
-    console.error("AI Chat Error:", error);
+    console.error("[AI][聊天] 请求失败", error);
 
     let errorMessage = "抱歉，发生了错误。";
     if (error instanceof Error) {
@@ -276,6 +301,37 @@ const sendMessage = async () => {
   }
 };
 
+/**
+ * 使用 Chrome 浏览器内置 AI 能力发送消息（实验性）
+ */
+const sendByChrome = async (
+  userMessage: string,
+  conversationHistory: Array<{ role: string; content: string }>,
+) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chromeAi = (window as any).ai;
+  if (!chromeAi || !chromeAi.languageModel) {
+    throw new Error("当前浏览器不支持 Chrome AI 能力，请切换到 Hugging Face 等厂商。");
+  }
+
+  const session = await chromeAi.languageModel.create({
+    systemPrompt:
+      "你是内嵌在管理后台中的中文 AI 助手，需要用简体中文回答问题。",
+  });
+
+  const historyText = conversationHistory
+    .map((item) => `${item.role === "user" ? "用户" : "助手"}: ${item.content}`)
+    .join("\n");
+
+  const fullPrompt = `${historyText}\n用户: ${userMessage}\n助手:`;
+  const result = await session.prompt(fullPrompt);
+
+  messages.value.push({
+    role: "assistant",
+    content: String(result).trim(),
+  });
+};
+
 // 监听配置变化
 watch(
   () => $storage?.configure,
@@ -283,6 +339,9 @@ watch(
     skin.value = newConfig?.aiChatSkin ?? "robot";
     apiKey.value = newConfig?.aiChatApiKey ?? "";
     apiUrl.value = newConfig?.aiChatApiUrl ?? "";
+    vendor.value = newConfig?.aiChatVendor ?? "hf";
+    model.value =
+      newConfig?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct";
   },
   { deep: true },
 );
@@ -334,13 +393,69 @@ watch(
   animation: float 3s ease-in-out infinite;
 }
 
-.ai-bot-pulse {
+.ai-bot-cradle {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  left: 50%;
+  bottom: 6px;
+  width: 48px;
+  height: 26px;
+  transform: translateX(-50%);
+  pointer-events: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 2px;
+  }
+}
+
+.cradle-ball {
+  position: absolute;
+  top: 4px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 2px solid rgba(102, 126, 234, 0.6);
-  animation: pulse 2s ease-out infinite;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  transform-origin: 50% -12px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    width: 1px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.55);
+    transform: translateX(-50%);
+  }
+
+  &.ball-1 {
+    left: 0;
+    animation: cradle-left 1.6s ease-in-out infinite;
+  }
+
+  &.ball-2 {
+    left: 10px;
+  }
+
+  &.ball-3 {
+    left: 20px;
+  }
+
+  &.ball-4 {
+    left: 30px;
+  }
+
+  &.ball-5 {
+    left: 40px;
+    animation: cradle-right 1.6s ease-in-out infinite;
+  }
 }
 
 .ai-chat-window {
@@ -543,14 +658,31 @@ watch(
   }
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
+@keyframes cradle-left {
+  0%,
+  50%,
   100% {
-    transform: scale(1.5);
-    opacity: 0;
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(-32deg);
+  }
+  25% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes cradle-right {
+  0%,
+  50%,
+  100% {
+    transform: rotate(0deg);
+  }
+  60% {
+    transform: rotate(32deg);
+  }
+  75% {
+    transform: rotate(0deg);
   }
 }
 

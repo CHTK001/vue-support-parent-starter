@@ -1,5 +1,5 @@
 <template>
-  <span v-if="showBadge" class="menu-new-badge" :class="[badgeClass, animationClass]">
+  <span v-if="showBadge" class="menu-new-badge" :class="[badgeClass, animationClass]" :style="badgeStyle">
     {{ badgeText }}
   </span>
 </template>
@@ -24,9 +24,11 @@ interface Props {
   /** 自定义标识文本 */
   customText?: string;
   /** 标识样式类型 */
-  type?: "default" | "primary" | "success" | "warning" | "danger";
+  type?: "default" | "primary" | "success" | "warning" | "danger" | "custom";
   /** 动画类型 */
   animation?: "none" | "bounce" | "pulse" | "shake";
+  /** 自定义颜色（当 type 为 custom 时生效） */
+  customColor?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -34,7 +36,8 @@ const props = withDefaults(defineProps<Props>(), {
   forceShow: false,
   customText: "",
   type: "primary",
-  animation: "bounce"
+  animation: "bounce",
+  customColor: ""
 });
 
 // 获取静态平台配置
@@ -42,6 +45,37 @@ const config = getConfig();
 
 // 获取本地响应式存储（用于覆盖平台默认配置）
 const { $storage } = useGlobal();
+
+/**
+ * 计算实际使用的类型（从全局配置读取）
+ */
+const actualType = computed(() => {
+  // 如果组件传入了 type，优先使用组件的 type
+  if (props.type !== "primary") {
+    return props.type;
+  }
+
+  // 否则从全局配置读取
+  const localType = $storage?.configure?.newMenuBadgeType as string | undefined;
+  return localType || props.type;
+});
+
+/**
+ * 计算实际使用的颜色
+ */
+const actualColor = computed(() => {
+  // 如果是 custom 类型，使用自定义颜色
+  if (actualType.value === "custom") {
+    // 优先使用组件传入的颜色
+    if (props.customColor) {
+      return props.customColor;
+    }
+    // 其次使用全局配置的颜色
+    const localColor = $storage?.configure?.newMenuBadgeColor as string | undefined;
+    return localColor || "#409eff";
+  }
+  return "";
+});
 
 /**
  * 计算是否显示新增标识
@@ -54,10 +88,7 @@ const showBadge = computed(() => {
 
   // 读取本地覆盖配置（优先级高于平台配置）
   const localShow = $storage?.configure?.showNewMenu as boolean | undefined;
-  const enabled =
-    typeof localShow === "boolean"
-      ? localShow
-      : (config.ShowNewMenu ?? true);
+  const enabled = typeof localShow === "boolean" ? localShow : (config.ShowNewMenu ?? true);
 
   if (!enabled) {
     return false;
@@ -75,10 +106,7 @@ const showBadge = computed(() => {
 
   // 从本地配置读取时间限制，未配置时回退到平台默认
   const localLimit = $storage?.configure?.newMenuTimeLimit as number | undefined;
-  const timeLimit =
-    typeof localLimit === "number" && localLimit > 0
-      ? localLimit
-      : (config.NewMenuTimeLimit || 168);
+  const timeLimit = typeof localLimit === "number" && localLimit > 0 ? localLimit : config.NewMenuTimeLimit || 168;
 
   // 在时间限制内才显示标识
   return diffHours <= timeLimit;
@@ -107,14 +135,50 @@ const badgeText = computed(() => {
  * 标识样式类
  */
 const badgeClass = computed(() => {
-  return `menu-new-badge--${props.type}`;
+  return `menu-new-badge--${actualType.value}`;
 });
+
+/**
+ * 自定义样式对象（用于 custom 类型）
+ */
+const badgeStyle = computed(() => {
+  if (actualType.value === "custom" && actualColor.value) {
+    return {
+      background: `linear-gradient(135deg, ${actualColor.value}, ${lightenColor(actualColor.value, 20)})`,
+      boxShadow: `0 2px 6px ${hexToRgba(actualColor.value, 0.3)}`
+    };
+  }
+  return {};
+});
+
+/**
+ * 颜色加亮函数
+ */
+function lightenColor(color: string, percent: number): string {
+  const num = parseInt(color.replace("#", ""), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = (num >> 16) + amt;
+  const G = ((num >> 8) & 0x00ff) + amt;
+  const B = (num & 0x0000ff) + amt;
+  return "#" + (0x1000000 + (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 + (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 + (B < 255 ? (B < 1 ? 0 : B) : 255)).toString(16).slice(1);
+}
+
+/**
+ * 十六进制转 RGBA
+ */
+function hexToRgba(hex: string, alpha: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 /**
  * 动画样式类
  */
 const animationClass = computed(() => {
-  if (props.animation === 'none') return '';
+  if (props.animation === "none") return "";
   return `animate-${props.animation}`;
 });
 </script>
@@ -190,6 +254,11 @@ const animationClass = computed(() => {
     box-shadow: 0 2px 6px rgba(245, 108, 108, 0.3);
   }
 
+  // 自定义样式（通过内联样式覆盖）
+  &--custom {
+    color: #ffffff;
+  }
+
   // 暗色主题适配
   .dark & {
     &--default {
@@ -243,7 +312,11 @@ const animationClass = computed(() => {
 
 // 弹跳动画
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateY(0);
   }
   40% {
@@ -256,13 +329,30 @@ const animationClass = computed(() => {
 
 // 摇晃动画
 @keyframes shake {
-  0%, 100% { transform: rotate(0deg); }
-  10% { transform: rotate(-10deg); }
-  20% { transform: rotate(8deg); }
-  30% { transform: rotate(-8deg); }
-  40% { transform: rotate(6deg); }
-  50% { transform: rotate(-4deg); }
-  60% { transform: rotate(2deg); }
-  70% { transform: rotate(0deg); }
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(-10deg);
+  }
+  20% {
+    transform: rotate(8deg);
+  }
+  30% {
+    transform: rotate(-8deg);
+  }
+  40% {
+    transform: rotate(6deg);
+  }
+  50% {
+    transform: rotate(-4deg);
+  }
+  60% {
+    transform: rotate(2deg);
+  }
+  70% {
+    transform: rotate(0deg);
+  }
 }
 </style>

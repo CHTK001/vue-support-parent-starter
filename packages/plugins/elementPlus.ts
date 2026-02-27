@@ -117,7 +117,7 @@ import {
   ElPopoverDirective, // v-popover 指令
   ElMessage, // $message 全局属性对象globalProperties
   ElMessageBox, // $msgbox、$alert、$confirm、$prompt 全局属性对象globalProperties
-  ElNotification // $notify 全局属性对象globalProperties
+  ElNotification, // $notify 全局属性对象globalProperties
 } from "element-plus";
 
 const components = [
@@ -223,73 +223,111 @@ const components = [
   ElWatermark,
   ElTour,
   ElTourStep,
-  ElSegmented
+  ElSegmented,
 ];
 
-const plugins = [ElLoading, ElInfiniteScroll, ElPopoverDirective, ElMessage, ElMessageBox, ElNotification];
+const plugins = [
+  ElLoading,
+  ElInfiniteScroll,
+  ElPopoverDirective,
+  ElMessage,
+  ElMessageBox,
+  ElNotification,
+];
 
 /**
  * 已存在的 `ScXxx` 组件名称
- * 这些组件在 `@repo/components` 中已有自定义实现，避免在此处用别名覆盖
+ * 这些组件在 `@repo/components` 中已有自定义实现,避免在此处用别名覆盖
  */
 const existingScComponentNames = new Set<string>([
+  "ScAlert",
+  "ScAutocomplete",
+  "ScAvatar",
+  "ScBadge",
+  "ScBreadcrumb",
   "ScButton",
   "ScCard",
+  "ScCascader",
+  "ScCheckbox",
+  "ScCheckboxGroup",
   "ScCode",
+  "ScCol",
+  "ScColorPicker",
   "ScCompare",
   "ScContainer",
   "ScContextMenu",
   "ScCron",
   "ScCropper",
+  "ScDatePicker",
   "ScDebugConsole",
   "ScDeco",
-  "ScDialog",
   "ScDictSelect",
+  "ScDialog",
+  "ScDivider",
   "ScDrag",
   "ScDrawer",
   "ScDymaicTable",
   "ScEcharts",
   "ScEditor",
+  "ScEmpty",
   "ScFile",
   "ScFilterBar",
+  "ScForm",
+  "ScFormItem",
   "ScFormTable",
   "ScFullscreenLoading",
   "ScHeader",
   "ScIcon",
   "ScImage",
   "ScInput",
+  "ScInputNumber",
   "ScIp",
   "ScLayer",
   "ScLazy",
+  "ScLink",
   "ScLoadCompent",
   "ScLoading",
   "ScMap",
+  "ScMenu",
   "ScMessageDialog",
   "ScMini",
   "ScNumber",
+  "ScOption",
   "ScPagintion",
   "ScPanel",
   "ScPanelTitle",
   "ScPasswordStrength",
+  "ScPopconfirm",
+  "ScPopover",
   "ScProgress",
   "ScPromQL",
+  "ScRadio",
+  "ScRadioGroup",
+  "ScRate",
   "ScRegion",
   "ScReteEditor",
   "ScRibbon",
+  "ScRow",
   "ScSelect",
   "ScSelectFilter",
   "ScSlider",
   "ScSocketMessageDialog",
+  "ScSteps",
   "ScSwitch",
   "ScTable",
+  "ScTableColumn",
   "ScTableSelect",
+  "ScTabs",
+  "ScTag",
   "ScText",
   "ScThree",
+  "ScTimePicker",
   "ScTip",
+  "ScTooltip",
   "ScTree",
   "ScUpload",
   "ScVideo",
-  "ScWorkflow"
+  "ScWorkflow",
 ]);
 
 /** 按需引入 `element-plus`，并为每个组件补充 `ScXxx` 别名（如 `ElButton` => `ScButton`） */
@@ -298,13 +336,13 @@ export function useElementPlus(app: App) {
   if (ElDialog.props) {
     ElDialog.props.appendToBody = {
       ...ElDialog.props.appendToBody,
-      default: true
+      default: true,
     };
   }
   if (ElDrawer.props) {
     ElDrawer.props.appendToBody = {
       ...ElDrawer.props.appendToBody,
-      default: true
+      default: true,
     };
   }
 
@@ -327,13 +365,13 @@ export function useElementPlus(app: App) {
     // 直接复用原组件实例，仅修改 name 以便调试区分
     const alias = {
       ...component,
-      name: scName
+      name: scName,
     } as Component;
 
     app.component(scName, alias);
   });
   // 全局注册插件
-  plugins.forEach(plugin => {
+  plugins.forEach((plugin) => {
     app.use(plugin);
   });
 }

@@ -10,7 +10,20 @@
 
 /// <reference types="vite/client" />
 
-declare module '*.vue' {
-  const component: DefineComponent<{}, {}, any>
-  export default component
+import type { DefineComponent } from "vue";
+
+declare module "*.vue" {
+  const component: DefineComponent<{}, {}, any>;
+  export default component;
 }
+
+declare module "@vue/runtime-core" {
+  interface ComponentCustomProperties {
+    /**
+     * 兼容浏览器注入脚本（通常来自扩展）在 render 期间读取组件代理字段。
+     */
+    __proxyIdCheat__?: number;
+  }
+}
+
+export {};

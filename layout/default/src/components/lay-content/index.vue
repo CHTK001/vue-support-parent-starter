@@ -55,7 +55,7 @@ const cachePageList = computed(() => permissionStore.cachePageList);
 
 // 组件缓存，从配置中读取
 const isKeepAlive = ref(
-  $storage?.configure?.keepAlive ?? $config?.KeepAlive ?? true
+  $storage?.configure?.keepAlive ?? $config?.KeepAlive ?? true,
 );
 
 const transitions = computed(() => {
@@ -84,7 +84,8 @@ const confirmOnLeave = ref($storage?.configure?.confirmOnLeave ?? false);
 
 // Backtop 目标容器就绪标记，避免 ElementPlus target 不存在报错
 const backtopReady = ref(false);
-const backtopTargetSelector = ".content-area .sidebar-custom .el-scrollbar__wrap";
+const backtopTargetSelector =
+  ".content-area .sidebar-custom .el-scrollbar__wrap";
 
 // 初始化离开确认功能
 if (confirmOnLeave.value) {
@@ -93,11 +94,31 @@ if (confirmOnLeave.value) {
 
 // 使用 useLayoutEvents 统一管理所有事件，自动在组件卸载时注销
 useLayoutEvents([
-  { name: "keepAliveChange", handler: (v: boolean) => { isKeepAlive.value = v; } },
+  {
+    name: "keepAliveChange",
+    handler: (v: boolean) => {
+      isKeepAlive.value = v;
+    },
+  },
   // 统一使用菜单过渡动画事件，默认关闭，用户可在设置面板手动开启
-  { name: "menuTransitionChange", handler: (v: boolean) => { menuTransition.value = v; } },
-  { name: "transitionTypeChange", handler: (v: string) => { transitionType.value = v; } },
-  { name: "hideFooterChange", handler: (v: boolean) => { hideFooter.value = v; } },
+  {
+    name: "menuTransitionChange",
+    handler: (v: boolean) => {
+      menuTransition.value = v;
+    },
+  },
+  {
+    name: "transitionTypeChange",
+    handler: (v: string) => {
+      transitionType.value = v;
+    },
+  },
+  {
+    name: "hideFooterChange",
+    handler: (v: boolean) => {
+      hideFooter.value = v;
+    },
+  },
   {
     name: "confirmOnLeaveChange",
     handler: (v: boolean) => {
@@ -157,11 +178,11 @@ onMounted(() => {
     document.body.style.setProperty("overflow", "hidden");
     document.body.style.setProperty(
       "--contentMargin",
-      contentMargin.value + "px"
+      contentMargin.value + "px",
     );
     document.body.style.setProperty(
       "--layoutRadius",
-      layoutRadius.value + "px"
+      layoutRadius.value + "px",
     );
 
     // 等待 DOM 完整挂载后再检查 Backtop 目标容器是否存在
@@ -213,7 +234,7 @@ const loadError = ref<Error | null>(null);
 onErrorCaptured((err) => {
   loadError.value = err;
   suspenseLoading.value = false;
-  console.error('组件加载错误:', err);
+  console.error("组件加载错误:", err);
   return false; // 阻止错误继续传播
 });
 
@@ -226,12 +247,12 @@ watch(
       loadError.value = null;
       // 路由变化时立即显示loading
       routeLoading.value = true;
-      
+
       // 清除之前的定时器
       if (loadingTimer) {
         clearTimeout(loadingTimer);
       }
-      
+
       // 最小显示时间后隐藏
       loadingTimer = setTimeout(() => {
         nextTick(() => {
@@ -240,7 +261,7 @@ watch(
       }, MIN_LOADING_TIME);
     }
   },
-  { immediate: false, flush: 'sync' }
+  { immediate: false, flush: "sync" },
 );
 
 onBeforeUnmount(() => {
@@ -259,9 +280,9 @@ onBeforeUnmount(() => {
     :style="getSectionStyle"
   >
     <!-- 加载状态骨架屏：去掉过渡动画，避免路由切换时整块内容产生动画 -->
-    <RouteLoadingSkeleton 
-      v-if="isLoading" 
-      :rows="6" 
+    <RouteLoadingSkeleton
+      v-if="isLoading"
+      :rows="6"
       :show-header="true"
       loading-text="页面加载中..."
       :min-height="fixedHeader ? 'calc(100vh - 120px)' : '400px'"
@@ -271,7 +292,13 @@ onBeforeUnmount(() => {
     <div v-if="loadError && !isLoading" class="route-error-container">
       <el-result icon="error" title="加载失败" :sub-title="loadError.message">
         <template #extra>
-          <ScButton type="primary" @click="loadError = null; $router.go(0)">
+          <ScButton
+            type="primary"
+            @click="
+              loadError = null;
+              $router.go(0);
+            "
+          >
             重新加载
           </ScButton>
         </template>
@@ -287,92 +314,120 @@ onBeforeUnmount(() => {
         >
           <LayFrame :currComp="Component" :currRoute="route">
             <template #default="{ Comp, fullPath, frameInfo }">
-            <div
-              v-if="fixedHeader"
-              class="content-area"
-              :style="{
-                'max-width': getMainWidth,
-                margin: '0 auto',
-                height: `calc(100vh - ${headerHeight}px)`,
-                padding: `${contentMargin}px`,
-                boxSizing: 'border-box'
-              }"
-            >
-              <el-backtop
-                v-if="cardBody && backtopReady"
-                :title="t('buttons.pureBackTop')"
-                :target="backtopTargetSelector"
-              />
-              <ScCard 
-                class="layout sidebar-custom thin-scroller"
-                :class="{ 'no-card-mode': !cardBody }"
-                :shadow="cardBody ? 'always' : 'never'"
-                :body-style="{ padding: '0', height: '100%', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }"
+              <div
+                v-if="fixedHeader"
+                class="content-area"
                 :style="{
-                  height: '100%',
-                  width: '100%',
-                  maxWidth: '100%',
-                  'border-radius': layoutRadius + 'px  !important',
-                  boxSizing: 'border-box'
+                  'max-width': getMainWidth,
+                  margin: '0 auto',
+                  height: `calc(100vh - ${headerHeight}px)`,
+                  padding: `${contentMargin}px`,
+                  boxSizing: 'border-box',
                 }"
               >
-                <el-scrollbar class="card-scrollbar">
-                  <div style="min-height: 100%; width: 100%; max-width: 100%; display: flex; box-sizing: border-box;">
-                    <ContentRenderer
-                      :comp="Comp"
-                      :route="route"
-                      :is-keep-alive="isKeepAlive"
-                      :cache-page-list="cachePageList"
-                      :frame-info="frameInfo"
-                      :menu-transition="menuTransition"
-                      :transition-type="transitionType"
-                    />
-                  </div>
-                </el-scrollbar>
-              </ScCard>
-            </div>
-          <div
-            v-else
-            class="grow bg-layout"
-            :style="{
-              maxWidth: getMainWidth,
-              margin: '0 auto'
-            }"
-          >
-              <ScCard 
-                class="h-full layout sidebar-custom"
-                :class="{ 'no-card-mode': !cardBody }"
-                :shadow="cardBody ? 'always' : 'never'"
-                :body-style="{ padding: '0', height: '100%', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }"
+                <el-backtop
+                  v-if="cardBody && backtopReady"
+                  :title="t('buttons.pureBackTop')"
+                  :target="backtopTargetSelector"
+                />
+                <ScCard
+                  class="layout sidebar-custom thin-scroller card-height"
+                  :class="{ 'no-card-mode': !cardBody }"
+                  :shadow="cardBody ? 'always' : 'never'"
+                  :body-style="{
+                    padding: '0',
+                    height: '100%',
+                    width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                  }"
+                  :style="{
+                    height: '100%',
+                    width: '100%',
+                    maxWidth: '100%',
+                    'border-radius': layoutRadius + 'px  !important',
+                    boxSizing: 'border-box',
+                  }"
+                >
+                  <el-scrollbar class="card-scrollbar">
+                    <div
+                      style="
+                        min-height: 100%;
+                        width: 100%;
+                        max-width: 100%;
+                        display: flex;
+                        box-sizing: border-box;
+                      "
+                    >
+                      <ContentRenderer
+                        :comp="Comp"
+                        :route="route"
+                        :is-keep-alive="isKeepAlive"
+                        :cache-page-list="cachePageList"
+                        :frame-info="frameInfo"
+                        :menu-transition="menuTransition"
+                        :transition-type="transitionType"
+                      />
+                    </div>
+                  </el-scrollbar>
+                </ScCard>
+              </div>
+              <div
+                v-else
+                class="grow bg-layout"
                 :style="{
-                  height: 'calc(100% - ' + contentMargin * 2 + 'px)',
-                  width: '100%',
-                  maxWidth: '100%',
-                  'border-radius': layoutRadius + 'px  !important',
-                  margin: contentMargin + 'px',
-                  boxSizing: 'border-box'
+                  maxWidth: getMainWidth,
+                  margin: '0 auto',
                 }"
               >
-                <el-scrollbar class="card-scrollbar">
-                  <div style="padding: 20px; min-height: 100%; width: 100%; max-width: 100%; box-sizing: border-box;">
-                    <ContentRenderer
-                      :comp="Comp"
-                      :route="route"
-                      :is-keep-alive="isKeepAlive"
-                      :cache-page-list="cachePageList"
-                      :frame-info="frameInfo"
-                      :menu-transition="menuTransition"
-                      :transition-type="transitionType"
-                    />
-                  </div>
-                </el-scrollbar>
-              </ScCard>
-            </div>
-          </template>
-        </LayFrame>
+                <ScCard
+                  class="h-full layout sidebar-custom sssss"
+                  :class="{ 'no-card-mode': !cardBody }"
+                  :shadow="cardBody ? 'always' : 'never'"
+                  :body-style="{
+                    padding: '0',
+                    height: '100%',
+                    width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                  }"
+                  :style="{
+                    height: 'calc(100% - ' + contentMargin * 2 + 'px)',
+                    width: '100%',
+                    maxWidth: '100%',
+                    'border-radius': layoutRadius + 'px  !important',
+                    margin: contentMargin + 'px',
+                    boxSizing: 'border-box',
+                  }"
+                >
+                  <el-scrollbar class="card-scrollbar">
+                    <div
+                      style="
+                        padding: 20px;
+                        min-height: 100%;
+                        width: 100%;
+                        max-width: 100%;
+                        box-sizing: border-box;
+                      "
+                    >
+                      <ContentRenderer
+                        :comp="Comp"
+                        :route="route"
+                        :is-keep-alive="isKeepAlive"
+                        :cache-page-list="cachePageList"
+                        :frame-info="frameInfo"
+                        :menu-transition="menuTransition"
+                        :transition-type="transitionType"
+                      />
+                    </div>
+                  </el-scrollbar>
+                </ScCard>
+              </div>
+            </template>
+          </LayFrame>
           <template #fallback>
-            <RouteLoadingSkeleton 
-              :rows="6" 
+            <RouteLoadingSkeleton
+              :rows="6"
               :show-header="true"
               loading-text="组件加载中..."
               :min-height="fixedHeader ? 'calc(100vh - 120px)' : '400px'"
@@ -399,6 +454,9 @@ onBeforeUnmount(() => {
 }
 .el-card:hover {
   transform: none !important;
+}
+.card-height {
+  height: 100%;
 }
 .sidebar-custom {
   width: 100% !important; /* 强制宽度为 100% */
@@ -431,7 +489,7 @@ onBeforeUnmount(() => {
     max-width: 100% !important; /* 限制 body 最大宽度 */
     box-sizing: border-box;
   }
-  
+
   // 内部内容滚动
   :deep(.main-content) {
     min-height: 100%;
@@ -439,19 +497,19 @@ onBeforeUnmount(() => {
     max-width: 100%; /* 限制内容最大宽度 */
     box-sizing: border-box;
   }
-  
+
   // 滚动条容器宽度限制
   :deep(.el-scrollbar) {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box;
-    
+
     .el-scrollbar__wrap {
       width: 100% !important;
       max-width: 100% !important;
       box-sizing: border-box;
     }
-    
+
     .el-scrollbar__view {
       width: 100% !important;
       max-width: 100% !important;
@@ -462,7 +520,7 @@ onBeforeUnmount(() => {
 
 .content-scrollbar {
   background: var(--el-bg-color);
-  
+
   // 确保 scrollbar 的视图区域也是满高度，否则内部元素 height: 100% 会失效
   :deep(.el-scrollbar__wrap) {
     height: 100%;
@@ -489,7 +547,7 @@ onBeforeUnmount(() => {
   /* 禁止内部内容产生滚动条，统一由外层 el-scrollbar 处理 */
   :deep(.main-content) {
     overflow: visible !important;
-    height: 100% !important;
+    min-height: 100% !important;
     flex: 1;
   }
 
@@ -649,10 +707,14 @@ onBeforeUnmount(() => {
   border-radius: var(--layoutRadius, 10px);
   margin: var(--contentMargin, 16px);
   border: 1px solid var(--el-card-border-color);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.02);
 
   .dark & {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.15),
+      0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   :deep(.el-skeleton) {
@@ -665,13 +727,13 @@ onBeforeUnmount(() => {
   width: 100% !important;
   max-width: 100% !important; /* 限制滚动条容器最大宽度 */
   box-sizing: border-box;
-  
+
   :deep(.el-scrollbar__wrap) {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box;
   }
-  
+
   :deep(.el-scrollbar__view) {
     height: 100%;
     width: 100% !important;

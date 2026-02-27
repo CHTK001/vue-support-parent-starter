@@ -941,7 +941,7 @@ const deferTag = useDefer(tagsViews?.length);
   font-size: 13px;
 
   .tag-icon {
-    margin-right: 4px;
+    margin-right: 2px;
     vertical-align: -2px;
   }
 
@@ -1016,7 +1016,7 @@ const deferTag = useDefer(tagsViews?.length);
   border-bottom: none;
   
   .tag-icon {
-    margin-right: 4px;
+    margin-right: 2px;
     vertical-align: -2px;
   }
 
@@ -1074,7 +1074,7 @@ const deferTag = useDefer(tagsViews?.length);
   background-color: transparent;
   
   .tag-icon {
-    margin-right: 4px;
+    margin-right: 2px;
     vertical-align: -2px;
   }
 
