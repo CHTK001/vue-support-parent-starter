@@ -1,7 +1,20 @@
 <template>
-  <component :is="currentComponent || ElBadge" :value="value" :max="max" :is-dot="isDot" :hidden="hidden" :type="type" :show-zero="showZero" :color="color" :offset="offset">
+  <component
+    :is="currentComponent || ElBadge"
+    :value="value"
+    :max="max"
+    :is-dot="isDot"
+    :hidden="hidden"
+    :type="type"
+    :show-zero="showZero"
+    :color="color"
+    :offset="offset"
+  >
     <template v-if="$slots.default" #default>
       <slot />
+    </template>
+    <template v-if="$slots.content" #content>
+      <slot name="content" />
     </template>
   </component>
 </template>
@@ -12,12 +25,11 @@
  * 封装 Element Plus Badge 与 PixelUI PxBadge
  * 在 data-skin 为 8bit 时自动切换为像素风徽章
  */
-import { computed } from "vue";
 import type { PropType } from "vue";
 import { ElBadge } from "element-plus";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 
-defineProps({
+const props = defineProps({
   value: {
     type: [String, Number],
     default: ""
@@ -53,6 +65,4 @@ defineProps({
 });
 
 const { currentComponent } = useThemeComponent("ElBadge");
-
-
 </script>
