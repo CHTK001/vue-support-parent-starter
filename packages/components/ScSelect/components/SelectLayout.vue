@@ -51,12 +51,6 @@ import { ref, watch } from "vue";
 import { ElSelect, ElOption } from "element-plus";
 import { IconifyIconOnline } from "../../ReIcon";
 import { ScButton } from "../../ScButton";
-import { ScOption } from "../../ScOption";
-import { useThemeComponent } from "../../hooks/useThemeComponent";
-
-// 使用主题组件系统
-const { currentComponent: currentSelectComponent } = useThemeComponent("ElSelect");
-const { currentComponent: currentOptionComponent } = useThemeComponent("ElOption");
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import IconRenderer from "./IconRenderer.vue";
 
@@ -95,11 +89,11 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue", "change", "selectAll", "invertSelection", "clearSelection"]);
 
-// 使用主题组件系统 V2.0
+// 使用主题组件系统
 const { currentComponent: currentSelectComponent } = useThemeComponent("ElSelect");
 // Note: ElOption 通常不需要单独主题化，因为它是 ElSelect 的子组件
 // 但为了完整性，我们也提供主题支持
-const currentOptionComponent = ref(ElOption);
+const { currentComponent: currentOptionComponent } = useThemeComponent("ElOption");
 
 // 本地绑定值
 const modelValue = ref(props.modelValue);
