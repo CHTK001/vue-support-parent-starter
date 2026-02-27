@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-password-strength-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,35 +8,35 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="placeholder 占位文本">
-            <el-input v-model="config.placeholder" placeholder="输入占位文本" />
-          </el-form-item>
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="placeholder 占位文本">
+            <ScInput v-model="config.placeholder" placeholder="输入占位文本" />
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="switch-group">
             <div class="switch-item">
-              <el-tooltip content="是否禁用输入" placement="left">
+              <ScTooltip content="是否禁用输入" placement="left">
                 <span>disabled 禁用</span>
-              </el-tooltip>
-              <el-switch v-model="config.disabled" />
+              </ScTooltip>
+              <ScSwitch v-model="config.disabled" />
             </div>
           </div>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="action-buttons">
-            <el-button type="primary" size="small" @click="generatePassword">
+            <ScButton type="primary" size="small" @click="generatePassword">
               <IconifyIconOnline icon="ri:key-line" />
               生成密码
-            </el-button>
-            <el-button size="small" @click="clearPassword">
+            </ScButton>
+            <ScButton size="small" @click="clearPassword">
               <IconifyIconOnline icon="ri:delete-bin-line" />
               清空
-            </el-button>
+            </ScButton>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

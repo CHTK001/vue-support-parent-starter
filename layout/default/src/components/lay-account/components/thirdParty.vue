@@ -1,42 +1,42 @@
-<template>
+﻿<template>
   <div>
     <div class="h-[300px]">
-      <el-divider>
+      <ScDivider>
         <p class="text-gray-500 text-xs">
           {{ $t("login.pureThirdLogin") }}
         </p>
-      </el-divider>
+      </ScDivider>
       <div v-if="unbindThirdParty.length > 0" class="w-full flex justify-evenly">
         <span v-for="(item, index) in unbindThirdParty" :key="index" :title="transformI18n(item.title)" @click="handleBindCode(item)">
           <IconifyIconOnline size="large" :icon="`${item.icon}`" width="40" class="cursor-pointer text-gray-500 hover:text-blue-400" />
         </span>
       </div>
-      <el-empty v-else />
+      <ScEmpty v-else />
     </div>
     <div class="mt-[100px]">
-      <el-divider>
+      <ScDivider>
         <p class="text-gray-500 text-xs">
           {{ $t("login.pureThirdLoginBinded") }}
         </p>
-      </el-divider>
+      </ScDivider>
       <div class="w-full flex justify-evenly">
-        <el-table :data="bindThirdParty">
-          <el-table-column prop="title" label="三方">
+        <ScTable :data="bindThirdParty">
+          <ScTableColumn prop="title" label="三方">
             <template #default="scope">
               <span class="flex flex-1">
                 <IconifyIconOnline size="large" :icon="`${scope.row.icon}`" width="25" class="mr-2" style="fill: currentColor" />
                 <span>{{ scope.row.title }}</span>
               </span>
             </template>
-          </el-table-column>
-          <el-table-column prop="title" label="操作">
+          </ScTableColumn>
+          <ScTableColumn prop="title" label="操作">
             <template #default="scope">
-              <el-button type="primary" size="mini" text plain @click="handleUnBindCode(scope.row)">
+              <ScButton type="primary" size="mini" text plain @click="handleUnBindCode(scope.row)">
                 {{ $t("login.unbind") }}
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
       </div>
     </div>
   </div>

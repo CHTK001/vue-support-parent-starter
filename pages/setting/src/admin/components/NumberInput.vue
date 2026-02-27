@@ -1,5 +1,5 @@
-<template>
-  <el-input-number v-model="innerValue" :disabled="disabled" :placeholder="placeholder" :controls="controls" :precision="precision" :step="step" :min="min" :max="max" class="sc-number-input" />
+﻿<template>
+  <ScInputNumber v-model="innerValue" :disabled="disabled" :placeholder="placeholder" :controls="controls" :precision="precision" :step="step" :min="min" :max="max" class="sc-number-input" />
 </template>
 
 <script setup>

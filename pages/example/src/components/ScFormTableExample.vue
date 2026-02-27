@@ -1,20 +1,20 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ScFormTable 表单表格示例</h2>
     <p class="example-desc">可编辑表格组件，支持拖拽排序、动态增删行等功能</p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="demo-controls">
-        <el-button type="primary" @click="addRow">
+        <ScButton type="primary" @click="addRow">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加行
-        </el-button>
-        <el-button @click="clearRows">
+        </ScButton>
+        <ScButton @click="clearRows">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           清空
-        </el-button>
+        </ScButton>
       </div>
 
       <ScFormTable
@@ -23,43 +23,43 @@
         :dragSort="config.dragSort"
         :height="280"
       >
-        <el-table-column prop="key" label="键">
+        <ScTableColumn prop="key" label="键">
           <template #default="{ row }">
-            <el-input v-model="row.key" placeholder="键" />
+            <ScInput v-model="row.key" placeholder="键" />
           </template>
-        </el-table-column>
-        <el-table-column prop="value" label="值">
+        </ScTableColumn>
+        <ScTableColumn prop="value" label="值">
           <template #default="{ row }">
-            <el-input v-model="row.value" placeholder="值" />
+            <ScInput v-model="row.value" placeholder="值" />
           </template>
-        </el-table-column>
+        </ScTableColumn>
       </ScFormTable>
 
-      <el-divider content-position="left">属性配置</el-divider>
+      <ScDivider content-position="left">属性配置</ScDivider>
 
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="拖拽排序">
-              <el-switch v-model="config.dragSort" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+      <ScForm label-width="120px" class="config-form">
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="拖拽排序">
+              <ScSwitch v-model="config.dragSort" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="150" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 
@@ -112,16 +112,16 @@ const codeTabs = computed(() => [
     icon: "ri:code-s-slash-line",
     language: "vue",
     code: `<ScFormTable v-model="rows" :addTemplate="{ key: '', value: '' }" :dragSort="${config.dragSort}">
-  <el-table-column prop="key" label="键">
+  <ScTableColumn prop="key" label="键">
     <template #default="{ row }">
-      <el-input v-model="row.key" placeholder="键" />
+      <ScInput v-model="row.key" placeholder="键" />
     </template>
-  </el-table-column>
-  <el-table-column prop="value" label="值">
+  </ScTableColumn>
+  <ScTableColumn prop="value" label="值">
     <template #default="{ row }">
-      <el-input v-model="row.value" placeholder="值" />
+      <ScInput v-model="row.value" placeholder="值" />
     </template>
-  </el-table-column>
+  </ScTableColumn>
 </ScFormTable>`,
   },
   {

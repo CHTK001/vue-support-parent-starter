@@ -3,7 +3,7 @@
     <!-- 顶部导航栏 -->
     <div class="doc-header" v-if="showHeader">
       <div class="header-left">
-        <el-button
+        <ScButton 
           v-if="config.showBackButton"
           @click="$emit('back')"
           size="small"
@@ -12,7 +12,7 @@
         >
           <i class="ri-arrow-left-line"></i>
           返回
-        </el-button>
+        </ScButton>
         <div class="title-info" v-if="title">
           <i class="ri-server-line"></i>
           <span class="title-text">{{ title }}</span>
@@ -38,16 +38,16 @@
           :base-url="baseUrl"
         />
         <!-- 历史记录 -->
-        <el-button
+        <ScButton 
           v-if="config.showHistory"
           @click="historyDrawerVisible = true"
           size="small"
         >
           <i class="ri-history-line"></i>
           历史
-        </el-button>
+        </ScButton>
         <!-- Mock 配置 -->
-        <el-button
+        <ScButton 
           v-if="config.showMock"
           @click="mockDrawerVisible = true"
           size="small"
@@ -55,8 +55,8 @@
         >
           <i class="ri-database-2-line"></i>
           Mock
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton 
           v-if="config.showRefreshButton"
           @click="$emit('refresh')"
           :loading="loading"
@@ -64,7 +64,7 @@
         >
           <i class="ri-refresh-line"></i>
           刷新
-        </el-button>
+        </ScButton>
         <slot name="header-extra"></slot>
       </div>
     </div>
@@ -124,16 +124,16 @@
       <!-- 右侧结果面板 -->
       <div class="doc-result">
         <div class="result-header">
-          <el-tabs v-model="activeResultTab" class="result-tabs">
-            <el-tab-pane label="执行结果" name="result">
+          <ScTabs v-model="activeResultTab" class="result-tabs">
+            <ScTabPane label="执行结果" name="result">
               <template #label>
                 <span class="tab-label">
                   <i class="ri-play-circle-line"></i>
                   执行结果
                 </span>
               </template>
-            </el-tab-pane>
-            <el-tab-pane
+            </ScTabPane>
+            <ScTabPane 
               v-if="config.showCodeExamples"
               label="代码示例"
               name="examples"
@@ -144,21 +144,21 @@
                   代码示例
                 </span>
               </template>
-            </el-tab-pane>
-          </el-tabs>
+            </ScTabPane>
+          </ScTabs>
           <div class="result-actions">
-            <el-button
+            <ScButton 
               v-if="activeResultTab === 'result' && lastResponse"
               @click="handleCopyResponse"
               size="small"
             >
               <i class="ri-file-copy-line"></i>
               复制结果
-            </el-button>
-            <el-button v-if="lastResponse" @click="clearResponse" size="small">
+            </ScButton>
+            <ScButton v-if="lastResponse" @click="clearResponse" size="small">
               <i class="ri-delete-bin-line"></i>
               清空
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -222,6 +222,8 @@
 </template>
 
 <script setup lang="ts">
+
+import ScTabPane from "@repo/components/ScTabs";
 import { ref, reactive, watch, computed } from "vue";
 import type {
   ApiGroup,

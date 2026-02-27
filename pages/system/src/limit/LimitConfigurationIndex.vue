@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="limit-configuration-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -25,11 +25,11 @@
       </div>
     </div>
 
-    <el-card class="limit-configuration-card" shadow="never">
+    <ScCard class="limit-configuration-card" shadow="never">
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-input
+          <ScInput 
             v-model="searchForm.sysLimitPath"
             placeholder="接口路径"
             clearable
@@ -38,8 +38,8 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:links-line" />
             </template>
-          </el-input>
-          <el-input
+          </ScInput>
+          <ScInput 
             v-model="searchForm.sysLimitName"
             placeholder="规则名称"
             clearable
@@ -48,80 +48,80 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:text" />
             </template>
-          </el-input>
-          <el-select
+          </ScInput>
+          <ScSelect 
             v-model="searchForm.sysLimitStatus"
             placeholder="状态"
             clearable
             style="width: 120px"
           >
-            <el-option label="全部" :value="null" />
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
+            <ScOption label="全部" :value="null" />
+            <ScOption label="启用" :value="1" />
+            <ScOption label="禁用" :value="0" />
+          </ScSelect>
         </div>
         <div class="toolbar-right">
-          <el-button @click="handleReset">
+          <ScButton @click="handleReset">
             <IconifyIconOnline icon="ri:refresh-line" />
             重置
-          </el-button>
-          <el-button type="primary" @click="handleSearch">
+          </ScButton>
+          <ScButton type="primary" @click="handleSearch">
             <IconifyIconOnline icon="ri:search-line" />
             查询
-          </el-button>
-          <el-button type="success" @click="handleAdd">
+          </ScButton>
+          <ScButton type="success" @click="handleAdd">
             <IconifyIconOnline icon="ri:add-line" />
             新增配置
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
-      <el-form
+      <ScForm 
         :model="searchForm"
         :inline="true"
         class="search-form"
         style="display: none"
       >
-        <el-form-item label="接口路径">
-          <el-input
+        <ScFormItem label="接口路径">
+          <ScInput 
             v-model="searchForm.sysLimitPath"
             placeholder="请输入接口路径"
             clearable
           />
-        </el-form-item>
-        <el-form-item label="规则名称">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="规则名称">
+          <ScInput 
             v-model="searchForm.sysLimitName"
             placeholder="请输入规则名称"
             clearable
           />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select
+        </ScFormItem>
+        <ScFormItem label="状态">
+          <ScSelect 
             v-model="searchForm.sysLimitStatus"
             placeholder="请选择状态"
             clearable
           >
-            <el-option label="全部" :value="null" />
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button
+            <ScOption label="全部" :value="null" />
+            <ScOption label="启用" :value="1" />
+            <ScOption label="禁用" :value="0" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem>
+          <ScButton 
             type="primary"
             :icon="useRenderIcon('ep:search')"
             @click="handleSearch"
           >
             查询
-          </el-button>
-          <el-button :icon="useRenderIcon('ep:refresh')" @click="handleReset">
+          </ScButton>
+          <ScButton :icon="useRenderIcon('ep:refresh')" @click="handleReset">
             重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </ScButton>
+        </ScFormItem>
+      </ScForm>
 
-      <el-table
+      <ScTable 
         :data="tableData"
         v-loading="loading"
         border
@@ -129,60 +129,60 @@
         style="width: 100%"
         row-key="sysLimitConfigurationId"
       >
-        <el-table-column prop="sysLimitName" label="规则名称" min-width="120" />
-        <el-table-column prop="sysLimitPath" label="接口路径" min-width="150" />
-        <el-table-column
+        <ScTableColumn prop="sysLimitName" label="规则名称" min-width="120" />
+        <ScTableColumn prop="sysLimitPath" label="接口路径" min-width="150" />
+        <ScTableColumn 
           prop="sysLimitForPeriod"
           label="许可数量"
           min-width="100"
         />
-        <el-table-column
+        <ScTableColumn 
           prop="sysLimitRefreshPeriodSeconds"
           label="刷新周期(秒)"
           min-width="120"
         />
-        <el-table-column
+        <ScTableColumn 
           prop="sysLimitTimeoutDurationMillis"
           label="超时时间(毫秒)"
           min-width="120"
         />
-        <el-table-column
+        <ScTableColumn 
           prop="sysLimitDimension"
           label="限流维度"
           min-width="100"
         />
-        <el-table-column prop="sysLimitSort" label="排序" min-width="80" />
-        <el-table-column label="状态" min-width="80">
+        <ScTableColumn prop="sysLimitSort" label="排序" min-width="80" />
+        <ScTableColumn label="状态" min-width="80">
           <template #default="scope">
-            <el-tag
+            <ScTag 
               :type="scope.row.sysLimitStatus === 1 ? 'success' : 'danger'"
             >
               {{ scope.row.sysLimitStatus === 1 ? "启用" : "禁用" }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" min-width="150" />
-        <el-table-column label="操作" fixed="right" min-width="150">
+        </ScTableColumn>
+        <ScTableColumn prop="createTime" label="创建时间" min-width="150" />
+        <ScTableColumn label="操作" fixed="right" min-width="150">
           <template #default="scope">
-            <el-button
+            <ScButton 
               type="primary"
               link
               :icon="useRenderIcon('ep:edit')"
               @click="handleEdit(scope.row)"
             >
               编辑
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               type="danger"
               link
               :icon="useRenderIcon('ep:delete')"
               @click="handleDelete(scope.row)"
             >
               删除
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
 
       <div class="pagination-container">
         <el-pagination
@@ -195,7 +195,7 @@
           @current-change="handleCurrentChange"
         />
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 新增/编辑对话框 -->
     <sc-dialog
@@ -204,98 +204,98 @@
       width="600px"
       :close-on-click-modal="false"
     >
-      <el-form
+      <ScForm 
         ref="formRef"
         :model="formData"
         :rules="formRules"
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="规则名称" prop="sysLimitName">
-          <el-input
+        <ScFormItem label="规则名称" prop="sysLimitName">
+          <ScInput 
             v-model="formData.sysLimitName"
             placeholder="请输入规则名称"
           />
-        </el-form-item>
-        <el-form-item label="接口路径" prop="sysLimitPath">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="接口路径" prop="sysLimitPath">
+          <ScInput 
             v-model="formData.sysLimitPath"
             placeholder="请输入接口路径"
           />
-        </el-form-item>
-        <el-form-item label="许可数量" prop="sysLimitForPeriod">
-          <el-input-number
+        </ScFormItem>
+        <ScFormItem label="许可数量" prop="sysLimitForPeriod">
+          <ScInputNumber 
             v-model="formData.sysLimitForPeriod"
             :min="1"
             :max="10000"
             placeholder="请输入许可数量"
           />
-        </el-form-item>
-        <el-form-item label="刷新周期(秒)" prop="sysLimitRefreshPeriodSeconds">
-          <el-input-number
+        </ScFormItem>
+        <ScFormItem label="刷新周期(秒)" prop="sysLimitRefreshPeriodSeconds">
+          <ScInputNumber 
             v-model="formData.sysLimitRefreshPeriodSeconds"
             :min="1"
             :max="3600"
             placeholder="请输入刷新周期"
           />
-        </el-form-item>
-        <el-form-item
+        </ScFormItem>
+        <ScFormItem 
           label="超时时间(毫秒)"
           prop="sysLimitTimeoutDurationMillis"
         >
-          <el-input-number
+          <ScInputNumber 
             v-model="formData.sysLimitTimeoutDurationMillis"
             :min="1"
             :max="60000"
             placeholder="请输入超时时间"
           />
-        </el-form-item>
-        <el-form-item label="限流维度" prop="sysLimitDimension">
-          <el-select
+        </ScFormItem>
+        <ScFormItem label="限流维度" prop="sysLimitDimension">
+          <ScSelect 
             v-model="formData.sysLimitDimension"
             placeholder="请选择限流维度"
           >
-            <el-option label="全局" value="GLOBAL" />
-            <el-option label="IP" value="IP" />
-            <el-option label="用户" value="USER" />
-            <el-option label="接口" value="API" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="自定义键表达式" prop="sysLimitKeyExpression">
-          <el-input
+            <ScOption label="全局" value="GLOBAL" />
+            <ScOption label="IP" value="IP" />
+            <ScOption label="用户" value="USER" />
+            <ScOption label="接口" value="API" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="自定义键表达式" prop="sysLimitKeyExpression">
+          <ScInput 
             v-model="formData.sysLimitKeyExpression"
             type="textarea"
             placeholder="请输入自定义键表达式（SpEL）"
           />
-        </el-form-item>
-        <el-form-item label="降级方法名称" prop="sysLimitFallbackMethod">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="降级方法名称" prop="sysLimitFallbackMethod">
+          <ScInput 
             v-model="formData.sysLimitFallbackMethod"
             placeholder="请输入降级方法名称"
           />
-        </el-form-item>
-        <el-form-item label="错误消息" prop="sysLimitMessage">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="错误消息" prop="sysLimitMessage">
+          <ScInput 
             v-model="formData.sysLimitMessage"
             placeholder="请输入错误消息"
           />
-        </el-form-item>
-        <el-form-item label="描述信息" prop="sysLimitDescription">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="描述信息" prop="sysLimitDescription">
+          <ScInput 
             v-model="formData.sysLimitDescription"
             type="textarea"
             placeholder="请输入描述信息"
           />
-        </el-form-item>
-        <el-form-item label="排序" prop="sysLimitSort">
-          <el-input-number
+        </ScFormItem>
+        <ScFormItem label="排序" prop="sysLimitSort">
+          <ScInputNumber 
             v-model="formData.sysLimitSort"
             :min="0"
             :max="999"
             placeholder="请输入排序"
           />
-        </el-form-item>
-        <el-form-item label="状态" prop="sysLimitStatus">
+        </ScFormItem>
+        <ScFormItem label="状态" prop="sysLimitStatus">
           <ScSwitch
             v-model="formData.sysLimitStatus"
             :active-value="1"
@@ -304,12 +304,12 @@
             inactive-text="禁用"
             layout="modern"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSubmit">确定</el-button>
+          <ScButton @click="dialogVisible = false">取消</ScButton>
+          <ScButton type="primary" @click="handleSubmit">确定</ScButton>
         </span>
       </template>
     </sc-dialog>
@@ -318,8 +318,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from "vue";
-import { message } from "@repo/utils";
-import { ElMessageBox, type FormInstance } from "element-plus";
+import { message, ScMessageBox, type FormInstance } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import {
@@ -454,7 +453,7 @@ const handleEdit = (row: SysLimitConfiguration) => {
 
 // 删除
 const handleDelete = (row: SysLimitConfiguration) => {
-  ElMessageBox.confirm("确定要删除该限流配置吗？", "提示", {
+  ScMessageBox.confirm("确定要删除该限流配置吗？", "提示", {
     type: "warning",
   })
     .then(async () => {

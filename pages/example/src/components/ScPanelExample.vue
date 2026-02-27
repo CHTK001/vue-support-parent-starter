@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-panel-example">
     <!-- 默认主题 -->
     <DemoBlock title="默认主题（基于 el-card）" :code="codes.default">
@@ -211,9 +211,9 @@
           @close="handleClose"
         >
           <template #extra>
-            <el-button size="small" type="primary" link
+            <ScButton size="small" type="primary" link
               ><IconifyIconOnline icon="ep:refresh"
-            /></el-button>
+            /></ScButton>
           </template>
           <p>集成折叠、最大化、关闭功能</p>
           <template #footer>
@@ -390,9 +390,9 @@ const codes = {
   @close="handleClose"
 >
   <template #extra>
-    <el-button size="small" type="primary" link>
+    <ScButton size="small" type="primary" link>
       <IconifyIconOnline icon="ep:refresh" />
-    </el-button>
+    </ScButton>
   </template>
   <p>集成折叠、最大化、关闭功能</p>
   <template #footer>

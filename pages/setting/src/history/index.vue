@@ -1,102 +1,102 @@
-<template>
+﻿<template>
   <div class="setting-history-container system-container modern-bg">
     <!-- 工具栏 -->
     <div class="toolbar-section">
-      <el-card class="toolbar-card" shadow="never">
+      <ScCard class="toolbar-card" shadow="never">
         <div class="toolbar-container">
           <div class="toolbar-left">
-            <el-input
+            <ScInput 
               v-model="searchForm.group"
               placeholder="配置分组"
               class="filter-input"
               clearable
               @keyup.enter="handleSearch"
             />
-            <el-button type="primary" @click="handleSearch">
+            <ScButton type="primary" @click="handleSearch">
               <i class="ri-search-line"></i>
               搜索
-            </el-button>
-            <el-button @click="handleRefresh">
+            </ScButton>
+            <ScButton @click="handleRefresh">
               <i class="ri-refresh-line"></i>
               刷新
-            </el-button>
+            </ScButton>
           </div>
           <div class="toolbar-right">
-            <el-button type="success" @click="handleExport">
+            <ScButton type="success" @click="handleExport">
               <i class="ri-download-line"></i>
               导出配置
-            </el-button>
-            <el-button type="warning" @click="handleImportDialog">
+            </ScButton>
+            <ScButton type="warning" @click="handleImportDialog">
               <i class="ri-upload-line"></i>
               导入配置
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 历史记录列表 -->
     <div class="history-section">
-      <el-card shadow="never">
-        <el-table
+      <ScCard shadow="never">
+        <ScTable 
           v-loading="loading"
           :data="historyList"
           row-key="sysSettingHistoryId"
           stripe
           border
         >
-          <el-table-column prop="sysSettingHistoryId" label="ID" width="80" align="center" />
-          <el-table-column prop="sysSettingGroup" label="分组" width="120" />
-          <el-table-column prop="sysSettingName" label="配置名称" min-width="150" />
-          <el-table-column label="操作类型" width="100" align="center">
+          <ScTableColumn prop="sysSettingHistoryId" label="ID" width="80" align="center" />
+          <ScTableColumn prop="sysSettingGroup" label="分组" width="120" />
+          <ScTableColumn prop="sysSettingName" label="配置名称" min-width="150" />
+          <ScTableColumn label="操作类型" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="getOperationTagType(row.sysSettingOperation)" size="small">
+              <ScTag :type="getOperationTagType(row.sysSettingOperation)" size="small">
                 {{ getOperationLabel(row.sysSettingOperation) }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column label="旧值" min-width="150">
+          </ScTableColumn>
+          <ScTableColumn label="旧值" min-width="150">
             <template #default="{ row }">
-              <el-tooltip v-if="row.sysSettingOldValue" :content="row.sysSettingOldValue" placement="top">
+              <ScTooltip v-if="row.sysSettingOldValue" :content="row.sysSettingOldValue" placement="top">
                 <span class="value-cell">{{ truncateValue(row.sysSettingOldValue) }}</span>
-              </el-tooltip>
+              </ScTooltip>
               <span v-else class="empty-value">-</span>
             </template>
-          </el-table-column>
-          <el-table-column label="新值" min-width="150">
+          </ScTableColumn>
+          <ScTableColumn label="新值" min-width="150">
             <template #default="{ row }">
-              <el-tooltip v-if="row.sysSettingNewValue" :content="row.sysSettingNewValue" placement="top">
+              <ScTooltip v-if="row.sysSettingNewValue" :content="row.sysSettingNewValue" placement="top">
                 <span class="value-cell">{{ truncateValue(row.sysSettingNewValue) }}</span>
-              </el-tooltip>
+              </ScTooltip>
               <span v-else class="empty-value">-</span>
             </template>
-          </el-table-column>
-          <el-table-column prop="sysSettingOperatorName" label="操作人" width="100" />
-          <el-table-column prop="sysSettingRemark" label="备注" width="120" />
-          <el-table-column prop="createTime" label="操作时间" width="170" />
-          <el-table-column label="批次号" width="130">
+          </ScTableColumn>
+          <ScTableColumn prop="sysSettingOperatorName" label="操作人" width="100" />
+          <ScTableColumn prop="sysSettingRemark" label="备注" width="120" />
+          <ScTableColumn prop="createTime" label="操作时间" width="170" />
+          <ScTableColumn label="批次号" width="130">
             <template #default="{ row }">
-              <el-link type="primary" @click="handleViewBatch(row.sysSettingBatchNo)">
+              <ScLink type="primary" @click="handleViewBatch(row.sysSettingBatchNo)">
                 {{ truncateBatchNo(row.sysSettingBatchNo) }}
-              </el-link>
+              </ScLink>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="160" align="center" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" type="primary" @click="handleViewDetail(row)">
+              <ScButton size="small" type="primary" @click="handleViewDetail(row)">
                 详情
-              </el-button>
-              <el-button 
+              </ScButton>
+              <ScButton 
                 size="small" 
                 type="warning" 
                 @click="handleRollbackSingle(row)"
                 :disabled="row.sysSettingOperation === 'ROLLBACK'"
               >
                 回滚
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
 
         <!-- 分页 -->
         <div class="pagination-container">
@@ -110,7 +110,7 @@
             @current-change="handleSearch"
           />
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 历史详情对话框 -->
@@ -122,9 +122,9 @@
           <el-descriptions-item label="分组">{{ currentHistory.sysSettingGroup }}</el-descriptions-item>
           <el-descriptions-item label="配置名称">{{ currentHistory.sysSettingName }}</el-descriptions-item>
           <el-descriptions-item label="操作类型">
-            <el-tag :type="getOperationTagType(currentHistory.sysSettingOperation)">
+            <ScTag :type="getOperationTagType(currentHistory.sysSettingOperation)">
               {{ getOperationLabel(currentHistory.sysSettingOperation) }}
-            </el-tag>
+            </ScTag>
           </el-descriptions-item>
           <el-descriptions-item label="操作时间">{{ currentHistory.createTime }}</el-descriptions-item>
           <el-descriptions-item label="操作人">{{ currentHistory.sysSettingOperatorName }}</el-descriptions-item>
@@ -139,125 +139,125 @@
         </el-descriptions>
       </div>
       <template #footer>
-        <el-button @click="detailDialogVisible = false">关闭</el-button>
-        <el-button 
+        <ScButton @click="detailDialogVisible = false">关闭</ScButton>
+        <ScButton 
           type="warning" 
           @click="handleRollbackSingle(currentHistory)"
           :disabled="currentHistory?.sysSettingOperation === 'ROLLBACK'"
         >
         回滚此变更
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
     <!-- 批次详情对话框 -->
     <sc-dialog v-model="batchDialogVisible" title="批次变更详情" width="900px">
-      <el-table :data="batchHistoryList" stripe border>
-        <el-table-column prop="sysSettingName" label="配置名称" min-width="150" />
-        <el-table-column prop="sysSettingGroup" label="分组" width="120" />
-        <el-table-column label="操作类型" width="100" align="center">
+      <ScTable :data="batchHistoryList" stripe border>
+        <ScTableColumn prop="sysSettingName" label="配置名称" min-width="150" />
+        <ScTableColumn prop="sysSettingGroup" label="分组" width="120" />
+        <ScTableColumn label="操作类型" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="getOperationTagType(row.sysSettingOperation)" size="small">
+            <ScTag :type="getOperationTagType(row.sysSettingOperation)" size="small">
               {{ getOperationLabel(row.sysSettingOperation) }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="旧值" min-width="150">
+        </ScTableColumn>
+        <ScTableColumn label="旧值" min-width="150">
           <template #default="{ row }">
-            <el-tooltip v-if="row.sysSettingOldValue" :content="row.sysSettingOldValue" placement="top">
+            <ScTooltip v-if="row.sysSettingOldValue" :content="row.sysSettingOldValue" placement="top">
               <span class="value-cell">{{ truncateValue(row.sysSettingOldValue) }}</span>
-            </el-tooltip>
+            </ScTooltip>
             <span v-else class="empty-value">-</span>
           </template>
-        </el-table-column>
-        <el-table-column label="新值" min-width="150">
+        </ScTableColumn>
+        <ScTableColumn label="新值" min-width="150">
           <template #default="{ row }">
-            <el-tooltip v-if="row.sysSettingNewValue" :content="row.sysSettingNewValue" placement="top">
+            <ScTooltip v-if="row.sysSettingNewValue" :content="row.sysSettingNewValue" placement="top">
               <span class="value-cell">{{ truncateValue(row.sysSettingNewValue) }}</span>
-            </el-tooltip>
+            </ScTooltip>
             <span v-else class="empty-value">-</span>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
       <template #footer>
-        <el-button @click="batchDialogVisible = false">关闭</el-button>
-        <el-button type="warning" @click="handleRollbackBatch">
+        <ScButton @click="batchDialogVisible = false">关闭</ScButton>
+        <ScButton type="warning" @click="handleRollbackBatch">
           回滚整个批次
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
     <!-- 导入配置对话框 -->
     <sc-dialog v-model="importDialogVisible" title="导入配置" width="600px">
-      <el-form label-width="100px">
-        <el-form-item label="配置数据">
-          <el-input
+      <ScForm label-width="100px">
+        <ScFormItem label="配置数据">
+          <ScInput 
             v-model="importJson"
             type="textarea"
             :rows="12"
             placeholder="请粘贴导出的 JSON 配置数据"
           />
-        </el-form-item>
-        <el-form-item label="覆盖选项">
-          <el-switch v-model="importOverwrite" active-text="覆盖已存在配置" inactive-text="跳过已存在配置" />
-        </el-form-item>
-        <el-form-item>
-          <el-upload
+        </ScFormItem>
+        <ScFormItem label="覆盖选项">
+          <ScSwitch v-model="importOverwrite" active-text="覆盖已存在配置" inactive-text="跳过已存在配置" />
+        </ScFormItem>
+        <ScFormItem>
+          <ScUpload 
             action=""
             :auto-upload="false"
             :show-file-list="false"
             accept=".json"
             @change="handleFileChange"
           >
-            <el-button type="primary">
+            <ScButton type="primary">
               <i class="ri-file-upload-line"></i>
               从文件加载
-            </el-button>
-          </el-upload>
-        </el-form-item>
-      </el-form>
+            </ScButton>
+          </ScUpload>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="importDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="importLoading" @click="handleImport">
+        <ScButton @click="importDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="importLoading" @click="handleImport">
           确认导入
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
     <!-- 导出配置对话框 -->
     <sc-dialog v-model="exportDialogVisible" title="导出配置" width="600px">
-      <el-form label-width="100px">
-        <el-form-item label="配置分组">
-          <el-input
+      <ScForm label-width="100px">
+        <ScFormItem label="配置分组">
+          <ScInput 
             v-model="exportGroup"
             placeholder="留空导出全部配置，填写则只导出指定分组"
             clearable
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <div v-if="exportedJson" class="export-result">
-        <el-input
+        <ScInput 
           v-model="exportedJson"
           type="textarea"
           :rows="12"
           readonly
         />
         <div class="export-actions">
-          <el-button type="primary" @click="handleCopyExport">
+          <ScButton type="primary" @click="handleCopyExport">
             <i class="ri-file-copy-line"></i>
             复制到剪贴板
-          </el-button>
-          <el-button type="success" @click="handleDownloadExport">
+          </ScButton>
+          <ScButton type="success" @click="handleDownloadExport">
             <i class="ri-download-line"></i>
             下载 JSON 文件
-          </el-button>
+          </ScButton>
         </div>
       </div>
       <template #footer>
-        <el-button @click="exportDialogVisible = false">关闭</el-button>
-        <el-button type="primary" :loading="exportLoading" @click="handleExportConfirm">
+        <ScButton @click="exportDialogVisible = false">关闭</ScButton>
+        <ScButton type="primary" :loading="exportLoading" @click="handleExportConfirm">
           {{ exportedJson ? '重新导出' : '确认导出' }}
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>
@@ -265,7 +265,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ScMessage, ScMessageBox } from "@repo/utils";
 import {
   fetchHistoryPage,
   fetchHistoryByBatch,
@@ -356,11 +356,11 @@ const loadHistoryList = async () => {
       historyList.value = response.data?.records || [];
       pagination.total = response.data?.total || 0;
     } else {
-      ElMessage.error(response.msg || "加载历史记录失败");
+      ScMessage.error(response.msg || "加载历史记录失败");
     }
   } catch (error) {
     console.error("加载历史记录失败:", error);
-    ElMessage.error("加载历史记录失败");
+    ScMessage.error("加载历史记录失败");
   } finally {
     loading.value = false;
   }
@@ -392,11 +392,11 @@ const handleViewBatch = async (batchNo: string) => {
       batchHistoryList.value = response.data || [];
       batchDialogVisible.value = true;
     } else {
-      ElMessage.error(response.msg || "加载批次详情失败");
+      ScMessage.error(response.msg || "加载批次详情失败");
     }
   } catch (error) {
     console.error("加载批次详情失败:", error);
-    ElMessage.error("加载批次详情失败");
+    ScMessage.error("加载批次详情失败");
   }
 };
 
@@ -405,7 +405,7 @@ const handleRollbackSingle = async (row: SettingHistory | null) => {
   if (!row) return;
   
   try {
-    await ElMessageBox.confirm(
+    await ScMessageBox.confirm(
       `确定要回滚配置 "${row.sysSettingName}" 的变更吗？这将撤销此次操作。`,
       "确认回滚",
       { type: "warning" }
@@ -413,16 +413,16 @@ const handleRollbackSingle = async (row: SettingHistory | null) => {
     
     const response = await fetchRollbackSingle(row.sysSettingHistoryId);
     if (response.success) {
-      ElMessage.success("回滚成功");
+      ScMessage.success("回滚成功");
       detailDialogVisible.value = false;
       loadHistoryList();
     } else {
-      ElMessage.error(response.msg || "回滚失败");
+      ScMessage.error(response.msg || "回滚失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("回滚失败:", error);
-      ElMessage.error("回滚失败");
+      ScMessage.error("回滚失败");
     }
   }
 };
@@ -430,7 +430,7 @@ const handleRollbackSingle = async (row: SettingHistory | null) => {
 // 回滚整个批次
 const handleRollbackBatch = async () => {
   try {
-    await ElMessageBox.confirm(
+    await ScMessageBox.confirm(
       `确定要回滚批次 "${currentBatchNo.value}" 的所有变更吗？这将撤销该批次的所有操作。`,
       "确认回滚",
       { type: "warning" }
@@ -438,16 +438,16 @@ const handleRollbackBatch = async () => {
     
     const response = await fetchRollbackBatch(currentBatchNo.value);
     if (response.success) {
-      ElMessage.success("批次回滚成功");
+      ScMessage.success("批次回滚成功");
       batchDialogVisible.value = false;
       loadHistoryList();
     } else {
-      ElMessage.error(response.msg || "批次回滚失败");
+      ScMessage.error(response.msg || "批次回滚失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("批次回滚失败:", error);
-      ElMessage.error("批次回滚失败");
+      ScMessage.error("批次回滚失败");
     }
   }
 };
@@ -466,13 +466,13 @@ const handleExportConfirm = async () => {
     const response = await fetchExportSettings(exportGroup.value || undefined);
     if (response.success) {
       exportedJson.value = response.data || "";
-      ElMessage.success("导出成功");
+      ScMessage.success("导出成功");
     } else {
-      ElMessage.error(response.msg || "导出失败");
+      ScMessage.error(response.msg || "导出失败");
     }
   } catch (error) {
     console.error("导出失败:", error);
-    ElMessage.error("导出失败");
+    ScMessage.error("导出失败");
   } finally {
     exportLoading.value = false;
   }
@@ -482,9 +482,9 @@ const handleExportConfirm = async () => {
 const handleCopyExport = async () => {
   try {
     await navigator.clipboard.writeText(exportedJson.value);
-    ElMessage.success("已复制到剪贴板");
+    ScMessage.success("已复制到剪贴板");
   } catch (error) {
-    ElMessage.error("复制失败，请手动选择复制");
+    ScMessage.error("复制失败，请手动选择复制");
   }
 };
 
@@ -499,7 +499,7 @@ const handleDownloadExport = () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  ElMessage.success("下载成功");
+  ScMessage.success("下载成功");
 };
 
 // 打开导入对话框
@@ -521,7 +521,7 @@ const handleFileChange = (file: any) => {
 // 确认导入
 const handleImport = async () => {
   if (!importJson.value.trim()) {
-    ElMessage.warning("请输入配置数据");
+    ScMessage.warning("请输入配置数据");
     return;
   }
 
@@ -529,7 +529,7 @@ const handleImport = async () => {
     // 验证JSON格式
     JSON.parse(importJson.value);
   } catch (error) {
-    ElMessage.error("JSON格式错误，请检查输入");
+    ScMessage.error("JSON格式错误，请检查输入");
     return;
   }
 
@@ -537,15 +537,15 @@ const handleImport = async () => {
   try {
     const response = await fetchImportSettings(importJson.value, importOverwrite.value);
     if (response.success) {
-      ElMessage.success(`导入成功，批次号: ${response.data}`);
+      ScMessage.success(`导入成功，批次号: ${response.data}`);
       importDialogVisible.value = false;
       loadHistoryList();
     } else {
-      ElMessage.error(response.msg || "导入失败");
+      ScMessage.error(response.msg || "导入失败");
     }
   } catch (error) {
     console.error("导入失败:", error);
-    ElMessage.error("导入失败");
+    ScMessage.error("导入失败");
   } finally {
     importLoading.value = false;
   }

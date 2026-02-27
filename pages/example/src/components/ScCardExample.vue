@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-card-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,8 +8,8 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="layout 布局类型">
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="layout 布局类型">
             <ScSelect
               v-model="config.layout"
               layout="card"
@@ -18,9 +18,9 @@
               width="70px"
               @change="handleLayoutChange"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="theme 主题色">
+          <ScFormItem label="theme 主题色">
             <ScSelect
               v-model="config.theme"
               layout="card"
@@ -28,33 +28,33 @@
               :gap="6"
               width="70px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="title 标题">
-            <el-input v-model="config.title" />
-          </el-form-item>
+          <ScFormItem label="title 标题">
+            <ScInput v-model="config.title" />
+          </ScFormItem>
 
-          <el-form-item v-if="showSubtitle" label="subtitle 副标题">
-            <el-input v-model="config.subtitle" />
-          </el-form-item>
+          <ScFormItem v-if="showSubtitle" label="subtitle 副标题">
+            <ScInput v-model="config.subtitle" />
+          </ScFormItem>
 
-          <el-form-item label="icon 图标">
-            <el-input v-model="config.icon" placeholder="如: ri:home-line" />
-          </el-form-item>
+          <ScFormItem label="icon 图标">
+            <ScInput v-model="config.icon" placeholder="如: ri:home-line" />
+          </ScFormItem>
 
-          <el-form-item v-if="showStatsProps" label="value 数值">
-            <el-input-number v-model="config.value" :min="0" />
-          </el-form-item>
+          <ScFormItem v-if="showStatsProps" label="value 数值">
+            <ScInputNumber v-model="config.value" :min="0" />
+          </ScFormItem>
 
-          <el-form-item v-if="showStatsProps" label="label 标签">
-            <el-input v-model="config.label" />
-          </el-form-item>
+          <ScFormItem v-if="showStatsProps" label="label 标签">
+            <ScInput v-model="config.label" />
+          </ScFormItem>
 
-          <el-form-item v-if="showStatsProps" label="trendText 趋势文本">
-            <el-input v-model="config.trendText" />
-          </el-form-item>
+          <ScFormItem v-if="showStatsProps" label="trendText 趋势文本">
+            <ScInput v-model="config.trendText" />
+          </ScFormItem>
 
-          <el-form-item label="shadow 阴影">
+          <ScFormItem label="shadow 阴影">
             <ScSelect
               v-model="config.shadow"
               layout="card"
@@ -62,37 +62,37 @@
               :gap="6"
               width="70px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="switch-group">
             <div class="switch-item">
-              <el-tooltip content="鼠标悬停时显示交互效果" placement="left">
+              <ScTooltip content="鼠标悬停时显示交互效果" placement="left">
                 <span>hoverable 可悬停</span>
-              </el-tooltip>
-              <el-switch v-model="config.hoverable" />
+              </ScTooltip>
+              <ScSwitch v-model="config.hoverable" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="卡片激活/选中状态" placement="left">
+              <ScTooltip content="卡片激活/选中状态" placement="left">
                 <span>active 激活状态</span>
-              </el-tooltip>
-              <el-switch v-model="config.active" />
+              </ScTooltip>
+              <ScSwitch v-model="config.active" />
             </div>
             <div class="switch-item" v-if="showStatsProps">
-              <el-tooltip content="数值是否有计数动画" placement="left">
+              <ScTooltip content="数值是否有计数动画" placement="left">
                 <span>counting 计数动画</span>
-              </el-tooltip>
-              <el-switch v-model="config.counting" />
+              </ScTooltip>
+              <ScSwitch v-model="config.counting" />
             </div>
             <div class="switch-item" v-if="showHeaderProp">
-              <el-tooltip content="是否显示卡片头部" placement="left">
+              <ScTooltip content="是否显示卡片头部" placement="left">
                 <span>showHeader 显示头部</span>
-              </el-tooltip>
-              <el-switch v-model="config.showHeader" />
+              </ScTooltip>
+              <ScSwitch v-model="config.showHeader" />
             </div>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->
@@ -134,13 +134,13 @@
 
             <!-- compact 布局的状态和底部 -->
             <template v-if="config.layout === 'compact'" #status>
-              <el-tag :type="config.active ? 'success' : 'info'" size="small">
+              <ScTag :type="config.active ? 'success' : 'info'" size="small">
                 {{ config.active ? '在线' : '离线' }}
-              </el-tag>
+              </ScTag>
             </template>
             <template v-if="config.layout === 'compact'" #footer>
-              <el-button size="small">详情</el-button>
-              <el-button size="small" type="primary">操作</el-button>
+              <ScButton size="small">详情</ScButton>
+              <ScButton size="small" type="primary">操作</ScButton>
             </template>
 
             <!-- media 布局的媒体内容 -->
@@ -152,7 +152,7 @@
 
             <!-- header-content 布局的头部操作 -->
             <template v-if="config.layout === 'header-content'" #header-right>
-              <el-button size="small" type="primary">操作</el-button>
+              <ScButton size="small" type="primary">操作</ScButton>
             </template>
           </ScCard>
         </div>
@@ -305,7 +305,7 @@ const generatedCode = computed(() => {
     <span>创建时间: 2025-12-07</span>
   </div>
   <template #footer>
-    <el-button size="small" type="primary">操作</el-button>
+    <ScButton size="small" type="primary">操作</ScButton>
   </template>
 `;
   }

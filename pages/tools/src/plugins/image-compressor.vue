@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="image-compressor-tool">
     <div class="image-compressor-tool__header">
       <div class="image-compressor-tool__header-content">
@@ -11,23 +11,23 @@
     </div>
 
     <div class="image-compressor-tool__description">
-      <el-alert type="info" show-icon :closable="false">
+      <ScAlert type="info" show-icon :closable="false">
         <p>上传图片后可以调整压缩质量，预览效果并下载压缩后的图片。</p>
-      </el-alert>
+      </ScAlert>
     </div>
 
-    <el-row :gutter="20" class="image-compressor-tool__main-content">
-      <el-col :span="12">
-        <el-card class="image-compressor-tool__card" shadow="hover">
+    <ScRow :gutter="20" class="image-compressor-tool__main-content">
+      <ScCol :span="12">
+        <ScCard class="image-compressor-tool__card" shadow="hover">
           <div class="image-compressor-tool__upload-area">
             <div v-if="!originalImage.url" class="image-compressor-tool__drop-area" @dragover.prevent @drop="handleDrop">
-              <el-upload drag action="#" :auto-upload="false" :show-file-list="false" :on-change="handleFileChange" accept="image/jpeg,image/png,image/gif,image/webp">
+              <ScUpload drag action="#" :auto-upload="false" :show-file-list="false" :on-change="handleFileChange" accept="image/jpeg,image/png,image/gif,image/webp">
                 <IconifyIconOnline icon="ri:upload-cloud-2-line" class="image-compressor-tool__upload-icon" />
                 <div class="el-upload__text">拖拽图片到此处或 <em>点击上传</em></div>
                 <template #tip>
                   <div class="el-upload__tip">支持 JPG、PNG、GIF、WebP 格式，单个文件不超过10MB</div>
                 </template>
-              </el-upload>
+              </ScUpload>
             </div>
             <div v-else class="image-compressor-tool__image-preview image-compressor-tool__image-preview--original">
               <div class="image-compressor-tool__image-header">
@@ -41,18 +41,18 @@
                 <img :src="originalImage.url" alt="原始图片" />
               </div>
               <div class="image-compressor-tool__preview-actions">
-                <el-button type="danger" @click="resetImage" size="small">
+                <ScButton type="danger" @click="resetImage" size="small">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                   移除图片
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>
-        </el-card>
-      </el-col>
+        </ScCard>
+      </ScCol>
 
-      <el-col :span="12">
-        <el-card class="image-compressor-tool__card" shadow="hover">
+      <ScCol :span="12">
+        <ScCard class="image-compressor-tool__card" shadow="hover">
           <div class="image-compressor-tool__compression-area">
             <div v-if="compressedImage.url" class="image-compressor-tool__image-preview image-compressor-tool__image-preview--compressed">
               <div class="image-compressor-tool__image-header">
@@ -67,10 +67,10 @@
                 <img :src="compressedImage.url" alt="压缩图片" />
               </div>
               <div class="image-compressor-tool__preview-actions">
-                <el-button type="primary" @click="downloadImage" size="small">
+                <ScButton type="primary" @click="downloadImage" size="small">
                   <IconifyIconOnline icon="ri:download-line" />
                   下载图片
-                </el-button>
+                </ScButton>
               </div>
             </div>
             <div v-else-if="originalImage.url" class="image-compressor-tool__compression-placeholder">
@@ -82,25 +82,25 @@
                 </div>
                 <div class="image-compressor-tool__format-selector">
                   <span>输出格式：</span>
-                  <el-radio-group v-model="outputFormat" @change="compressImage">
-                    <el-radio label="jpeg">JPEG</el-radio>
-                    <el-radio label="png">PNG</el-radio>
-                    <el-radio label="webp">WebP</el-radio>
-                  </el-radio-group>
+                  <ScRadioGroup v-model="outputFormat" @change="compressImage">
+                    <ScRadio label="jpeg">JPEG</ScRadio>
+                    <ScRadio label="png">PNG</ScRadio>
+                    <ScRadio label="webp">WebP</ScRadio>
+                  </ScRadioGroup>
                 </div>
                 <div class="image-compressor-tool__resize-control">
-                  <el-checkbox v-model="shouldResize" @change="compressImage">调整图片大小</el-checkbox>
+                  <ScCheckbox v-model="shouldResize" @change="compressImage">调整图片大小</ScCheckbox>
                   <div v-if="shouldResize" class="image-compressor-tool__resize-inputs">
-                    <el-input-number v-model="resizeWidth" :min="10" :max="5000" @change="compressImage" size="small" />
+                    <ScInputNumber v-model="resizeWidth" :min="10" :max="5000" @change="compressImage" size="small" />
                     <span>×</span>
-                    <el-input-number v-model="resizeHeight" :min="10" :max="5000" @change="compressImage" size="small" />
-                    <el-checkbox v-model="keepAspectRatio" @change="handleAspectRatioChange">保持比例</el-checkbox>
+                    <ScInputNumber v-model="resizeHeight" :min="10" :max="5000" @change="compressImage" size="small" />
+                    <ScCheckbox v-model="keepAspectRatio" @change="handleAspectRatioChange">保持比例</ScCheckbox>
                   </div>
                 </div>
-                <el-button type="success" @click="compressImage" :loading="isCompressing" class="image-compressor-tool__compress-btn">
+                <ScButton type="success" @click="compressImage" :loading="isCompressing" class="image-compressor-tool__compress-btn">
                   <IconifyIconOnline icon="ri:compress-line" />
                   开始压缩
-                </el-button>
+                </ScButton>
               </div>
             </div>
             <div v-else class="image-compressor-tool__empty-preview">
@@ -108,11 +108,11 @@
               <p>请先上传图片</p>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
-    <el-card class="image-compressor-tool__tips-card" shadow="hover">
+    <ScCard class="image-compressor-tool__tips-card" shadow="hover">
       <template #header>
         <div class="image-compressor-tool__card-header">
           <IconifyIconOnline icon="ri:lightbulb-line" class="image-compressor-tool__card-icon" />
@@ -126,7 +126,7 @@
         <li>调整图片尺寸是减小文件大小的有效方法</li>
         <li>压缩是不可逆的过程，请确保保留原图的副本</li>
       </ul>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

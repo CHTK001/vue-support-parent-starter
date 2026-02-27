@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-video-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,53 +8,53 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="src 视频地址">
-            <el-input v-model="config.src" placeholder="输入视频URL" />
-          </el-form-item>
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="src 视频地址">
+            <ScInput v-model="config.src" placeholder="输入视频URL" />
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="switch-group">
             <div class="switch-item">
-              <el-tooltip content="是否显示控制条" placement="left">
+              <ScTooltip content="是否显示控制条" placement="left">
                 <span>controls 控制条</span>
-              </el-tooltip>
-              <el-switch v-model="config.controls" />
+              </ScTooltip>
+              <ScSwitch v-model="config.controls" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="是否自动播放" placement="left">
+              <ScTooltip content="是否自动播放" placement="left">
                 <span>autoplay 自动播放</span>
-              </el-tooltip>
-              <el-switch v-model="config.autoplay" />
+              </ScTooltip>
+              <ScSwitch v-model="config.autoplay" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="是否循环播放" placement="left">
+              <ScTooltip content="是否循环播放" placement="left">
                 <span>loop 循环</span>
-              </el-tooltip>
-              <el-switch v-model="config.loop" />
+              </ScTooltip>
+              <ScSwitch v-model="config.loop" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="是否静音" placement="left">
+              <ScTooltip content="是否静音" placement="left">
                 <span>muted 静音</span>
-              </el-tooltip>
-              <el-switch v-model="config.muted" />
+              </ScTooltip>
+              <ScSwitch v-model="config.muted" />
             </div>
           </div>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="action-buttons">
-            <el-button type="primary" size="small" @click="playVideo">
+            <ScButton type="primary" size="small" @click="playVideo">
               <IconifyIconOnline icon="ri:play-line" />
               播放
-            </el-button>
-            <el-button size="small" @click="pauseVideo">
+            </ScButton>
+            <ScButton size="small" @click="pauseVideo">
               <IconifyIconOnline icon="ri:pause-line" />
               暂停
-            </el-button>
+            </ScButton>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

@@ -1,40 +1,40 @@
-<template>
+﻿<template>
   <div class="vip-category">
     <div class="vip-category__container">
       <div class="vip-category__header">
         <h2 class="vip-category__title">视频解析</h2>
-        <el-button type="primary" plain size="small" @click="navigateToHistory">查看历史记录</el-button>
+        <ScButton type="primary" plain size="small" @click="navigateToHistory">查看历史记录</ScButton>
       </div>
 
       <!-- 视频解析表单 -->
       <div class="vip-parser">
         <div class="vip-parser__form">
-          <el-form :model="parseForm" :rules="parseRules" ref="parseFormRef" label-width="80px">
-            <el-form-item label="视频链接" prop="url">
-              <el-input v-model="parseForm.url" placeholder="请输入需要解析的视频链接" clearable>
+          <ScForm :model="parseForm" :rules="parseRules" ref="parseFormRef" label-width="80px">
+            <ScFormItem label="视频链接" prop="url">
+              <ScInput v-model="parseForm.url" placeholder="请输入需要解析的视频链接" clearable>
                 <template #prefix>
                   <IconifyIconOnline icon="ri:link" />
                 </template>
                 <template #append>
-                  <el-button @click="pasteUrl">粘贴</el-button>
+                  <ScButton @click="pasteUrl">粘贴</ScButton>
                 </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item label="解析接口">
-              <el-select v-model="parseForm.apiIndex" placeholder="请选择解析接口">
-                <el-option v-for="(api, index) in parseApis" :key="index" :label="api.name" :value="index">
+              </ScInput>
+            </ScFormItem>
+            <ScFormItem label="解析接口">
+              <ScSelect v-model="parseForm.apiIndex" placeholder="请选择解析接口">
+                <ScOption v-for="(api, index) in parseApis" :key="index" :label="api.name" :value="index">
                   <div class="vip-parser__api-option">
                     <span>{{ api.name }}</span>
-                    <el-tag size="small" :type="api.status === 'normal' ? 'success' : 'warning'">{{ api.status === "normal" ? "正常" : "异常" }}</el-tag>
+                    <ScTag size="small" :type="api.status === 'normal' ? 'success' : 'warning'">{{ api.status === "normal" ? "正常" : "异常" }}</ScTag>
                   </div>
-                </el-option>
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="handleParse" :loading="parsing">开始解析</el-button>
-              <el-button @click="resetForm">重置</el-button>
-            </el-form-item>
-          </el-form>
+                </ScOption>
+              </ScSelect>
+            </ScFormItem>
+            <ScFormItem>
+              <ScButton type="primary" @click="handleParse" :loading="parsing">开始解析</ScButton>
+              <ScButton @click="resetForm">重置</ScButton>
+            </ScFormItem>
+          </ScForm>
         </div>
       </div>
 
@@ -42,7 +42,7 @@
       <div class="vip-result" v-if="parseResult">
         <div class="vip-result__header">
           <h3 class="vip-result__title">解析结果</h3>
-          <el-button type="text" @click="parseResult = null">清除</el-button>
+          <ScButton type="text" @click="parseResult = null">清除</ScButton>
         </div>
         <div class="vip-result__content">
           <div class="vip-result__video">
@@ -51,7 +51,7 @@
           <div class="vip-result__info">
             <div class="vip-result__item">
               <span class="vip-result__label">原始链接：</span>
-              <el-link :href="parseResult.originalUrl" target="_blank" type="primary" :underline="false">{{ parseResult.originalUrl }}</el-link>
+              <ScLink :href="parseResult.originalUrl" target="_blank" type="primary" :underline="false">{{ parseResult.originalUrl }}</ScLink>
             </div>
             <div class="vip-result__item">
               <span class="vip-result__label">解析接口：</span>
@@ -62,9 +62,9 @@
               <span>{{ parseResult.parseTime }}</span>
             </div>
             <div class="vip-result__actions">
-              <el-button type="primary" @click="copyPlayUrl">复制播放链接</el-button>
-              <el-button @click="openInNewTab">新窗口打开</el-button>
-              <el-button @click="addToFavorites">添加到收藏</el-button>
+              <ScButton type="primary" @click="copyPlayUrl">复制播放链接</ScButton>
+              <ScButton @click="openInNewTab">新窗口打开</ScButton>
+              <ScButton @click="addToFavorites">添加到收藏</ScButton>
             </div>
           </div>
         </div>
@@ -89,31 +89,31 @@
       <div class="vip-category__section">
         <div class="vip-category__header">
           <h2 class="vip-category__title">最近解析</h2>
-          <el-button type="primary" plain size="small" @click="navigateToHistory">查看全部</el-button>
+          <ScButton type="primary" plain size="small" @click="navigateToHistory">查看全部</ScButton>
         </div>
 
         <div class="vip-history">
-          <el-table :data="parseHistory" style="width: 100%">
-            <el-table-column prop="title" label="视频标题" min-width="200">
+          <ScTable :data="parseHistory" style="width: 100%">
+            <ScTableColumn prop="title" label="视频标题" min-width="200">
               <template #default="{ row }">
-                <el-link :href="row.originalUrl" target="_blank" type="primary" :underline="false">{{ row.title || "未知标题" }}</el-link>
+                <ScLink :href="row.originalUrl" target="_blank" type="primary" :underline="false">{{ row.title || "未知标题" }}</ScLink>
               </template>
-            </el-table-column>
-            <el-table-column prop="platform" label="平台" width="120">
+            </ScTableColumn>
+            <ScTableColumn prop="platform" label="平台" width="120">
               <template #default="{ row }">
-                <el-tag>{{ row.platform }}</el-tag>
+                <ScTag>{{ row.platform }}</ScTag>
               </template>
-            </el-table-column>
-            <el-table-column prop="apiName" label="解析接口" width="120" />
-            <el-table-column prop="parseTime" label="解析时间" width="180" />
-            <el-table-column label="操作" width="200" fixed="right">
+            </ScTableColumn>
+            <ScTableColumn prop="apiName" label="解析接口" width="120" />
+            <ScTableColumn prop="parseTime" label="解析时间" width="180" />
+            <ScTableColumn label="操作" width="200" fixed="right">
               <template #default="{ row }">
-                <el-button type="primary" link @click="replayParse(row)">重新解析</el-button>
-                <el-button type="success" link @click="openParseResult(row)">播放</el-button>
-                <el-button type="danger" link @click="removeFromHistory(row)">删除</el-button>
+                <ScButton type="primary" link @click="replayParse(row)">重新解析</ScButton>
+                <ScButton type="success" link @click="openParseResult(row)">播放</ScButton>
+                <ScButton type="danger" link @click="removeFromHistory(row)">删除</ScButton>
               </template>
-            </el-table-column>
-          </el-table>
+            </ScTableColumn>
+          </ScTable>
         </div>
       </div>
 
@@ -123,22 +123,22 @@
           <h2 class="vip-category__title">使用说明</h2>
         </div>
         <div class="vip-guide">
-          <el-steps :active="1" simple>
-            <el-step title="复制链接" description="复制需要解析的VIP视频链接" />
-            <el-step title="粘贴链接" description="将链接粘贴到解析框中" />
-            <el-step title="选择接口" description="选择一个可用的解析接口" />
-            <el-step title="开始解析" description="点击解析按钮开始解析" />
-            <el-step title="观看视频" description="解析成功后即可免费观看" />
-          </el-steps>
+          <ScSteps :active="1" simple>
+            <ScStep title="复制链接" description="复制需要解析的VIP视频链接" />
+            <ScStep title="粘贴链接" description="将链接粘贴到解析框中" />
+            <ScStep title="选择接口" description="选择一个可用的解析接口" />
+            <ScStep title="开始解析" description="点击解析按钮开始解析" />
+            <ScStep title="观看视频" description="解析成功后即可免费观看" />
+          </ScSteps>
           <div class="vip-guide__tips">
-            <el-alert title="温馨提示" type="info" :closable="false">
+            <ScAlert title="温馨提示" type="info" :closable="false">
               <div class="vip-guide__tip-content">
                 <p>1. 本功能仅供学习和测试使用，请勿用于商业用途</p>
                 <p>2. 如遇到解析失败，请尝试更换解析接口</p>
                 <p>3. 部分视频可能无法解析，请见谅</p>
                 <p>4. 建议使用Chrome、Edge等现代浏览器获得最佳体验</p>
               </div>
-            </el-alert>
+            </ScAlert>
           </div>
         </div>
       </div>
@@ -147,10 +147,12 @@
 </template>
 
 <script setup lang="ts">
+
+import ScStep from "@repo/components/ScSteps";
 import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { message , ScMessageBox} from "@repo/utils";
+
 import type { FormInstance, FormRules } from "element-plus";
 
 const router = useRouter();
@@ -386,7 +388,7 @@ const openParseResult = (item) => {
 
 // 从历史记录中删除
 const removeFromHistory = (item) => {
-  ElMessageBox.confirm("确定要从历史记录中删除此项吗？", "提示", {
+  ScMessageBox.confirm("确定要从历史记录中删除此项吗？", "提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning",

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-cron-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,32 +8,32 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="shortcuts 快捷选项">
-            <el-select
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="shortcuts 快捷选项">
+            <ScSelect 
               v-model="config.shortcut"
               placeholder="选择快捷表达式"
               @change="applyShortcut"
               style="width: 100%"
             >
-              <el-option
+              <ScOption 
                 v-for="it in shortcuts"
                 :key="it.value"
                 :label="it.text"
                 :value="it.value"
               />
-            </el-select>
-          </el-form-item>
+            </ScSelect>
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="action-buttons">
-            <el-button type="primary" size="small" @click="resetCron">
+            <ScButton type="primary" size="small" @click="resetCron">
               <IconifyIconOnline icon="ri:refresh-line" />
               重置
-            </el-button>
+            </ScButton>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

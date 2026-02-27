@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import {
   clearObject,
@@ -248,7 +248,7 @@ onMounted(async () => {
 <template>
   <div class="resolution-container h-full w-full overflow-hidden system-container modern-bg">
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment" />
-    <el-button
+    <ScButton 
       :icon="useRenderIcon('ep:setting')"
       class="fixed right-8 top-1/2 settings-btn z-[99]"
       circle
@@ -258,7 +258,7 @@ onMounted(async () => {
     <el-container class="h-full">
       <el-header class="header-panel flex w-full items-center px-6">
         <div class="panel-content flex items-center justify-between gap-4">
-          <el-form
+          <ScForm 
             ref="formRef"
             :model="form"
             :rules="rules"
@@ -266,8 +266,8 @@ onMounted(async () => {
             :inline="true"
             class="flex-1 flex items-center gap-4"
           >
-            <el-form-item prop="model" class="flex-1 mb-0">
-              <el-select
+            <ScFormItem prop="model" class="flex-1 mb-0">
+              <ScSelect 
                 v-model="form.model"
                 filterable
                 placeholder="请选择模型"
@@ -275,7 +275,7 @@ onMounted(async () => {
                 class="!w-full model-select"
                 @change="handleChangeModule"
               >
-                <el-option
+                <ScOption 
                   v-for="item in modelList"
                   :key="item"
                   class="!h-[70px]"
@@ -283,7 +283,7 @@ onMounted(async () => {
                   :value="item.sysAiModuleCode"
                 >
                   <template #default>
-                    <el-tooltip
+                    <ScTooltip 
                       placement="right"
                       :raw-content="true"
                       :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
@@ -291,7 +291,7 @@ onMounted(async () => {
                       <div
                         class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300"
                       >
-                        <el-image
+                        <ScImage 
                           :src="item.sysProjectIcon"
                           fit="scale-down"
                           class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
@@ -299,7 +299,7 @@ onMounted(async () => {
                           <template #error
                             ><div class="error-icon">AI</div></template
                           >
-                        </el-image>
+                        </ScImage>
                         <div class="flex flex-col">
                           <span class="text-[15px] font-medium">{{
                             item.sysAiModuleName
@@ -309,25 +309,25 @@ onMounted(async () => {
                           }}</span>
                         </div>
                       </div>
-                    </el-tooltip>
+                    </ScTooltip>
                   </template>
-                </el-option>
+                </ScOption>
                 <template #label="{ label }">
                   <div class="flex items-center gap-3">
-                    <el-image
+                    <ScImage 
                       class="!w-[32px] !h-[32px] rounded-lg"
                       :src="modelSelectLabel?.sysProjectIcon"
                     >
                       <template #error
                         ><div class="error-icon">AI</div></template
                       >
-                    </el-image>
+                    </ScImage>
                     <span>{{ label }}</span>
                   </div>
                 </template>
-              </el-select>
-            </el-form-item>
-            <el-form-item
+              </ScSelect>
+            </ScFormItem>
+            <ScFormItem 
               v-if="formSetting?.sysAiVincentSupportedSizeList?.length"
               class="mb-0"
             >
@@ -345,9 +345,9 @@ onMounted(async () => {
                     />
                   </svg>
                   <span>{{ scaleFactorLabel }}</span>
-                  <el-icon
+                  <ScIcon 
                     ><component :is="useRenderIcon('ep:arrow-down')"
-                  /></el-icon>
+                  /></ScIcon>
                 </button>
                 <template #dropdown>
                   <el-dropdown-menu class="!p-2">
@@ -367,33 +367,33 @@ onMounted(async () => {
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
-            </el-form-item>
-            <el-form-item>
-              <el-upload
+            </ScFormItem>
+            <ScFormItem>
+              <ScUpload 
                 :show-file-list="false"
                 :auto-upload="false"
                 accept="image/*"
                 :on-change="handleChange"
               >
-                <el-button
+                <ScButton 
                   type="primary"
                   class="upload-btn flex items-center gap-2 !px-6"
                 >
-                  <el-icon
+                  <ScIcon 
                     ><component :is="useRenderIcon('ep:upload')"
-                  /></el-icon>
+                  /></ScIcon>
                   上传图片
-                </el-button>
-              </el-upload>
-              <el-button
+                </ScButton>
+              </ScUpload>
+              <ScButton 
                 v-if="env.showEdit"
                 class="add-btn !p-3"
                 :icon="useRenderIcon('ep:plus')"
                 circle
                 @click="handleOpenModule"
               />
-            </el-form-item>
-          </el-form>
+            </ScFormItem>
+          </ScForm>
         </div>
       </el-header>
       <el-main class="main-content">
@@ -409,12 +409,12 @@ onMounted(async () => {
               v-if="!resolutionImage"
               class="flex justify-center h-full w-full image-container"
             >
-              <el-empty v-if="!showImageUrl" class="h-full w-full empty-state">
+              <ScEmpty v-if="!showImageUrl" class="h-full w-full empty-state">
                 <template #description>
                   <p class="empty-text">请上传一张需要提升分辨率的图片</p>
                 </template>
-              </el-empty>
-              <el-image
+              </ScEmpty>
+              <ScImage 
                 v-else
                 :src="showImageUrl"
                 class="h-full img image-preview"
@@ -441,7 +441,7 @@ onMounted(async () => {
               class="absolute bottom-6 right-6 action-buttons"
             >
               <a :href="resolutionImage" download>
-                <el-button
+                <ScButton 
                   :icon="useRenderIcon('ep:download')"
                   circle
                   size="large"

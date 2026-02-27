@@ -1,17 +1,17 @@
-<template>
+﻿<template>
   <div class="sc-secret-input">
-    <el-input v-model="innerValue" type="textarea" :rows="rows" :disabled="disabled" :placeholder="placeholder" :show-password="false" class="secret-textarea" />
+    <ScInput v-model="innerValue" type="textarea" :rows="rows" :disabled="disabled" :placeholder="placeholder" :show-password="false" class="secret-textarea" />
 
     <div class="secret-actions" v-if="!disabled">
-      <el-button type="primary" plain size="small" @click="generateSecret" class="generate-btn">
+      <ScButton type="primary" plain size="small" @click="generateSecret" class="generate-btn">
         <IconifyIconOnline icon="ep:refresh-right" />
         生成新密钥
-      </el-button>
+      </ScButton>
 
-      <el-button type="info" plain size="small" @click="copySecret" class="copy-btn">
+      <ScButton type="info" plain size="small" @click="copySecret" class="copy-btn">
         <IconifyIconOnline icon="ep:document-copy" />
         复制密钥
-      </el-button>
+      </ScButton>
     </div>
 
     <div class="secret-info">

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { IconifyIconOnline } from '@iconify/vue';
 
 defineProps({
@@ -46,21 +46,21 @@ defineProps({
         <div class="favorites-view__music-album">{{ music.musicAlbum }}</div>
         <div class="favorites-view__music-duration">{{ formatTime(music.musicDuration) }}</div>
         <div class="favorites-view__music-actions">
-          <el-button
+          <ScButton 
             circle
             size="small"
             type="danger"
             @click="toggleFavorite(music)"
           >
             <IconifyIconOnline icon="ri:heart-fill" />
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             circle
             size="small"
             @click="env.currentPlaylist = [music]; playMusic(music)"
           >
             <IconifyIconOnline icon="ri:play-list-add-line" />
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>

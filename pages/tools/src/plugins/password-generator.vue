@@ -1,15 +1,15 @@
-<template>
+﻿<template>
   <div class="password-generator-container">
     <sc-panel class="generator-panel" title="密码生成器" theme="primary">
       <div class="password-display">
         <div class="password-field">
-          <el-input v-model="generatedPassword" :disabled="true" size="large" class="password-input">
+          <ScInput v-model="generatedPassword" :disabled="true" size="large" class="password-input">
             <template #append>
-              <el-button @click="copyPassword">
+              <ScButton @click="copyPassword">
                 <IconifyIconOnline icon="ep:document-copy" />
-              </el-button>
+              </ScButton>
             </template>
-          </el-input>
+          </ScInput>
         </div>
 
         <div class="password-strength" :class="passwordStrengthClass">
@@ -20,38 +20,38 @@
         </div>
       </div>
 
-      <el-divider content-position="center">选项</el-divider>
+      <ScDivider content-position="center">选项</ScDivider>
 
       <div class="password-options">
-        <el-form label-position="left" :label-width="120">
-          <el-form-item label="密码长度">
+        <ScForm label-position="left" :label-width="120">
+          <ScFormItem label="密码长度">
             <ScSlider v-model="passwordLength" :min="4" :max="64" show-input @change="generatePassword" />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="密码字符集">
+          <ScFormItem label="密码字符集">
             <div class="character-options">
-              <el-checkbox v-model="includeUppercase" @change="generatePassword">大写字母 (A-Z)</el-checkbox>
-              <el-checkbox v-model="includeLowercase" @change="generatePassword">小写字母 (a-z)</el-checkbox>
-              <el-checkbox v-model="includeNumbers" @change="generatePassword">数字 (0-9)</el-checkbox>
-              <el-checkbox v-model="includeSymbols" @change="generatePassword">特殊符号 (!@#$%^&*)</el-checkbox>
+              <ScCheckbox v-model="includeUppercase" @change="generatePassword">大写字母 (A-Z)</ScCheckbox>
+              <ScCheckbox v-model="includeLowercase" @change="generatePassword">小写字母 (a-z)</ScCheckbox>
+              <ScCheckbox v-model="includeNumbers" @change="generatePassword">数字 (0-9)</ScCheckbox>
+              <ScCheckbox v-model="includeSymbols" @change="generatePassword">特殊符号 (!@#$%^&*)</ScCheckbox>
             </div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="排除相似字符">
-            <el-checkbox v-model="excludeSimilar" @change="generatePassword"> 排除容易混淆的字符 (1, l, I, 0, O, o) </el-checkbox>
-          </el-form-item>
+          <ScFormItem label="排除相似字符">
+            <ScCheckbox v-model="excludeSimilar" @change="generatePassword"> 排除容易混淆的字符 (1, l, I, 0, O, o) </ScCheckbox>
+          </ScFormItem>
 
-          <el-form-item label="排除重复字符">
-            <el-checkbox v-model="excludeDuplicates" @change="generatePassword">每个字符只出现一次</el-checkbox>
-          </el-form-item>
+          <ScFormItem label="排除重复字符">
+            <ScCheckbox v-model="excludeDuplicates" @change="generatePassword">每个字符只出现一次</ScCheckbox>
+          </ScFormItem>
 
-          <el-form-item>
-            <el-button type="primary" @click="generatePassword">
+          <ScFormItem>
+            <ScButton type="primary" @click="generatePassword">
               <IconifyIconOnline icon="ep:refresh" />
               重新生成
-            </el-button>
-          </el-form-item>
-        </el-form>
+            </ScButton>
+          </ScFormItem>
+        </ScForm>
       </div>
 
       <template #footer>
@@ -59,31 +59,31 @@
           <div class="batch-header">
             <h3>批量生成</h3>
             <div class="batch-controls">
-              <el-input-number v-model="batchCount" :min="1" :max="100" :step="1" controls-position="right" size="small" />
-              <el-button type="success" size="small" @click="generateBatch">
+              <ScInputNumber v-model="batchCount" :min="1" :max="100" :step="1" controls-position="right" size="small" />
+              <ScButton type="success" size="small" @click="generateBatch">
                 <IconifyIconOnline icon="ep:plus" />
                 生成多个
-              </el-button>
-              <el-button size="small" @click="copyAllPasswords" :disabled="batchPasswords.length === 0">
+              </ScButton>
+              <ScButton size="small" @click="copyAllPasswords" :disabled="batchPasswords.length === 0">
                 <IconifyIconOnline icon="ep:document-copy" />
                 复制全部
-              </el-button>
+              </ScButton>
             </div>
           </div>
           <div v-if="batchPasswords.length > 0" class="batch-list">
             <div v-for="(password, index) in batchPasswords" :key="index" class="batch-item">
-              <el-input :value="password" readonly size="small" />
-              <el-button size="small" @click="copyBatchPassword(password)">
+              <ScInput :value="password" readonly size="small" />
+              <ScButton size="small" @click="copyBatchPassword(password)">
                 <IconifyIconOnline icon="ep:document-copy" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
       </template>
     </sc-panel>
 
-    <el-row :gutter="20" style="margin-top: 20px">
-      <el-col :span="12">
+    <ScRow :gutter="20" style="margin-top: 20px">
+      <ScCol :span="12">
         <sc-panel title="密码安全提示" theme="warning">
           <h3>创建强密码的技巧</h3>
           <ul>
@@ -95,8 +95,8 @@
             <li>考虑使用密码管理器来存储复杂密码</li>
           </ul>
         </sc-panel>
-      </el-col>
-      <el-col :span="12">
+      </ScCol>
+      <ScCol :span="12">
         <sc-panel title="密码强度指南" theme="info">
           <div class="strength-guide">
             <div class="strength-level poor">
@@ -132,8 +132,8 @@
             </div>
           </div>
         </sc-panel>
-      </el-col>
-    </el-row>
+      </ScCol>
+    </ScRow>
   </div>
 </template>
 

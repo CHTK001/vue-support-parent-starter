@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { IconifyIconOnline } from '@iconify/vue';
 
 defineProps({
@@ -34,21 +34,21 @@ defineProps({
     <!-- 中间：播放控制 -->
     <div class="music-player__control-center">
       <div class="music-player__control-buttons">
-        <el-button circle @click="toggleRandom">
+        <ScButton circle @click="toggleRandom">
           <IconifyIconOnline :icon="env.isRandom ? 'ri:shuffle-fill' : 'ri:shuffle-line'" :style="{ color: env.isRandom ? 'var(--el-color-primary)' : '' }" />
-        </el-button>
-        <el-button circle @click="playPrev">
+        </ScButton>
+        <ScButton circle @click="playPrev">
           <IconifyIconOnline icon="ri:skip-back-fill" />
-        </el-button>
-        <el-button circle size="large" @click="togglePlay">
+        </ScButton>
+        <ScButton circle size="large" @click="togglePlay">
           <IconifyIconOnline :icon="env.isPlaying ? 'ri:pause-fill' : 'ri:play-fill'" />
-        </el-button>
-        <el-button circle @click="playNext">
+        </ScButton>
+        <ScButton circle @click="playNext">
           <IconifyIconOnline icon="ri:skip-forward-fill" />
-        </el-button>
-        <el-button circle @click="toggleLoop">
+        </ScButton>
+        <ScButton circle @click="toggleLoop">
           <IconifyIconOnline :icon="env.isLoop ? 'ri:repeat-one-fill' : 'ri:repeat-line'" :style="{ color: env.isLoop ? 'var(--el-color-primary)' : '' }" />
-        </el-button>
+        </ScButton>
       </div>
       
       <div class="music-player__progress-container">
@@ -62,16 +62,16 @@ defineProps({
     
     <!-- 右侧：音量控制和歌词 -->
     <div class="music-player__control-right">
-      <el-button circle @click="toggleMute">
+      <ScButton circle @click="toggleMute">
         <IconifyIconOnline :icon="env.isMuted ? 'ri:volume-mute-fill' : env.volume > 50 ? 'ri:volume-up-fill' : 'ri:volume-down-fill'" />
-      </el-button>
+      </ScButton>
       <ScSlider v-model="env.volume" :disabled="env.isMuted" @input="adjustVolume" class="music-player__volume-slider" />
-      <el-button circle @click="env.showLyrics = !env.showLyrics">
+      <ScButton circle @click="env.showLyrics = !env.showLyrics">
         <IconifyIconOnline icon="ri:file-list-line" :style="{ color: env.showLyrics ? 'var(--el-color-primary)' : '' }" />
-      </el-button>
-      <el-button circle @click="env.showPlaylistDrawer = !env.showPlaylistDrawer">
+      </ScButton>
+      <ScButton circle @click="env.showPlaylistDrawer = !env.showPlaylistDrawer">
         <IconifyIconOnline icon="ri:play-list-2-fill" />
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

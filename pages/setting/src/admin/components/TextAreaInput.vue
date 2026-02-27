@@ -1,5 +1,5 @@
-<template>
-  <el-input
+﻿<template>
+  <ScInput 
     v-model="innerValue"
     type="textarea"
     :rows="rows"

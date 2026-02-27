@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="reicon-example">
     <div class="example-section">
       <h3>在线图标 (IconifyIconOnline)</h3>
@@ -132,11 +132,11 @@
       <h3>图标选择器</h3>
       <div class="example-box">
         <div class="icon-selector-demo">
-          <el-input v-model="iconSearch" placeholder="搜索图标" clearable>
+          <ScInput v-model="iconSearch" placeholder="搜索图标" clearable>
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
+          </ScInput>
 
           <div class="icon-list">
             <div
@@ -156,10 +156,10 @@
               <IconifyIconOnline :icon="selectedIcon" style="font-size: 48px" />
               <div class="selected-icon-info">
                 <p>图标名称: {{ selectedIcon }}</p>
-                <el-button size="small" type="primary" @click="copyIconCode">
+                <ScButton size="small" type="primary" @click="copyIconCode">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   复制代码
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>

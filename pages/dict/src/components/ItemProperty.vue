@@ -112,7 +112,7 @@ defineExpose({
             <IconifyIconOnline icon="ri:settings-4-line" class="title-icon" />
             <span>{{ env.title }}</span>
           </div>
-          <el-tag type="info" size="small">属性配置</el-tag>
+          <ScTag type="info" size="small">属性配置</ScTag>
         </div>
       </template>
 
@@ -130,14 +130,14 @@ defineExpose({
           class="property-table"
           :class="{ 'empty-table': !form.property?.length }"
         >
-          <el-table-column
+          <ScTableColumn 
             fixed
             prop="sysDictItemPropertyGroup"
             label="配置分组"
             width="200"
           >
             <template #default="{ row }">
-              <el-select
+              <ScSelect 
                 filterable
                 allow-create
                 clearable
@@ -145,7 +145,7 @@ defineExpose({
                 placeholder="选择或创建分组"
                 class="group-select"
               >
-                <el-option
+                <ScOption 
                   v-for="item in env._groupCacheList"
                   :key="item"
                   :value="item"
@@ -154,19 +154,19 @@ defineExpose({
                     <IconifyIconOnline icon="ri:folder-line" />
                     <span>{{ item }}</span>
                   </div>
-                </el-option>
-              </el-select>
+                </ScOption>
+              </ScSelect>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column
+          <ScTableColumn 
             fixed
             prop="sysDictItemPropertyName"
             label="配置名称"
             min-width="180"
           >
             <template #default="{ row }">
-              <el-input
+              <ScInput 
                 v-model="row.sysDictItemPropertyName"
                 placeholder="输入配置名称"
                 clearable
@@ -174,11 +174,11 @@ defineExpose({
                 <template #prefix>
                   <IconifyIconOnline icon="ri:key-line" />
                 </template>
-              </el-input>
+              </ScInput>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column
+          <ScTableColumn 
             fixed
             prop="sysDictItemPropertyValue"
             label="配置值"
@@ -192,11 +192,11 @@ defineExpose({
                 placeholder="输入配置值"
               >
                 <template #prepend>
-                  <el-select
+                  <ScSelect 
                     v-model="row.sysDictItemPropertySelectedType"
                     class="type-select"
                   >
-                    <el-option
+                    <ScOption 
                       v-for="item in env.selectTypeList"
                       :key="item.value"
                       :value="item.value"
@@ -206,22 +206,22 @@ defineExpose({
                         <IconifyIconOnline :icon="getTypeIcon(item.value)" />
                         <span>{{ item.label }}</span>
                       </div>
-                    </el-option>
-                  </el-select>
+                    </ScOption>
+                  </ScSelect>
                 </template>
               </ScInput>
             </template>
-          </el-table-column>
+          </ScTableColumn>
         </ScFormTable>
       </div>
 
       <template #footer>
         <div class="drawer-footer">
-          <el-button @click="handleClose" size="large">
+          <ScButton @click="handleClose" size="large">
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
             {{ t("buttons.close") }}
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             type="primary"
             :loading="env.loading"
             @click="handleUpdate"
@@ -229,7 +229,7 @@ defineExpose({
           >
             <IconifyIconOnline icon="ri:save-line" class="mr-1" />
             {{ t("buttons.confirm") }}
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-drawer>

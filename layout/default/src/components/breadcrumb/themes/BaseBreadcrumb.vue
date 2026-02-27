@@ -1,4 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
+
+import ScBreadcrumbItem from "@repo/components/ScBreadcrumb";
 import { isEqual, useGlobal } from "@pureadmin/utils";
 import { transformI18n } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -148,14 +150,14 @@ watch(
     </div>
 
     <!-- 面包屑导航 -->
-    <el-breadcrumb class="breadcrumb-container" separator="">
+    <ScBreadcrumb class="breadcrumb-container" separator="">
       <transition-group name="breadcrumb">
-        <el-breadcrumb-item
+        <ScBreadcrumbItem 
           v-for="(item, index) in levelList"
           :key="item.path"
           class="breadcrumb-item"
         >
-          <el-tooltip
+          <ScTooltip 
             :content="transformI18n(item.meta.i18nKey || item.meta.title)"
             placement="bottom"
             :show-after="500"
@@ -167,9 +169,9 @@ watch(
                 { 'is-current': index === levelList.length - 1 },
               ]"
             >
-              <el-icon v-if="item.meta.icon" class="breadcrumb-icon">
+              <ScIcon v-if="item.meta.icon" class="breadcrumb-icon">
                 <component :is="useRenderIcon(item.meta.icon)" />
-              </el-icon>
+              </ScIcon>
               <span
                 v-if="breadcrumbMode === 'icon-text'"
                 class="breadcrumb-text"
@@ -177,7 +179,7 @@ watch(
                 {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
               </span>
             </a>
-          </el-tooltip>
+          </ScTooltip>
           <!-- 自定义分隔符 -->
           <span
             v-if="index < levelList.length - 1"
@@ -185,9 +187,9 @@ watch(
           >
             <IconifyIconOnline icon="ri:arrow-right-s-line" />
           </span>
-        </el-breadcrumb-item>
+        </ScBreadcrumbItem>
       </transition-group>
-    </el-breadcrumb>
+    </ScBreadcrumb>
   </div>
 </template>
 

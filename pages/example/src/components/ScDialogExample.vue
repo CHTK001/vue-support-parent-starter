@@ -1,35 +1,35 @@
-<template>
+﻿<template>
   <div class="example-page sc-dialog-example">
-    <el-row :gutter="20">
-      <el-col :span="8">
+    <ScRow :gutter="20">
+      <ScCol :span="8">
         <div class="config-panel">
           <h3>配置面板</h3>
-          <el-form label-position="top" :model="config">
-            <el-form-item label="标题">
-              <el-input
+          <ScForm label-position="top" :model="config">
+            <ScFormItem label="标题">
+              <ScInput 
                 v-model="config.title"
                 placeholder="请输入对话框标题"
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="宽度">
-              <el-input-number
+            <ScFormItem label="宽度">
+              <ScInputNumber 
                 v-model="config.width"
                 :min="300"
                 :max="1200"
                 :step="50"
                 style="width: 100%"
-              ></el-input-number>
-            </el-form-item>
+              ></ScInputNumber>
+            </ScFormItem>
 
-            <el-form-item label="位置(top)">
-              <el-input
+            <ScFormItem label="位置(top)">
+              <ScInput 
                 v-model="config.top"
                 placeholder="请输入对话框距顶部位置"
-              ></el-input>
-            </el-form-item>
+              ></ScInput>
+            </ScFormItem>
 
-            <el-form-item label="样式">
+            <ScFormItem label="样式">
               <ScSelect
                 v-model="config.customClass"
                 layout="card"
@@ -37,9 +37,9 @@
                 :gap="6"
                 width="90px"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="模式">
+            <ScFormItem label="模式">
               <ScSelect
                 v-model="config.mode"
                 layout="card"
@@ -47,23 +47,23 @@
                 :gap="6"
                 width="100px"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="缩放" v-if="config.mode === 'custom'">
-              <el-switch
+            <ScFormItem label="缩放" v-if="config.mode === 'custom'">
+              <ScSwitch 
                 v-model="config.resizable"
                 active-text="允许缩放"
                 class="mb-2 block"
-              ></el-switch>
-            </el-form-item>
+              ></ScSwitch>
+            </ScFormItem>
 
-            <el-form-item label="边缘吸附" v-if="config.mode === 'custom'">
-              <el-switch
+            <ScFormItem label="边缘吸附" v-if="config.mode === 'custom'">
+              <ScSwitch 
                 v-model="config.edgeDock"
                 active-text="启用边缘吸附"
                 class="mb-2 block"
-              ></el-switch>
-              <el-input-number
+              ></ScSwitch>
+              <ScInputNumber 
                 v-if="config.edgeDock"
                 v-model="config.edgeThreshold"
                 :min="20"
@@ -71,60 +71,60 @@
                 :step="10"
                 style="width: 100%"
                 placeholder="吸附阈值(px)"
-              ></el-input-number>
-            </el-form-item>
+              ></ScInputNumber>
+            </ScFormItem>
 
-            <el-form-item label="任务栏模式" v-if="config.mode === 'custom'">
-              <el-switch
+            <ScFormItem label="任务栏模式" v-if="config.mode === 'custom'">
+              <ScSwitch 
                 v-model="config.useTaskbar"
                 active-text="启用任务栏"
                 class="mb-2 block"
-              ></el-switch>
+              ></ScSwitch>
               <template v-if="config.useTaskbar">
-                <el-input
+                <ScInput 
                   v-model="config.group"
                   placeholder="分组标识（可选）"
                   class="mb-2"
-                ></el-input>
-                <el-select
+                ></ScInput>
+                <ScSelect 
                   v-model="taskbarConfig.position"
                   placeholder="任务栏位置"
                   style="width: 100%"
                   class="mb-2"
                 >
-                  <el-option label="底部" value="bottom"></el-option>
-                  <el-option label="顶部" value="top"></el-option>
-                  <el-option label="左侧" value="left"></el-option>
-                  <el-option label="右侧" value="right"></el-option>
-                </el-select>
-                <el-switch
+                  <ScOption label="底部" value="bottom"></ScOption>
+                  <ScOption label="顶部" value="top"></ScOption>
+                  <ScOption label="左侧" value="left"></ScOption>
+                  <ScOption label="右侧" value="right"></ScOption>
+                </ScSelect>
+                <ScSwitch 
                   v-model="taskbarConfig.alwaysVisible"
                   active-text="永久显示"
                   class="mb-2 block"
-                ></el-switch>
-                <el-switch
+                ></ScSwitch>
+                <ScSwitch 
                   v-model="taskbarConfig.groupCollapse"
                   active-text="分组合并"
                   class="mb-2 block"
-                ></el-switch>
+                ></ScSwitch>
               </template>
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="图标设置" v-if="config.mode === 'custom'">
-              <el-input
+            <ScFormItem label="图标设置" v-if="config.mode === 'custom'">
+              <ScInput 
                 v-model="config.icon"
                 placeholder="图标名称，如 ep:info-filled"
                 class="mb-2"
-              ></el-input>
-              <el-radio-group
+              ></ScInput>
+              <ScRadioGroup 
                 v-model="config.iconMode"
                 class="mb-2 block"
                 v-if="config.icon"
               >
-                <el-radio label="inline">标题左侧</el-radio>
-                <el-radio label="float">顶部浮动</el-radio>
-              </el-radio-group>
-              <el-input-number
+                <ScRadio label="inline">标题左侧</ScRadio>
+                <ScRadio label="float">顶部浮动</ScRadio>
+              </ScRadioGroup>
+              <ScInputNumber 
                 v-if="config.icon"
                 v-model="config.iconSize"
                 :min="16"
@@ -132,10 +132,10 @@
                 :step="4"
                 style="width: 100%"
                 placeholder="图标大小"
-              ></el-input-number>
-            </el-form-item>
+              ></ScInputNumber>
+            </ScFormItem>
 
-            <el-form-item label="对话框类型">
+            <ScFormItem label="对话框类型">
               <ScSelect
                 v-model="config.type"
                 layout="card"
@@ -143,62 +143,62 @@
                 :gap="6"
                 width="60px"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="功能设置">
-              <el-switch
+            <ScFormItem label="功能设置">
+              <ScSwitch 
                 v-model="config.fullscreen"
                 active-text="全屏显示"
                 class="mb-2 block"
-              ></el-switch>
-              <el-switch
+              ></ScSwitch>
+              <ScSwitch 
                 v-model="config.modal"
                 active-text="显示遮罩层"
                 class="mb-2 block"
-              ></el-switch>
-              <el-switch
+              ></ScSwitch>
+              <ScSwitch 
                 v-model="config.draggable"
                 active-text="允许拖拽"
                 class="mb-2 block"
-              ></el-switch>
-              <el-switch
+              ></ScSwitch>
+              <ScSwitch 
                 v-model="config.showClose"
                 active-text="显示关闭按钮"
                 class="mb-2 block"
-              ></el-switch>
-              <el-switch
+              ></ScSwitch>
+              <ScSwitch 
                 v-model="config.closeOnClickModal"
                 active-text="点击遮罩关闭"
                 class="mb-2 block"
-              ></el-switch>
-              <el-switch
+              ></ScSwitch>
+              <ScSwitch 
                 v-model="config.closeOnPressEscape"
                 active-text="ESC键关闭"
                 class="mb-2 block"
-              ></el-switch>
-              <el-switch
+              ></ScSwitch>
+              <ScSwitch 
                 v-model="config.lockScroll"
                 active-text="锁定滚动"
                 class="mb-2 block"
-              ></el-switch>
-              <el-switch
+              ></ScSwitch>
+              <ScSwitch 
                 v-model="config.appendToBody"
                 active-text="插入到body"
                 class="mb-2 block"
-              ></el-switch>
-              <el-switch
+              ></ScSwitch>
+              <ScSwitch 
                 v-model="config.destroyOnClose"
                 active-text="关闭销毁内容"
                 class="mb-2 block"
-              ></el-switch>
-              <el-switch
+              ></ScSwitch>
+              <ScSwitch 
                 v-model="config.customHeader"
                 active-text="自定义头部"
                 class="mb-2 block"
-              ></el-switch>
-            </el-form-item>
+              ></ScSwitch>
+            </ScFormItem>
 
-            <el-form-item label="内容设置">
+            <ScFormItem label="内容设置">
               <ScSelect
                 v-model="config.contentType"
                 layout="card"
@@ -209,22 +209,22 @@
               />
 
               <template v-if="config.contentType === 'text'">
-                <el-input
+                <ScInput 
                   v-model="config.textContent"
                   type="textarea"
                   :rows="3"
                   placeholder="请输入对话框内容"
-                ></el-input>
+                ></ScInput>
               </template>
-            </el-form-item>
+            </ScFormItem>
 
-            <el-button
+            <ScButton 
               type="primary"
               @click="dialogVisible = true"
               style="width: 100%"
               >打开对话框</el-button
             >
-          </el-form>
+          </ScForm>
 
           <div class="code-preview mt-4">
             <CodePreview
@@ -240,9 +240,9 @@
             />
           </div>
         </div>
-      </el-col>
+      </ScCol>
 
-      <el-col :span="16">
+      <ScCol :span="16">
         <div class="preview-panel">
           <h3>实时预览</h3>
           <p class="example-desc">
@@ -361,7 +361,7 @@
                     config.title || "自定义头部"
                   }}</span>
                 </div>
-                <el-button
+                <ScButton 
                   type="primary"
                   text
                   circle
@@ -369,7 +369,7 @@
                   v-if="config.showClose"
                 >
                   <IconifyIconOnline icon="ri:close-line" />
-                </el-button>
+                </ScButton>
               </div>
             </template>
 
@@ -380,32 +380,32 @@
             </template>
 
             <template v-else-if="config.contentType === 'form'">
-              <el-form :model="formData" label-width="80px">
-                <el-form-item label="用户名">
-                  <el-input
+              <ScForm :model="formData" label-width="80px">
+                <ScFormItem label="用户名">
+                  <ScInput 
                     v-model="formData.username"
                     placeholder="请输入用户名"
-                  ></el-input>
-                </el-form-item>
-                <el-form-item label="邮箱">
-                  <el-input
+                  ></ScInput>
+                </ScFormItem>
+                <ScFormItem label="邮箱">
+                  <ScInput 
                     v-model="formData.email"
                     placeholder="请输入邮箱"
-                  ></el-input>
-                </el-form-item>
-                <el-form-item label="部门">
-                  <el-select
+                  ></ScInput>
+                </ScFormItem>
+                <ScFormItem label="部门">
+                  <ScSelect 
                     v-model="formData.department"
                     placeholder="请选择部门"
                     style="width: 100%"
                   >
-                    <el-option label="市场部" value="market"></el-option>
-                    <el-option label="技术部" value="tech"></el-option>
-                    <el-option label="财务部" value="finance"></el-option>
-                    <el-option label="人事部" value="hr"></el-option>
-                  </el-select>
-                </el-form-item>
-              </el-form>
+                    <ScOption label="市场部" value="market"></ScOption>
+                    <ScOption label="技术部" value="tech"></ScOption>
+                    <ScOption label="财务部" value="finance"></ScOption>
+                    <ScOption label="人事部" value="hr"></ScOption>
+                  </ScSelect>
+                </ScFormItem>
+              </ScForm>
             </template>
 
             <template v-else-if="config.contentType === 'confirm'">
@@ -423,8 +423,8 @@
 
             <template #footer>
               <div class="dialog-footer">
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleConfirm"
+                <ScButton @click="dialogVisible = false">取消</ScButton>
+                <ScButton type="primary" @click="handleConfirm"
                   >确定</el-button
                 >
               </div>
@@ -439,18 +439,18 @@
                 点击按钮打开多个对话框，然后点击最小化按钮查看任务栏效果
               </p>
               <div class="demo-buttons">
-                <el-button type="primary" @click="taskbarDialog1 = true">
+                <ScButton type="primary" @click="taskbarDialog1 = true">
                   <IconifyIconOnline icon="ep:setting" class="mr-1" />
                   系统设置
-                </el-button>
-                <el-button type="success" @click="taskbarDialog2 = true">
+                </ScButton>
+                <ScButton type="success" @click="taskbarDialog2 = true">
                   <IconifyIconOnline icon="ep:user" class="mr-1" />
                   用户管理
-                </el-button>
-                <el-button type="warning" @click="taskbarDialog3 = true">
+                </ScButton>
+                <ScButton type="warning" @click="taskbarDialog3 = true">
                   <IconifyIconOnline icon="ep:document" class="mr-1" />
                   文档编辑
-                </el-button>
+                </ScButton>
               </div>
             </div>
 
@@ -500,8 +500,8 @@
             </ScDialog>
           </template>
         </div>
-      </el-col>
-    </el-row>
+      </ScCol>
+    </ScRow>
   </div>
 </template>
 
@@ -744,14 +744,14 @@ const generatedCode = computed(() => {
   if (config.contentType === "text") {
     code += `\n  <p>${config.textContent || "这里是对话框的内容区域"}</p>`;
   } else if (config.contentType === "form") {
-    code += `\n  <el-form :model="formData" label-width="80px">
-    <el-form-item label="用户名">
-      <el-input v-model="formData.username" />
-    </el-form-item>
-    <el-form-item label="邮箱">
-      <el-input v-model="formData.email" />
-    </el-form-item>
-  </el-form>`;
+    code += `\n  <ScForm :model="formData" label-width="80px">
+    <ScFormItem label="用户名">
+      <ScInput v-model="formData.username" />
+    </ScFormItem>
+    <ScFormItem label="邮箱">
+      <ScInput v-model="formData.email" />
+    </ScFormItem>
+  </ScForm>`;
   } else if (config.contentType === "confirm") {
     code += `\n  <div style="display: flex; align-items: center; gap: 12px;">
     <IconifyIconOnline icon="ri:error-warning-line" style="font-size: 32px; color: var(--el-color-warning);" />

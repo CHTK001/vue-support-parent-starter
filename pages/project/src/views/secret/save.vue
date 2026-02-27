@@ -127,119 +127,119 @@ export default defineComponent({
       :title="title"
       @close="close"
     >
-      <el-form
+      <ScForm 
         ref="dialogForm"
         :model="form"
         :rules="rules"
         :disabled="mode == 'show'"
         label-width="100px"
       >
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="密钥分组" prop="sysSecretGroup">
-              <el-input
+        <ScRow>
+          <ScCol :span="12">
+            <ScFormItem label="密钥分组" prop="sysSecretGroup">
+              <ScInput 
                 v-model="form.sysSecretGroup"
                 placeholder="请输入密钥分组"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="密钥标识" prop="sysSecretCode">
-              <el-input
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="密钥标识" prop="sysSecretCode">
+              <ScInput 
                 v-model="form.sysSecretCode"
                 placeholder="请输入密码标识"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="适用厂家" prop="sysSecretDictItemId">
-              <el-select
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="适用厂家" prop="sysSecretDictItemId">
+              <ScSelect 
                 v-model="form.sysSecretDictItemId"
                 placeholder="请选择厂家"
                 filterable
               >
-                <el-option
+                <ScOption 
                   v-for="item in dictItem"
                   :key="item.sysDictItemId"
                   :label="item.sysDictItemName"
                   :value="item.sysDictItemId"
                 />
-              </el-select>
-            </el-form-item>
-          </el-col>
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="同步功能" prop="sysSecretFunction">
-              <el-select
+          <ScCol :span="12">
+            <ScFormItem label="同步功能" prop="sysSecretFunction">
+              <ScSelect 
                 v-model="form.sysSecretFunctions"
                 placeholder="请选择支持同步功能"
                 filterable
                 multiple
               >
-                <el-option
+                <ScOption 
                   v-for="item in sysSecretFunctions"
                   :key="item.value"
                   :label="item.label"
                   :value="item.value"
                 />
-              </el-select>
-            </el-form-item>
-          </el-col>
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="appId" prop="sysSecretAppId">
-              <el-input
+          <ScCol :span="12">
+            <ScFormItem label="appId" prop="sysSecretAppId">
+              <ScInput 
                 v-model="form.sysSecretAppId"
                 placeholder="请输入AppId"
               />
-            </el-form-item>
-          </el-col>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="appSecret" prop="sysSecretAppSecret">
-              <el-input
+          <ScCol :span="12">
+            <ScFormItem label="appSecret" prop="sysSecretAppSecret">
+              <ScInput 
                 v-model="form.sysSecretAppSecret"
                 placeholder="请输入appSecret"
               />
-            </el-form-item>
-          </el-col>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="签名" prop="sysSecretSign">
-              <el-input v-model="form.sysSecretSign" placeholder="请输入签名" />
-            </el-form-item>
-          </el-col>
+          <ScCol :span="12">
+            <ScFormItem label="签名" prop="sysSecretSign">
+              <ScInput v-model="form.sysSecretSign" placeholder="请输入签名" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="endpoint" prop="sysSecretEndpoint">
-              <el-input
+          <ScCol :span="12">
+            <ScFormItem label="endpoint" prop="sysSecretEndpoint">
+              <ScInput 
                 v-model="form.sysSecretEndpoint"
                 placeholder="请输入endpoint"
               />
-            </el-form-item>
-          </el-col>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="cdn" prop="sysSecretCdn">
-              <el-input v-model="form.sysSecretCdn" placeholder="请输入cdn" />
-            </el-form-item>
-          </el-col>
+          <ScCol :span="12">
+            <ScFormItem label="cdn" prop="sysSecretCdn">
+              <ScInput v-model="form.sysSecretCdn" placeholder="请输入cdn" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="24">
-            <el-form-item label="备注" prop="sysSecretRemark">
-              <el-input
+          <ScCol :span="24">
+            <ScFormItem label="备注" prop="sysSecretRemark">
+              <ScInput 
                 v-model="form.sysSecretRemark"
                 placeholder="请输入备注"
                 type="textarea"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
 
       <template #footer>
-        <el-button @click="visible = false">取 消</el-button>
-        <el-button
+        <ScButton @click="visible = false">取 消</ScButton>
+        <ScButton 
           v-if="mode != 'show'"
           type="primary"
           :loading="loading"

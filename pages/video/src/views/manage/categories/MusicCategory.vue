@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="music-category">
     <div class="music-category__container">
       <div class="music-category__header">
         <h2 class="music-category__title">音乐播放器</h2>
-        <el-button type="primary" plain size="small" @click="navigateToAll">查看全部</el-button>
+        <ScButton type="primary" plain size="small" @click="navigateToAll">查看全部</ScButton>
       </div>
 
       <!-- 音乐播放器控制面板 -->
@@ -32,35 +32,35 @@
             </div>
 
             <div class="music-player__control-buttons">
-              <el-button circle @click="toggleRandom" class="music-player__control-btn">
+              <ScButton circle @click="toggleRandom" class="music-player__control-btn">
                 <IconifyIconOnline :icon="isRandom ? 'ri:shuffle-fill' : 'ri:shuffle-line'" :style="{ color: isRandom ? 'var(--el-color-primary)' : '' }" />
-              </el-button>
-              <el-button circle @click="playPrev" class="music-player__control-btn">
+              </ScButton>
+              <ScButton circle @click="playPrev" class="music-player__control-btn">
                 <IconifyIconOnline icon="ri:skip-back-fill" />
-              </el-button>
-              <el-button circle size="large" @click="togglePlay" class="music-player__control-btn music-player__control-btn--play">
+              </ScButton>
+              <ScButton circle size="large" @click="togglePlay" class="music-player__control-btn music-player__control-btn--play">
                 <IconifyIconOnline :icon="isPlaying ? 'ri:pause-fill' : 'ri:play-fill'" />
-              </el-button>
-              <el-button circle @click="playNext" class="music-player__control-btn">
+              </ScButton>
+              <ScButton circle @click="playNext" class="music-player__control-btn">
                 <IconifyIconOnline icon="ri:skip-forward-fill" />
-              </el-button>
-              <el-button circle @click="toggleLoop" class="music-player__control-btn">
+              </ScButton>
+              <ScButton circle @click="toggleLoop" class="music-player__control-btn">
                 <IconifyIconOnline :icon="isLoop ? 'ri:repeat-one-fill' : 'ri:repeat-line'" :style="{ color: isLoop ? 'var(--el-color-primary)' : '' }" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
 
           <div class="music-player__control-right">
-            <el-button circle @click="toggleMute" class="music-player__control-btn">
+            <ScButton circle @click="toggleMute" class="music-player__control-btn">
               <IconifyIconOnline :icon="isMuted ? 'ri:volume-mute-fill' : volume > 50 ? 'ri:volume-up-fill' : 'ri:volume-down-fill'" />
-            </el-button>
+            </ScButton>
             <ScSlider v-model="volume" :disabled="isMuted" @input="adjustVolume" class="music-player__volume-slider" />
-            <el-button circle @click="showLyrics = !showLyrics" class="music-player__control-btn" :class="{ 'is-active': showLyrics }">
+            <ScButton circle @click="showLyrics = !showLyrics" class="music-player__control-btn" :class="{ 'is-active': showLyrics }">
               <IconifyIconOnline icon="ri:file-list-line" />
-            </el-button>
-            <el-button circle @click="showPlaylistDrawer = !showPlaylistDrawer" class="music-player__control-btn" :class="{ 'is-active': showPlaylistDrawer }">
+            </ScButton>
+            <ScButton circle @click="showPlaylistDrawer = !showPlaylistDrawer" class="music-player__control-btn" :class="{ 'is-active': showPlaylistDrawer }">
               <IconifyIconOnline icon="ri:list-check" />
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -70,9 +70,9 @@
         <div class="music-lyrics__container">
           <div class="music-lyrics__header">
             <div class="music-lyrics__title">歌词</div>
-            <el-button type="text" @click="showLyrics = false" class="music-lyrics__close">
+            <ScButton type="text" @click="showLyrics = false" class="music-lyrics__close">
               <IconifyIconOnline icon="ri:close-line" />
-            </el-button>
+            </ScButton>
           </div>
           <div class="music-lyrics__content">
             <p v-for="(line, index) in parsedLyrics" :key="index" :class="{ active: currentLyricIndex === index }">
@@ -86,7 +86,7 @@
       <div class="music-category__section">
         <div class="music-category__header">
           <h2 class="music-category__title">热门歌曲</h2>
-          <el-button type="primary" plain size="small" @click="navigateToPopular">查看全部</el-button>
+          <ScButton type="primary" plain size="small" @click="navigateToPopular">查看全部</ScButton>
         </div>
 
         <div class="music-category__list">
@@ -107,12 +107,12 @@
             </div>
             <div class="music-category__item-duration">{{ formatDuration(music.musicDuration) }}</div>
             <div class="music-category__item-actions">
-              <el-button circle size="small" class="music-category__item-action-btn">
+              <ScButton circle size="small" class="music-category__item-action-btn">
                 <IconifyIconOnline icon="ri:heart-line" />
-              </el-button>
-              <el-button circle size="small" class="music-category__item-action-btn">
+              </ScButton>
+              <ScButton circle size="small" class="music-category__item-action-btn">
                 <IconifyIconOnline icon="ri:download-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -124,8 +124,8 @@
           <div class="music-playlist__header">
             <div class="music-playlist__title">播放列表 ({{ musicList.length }})</div>
             <div class="music-playlist__actions">
-              <el-button type="text" size="small"> <IconifyIconOnline icon="ri:add-line" /> 添加歌曲 </el-button>
-              <el-button type="text" size="small"> <IconifyIconOnline icon="ri:delete-bin-line" /> 清空 </el-button>
+              <ScButton type="text" size="small"> <IconifyIconOnline icon="ri:add-line" /> 添加歌曲 </ScButton>
+              <ScButton type="text" size="small"> <IconifyIconOnline icon="ri:delete-bin-line" /> 清空 </ScButton>
             </div>
           </div>
         </template>
@@ -141,9 +141,9 @@
             </div>
             <div class="music-playlist__item-duration">{{ formatDuration(music.musicDuration) }}</div>
             <div class="music-playlist__item-actions">
-              <el-button circle size="small" class="music-playlist__item-action-btn">
+              <ScButton circle size="small" class="music-playlist__item-action-btn">
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>

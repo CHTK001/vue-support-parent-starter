@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div class="video-filter">
     <div class="video-filter__container">
       <!-- 类型筛选 -->
       <div class="video-filter__row">
         <div class="video-filter__label">
-          <el-icon><Film /></el-icon>
+          <ScIcon><Film /></ScIcon>
           类型:
         </div>
         <div class="video-filter__options-wrapper">
@@ -15,9 +15,9 @@
           </div>
           <div v-if="showMoreTypes" class="video-filter__more-btn" @click="toggleMoreTypes">
             {{ showAllTypes ? "收起" : "更多" }}
-            <el-icon>
+            <ScIcon>
               <component :is="showAllTypes ? 'ArrowUp' : 'ArrowDown'" />
-            </el-icon>
+            </ScIcon>
           </div>
         </div>
       </div>
@@ -25,7 +25,7 @@
       <!-- 年代筛选 -->
       <div class="video-filter__row">
         <div class="video-filter__label">
-          <el-icon><Calendar /></el-icon>
+          <ScIcon><Calendar /></ScIcon>
           年代:
         </div>
         <div class="video-filter__options-wrapper">
@@ -36,9 +36,9 @@
           </div>
           <div v-if="showMoreYears" class="video-filter__more-btn" @click="toggleMoreYears">
             {{ showAllYears ? "收起" : "更多" }}
-            <el-icon>
+            <ScIcon>
               <component :is="showAllYears ? 'ArrowUp' : 'ArrowDown'" />
-            </el-icon>
+            </ScIcon>
           </div>
         </div>
       </div>
@@ -46,7 +46,7 @@
       <!-- 地区筛选 -->
       <div class="video-filter__row">
         <div class="video-filter__label">
-          <el-icon><Location /></el-icon>
+          <ScIcon><Location /></ScIcon>
           地区:
         </div>
         <div class="video-filter__options-wrapper">
@@ -57,9 +57,9 @@
           </div>
           <div v-if="showMoreDistricts" class="video-filter__more-btn" @click="toggleMoreDistricts">
             {{ showAllDistricts ? "收起" : "更多" }}
-            <el-icon>
+            <ScIcon>
               <component :is="showAllDistricts ? 'ArrowUp' : 'ArrowDown'" />
-            </el-icon>
+            </ScIcon>
           </div>
         </div>
       </div>
@@ -67,7 +67,7 @@
       <!-- 语言筛选 -->
       <div class="video-filter__row">
         <div class="video-filter__label">
-          <el-icon><ChatDotRound /></el-icon>
+          <ScIcon><ChatDotRound /></ScIcon>
           语言:
         </div>
         <div class="video-filter__options-wrapper">
@@ -78,16 +78,16 @@
           </div>
           <div v-if="showMoreLanguages" class="video-filter__more-btn" @click="toggleMoreLanguages">
             {{ showAllLanguages ? "收起" : "更多" }}
-            <el-icon>
+            <ScIcon>
               <component :is="showAllLanguages ? 'ArrowUp' : 'ArrowDown'" />
-            </el-icon>
+            </ScIcon>
           </div>
         </div>
       </div>
 
       <!-- 确认按钮（autoSearch为false时显示） -->
       <div v-if="!autoSearch" class="video-filter__confirm-row">
-        <el-button type="primary" @click="handleConfirmSearch">搜索</el-button>
+        <ScButton type="primary" @click="handleConfirmSearch">搜索</ScButton>
       </div>
     </div>
   </div>

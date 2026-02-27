@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -240,9 +240,9 @@ const onBeforeUnmount = () => {
             <div class="time-tool__clock-weekday">{{ ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][env.currentTime.getDay()] }}</div>
             <div class="time-tool__clock-timestamp">
               <span>当前时间戳: {{ Math.floor(env.currentTime.getTime() / 1000) }}</span>
-              <el-button type="primary" link size="small" @click="copyToClipboard(Math.floor(env.currentTime.getTime() / 1000).toString())">
+              <ScButton type="primary" link size="small" @click="copyToClipboard(Math.floor(env.currentTime.getTime() / 1000).toString())">
                 <IconifyIconOnline icon="ri:file-copy-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
           <div class="time-tool__clock-decoration">
@@ -253,10 +253,10 @@ const onBeforeUnmount = () => {
         </div>
       </div>
 
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 输入区域 - 美化版 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="time-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="time-tool__input-card" shadow="hover">
             <template #header>
               <div class="time-tool__card-header">
                 <IconifyIconOnline icon="ri:input-method-line" class="time-tool__card-icon" />
@@ -264,73 +264,73 @@ const onBeforeUnmount = () => {
               </div>
             </template>
 
-            <el-form label-position="top">
-              <el-form-item label="输入类型">
-                <el-radio-group v-model="env.inputType" class="time-tool__radio-group">
-                  <el-radio label="datetime">
+            <ScForm label-position="top">
+              <ScFormItem label="输入类型">
+                <ScRadioGroup v-model="env.inputType" class="time-tool__radio-group">
+                  <ScRadio label="datetime">
                     <div class="time-tool__radio-content">
                       <IconifyIconOnline icon="ri:calendar-event-fill" />
                       <span>日期时间</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="timestamp-s">
+                  </ScRadio>
+                  <ScRadio label="timestamp-s">
                     <div class="time-tool__radio-content">
                       <IconifyIconOnline icon="ri:time-line" />
                       <span>时间戳(秒)</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="timestamp-ms">
+                  </ScRadio>
+                  <ScRadio label="timestamp-ms">
                     <div class="time-tool__radio-content">
                       <IconifyIconOnline icon="ri:timer-flash-line" />
                       <span>时间戳(毫秒)</span>
                     </div>
-                  </el-radio>
-                </el-radio-group>
-              </el-form-item>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
 
-              <el-form-item label="输入值">
-                <el-input @input="parseTime" v-if="env.inputType === 'datetime'" v-model="env.inputValue" placeholder="请输入日期时间，如：2023-01-01 12:30:45" clearable class="time-tool__input">
+              <ScFormItem label="输入值">
+                <ScInput @input="parseTime" v-if="env.inputType === 'datetime'" v-model="env.inputValue" placeholder="请输入日期时间，如：2023-01-01 12:30:45" clearable class="time-tool__input">
                   <template #prefix>
                     <IconifyIconOnline icon="ri:calendar-line" />
                   </template>
-                </el-input>
+                </ScInput>
 
-                <el-input v-else v-model="env.inputValue" placeholder="请输入时间戳，如：1672571445" clearable type="number" @input="debounceParseTime" class="time-tool__input">
+                <ScInput v-else v-model="env.inputValue" placeholder="请输入时间戳，如：1672571445" clearable type="number" @input="debounceParseTime" class="time-tool__input">
                   <template #prefix>
                     <IconifyIconOnline icon="ri:timer-line" />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
-              <el-form-item label="自定义输出格式">
-                <el-select v-model="env.customFormat" placeholder="选择或输入自定义格式" filterable allow-create class="time-tool__select">
-                  <el-option v-for="item in env.formats" :key="item.value" :label="`${item.label} (${item.example})`" :value="item.value" />
-                </el-select>
-              </el-form-item>
+              <ScFormItem label="自定义输出格式">
+                <ScSelect v-model="env.customFormat" placeholder="选择或输入自定义格式" filterable allow-create class="time-tool__select">
+                  <ScOption v-for="item in env.formats" :key="item.value" :label="`${item.label} (${item.example})`" :value="item.value" />
+                </ScSelect>
+              </ScFormItem>
 
               <div class="time-tool__actions">
-                <el-button type="primary" :loading="env.loading" class="time-tool__parse-btn" @click="parseTime">
+                <ScButton type="primary" :loading="env.loading" class="time-tool__parse-btn" @click="parseTime">
                   <IconifyIconOnline icon="ri:time-line" />
                   <span>解析时间</span>
-                </el-button>
+                </ScButton>
 
-                <el-button type="success" class="time-tool__now-btn" @click="getCurrentTimestamp">
+                <ScButton type="success" class="time-tool__now-btn" @click="getCurrentTimestamp">
                   <IconifyIconOnline icon="ri:time-fill" />
                   <span>当前时间</span>
-                </el-button>
+                </ScButton>
 
-                <el-button class="time-tool__reset-btn" @click="resetForm">
+                <ScButton class="time-tool__reset-btn" @click="resetForm">
                   <IconifyIconOnline icon="ri:refresh-line" />
                   <span>重置</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
-          </el-card>
-        </el-col>
+            </ScForm>
+          </ScCard>
+        </ScCol>
 
         <!-- 结果区域 - 美化版 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="time-tool__result-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="time-tool__result-card" shadow="hover">
             <template #header>
               <div class="time-tool__card-header">
                 <IconifyIconOnline icon="ri:file-list-line" class="time-tool__card-icon" />
@@ -338,11 +338,11 @@ const onBeforeUnmount = () => {
               </div>
             </template>
 
-            <el-empty v-if="!env.outputResults.length" description="请先输入并解析时间" class="time-tool__empty">
+            <ScEmpty v-if="!env.outputResults.length" description="请先输入并解析时间" class="time-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:time-line" class="time-tool__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="time-tool__results">
               <div v-for="(result, index) in env.outputResults" :key="index" class="time-tool__result-item" :class="{ 'time-tool__result-item--highlight': index < 3 }">
@@ -352,15 +352,15 @@ const onBeforeUnmount = () => {
                 </div>
                 <div class="time-tool__result-value">
                   <span>{{ result.value }}</span>
-                  <el-button type="primary" link size="small" class="time-tool__copy-btn" @click="copyToClipboard(result.value)">
+                  <ScButton type="primary" link size="small" class="time-tool__copy-btn" @click="copyToClipboard(result.value)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

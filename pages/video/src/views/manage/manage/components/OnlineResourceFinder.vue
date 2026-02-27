@@ -1,22 +1,22 @@
-<template>
+﻿<template>
   <div class="online-finder">
-    <el-popover placement="bottom-start" :width="600" trigger="click" v-model:visible="popoverVisible" :popper-style="{ padding: '12px 0', maxHeight: '80vh', overflow: 'auto' }">
+    <ScPopover placement="bottom-start" :width="600" trigger="click" v-model:visible="popoverVisible" :popper-style="{ padding: '12px 0', maxHeight: '80vh', overflow: 'auto' }">
       <template #reference>
-        <el-button type="primary" size="small" :loading="loading">
+        <ScButton type="primary" size="small" :loading="loading">
           <IconifyIconOnline icon="ep:search" />
           搜索资源
-        </el-button>
+        </ScButton>
       </template>
 
       <!-- 搜索表单 -->
       <div class="search-form p-3">
-        <el-input v-model="searchKeyword" placeholder="输入视频名称" clearable @keyup.enter="handleSearch" class="mb-3">
+        <ScInput v-model="searchKeyword" placeholder="输入视频名称" clearable @keyup.enter="handleSearch" class="mb-3">
           <template #append>
-            <el-button @click="handleSearch" :loading="loading">
+            <ScButton @click="handleSearch" :loading="loading">
               <IconifyIconOnline icon="ep:search" />
-            </el-button>
+            </ScButton>
           </template>
-        </el-input>
+        </ScInput>
 
         <div v-if="loading" class="text-center py-5">
           <div class="loading-icon-wrapper">
@@ -37,13 +37,13 @@
           <div class="search-results">
             <div v-for="(item, index) in searchResults" :key="index" class="result-item" @click="handleSelectItem(item)">
               <div class="result-cover">
-                <el-image v-if="item.videoCover" referrerpolicy="no-referrer" :src="item.videoCover" fit="cover" class="w-full h-full">
+                <ScImage v-if="item.videoCover" referrerpolicy="no-referrer" :src="item.videoCover" fit="cover" class="w-full h-full">
                   <template #error>
                     <div class="image-placeholder">
                       <IconifyIconOnline icon="ep:picture" />
                     </div>
                   </template>
-                </el-image>
+                </ScImage>
                 <div v-else class="image-placeholder">
                   <IconifyIconOnline icon="ep:picture" />
                 </div>
@@ -58,8 +58,8 @@
                 </div>
                 <div class="result-actors" v-if="item.videoActor">主演: {{ item.videoActor }}</div>
                 <div class="flex items-center mt-1">
-                  <el-tag size="small" v-if="item.videoType">{{ item.videoType }}</el-tag>
-                  <el-tag size="small" type="success" v-if="item.videoQuality" class="ml-2">{{ item.videoQuality }}</el-tag>
+                  <ScTag size="small" v-if="item.videoType">{{ item.videoType }}</ScTag>
+                  <ScTag size="small" type="success" v-if="item.videoQuality" class="ml-2">{{ item.videoQuality }}</ScTag>
                 </div>
               </div>
             </div>
@@ -69,7 +69,7 @@
           </div>
         </div>
       </div>
-    </el-popover>
+    </ScPopover>
   </div>
 </template>
 

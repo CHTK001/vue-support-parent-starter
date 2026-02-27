@@ -1,20 +1,20 @@
-<template>
+﻿<template>
   <div class="example-container">
     <h2 class="example-title">ScTableSelect 表格选择器示例</h2>
     <p class="example-desc">表格选择器组件，支持单选、多选、自定义列等功能</p>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <ScDivider content-position="left">功能演示</ScDivider>
 
     <div class="demo-section">
       <div class="demo-controls">
-        <el-button type="primary" @click="addRow">
+        <ScButton type="primary" @click="addRow">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加数据
-        </el-button>
-        <el-button @click="clearSelection">
+        </ScButton>
+        <ScButton @click="clearSelection">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           清空选择
-        </el-button>
+        </ScButton>
       </div>
 
       <ScTableSelect
@@ -32,18 +32,18 @@
       </div>
     </div>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <ScDivider content-position="left">代码示例</ScDivider>
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <ScDivider content-position="left">属性说明</ScDivider>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="200" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <ScTable :data="propsData" border stripe class="props-table">
+      <ScTableColumn prop="name" label="属性名" width="180" />
+      <ScTableColumn prop="type" label="类型" width="200" />
+      <ScTableColumn prop="default" label="默认值" width="120" />
+      <ScTableColumn prop="description" label="说明" />
+    </ScTable>
   </div>
 </template>
 

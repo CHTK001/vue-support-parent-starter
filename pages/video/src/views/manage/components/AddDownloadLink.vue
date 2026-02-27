@@ -1,47 +1,47 @@
-<template>
+﻿<template>
   <div class="add-download-link-container">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <el-form-item label="下载名称" prop="videoDownloadName">
-        <el-input v-model="form.videoDownloadName" placeholder="请输入下载名称" />
-      </el-form-item>
-      <el-form-item label="下载链接" prop="videoDownloadUrl">
-        <el-input v-model="form.videoDownloadUrl" placeholder="请输入下载链接" type="textarea" :rows="3" />
-      </el-form-item>
-      <el-form-item label="链接类型" prop="videoDownloadType">
+    <ScForm ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <ScFormItem label="下载名称" prop="videoDownloadName">
+        <ScInput v-model="form.videoDownloadName" placeholder="请输入下载名称" />
+      </ScFormItem>
+      <ScFormItem label="下载链接" prop="videoDownloadUrl">
+        <ScInput v-model="form.videoDownloadUrl" placeholder="请输入下载链接" type="textarea" :rows="3" />
+      </ScFormItem>
+      <ScFormItem label="链接类型" prop="videoDownloadType">
         <CardSelector v-model="form.videoDownloadType" :options="resourceTypes" />
-      </el-form-item>
-      <el-form-item label="视频质量" prop="videoDownloadQuality">
-        <el-select v-model="form.videoDownloadQuality" placeholder="请选择视频质量" class="w-full">
-          <el-option label="标清" value="标清" />
-          <el-option label="高清" value="高清" />
-          <el-option label="超清" value="超清" />
-          <el-option label="蓝光" value="蓝光" />
-          <el-option label="4K" value="4K" />
-          <el-option label="8K" value="8K" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="文件大小" prop="videoDownloadSize">
-        <el-input-number v-model="form.videoDownloadSize" placeholder="请输入文件大小(KB)" />
-      </el-form-item>
-      <el-form-item label="磁力链接" prop="videoDownloadMagnetic">
-        <el-input v-model="form.videoDownloadMagnetic" placeholder="请输入磁力链接" type="textarea" :rows="2" />
-      </el-form-item>
-      <el-form-item label="状态" prop="videoDownloadStatus">
-        <el-radio-group v-model="form.videoDownloadStatus">
-          <el-radio :label="0">可用</el-radio>
-          <el-radio :label="1">不可用</el-radio>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item v-if="showVideoIdSelect" label="关联视频" prop="videoDownloadVideoId">
-        <el-select v-model="form.videoDownloadVideoId" placeholder="请选择关联视频" class="w-full" filterable remote :remote-method="searchVideos" :loading="videoLoading">
-          <el-option v-for="item in videoOptions" :key="item.videoId" :label="item.videoName" :value="item.videoId" />
-        </el-select>
-      </el-form-item>
-      <el-form-item class="flex justify-end gap-2 submit-btn">
-        <el-button type="primary" @click="submitForm" :loading="submitLoading">保存</el-button>
-        <el-button @click="resetForm">重置</el-button>
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+      <ScFormItem label="视频质量" prop="videoDownloadQuality">
+        <ScSelect v-model="form.videoDownloadQuality" placeholder="请选择视频质量" class="w-full">
+          <ScOption label="标清" value="标清" />
+          <ScOption label="高清" value="高清" />
+          <ScOption label="超清" value="超清" />
+          <ScOption label="蓝光" value="蓝光" />
+          <ScOption label="4K" value="4K" />
+          <ScOption label="8K" value="8K" />
+        </ScSelect>
+      </ScFormItem>
+      <ScFormItem label="文件大小" prop="videoDownloadSize">
+        <ScInputNumber v-model="form.videoDownloadSize" placeholder="请输入文件大小(KB)" />
+      </ScFormItem>
+      <ScFormItem label="磁力链接" prop="videoDownloadMagnetic">
+        <ScInput v-model="form.videoDownloadMagnetic" placeholder="请输入磁力链接" type="textarea" :rows="2" />
+      </ScFormItem>
+      <ScFormItem label="状态" prop="videoDownloadStatus">
+        <ScRadioGroup v-model="form.videoDownloadStatus">
+          <ScRadio :label="0">可用</ScRadio>
+          <ScRadio :label="1">不可用</ScRadio>
+        </ScRadioGroup>
+      </ScFormItem>
+      <ScFormItem v-if="showVideoIdSelect" label="关联视频" prop="videoDownloadVideoId">
+        <ScSelect v-model="form.videoDownloadVideoId" placeholder="请选择关联视频" class="w-full" filterable remote :remote-method="searchVideos" :loading="videoLoading">
+          <ScOption v-for="item in videoOptions" :key="item.videoId" :label="item.videoName" :value="item.videoId" />
+        </ScSelect>
+      </ScFormItem>
+      <ScFormItem class="flex justify-end gap-2 submit-btn">
+        <ScButton type="primary" @click="submitForm" :loading="submitLoading">保存</ScButton>
+        <ScButton @click="resetForm">重置</ScButton>
+      </ScFormItem>
+    </ScForm>
   </div>
 </template>
 

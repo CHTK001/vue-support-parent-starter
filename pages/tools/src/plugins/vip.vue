@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, computed, watch, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -316,10 +316,10 @@ onMounted(() => {
         </div>
       </div>
 
-      <el-row :gutter="20">
+      <ScRow :gutter="20">
         <!-- 输入区域 -->
-        <el-col :xs="24" :sm="24" :md="24" :lg="24">
-          <el-card class="vip-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="24" :lg="24">
+          <ScCard class="vip-tool__input-card" shadow="hover">
             <template #header>
               <div class="vip-tool__card-header">
                 <IconifyIconOnline
@@ -330,11 +330,11 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-form label-position="top">
-              <el-form-item label="解析接口">
-                <el-select v-model="env.selectedApi" class="vip-tool__select">
+            <ScForm label-position="top">
+              <ScFormItem label="解析接口">
+                <ScSelect v-model="env.selectedApi" class="vip-tool__select">
                   <el-option-group label="通用接口">
-                    <el-option
+                    <ScOption 
                       v-for="item in env.apis.filter(
                         (api) =>
                           (api.value <= 15 && api.value <= 7) || api.value >= 13
@@ -346,7 +346,7 @@ onMounted(() => {
                   </el-option-group>
                   <el-option-group label="专用接口">
                     <el-option-group label="主流视频">
-                      <el-option
+                      <ScOption 
                         v-for="item in env.apis.filter(
                           (api) => api.value > 7 && api.value <= 12
                         )"
@@ -356,7 +356,7 @@ onMounted(() => {
                       />
                     </el-option-group>
                     <el-option-group label="B站专用">
-                      <el-option
+                      <ScOption 
                         v-for="item in env.apis.filter(
                           (api) => api.value >= 16 && api.value <= 18
                         )"
@@ -366,7 +366,7 @@ onMounted(() => {
                       />
                     </el-option-group>
                     <el-option-group label="其他平台">
-                      <el-option
+                      <ScOption 
                         v-for="item in env.apis.filter(
                           (api) => api.value >= 19 && api.value <= 21
                         )"
@@ -376,11 +376,11 @@ onMounted(() => {
                       />
                     </el-option-group>
                   </el-option-group>
-                </el-select>
-              </el-form-item>
+                </ScSelect>
+              </ScFormItem>
 
-              <el-form-item label="视频链接">
-                <el-input
+              <ScFormItem label="视频链接">
+                <ScInput 
                   v-model="env.inputValue"
                   placeholder="请输入需要解析的视频链接，如：https://v.qq.com/x/cover/xxx.html"
                   clearable
@@ -390,11 +390,11 @@ onMounted(() => {
                   <template #prefix>
                     <IconifyIconOnline icon="ri:link" />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
               <div class="vip-tool__actions">
-                <el-button
+                <ScButton 
                   type="primary"
                   :loading="env.loading"
                   class="vip-tool__parse-btn"
@@ -402,14 +402,14 @@ onMounted(() => {
                 >
                   <IconifyIconOnline icon="ri:play-circle-line" />
                   <span>解析播放</span>
-                </el-button>
+                </ScButton>
 
-                <el-button class="vip-tool__reset-btn" @click="resetForm">
+                <ScButton class="vip-tool__reset-btn" @click="resetForm">
                   <IconifyIconOnline icon="ri:refresh-line" />
                   <span>重置</span>
-                </el-button>
+                </ScButton>
 
-                <el-button
+                <ScButton 
                   v-if="env.currentUrl"
                   type="success"
                   class="vip-tool__fullscreen-btn"
@@ -423,9 +423,9 @@ onMounted(() => {
                     "
                   />
                   <span>{{ env.fullscreen ? "退出全屏" : "全屏播放" }}</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
+            </ScForm>
 
             <!-- 历史记录 -->
             <div
@@ -434,7 +434,7 @@ onMounted(() => {
             >
               <span class="vip-tool__history-label">历史记录:</span>
               <div class="vip-tool__history-items">
-                <el-tag
+                <ScTag 
                   v-for="(url, index) in env.history"
                   :key="index"
                   class="vip-tool__history-item"
@@ -442,7 +442,7 @@ onMounted(() => {
                   :effect="env.inputValue === url ? 'dark' : 'plain'"
                 >
                   {{ url.length > 30 ? url.substring(0, 30) + "..." : url }}
-                </el-tag>
+                </ScTag>
               </div>
             </div>
 
@@ -450,7 +450,7 @@ onMounted(() => {
             <div class="vip-tool__popular-sites">
               <span class="vip-tool__popular-sites-label">热门视频网站:</span>
               <div class="vip-tool__popular-sites-items">
-                <el-button
+                <ScButton 
                   v-for="site in env.popularSites"
                   :key="site.name"
                   class="vip-tool__popular-site-btn"
@@ -461,15 +461,15 @@ onMounted(() => {
                     class="vip-tool__popular-site-icon"
                   />
                   <span>{{ site.name }}</span>
-                </el-button>
+                </ScButton>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 视频播放区域 -->
-        <el-col :xs="24" :sm="24" :md="24" :lg="24" v-if="env.currentUrl">
-          <el-card class="vip-tool__player-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="24" :lg="24" v-if="env.currentUrl">
+          <ScCard class="vip-tool__player-card" shadow="hover">
             <template #header>
               <div class="vip-tool__card-header">
                 <IconifyIconOnline
@@ -478,7 +478,7 @@ onMounted(() => {
                 />
                 <span>视频播放</span>
                 <div class="vip-tool__player-controls">
-                  <el-button type="primary" link @click="toggleFullscreen">
+                  <ScButton type="primary" link @click="toggleFullscreen">
                     <IconifyIconOnline
                       :icon="
                         env.fullscreen
@@ -486,7 +486,7 @@ onMounted(() => {
                           : 'ri:fullscreen-line'
                       "
                     />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
@@ -500,12 +500,12 @@ onMounted(() => {
                 class="vip-tool__player-iframe"
               ></iframe>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
       <!-- 使用说明 -->
-      <el-card
+      <ScCard 
         class="vip-tool__tips-card"
         shadow="hover"
         v-if="!env.currentUrl"
@@ -555,7 +555,7 @@ onMounted(() => {
             </div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
   </div>
 </template>

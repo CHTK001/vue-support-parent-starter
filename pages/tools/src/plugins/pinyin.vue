@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="pinyin-tool">
     <!-- 头部区域 -->
     <div class="pinyin-tool__header">
@@ -12,7 +12,7 @@
     </div>
 
     <div class="pinyin-tool__content">
-      <el-card class="pinyin-tool__converter-card" shadow="hover">
+      <ScCard class="pinyin-tool__converter-card" shadow="hover">
         <template #header>
           <div class="pinyin-tool__card-header">
             <IconifyIconOnline icon="ri:translate-2" class="pinyin-tool__card-icon" />
@@ -20,15 +20,15 @@
           </div>
         </template>
         <div class="pinyin-tool__action-bar">
-          <el-radio-group v-model="convertType" size="large" @change="convert">
+          <ScRadioGroup v-model="convertType" size="large" @change="convert">
             <el-radio-button label="pinyin">汉字转拼音</el-radio-button>
             <el-radio-button label="zhuyin">汉字转注音</el-radio-button>
             <el-radio-button label="wubi">汉字转五笔</el-radio-button>
-          </el-radio-group>
+          </ScRadioGroup>
 
           <div class="pinyin-tool__action-buttons">
-            <el-button type="success" @click="copyResult" :icon="CopyDocument">复制结果</el-button>
-            <el-button @click="clearText" :icon="Delete">清空</el-button>
+            <ScButton type="success" @click="copyResult" :icon="CopyDocument">复制结果</ScButton>
+            <ScButton @click="clearText" :icon="Delete">清空</ScButton>
           </div>
         </div>
 
@@ -36,9 +36,9 @@
           <div class="pinyin-tool__input-area">
             <div class="pinyin-tool__area-header">
               <span>输入汉字</span>
-              <el-button size="small" @click="pasteText">粘贴</el-button>
+              <ScButton size="small" @click="pasteText">粘贴</ScButton>
             </div>
-            <el-input v-model="inputText" type="textarea" :rows="10" placeholder="请输入需要转换的汉字文本..." @input="handleInput" />
+            <ScInput v-model="inputText" type="textarea" :rows="10" placeholder="请输入需要转换的汉字文本..." @input="handleInput" />
             <div class="pinyin-tool__char-count">{{ inputText.length }} 个字符</div>
           </div>
 
@@ -46,10 +46,10 @@
             <div class="pinyin-tool__area-header">
               <span>转换结果</span>
               <div class="pinyin-tool__output-options">
-                <el-checkbox v-if="convertType === 'pinyin'" v-model="options.toneType" @change="convert" label="number">数字声调</el-checkbox>
-                <el-checkbox v-if="convertType === 'pinyin'" v-model="options.uppercase" @change="convert">首字母大写</el-checkbox>
-                <el-checkbox v-if="convertType === 'pinyin'" v-model="options.removeTone" @change="convert">去除声调</el-checkbox>
-                <el-checkbox v-model="options.addSpace" @change="convert">添加空格</el-checkbox>
+                <ScCheckbox v-if="convertType === 'pinyin'" v-model="options.toneType" @change="convert" label="number">数字声调</ScCheckbox>
+                <ScCheckbox v-if="convertType === 'pinyin'" v-model="options.uppercase" @change="convert">首字母大写</ScCheckbox>
+                <ScCheckbox v-if="convertType === 'pinyin'" v-model="options.removeTone" @change="convert">去除声调</ScCheckbox>
+                <ScCheckbox v-model="options.addSpace" @change="convert">添加空格</ScCheckbox>
               </div>
             </div>
             <div class="pinyin-tool__result-display" ref="resultDisplay">
@@ -64,11 +64,11 @@
             </div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-card class="pinyin-tool__query-card" shadow="hover">
+      <ScRow :gutter="20">
+        <ScCol :span="12">
+          <ScCard class="pinyin-tool__query-card" shadow="hover">
             <template #header>
               <div class="pinyin-tool__card-header">
                 <IconifyIconOnline icon="ri:search-line" class="pinyin-tool__card-icon" />
@@ -76,11 +76,11 @@
               </div>
             </template>
           <div class="pinyin-tool__search-container">
-            <el-input v-model="searchChar" placeholder="输入汉字查询拼音、注音和五笔..." maxlength="1" show-word-limit clearable>
+            <ScInput v-model="searchChar" placeholder="输入汉字查询拼音、注音和五笔..." maxlength="1" show-word-limit clearable>
               <template #append>
-                <el-button :icon="Search" @click="searchCharInfo"></el-button>
+                <ScButton :icon="Search" @click="searchCharInfo"></ScButton>
               </template>
-            </el-input>
+            </ScInput>
 
             <div v-if="charInfo.char" class="pinyin-tool__char-info">
               <div class="pinyin-tool__char-display">{{ charInfo.char }}</div>
@@ -113,11 +113,11 @@
             <div v-else-if="searchChar" class="pinyin-tool__no-result">正在查询...</div>
             <div v-else class="pinyin-tool__search-hint">请输入一个汉字进行查询</div>
           </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
-        <el-col :span="12">
-          <el-card class="pinyin-tool__batch-card" shadow="hover">
+        <ScCol :span="12">
+          <ScCard class="pinyin-tool__batch-card" shadow="hover">
             <template #header>
               <div class="pinyin-tool__card-header">
                 <IconifyIconOnline icon="ri:file-list-3-line" class="pinyin-tool__card-icon" />
@@ -126,45 +126,45 @@
             </template>
           <div class="pinyin-tool__batch-process">
             <div class="pinyin-tool__file-upload">
-              <el-upload action="#" :auto-upload="false" :limit="1" :on-change="handleFileChange">
+              <ScUpload action="#" :auto-upload="false" :limit="1" :on-change="handleFileChange">
                 <template #trigger>
-                  <el-button type="primary">选择文本文件</el-button>
+                  <ScButton type="primary">选择文本文件</ScButton>
                 </template>
                 <template #tip>
                   <div class="el-upload__tip">仅支持 TXT 文本文件，最大 5MB</div>
                 </template>
-              </el-upload>
+              </ScUpload>
             </div>
 
             <div class="pinyin-tool__batch-options">
               <h4>批量转换选项</h4>
-              <el-form :model="batchOptions" label-position="top" size="small">
-                <el-form-item label="转换格式">
-                  <el-radio-group v-model="batchOptions.type">
+              <ScForm :model="batchOptions" label-position="top" size="small">
+                <ScFormItem label="转换格式">
+                  <ScRadioGroup v-model="batchOptions.type">
                     <el-radio-button label="pinyin">拼音</el-radio-button>
                     <el-radio-button label="zhuyin">注音</el-radio-button>
                     <el-radio-button label="wubi">五笔</el-radio-button>
-                  </el-radio-group>
-                </el-form-item>
+                  </ScRadioGroup>
+                </ScFormItem>
 
-                <el-form-item label="输出格式">
-                  <el-checkbox v-model="batchOptions.addSpace">添加空格</el-checkbox>
-                  <el-checkbox v-if="batchOptions.type === 'pinyin'" v-model="batchOptions.uppercase">首字母大写</el-checkbox>
-                  <el-checkbox v-if="batchOptions.type === 'pinyin'" v-model="batchOptions.removeTone">去除声调</el-checkbox>
-                </el-form-item>
+                <ScFormItem label="输出格式">
+                  <ScCheckbox v-model="batchOptions.addSpace">添加空格</ScCheckbox>
+                  <ScCheckbox v-if="batchOptions.type === 'pinyin'" v-model="batchOptions.uppercase">首字母大写</ScCheckbox>
+                  <ScCheckbox v-if="batchOptions.type === 'pinyin'" v-model="batchOptions.removeTone">去除声调</ScCheckbox>
+                </ScFormItem>
 
-                <el-form-item>
-                  <el-button type="success" @click="processBatch" :disabled="!selectedFile">处理文件</el-button>
-                  <el-button type="primary" @click="downloadResult" :disabled="!batchResult">下载结果</el-button>
-                </el-form-item>
-              </el-form>
+                <ScFormItem>
+                  <ScButton type="success" @click="processBatch" :disabled="!selectedFile">处理文件</ScButton>
+                  <ScButton type="primary" @click="downloadResult" :disabled="!batchResult">下载结果</ScButton>
+                </ScFormItem>
+              </ScForm>
             </div>
           </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
-      <el-card class="pinyin-tool__help-card" shadow="hover">
+      <ScCard class="pinyin-tool__help-card" shadow="hover">
         <template #header>
           <div class="pinyin-tool__card-header">
             <IconifyIconOnline icon="ri:question-line" class="pinyin-tool__card-icon" />
@@ -206,7 +206,7 @@
           <li>转换过程完全在浏览器中进行，不会上传您的文本</li>
         </ul>
       </div>
-      </el-card>
+      </ScCard>
     </div>
   </div>
 </template>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg">
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-container">
@@ -9,10 +9,10 @@
     <div v-else-if="videoDetail" class="detail-content">
       <!-- 返回按钮 -->
       <div class="detail-header">
-        <el-button @click="goBack" type="primary" class="back-btn">
+        <ScButton @click="goBack" type="primary" class="back-btn">
           <IconifyIconOnline icon="ep:arrow-left" />
           返回搜索结果
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 主要内容区域 -->
@@ -54,21 +54,21 @@
           <div class="title-section">
             <h1 class="video-title">{{ videoDetail.title }}</h1>
             <div class="basic-info">
-              <el-tag type="primary" size="large">{{
+              <ScTag type="primary" size="large">{{
                 videoDetail.type
-              }}</el-tag>
-              <el-tag size="large">{{ videoDetail.year }}</el-tag>
-              <el-tag size="large">{{ videoDetail.region }}</el-tag>
-              <el-tag size="large" v-if="videoDetail.language">{{
+              }}</ScTag>
+              <ScTag size="large">{{ videoDetail.year }}</ScTag>
+              <ScTag size="large">{{ videoDetail.region }}</ScTag>
+              <ScTag size="large" v-if="videoDetail.language">{{
                 videoDetail.language
-              }}</el-tag>
-              <el-tag
+              }}</ScTag>
+              <ScTag 
                 size="large"
                 :type="videoDetail.status === '已完结' ? 'success' : 'warning'"
                 v-if="videoDetail.status"
               >
                 {{ videoDetail.status }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
 
@@ -130,22 +130,22 @@
                   <span class="download-url">{{ download.url }}</span>
                 </div>
                 <div class="download-actions">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     size="small"
                     @click="copyDownloadUrl(download.url)"
                   >
                     <IconifyIconOnline icon="ep:copy-document" />
                     复制链接
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton 
                     type="success"
                     size="small"
                     @click="downloadVideo(download.url)"
                   >
                     <IconifyIconOnline icon="ep:download" />
                     下载
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
@@ -153,7 +153,7 @@
 
           <!-- 操作按钮 -->
           <div class="action-section">
-            <el-button
+            <ScButton 
               type="primary"
               size="large"
               @click="playVideo"
@@ -161,15 +161,15 @@
             >
               <IconifyIconOnline icon="ep:video-play" />
               在线播放
-            </el-button>
-            <el-button type="success" size="large" @click="addToFavorites">
+            </ScButton>
+            <ScButton type="success" size="large" @click="addToFavorites">
               <IconifyIconOnline icon="ep:star" />
               收藏
-            </el-button>
-            <el-button size="large" @click="shareVideo">
+            </ScButton>
+            <ScButton size="large" @click="shareVideo">
               <IconifyIconOnline icon="ep:share" />
               分享
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -177,9 +177,9 @@
 
     <!-- 未找到视频 -->
     <div v-else class="not-found">
-      <el-empty description="视频不存在或已被删除">
-        <el-button type="primary" @click="goBack">返回搜索</el-button>
-      </el-empty>
+      <ScEmpty description="视频不存在或已被删除">
+        <ScButton type="primary" @click="goBack">返回搜索</ScButton>
+      </ScEmpty>
     </div>
   </div>
 </template>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -10,7 +10,7 @@
         </div>
       </div>
       <div class="page-header-actions">
-        <el-input
+        <ScInput 
           v-model="searchKeyword"
           placeholder="搜索视频..."
           clearable
@@ -18,9 +18,9 @@
           @keyup.enter="handleSearch"
         >
           <template #prefix>
-            <el-icon><IconifyIconOnline icon="ep:search" /></el-icon>
+            <ScIcon><IconifyIconOnline icon="ep:search" /></ScIcon>
           </template>
-        </el-input>
+        </ScInput>
       </div>
     </div>
 

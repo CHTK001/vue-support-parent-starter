@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="template-example">
     <div class="example-section">
       <h2 class="section-title">
@@ -21,7 +21,7 @@
           trend-type="up"
         >
           <template #footer>
-            <el-button text type="primary" size="small">查看详情</el-button>
+            <ScButton text type="primary" size="small">查看详情</ScButton>
           </template>
         </DashboardCard>
 
@@ -299,7 +299,7 @@ const codeTabs = [
   trend-type="up"
 >
   <template #footer>
-    <el-button text type="primary">查看详情</el-button>
+    <ScButton text type="primary">查看详情</ScButton>
   </template>
 </DashboardCard>`,
   },

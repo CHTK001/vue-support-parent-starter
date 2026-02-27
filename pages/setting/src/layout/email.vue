@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="fullscreen">
-    <el-row v-if="hasAuth">
-      <el-col :span="16">
-        <el-form :model="form" label-width="200px" class="h-full">
-          <el-form-item label="项目" prop="sysProjectId">
+    <ScRow v-if="hasAuth">
+      <ScCol :span="16">
+        <ScForm :model="form" label-width="200px" class="h-full">
+          <ScFormItem label="项目" prop="sysProjectId">
             <ScTableSelect
               class="w-full"
               v-model="form.sysProjectId"
@@ -18,38 +18,38 @@
               @selectionChange="selectionChange"
               @failure="handleFailure"
             ></ScTableSelect>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item
+          <ScFormItem 
             label="smtp主机"
             prop="sysProjectSmtpHost"
             placeholder="smtp.163.com"
           >
-            <el-input
+            <ScInput 
               v-model="form.sysProjectSmtpHost"
               placeholder="请输入smtp主机"
             />
-          </el-form-item>
-          <el-form-item
+          </ScFormItem>
+          <ScFormItem 
             label="smtp端口"
             prop="sysProjectSmtpPort"
             placeholder="25"
           >
-            <el-input
+            <ScInput 
               v-model="form.sysProjectSmtpPort"
               placeholder="请输入smtp端口"
             />
-          </el-form-item>
-          <el-form-item label="smtp密码" prop="sysProjectSmtpPassword">
-            <el-input
+          </ScFormItem>
+          <ScFormItem label="smtp密码" prop="sysProjectSmtpPassword">
+            <ScInput 
               v-model="form.sysProjectSmtpPassword"
               placeholder="请输入smtp密码"
               type="password"
               show-password
             />
-          </el-form-item>
-          <el-form-item label="主体账号" prop="sysProjectSmtpFrom">
-            <el-autocomplete
+          </ScFormItem>
+          <ScFormItem label="主体账号" prop="sysProjectSmtpFrom">
+            <ScAutocomplete 
               v-model="form.sysProjectSmtpFrom"
               :fetch-suggestions="queryEmail"
               :trigger-on-focus="false"
@@ -57,22 +57,22 @@
               clearable
               class="w-full"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item class="justify-start custom-button">
-            <el-button
+          <ScFormItem class="justify-start custom-button">
+            <ScButton 
               class="ml-1"
               :icon="useRenderIcon('ri:save-2-fill')"
               type="primary"
               @click="handleSubmit"
             >
               {{ $t("buttons.update") }}
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </el-col>
-    </el-row>
-    <el-empty v-else></el-empty>
+            </ScButton>
+          </ScFormItem>
+        </ScForm>
+      </ScCol>
+    </ScRow>
+    <ScEmpty v-else></ScEmpty>
   </div>
 </template>
 <script setup>

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
@@ -451,10 +451,10 @@ const toggleMybatisLogInput = () => {
       </div>
 
       <!-- 主要内容区域 -->
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 左侧输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="sql-params__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="sql-params__input-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
                 <IconifyIconOnline
@@ -463,7 +463,7 @@ const toggleMybatisLogInput = () => {
                 />
                 <span>SQL参数填充</span>
                 <div class="sql-params__header-actions">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     link
                     size="small"
@@ -481,30 +481,30 @@ const toggleMybatisLogInput = () => {
                         ? "返回手动输入"
                         : "解析MyBatis日志"
                     }}</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
 
-            <el-form label-position="top" v-if="!env.mybatisLog.enabled">
+            <ScForm label-position="top" v-if="!env.mybatisLog.enabled">
               <!-- SQL输入 -->
-              <el-form-item label="SQL语句 (包含占位符)">
-                <el-input
+              <ScFormItem label="SQL语句 (包含占位符)">
+                <ScInput 
                   v-model="env.inputSQL"
                   type="textarea"
                   :rows="8"
                   placeholder="例如: SELECT * FROM users WHERE username = ? AND status = ?"
                   resize="vertical"
                 />
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 参数类型选择 -->
-              <el-form-item label="参数类型">
-                <el-radio-group
+              <ScFormItem label="参数类型">
+                <ScRadioGroup 
                   v-model="env.paramsType"
                   class="sql-params__radio-group"
                 >
-                  <el-radio
+                  <ScRadio 
                     v-for="option in env.paramTypeOptions"
                     :key="option.value"
                     :label="option.value"
@@ -523,13 +523,13 @@ const toggleMybatisLogInput = () => {
                       />
                       <span>{{ option.label }}</span>
                     </div>
-                  </el-radio>
-                </el-radio-group>
-              </el-form-item>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
 
               <!-- 参数输入 -->
               <!-- 参数输入 -->
-              <el-form-item
+              <ScFormItem 
                 :label="
                   env.paramsType === 'json'
                     ? 'JSON参数'
@@ -540,7 +540,7 @@ const toggleMybatisLogInput = () => {
                         : '数字占位符参数 (JSON数组)'
                 "
               >
-                <el-input
+                <ScInput 
                   v-model="env.paramsInput"
                   type="textarea"
                   :rows="5"
@@ -555,21 +555,21 @@ const toggleMybatisLogInput = () => {
                   "
                   resize="vertical"
                 />
-              </el-form-item>
+              </ScFormItem>
               <!-- 分隔符设置 (仅数组模式) -->
-              <el-form-item
+              <ScFormItem 
                 v-if="env.paramsType === 'array'"
                 label="参数分隔符"
               >
-                <el-input
+                <ScInput 
                   v-model="env.paramsSeparator"
                   placeholder="默认为逗号"
                   style="width: 100px"
                 />
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 格式化选项 -->
-              <el-form-item label="格式化选项">
+              <ScFormItem label="格式化选项">
                 <div class="sql-params__format-options">
                   <ScSwitch
                     v-model="env.formatOptions.enabled"
@@ -581,18 +581,18 @@ const toggleMybatisLogInput = () => {
                     v-if="env.formatOptions.enabled"
                     class="sql-params__format-settings"
                   >
-                    <el-select
+                    <ScSelect 
                       v-model="env.formatOptions.language"
                       placeholder="SQL方言"
                       class="sql-params__format-select"
                     >
-                      <el-option
+                      <ScOption 
                         v-for="option in env.sqlDialectOptions"
                         :key="option.value"
                         :label="option.label"
                         :value="option.value"
                       />
-                    </el-select>
+                    </ScSelect>
 
                     <ScSwitch
                       v-model="env.formatOptions.uppercase"
@@ -601,11 +601,11 @@ const toggleMybatisLogInput = () => {
                     />
                   </div>
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 操作按钮 -->
               <div class="sql-params__actions">
-                <el-button
+                <ScButton 
                   type="primary"
                   :loading="env.loading"
                   class="sql-params__fill-btn"
@@ -613,37 +613,37 @@ const toggleMybatisLogInput = () => {
                 >
                   <IconifyIconOnline icon="ri:play-fill" />
                   <span>填充参数</span>
-                </el-button>
+                </ScButton>
 
-                <el-button
+                <ScButton 
                   type="success"
                   class="sql-params__format-btn"
                   @click="formatSQL"
                 >
                   <IconifyIconOnline icon="ri:format-line" />
                   <span>格式化SQL</span>
-                </el-button>
+                </ScButton>
 
-                <el-button class="sql-params__clear-btn" @click="clearForm">
+                <ScButton class="sql-params__clear-btn" @click="clearForm">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                   <span>清空</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
-            <el-form label-position="top" v-else>
+            </ScForm>
+            <ScForm label-position="top" v-else>
               <!-- MyBatis日志解析表单 -->
-              <el-form-item label="粘贴MyBatis日志 (包含SQL和参数)">
-                <el-input
+              <ScFormItem label="粘贴MyBatis日志 (包含SQL和参数)">
+                <ScInput 
                   v-model="env.mybatisLog.input"
                   type="textarea"
                   :rows="12"
                   placeholder="例如: Preparing: select * from users where id = ? Parameters: 123(Integer)"
                   resize="vertical"
                 />
-              </el-form-item>
+              </ScFormItem>
 
               <div class="sql-params__actions">
-                <el-button
+                <ScButton 
                   type="primary"
                   :loading="env.loading"
                   class="sql-params__fill-btn"
@@ -651,21 +651,21 @@ const toggleMybatisLogInput = () => {
                 >
                   <IconifyIconOnline icon="ri:search-line" />
                   <span>解析日志</span>
-                </el-button>
+                </ScButton>
 
-                <el-button
+                <ScButton 
                   class="sql-params__clear-btn"
                   @click="env.mybatisLog.input = ''"
                 >
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                   <span>清空</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
-          </el-card>
+            </ScForm>
+          </ScCard>
 
           <!-- SQL模板卡片 -->
-          <el-card class="sql-params__templates-card" shadow="hover">
+          <ScCard class="sql-params__templates-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
                 <IconifyIconOnline
@@ -698,26 +698,26 @@ const toggleMybatisLogInput = () => {
                       </div>
                     </div>
                     <div class="sql-params__template-actions">
-                      <el-button
+                      <ScButton 
                         type="primary"
                         size="small"
                         @click.stop="applyTemplate(template)"
                       >
                         <IconifyIconOnline icon="ri:file-copy-line" />
                         <span>应用模板</span>
-                      </el-button>
+                      </ScButton>
                     </div>
                   </div>
                 </el-collapse-item>
               </el-collapse>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 右侧结果区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
           <!-- 结果卡片 -->
-          <el-card class="sql-params__result-card" shadow="hover">
+          <ScCard class="sql-params__result-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
                 <IconifyIconOnline
@@ -726,7 +726,7 @@ const toggleMybatisLogInput = () => {
                 />
                 <span>填充结果</span>
                 <div class="sql-params__header-actions" v-if="env.outputSQL">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     link
                     size="small"
@@ -734,12 +734,12 @@ const toggleMybatisLogInput = () => {
                   >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                     <span>复制</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
 
-            <el-empty
+            <ScEmpty 
               v-if="!env.outputSQL"
               description="请先填充SQL参数"
               class="sql-params__empty"
@@ -750,17 +750,17 @@ const toggleMybatisLogInput = () => {
                   class="sql-params__empty-icon"
                 />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="sql-params__result">
               <pre
                 class="language-sql line-numbers"
               ><code class="language-sql">{{ env.outputSQL }}</code></pre>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 历史记录卡片 -->
-          <el-card class="sql-params__history-card" shadow="hover">
+          <ScCard class="sql-params__history-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
                 <IconifyIconOnline
@@ -771,7 +771,7 @@ const toggleMybatisLogInput = () => {
               </div>
             </template>
 
-            <el-empty
+            <ScEmpty 
               v-if="!env.history.length"
               description="暂无历史记录"
               class="sql-params__empty"
@@ -782,32 +782,32 @@ const toggleMybatisLogInput = () => {
                   class="sql-params__empty-icon"
                 />
               </template>
-            </el-empty>
+            </ScEmpty>
 
-            <el-table
+            <ScTable 
               v-else
               :data="env.history"
               style="width: 100%"
               max-height="400"
             >
-              <el-table-column label="SQL" show-overflow-tooltip>
+              <ScTableColumn label="SQL" show-overflow-tooltip>
                 <template #default="scope">
                   <span>{{ scope.row.inputSQL }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="参数" show-overflow-tooltip>
+              </ScTableColumn>
+              <ScTableColumn label="参数" show-overflow-tooltip>
                 <template #default="scope">
                   <span>{{ scope.row.paramsInput }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="时间" width="180">
+              </ScTableColumn>
+              <ScTableColumn label="时间" width="180">
                 <template #default="scope">
                   <span>{{ scope.row.date }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="操作" width="100" fixed="right">
+              </ScTableColumn>
+              <ScTableColumn label="操作" width="100" fixed="right">
                 <template #default="scope">
-                  <el-button
+                  <ScButton 
                     type="primary"
                     link
                     size="small"
@@ -815,14 +815,14 @@ const toggleMybatisLogInput = () => {
                   >
                     <IconifyIconOnline icon="ri:arrow-go-back-line" />
                     <span>加载</span>
-                  </el-button>
+                  </ScButton>
                 </template>
-              </el-table-column>
-            </el-table>
-          </el-card>
+              </ScTableColumn>
+            </ScTable>
+          </ScCard>
 
           <!-- 参考卡片 -->
-          <el-card class="sql-params__reference-card" shadow="hover">
+          <ScCard class="sql-params__reference-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
                 <IconifyIconOnline
@@ -897,9 +897,9 @@ Parameters: 123(Integer)</code></pre>
                 </el-collapse-item>
               </el-collapse>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

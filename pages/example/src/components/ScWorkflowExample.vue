@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div class="workflow-example">
     <el-container>
       <el-header>
         <el-page-header :content="data.name"></el-page-header>
         <div class="do">
-          <el-button type="primary" @click="exportJson">导出 JSON</el-button>
+          <ScButton type="primary" @click="exportJson">导出 JSON</ScButton>
         </div>
       </el-header>
       <el-main>
@@ -261,7 +261,7 @@ const data = reactive<WorkflowData>({
  * @version 1.0.0
  */
 const exportJson = (): void => {
-  ElMessage("返回值请查看F12控制台console.log()");
+  ScMessage("返回值请查看F12控制台console.log()");
   console.log(data);
 };
 </script>

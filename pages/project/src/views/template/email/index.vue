@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { fetchListDictItem } from "@repo/core";
@@ -171,57 +171,57 @@ const resetForm = async (ref) => {
     <el-container>
       <el-header>
         <div class="left-panel">
-          <el-form
+          <ScForm 
             ref="formRef"
             :inline="true"
             :model="form"
             class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto"
           >
-            <el-form-item label="模板名称" prop="sysEmailTemplateName">
-              <el-input
+            <ScFormItem label="模板名称" prop="sysEmailTemplateName">
+              <ScInput 
                 v-model="form.sysEmailTemplateName"
                 placeholder="请输入模板名称"
                 clearable
                 class="!w-[180px]"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item label="模板类型" prop="sysEmailTemplateCategory">
-              <el-select
+            <ScFormItem label="模板类型" prop="sysEmailTemplateCategory">
+              <ScSelect 
                 v-model="form.sysEmailTemplateCategory"
                 placeholder="请选择类型"
                 clearable
                 class="w-full min-w-[240px]"
               >
-                <el-option
+                <ScOption 
                   v-for="item in categoryData"
                   :key="item.sysDictItemId"
                   :value="item.sysDictItemId"
                   :label="item.sysDictItemName"
                 />
-              </el-select>
-            </el-form-item>
-          </el-form>
+              </ScSelect>
+            </ScFormItem>
+          </ScForm>
         </div>
         <div class="right-panel">
           <div class="right-panel-search">
-            <el-button
+            <ScButton 
               type="primary"
               :icon="useRenderIcon('ri:search-line')"
               :loading="loading.query"
               @click="onSearch"
             />
-            <el-button
+            <ScButton 
               title="刷新"
               :icon="useRenderIcon('ep:refresh')"
               @click="resetForm(formRef)"
             />
-            <el-button
+            <ScButton 
               title="新增"
               :icon="useRenderIcon('ep:edit')"
               @click="dialogOpen({}, 'save')"
             />
-            <el-button
+            <ScButton 
               title="日志"
               :icon="useRenderIcon('ep:files')"
               @click="handleLog"
@@ -238,14 +238,14 @@ const resetForm = async (ref) => {
           :params="params"
           class="custom-table-row"
         >
-          <el-table-column
+          <ScTableColumn 
             label="序号"
             type="index"
             align="center"
             fixed
             width="60px"
           />
-          <el-table-column
+          <ScTableColumn 
             prop="sysEmailTemplateName"
             label="模板名称"
             align="center"
@@ -255,11 +255,11 @@ const resetForm = async (ref) => {
           >
             <template #default="{ row }">
               <div>
-                <el-tooltip
+                <ScTooltip 
                   v-if="row.sysEmailTemplateRemark"
                   :content="row.sysEmailTemplateRemark"
                 >
-                  <el-tag
+                  <ScTag 
                     :title="row.sysEmailTemplateName"
                     effect="dark"
                     size="small"
@@ -267,7 +267,7 @@ const resetForm = async (ref) => {
                     style="margin-right: 5px"
                   >
                     {{ row.sysEmailTemplateName }}
-                  </el-tag>
+                  </ScTag>
                   <span
                     style="
                       float: right;
@@ -277,9 +277,9 @@ const resetForm = async (ref) => {
                   >
                     {{ row.sysEmailTemplateCode }}
                   </span>
-                </el-tooltip>
+                </ScTooltip>
                 <div v-else>
-                  <el-tag
+                  <ScTag 
                     :title="row.sysEmailTemplateName"
                     effect="dark"
                     size="small"
@@ -287,7 +287,7 @@ const resetForm = async (ref) => {
                     style="margin-right: 5px"
                   >
                     {{ row.sysEmailTemplateName }}
-                  </el-tag>
+                  </ScTag>
                   <span
                     style="
                       float: right;
@@ -300,17 +300,17 @@ const resetForm = async (ref) => {
                 </div>
               </div>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="sysEmailTemplateCategory"
             label="模板类型"
             show-overflow-tooltip
           >
             <template #default="{ row }">
-              <el-tag>{{ row.sysEmailTemplateCategoryLabel || "/" }}</el-tag>
+              <ScTag>{{ row.sysEmailTemplateCategoryLabel || "/" }}</ScTag>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="sysEmailTemplateContent"
             label="模板内容"
             min-width="360px"
@@ -320,8 +320,8 @@ const resetForm = async (ref) => {
             <template #default="{ row }">
               <span>{{ row.sysEmailTemplateContent || "/" }}</span>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="sysEmailTemplateStatus"
             label="状态"
             align="center"
@@ -335,14 +335,14 @@ const resetForm = async (ref) => {
                 @click="doUpdate($event, row)"
               />
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn 
             prop="sysEmailTemplateSort"
             label="排序"
             align="center"
             width="60px"
           />
-          <el-table-column
+          <ScTableColumn 
             prop="updateTime"
             label="最后一次更新时间"
             align="center"
@@ -352,11 +352,11 @@ const resetForm = async (ref) => {
                 row.updateTime || row.createTime
               }}</span>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="操作" fixed="right" align="center">
+          <ScTableColumn label="操作" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -365,8 +365,8 @@ const resetForm = async (ref) => {
                 @click="handleSend(row)"
               >
                 {{ $t("buttons.test") }}
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -375,14 +375,14 @@ const resetForm = async (ref) => {
                 @click="dialogOpen(row, 'edit')"
               >
                 {{ $t("buttons.update") }}
-              </el-button>
-              <el-popconfirm
+              </ScButton>
+              <ScPopconfirm 
                 v-if="row.sysEmailTemplateDisabled == 0"
                 :title="$t('message.confimDelete')"
                 @confirm="onDelete(row)"
               >
                 <template #reference>
-                  <el-button
+                  <ScButton 
                     size="small"
                     type="danger"
                     plain
@@ -391,9 +391,9 @@ const resetForm = async (ref) => {
                     >{{ $t("buttons.delete") }}</el-button
                   >
                 </template>
-              </el-popconfirm>
+              </ScPopconfirm>
             </template>
-          </el-table-column>
+          </ScTableColumn>
         </ScTable>
       </el-main>
     </el-container>

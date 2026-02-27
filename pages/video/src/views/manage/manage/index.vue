@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -18,7 +18,7 @@
 
     <!-- 顶部工具栏：关键词搜索 -->
     <div class="toolbar">
-      <el-input 
+      <ScInput 
         v-model="keyword" 
         placeholder="请输入关键词搜索视频..." 
         class="toolbar__search" 
@@ -30,12 +30,12 @@
           <IconifyIconOnline icon="ep:search" />
         </template>
         <template #append>
-          <el-button type="primary" @click="applyFilters">
+          <ScButton type="primary" @click="applyFilters">
             <IconifyIconOnline icon="ep:search" />
             搜索
-          </el-button>
+          </ScButton>
         </template>
-      </el-input>
+      </ScInput>
     </div>
 
     <!-- 结果区：海报网格卡片，内置排序切换，与目标截图交互一致 -->

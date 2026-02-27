@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-switch-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,8 +8,8 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="layout 布局类型">
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="layout 布局类型">
             <ScSelect
               v-model="config.layout"
               layout="card"
@@ -17,9 +17,9 @@
               :gap="6"
               width="70px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="size 尺寸">
+          <ScFormItem label="size 尺寸">
             <ScSelect
               v-model="config.size"
               layout="card"
@@ -27,33 +27,33 @@
               :gap="6"
               width="70px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item
+          <ScFormItem 
             label="label 标签文本"
             v-if="
               config.layout === 'compact-card' ||
               config.layout === 'visual-card'
             "
           >
-            <el-input v-model="config.label" placeholder="紧凑卡片布局的标签" />
-          </el-form-item>
+            <ScInput v-model="config.label" placeholder="紧凑卡片布局的标签" />
+          </ScFormItem>
 
-          <el-form-item label="activeText 开启文本">
-            <el-input
+          <ScFormItem label="activeText 开启文本">
+            <ScInput 
               v-model="config.activeText"
               placeholder="开启时显示的文本"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="inactiveText 关闭文本">
-            <el-input
+          <ScFormItem label="inactiveText 关闭文本">
+            <ScInput 
               v-model="config.inactiveText"
               placeholder="关闭时显示的文本"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="activeIcon 开启图标">
+          <ScFormItem label="activeIcon 开启图标">
             <ScSelect
               v-model="config.activeIcon"
               layout="card"
@@ -61,9 +61,9 @@
               :gap="6"
               width="60px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="inactiveIcon 关闭图标">
+          <ScFormItem label="inactiveIcon 关闭图标">
             <ScSelect
               v-model="config.inactiveIcon"
               layout="card"
@@ -71,35 +71,35 @@
               :gap="6"
               width="60px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="activeColor 激活颜色">
-            <el-color-picker v-model="config.activeColor" />
-          </el-form-item>
+          <ScFormItem label="activeColor 激活颜色">
+            <ScColorPicker v-model="config.activeColor" />
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="switch-group">
             <div class="switch-item">
-              <el-tooltip content="当前开关的值" placement="left">
+              <ScTooltip content="当前开关的值" placement="left">
                 <span>value 当前值</span>
-              </el-tooltip>
-              <el-switch v-model="switchValue" />
+              </ScTooltip>
+              <ScSwitch v-model="switchValue" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="禁用开关交互" placement="left">
+              <ScTooltip content="禁用开关交互" placement="left">
                 <span>disabled 禁用</span>
-              </el-tooltip>
-              <el-switch v-model="config.disabled" />
+              </ScTooltip>
+              <ScSwitch v-model="config.disabled" />
             </div>
             <div class="switch-item">
-              <el-tooltip content="显示加载状态" placement="left">
+              <ScTooltip content="显示加载状态" placement="left">
                 <span>loading 加载中</span>
-              </el-tooltip>
-              <el-switch v-model="config.loading" />
+              </ScTooltip>
+              <ScSwitch v-model="config.loading" />
             </div>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { ScSlider } from "@repo/components";
@@ -592,10 +592,10 @@ onMounted(() => {
       </div>
 
       <!-- 主要内容区域 -->
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 左侧输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="ip-calculator__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="ip-calculator__input-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
                 <IconifyIconOnline icon="ri:calculator-line" class="ip-calculator__card-icon" />
@@ -603,49 +603,49 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-form label-position="top">
+            <ScForm label-position="top">
               <!-- IP类型选择 -->
-              <el-form-item label="IP类型">
-                <el-radio-group v-model="env.inputType" class="ip-calculator__radio-group">
-                  <el-radio label="ipv4">
+              <ScFormItem label="IP类型">
+                <ScRadioGroup v-model="env.inputType" class="ip-calculator__radio-group">
+                  <ScRadio label="ipv4">
                     <div class="ip-calculator__radio-content">
                       <IconifyIconOnline icon="ri:global-line" />
                       <span>IPv4地址</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="ipv6">
+                  </ScRadio>
+                  <ScRadio label="ipv6">
                     <div class="ip-calculator__radio-content">
                       <IconifyIconOnline icon="ri:global-line" />
                       <span>IPv6地址</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="subnet">
+                  </ScRadio>
+                  <ScRadio label="subnet">
                     <div class="ip-calculator__radio-content">
                       <IconifyIconOnline icon="ri:router-line" />
                       <span>子网 (CIDR)</span>
                     </div>
-                  </el-radio>
-                </el-radio-group>
-              </el-form-item>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
 
               <!-- IP地址输入 -->
-              <el-form-item label="IP地址">
+              <ScFormItem label="IP地址">
                 <div class="ip-calculator__input-group">
-                  <el-input v-model="env.inputValue" :placeholder="env.inputType === 'ipv4' ? '例如: 192.168.1.1' : env.inputType === 'ipv6' ? '例如: 2001:db8::1' : '例如: 192.168.1.0/24'" clearable />
-                  <el-button type="primary" @click="parseIP" :loading="env.loading">
+                  <ScInput v-model="env.inputValue" :placeholder="env.inputType === 'ipv4' ? '例如: 192.168.1.1' : env.inputType === 'ipv6' ? '例如: 2001:db8::1' : '例如: 192.168.1.0/24'" clearable />
+                  <ScButton type="primary" @click="parseIP" :loading="env.loading">
                     <IconifyIconOnline icon="ri:search-line" />
                     <span>解析</span>
-                  </el-button>
+                  </ScButton>
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 子网掩码设置 (仅IPv4) -->
-              <el-form-item v-if="env.inputType === 'ipv4'" label="子网掩码">
+              <ScFormItem v-if="env.inputType === 'ipv4'" label="子网掩码">
                 <div class="ip-calculator__subnet-mask">
-                  <el-radio-group v-model="env.subnetFormat" class="ip-calculator__subnet-format">
-                    <el-radio label="cidr">CIDR</el-radio>
-                    <el-radio label="dotted">点分十进制</el-radio>
-                  </el-radio-group>
+                  <ScRadioGroup v-model="env.subnetFormat" class="ip-calculator__subnet-format">
+                    <ScRadio label="cidr">CIDR</ScRadio>
+                    <ScRadio label="dotted">点分十进制</ScRadio>
+                  </ScRadioGroup>
 
                   <div class="ip-calculator__subnet-input">
                     <template v-if="env.subnetFormat === 'cidr'">
@@ -655,40 +655,40 @@ onMounted(() => {
                       </div>
                     </template>
                     <template v-else>
-                      <el-input v-model="env.subnetMask" placeholder="例如: 255.255.255.0" @change="updateSubnetMask" />
+                      <ScInput v-model="env.subnetMask" placeholder="例如: 255.255.255.0" @change="updateSubnetMask" />
                     </template>
                   </div>
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 常用子网掩码预设 -->
-              <el-form-item v-if="env.inputType === 'ipv4' || env.inputType === 'subnet'" label="常用子网掩码">
+              <ScFormItem v-if="env.inputType === 'ipv4' || env.inputType === 'subnet'" label="常用子网掩码">
                 <div class="ip-calculator__presets">
-                  <el-button v-for="preset in env.subnetPresets" :key="preset.cidr" size="small" @click="applySubnetPreset(preset)" class="ip-calculator__preset-btn">
+                  <ScButton v-for="preset in env.subnetPresets" :key="preset.cidr" size="small" @click="applySubnetPreset(preset)" class="ip-calculator__preset-btn">
                     /{{ preset.cidr }} ({{ preset.mask }})
-                    <el-tooltip :content="preset.description + ' - 可用主机数: ' + preset.hosts" placement="top">
+                    <ScTooltip :content="preset.description + ' - 可用主机数: ' + preset.hosts" placement="top">
                       <IconifyIconOnline icon="ri:information-line" class="ip-calculator__preset-info" />
-                    </el-tooltip>
-                  </el-button>
+                    </ScTooltip>
+                  </ScButton>
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 常用私有IP范围 -->
-              <el-form-item v-if="env.inputType === 'ipv4' || env.inputType === 'subnet'" label="常用私有IP范围">
+              <ScFormItem v-if="env.inputType === 'ipv4' || env.inputType === 'subnet'" label="常用私有IP范围">
                 <div class="ip-calculator__presets">
-                  <el-button v-for="range in env.privateRanges" :key="range.range" size="small" @click="applyPrivateRange(range)" class="ip-calculator__preset-btn">
+                  <ScButton v-for="range in env.privateRanges" :key="range.range" size="small" @click="applyPrivateRange(range)" class="ip-calculator__preset-btn">
                     {{ range.range }}
-                    <el-tooltip :content="range.description" placement="top">
+                    <ScTooltip :content="range.description" placement="top">
                       <IconifyIconOnline icon="ri:information-line" class="ip-calculator__preset-info" />
-                    </el-tooltip>
-                  </el-button>
+                    </ScTooltip>
+                  </ScButton>
                 </div>
-              </el-form-item>
-            </el-form>
-          </el-card>
+              </ScFormItem>
+            </ScForm>
+          </ScCard>
 
           <!-- 历史记录卡片 -->
-          <el-card class="ip-calculator__history-card" shadow="hover">
+          <ScCard class="ip-calculator__history-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
                 <IconifyIconOnline icon="ri:history-line" class="ip-calculator__card-icon" />
@@ -696,21 +696,21 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-empty v-if="!env.history.length" description="暂无历史记录" class="ip-calculator__empty">
+            <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="ip-calculator__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:history-line" class="ip-calculator__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="ip-calculator__history">
-              <el-tag v-for="(ip, index) in env.history" :key="index" class="ip-calculator__history-item" @click="selectFromHistory(ip)">
+              <ScTag v-for="(ip, index) in env.history" :key="index" class="ip-calculator__history-item" @click="selectFromHistory(ip)">
                 {{ ip }}
-              </el-tag>
+              </ScTag>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 子网划分卡片 -->
-          <el-card class="ip-calculator__subnet-division-card" shadow="hover">
+          <ScCard class="ip-calculator__subnet-division-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
                 <IconifyIconOnline icon="ri:split-cells-horizontal" class="ip-calculator__card-icon" />
@@ -719,11 +719,11 @@ onMounted(() => {
             </template>
 
             <div class="ip-calculator__subnet-division">
-              <el-form label-position="top">
-                <el-form-item label="子网数量">
-                  <el-input-number v-model="env.subnetDivision.count" :min="2" :max="256" />
-                </el-form-item>
-              </el-form>
+              <ScForm label-position="top">
+                <ScFormItem label="子网数量">
+                  <ScInputNumber v-model="env.subnetDivision.count" :min="2" :max="256" />
+                </ScFormItem>
+              </ScForm>
 
               <div v-if="env.subnetDivision.results.length" class="ip-calculator__subnet-results">
                 <div class="ip-calculator__subnet-results-header">
@@ -731,18 +731,18 @@ onMounted(() => {
                   <div class="ip-calculator__subnet-results-count">共 {{ env.subnetDivision.results.length }} 个子网</div>
                 </div>
 
-                <el-table :data="env.subnetDivision.results" stripe style="width: 100%">
-                  <el-table-column prop="network" label="网络地址" />
-                  <el-table-column prop="broadcast" label="广播地址" />
-                  <el-table-column prop="range" label="IP范围" />
-                  <el-table-column prop="hosts" label="可用主机数" />
-                </el-table>
+                <ScTable :data="env.subnetDivision.results" stripe style="width: 100%">
+                  <ScTableColumn prop="network" label="网络地址" />
+                  <ScTableColumn prop="broadcast" label="广播地址" />
+                  <ScTableColumn prop="range" label="IP范围" />
+                  <ScTableColumn prop="hosts" label="可用主机数" />
+                </ScTable>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 超网合并卡片 -->
-          <el-card class="ip-calculator__supernetting-card" shadow="hover">
+          <ScCard class="ip-calculator__supernetting-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
                 <IconifyIconOnline icon="ri:merge-cells-horizontal" class="ip-calculator__card-icon" />
@@ -751,59 +751,59 @@ onMounted(() => {
             </template>
 
             <div class="ip-calculator__supernetting">
-              <el-form label-position="top">
-                <el-form-item label="网络列表">
+              <ScForm label-position="top">
+                <ScFormItem label="网络列表">
                   <div v-for="(network, index) in env.supernetting.networks" :key="index" class="ip-calculator__supernet-item">
-                    <el-input v-model="env.supernetting.networks[index]" placeholder="例如: 192.168.1.0/24" />
-                    <el-button type="danger" icon="Delete" @click="removeSupernet(index)" v-if="env.supernetting.networks.length > 2" />
+                    <ScInput v-model="env.supernetting.networks[index]" placeholder="例如: 192.168.1.0/24" />
+                    <ScButton type="danger" icon="Delete" @click="removeSupernet(index)" v-if="env.supernetting.networks.length > 2" />
                   </div>
                   <div class="ip-calculator__supernet-actions">
-                    <el-button type="primary" @click="addSupernet">
+                    <ScButton type="primary" @click="addSupernet">
                       <IconifyIconOnline icon="ri:add-line" />
                       <span>添加网络</span>
-                    </el-button>
-                    <el-button type="success" @click="calculateSupernetting">
+                    </ScButton>
+                    <ScButton type="success" @click="calculateSupernetting">
                       <IconifyIconOnline icon="ri:merge-cells-horizontal" />
                       <span>计算超网</span>
-                    </el-button>
+                    </ScButton>
                   </div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item v-if="env.supernetting.result" label="超网结果">
-                  <el-input v-model="env.supernetting.result" readonly>
+                <ScFormItem v-if="env.supernetting.result" label="超网结果">
+                  <ScInput v-model="env.supernetting.result" readonly>
                     <template #append>
-                      <el-button @click="copyToClipboard(env.supernetting.result)">
+                      <ScButton @click="copyToClipboard(env.supernetting.result)">
                         <IconifyIconOnline icon="ri:file-copy-line" />
-                      </el-button>
+                      </ScButton>
                     </template>
-                  </el-input>
-                </el-form-item>
-              </el-form>
+                  </ScInput>
+                </ScFormItem>
+              </ScForm>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 右侧结果区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="ip-calculator__result-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="ip-calculator__result-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
                 <IconifyIconOnline icon="ri:file-list-line" class="ip-calculator__card-icon" />
                 <span>计算结果</span>
                 <div class="ip-calculator__header-actions" v-if="env.outputResults.length">
-                  <el-button type="primary" link size="small" @click="copyAllResults">
+                  <ScButton type="primary" link size="small" @click="copyAllResults">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                     <span>复制全部</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
 
-            <el-empty v-if="!env.outputResults.length" description="请先输入IP地址并解析" class="ip-calculator__empty">
+            <ScEmpty v-if="!env.outputResults.length" description="请先输入IP地址并解析" class="ip-calculator__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:calculator-line" class="ip-calculator__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="ip-calculator__results">
               <div v-for="(result, index) in env.outputResults" :key="index" class="ip-calculator__result-item">
@@ -813,16 +813,16 @@ onMounted(() => {
                 </div>
                 <div class="ip-calculator__result-value">
                   <span>{{ result.value }}</span>
-                  <el-button type="primary" link size="small" class="ip-calculator__copy-btn" @click="copyToClipboard(result.value)">
+                  <ScButton type="primary" link size="small" class="ip-calculator__copy-btn" @click="copyToClipboard(result.value)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 参考卡片 -->
-          <el-card class="ip-calculator__reference-card" shadow="hover">
+          <ScCard class="ip-calculator__reference-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
                 <IconifyIconOnline icon="ri:information-line" class="ip-calculator__card-icon" />
@@ -907,9 +907,9 @@ onMounted(() => {
                 </el-collapse-item>
               </el-collapse>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

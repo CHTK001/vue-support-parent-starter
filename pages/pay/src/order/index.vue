@@ -6,40 +6,40 @@
         <span class="title">订单管理</span>
       </div>
       <div class="right">
-        <el-form :inline="true" :model="form" class="search-form">
-          <el-form-item label="状态">
-            <el-select
+        <ScForm :inline="true" :model="form" class="search-form">
+          <ScFormItem label="状态">
+            <ScSelect 
               v-model="form.payMerchantOrderStatus"
               placeholder="全部"
               clearable
               class="!w-[160px]"
             >
-              <el-option
+              <ScOption 
                 v-for="opt in statusOptions"
                 :key="opt.value"
                 :label="opt.label"
                 :value="opt.value"
               />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="商户">
-            <el-select
+            </ScSelect>
+          </ScFormItem>
+          <ScFormItem label="商户">
+            <ScSelect 
               v-model="form.payMerchantId"
               filterable
               clearable
               placeholder="选择商户"
               class="!w-[200px]"
             >
-              <el-option
+              <ScOption 
                 v-for="m in merchants"
                 :key="m.payMerchantId"
                 :label="m.payMerchantName"
                 :value="m.payMerchantId"
               />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="支付时间">
-            <el-date-picker
+            </ScSelect>
+          </ScFormItem>
+          <ScFormItem label="支付时间">
+            <ScDatePicker 
               v-model="payTime"
               type="datetimerange"
               range-separator="至"
@@ -47,9 +47,9 @@
               end-placeholder="结束"
               @change="onPayTimeChange"
             />
-          </el-form-item>
-          <el-form-item label="完成时间">
-            <el-date-picker
+          </ScFormItem>
+          <ScFormItem label="完成时间">
+            <ScDatePicker 
               v-model="finishTime"
               type="datetimerange"
               range-separator="至"
@@ -57,13 +57,13 @@
               end-placeholder="结束"
               @change="onFinishTimeChange"
             />
-          </el-form-item>
-          <el-form-item>
-            <el-button @click="handleRefresh"
+          </ScFormItem>
+          <ScFormItem>
+            <ScButton @click="handleRefresh"
               ><iconifyIconOnline icon="ep:refresh" />刷新</el-button
             >
-          </el-form-item>
-        </el-form>
+          </ScFormItem>
+        </ScForm>
       </div>
     </div>
 
@@ -75,7 +75,7 @@
       @data-loaded="onLoaded"
       :rowClick="handleRowClick"
     >
-      <el-table-column
+      <ScTableColumn 
         label="订单号"
         prop="payMerchantOrderCode"
         min-width="220"
@@ -91,32 +91,32 @@
             />
           </span>
         </template>
-      </el-table-column>
-      <el-table-column label="商户" prop="payMerchantName" min-width="160" />
-      <el-table-column label="金额" prop="payMerchantOrderAmount" width="120" />
-      <el-table-column label="状态" prop="payMerchantOrderStatus" width="130">
+      </ScTableColumn>
+      <ScTableColumn label="商户" prop="payMerchantName" min-width="160" />
+      <ScTableColumn label="金额" prop="payMerchantOrderAmount" width="120" />
+      <ScTableColumn label="状态" prop="payMerchantOrderStatus" width="130">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.payMerchantOrderStatus)">{{
+          <ScTag :type="statusType(row.payMerchantOrderStatus)">{{
             statusLabel(row.payMerchantOrderStatus)
-          }}</el-tag>
+          }}</ScTag>
         </template>
-      </el-table-column>
-      <el-table-column
+      </ScTableColumn>
+      <ScTableColumn 
         label="支付时间"
         prop="payMerchantOrderPayTime"
         min-width="170"
       />
-      <el-table-column
+      <ScTableColumn 
         label="完成时间"
         prop="payMerchantOrderFinishedTime"
         min-width="170"
       />
 
-      <el-table-column label="详情" width="120" align="center">
+      <ScTableColumn label="详情" width="120" align="center">
         <template #default="{ row }">
-          <el-popover placement="bottom" trigger="click" width="420">
+          <ScPopover placement="bottom" trigger="click" width="420">
             <template #reference>
-              <el-button text size="small"
+              <ScButton text size="small"
                 ><iconifyIconOnline icon="ep:view" />查看</el-button
               >
             </template>
@@ -136,20 +136,20 @@
                 <b>附加参数</b>：{{ row.payMerchantOrderAttach || "-" }}
               </div>
             </div>
-          </el-popover>
+          </ScPopover>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="操作" width="240" fixed="right">
+      <ScTableColumn label="操作" width="240" fixed="right">
         <template #default="{ row }">
-          <el-button
+          <ScButton 
             text
             size="small"
             :disabled="!canRefund(row)"
             @click="onRefund(row)"
             ><iconifyIconOnline icon="ri:refund-2-line" />退款</el-button
           >
-          <el-button
+          <ScButton 
             text
             size="small"
             :disabled="!canClose(row)"
@@ -158,7 +158,7 @@
             ><iconifyIconOnline icon="ep:close" />关闭</el-button
           >
         </template>
-      </el-table-column>
+      </ScTableColumn>
     </ScTable>
   </div>
   <sc-drawer
@@ -186,12 +186,12 @@
       </div>
       <div class="col-span-2">
         <h4>失败记录</h4>
-        <el-empty
+        <ScEmpty 
           v-if="!(detail.failure?.length > 0)"
           description="暂无失败记录"
         />
         <el-scrollbar v-else height="400px">
-          <el-card
+          <ScCard 
             v-for="(fr, i) in detail.failure"
             :key="i"
             class="mb-2"
@@ -200,7 +200,7 @@
             <div><b>类型</b>：{{ fr.payMerchantFailureType || "-" }}</div>
             <div><b>原因</b>：{{ fr.payMerchantFailureReason || "-" }}</div>
             <div><b>时间</b>：{{ fr.createTime || "-" }}</div>
-          </el-card>
+          </ScCard>
         </el-scrollbar>
       </div>
     </div>
@@ -224,8 +224,8 @@ import {
   OrderStatusOptions,
 } from "../api/order";
 import { fetchPageMerchant } from "../api/merchant";
-import { ElMessageBox } from "element-plus";
-import { message } from "@repo/utils";
+
+import { message , ScMessageBox} from "@repo/utils";
 
 const tableRef = ref();
 const form = reactive<any>({});
@@ -280,7 +280,7 @@ const canClose = (row: any) =>
   );
 
 const onClose = async (row: any) => {
-  await ElMessageBox.confirm(
+  await ScMessageBox.confirm(
     `确认关闭订单 ${row.payMerchantOrderCode} ?`,
     "提示"
   );
@@ -290,7 +290,7 @@ const onClose = async (row: any) => {
 };
 
 const onRefund = async (row: any) => {
-  const { value } = await ElMessageBox.prompt("请输入退款金额", "退款", {
+  const { value } = await ScMessageBox.prompt("请输入退款金额", "退款", {
     inputPattern: /^(\\d+)(\\.\\d{1,2})?$/,
     inputErrorMessage: "金额格式不正确",
   });

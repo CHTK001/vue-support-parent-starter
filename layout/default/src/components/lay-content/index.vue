@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { isNumber, useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@repo/core";
 import {
@@ -271,9 +271,9 @@ onBeforeUnmount(() => {
     <div v-if="loadError && !isLoading" class="route-error-container">
       <el-result icon="error" title="加载失败" :sub-title="loadError.message">
         <template #extra>
-          <el-button type="primary" @click="loadError = null; $router.go(0)">
+          <ScButton type="primary" @click="loadError = null; $router.go(0)">
             重新加载
-          </el-button>
+          </ScButton>
         </template>
       </el-result>
     </div>
@@ -303,7 +303,7 @@ onBeforeUnmount(() => {
                 :title="t('buttons.pureBackTop')"
                 :target="backtopTargetSelector"
               />
-              <el-card
+              <ScCard 
                 class="layout sidebar-custom thin-scroller"
                 :class="{ 'no-card-mode': !cardBody }"
                 :shadow="cardBody ? 'always' : 'never'"
@@ -329,7 +329,7 @@ onBeforeUnmount(() => {
                     />
                   </div>
                 </el-scrollbar>
-              </el-card>
+              </ScCard>
             </div>
           <div
             v-else
@@ -339,7 +339,7 @@ onBeforeUnmount(() => {
               margin: '0 auto'
             }"
           >
-              <el-card
+              <ScCard 
                 class="h-full layout sidebar-custom"
                 :class="{ 'no-card-mode': !cardBody }"
                 :shadow="cardBody ? 'always' : 'never'"
@@ -366,7 +366,7 @@ onBeforeUnmount(() => {
                     />
                   </div>
                 </el-scrollbar>
-              </el-card>
+              </ScCard>
             </div>
           </template>
         </LayFrame>

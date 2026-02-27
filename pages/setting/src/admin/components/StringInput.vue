@@ -1,9 +1,9 @@
-<template>
-  <el-input v-model="innerValue" :disabled="disabled" :placeholder="placeholder" clearable class="sc-string-input">
+﻿<template>
+  <ScInput v-model="innerValue" :disabled="disabled" :placeholder="placeholder" clearable class="sc-string-input">
     <template #prefix>
       <IconifyIconOnline icon="ep:document" />
     </template>
-  </el-input>
+  </ScInput>
 </template>
 
 <script setup lang="ts">

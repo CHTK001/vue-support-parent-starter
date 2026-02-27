@@ -8,48 +8,48 @@
     <div class="dialog-header">
       <h3>{{ mode === 'add' ? '新增商户' : '编辑商户' }}</h3>
     </div>
-    <el-form :model="form" label-width="100px" class="modern-form">
-      <el-form-item label="商户名称" prop="payMerchantName">
-        <el-input v-model="form.payMerchantName" placeholder="请输入商户名称" />
-      </el-form-item>
-      <el-form-item label="备注" prop="payMerchantRemark">
-        <el-input
+    <ScForm :model="form" label-width="100px" class="modern-form">
+      <ScFormItem label="商户名称" prop="payMerchantName">
+        <ScInput v-model="form.payMerchantName" placeholder="请输入商户名称" />
+      </ScFormItem>
+      <ScFormItem label="备注" prop="payMerchantRemark">
+        <ScInput 
           v-model="form.payMerchantRemark"
           type="textarea"
           placeholder="请输入备注"
         />
-      </el-form-item>
-      <el-form-item label="启用钱包" prop="payMerchantOpenWallet">
+      </ScFormItem>
+      <ScFormItem label="启用钱包" prop="payMerchantOpenWallet">
         <ScSwitch
           v-model="form.payMerchantOpenWallet"
           :active-value="1"
           :inactive-value="0"
           layout="modern"
         />
-      </el-form-item>
-      <el-form-item label="订单超时" prop="payMerchantOpenTimeout">
+      </ScFormItem>
+      <ScFormItem label="订单超时" prop="payMerchantOpenTimeout">
         <ScSwitch
           v-model="form.payMerchantOpenTimeout"
           :active-value="1"
           :inactive-value="0"
           layout="modern"
         />
-      </el-form-item>
-      <el-form-item
+      </ScFormItem>
+      <ScFormItem 
         v-if="form.payMerchantOpenTimeout === 1"
         label="超时时间(min)"
         prop="payMerchantOpenTimeoutTime"
       >
-        <el-input-number
+        <ScInputNumber 
           v-model="form.payMerchantOpenTimeoutTime"
           :min="1"
           :max="1440"
         />
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+    </ScForm>
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="handleSubmit">保存</el-button>
+      <ScButton @click="visible = false">取消</ScButton>
+      <ScButton type="primary" @click="handleSubmit">保存</ScButton>
     </template>
   </sc-dialog>
 </template>

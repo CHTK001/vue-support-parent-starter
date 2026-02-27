@@ -1,4 +1,4 @@
-<!--
+﻿<!--
  * 登录主题管理
  * @author CH
  * @date 2025-12-12
@@ -6,7 +6,7 @@
  -->
 <template>
   <div class="theme-management system-container modern-bg">
-    <el-alert
+    <ScAlert 
       title="登录主题管理"
       type="info"
       :closable="false"
@@ -15,10 +15,10 @@
       <template #default>
         <p>在这里可以预览和切换登录页面主题，更改后需要重新登录才能看到效果。</p>
       </template>
-    </el-alert>
+    </ScAlert>
 
     <!-- 主题配置 -->
-    <el-card shadow="never" style="margin-bottom: 20px">
+    <ScCard shadow="never" style="margin-bottom: 20px">
       <template #header>
         <div class="card-header">
           <IconifyIconOnline icon="ri:palette-line" />
@@ -26,15 +26,15 @@
         </div>
       </template>
 
-      <el-form :model="themeConfig" label-width="140px">
-        <el-form-item label="当前主题">
-          <el-select
+      <ScForm :model="themeConfig" label-width="140px">
+        <ScFormItem label="当前主题">
+          <ScSelect 
             v-model="themeConfig.LoginTheme"
             placeholder="请选择主题"
             style="width: 300px"
             @change="handleThemeChange"
           >
-            <el-option
+            <ScOption 
               v-for="theme in allThemes"
               :key="theme.key"
               :label="theme.name"
@@ -42,29 +42,29 @@
             >
               <div style="display: flex; align-items: center; justify-content: space-between">
                 <span>{{ theme.name }}</span>
-                <el-tag v-if="theme.isFestival" size="small" type="warning">节日</el-tag>
+                <ScTag v-if="theme.isFestival" size="small" type="warning">节日</ScTag>
               </div>
-            </el-option>
-          </el-select>
+            </ScOption>
+          </ScSelect>
           <div class="form-item-tip">
             {{ getCurrentThemeDescription() }}
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="启用节日主题">
-          <el-switch
+        <ScFormItem label="启用节日主题">
+          <ScSwitch 
             v-model="themeConfig.EnableFestivalTheme"
             @change="handleFestivalToggle"
           />
           <div class="form-item-tip">
             开启后，系统会在节日期间自动切换到对应的节日主题
           </div>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        </ScFormItem>
+      </ScForm>
+    </ScCard>
 
     <!-- 常规主题预览 -->
-    <el-card shadow="never" style="margin-bottom: 20px">
+    <ScCard shadow="never" style="margin-bottom: 20px">
       <template #header>
         <div class="card-header">
           <IconifyIconOnline icon="ri:layout-grid-line" />
@@ -94,21 +94,21 @@
             <div class="theme-desc">{{ theme.description }}</div>
           </div>
           <div v-if="themeConfig.LoginTheme === theme.key" class="theme-badge">
-            <el-tag type="success" size="small">当前使用</el-tag>
+            <ScTag type="success" size="small">当前使用</ScTag>
           </div>
         </div>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 节日主题预览 -->
-    <el-card shadow="never">
+    <ScCard shadow="never">
       <template #header>
         <div class="card-header">
           <IconifyIconOnline icon="ri:gift-line" />
           <span>节日主题</span>
-          <el-tag v-if="!themeConfig.EnableFestivalTheme" type="info" size="small" style="margin-left: 10px">
+          <ScTag v-if="!themeConfig.EnableFestivalTheme" type="info" size="small" style="margin-left: 10px">
             已禁用
-          </el-tag>
+          </ScTag>
         </div>
       </template>
 
@@ -137,22 +137,22 @@
             <div class="theme-desc">{{ theme.description }}</div>
           </div>
           <div v-if="themeConfig.LoginTheme === theme.key" class="theme-badge">
-            <el-tag type="success" size="small">当前使用</el-tag>
+            <ScTag type="success" size="small">当前使用</ScTag>
           </div>
         </div>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 保存按钮 -->
     <div class="action-bar">
-      <el-button type="primary" @click="handleSave" :loading="saving">
+      <ScButton type="primary" @click="handleSave" :loading="saving">
         <IconifyIconOnline icon="ri:save-line" style="margin-right: 5px" />
         保存配置
-      </el-button>
-      <el-button @click="handleReset">
+      </ScButton>
+      <ScButton @click="handleReset">
         <IconifyIconOnline icon="ri:refresh-line" style="margin-right: 5px" />
         重置
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

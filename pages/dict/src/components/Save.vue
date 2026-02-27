@@ -11,7 +11,7 @@
       class="dict-dialog"
       @close="close"
     >
-      <el-form
+      <ScForm 
         ref="dialogForm"
         :model="form"
         :rules="rules"
@@ -19,10 +19,10 @@
         label-width="100px"
         class="dict-form"
       >
-        <el-row :gutter="20">
+        <ScRow :gutter="20">
           <!-- 字典父节点选择 -->
-          <el-col :span="24">
-            <el-form-item label="字典父节点" prop="sysDictPid">
+          <ScCol :span="24">
+            <ScFormItem label="字典父节点" prop="sysDictPid">
               <el-tree-select
                 v-model="form.sysDictPid"
                 :props="defaultProps"
@@ -43,47 +43,47 @@
               <div class="form-item-help">
                 选择字典的父级节点，不选择则为顶级节点
               </div>
-            </el-form-item>
-          </el-col>
+            </ScFormItem>
+          </ScCol>
 
           <!-- 字典基本信息 -->
-          <el-col :span="24">
+          <ScCol :span="24">
             <div class="form-section">
               <div class="section-title">基本信息</div>
 
-              <el-form-item label="字典名称" prop="sysDictName">
-                <el-input
+              <ScFormItem label="字典名称" prop="sysDictName">
+                <ScInput 
                   v-model="form.sysDictName"
                   placeholder="请输入字典名称"
                   class="dict-input"
                 >
                   <template #prefix>
-                    <el-icon>
+                    <ScIcon>
                       <IconifyIconOnline icon="ep:document" />
-                    </el-icon>
+                    </ScIcon>
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
-              <el-form-item label="字典编码" prop="sysDictCode">
-                <el-input
+              <ScFormItem label="字典编码" prop="sysDictCode">
+                <ScInput 
                   v-model="form.sysDictCode"
                   placeholder="请输入字典编码"
                   class="dict-input"
                 >
                   <template #prefix>
-                    <el-icon>
+                    <ScIcon>
                       <IconifyIconOnline icon="ep:key" />
-                    </el-icon>
+                    </ScIcon>
                   </template>
-                </el-input>
+                </ScInput>
                 <div class="form-item-help">
                   系统将根据字典名称自动生成拼音编码
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="字典i18n" prop="sysDictI18n">
-                <el-input
+              <ScFormItem label="字典i18n" prop="sysDictI18n">
+                <ScInput 
                   v-model="form.sysDictI18n"
                   placeholder="请输入字典i18n"
                   class="dict-input"
@@ -91,46 +91,46 @@
                   <template #prefix>
                     <IconifyIconOnline icon="fa-solid:language" />
                   </template>
-                </el-input>
+                </ScInput>
                 <div class="form-item-help">国际化标识，用于多语言支持</div>
-              </el-form-item>
+              </ScFormItem>
             </div>
-          </el-col>
+          </ScCol>
 
           <!-- 字典高级设置 -->
-          <el-col :span="24">
+          <ScCol :span="24">
             <div class="form-section">
               <div class="section-title">高级设置</div>
 
-              <el-form-item label="系统变量" prop="sysDictInSystem">
+              <ScFormItem label="系统变量" prop="sysDictInSystem">
                 <ReSegmented
                   v-model="form.sysDictInSystem"
                   :options="options"
                   class="dict-segmented"
                 />
                 <div class="form-item-help">设置为系统变量后将无法删除</div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="描述" prop="sysDictRemark">
-                <el-input
+              <ScFormItem label="描述" prop="sysDictRemark">
+                <ScInput 
                   v-model="form.sysDictRemark"
                   placeholder="请输入描述"
                   type="textarea"
                   :rows="3"
                   class="dict-textarea"
                 />
-              </el-form-item>
+              </ScFormItem>
             </div>
-          </el-col>
-        </el-row>
-      </el-form>
+          </ScCol>
+        </ScRow>
+      </ScForm>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="visible = false" class="cancel-btn">
+          <ScButton @click="visible = false" class="cancel-btn">
             取消
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton 
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"
@@ -138,7 +138,7 @@
             class="save-btn"
           >
             保存
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

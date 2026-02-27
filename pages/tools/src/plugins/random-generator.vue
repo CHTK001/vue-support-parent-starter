@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
 import { message } from "@repo/utils";
@@ -458,10 +458,10 @@ onMounted(() => {
       </div>
 
       <!-- 主要内容区域 -->
-      <el-row :gutter="24">
+      <ScRow :gutter="24">
         <!-- 左侧输入区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="random-tool__input-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="random-tool__input-card" shadow="hover">
             <template #header>
               <div class="random-tool__card-header">
                 <IconifyIconOnline icon="ri:shuffle-line" class="random-tool__card-icon" />
@@ -469,139 +469,139 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-form label-position="top">
+            <ScForm label-position="top">
               <!-- 生成器类型选择 -->
-              <el-form-item label="生成器类型">
-                <el-radio-group v-model="env.generatorType" class="random-tool__radio-group">
-                  <el-radio label="string">
+              <ScFormItem label="生成器类型">
+                <ScRadioGroup v-model="env.generatorType" class="random-tool__radio-group">
+                  <ScRadio label="string">
                     <div class="random-tool__radio-content">
                       <IconifyIconOnline icon="ri:text" />
                       <span>随机字符串</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="uuid">
+                  </ScRadio>
+                  <ScRadio label="uuid">
                     <div class="random-tool__radio-content">
                       <IconifyIconOnline icon="ri:fingerprint-line" />
                       <span>UUID</span>
                     </div>
-                  </el-radio>
-                  <el-radio label="number">
+                  </ScRadio>
+                  <ScRadio label="number">
                     <div class="random-tool__radio-content">
                       <IconifyIconOnline icon="ri:number-5" />
                       <span>随机数字</span>
                     </div>
-                  </el-radio>
-                </el-radio-group>
-              </el-form-item>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
 
               <!-- 预设配置 -->
-              <el-form-item label="预设配置">
+              <ScFormItem label="预设配置">
                 <div class="random-tool__presets">
-                  <el-button v-for="(preset, index) in env.presets" :key="index" size="small" @click="applyPreset(preset)" :type="env.generatorType === preset.type ? 'primary' : 'default'" class="random-tool__preset-btn">
+                  <ScButton v-for="(preset, index) in env.presets" :key="index" size="small" @click="applyPreset(preset)" :type="env.generatorType === preset.type ? 'primary' : 'default'" class="random-tool__preset-btn">
                     {{ preset.label }}
-                  </el-button>
+                  </ScButton>
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 字符串生成器配置 -->
               <template v-if="env.generatorType === 'string'">
-                <el-form-item label="字符串长度">
-                  <el-input-number v-model="env.stringConfig.length" :min="1" :max="1000" class="random-tool__input-number" />
-                </el-form-item>
+                <ScFormItem label="字符串长度">
+                  <ScInputNumber v-model="env.stringConfig.length" :min="1" :max="1000" class="random-tool__input-number" />
+                </ScFormItem>
 
-                <el-form-item label="生成数量">
-                  <el-input-number v-model="env.stringConfig.count" :min="1" :max="100" class="random-tool__input-number" />
-                </el-form-item>
+                <ScFormItem label="生成数量">
+                  <ScInputNumber v-model="env.stringConfig.count" :min="1" :max="100" class="random-tool__input-number" />
+                </ScFormItem>
 
-                <el-form-item label="字符集">
+                <ScFormItem label="字符集">
                   <div class="random-tool__checkbox-group">
-                    <el-checkbox v-model="env.stringConfig.uppercase" label="大写字母 (A-Z)" border />
-                    <el-checkbox v-model="env.stringConfig.lowercase" label="小写字母 (a-z)" border />
-                    <el-checkbox v-model="env.stringConfig.numbers" label="数字 (0-9)" border />
-                    <el-checkbox v-model="env.stringConfig.symbols" label="特殊符号 (!@#$...)" border />
+                    <ScCheckbox v-model="env.stringConfig.uppercase" label="大写字母 (A-Z)" border />
+                    <ScCheckbox v-model="env.stringConfig.lowercase" label="小写字母 (a-z)" border />
+                    <ScCheckbox v-model="env.stringConfig.numbers" label="数字 (0-9)" border />
+                    <ScCheckbox v-model="env.stringConfig.symbols" label="特殊符号 (!@#$...)" border />
                   </div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="排除选项">
+                <ScFormItem label="排除选项">
                   <div class="random-tool__checkbox-group">
-                    <el-checkbox v-model="env.stringConfig.excludeSimilar" label="排除相似字符 (i, l, 1, L, o, 0, O)" border />
-                    <el-checkbox v-model="env.stringConfig.excludeAmbiguous" label="排除歧义字符 ({}, [], (), /, \, 等)" border />
+                    <ScCheckbox v-model="env.stringConfig.excludeSimilar" label="排除相似字符 (i, l, 1, L, o, 0, O)" border />
+                    <ScCheckbox v-model="env.stringConfig.excludeAmbiguous" label="排除歧义字符 ({}, [], (), /, \, 等)" border />
                   </div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="自定义字符集">
+                <ScFormItem label="自定义字符集">
                   <div class="random-tool__custom-charset">
-                    <el-checkbox v-model="env.stringConfig.useCustomCharset" label="使用自定义字符集" />
-                    <el-input v-model="env.stringConfig.customCharset" placeholder="输入自定义字符集" :disabled="!env.stringConfig.useCustomCharset" class="random-tool__input" />
+                    <ScCheckbox v-model="env.stringConfig.useCustomCharset" label="使用自定义字符集" />
+                    <ScInput v-model="env.stringConfig.customCharset" placeholder="输入自定义字符集" :disabled="!env.stringConfig.useCustomCharset" class="random-tool__input" />
                   </div>
-                </el-form-item>
+                </ScFormItem>
               </template>
 
               <!-- UUID生成器配置 -->
               <template v-if="env.generatorType === 'uuid'">
-                <el-form-item label="UUID格式">
-                  <el-radio-group v-model="env.stringConfig.uppercase" class="random-tool__radio-group">
-                    <el-radio :label="false">
+                <ScFormItem label="UUID格式">
+                  <ScRadioGroup v-model="env.stringConfig.uppercase" class="random-tool__radio-group">
+                    <ScRadio :label="false">
                       <div class="random-tool__radio-content">
                         <span>小写 (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)</span>
                       </div>
-                    </el-radio>
-                    <el-radio :label="true">
+                    </ScRadio>
+                    <ScRadio :label="true">
                       <div class="random-tool__radio-content">
                         <span>大写 (XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)</span>
                       </div>
-                    </el-radio>
-                  </el-radio-group>
-                </el-form-item>
+                    </ScRadio>
+                  </ScRadioGroup>
+                </ScFormItem>
 
-                <el-form-item label="生成数量">
-                  <el-input-number v-model="env.stringConfig.count" :min="1" :max="100" class="random-tool__input-number" />
-                </el-form-item>
+                <ScFormItem label="生成数量">
+                  <ScInputNumber v-model="env.stringConfig.count" :min="1" :max="100" class="random-tool__input-number" />
+                </ScFormItem>
               </template>
 
               <!-- 数字生成器配置 -->
               <template v-if="env.generatorType === 'number'">
-                <el-form-item label="数值范围">
+                <ScFormItem label="数值范围">
                   <div class="random-tool__range">
-                    <el-input-number v-model="env.numberConfig.min" placeholder="最小值" class="random-tool__input-number" />
+                    <ScInputNumber v-model="env.numberConfig.min" placeholder="最小值" class="random-tool__input-number" />
                     <span class="random-tool__range-separator">至</span>
-                    <el-input-number v-model="env.numberConfig.max" placeholder="最大值" class="random-tool__input-number" />
+                    <ScInputNumber v-model="env.numberConfig.max" placeholder="最大值" class="random-tool__input-number" />
                   </div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="小数位数">
-                  <el-input-number v-model="env.numberConfig.decimal" :min="0" :max="10" class="random-tool__input-number" />
-                </el-form-item>
+                <ScFormItem label="小数位数">
+                  <ScInputNumber v-model="env.numberConfig.decimal" :min="0" :max="10" class="random-tool__input-number" />
+                </ScFormItem>
 
-                <el-form-item label="生成数量">
-                  <el-input-number v-model="env.numberConfig.count" :min="1" :max="1000" class="random-tool__input-number" />
-                </el-form-item>
+                <ScFormItem label="生成数量">
+                  <ScInputNumber v-model="env.numberConfig.count" :min="1" :max="1000" class="random-tool__input-number" />
+                </ScFormItem>
 
-                <el-form-item label="高级选项">
+                <ScFormItem label="高级选项">
                   <div class="random-tool__checkbox-group">
-                    <el-checkbox v-model="env.numberConfig.unique" label="生成唯一数字" border />
-                    <el-checkbox v-model="env.numberConfig.sorted" label="结果排序" border />
+                    <ScCheckbox v-model="env.numberConfig.unique" label="生成唯一数字" border />
+                    <ScCheckbox v-model="env.numberConfig.sorted" label="结果排序" border />
                   </div>
-                </el-form-item>
+                </ScFormItem>
               </template>
 
               <!-- 操作按钮 -->
               <div class="random-tool__actions">
-                <el-button type="primary" :loading="env.loading" class="random-tool__generate-btn" @click="generateRandom">
+                <ScButton type="primary" :loading="env.loading" class="random-tool__generate-btn" @click="generateRandom">
                   <IconifyIconOnline icon="ri:shuffle-line" />
                   <span>生成随机{{ env.generatorType === "string" ? "字符串" : env.generatorType === "uuid" ? "UUID" : "数字" }}</span>
-                </el-button>
+                </ScButton>
 
-                <el-button class="random-tool__reset-btn" @click="resetForm">
+                <ScButton class="random-tool__reset-btn" @click="resetForm">
                   <IconifyIconOnline icon="ri:refresh-line" />
                   <span>重置</span>
-                </el-button>
+                </ScButton>
               </div>
-            </el-form>
-          </el-card>
+            </ScForm>
+          </ScCard>
 
           <!-- 历史记录 -->
-          <el-card class="random-tool__history-card" shadow="hover">
+          <ScCard class="random-tool__history-card" shadow="hover">
             <template #header>
               <div class="random-tool__card-header">
                 <IconifyIconOnline icon="ri:history-line" class="random-tool__card-icon" />
@@ -609,11 +609,11 @@ onMounted(() => {
               </div>
             </template>
 
-            <el-empty v-if="!env.history.length" description="暂无历史记录" class="random-tool__empty">
+            <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="random-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:history-line" class="random-tool__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="random-tool__history">
               <div v-for="(item, index) in env.history" :key="index" class="random-tool__history-item" @click="loadFromHistory(item)">
@@ -630,30 +630,30 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
         <!-- 右侧结果区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
-          <el-card class="random-tool__result-card" shadow="hover">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
+          <ScCard class="random-tool__result-card" shadow="hover">
             <template #header>
               <div class="random-tool__card-header">
                 <IconifyIconOnline icon="ri:file-list-line" class="random-tool__card-icon" />
                 <span>生成结果</span>
                 <div class="random-tool__header-actions" v-if="env.outputResults.length">
-                  <el-button type="primary" link size="small" @click="copyAllResults">
+                  <ScButton type="primary" link size="small" @click="copyAllResults">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                     <span>复制全部</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
 
-            <el-empty v-if="!env.outputResults.length" description="请先生成随机内容" class="random-tool__empty">
+            <ScEmpty v-if="!env.outputResults.length" description="请先生成随机内容" class="random-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:shuffle-line" class="random-tool__empty-icon" />
               </template>
-            </el-empty>
+            </ScEmpty>
 
             <div v-else class="random-tool__results">
               <div v-for="(result, index) in env.outputResults" :key="index" class="random-tool__result-item">
@@ -663,16 +663,16 @@ onMounted(() => {
                 </div>
                 <div class="random-tool__result-value">
                   <span>{{ result.value }}</span>
-                  <el-button type="primary" link size="small" class="random-tool__copy-btn" @click="copyToClipboard(result.value)">
+                  <ScButton type="primary" link size="small" class="random-tool__copy-btn" @click="copyToClipboard(result.value)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
 
           <!-- 参考卡片 -->
-          <el-card class="random-tool__reference-card" shadow="hover">
+          <ScCard class="random-tool__reference-card" shadow="hover">
             <template #header>
               <div class="random-tool__card-header">
                 <IconifyIconOnline icon="ri:information-line" class="random-tool__card-icon" />
@@ -733,9 +733,9 @@ onMounted(() => {
                 </el-collapse-item>
               </el-collapse>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
   </div>
 </template>

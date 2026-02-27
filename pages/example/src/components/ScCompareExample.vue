@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-compare-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,28 +8,28 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="leftImageLabel 左侧标签">
-            <el-input v-model="config.leftLabel" placeholder="左侧图片标签" />
-          </el-form-item>
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="leftImageLabel 左侧标签">
+            <ScInput v-model="config.leftLabel" placeholder="左侧图片标签" />
+          </ScFormItem>
 
-          <el-form-item label="rightImageLabel 右侧标签">
-            <el-input v-model="config.rightLabel" placeholder="右侧图片标签" />
-          </el-form-item>
+          <ScFormItem label="rightImageLabel 右侧标签">
+            <ScInput v-model="config.rightLabel" placeholder="右侧图片标签" />
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="action-buttons">
-            <el-button type="primary" size="small" @click="swapImages">
+            <ScButton type="primary" size="small" @click="swapImages">
               <IconifyIconOnline icon="ri:swap-line" />
               交换
-            </el-button>
-            <el-button size="small" @click="resetImages">
+            </ScButton>
+            <ScButton size="small" @click="resetImages">
               <IconifyIconOnline icon="ri:refresh-line" />
               重置
-            </el-button>
+            </ScButton>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

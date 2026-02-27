@@ -119,51 +119,51 @@ export default defineComponent({
 <template>
   <div>
     <sc-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="模板项名称" prop="sysSmsTemplateName">
-              <el-input v-model="form.sysSmsTemplateName" placeholder="请输入模板项名称" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
-            </el-form-item>
-          </el-col>
+      <ScForm ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
+        <ScRow>
+          <ScCol :span="24">
+            <ScFormItem label="模板项名称" prop="sysSmsTemplateName">
+              <ScInput v-model="form.sysSmsTemplateName" placeholder="请输入模板项名称" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="24">
-            <el-form-item label="模板项编码" prop="sysTemplateCode">
-              <el-input v-model="form.sysSmsTemplateCode" placeholder="请输入模板项编码" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
-            </el-form-item>
-          </el-col>
+          <ScCol :span="24">
+            <ScFormItem label="模板项编码" prop="sysTemplateCode">
+              <ScInput v-model="form.sysSmsTemplateCode" placeholder="请输入模板项编码" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="24">
-            <el-form-item label="模板类型" prop="sysSmsTemplateCategory">
-              <el-select v-model="form.sysSmsTemplateCategory" placeholder="请选择模板类型" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
-                <el-option v-for="item in dictItem2" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
-              </el-select>
-            </el-form-item>
-          </el-col>
+          <ScCol :span="24">
+            <ScFormItem label="模板类型" prop="sysSmsTemplateCategory">
+              <ScSelect v-model="form.sysSmsTemplateCategory" placeholder="请选择模板类型" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
+                <ScOption v-for="item in dictItem2" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="24">
-            <el-form-item label="模板项优先级" prop="sysTemplateSort">
-              <el-input-number v-model="form.sysSmsTemplateSort" placeholder="请输入模板项优先级" />
-            </el-form-item>
-          </el-col>
+          <ScCol :span="24">
+            <ScFormItem label="模板项优先级" prop="sysTemplateSort">
+              <ScInputNumber v-model="form.sysSmsTemplateSort" placeholder="请输入模板项优先级" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="24">
-            <el-form-item label="模板内容" prop="sysTemplateContent">
-              <el-input v-model="form.sysSmsTemplateContent" placeholder="请输入模板内容" type="textarea" :rows="6" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
-            </el-form-item>
-          </el-col>
+          <ScCol :span="24">
+            <ScFormItem label="模板内容" prop="sysTemplateContent">
+              <ScInput v-model="form.sysSmsTemplateContent" placeholder="请输入模板内容" type="textarea" :rows="6" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="24">
-            <el-form-item label="描述" prop="sysTemplateRemark">
-              <el-input v-model="form.sysSmsTemplateRemark" placeholder="请输入描述" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+          <ScCol :span="24">
+            <ScFormItem label="描述" prop="sysTemplateRemark">
+              <ScInput v-model="form.sysSmsTemplateRemark" placeholder="请输入描述" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
 
       <template #footer>
-        <el-button @click="visible = false">取 消</el-button>
-        <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</el-button>
+        <ScButton @click="visible = false">取 消</ScButton>
+        <ScButton v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</ScButton>
       </template>
     </sc-dialog>
   </div>

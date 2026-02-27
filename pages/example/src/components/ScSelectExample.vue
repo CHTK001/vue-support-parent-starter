@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-select-example">
     <div class="example-container">
       <!-- 左侧：属性配置面板 -->
@@ -8,8 +8,8 @@
           属性配置
         </h3>
 
-        <el-form label-position="top" size="small">
-          <el-form-item label="layout 布局类型">
+        <ScForm label-position="top" size="small">
+          <ScFormItem label="layout 布局类型">
             <ScSelect
               v-model="config.layout"
               layout="card"
@@ -17,9 +17,9 @@
               :gap="4"
               width="70px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="options 选项集合">
+          <ScFormItem label="options 选项集合">
             <ScSelect
               v-model="config.optionSet"
               layout="card"
@@ -27,17 +27,17 @@
               :gap="4"
               width="70px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="gap 卡片间距">
+          <ScFormItem label="gap 卡片间距">
             <ScSlider v-model="config.gap" :min="4" :max="24" :step="4" show-stops />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="width 卡片宽度">
-            <el-input-number v-model="config.widthValue" :min="60" :max="200" :step="10" />
-          </el-form-item>
+          <ScFormItem label="width 卡片宽度">
+            <ScInputNumber v-model="config.widthValue" :min="60" :max="200" :step="10" />
+          </ScFormItem>
 
-          <el-form-item v-if="config.layout === 'card'" label="iconPosition 图标位置">
+          <ScFormItem v-if="config.layout === 'card'" label="iconPosition 图标位置">
             <ScSelect
               v-model="config.iconPosition"
               layout="card"
@@ -45,25 +45,25 @@
               :gap="6"
               width="80px"
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-divider />
+          <ScDivider />
 
           <div class="switch-group">
             <div class="switch-item">
-              <el-tooltip content="多选模式" placement="left">
+              <ScTooltip content="多选模式" placement="left">
                 <span>multiple 多选</span>
-              </el-tooltip>
-              <el-switch v-model="config.multiple" />
+              </ScTooltip>
+              <ScSwitch v-model="config.multiple" />
             </div>
             <div class="switch-item" v-if="config.multiple">
-              <el-tooltip content="多选限制数量" placement="left">
+              <ScTooltip content="多选限制数量" placement="left">
                 <span>limit 限制 ({{ config.limit || '不限' }})</span>
-              </el-tooltip>
+              </ScTooltip>
               <ScSlider v-model="config.limit" :min="0" :max="10" :step="1" style="width: 100px" />
             </div>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：预览和结果 -->

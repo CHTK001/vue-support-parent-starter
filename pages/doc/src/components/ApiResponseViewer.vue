@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="api-response-viewer">
     <div v-if="!response" class="no-result">
-      <el-empty description="暂无执行结果" :image-size="100" />
+      <ScEmpty description="暂无执行结果" :image-size="100" />
     </div>
     <div v-else class="response-container">
       <!-- 响应状态 -->
@@ -29,7 +29,7 @@
             </span>
           </h4>
           <div class="header-actions">
-            <el-button
+            <ScButton 
               size="small"
               text
               @click.stop="copyHeaders"
@@ -37,8 +37,8 @@
             >
               <i class="ri-file-copy-line"></i>
               复制
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton 
               size="small"
               text
               @click.stop="toggleHeadersCollapse"
@@ -51,7 +51,7 @@
                     : 'ri-arrow-up-s-line'
                 "
               ></i>
-            </el-button>
+            </ScButton>
           </div>
         </div>
         <el-collapse-transition>
@@ -85,14 +85,14 @@
             </span>
           </h4>
           <div class="body-actions">
-            <el-button size="small" text @click="copyResponseBody" v-if="response.data">
+            <ScButton size="small" text @click="copyResponseBody" v-if="response.data">
               <i class="ri-file-copy-line"></i>
               复制
-            </el-button>
-            <el-button size="small" text @click="downloadResponse" v-if="response.data">
+            </ScButton>
+            <ScButton size="small" text @click="downloadResponse" v-if="response.data">
               <i class="ri-download-line"></i>
               下载
-            </el-button>
+            </ScButton>
           </div>
         </div>
         <div class="body-content">

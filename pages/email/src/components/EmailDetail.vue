@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed } from "vue";
 import { IconifyIconOnline } from "@iconify/vue";
 
@@ -122,35 +122,35 @@ const handleMoveToFolder = (folderId) => {
       <!-- 头部操作栏 -->
       <div class="email-detail__header">
         <div class="email-detail__actions">
-          <el-button type="primary" text circle @click="handleClose">
+          <ScButton type="primary" text circle @click="handleClose">
             <IconifyIconOnline icon="ri:arrow-left-line" />
-          </el-button>
-          <el-button type="primary" text circle @click="handleReply">
+          </ScButton>
+          <ScButton type="primary" text circle @click="handleReply">
             <IconifyIconOnline icon="ri:reply-line" />
-          </el-button>
-          <el-button type="primary" text circle @click="handleReplyAll">
+          </ScButton>
+          <ScButton type="primary" text circle @click="handleReplyAll">
             <IconifyIconOnline icon="ri:reply-all-line" />
-          </el-button>
-          <el-button type="primary" text circle @click="handleForward">
+          </ScButton>
+          <ScButton type="primary" text circle @click="handleForward">
             <IconifyIconOnline icon="ri:share-forward-line" />
-          </el-button>
-          <el-button type="danger" text circle @click="handleDelete">
+          </ScButton>
+          <ScButton type="danger" text circle @click="handleDelete">
             <IconifyIconOnline icon="ri:delete-bin-line" />
-          </el-button>
+          </ScButton>
         </div>
 
         <div class="email-detail__status">
-          <el-button :type="email.emailIsStarred ? 'warning' : 'default'" text circle @click="handleStar">
+          <ScButton :type="email.emailIsStarred ? 'warning' : 'default'" text circle @click="handleStar">
             <IconifyIconOnline :icon="email.emailIsStarred ? 'ri:star-fill' : 'ri:star-line'" />
-          </el-button>
-          <el-button :type="email.emailIsImportant ? 'primary' : 'default'" text circle @click="handleMarkImportant">
+          </ScButton>
+          <ScButton :type="email.emailIsImportant ? 'primary' : 'default'" text circle @click="handleMarkImportant">
             <IconifyIconOnline :icon="email.emailIsImportant ? 'ri:bookmark-fill' : 'ri:bookmark-line'" />
-          </el-button>
+          </ScButton>
 
           <el-dropdown trigger="click">
-            <el-button type="primary" text circle>
+            <ScButton type="primary" text circle>
               <IconifyIconOnline icon="ri:price-tag-3-line" />
-            </el-button>
+            </ScButton>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item v-for="label in labels" :key="label.emailLabelId">
@@ -239,10 +239,10 @@ const handleMoveToFolder = (folderId) => {
               <div class="email-detail__attachment-size">{{ formatFileSize(attachment.emailAttachmentSize) }}</div>
             </div>
             <div class="email-detail__attachment-actions">
-              <el-button type="primary" text size="small" @click="window.open(attachment.emailAttachmentUrl, '_blank')">
+              <ScButton type="primary" text size="small" @click="window.open(attachment.emailAttachmentUrl, '_blank')">
                 <IconifyIconOnline icon="ri:download-line" />
                 <span>下载</span>
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>

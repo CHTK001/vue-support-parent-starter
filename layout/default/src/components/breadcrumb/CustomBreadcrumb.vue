@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 深度定制化面包屑组件
  * @description 提供丰富的自定义选项和现代化的设计
@@ -240,7 +240,7 @@ watch(
 
           <!-- 面包屑项 -->
           <div v-else class="breadcrumb-item">
-            <el-tooltip
+            <ScTooltip 
               v-if="showTooltip"
               :content="transformI18n(item.meta.i18nKey || item.meta.title)"
               placement="bottom"
@@ -256,12 +256,12 @@ watch(
                   },
                 ]"
               >
-                <el-icon
+                <ScIcon 
                   v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
                   class="breadcrumb-icon"
                 >
                   <component :is="useRenderIcon(item.meta.icon)" />
-                </el-icon>
+                </ScIcon>
                 <span
                   v-if="breadcrumbMode !== 'icon'"
                   class="breadcrumb-text"
@@ -269,7 +269,7 @@ watch(
                   {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
                 </span>
               </a>
-            </el-tooltip>
+            </ScTooltip>
 
             <a
               v-else
@@ -282,12 +282,12 @@ watch(
                 },
               ]"
             >
-              <el-icon
+              <ScIcon 
                 v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
                 class="breadcrumb-icon"
               >
                 <component :is="useRenderIcon(item.meta.icon)" />
-              </el-icon>
+              </ScIcon>
               <span v-if="breadcrumbMode !== 'icon'" class="breadcrumb-text">
                 {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
               </span>
@@ -316,7 +316,7 @@ watch(
           </div>
 
           <div v-else class="breadcrumb-item">
-            <el-tooltip
+            <ScTooltip 
               v-if="showTooltip"
               :content="transformI18n(item.meta.i18nKey || item.meta.title)"
               placement="bottom"
@@ -332,12 +332,12 @@ watch(
                   },
                 ]"
               >
-                <el-icon
+                <ScIcon 
                   v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
                   class="breadcrumb-icon"
                 >
                   <component :is="useRenderIcon(item.meta.icon)" />
-                </el-icon>
+                </ScIcon>
                 <span
                   v-if="breadcrumbMode !== 'icon'"
                   class="breadcrumb-text"
@@ -345,7 +345,7 @@ watch(
                   {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
                 </span>
               </a>
-            </el-tooltip>
+            </ScTooltip>
 
             <a
               v-else
@@ -358,12 +358,12 @@ watch(
                 },
               ]"
             >
-              <el-icon
+              <ScIcon 
                 v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
                 class="breadcrumb-icon"
               >
                 <component :is="useRenderIcon(item.meta.icon)" />
-              </el-icon>
+              </ScIcon>
               <span v-if="breadcrumbMode !== 'icon'" class="breadcrumb-text">
                 {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
               </span>
