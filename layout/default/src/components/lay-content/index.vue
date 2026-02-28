@@ -330,7 +330,7 @@ onBeforeUnmount(() => {
                   :title="t('buttons.pureBackTop')"
                   :target="backtopTargetSelector"
                 />
-                <ScCard
+                <el-card
                   class="layout sidebar-custom thin-scroller card-height"
                   :class="{ 'no-card-mode': !cardBody }"
                   :shadow="cardBody ? 'always' : 'never'"
@@ -370,7 +370,7 @@ onBeforeUnmount(() => {
                       />
                     </div>
                   </el-scrollbar>
-                </ScCard>
+                </el-card>
               </div>
               <div
                 v-else
@@ -380,7 +380,7 @@ onBeforeUnmount(() => {
                   margin: '0 auto',
                 }"
               >
-                <ScCard
+                <el-card
                   class="h-full layout sidebar-custom sssss"
                   :class="{ 'no-card-mode': !cardBody }"
                   :shadow="cardBody ? 'always' : 'never'"
@@ -421,7 +421,7 @@ onBeforeUnmount(() => {
                       />
                     </div>
                   </el-scrollbar>
-                </ScCard>
+                </el-card>
               </div>
             </template>
           </LayFrame>
