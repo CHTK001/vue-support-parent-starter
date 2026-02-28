@@ -5,6 +5,8 @@
  * 新增主题时只需要在这里添加配置即可，无需修改每个组件
  */
 
+import type { App } from "vue";
+
 /**
  * 主题组件映射类型
  */
@@ -32,6 +34,12 @@ export interface ThemeConfig {
   packageName: string;
 
   /**
+   * 需要通过 app.use 注册的主题插件包名
+   * 不配置时默认使用 packageName
+   */
+  pluginPackageName?: string;
+
+  /**
    * CSS 文件路径（相对于包）
    */
   cssPath?: string;
@@ -47,6 +55,11 @@ export interface ThemeConfig {
    * 是否启用
    */
   enabled?: boolean;
+
+  /**
+   * 是否在应用启动时自动尝试注册插件（app.use）
+   */
+  autoInstallPlugin?: boolean;
 
   /**
    * 主题分组（用于分类显示）
@@ -146,7 +159,11 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
     displayName: "8bit 像素风格",
     packageName: "@mmt817/pixel-ui",
     cssPath: "dist/index.css",
+    // 默认由配置系统自动判断是否可用
     enabled: true,
+    // 自动尝试按需注册 PixelUI 插件
+    autoInstallPlugin: true,
+    pluginPackageName: "@mmt817/pixel-ui",
     group: "beta",
     description: "像素风格，复古游戏风",
     componentMap: {
@@ -155,9 +172,12 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
       ElInput: "PxInput",
       ElSelect: "PxSelect",
       ElCheckbox: "PxCheckbox",
-      ElRadio: "PxRadio",
-      ElSlider: "PxSlider",
-      ElInputNumber: "PxInputNumber",
+      // 当前 PixelUI 未提供 Radio 组件，保持使用 Element Plus 原生组件
+      ElRadio: "ElRadio",
+      // 当前 PixelUI 未提供 Slider 组件，保持使用 Element Plus 原生组件
+      ElSlider: "ElSlider",
+      // 当前 PixelUI 未提供 InputNumber 组件，保持使用 Element Plus 原生组件
+      ElInputNumber: "ElInputNumber",
       ElRate: "PxRate",
       ElColorPicker: "PxColorPicker",
       ElTimePicker: "PxTimePicker",
@@ -195,8 +215,9 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
       ElSteps: "PxSteps",
 
       // 对话框组件
-      ElDialog: "PxDialog",
-      ElDrawer: "PxDrawer",
+      // 当前 PixelUI 未提供 Dialog / Drawer 组件，保持使用 Element Plus 原生组件
+      ElDialog: "ElDialog",
+      ElDrawer: "ElDrawer",
 
       // 高级组件
       ElCard: "PxCard",
@@ -207,7 +228,8 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
       ElImage: "PxImage",
       ElTree: "PxTree",
       ElIcon: "PxIcon",
-      ElEmpty: "PxEmpty",
+      // 当前 PixelUI 未提供 Empty 组件，保持使用 Element Plus 原生组件
+      ElEmpty: "ElEmpty",
       ElTableColumn: "PxTableColumn",
       ElOption: "PxOption"
     }
@@ -313,4 +335,46 @@ export function getThemesByGroup(): Record<string, ThemeConfig[]> {
  */
 export function hasTheme(skinValue: string): boolean {
   return skinValue in THEME_CONFIGS && THEME_CONFIGS[skinValue].enabled !== false;
+}
+
+/**
+ * 根据主题配置自动注册需要的 Vue 插件
+ * - 只处理 autoInstallPlugin = true 的主题
+ * - 插件加载失败时自动禁用对应主题，避免出现在系统设置中
+ */
+export async function autoRegisterThemePlugins(app: App): Promise<void> {
+  const themes = Object.values(THEME_CONFIGS);
+
+  for (const theme of themes) {
+    if (theme.enabled === false || theme.autoInstallPlugin !== true) {
+      continue;
+    }
+
+    const packageName = theme.pluginPackageName || theme.packageName;
+
+    if (!packageName) {
+      continue;
+    }
+
+    try {
+      // 动态按包名加载插件，避免对未安装包的硬依赖
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const module: any = await import(
+        /* @vite-ignore */ packageName
+      );
+      const plugin = module?.default ?? module;
+
+      if (plugin) {
+        app.use(plugin);
+      }
+    } catch (error) {
+      // 插件未安装或加载失败时，禁用该主题，避免在设置中展示不可用的选项
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[ThemePlugin] 主题 ${theme.name} 插件加载失败，已禁用该主题:`,
+        error,
+      );
+      theme.enabled = false;
+    }
+  }
 }

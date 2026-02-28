@@ -10,16 +10,16 @@ html.theme-8bit {
 
   .message-trigger {
     background: $pixel-white !important;
-    border: $pixel-border !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     image-rendering: pixelated;
     transition: none !important;
 
     &:hover {
-      background: $pixel-gray !important;
-      transform: none !important;
-      box-shadow: none !important;
+      border-color: rgba(var(--el-color-primary-rgb), 0.2);
+      color: var(--el-color-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
     }
 
     .message-icon {

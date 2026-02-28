@@ -4,7 +4,7 @@
  * 只在 8bit 主题下加载，其他主题不加载以优化性能
  */
 
-import { computed, watch, onBeforeUnmount, ref, type Component } from "vue";
+import { computed, watch, onBeforeUnmount, shallowRef, type Component } from "vue";
 import { usePixelTheme } from "./usePixelTheme";
 
 /**
@@ -87,7 +87,7 @@ const usePixelUIComponent = (componentName: string) => {
   /**
    * 动态加载的组件（使用 ref 保持响应式）
    */
-  const component = ref<Component | null>(null);
+  const component = shallowRef<Component | null>(null);
 
   /**
    * 动态加载 PixelUI 组件
@@ -107,16 +107,18 @@ const usePixelUIComponent = (componentName: string) => {
     try {
       // 动态导入 PixelUI 组件
       const pixelUIModule = await import("@mmt817/pixel-ui");
-      const comp = (pixelUIModule as any)[componentName] || pixelUIModule.default;
+      const comp = (pixelUIModule as any)[componentName];
 
-      if (comp) {
-        pixelUIComponentCache.set(componentName, comp);
-        component.value = comp;
-      } else {
+      if (!comp) {
+        console.warn(`[usePixelUI] 在 PixelUI 中找不到组件 ${componentName}`);
         component.value = null;
+        return null;
       }
 
-      return component.value;
+      pixelUIComponentCache.set(componentName, comp);
+      component.value = comp;
+
+      return comp;
     } catch (error) {
       console.error(`[usePixelUI] 加载 PixelUI 组件 ${componentName} 失败:`, error);
       component.value = null;

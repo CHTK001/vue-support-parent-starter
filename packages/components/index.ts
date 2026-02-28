@@ -59,6 +59,7 @@ import { ScTableColumn } from "./ScTableColumn";
 import { ScOption } from "./ScOption";
 import ScSwitch from "./ScSwitch/index.vue";
 import ScRouteLoading from "./ScRouteLoading/index.vue";
+import ScAnimationFrame from "./ScAnimationFrame/index.vue";
 // 导入 ScMessage 和 ScMessageBox 函数，用于在导出对象中使用
 import { ScMessage, ScMessageBox } from "@repo/utils";
 // 重新导出 ScMessage 和 ScMessageBox 函数，统一从 @repo/components 导入
@@ -74,6 +75,7 @@ export {
   ScImage,
   ScMessageDialog,
   ScDebugConsole,
+  ScAnimationFrame,
   ScText,
   ScFilterBar,
   ScContainer,
@@ -132,6 +134,7 @@ export {
 };
 export * from "./ScReteEditor/types";
 export * from "./ReIcon";
+export * from "./hooks";
 
 export default {
   ScTable,

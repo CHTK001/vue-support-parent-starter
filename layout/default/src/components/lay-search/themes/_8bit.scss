@@ -11,21 +11,15 @@ html[data-skin="8bit"] {
 
   // 搜索触发按钮
   .search-container {
-    background: $bit-bg !important;
     border: 2px solid $bit-border !important;
-    box-shadow: 
-      4px 4px 0px 0px rgba(255, 255, 255, 0.3),
-      inset 0 0 0 1px rgba(0, 255, 0, 0.2) !important;
-    transition: all 0.1s ease !important;
     font-family: var(--font-family) !important;
 
     &:hover {
-      background: rgba(0, 255, 0, 0.1) !important;
-      border-color: $bit-border-hover !important;
-      box-shadow: 
-        6px 6px 0px 0px rgba(0, 255, 0, 0.5),
-        inset 0 0 0 1px rgba(0, 255, 0, 0.3) !important;
-      transform: translate(-2px, -2px);
+      background-color: rgba(0, 0, 0, 0.04);
+      border-color: rgba(var(--el-color-primary-rgb), 0.2);
+      color: var(--el-color-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15)
 
       svg {
         color: $bit-primary !important;
@@ -34,7 +28,6 @@ html[data-skin="8bit"] {
     }
 
     svg {
-      color: $bit-border !important;
       filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6));
     }
   }
