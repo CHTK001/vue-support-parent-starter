@@ -55,6 +55,8 @@ export interface LayoutEmitterEvents {
   confirmOnLeaveChange: boolean;
   /** 消息弹窗配置变更 */
   messagePopupConfigChange: void;
+  /** 强制启用新菜单变更 */
+  forceNewMenuChange: boolean;
 
   // ===== 设置面板 =====
   /** 设置面板关闭 */

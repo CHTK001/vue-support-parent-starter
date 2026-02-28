@@ -65,6 +65,8 @@ export interface StorageConfig {
   multiTagsCache?: boolean;
   /** 超时自动退出 */
   autoLogout?: boolean;
+  /** 会话超时时间（秒），0 表示不超时 */
+  sessionTimeout?: number;
   /** 页面拉伸 */
   stretch?: boolean | number;
   /** 组件缓存 */
@@ -73,6 +75,10 @@ export interface StorageConfig {
   debugMode?: boolean;
   /** 菜单过渡动画 */
   menuTransition?: boolean;
+  /** 菜单动画（历史字段，兼容旧存储键） */
+  MenuAnimation?: boolean;
+  /** 强制启用新菜单（历史字段，兼容旧存储键） */
+  ForceNewMenu?: boolean;
   /** 菜单过渡动画类型 */
   transitionType?: string;
   /** 内容边距 */
@@ -99,6 +105,10 @@ export interface StorageConfig {
   newMenuTimeLimit?: number;
   /** 新菜单动画类型 */
   newMenuAnimation?: string;
+  /** 新菜单标识样式类型 */
+  newMenuBadgeType?: string;
+  /** 新菜单标识颜色 */
+  newMenuBadgeColor?: string;
   /** 双栏导航展开模式 */
   doubleNavExpandMode?: string;
   /** 双栏导航是否默认展开全部 */

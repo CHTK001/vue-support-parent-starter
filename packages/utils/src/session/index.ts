@@ -7,6 +7,7 @@
  */
 
 import { getConfig } from "@repo/config";
+import { storageLocal } from "@pureadmin/utils";
 
 /** 会话配置接口 */
 interface SessionConfig {
@@ -28,6 +29,8 @@ class SessionManager {
   private timerId: ReturnType<typeof setInterval> | null = null;
   /** 警告定时器ID */
   private warningTimerId: ReturnType<typeof setTimeout> | null = null;
+  /** 活动事件处理函数引用（用于正确解绑） */
+  private activityHandler: (() => void) | null = null;
   /** 是否已显示警告 */
   private warningShown: boolean = false;
   /** 登出回调 */
@@ -51,10 +54,26 @@ class SessionManager {
     logoutCallback?: () => void,
     warningCallback?: (remainingTime: number) => void
   ): void {
+    // 重新初始化前先清理，避免重复绑定事件和定时器泄漏
+    this.stop();
+
     const globalConfig = getConfig();
+    const localConfigure = storageLocal().getItem<any>("responsive-configure");
+    const localTimeout = Number(localConfigure?.sessionTimeout);
+    const localAutoLogout = localConfigure?.autoLogout;
+
+    const localOverride: SessionConfig = {};
+    if (Number.isFinite(localTimeout) && localTimeout >= 0) {
+      localOverride.timeout = localTimeout;
+    }
+    if (typeof localAutoLogout === "boolean") {
+      localOverride.autoLogout = localAutoLogout;
+    }
+
     this.config = {
       ...this.config,
       ...globalConfig?.Session,
+      ...localOverride,
     };
 
     // 如果未启用或超时时间为0，则不启动
@@ -84,8 +103,11 @@ class SessionManager {
       "touchstart",
       "click",
     ];
+    if (!this.activityHandler) {
+      this.activityHandler = this.handleActivity.bind(this);
+    }
     events.forEach((event) => {
-      document.addEventListener(event, this.handleActivity.bind(this), {
+      document.addEventListener(event, this.activityHandler!, {
         passive: true,
       });
     });
@@ -101,9 +123,13 @@ class SessionManager {
       "touchstart",
       "click",
     ];
+    if (!this.activityHandler) {
+      return;
+    }
     events.forEach((event) => {
-      document.removeEventListener(event, this.handleActivity.bind(this));
+      document.removeEventListener(event, this.activityHandler!);
     });
+    this.activityHandler = null;
   }
 
   /** 处理用户活动 */

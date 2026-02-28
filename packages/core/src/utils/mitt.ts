@@ -67,6 +67,8 @@ type Events = {
   confirmOnLeaveChange: boolean;
   /** 主题动画模式变化事件 */
   themeAnimationModeChange: string;
+  /** 强制启用新菜单变化事件 */
+  forceNewMenuChange: boolean;
 };
 
 export const emitter: Emitter<Events> = mitt<Events>();
