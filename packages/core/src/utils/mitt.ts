@@ -41,6 +41,8 @@ type Events = {
   showTagIconChange: boolean;
   /** AI 助手主题 */
   aiChatThemeChange: string;
+  /** AI 助手皮肤 */
+  aiChatSkinChange: string;
   /** 顶部时间显示开关变化事件 */
   showHeaderClockChange: boolean;
   /** 顶部搜索按钮开关变化事件 */

@@ -148,7 +148,7 @@ const { isMobile, initResponsiveObserver, initMobile } = useResponsiveLayout(
   },
 );
 
-// 监听 AI 助手皮肤变更
+// 监听 AI 助手主题/皮肤变更
 emitter.on("aiChatThemeChange", (theme: string) => {
   aiChatTheme.value = theme;
 });
