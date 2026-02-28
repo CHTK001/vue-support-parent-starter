@@ -16,7 +16,7 @@ import { useNav } from "../../../hooks/useNav";
 import LayPanel from "../../lay-panel/index.vue";
 
 import { debounce, isNumber, storageLocal, useGlobal } from "@pureadmin/utils";
-import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import Segmented, { type OptionsType } from "@repo/components/ReSegmented/index";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import AiChatAppearanceSetting from "./components/AiChatAppearanceSetting.vue";
 import { AI_APPEARANCE_OPTIONS } from "../../lay-ai/appearance";
@@ -128,6 +128,35 @@ const markValue = ref($storage.configure?.showModel ?? "chrome");
 const logoVal = ref($storage.configure?.showLogo ?? true);
 const cardBodyVal = ref($storage.configure?.cardBody ?? true);
 
+/** 会话超时默认值（分钟） */
+const DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
+/** 会话超时最小值（分钟） */
+const MIN_SESSION_TIMEOUT_MINUTES = 1;
+/** 会话超时最大值（分钟） */
+const MAX_SESSION_TIMEOUT_MINUTES = 24 * 60;
+
+function normalizeSessionTimeoutMinutes(rawSeconds: unknown): number {
+  const seconds = Number(rawSeconds);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return DEFAULT_SESSION_TIMEOUT_MINUTES;
+  }
+  const minutes = Math.round(seconds / 60);
+  return Math.min(
+    MAX_SESSION_TIMEOUT_MINUTES,
+    Math.max(MIN_SESSION_TIMEOUT_MINUTES, minutes),
+  );
+}
+
+type NewMenuAnimationType = "bounce" | "pulse" | "shake" | "none";
+
+function normalizeNewMenuAnimation(raw: unknown): NewMenuAnimationType {
+  const value = String(raw || "");
+  if (value === "bounce" || value === "pulse" || value === "shake" || value === "none") {
+    return value;
+  }
+  return "bounce";
+}
+
 const settings = reactive({
   menuTransition: $storage.configure.menuTransition,
   transitionType: $storage.configure.transitionType ?? "fade-slide",
@@ -151,6 +180,9 @@ const settings = reactive({
   debugMode: $storage.configure.debugMode ?? false,
   autoLogout:
     $storage.configure?.autoLogout ?? getConfig().Session?.autoLogout ?? false,
+  sessionTimeoutMinutes: normalizeSessionTimeoutMinutes(
+    $storage.configure?.sessionTimeout ?? getConfig().Session?.timeout ?? 0,
+  ),
   // 面包屑导航
   showBreadcrumb: $storage.configure.showBreadcrumb ?? true,
   breadcrumbIconOnly: $storage.configure.breadcrumbIconOnly ?? false,
@@ -161,7 +193,9 @@ const settings = reactive({
   newMenuText: $storage.configure.newMenuText ?? "new",
   newMenuTimeLimit: $storage.configure.newMenuTimeLimit ?? 168,
   // 新菜单动画
-  newMenuAnimation: $storage.configure.newMenuAnimation ?? "bounce",
+  newMenuAnimation: normalizeNewMenuAnimation(
+    $storage.configure.newMenuAnimation ?? "bounce",
+  ),
   // 新菜单标识类型和颜色
   newMenuBadgeType: $storage.configure.newMenuBadgeType ?? "primary",
   newMenuBadgeColor: $storage.configure.newMenuBadgeColor ?? "#409eff",
@@ -192,8 +226,6 @@ const settings = reactive({
   aiChatApiUrl: $storage.configure?.aiChatApiUrl ?? "",
   aiChatVendor: $storage.configure?.aiChatVendor ?? "hf",
   aiChatModel: $storage.configure?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct",
-  // 宠物闲逛设置（默认开启）
-  petWanderingEnabled: $storage.configure?.petWanderingEnabled ?? true,
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 false）
   enableFestivalTheme:
     $storage.configure?.enableFestivalTheme ??
@@ -274,46 +306,70 @@ const aiChatPositionOptions = computed<Array<OptionsType>>(() => [
   },
 ]);
 
+interface AiDropdownOption {
+  label: string;
+  value: string | number;
+  icon?: string;
+  /** DropdownLayout 要求必须存在，用于预览区域布局计算 */
+  image: {
+    width: string;
+    height: string;
+  };
+  /** ScSelect 下拉项描述字段（兼容 DropdownOption.description） */
+  description?: string;
+  /** 兼容旧字段 */
+  tip?: string;
+}
+
+const AI_DROPDOWN_IMAGE_SIZE = {
+  width: "24px",
+  height: "24px",
+} as const;
+
 /** AI 助手机器人皮肤选项 */
-const aiChatSkinOptions = computed<Array<OptionsType>>(
-  () => AI_APPEARANCE_OPTIONS as Array<OptionsType>,
-);
+const aiChatSkinOptions = computed(() => AI_APPEARANCE_OPTIONS);
 
 /** AI 厂商选项 */
-const aiChatVendorOptions = computed<Array<OptionsType>>(() => [
+const aiChatVendorOptions = computed<Array<AiDropdownOption>>(() => [
   {
     label: "Hugging Face",
     value: "hf",
-    tip: "使用 Hugging Face / hf-mirror 的开源模型",
+    description: "使用 Hugging Face / hf-mirror 的开源模型",
+    image: AI_DROPDOWN_IMAGE_SIZE,
   },
   {
     label: "Chrome",
     value: "chrome",
-    tip: "使用 Chrome 浏览器内置 AI 能力（实验性）",
+    description: "使用 Chrome 浏览器内置 AI 能力（实验性）",
+    image: AI_DROPDOWN_IMAGE_SIZE,
   },
   {
     label: "其它厂商",
     value: "other",
-    tip: "自定义第三方厂商，需要手动配置 API 信息",
+    description: "自定义第三方厂商，需要手动配置 API 信息",
+    image: AI_DROPDOWN_IMAGE_SIZE,
   },
 ]);
 
 /** Hugging Face 小参数模型选项（约 1-3B） */
-const aiChatModelOptions = computed<Array<OptionsType>>(() => [
+const aiChatModelOptions = computed<Array<AiDropdownOption>>(() => [
   {
     label: "Qwen2.5-1.5B-Instruct",
     value: "Qwen/Qwen2.5-1.5B-Instruct",
-    tip: "阿里 Qwen 1.5B 指令模型，体积小、加载快",
+    description: "阿里 Qwen 1.5B 指令模型，体积小、加载快",
+    image: AI_DROPDOWN_IMAGE_SIZE,
   },
   {
     label: "Qwen2.5-3B-Instruct",
     value: "Qwen/Qwen2.5-3B-Instruct",
-    tip: "阿里 Qwen 3B 指令模型，能力更强",
+    description: "阿里 Qwen 3B 指令模型，能力更强",
+    image: AI_DROPDOWN_IMAGE_SIZE,
   },
   {
     label: "Llama-3.2-1B-Instruct",
     value: "meta-llama/Llama-3.2-1B-Instruct",
-    tip: "Meta Llama 3.2 1B 指令模型，轻量场景适用",
+    description: "Meta Llama 3.2 1B 指令模型，轻量场景适用",
+    image: AI_DROPDOWN_IMAGE_SIZE,
   },
 ]);
 
@@ -460,7 +516,7 @@ const switchSystemTheme = (
     // 如果切换到非默认主题，强制切换到浅色模式，避免深色残留
     if (themeKey !== "default") {
       dataTheme.value = false;
-      dataThemeChange("light");
+      applyOverallStyle("light");
     }
 
     // 持久化当前系统主题
@@ -779,7 +835,7 @@ function updateTheme() {
   } else {
     dataTheme.value = false;
   }
-  dataThemeChange(overallStyle.value);
+  applyOverallStyle(overallStyle.value);
 }
 
 function removeMatchMedia() {
@@ -892,12 +948,11 @@ function resetToDefault() {
 
   // 重置主题
   setLayoutModel("vertical");
-  dataThemeChange("light");
+  applyOverallStyle("light");
 
   // 应用变更
   contentMarginChange(10);
   layoutRadiusChange(10);
-  layoutBlurChange(10);
   greyChange(false);
   weekChange(false);
   tagsChange();
@@ -1075,15 +1130,6 @@ function aiChatSkinChange(value: string | number | boolean | OptionsType) {
 }
 
 /**
- * 宠物闲逛开关变更
- */
-function petWanderingEnabledChange(value: boolean) {
-  settings.petWanderingEnabled = value;
-  storageConfigureChange("petWanderingEnabled", value);
-  emitter.emit("petWanderingEnabledChange", value);
-}
-
-/**
  * 消息中心开关变更
  */
 function showMessageChange(value: boolean) {
@@ -1171,6 +1217,37 @@ emitter.on("debugModeChanged", (enabled: boolean) => {
 function autoLogoutChange(enabled: boolean) {
   settings.autoLogout = enabled;
   storageConfigureChange("autoLogout", enabled);
+  if (!enabled) {
+    return;
+  }
+
+  // 开启时确保存在有效的超时配置；若未配置则回退到默认值，避免“已开启但永不触发”的误解
+  const configuredSeconds = Number(
+    $storage.configure?.sessionTimeout ?? getConfig().Session?.timeout ?? 0,
+  );
+  if (!Number.isFinite(configuredSeconds) || configuredSeconds <= 0) {
+    settings.sessionTimeoutMinutes = DEFAULT_SESSION_TIMEOUT_MINUTES;
+    storageConfigureChange(
+      "sessionTimeout",
+      DEFAULT_SESSION_TIMEOUT_MINUTES * 60,
+    );
+  }
+}
+
+/**
+ * 会话超时时间变更（分钟）
+ * @param value - 分钟数（1-1440）
+ */
+function sessionTimeoutMinutesChange(value: number): void {
+  const minutes = Number(value);
+  const clamped = Number.isFinite(minutes)
+    ? Math.min(
+        MAX_SESSION_TIMEOUT_MINUTES,
+        Math.max(MIN_SESSION_TIMEOUT_MINUTES, Math.floor(minutes)),
+      )
+    : DEFAULT_SESSION_TIMEOUT_MINUTES;
+  settings.sessionTimeoutMinutes = clamped;
+  storageConfigureChange("sessionTimeout", clamped * 60);
 }
 
 /**
@@ -1366,7 +1443,7 @@ function importSettings() {
         }
 
         if (importedSettings.theme) {
-          dataThemeChange(importedSettings.theme);
+          applyOverallStyle(importedSettings.theme);
         }
 
         if (importedSettings.logoVal !== undefined) {
@@ -1610,10 +1687,7 @@ onUnmounted(() => {
 
               <!-- API Key 设置 -->
               <div
-                v-if="
-                  settings.aiChatVendor !== 'chrome' &&
-                  settings.aiChatVendor !== 'hf'
-                "
+                v-if="settings.aiChatVendor !== 'chrome'"
                 class="setting-item"
               >
                 <div class="setting-item-label">
@@ -1633,10 +1707,7 @@ onUnmounted(() => {
 
               <!-- API URL 设置（Chrome 模式下不需要） -->
               <div
-                v-if="
-                  settings.aiChatVendor !== 'chrome' &&
-                  settings.aiChatVendor !== 'hf'
-                "
+                v-if="settings.aiChatVendor !== 'chrome'"
                 class="setting-item"
               >
                 <div class="setting-item-label">
@@ -1667,24 +1738,6 @@ onUnmounted(() => {
                     v-model="settings.aiChatSkin"
                     :options="aiChatSkinOptions"
                     @change="aiChatSkinChange"
-                  />
-                </div>
-              </div>
-
-              <!-- 模型闲逛开关（仅3D模型外观时显示） -->
-              <div
-                v-if="settings.aiChatSkin === 'fox' || settings.aiChatSkin === 'bee'"
-                class="setting-item"
-              >
-                <div class="switch-card-grid">
-                  <ScSwitch
-                    v-model="settings.petWanderingEnabled"
-                    layout="visual-card"
-                    label="模型闲逛"
-                    description="开启后3D模型会随机做出各种可爱的动作"
-                    active-icon="ri:footprint-line"
-                    inactive-icon="ri:zzz-line"
-                    @change="petWanderingEnabledChange"
                   />
                 </div>
               </div>
@@ -2925,6 +2978,29 @@ onUnmounted(() => {
                   ribbon-color="var(--el-color-danger)"
                   @change="autoLogoutChange"
                 />
+              </div>
+
+              <div
+                v-if="settings.autoLogout"
+                class="setting-item"
+                style="margin-top: 12px"
+              >
+                <div class="setting-item-label">
+                  <span>超时时间</span>
+                  <span class="setting-item-desc">
+                    单位：分钟，超过该时间无操作将自动退出
+                  </span>
+                </div>
+                <div class="setting-item-control">
+                  <ScInputNumber
+                    v-model="settings.sessionTimeoutMinutes"
+                    :min="MIN_SESSION_TIMEOUT_MINUTES"
+                    :max="MAX_SESSION_TIMEOUT_MINUTES"
+                    controls-position="right"
+                    style="max-width: 260px"
+                    @change="sessionTimeoutMinutesChange"
+                  />
+                </div>
               </div>
             </div>
 

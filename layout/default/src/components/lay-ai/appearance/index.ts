@@ -1,7 +1,5 @@
 import type { Component } from "vue";
 import LayAiRobotAppearance from "./LayAiRobotAppearance.vue";
-import LayAiFoxAppearance from "./LayAiFoxAppearance.vue";
-import LayAiBeeAppearance from "./LayAiBeeAppearance.vue";
 
 export interface AiAppearanceOption {
   label: string;
@@ -15,8 +13,6 @@ export interface AiAppearanceOption {
  */
 export const AI_APPEARANCE_COMPONENTS = {
   robot: LayAiRobotAppearance,
-  fox: LayAiFoxAppearance,
-  bee: LayAiBeeAppearance,
 } as const satisfies Record<string, Component>;
 
 export type AiAppearanceKey = keyof typeof AI_APPEARANCE_COMPONENTS;
@@ -26,16 +22,6 @@ export const AI_APPEARANCE_OPTIONS: Array<AiAppearanceOption> = [
     label: "🤖 机器人",
     value: "robot",
     tip: "经典机器人造型",
-  },
-  {
-    label: "🦊 狐狸",
-    value: "fox",
-    tip: "可爱的狐狸模型，支持拖拽旋转",
-  },
-  {
-    label: "🐝 蜜蜂",
-    value: "bee",
-    tip: "可爱的蜜蜂模型，支持拖拽旋转",
   },
 ];
 

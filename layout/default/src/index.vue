@@ -7,6 +7,7 @@ import {
   initRouter,
   useAppStoreHook,
   useSettingStoreHook,
+  useUserStoreHook,
 } from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { useTheme } from "./hooks/useThemeComponent";
@@ -38,7 +39,7 @@ import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
-import { localStorageProxy } from "@repo/utils";
+import { initSession, localStorageProxy, message, stopSession } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
 import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
@@ -100,6 +101,7 @@ setDebugConsoleRef(debugConsoleRef);
 
 const pureSetting = useSettingStoreHook();
 const appStore = useAppStoreHook();
+const userStore = useUserStoreHook();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 // 性能监控开关（从主题 Store 统一读取）
@@ -224,6 +226,59 @@ watch(
   { immediate: true },
 );
 
+/**
+ * 应用会话超时自动登出配置
+ * 说明：优先读取本地 `responsive-configure` 的覆盖值，其次读取静态配置文件 `Session`
+ */
+function applySessionAutoLogout(): void {
+  const sessionConfig = getConfig().Session || {};
+  const enable = sessionConfig.enable !== false;
+  const localConfigure = $storage?.configure || {};
+  const localAutoLogout = localConfigure.autoLogout;
+  const localTimeout = localConfigure.sessionTimeout;
+
+  const autoLogout =
+    typeof localAutoLogout === "boolean"
+      ? localAutoLogout
+      : (sessionConfig.autoLogout ?? false);
+  const timeoutSeconds =
+    typeof localTimeout === "number" ? localTimeout : (sessionConfig.timeout ?? 0);
+
+  // 每次应用前先停止，保证不会重复绑定事件/定时器
+  stopSession();
+  if (!enable || !autoLogout || !timeoutSeconds || timeoutSeconds <= 0) {
+    return;
+  }
+
+  initSession(
+    () => {
+      message("[会话][超时] 会话已超时，已自动退出登录", {
+        type: "warning",
+        duration: 3000,
+      });
+      userStore.logOut();
+    },
+    (remainingTime: number) => {
+      message(`[会话][超时] ${remainingTime} 秒后将自动退出登录`, {
+        type: "warning",
+        duration: 2000,
+      });
+    },
+  );
+}
+
+watch(
+  () =>
+    [
+      $storage?.configure?.autoLogout as boolean | undefined,
+      $storage?.configure?.sessionTimeout as number | undefined,
+    ] as const,
+  () => {
+    applySessionAutoLogout();
+  },
+  { immediate: true },
+);
+
 // 监听 sidebar 状态变化，同步到 body 上（用于 drawer 等组件的定位）
 watch(
   () => set.sidebar.opened,
@@ -280,6 +335,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", handleVisibilityChange);
+  stopSession();
 });
 
 /**

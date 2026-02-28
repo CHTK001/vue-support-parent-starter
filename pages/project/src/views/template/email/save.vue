@@ -1,4 +1,5 @@
 ﻿<script>
+// @ts-nocheck
 import ScEditor from "@repo/components/ScEditor/index.vue";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";

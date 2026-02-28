@@ -200,8 +200,7 @@ function onBasicReady(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.
 
 // 本地模型配置
 const localModelOptions = [
-  { label: "蜜蜂模型 (bee_minecraft.glb)", value: "/models/bee_minecraft.glb" },
-  { label: "狐狸模型 (fox_minecraft.glb)", value: "/models/fox_minecraft.glb" }
+  // 本项目已移除内置 glb 模型资源（避免引入大体积静态文件），可自行输入远程 URL 测试
 ];
 
 const selectedLocalModel = ref<string>("");
@@ -329,7 +328,7 @@ function onReady(scene, camera, renderer) {
   localModel: `<ScThree
   :width="600"
   :height="400"
-  :model-urls="['/models/bee_minecraft.glb']"
+  :model-urls="['https://example.com/model.glb']"
   :model-config="{
     position: [0, 0, 0],
     scale: 1,
