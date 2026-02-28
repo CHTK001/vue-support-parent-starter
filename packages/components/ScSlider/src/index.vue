@@ -171,11 +171,6 @@ const currentValue = computed<SliderValue>({
  */
 const { currentComponent } = useThemeComponent("ElSlider");
 
-// 开发环境下检查组件是否加载成功
-if (import.meta.env.DEV && !currentComponent.value) {
-  console.error("[ScSlider] currentComponent 为空，请检查主题配置");
-}
-
 /**
  * 变更事件透传
  */

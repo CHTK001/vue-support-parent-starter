@@ -165,12 +165,12 @@
             <ScTableColumn prop="remark" label="备注" width="250"></ScTableColumn>
             <ScTableColumn label="操作" width="150" fixed="right">
               <template #default="{ row }">
-                <ScButton type="primary" size="small" @click="handleEdit(row)"
-                  >编辑</el-button
-                >
-                <ScButton type="danger" size="small" @click="handleDelete(row)"
-                  >删除</el-button
-                >
+                <ScButton type="primary" size="small" @click="handleEdit(row)">
+                  编辑
+                </ScButton>
+                <ScButton type="danger" size="small" @click="handleDelete(row)">
+                  删除
+                </ScButton>
               </template>
             </ScTableColumn>
           </ScTable>
@@ -226,14 +226,16 @@
                     type="primary"
                     size="small"
                     @click="handleEdit(row)"
-                    >编辑</el-button
                   >
+                    编辑
+                  </ScButton>
                   <ScButton 
                     type="danger"
                     size="small"
                     @click="handleDelete(row)"
-                    >删除</el-button
                   >
+                    删除
+                  </ScButton>
                 </div>
               </div>
             </template>
@@ -402,13 +404,13 @@
                     type="primary"
                     size="small"
                     @click="handleEdit(row)"
-                    >编辑</el-button
+                    >编辑</ScButton
                   >
                   <ScButton 
                     type="danger"
                     size="small"
                     @click="handleDelete(row)"
-                    >删除</el-button
+                    >删除</ScButton
                   >
                 </div>
               </div>
