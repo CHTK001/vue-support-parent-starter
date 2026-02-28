@@ -1,6 +1,51 @@
 import type { ECharts } from "echarts";
 import type { TableColumns } from "@pureadmin/table";
 
+declare module "*.svg?component" {
+  import type { FunctionalComponent, SVGAttributes } from "vue";
+  const component: FunctionalComponent<SVGAttributes>;
+  export default component;
+}
+
+declare module "@repo/assets/svg/*.svg?component" {
+  import type { FunctionalComponent, SVGAttributes } from "vue";
+  const component: FunctionalComponent<SVGAttributes>;
+  export default component;
+}
+
+declare module "*.svg" {
+  const src: string;
+  export default src;
+}
+
+declare module "@repo/components/ReSegmented" {
+  import type { DefineComponent } from "vue";
+  export interface OptionsType {
+    label?: any;
+    icon?: any;
+    iconAttrs?: any;
+    value?: any;
+    disabled?: boolean;
+    tip?: string;
+  }
+  const component: DefineComponent<Record<string, any>, any, any>;
+  export default component;
+}
+
+declare module "@repo/components/ReSegmented/index" {
+  import type { DefineComponent } from "vue";
+  export interface OptionsType {
+    label?: any;
+    icon?: any;
+    iconAttrs?: any;
+    value?: any;
+    disabled?: boolean;
+    tip?: string;
+  }
+  const component: DefineComponent<Record<string, any>, any, any>;
+  export default component;
+}
+
 /**
  * 全局类型声明，无需引入直接在 `.vue` 、`.ts` 、`.tsx` 文件使用即可获得类型提示
  */
@@ -130,6 +175,18 @@ declare global {
       showModel?: string;
       multiTagsCache?: boolean;
       stretch?: boolean | number;
+      /** 超时自动退出 */
+      autoLogout?: boolean;
+      /** 会话超时时间（秒），0 表示不超时 */
+      sessionTimeout?: number;
+      /** 菜单动画（历史字段，兼容旧存储键） */
+      MenuAnimation?: boolean;
+      /** 强制启用新菜单（历史字段，兼容旧存储键） */
+      ForceNewMenu?: boolean;
+      /** 新菜单标识样式类型 */
+      newMenuBadgeType?: string;
+      /** 新菜单标识颜色 */
+      newMenuBadgeColor?: string;
       // AI 助手配置
       aiChatEnabled?: boolean;
       aiChatTheme?: string;
@@ -139,8 +196,6 @@ declare global {
       aiChatApiUrl?: string;
       aiChatVendor?: string;
       aiChatModel?: string;
-      // 宠物闲逛配置
-      petWanderingEnabled?: boolean;
     };
     tags?: Array<any>;
   }

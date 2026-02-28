@@ -115,7 +115,7 @@ import { message } from "@repo/utils";
 const layerRef = ref<InstanceType<typeof ScLayer> | null>(null);
 const layerReady = ref(false);
 const currentModelId = ref<string | null>(null);
-const modelUrlInput = ref("/models/bee_minecraft.glb");
+const modelUrlInput = ref("");
 const modelPosition = ref<[number, number, number]>([116.397428, 39.90923, 10]);
 const modelScale = ref(1);
 const modelRotation = ref<[number, number, number]>([0, 0, 0]);
@@ -278,7 +278,7 @@ function onLayerReady() {
   
   modelObject.addModel({
     id: "model_1",
-    url: "/models/bee_minecraft.glb",
+    url: "https://example.com/model.glb",
     position: {
       longitude: 116.397428,
       latitude: 39.90923,
