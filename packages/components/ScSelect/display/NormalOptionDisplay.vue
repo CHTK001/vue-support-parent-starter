@@ -29,9 +29,9 @@
           <div v-if="option.description" class="option-description truncate !max-w-[100px]">{{ option.description }}</div>
         </slot>
       </div>
-      <div class="option-checkbox">
-        <div v-if="isSelected" class="checkbox-checked">
-          <IconRenderer icon="ri:check-line" />
+      <div v-if="isSelected" class="option-checkbox">
+        <div class="checkbox-checked">
+          <IconRenderer icon="ri:check-line" class="select-icon" />
         </div>
       </div>
     </div>
@@ -70,6 +70,8 @@ defineEmits<{
 .option-item {
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  box-sizing: border-box;
 
   &.disabled {
     opacity: 0.5;
@@ -158,6 +160,7 @@ defineEmits<{
   .option-checkbox {
     width: 20px;
     height: 20px;
+    aspect-ratio: 1 / 1;
     margin-left: auto;
     flex-shrink: 0;
     display: flex;
@@ -181,6 +184,9 @@ defineEmits<{
       border: none;
       box-shadow: 0 2px 8px var(--el-color-primary-light-5);
       animation: checkboxPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      .select-icon {
+        min-width: 20px;
+      }
     }
   }
 
@@ -281,6 +287,7 @@ defineEmits<{
     .selected-indicator {
       width: 22px;
       height: 22px;
+      aspect-ratio: 1 / 1;
       background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
       border-radius: 50%;
       display: flex;

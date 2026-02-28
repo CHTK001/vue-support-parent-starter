@@ -13,6 +13,8 @@ export interface LayoutEmitterEvents {
   systemThemeChange: ThemeKey;
   /** AI 助手主题变更 */
   aiChatThemeChange: string;
+  /** AI 助手皮肤变更 */
+  aiChatSkinChange: string;
 
   // ===== 标签页相关 =====
   /** 标签页显示/隐藏 */

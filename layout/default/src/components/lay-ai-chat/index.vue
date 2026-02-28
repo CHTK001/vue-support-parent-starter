@@ -3,100 +3,53 @@
     v-if="enabled"
     ref="containerRef"
     class="ai-chat-container"
-    :class="[`position-${position}`, `theme-${theme}`, `skin-${skin.value}`]"
+    :class="[
+      `position-${position}`,
+      `theme-${theme}`,
+      `appearance-${appearanceKey}`,
+    ]"
   >
     <!-- AI 机器人图标 -->
     <div ref="botTriggerRef" class="ai-bot-trigger" @click="toggleChat">
-      <div class="ai-bot-icon">
-        <component :is="currentSkinIcon" />
-      </div>
-      <!-- 关闭状态提示：五球悬挂碰撞（牛顿摆效果） -->
-      <div v-if="!isOpen" class="ai-bot-cradle" aria-hidden="true">
-        <span class="cradle-ball ball-1"></span>
-        <span class="cradle-ball ball-2"></span>
-        <span class="cradle-ball ball-3"></span>
-        <span class="cradle-ball ball-4"></span>
-        <span class="cradle-ball ball-5"></span>
-      </div>
+      <component
+        :is="currentAppearanceComponent"
+        :enable-wandering="petWanderingEnabled"
+      />
     </div>
 
-    <!-- 聊天窗口 -->
+    <!-- 聊天窗口：按外观拆分子组件 -->
     <transition name="chat-slide">
-      <div v-if="isOpen" class="ai-chat-window">
-        <div class="ai-chat-header">
-          <div class="ai-chat-title">
-            <component :is="currentSkinIcon" class="title-icon" />
-            <span>AI 助手</span>
-          </div>
-          <div class="ai-chat-actions">
-            <button class="action-btn" @click="toggleChat">
-              <IconifyIconOnline icon="ri:subtract-line" />
-            </button>
-          </div>
-        </div>
-
-        <div class="ai-chat-messages" ref="messagesContainer">
-          <div
-            v-for="(message, index) in messages"
-            :key="index"
-            class="message"
-            :class="message.role"
-          >
-            <div class="message-avatar">
-              <component
-                :is="message.role === 'user' ? UserIcon : currentSkinIcon"
-              />
-            </div>
-            <div class="message-content">
-              {{ message.content }}
-            </div>
-          </div>
-          <div v-if="isLoading" class="message assistant">
-            <div class="message-avatar">
-              <component :is="currentSkinIcon" />
-            </div>
-            <div class="message-content loading">
-              <span class="dot"></span>
-              <span class="dot"></span>
-              <span class="dot"></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="ai-chat-input">
-          <input
-            v-model="inputMessage"
-            type="text"
-            placeholder="输入消息..."
-            @keyup.enter="sendMessage"
-          />
-          <button
-            class="send-btn"
-            @click="sendMessage"
-            :disabled="!inputMessage.trim()"
-          >
-            <IconifyIconOnline icon="ri:send-plane-fill" />
-          </button>
-        </div>
-      </div>
+      <component
+        v-if="isOpen"
+        :is="currentChatComponent"
+        :appearance-component="currentAppearanceComponent"
+        :user-icon="UserIcon"
+        :messages="messages"
+        :input="inputMessage"
+        :is-loading="isLoading"
+        @update:input="(val: string) => (inputMessage = val)"
+        @send="handleSendFromChild"
+        @toggle="toggleChat"
+      />
     </transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from "vue";
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from "vue";
 import { useDraggable } from "@vueuse/core";
 import { useGlobal } from "@pureadmin/utils";
+import { emitter } from "@repo/core";
+import {
+  normalizeAiAppearanceKey,
+  resolveAiAppearanceComponent,
+  type AiAppearanceKey,
+} from "../lay-ai/appearance";
+import RobotChat from "./components/RobotChat.vue";
 
-// 皮肤图标组件
-const RobotIcon = { template: '<div class="skin-robot">🤖</div>' };
-const FoxIcon = { template: '<div class="skin-fox">🦊</div>' };
-const CatIcon = { template: '<div class="skin-cat">🐱</div>' };
-const BearIcon = { template: '<div class="skin-bear">🐻</div>' };
-const PandaIcon = { template: '<div class="skin-panda">🐼</div>' };
 const UserIcon = { template: '<div class="skin-user">👤</div>' };
 
-// Props
+// Props（皮肤不再从外部传入，统一从 storage 读取）
 interface Props {
   visible?: boolean;
   theme?: string;
@@ -121,37 +74,69 @@ const position = computed(
 const theme = computed(
   () => props.theme || $storage?.configure?.aiChatTheme || "default",
 );
-const skin = ref($storage?.configure?.aiChatSkin ?? "robot");
 const apiKey = ref($storage?.configure?.aiChatApiKey ?? "");
 const apiUrl = ref($storage?.configure?.aiChatApiUrl ?? "");
 const vendor = ref($storage?.configure?.aiChatVendor ?? "hf");
 const model = ref(
   $storage?.configure?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct",
 );
+const petWanderingEnabled = ref(
+  $storage?.configure?.petWanderingEnabled ?? true,
+);
+
+// 外观：默认从 storage 读取，并监听设置面板事件实现实时更新
+const appearanceKey = ref<AiAppearanceKey>(
+  normalizeAiAppearanceKey($storage?.configure?.aiChatSkin),
+);
+const currentAppearanceComponent = computed(() =>
+  resolveAiAppearanceComponent(appearanceKey.value),
+);
+const currentChatComponent = computed(() => {
+  return RobotChat;
+});
 
 const isOpen = ref(false);
 const inputMessage = ref("");
-const messages = ref<Array<{ role: string; content: string }>>([
-  {
-    role: "assistant",
-    content:
-      "你好！我是 AI 助手 🤖\n\n我使用 Hugging Face 的免费 AI 模型为您服务。\n\n💡 使用提示：\n- 首次使用时模型需要加载（约 20 秒）\n- 无需 API Key 即可使用\n- 可在系统设置中自定义模型\n\n有什么可以帮助你的吗？",
-  },
-]);
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+const messages = ref<Array<ChatMessage>>([]);
 const isLoading = ref(false);
-const messagesContainer = ref<HTMLElement>();
 const containerRef = ref<HTMLElement | null>(null);
 const botTriggerRef = ref<HTMLElement | null>(null);
 
-const skinIcons = {
-  robot: RobotIcon,
-  fox: FoxIcon,
-  cat: CatIcon,
-  bear: BearIcon,
-  panda: PandaIcon,
-};
+function handleAiChatSkinChange(value: string) {
+  appearanceKey.value = normalizeAiAppearanceKey(value);
+}
 
-const currentSkinIcon = computed(() => skinIcons[skin.value] || RobotIcon);
+function buildWelcomeMessage(): string {
+  return (
+    "你好！我是 AI 助手 🤖\n\n" +
+    "我使用 Hugging Face 的免费 AI 模型为您服务。\n\n" +
+    "💡 使用提示：\n" +
+    "- 首次使用时模型需要加载（约 20 秒）\n" +
+    "- 无需 API Key 即可使用\n" +
+    "- 可在系统设置中自定义模型\n\n" +
+    "有什么可以帮助你的吗？"
+  );
+}
+
+onMounted(() => {
+  emitter.on("aiChatSkinChange", handleAiChatSkinChange);
+
+  if (messages.value.length === 0) {
+    messages.value.push({
+      role: "assistant",
+      content: buildWelcomeMessage(),
+    });
+  }
+});
+
+onUnmounted(() => {
+  emitter.off("aiChatSkinChange", handleAiChatSkinChange);
+});
 
 // 机器人与聊天窗口整体拖拽
 useDraggable(containerRef, {
@@ -162,17 +147,18 @@ useDraggable(containerRef, {
 
 const toggleChat = () => {
   isOpen.value = !isOpen.value;
-  if (isOpen.value) {
-    nextTick(() => {
-      scrollToBottom();
-    });
+};
+
+const handleSendFromChild = async (payload: string) => {
+  if (!payload.trim()) {
+    return;
   }
+  inputMessage.value = payload;
+  await sendMessage();
 };
 
 const scrollToBottom = () => {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-  }
+  // 由子组件负责滚动，这里保留空实现占位，兼容旧逻辑调用
 };
 
 const sendMessage = async () => {
@@ -311,7 +297,9 @@ const sendByChrome = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chromeAi = (window as any).ai;
   if (!chromeAi || !chromeAi.languageModel) {
-    throw new Error("当前浏览器不支持 Chrome AI 能力，请切换到 Hugging Face 等厂商。");
+    throw new Error(
+      "当前浏览器不支持 Chrome AI 能力，请切换到 Hugging Face 等厂商。",
+    );
   }
 
   const session = await chromeAi.languageModel.create({
@@ -332,16 +320,16 @@ const sendByChrome = async (
   });
 };
 
-// 监听配置变化
+// 监听配置变化（主要用于非皮肤相关配置）
 watch(
   () => $storage?.configure,
   (newConfig) => {
-    skin.value = newConfig?.aiChatSkin ?? "robot";
     apiKey.value = newConfig?.aiChatApiKey ?? "";
     apiUrl.value = newConfig?.aiChatApiUrl ?? "";
     vendor.value = newConfig?.aiChatVendor ?? "hf";
-    model.value =
-      newConfig?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct";
+    model.value = newConfig?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct";
+    appearanceKey.value = normalizeAiAppearanceKey(newConfig?.aiChatSkin);
+    petWanderingEnabled.value = newConfig?.petWanderingEnabled ?? true;
   },
   { deep: true },
 );
@@ -371,21 +359,26 @@ watch(
 
 .ai-bot-trigger {
   position: relative;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 80px; // 触发器固定宽度，稍微放大入口
+  height: 80px; // 触发器固定高度，稍微放大入口
+  max-width: 80px; // 限定最大宽度，兼容后续大尺寸 3D 模型
+  max-height: 80px; // 限定最大高度，兼容后续大尺寸 3D 模型
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  overflow: hidden; // 防止内部内容溢出
   transition: all 0.3s ease;
 
   &:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
   }
+}
+
+// 限制皮肤内容尺寸，防止图片或 3D 模型过大
+.ai-bot-trigger > * {
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .ai-bot-icon {
@@ -474,7 +467,6 @@ watch(
 
 .ai-chat-header {
   padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   display: flex;
   justify-content: space-between;
@@ -588,6 +580,18 @@ watch(
         animation-delay: 0.4s;
       }
     }
+  }
+}
+
+/* 外观主题：目前仅保留机器人外观 */
+.ai-chat-container.appearance-robot {
+  .ai-chat-header {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+  }
+
+  .message.user .message-content {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #ffffff;
   }
 }
 
