@@ -1,6 +1,17 @@
 <template>
   <div ref="dropdownRef" class="dropdown-selector" :class="{ open: isOpen, 'direction-horizontal': dropdownDirection === 'horizontal' }">
-    <el-popover v-model:visible="isOpen" :placement="popoverPlacement" :width="popoverWidth" trigger="click" :popper-class="popoverClass" :show-arrow="false" :offset="8">
+    <el-popover
+      v-model:visible="isOpen"
+      :placement="popoverPlacement"
+      :width="popoverWidth"
+      trigger="click"
+      :popper-class="popoverClass"
+      :show-arrow="false"
+      :offset="8"
+      :teleported="true"
+      :z-index="41000"
+      :popper-options="popoverOptions"
+    >
       <template #reference>
         <!-- 触发按钮 -->
         <div class="dropdown-trigger">
@@ -116,6 +127,11 @@ const props = defineProps({
     type: String,
     default: "600px"
   },
+  // 是否让下拉面板宽度跟随触发器宽度，默认开启
+  matchTriggerWidth: {
+    type: Boolean,
+    default: true
+  },
   icon: {
     type: String,
     default: "ri:settings-3-line"
@@ -170,11 +186,37 @@ const hasPreviewOptions = computed(() => {
 });
 
 // el-popover 相关计算属性
+// 说明：默认使用 bottom-start（向下展开），避免控件位于容器顶部时面板弹出到可视区域之外导致“看起来没有下拉”
 const popoverPlacement = computed(() => {
-  return props.dropdownDirection === "horizontal" ? "top-start" : "top-start";
+  return "bottom";
+});
+
+const popoverOptions = computed(() => {
+  return {
+    modifiers: [
+      {
+        name: "preventOverflow",
+        options: {
+          padding: 8
+        }
+      },
+      {
+        name: "flip",
+        options: {
+          padding: 8
+        }
+      }
+    ]
+  };
 });
 
 const popoverWidth = computed(() => {
+  if (props.matchTriggerWidth && dropdownRef.value) {
+    const triggerWidth = dropdownRef.value.offsetWidth;
+    // 让下拉面板整体比触发器稍窄一些，视觉上更“收紧”
+    const narrowedWidth = Math.round(triggerWidth * 0.86);
+    return `${narrowedWidth}px`;
+  }
   return props.width;
 });
 
@@ -242,7 +284,6 @@ const selectOption = (value: string | number) => {
   position: relative;
   display: inline-block;
   width: 100%;
-  max-width: 300px;
 
   &.direction-horizontal {
     max-width: 600px;
@@ -343,7 +384,7 @@ const selectOption = (value: string | number) => {
 
 .dropdown-panel-content {
   overflow-y: auto;
-  padding: 12px;
+  padding: 8px 0 8px;
   animation: panelFadeIn 0.25s ease-out;
 
   .panel-title {
@@ -375,6 +416,7 @@ const selectOption = (value: string | number) => {
     grid-template-columns: 1fr;
     align-content: start;
     gap: 6px;
+    padding: 0 8px 8px;
 
     &.has-preview {
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

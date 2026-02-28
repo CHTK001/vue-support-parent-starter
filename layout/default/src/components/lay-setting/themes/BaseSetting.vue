@@ -19,6 +19,7 @@ import { debounce, isNumber, storageLocal, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import AiChatAppearanceSetting from "./components/AiChatAppearanceSetting.vue";
+import { AI_APPEARANCE_OPTIONS } from "../../lay-ai/appearance";
 import ScSlider from "@repo/components/ScSlider/src/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { message } from "@repo/utils";
@@ -190,8 +191,9 @@ const settings = reactive({
   aiChatApiKey: $storage.configure?.aiChatApiKey ?? "",
   aiChatApiUrl: $storage.configure?.aiChatApiUrl ?? "",
   aiChatVendor: $storage.configure?.aiChatVendor ?? "hf",
-  aiChatModel:
-    $storage.configure?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct",
+  aiChatModel: $storage.configure?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct",
+  // 宠物闲逛设置（默认开启）
+  petWanderingEnabled: $storage.configure?.petWanderingEnabled ?? true,
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 false）
   enableFestivalTheme:
     $storage.configure?.enableFestivalTheme ??
@@ -273,33 +275,9 @@ const aiChatPositionOptions = computed<Array<OptionsType>>(() => [
 ]);
 
 /** AI 助手机器人皮肤选项 */
-const aiChatSkinOptions = computed<Array<OptionsType>>(() => [
-  {
-    label: "🤖 机器人",
-    value: "robot",
-    tip: "经典机器人造型",
-  },
-  {
-    label: "🦊 阿狸",
-    value: "fox",
-    tip: "可爱的小狐狸",
-  },
-  {
-    label: "🐱 猫咪",
-    value: "cat",
-    tip: "萌萌的小猫咪",
-  },
-  {
-    label: "🐻 小熊",
-    value: "bear",
-    tip: "憨厚的小熊",
-  },
-  {
-    label: "🐼 熊猫",
-    value: "panda",
-    tip: "国宝熊猫",
-  },
-]);
+const aiChatSkinOptions = computed<Array<OptionsType>>(
+  () => AI_APPEARANCE_OPTIONS as Array<OptionsType>,
+);
 
 /** AI 厂商选项 */
 const aiChatVendorOptions = computed<Array<OptionsType>>(() => [
@@ -1058,28 +1036,51 @@ function aiChatApiUrlChange(value: string) {
 /**
  * AI 厂商变更
  */
-function aiChatVendorChange({ option }: { option: OptionsType }) {
-  const value = option.value as "hf" | "chrome" | "other";
-  settings.aiChatVendor = value;
-  storageConfigureChange("aiChatVendor", value);
+function aiChatVendorChange(value: string | number | boolean) {
+  const finalValue = (value || settings.aiChatVendor) as
+    | "hf"
+    | "chrome"
+    | "other";
+  settings.aiChatVendor = finalValue;
+  storageConfigureChange("aiChatVendor", finalValue);
 }
 
 /**
  * AI 模型变更（主要用于 Hugging Face / hf-mirror）
  */
-function aiChatModelChange({ option }: { option: OptionsType }) {
-  const value = option.value as string;
-  settings.aiChatModel = value;
-  storageConfigureChange("aiChatModel", value);
+function aiChatModelChange(value: string | number | boolean) {
+  const finalValue = (value || settings.aiChatModel) as string;
+  settings.aiChatModel = finalValue;
+  storageConfigureChange("aiChatModel", finalValue);
 }
 
 /**
  * AI 机器人皮肤变更
+ *
+ * AiChatAppearanceSetting 的 change 事件可能传入完整选项对象，这里统一抽取 value 字段，保证始终为字符串 key，
+ * 避免出现 skin-[object Object] 导致样式和图标回退到默认机器人。
  */
-function aiChatSkinChange({ option }: { option: OptionsType }) {
-  const value = option.value as string;
-  settings.aiChatSkin = value;
-  storageConfigureChange("aiChatSkin", value);
+function aiChatSkinChange(value: string | number | boolean | OptionsType) {
+  let finalValue: string;
+  if (value && typeof value === "object" && "value" in value) {
+    finalValue = String((value as OptionsType).value);
+  } else {
+    finalValue = String(
+      (value as string | number | boolean) || settings.aiChatSkin || "robot",
+    );
+  }
+  settings.aiChatSkin = finalValue;
+  storageConfigureChange("aiChatSkin", finalValue);
+  emitter.emit("aiChatSkinChange", finalValue);
+}
+
+/**
+ * 宠物闲逛开关变更
+ */
+function petWanderingEnabledChange(value: boolean) {
+  settings.petWanderingEnabled = value;
+  storageConfigureChange("petWanderingEnabled", value);
+  emitter.emit("petWanderingEnabledChange", value);
 }
 
 /**
@@ -1543,12 +1544,7 @@ onUnmounted(() => {
         <LoaderStyleSetting v-model="settings.loaderStyle" />
 
         <!-- AI 设置区域 -->
-        <div
-          v-if="
-            getConfig().ShowAiChat !== false
-          "
-          class="setting-section"
-        >
+        <div v-if="getConfig().ShowAiChat !== false" class="setting-section">
           <div class="section-header">
             <IconifyIconOnline icon="ri:robot-line" class="section-icon" />
             <h3 class="section-title">{{ t("panel.aiChatSkin") }}</h3>
@@ -1580,19 +1576,21 @@ onUnmounted(() => {
                   <span class="setting-item-desc">服务厂商</span>
                 </div>
                 <div class="setting-item-control">
-                  <Segmented
-                    :model-value="settings.aiChatVendor"
+                  <ScSelect
+                    v-model="settings.aiChatVendor"
+                    layout="dropdown"
                     :options="aiChatVendorOptions"
+                    width="260px"
+                    height="220px"
+                    dropdown-title="选择服务厂商"
+                    dropdown-placeholder="请选择厂商"
                     @change="aiChatVendorChange"
                   />
                 </div>
               </div>
 
               <!-- 模型选择（仅 HF / hf-mirror 时显示） -->
-              <div
-                v-if="settings.aiChatVendor === 'hf'"
-                class="setting-item"
-              >
+              <div v-if="settings.aiChatVendor === 'hf'" class="setting-item">
                 <div class="setting-item-label">
                   <span class="setting-item-desc">模型</span>
                 </div>
@@ -1601,8 +1599,6 @@ onUnmounted(() => {
                     v-model="settings.aiChatModel"
                     layout="dropdown"
                     :options="aiChatModelOptions"
-                    dropdown-direction="horizontal"
-                    :dropdown-col="3"
                     dropdown-title="选择推理模型"
                     dropdown-placeholder="请选择 Hugging Face 模型"
                     width="420px"
@@ -1614,7 +1610,10 @@ onUnmounted(() => {
 
               <!-- API Key 设置 -->
               <div
-                v-if="settings.aiChatVendor !== 'chrome' && settings.aiChatVendor !== 'hf'"
+                v-if="
+                  settings.aiChatVendor !== 'chrome' &&
+                  settings.aiChatVendor !== 'hf'
+                "
                 class="setting-item"
               >
                 <div class="setting-item-label">
@@ -1634,7 +1633,10 @@ onUnmounted(() => {
 
               <!-- API URL 设置（Chrome 模式下不需要） -->
               <div
-                v-if="settings.aiChatVendor !== 'chrome' && settings.aiChatVendor !== 'hf'"
+                v-if="
+                  settings.aiChatVendor !== 'chrome' &&
+                  settings.aiChatVendor !== 'hf'
+                "
                 class="setting-item"
               >
                 <div class="setting-item-label">
@@ -1665,6 +1667,24 @@ onUnmounted(() => {
                     v-model="settings.aiChatSkin"
                     :options="aiChatSkinOptions"
                     @change="aiChatSkinChange"
+                  />
+                </div>
+              </div>
+
+              <!-- 模型闲逛开关（仅3D模型外观时显示） -->
+              <div
+                v-if="settings.aiChatSkin === 'fox' || settings.aiChatSkin === 'bee'"
+                class="setting-item"
+              >
+                <div class="switch-card-grid">
+                  <ScSwitch
+                    v-model="settings.petWanderingEnabled"
+                    layout="visual-card"
+                    label="模型闲逛"
+                    description="开启后3D模型会随机做出各种可爱的动作"
+                    active-icon="ri:footprint-line"
+                    inactive-icon="ri:zzz-line"
+                    @change="petWanderingEnabledChange"
                   />
                 </div>
               </div>

@@ -16,6 +16,10 @@
   },
   "dependencies": {
     "@layout/default": "workspace:^",
+    "@repo/app-root": "workspace:^",
+    "@repo/assets": "workspace:^",
+    "@repo/core": "workspace:^",
+    "@repo/plugins": "workspace:^",
     "@pureadmin/utils": "catalog:",
     "axios": "catalog:",
     "pinia": "catalog:",

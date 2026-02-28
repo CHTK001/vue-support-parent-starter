@@ -115,6 +115,7 @@
       :icon="dropdownIcon"
       :title="dropdownTitle"
       :placeholder="dropdownPlaceholder"
+      :match-trigger-width="dropdownMatchWidth"
       :dropdown-direction="dropdownDirection"
       :dropdown-col="dropdownCol"
       :display-mode="displayMode"
@@ -339,6 +340,11 @@ const props = defineProps({
   dropdownPlaceholder: {
     type: String,
     default: "请选择"
+  },
+  // 下拉面板宽度是否跟触发器宽度保持一致
+  dropdownMatchWidth: {
+    type: Boolean,
+    default: true
   },
   // 形状类型
   shape: {

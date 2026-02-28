@@ -18,8 +18,8 @@
       </div>
     </div>
     <div v-else class="option-text-item large-text">
-      <div class="option-checkbox">
-        <div v-if="isSelected" class="checkbox-checked">
+      <div v-if="isSelected" class="option-checkbox">
+        <div class="checkbox-checked">
           <IconRenderer icon="ri:check-line" />
         </div>
       </div>

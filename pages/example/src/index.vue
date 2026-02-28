@@ -770,6 +770,22 @@ const components = [
     component: resolveComponent("./components/ScVideoExample.vue"),
   },
   {
+    name: "ScThree",
+    icon: "ri:3d-line",
+    category: "media",
+    tags: ["3D", "Three.js", "模型"],
+    description: "基于 Three.js 的 3D 渲染组件，支持 glTF/glb 模型加载、场景预设、相机控制等功能",
+    component: resolveComponent("./components/ScThreeExample.vue"),
+  },
+  {
+    name: "ScThreeMap",
+    icon: "ri:map-3d-line",
+    category: "display",
+    tags: ["3D", "地图", "模型", "联动"],
+    description: "ScThree 与地图组件（ScMap/ScLayer）的联动示例，支持在地图上显示 3D 模型",
+    component: resolveComponent("./components/ScThreeMapExample.vue"),
+  },
+  {
     name: "Template",
     icon: "ri:layout-line",
     category: "layout",

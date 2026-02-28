@@ -137,6 +137,10 @@ declare global {
       aiChatSkin?: string;
       aiChatApiKey?: string;
       aiChatApiUrl?: string;
+      aiChatVendor?: string;
+      aiChatModel?: string;
+      // 宠物闲逛配置
+      petWanderingEnabled?: boolean;
     };
     tags?: Array<any>;
   }

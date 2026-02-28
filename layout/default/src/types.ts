@@ -91,6 +91,7 @@ export interface LayoutEmitterEvents {
   // 主题相关
   systemThemeChange: string;
   aiChatThemeChange: string;
+  aiChatSkinChange: string;
 
   // 功能开关
   keepAliveChange: boolean;

@@ -222,8 +222,9 @@
               type="primary"
               @click="dialogVisible = true"
               style="width: 100%"
-              >打开对话框</el-button
             >
+              打开对话框
+            </ScButton>
           </ScForm>
 
           <div class="code-preview mt-4">
@@ -424,9 +425,9 @@
             <template #footer>
               <div class="dialog-footer">
                 <ScButton @click="dialogVisible = false">取消</ScButton>
-                <ScButton type="primary" @click="handleConfirm"
-                  >确定</el-button
-                >
+                <ScButton type="primary" @click="handleConfirm">
+                  确定
+                </ScButton>
               </div>
             </template>
           </ScDialog>

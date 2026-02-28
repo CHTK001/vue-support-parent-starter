@@ -39,7 +39,8 @@ import { useThemeComponent } from "../../hooks/useThemeComponent";
 const props = defineProps({
   model: {
     type: Object,
-    required: true
+    required: false,
+    default: () => ({})
   },
   rules: {
     type: Object,
