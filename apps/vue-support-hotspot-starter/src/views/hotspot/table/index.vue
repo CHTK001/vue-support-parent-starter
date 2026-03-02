@@ -111,17 +111,17 @@ onUnmounted(() => {
 }
 
 .page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
   padding: 24px 32px;
-  border-radius: 8px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 5%);
 }
 
 .header-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .title-section {
@@ -130,12 +130,12 @@ onUnmounted(() => {
 
 .page-title {
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
+  margin: 0 0 8px;
   font-size: 24px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-  margin: 0 0 8px 0;
 
   .title-icon {
     font-size: 28px;
@@ -144,9 +144,9 @@ onUnmounted(() => {
 }
 
 .page-subtitle {
-  color: var(--el-text-color-regular);
-  font-size: 14px;
   margin: 0;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
 }
 
 .stats-section {
@@ -155,17 +155,17 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  background: white;
   padding: 16px 24px;
-  border-radius: 8px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
 
   .stat-number {
+    margin-bottom: 4px;
     font-size: 28px;
     font-weight: 600;
     color: var(--el-color-primary);
-    margin-bottom: 4px;
   }
 
   .stat-label {
@@ -175,13 +175,13 @@ onUnmounted(() => {
 }
 
 .code-block {
-  background: var(--el-fill-color-light);
   padding: 16px;
-  border-radius: 4px;
+  overflow-x: auto;
   font-family: "Courier New", monospace;
   font-size: 13px;
   line-height: 1.6;
-  overflow-x: auto;
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
 }
 
 :deep(.el-card) {
@@ -192,8 +192,8 @@ onUnmounted(() => {
   font-size: 14px;
 
   .el-table__header th {
-    background: var(--el-fill-color-light);
     font-weight: 600;
+    background: var(--el-fill-color-light);
   }
 }
 </style>

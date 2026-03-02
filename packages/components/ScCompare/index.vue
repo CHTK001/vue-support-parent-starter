@@ -102,8 +102,7 @@ const { leftImage, rightImage, leftImageLabel, rightImageLabel, leftImageCss, ri
 :global(html[data-skin="8bit"]) .sc-compare-root :deep(.vci--right-label) {
   top: 6% !important;
   border-radius: 0;
-  font-family: "Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
   font-size: 10px;
   letter-spacing: 0.03em;
   padding: 3px 6px;

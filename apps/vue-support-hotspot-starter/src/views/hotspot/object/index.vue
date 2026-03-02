@@ -165,27 +165,27 @@ const fetchData = async params => {
 }
 
 .page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
   padding: 24px 32px;
-  border-radius: 8px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 5%);
 }
 
 .header-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .page-title {
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
+  margin: 0 0 8px;
   font-size: 24px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-  margin: 0 0 8px 0;
 
   .title-icon {
     font-size: 28px;
@@ -194,9 +194,9 @@ const fetchData = async params => {
 }
 
 .page-subtitle {
-  color: var(--el-text-color-regular);
-  font-size: 14px;
   margin: 0;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
 }
 
 .toolbar {
@@ -220,19 +220,20 @@ const fetchData = async params => {
 :deep(.row-expand-unhas .el-table__expand-icon--expanded) {
   display: none !important;
 }
+
 .item::before {
-  counter-increment: counter;
-  content: counter(counter);
-  color: var(--el-text-color-regular);
-  font-size: 1.2em;
-  right: 50%;
   top: 10px;
+  right: 50%;
+  display: inline-block;
   width: 24px;
   height: 24px;
+  font-size: 1.2em;
+  color: var(--el-text-color-regular);
   text-align: center;
   vertical-align: middle;
-  border-radius: 50%;
+  content: counter(counter);
+  counter-increment: counter;
   background-color: var(--el-color-info-light-7);
-  display: inline-block;
+  border-radius: 50%;
 }
 </style>

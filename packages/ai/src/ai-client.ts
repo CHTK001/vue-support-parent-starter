@@ -41,7 +41,7 @@ export class AIClient {
     } catch {
       // 降级方案：使用 Blob URL（适用于非 Vite 环境）
       const workerCode = `
-        import { pipeline } from '@xenova/transformers';
+        import { pipeline } from '@huggingface/transformers';
         
         const pipelines = new Map();
         

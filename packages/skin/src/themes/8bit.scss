@@ -1,0 +1,48 @@
+/**
+ * 8bit 像素风格主题样式
+ * 
+ * 字体来源：Fusion Pixel Font (缝合像素字体)
+ * 项目地址：https://github.com/TakWolf/fusion-pixel-font
+ * 字体通过 @pixelium/web-vue/dist/font.css 引入
+ */
+
+html[data-skin="8bit"] {
+  // 8bit 模式下所有文本标签使用 Fusion Pixel Font 像素字体
+  // 字体名称：Fusion Pixel Zh_hans（简体中文版本）
+  * {
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+  }
+
+  // 覆盖 Pixelium 默认的 body font-size: 21px，保持与全局基础字体大小一致
+  body {
+    font-size: var(--el-font-size-base) !important;
+  }
+
+  // 也可以针对特定文本标签设置（如果需要更细粒度控制）
+  span,
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  div,
+  label,
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  option {
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+  }
+
+  // Pixelium 图标工具类样式
+  // px-icon-h: 设置图标高度为 1em（与字体大小一致）
+  .px-icon-h {
+    height: 1em;
+    width: auto;
+  }
+}
+

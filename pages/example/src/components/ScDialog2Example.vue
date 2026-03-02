@@ -275,7 +275,7 @@
       <template #footer>
         <ScButton @click="dialogVisible = false">取消</ScButton>
         <ScButton type="primary" @click="dialogVisible = false"
-          >确定</el-button
+          >确定</ScButton
         >
       </template>
     </ScDialog>

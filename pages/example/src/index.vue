@@ -818,6 +818,22 @@ const components = [
     component: resolveComponent("./components/ScAlertExample.vue"),
   },
   {
+    name: "ScTooltip",
+    icon: "ri:question-line",
+    category: "feedback",
+    tags: ["提示", "悬浮"],
+    description: "文字提示组件，支持多种位置、主题、触发方式和自定义内容",
+    component: resolveComponent("./components/ScTooltipExample.vue"),
+  },
+  {
+    name: "ScPopover",
+    icon: "ri:chat-3-line",
+    category: "feedback",
+    tags: ["弹出框", "提示"],
+    description: "弹出框组件，支持标题、内容、多种位置和触发方式，可自定义内容",
+    component: resolveComponent("./components/ScPopoverExample.vue"),
+  },
+  {
     name: "ScProgress",
     icon: "ri:loader-2-line",
     category: "data",

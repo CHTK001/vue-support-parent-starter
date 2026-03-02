@@ -76,8 +76,14 @@ const parseOpenApiSpec = (spec: any): ApiGroup[] => {
 
   if (spec.paths) {
     for (const [path, methods] of Object.entries(spec.paths)) {
-      for (const [method, operation] of Object.entries(methods as Record<string, any>)) {
-        if (["get", "post", "put", "delete", "patch"].includes(method.toLowerCase())) {
+      for (const [method, operation] of Object.entries(
+        methods as Record<string, any>,
+      )) {
+        if (
+          ["get", "post", "put", "delete", "patch"].includes(
+            method.toLowerCase(),
+          )
+        ) {
           const tags = operation.tags || ["默认分组"];
           const tag = tags[0];
 
@@ -213,7 +219,10 @@ const handleExecute = async (params: ExecuteApiParams) => {
     // 添加查询参数
     if (params.queryParams && Object.keys(params.queryParams).length > 0) {
       const queryString = Object.entries(params.queryParams)
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+        .map(
+          ([key, value]) =>
+            `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+        )
         .join("&");
       url += `?${queryString}`;
     }
@@ -221,16 +230,17 @@ const handleExecute = async (params: ExecuteApiParams) => {
     // 准备请求体
     let requestBody: string | undefined;
     if (params.api.method !== "GET" && params.requestBody) {
-      requestBody = typeof params.requestBody === "string" 
-        ? params.requestBody 
-        : JSON.stringify(params.requestBody);
+      requestBody =
+        typeof params.requestBody === "string"
+          ? params.requestBody
+          : JSON.stringify(params.requestBody);
     }
 
     // 准备请求头
     const headers: Record<string, string> = {
       ...params.headers,
     };
-    
+
     // 如果没有指定 Content-Type，且存在请求体，则设置默认值
     if (!headers["Content-Type"] && !headers["content-type"] && requestBody) {
       headers["Content-Type"] = "application/json";
@@ -248,7 +258,7 @@ const handleExecute = async (params: ExecuteApiParams) => {
     // 获取响应数据
     const contentType = response.headers.get("content-type") || "";
     let responseData: any;
-    
+
     if (contentType.includes("application/json")) {
       try {
         responseData = await response.json();
@@ -289,9 +299,16 @@ const handleExecute = async (params: ExecuteApiParams) => {
     // 构建错误响应
     const errorResponse: ApiResponse = {
       status: error?.response?.status || error?.status || 500,
-      statusText: error?.response?.statusText || error?.statusText || "Internal Server Error",
+      statusText:
+        error?.response?.statusText ||
+        error?.statusText ||
+        "Internal Server Error",
       headers: error?.response?.headers || error?.headers || {},
-      data: error?.response?.data || error?.data || error?.message || "请求执行失败",
+      data:
+        error?.response?.data ||
+        error?.data ||
+        error?.message ||
+        "请求执行失败",
       duration,
     };
 
@@ -348,4 +365,3 @@ onMounted(async () => {
   overflow: hidden;
 }
 </style>
-

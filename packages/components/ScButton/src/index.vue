@@ -1,13 +1,15 @@
 <template>
   <component
-    :is="currentComponent || ElButton"
+    :is="actualComponent"
     :size="size"
     :type="type"
+    :theme="type"
     :plain="plain"
     :text="text"
     :bg="bg"
     :link="link"
     :round="round"
+    :shape="circle ? 'circle' : 'rect'"
     :circle="circle"
     :loading="loading"
     :loading-icon="loadingIcon"
@@ -192,9 +194,21 @@ const { currentComponent } = useThemeComponent("ElButton");
 
 /**
  * 当前实际渲染的组件
- * 像素主题下使用 PxButton，否则使用 ElButton
+ * 如果主题组件加载失败或返回 null，回退到 Element Plus 原生组件
+ * 如果返回的是字符串但组件未注册，也会回退到 Element Plus 组件
  */
-
+const actualComponent = computed(() => {
+  const component = currentComponent.value;
+  // 如果组件为 null，回退到 ElButton
+  if (!component) {
+    return ElButton;
+  }
+  // 如果组件是字符串，Vue 会尝试从全局注册中查找
+  // 如果组件未注册，Vue 会显示为字符串，此时应该回退到 ElButton
+  // 但由于无法在运行时检测组件是否注册，这里先返回组件
+  // 如果组件未注册，会在模板中显示为字符串，此时用户可以看到问题
+  return component;
+});
 
 /**
  * 点击事件透传

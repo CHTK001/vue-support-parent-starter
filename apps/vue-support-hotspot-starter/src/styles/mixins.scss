@@ -4,7 +4,7 @@
  */
 
 @use "./variables.scss" as *;
-@forward "./variables.scss";
+@forward "./variables";
 
 // 基础 Flex 布局
 @mixin flex-center {
@@ -38,18 +38,18 @@
 
 @mixin text-ellipsis-multiline($lines: 2) {
   display: -webkit-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
   -webkit-line-clamp: $lines;
   line-clamp: $lines;
   -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 // 卡片常用样式
 @mixin card-base {
+  border: 1px solid $border-light;
   border-radius: $radius-lg;
   box-shadow: $shadow-md;
-  border: 1px solid $border-light;
   transition: all $duration-normal $ease-standard;
 }
 

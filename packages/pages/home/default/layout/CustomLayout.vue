@@ -44,7 +44,7 @@ const handleRemove = async (key) => {
   <div class="customizing h-full">
     <GridLayout 
       class="!h-full grid-layout-container" 
-      :row-height="200" 
+      :row-height="80" 
       v-model:layout="userLayoutObject.layout" 
       :is-draggable="props.modelValue" 
       :is-resizable="props.modelValue" 

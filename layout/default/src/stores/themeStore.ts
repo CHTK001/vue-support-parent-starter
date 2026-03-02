@@ -9,6 +9,7 @@ import { emitter, useUserStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import type { ThemeKey } from "../types/theme";
 import { layoutThemes, getLayoutTheme, loadThemeStylesheet } from "../themes";
+import { loadThemeFont } from "../utils/loadThemeFont";
 
 // 条件日志函数
 const isDev = import.meta.env.DEV;
@@ -191,6 +192,9 @@ export const useThemeStore = defineStore("theme", () => {
     // 加载主题样式表
     loadThemeStylesheet(normalizedThemeKey);
 
+    // 加载主题字体 CSS（仅 8bit 主题需要）
+    loadThemeFont(normalizedThemeKey);
+
     // 持久化到 storage
     if ($storage?.configure) {
       $storage.configure.systemTheme = normalizedThemeKey;
@@ -305,6 +309,9 @@ export const useThemeStore = defineStore("theme", () => {
     if (normalizedDomTheme && normalizedDomTheme !== currentTheme.value) {
       currentTheme.value = normalizedDomTheme;
     }
+
+    // 初始化时加载当前主题的字体 CSS
+    loadThemeFont(currentTheme.value);
   }
 
   /**

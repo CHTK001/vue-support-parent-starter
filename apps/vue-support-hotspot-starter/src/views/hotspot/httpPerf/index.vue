@@ -302,37 +302,37 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .page-container {
-  padding: 20px;
   min-height: 100%;
+  padding: 20px;
   background: var(--el-bg-color-page);
 }
 
 .page-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: space-between;
   padding: 20px 24px;
+  margin-bottom: 20px;
   background: var(--el-bg-color);
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
 
   .header-left {
     display: flex;
-    align-items: center;
     gap: 16px;
+    align-items: center;
 
     .header-icon {
+      padding: 12px;
       font-size: 40px;
       color: var(--el-color-primary);
-      padding: 12px;
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
       border-radius: 12px;
     }
 
     .header-info {
       .header-title {
-        margin: 0 0 4px 0;
+        margin: 0 0 4px;
         font-size: 20px;
         font-weight: 600;
         color: var(--el-text-color-primary);
@@ -348,8 +348,8 @@ onUnmounted(() => {
 
   .header-right {
     display: flex;
-    align-items: center;
     gap: 12px;
+    align-items: center;
   }
 }
 
@@ -358,8 +358,8 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  border-radius: 12px;
   border: none;
+  border-radius: 12px;
 
   :deep(.el-card__body) {
     padding: 20px;
@@ -367,38 +367,45 @@ onUnmounted(() => {
 
   .stat-content {
     display: flex;
-    align-items: center;
     gap: 16px;
+    align-items: center;
   }
 
   .stat-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-primary);
       }
     }
+
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-danger);
       }
     }
+
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-warning);
       }
     }
+
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-success);
       }
@@ -411,10 +418,10 @@ onUnmounted(() => {
 
   .stat-info {
     .stat-value {
+      margin-bottom: 4px;
       font-size: 24px;
       font-weight: 700;
       color: var(--el-text-color-primary);
-      margin-bottom: 4px;
 
       &.error {
         color: var(--el-color-danger);
@@ -429,20 +436,20 @@ onUnmounted(() => {
 }
 
 .modern-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   margin-bottom: 16px;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
 
   .card-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     .card-title {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
       font-size: 15px;
       font-weight: 600;
       color: var(--el-text-color-primary);
@@ -454,6 +461,7 @@ onUnmounted(() => {
         &.warning {
           color: var(--el-color-warning);
         }
+
         &.danger {
           color: var(--el-color-danger);
         }
@@ -468,13 +476,13 @@ onUnmounted(() => {
 }
 
 .error {
-  color: var(--el-color-danger);
   font-weight: 600;
+  color: var(--el-color-danger);
 }
 
 .slow {
-  color: var(--el-color-warning);
   font-weight: 600;
+  color: var(--el-color-warning);
 }
 
 // 深色主题适配
@@ -485,12 +493,12 @@ html.dark {
 
   .page-header {
     background: var(--el-bg-color);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 
   .stat-card,
   .modern-card {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 }
 </style>

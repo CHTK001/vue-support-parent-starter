@@ -1,5 +1,6 @@
 // 按需引入element-plus（该方法稳定且明确。当然也支持：https://element-plus.org/zh-CN/guide/quickstart.html#%E6%8C%89%E9%9C%80%E5%AF%BC%E5%85%A5）
 import type { App, Component } from "vue";
+import { markRaw } from "vue";
 import {
   /**
    * 为了方便演示平台将 element-plus 导出的所有组件引入，实际使用中如果你没用到哪个组件，将其注释掉就行
@@ -362,11 +363,11 @@ export function useElementPlus(app: App) {
       return;
     }
 
-    // 直接复用原组件实例，仅修改 name 以便调试区分
-    const alias = {
+    // 复制组件配置并使用 markRaw 标记为非响应式，避免 Vue 将组件对象转为响应式导致性能告警
+    const alias = markRaw({
       ...component,
       name: scName,
-    } as Component;
+    }) as Component;
 
     app.component(scName, alias);
   });
