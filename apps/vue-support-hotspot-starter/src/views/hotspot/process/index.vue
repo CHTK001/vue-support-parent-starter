@@ -356,13 +356,13 @@ const update = async data => {
 }
 
 .stats-row {
-  margin-bottom: 16px;
   flex-shrink: 0;
+  margin-bottom: 16px;
 }
 
 .stat-card {
-  border-radius: 12px;
   border: none;
+  border-radius: 12px;
 
   :deep(.el-card__body) {
     padding: 20px;
@@ -370,44 +370,53 @@ const update = async data => {
 
   .stat-content {
     display: flex;
-    align-items: center;
     gap: 16px;
+    align-items: center;
   }
 
   .stat-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-primary);
       }
     }
+
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-success);
       }
     }
+
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-warning);
       }
     }
+
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-danger);
       }
     }
+
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-info);
       }
@@ -436,10 +445,10 @@ const update = async data => {
 
 .graph-wrapper {
   flex: 1;
+  overflow: hidden;
   background: var(--el-bg-color);
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
 }
 
 .graph-container {
@@ -455,7 +464,7 @@ html.dark {
 
   .stat-card,
   .graph-wrapper {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 }
 </style>

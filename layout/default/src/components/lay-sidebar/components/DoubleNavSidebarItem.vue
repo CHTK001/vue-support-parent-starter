@@ -16,6 +16,7 @@ import {
   useAttrs,
   onMounted,
 } from "vue";
+import { ScText } from "@repo/components";
 import { useNav } from "../../../hooks/useNav";
 import { emitter } from "@repo/core";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
@@ -177,33 +178,36 @@ const isSubMenuOpened = computed(() => {
         </div>
 
         <div :style="getDivStyle">
-          <el-text truncated class="!w-full">
-            {{
-              transformI18n(
-                onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
-              )
-            }}
-            <ReMenuNewBadge
-              v-if="showNewMenu"
-              :createTime="
-                onlyOneChild?.meta?.createTime || item?.meta?.createTime
-              "
-              :type="
-                onlyOneChild?.meta?.badgeType ||
-                item?.meta?.badgeType ||
-                'primary'
-              "
-              :customText="
-                onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
-              "
-              :forceShow="
-                forceNewMenu ||
-                onlyOneChild?.meta?.permanentNew ||
-                item?.meta?.permanentNew
-              "
-              :animation="newMenuAnimation"
-            />
-          </el-text>
+          <ScText 
+            class="!w-full" 
+            truncated
+            :text="transformI18n(
+              onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
+            )"
+          >
+            <template #suffix>
+              <ReMenuNewBadge
+                v-if="showNewMenu"
+                :createTime="
+                  onlyOneChild?.meta?.createTime || item?.meta?.createTime
+                "
+                :type="
+                  onlyOneChild?.meta?.badgeType ||
+                  item?.meta?.badgeType ||
+                  'primary'
+                "
+                :customText="
+                  onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
+                "
+                :forceShow="
+                  forceNewMenu ||
+                  onlyOneChild?.meta?.permanentNew ||
+                  item?.meta?.permanentNew
+                "
+                :animation="newMenuAnimation"
+              />
+            </template>
+          </ScText>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
       </el-menu-item>
@@ -223,17 +227,22 @@ const isSubMenuOpened = computed(() => {
           <component :is="useRenderIcon(toRaw(item?.meta?.icon))" />
         </div>
         <div :style="getDivStyle">
-          <el-text truncated class="!w-full">
-            {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
-            <ReMenuNewBadge
-              v-if="showNewMenu"
-              :createTime="item?.meta?.createTime"
-              :type="item?.meta?.badgeType || 'primary'"
-              :customText="item?.meta?.badgeText"
-              :forceShow="forceNewMenu || item?.meta?.permanentNew"
-              :animation="newMenuAnimation"
-            />
-          </el-text>
+          <ScText 
+            truncated 
+            class="!w-full"
+            :text="transformI18n(item?.meta?.i18nKey || item?.meta?.title)"
+          >
+            <template #suffix>
+              <ReMenuNewBadge
+                v-if="showNewMenu"
+                :createTime="item?.meta?.createTime"
+                :type="item?.meta?.badgeType || 'primary'"
+                :customText="item?.meta?.badgeText"
+                :forceShow="forceNewMenu || item?.meta?.permanentNew"
+                :animation="newMenuAnimation"
+              />
+            </template>
+          </ScText>
           <SidebarExtraIcon :extraIcon="item?.meta?.extraIcon" />
         </div>
       </template>
@@ -281,33 +290,36 @@ const isSubMenuOpened = computed(() => {
         </div>
 
         <div class="menu-content" :style="getDivStyle">
-          <el-text truncated class="!w-full">
-            {{
-              transformI18n(
-                onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
-              )
-            }}
-            <ReMenuNewBadge
-              v-if="showNewMenu"
-              :createTime="
-                onlyOneChild?.meta?.createTime || item?.meta?.createTime
-              "
-              :type="
-                onlyOneChild?.meta?.badgeType ||
-                item?.meta?.badgeType ||
-                'primary'
-              "
-              :customText="
-                onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
-              "
-              :forceShow="
-                forceNewMenu ||
-                onlyOneChild?.meta?.permanentNew ||
-                item?.meta?.permanentNew
-              "
-              :animation="newMenuAnimation"
-            />
-          </el-text>
+          <ScText 
+            truncated 
+            class="!w-full"
+            :text="transformI18n(
+              onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
+            )"
+          >
+            <template #suffix>
+              <ReMenuNewBadge
+                v-if="showNewMenu"
+                :createTime="
+                  onlyOneChild?.meta?.createTime || item?.meta?.createTime
+                "
+                :type="
+                  onlyOneChild?.meta?.badgeType ||
+                  item?.meta?.badgeType ||
+                  'primary'
+                "
+                :customText="
+                  onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
+                "
+                :forceShow="
+                  forceNewMenu ||
+                  onlyOneChild?.meta?.permanentNew ||
+                  item?.meta?.permanentNew
+                "
+                :animation="newMenuAnimation"
+              />
+            </template>
+          </ScText>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
       </el-menu-item>
@@ -323,17 +335,22 @@ const isSubMenuOpened = computed(() => {
           <component :is="useRenderIcon(toRaw(item?.meta?.icon))" />
         </div>
         <div :style="getDivStyle">
-          <el-text truncated class="!w-full">
-            {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
-            <ReMenuNewBadge
-              v-if="showNewMenu"
-              :createTime="item?.meta?.createTime"
-              :type="item?.meta?.badgeType || 'primary'"
-              :customText="item?.meta?.badgeText"
-              :forceShow="forceNewMenu || item?.meta?.permanentNew"
-              :animation="newMenuAnimation"
-            />
-          </el-text>
+          <ScText 
+            truncated 
+            class="!w-full"
+            :text="transformI18n(item?.meta?.i18nKey || item?.meta?.title)"
+          >
+            <template #suffix>
+              <ReMenuNewBadge
+                v-if="showNewMenu"
+                :createTime="item?.meta?.createTime"
+                :type="item?.meta?.badgeType || 'primary'"
+                :customText="item?.meta?.badgeText"
+                :forceShow="forceNewMenu || item?.meta?.permanentNew"
+                :animation="newMenuAnimation"
+              />
+            </template>
+          </ScText>
           <SidebarExtraIcon :extraIcon="item?.meta?.extraIcon" />
         </div>
       </template>

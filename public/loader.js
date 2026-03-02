@@ -48,6 +48,10 @@
       html: '<div class="sys-loader-writing-loader"><div class="sys-loader-pen">✒️</div><div class="sys-loader-paper"><div class="sys-loader-line"></div><div class="sys-loader-line"></div><div class="sys-loader-line"></div></div></div>',
       css: ".sys-loader-writing-loader{display:flex;flex-direction:column;align-items:center;gap:10px}.sys-loader-pen{font-size:36px;animation:sys-loader-pen-move 2s ease-in-out infinite}@keyframes sys-loader-pen-move{0%,100%{transform:translateX(-30px) rotate(-45deg)}50%{transform:translateX(30px) rotate(-45deg)}}.sys-loader-paper{width:120px;padding:20px;background:#fff;border:2px solid #333;border-radius:4px;box-shadow:2px 2px 8px rgba(0,0,0,0.1)}.sys-loader-line{height:3px;background:#333;margin:8px 0;border-radius:2px;animation:sys-loader-write-line 2s ease-in-out infinite}.sys-loader-line:nth-child(1){animation-delay:0s}.sys-loader-line:nth-child(2){animation-delay:0.3s}.sys-loader-line:nth-child(3){animation-delay:0.6s}@keyframes sys-loader-write-line{0%,100%{width:0}50%{width:100%}}",
     },
+    dinoGame: {
+      html: '<div class="sys-loader-dino"><div class="sys-loader-dino-ground"></div><div class="sys-loader-dino-char">🦖</div><div class="sys-loader-dino-cactus">🌵</div></div>',
+      css: ".sys-loader-dino{position:relative;width:200px;height:80px;display:flex;align-items:flex-end;justify-content:flex-start;overflow:hidden}.sys-loader-dino-ground{position:absolute;left:0;right:0;bottom:10px;height:2px;background:#535353}.sys-loader-dino-char{position:absolute;left:30px;bottom:10px;font-size:40px;animation:sys-loader-dino-jump 1.2s ease-in-out infinite}.sys-loader-dino-cactus{position:absolute;right:-40px;bottom:10px;font-size:32px;animation:sys-loader-dino-cactus-move 1.6s linear infinite}@keyframes sys-loader-dino-jump{0%,20%,60%,100%{transform:translateY(0)}40%{transform:translateY(-24px)}}@keyframes sys-loader-dino-cactus-move{0%{transform:translateX(0)}100%{transform:translateX(-220px)}}",
+    },
   };
 
   var loader = loaderStyles[loaderType] || loaderStyles.default;

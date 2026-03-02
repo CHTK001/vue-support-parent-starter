@@ -3,7 +3,7 @@ import { getConfig } from "@repo/config";
 import { fetchGetUserLayout, fetchMineSfc, fetchUpdateUserLayout } from "@repo/core";
 import { loadSfcModule, localStorageProxy, toObject } from "@repo/utils";
 import { defineStore } from "pinia";
-import { defineAsyncComponent } from "vue";
+import { defineAsyncComponent, markRaw } from "vue";
 import * as _ from "lodash-es";
 
 // 404 组件的异步加载
@@ -334,10 +334,12 @@ export const useLayoutLayoutStore = defineStore({
         })
       ).map(([key, value]: any) => {
         const setting = JSON.parse(value.default);
-        setting.vue = _localMapping[key.replace("config.json", "index.vue")];
-        if (!setting.vue) {
+        const vueComp = _localMapping[key.replace("config.json", "index.vue")];
+        if (!vueComp) {
           return;
         }
+        // 本地模块对应的 Vue 组件标记为非响应式，避免被 Pinia 状态包装为响应式对象后导致 Vue 告警
+        setting.vue = markRaw(vueComp);
 
         // Auto-generate ID from directory name if missing
         if (!setting.sysSfcId) {

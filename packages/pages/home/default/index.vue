@@ -233,11 +233,17 @@ onUnmounted(() => {
                 userStore?.username || "用户"
               }}</span>
             </div>
-            <div class="greeting-subtitle">{{ $t("buttons.board") }}</div>
+            <div class="greeting-subtitle">
+              {{ $t("buttons.board") }}
+              <span class="version-badge">自定义布局版本：vue3-draggable-resizable-v1</span>
+            </div>
           </div>
         </div>
         <div class="header-left" v-else>
-          <div class="header-title">{{ $t("buttons.board") }}</div>
+          <div class="header-title">
+            {{ $t("buttons.board") }}
+            <span class="version-badge">自定义布局版本：vue3-draggable-resizable-v1</span>
+          </div>
         </div>
         <div class="header-center" v-if="showHeaderInfo">
           <div class="header-time">
@@ -492,6 +498,15 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+
+.version-badge {
+  margin-left: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--el-text-color-secondary);
 }
 
 .header-compact {

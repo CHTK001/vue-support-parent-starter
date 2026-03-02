@@ -9,6 +9,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 import { getConfig } from "@repo/config";
+import { ScText } from "@repo/components";
 import { useNav } from "../../hooks/useNav";
 import type { MenuItem } from "../../types/menu";
 import DoubleNavSidebarItem from "./components/DoubleNavSidebarItem.vue";
@@ -300,9 +301,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                 class="absolute right-0 top-0 scale-75 origin-top-right"
               />
             </div>
-            <span v-if="!isCollapse" class="menu-label">{{
-              menu.meta?.title || menu.name || ""
-            }}</span>
+            <ScText v-if="!isCollapse" class="menu-label" :text="menu.meta?.title || menu.name || ''" />
           </el-menu-item>
         </el-menu>
       </el-scrollbar>

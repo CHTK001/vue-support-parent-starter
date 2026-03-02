@@ -11,10 +11,10 @@ function getThemeClipPathKeyframes(
   event?: MouseEvent,
 ): string[] {
   const { innerWidth, innerHeight } = window;
-  let x = 0;
-  let y = 0;
+    let x = 0;
+    let y = 0;
 
-  switch (direction) {
+    switch (direction) {
     case "cursor": {
       if (!event) {
         // 理论上上游已做降级，这里兜底一次
@@ -26,86 +26,86 @@ function getThemeClipPathKeyframes(
       }
       x = event.clientX;
       y = event.clientY;
-      const endRadiusCursor = Math.hypot(
-        Math.max(x, innerWidth - x),
+        const endRadiusCursor = Math.hypot(
+          Math.max(x, innerWidth - x),
         Math.max(y, innerHeight - y),
-      );
+        );
       return [
-        `circle(0px at ${x}px ${y}px)`,
-        `circle(${endRadiusCursor}px at ${x}px ${y}px)`,
-      ];
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${endRadiusCursor}px at ${x}px ${y}px)`,
+        ];
     }
-
+      
     case "top-right": {
-      const endRadiusTR = Math.hypot(innerWidth, innerHeight);
+        const endRadiusTR = Math.hypot(innerWidth, innerHeight);
       return [
-        `circle(0px at 100% 0)`,
-        `circle(${endRadiusTR}px at 100% 0)`,
-      ];
+          `circle(0px at 100% 0)`,
+          `circle(${endRadiusTR}px at 100% 0)`,
+        ];
     }
 
     case "top-center": {
-      const endRadiusTC = Math.hypot(innerWidth / 2, innerHeight);
+        const endRadiusTC = Math.hypot(innerWidth / 2, innerHeight);
       return [
-        `circle(0px at 50% 0)`,
-        `circle(${endRadiusTC}px at 50% 0)`,
-      ];
+          `circle(0px at 50% 0)`,
+          `circle(${endRadiusTC}px at 50% 0)`,
+        ];
     }
 
     case "top-left": {
-      const endRadiusTL = Math.hypot(innerWidth, innerHeight);
+        const endRadiusTL = Math.hypot(innerWidth, innerHeight);
       return [
-        `circle(0px at 0 0)`,
-        `circle(${endRadiusTL}px at 0 0)`,
-      ];
+          `circle(0px at 0 0)`,
+          `circle(${endRadiusTL}px at 0 0)`,
+        ];
     }
 
     case "bottom-right": {
-      const endRadiusBR = Math.hypot(innerWidth, innerHeight);
+        const endRadiusBR = Math.hypot(innerWidth, innerHeight);
       return [
-        `circle(0px at 100% 100%)`,
-        `circle(${endRadiusBR}px at 100% 100%)`,
-      ];
+          `circle(0px at 100% 100%)`,
+          `circle(${endRadiusBR}px at 100% 100%)`,
+        ];
     }
 
     case "bottom-center": {
-      const endRadiusBC = Math.hypot(innerWidth / 2, innerHeight);
+        const endRadiusBC = Math.hypot(innerWidth / 2, innerHeight);
       return [
-        `circle(0px at 50% 100%)`,
-        `circle(${endRadiusBC}px at 50% 100%)`,
-      ];
+          `circle(0px at 50% 100%)`,
+          `circle(${endRadiusBC}px at 50% 100%)`,
+        ];
     }
 
     case "bottom-left": {
-      const endRadiusBL = Math.hypot(innerWidth, innerHeight);
+        const endRadiusBL = Math.hypot(innerWidth, innerHeight);
       return [
-        `circle(0px at 0 100%)`,
-        `circle(${endRadiusBL}px at 0 100%)`,
-      ];
+          `circle(0px at 0 100%)`,
+          `circle(${endRadiusBL}px at 0 100%)`,
+        ];
     }
 
     case "center": {
-      const endRadiusCenter = Math.hypot(innerWidth / 2, innerHeight / 2);
+        const endRadiusCenter = Math.hypot(innerWidth / 2, innerHeight / 2);
       return [
-        `circle(0px at 50% 50%)`,
-        `circle(${endRadiusCenter}px at 50% 50%)`,
-      ];
+          `circle(0px at 50% 50%)`,
+          `circle(${endRadiusCenter}px at 50% 50%)`,
+        ];
     }
 
     case "left-center": {
-      const endRadiusLC = Math.hypot(innerWidth, innerHeight / 2);
+        const endRadiusLC = Math.hypot(innerWidth, innerHeight / 2);
       return [
-        `circle(0px at 0 50%)`,
-        `circle(${endRadiusLC}px at 0 50%)`,
-      ];
+          `circle(0px at 0 50%)`,
+          `circle(${endRadiusLC}px at 0 50%)`,
+        ];
     }
 
     case "right-center": {
-      const endRadiusRC = Math.hypot(innerWidth, innerHeight / 2);
+        const endRadiusRC = Math.hypot(innerWidth, innerHeight / 2);
       return [
-        `circle(0px at 100% 50%)`,
-        `circle(${endRadiusRC}px at 100% 50%)`,
-      ];
+          `circle(0px at 100% 50%)`,
+          `circle(${endRadiusRC}px at 100% 50%)`,
+        ];
     }
 
     case "left":
@@ -123,14 +123,14 @@ function getThemeClipPathKeyframes(
     case "bottom":
       // 下到上
       return [`inset(100% 0 0 0)`, `inset(0 0 0 0)`];
-
+        
     default: {
       // 兜底：右上角扩散
-      const endRadiusDef = Math.hypot(innerWidth, innerHeight);
+        const endRadiusDef = Math.hypot(innerWidth, innerHeight);
       return [
-        `circle(0px at 100% 0)`,
-        `circle(${endRadiusDef}px at 100% 0)`,
-      ];
+          `circle(0px at 100% 0)`,
+          `circle(${endRadiusDef}px at 100% 0)`,
+        ];
     }
   }
 }
@@ -203,14 +203,14 @@ export function useThemeAnimation(
     });
 
     transition.ready.then(() => {
-      document.documentElement.animate(
-        {
+    document.documentElement.animate(
+      {
           clipPath,
-        },
-        {
-          duration: 500,
-          easing: "ease-in-out",
-          pseudoElement: "::view-transition-new(root)",
+      },
+      {
+        duration: 500,
+        easing: "ease-in-out",
+        pseudoElement: "::view-transition-new(root)",
         },
       );
     });
@@ -229,6 +229,6 @@ export function useThemeAnimation(
           duration: 500,
           easing: "ease-in-out",
         },
-      );
-    });
+    );
+  });
 }

@@ -151,11 +151,11 @@ onUnmounted(() => {
 }
 
 .content-card {
-  flex: 1;
   display: flex;
+  flex: 1;
   flex-direction: column;
-  border-radius: 12px;
   overflow: hidden;
+  border-radius: 12px;
 
   :deep(.el-card__header) {
     padding: 12px 20px;
@@ -171,13 +171,13 @@ onUnmounted(() => {
 
 .card-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 
   .header-left {
     display: flex;
-    align-items: center;
     gap: 10px;
+    align-items: center;
     font-size: 16px;
     font-weight: 600;
 
@@ -206,16 +206,16 @@ onUnmounted(() => {
 
 .section-header {
   display: flex;
-  align-items: center;
+  flex-shrink: 0;
   gap: 8px;
+  align-items: center;
   padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
   background: var(--el-fill-color-light);
   border-radius: 6px;
-  margin-bottom: 12px;
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-  flex-shrink: 0;
 
   .section-icon {
     font-size: 16px;
@@ -225,16 +225,18 @@ onUnmounted(() => {
 
 .sql-list {
   flex: 1;
-  overflow-y: auto;
   padding-right: 8px;
+  overflow-y: auto;
 
   &::-webkit-scrollbar {
     width: 6px;
   }
+
   &::-webkit-scrollbar-thumb {
     background: var(--el-border-color);
     border-radius: 3px;
   }
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
@@ -242,52 +244,52 @@ onUnmounted(() => {
 
 .sql-item {
   display: flex;
-  align-items: center;
   gap: 10px;
+  align-items: center;
   padding: 10px 12px;
   margin-bottom: 6px;
+  cursor: pointer;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 6px;
-  cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: var(--el-color-primary);
     background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary);
   }
 
   .sql-index {
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     min-width: 28px;
     height: 28px;
     padding: 0 6px;
-    background: var(--el-color-primary-light-9);
-    color: var(--el-color-primary);
-    border-radius: 4px;
     font-size: 12px;
     font-weight: 600;
-    flex-shrink: 0;
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+    border-radius: 4px;
   }
 
   .sql-content {
     flex: 1;
-    font-size: 12px;
-    font-family: "Monaco", "Menlo", monospace;
     overflow: hidden;
+    font-family: Monaco, Menlo, monospace;
+    font-size: 12px;
+    color: var(--el-text-color-regular);
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--el-text-color-regular);
   }
 }
 
 .sql-detail-wrapper {
-  flex: 1;
-  overflow: hidden;
   display: flex;
+  flex: 1;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .sql-detail {
@@ -296,22 +298,22 @@ onUnmounted(() => {
 }
 
 .sql-code {
-  background: var(--el-fill-color-lighter);
   padding: 16px;
-  border-radius: 6px;
-  font-family: "Monaco", "Menlo", monospace;
+  margin: 0;
+  overflow: auto;
+  font-family: Monaco, Menlo, monospace;
   font-size: 13px;
   line-height: 1.6;
-  overflow: auto;
-  margin: 0;
-  white-space: pre-wrap;
   word-break: break-all;
+  white-space: pre-wrap;
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
 }
 
 // 深色主题
 html.dark {
   .content-card {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 
   .sql-item {

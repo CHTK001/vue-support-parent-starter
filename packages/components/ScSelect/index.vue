@@ -116,12 +116,17 @@
       :title="dropdownTitle"
       :placeholder="dropdownPlaceholder"
       :match-trigger-width="dropdownMatchWidth"
+      :show-search-bar="dropdownShowSearch"
+      :show-batch-actions="dropdownShowBatchActions"
       :dropdown-direction="dropdownDirection"
       :dropdown-col="dropdownCol"
       :display-mode="displayMode"
       :is-selected="isSelected"
       :is-item-disabled="isItemDisabled"
       @select="handleSelect"
+      @selectAll="selectAll"
+      @invertSelection="invertSelection"
+      @clearSelection="clearSelection"
     />
 
     <!-- 过滤器布局 -->
@@ -291,15 +296,25 @@ const props = defineProps({
     type: Number,
     default: 0 // 0表示不限制
   },
+  // 下拉布局是否显示搜索栏
+  dropdownShowSearch: {
+    type: Boolean,
+    default: true
+  },
   // 多选模式下最多显示的标签数量
   maxCollapseTags: {
     type: Number,
     default: 1
   },
-  // 是否显示批量操作按钮
+  // 是否显示原生 select 布局的批量操作按钮
   showBatchActions: {
     type: Boolean,
     default: true
+  },
+  // 下拉多选时是否显示全选/反选操作栏（仅 dropdown 布局且 multiple=true 时生效）
+  dropdownShowBatchActions: {
+    type: Boolean,
+    default: false
   },
   // 卡片宽度
   width: {

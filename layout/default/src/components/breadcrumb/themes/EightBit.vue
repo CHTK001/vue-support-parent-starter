@@ -9,7 +9,7 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 <style lang="scss">
 // 8-bit 主题面包屑样式
 .eight-bit-breadcrumb {
-  font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+  font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
   background: #1a1a2e !important;
   border: 2px solid #4a4a6e !important;
   border-radius: 0 !important;
@@ -38,7 +38,7 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
     color: #e0e0e0 !important;
     box-shadow: 2px 2px 0 0 #0a0a1e !important;
     transition: all 0.1s linear !important;
-    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
 
     &:hover {
       background: #3a3a5e !important;
@@ -56,7 +56,7 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 
   .breadcrumb-divider {
     color: #6a6a8e !important;
-    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
   }
 
   .breadcrumb-link {
@@ -66,7 +66,7 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
     color: #e0e0e0 !important;
     box-shadow: 2px 2px 0 0 #0a0a1e !important;
     transition: all 0.1s linear !important;
-    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
     padding: 4px 8px !important;
 
     &:hover {
@@ -110,20 +110,20 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 
   .breadcrumb-separator {
     color: #6a6a8e !important;
-    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
     margin: 0 4px !important;
   }
 
   .breadcrumb-text {
     color: #e0e0e0 !important;
-    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
     text-shadow: 1px 1px 0 #0a0a1e !important;
     font-size: 11px !important;
   }
 
   .breadcrumb-icon {
     color: #b0b0d0 !important;
-    font-family: "Pixel CN", "Press Start 2P", "Courier New", Courier, monospace !important;
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
     filter: drop-shadow(1px 1px 0 #0a0a1e) !important;
   }
 }

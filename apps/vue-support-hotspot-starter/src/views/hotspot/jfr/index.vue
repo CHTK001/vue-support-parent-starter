@@ -550,9 +550,20 @@ onUnmounted(() => {
 </template>
 
 <style scoped lang="scss">
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .page-container {
-  padding: 20px;
   height: 100%;
+  padding: 20px;
   overflow-y: auto;
   background: var(--el-bg-color-page);
 }
@@ -562,8 +573,8 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  border-radius: 12px;
   border: none;
+  border-radius: 12px;
 
   :deep(.el-card__body) {
     padding: 20px;
@@ -571,44 +582,53 @@ onUnmounted(() => {
 
   .stat-content {
     display: flex;
-    align-items: center;
     gap: 16px;
+    align-items: center;
   }
 
   .stat-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-primary);
       }
     }
+
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-success);
       }
     }
+
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-warning);
       }
     }
+
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-danger);
       }
     }
+
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-info);
       }
@@ -634,18 +654,18 @@ onUnmounted(() => {
     }
 
     .stat-detail {
+      margin-top: 2px;
       font-size: 11px;
       color: var(--el-text-color-placeholder);
-      margin-top: 2px;
     }
   }
 }
 
 .modern-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   margin-bottom: 20px;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
 
   :deep(.el-card__header) {
     padding: 16px 20px;
@@ -655,8 +675,8 @@ onUnmounted(() => {
   .card-header {
     .card-title {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
       font-size: 16px;
       font-weight: 600;
       color: var(--el-text-color-primary);
@@ -671,8 +691,8 @@ onUnmounted(() => {
 
 .modern-table {
   :deep(th.el-table__cell) {
-    background: var(--el-fill-color-lighter);
     font-weight: 600;
+    background: var(--el-fill-color-lighter);
   }
 }
 
@@ -699,38 +719,28 @@ onUnmounted(() => {
   animation: pulse 1.5s infinite;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
 .alert-title {
   font-weight: 600;
 }
 
 .alert-content {
-  margin: 8px 0 0 0;
+  margin: 8px 0 0;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-regular);
-  font-size: 12px;
 }
 
 .alert-content-small {
   margin: 0;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-regular);
-  font-size: 12px;
 }
 
 .preset-option {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   width: 100%;
 
   .preset-name {
@@ -757,7 +767,7 @@ html.dark {
 
   .stat-card,
   .modern-card {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 }
 </style>

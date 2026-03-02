@@ -409,6 +409,75 @@ export const LOADER_STYLES = {
         }
       }
     `
+  },
+
+  dinoGame: {
+    name: "恐龙小游戏",
+    description: "Chrome 离线恐龙小游戏风格加载动画（简版动画）",
+    html: `
+      <div class="sys-loader-dino">
+        <div class="sys-loader-dino-ground"></div>
+        <div class="sys-loader-dino-char">🦖</div>
+        <div class="sys-loader-dino-cactus">🌵</div>
+      </div>
+    `,
+    css: `
+      .sys-loader-dino {
+        position: relative;
+        width: 200px;
+        height: 80px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-start;
+        overflow: hidden;
+      }
+
+      .sys-loader-dino-ground {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 10px;
+        height: 2px;
+        background: #535353;
+      }
+
+      .sys-loader-dino-char {
+        position: absolute;
+        left: 30px;
+        bottom: 10px;
+        font-size: 40px;
+        animation: sys-loader-dino-jump 1.2s ease-in-out infinite;
+      }
+
+      .sys-loader-dino-cactus {
+        position: absolute;
+        right: -40px;
+        bottom: 10px;
+        font-size: 32px;
+        animation: sys-loader-dino-cactus-move 1.6s linear infinite;
+      }
+
+      @keyframes sys-loader-dino-jump {
+        0%,
+        20%,
+        60%,
+        100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-24px);
+        }
+      }
+
+      @keyframes sys-loader-dino-cactus-move {
+        0% {
+          transform: translateX(0);
+        }
+        100% {
+          transform: translateX(-220px);
+        }
+      }
+    `
   }
 };
 
@@ -486,6 +555,10 @@ export function generateInlineLoaderScript() {
     writing: {
       html: '<div class=\"writing-loader\"><div class=\"pen\">✒️</div><div class=\"paper\"><div class=\"line\"></div><div class=\"line\"></div><div class=\"line\"></div><div class=\"line\"></div></div></div>',
       css: '.sys-loader-writing-loader{display:flex;flex-direction:column;align-items:center;gap:10px}.sys-loader-writing-loader .sys-loader-pen{font-size:36px;animation: sys-loader-pen-move 4s ease-in-out infinite}.sys-loader-writing-loader .sys-loader-paper{width:140px;padding:20px;background:#fff;border:2px solid #333;border-radius:4px;box-shadow:2px 2px 8px rgba(0,0,0,0.1);transform-origin:left center;animation:page-turn 4s ease-in-out infinite}.sys-loader-writing-loader .sys-loader-line{height:3px;background:#e5e7eb;margin:6px 0;border-radius:999px;overflow:hidden}.sys-loader-writing-loader .sys-loader-line::before{content:"";display:block;width:0;height:100%;background:#406eeb;border-radius:inherit;animation: sys-loader-write-line 4s ease-in-out infinite}.sys-loader-writing-loader .sys-loader-line:nth-child(1)::before{animation-delay:0s}.sys-loader-writing-loader .sys-loader-line:nth-child(2)::before{animation-delay:0.4s}.sys-loader-writing-loader .sys-loader-line:nth-child(3)::before{animation-delay:0.8s}.sys-loader-writing-loader .sys-loader-line:nth-child(4)::before{animation-delay:1.2s}@keyframes sys-loader-pen-move{0%{transform:translate(-40px,0) rotate(-40deg)}40%{transform:translate(40px,8px) rotate(-40deg)}50%{transform:translate(40px,8px) rotate(-40deg)}90%{transform:translate(-40px,-6px) rotate(-40deg)}100%{transform:translate(-40px,-6px) rotate(-40deg)}}@keyframes sys-loader-write-line{0%{width:0}40%{width:100%}60%{width:100%}100%{width:100%}}@keyframes page-turn{0%{transform:rotateY(0deg)}70%{transform:rotateY(0deg)}90%{transform:rotateY(-170deg)}100%{transform:rotateY(-180deg)}}'
+    },
+    dinoGame: {
+      html: '<div class="sys-loader-dino"><div class="sys-loader-dino-ground"></div><div class="sys-loader-dino-char">🦖</div><div class="sys-loader-dino-cactus">🌵</div></div>',
+      css: '.sys-loader-dino{position:relative;width:200px;height:80px;display:flex;align-items:flex-end;justify-content:flex-start;overflow:hidden}.sys-loader-dino-ground{position:absolute;left:0;right:0;bottom:10px;height:2px;background:#535353}.sys-loader-dino-char{position:absolute;left:30px;bottom:10px;font-size:40px;animation:sys-loader-dino-jump 1.2s ease-in-out infinite}.sys-loader-dino-cactus{position:absolute;right:-40px;bottom:10px;font-size:32px;animation:sys-loader-dino-cactus-move 1.6s linear infinite}@keyframes sys-loader-dino-jump{0%,20%,60%,100%{transform:translateY(0)}40%{transform:translateY(-24px)}}@keyframes sys-loader-dino-cactus-move{0%{transform:translateX(0)}100%{transform:translateX(-220px)}}'
     }
   };
 

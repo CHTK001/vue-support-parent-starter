@@ -210,6 +210,14 @@ const settings = reactive({
     $storage.configure?.showHeaderClock ??
     getConfig().PageBehavior?.showHeaderClock ??
     false,
+  headerClockSecondEnabled:
+    $storage.configure?.headerClockSecondEnabled ??
+    getConfig().PageBehavior?.headerClockSecondEnabled ??
+    false,
+  headerClockSecondTimezone:
+    $storage.configure?.headerClockSecondTimezone ??
+    getConfig().PageBehavior?.headerClockSecondTimezone ??
+    "UTC",
   // 消息中心（Header）
   showMessage:
     $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
@@ -275,6 +283,69 @@ const themeAnimationModeOptions = computed<Array<OptionsType>>(() => [
   { label: "固定", value: "fixed" },
   { label: "禁用", value: "disabled" },
 ]);
+
+/** 顶部时间时区选项 */
+interface HeaderClockTimezoneOption extends OptionsType {
+  /** UTC 时区偏移，例如 UTC+08、UTC-05:30 */
+  offset: string;
+}
+
+/**
+ * 仅保留 UTC-12 ~ UTC+12 的整数时区，每个时区选择一个代表性地区。
+ * value 仍为 IANA 时区 ID，offset 用固定整数偏移展示。
+ */
+const standardHeaderClockTimezones: Array<{
+  value: string;
+  region: string;
+  offsetHour: number;
+}> = [
+  { value: "Etc/GMT+12", region: "贝克岛/豪兰岛", offsetHour: -12 },
+  { value: "Pacific/Pago_Pago", region: "美属萨摩亚", offsetHour: -11 },
+  { value: "Pacific/Honolulu", region: "美国夏威夷", offsetHour: -10 },
+  { value: "America/Anchorage", region: "美国阿拉斯加", offsetHour: -9 },
+  { value: "America/Los_Angeles", region: "美国西部（洛杉矶）", offsetHour: -8 },
+  { value: "America/Denver", region: "美国山区时间（丹佛）", offsetHour: -7 },
+  { value: "America/Chicago", region: "美国中部时间（芝加哥）", offsetHour: -6 },
+  { value: "America/New_York", region: "美国东部时间（纽约）", offsetHour: -5 },
+  { value: "America/Halifax", region: "加拿大大西洋时间", offsetHour: -4 },
+  { value: "America/Sao_Paulo", region: "巴西/圣保罗", offsetHour: -3 },
+  { value: "America/Noronha", region: "巴西费尔南多-迪诺罗尼亚", offsetHour: -2 },
+  { value: "Atlantic/Azores", region: "葡萄牙亚速尔群岛", offsetHour: -1 },
+  { value: "Europe/London", region: "英国/伦敦", offsetHour: 0 },
+  { value: "Europe/Paris", region: "中欧时间（巴黎）", offsetHour: 1 },
+  { value: "Europe/Helsinki", region: "东欧时间（赫尔辛基）", offsetHour: 2 },
+  { value: "Europe/Moscow", region: "俄罗斯/莫斯科", offsetHour: 3 },
+  { value: "Asia/Dubai", region: "阿联酋/迪拜", offsetHour: 4 },
+  { value: "Asia/Karachi", region: "巴基斯坦/卡拉奇", offsetHour: 5 },
+  { value: "Asia/Dhaka", region: "孟加拉国/达卡", offsetHour: 6 },
+  { value: "Asia/Bangkok", region: "泰国/曼谷", offsetHour: 7 },
+  { value: "Asia/Shanghai", region: "中国/北京时间", offsetHour: 8 },
+  { value: "Asia/Tokyo", region: "日本/东京", offsetHour: 9 },
+  { value: "Australia/Sydney", region: "澳大利亚/悉尼", offsetHour: 10 },
+  { value: "Pacific/Guadalcanal", region: "所罗门群岛", offsetHour: 11 },
+  { value: "Pacific/Auckland", region: "新西兰/奥克兰", offsetHour: 12 },
+];
+
+/** 将整数小时偏移转换为 UTC 文本，例如 -8 -> UTC-08，+9 -> UTC+09 */
+function formatFixedUtcOffset(offsetHour: number): string {
+  const sign = offsetHour >= 0 ? "+" : "-";
+  const absHour = Math.abs(offsetHour);
+  const hourText = String(absHour).padStart(2, "0");
+  return `UTC${sign}${hourText}`;
+}
+
+const headerClockTimezoneOptions = computed<HeaderClockTimezoneOption[]>(() => {
+  return standardHeaderClockTimezones.map<HeaderClockTimezoneOption>(
+    ({ value, region, offsetHour }) => {
+      const offset = formatFixedUtcOffset(offsetHour);
+      return {
+        label: `${region} · ${offset}`,
+        value,
+        offset,
+      };
+    },
+  );
+});
 
 /** 过渡动画类型选项 */
 const transitionTypeOptions = computed<Array<OptionsType>>(() => [
@@ -1166,6 +1237,24 @@ function showHeaderClockChange(value: boolean) {
 }
 
 /**
+ * 顶部第二时间显示开关变更
+ */
+function headerClockSecondEnabledChange(value: boolean) {
+  settings.headerClockSecondEnabled = value;
+  storageConfigureChange("headerClockSecondEnabled", value);
+  emitter.emit("headerClockSecondEnabledChange", value);
+}
+
+/**
+ * 顶部第二时间时区变更
+ */
+function headerClockSecondTimezoneChange(value: string) {
+  settings.headerClockSecondTimezone = value;
+  storageConfigureChange("headerClockSecondTimezone", value);
+  emitter.emit("headerClockSecondTimezoneChange", value);
+}
+
+/**
  * 消息中心下拉弹框位置变更
  */
 function messageDropdownPositionChange(value: string) {
@@ -1785,6 +1874,40 @@ onUnmounted(() => {
                 />
               </div>
             </div>
+            <!-- 顶部时间第二时区：脱离 switch-card-grid，单独一行展示 -->
+            <div v-if="settings.showHeaderClock" class="setting-item">
+              <div class="header-clock-advanced">
+                <div class="header-clock-advanced-inner">
+                  <div class="header-clock-advanced-label">
+                    <span class="header-clock-advanced-title">第二时区</span>
+                    <span class="header-clock-advanced-desc">
+                      可同时展示另一个时区的时间
+                    </span>
+                  </div>
+                  <div class="header-clock-advanced-control">
+                    <ScSwitch
+                      v-model="settings.headerClockSecondEnabled"
+                      size="small"
+                      label="开启"
+                      @change="headerClockSecondEnabledChange"
+                    />
+                  </div>
+                </div>
+                <template v-if="settings.headerClockSecondEnabled">
+                  <div class="header-clock-timezone-select-wrapper">
+                    <ScSelect
+                      v-model="settings.headerClockSecondTimezone"
+                      layout="dropdown"
+                      class="header-clock-timezone-select"
+                      :options="headerClockTimezoneOptions"
+                      placeholder="请选择第二时区"
+                      size="small"
+                      @change="headerClockSecondTimezoneChange"
+                    />
+                  </div>
+                </template>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1844,9 +1967,6 @@ onUnmounted(() => {
             <div v-if="isDevelopment || isTest" class="setting-item">
               <div class="setting-item-label">
                 <span>开发模式测试</span>
-                <span class="setting-item-desc">
-                  构造一条本地默认消息并推送到消息中心，仅用于开发/测试环境
-                </span>
               </div>
               <div class="setting-item-control">
                 <ScButton type="primary" link @click="sendDevDefaultMessage">
@@ -6631,6 +6751,52 @@ p.mt-5 {
   &.single-row {
     grid-template-columns: 1fr;
   }
+}
+
+// 顶部时间高级配置：作为“显示顶部时间”的子级样式
+.header-clock-advanced {
+  margin-top: 8px;
+  margin-left: 24px;
+  padding: 10px 12px 12px;
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+  border: 1px dashed var(--el-border-color-lighter);
+}
+
+.header-clock-advanced-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-clock-advanced-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-clock-advanced-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.header-clock-advanced-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.header-clock-advanced-control {
+  flex-shrink: 0;
+}
+
+.header-clock-timezone-select {
+  margin-top: 8px;
+}
+
+.header-clock-timezone-select--disabled {
+  opacity: 0.6;
 }
 
 // 卡片开关项样式

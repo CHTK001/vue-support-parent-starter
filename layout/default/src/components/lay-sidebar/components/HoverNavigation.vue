@@ -5,6 +5,7 @@ import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace, getConfig } from "@repo/config";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { ScText } from "@repo/components";
 import { useNav } from "../../../hooks/useNav";
 import { useLayout } from "../../../hooks/useLayout";
 import type { MenuItem } from "../../../types/menu";
@@ -657,9 +658,7 @@ const defer = useDefer(firstLevelMenus.value.length);
               class="menu-icon"
             />
             <IconifyIconOnline v-else icon="ep:menu" class="menu-icon" />
-            <span v-if="!isHoverCollapsed" class="menu-title">{{
-              menu.meta?.title
-            }}</span>
+            <ScText v-if="!isHoverCollapsed" class="menu-title" :text="menu.meta?.title || ''" />
             <ReMenuNewBadge
               v-if="showNewMenu && !isHoverCollapsed"
               :createTime="menu.meta?.createTime"
@@ -727,7 +726,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                       :icon="favorite.icon"
                       class="favorite-menu-icon"
                     />
-                    <span>{{ favorite.title }}</span>
+                    <ScText :text="favorite.title || ''" />
                     <span class="add-time">{{
                       formatAddTime(favorite.addTime)
                     }}</span>
@@ -754,7 +753,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                 <div v-if="layoutStrategy.verticalGroups.length > 0" class="vertical-section">
                   <template v-for="groupInfo in layoutStrategy.verticalGroups" :key="groupInfo.menu.path">
                     <div v-if="groupInfo.hasChildren" class="vertical-menu-group">
-                      <div class="vertical-group-title">{{ groupInfo.menu.meta?.title }}</div>
+                      <ScText class="vertical-group-title" :text="groupInfo.menu.meta?.title || ''" />
                       <div class="vertical-group-items">
                         <div
                           v-for="thirdMenu in groupInfo.menu.children"
@@ -769,7 +768,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                             :class="{ 'is-active': defaultActive === thirdMenu.path, 'menu-animation': menuAnimation }"
                             @click="handleSubMenuClick(thirdMenu, $event)"
                           >
-                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
+                            <ScText style="flex: 1; overflow: hidden; text-overflow: ellipsis;" :text="thirdMenu.meta?.title || ''" />
                             <ReMenuNewBadge
                               v-if="showNewMenu"
                               :createTime="thirdMenu.meta?.createTime"
@@ -789,7 +788,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                         :class="{ 'is-active': defaultActive === groupInfo.menu.path, 'menu-animation': menuAnimation }"
                         @click="handleSubMenuClick(groupInfo.menu, $event)"
                       >
-                        <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ groupInfo.menu.meta?.title }}</span>
+                        <ScText style="flex: 1; overflow: hidden; text-overflow: ellipsis;" :text="groupInfo.menu.meta?.title || ''" />
                         <ReMenuNewBadge
                           v-if="showNewMenu"
                           :createTime="groupInfo.menu.meta?.createTime"
@@ -807,7 +806,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                 <div v-if="layoutStrategy.horizontalGroups.length > 0" class="horizontal-section">
                   <template v-for="groupInfo in layoutStrategy.horizontalGroups" :key="groupInfo.menu.path">
                     <div v-if="groupInfo.hasChildren" class="menu-column">
-                      <div class="column-title">{{ groupInfo.menu.meta?.title }}</div>
+                      <ScText class="column-title" :text="groupInfo.menu.meta?.title || ''" />
                       <div class="column-items">
                         <div
                           v-for="thirdMenu in groupInfo.menu.children"
@@ -822,7 +821,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                             :class="{ 'is-active': defaultActive === thirdMenu.path, 'menu-animation': menuAnimation }"
                             @click="handleSubMenuClick(thirdMenu, $event)"
                           >
-                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
+                            <ScText style="flex: 1; overflow: hidden; text-overflow: ellipsis;" :text="thirdMenu.meta?.title || ''" />
                             <ReMenuNewBadge
                               v-if="showNewMenu"
                               :createTime="thirdMenu.meta?.createTime"
@@ -844,7 +843,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                 <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
                   <!-- 有子菜单的分组 -->
                   <div v-if="subMenu.children && subMenu.children.length > 0" class="vertical-menu-group">
-                    <div class="vertical-group-title">{{ subMenu.meta?.title }}</div>
+                    <ScText class="vertical-group-title" :text="subMenu.meta?.title || ''" />
                     <div class="vertical-group-items">
                       <div
                         v-for="thirdMenu in subMenu.children"
@@ -859,7 +858,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                           :class="{ 'is-active': defaultActive === thirdMenu.path, 'menu-animation': menuAnimation }"
                           @click="handleSubMenuClick(thirdMenu, $event)"
                         >
-                          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
+                          <ScText style="flex: 1; overflow: hidden; text-overflow: ellipsis;" :text="thirdMenu.meta?.title || ''" />
                           <ReMenuNewBadge
                             v-if="showNewMenu"
                             :createTime="thirdMenu.meta?.createTime"
@@ -889,7 +888,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                       :class="{ 'is-active': defaultActive === subMenu.path, 'menu-animation': menuAnimation }"
                       @click="handleSubMenuClick(subMenu, $event)"
                     >
-                      <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ subMenu.meta?.title }}</span>
+                      <ScText style="flex: 1; overflow: hidden; text-overflow: ellipsis;" :text="subMenu.meta?.title || ''" />
                       <ReMenuNewBadge
                         v-if="showNewMenu"
                         :createTime="subMenu.meta?.createTime"
@@ -928,7 +927,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                     v-if="subMenu.children && subMenu.children.length > 0"
                     class="menu-column"
                   >
-                    <div class="column-title">{{ subMenu.meta?.title }}</div>
+                    <ScText class="column-title" :text="subMenu.meta?.title || ''" />
                     <div class="column-items">
                       <div
                         v-for="thirdMenu in subMenu.children"
@@ -946,7 +945,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                             }"
                             @click="handleSubMenuClick(thirdMenu, $event)"
                           >
-                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
+                            <ScText style="flex: 1; overflow: hidden; text-overflow: ellipsis;" :text="thirdMenu.meta?.title || ''" />
                             <ReMenuNewBadge
                               v-if="showNewMenu"
                               :createTime="thirdMenu.meta?.createTime"
@@ -990,7 +989,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                   "
                   class="menu-column"
                 >
-                  <div class="column-title">其他功能</div>
+                  <ScText class="column-title" text="其他功能" />
                   <div class="column-items">
                     <template
                       v-for="subMenu in currentSubMenus"
@@ -1013,7 +1012,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                           }"
                           @click="handleSubMenuClick(subMenu, $event)"
                         >
-                          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ subMenu.meta?.title }}</span>
+                          <ScText style="flex: 1; overflow: hidden; text-overflow: ellipsis;" :text="subMenu.meta?.title || ''" />
                           <ReMenuNewBadge
                             v-if="showNewMenu"
                             :createTime="subMenu.meta?.createTime"
