@@ -25,7 +25,7 @@
     "@wangeditor/editor-for-vue": "catalog:",
     "element-plus": "catalog:",
     "file-saver": "catalog:",
-    "grid-layout-plus": "catalog:",
+      "grid-layout-plus": "catalog:",
     "gridstack": "catalog:",
     "gsap": "catalog:",
     "highlight.js": "catalog:",
@@ -37,8 +37,9 @@
     "vue-grid-layout": "catalog:",
     "vue-i18n": "catalog:",
     "vue-router": "catalog:",
-    "vue3-puzzle-vcode": "catalog:",
-    "vuedraggable": "catalog:"
+      "vue3-puzzle-vcode": "catalog:",
+      "vuedraggable": "catalog:",
+      "vue3-draggable-resizable": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",
