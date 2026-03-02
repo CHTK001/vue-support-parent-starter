@@ -20,14 +20,14 @@ const feedbackData = reactive({
   sysFeedbackRecoverTime: "",
   sysFeedbackRecoverImages: "",
   createTime: "",
-  createBy: ""
+  createBy: "",
 });
 
 // 反馈类型选项
 const typeOptions = {
   SUGGESTION: { label: "功能建议", type: "primary" },
   BUG: { label: "BUG反馈", type: "danger" },
-  OTHER: { label: "其他问题", type: "info" }
+  OTHER: { label: "其他问题", type: "info" },
 };
 
 /**
@@ -61,7 +61,7 @@ const getImageList = (images) => {
 };
 
 defineExpose({
-  setData
+  setData,
 });
 </script>
 
@@ -71,8 +71,8 @@ defineExpose({
     title="反馈详情"
     width="700px"
     destroy-on-close
-    @close="handleClose"
     class="feedback-detail-dialog"
+    @close="handleClose"
   >
     <template #header="{ titleId, titleClass }">
       <div class="dialog-header">
@@ -86,49 +86,65 @@ defineExpose({
       <!-- 基本信息 -->
       <div class="detail-card">
         <div class="card-header">
-          <el-icon class="card-icon"><component :is="useRenderIcon('ri:information-line')" /></el-icon>
+          <el-icon class="card-icon"
+            ><component :is="useRenderIcon('ri:information-line')"
+          /></el-icon>
           <span>基本信息</span>
         </div>
         <el-descriptions :column="2" border class="detail-section">
-        <el-descriptions-item label="反馈类型">
-          <el-tag :type="getTypeConfig(feedbackData.sysFeedbackType).type">
-            {{ getTypeConfig(feedbackData.sysFeedbackType).label }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="反馈状态">
-          <el-tag v-if="feedbackData.sysFeedbackStatus === 1" type="success">已处理</el-tag>
-          <el-tag v-else type="warning">待处理</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="反馈人">
-          {{ feedbackData.createBy || "-" }}
-        </el-descriptions-item>
-        <el-descriptions-item label="反馈时间">
-          {{ feedbackData.createTime || "-" }}
-        </el-descriptions-item>
-        <el-descriptions-item label="反馈内容" :span="2">
-          <div class="content-text">{{ feedbackData.sysFeedbackContent || "-" }}</div>
-        </el-descriptions-item>
-        <el-descriptions-item label="反馈图片" :span="2">
-          <div v-if="getImageList(feedbackData.sysFeedbackImages).length > 0" class="image-list">
-            <el-image
-              v-for="(img, index) in getImageList(feedbackData.sysFeedbackImages)"
-              :key="index"
-              :src="img"
-              :preview-src-list="getImageList(feedbackData.sysFeedbackImages)"
-              fit="cover"
-              class="preview-image"
-              preview-teleported
-            />
-          </div>
-          <span v-else>-</span>
-        </el-descriptions-item>
-      </el-descriptions>
+          <el-descriptions-item label="反馈类型">
+            <el-tag :type="getTypeConfig(feedbackData.sysFeedbackType).type">
+              {{ getTypeConfig(feedbackData.sysFeedbackType).label }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="反馈状态">
+            <el-tag v-if="feedbackData.sysFeedbackStatus === 1" type="success"
+              >已处理</el-tag
+            >
+            <el-tag v-else type="warning">待处理</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="反馈人">
+            {{ feedbackData.createBy || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="反馈时间">
+            {{ feedbackData.createTime || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="反馈内容" :span="2">
+            <div class="content-text">
+              {{ feedbackData.sysFeedbackContent || "-" }}
+            </div>
+          </el-descriptions-item>
+          <el-descriptions-item label="反馈图片" :span="2">
+            <div
+              v-if="getImageList(feedbackData.sysFeedbackImages).length > 0"
+              class="image-list"
+            >
+              <el-image
+                v-for="(img, index) in getImageList(
+                  feedbackData.sysFeedbackImages,
+                )"
+                :key="index"
+                :src="img"
+                :preview-src-list="getImageList(feedbackData.sysFeedbackImages)"
+                fit="cover"
+                class="preview-image"
+                preview-teleported
+              />
+            </div>
+            <span v-else>-</span>
+          </el-descriptions-item>
+        </el-descriptions>
       </div>
 
       <!-- 处理信息 -->
-      <div v-if="feedbackData.sysFeedbackStatus === 1" class="detail-card reply-section">
+      <div
+        v-if="feedbackData.sysFeedbackStatus === 1"
+        class="detail-card reply-section"
+      >
         <div class="card-header">
-          <el-icon class="card-icon"><component :is="useRenderIcon('ri:check-double-line')" /></el-icon>
+          <el-icon class="card-icon"
+            ><component :is="useRenderIcon('ri:check-double-line')"
+          /></el-icon>
           <span>处理信息</span>
         </div>
         <el-descriptions :column="2" border>
@@ -139,15 +155,26 @@ defineExpose({
             {{ feedbackData.sysFeedbackRecoverTime || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="回复内容" :span="2">
-            <div class="content-text">{{ feedbackData.sysFeedbackRecoverContent || "-" }}</div>
+            <div class="content-text">
+              {{ feedbackData.sysFeedbackRecoverContent || "-" }}
+            </div>
           </el-descriptions-item>
           <el-descriptions-item label="回复图片" :span="2">
-            <div v-if="getImageList(feedbackData.sysFeedbackRecoverImages).length > 0" class="image-list">
+            <div
+              v-if="
+                getImageList(feedbackData.sysFeedbackRecoverImages).length > 0
+              "
+              class="image-list"
+            >
               <el-image
-                v-for="(img, index) in getImageList(feedbackData.sysFeedbackRecoverImages)"
+                v-for="(img, index) in getImageList(
+                  feedbackData.sysFeedbackRecoverImages,
+                )"
                 :key="index"
                 :src="img"
-                :preview-src-list="getImageList(feedbackData.sysFeedbackRecoverImages)"
+                :preview-src-list="
+                  getImageList(feedbackData.sysFeedbackRecoverImages)
+                "
                 fit="cover"
                 class="preview-image"
                 preview-teleported
@@ -172,8 +199,12 @@ defineExpose({
   :deep(.el-dialog__header) {
     padding: 16px 20px;
     margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-info-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(135deg, var(--el-color-info-light-9) 0%, var(--el-bg-color) 100%);
   }
 
   :deep(.el-dialog__body) {
@@ -188,8 +219,8 @@ defineExpose({
 
 .dialog-header {
   display: flex;
-  align-items: center;
   gap: 10px;
+  align-items: center;
 
   .header-icon {
     color: var(--el-color-info);
@@ -201,26 +232,26 @@ defineExpose({
 }
 
 .detail-card {
-  background: var(--el-bg-color);
-  border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 5%);
   transition: all 0.3s ease;
 
   &:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
   }
 
   .card-header {
     display: flex;
-    align-items: center;
     gap: 8px;
-    margin-bottom: 16px;
+    align-items: center;
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 16px;
     font-weight: 600;
     color: var(--el-text-color-primary);
+    border-bottom: 1px solid var(--el-border-color-lighter);
 
     .card-icon {
       font-size: 18px;
@@ -235,8 +266,8 @@ defineExpose({
 
 .content-text {
   line-height: 1.6;
-  white-space: pre-wrap;
   word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .image-list {
@@ -248,8 +279,8 @@ defineExpose({
 .preview-image {
   width: 80px;
   height: 80px;
-  border-radius: 4px;
   cursor: pointer;
+  border-radius: 4px;
   transition: transform 0.3s ease;
 
   &:hover {
@@ -276,19 +307,23 @@ defineExpose({
 }
 
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .feedback-detail-dialog {
     :deep(.el-dialog__header) {
-      background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.15) 0%, var(--el-bg-color-overlay) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-info-rgb), 0.15) 0%,
+        var(--el-bg-color-overlay) 100%
+      );
     }
   }
 
   .detail-card {
     background: var(--el-bg-color-overlay);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
 
     &:hover {
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 16px rgb(0 0 0 / 30%);
     }
   }
 }

@@ -107,7 +107,10 @@ export const fetchDeleteService = (sysServiceId: number) => {
  * @param sysServiceId 服务ID
  * @param status 状态: 0-启用, 1-禁用
  */
-export const fetchUpdateServiceStatus = (sysServiceId: number, status: number) => {
+export const fetchUpdateServiceStatus = (
+  sysServiceId: number,
+  status: number,
+) => {
   return http.request<ReturnResult<boolean>>("put", "/v2/service/status", {
     params: { sysServiceId, status },
   });
@@ -117,7 +120,10 @@ export const fetchUpdateServiceStatus = (sysServiceId: number, status: number) =
  * 绑定服务与模块
  * @param data 服务数据（包含服务ID和模块ID列表）
  */
-export const fetchBindServiceModules = (data: { sysServiceId: number; sysServiceTags: number[] }) => {
+export const fetchBindServiceModules = (data: {
+  sysServiceId: number;
+  sysServiceTags: number[];
+}) => {
   return http.request<ReturnResult<boolean>>("put", "/v2/service/bind", {
     data,
   });

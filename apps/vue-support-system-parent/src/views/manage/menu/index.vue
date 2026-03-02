@@ -1,8 +1,13 @@
 <template>
   <div class="system-container menu-container">
     <!-- 保存对话框组件 -->
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess"
-      @close="dialogClose" />
+    <SaveDialog
+      v-if="visible.save"
+      ref="saveDialog"
+      :mode="saveDialogParams.mode"
+      @success="onSuccess"
+      @close="dialogClose"
+    />
 
     <div class="menu-wrapper">
       <el-container>
@@ -62,20 +67,40 @@
           </div>
           <div class="toolbar-right header-actions">
             <!-- 展开/折叠全部 -->
-            <el-tooltip :content="isExpanded ? '折叠全部' : '展开全部'" placement="top">
+            <el-tooltip
+              :content="isExpanded ? '折叠全部' : '展开全部'"
+              placement="top"
+            >
               <el-button @click="toggleExpandAll">
-                <IconifyIconOnline :icon="isExpanded ? 'ri:collapse-diagonal-line' : 'ri:expand-diagonal-line'" />
+                <IconifyIconOnline
+                  :icon="
+                    isExpanded
+                      ? 'ri:collapse-diagonal-line'
+                      : 'ri:expand-diagonal-line'
+                  "
+                />
               </el-button>
             </el-tooltip>
             <!-- 刷新按钮 -->
             <el-tooltip content="刷新" placement="top">
-              <el-button type="primary" :loading="loading.query" @click="onSearch">
+              <el-button
+                type="primary"
+                :loading="loading.query"
+                @click="onSearch"
+              >
                 <IconifyIconOnline icon="ri:refresh-line" />
               </el-button>
             </el-tooltip>
             <!-- 添加菜单按钮 -->
-            <el-tooltip v-if="getConfig().AccountType != 'tenant'" content="添加菜单" placement="top">
-              <el-button type="success" @click="dialogOpen({ sysMenuType: 0 }, 'save')">
+            <el-tooltip
+              v-if="getConfig().AccountType != 'tenant'"
+              content="添加菜单"
+              placement="top"
+            >
+              <el-button
+                type="success"
+                @click="dialogOpen({ sysMenuType: 0 }, 'save')"
+              >
                 <IconifyIconOnline icon="ri:add-line" />
               </el-button>
             </el-tooltip>
@@ -89,28 +114,37 @@
             <el-skeleton v-if="loading.query" animated :rows="6" />
 
             <!-- 表格 -->
-            <el-table 
-              v-else 
+            <el-table
+              v-else
               ref="menuTableRef"
-              :data="filteredTableData" 
-              row-key="sysMenuId" 
-              border 
-              class="modern-table menu-table" 
+              :data="filteredTableData"
+              row-key="sysMenuId"
+              border
+              class="modern-table menu-table"
               :default-expand-all="isExpanded"
               @row-click="getOpenDetail"
             >
               <!-- 菜单名称列 -->
-              <el-table-column prop="sysMenuTitle" label="菜单名称" min-width="220" show-overflow-tooltip>
+              <el-table-column
+                prop="sysMenuTitle"
+                label="菜单名称"
+                min-width="220"
+                show-overflow-tooltip
+              >
                 <template #default="{ row }">
                   <div class="menu-name-cell flex">
                     <span class="menu-icon">
-                      <IconifyIconOnline :icon="row.sysMenuIcon || 'mdi:menu'" />
+                      <IconifyIconOnline
+                        :icon="row.sysMenuIcon || 'mdi:menu'"
+                      />
                     </span>
                     <span v-if="row.sysMenuType !== 3" class="menu-title">
                       {{ transformI18n(row.sysMenuI18n || row.sysMenuTitle) }}
                     </span>
                     <div v-else class="menu-button">
-                      <span class="button-title">{{ transformI18n(row.sysMenuI18n || row.sysMenuTitle) }}</span>
+                      <span class="button-title">{{
+                        transformI18n(row.sysMenuI18n || row.sysMenuTitle)
+                      }}</span>
                       <span class="button-perm">{{ row.sysMenuPerm }}</span>
                     </div>
                   </div>
@@ -118,22 +152,43 @@
               </el-table-column>
 
               <!-- 菜单类型列 -->
-              <el-table-column prop="sysMenuType" label="菜单类型" width="120" align="center">
+              <el-table-column
+                prop="sysMenuType"
+                label="菜单类型"
+                width="120"
+                align="center"
+              >
                 <template #default="{ row }">
-                  <el-tag :type="getMenuTypeTag(row.sysMenuType).type" effect="light" class="menu-type-tag">
-                    <IconifyIconOnline :icon="getMenuTypeTag(row.sysMenuType).icon" class="tag-icon" />
+                  <el-tag
+                    :type="getMenuTypeTag(row.sysMenuType).type"
+                    effect="light"
+                    class="menu-type-tag"
+                  >
+                    <IconifyIconOnline
+                      :icon="getMenuTypeTag(row.sysMenuType).icon"
+                      class="tag-icon"
+                    />
                     <span>{{ getMenuTypeTag(row.sysMenuType).label }}</span>
                   </el-tag>
                 </template>
               </el-table-column>
 
               <!-- 路由名称列 -->
-              <el-table-column prop="sysMenuPath" label="路由名称" min-width="150" show-overflow-tooltip>
+              <el-table-column
+                prop="sysMenuPath"
+                label="路由名称"
+                min-width="150"
+                show-overflow-tooltip
+              >
                 <template #default="{ row }">
                   <div class="route-name-cell">
                     <span v-if="row.sysMenuName">{{ row.sysMenuName }}</span>
                     <span v-else class="empty-value">-</span>
-                    <el-icon v-if="row.sysMenuName" v-copy:click="row.sysMenuName" class="copy-icon">
+                    <el-icon
+                      v-if="row.sysMenuName"
+                      v-copy:click="row.sysMenuName"
+                      class="copy-icon"
+                    >
                       <IconifyIconOnline icon="mdi:content-copy" />
                     </el-icon>
                   </div>
@@ -141,7 +196,12 @@
               </el-table-column>
 
               <!-- 路由路径列 -->
-              <el-table-column prop="sysMenuPath" label="路由路径" min-width="150" show-overflow-tooltip>
+              <el-table-column
+                prop="sysMenuPath"
+                label="路由路径"
+                min-width="150"
+                show-overflow-tooltip
+              >
                 <template #default="{ row }">
                   <span v-if="row.sysMenuPath">{{ row.sysMenuPath }}</span>
                   <span v-else class="empty-value">-</span>
@@ -149,49 +209,91 @@
               </el-table-column>
 
               <!-- 组件路径列 -->
-              <el-table-column prop="sysMenuComponent" label="组件路径" min-width="180" show-overflow-tooltip>
+              <el-table-column
+                prop="sysMenuComponent"
+                label="组件路径"
+                min-width="180"
+                show-overflow-tooltip
+              >
                 <template #default="{ row }">
-                  <span v-if="row.sysMenuComponent">{{ row.sysMenuComponent }}</span>
+                  <span v-if="row.sysMenuComponent">{{
+                    row.sysMenuComponent
+                  }}</span>
                   <span v-else class="empty-value">-</span>
                 </template>
               </el-table-column>
 
               <!-- 排序列 -->
-              <el-table-column prop="sysMenuSort" label="排序" width="80" align="center" />
+              <el-table-column
+                prop="sysMenuSort"
+                label="排序"
+                width="80"
+                align="center"
+              />
 
               <!-- 隐藏列 -->
-              <el-table-column v-if="getConfig().AccountType != 'tenant'" prop="sysMenuHidden" label="隐藏" width="80"
-                align="center">
+              <el-table-column
+                v-if="getConfig().AccountType != 'tenant'"
+                prop="sysMenuHidden"
+                label="隐藏"
+                width="80"
+                align="center"
+              >
                 <template #default="{ row }">
-                  <el-tag :type="row.sysMenuHidden ? 'danger' : 'success'" effect="light" size="small">
-                    {{ row.sysMenuHidden ? '是' : '否' }}
+                  <el-tag
+                    :type="row.sysMenuHidden ? 'danger' : 'success'"
+                    effect="light"
+                    size="small"
+                  >
+                    {{ row.sysMenuHidden ? "是" : "否" }}
                   </el-tag>
                 </template>
               </el-table-column>
 
               <!-- 操作列 -->
-              <el-table-column v-if="getConfig().AccountType != 'tenant'" label="操作" width="180" fixed="right"
-                align="center">
+              <el-table-column
+                v-if="getConfig().AccountType != 'tenant'"
+                label="操作"
+                width="180"
+                fixed="right"
+                align="center"
+              >
                 <template #default="{ row }">
                   <div class="action-buttons">
                     <!-- 编辑按钮 -->
                     <el-tooltip content="编辑菜单" placement="top">
-                      <el-button type="primary" link @click.stop="dialogOpen(row, 'edit')">
+                      <el-button
+                        type="primary"
+                        link
+                        @click.stop="dialogOpen(row, 'edit')"
+                      >
                         <IconifyIconOnline icon="mdi:pencil" />
                       </el-button>
                     </el-tooltip>
 
                     <!-- 添加子菜单按钮 -->
                     <el-tooltip content="添加子菜单" placement="top">
-                      <el-button type="success" link
-                        @click.stop="dialogOpen({ sysMenuPid: row.sysMenuId, sysMenuType: 0 }, 'save')">
+                      <el-button
+                        type="success"
+                        link
+                        @click.stop="
+                          dialogOpen(
+                            { sysMenuPid: row.sysMenuId, sysMenuType: 0 },
+                            'save',
+                          )
+                        "
+                      >
                         <IconifyIconOnline icon="mdi:playlist-plus" />
                       </el-button>
                     </el-tooltip>
 
                     <!-- 删除确认框 -->
-                    <el-popconfirm :title="$t('message.confimDelete')" @confirm="onDelete(row)"
-                      confirm-button-type="danger" cancel-button-type="info">
+                    <el-popconfirm
+                      :title="$t('message.confimDelete')"
+                      confirm-button-type="danger"
+                      cancel-button-type="info"
+                      @confirm="onDelete(row)"
+                    >
                       <template #reference>
                         <el-tooltip content="删除菜单" placement="top">
                           <el-button type="danger" link @click.stop>
@@ -246,7 +348,7 @@ const loading = reactive({
 });
 
 // 搜索关键词
-const searchKeyword = ref('');
+const searchKeyword = ref("");
 
 // 是否展开全部
 const isExpanded = ref(false);
@@ -271,14 +373,17 @@ const filteredTableData = computed(() => {
     return tableData.value;
   }
   const keyword = searchKeyword.value.toLowerCase();
-  
+
   const filterTree = (items: any[]): any[] => {
     return items.reduce((acc, item) => {
-      const title = (item.sysMenuTitle || '').toLowerCase();
-      const name = (item.sysMenuName || '').toLowerCase();
-      const path = (item.sysMenuPath || '').toLowerCase();
-      const matches = title.includes(keyword) || name.includes(keyword) || path.includes(keyword);
-      
+      const title = (item.sysMenuTitle || "").toLowerCase();
+      const name = (item.sysMenuName || "").toLowerCase();
+      const path = (item.sysMenuPath || "").toLowerCase();
+      const matches =
+        title.includes(keyword) ||
+        name.includes(keyword) ||
+        path.includes(keyword);
+
       if (item.children?.length) {
         const filteredChildren = filterTree(item.children);
         if (filteredChildren.length > 0 || matches) {
@@ -287,11 +392,11 @@ const filteredTableData = computed(() => {
       } else if (matches) {
         acc.push({ ...item });
       }
-      
+
       return acc;
     }, []);
   };
-  
+
   return filterTree(tableData.value);
 });
 
@@ -312,7 +417,7 @@ const stats = reactive({
   menus: 0,
   iframes: 0,
   links: 0,
-  buttons: 0
+  buttons: 0,
 });
 
 /**
@@ -327,7 +432,7 @@ const calcStats = (data: any[]) => {
   let buttons = 0;
 
   const countMenus = (items: any[]) => {
-    items.forEach(item => {
+    items.forEach((item) => {
       total++;
       switch (item.sysMenuType) {
         case 0:
@@ -410,7 +515,9 @@ const doChange = async (data, form) => {
  */
 const onSuccess = async (mode, form) => {
   if (mode == "edit") {
-    const item = tableData.value.filter((item) => item.sysMenuId === form.sysMenuId);
+    const item = tableData.value.filter(
+      (item) => item.sysMenuId === form.sysMenuId,
+    );
     if (null != item && item.length > 0) {
       Object.assign(item[0], form);
       return;
@@ -443,7 +550,7 @@ const onSearch = debounce(
       });
   },
   1000,
-  true
+  true,
 );
 
 // 页面加载时执行搜索
@@ -478,7 +585,7 @@ const onDelete = async (row) => {
     onSearch();
     message(t("message.deleteSuccess"), { type: "success" });
     return;
-  } catch (error) { }
+  } catch (error) {}
 };
 
 /**
@@ -506,16 +613,34 @@ const dialogClose = async () => {
  */
 const getMenuTypeTag = (type) => {
   const types = {
-    0: { label: '菜单', type: 'primary', icon: 'mdi:menu' },
-    1: { label: 'iframe', type: 'warning', icon: 'mdi:iframe' },
-    2: { label: '外链', type: 'danger', icon: 'mdi:link-variant' },
-    3: { label: '按钮', type: 'info', icon: 'mdi:button-cursor' }
+    0: { label: "菜单", type: "primary", icon: "mdi:menu" },
+    1: { label: "iframe", type: "warning", icon: "mdi:iframe" },
+    2: { label: "外链", type: "danger", icon: "mdi:link-variant" },
+    3: { label: "按钮", type: "info", icon: "mdi:button-cursor" },
   };
   return types[type] || types[0];
 };
 </script>
 
 <style scoped lang="scss">
+// 响应式适配
+@media (width <= 1200px) {
+  .menu-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (width <= 768px) {
+  .menu-stats {
+    grid-template-columns: 1fr;
+    padding: 12px;
+
+    .stat-item {
+      padding: 12px;
+    }
+  }
+}
+
 :deep(.cell:first-child) {
   display: flex;
   align-items: center;
@@ -532,26 +657,26 @@ const getMenuTypeTag = (type) => {
 
   .stat-item {
     display: flex;
-    align-items: center;
     gap: 12px;
+    align-items: center;
     padding: 16px;
     background: var(--el-fill-color-lighter);
     border-radius: 12px;
     transition: all 0.3s ease;
 
     &:hover {
+      box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
     .stat-icon {
-      width: 48px;
-      height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 10px;
+      width: 48px;
+      height: 48px;
       color: #fff;
+      border-radius: 10px;
 
       &.total {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -577,33 +702,15 @@ const getMenuTypeTag = (type) => {
       .stat-value {
         font-size: 22px;
         font-weight: 700;
-        color: var(--el-text-color-primary);
         line-height: 1.2;
+        color: var(--el-text-color-primary);
       }
 
       .stat-label {
+        margin-top: 4px;
         font-size: 13px;
         color: var(--el-text-color-secondary);
-        margin-top: 4px;
       }
-    }
-  }
-}
-
-// 响应式适配
-@media (max-width: 1200px) {
-  .menu-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .menu-stats {
-    grid-template-columns: 1fr;
-    padding: 12px;
-
-    .stat-item {
-      padding: 12px;
     }
   }
 }
@@ -614,8 +721,8 @@ const getMenuTypeTag = (type) => {
 
   .menu-wrapper {
     height: 100%;
-    border-radius: var(--el-border-radius-base);
     overflow: hidden;
+    border-radius: var(--el-border-radius-base);
     box-shadow: var(--el-box-shadow-light);
 
     // 添加卡片悬浮效果
@@ -628,13 +735,13 @@ const getMenuTypeTag = (type) => {
 
   .menu-header {
     display: flex;
+    gap: 16px;
     align-items: center;
     justify-content: space-between;
     height: auto !important;
     padding: 16px 20px;
     background-color: var(--el-bg-color);
     border-bottom: 1px solid var(--el-border-color-lighter);
-    gap: 16px;
 
     .header-left {
       flex: 1;
@@ -649,8 +756,8 @@ const getMenuTypeTag = (type) => {
 
     .header-actions {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
 
       .el-button {
         display: flex;
@@ -659,8 +766,8 @@ const getMenuTypeTag = (type) => {
         transition: all 0.3s ease;
 
         &:hover {
+          box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .iconify {
@@ -671,16 +778,16 @@ const getMenuTypeTag = (type) => {
   }
 
   .menu-main {
-    padding: 0px;
+    padding: 0;
     background-color: var(--el-bg-color-page);
 
     .menu-table-container {
       height: 100%;
       overflow: hidden;
+      background-color: var(--el-bg-color);
       // 添加圆角和阴影
       border-radius: var(--el-border-radius-base);
       box-shadow: var(--el-box-shadow-lighter);
-      background-color: var(--el-bg-color);
     }
 
     .menu-table {
@@ -689,9 +796,9 @@ const getMenuTypeTag = (type) => {
 
         // 美化表头
         th {
-          background-color: var(--el-fill-color-light);
           font-weight: 600;
           color: var(--el-text-color-primary);
+          background-color: var(--el-fill-color-light);
         }
       }
 
@@ -719,8 +826,8 @@ const getMenuTypeTag = (type) => {
 
     .menu-name-cell {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
 
       .menu-icon {
         display: flex;
@@ -736,8 +843,8 @@ const getMenuTypeTag = (type) => {
         transition: all 0.3s;
 
         &:hover {
-          transform: scale(1.1);
           background-color: var(--el-color-primary-light-8);
+          transform: scale(1.1);
         }
       }
 
@@ -756,11 +863,11 @@ const getMenuTypeTag = (type) => {
         }
 
         .button-perm {
-          color: var(--el-text-color-secondary);
+          padding: 2px 6px;
           font-size: 12px;
+          color: var(--el-text-color-secondary);
           // 添加权限标签样式
           background-color: var(--el-fill-color-lighter);
-          padding: 2px 6px;
           border-radius: 4px;
         }
       }
@@ -768,13 +875,13 @@ const getMenuTypeTag = (type) => {
 
     .menu-type-tag {
       display: inline-flex;
-      align-items: center;
       gap: 4px;
+      align-items: center;
       padding: 4px 8px;
+      font-weight: 500;
       // 改进标签样式
       border-radius: 4px;
-      font-weight: 500;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
 
       .tag-icon {
         font-size: 14px;
@@ -783,13 +890,13 @@ const getMenuTypeTag = (type) => {
 
     .route-name-cell {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
 
       .copy-icon {
-        cursor: pointer;
-        color: var(--el-color-primary);
         font-size: 14px;
+        color: var(--el-color-primary);
+        cursor: pointer;
         opacity: 0.6;
         transition: all 0.3s;
 
@@ -801,15 +908,15 @@ const getMenuTypeTag = (type) => {
     }
 
     .empty-value {
-      color: var(--el-text-color-secondary);
       font-style: italic;
+      color: var(--el-text-color-secondary);
     }
 
     .action-buttons {
       display: flex;
+      gap: 8px;
       align-items: center;
       justify-content: center;
-      gap: 8px;
 
       .el-button {
         // 改进操作按钮样式
@@ -817,8 +924,8 @@ const getMenuTypeTag = (type) => {
         transition: all 0.3s;
 
         &:hover {
-          transform: translateY(-2px);
           opacity: 0.9;
+          transform: translateY(-2px);
         }
 
         .iconify {
@@ -830,7 +937,7 @@ const getMenuTypeTag = (type) => {
 }
 
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .menu-stats {
     background: var(--el-bg-color-overlay);
 
@@ -841,16 +948,20 @@ const getMenuTypeTag = (type) => {
 
   .menu-container {
     .menu-wrapper {
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
     }
 
     .menu-header {
       background-color: var(--el-bg-color-overlay);
-      background-image: linear-gradient(to right, var(--el-bg-color-overlay), var(--el-bg-color));
+      background-image: linear-gradient(
+        to right,
+        var(--el-bg-color-overlay),
+        var(--el-bg-color)
+      );
     }
 
     .menu-table-container {
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 2px 12px rgb(0 0 0 / 15%);
     }
 
     .menu-table {
@@ -871,7 +982,7 @@ const getMenuTypeTag = (type) => {
 
     .menu-name-cell {
       .menu-icon {
-        background-color: rgba(64, 158, 255, 0.1);
+        background-color: rgb(64 158 255 / 10%);
       }
     }
   }

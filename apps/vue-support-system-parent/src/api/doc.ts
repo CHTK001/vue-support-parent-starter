@@ -16,4 +16,3 @@ export const fetchOpenApiDoc = () => {
 export const fetchOpenApiDocByServer = (serverUrl: string) => {
   return http.request<any>("get", `${serverUrl}/v3/api-docs`);
 };
-

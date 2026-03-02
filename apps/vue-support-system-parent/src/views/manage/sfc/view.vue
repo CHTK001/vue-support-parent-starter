@@ -1,13 +1,13 @@
 ﻿<template>
   <div class="overflow-hidden">
-    <sc-dialog 
-      v-model="visible" 
-      class="preview-dialog" 
-      top="5vh" 
+    <sc-dialog
+      v-model="visible"
+      class="preview-dialog"
+      top="5vh"
       width="80vw"
-      :title="title" 
-      draggable 
-      :close-on-click-modal="false" 
+      :title="title"
+      draggable
+      :close-on-click-modal="false"
       @close="onClose"
     >
       <template #header="{ titleId, titleClass }">
@@ -19,11 +19,15 @@
             <span :id="titleId" :class="titleClass">{{ title }}</span>
           </div>
           <div class="header-meta">
-            <el-tag v-if="dataReact.data.sysSfcVersion" type="info" size="small">
+            <el-tag
+              v-if="dataReact.data.sysSfcVersion"
+              type="info"
+              size="small"
+            >
               v{{ dataReact.data.sysSfcVersion }}
             </el-tag>
             <el-tag :type="getStatusType()" size="small">
-              {{ dataReact.data.sysSfcStatus === 1 ? '已启用' : '已禁用' }}
+              {{ dataReact.data.sysSfcStatus === 1 ? "已启用" : "已禁用" }}
             </el-tag>
           </div>
         </div>
@@ -46,7 +50,9 @@
           <span class="error-text">组件加载失败</span>
           <p class="error-desc">{{ error }}</p>
           <el-button type="primary" @click="reloadComponent">
-            <el-icon class="mr-1"><component :is="useRenderIcon('ep:refresh')" /></el-icon>
+            <el-icon class="mr-1"
+              ><component :is="useRenderIcon('ep:refresh')"
+            /></el-icon>
             重新加载
           </el-button>
         </div>
@@ -74,16 +80,25 @@
         <div class="dialog-footer">
           <div class="footer-info">
             <span class="info-item">
-              <el-icon><component :is="useRenderIcon('ri:code-s-slash-line')" /></el-icon>
+              <el-icon
+                ><component :is="useRenderIcon('ri:code-s-slash-line')"
+              /></el-icon>
               {{ dataReact.data.sysSfcName }}
             </span>
-            <span v-if="dataReact.data.sysSfcType !== undefined" class="info-item">
-              <el-icon><component :is="useRenderIcon('ri:folder-line')" /></el-icon>
+            <span
+              v-if="dataReact.data.sysSfcType !== undefined"
+              class="info-item"
+            >
+              <el-icon
+                ><component :is="useRenderIcon('ri:folder-line')"
+              /></el-icon>
               {{ getTypeName(dataReact.data.sysSfcType) }}
             </span>
           </div>
           <el-button @click="onClose">
-            <el-icon class="mr-1"><component :is="useRenderIcon('ep:close')" /></el-icon>
+            <el-icon class="mr-1"
+              ><component :is="useRenderIcon('ep:close')"
+            /></el-icon>
             关闭
           </el-button>
         </div>
@@ -108,14 +123,15 @@ const dataReact = reactive({
 const remote = ref();
 
 const typeMap = {
-  0: '文件式',
-  1: '代码式',
-  2: '远程地址',
-  3: '本地地址'
+  0: "文件式",
+  1: "代码式",
+  2: "远程地址",
+  3: "本地地址",
 };
 
-const getTypeName = (type) => typeMap[type] || '未知';
-const getStatusType = () => dataReact.data.sysSfcStatus === 1 ? 'success' : 'info';
+const getTypeName = (type) => typeMap[type] || "未知";
+const getStatusType = () =>
+  dataReact.data.sysSfcStatus === 1 ? "success" : "info";
 
 const onClose = async () => {
   emit("close");
@@ -139,14 +155,14 @@ const loadComponent = async () => {
     try {
       modelCache = JSON.parse(dataReact.data.sysSfcModelCache);
     } catch (e) {}
-    
+
     remote.value = await loadSfcModule(
-      dataReact.data.sysSfcName + ".vue", 
-      dataReact.data.sysSfcId, 
-      dataReact.data
+      dataReact.data.sysSfcName + ".vue",
+      dataReact.data.sysSfcId,
+      dataReact.data,
     );
   } catch (e) {
-    error.value = e?.message || '加载组件时发生错误';
+    error.value = e?.message || "加载组件时发生错误";
   } finally {
     loading.value = false;
   }
@@ -168,6 +184,16 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .preview-dialog {
   :deep(.el-dialog) {
     display: flex;
@@ -176,23 +202,27 @@ defineExpose({
   }
 
   :deep(.el-dialog__header) {
+    flex-shrink: 0;
     padding: 16px 20px;
     margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
-    flex-shrink: 0;
   }
 
   :deep(.el-dialog__body) {
-    padding: 0;
     flex: 1;
+    padding: 0;
     overflow: hidden;
   }
 
   :deep(.el-dialog__footer) {
+    flex-shrink: 0;
     padding: 12px 20px;
     border-top: 1px solid var(--el-border-color-lighter);
-    flex-shrink: 0;
   }
 }
 
@@ -203,8 +233,8 @@ defineExpose({
 
   .header-left {
     display: flex;
-    align-items: center;
     gap: 10px;
+    align-items: center;
 
     .header-icon {
       color: var(--el-color-primary);
@@ -227,10 +257,10 @@ defineExpose({
   .empty-state {
     display: flex;
     flex-direction: column;
+    gap: 16px;
     align-items: center;
     justify-content: center;
     height: 100%;
-    gap: 16px;
     color: var(--el-text-color-secondary);
   }
 
@@ -255,11 +285,11 @@ defineExpose({
     }
 
     .error-desc {
+      max-width: 400px;
+      margin: 0;
       font-size: 14px;
       color: var(--el-text-color-secondary);
-      max-width: 400px;
       text-align: center;
-      margin: 0;
     }
   }
 
@@ -277,10 +307,10 @@ defineExpose({
     .preview-component {
       width: 100%;
       height: 100%;
+      overflow: auto;
       background: var(--el-bg-color);
       border-radius: 8px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-      overflow: auto;
+      box-shadow: 0 2px 12px rgb(0 0 0 / 4%);
     }
   }
 }
@@ -296,8 +326,8 @@ defineExpose({
 
     .info-item {
       display: flex;
-      align-items: center;
       gap: 6px;
+      align-items: center;
       font-size: 13px;
       color: var(--el-text-color-secondary);
 
@@ -308,20 +338,15 @@ defineExpose({
   }
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .preview-dialog {
     :deep(.el-dialog__header) {
-      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15) 0%, var(--el-bg-color-overlay) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.15) 0%,
+        var(--el-bg-color-overlay) 100%
+      );
     }
   }
 

@@ -1,5 +1,8 @@
 ﻿<script setup>
-import { fetchSaveServiceModule, fetchUpdateServiceModule } from "@/api/service/module";
+import {
+  fetchSaveServiceModule,
+  fetchUpdateServiceModule,
+} from "@/api/service/module";
 import { message } from "@repo/utils";
 import { defineExpose, shallowRef, reactive, ref } from "vue";
 
@@ -25,10 +28,18 @@ const env = reactive({
 });
 
 const rules = {
-  sysServiceModuleName: [{ required: true, message: "请输入名称", trigger: "blur" }],
-  sysServiceModuleCode: [{ required: true, message: "请输入编码", trigger: "blur" }],
-  sysServiceModuleType: [{ required: true, message: "请选择类型", trigger: "blur" }],
-  sysServiceModuleMenuTagsList: [{ required: true, message: "请选择菜单", trigger: "blur" }],
+  sysServiceModuleName: [
+    { required: true, message: "请输入名称", trigger: "blur" },
+  ],
+  sysServiceModuleCode: [
+    { required: true, message: "请输入编码", trigger: "blur" },
+  ],
+  sysServiceModuleType: [
+    { required: true, message: "请选择类型", trigger: "blur" },
+  ],
+  sysServiceModuleMenuTagsList: [
+    { required: true, message: "请选择菜单", trigger: "blur" },
+  ],
 };
 const handleClose = async () => {
   env.visible = false;
@@ -43,10 +54,12 @@ const handleUpdate = async () => {
     if (valid) {
       env.loading = true;
       if (env.form.sysServiceModuleMenuTagsList2) {
-        env.form.sysServiceModuleMenuTags2 = env.form.sysServiceModuleMenuTagsList2.join(",");
+        env.form.sysServiceModuleMenuTags2 =
+          env.form.sysServiceModuleMenuTagsList2.join(",");
       }
       if (env.form.sysServiceModuleMenuTagsList) {
-        env.form.sysServiceModuleMenuTags = env.form.sysServiceModuleMenuTagsList.join(",");
+        env.form.sysServiceModuleMenuTags =
+          env.form.sysServiceModuleMenuTagsList.join(",");
       }
       if (env.mode === "edit") {
         return fetchUpdateServiceModule(env.form)
@@ -91,10 +104,14 @@ const handleOpen = async (item, mode) => {
   }
   env.title = "模块更新 - " + item.sysServiceModuleName;
   if (env.form.sysServiceModuleMenuTags) {
-    env.form.sysServiceModuleMenuTagsList = env.form.sysServiceModuleMenuTags?.split(",").map((it) => ~~it);
+    env.form.sysServiceModuleMenuTagsList = env.form.sysServiceModuleMenuTags
+      ?.split(",")
+      .map((it) => ~~it);
   }
   if (env.form.sysServiceModuleMenuTags2) {
-    env.form.sysServiceModuleMenuTagsList2 = env.form.sysServiceModuleMenuTags2?.split(",").map((it) => ~~it);
+    env.form.sysServiceModuleMenuTagsList2 = env.form.sysServiceModuleMenuTags2
+      ?.split(",")
+      .map((it) => ~~it);
   }
 };
 
@@ -121,42 +138,90 @@ defineExpose({
 </script>
 <template>
   <div>
-    <sc-dialog v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
-      <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px" class="modern-form">
+    <sc-dialog
+      v-model="env.visible"
+      :title="env.title"
+      draggable
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="formRef"
+        :model="env.form"
+        :rules="rules"
+        label-width="120px"
+        class="modern-form"
+      >
         <el-form-item label="名称" prop="sysServiceModuleName">
-          <el-input v-model="env.form.sysServiceModuleName" placeholder="请输入名称" />
+          <el-input
+            v-model="env.form.sysServiceModuleName"
+            placeholder="请输入名称"
+          />
         </el-form-item>
 
         <el-form-item label="编码" prop="sysServiceModuleCode">
-          <el-input v-model="env.form.sysServiceModuleCode" placeholder="请输入编码" />
+          <el-input
+            v-model="env.form.sysServiceModuleCode"
+            placeholder="请输入编码"
+          />
         </el-form-item>
 
         <el-form-item label="类型" prop="sysServiceModuleType">
-          <el-select v-model="env.form.sysServiceModuleType" placeholder="请选择类型">
+          <el-select
+            v-model="env.form.sysServiceModuleType"
+            placeholder="请选择类型"
+          >
             <el-option label="接口" value="API" />
             <el-option label="服务" value="SERVICE" />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="选中菜单" prop="sysServiceModuleMenuTagsList" v-if="env.form.sysServiceModuleType == 'SERVICE'">
-          <el-tree-select filterable @check="handleSelect" value-key="sysMenuId" v-model="env.form.sysServiceModuleMenuTagsList" show-checkbox :props="env.props" :data="env.menuList" multiple :render-after-expand="false" />
+        <el-form-item
+          v-if="env.form.sysServiceModuleType == 'SERVICE'"
+          label="选中菜单"
+          prop="sysServiceModuleMenuTagsList"
+        >
+          <el-tree-select
+            v-model="env.form.sysServiceModuleMenuTagsList"
+            filterable
+            value-key="sysMenuId"
+            show-checkbox
+            :props="env.props"
+            :data="env.menuList"
+            multiple
+            :render-after-expand="false"
+            @check="handleSelect"
+          />
         </el-form-item>
 
         <el-form-item label="优先级" prop="sysServiceModuleSort">
-          <el-input-number v-model="env.form.sysServiceModuleSort" placeholder="请输入编码" />
+          <el-input-number
+            v-model="env.form.sysServiceModuleSort"
+            placeholder="请输入编码"
+          />
         </el-form-item>
 
         <el-form-item label="版本" prop="sysServiceModuleVersion">
-          <el-input v-model="env.form.sysServiceModuleVersion" placeholder="请输入描述" />
+          <el-input
+            v-model="env.form.sysServiceModuleVersion"
+            placeholder="请输入描述"
+          />
         </el-form-item>
 
         <el-form-item label="描述" prop="sysServiceModuleRemark">
-          <el-input v-model="env.form.sysServiceModuleRemark" placeholder="请输入描述" />
+          <el-input
+            v-model="env.form.sysServiceModuleRemark"
+            placeholder="请输入描述"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
-        <el-button type="primary" :loading="env.loading" @click="handleUpdate">{{ $t("buttons.confirm") }}</el-button>
+        <el-button
+          type="primary"
+          :loading="env.loading"
+          @click="handleUpdate"
+          >{{ $t("buttons.confirm") }}</el-button
+        >
       </template>
     </sc-dialog>
   </div>

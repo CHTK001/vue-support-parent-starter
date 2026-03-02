@@ -6,6 +6,7 @@
  */
 
 import type { App } from "vue";
+import { storageLocal } from "@pureadmin/utils";
 
 /**
  * 主题组件映射类型
@@ -112,6 +113,7 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
       ElDivider: "ElDivider",
       ElAvatar: "ElAvatar",
       ElProgress: "ElProgress",
+      ElText: "ElText",
 
       // 弹出层组件
       ElTooltip: "ElTooltip",
@@ -157,13 +159,16 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
   "8bit": {
     name: "8bit",
     displayName: "8bit 像素风格",
-    packageName: "@mmt817/pixel-ui",
-    cssPath: "dist/index.css",
+    // 使用 @pixelium/web-vue 作为像素主题组件库
+    packageName: "@pixelium/web-vue",
+    // 样式入口对齐官方文档：dist/pixelium-vue.css
+    // 其他可选样式（normalize.css）建议在应用入口按需全局引入
+    cssPath: "dist/pixelium-vue.css",
     // 默认由配置系统自动判断是否可用
     enabled: true,
-    // 自动尝试按需注册 PixelUI 插件
+    // 自动尝试按需注册像素主题插件
     autoInstallPlugin: true,
-    pluginPackageName: "@mmt817/pixel-ui",
+    pluginPackageName: "@pixelium/web-vue",
     group: "beta",
     description: "像素风格，复古游戏风",
     componentMap: {
@@ -172,17 +177,15 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
       ElInput: "PxInput",
       ElSelect: "PxSelect",
       ElCheckbox: "PxCheckbox",
-      // 当前 PixelUI 未提供 Radio 组件，保持使用 Element Plus 原生组件
-      ElRadio: "ElRadio",
-      // 当前 PixelUI 未提供 Slider 组件，保持使用 Element Plus 原生组件
-      ElSlider: "ElSlider",
-      // 当前 PixelUI 未提供 InputNumber 组件，保持使用 Element Plus 原生组件
-      ElInputNumber: "ElInputNumber",
-      ElRate: "PxRate",
-      ElColorPicker: "PxColorPicker",
-      ElTimePicker: "PxTimePicker",
-      ElDatePicker: "PxDatePicker",
-      ElCascader: "PxCascader",
+      ElRadio: "PxRadio",
+      ElSlider: "PxSlider",
+      ElInputNumber: "PxInputNumber",
+      // 以下组件在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
+      // ElRate: "PxRate",
+      // ElColorPicker: "PxColorPicker",
+      // ElTimePicker: "PxTimePicker",
+      // ElDatePicker: "PxDatePicker",
+      // ElCascader: "PxCascader",
       ElAutocomplete: "PxAutocomplete",
       ElSwitch: "PxSwitch",
 
@@ -194,10 +197,12 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
       ElDivider: "PxDivider",
       ElAvatar: "PxAvatar",
       ElProgress: "PxProgress",
+      // ElText 在 @pixelium/web-vue 中没有对应的 PxText 组件，使用 ElText
+      // ElText: "PxText",
 
       // 弹出层组件
       ElTooltip: "PxTooltip",
-      ElPopover: "ElPopover",
+      ElPopover: "PxPopover",
       ElPopconfirm: "PxPopconfirm",
 
       // 表单容器
@@ -206,31 +211,34 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
 
       // 布局组件
       ElRow: "PxRow",
-      ElCol: "PxCol",
-      ElTabs: "PxTabs",
+      // ElCol、ElTabs 在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
+      // ElCol: "PxCol",
+      // ElTabs: "PxTabs",
 
       // 导航组件
       ElMenu: "PxMenu",
       ElBreadcrumb: "PxBreadcrumb",
-      ElSteps: "PxSteps",
+      // ElSteps 在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
+      // ElSteps: "PxSteps",
 
       // 对话框组件
-      // 当前 PixelUI 未提供 Dialog / Drawer 组件，保持使用 Element Plus 原生组件
-      ElDialog: "ElDialog",
+      // ElDialog 和 ElDrawer 在 @pixelium/web-vue 中没有对应的组件，使用 Element Plus 原生组件
+      // ElDialog: "PxDialog",
       ElDrawer: "ElDrawer",
 
       // 高级组件
-      ElCard: "PxCard",
-      ElTable: "PxTable",
+      // ElCard 在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
+      // ElCard: "PxCard",
+      ElTable: "ElTable", // 8bit 主题下 Table 仍使用 Element Plus 的 ElTable
 
       // 其他组件
-      ElUpload: "PxUpload",
+      // ElUpload、ElTree 在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
+      // ElUpload: "PxUpload",
       ElImage: "PxImage",
-      ElTree: "PxTree",
+      // ElTree: "PxTree",
       ElIcon: "PxIcon",
-      // 当前 PixelUI 未提供 Empty 组件，保持使用 Element Plus 原生组件
-      ElEmpty: "ElEmpty",
-      ElTableColumn: "PxTableColumn",
+      //ElEmpty: "PxEmpty",
+      ElTableColumn: "ElTableColumn", // TableColumn 也使用 Element Plus
       ElOption: "PxOption"
     }
   }
@@ -338,36 +346,209 @@ export function hasTheme(skinValue: string): boolean {
 }
 
 /**
- * 根据主题配置自动注册需要的 Vue 插件
+ * 主题插件包名到导入函数的映射
+ * 使用映射而非动态字符串，以便 Vite 能够静态分析并预构建这些依赖
+ */
+const PLUGIN_IMPORTERS: Record<string, () => Promise<any>> = {
+  "@pixelium/web-vue": () => import("@pixelium/web-vue"),
+};
+
+/**
+ * 已注册的主题插件包名集合（按 app 实例记录）
+ * 使用 WeakMap 避免内存泄漏，key 是 app 实例，value 是已注册的插件包名 Set
+ */
+const REGISTERED_THEME_PLUGINS_BY_APP = new WeakMap<App, Set<string>>();
+
+/**
+ * 正在进行的插件注册 Promise 缓存（按 app 实例和包名记录）
+ * 用于解决并发调用时的重复注册问题
+ * key: app 实例，value: Map<packageName, Promise<void>>
+ */
+const REGISTERING_PROMISES_BY_APP = new WeakMap<App, Map<string, Promise<void>>>();
+
+/**
+ * 最近一次用于注册主题插件的应用实例
+ * 用于在主题切换时按当前 data-skin 重新注册对应主题插件
+ */
+let themePluginApp: App | null = null;
+
+/**
+ * 正在进行的 ensureThemePluginForCurrentSkin 调用 Promise 缓存
+ * 用于解决并发调用时的重复执行问题
+ */
+let ensuringPromise: Promise<void> | null = null;
+
+/**
+ * 获取当前激活的主题名称
+ * @returns 当前主题名称，默认为 "default"
+ */
+function getCurrentThemeName(): string {
+  // 浏览器环境优先
+  if (typeof document !== "undefined") {
+    const skin = document.documentElement.dataset.skin;
+    if (skin) {
+      return skin;
+    }
+  }
+
+  // 如果 DOM 上还没有 data-skin（例如应用刚启动时），尝试从本地配置读取
+  try {
+    const configure = storageLocal().getItem<any>("responsive-configure") || {};
+    let theme = configure.systemTheme as string | undefined;
+    if (theme) {
+      // 兼容旧值
+      if (theme === "pixel-art" || theme === "8-bit") {
+        theme = "8bit";
+      }
+      if (THEME_CONFIGS[theme] && THEME_CONFIGS[theme].enabled !== false) {
+        return theme;
+      }
+    }
+  } catch {
+    // 本地存储异常时回退默认主题
+  }
+
+  return "default";
+}
+
+/**
+ * 为指定 skin 注册主题插件（内部工具方法）
  * - 只处理 autoInstallPlugin = true 的主题
+ * - 使用 REGISTERED_THEME_PLUGINS 避免重复注册
  * - 插件加载失败时自动禁用对应主题，避免出现在系统设置中
  */
-export async function autoRegisterThemePlugins(app: App): Promise<void> {
-  const themes = Object.values(THEME_CONFIGS);
+async function registerThemePluginForSkin(app: App, skinValue: string): Promise<void> {
+  const theme = THEME_CONFIGS[skinValue];
 
-  for (const theme of themes) {
-    if (theme.enabled === false || theme.autoInstallPlugin !== true) {
-      continue;
+  // 只处理当前使用的主题
+  if (!theme) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[ThemePlugin] 当前主题 ${skinValue} 未在配置中找到`,
+    );
+    return;
+  }
+
+  if (theme.enabled === false || theme.autoInstallPlugin !== true) {
+    // 当前主题不需要注册插件
+    return;
+  }
+
+  const packageName = theme.pluginPackageName || theme.packageName;
+
+  if (!packageName) {
+    return;
+  }
+
+  // 获取当前 app 实例已注册的插件集合
+  let registeredPlugins = REGISTERED_THEME_PLUGINS_BY_APP.get(app);
+  if (!registeredPlugins) {
+    registeredPlugins = new Set<string>();
+    REGISTERED_THEME_PLUGINS_BY_APP.set(app, registeredPlugins);
+  }
+
+  // 已经注册过的插件不再重复注册
+  if (registeredPlugins.has(packageName)) {
+    return;
+  }
+
+  // 检查是否有正在进行的注册 Promise
+  let registeringPromises = REGISTERING_PROMISES_BY_APP.get(app);
+  if (!registeringPromises) {
+    registeringPromises = new Map<string, Promise<void>>();
+    REGISTERING_PROMISES_BY_APP.set(app, registeringPromises);
+  }
+
+  // 如果有正在进行的注册，等待它完成
+  const existingPromise = registeringPromises.get(packageName);
+  if (existingPromise) {
+    await existingPromise;
+    // 等待完成后再次检查是否已注册
+    if (registeredPlugins.has(packageName)) {
+      return;
     }
+  }
 
-    const packageName = theme.pluginPackageName || theme.packageName;
-
-    if (!packageName) {
-      continue;
-    }
-
+  // 创建新的注册 Promise 并缓存
+  const registerPromise = (async () => {
     try {
-      // 动态按包名加载插件，避免对未安装包的硬依赖
+      // 使用映射表加载插件，确保 Vite 能够静态分析并预构建依赖
+      const importer = PLUGIN_IMPORTERS[packageName];
+      if (!importer) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[ThemePlugin] 主题 ${theme.name} 的插件包 ${packageName} 未在 PLUGIN_IMPORTERS 中注册`,
+        );
+        theme.enabled = false;
+        return;
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const module: any = await import(
-        /* @vite-ignore */ packageName
-      );
+      const module: any = await importer();
       const plugin = module?.default ?? module;
 
-      if (plugin) {
-        app.use(plugin);
+      if (!plugin) {
+        console.warn(`[ThemePlugin] 插件 ${packageName} 加载后返回 null/undefined`);
+        return;
       }
+
+      // 在注册前再次检查 Vue 内部是否已注册
+      // Vue 3 会在 app._context.plugins 中存储已注册的插件
+      const context = (app as any)._context;
+      const plugins = context?.plugins;
+      
+      // 检查是否已注册：通过比较插件对象引用或 install 方法
+      let alreadyRegisteredInApp = false;
+      if (Array.isArray(plugins) && plugins.length > 0) {
+        const pluginInstall = typeof plugin === 'function' ? plugin : plugin.install;
+        
+        // 检查已注册的插件中是否有相同的插件对象或 install 方法
+        alreadyRegisteredInApp = plugins.some((registeredPlugin: any) => {
+          // 先检查对象引用是否相同
+          if (registeredPlugin === plugin) {
+            return true;
+          }
+          
+          // 再检查 install 方法是否相同
+          const registeredInstall = typeof registeredPlugin === 'function' 
+            ? registeredPlugin 
+            : registeredPlugin?.install;
+          
+          // 如果两个插件都有 install 方法，比较 install 方法的引用
+          if (pluginInstall && registeredInstall && pluginInstall === registeredInstall) {
+            return true;
+          }
+          
+          // 如果插件有名称，通过名称比较（作为最后的检查手段）
+          const pluginName = pluginInstall?.name || plugin.name;
+          const registeredName = registeredInstall?.name || registeredPlugin?.name;
+          if (pluginName && registeredName && pluginName === registeredName && pluginName !== '') {
+            return true;
+          }
+          
+          return false;
+        });
+      }
+
+      if (alreadyRegisteredInApp) {
+        // 即使 Vue 内部已注册，也记录到我们的集合中，避免后续重复检查
+        registeredPlugins.add(packageName);
+        return;
+      }
+
+      // 在调用 app.use 之前就记录包名，避免并发调用时重复注册
+      registeredPlugins.add(packageName);
+      
+      app.use(plugin);
+      // eslint-disable-next-line no-console
+      console.log(`[ThemePlugin] 已注册主题 ${theme.name} 的插件 ${packageName}`);
     } catch (error) {
+      // 插件注册失败时，从记录中移除，允许后续重试
+      const registeredPlugins = REGISTERED_THEME_PLUGINS_BY_APP.get(app);
+      if (registeredPlugins) {
+        registeredPlugins.delete(packageName);
+      }
+      
       // 插件未安装或加载失败时，禁用该主题，避免在设置中展示不可用的选项
       // eslint-disable-next-line no-console
       console.warn(
@@ -375,6 +556,61 @@ export async function autoRegisterThemePlugins(app: App): Promise<void> {
         error,
       );
       theme.enabled = false;
+      throw error; // 重新抛出错误，让调用者知道注册失败
+    } finally {
+      // 注册完成（成功或失败）后，从缓存中移除 Promise
+      const registeringPromises = REGISTERING_PROMISES_BY_APP.get(app);
+      if (registeringPromises) {
+        registeringPromises.delete(packageName);
+      }
     }
+  })();
+
+  // 缓存 Promise
+  registeringPromises.set(packageName, registerPromise);
+
+  // 等待注册完成
+  await registerPromise;
+}
+
+/**
+ * 根据当前 data-skin 自动注册当前主题需要的 Vue 插件
+ * - 只注册当前使用的主题插件（根据 data-skin 属性）
+ * - 只处理 autoInstallPlugin = true 的主题
+ * - 插件加载失败时自动禁用对应主题，避免出现在系统设置中
+ */
+export async function autoRegisterThemePlugins(app: App): Promise<void> {
+  themePluginApp = app;
+  const currentThemeName = getCurrentThemeName();
+  await registerThemePluginForSkin(app, currentThemeName);
+}
+
+/**
+ * 在主题切换后，基于当前 data-skin 确保对应主题插件已注册
+ * 需要在应用启动时先调用一次 autoRegisterThemePlugins 以保存 app 实例
+ * 使用 Promise 缓存避免并发调用时的重复执行
+ */
+export async function ensureThemePluginForCurrentSkin(): Promise<void> {
+  if (!themePluginApp) {
+    return;
   }
+  
+  // 如果有正在进行的调用，直接返回该 Promise，避免重复执行
+  if (ensuringPromise) {
+    await ensuringPromise;
+    return;
+  }
+  
+  // 创建新的调用 Promise
+  ensuringPromise = (async () => {
+    try {
+      const currentThemeName = getCurrentThemeName();
+      await registerThemePluginForSkin(themePluginApp!, currentThemeName);
+    } finally {
+      // 调用完成后清除缓存
+      ensuringPromise = null;
+    }
+  })();
+  
+  await ensuringPromise;
 }

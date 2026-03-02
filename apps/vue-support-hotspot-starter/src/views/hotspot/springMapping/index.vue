@@ -338,8 +338,8 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100vh;
   padding: 20px;
-  background: var(--el-bg-color-page);
   overflow: hidden;
+  background: var(--el-bg-color-page);
 }
 
 .stats-row {
@@ -347,17 +347,17 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  border-radius: 12px;
   border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
   transition:
     transform 0.2s,
     box-shadow 0.2s,
     border-color 0.2s;
 
   &:hover {
+    box-shadow: 0 4px 16px rgb(0 0 0 / 10%);
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
 
   &.current-container {
@@ -375,10 +375,10 @@ onUnmounted(() => {
 
   .stat-header {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
     flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
 
     .stat-icon {
       font-size: 24px;
@@ -397,8 +397,8 @@ onUnmounted(() => {
 
   .stat-content {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     .stat-item {
       flex: 1;
@@ -406,10 +406,10 @@ onUnmounted(() => {
 
       .stat-value {
         display: block;
+        margin-bottom: 4px;
         font-size: 20px;
         font-weight: 700;
         color: var(--el-color-primary);
-        margin-bottom: 4px;
       }
 
       .stat-unit {
@@ -428,21 +428,21 @@ onUnmounted(() => {
 }
 
 .modern-card {
-  border-radius: 12px;
   border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
 }
 
 .table-card {
-  flex: 1;
   display: flex;
+  flex: 1;
   flex-direction: column;
   overflow: hidden;
 
   :deep(.el-card__body) {
     flex: 1;
-    overflow: hidden;
     padding: 0;
+    overflow: hidden;
   }
 
   :deep(.el-card__header) {
@@ -452,13 +452,13 @@ onUnmounted(() => {
 
   .card-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     .card-title {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
       font-size: 16px;
       font-weight: 600;
       color: var(--el-text-color-primary);
@@ -471,8 +471,8 @@ onUnmounted(() => {
 
     .header-actions {
       display: flex;
-      align-items: center;
       gap: 12px;
+      align-items: center;
     }
 
     .search-input {
@@ -483,36 +483,36 @@ onUnmounted(() => {
 
 .modern-table {
   :deep(th.el-table__cell) {
-    background: var(--el-fill-color-lighter);
     font-weight: 600;
+    background: var(--el-fill-color-lighter);
   }
 
   .route-path {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
 
     .route-icon {
-      color: var(--el-color-primary);
       font-size: 16px;
+      color: var(--el-color-primary);
     }
 
     .path-text {
-      font-family: "Monaco", "Menlo", monospace;
+      font-family: Monaco, Menlo, monospace;
       font-size: 13px;
       color: var(--el-color-primary);
     }
   }
 
   .class-name {
-    font-family: "Monaco", "Menlo", monospace;
-    font-size: 12px;
-    color: var(--el-text-color-regular);
+    display: block;
     max-width: 300px;
     overflow: hidden;
+    font-family: Monaco, Menlo, monospace;
+    font-size: 12px;
+    color: var(--el-text-color-regular);
     text-overflow: ellipsis;
     white-space: nowrap;
-    display: block;
   }
 
   .text-placeholder {
@@ -528,15 +528,15 @@ onUnmounted(() => {
 
   .detail-content {
     .code-block {
-      margin: 0;
       padding: 16px;
-      background: var(--el-fill-color-lighter);
-      border-radius: 8px;
+      margin: 0;
       overflow-x: auto;
-      font-family: "Monaco", "Menlo", monospace;
+      font-family: Monaco, Menlo, monospace;
       font-size: 13px;
       line-height: 1.6;
       color: var(--el-text-color-primary);
+      background: var(--el-fill-color-lighter);
+      border-radius: 8px;
     }
   }
 }
@@ -548,7 +548,7 @@ html.dark {
   }
 
   .modern-card {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 
   .stat-card.current-container {

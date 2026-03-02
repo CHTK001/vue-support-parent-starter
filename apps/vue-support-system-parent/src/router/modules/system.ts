@@ -10,7 +10,7 @@ export default [
     meta: {
       icon: "ri:settings-3-line",
       title: "系统管理",
-      rank: 8
+      rank: 8,
     },
     children: [
       {
@@ -19,8 +19,8 @@ export default [
         component: () => import("@pages/system/src/log/LogIndex.vue"),
         meta: {
           title: "系统日志",
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/system/log/detail",
@@ -28,8 +28,8 @@ export default [
         component: () => import("@pages/system/src/log/LogDetail.vue"),
         meta: {
           title: "日志详情",
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/system/feedback",
@@ -37,8 +37,8 @@ export default [
         component: () => import("@/views/manage/feedback/FeedbackIndex.vue"),
         meta: {
           title: "意见反馈",
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/system/holiday",
@@ -46,17 +46,18 @@ export default [
         component: () => import("@pages/system/src/holiday/HolidayIndex.vue"),
         meta: {
           title: "节假日管理",
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/system/holiday/calendar",
         name: "HolidayCalendar",
-        component: () => import("@pages/system/src/holiday/HolidayCalendar.vue"),
+        component: () =>
+          import("@pages/system/src/holiday/HolidayCalendar.vue"),
         meta: {
           title: "节假日日历",
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/system/sync-data",
@@ -65,9 +66,9 @@ export default [
         meta: {
           icon: "ri:refresh-line",
           title: "数据同步管理",
-          showParent: true
-        }
-      }
-    ]
-  }
+          showParent: true,
+        },
+      },
+    ],
+  },
 ] satisfies Array<RouteConfigsTable>;

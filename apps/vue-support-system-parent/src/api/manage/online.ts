@@ -20,8 +20,13 @@ export interface OnlineUser {
  * 获取在线用户列表
  * @param params 查询参数
  */
-export const fetchOnlineUsers = (params?: { username?: string; ip?: string }) => {
-  return http.request<{ data: OnlineUser[] }>("get", "/v2/online/list", { params });
+export const fetchOnlineUsers = (params?: {
+  username?: string;
+  ip?: string;
+}) => {
+  return http.request<{ data: OnlineUser[] }>("get", "/v2/online/list", {
+    params,
+  });
 };
 
 /**
@@ -36,7 +41,10 @@ export const fetchOnlineCount = () => {
  * @param userId 用户ID
  */
 export const fetchOnlineStatus = (userId: string) => {
-  return http.request<{ data: { online: boolean; lastActiveTime?: number } }>("get", `/v2/online/status/${userId}`);
+  return http.request<{ data: { online: boolean; lastActiveTime?: number } }>(
+    "get",
+    `/v2/online/status/${userId}`,
+  );
 };
 
 /**
@@ -52,5 +60,7 @@ export const fetchKickUser = (userId: string) => {
  * @param userIds 用户ID列表
  */
 export const fetchKickUsers = (userIds: string[]) => {
-  return http.request<{ data: number }>("delete", "/v2/online/kick/batch", { data: userIds });
+  return http.request<{ data: number }>("delete", "/v2/online/kick/batch", {
+    data: userIds,
+  });
 };

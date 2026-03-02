@@ -5,6 +5,7 @@ import type { LanguageConfig } from "@repo/config";
 import Check from "@iconify-icons/ep/check";
 import { useDefer } from "@repo/utils";
 import { computed } from "vue";
+import { ScText } from "@repo/components";
 
 const { locale, translation } = useTranslationLang();
 const languageConfigs = getAllLanguageConfigs();
@@ -35,8 +36,8 @@ const handleLanguageChange = (langCode: string) => {
         <IconifyIconOnline icon="ri:translate-2" class="lang-main-icon" />
       </div>
       <div class="user-info">
-        <span class="user-name">{{ currentLanguageConfig.nativeName }}</span>
-        <span class="user-role">{{ locale === "zh-CN" ? "语言" : "Language" }}</span>
+        <ScText class="user-name">{{ currentLanguageConfig.nativeName }}</ScText>
+        <ScText class="user-role">{{ locale === "zh-CN" ? "语言" : "Language" }}</ScText>
       </div>
       <span class="dropdown-arrow-wrapper">
         <IconifyIconOnline icon="ri:arrow-down-s-line" class="dropdown-arrow" />
@@ -46,7 +47,7 @@ const handleLanguageChange = (langCode: string) => {
       <el-dropdown-menu class="lang-menu">
         <div class="lang-header">
           <IconifyIconOnline icon="ri:global-line" />
-          <span>选择语言</span>
+          <ScText>选择语言</ScText>
         </div>
         <el-dropdown-item
           v-for="(langConfig, index) in languageConfigs"
@@ -58,8 +59,8 @@ const handleLanguageChange = (langCode: string) => {
           <div class="lang-item-content">
             <span class="lang-flag">{{ langConfig.flag }}</span>
             <div class="lang-info">
-              <span class="lang-name">{{ langConfig.nativeName }}</span>
-              <span class="lang-desc">{{ langConfig.description }}</span>
+              <ScText class="lang-name">{{ langConfig.nativeName }}</ScText>
+              <ScText class="lang-desc">{{ langConfig.description }}</ScText>
             </div>
           </div>
           <IconifyIconOffline

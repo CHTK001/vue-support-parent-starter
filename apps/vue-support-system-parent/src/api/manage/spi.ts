@@ -13,7 +13,9 @@ export const fetchOptionGet = (params: any) => {
  */
 export const fetchOptionObjectsList = (params: any) => {
   params.type = Base64.encode(params.type);
-  return http.request<ReturnResult<any>>("get", "/v1/option/objects/get", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/option/objects/get", {
+    params,
+  });
 };
 /**
  * 查询选项

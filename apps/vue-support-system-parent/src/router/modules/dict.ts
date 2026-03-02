@@ -1,4 +1,3 @@
-import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
 const Layout = () => import("@layout/default");
 

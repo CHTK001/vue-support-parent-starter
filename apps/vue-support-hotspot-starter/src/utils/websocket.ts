@@ -145,7 +145,7 @@ class WebSocketService {
           }
         });
       }
-    } catch (error) {
+    } catch {
       // 非 JSON 消息忽略
     }
   }

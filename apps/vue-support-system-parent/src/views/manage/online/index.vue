@@ -10,15 +10,27 @@
               <span>在线用户管理</span>
             </div>
             <div class="header-stats">
-              <el-tag type="success" effect="light" size="large" class="stats-tag">
-                <IconifyIconOnline icon="mdi:account-check" class="stats-icon" />
+              <el-tag
+                type="success"
+                effect="light"
+                size="large"
+                class="stats-tag"
+              >
+                <IconifyIconOnline
+                  icon="mdi:account-check"
+                  class="stats-icon"
+                />
                 <span>当前在线: {{ onlineCount }} 人</span>
               </el-tag>
             </div>
           </div>
           <div class="toolbar-right header-actions">
             <!-- 搜索表单 -->
-            <el-form :inline="true" :model="searchForm" class="modern-form search-form">
+            <el-form
+              :inline="true"
+              :model="searchForm"
+              class="modern-form search-form"
+            >
               <el-form-item>
                 <el-input
                   v-model="searchForm.username"
@@ -77,9 +89,19 @@
               <el-table-column type="selection" width="55" align="center" />
 
               <!-- 序号列 -->
-              <el-table-column type="index" label="序号" width="80" align="center">
+              <el-table-column
+                type="index"
+                label="序号"
+                width="80"
+                align="center"
+              >
                 <template #default="{ $index }">
-                  <el-tag type="primary" effect="light" size="small" class="index-tag">
+                  <el-tag
+                    type="primary"
+                    effect="light"
+                    size="small"
+                    class="index-tag"
+                  >
                     {{ $index + 1 }}
                   </el-tag>
                 </template>
@@ -93,7 +115,9 @@
                       <IconifyIconOnline icon="mdi:account-circle" />
                     </div>
                     <div class="user-details">
-                      <span class="user-nickname">{{ row.nickname || row.username }}</span>
+                      <span class="user-nickname">{{
+                        row.nickname || row.username
+                      }}</span>
                       <span class="user-username">@{{ row.username }}</span>
                     </div>
                   </div>
@@ -105,17 +129,24 @@
                 <template #default="{ row }">
                   <div class="ip-cell">
                     <IconifyIconOnline icon="mdi:ip-network" class="ip-icon" />
-                    <span>{{ row.loginIp || '-' }}</span>
+                    <span>{{ row.loginIp || "-" }}</span>
                   </div>
                 </template>
               </el-table-column>
 
               <!-- 登录地址列 -->
-              <el-table-column label="登录地址" min-width="150" show-overflow-tooltip>
+              <el-table-column
+                label="登录地址"
+                min-width="150"
+                show-overflow-tooltip
+              >
                 <template #default="{ row }">
                   <div class="address-cell">
-                    <IconifyIconOnline icon="mdi:map-marker" class="address-icon" />
-                    <span>{{ row.loginAddress || '未知' }}</span>
+                    <IconifyIconOnline
+                      icon="mdi:map-marker"
+                      class="address-icon"
+                    />
+                    <span>{{ row.loginAddress || "未知" }}</span>
                   </div>
                 </template>
               </el-table-column>
@@ -124,8 +155,11 @@
               <el-table-column label="浏览器" min-width="120">
                 <template #default="{ row }">
                   <el-tag effect="light" size="small" class="browser-tag">
-                    <IconifyIconOnline :icon="getBrowserIcon(row.browser)" class="browser-icon" />
-                    <span>{{ row.browser || '未知' }}</span>
+                    <IconifyIconOnline
+                      :icon="getBrowserIcon(row.browser)"
+                      class="browser-icon"
+                    />
+                    <span>{{ row.browser || "未知" }}</span>
                   </el-tag>
                 </template>
               </el-table-column>
@@ -133,9 +167,17 @@
               <!-- 操作系统列 -->
               <el-table-column label="操作系统" min-width="120">
                 <template #default="{ row }">
-                  <el-tag type="info" effect="light" size="small" class="os-tag">
-                    <IconifyIconOnline :icon="getOsIcon(row.os)" class="os-icon" />
-                    <span>{{ row.os || '未知' }}</span>
+                  <el-tag
+                    type="info"
+                    effect="light"
+                    size="small"
+                    class="os-tag"
+                  >
+                    <IconifyIconOnline
+                      :icon="getOsIcon(row.os)"
+                      class="os-icon"
+                    />
+                    <span>{{ row.os || "未知" }}</span>
                   </el-tag>
                 </template>
               </el-table-column>
@@ -143,7 +185,11 @@
               <!-- 登录方式列 -->
               <el-table-column label="登录方式" width="100" align="center">
                 <template #default="{ row }">
-                  <el-tag :type="getLoginTypeTag(row.loginType)" effect="light" size="small">
+                  <el-tag
+                    :type="getLoginTypeTag(row.loginType)"
+                    effect="light"
+                    size="small"
+                  >
                     {{ getLoginTypeLabel(row.loginType) }}
                   </el-tag>
                 </template>
@@ -153,9 +199,14 @@
               <el-table-column label="登录时间" min-width="180">
                 <template #default="{ row }">
                   <div class="time-cell">
-                    <IconifyIconOnline icon="mdi:clock-outline" class="time-icon" />
+                    <IconifyIconOnline
+                      icon="mdi:clock-outline"
+                      class="time-icon"
+                    />
                     <div class="time-details">
-                      <span class="time-ago">{{ getTimeAgo(row.loginTime) }}</span>
+                      <span class="time-ago">{{
+                        getTimeAgo(row.loginTime)
+                      }}</span>
                       <span class="time-full">{{ row.loginTime }}</span>
                     </div>
                   </div>
@@ -163,7 +214,12 @@
               </el-table-column>
 
               <!-- 操作列 -->
-              <el-table-column label="操作" width="120" fixed="right" align="center">
+              <el-table-column
+                label="操作"
+                width="120"
+                fixed="right"
+                align="center"
+              >
                 <template #default="{ row }">
                   <el-popconfirm
                     title="确定要强制下线该用户吗？"
@@ -182,7 +238,10 @@
             </el-table>
 
             <!-- 空状态 -->
-            <el-empty v-if="!loading && tableData.length === 0" description="暂无在线用户" />
+            <el-empty
+              v-if="!loading && tableData.length === 0"
+              description="暂无在线用户"
+            />
           </div>
         </el-main>
       </el-container>
@@ -192,7 +251,13 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref, shallowRef } from "vue";
-import { fetchOnlineUsers, fetchOnlineCount, fetchKickUser, fetchKickUsers, type OnlineUser } from "@/api/manage/online";
+import {
+  fetchOnlineUsers,
+  fetchOnlineCount,
+  fetchKickUser,
+  fetchKickUsers,
+  type OnlineUser,
+} from "@/api/manage/online";
 import { getTimeAgo, message } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import Search from "@iconify-icons/ep/search";
@@ -299,7 +364,8 @@ const getBrowserIcon = (browser: string) => {
   if (b.includes("firefox")) return "mdi:firefox";
   if (b.includes("safari")) return "mdi:apple-safari";
   if (b.includes("edge")) return "mdi:microsoft-edge";
-  if (b.includes("ie") || b.includes("explorer")) return "mdi:microsoft-internet-explorer";
+  if (b.includes("ie") || b.includes("explorer"))
+    return "mdi:microsoft-internet-explorer";
   return "mdi:web";
 };
 
@@ -318,8 +384,13 @@ const getOsIcon = (os: string) => {
 /**
  * 获取登录方式标签类型
  */
-const getLoginTypeTag = (type: string): "primary" | "success" | "warning" | "info" | "danger" => {
-  const types: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
+const getLoginTypeTag = (
+  type: string,
+): "primary" | "success" | "warning" | "info" | "danger" => {
+  const types: Record<
+    string,
+    "primary" | "success" | "warning" | "info" | "danger"
+  > = {
     password: "primary",
     sms: "success",
     wechat: "warning",
@@ -354,8 +425,8 @@ onMounted(() => {
 
   .online-wrapper {
     height: 100%;
-    border-radius: var(--el-border-radius-base);
     overflow: hidden;
+    border-radius: var(--el-border-radius-base);
     box-shadow: var(--el-box-shadow-light);
     transition: all 0.3s ease;
 
@@ -366,26 +437,30 @@ onMounted(() => {
 
   .online-header {
     display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
     align-items: center;
     justify-content: space-between;
     height: auto !important;
     min-height: 80px;
     padding: 16px 24px;
     background-color: var(--el-bg-color);
+    background-image: linear-gradient(
+      135deg,
+      var(--el-bg-color) 0%,
+      var(--el-bg-color-page) 100%
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
-    background-image: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-bg-color-page) 100%);
-    flex-wrap: wrap;
-    gap: 16px;
 
     .header-left {
       display: flex;
-      align-items: center;
       gap: 20px;
+      align-items: center;
 
       .header-title {
         display: flex;
-        align-items: center;
         gap: 10px;
+        align-items: center;
         font-size: 20px;
         font-weight: 600;
         color: var(--el-text-color-primary);
@@ -403,13 +478,13 @@ onMounted(() => {
 
       .stats-tag {
         display: flex;
-        align-items: center;
         gap: 6px;
+        align-items: center;
         padding: 8px 16px;
         font-size: 14px;
         font-weight: 500;
         border-radius: 20px;
-        box-shadow: 0 2px 8px rgba(0, 200, 83, 0.2);
+        box-shadow: 0 2px 8px rgb(0 200 83 / 20%);
 
         .stats-icon {
           font-size: 18px;
@@ -419,9 +494,9 @@ onMounted(() => {
 
     .header-actions {
       display: flex;
-      align-items: center;
-      gap: 12px;
       flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
 
       .search-form {
         display: flex;
@@ -439,13 +514,13 @@ onMounted(() => {
 
       .action-btn {
         display: flex;
-        align-items: center;
         gap: 6px;
+        align-items: center;
         transition: all 0.3s ease;
 
         &:hover {
+          box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .iconify {
@@ -461,18 +536,18 @@ onMounted(() => {
 
     .table-container {
       height: 100%;
+      overflow: hidden;
       background-color: var(--el-bg-color);
       border-radius: var(--el-border-radius-base);
       box-shadow: var(--el-box-shadow-lighter);
-      overflow: hidden;
     }
 
     .online-table {
       :deep(.el-table__header) {
         th {
-          background-color: var(--el-fill-color-light);
           font-weight: 600;
           color: var(--el-text-color-primary);
+          background-color: var(--el-fill-color-light);
         }
       }
 
@@ -496,8 +571,8 @@ onMounted(() => {
 
       .user-info-cell {
         display: flex;
-        align-items: center;
         gap: 12px;
+        align-items: center;
 
         .user-avatar {
           display: flex;
@@ -505,9 +580,13 @@ onMounted(() => {
           justify-content: center;
           width: 40px;
           height: 40px;
-          background: linear-gradient(135deg, var(--el-color-primary-light-5) 0%, var(--el-color-primary) 100%);
-          border-radius: 50%;
           color: #fff;
+          background: linear-gradient(
+            135deg,
+            var(--el-color-primary-light-5) 0%,
+            var(--el-color-primary) 100%
+          );
+          border-radius: 50%;
 
           .iconify {
             font-size: 24px;
@@ -534,8 +613,8 @@ onMounted(() => {
       .ip-cell,
       .address-cell {
         display: flex;
-        align-items: center;
         gap: 6px;
+        align-items: center;
 
         .ip-icon,
         .address-icon {
@@ -547,8 +626,8 @@ onMounted(() => {
       .browser-tag,
       .os-tag {
         display: inline-flex;
-        align-items: center;
         gap: 4px;
+        align-items: center;
 
         .browser-icon,
         .os-icon {
@@ -558,8 +637,8 @@ onMounted(() => {
 
       .time-cell {
         display: flex;
-        align-items: center;
         gap: 8px;
+        align-items: center;
 
         .time-icon {
           font-size: 16px;
@@ -585,8 +664,8 @@ onMounted(() => {
 
       .kick-btn {
         display: flex;
-        align-items: center;
         gap: 4px;
+        align-items: center;
         transition: all 0.3s;
 
         &:hover {
@@ -605,20 +684,24 @@ onMounted(() => {
 :root[data-theme="dark"] {
   .online-container {
     .online-wrapper {
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
     }
 
     .online-header {
       background-color: var(--el-bg-color-overlay);
-      background-image: linear-gradient(135deg, var(--el-bg-color-overlay) 0%, var(--el-bg-color) 100%);
+      background-image: linear-gradient(
+        135deg,
+        var(--el-bg-color-overlay) 0%,
+        var(--el-bg-color) 100%
+      );
 
       .stats-tag {
-        box-shadow: 0 2px 8px rgba(0, 200, 83, 0.3);
+        box-shadow: 0 2px 8px rgb(0 200 83 / 30%);
       }
     }
 
     .table-container {
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 2px 12px rgb(0 0 0 / 15%);
     }
 
     .online-table {
@@ -636,7 +719,11 @@ onMounted(() => {
 
       .user-info-cell {
         .user-avatar {
-          background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+          background: linear-gradient(
+            135deg,
+            var(--el-color-primary-light-3) 0%,
+            var(--el-color-primary) 100%
+          );
         }
       }
     }

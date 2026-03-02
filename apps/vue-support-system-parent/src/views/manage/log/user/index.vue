@@ -3,7 +3,14 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 // 引入 Vue 的响应式和生命周期相关函数
-import { computed, defineAsyncComponent, nextTick, reactive, ref, watch } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 // 引入获取用户日志分页数据的 API 函数
 import { fetchPageUserLog } from "@repo/core";
 // 引入国际化转换函数
@@ -36,7 +43,20 @@ const form = reactive({
 
 // 计算图标样式类
 const iconClass = computed(() => {
-  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+  return [
+    "w-[22px]",
+    "h-[22px]",
+    "flex",
+    "justify-center",
+    "items-center",
+    "outline-none",
+    "rounded-[4px]",
+    "cursor-pointer",
+    "transition-colors",
+    "hover:bg-[#0000000f]",
+    "dark:hover:bg-[#ffffff1f]",
+    "dark:hover:text-[#ffffffd9]",
+  ];
 });
 
 // 定义模态框显示状态的对象
@@ -76,7 +96,7 @@ watch(
     form.startDate = newValue?.[0];
     form.endDate = newValue?.[1];
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 );
 
 // 定义表单的引用
@@ -101,7 +121,7 @@ const onSearch = debounce(
     table.value.reload(form);
   },
   1000,
-  true
+  true,
 );
 
 /**
@@ -113,7 +133,6 @@ const openDetail = async (row) => {
   await nextTick();
   detailRef.value.setData(row).open("view");
 };
-
 
 // 定义内容区域的引用
 const contentRef = ref();
@@ -134,17 +153,22 @@ const stats = reactive({
 // 数据加载完成回调
 const onDataLoaded = (data, total) => {
   stats.total = total || 0;
-  stats.success = data?.filter(item => item.sysLogStatus === 1)?.length || 0;
-  stats.failed = data?.filter(item => item.sysLogStatus === 0)?.length || 0;
-  const today = new Date().toISOString().split('T')[0];
-  stats.todayCount = data?.filter(item => item.createTime?.startsWith(today))?.length || 0;
+  stats.success = data?.filter((item) => item.sysLogStatus === 1)?.length || 0;
+  stats.failed = data?.filter((item) => item.sysLogStatus === 0)?.length || 0;
+  const today = new Date().toISOString().split("T")[0];
+  stats.todayCount =
+    data?.filter((item) => item.createTime?.startsWith(today))?.length || 0;
 };
 </script>
 
 <template>
   <div class="system-container log-main">
     <!-- 详情页组件，根据 visible.detail 控制显示 -->
-    <DetailLayout v-if="visible.detail" ref="detailRef" :moduleOptions="moduleOptions" />
+    <DetailLayout
+      v-if="visible.detail"
+      ref="detailRef"
+      :moduleOptions="moduleOptions"
+    />
     <el-container class="log-container">
       <!-- 统计面板 -->
       <div class="log-stats">
@@ -189,36 +213,80 @@ const onDataLoaded = (data, total) => {
       <el-header class="toolbar-section log-header">
         <div class="toolbar-left log-left-panel">
           <!-- 搜索表单 -->
-          <el-form ref="formRef" label-width="40px" :inline="true" :model="form" class="modern-form log-search-form">
+          <el-form
+            ref="formRef"
+            label-width="40px"
+            :inline="true"
+            :model="form"
+            class="modern-form log-search-form"
+          >
             <!-- 账号输入框 -->
-            <el-form-item label="账号" prop="sysLogUsername" class="log-form-item">
-              <el-input v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="log-input" />
+            <el-form-item
+              label="账号"
+              prop="sysLogUsername"
+              class="log-form-item"
+            >
+              <el-input
+                v-model="form.sysLogUsername"
+                placeholder="请输入账号名称"
+                clearable
+                class="log-input"
+              />
             </el-form-item>
             <!-- 模块选择框 -->
             <el-form-item label="模块" prop="sysLogFrom" class="log-form-item">
-              <el-select v-model="form.sysLogFrom" placeholder="请选择模块" clearable class="log-select">
-                <el-option v-for="item in moduleOptions" :key="item.value" :value="item.value" :label="item.label">
+              <el-select
+                v-model="form.sysLogFrom"
+                placeholder="请选择模块"
+                clearable
+                class="log-select"
+              >
+                <el-option
+                  v-for="item in moduleOptions"
+                  :key="item.value"
+                  :value="item.value"
+                  :label="item.label"
+                >
                   {{ item.label }}
                 </el-option>
               </el-select>
             </el-form-item>
             <!-- 状态选择框 -->
-            <el-form-item label="状态" prop="sysLogStatus" class="log-form-item">
-              <el-select v-model="form.sysLogStatus" class="log-select" clearable>
+            <el-form-item
+              label="状态"
+              prop="sysLogStatus"
+              class="log-form-item"
+            >
+              <el-select
+                v-model="form.sysLogStatus"
+                class="log-select"
+                clearable
+              >
                 <el-option :value="1" label="成功">成功</el-option>
                 <el-option :value="0" label="失败">失败</el-option>
               </el-select>
             </el-form-item>
             <!-- IP 输入框 -->
             <el-form-item label=" IP" prop="sysLogIp" class="log-form-item">
-              <el-input v-model="form.sysLogIp" placeholder="请输入IP" clearable class="log-input" />
+              <el-input
+                v-model="form.sysLogIp"
+                placeholder="请输入IP"
+                clearable
+                class="log-input"
+              />
             </el-form-item>
             <!-- 日期时间范围选择器 -->
             <el-form-item label="时间" prop="sysLogTime" class="log-form-item">
-              <el-date-picker v-model="sysLogTime" type="datetimerange"
+              <el-date-picker
+                v-model="sysLogTime"
+                type="datetimerange"
                 :start-placeholder="transformI18n('module.startDate')"
-                :end-placeholder="transformI18n('module.endDate')" format="YYYY-MM-DD HH:mm:ss"
-                date-format="YYYY-MM-DD ddd" time-format="A hh:mm:ss" class="log-date-picker" />
+                :end-placeholder="transformI18n('module.endDate')"
+                format="YYYY-MM-DD HH:mm:ss"
+                date-format="YYYY-MM-DD ddd"
+                time-format="A hh:mm:ss"
+                class="log-date-picker"
+              />
             </el-form-item>
           </el-form>
         </div>
@@ -230,11 +298,19 @@ const onDataLoaded = (data, total) => {
                   <div class="log-flex-1" />
                   <div class="log-button-container">
                     <!-- 搜索按钮 -->
-                    <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query"
-                      @click="onSearch" class="log-button log-search-button" />
+                    <el-button
+                      type="primary"
+                      :icon="useRenderIcon('ri:search-line')"
+                      :loading="loading.query"
+                      class="log-button log-search-button"
+                      @click="onSearch"
+                    />
                     <!-- 重置按钮 -->
-                    <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)"
-                      class="log-button log-reset-button" />
+                    <el-button
+                      :icon="useRenderIcon(Refresh)"
+                      class="log-button log-reset-button"
+                      @click="resetForm(formRef)"
+                    />
                   </div>
                 </div>
               </div>
@@ -245,46 +321,106 @@ const onDataLoaded = (data, total) => {
       <!-- 主体表格区域 -->
       <el-main class="log-main-content">
         <div ref="contentRef" class="log-content">
-          <div :class="[visible.role ? 'log-table-container-narrow' : 'log-table-container-full']">
+          <div
+            :class="[
+              visible.role
+                ? 'log-table-container-narrow'
+                : 'log-table-container-full',
+            ]"
+          >
             <!-- 表格组件 -->
-            <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail" @data-loaded="onDataLoaded" class="modern-table log-table" height="auto">
+            <ScTable
+              ref="table"
+              :url="fetchPageUserLog"
+              :rowClick="openDetail"
+              class="modern-table log-table"
+              height="auto"
+              @data-loaded="onDataLoaded"
+            >
               <!-- 表格列保持不变 -->
-              <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip
-                min-width="120px" />
-              <el-table-column label="模块" prop="sysLogFrom" align="center" show-overflow-tooltip>
+              <el-table-column
+                label="账号名称"
+                prop="sysLogUsername"
+                align="center"
+                show-overflow-tooltip
+                min-width="120px"
+              />
+              <el-table-column
+                label="模块"
+                prop="sysLogFrom"
+                align="center"
+                show-overflow-tooltip
+              >
                 <template #default="{ row }">
-                  <span class="log-module-text">{{ transform(row.sysLogFrom) }}</span>
+                  <span class="log-module-text">{{
+                    transform(row.sysLogFrom)
+                  }}</span>
                 </template>
               </el-table-column>
               <!-- 请求 IP 列，使用ScIp组件显示 -->
-              <el-table-column label="请求IP" prop="sysLogIp" align="left" show-overflow-tooltip min-width="200px">
+              <el-table-column
+                label="请求IP"
+                prop="sysLogIp"
+                align="left"
+                show-overflow-tooltip
+                min-width="200px"
+              >
                 <template #default="{ row }">
-                  <ScIp 
-                    :ip="row.sysLogIp" 
-                    :physical-address="row.sysLogAddress" 
+                  <ScIp
+                    :ip="row.sysLogIp"
+                    :physical-address="row.sysLogAddress"
                     size="small"
                     :show-icon="false"
                     :copyable="true"
                     :open-search-original="true"
                   />
-                  <div v-if="row.sysLogIsp" class="text-gray-400 text-xs mt-1">{{ row.sysLogIsp }}</div>
+                  <div v-if="row.sysLogIsp" class="text-gray-400 text-xs mt-1">
+                    {{ row.sysLogIsp }}
+                  </div>
                 </template>
               </el-table-column>
               <!-- 地址列 -->
-              <el-table-column label="地址" prop="sysLogUrl" align="center" show-overflow-tooltip width="180px" />
+              <el-table-column
+                label="地址"
+                prop="sysLogUrl"
+                align="center"
+                show-overflow-tooltip
+                width="180px"
+              />
               <!-- 浏览器指纹列 -->
-              <el-table-column label="浏览器指纹" prop="sysLogFingerprint" align="center" show-overflow-tooltip />
+              <el-table-column
+                label="浏览器指纹"
+                prop="sysLogFingerprint"
+                align="center"
+                show-overflow-tooltip
+              />
               <!-- 登录方式列，使用国际化转换显示值 -->
-              <el-table-column label="登录方式" prop="sysLogLoginType" align="center" width="140px">
+              <el-table-column
+                label="登录方式"
+                prop="sysLogLoginType"
+                align="center"
+                width="140px"
+              >
                 <template #default="{ row }">
                   {{ transformI18n(row.sysLogLoginType) }}
                 </template>
               </el-table-column>
               <!-- userAgent 列 -->
-              <el-table-column label="userAgent" prop="sysLogUa" align="center" show-overflow-tooltip
-                min-width="120px" />
+              <el-table-column
+                label="userAgent"
+                prop="sysLogUa"
+                align="center"
+                show-overflow-tooltip
+                min-width="120px"
+              />
               <!-- 请求时间列，显示时间差和具体时间 -->
-              <el-table-column label="请求时间" prop="createTime" align="left" show-overflow-tooltip min-width="120px">
+              <el-table-column
+                label="请求时间"
+                prop="createTime"
+                align="left"
+                show-overflow-tooltip
+                min-width="120px"
+              >
                 <template #default="{ row }">
                   <div>
                     <span>{{ getTimeAgo(row.createTime) }}</span>
@@ -294,19 +430,36 @@ const onDataLoaded = (data, total) => {
                 </template>
               </el-table-column>
               <!-- 状态列，根据状态显示不同标签 -->
-              <el-table-column label="状态" prop="sysLogStatus" align="center" width="100px" show-overflow-tooltip>
+              <el-table-column
+                label="状态"
+                prop="sysLogStatus"
+                align="center"
+                width="100px"
+                show-overflow-tooltip
+              >
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogStatus === 1" type="success">成功</el-tag>
-                  <el-tag v-else-if="row.sysLogStatus === 0" type="danger">失败</el-tag>
+                  <el-tag v-if="row.sysLogStatus === 1" type="success"
+                    >成功</el-tag
+                  >
+                  <el-tag v-else-if="row.sysLogStatus === 0" type="danger"
+                    >失败</el-tag
+                  >
                 </template>
               </el-table-column>
               <!-- 耗时列，根据耗时显示不同标签 -->
               <el-table-column label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogCost <= 1000" type="success">{{ row.sysLogCost || 0 }} ms</el-tag>
-                  <el-tag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning">{{ row.sysLogCost ||
-                    0 }} ms</el-tag>
-                  <el-tag v-else type="danger">{{ row.sysLogCost || 0 }} ms</el-tag>
+                  <el-tag v-if="row.sysLogCost <= 1000" type="success"
+                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                  >
+                  <el-tag
+                    v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
+                    type="warning"
+                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                  >
+                  <el-tag v-else type="danger"
+                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                  >
                 </template>
               </el-table-column>
             </ScTable>
@@ -318,7 +471,6 @@ const onDataLoaded = (data, total) => {
 </template>
 
 <style scoped lang="scss">
-// 动画定义
 @keyframes log-fade-in {
   from {
     opacity: 0;
@@ -333,13 +485,41 @@ const onDataLoaded = (data, total) => {
 
 @keyframes log-scale-in {
   from {
-    transform: scale(0.95);
     opacity: 0;
+    transform: scale(0.95);
   }
 
   to {
-    transform: scale(1);
     opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// 响应式适配
+@media (width <= 1200px) {
+  .log-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (width <= 768px) {
+  .log-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 12px;
+
+    .stat-item {
+      padding: 12px;
+
+      .stat-icon {
+        width: 40px;
+        height: 40px;
+      }
+
+      .stat-info .stat-value {
+        font-size: 18px;
+      }
+    }
   }
 }
 
@@ -354,26 +534,26 @@ const onDataLoaded = (data, total) => {
 
   .stat-item {
     display: flex;
-    align-items: center;
     gap: 14px;
+    align-items: center;
     padding: 14px 18px;
     background: var(--el-fill-color-lighter);
     border-radius: 10px;
     transition: all 0.3s ease;
 
     &:hover {
+      box-shadow: 0 6px 20px rgb(0 0 0 / 8%);
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
     }
 
     .stat-icon {
-      width: 48px;
-      height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 10px;
+      width: 48px;
+      height: 48px;
       color: #fff;
+      border-radius: 10px;
 
       &.total {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -399,14 +579,14 @@ const onDataLoaded = (data, total) => {
       .stat-value {
         font-size: 22px;
         font-weight: 700;
-        color: var(--el-text-color-primary);
         line-height: 1.2;
+        color: var(--el-text-color-primary);
       }
 
       .stat-label {
+        margin-top: 2px;
         font-size: 13px;
         color: var(--el-text-color-secondary);
-        margin-top: 2px;
       }
     }
   }
@@ -420,22 +600,22 @@ const onDataLoaded = (data, total) => {
 }
 
 .log-container {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  height: 100%;
   overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 5%);
 }
 
 // 头部样式
 .log-header {
-  padding: 16px;
-  background-color: var(--el-bg-color);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   height: auto !important;
   max-height: 160px;
+  padding: 16px;
+  background-color: var(--el-bg-color);
+  border-bottom: 1px solid rgb(0 0 0 / 5%);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 3%);
   transition: all 0.3s ease;
 }
 
@@ -444,13 +624,13 @@ const onDataLoaded = (data, total) => {
 }
 
 .log-search-form {
-  background-color: var(--el-bg-color);
-  width: 100%;
-  padding: 16px;
-  border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  width: 100%;
+  padding: 16px;
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
   animation: log-scale-in 0.4s ease-out;
 }
 
@@ -492,15 +672,14 @@ const onDataLoaded = (data, total) => {
 
 .log-button-group {
   display: flex;
-  flex-wrap: wrap;
-  flex-direction: row;
+  flex-flow: row wrap;
 }
 
 .log-button-container {
   display: flex;
+  flex: 1;
   flex-direction: row;
   justify-content: center;
-  flex: 1;
 }
 
 .log-button {
@@ -508,8 +687,8 @@ const onDataLoaded = (data, total) => {
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   &:hover {
+    box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   &:active {
@@ -533,21 +712,21 @@ const onDataLoaded = (data, total) => {
 
 // 主内容区域样式
 .log-main-content {
-  padding: 0 !important;
   height: calc(100% - 160px);
+  padding: 0 !important;
   overflow: hidden;
 }
 
 .log-table {
-  height: 100%;
   width: 100%; // 确保表格宽度为100%
+  height: 100%;
 
   :deep(.el-table) {
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     width: 100%; // 确保表格宽度为100%
+    overflow: hidden;
     table-layout: fixed; // 使用固定表格布局
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 5%);
 
     th {
       font-weight: 600;
@@ -564,14 +743,16 @@ const onDataLoaded = (data, total) => {
 
     td {
       padding: 12px 0;
-      transition: all 0.3s ease;
       word-break: break-word; // 允许单词内换行
+      transition: all 0.3s ease;
     }
   }
 
   :deep(.el-table__row) {
     animation: log-fade-in 0.3s ease-out forwards;
-    animation-delay: calc(var(--el-transition-duration) * 0.05 * var(--row-index, 0));
+    animation-delay: calc(
+      var(--el-transition-duration) * 0.05 * var(--row-index, 0)
+    );
   }
 }
 
@@ -598,64 +779,36 @@ const onDataLoaded = (data, total) => {
 
 // 添加以下样式以防止内容溢出
 .log-content {
-  height: 100%;
   display: flex;
   width: 100%;
+  height: 100%;
   overflow-x: hidden; // 隐藏横向滚动条
 }
 
 .log-table-container-full {
-  height: 100%;
   width: 100%;
-  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
   overflow-x: hidden; // 隐藏横向滚动条
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .log-table-container-narrow {
-  height: 100%;
   width: 60vw;
-  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
   overflow-x: hidden; // 隐藏横向滚动条
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 // 确保主容器不出现滚动条
 .log-main {
   height: 100%;
+  overflow-x: hidden; // 隐藏横向滚动条
   background-color: var(--el-bg-color);
   animation: log-fade-in 0.5s ease-out;
-  overflow-x: hidden; // 隐藏横向滚动条
-}
-
-// 响应式适配
-@media (max-width: 1200px) {
-  .log-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .log-stats {
-    grid-template-columns: repeat(2, 1fr);
-    padding: 12px;
-    gap: 12px;
-
-    .stat-item {
-      padding: 12px;
-
-      .stat-icon {
-        width: 40px;
-        height: 40px;
-      }
-
-      .stat-info .stat-value {
-        font-size: 18px;
-      }
-    }
-  }
 }
 
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .log-stats {
     background: var(--el-bg-color-overlay);
 
@@ -671,5 +824,5 @@ const onDataLoaded = (data, total) => {
   .log-search-form {
     background-color: var(--el-bg-color-overlay);
   }
-}
+} // 动画定义
 </style>

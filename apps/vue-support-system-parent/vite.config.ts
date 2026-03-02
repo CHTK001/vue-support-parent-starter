@@ -42,7 +42,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     ...getSharedPublicConfig(),
     resolve: {
       alias,
-      dedupe: ["vite", "vue", "vue-router", "vue-i18n"],
+      dedupe: ["vite", "vue", "vue-router", "vue-i18n", "three"],
       preserveSymlinks: true,
       conditions: ["import", "module", "browser", "default"],
     },
@@ -100,6 +100,10 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         "rete-connection-reroute-plugin",
         "rete-minimap-plugin",
         "@babel/runtime/regenerator",
+        // 像素主题组件库，提前加入预构建，避免首次动态导入时出现 Outdated Optimize Dep
+        "@pixelium/web-vue",
+        // 强制使用同一个 three.js 实例，避免 vue-3d-loader 和直接导入的 three 产生多实例警告
+        "three",
       ],
       exclude,
     },

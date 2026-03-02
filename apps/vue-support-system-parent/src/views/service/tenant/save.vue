@@ -28,12 +28,20 @@ const rules = {
   sysTenantName: [{ required: true, message: "请输入名称", trigger: "blur" }],
   sysTenantCode: [{ required: true, message: "请输入编码", trigger: "blur" }],
   sysTenantType: [{ required: true, message: "请选择类型", trigger: "blur" }],
-  sysTenantUsername: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  sysTenantPassword: [{ required: true, message: "请输入密码", trigger: "blur" }],
-  sysTenantPhone: [{ required: true, message: "请输入手机号", trigger: "blur" }],
+  sysTenantUsername: [
+    { required: true, message: "请输入用户名", trigger: "blur" },
+  ],
+  sysTenantPassword: [
+    { required: true, message: "请输入密码", trigger: "blur" },
+  ],
+  sysTenantPhone: [
+    { required: true, message: "请输入手机号", trigger: "blur" },
+  ],
   sysTenantStatus: [{ required: true, message: "请选择状态", trigger: "blur" }],
   serviceIds: [{ required: true, message: "请选择服务", trigger: "blur" }],
-  sysTenantMenuTagsList: [{ required: true, message: "请选择菜单", trigger: "blur" }],
+  sysTenantMenuTagsList: [
+    { required: true, message: "请选择菜单", trigger: "blur" },
+  ],
 };
 const handleClose = async () => {
   env.visible = false;
@@ -97,7 +105,9 @@ const handleOpen = async (item, mode) => {
   env.title = "模块更新 - " + item.sysTenantName;
   if (env.form.sysTenantService) {
     env.form?.sysTenantService?.forEach((it) => {
-      serviceForm[it.sysServiceId] = it.sysTenantServiceValidTime ? dateFormat(it.sysTenantServiceValidTime, "yyyy-MM-dd") : null;
+      serviceForm[it.sysServiceId] = it.sysTenantServiceValidTime
+        ? dateFormat(it.sysTenantServiceValidTime, "yyyy-MM-dd")
+        : null;
     });
   }
 };
@@ -107,7 +117,8 @@ const handleLoadMenuList = async (data) => {
 };
 
 const getServiceName = (value) => {
-  return env.serviceList.filter((it) => it.sysServiceId == ~~value)?.[0]?.sysServiceName;
+  return env.serviceList.filter((it) => it.sysServiceId == ~~value)?.[0]
+    ?.sysServiceName;
 };
 
 let serviceRules = {};
@@ -120,7 +131,13 @@ const handleChangeServiceId = async (val) => {
   serviceForm = reactive({});
   Object.assign(serviceForm, newValue);
   val.forEach((element) => {
-    serviceRules["service" + element] = [{ required: true, message: `请选择${getServiceName(element)}服务到期时间`, trigger: "blur" }];
+    serviceRules["service" + element] = [
+      {
+        required: true,
+        message: `请选择${getServiceName(element)}服务到期时间`,
+        trigger: "blur",
+      },
+    ];
   });
 };
 defineExpose({
@@ -131,31 +148,65 @@ defineExpose({
 </script>
 <template>
   <div>
-    <sc-dialog top="10px" v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
+    <sc-dialog
+      v-model="env.visible"
+      top="10px"
+      :title="env.title"
+      draggable
+      :close-on-click-modal="false"
+    >
       <el-row>
-        <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px" class="modern-form">
+        <el-form
+          ref="formRef"
+          :model="env.form"
+          :rules="rules"
+          label-width="120px"
+          class="modern-form"
+        >
           <el-row>
             <el-col :span="12">
               <el-form-item label="租户名称" prop="sysTenantName">
-                <el-input v-model="env.form.sysTenantName" placeholder="请输入名称" :maxlength="150" show-word-limit />
+                <el-input
+                  v-model="env.form.sysTenantName"
+                  placeholder="请输入名称"
+                  :maxlength="150"
+                  show-word-limit
+                />
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="租户编码" prop="sysTenantCode">
-                <el-input v-model="env.form.sysTenantCode" placeholder="请输入编码" :maxlength="50" show-word-limit />
+                <el-input
+                  v-model="env.form.sysTenantCode"
+                  placeholder="请输入编码"
+                  :maxlength="50"
+                  show-word-limit
+                />
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="负责人账号" prop="sysTenantUsername">
-                <el-input v-model="env.form.sysTenantUsername" placeholder="请输入负责人账号" :maxlength="50" show-word-limit />
+                <el-input
+                  v-model="env.form.sysTenantUsername"
+                  placeholder="请输入负责人账号"
+                  :maxlength="50"
+                  show-word-limit
+                />
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="负责人密码" prop="sysTenantPassword">
-                <el-input v-model="env.form.sysTenantPassword" placeholder="请输入负责人密码" :maxlength="50" show-word-limit show-password type="password" />
+                <el-input
+                  v-model="env.form.sysTenantPassword"
+                  placeholder="请输入负责人密码"
+                  :maxlength="50"
+                  show-word-limit
+                  show-password
+                  type="password"
+                />
               </el-form-item>
             </el-col>
 
@@ -179,15 +230,42 @@ defineExpose({
 
             <el-col :span="24">
               <el-form-item label="服务" prop="serviceIds">
-                <el-select @change="handleChangeServiceId" v-model="env.form.serviceIds" multiple placeholder="请选择服务">
-                  <el-option v-for="item in env.serviceList" :disabled="item.sysServiceStatus !== 0" :key="item.sysServiceId" :label="item.sysServiceName" :value="item.sysServiceId"> </el-option>
+                <el-select
+                  v-model="env.form.serviceIds"
+                  multiple
+                  placeholder="请选择服务"
+                  @change="handleChangeServiceId"
+                >
+                  <el-option
+                    v-for="item in env.serviceList"
+                    :key="item.sysServiceId"
+                    :disabled="item.sysServiceStatus !== 0"
+                    :label="item.sysServiceName"
+                    :value="item.sysServiceId"
+                  />
                 </el-select>
               </el-form-item>
 
               <el-form-item v-if="env.form?.serviceIds?.length > 0">
                 <el-form ref="serviceFormRef">
-                  <el-form-item :class="{ 'mt-4': index > 0 }" :rules="{ required: true, message: '请选择服务', trigger: 'change' }" :prop="'service' + item" :label="getServiceName(item)" v-for="(item, index) in env.form?.serviceIds">
-                    <el-date-picker value-format="YYYY-MM-DD" format="YYYY-MM-DD" v-model="serviceForm[item]" :placeholder="`请选择${getServiceName(item)}服务时间`"> </el-date-picker>
+                  <el-form-item
+                    v-for="(item, index) in env.form?.serviceIds"
+                    :key="item"
+                    :class="{ 'mt-4': index > 0 }"
+                    :rules="{
+                      required: true,
+                      message: '请选择服务',
+                      trigger: 'change',
+                    }"
+                    :prop="'service' + item"
+                    :label="getServiceName(item)"
+                  >
+                    <el-date-picker
+                      v-model="serviceForm[item]"
+                      value-format="YYYY-MM-DD"
+                      format="YYYY-MM-DD"
+                      :placeholder="`请选择${getServiceName(item)}服务时间`"
+                    />
                   </el-form-item>
                 </el-form>
               </el-form-item>
@@ -195,7 +273,12 @@ defineExpose({
 
             <el-col :span="12">
               <el-form-item label="手机号" prop="sysTenantPhone">
-                <el-input v-model="env.form.sysTenantPhone" placeholder="请输入手机号" :maxlength="150" show-word-limit />
+                <el-input
+                  v-model="env.form.sysTenantPhone"
+                  placeholder="请输入手机号"
+                  :maxlength="150"
+                  show-word-limit
+                />
               </el-form-item>
             </el-col>
 
@@ -207,7 +290,12 @@ defineExpose({
 
             <el-col :span="12">
               <el-form-item label="公司名称" prop="sysTenantCorporation">
-                <el-input v-model="env.form.sysTenantCorporation" placeholder="请输入公司名称" :maxlength="150" show-word-limit />
+                <el-input
+                  v-model="env.form.sysTenantCorporation"
+                  placeholder="请输入公司名称"
+                  :maxlength="150"
+                  show-word-limit
+                />
               </el-form-item>
             </el-col>
 
@@ -217,26 +305,50 @@ defineExpose({
               </el-form-item>
             </el-col> -->
 
-            <el-col :span="24" v-if="env.form.sysTenantCorporation">
+            <el-col v-if="env.form.sysTenantCorporation" :span="24">
               <el-form-item label="具体地址" prop="sysTenantAddress">
-                <el-input v-model="env.form.sysTenantAddress" placeholder="具体地址" :maxlength="250" show-word-limit type="textarea" :rows="3" />
+                <el-input
+                  v-model="env.form.sysTenantAddress"
+                  placeholder="具体地址"
+                  :maxlength="250"
+                  show-word-limit
+                  type="textarea"
+                  :rows="3"
+                />
               </el-form-item>
             </el-col>
 
             <el-col :span="24">
               <el-form-item label="优先级" prop="sysTenantSort">
-                <el-input-number v-model="env.form.sysTenantSort" placeholder="请输入编码" />
+                <el-input-number
+                  v-model="env.form.sysTenantSort"
+                  placeholder="请输入编码"
+                />
               </el-form-item>
             </el-col>
 
             <el-col :span="24">
               <el-form-item label="系统地址" prop="sysTenantHomeUrl">
-                <el-input v-model="env.form.sysTenantHomeUrl" placeholder="请输入系统地址" :maxlength="250" show-word-limit type="textarea" :rows="3" />
+                <el-input
+                  v-model="env.form.sysTenantHomeUrl"
+                  placeholder="请输入系统地址"
+                  :maxlength="250"
+                  show-word-limit
+                  type="textarea"
+                  :rows="3"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="24">
               <el-form-item label="描述" prop="sysTenantRemark">
-                <el-input v-model="env.form.sysTenantRemark" placeholder="请输入描述" :maxlength="250" show-word-limit type="textarea" :rows="3" />
+                <el-input
+                  v-model="env.form.sysTenantRemark"
+                  placeholder="请输入描述"
+                  :maxlength="250"
+                  show-word-limit
+                  type="textarea"
+                  :rows="3"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -244,7 +356,12 @@ defineExpose({
       </el-row>
       <template #footer>
         <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
-        <el-button type="primary" :loading="env.loading" @click="handleUpdate">{{ $t("buttons.confirm") }}</el-button>
+        <el-button
+          type="primary"
+          :loading="env.loading"
+          @click="handleUpdate"
+          >{{ $t("buttons.confirm") }}</el-button
+        >
       </template>
     </sc-dialog>
   </div>

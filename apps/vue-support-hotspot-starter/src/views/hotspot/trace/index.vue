@@ -255,13 +255,13 @@ onUnmounted(() => {
 }
 
 .stats-row {
-  margin-bottom: 16px;
   flex-shrink: 0;
+  margin-bottom: 16px;
 }
 
 .stat-card {
-  border-radius: 12px;
   border: none;
+  border-radius: 12px;
 
   :deep(.el-card__body) {
     padding: 20px;
@@ -269,44 +269,53 @@ onUnmounted(() => {
 
   .stat-content {
     display: flex;
-    align-items: center;
     gap: 16px;
+    align-items: center;
   }
 
   .stat-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-primary);
       }
     }
+
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-success);
       }
     }
+
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-warning);
       }
     }
+
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-danger);
       }
     }
+
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-info);
       }
@@ -342,9 +351,9 @@ onUnmounted(() => {
 
 .custom-tree-node {
   display: flex;
-  align-items: center;
-  gap: 8px;
   flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
   padding: 4px 0;
 }
 
@@ -369,8 +378,8 @@ onUnmounted(() => {
 .trace-drawer {
   :deep(.el-drawer__header) {
     padding: 20px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
     margin-bottom: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
   :deep(.el-drawer__body) {

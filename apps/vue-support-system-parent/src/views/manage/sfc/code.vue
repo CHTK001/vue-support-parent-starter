@@ -1,6 +1,14 @@
 ﻿<template>
   <div>
-    <sc-dialog v-model="visible" draggable title="编码" width="70vw" top="10px" @close="handleClose" class="code-dialog">
+    <sc-dialog
+      v-model="visible"
+      draggable
+      title="编码"
+      width="70vw"
+      top="10px"
+      class="code-dialog"
+      @close="handleClose"
+    >
       <template #header="{ titleId, titleClass }">
         <div class="dialog-header">
           <el-icon class="header-icon" :size="22">
@@ -10,7 +18,13 @@
         </div>
       </template>
       <div class="code-container">
-        <ScCodeEditor v-model="form.sysSfcContent" style="width: 100%; height: 70vh" :options="options" mode="vue" @updateValue="handleUpdateValue" />
+        <ScCodeEditor
+          v-model="form.sysSfcContent"
+          style="width: 100%; height: 70vh"
+          :options="options"
+          mode="vue"
+          @updateValue="handleUpdateValue"
+        />
       </div>
     </sc-dialog>
   </div>
@@ -20,7 +34,9 @@
 import "codemirror/mode/vue/vue";
 import { reactive, defineAsyncComponent, defineExpose, ref } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-const ScCodeEditor = defineAsyncComponent(() => import("@repo/components/ScCodeEditor/index.vue"));
+const ScCodeEditor = defineAsyncComponent(
+  () => import("@repo/components/ScCodeEditor/index.vue"),
+);
 const form = reactive({ sysSfcContent: "" });
 const visible = ref(false);
 const emits = defineEmits(["update:modelValue"]);
@@ -57,8 +73,12 @@ defineExpose({ setData, open });
   :deep(.el-dialog__header) {
     padding: 16px 20px;
     margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-warning-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(135deg, var(--el-color-warning-light-9) 0%, var(--el-bg-color) 100%);
   }
 
   :deep(.el-dialog__body) {
@@ -68,8 +88,8 @@ defineExpose({ setData, open });
 
 .dialog-header {
   display: flex;
-  align-items: center;
   gap: 10px;
+  align-items: center;
 
   .header-icon {
     color: var(--el-color-warning);
@@ -83,10 +103,14 @@ defineExpose({ setData, open });
 }
 
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .code-dialog {
     :deep(.el-dialog__header) {
-      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.15) 0%, var(--el-bg-color-overlay) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-warning-rgb), 0.15) 0%,
+        var(--el-bg-color-overlay) 100%
+      );
     }
   }
 

@@ -88,7 +88,12 @@
           />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="queryParams.taskStatus" placeholder="全部" clearable style="width: 120px">
+          <el-select
+            v-model="queryParams.taskStatus"
+            placeholder="全部"
+            clearable
+            style="width: 120px"
+          >
             <el-option label="已停止" value="STOPPED" />
             <el-option label="运行中" value="RUNNING" />
             <el-option label="异常" value="ERROR" />
@@ -119,8 +124,18 @@
       >
         <el-table-column type="selection" width="55" />
         <el-table-column prop="syncTaskId" label="ID" width="80" />
-        <el-table-column prop="syncTaskName" label="任务名称" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="syncTaskDesc" label="描述" min-width="200" show-overflow-tooltip />
+        <el-table-column
+          prop="syncTaskName"
+          label="任务名称"
+          min-width="150"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="syncTaskDesc"
+          label="描述"
+          min-width="200"
+          show-overflow-tooltip
+        />
         <el-table-column prop="syncTaskStatus" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.syncTaskStatus)">
@@ -128,12 +143,23 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="syncTaskBatchSize" label="批次大小" width="100" />
-        <el-table-column prop="syncTaskCron" label="CRON表达式" min-width="150" show-overflow-tooltip />
+        <el-table-column
+          prop="syncTaskBatchSize"
+          label="批次大小"
+          width="100"
+        />
+        <el-table-column
+          prop="syncTaskCron"
+          label="CRON表达式"
+          min-width="150"
+          show-overflow-tooltip
+        />
         <el-table-column prop="createTime" label="创建时间" width="180" />
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button link type="primary" @click="handleEdit(row)"
+              >编辑</el-button
+            >
             <el-button
               v-if="row.syncTaskStatus !== 'RUNNING'"
               link
@@ -142,10 +168,18 @@
             >
               启动
             </el-button>
-            <el-button v-else link type="warning" @click="handleStop(row)">停止</el-button>
-            <el-button link type="info" @click="handleExecuteOnce(row)">执行</el-button>
-            <el-button link type="primary" @click="handleLogs(row)">日志</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button v-else link type="warning" @click="handleStop(row)"
+              >停止</el-button
+            >
+            <el-button link type="info" @click="handleExecuteOnce(row)"
+              >执行</el-button
+            >
+            <el-button link type="primary" @click="handleLogs(row)"
+              >日志</el-button
+            >
+            <el-button link type="danger" @click="handleDelete(row)"
+              >删除</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
@@ -176,7 +210,10 @@
         label-width="120px"
       >
         <el-form-item label="任务名称" prop="syncTaskName">
-          <el-input v-model="formData.syncTaskName" placeholder="请输入任务名称" />
+          <el-input
+            v-model="formData.syncTaskName"
+            placeholder="请输入任务名称"
+          />
         </el-form-item>
         <el-form-item label="任务描述" prop="syncTaskDesc">
           <el-input
@@ -187,19 +224,38 @@
           />
         </el-form-item>
         <el-form-item label="批次大小" prop="syncTaskBatchSize">
-          <el-input-number v-model="formData.syncTaskBatchSize" :min="1" :max="100000" />
+          <el-input-number
+            v-model="formData.syncTaskBatchSize"
+            :min="1"
+            :max="100000"
+          />
         </el-form-item>
         <el-form-item label="重试次数" prop="syncTaskRetryCount">
-          <el-input-number v-model="formData.syncTaskRetryCount" :min="0" :max="100" />
+          <el-input-number
+            v-model="formData.syncTaskRetryCount"
+            :min="0"
+            :max="100"
+          />
         </el-form-item>
         <el-form-item label="重试间隔(ms)" prop="syncTaskRetryInterval">
-          <el-input-number v-model="formData.syncTaskRetryInterval" :min="0" :step="1000" />
+          <el-input-number
+            v-model="formData.syncTaskRetryInterval"
+            :min="0"
+            :step="1000"
+          />
         </el-form-item>
         <el-form-item label="同步间隔(ms)" prop="syncTaskSyncInterval">
-          <el-input-number v-model="formData.syncTaskSyncInterval" :min="0" :step="1000" />
+          <el-input-number
+            v-model="formData.syncTaskSyncInterval"
+            :min="0"
+            :step="1000"
+          />
         </el-form-item>
         <el-form-item label="CRON表达式" prop="syncTaskCron">
-          <el-input v-model="formData.syncTaskCron" placeholder="如: 0 0 * * * ?" />
+          <el-input
+            v-model="formData.syncTaskCron"
+            placeholder="如: 0 0 * * * ?"
+          />
         </el-form-item>
         <el-form-item label="启用ACK" prop="syncTaskAckEnabled">
           <el-switch
@@ -218,7 +274,11 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+        <el-button
+          type="primary"
+          :loading="submitLoading"
+          @click="handleSubmit"
+        >
           确定
         </el-button>
       </template>
@@ -240,7 +300,11 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="syncLogTriggerType" label="触发类型" width="100" />
+        <el-table-column
+          prop="syncLogTriggerType"
+          label="触发类型"
+          width="100"
+        />
         <el-table-column label="数据统计" width="200">
           <template #default="{ row }">
             <div>读取: {{ row.syncLogReadCount || 0 }}</div>
@@ -250,7 +314,11 @@
         </el-table-column>
         <el-table-column prop="syncLogCost" label="耗时(ms)" width="100" />
         <el-table-column prop="syncLogStartTime" label="开始时间" width="180" />
-        <el-table-column prop="syncLogMessage" label="消息" show-overflow-tooltip />
+        <el-table-column
+          prop="syncLogMessage"
+          label="消息"
+          show-overflow-tooltip
+        />
       </el-table>
       <el-pagination
         v-model:current-page="logsPage"
@@ -266,7 +334,12 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
-import { ElMessage, ElMessageBox, type FormInstance, type TableInstance } from "element-plus";
+import {
+  ElMessage,
+  ElMessageBox,
+  type FormInstance,
+  type TableInstance,
+} from "element-plus";
 import {
   Search,
   RefreshRight,
@@ -319,9 +392,14 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null;
 // 统计数据
 const stats = computed(() => {
   const total = taskList.value.length;
-  const running = taskList.value.filter((t) => t.syncTaskStatus === "RUNNING").length;
-  const error = taskList.value.filter((t) => t.syncTaskStatus === "ERROR").length;
-  const successRate = total > 0 ? Math.round(((total - error) / total) * 100) : 100;
+  const running = taskList.value.filter(
+    (t) => t.syncTaskStatus === "RUNNING",
+  ).length;
+  const error = taskList.value.filter(
+    (t) => t.syncTaskStatus === "ERROR",
+  ).length;
+  const successRate =
+    total > 0 ? Math.round(((total - error) / total) * 100) : 100;
   return { total, running, error, successRate };
 });
 
@@ -577,7 +655,11 @@ const loadLogs = async () => {
   if (!currentTaskId.value) return;
   logsLoading.value = true;
   try {
-    const res = await fetchSyncTaskLogs(currentTaskId.value, logsPage.value, logsSize.value);
+    const res = await fetchSyncTaskLogs(
+      currentTaskId.value,
+      logsPage.value,
+      logsSize.value,
+    );
     if (res.data?.success) {
       logsList.value = res.data.data?.records || [];
       logsTotal.value = res.data.data?.total || 0;
@@ -626,24 +708,26 @@ onUnmounted(() => {
 @use "@/styles/mixins.scss" as *;
 
 .sync-data-container {
-  padding: 20px;
   min-height: 100%;
+  padding: 20px;
 }
 
 .page-header {
-  margin-bottom: 20px;
   padding: 20px;
+  margin-bottom: 20px;
   background: var(--el-bg-color);
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
 
   .header-content {
     @include flex-between;
+
     width: 100%;
   }
 
   .header-title {
     @include flex-align-center;
+
     gap: 12px;
 
     .title-icon {
@@ -652,7 +736,7 @@ onUnmounted(() => {
     }
 
     h2 {
-      margin: 0 0 4px 0;
+      margin: 0 0 4px;
       font-size: 24px;
       font-weight: 600;
       color: var(--el-text-color-primary);
@@ -660,8 +744,8 @@ onUnmounted(() => {
 
     p {
       margin: 0;
-      color: var(--el-text-color-regular);
       font-size: 14px;
+      color: var(--el-text-color-regular);
     }
   }
 }
@@ -672,15 +756,17 @@ onUnmounted(() => {
   .stat-card {
     .stat-content {
       @include flex-align-center;
+
       gap: 16px;
 
       .stat-icon {
+        @include flex-center;
+
         width: 60px;
         height: 60px;
-        border-radius: 12px;
-        @include flex-center;
         font-size: 28px;
         color: white;
+        border-radius: 12px;
 
         &.total {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -705,14 +791,14 @@ onUnmounted(() => {
         .stat-value {
           font-size: 28px;
           font-weight: 600;
-          color: var(--el-text-color-primary);
           line-height: 1.2;
+          color: var(--el-text-color-primary);
         }
 
         .stat-label {
+          margin-top: 4px;
           font-size: 14px;
           color: var(--el-text-color-regular);
-          margin-top: 4px;
         }
       }
     }
@@ -730,8 +816,8 @@ onUnmounted(() => {
 
   .pagination {
     @include flex-center;
+
     margin-top: 16px;
   }
 }
 </style>
-

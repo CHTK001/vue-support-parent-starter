@@ -20,6 +20,7 @@ import {
   onMounted,
   watchEffect
 } from "vue";
+import { ScText } from "@repo/components";
 import { useNav } from "../../../hooks/useNav";
 import { emitter } from "@repo/core";
 
@@ -187,7 +188,7 @@ onMounted(() => {
           "
         />
       </div>
-      <span
+      <ScText
         v-if="
           !isCollapse ||
           item?.parentId ||
@@ -201,13 +202,10 @@ onMounted(() => {
             item?.pathList?.length === 2)
         "
         class="flex-1 !pl-4 menu-text"
-      >
-        {{
-          transformI18n(
-            onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title || item?.meta?.title
-          )
-        }}
-      </span>
+        :text="transformI18n(
+          onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title || item?.meta?.title
+        )"
+      />
       <ReMenuNewBadge
         v-if="!isCollapse && showNewMenu"
         :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime"
@@ -239,7 +237,7 @@ onMounted(() => {
           :is="useRenderIcon((item.meta && toRaw(item.meta.icon)) || 'ep:menu')"
         />
       </div>
-      <span
+      <ScText
         v-if="
           layout === 'mix' && toRaw(item?.meta?.icon)
             ? !isCollapse || item?.pathList?.length !== 2
@@ -259,9 +257,8 @@ onMounted(() => {
             !toRaw(item?.meta?.icon) &&
             item.parentId === null,
         }"
-      >
-        {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
-      </span>
+        :text="transformI18n(item?.meta?.i18nKey || item?.meta?.title)"
+      />
       <ReMenuNewBadge
         v-if="!isCollapse && showNewMenu"
         :createTime="item?.meta?.createTime"

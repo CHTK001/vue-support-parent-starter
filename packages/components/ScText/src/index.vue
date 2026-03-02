@@ -5,18 +5,13 @@
  * @version 1.0.0
  * @since 2025-12-05
 -->
-<template>
-  <ScTooltip v-if="showTooltip" :content="tooltipContent" :placement="tooltipPlacement" :effect="tooltipEffect" :disabled="!shouldShowTooltip" :raw-content="true">
-    <component :is="renderComponent" />
-  </ScTooltip>
-  <component v-else :is="renderComponent" />
-</template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onUnmounted, h, type VNode } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, h, type VNode, getCurrentInstance, resolveComponent as vueResolveComponent } from "vue";
 import { message } from "@repo/utils";
 import TypeIt from "typeit";
 import { ScTooltip } from "../../ScTooltip";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
 import type { ScTextProps, ScTextType, ScTextSize, ScTextEffect, TypeItInstance } from "./types";
 
 defineOptions({
@@ -156,10 +151,21 @@ const isLoading = computed(() => {
 });
 
 /**
+ * 使用主题组件系统
+ */
+const { currentSkin, currentComponent } = useThemeComponent("ElText");
+
+/**
  * 容器样式类
  */
 const containerClass = computed(() => {
   const classes = ["sc-text"];
+
+  // 添加 data-skin 主题类，用于 CSS 选择器
+  const skin = currentSkin.value || "default";
+  if (skin && skin !== "default") {
+    classes.push(`sc-text--skin-${skin}`);
+  }
 
   // 类型
   if (props.type && props.type !== "default") {
@@ -591,9 +597,14 @@ function highlightText(text: string): VNode[] {
 }
 
 /**
- * 渲染组件
+ * 渲染组件（改为函数以避免 ref 上下文丢失）
+ * 使用 getCurrentInstance 确保 ref 回调在正确的上下文中执行
  */
-const renderComponent = computed(() => {
+function renderComponent() {
+  const instance = getCurrentInstance();
+  if (!instance) {
+    console.warn("[ScText] 无法获取组件实例，ref 可能无法正常工作");
+  }
   // 加载状态（包括远程调用加载）
   if (isLoading.value) {
     return h("span", { class: containerClass.value, style: containerStyle.value }, [h("span", { class: "sc-text__skeleton" })]);
@@ -640,12 +651,16 @@ const renderComponent = computed(() => {
   // 主文本
   if (props.useTypeIt) {
     // TypeIt 模式：创建空容器，由 TypeIt 填充内容
+    // 使用同一个 ref 引用，确保两个 ref 都指向同一个元素
+    const typeItElementRef = (el: HTMLElement | null) => {
+      if (el) {
+        textRef.value = el;
+        typeItRef.value = el;
+      }
+    };
     mainContent.push(
       h("span", {
-        ref: (el: HTMLElement | null) => {
-          textRef.value = el;
-          typeItRef.value = el;
-        },
+        ref: typeItElementRef,
         class: "sc-text__content sc-text__typeit"
       })
     );
@@ -730,7 +745,9 @@ const renderComponent = computed(() => {
   const rootProps: Record<string, unknown> = {
     class: containerClass.value,
     style: containerStyle.value,
-    onClick: handleClick
+    onClick: handleClick,
+    // 添加 data-skin 属性，支持主题切换
+    "data-skin": currentSkin.value || "default"
   };
 
   if (props.href) {
@@ -739,13 +756,30 @@ const renderComponent = computed(() => {
   }
 
   return h(Tag, rootProps, children);
-});
+}
 
 /**
  * 解析组件（用于图标）
  */
 function resolveComponent(name: string): unknown {
-  // 使用全局注册的组件
+  const instance = getCurrentInstance();
+  if (instance) {
+    try {
+      // 尝试从应用上下文中解析组件
+      const component = vueResolveComponent(name);
+      if (component && typeof component !== "string") {
+        return component;
+      }
+    } catch {
+      // 如果解析失败，尝试从全局组件注册表中查找
+      const appContext = instance.appContext;
+      const globalComponent = appContext.components[name];
+      if (globalComponent) {
+        return globalComponent;
+      }
+    }
+  }
+  // 如果都找不到，返回组件名字符串，让 Vue 自动解析
   return name;
 }
 
@@ -833,6 +867,20 @@ defineExpose({
 });
 </script>
 
+<template>
+  <ScTooltip
+    v-if="showTooltip"
+    :content="tooltipContent"
+    :placement="tooltipPlacement"
+    :effect="tooltipEffect"
+    :disabled="!shouldShowTooltip"
+    :raw-content="true"
+  >
+    <component :is="renderComponent" />
+  </ScTooltip>
+  <component v-else :is="renderComponent" />
+</template>
+
 <style lang="scss" scoped>
 .sc-text {
   display: inline-flex;
@@ -843,6 +891,23 @@ defineExpose({
   line-height: 1.5;
   vertical-align: middle;
   transition: all 0.2s ease;
+
+  // ==================== 主题支持 ====================
+  // 支持通过 data-skin 属性切换主题样式
+  // 示例：8bit 主题（Pixelium）
+  &--skin-8bit {
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+    color: var(--pixelium-text-color, var(--el-text-color-regular));
+  }
+
+  // 可以通过 CSS 变量或选择器为不同主题定制样式
+  // :global([data-skin="8bit"]) & {
+  //   8bit 主题下的特殊样式
+  // }
+
+  // :global([data-skin="default"]) & {
+  //   默认主题样式（如果需要覆盖）
+  // }
 
   // ==================== 类型 ====================
   &--primary {

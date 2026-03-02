@@ -253,13 +253,13 @@ onUnmounted(() => {
 }
 
 .stats-row {
-  margin-bottom: 16px;
   flex-shrink: 0;
+  margin-bottom: 16px;
 }
 
 .stat-card {
-  border-radius: 12px;
   border: none;
+  border-radius: 12px;
 
   :deep(.el-card__body) {
     padding: 20px;
@@ -267,44 +267,53 @@ onUnmounted(() => {
 
   .stat-content {
     display: flex;
-    align-items: center;
     gap: 16px;
+    align-items: center;
   }
 
   .stat-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-primary);
       }
     }
+
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-success);
       }
     }
+
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-warning);
       }
     }
+
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-danger);
       }
     }
+
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-info);
       }
@@ -332,13 +341,13 @@ onUnmounted(() => {
 }
 
 .code-block {
-  background: var(--el-fill-color-light);
   padding: 16px;
-  border-radius: 4px;
+  overflow-x: auto;
   font-family: "Courier New", monospace;
   font-size: 13px;
   line-height: 1.6;
-  overflow-x: auto;
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
 }
 
 :deep(.el-card) {

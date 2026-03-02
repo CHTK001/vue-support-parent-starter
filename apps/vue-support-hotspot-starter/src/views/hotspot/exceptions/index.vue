@@ -263,8 +263,8 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .page-container {
-  padding: 20px;
   min-height: 100%;
+  padding: 20px;
   background: var(--el-bg-color-page);
 }
 
@@ -273,8 +273,8 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  border-radius: 12px;
   border: none;
+  border-radius: 12px;
 
   :deep(.el-card__body) {
     padding: 20px;
@@ -282,44 +282,53 @@ onUnmounted(() => {
 
   .stat-content {
     display: flex;
-    align-items: center;
     gap: 16px;
+    align-items: center;
   }
 
   .stat-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-primary);
       }
     }
+
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-success);
       }
     }
+
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-warning);
       }
     }
+
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-danger);
       }
     }
+
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+
       .stat-icon {
         color: var(--el-color-info);
       }
@@ -352,9 +361,9 @@ onUnmounted(() => {
 }
 
 .modern-card {
-  border-radius: 12px;
   border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
 
   :deep(.el-card__header) {
     padding: 16px 20px;
@@ -364,8 +373,8 @@ onUnmounted(() => {
   .card-header {
     .card-title {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
       font-size: 16px;
       font-weight: 600;
       color: var(--el-text-color-primary);
@@ -395,14 +404,14 @@ onUnmounted(() => {
     }
 
     pre {
-      background: var(--el-fill-color-lighter);
       padding: 16px;
-      border-radius: 8px;
       overflow-x: auto;
-      font-family: "Monaco", "Menlo", monospace;
+      font-family: Monaco, Menlo, monospace;
       font-size: 12px;
       line-height: 1.6;
       color: var(--el-color-danger);
+      background: var(--el-fill-color-lighter);
+      border-radius: 8px;
     }
   }
 }
@@ -415,7 +424,7 @@ html.dark {
 
   .stat-card,
   .modern-card {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 }
 </style>

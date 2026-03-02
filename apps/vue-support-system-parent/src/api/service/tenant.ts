@@ -109,7 +109,10 @@ export const fetchDeleteTenant = (params: { sysTenantId: string }) => {
 /**
  * 更新租户状态
  */
-export const fetchUpdateTenantStatus = (sysTenantId: string, status: number) => {
+export const fetchUpdateTenantStatus = (
+  sysTenantId: string,
+  status: number,
+) => {
   return http.request<ReturnResult<boolean>>("put", "/v2/tenant/status", {
     params: { sysTenantId, status },
   });

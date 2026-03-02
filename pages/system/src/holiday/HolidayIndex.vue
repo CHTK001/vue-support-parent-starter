@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import Calendar from "@iconify-icons/ep/calendar";
 import Refresh from "@iconify-icons/line-md/backup-restore";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import ScFilterBar from "@repo/components/ScFilterBar/index.vue";
 import { message } from "@repo/utils";
 import {
@@ -48,6 +48,8 @@ const params = reactive({
 
 // 节假日数据
 const holidayData = ref<SysHoliday[]>([]);
+// 下班时间（HH:mm）
+const workEndTime = ref("18:00");
 
 /**
  * 计算距离今天的天数
@@ -298,6 +300,18 @@ onMounted(() => {
                       <span>下班倒计时</span>
                       <ScSwitch v-model="showWorkCountdown" size="small" />
                     </div>
+                    <div class="setting-item">
+                      <span>下班时间</span>
+                      <el-time-picker
+                        v-model="workEndTime"
+                        size="small"
+                        format="HH:mm"
+                        value-format="HH:mm"
+                        placeholder="选择下班时间"
+                        :clearable="false"
+                        class="work-time-picker"
+                      />
+                    </div>
                   </div>
                 </ScPopover>
 
@@ -428,6 +442,7 @@ onMounted(() => {
                 :poster-mode="posterMode"
                 :show-holiday-countdown="showHolidayCountdown"
                 :show-work-countdown="showWorkCountdown"
+                :work-end-time="workEndTime"
                 @year-change="
                   (year) => {
                     params.year = year;

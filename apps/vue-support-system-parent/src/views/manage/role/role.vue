@@ -1,6 +1,14 @@
 ﻿<template>
   <div>
-    <sc-dialog draggable :title="env.title" v-model="env.visible" width="600px" :close-on-click-modal="false" @close="handleClose" class="role-dialog">
+    <sc-dialog
+      v-model="env.visible"
+      draggable
+      :title="env.title"
+      width="600px"
+      :close-on-click-modal="false"
+      class="role-dialog"
+      @close="handleClose"
+    >
       <template #header="{ titleId, titleClass }">
         <div class="dialog-header">
           <el-icon class="header-icon" :size="22">
@@ -14,7 +22,17 @@
           <div class="tab-content">
             <el-skeleton :loading="loading.menu" animated>
               <template #default>
-                <el-tree-v2 ref="treeRef" :default-checked-keys="currentRoleMenuIds" show-checkbox :data="treeData" :props="treeProps" :height="treeHeight" :check-strictly="isLinkage" :filter-method="filterMethod" class="role-tree">
+                <el-tree-v2
+                  ref="treeRef"
+                  :default-checked-keys="currentRoleMenuIds"
+                  show-checkbox
+                  :data="treeData"
+                  :props="treeProps"
+                  :height="treeHeight"
+                  :check-strictly="isLinkage"
+                  :filter-method="filterMethod"
+                  class="role-tree"
+                >
                   <template #default="{ node }">
                     <span>{{ transformI18n(node.label) }}</span>
                   </template>
@@ -26,9 +44,17 @@
         <el-tab-pane name="boardCard" :label="$t('buttons.board-card')">
           <div class="tab-content">
             <el-form class="modern-form">
-              <el-form-item :label="$t('message.board-card-type')" prop="sysRoleBoardCard">
+              <el-form-item
+                :label="$t('message.board-card-type')"
+                prop="sysRoleBoardCard"
+              >
                 <el-select v-model="env.data.sysRoleBoardCard">
-                  <el-option v-for="item in BoardCardList" :key="item.value" :label="item.label" :value="item.value" />
+                  <el-option
+                    v-for="item in BoardCardList"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
                 </el-select>
               </el-form-item>
             </el-form>
@@ -37,109 +63,58 @@
         <el-tab-pane name="permission" :label="$t('buttons.permission')">
           <div class="tab-content">
             <el-form label-width="120px" class="modern-form">
-            <el-form-item :label="$t('message.readable')" prop="sysRoleReadable">
-              <el-segmented
-                v-model="env.data.sysRoleReadable"
-                :options="readableOptions"
-              />
-            </el-form-item>
-            <el-form-item :label="$t('message.writeable')" prop="sysRoleWriteable">
-              <el-segmented
-                v-model="env.data.sysRoleWriteable"
-                :options="writeableOptions"
-              />
-            </el-form-item>
-            <el-form-item :label="$t('message.executable')" prop="sysRoleExecutable">
-              <el-segmented
-                v-model="env.data.sysRoleExecutable"
-                :options="executableOptions"
-              />
-            </el-form-item>
-          </el-form>
+              <el-form-item
+                :label="$t('message.readable')"
+                prop="sysRoleReadable"
+              >
+                <el-segmented
+                  v-model="env.data.sysRoleReadable"
+                  :options="readableOptions"
+                />
+              </el-form-item>
+              <el-form-item
+                :label="$t('message.writeable')"
+                prop="sysRoleWriteable"
+              >
+                <el-segmented
+                  v-model="env.data.sysRoleWriteable"
+                  :options="writeableOptions"
+                />
+              </el-form-item>
+              <el-form-item
+                :label="$t('message.executable')"
+                prop="sysRoleExecutable"
+              >
+                <el-segmented
+                  v-model="env.data.sysRoleExecutable"
+                  :options="executableOptions"
+                />
+              </el-form-item>
+            </el-form>
           </div>
         </el-tab-pane>
       </el-tabs>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
-          <el-button type="primary" @click="handleTabEvent">{{ $t("buttons.confirm") }}</el-button>
+          <el-button type="primary" @click="handleTabEvent">{{
+            $t("buttons.confirm")
+          }}</el-button>
         </div>
       </template>
     </sc-dialog>
   </div>
 </template>
 
-<style lang="scss" scoped>
-.role-dialog {
-  :deep(.el-dialog__header) {
-    padding: 16px 20px;
-    margin: 0;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
-  }
-
-  :deep(.el-dialog__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-dialog__footer) {
-    padding: 16px 20px;
-    border-top: 1px solid var(--el-border-color-lighter);
-  }
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  .header-icon {
-    color: var(--el-color-primary);
-  }
-}
-
-.role-tabs {
-  :deep(.el-tabs__header) {
-    margin-bottom: 20px;
-  }
-
-  :deep(.el-tabs__item) {
-    font-weight: 500;
-  }
-
-  :deep(.el-tabs__active-bar) {
-    height: 3px;
-  }
-}
-
-.tab-content {
-  min-height: 300px;
-}
-
-.role-tree {
-  :deep(.el-tree-v2__node) {
-    padding: 4px 0;
-  }
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-// 暗色主题适配
-:root[data-theme='dark'] {
-  .role-dialog {
-    :deep(.el-dialog__header) {
-      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15) 0%, var(--el-bg-color-overlay) 100%);
-    }
-  }
-}
-</style>
 <script setup>
 import { computed, defineExpose, reactive, ref, shallowRef } from "vue";
-import { fetchPageRole, fetchUpdateRole, fetchDeleteRole, fetchUpdateRoleMenu, fetchGetRoleMenu } from "@/api/manage/role";
+import {
+  fetchPageRole,
+  fetchUpdateRole,
+  fetchDeleteRole,
+  fetchUpdateRoleMenu,
+  fetchGetRoleMenu,
+} from "@/api/manage/role";
 import { fetchListMenu } from "@/api/manage/menu";
 import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
@@ -171,7 +146,20 @@ const filterMethod = (query, node) => {
   return transformI18n(node.title)?.includes(query);
 };
 const iconClass = computed(() => {
-  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+  return [
+    "w-[22px]",
+    "h-[22px]",
+    "flex",
+    "justify-center",
+    "items-center",
+    "outline-none",
+    "rounded-[4px]",
+    "cursor-pointer",
+    "transition-colors",
+    "hover:bg-[#0000000f]",
+    "dark:hover:bg-[#ffffff1f]",
+    "dark:hover:text-[#ffffffd9]",
+  ];
 });
 const treeProps = {
   value: "sysMenuId",
@@ -267,3 +255,79 @@ defineExpose({
   handleOpen,
 });
 </script>
+<style lang="scss" scoped>
+.role-dialog {
+  :deep(.el-dialog__header) {
+    padding: 16px 20px;
+    margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 16px 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+.dialog-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  .header-icon {
+    color: var(--el-color-primary);
+  }
+}
+
+.role-tabs {
+  :deep(.el-tabs__header) {
+    margin-bottom: 20px;
+  }
+
+  :deep(.el-tabs__item) {
+    font-weight: 500;
+  }
+
+  :deep(.el-tabs__active-bar) {
+    height: 3px;
+  }
+}
+
+.tab-content {
+  min-height: 300px;
+}
+
+.role-tree {
+  :deep(.el-tree-v2__node) {
+    padding: 4px 0;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+// 暗色主题适配
+:root[data-theme="dark"] {
+  .role-dialog {
+    :deep(.el-dialog__header) {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.15) 0%,
+        var(--el-bg-color-overlay) 100%
+      );
+    }
+  }
+}
+</style>

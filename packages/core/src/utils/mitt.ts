@@ -45,6 +45,10 @@ type Events = {
   aiChatSkinChange: string;
   /** 顶部时间显示开关变化事件 */
   showHeaderClockChange: boolean;
+  /** 顶部第二时间显示开关变化事件 */
+  headerClockSecondEnabledChange: boolean;
+  /** 顶部第二时间时区变化事件 */
+  headerClockSecondTimezoneChange: string;
   /** 顶部搜索按钮开关变化事件 */
   showSearchChange: boolean;
   /** 顶部全屏按钮开关变化事件 */

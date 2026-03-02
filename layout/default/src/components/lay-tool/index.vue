@@ -1016,7 +1016,7 @@ html.theme-8bit {
       border-bottom: 2px solid $pixel-primary !important;
       text-transform: uppercase;
       letter-spacing: 1px;
-      font-family: "Press Start 2P", "Pixel CN", monospace;
+      font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
       svg { color: $pixel-primary !important; }
     }
 
@@ -1029,7 +1029,7 @@ html.theme-8bit {
 
       .lang-name {
         color: $pixel-black !important;
-        font-family: "Pixel CN", "Press Start 2P", monospace;
+        font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
       }
 
       .lang-desc {
@@ -1062,7 +1062,7 @@ html.theme-8bit {
       }
       .header-name {
         color: $pixel-primary !important;
-        font-family: "Pixel CN", "Press Start 2P", monospace;
+        font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
       }
       .header-status {
         color: $pixel-white !important;
@@ -1083,7 +1083,7 @@ html.theme-8bit {
 
       .item-title {
         color: $pixel-black !important;
-        font-family: "Pixel CN", "Press Start 2P", monospace;
+        font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
       }
 
       .item-desc {

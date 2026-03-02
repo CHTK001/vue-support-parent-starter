@@ -80,6 +80,7 @@ const getRequestConfig = () => {
     retryDelay: config?.Request?.retryDelay || 1000,
     showLoading: config?.Request?.showLoading !== false,
     enable: config?.Request?.enable !== false,
+    enableSign: config?.Request?.enableSign !== false, // 默认 true
   };
 };
 
@@ -186,22 +187,31 @@ class PureHttp {
   private static activeRequests = new Map<string, AbortController>();
 
   /**
-   * 确保 x-nonce、x-sign 等安全头存在（仅当 WASM 已加载时添加）
-   * x-nonce、x-sign 必须由 WASM 生成，未加载时跳过，后端不尝试验证
+   * 确保 x-nonce、x-sign 等安全头存在
+   * 根据配置 Request.enableSign 决定是否生成签名
+   * WASM 未加载时会使用降级实现（codec-wasm 的 JS 实现）
    */
   private static ensureXSign(config: PureHttpRequestConfig): void {
     if (!config.headers) {
       config.headers = {};
     }
-    // WASM 未加载时不添加安全头，后端根据是否有这些参数决定是否验证
-    if (!isWasmLoaded()) {
+    // 检查配置是否开启签名
+    const requestConfig = getRequestConfig();
+    if (requestConfig.enableSign === false) {
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[HTTP][签名生成] 签名功能已关闭，跳过生成");
+      }
       return;
     }
+    // 默认开启签名（enableSign 为 true 或 undefined）
     const timestamp = Date.now();
     const nonce = generateNonce();
     config.headers["x-timestamp"] = timestamp.toString();
     config.headers["x-nonce"] = nonce;
-    const fingerprint = config.headers["x-req-fingerprint"] ?? localStorageProxy().getItem("visitId") ?? "";
+    const fingerprint =
+      config.headers["x-req-fingerprint"] ?? localStorageProxy().getItem("visitId") ?? "";
+    // 确保指纹头一定存在，否则后端 hasSignHeaders 会直接判定不完整并跳过/拒绝
+    config.headers["x-req-fingerprint"] = fingerprint;
     const sign = generateSign(config, timestamp, nonce, fingerprint);
     config.headers["x-sign"] = sign || "";
     if (process.env.NODE_ENV === "development") {
@@ -209,7 +219,8 @@ class PureHttp {
         url: config.url,
         hasSign: !!sign,
         timestamp: config.headers["x-timestamp"],
-        nonce: config.headers["x-nonce"]
+        nonce: config.headers["x-nonce"],
+        wasmLoaded: isWasmLoaded()
       });
     }
   }
@@ -673,27 +684,65 @@ const EXCLUDED_PARAM_KEYS = new Set(["file", "files"]);
  * paramsMd5 = MD5(请求参数自然排序、排除 file、key=value& 拼接)
  */
 function collectParams(config: PureHttpRequestConfig): Record<string, string> {
-  const filteredParams: Record<string, string> = {};
-  const add = (key: string, value: unknown) => {
+  // 重要：后端使用 request.getParameterMap() 取参（query + form），不会读取 JSON body。
+  // 为保持一致：仅签名 params；data 仅在 form/multipart/urlencoded 场景纳入签名。
+  const collected: Record<string, string[]> = {};
+
+  const pushValue = (key: string, raw: unknown) => {
+    if (!key) return;
     if (EXCLUDED_PARAM_KEYS.has(key.toLowerCase())) return;
-    if (value === null || value === undefined || typeof value === "function") return;
-    if (value instanceof File || value instanceof Blob) return;
-    if (typeof value === "object") return;
-    filteredParams[key] = String(value);
+    if (raw === null || raw === undefined || typeof raw === "function") return;
+    if (raw instanceof File || raw instanceof Blob) return;
+    if (typeof raw === "object") return;
+    if (!collected[key]) collected[key] = [];
+    collected[key].push(String(raw));
   };
-  const params = config.params ?? {};
-  const data = config.data;
-  for (const key of Object.keys(params)) {
-    add(key, params[key]);
-  }
-  if (data && typeof data === "object" && !(data instanceof FormData)) {
-    for (const key of Object.keys(data)) {
-      add(key, (data as Record<string, unknown>)[key]);
+
+  const add = (key: string, value: unknown) => {
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        pushValue(key, v);
+      }
+      return;
     }
-  } else if (data instanceof FormData) {
+    pushValue(key, value);
+  };
+
+  const params = config.params ?? {};
+  for (const key of Object.keys(params)) {
+    add(key, (params as Record<string, unknown>)[key]);
+  }
+
+  const headers = config.headers ?? {};
+  const contentType = String(headers["Content-Type"] ?? headers["content-type"] ?? "").toLowerCase();
+  const isFormLike =
+    contentType.includes("application/x-www-form-urlencoded") ||
+    contentType.includes("multipart/form-data");
+
+  const data = config.data as any;
+  if (data instanceof FormData) {
     for (const [key, value] of data.entries()) {
       add(key, value);
     }
+  } else if (typeof URLSearchParams !== "undefined" && data instanceof URLSearchParams) {
+    // URLSearchParams 可能存在同名 key 多值，按后端逻辑用逗号拼接
+    const tmp: Record<string, string[]> = {};
+    for (const [key, value] of data.entries()) {
+      if (!tmp[key]) tmp[key] = [];
+      tmp[key].push(value);
+    }
+    for (const key of Object.keys(tmp)) {
+      add(key, tmp[key]);
+    }
+  } else if (isFormLike && data && typeof data === "object") {
+    for (const key of Object.keys(data)) {
+      add(key, (data as Record<string, unknown>)[key]);
+    }
+  }
+
+  const filteredParams: Record<string, string> = {};
+  for (const key of Object.keys(collected)) {
+    filteredParams[key] = collected[key].join(",");
   }
   return filteredParams;
 }

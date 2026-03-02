@@ -27,6 +27,8 @@ interface Props {
   showHolidayCountdown?: boolean;
   /** 显示下班倒计时 */
   showWorkCountdown?: boolean;
+  /** 下班时间（HH:mm） */
+  workEndTime?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -35,6 +37,7 @@ const props = withDefaults(defineProps<Props>(), {
   posterMode: false,
   showHolidayCountdown: true,
   showWorkCountdown: true,
+  workEndTime: "18:00",
 });
 
 // 组件事件
@@ -531,28 +534,37 @@ const getNextRealHoliday = computed(() => {
   };
 });
 
-// 下班时间设置（默认18:00）
-const workEndHour = 18;
-const workEndMinute = 0;
-
 // 下班倒计时
 const workCountdown = ref("");
 const isAfterWork = ref(false);
 let workTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
+ * 获取当天的下班时间
+ */
+const getTodayWorkEnd = (): Date => {
+  const now = new Date();
+  const [hourStr, minuteStr] = (props.workEndTime || "18:00").split(":");
+  const hour = Number.parseInt(hourStr || "18", 10);
+  const minute = Number.parseInt(minuteStr || "0", 10);
+  const safeHour = Number.isNaN(hour) ? 18 : Math.min(Math.max(hour, 0), 23);
+  const safeMinute = Number.isNaN(minute) ? 0 : Math.min(Math.max(minute, 0), 59);
+  return new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    safeHour,
+    safeMinute,
+    0
+  );
+};
+
+/**
  * 更新下班倒计时
  */
 const updateWorkCountdown = () => {
   const now = new Date();
-  const workEnd = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    workEndHour,
-    workEndMinute,
-    0
-  );
+  const workEnd = getTodayWorkEnd();
 
   const diffMs = workEnd.getTime() - now.getTime();
 
@@ -651,6 +663,16 @@ watch(
     }
   },
   { immediate: true }
+);
+
+// 下班时间变更时，刷新一次显示
+watch(
+  () => props.workEndTime,
+  () => {
+    if (workTimer) {
+      updateWorkCountdown();
+    }
+  }
 );
 
 onUnmounted(() => {

@@ -35,19 +35,18 @@
 
 @mixin text-ellipsis-multiline($lines: 2) {
   display: -webkit-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
   -webkit-line-clamp: $lines;
   line-clamp: $lines;
   -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 // 工具 Mixins
 @mixin clearfix {
   &::after {
-    content: '';
     display: table;
     clear: both;
+    content: "";
   }
 }
-

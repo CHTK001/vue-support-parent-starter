@@ -43,9 +43,13 @@ export interface ServiceModuleQueryParams {
  * @param params 查询参数
  */
 export const fetchPageServiceModule = (params?: ServiceModuleQueryParams) => {
-  return http.request<PageResult<SysServiceModule>>("get", "/v2/service/module/page", {
-    params,
-  });
+  return http.request<PageResult<SysServiceModule>>(
+    "get",
+    "/v2/service/module/page",
+    {
+      params,
+    },
+  );
 };
 
 /**
@@ -53,9 +57,13 @@ export const fetchPageServiceModule = (params?: ServiceModuleQueryParams) => {
  * @param params 查询参数
  */
 export const fetchListServiceModule = (params?: ServiceModuleQueryParams) => {
-  return http.request<ReturnResult<SysServiceModule[]>>("get", "/v2/service/module/list", {
-    params,
-  });
+  return http.request<ReturnResult<SysServiceModule[]>>(
+    "get",
+    "/v2/service/module/list",
+    {
+      params,
+    },
+  );
 };
 
 /**
@@ -63,9 +71,13 @@ export const fetchListServiceModule = (params?: ServiceModuleQueryParams) => {
  * @param sysServiceModuleId 服务模块ID
  */
 export const fetchGetServiceModule = (sysServiceModuleId: number) => {
-  return http.request<ReturnResult<SysServiceModule>>("get", "/v2/service/module/get", {
-    params: { sysServiceModuleId },
-  });
+  return http.request<ReturnResult<SysServiceModule>>(
+    "get",
+    "/v2/service/module/get",
+    {
+      params: { sysServiceModuleId },
+    },
+  );
 };
 
 /**
@@ -73,9 +85,13 @@ export const fetchGetServiceModule = (sysServiceModuleId: number) => {
  * @param data 服务模块数据
  */
 export const fetchSaveServiceModule = (data: SysServiceModule) => {
-  return http.request<ReturnResult<SysServiceModule>>("post", "/v2/service/module/save", {
-    data,
-  });
+  return http.request<ReturnResult<SysServiceModule>>(
+    "post",
+    "/v2/service/module/save",
+    {
+      data,
+    },
+  );
 };
 
 /**
@@ -83,9 +99,13 @@ export const fetchSaveServiceModule = (data: SysServiceModule) => {
  * @param data 服务模块数据
  */
 export const fetchUpdateServiceModule = (data: SysServiceModule) => {
-  return http.request<ReturnResult<boolean>>("put", "/v2/service/module/update", {
-    data,
-  });
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "/v2/service/module/update",
+    {
+      data,
+    },
+  );
 };
 
 /**
@@ -93,9 +113,13 @@ export const fetchUpdateServiceModule = (data: SysServiceModule) => {
  * @param sysServiceModuleId 服务模块ID
  */
 export const fetchDeleteServiceModule = (sysServiceModuleId: number) => {
-  return http.request<ReturnResult<boolean>>("delete", "/v2/service/module/delete", {
-    params: { sysServiceModuleId },
-  });
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "/v2/service/module/delete",
+    {
+      params: { sysServiceModuleId },
+    },
+  );
 };
 
 /**
@@ -103,10 +127,17 @@ export const fetchDeleteServiceModule = (sysServiceModuleId: number) => {
  * @param sysServiceModuleId 服务模块ID
  * @param status 状态: 0-启用, 1-禁用
  */
-export const fetchUpdateServiceModuleStatus = (sysServiceModuleId: number, status: number) => {
-  return http.request<ReturnResult<boolean>>("put", "/v2/service/module/status", {
-    params: { sysServiceModuleId, status },
-  });
+export const fetchUpdateServiceModuleStatus = (
+  sysServiceModuleId: number,
+  status: number,
+) => {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "/v2/service/module/status",
+    {
+      params: { sysServiceModuleId, status },
+    },
+  );
 };
 
 /**
@@ -124,5 +155,8 @@ export interface ServiceModuleStats {
  * 获取服务模块统计数据
  */
 export const fetchServiceModuleStats = () => {
-  return http.request<ReturnResult<ServiceModuleStats>>("get", "/v2/service/module/stats");
+  return http.request<ReturnResult<ServiceModuleStats>>(
+    "get",
+    "/v2/service/module/stats",
+  );
 };

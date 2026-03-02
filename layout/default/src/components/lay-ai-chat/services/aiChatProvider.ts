@@ -4,6 +4,7 @@
  */
 
 import type { AiChatRequest, ChatMessage } from "../types";
+import { generateByTransformersJs } from "./hfTransformersClient";
 
 const DEFAULT_HF_MODEL = "Qwen/Qwen2.5-1.5B-Instruct";
 const HISTORY_LIMIT = 10;
@@ -121,6 +122,14 @@ export async function requestAiReply(req: AiChatRequest): Promise<string> {
     return await requestByChrome(req);
   }
 
-  // other / hf：目前统一走 Hugging Face 请求
+  if (req.vendor === "hf") {
+    try {
+      return await generateByTransformersJs(req.history, req.userMessage, req.model);
+    } catch (error) {
+      console.error("[AI][浏览器模型] transformers.js 推理失败，回退到 HTTP 接口", error);
+      return await requestByHuggingFace(req);
+    }
+  }
+
   return await requestByHuggingFace(req);
 }

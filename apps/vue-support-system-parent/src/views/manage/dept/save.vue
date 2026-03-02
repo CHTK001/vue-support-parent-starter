@@ -7,7 +7,7 @@ import { transformI18n } from "@repo/config";
 
 // Emits
 const emit = defineEmits<{
-  (e: 'success'): void;
+  (e: "success"): void;
 }>();
 
 // Refs
@@ -16,46 +16,48 @@ const dialogFormRef = ref();
 // 状态
 const visible = ref(false);
 const loading = ref(false);
-const title = ref('');
-const mode = ref<'save' | 'edit'>('save');
+const title = ref("");
+const mode = ref<"save" | "edit">("save");
 const treeData = ref<any[]>([]);
 const checked = ref<any[]>([]);
 
 // 表单数据
 const form = reactive({
-  sysDeptId: '',
-  sysDeptName: '',
-  sysDeptPid: '',
-  sysDeptTreeId: '',
-  sysDeptIcon: '',
-  sysDeptCode: '',
-  sysDeptPrincipal: '',
-  sysDeptContact: '',
+  sysDeptId: "",
+  sysDeptName: "",
+  sysDeptPid: "",
+  sysDeptTreeId: "",
+  sysDeptIcon: "",
+  sysDeptCode: "",
+  sysDeptPrincipal: "",
+  sysDeptContact: "",
   sysDeptSort: 0,
   sysDeptStatus: 0,
-  sysDeptRemark: ''
+  sysDeptRemark: "",
 });
 
 // 验证规则
 const rules = {
   sysDeptName: [
-    { required: true, message: '请输入机构名称', trigger: 'blur' },
-    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+    { required: true, message: "请输入机构名称", trigger: "blur" },
+    { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
   ],
   sysDeptCode: [
-    { required: true, message: '请输入机构编码', trigger: 'blur' },
-    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+    { required: true, message: "请输入机构编码", trigger: "blur" },
+    { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
   ],
-  sysDeptStatus: [{ required: true, message: '请选择是否禁用', trigger: 'blur' }]
+  sysDeptStatus: [
+    { required: true, message: "请选择是否禁用", trigger: "blur" },
+  ],
 };
 
 // 级联选择器配置
 const defaultProps = {
-  value: 'sysDeptId',
-  label: 'sysDeptName',
-  children: 'children',
+  value: "sysDeptId",
+  label: "sysDeptName",
+  children: "children",
   emitPath: false,
-  checkStrictly: true
+  checkStrictly: true,
 };
 
 // i18n
@@ -67,17 +69,17 @@ const close = () => {
   loading.value = false;
   // 重置表单
   Object.assign(form, {
-    sysDeptId: '',
-    sysDeptName: '',
-    sysDeptPid: '',
-    sysDeptTreeId: '',
-    sysDeptIcon: '',
-    sysDeptCode: '',
-    sysDeptPrincipal: '',
-    sysDeptContact: '',
+    sysDeptId: "",
+    sysDeptName: "",
+    sysDeptPid: "",
+    sysDeptTreeId: "",
+    sysDeptIcon: "",
+    sysDeptCode: "",
+    sysDeptPrincipal: "",
+    sysDeptContact: "",
     sysDeptSort: 0,
     sysDeptStatus: 0,
-    sysDeptRemark: ''
+    sysDeptRemark: "",
   });
 };
 
@@ -97,11 +99,11 @@ const setTableData = (data: any[]) => {
 };
 
 // 打开对话框
-const open = (m: 'save' | 'edit' = 'save') => {
+const open = (m: "save" | "edit" = "save") => {
   visible.value = true;
   mode.value = m;
-  title.value = m === 'save' ? '新增' : '编辑';
-  if (m === 'save') {
+  title.value = m === "save" ? "新增" : "编辑";
+  if (m === "save") {
     form.sysDeptSort = 0;
   }
 };
@@ -113,20 +115,20 @@ const submit = () => {
       loading.value = true;
       try {
         let res: any = {};
-        if (mode.value === 'save') {
+        if (mode.value === "save") {
           res = await fetchSaveDept(form);
         } else {
           res = await fetchUpdateDept(form);
         }
 
-        if (res.code === '00000') {
-          emit('success');
+        if (res.code === "00000") {
+          emit("success");
           visible.value = false;
         } else {
-          message(res.msg, { type: 'error' });
+          message(res.msg, { type: "error" });
         }
       } catch (error) {
-        console.error('保存失败', error);
+        console.error("保存失败", error);
       } finally {
         loading.value = false;
       }
@@ -138,38 +140,63 @@ const submit = () => {
 defineExpose({
   setData,
   setTableData,
-  open
+  open,
 });
 </script>
 <template>
   <div>
-    <sc-dialog 
-      v-model="visible" 
-      :close-on-click-modal="false" 
-      :close-on-press-escape="false" 
-      :destroy-on-close="true" 
-      draggable 
+    <sc-dialog
+      v-model="visible"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :destroy-on-close="true"
+      draggable
       width="700px"
       class="modern-dialog"
       @close="close"
     >
       <template #header>
         <div class="dialog-header">
-          <IconifyIconOnline :icon="mode === 'save' ? 'ri:add-circle-line' : 'ri:edit-line'" class="header-icon" />
+          <IconifyIconOnline
+            :icon="mode === 'save' ? 'ri:add-circle-line' : 'ri:edit-line'"
+            class="header-icon"
+          />
           <span>{{ title }}部门</span>
         </div>
       </template>
-      <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="modern-form dept-form">
+      <el-form
+        ref="dialogFormRef"
+        :model="form"
+        :rules="rules"
+        :disabled="mode == 'show'"
+        label-width="100px"
+        class="modern-form dept-form"
+      >
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="父级机构" prop="sysDeptPid">
-              <el-cascader v-model="form.sysDeptPid" class="w-full" :options="treeData" :props="defaultProps" clearable filterable placeholder="请选择上级部门">
+              <el-cascader
+                v-model="form.sysDeptPid"
+                class="w-full"
+                :options="treeData"
+                :props="defaultProps"
+                clearable
+                filterable
+                placeholder="请选择上级部门"
+              >
                 <template #default="{ node, data }">
                   <div class="cascader-item">
-                    <IconifyIconOnline :icon="data.sysDeptIcon || 'ri:building-line'" class="cascader-icon" />
-                    <span v-if="data.sysDeptI18n">{{ transformI18nValue(data.sysDeptI18n) }}</span>
+                    <IconifyIconOnline
+                      :icon="data.sysDeptIcon || 'ri:building-line'"
+                      class="cascader-icon"
+                    />
+                    <span v-if="data.sysDeptI18n">{{
+                      transformI18nValue(data.sysDeptI18n)
+                    }}</span>
                     <span v-else>{{ data.sysDeptName }}</span>
-                    <span v-if="!node.isLeaf" class="cascader-count">({{ data.children.length }})</span>
+                    <span v-if="!node.isLeaf" class="cascader-count"
+                      >({{ data.children.length }})</span
+                    >
                   </div>
                 </template>
               </el-cascader>
@@ -177,7 +204,12 @@ defineExpose({
           </el-col>
           <el-col :span="12">
             <el-form-item label="机构名称" prop="sysDeptName">
-              <el-input v-model="form.sysDeptName" placeholder="请输入机构名称" :maxlength="20" show-word-limit>
+              <el-input
+                v-model="form.sysDeptName"
+                placeholder="请输入机构名称"
+                :maxlength="20"
+                show-word-limit
+              >
                 <template #prefix>
                   <IconifyIconOnline icon="ri:building-line" />
                 </template>
@@ -187,7 +219,12 @@ defineExpose({
 
           <el-col :span="12">
             <el-form-item label="机构编码" prop="sysDeptCode">
-              <el-input v-model="form.sysDeptCode" placeholder="请输入机构编码" :maxlength="20" show-word-limit>
+              <el-input
+                v-model="form.sysDeptCode"
+                placeholder="请输入机构编码"
+                :maxlength="20"
+                show-word-limit
+              >
                 <template #prefix>
                   <IconifyIconOnline icon="ri:barcode-line" />
                 </template>
@@ -203,7 +240,12 @@ defineExpose({
 
           <el-col :span="12">
             <el-form-item label="负责人" prop="sysDeptPrincipal">
-              <el-input v-model="form.sysDeptPrincipal" placeholder="请输入负责人" :maxlength="20" show-word-limit>
+              <el-input
+                v-model="form.sysDeptPrincipal"
+                placeholder="请输入负责人"
+                :maxlength="20"
+                show-word-limit
+              >
                 <template #prefix>
                   <IconifyIconOnline icon="ri:user-line" />
                 </template>
@@ -213,7 +255,12 @@ defineExpose({
 
           <el-col :span="12">
             <el-form-item label="联系方式" prop="sysDeptContact">
-              <el-input v-model="form.sysDeptContact" placeholder="请输入联系方式" :maxlength="20" show-word-limit>
+              <el-input
+                v-model="form.sysDeptContact"
+                placeholder="请输入联系方式"
+                :maxlength="20"
+                show-word-limit
+              >
                 <template #prefix>
                   <IconifyIconOnline icon="ri:phone-line" />
                 </template>
@@ -223,7 +270,13 @@ defineExpose({
 
           <el-col :span="12">
             <el-form-item label="排序" prop="sysDeptSort">
-              <el-input-number v-model="form.sysDeptSort" placeholder="排序" :min="0" :max="9999" class="w-full" />
+              <el-input-number
+                v-model="form.sysDeptSort"
+                placeholder="排序"
+                :min="0"
+                :max="9999"
+                class="w-full"
+              />
             </el-form-item>
           </el-col>
 
@@ -241,11 +294,11 @@ defineExpose({
           </el-col>
           <el-col :span="24">
             <el-form-item label="备注" prop="sysDeptRemark">
-              <el-input 
-                v-model="form.sysDeptRemark" 
-                placeholder="请输入备注信息" 
-                :maxlength="240" 
-                show-word-limit 
+              <el-input
+                v-model="form.sysDeptRemark"
+                placeholder="请输入备注信息"
+                :maxlength="240"
+                show-word-limit
                 type="textarea"
                 :rows="3"
               />
@@ -260,7 +313,12 @@ defineExpose({
             <IconifyIconOnline icon="ep:close" class="mr-1" />
             取消
           </el-button>
-          <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">
+          <el-button
+            v-if="mode != 'show'"
+            type="primary"
+            :loading="loading"
+            @click="submit()"
+          >
             <IconifyIconOnline icon="ep:check" class="mr-1" />
             保存
           </el-button>
@@ -274,8 +332,8 @@ defineExpose({
 .modern-dialog {
   :deep(.el-dialog__header) {
     padding: 20px 24px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
     margin-bottom: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
   :deep(.el-dialog__body) {
@@ -290,8 +348,8 @@ defineExpose({
 
 .dialog-header {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   font-size: 16px;
   font-weight: 600;
 
@@ -303,8 +361,8 @@ defineExpose({
 
 .dialog-footer {
   display: flex;
-  justify-content: flex-end;
   gap: 12px;
+  justify-content: flex-end;
 }
 
 .dept-form {
@@ -326,16 +384,16 @@ defineExpose({
 
 .cascader-item {
   display: flex;
-  align-items: center;
   gap: 6px;
+  align-items: center;
 
   .cascader-icon {
     color: var(--el-color-primary);
   }
 
   .cascader-count {
-    color: var(--el-text-color-secondary);
     font-size: 12px;
+    color: var(--el-text-color-secondary);
   }
 }
 

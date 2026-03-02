@@ -91,6 +91,23 @@
     </div>
 
     <div class="example-section">
+      <h3>Pixel Icon 图标 (pixel-icon:)</h3>
+      <div class="example-box">
+        <div class="icon-grid">
+          <div
+            v-for="(icon, index) in pixelIcons"
+            :key="index"
+            class="icon-item"
+          >
+            <component :is="useRenderIcon(icon)" />
+            <span class="icon-name">{{ icon }}</span>
+          </div>
+        </div>
+      </div>
+      <CodePreview :tabs="[{ key: 'pixel', label: 'Pixel Icon', icon: 'ri:code-s-slash-line', language: 'html', code: codePixel }]" />
+    </div>
+
+    <div class="example-section">
       <h3>HTTP协议图标支持</h3>
       <div class="example-box">
         <div class="http-icon-demo">
@@ -175,7 +192,7 @@
 import { ref, computed } from "vue";
 import { message } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOffline, IconifyIconOnline, PixelIcon } from "@repo/components/ReIcon";
 import CodePreview from "./CodePreview.vue";
 
 // HTTP图标URL
@@ -194,6 +211,8 @@ const useRenderIconHttp2 = useRenderIcon(httpIcon3);
 const codeOnline = `<IconifyIconOnline icon="ri:home-line" />`;
 const codeSize = `<IconifyIconOnline icon="ri:user-line" style="font-size: 32px;" />`;
 const codeColor = `<IconifyIconOnline icon="ri:heart-fill" style="color: #409eff; font-size: 32px;" />`;
+const codePixel = `<PixelIcon icon="pixel-icon:home" />
+<component :is="useRenderIcon('pixel-icon:home')" />`;
 
 // 在线图标列表（示例）
 const onlineIcons = [
@@ -251,6 +270,18 @@ const moreIcons = [
   "ep:help-filled",
   "ep:position-filled",
   "ep:circle-check-filled",
+];
+
+// Pixel Icon 图标列表（示例，根据实际库中的图标名称调整）
+const pixelIcons = [
+  "pixel-icon:home",
+  "pixel-icon:user",
+  "pixel-icon:settings",
+  "pixel-icon:search",
+  "pixel-icon:heart",
+  "pixel-icon:star",
+  "pixel-icon:download",
+  "pixel-icon:upload"
 ];
 
 // 合并所有图标

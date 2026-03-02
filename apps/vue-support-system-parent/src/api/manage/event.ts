@@ -12,6 +12,6 @@ export type Event = {
  */
 export const fetchPageEvent = (params: Event) => {
   return http.request<ReturnResult<Event>>("get", "/v2/event/page", {
-    params
+    params,
   });
 };

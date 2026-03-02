@@ -89,8 +89,8 @@ defineExpose({
       width="600px"
       draggable
       :close-on-click-modal="false"
-      @close="handleClose"
       class="modern-dialog"
+      @close="handleClose"
     >
       <template #header>
         <div class="dialog-header">
@@ -113,13 +113,13 @@ defineExpose({
               :key="item.value"
               :label="item.label"
               :value="item.value"
-            ></el-option>
+            />
           </el-select>
         </el-form-item>
         <el-form-item
+          v-if="env.form.sysDeptDataPermission === 5"
           label="选择部门"
           prop="sysDeptDataPermissionDeptId"
-          v-if="env.form.sysDeptDataPermission === 5"
         >
           <el-cascader
             v-model="env.form.sysDeptDataPermissionDeptIds"
@@ -166,8 +166,8 @@ defineExpose({
 .modern-dialog {
   :deep(.el-dialog__header) {
     padding: 20px 24px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
     margin-bottom: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
   :deep(.el-dialog__body) {
@@ -182,8 +182,8 @@ defineExpose({
 
 .dialog-header {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   font-size: 16px;
   font-weight: 600;
 
@@ -195,7 +195,7 @@ defineExpose({
 
 .dialog-footer {
   display: flex;
-  justify-content: flex-end;
   gap: 12px;
+  justify-content: flex-end;
 }
 </style>

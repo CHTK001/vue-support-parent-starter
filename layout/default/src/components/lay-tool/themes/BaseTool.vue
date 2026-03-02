@@ -9,8 +9,9 @@ import UserDropdown from "../dropdowns/UserDropdown.vue";
 import Setting from "@iconify-icons/ri/settings-3-line";
 import { getConfig } from "@repo/config";
 import { emitter } from "@repo/core";
-import { ref, onBeforeUnmount, onMounted, computed } from "vue";
+import { ref, computed } from "vue";
 import { useGlobal } from "@pureadmin/utils";
+import HeaderClock from "../HeaderClock.vue";
 
 // 接收主题类名
 const props = defineProps<{
@@ -47,25 +48,6 @@ const showHeaderClock = ref(
   $storage.configure?.showHeaderClock ?? false,
 );
 
-const headerClockText = ref<string>("");
-let headerClockTimer: ReturnType<typeof setInterval> | null = null;
-
-function updateHeaderClock(): void {
-  const now = new Date();
-  const hours = `${now.getHours()}`.padStart(2, "0");
-  const minutes = `${now.getMinutes()}`.padStart(2, "0");
-  const seconds = `${now.getSeconds()}`.padStart(2, "0");
-  headerClockText.value = `${hours}:${minutes}:${seconds}`;
-}
-
-function startHeaderClock(): void {
-  if (headerClockTimer) {
-    return;
-  }
-  updateHeaderClock();
-  headerClockTimer = setInterval(updateHeaderClock, 1000);
-}
-
 // 监听界面元素显示设置变化
 emitter.on("showSearchChange", (val: boolean) => {
   showSearch.value = val;
@@ -75,27 +57,6 @@ emitter.on("showFullscreenChange", (val: boolean) => {
 });
 emitter.on("showHeaderClockChange", (val: boolean) => {
   showHeaderClock.value = val;
-  if (val) {
-    startHeaderClock();
-  }
-});
-
-onMounted(() => {
-  if (showHeaderClock.value) {
-    startHeaderClock();
-  }
-});
-
-// 清理事件监听
-onBeforeUnmount(() => {
-  emitter.off("showSearchChange");
-  emitter.off("showFullscreenChange");
-  emitter.off("systemThemeChange", handleThemeChange);
-  emitter.off("showHeaderClockChange");
-  if (headerClockTimer) {
-    clearInterval(headerClockTimer);
-    headerClockTimer = null;
-  }
 });
 </script>
 
@@ -134,7 +95,7 @@ onBeforeUnmount(() => {
       class="tool-item header-clock"
       aria-label="当前时间"
     >
-      {{ headerClockText }}
+      <HeaderClock />
     </div>
 
     <!-- 系统设置 -->
@@ -144,9 +105,9 @@ onBeforeUnmount(() => {
       :title="t('buttons.pureOpenSystemSet')"
       @click="onPanel"
     >
-      <template v-if="isSpringFestival()">福</template>
-      <template v-else-if="isMidAutumn()">🥮</template>
-      <template v-else-if="isHalloween()">🎃</template>
+      <ScText v-if="isSpringFestival()">福</ScText>
+      <ScText v-else-if="isMidAutumn()">🥮</ScText>
+      <ScText v-else-if="isHalloween()">🎃</ScText>
       <IconifyIconOffline v-else :icon="Setting" />
     </span>
   </div>
@@ -234,12 +195,18 @@ onBeforeUnmount(() => {
 }
 
 .header-clock {
-  min-width: 88px;
-  padding: 0 10px;
+  min-width: 150px;
+  padding: 0 16px;
   font-variant-numeric: tabular-nums;
-  font-size: 14px;
-  font-weight: 500;
   justify-content: flex-start;
+  gap: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.06) 0%,
+    rgba(var(--el-color-primary-rgb), 0.02) 100%
+  );
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.18);
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.12);
 }
 
 .fu-setting {

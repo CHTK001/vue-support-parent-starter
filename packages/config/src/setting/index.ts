@@ -203,6 +203,8 @@ export const globalSetting: PlatformConfigs = {
     retryDelay: 1000,
     /** 显示加载状态 */
     showLoading: true,
+    /** 是否开启请求签名（x-sign），默认 true */
+    enableSign: true,
   },
 
   // ===========================================
@@ -234,6 +236,10 @@ export const globalSetting: PlatformConfigs = {
     confirmOnLeave: false,
     /** 顶部是否显示时间 */
     showHeaderClock: false,
+    /** 顶部是否显示第二个时间 */
+    headerClockSecondEnabled: false,
+    /** 顶部第二时间的时区 */
+    headerClockSecondTimezone: "UTC",
     /** 页面缩放比例（0.8 - 1.5） */
     uiScale: 1,
     /** 读屏优化模式 */

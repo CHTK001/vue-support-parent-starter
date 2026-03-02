@@ -10,17 +10,18 @@ export default [
     meta: {
       icon: "ri:speed-up-line",
       title: "限流管理",
-      rank: 7
+      rank: 7,
     },
     children: [
       {
         path: "/limit/configuration",
         name: "LimitConfiguration",
-        component: () => import("@pages/system/src/limit/LimitConfigurationIndex.vue"),
+        component: () =>
+          import("@pages/system/src/limit/LimitConfigurationIndex.vue"),
         meta: {
           title: "限流配置",
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/limit/record",
@@ -28,9 +29,9 @@ export default [
         component: () => import("@pages/system/src/limit/LimitRecordIndex.vue"),
         meta: {
           title: "限流记录",
-          showParent: true
-        }
-      }
-    ]
-  }
+          showParent: true,
+        },
+      },
+    ],
+  },
 ] satisfies Array<RouteConfigsTable>;

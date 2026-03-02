@@ -187,7 +187,7 @@
               effect="dark"
               type="success"
               class="active-tag"
-              >当前选中</el-tag
+              >当前选中</ScTag
             >
           </div>
         </div>

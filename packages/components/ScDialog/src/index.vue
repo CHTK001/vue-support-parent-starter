@@ -401,8 +401,12 @@ const actualMinimizeIcon = computed(() => (props.icon ? props.icon : props.minim
 const { currentComponent } = useThemeComponent("ElDialog");
 
 // 当前实际渲染的组件（仅用于 element 模式）
-// 注意：currentComponent 已经是 computed，在模板中会自动解包
-const currentDialogComponent = currentComponent;
+// 如果主题组件加载失败，回退到 Element Plus 原生组件
+const currentDialogComponent = computed(() => {
+  const component = currentComponent.value;
+  // 如果组件为 null，回退到 ElDialog
+  return component || ElDialog;
+});
 
 const typeColor = computed(() => {
   switch (props.type) {

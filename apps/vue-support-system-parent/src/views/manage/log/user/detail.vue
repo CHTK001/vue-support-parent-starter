@@ -3,12 +3,11 @@ import { defineComponent } from "vue";
 import EyeClose from "@iconify-icons/ri/eye-close-line";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import scStatusIndicator from "@repo/components/ScMini/scStatusIndicator.vue";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
 import { getTimeAgo } from "@repo/utils";
 export default defineComponent({
-  components: { scStatusIndicator, VueJsonPretty, IconifyIconOnline },
+  components: { VueJsonPretty, IconifyIconOnline },
   props: {
     moduleOptions: {
       type: Array,
@@ -66,22 +65,35 @@ export default defineComponent({
     <sc-drawer
       v-model="visible"
       size="50%"
-      @close="onClose"
       class="modern-drawer"
+      @close="onClose"
     >
       <template #header>
         <div class="drawer-header">
           <div class="header-left">
-            <div class="header-icon-wrapper" :class="row.sysLogStatus === 1 ? 'success' : 'danger'">
-              <IconifyIconOnline :icon="row.sysLogStatus === 1 ? 'ri:checkbox-circle-line' : 'ri:close-circle-line'" :size="24" />
+            <div
+              class="header-icon-wrapper"
+              :class="row.sysLogStatus === 1 ? 'success' : 'danger'"
+            >
+              <IconifyIconOnline
+                :icon="
+                  row.sysLogStatus === 1
+                    ? 'ri:checkbox-circle-line'
+                    : 'ri:close-circle-line'
+                "
+                :size="24"
+              />
             </div>
             <div class="header-info">
               <span class="header-title">登录日志详情</span>
               <span class="header-subtitle">{{ row.sysLogUsername }}</span>
             </div>
           </div>
-          <el-tag :type="row.sysLogStatus === 1 ? 'success' : 'danger'" size="large">
-            {{ row.sysLogStatus === 1 ? '登录成功' : '登录失败' }}
+          <el-tag
+            :type="row.sysLogStatus === 1 ? 'success' : 'danger'"
+            size="large"
+          >
+            {{ row.sysLogStatus === 1 ? "登录成功" : "登录失败" }}
           </el-tag>
         </div>
       </template>
@@ -104,14 +116,28 @@ export default defineComponent({
               </div>
               <div class="info-item">
                 <span class="info-label">登录时间</span>
-                <span class="info-value">{{ getTimeAgo(row.createTime) }} ({{ row.createTime }})</span>
+                <span class="info-value"
+                  >{{ getTimeAgo(row.createTime) }} ({{ row.createTime }})</span
+                >
               </div>
               <div class="info-item">
                 <span class="info-label">响应耗时</span>
                 <span class="info-value">
-                  <el-tag v-if="row.sysLogCost <= 1000" type="success" size="small">{{ row.sysLogCost || 0 }} ms</el-tag>
-                  <el-tag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning" size="small">{{ row.sysLogCost || 0 }} ms</el-tag>
-                  <el-tag v-else type="danger" size="small">{{ row.sysLogCost || 0 }} ms</el-tag>
+                  <el-tag
+                    v-if="row.sysLogCost <= 1000"
+                    type="success"
+                    size="small"
+                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                  >
+                  <el-tag
+                    v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
+                    type="warning"
+                    size="small"
+                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                  >
+                  <el-tag v-else type="danger" size="small"
+                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                  >
                 </span>
               </div>
             </div>
@@ -130,13 +156,13 @@ export default defineComponent({
                 <span class="info-label">客户端IP</span>
                 <span class="info-value">{{ row.sysLogIp }}</span>
               </div>
-              <div class="info-item" v-if="row.sysLogAddress">
+              <div v-if="row.sysLogAddress" class="info-item">
                 <span class="info-label">地理位置</span>
                 <span class="info-value">
                   <el-tag type="info">{{ row.sysLogAddress }}</el-tag>
                 </span>
               </div>
-              <div class="info-item" v-if="row.sysLogIsp">
+              <div v-if="row.sysLogIsp" class="info-item">
                 <span class="info-label">运营商</span>
                 <span class="info-value">{{ row.sysLogIsp }}</span>
               </div>
@@ -156,11 +182,13 @@ export default defineComponent({
           </div>
           <div class="card-body">
             <div class="info-grid">
-              <div class="info-item" v-if="row.sysLogFingerprint">
+              <div v-if="row.sysLogFingerprint" class="info-item">
                 <span class="info-label">浏览器指纹</span>
-                <span class="info-value fingerprint">{{ row.sysLogFingerprint }}</span>
+                <span class="info-value fingerprint">{{
+                  row.sysLogFingerprint
+                }}</span>
               </div>
-              <div class="info-item full-width" v-if="row.sysLogUa">
+              <div v-if="row.sysLogUa" class="info-item full-width">
                 <span class="info-label">User-Agent</span>
                 <span class="info-value ua-value">{{ row.sysLogUa }}</span>
               </div>
@@ -169,7 +197,7 @@ export default defineComponent({
         </div>
 
         <!-- 请求参数卡片 -->
-        <div class="info-card" v-if="row.sysLogParam">
+        <div v-if="row.sysLogParam" class="info-card">
           <div class="card-header">
             <IconifyIconOnline icon="ri:code-s-slash-line" class="card-icon" />
             <span>请求参数</span>
@@ -189,9 +217,9 @@ export default defineComponent({
 .modern-drawer {
   :deep(.el-drawer__header) {
     padding: 20px 24px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
     margin-bottom: 0;
     background: var(--el-bg-color);
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
   :deep(.el-drawer__body) {
@@ -208,18 +236,18 @@ export default defineComponent({
 
   .header-left {
     display: flex;
-    align-items: center;
     gap: 12px;
+    align-items: center;
   }
 
   .header-icon-wrapper {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 44px;
+    height: 44px;
     color: #fff;
+    border-radius: 10px;
 
     &.success {
       background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
@@ -255,24 +283,24 @@ export default defineComponent({
 }
 
 .info-card {
+  overflow: hidden;
   background: var(--el-bg-color);
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 5%);
   transition: all 0.3s ease;
 
   &:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
   }
 
   .card-header {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
     padding: 14px 20px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
     font-weight: 600;
     color: var(--el-text-color-primary);
+    border-bottom: 1px solid var(--el-border-color-lighter);
 
     .card-icon {
       font-size: 18px;
@@ -309,22 +337,22 @@ export default defineComponent({
       color: var(--el-text-color-primary);
 
       &.url-value {
-        word-break: break-all;
         color: var(--el-color-primary);
+        word-break: break-all;
       }
 
       &.fingerprint {
+        padding: 4px 8px;
         font-family: monospace;
         font-size: 13px;
         background: var(--el-fill-color-light);
-        padding: 4px 8px;
         border-radius: 4px;
       }
 
       &.ua-value {
         font-size: 12px;
-        color: var(--el-text-color-secondary);
         line-height: 1.6;
+        color: var(--el-text-color-secondary);
         word-break: break-word;
       }
     }
@@ -333,21 +361,21 @@ export default defineComponent({
 
 .json-wrapper {
   :deep(.vjs-tree) {
-    background: var(--el-fill-color-lighter);
     padding: 16px;
-    border-radius: 8px;
     font-size: 13px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 8px;
   }
 }
 
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .info-card {
     background: var(--el-bg-color-overlay);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
 
     &:hover {
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 16px rgb(0 0 0 / 30%);
     }
   }
 }

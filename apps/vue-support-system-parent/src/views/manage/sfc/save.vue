@@ -10,7 +10,9 @@ import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ScFormTable from "@repo/components/ScFormTable/index.vue";
-const ScCodeEditor = defineAsyncComponent(() => import("@repo/components/ScCodeEditor/index.vue"));
+const ScCodeEditor = defineAsyncComponent(
+  () => import("@repo/components/ScCodeEditor/index.vue"),
+);
 import CodeLayout from "./code.vue";
 export default {
   components: { IconSelect, ScCodeEditor, CodeLayout, ScFormTable },
@@ -26,13 +28,27 @@ export default {
       visible: false,
       visibleCodeLayout: false,
       rules: {
-        sysSfcName: [{ required: true, message: "请输入组件名称", trigger: "blur" }],
-        sysSfcChineseName: [{ required: true, message: "请输入组件中文名称", trigger: "blur" }],
-        sysSfcFunction: [{ required: true, message: "请选择组件功能", trigger: "blur" }],
-        sysSfcCategory: [{ required: true, message: "请选择分类", trigger: "blur" }],
-        sysSfcIcon: [{ required: true, message: "请选择组件图标", trigger: "blur" }],
-        sysSfcVersion: [{ required: true, message: "请输入版本号", trigger: "blur" }],
-        sysSfcType: [{ required: true, message: "请选择组件类型", trigger: "blur" }],
+        sysSfcName: [
+          { required: true, message: "请输入组件名称", trigger: "blur" },
+        ],
+        sysSfcChineseName: [
+          { required: true, message: "请输入组件中文名称", trigger: "blur" },
+        ],
+        sysSfcFunction: [
+          { required: true, message: "请选择组件功能", trigger: "blur" },
+        ],
+        sysSfcCategory: [
+          { required: true, message: "请选择分类", trigger: "blur" },
+        ],
+        sysSfcIcon: [
+          { required: true, message: "请选择组件图标", trigger: "blur" },
+        ],
+        sysSfcVersion: [
+          { required: true, message: "请输入版本号", trigger: "blur" },
+        ],
+        sysSfcType: [
+          { required: true, message: "请选择组件类型", trigger: "blur" },
+        ],
       },
       loading: false,
       title: "",
@@ -93,7 +109,10 @@ export default {
       if (!this.form.sysSfcCategory) {
         this.form.sysSfcCategory = [];
       } else {
-        this.form.sysSfcCategory = this.form.sysSfcCategory && this.form.sysSfcCategory.length > 0 ? this.form.sysSfcCategory?.split(",") : [];
+        this.form.sysSfcCategory =
+          this.form.sysSfcCategory && this.form.sysSfcCategory.length > 0
+            ? this.form.sysSfcCategory?.split(",")
+            : [];
       }
       return this;
     },
@@ -154,13 +173,13 @@ export default {
 
 <template>
   <div>
-    <sc-dialog 
-      v-model="visible" 
-      :close-on-click-modal="false" 
-      :close-on-press-escape="false" 
-      :destroy-on-close="true" 
-      draggable 
-      :title="title" 
+    <sc-dialog
+      v-model="visible"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :destroy-on-close="true"
+      draggable
+      :title="title"
       width="750px"
       class="sfc-dialog"
       @close="close"
@@ -170,36 +189,53 @@ export default {
         <div class="dialog-header">
           <div class="header-left">
             <el-icon class="header-icon" :size="24">
-              <component :is="useRenderIcon(mode === 'save' ? 'ri:add-circle-line' : 'ri:edit-line')" />
+              <component
+                :is="
+                  useRenderIcon(
+                    mode === 'save' ? 'ri:add-circle-line' : 'ri:edit-line',
+                  )
+                "
+              />
             </el-icon>
             <span :id="titleId" :class="titleClass">{{ title }}</span>
           </div>
-          <el-tag v-if="form.sysSfcId" type="info" size="small">ID: {{ form.sysSfcId }}</el-tag>
+          <el-tag v-if="form.sysSfcId" type="info" size="small"
+            >ID: {{ form.sysSfcId }}</el-tag
+          >
         </div>
       </template>
 
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="modern-form sfc-form">
+      <el-form
+        ref="dialogForm"
+        :model="form"
+        :rules="rules"
+        :disabled="mode == 'show'"
+        label-width="100px"
+        class="modern-form sfc-form"
+      >
         <!-- 基本信息 -->
         <div class="form-section">
           <div class="section-title">
-            <el-icon><component :is="useRenderIcon('ri:information-line')" /></el-icon>
+            <el-icon
+              ><component :is="useRenderIcon('ri:information-line')"
+            /></el-icon>
             <span>基本信息</span>
           </div>
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="组件名称" prop="sysSfcName">
-                <el-input 
-                  v-model="form.sysSfcName" 
-                  placeholder="请输入组件名称（英文）" 
+                <el-input
+                  v-model="form.sysSfcName"
+                  placeholder="请输入组件名称（英文）"
                   :prefix-icon="useRenderIcon('ri:code-s-slash-line')"
                 />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="中文名称" prop="sysSfcChineseName">
-                <el-input 
-                  v-model="form.sysSfcChineseName" 
-                  placeholder="请输入组件中文名称" 
+                <el-input
+                  v-model="form.sysSfcChineseName"
+                  placeholder="请输入组件中文名称"
                   :prefix-icon="useRenderIcon('ri:translate')"
                 />
               </el-form-item>
@@ -211,9 +247,9 @@ export default {
             </el-col>
             <el-col :span="12">
               <el-form-item label="版本号" prop="sysSfcVersion">
-                <el-input 
-                  v-model="form.sysSfcVersion" 
-                  placeholder="如：1.0.0" 
+                <el-input
+                  v-model="form.sysSfcVersion"
+                  placeholder="如：1.0.0"
                   :prefix-icon="useRenderIcon('ri:price-tag-3-line')"
                 />
               </el-form-item>
@@ -224,22 +260,29 @@ export default {
         <!-- 分类与功能 -->
         <div class="form-section">
           <div class="section-title">
-            <el-icon><component :is="useRenderIcon('ri:folder-3-line')" /></el-icon>
+            <el-icon
+              ><component :is="useRenderIcon('ri:folder-3-line')"
+            /></el-icon>
             <span>分类与功能</span>
           </div>
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="组件分类" prop="sysSfcCategory">
-                <el-select 
-                  v-model="form.sysSfcCategory" 
-                  placeholder="请选择分类" 
-                  filterable 
+                <el-select
+                  v-model="form.sysSfcCategory"
+                  placeholder="请选择分类"
+                  filterable
                   multiple
                   collapse-tags
                   collapse-tags-tooltip
                   class="w-full"
                 >
-                  <el-option v-for="item in sysSfcCategoryCollection" :key="item.value" :label="item.label" :value="item.value">
+                  <el-option
+                    v-for="item in sysSfcCategoryCollection"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  >
                     <span>{{ item.label }}</span>
                   </el-option>
                 </el-select>
@@ -247,16 +290,21 @@ export default {
             </el-col>
             <el-col :span="12">
               <el-form-item label="组件功能" prop="sysSfcFunction">
-                <el-select 
-                  v-model="form.sysSfcFunction" 
-                  placeholder="请选择组件功能" 
-                  filterable 
+                <el-select
+                  v-model="form.sysSfcFunction"
+                  placeholder="请选择组件功能"
+                  filterable
                   multiple
                   collapse-tags
                   collapse-tags-tooltip
                   class="w-full"
                 >
-                  <el-option v-for="item in dictItem" :key="item.sysDictItemName" :label="item.sysDictItemName" :value="item.sysDictItemName" />
+                  <el-option
+                    v-for="item in dictItem"
+                    :key="item.sysDictItemName"
+                    :label="item.sysDictItemName"
+                    :value="item.sysDictItemName"
+                  />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -266,25 +314,38 @@ export default {
         <!-- 组件配置 -->
         <div class="form-section">
           <div class="section-title">
-            <el-icon><component :is="useRenderIcon('ri:settings-3-line')" /></el-icon>
+            <el-icon
+              ><component :is="useRenderIcon('ri:settings-3-line')"
+            /></el-icon>
             <span>组件配置</span>
           </div>
           <el-row :gutter="20">
             <el-col :span="24">
               <el-form-item label="组件类型" prop="sysSfcType">
-                <el-radio-group v-model="form.sysSfcType" class="type-radio-group">
-                  <el-radio-button 
-                    v-for="item in menuTypeOptions" 
-                    :key="item.value" 
+                <el-radio-group
+                  v-model="form.sysSfcType"
+                  class="type-radio-group"
+                >
+                  <el-radio-button
+                    v-for="item in menuTypeOptions"
+                    :key="item.value"
                     :value="item.value"
                     class="type-radio-item"
                   >
                     <el-icon class="mr-1">
-                      <component :is="useRenderIcon(
-                        item.value === 0 ? 'ri:file-code-line' : 
-                        item.value === 1 ? 'ri:code-box-line' : 
-                        item.value === 2 ? 'ri:cloud-line' : 'ri:hard-drive-2-line'
-                      )" />
+                      <component
+                        :is="
+                          useRenderIcon(
+                            item.value === 0
+                              ? 'ri:file-code-line'
+                              : item.value === 1
+                                ? 'ri:code-box-line'
+                                : item.value === 2
+                                  ? 'ri:cloud-line'
+                                  : 'ri:hard-drive-2-line',
+                          )
+                        "
+                      />
                     </el-icon>
                     {{ item.label }}
                   </el-radio-button>
@@ -298,32 +359,58 @@ export default {
                 <template #label>
                   <div class="code-label">
                     <span>组件代码</span>
-                    <el-button type="primary" link size="small" @click="handlePreview">
-                      <el-icon class="mr-1"><component :is="useRenderIcon('ri:fullscreen-line')" /></el-icon>
+                    <el-button
+                      type="primary"
+                      link
+                      size="small"
+                      @click="handlePreview"
+                    >
+                      <el-icon class="mr-1"
+                        ><component :is="useRenderIcon('ri:fullscreen-line')"
+                      /></el-icon>
                       全屏编辑
                     </el-button>
                   </div>
                 </template>
-                <sc-code-editor v-model="form.sysSfcContent" style="width: 100%" :options="options" mode="vue" />
+                <sc-code-editor
+                  v-model="form.sysSfcContent"
+                  style="width: 100%"
+                  :options="options"
+                  mode="vue"
+                />
               </el-form-item>
             </el-col>
 
             <!-- 远程/本地地址 -->
-            <el-col v-if="form.sysSfcType === 2 || form.sysSfcType === 3" :span="24">
-              <el-form-item :label="form.sysSfcType === 2 ? '远程地址' : '本地路径'" prop="sysSfcPath">
-                <el-input 
-                  v-model="form.sysSfcPath" 
-                  :placeholder="form.sysSfcType === 2 ? '请输入远程文件URL' : '请输入本地文件路径'" 
-                  :prefix-icon="useRenderIcon(form.sysSfcType === 2 ? 'ri:link' : 'ri:folder-open-line')"
+            <el-col
+              v-if="form.sysSfcType === 2 || form.sysSfcType === 3"
+              :span="24"
+            >
+              <el-form-item
+                :label="form.sysSfcType === 2 ? '远程地址' : '本地路径'"
+                prop="sysSfcPath"
+              >
+                <el-input
+                  v-model="form.sysSfcPath"
+                  :placeholder="
+                    form.sysSfcType === 2
+                      ? '请输入远程文件URL'
+                      : '请输入本地文件路径'
+                  "
+                  :prefix-icon="
+                    useRenderIcon(
+                      form.sysSfcType === 2 ? 'ri:link' : 'ri:folder-open-line',
+                    )
+                  "
                 />
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="代理服务">
-                <el-input 
-                  v-model="form.sysSfcProxy" 
-                  placeholder="可选，填写代理地址" 
+                <el-input
+                  v-model="form.sysSfcProxy"
+                  placeholder="可选，填写代理地址"
                   :prefix-icon="useRenderIcon('ri:server-line')"
                 />
               </el-form-item>
@@ -331,13 +418,25 @@ export default {
 
             <el-col v-if="form.sysSfcDelay || mode === 'edit'" :span="6">
               <el-form-item label="延迟加载">
-                <el-input-number v-model="form.sysSfcDelay" :min="0" :max="10000" placeholder="毫秒" controls-position="right" />
+                <el-input-number
+                  v-model="form.sysSfcDelay"
+                  :min="0"
+                  :max="10000"
+                  placeholder="毫秒"
+                  controls-position="right"
+                />
               </el-form-item>
             </el-col>
 
             <el-col v-if="form.sysSfcTimeout || mode === 'edit'" :span="6">
               <el-form-item label="超时时间">
-                <el-input-number v-model="form.sysSfcTimeout" :min="0" :max="60000" placeholder="毫秒" controls-position="right" />
+                <el-input-number
+                  v-model="form.sysSfcTimeout"
+                  :min="0"
+                  :max="60000"
+                  placeholder="毫秒"
+                  controls-position="right"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -346,16 +445,18 @@ export default {
         <!-- 描述信息 -->
         <div class="form-section">
           <div class="section-title">
-            <el-icon><component :is="useRenderIcon('ri:file-text-line')" /></el-icon>
+            <el-icon
+              ><component :is="useRenderIcon('ri:file-text-line')"
+            /></el-icon>
             <span>描述信息</span>
           </div>
           <el-row :gutter="20">
             <el-col :span="24">
               <el-form-item label="组件描述" prop="sysSfcDesc">
-                <el-input 
-                  v-model="form.sysSfcDesc" 
-                  placeholder="请输入组件功能描述..." 
-                  type="textarea" 
+                <el-input
+                  v-model="form.sysSfcDesc"
+                  placeholder="请输入组件功能描述..."
+                  type="textarea"
                   :rows="3"
                   maxlength="500"
                   show-word-limit
@@ -369,18 +470,31 @@ export default {
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="visible = false">
-            <el-icon class="mr-1"><component :is="useRenderIcon('ep:close')" /></el-icon>
+            <el-icon class="mr-1"
+              ><component :is="useRenderIcon('ep:close')"
+            /></el-icon>
             取消
           </el-button>
-          <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="debounce(submit(), 1000, true)">
-            <el-icon class="mr-1"><component :is="useRenderIcon('ep:check')" /></el-icon>
-            {{ loading ? '保存中...' : '保存' }}
+          <el-button
+            v-if="mode != 'show'"
+            type="primary"
+            :loading="loading"
+            @click="debounce(submit(), 1000, true)"
+          >
+            <el-icon class="mr-1"
+              ><component :is="useRenderIcon('ep:check')"
+            /></el-icon>
+            {{ loading ? "保存中..." : "保存" }}
           </el-button>
         </div>
       </template>
     </sc-dialog>
 
-    <CodeLayout v-if="visibleCodeLayout" ref="codeLayoutRef" @updateValue="handleUpdateValue" />
+    <CodeLayout
+      v-if="visibleCodeLayout"
+      ref="codeLayoutRef"
+      @updateValue="handleUpdateValue"
+    />
   </div>
 </template>
 
@@ -389,13 +503,17 @@ export default {
   :deep(.el-dialog__header) {
     padding: 16px 20px;
     margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
   }
 
   :deep(.el-dialog__body) {
-    padding: 20px;
     max-height: 70vh;
+    padding: 20px;
     overflow-y: auto;
   }
 
@@ -412,8 +530,8 @@ export default {
 
   .header-left {
     display: flex;
-    align-items: center;
     gap: 10px;
+    align-items: center;
 
     .header-icon {
       color: var(--el-color-primary);
@@ -423,11 +541,11 @@ export default {
 
 .sfc-form {
   .form-section {
-    margin-bottom: 24px;
     padding: 16px;
+    margin-bottom: 24px;
     background: var(--el-fill-color-lighter);
-    border-radius: 8px;
     border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
 
     &:last-child {
       margin-bottom: 0;
@@ -435,18 +553,18 @@ export default {
 
     .section-title {
       display: flex;
-      align-items: center;
       gap: 8px;
-      margin-bottom: 16px;
+      align-items: center;
       padding-bottom: 12px;
-      border-bottom: 1px solid var(--el-border-color-lighter);
+      margin-bottom: 16px;
       font-size: 15px;
       font-weight: 600;
       color: var(--el-text-color-primary);
+      border-bottom: 1px solid var(--el-border-color-lighter);
 
       .el-icon {
-        color: var(--el-color-primary);
         font-size: 18px;
+        color: var(--el-color-primary);
       }
     }
   }
@@ -481,8 +599,8 @@ export default {
       display: flex;
       align-items: center;
       padding: 10px 16px;
-      border-radius: 8px !important;
       border: 1px solid var(--el-border-color) !important;
+      border-radius: 8px !important;
       box-shadow: none !important;
     }
 
@@ -507,27 +625,31 @@ export default {
 
 .dialog-footer {
   display: flex;
-  justify-content: flex-end;
   gap: 12px;
+  justify-content: flex-end;
 
   .el-button {
     padding: 10px 20px;
-    border-radius: 8px;
     font-weight: 500;
+    border-radius: 8px;
     transition: all 0.3s ease;
 
     &:hover {
+      box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
   }
 }
 
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .sfc-dialog {
     :deep(.el-dialog__header) {
-      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15) 0%, var(--el-bg-color-overlay) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.15) 0%,
+        var(--el-bg-color-overlay) 100%
+      );
     }
   }
 

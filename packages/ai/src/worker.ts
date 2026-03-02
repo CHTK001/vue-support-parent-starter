@@ -1,7 +1,7 @@
 /**
  * AI Worker - 在 Web Worker 中处理 transformers 任务
  */
-import { pipeline, type Pipeline, type PipelineType } from '@xenova/transformers';
+import { pipeline, type Pipeline, type PipelineType } from '@huggingface/transformers';
 import type { WorkerRequest, WorkerResponse } from './types';
 
 // Worker 全局状态

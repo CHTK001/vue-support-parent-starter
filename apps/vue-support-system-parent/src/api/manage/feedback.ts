@@ -25,7 +25,7 @@ export type Feedback = {
  */
 export const fetchPageFeedback = (params: any) => {
   return http.request<ReturnResult<Feedback[]>>("get", "/v2/feedback/page", {
-    params
+    params,
   });
 };
 
@@ -36,7 +36,7 @@ export const fetchPageFeedback = (params: any) => {
  */
 export const fetchIssueFeedback = (data: any) => {
   return http.request<ReturnResult<boolean>>("put", "/v2/feedback/issue", {
-    data
+    data,
   });
 };
 
@@ -67,5 +67,8 @@ export type FeedbackStatistic = {
  * @returns 统计数据
  */
 export const fetchFeedbackStatistic = () => {
-  return http.request<ReturnResult<FeedbackStatistic>>("get", "/v2/feedback/statistic");
+  return http.request<ReturnResult<FeedbackStatistic>>(
+    "get",
+    "/v2/feedback/statistic",
+  );
 };

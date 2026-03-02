@@ -17,8 +17,8 @@ export default defineFakeRoute([
             roles: ["admin"],
             accessToken: "eyJhbGciOiJIUzUxMiJ9.admin",
             refreshToken: "eyJhbGciOiJIUzUxMiJ9.adminRefresh",
-            expires: "2030/10/30 00:00:00"
-          }
+            expires: "2030/10/30 00:00:00",
+          },
         };
       } else {
         return {
@@ -30,10 +30,10 @@ export default defineFakeRoute([
             roles: ["common"],
             accessToken: "eyJhbGciOiJIUzUxMiJ9.common",
             refreshToken: "eyJhbGciOiJIUzUxMiJ9.commonRefresh",
-            expires: "2030/10/30 00:00:00"
-          }
+            expires: "2030/10/30 00:00:00",
+          },
         };
       }
-    }
-  }
+    },
+  },
 ]);

@@ -1,4 +1,8 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
+import axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+} from "axios";
 
 /**
  * API 响应基础结构
@@ -29,7 +33,7 @@ const createAxiosInstance = (): AxiosInstance => {
     },
     (error) => {
       return Promise.reject(error);
-    }
+    },
   );
 
   // 响应拦截器
@@ -44,7 +48,7 @@ const createAxiosInstance = (): AxiosInstance => {
     },
     (error) => {
       return Promise.reject(error);
-    }
+    },
   );
 
   return instance;
@@ -62,29 +66,50 @@ export const request = {
   /**
    * GET 请求
    */
-  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    return api.get<ApiResponse<T>>(url, config).then((res) => res as unknown as ApiResponse<T>);
+  get<T = any>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<ApiResponse<T>> {
+    return api
+      .get<ApiResponse<T>>(url, config)
+      .then((res) => res as unknown as ApiResponse<T>);
   },
 
   /**
    * POST 请求
    */
-  post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    return api.post<ApiResponse<T>>(url, data, config).then((res) => res as unknown as ApiResponse<T>);
+  post<T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<ApiResponse<T>> {
+    return api
+      .post<ApiResponse<T>>(url, data, config)
+      .then((res) => res as unknown as ApiResponse<T>);
   },
 
   /**
    * PUT 请求
    */
-  put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    return api.put<ApiResponse<T>>(url, data, config).then((res) => res as unknown as ApiResponse<T>);
+  put<T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<ApiResponse<T>> {
+    return api
+      .put<ApiResponse<T>>(url, data, config)
+      .then((res) => res as unknown as ApiResponse<T>);
   },
 
   /**
    * DELETE 请求
    */
-  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    return api.delete<ApiResponse<T>>(url, config).then((res) => res as unknown as ApiResponse<T>);
+  delete<T = any>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<ApiResponse<T>> {
+    return api
+      .delete<ApiResponse<T>>(url, config)
+      .then((res) => res as unknown as ApiResponse<T>);
   },
 };
-

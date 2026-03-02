@@ -272,6 +272,8 @@ export interface RequestConfig {
   showLoading?: boolean;
   /** 是否启用 */
   enable?: boolean;
+  /** 是否开启请求签名（x-sign），默认 true */
+  enableSign?: boolean;
 }
 
 /**
@@ -302,6 +304,10 @@ export interface PageBehaviorConfig {
   confirmOnLeave?: boolean;
   /** 顶部是否显示时间 */
   showHeaderClock?: boolean;
+  /** 顶部是否显示第二个时间 */
+  headerClockSecondEnabled?: boolean;
+  /** 顶部第二时间的时区 */
+  headerClockSecondTimezone?: string;
   /** 页面缩放比例（0.8 - 1.5） */
   uiScale?: number;
   /** 读屏优化模式 */

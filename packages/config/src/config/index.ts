@@ -15,7 +15,7 @@ const putConfig = (key: string, value: any) => {
 
 setConfig(globalSetting);
 //@ts-ignore
-const extConfig = import.meta.glob("@/application*.y(a)?ml", {
+const extConfig = import.meta.glob("@/app*.y(a)?ml", {
   eager: true,
   query: "raw",
 });

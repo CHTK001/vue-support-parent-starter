@@ -12,9 +12,9 @@
       <div class="toolbar-right header-actions">
         <el-form :model="form" :inline="true" class="modern-form search-form">
           <el-form-item>
-            <el-input 
-              v-model="form.sysSfcName" 
-              placeholder="搜索组件名称" 
+            <el-input
+              v-model="form.sysSfcName"
+              placeholder="搜索组件名称"
               clearable
               :prefix-icon="useRenderIcon('ep:search')"
               class="search-input"
@@ -22,7 +22,12 @@
             />
           </el-form-item>
           <el-form-item>
-            <el-select v-model="form.sysSfcType" placeholder="组件类型" clearable class="type-select">
+            <el-select
+              v-model="form.sysSfcType"
+              placeholder="组件类型"
+              clearable
+              class="type-select"
+            >
               <el-option label="文件式" :value="0" />
               <el-option label="代码式" :value="1" />
               <el-option label="远程地址" :value="2" />
@@ -31,15 +36,33 @@
           </el-form-item>
           <el-form-item>
             <el-tooltip content="只显示已安装的组件" placement="top">
-              <el-checkbox v-model="form.sysSfcInstall" :true-value="1" :false-value="0" border @change="onSearch">
-                <el-icon class="mr-1"><component :is="useRenderIcon('ri:download-2-line')" /></el-icon>
+              <el-checkbox
+                v-model="form.sysSfcInstall"
+                :true-value="1"
+                :false-value="0"
+                border
+                @change="onSearch"
+              >
+                <el-icon class="mr-1"
+                  ><component :is="useRenderIcon('ri:download-2-line')"
+                /></el-icon>
                 已安装
               </el-checkbox>
             </el-tooltip>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="onSearch">搜索</el-button>
-            <el-button type="success" :icon="useRenderIcon('ep:plus')" @click="doSave({}, 'save')">新增插件</el-button>
+            <el-button
+              type="primary"
+              :icon="useRenderIcon('ep:search')"
+              @click="onSearch"
+              >搜索</el-button
+            >
+            <el-button
+              type="success"
+              :icon="useRenderIcon('ep:plus')"
+              @click="doSave({}, 'save')"
+              >新增插件</el-button
+            >
           </el-form-item>
         </el-form>
       </div>
@@ -48,28 +71,36 @@
     <!-- 统计信息 -->
     <div class="sfc-stats">
       <div class="stat-item">
-        <el-icon class="stat-icon total"><component :is="useRenderIcon('ri:apps-line')" /></el-icon>
+        <el-icon class="stat-icon total"
+          ><component :is="useRenderIcon('ri:apps-line')"
+        /></el-icon>
         <div class="stat-info">
           <span class="stat-value">{{ stats.total }}</span>
           <span class="stat-label">全部插件</span>
         </div>
       </div>
       <div class="stat-item">
-        <el-icon class="stat-icon active"><component :is="useRenderIcon('ri:checkbox-circle-line')" /></el-icon>
+        <el-icon class="stat-icon active"
+          ><component :is="useRenderIcon('ri:checkbox-circle-line')"
+        /></el-icon>
         <div class="stat-info">
           <span class="stat-value">{{ stats.active }}</span>
           <span class="stat-label">已激活</span>
         </div>
       </div>
       <div class="stat-item">
-        <el-icon class="stat-icon installed"><component :is="useRenderIcon('ri:download-2-line')" /></el-icon>
+        <el-icon class="stat-icon installed"
+          ><component :is="useRenderIcon('ri:download-2-line')"
+        /></el-icon>
         <div class="stat-info">
           <span class="stat-value">{{ stats.installed }}</span>
           <span class="stat-label">已安装</span>
         </div>
       </div>
       <div class="stat-item">
-        <el-icon class="stat-icon disabled"><component :is="useRenderIcon('ri:close-circle-line')" /></el-icon>
+        <el-icon class="stat-icon disabled"
+          ><component :is="useRenderIcon('ri:close-circle-line')"
+        /></el-icon>
         <div class="stat-info">
           <span class="stat-value">{{ stats.disabled }}</span>
           <span class="stat-label">已禁用</span>
@@ -78,11 +109,11 @@
     </div>
 
     <!-- 插件卡片列表 -->
-    <ScTable 
-      ref="scCard" 
-      :params="form" 
-      :url="fetchPageSfc" 
-      :appendable="true" 
+    <ScTable
+      ref="scCard"
+      :params="form"
+      :url="fetchPageSfc"
+      :appendable="true"
       :hiddenAppend="form.sysSfcInstall == 1"
       layout="card"
       :colSize="4"
@@ -90,20 +121,43 @@
       @data-loaded="onDataLoaded"
     >
       <template #default="{ row }">
-        <div class="plugin-card" :class="{ 'plugin-disabled': row.sysSfcStatus === 0, 'plugin-installed': row.sysSfcInstall === 1 }">
+        <div
+          class="plugin-card"
+          :class="{
+            'plugin-disabled': row.sysSfcStatus === 0,
+            'plugin-installed': row.sysSfcInstall === 1,
+          }"
+        >
           <!-- 卡片头部 -->
           <div class="card-header">
-            <div class="plugin-icon" :class="{ active: row.sysSfcStatus === 1 }">
+            <div
+              class="plugin-icon"
+              :class="{ active: row.sysSfcStatus === 1 }"
+            >
               <el-icon :size="48">
-                <component :is="useRenderIcon(row.sysSfcIcon || 'ri:puzzle-line')" />
+                <component
+                  :is="useRenderIcon(row.sysSfcIcon || 'ri:puzzle-line')"
+                />
               </el-icon>
             </div>
             <div class="plugin-badges">
-              <el-tag v-if="row.sysSfcInstall === 1" type="success" size="small" effect="dark" class="badge">
-                <el-icon class="mr-1"><component :is="useRenderIcon('ep:check')" /></el-icon>
+              <el-tag
+                v-if="row.sysSfcInstall === 1"
+                type="success"
+                size="small"
+                effect="dark"
+                class="badge"
+              >
+                <el-icon class="mr-1"
+                  ><component :is="useRenderIcon('ep:check')"
+                /></el-icon>
                 已安装
               </el-tag>
-              <el-tag :type="getTypeTagType(row.sysSfcType)" size="small" class="badge">
+              <el-tag
+                :type="getTypeTagType(row.sysSfcType)"
+                size="small"
+                class="badge"
+              >
                 {{ getTypeName(row.sysSfcType) }}
               </el-tag>
             </div>
@@ -116,15 +170,19 @@
             </h3>
             <p class="plugin-code">{{ row.sysSfcName }}</p>
             <p class="plugin-desc" :title="row.sysSfcDesc">
-              {{ row.sysSfcDesc || '暂无描述' }}
+              {{ row.sysSfcDesc || "暂无描述" }}
             </p>
             <div class="plugin-meta">
-              <span class="meta-item" v-if="row.sysSfcVersion">
-                <el-icon><component :is="useRenderIcon('ri:price-tag-3-line')" /></el-icon>
+              <span v-if="row.sysSfcVersion" class="meta-item">
+                <el-icon
+                  ><component :is="useRenderIcon('ri:price-tag-3-line')"
+                /></el-icon>
                 v{{ row.sysSfcVersion }}
               </span>
-              <span class="meta-item" v-if="row.sysSfcCategory">
-                <el-icon><component :is="useRenderIcon('ri:folder-line')" /></el-icon>
+              <span v-if="row.sysSfcCategory" class="meta-item">
+                <el-icon
+                  ><component :is="useRenderIcon('ri:folder-line')"
+                /></el-icon>
                 {{ row.sysSfcCategory }}
               </span>
             </div>
@@ -133,28 +191,43 @@
           <!-- 卡片底部 -->
           <div class="card-footer">
             <div class="status-switch">
-              <el-switch 
-                v-model="row.sysSfcStatus" 
-                :active-value="1" 
+              <el-switch
+                v-model="row.sysSfcStatus"
+                :active-value="1"
                 :inactive-value="0"
                 active-text="启用"
                 inactive-text="禁用"
                 inline-prompt
-                @change="doChange(row)" 
+                @change="doChange(row)"
               />
             </div>
             <div class="action-buttons">
               <!-- 安装/卸载按钮 -->
-              <el-tooltip :content="row.sysSfcInstall === 1 ? '卸载插件' : '安装插件'" placement="top">
-                <el-popconfirm 
-                  :title="row.sysSfcInstall === 1 ? '确定要卸载此插件吗？' : '确定要安装此插件吗？'" 
-                  @confirm="row.sysSfcInstall === 1 ? doUninstall(row) : doInstall(row)"
+              <el-tooltip
+                :content="row.sysSfcInstall === 1 ? '卸载插件' : '安装插件'"
+                placement="top"
+              >
+                <el-popconfirm
+                  :title="
+                    row.sysSfcInstall === 1
+                      ? '确定要卸载此插件吗？'
+                      : '确定要安装此插件吗？'
+                  "
+                  @confirm="
+                    row.sysSfcInstall === 1 ? doUninstall(row) : doInstall(row)
+                  "
                 >
                   <template #reference>
-                    <el-button 
-                      :type="row.sysSfcInstall === 1 ? 'warning' : 'success'" 
-                      :icon="useRenderIcon(row.sysSfcInstall === 1 ? 'ri:uninstall-line' : 'ri:install-line')" 
-                      circle 
+                    <el-button
+                      :type="row.sysSfcInstall === 1 ? 'warning' : 'success'"
+                      :icon="
+                        useRenderIcon(
+                          row.sysSfcInstall === 1
+                            ? 'ri:uninstall-line'
+                            : 'ri:install-line',
+                        )
+                      "
+                      circle
                       size="small"
                       :loading="startDialogStatus"
                     />
@@ -164,22 +237,26 @@
 
               <!-- 预览按钮 -->
               <el-tooltip content="预览插件" placement="top">
-                <el-button 
-                  type="primary" 
-                  :icon="useRenderIcon('ri:eye-line')" 
-                  circle 
+                <el-button
+                  type="primary"
+                  :icon="useRenderIcon('ri:eye-line')"
+                  circle
                   size="small"
                   @click="doView(row)"
                 />
               </el-tooltip>
 
               <!-- 上传按钮（仅文件式） -->
-              <el-tooltip v-if="row.sysSfcType === 0" content="上传组件文件" placement="top">
-                <el-button 
+              <el-tooltip
+                v-if="row.sysSfcType === 0"
+                content="上传组件文件"
+                placement="top"
+              >
+                <el-button
                   v-roles="['ADMIN', 'SUPER_ADMIN']"
-                  type="info" 
-                  :icon="useRenderIcon('ep:upload')" 
-                  circle 
+                  type="info"
+                  :icon="useRenderIcon('ep:upload')"
+                  circle
                   size="small"
                   @click="doUpload(row)"
                 />
@@ -187,12 +264,15 @@
 
               <!-- 删除按钮 -->
               <el-tooltip content="删除插件" placement="top">
-                <el-popconfirm :title="$t('message.confimDelete')" @confirm="doDelete(row)">
+                <el-popconfirm
+                  :title="$t('message.confimDelete')"
+                  @confirm="doDelete(row)"
+                >
                   <template #reference>
-                    <el-button 
-                      type="danger" 
-                      :icon="useRenderIcon('ep:delete')" 
-                      circle 
+                    <el-button
+                      type="danger"
+                      :icon="useRenderIcon('ep:delete')"
+                      circle
                       size="small"
                     />
                   </template>
@@ -205,14 +285,24 @@
     </ScTable>
 
     <!-- 弹窗组件 -->
-    <SaveLayout ref="saveRef" @success="onSearch" @close="visible.save = false" />
+    <SaveLayout
+      ref="saveRef"
+      @success="onSearch"
+      @close="visible.save = false"
+    />
     <ViewLayout ref="viewRef" @close="visible.view = false" />
     <UploadLayout ref="uploadRef" @close="visible.upload = false" />
   </div>
 </template>
 
 <script setup>
-import { fetchDeleteSfc, fetchInstallSfc, fetchPageSfc, fetchUpdateSfc, fetchUninstallSfc } from "@repo/core";
+import {
+  fetchDeleteSfc,
+  fetchInstallSfc,
+  fetchPageSfc,
+  fetchUpdateSfc,
+  fetchUninstallSfc,
+} from "@repo/core";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import SaveLayout from "./save.vue";
 import ViewLayout from "./view.vue";
@@ -228,15 +318,15 @@ const viewRef = ref();
 const scCard = ref();
 const startDialogStatus = ref(false);
 const form = reactive({
-  sysSfcName: '',
+  sysSfcName: "",
   sysSfcType: null,
-  sysSfcInstall: 0
+  sysSfcInstall: 0,
 });
 
 const visible = reactive({
   save: false,
   upload: false,
-  view: false
+  view: false,
 });
 
 // 统计数据
@@ -245,22 +335,22 @@ const stats = computed(() => {
   const data = allData.value;
   return {
     total: data.length,
-    active: data.filter(item => item.sysSfcStatus === 1).length,
-    installed: data.filter(item => item.sysSfcInstall === 1).length,
-    disabled: data.filter(item => item.sysSfcStatus === 0).length
+    active: data.filter((item) => item.sysSfcStatus === 1).length,
+    installed: data.filter((item) => item.sysSfcInstall === 1).length,
+    disabled: data.filter((item) => item.sysSfcStatus === 0).length,
   };
 });
 
 // 组件类型映射
 const typeMap = {
-  0: { name: '文件式', type: 'primary' },
-  1: { name: '代码式', type: 'success' },
-  2: { name: '远程', type: 'warning' },
-  3: { name: '本地', type: 'info' }
+  0: { name: "文件式", type: "primary" },
+  1: { name: "代码式", type: "success" },
+  2: { name: "远程", type: "warning" },
+  3: { name: "本地", type: "info" },
 };
 
-const getTypeName = (type) => typeMap[type]?.name || '未知';
-const getTypeTagType = (type) => typeMap[type]?.type || 'info';
+const getTypeName = (type) => typeMap[type]?.name || "未知";
+const getTypeTagType = (type) => typeMap[type]?.type || "info";
 
 const onDataLoaded = (data) => {
   allData.value = data;
@@ -270,36 +360,40 @@ const onSearch = async () => {
   scCard.value.refresh(form);
 };
 
-const doUninstall = async item => {
+const doUninstall = async (item) => {
   startDialogStatus.value = true;
-  fetchUninstallSfc(item).then(res => {
-    if (res && res.code == "00000") {
-      message("卸载成功", { type: "success" });
-      onSearch();
-    } else {
-      message(res?.msg, { type: "error" });
-    }
-  }).finally(() => {
-    startDialogStatus.value = false;
-  });
+  fetchUninstallSfc(item)
+    .then((res) => {
+      if (res && res.code == "00000") {
+        message("卸载成功", { type: "success" });
+        onSearch();
+      } else {
+        message(res?.msg, { type: "error" });
+      }
+    })
+    .finally(() => {
+      startDialogStatus.value = false;
+    });
 };
 
-const doInstall = async item => {
+const doInstall = async (item) => {
   startDialogStatus.value = true;
-  fetchInstallSfc(item).then(res => {
-    if (res && res.code == "00000") {
-      message("安装成功", { type: "success" });
-      onSearch();
-    } else {
-      message(res?.msg, { type: "error" });
-    }
-  }).finally(() => {
-    startDialogStatus.value = false;
-  });
+  fetchInstallSfc(item)
+    .then((res) => {
+      if (res && res.code == "00000") {
+        message("安装成功", { type: "success" });
+        onSearch();
+      } else {
+        message(res?.msg, { type: "error" });
+      }
+    })
+    .finally(() => {
+      startDialogStatus.value = false;
+    });
 };
 
-const doDelete = async item => {
-  fetchDeleteSfc({ sysSfcId: item.sysSfcId }).then(res => {
+const doDelete = async (item) => {
+  fetchDeleteSfc({ sysSfcId: item.sysSfcId }).then((res) => {
     if (res && res.code == "00000") {
       message("删除成功", { type: "success" });
       onSearch();
@@ -309,8 +403,8 @@ const doDelete = async item => {
   });
 };
 
-const doChange = async item => {
-  fetchUpdateSfc(item).then(res => {
+const doChange = async (item) => {
+  fetchUpdateSfc(item).then((res) => {
     if (res && res.code == "00000") {
       message("状态更新成功", { type: "success" });
     } else {
@@ -319,14 +413,14 @@ const doChange = async item => {
   });
 };
 
-const doUpload = async item => {
+const doUpload = async (item) => {
   visible.upload = true;
   await nextTick();
   uploadRef.value.setData(item);
   uploadRef.value.open();
 };
 
-const doView = async item => {
+const doView = async (item) => {
   visible.view = true;
   await nextTick();
   viewRef.value.setData(item);
@@ -342,34 +436,75 @@ const doSave = async (item, mode) => {
 </script>
 
 <style lang="scss" scoped>
+// 响应式适配
+@media (width <= 1200px) {
+  .sfc-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (width <= 768px) {
+  .sfc-header {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .header-actions .search-form {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .search-input,
+      .type-select {
+        width: 100%;
+      }
+    }
+  }
+
+  .sfc-stats {
+    grid-template-columns: repeat(2, 1fr);
+
+    .stat-item {
+      padding: 16px;
+
+      .stat-icon {
+        padding: 10px;
+        font-size: 32px;
+      }
+
+      .stat-info .stat-value {
+        font-size: 24px;
+      }
+    }
+  }
+}
+
 .sfc-container {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color-page);
-  padding: 20px;
   gap: 16px;
+  height: 100%;
+  padding: 20px;
+  background: var(--el-bg-color-page);
 }
 
 // 头部样式
 .sfc-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--el-bg-color);
-  padding: 16px 24px;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   flex-wrap: wrap;
   gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 4%);
 
   .header-title {
     display: flex;
+    gap: 8px;
     align-items: center;
     font-size: 20px;
     font-weight: 600;
     color: var(--el-text-color-primary);
-    gap: 8px;
 
     .title-icon {
       font-size: 24px;
@@ -380,9 +515,9 @@ const doSave = async (item, mode) => {
   .header-actions {
     .search-form {
       display: flex;
-      align-items: center;
-      gap: 8px;
       flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
 
       :deep(.el-form-item) {
         margin-bottom: 0;
@@ -407,42 +542,42 @@ const doSave = async (item, mode) => {
 
   .stat-item {
     display: flex;
-    align-items: center;
     gap: 16px;
-    background: var(--el-bg-color);
+    align-items: center;
     padding: 20px 24px;
+    background: var(--el-bg-color);
     border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 4%);
     transition: all 0.3s ease;
 
     &:hover {
+      box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
 
     .stat-icon {
-      font-size: 40px;
       padding: 12px;
+      font-size: 40px;
       border-radius: 12px;
 
       &.total {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: #fff;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       }
 
       &.active {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
         color: #fff;
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
       }
 
       &.installed {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         color: #fff;
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       }
 
       &.disabled {
-        background: linear-gradient(135deg, #868f96 0%, #596164 100%);
         color: #fff;
+        background: linear-gradient(135deg, #868f96 0%, #596164 100%);
       }
     }
 
@@ -453,14 +588,14 @@ const doSave = async (item, mode) => {
       .stat-value {
         font-size: 28px;
         font-weight: 700;
-        color: var(--el-text-color-primary);
         line-height: 1.2;
+        color: var(--el-text-color-primary);
       }
 
       .stat-label {
+        margin-top: 4px;
         font-size: 14px;
         color: var(--el-text-color-secondary);
-        margin-top: 4px;
       }
     }
   }
@@ -468,19 +603,19 @@ const doSave = async (item, mode) => {
 
 // 插件卡片样式
 .plugin-card {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color);
-  border-radius: 12px;
+  height: 100%;
   overflow: hidden;
-  transition: all 0.3s ease;
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  transition: all 0.3s ease;
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
     border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 10%);
+    transform: translateY(-4px);
 
     .card-header .plugin-icon {
       transform: scale(1.1);
@@ -505,22 +640,26 @@ const doSave = async (item, mode) => {
 
   .card-header {
     position: relative;
-    padding: 24px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
+    padding: 24px;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-color-primary-light-8) 100%
+    );
 
     .plugin-icon {
-      width: 72px;
-      height: 72px;
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 72px;
+      height: 72px;
+      color: var(--el-text-color-secondary);
       background: var(--el-bg-color);
       border-radius: 16px;
-      color: var(--el-text-color-secondary);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
       transition: all 0.3s ease;
 
       &.active {
@@ -547,32 +686,32 @@ const doSave = async (item, mode) => {
     cursor: pointer;
 
     .plugin-name {
+      margin: 0 0 4px;
+      overflow: hidden;
       font-size: 16px;
       font-weight: 600;
       color: var(--el-text-color-primary);
-      margin: 0 0 4px 0;
-      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .plugin-code {
+      margin: 0 0 8px;
+      font-family: monospace;
       font-size: 12px;
       color: var(--el-text-color-secondary);
-      margin: 0 0 8px 0;
-      font-family: monospace;
     }
 
     .plugin-desc {
-      font-size: 13px;
-      color: var(--el-text-color-regular);
-      margin: 0;
-      line-height: 1.5;
       display: -webkit-box;
+      min-height: 40px;
+      margin: 0;
+      overflow: hidden;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--el-text-color-regular);
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
-      overflow: hidden;
-      min-height: 40px;
     }
 
     .plugin-meta {
@@ -582,8 +721,8 @@ const doSave = async (item, mode) => {
 
       .meta-item {
         display: flex;
-        align-items: center;
         gap: 4px;
+        align-items: center;
         font-size: 12px;
         color: var(--el-text-color-secondary);
 
@@ -596,11 +735,11 @@ const doSave = async (item, mode) => {
 
   .card-footer {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     padding: 12px 20px;
-    border-top: 1px solid var(--el-border-color-lighter);
     background: var(--el-fill-color-lighter);
+    border-top: 1px solid var(--el-border-color-lighter);
 
     .status-switch {
       :deep(.el-switch) {
@@ -624,49 +763,8 @@ const doSave = async (item, mode) => {
   }
 }
 
-// 响应式适配
-@media (max-width: 1200px) {
-  .sfc-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .sfc-header {
-    flex-direction: column;
-    align-items: flex-start;
-
-    .header-actions .search-form {
-      flex-direction: column;
-      align-items: flex-start;
-
-      .search-input,
-      .type-select {
-        width: 100%;
-      }
-    }
-  }
-
-  .sfc-stats {
-    grid-template-columns: repeat(2, 1fr);
-
-    .stat-item {
-      padding: 16px;
-
-      .stat-icon {
-        font-size: 32px;
-        padding: 10px;
-      }
-
-      .stat-info .stat-value {
-        font-size: 24px;
-      }
-    }
-  }
-}
-
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .sfc-header,
   .stat-item,
   .plugin-card {
@@ -675,7 +773,11 @@ const doSave = async (item, mode) => {
 
   .plugin-card {
     .card-header {
-      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.2) 0%, rgba(var(--el-color-primary-rgb), 0.1) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.2) 0%,
+        rgba(var(--el-color-primary-rgb), 0.1) 100%
+      );
     }
 
     &.plugin-disabled .card-header {

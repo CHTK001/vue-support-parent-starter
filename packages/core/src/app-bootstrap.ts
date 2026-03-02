@@ -580,6 +580,19 @@ export async function createStandardApp(
     .registerPlugins([MotionPlugin, useI18n, useElementPlus, Table, ...plugins])
     .registerEncryptedFonts();
 
+  // 自动注册主题插件和初始化主题系统
+  bootstrap.use(async () => {
+    try {
+      const { autoRegisterThemePlugins, initThemeSystem } = await import("@repo/components");
+      // 根据主题配置自动注册需要的插件（例如 PixelUI）
+      await autoRegisterThemePlugins(app);
+      // 预加载当前主题（根据 data-skin / systemTheme）
+      await initThemeSystem();
+    } catch (error) {
+      console.warn("[createStandardApp] 主题系统初始化失败:", error);
+    }
+  });
+
   // 自定义初始化
   if (setup) {
         /**

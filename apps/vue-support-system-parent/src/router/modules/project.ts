@@ -10,81 +10,89 @@ export default [
     meta: {
       icon: "ep:folder",
       title: "项目管理",
-      rank: 5
+      rank: 5,
     },
     children: [
       {
         path: "/project/index",
         name: "ProjectIndex",
-        component: () => import("../../../../../pages/project/src/views/project/index.vue"),
+        component: () =>
+          import("../../../../../pages/project/src/views/project/index.vue"),
         meta: {
           title: "项目管理",
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/project/manage",
         name: "ProjectManage",
-        component: () => import("../../../../../pages/project/src/views/project/index.vue"),
+        component: () =>
+          import("../../../../../pages/project/src/views/project/index.vue"),
         meta: {
           title: "项目管理",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/secret",
         name: "ProjectSecret",
-        component: () => import("../../../../../pages/project/src/views/secret/index.vue"),
+        component: () =>
+          import("../../../../../pages/project/src/views/secret/index.vue"),
         meta: {
           title: "密钥管理",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/llm",
         name: "ProjectAiLlm",
-        component: () => import("../../../../../pages/project/src/views/ai/llm-new/index.vue"),
+        component: () =>
+          import("../../../../../pages/project/src/views/ai/llm-new/index.vue"),
         meta: {
           title: "大语言模型",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/vincent",
         name: "ProjectAiVincent",
-        component: () => import("../../../../../pages/project/src/views/ai/generation/index.vue"),
+        component: () =>
+          import("../../../../../pages/project/src/views/ai/generation/index.vue"),
         meta: {
           title: "图像生成",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/video",
         name: "ProjectAiVideo",
-        component: () => import("../../../../../pages/project/src/views/ai/video/index.vue"),
+        component: () =>
+          import("../../../../../pages/project/src/views/ai/video/index.vue"),
         meta: {
           title: "视频生成",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/colorization",
         name: "ProjectAiColorization",
-        component: () => import("../../../../../pages/project/src/views/ai/colorization/index.vue"),
+        component: () =>
+          import("../../../../../pages/project/src/views/ai/colorization/index.vue"),
         meta: {
           title: "图像上色",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/resolution",
         name: "ProjectAiResolution",
-        component: () => import("../../../../../pages/project/src/views/ai/resolution/index.vue"),
+        component: () =>
+          import("../../../../../pages/project/src/views/ai/resolution/index.vue"),
         meta: {
           title: "图像分辨率增强",
-          showLink: false
-        }
-      }
-    ]
-  }
+          showLink: false,
+        },
+      },
+    ],
+  },
 ] satisfies Array<RouteConfigsTable>;

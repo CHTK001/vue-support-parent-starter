@@ -168,7 +168,28 @@ export const useConfigStore = defineStore({
               await this.doRegister(data);
               this.isLoaded = true;
             } catch (error) {
-              console.warn("Failed to fetch remote settings:", error);
+              // 兼容接口异常返回 Blob/text/plain 的情况，避免控制台只看到 Blob 对象
+              const err: any = error as any;
+              const blobLike = err instanceof Blob ? err : err?.response?.data;
+              if (blobLike instanceof Blob) {
+                blobLike
+                  .text()
+                  .then((text: string) => {
+                    console.warn(
+                      "Failed to fetch remote settings (blob):",
+                      text || "[empty]",
+                    );
+                  })
+                  .catch(() => {
+                    console.warn(
+                      "Failed to fetch remote settings (empty blob).",
+                    );
+                  });
+              } else {
+                console.warn("Failed to fetch remote settings:", error);
+              }
+              // 标记已尝试加载，避免后续反复进入远程加载逻辑
+              this.isLoaded = true;
             } finally {
               this.isLoading = false;
             }

@@ -1,6 +1,6 @@
 /**
  * @repo/ai - AI工具包入口
- * 基于 @xenova/transformers 和 Web Worker
+ * 基于 @huggingface/transformers 和 Web Worker
  */
 
 export { AIClient, createAIClient, getAIClient } from './src/ai-client';

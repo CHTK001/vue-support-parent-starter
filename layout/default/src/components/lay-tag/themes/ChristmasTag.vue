@@ -494,5 +494,4 @@ const deferTag = useDefer(tagsViews?.length);
 
 <style lang="scss">
 @use './default.scss';
-@use './christmas.css';
 </style>

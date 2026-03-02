@@ -10,7 +10,7 @@ html[data-theme='8bit'] {
   --el-border-radius-circle: 0px;
 
   /* 字体设置 - 优先使用像素字体，没有则使用等宽字体 */
-  font-family: "Press Start 2P", "Courier New", Courier, monospace;
+  font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
 
   /* 强制无圆角 */
   * {

@@ -29,10 +29,10 @@ const iframeRef = ref<HTMLIFrameElement>();
 const iframeSrc = computed(() => {
   const baseUrl = "/doc-v2.html";
   const params = new URLSearchParams();
-  
+
   // 默认使用 /v3/api-docs 作为 OpenAPI 规范地址（替代 Knife4j）
   const defaultSpecUrl = "/v3/api-docs";
-  
+
   // 从路由查询参数获取配置
   if (route.query.baseUrl) {
     params.append("baseUrl", String(route.query.baseUrl));
@@ -64,9 +64,11 @@ const iframeSrc = computed(() => {
   if (route.query.pwd) {
     params.append("pwd", String(route.query.pwd));
   }
-  
+
   const queryString = params.toString();
-  return queryString ? `${baseUrl}?${queryString}` : `${baseUrl}?specUrl=${defaultSpecUrl}`;
+  return queryString
+    ? `${baseUrl}?${queryString}`
+    : `${baseUrl}?specUrl=${defaultSpecUrl}`;
 });
 
 /**
@@ -95,4 +97,3 @@ onMounted(() => {
   border: none;
 }
 </style>
-

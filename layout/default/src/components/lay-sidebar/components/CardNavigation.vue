@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook, useMultiTagsStoreHook } from "@repo/core";
+import { ScText } from "@repo/components";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import type { MenuItem } from "../../../types/menu";
@@ -507,9 +508,7 @@ onUnmounted(() => {
             />
             <IconifyIconOnline v-else icon="ep:menu" />
           </div>
-          <div v-if="props.showTitle" class="card-title">
-            {{ menu.meta?.title }}
-          </div>
+          <ScText v-if="props.showTitle" class="card-title" :text="menu.meta?.title || ''" />
         </div>
       </div>
 
@@ -558,7 +557,7 @@ onUnmounted(() => {
             />
             <IconifyIconOnline v-else icon="ep:menu" />
           </div>
-          <div class="sub-card-title">{{ subMenu.meta?.title }}</div>
+          <ScText class="sub-card-title" :text="subMenu.meta?.title || ''" />
           <!-- 显示是否有更多子菜单的指示器 -->
           <div v-if="subMenu.hasSubMenu" class="sub-menu-indicator">›</div>
         </div>
@@ -595,7 +594,7 @@ onUnmounted(() => {
             />
             <IconifyIconOnline v-else icon="ep:menu" />
           </div>
-          <div class="sub-card-title">{{ subMenu.meta?.title }}</div>
+          <ScText class="sub-card-title" :text="subMenu.meta?.title || ''" />
           <!-- 显示是否有更多子菜单的指示器 -->
           <div v-if="subMenu.hasSubMenu" class="sub-menu-indicator">›</div>
         </div>
@@ -631,7 +630,7 @@ onUnmounted(() => {
             />
             <IconifyIconOnline v-else icon="ep:menu" />
           </div>
-          <div class="sub-card-title">{{ subMenu.meta?.title }}</div>
+          <ScText class="sub-card-title" :text="subMenu.meta?.title || ''" />
         </div>
       </div>
     </div>

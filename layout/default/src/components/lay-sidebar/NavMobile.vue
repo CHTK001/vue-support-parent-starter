@@ -7,6 +7,7 @@
  */
 import { useRoute, useRouter } from "vue-router";
 import { usePermissionStoreHook } from "@repo/core";
+import { ScText } from "@repo/components";
 import { useNav } from "../../hooks/useNav";
 import { isAllEmpty } from "@pureadmin/utils";
 import { computed, ref, watch } from "vue";
@@ -62,7 +63,7 @@ function handleMenuSelect() {
           <IconifyIconOnline icon="ri:menu-line" class="trigger-icon" />
         </div>
         <!-- Logo/标题 -->
-        <span class="app-title">{{ title }}</span>
+        <ScText class="app-title" :text="title" />
       </div>
       <div class="header-right">
         <!-- 系统设置 -->
@@ -90,7 +91,7 @@ function handleMenuSelect() {
       <div class="drawer-container">
         <!-- 抽屉头部 -->
         <div class="drawer-header">
-          <span class="drawer-title">导航菜单</span>
+          <ScText class="drawer-title" text="导航菜单" />
         </div>
         
         <!-- 菜单列表 -->

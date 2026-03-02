@@ -1,4 +1,3 @@
-import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
 
 export default [
@@ -9,7 +8,7 @@ export default [
     meta: {
       title: "UI Showcase",
       icon: "ep:monitor",
-      rank: 10
+      rank: 10,
     },
     children: [
       {
@@ -18,10 +17,9 @@ export default [
         component: () => import("@repo/pages/showcase/glass/index.vue"),
         meta: {
           title: "Glass Theme Preview",
-          showLink: true
-        }
-      }
-    ]
-  }
+          showLink: true,
+        },
+      },
+    ],
+  },
 ] satisfies Array<RouteConfigsTable>;
-

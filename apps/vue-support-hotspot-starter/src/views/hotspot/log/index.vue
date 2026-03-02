@@ -180,20 +180,20 @@ onUnmounted(() => {
 }
 
 .log-container {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .control-panel {
   display: flex;
+  flex-shrink: 0;
   gap: 12px;
   align-items: center;
   padding: 12px 16px;
+  margin-bottom: 12px;
   background: var(--el-fill-color-light);
   border-radius: 8px;
-  margin-bottom: 12px;
-  flex-shrink: 0;
 
   .filter-group {
     flex-shrink: 0;
@@ -224,26 +224,26 @@ onUnmounted(() => {
 }
 
 .log-list-container {
+  position: relative;
   flex: 1;
-  overflow: auto;
   min-height: 0;
   max-height: calc(100vh - 180px);
-  position: relative;
+  overflow: auto;
 }
 
 .log-list {
-  list-style: none;
   padding: 0;
   margin: 0;
+  list-style: none;
 }
 
 .log-item {
   display: flex;
   gap: 12px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
   font-family: "Courier New", monospace;
   line-height: 1.6;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   transition: all 0.2s;
 
   &:hover {
@@ -252,16 +252,16 @@ onUnmounted(() => {
 
   .log-index {
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     min-width: 40px;
     height: 24px;
-    background: var(--el-color-info-light-9);
-    color: var(--el-color-info);
-    border-radius: 4px;
     font-size: 12px;
     font-weight: 600;
-    flex-shrink: 0;
+    color: var(--el-color-info);
+    background: var(--el-color-info-light-9);
+    border-radius: 4px;
   }
 
   .log-content {
@@ -277,7 +277,7 @@ html.dark {
   }
 
   .log-card {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 }
 </style>

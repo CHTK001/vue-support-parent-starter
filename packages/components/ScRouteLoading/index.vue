@@ -9,7 +9,13 @@
         <span class="panel-desc">选择加载动画样式</span>
       </div>
       <div class="panel-body">
-        <div v-for="(style, key) in loaderStyles" :key="key" class="style-option" :class="{ active: currentStyle === key }" @click="changeStyle(key)">
+        <div
+          v-for="(style, key) in loaderStyles"
+          :key="key"
+          class="style-option"
+          :class="{ active: currentStyle === key }"
+          @click="changeStyle(key)"
+        >
           <div class="preview-mini" v-html="getPreviewHTML(key)"></div>
           <span class="style-name">{{ style.name }}</span>
         </div>
@@ -49,7 +55,8 @@ const loaderStyles = {
   pulse: { name: "脉冲圆点" },
   blocks: { name: "跳动方块" },
   book: { name: "翻书" },
-  writing: { name: "书写加载条" }
+  writing: { name: "书写加载条" },
+  dinoGame: { name: "恐龙小游戏" }
 };
 
 const getPreviewHTML = (key: string) => {
@@ -100,14 +107,14 @@ const hideHTMLLoader = () => {
 
 const getLoaderHTML = (type: string) => {
   const loaders: Record<string, string> = {
-  default: '<div class="loader"></div>',
-  rings: '<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div></div>',
-  simple: '<div class="simple-spinner"></div>',
-  pulse: '<div class="pulse-loader"></div>',
-  blocks: '<div class="blocks-loader"><div class="block"></div><div class="block"></div><div class="block"></div></div>',
-  book: '<div class="book-loader"><div class="book"><div class="page"></div><div class="page"></div><div class="page"></div></div></div>',
-  writing: '<div class="writing-loader"><div class="pen">✒️</div><div class="paper"><div class="line"></div><div class="line"></div><div class="line"></div></div></div>'
-};
+    default: '<div class="loader"></div>',
+    rings: '<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div></div>',
+    simple: '<div class="simple-spinner"></div>',
+    pulse: '<div class="pulse-loader"></div>',
+    blocks: '<div class="blocks-loader"><div class="block"></div><div class="block"></div><div class="block"></div></div>',
+    book: '<div class="book-loader"><div class="book"><div class="page"></div><div class="page"></div><div class="page"></div></div></div>',
+    writing: '<div class="writing-loader"><div class="pen">✒️</div><div class="paper"><div class="line"></div><div class="line"></div><div class="line"></div></div></div>'
+  };
   return loaders[type] || loaders.default;
 };
 

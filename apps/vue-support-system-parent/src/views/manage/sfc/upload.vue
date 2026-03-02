@@ -1,9 +1,9 @@
 ﻿<template>
   <div>
-    <sc-dialog 
-      v-model="visible" 
-      :title="title" 
-      draggable 
+    <sc-dialog
+      v-model="visible"
+      :title="title"
+      draggable
       width="500px"
       class="upload-dialog"
       @close="onClose"
@@ -18,22 +18,30 @@
       </template>
 
       <div class="upload-container">
-        <el-upload 
-          class="upload-area" 
-          drag 
-          action="#" 
-          accept=".vue" 
-          :auto-upload="false" 
+        <el-upload
+          class="upload-area"
+          drag
+          action="#"
+          accept=".vue"
+          :auto-upload="false"
           :show-file-list="false"
           :loading="uploading"
           @change="handleChange"
         >
           <div class="upload-content">
             <el-icon class="upload-icon" :class="{ uploading }">
-              <component :is="useRenderIcon(uploading ? 'ri:loader-4-line' : 'ri:upload-cloud-2-line')" />
+              <component
+                :is="
+                  useRenderIcon(
+                    uploading ? 'ri:loader-4-line' : 'ri:upload-cloud-2-line',
+                  )
+                "
+              />
             </el-icon>
             <div class="upload-text">
-              <p class="primary-text">{{ uploading ? '上传中...' : '将文件拖到此处' }}</p>
+              <p class="primary-text">
+                {{ uploading ? "上传中..." : "将文件拖到此处" }}
+              </p>
               <p class="secondary-text">或 <em>点击选择文件</em></p>
             </div>
           </div>
@@ -41,15 +49,21 @@
 
         <div class="upload-tips">
           <div class="tip-item">
-            <el-icon><component :is="useRenderIcon('ri:file-code-line')" /></el-icon>
+            <el-icon
+              ><component :is="useRenderIcon('ri:file-code-line')"
+            /></el-icon>
             <span>支持 <strong>.vue</strong> 格式文件</span>
           </div>
           <div class="tip-item">
-            <el-icon><component :is="useRenderIcon('ri:hard-drive-2-line')" /></el-icon>
+            <el-icon
+              ><component :is="useRenderIcon('ri:hard-drive-2-line')"
+            /></el-icon>
             <span>文件大小不超过 <strong>500KB</strong></span>
           </div>
           <div class="tip-item">
-            <el-icon><component :is="useRenderIcon('ri:information-line')" /></el-icon>
+            <el-icon
+              ><component :is="useRenderIcon('ri:information-line')"
+            /></el-icon>
             <span>上传后将替换现有组件文件</span>
           </div>
         </div>
@@ -57,7 +71,9 @@
 
       <template #footer>
         <el-button @click="onClose">
-          <el-icon class="mr-1"><component :is="useRenderIcon('ep:close')" /></el-icon>
+          <el-icon class="mr-1"
+            ><component :is="useRenderIcon('ep:close')"
+          /></el-icon>
           关闭
         </el-button>
       </template>
@@ -81,7 +97,7 @@ const dataReact = reactive({
 
 const handleChange = async (uploadFile) => {
   if (!uploadFile.raw) return;
-  
+
   // 检查文件大小
   if (uploadFile.raw.size > 500 * 1024) {
     message("文件大小不能超过500KB", { type: "warning" });
@@ -127,12 +143,26 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .upload-dialog {
   :deep(.el-dialog__header) {
     padding: 16px 20px;
     margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-success-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-bg-color) 100%);
   }
 
   :deep(.el-dialog__body) {
@@ -147,8 +177,8 @@ defineExpose({
 
 .dialog-header {
   display: flex;
-  align-items: center;
   gap: 10px;
+  align-items: center;
 
   .header-icon {
     color: var(--el-color-success);
@@ -162,22 +192,22 @@ defineExpose({
     :deep(.el-upload-dragger) {
       width: 100%;
       padding: 40px 20px;
-      border-radius: 12px;
-      border: 2px dashed var(--el-border-color);
       background: var(--el-fill-color-lighter);
+      border: 2px dashed var(--el-border-color);
+      border-radius: 12px;
       transition: all 0.3s ease;
 
       &:hover {
-        border-color: var(--el-color-primary);
         background: var(--el-color-primary-light-9);
+        border-color: var(--el-color-primary);
       }
     }
 
     .upload-content {
       display: flex;
       flex-direction: column;
-      align-items: center;
       gap: 16px;
+      align-items: center;
 
       .upload-icon {
         font-size: 64px;
@@ -193,20 +223,20 @@ defineExpose({
         text-align: center;
 
         .primary-text {
+          margin: 0 0 8px;
           font-size: 16px;
           font-weight: 500;
           color: var(--el-text-color-primary);
-          margin: 0 0 8px 0;
         }
 
         .secondary-text {
+          margin: 0;
           font-size: 14px;
           color: var(--el-text-color-secondary);
-          margin: 0;
 
           em {
-            color: var(--el-color-primary);
             font-style: normal;
+            color: var(--el-color-primary);
             cursor: pointer;
           }
         }
@@ -215,19 +245,19 @@ defineExpose({
   }
 
   .upload-tips {
-    margin-top: 20px;
     padding: 16px;
+    margin-top: 20px;
     background: var(--el-fill-color-lighter);
-    border-radius: 8px;
     border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
 
     .tip-item {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
+      padding: 6px 0;
       font-size: 13px;
       color: var(--el-text-color-secondary);
-      padding: 6px 0;
 
       .el-icon {
         font-size: 16px;
@@ -241,20 +271,15 @@ defineExpose({
   }
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .upload-dialog {
     :deep(.el-dialog__header) {
-      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.15) 0%, var(--el-bg-color-overlay) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-success-rgb), 0.15) 0%,
+        var(--el-bg-color-overlay) 100%
+      );
     }
   }
 

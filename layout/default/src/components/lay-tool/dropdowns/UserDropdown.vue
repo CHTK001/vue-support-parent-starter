@@ -3,6 +3,7 @@ import { router } from "@repo/core";
 import { useNav } from "../../../hooks/useNav";
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
 import LayAvatar from "../../lay-avatar/index.vue";
+import { ScText } from "@repo/components";
 
 const { t } = useTranslationLang();
 const { logout, username, userAvatar, avatarsStyle, clickClearRouter } = useNav();
@@ -27,8 +28,8 @@ const gotoAccountSetting = () => {
         <span class="status-dot"></span>
       </div>
       <div v-if="username" class="user-info">
-        <span class="user-name">{{ username }}</span>
-        <span class="user-role">在线</span>
+        <ScText class="user-name">{{ username }}</ScText>
+        <ScText class="user-role">在线</ScText>
       </div>
       <span class="dropdown-arrow-wrapper">
         <IconifyIconOnline icon="ri:arrow-down-s-line" class="dropdown-arrow" />
@@ -40,8 +41,8 @@ const gotoAccountSetting = () => {
         <div class="menu-header">
           <LayAvatar :src="userAvatar" :style="avatarsStyle" class="header-avatar" />
           <div class="header-info">
-            <span class="header-name">{{ username }}</span>
-            <span class="header-status">当前在线</span>
+            <ScText class="header-name">{{ username }}</ScText>
+            <ScText class="header-status">当前在线</ScText>
           </div>
         </div>
 
@@ -56,8 +57,8 @@ const gotoAccountSetting = () => {
               <IconifyIconOnline icon="ri:user-settings-line" />
             </div>
             <div class="item-content">
-              <span class="item-title">{{ t("buttons.accountSetting") }}</span>
-              <span class="item-desc">管理账户信息与偏好设置</span>
+              <ScText class="item-title">{{ t("buttons.accountSetting") }}</ScText>
+              <ScText class="item-desc">管理账户信息与偏好设置</ScText>
             </div>
             <IconifyIconOnline icon="ri:arrow-right-s-line" class="item-arrow" />
           </el-dropdown-item>
@@ -67,8 +68,8 @@ const gotoAccountSetting = () => {
               <IconifyIconOnline icon="line-md:backup-restore" />
             </div>
             <div class="item-content">
-              <span class="item-title">{{ t("buttons.pureClearRouter") }}</span>
-              <span class="item-desc">清除本地缓存数据</span>
+              <ScText class="item-title">{{ t("buttons.pureClearRouter") }}</ScText>
+              <ScText class="item-desc">清除本地缓存数据</ScText>
             </div>
             <IconifyIconOnline icon="ri:arrow-right-s-line" class="item-arrow" />
           </el-dropdown-item>
@@ -78,7 +79,7 @@ const gotoAccountSetting = () => {
         <div class="menu-footer">
           <el-dropdown-item class="logout-item" @click="logout">
             <IconifyIconOnline icon="ri:logout-circle-r-line" class="logout-icon" />
-            <span>{{ t("buttons.pureLoginOut") }}</span>
+            <ScText>{{ t("buttons.pureLoginOut") }}</ScText>
           </el-dropdown-item>
         </div>
       </el-dropdown-menu>

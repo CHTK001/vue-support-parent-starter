@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { defineAsyncComponent, nextTick, onMounted, reactive, ref, watch } from "vue";
+import {
+  defineAsyncComponent,
+  nextTick,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import { fetchListDept, fetchDeleteDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
 import { transformI18n } from "@repo/config";
@@ -22,30 +29,30 @@ const treeRef = ref();
 const saveDialogRef = ref();
 
 // 状态
-const dicFilterText = ref('');
+const dicFilterText = ref("");
 const tableData = ref<any[]>([]);
 
 const visible = reactive({
-  save: false
+  save: false,
 });
 
 const loading = reactive({
-  query: false
+  query: false,
 });
 
 const saveDialogParams = reactive({
-  mode: 'save' as 'save' | 'edit'
+  mode: "save" as "save" | "edit",
 });
 
 const params = reactive({
-  sysDeptId: null as string | null
+  sysDeptId: null as string | null,
 });
 
 // 统计数据
 const stats = reactive({
   total: 0,
   topLevel: 0,
-  subLevel: 0
+  subLevel: 0,
 });
 
 // 监听搜索关键字
@@ -61,13 +68,13 @@ const useI18nText = (key: string) => {
 // 更新树节点数据
 const doChange = (data: any[], form: any): boolean => {
   if (!data) return false;
-  
-  const item = data.find(item => item.sysMenuId === form.sysMenuId);
+
+  const item = data.find((item) => item.sysMenuId === form.sysMenuId);
   if (item) {
     Object.assign(item, form);
     return true;
   }
-  
+
   for (const it of data) {
     if (it.children && doChange(it.children, form)) {
       return true;
@@ -78,8 +85,10 @@ const doChange = (data: any[], form: any): boolean => {
 
 // 保存成功回调
 const onSuccess = (mode: string, form: any) => {
-  if (mode === 'edit') {
-    const item = tableData.value.find(item => item.sysMenuId === form.sysMenuId);
+  if (mode === "edit") {
+    const item = tableData.value.find(
+      (item) => item.sysMenuId === form.sysMenuId,
+    );
     if (item) {
       Object.assign(item, form);
       return;
@@ -105,9 +114,9 @@ const calcStats = (data: any[]) => {
   let total = 0;
   let topLevel = 0;
   let subLevel = 0;
-  
+
   const countDepts = (items: any[], isTop = true) => {
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.sysDeptId) {
         total++;
         if (isTop) topLevel++;
@@ -118,7 +127,7 @@ const calcStats = (data: any[]) => {
       }
     });
   };
-  
+
   countDepts(data);
   stats.total = total;
   stats.topLevel = topLevel;
@@ -134,15 +143,15 @@ const onSearch = async () => {
     const arr: any[] = [
       {
         sysDeptId: null,
-        sysDeptName: '全部',
-        sysDeptCode: 'ALL'
-      }
+        sysDeptName: "全部",
+        sysDeptCode: "ALL",
+      },
     ];
     arr.push(...(data || []));
     tableData.value = arr;
     calcStats(data || []);
   } catch (error) {
-    message(useI18nText('message.queryFailed'), { type: 'error' });
+    message(useI18nText("message.queryFailed"), { type: "error" });
   } finally {
     loading.query = false;
   }
@@ -153,15 +162,15 @@ const onDelete = async (row: any) => {
   try {
     await fetchDeleteDept(row.sysDeptId);
     onSearch();
-    message(t('message.deleteSuccess'), { type: 'success' });
+    message(t("message.deleteSuccess"), { type: "success" });
   } catch (error) {
-    console.error('删除失败', error);
+    console.error("删除失败", error);
   }
 };
 
 // 关闭对话框
 const dialogClose = async () => {
-  saveDialogParams.mode = 'save';
+  saveDialogParams.mode = "save";
   visible.save = false;
   await nextTick();
   onSearch();
@@ -170,12 +179,12 @@ const dialogClose = async () => {
 // 树节点过滤
 const filterNode = (value: string, data: any) => {
   if (!value) return true;
-  const targetText = (data.sysDeptName || '') + (data.sysDeptCode || '');
+  const targetText = (data.sysDeptName || "") + (data.sysDeptCode || "");
   return targetText.indexOf(value) !== -1;
 };
 
 // 打开对话框
-const dialogOpen = async (item: any, mode: 'save' | 'edit' = 'save') => {
+const dialogOpen = async (item: any, mode: "save" | "edit" = "save") => {
   saveDialogParams.mode = mode;
   visible.save = true;
   await nextTick();
@@ -189,12 +198,18 @@ onMounted(() => {
 
 // 暴露给父组件
 defineExpose({
-  onSearch
+  onSearch,
 });
 </script>
 <template>
   <div class="dept-container">
-    <SaveDialog v-if="visible.save" ref="saveDialogRef" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
+    <SaveDialog
+      v-if="visible.save"
+      ref="saveDialogRef"
+      :mode="saveDialogParams.mode"
+      @success="onSuccess"
+      @close="dialogClose"
+    />
     <div class="dept-wrapper">
       <el-container>
         <!-- 统计面板 -->
@@ -228,7 +243,12 @@ defineExpose({
           </div>
         </div>
         <el-header class="dept-header">
-          <el-input v-model="dicFilterText" :placeholder="useI18nText('input.keywordSearch')" clearable class="search-input">
+          <el-input
+            v-model="dicFilterText"
+            :placeholder="useI18nText('input.keywordSearch')"
+            clearable
+            class="search-input"
+          >
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
@@ -246,7 +266,7 @@ defineExpose({
               :props="{
                 label: 'sysDeptName',
                 id: 'sysDeptId',
-                pid: 'sysDeptPid'
+                pid: 'sysDeptPid',
               }"
               class="dept-tree"
               @node-click="onClick"
@@ -254,24 +274,59 @@ defineExpose({
               <template #default="{ node, data }">
                 <div class="custom-tree-node">
                   <div class="node-content">
-                    <div class="node-icon" :class="data.sysDeptId ? (node.childNodes?.length > 0 ? 'has-children' : 'leaf') : 'all'">
-                      <IconifyIconOnline :icon="data.sysDeptIcon || (data.sysDeptId ? (node.childNodes?.length > 0 ? 'ri:folder-3-line' : 'ri:building-line') : 'ri:stack-line')" />
+                    <div
+                      class="node-icon"
+                      :class="
+                        data.sysDeptId
+                          ? node.childNodes?.length > 0
+                            ? 'has-children'
+                            : 'leaf'
+                          : 'all'
+                      "
+                    >
+                      <IconifyIconOnline
+                        :icon="
+                          data.sysDeptIcon ||
+                          (data.sysDeptId
+                            ? node.childNodes?.length > 0
+                              ? 'ri:folder-3-line'
+                              : 'ri:building-line'
+                            : 'ri:stack-line')
+                        "
+                      />
                     </div>
                     <div class="node-info">
                       <span class="node-label">{{ data.sysDeptName }}</span>
-                      <span v-if="data?.sysDeptCode && data.sysDeptCode !== 'ALL'" class="node-code">{{ data.sysDeptCode }}</span>
+                      <span
+                        v-if="data?.sysDeptCode && data.sysDeptCode !== 'ALL'"
+                        class="node-code"
+                        >{{ data.sysDeptCode }}</span
+                      >
                     </div>
                   </div>
                   <div v-if="data?.sysDeptId" class="node-actions">
                     <el-tooltip content="编辑" placement="top">
-                      <el-button type="primary" link size="small" @click.stop="dialogOpen(data, 'edit')">
+                      <el-button
+                        type="primary"
+                        link
+                        size="small"
+                        @click.stop="dialogOpen(data, 'edit')"
+                      >
                         <IconifyIconOnline icon="ri:edit-line" />
                       </el-button>
                     </el-tooltip>
-                    <el-popconfirm title="确定要删除该部门吗？" @confirm="onDelete(data)">
+                    <el-popconfirm
+                      title="确定要删除该部门吗？"
+                      @confirm="onDelete(data)"
+                    >
                       <template #reference>
                         <el-tooltip content="删除" placement="top">
-                          <el-button type="danger" link size="small" @click.stop>
+                          <el-button
+                            type="danger"
+                            link
+                            size="small"
+                            @click.stop
+                          >
                             <IconifyIconOnline icon="ri:delete-bin-line" />
                           </el-button>
                         </el-tooltip>
@@ -284,9 +339,13 @@ defineExpose({
           </div>
         </el-main>
         <el-footer class="dept-footer">
-          <el-button type="primary" class="add-btn" @click="dialogOpen({}, 'save')">
+          <el-button
+            type="primary"
+            class="add-btn"
+            @click="dialogOpen({}, 'save')"
+          >
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-            {{ useI18nText('buttons.addDept') }}
+            {{ useI18nText("buttons.addDept") }}
           </el-button>
         </el-footer>
       </el-container>
@@ -302,8 +361,8 @@ defineExpose({
 
 .dept-wrapper {
   height: 100%;
-  border-radius: var(--el-border-radius-base);
   overflow: hidden;
+  border-radius: var(--el-border-radius-base);
   box-shadow: var(--el-box-shadow-light);
   transition: all 0.3s ease;
 
@@ -323,26 +382,26 @@ defineExpose({
 
   .stat-item {
     display: flex;
-    align-items: center;
     gap: 10px;
+    align-items: center;
     padding: 12px;
     background: var(--el-fill-color-lighter);
     border-radius: 8px;
     transition: all 0.3s ease;
 
     &:hover {
+      box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
     .stat-icon {
-      width: 40px;
-      height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
+      width: 40px;
+      height: 40px;
       color: #fff;
+      border-radius: 8px;
 
       &.total {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -364,14 +423,14 @@ defineExpose({
       .stat-value {
         font-size: 18px;
         font-weight: 700;
-        color: var(--el-text-color-primary);
         line-height: 1.2;
+        color: var(--el-text-color-primary);
       }
 
       .stat-label {
+        margin-top: 2px;
         font-size: 12px;
         color: var(--el-text-color-secondary);
-        margin-top: 2px;
       }
     }
   }
@@ -379,8 +438,8 @@ defineExpose({
 
 // 页头
 .dept-header {
-  padding: 12px 16px !important;
   height: auto !important;
+  padding: 12px 16px !important;
   background-color: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-lighter);
 
@@ -394,8 +453,8 @@ defineExpose({
 // 主体
 .dept-main {
   padding: 0 !important;
-  background-color: var(--el-bg-color);
   overflow: hidden;
+  background-color: var(--el-bg-color);
 }
 
 .tree-container {
@@ -408,8 +467,8 @@ defineExpose({
 .dept-tree {
   :deep(.el-tree-node__content) {
     height: 44px;
-    border-radius: 8px;
     margin-bottom: 4px;
+    border-radius: 8px;
     transition: all 0.3s ease;
 
     &:hover {
@@ -433,32 +492,32 @@ defineExpose({
 
   .node-content {
     display: flex;
-    align-items: center;
     gap: 10px;
+    align-items: center;
   }
 
   .node-icon {
-    width: 28px;
-    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
+    width: 28px;
+    height: 28px;
     font-size: 16px;
+    border-radius: 6px;
 
     &.all {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #fff;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
 
     &.has-children {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
       color: #fff;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     }
 
     &.leaf {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       color: #fff;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     }
   }
 
@@ -481,8 +540,8 @@ defineExpose({
 
   .node-actions {
     display: none;
-    align-items: center;
     gap: 4px;
+    align-items: center;
   }
 
   &:hover .node-actions {
@@ -492,29 +551,29 @@ defineExpose({
 
 // 底部
 .dept-footer {
-  padding: 12px 16px !important;
   height: auto !important;
+  padding: 12px 16px !important;
   background-color: var(--el-bg-color);
   border-top: 1px solid var(--el-border-color-lighter);
 
   .add-btn {
     width: 100%;
-    border-radius: 8px;
     height: 40px;
     font-weight: 500;
+    border-radius: 8px;
     transition: all 0.3s ease;
 
     &:hover {
-      transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+      transform: translateY(-2px);
     }
   }
 }
 
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .dept-wrapper {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 
   .dept-stats {

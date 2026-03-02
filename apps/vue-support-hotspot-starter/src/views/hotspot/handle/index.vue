@@ -188,17 +188,17 @@ onUnmounted(() => {
 }
 
 .page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
   padding: 24px 32px;
-  border-radius: 8px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 5%);
 }
 
 .header-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .title-section {
@@ -207,12 +207,12 @@ onUnmounted(() => {
 
 .page-title {
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
+  margin: 0 0 8px;
   font-size: 24px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-  margin: 0 0 8px 0;
 
   .title-icon {
     font-size: 28px;
@@ -221,9 +221,9 @@ onUnmounted(() => {
 }
 
 .page-subtitle {
-  color: var(--el-text-color-regular);
-  font-size: 14px;
   margin: 0;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
 }
 
 .stats-section {
@@ -232,17 +232,17 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  background: white;
   padding: 16px 24px;
-  border-radius: 8px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
 
   .stat-number {
+    margin-bottom: 4px;
     font-size: 28px;
     font-weight: 600;
     color: var(--el-color-primary);
-    margin-bottom: 4px;
   }
 
   .stat-label {
@@ -255,18 +255,18 @@ onUnmounted(() => {
   position: fixed;
   top: 200px;
   right: 16px;
+  z-index: 100;
   width: 280px;
   max-height: 400px;
-  z-index: 100;
 
   .nav-header {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
     font-weight: 600;
     color: var(--el-text-color-primary);
-    margin-bottom: 12px;
-    padding-bottom: 8px;
     border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
@@ -277,17 +277,17 @@ onUnmounted(() => {
 
   .nav-item {
     display: flex;
-    align-items: center;
     gap: 6px;
+    align-items: center;
     padding: 8px 12px;
+    font-size: 13px;
     cursor: pointer;
     border-radius: 4px;
     transition: all 0.2s;
-    font-size: 13px;
 
     &:hover {
-      background: var(--el-fill-color-light);
       color: var(--el-color-primary);
+      background: var(--el-fill-color-light);
     }
 
     .nav-icon {
@@ -311,8 +311,8 @@ onUnmounted(() => {
 
   .card-header {
     display: flex;
-    align-items: center;
     gap: 12px;
+    align-items: center;
 
     .item-number {
       display: inline-flex;
@@ -320,29 +320,29 @@ onUnmounted(() => {
       justify-content: center;
       width: 32px;
       height: 32px;
-      background: var(--el-color-primary-light-9);
-      color: var(--el-color-primary);
-      border-radius: 50%;
-      font-weight: 600;
       font-size: 14px;
+      font-weight: 600;
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      border-radius: 50%;
     }
 
     .item-title {
       flex: 1;
-      font-weight: 500;
       font-size: 14px;
+      font-weight: 500;
     }
   }
 
   .code-block {
-    background: var(--el-fill-color-light);
     padding: 16px;
-    border-radius: 4px;
+    margin: 0;
+    overflow-x: auto;
     font-family: "Courier New", monospace;
     font-size: 13px;
     line-height: 1.6;
-    overflow-x: auto;
-    margin: 0;
+    background: var(--el-fill-color-light);
+    border-radius: 4px;
   }
 }
 

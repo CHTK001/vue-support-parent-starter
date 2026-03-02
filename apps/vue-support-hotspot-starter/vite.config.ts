@@ -1,7 +1,17 @@
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { root as projectRoot, wrapperEnv, pathResolve, createAlias, createAppInfo, getPluginsList, include, exclude } from "@repo/build-config";
+import {
+  root as projectRoot,
+  wrapperEnv,
+  pathResolve,
+  createAlias,
+  createAppInfo,
+  getPluginsList,
+  include,
+  exclude,
+  getSharedPublicConfig
+} from "@repo/build-config";
 import pkg from "./package.json";
 
 // 当前应用的根目录（vite.config.ts 所在目录）
@@ -72,7 +82,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         include: [/node_modules/]
       },
       // https://cn.vitejs.dev/guide/build.html#browser-compatibility
-      target: "es2015",
+      // 需要支持 BigInt（例如部分依赖/插件会输出 BigInt 字面量）
+      target: "es2020",
       sourcemap: false,
       minify: "terser",
       // 消除打包大小超过500kb警告

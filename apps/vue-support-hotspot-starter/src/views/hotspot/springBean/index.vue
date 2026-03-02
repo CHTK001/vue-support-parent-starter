@@ -167,37 +167,37 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .page-container {
-  padding: 20px;
   min-height: 100%;
+  padding: 20px;
   background: var(--el-bg-color-page);
 }
 
 .page-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: space-between;
   padding: 20px 24px;
+  margin-bottom: 20px;
   background: var(--el-bg-color);
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
 
   .header-left {
     display: flex;
-    align-items: center;
     gap: 16px;
+    align-items: center;
 
     .header-icon {
+      padding: 12px;
       font-size: 40px;
       color: var(--el-color-primary);
-      padding: 12px;
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
       border-radius: 12px;
     }
 
     .header-info {
       .header-title {
-        margin: 0 0 4px 0;
+        margin: 0 0 4px;
         font-size: 20px;
         font-weight: 600;
         color: var(--el-text-color-primary);
@@ -213,9 +213,9 @@ onUnmounted(() => {
 }
 
 .modern-card {
-  border-radius: 12px;
   border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 6%);
 
   :deep(.el-card__header) {
     padding: 16px 20px;
@@ -224,13 +224,13 @@ onUnmounted(() => {
 
   .card-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     .card-title {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
       font-size: 16px;
       font-weight: 600;
       color: var(--el-text-color-primary);
@@ -249,30 +249,30 @@ onUnmounted(() => {
 
 .modern-table {
   :deep(th.el-table__cell) {
-    background: var(--el-fill-color-lighter);
     font-weight: 600;
+    background: var(--el-fill-color-lighter);
   }
 
   .bean-name {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
 
     .bean-icon {
-      color: var(--el-color-success);
       font-size: 16px;
+      color: var(--el-color-success);
     }
   }
 
   .class-name {
-    font-family: "Monaco", "Menlo", monospace;
-    font-size: 12px;
-    color: var(--el-text-color-regular);
+    display: block;
     max-width: 300px;
     overflow: hidden;
+    font-family: Monaco, Menlo, monospace;
+    font-size: 12px;
+    color: var(--el-text-color-regular);
     text-overflow: ellipsis;
     white-space: nowrap;
-    display: block;
   }
 
   .text-placeholder {
@@ -288,15 +288,15 @@ onUnmounted(() => {
 
   .detail-content {
     .code-block {
-      margin: 0;
       padding: 16px;
-      background: var(--el-fill-color-lighter);
-      border-radius: 8px;
+      margin: 0;
       overflow-x: auto;
-      font-family: "Monaco", "Menlo", monospace;
+      font-family: Monaco, Menlo, monospace;
       font-size: 13px;
       line-height: 1.6;
       color: var(--el-text-color-primary);
+      background: var(--el-fill-color-lighter);
+      border-radius: 8px;
     }
   }
 }
@@ -309,11 +309,11 @@ html.dark {
 
   .page-header {
     background: var(--el-bg-color);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 
   .modern-card {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
   }
 }
 </style>
