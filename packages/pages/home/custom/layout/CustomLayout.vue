@@ -1,6 +1,7 @@
 <script setup>
 import { defineAsyncComponent, reactive, ref, onMounted, onUnmounted } from "vue";
-import { GridLayout, GridItem } from "grid-layout-plus";
+import Vue3DraggableResizable from "vue3-draggable-resizable";
+import "vue3-draggable-resizable/dist/Vue3DraggableResizable.css";
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useLayoutLayoutStore } from "@repo/core";
@@ -15,6 +16,23 @@ const props = defineProps({
 });
 
 const gridLayoutRef = ref(null);
+
+const CANVAS_PADDING = 16;
+
+/**
+ * 拖拽 / 缩放结束时更新布局数据
+ * @param item 当前部件布局项
+ * @param rect 组件返回的位置信息
+ */
+const handleDragResizeEnd = (item, rect) => {
+  if (!item || !rect) {
+    return;
+  }
+  item.x = rect.x;
+  item.y = rect.y;
+  item.w = rect.w;
+  item.h = rect.h;
+};
 
 /**
  * 隐藏组件
@@ -61,17 +79,24 @@ const onDragOver = (e) => {
 </script>
 <template>
   <div class="customizing h-full" @drop="onDrop" @dragover="onDragOver">
-    <GridLayout 
-      ref="gridLayoutRef"
-      class="!h-full" 
-      :row-height="200" 
-      v-model:layout="userLayoutObject.layout" 
-      :is-draggable="props.modelValue" 
-      :is-resizable="props.modelValue" 
-      vertical-compact 
-      use-css-transforms
-    >
-      <template #item="{ item }">
+    <div class="widgets-canvas">
+      <Vue3DraggableResizable
+        v-for="item in userLayoutObject.layout"
+        :key="item.id"
+        :x="item.x"
+        :y="item.y"
+        :w="item.w"
+        :h="item.h"
+        :active="props.modelValue"
+        :draggable="props.modelValue"
+        :resizable="props.modelValue"
+        :parent="true"
+        :lock-aspect-ratio="false"
+        :handles="['tl','tm','tr','mr','br','bm','bl','ml']"
+        @drag-end="(rect) => handleDragResizeEnd(item, rect)"
+        @resize-end="(rect) => handleDragResizeEnd(item, rect)"
+        class="draggable-widget"
+      >
         <div class="item">
           <div class="widgets-item">
             <div class="h-full">
@@ -80,7 +105,13 @@ const onDragOver = (e) => {
                   <div class="!w-full !h-full" style="width: 100% !important">
                     <div class="!h-full">
                       <keep-alive class="!h-full">
-                        <component class="!h-full" :is="userLayoutObject.loadComponent(item.id)" :frameInfo="userLayoutObject.loadFrameInfo(item.id)" :key="userLayoutObject.loadFrameInfo(item.id).key" @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" />
+                        <component
+                          class="!h-full"
+                          :is="userLayoutObject.loadComponent(item.id)"
+                          :frameInfo="userLayoutObject.loadFrameInfo(item.id)"
+                          :key="userLayoutObject.loadFrameInfo(item.id).key"
+                          @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)"
+                        />
                       </keep-alive>
                     </div>
                   </div>
@@ -107,8 +138,8 @@ const onDragOver = (e) => {
             </div>
           </div>
         </div>
-      </template>
-    </GridLayout>
+      </Vue3DraggableResizable>
+    </div>
   </div>
 </template>
 
