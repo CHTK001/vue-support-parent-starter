@@ -86,10 +86,20 @@
       <el-table-column prop="crawlTime" label="爬取时间" width="180" />
       <el-table-column label="操作" width="100" align="center" fixed="right">
         <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="handleViewDetail(row)">
+          <el-button
+            type="primary"
+            link
+            size="small"
+            @click="handleViewDetail(row)"
+          >
             <IconifyIconOnline icon="ri:eye-line" />
           </el-button>
-          <el-button type="danger" link size="small" @click="handleDeleteRow(row)">
+          <el-button
+            type="danger"
+            link
+            size="small"
+            @click="handleDeleteRow(row)"
+          >
             <IconifyIconOnline icon="ri:delete-bin-line" />
           </el-button>
         </template>
@@ -122,10 +132,16 @@
           :label="String(key)"
         >
           <template v-if="isUrl(value)">
-            <el-link type="primary" :href="String(value)" target="_blank">{{ value }}</el-link>
+            <el-link type="primary" :href="String(value)" target="_blank">{{
+              value
+            }}</el-link>
           </template>
           <template v-else-if="isImageUrl(String(value))">
-            <el-image :src="String(value)" fit="contain" style="max-width: 200px; max-height: 200px" />
+            <el-image
+              :src="String(value)"
+              fit="contain"
+              style="max-width: 200px; max-height: 200px"
+            />
           </template>
           <template v-else>
             {{ value }}
@@ -139,7 +155,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
 import { message, confirm } from "@repo/utils";
-import { getSpiderTaskData, exportSpiderTaskData, deleteSpiderData } from "@/api/spider";
+import {
+  getSpiderTaskData,
+  exportSpiderTaskData,
+  deleteSpiderData,
+} from "@/api/spider";
 
 // Props
 const props = defineProps<{
@@ -156,7 +176,7 @@ const emit = defineEmits<{
 // 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (val) => emit("update:visible", val)
+  set: (val) => emit("update:visible", val),
 });
 
 // 响应式状态
@@ -172,39 +192,48 @@ const detailData = ref<Record<string, any>>({});
 const pagination = reactive({
   page: 1,
   size: 20,
-  total: 0
+  total: 0,
 });
 
 // 监听对话框打开
-watch(() => props.visible, (val) => {
-  if (val && props.taskId) {
-    loadData();
-  }
-});
+watch(
+  () => props.visible,
+  (val) => {
+    if (val && props.taskId) {
+      loadData();
+    }
+  },
+);
 
 /**
  * 加载数据
  */
 const loadData = async () => {
   if (!props.taskId) return;
-  
+
   try {
     loading.value = true;
-    const res = await getSpiderTaskData(props.taskId, pagination.page, pagination.size);
-    
+    const res = await getSpiderTaskData(
+      props.taskId,
+      pagination.page,
+      pagination.size,
+    );
+
     if (res.code === "00000" && res.data) {
       dataList.value = res.data.data || [];
       pagination.total = res.data.total || 0;
-      
+
       // 动态生成列
       if (dataList.value.length > 0) {
         const firstRow = dataList.value[0];
         columns.value = Object.keys(firstRow)
-          .filter(key => !key.startsWith("_") && !["id", "taskId"].includes(key))
-          .map(key => ({
+          .filter(
+            (key) => !key.startsWith("_") && !["id", "taskId"].includes(key),
+          )
+          .map((key) => ({
             prop: key,
             label: key,
-            minWidth: 150
+            minWidth: 150,
           }));
       }
     }
@@ -236,10 +265,10 @@ const handleRefresh = () => {
  */
 const handleExport = async () => {
   if (!props.taskId) return;
-  
+
   try {
     const res = await exportSpiderTaskData(props.taskId, "json");
-    
+
     if (res.code === "00000" && res.data) {
       // 下载文件
       const link = document.createElement("a");
@@ -333,13 +362,13 @@ const truncateText = (text: string, maxLen: number): string => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  
+
   .toolbar-left {
     display: flex;
     gap: 12px;
     align-items: center;
   }
-  
+
   .toolbar-right {
     display: flex;
     gap: 8px;
@@ -352,7 +381,6 @@ const truncateText = (text: string, maxLen: number): string => {
   margin-top: 16px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -361,5 +389,4 @@ const truncateText = (text: string, maxLen: number): string => {
     padding: 12px 16px;
   }
 }
-
 </style>

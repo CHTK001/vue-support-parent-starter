@@ -1,6 +1,8 @@
 ﻿<template>
   <div class="serial-list-container system-container modern-bg">
-    <div class="serial-list-header flex justify-between items-center p-4 border-b border-[var(--el-border-color-light)]">
+    <div
+      class="serial-list-header flex justify-between items-center p-4 border-b border-[var(--el-border-color-light)]"
+    >
       <h3 class="text-lg font-medium">串口列表</h3>
       <div class="flex gap-2">
         <el-button type="primary" size="small" @click="handleRefresh">
@@ -18,14 +20,34 @@
       <el-skeleton :rows="5" animated />
     </div>
 
-    <el-empty v-else-if="!serialList || serialList.length === 0" description="暂无串口配置" class="mt-8" />
+    <el-empty
+      v-else-if="!serialList || serialList.length === 0"
+      description="暂无串口配置"
+      class="mt-8"
+    />
 
     <div v-else class="serial-list-content p-2">
-      <el-card v-for="item in serialList" :key="item.monitorSerialId" class="serial-item mb-3 cursor-pointer" :class="{ 'serial-item-active': selectedSerialId === item.monitorSerialId }" @click="selectSerial(item.monitorSerialId)" shadow="hover">
+      <el-card
+        v-for="item in serialList"
+        :key="item.monitorSerialId"
+        class="serial-item mb-3 cursor-pointer"
+        :class="{
+          'serial-item-active': selectedSerialId === item.monitorSerialId,
+        }"
+        shadow="hover"
+        @click="selectSerial(item.monitorSerialId)"
+      >
         <div class="flex justify-between items-center">
           <div class="serial-info">
-            <div class="serial-name font-medium text-base mb-1">{{ item.monitorSerialName || "未命名串口" }}</div>
-            <div class="serial-port text-[var(--el-text-color-regular)] text-sm">{{ item.monitorSerialPort || "COM1" }} - {{ item.monitorSerialBaudRate || "9600" }}波特</div>
+            <div class="serial-name font-medium text-base mb-1">
+              {{ item.monitorSerialName || "未命名串口" }}
+            </div>
+            <div
+              class="serial-port text-[var(--el-text-color-regular)] text-sm"
+            >
+              {{ item.monitorSerialPort || "COM1" }} -
+              {{ item.monitorSerialBaudRate || "9600" }}波特
+            </div>
           </div>
           <div class="serial-actions">
             <el-dropdown trigger="click" @command="handleCommand($event, item)">
@@ -51,25 +73,55 @@
     </div>
 
     <!-- 添加/编辑串口对话框 -->
-    <sc-dialog v-model="dialogVisible" :title="isEdit ? '编辑串口' : '添加串口'" width="500px" destroy-on-close>
+    <sc-dialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑串口' : '添加串口'"
+      width="500px"
+      destroy-on-close
+    >
       <el-form ref="formRef" :model="form" label-width="100px" :rules="rules">
         <el-form-item label="串口名称" prop="monitorSerialName">
-          <el-input v-model="form.monitorSerialName" placeholder="请输入串口名称" />
+          <el-input
+            v-model="form.monitorSerialName"
+            placeholder="请输入串口名称"
+          />
         </el-form-item>
 
         <el-form-item label="串口" prop="monitorSerialPort">
           <div class="flex gap-2 w-full">
-            <el-select v-model="form.monitorSerialPort" placeholder="选择串口端口" class="flex-1" filterable allow-create :loading="loadingPorts" @focus="handleRefreshPorts">
-              <el-option v-for="port in availablePorts" :key="port" :label="port" :value="port" />
+            <el-select
+              v-model="form.monitorSerialPort"
+              placeholder="选择串口端口"
+              class="flex-1"
+              filterable
+              allow-create
+              :loading="loadingPorts"
+              @focus="handleRefreshPorts"
+            >
+              <el-option
+                v-for="port in availablePorts"
+                :key="port"
+                :label="port"
+                :value="port"
+              />
             </el-select>
-            <el-button size="default" @click="handleRefreshPorts" :loading="loadingPorts" title="刷新可用串口">
+            <el-button
+              size="default"
+              :loading="loadingPorts"
+              title="刷新可用串口"
+              @click="handleRefreshPorts"
+            >
               <IconifyIconOnline icon="ep:refresh" />
             </el-button>
           </div>
         </el-form-item>
 
         <el-form-item label="波特率" prop="monitorSerialBaudRate">
-          <el-select v-model="form.monitorSerialBaudRate" placeholder="请选择波特率" class="w-full">
+          <el-select
+            v-model="form.monitorSerialBaudRate"
+            placeholder="请选择波特率"
+            class="w-full"
+          >
             <el-option :value="110" label="110" />
             <el-option :value="300" label="300" />
             <el-option :value="1200" label="1200" />
@@ -88,7 +140,11 @@
         </el-form-item>
 
         <el-form-item label="数据位" prop="monitorSerialDataBits">
-          <el-select v-model="form.monitorSerialDataBits" placeholder="请选择数据位" class="w-full">
+          <el-select
+            v-model="form.monitorSerialDataBits"
+            placeholder="请选择数据位"
+            class="w-full"
+          >
             <el-option :value="5" label="5" />
             <el-option :value="6" label="6" />
             <el-option :value="7" label="7" />
@@ -97,7 +153,11 @@
         </el-form-item>
 
         <el-form-item label="停止位" prop="monitorSerialStopBits">
-          <el-select v-model="form.monitorSerialStopBits" placeholder="请选择停止位" class="w-full">
+          <el-select
+            v-model="form.monitorSerialStopBits"
+            placeholder="请选择停止位"
+            class="w-full"
+          >
             <el-option :value="1" label="1" />
             <el-option :value="1.5" label="1.5" />
             <el-option :value="2" label="2" />
@@ -105,7 +165,11 @@
         </el-form-item>
 
         <el-form-item label="校验位" prop="monitorSerialParity">
-          <el-select v-model="form.monitorSerialParity" placeholder="请选择校验位" class="w-full">
+          <el-select
+            v-model="form.monitorSerialParity"
+            placeholder="请选择校验位"
+            class="w-full"
+          >
             <el-option value="none" label="无校验" />
             <el-option value="even" label="偶校验" />
             <el-option value="odd" label="奇校验" />
@@ -115,7 +179,11 @@
         </el-form-item>
 
         <el-form-item label="流控制" prop="monitorSerialFlowControl">
-          <el-select v-model="form.monitorSerialFlowControl" placeholder="请选择流控制" class="w-full">
+          <el-select
+            v-model="form.monitorSerialFlowControl"
+            placeholder="请选择流控制"
+            class="w-full"
+          >
             <el-option value="none" label="无" />
             <el-option value="hardware" label="硬件流控" />
             <el-option value="software" label="软件流控" />
@@ -123,13 +191,20 @@
         </el-form-item>
 
         <el-form-item label="描述">
-          <el-input v-model="form.monitorSerialDescription" type="textarea" :rows="3" placeholder="请输入串口描述（可选）" />
+          <el-input
+            v-model="form.monitorSerialDescription"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入串口描述（可选）"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm" :loading="submitting">确定</el-button>
+          <el-button type="primary" :loading="submitting" @click="submitForm"
+            >确定</el-button
+          >
         </span>
       </template>
     </sc-dialog>
@@ -137,13 +212,18 @@
     <!-- 删除确认对话框 -->
     <sc-dialog v-model="deleteDialogVisible" title="删除确认" width="400px">
       <div class="delete-confirm">
-        <IconifyIconOnline icon="ep:warning" class="text-warning text-xl mr-2" />
+        <IconifyIconOnline
+          icon="ep:warning"
+          class="text-warning text-xl mr-2"
+        />
         <span>确定要删除此串口配置吗？此操作不可恢复。</span>
       </div>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="deleteDialogVisible = false">取消</el-button>
-          <el-button type="danger" @click="confirmDelete" :loading="deleting">确定</el-button>
+          <el-button type="danger" :loading="deleting" @click="confirmDelete"
+            >确定</el-button
+          >
         </span>
       </template>
     </sc-dialog>
@@ -173,7 +253,14 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["select-serial", "add-serial", "edit-serial", "delete-serial", "refresh", "refresh-ports"]);
+const emit = defineEmits([
+  "select-serial",
+  "add-serial",
+  "edit-serial",
+  "delete-serial",
+  "refresh",
+  "refresh-ports",
+]);
 
 // 状态
 const loading = ref(false);
@@ -200,13 +287,27 @@ const form = reactive({
 
 // 表单验证规则
 const rules = {
-  monitorSerialName: [{ required: true, message: "请输入串口名称", trigger: "blur" }],
-  monitorSerialPort: [{ required: true, message: "请输入串口", trigger: "blur" }],
-  monitorSerialBaudRate: [{ required: true, message: "请选择波特率", trigger: "change" }],
-  monitorSerialDataBits: [{ required: true, message: "请选择数据位", trigger: "change" }],
-  monitorSerialStopBits: [{ required: true, message: "请选择停止位", trigger: "change" }],
-  monitorSerialParity: [{ required: true, message: "请选择校验位", trigger: "change" }],
-  monitorSerialFlowControl: [{ required: true, message: "请选择流控制", trigger: "change" }],
+  monitorSerialName: [
+    { required: true, message: "请输入串口名称", trigger: "blur" },
+  ],
+  monitorSerialPort: [
+    { required: true, message: "请输入串口", trigger: "blur" },
+  ],
+  monitorSerialBaudRate: [
+    { required: true, message: "请选择波特率", trigger: "change" },
+  ],
+  monitorSerialDataBits: [
+    { required: true, message: "请选择数据位", trigger: "change" },
+  ],
+  monitorSerialStopBits: [
+    { required: true, message: "请选择停止位", trigger: "change" },
+  ],
+  monitorSerialParity: [
+    { required: true, message: "请选择校验位", trigger: "change" },
+  ],
+  monitorSerialFlowControl: [
+    { required: true, message: "请选择流控制", trigger: "change" },
+  ],
 };
 
 // 选择串口
@@ -316,7 +417,6 @@ const resetForm = () => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -349,7 +449,6 @@ const resetForm = () => {
     z-index: 1;
   }
 }
-
 
 .serial-list-container {
   height: 100%;
@@ -392,7 +491,6 @@ const resetForm = () => {
   padding: 10px 0;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -401,5 +499,4 @@ const resetForm = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

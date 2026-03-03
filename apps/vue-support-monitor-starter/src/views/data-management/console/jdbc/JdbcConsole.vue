@@ -12,8 +12,8 @@
         placeholder="搜索表名、字段名..."
         size="default"
         clearable
-        @change="loadRoot"
         class="search-input"
+        @change="loadRoot"
       >
         <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
@@ -150,7 +150,7 @@
           tab-position="top"
         >
           <el-tab-pane name="result" class="!h-full" label="结果">
-            <div class="result" v-if="columns.length">
+            <div v-if="columns.length" class="result">
               <el-popover
                 v-model:visible="columnFilterVisible"
                 trigger="click"
@@ -199,8 +199,8 @@
               </el-popover>
             </div>
             <el-table
-              border
               v-if="columns.length"
+              border
               :data="rows"
               size="small"
               height="580px"
@@ -246,7 +246,7 @@
                             class="bar"
                             :style="barStyle(col.name, b)"
                             @click.stop="toggleFilter(col.name, b.value)"
-                          ></div>
+                          />
                         </el-tooltip>
                       </div>
                     </div>
@@ -477,7 +477,7 @@ async function loadConsoleConfig() {
           copyCreateTable: false,
           addFieldComment: true,
         },
-        parsed.jdbc || {}
+        parsed.jdbc || {},
       );
       consoleConfig.value = parsed;
     } catch (_) {
@@ -538,7 +538,7 @@ async function handleNodeClick(node: any) {
 // 懒加载子节点（结合 hasChildren 展示展开图标）
 const loadChildrenLazy = async (
   node: any,
-  resolve: (children: any[]) => void
+  resolve: (children: any[]) => void,
 ) => {
   // 根节点（node.level === 0）直接返回已有 children
   if (!node || node.level === 0) {
@@ -597,7 +597,7 @@ async function execute() {
     sql.value,
     "sql",
     currentPath.value,
-    pagination
+    pagination,
   );
   const data = res?.data;
   const dataData = data?.data || {};
@@ -772,7 +772,7 @@ function barTooltip(col: string, b: { value: string; count: number }) {
 
 const filters = ref<Record<string, Set<string>>>({});
 const hasActiveFilters = computed(() =>
-  Object.values(filters.value).some((s) => s && s.size > 0)
+  Object.values(filters.value).some((s) => s && s.size > 0),
 );
 function toggleFilter(col: string, value: string) {
   if (!filters.value[col]) filters.value[col] = new Set();
@@ -866,7 +866,7 @@ function buildMenuItems(type): MenuItem[] {
   }
   if (
     allow(
-      consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE")
+      consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE"),
     )
   ) {
     items.push({
@@ -993,7 +993,7 @@ async function onMenuSelect(key: string) {
             confirmButtonText: "确定",
             cancelButtonText: "取消",
             inputValue: contextNode.value.name,
-          }
+          },
         );
         if (!value || !value.trim()) return;
         await renameTable(props.id, {
@@ -1024,7 +1024,7 @@ async function onMenuSelect(key: string) {
             confirmButtonText: "确定",
             cancelButtonText: "取消",
             inputValue: defaultName,
-          }
+          },
         );
         if (!value || !value.trim()) return;
         await backupTable(props.id, {
@@ -1138,7 +1138,7 @@ async function copyCreateSql(node: any) {
   const res = await getConsoleNode(props.id, node.path, "ddl");
   const ddl = res?.data?.data || "";
   await navigator.clipboard.writeText(
-    typeof ddl === "string" ? ddl : JSON.stringify(ddl)
+    typeof ddl === "string" ? ddl : JSON.stringify(ddl),
   );
 }
 
@@ -1159,7 +1159,7 @@ async function addFieldComment(node: any) {
         inputType: "textarea",
         inputPlaceholder: "请输入注释...",
         inputValue: node?.properties?.comment || "",
-      }
+      },
     );
     if (!value || !value.trim()) return;
     await saveFieldComment(props.id, {
@@ -1223,13 +1223,12 @@ onMounted(async () => {
 
     unsubscribeHandlers.push(
       () => socketConnection.off("system/data/listen", listenHandler),
-      () => socketConnection.off("system/data/log", logHandler)
+      () => socketConnection.off("system/data/log", logHandler),
     );
   }
 });
 </script>
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -1262,7 +1261,6 @@ onMounted(async () => {
     z-index: 1;
   }
 }
-
 
 /* ==================== 主布局 ==================== */
 .console {
@@ -2258,7 +2256,6 @@ onMounted(async () => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -2267,5 +2264,4 @@ onMounted(async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

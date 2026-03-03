@@ -86,7 +86,7 @@
         </div>
       </div>
       <div class="toolbar-right">
-        <el-button @click="handleRefresh" :loading="loading">
+        <el-button :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
@@ -165,7 +165,7 @@
                       'status-dot',
                       getStatusClass(image.systemSoftImageStatus),
                     ]"
-                  ></span>
+                  />
                 </div>
               </div>
             </div>
@@ -254,7 +254,7 @@
                     'status-dot',
                     getStatusClass(item.systemSoftImageStatus),
                   ]"
-                ></span>
+                />
               </div>
             </div>
             <div class="server-card-body">
@@ -518,12 +518,12 @@ const searchParams = ref({
 const availableCount = computed(
   () =>
     imageList.value.filter((img) => img.systemSoftImageStatus === "AVAILABLE")
-      .length
+      .length,
 );
 const pullingCount = computed(
   () =>
     imageList.value.filter((img) => img.systemSoftImageStatus === "PULLING")
-      .length
+      .length,
 );
 
 // 获取全局Socket服务
@@ -694,7 +694,7 @@ async function handleDeleteImage(image: SystemSoftImage) {
     await ElMessageBox.confirm(
       `确认删除镜像 ${image.systemSoftImageName}:${image.systemSoftImageTag}？`,
       "提示",
-      { type: "warning" }
+      { type: "warning" },
     );
 
     const res = await imageApi.deleteImage(image.systemSoftImageId!);
@@ -864,7 +864,7 @@ function setupSocketListeners() {
     console.log("✅ 操作完成:", operation);
     if (
       ["pull_image", "export_image", "import_image", "sync_images"].includes(
-        operation.type
+        operation.type,
       )
     ) {
       ElNotification.success({
@@ -909,7 +909,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -942,7 +941,6 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
-
 
 .images-management {
   padding: 16px;

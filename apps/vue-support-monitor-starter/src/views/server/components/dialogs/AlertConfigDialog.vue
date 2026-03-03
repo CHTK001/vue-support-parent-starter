@@ -39,7 +39,9 @@
                     <el-tag :type="getSeverityType(rule.severity)" size="small">
                       {{ getSeverityText(rule.severity) }}
                     </el-tag>
-                    <el-tag v-if="!rule.enabled" type="info" size="small">已禁用</el-tag>
+                    <el-tag v-if="!rule.enabled" type="info" size="small"
+                      >已禁用</el-tag
+                    >
                   </div>
                   <div class="rule-actions">
                     <el-switch
@@ -59,16 +61,20 @@
                   <div class="rule-condition">
                     <span class="condition-label">条件:</span>
                     <span class="condition-text">
-                      {{ rule.metric }} {{ getOperatorText(rule.operator) }} {{ rule.threshold }}{{ getUnitText(rule.metric) }}
+                      {{ rule.metric }} {{ getOperatorText(rule.operator) }}
+                      {{ rule.threshold }}{{ getUnitText(rule.metric) }}
                     </span>
                   </div>
-                  <div class="rule-description" v-if="rule.description">
+                  <div v-if="rule.description" class="rule-description">
                     {{ rule.description }}
                   </div>
                 </div>
               </div>
 
-              <el-empty v-if="alertRules.length === 0" description="暂无告警规则" />
+              <el-empty
+                v-if="alertRules.length === 0"
+                description="暂无告警规则"
+              />
             </div>
           </div>
         </el-tab-pane>
@@ -141,7 +147,10 @@
               <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
-                    <IconifyIconOnline icon="ri:database-line" class="metric-icon" />
+                    <IconifyIconOnline
+                      icon="ri:database-line"
+                      class="metric-icon"
+                    />
                     <span>内存使用率阈值</span>
                   </div>
                 </template>
@@ -192,7 +201,10 @@
               <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
-                    <IconifyIconOnline icon="ri:hard-drive-line" class="metric-icon" />
+                    <IconifyIconOnline
+                      icon="ri:hard-drive-line"
+                      class="metric-icon"
+                    />
                     <span>磁盘使用率阈值</span>
                   </div>
                 </template>
@@ -243,7 +255,10 @@
               <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
-                    <IconifyIconOnline icon="ri:temp-hot-line" class="metric-icon" />
+                    <IconifyIconOnline
+                      icon="ri:temp-hot-line"
+                      class="metric-icon"
+                    />
                     <span>温度阈值</span>
                   </div>
                 </template>
@@ -294,7 +309,10 @@
               <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
-                    <IconifyIconOnline icon="ri:wifi-line" class="metric-icon" />
+                    <IconifyIconOnline
+                      icon="ri:wifi-line"
+                      class="metric-icon"
+                    />
                     <span>网络使用率阈值</span>
                   </div>
                 </template>
@@ -343,7 +361,9 @@
 
               <div class="threshold-actions">
                 <el-button @click="resetThresholds">重置为默认值</el-button>
-                <el-button type="primary" @click="saveThresholds">保存阈值配置</el-button>
+                <el-button type="primary" @click="saveThresholds"
+                  >保存阈值配置</el-button
+                >
               </div>
             </el-form>
           </div>
@@ -380,7 +400,11 @@
                     <el-input v-model="notificationConfig.email.smtpHost" />
                   </el-form-item>
                   <el-form-item label="SMTP端口">
-                    <el-input-number v-model="notificationConfig.email.smtpPort" :min="1" :max="65535" />
+                    <el-input-number
+                      v-model="notificationConfig.email.smtpPort"
+                      :min="1"
+                      :max="65535"
+                    />
                   </el-form-item>
                 </template>
 
@@ -388,7 +412,10 @@
                 <template v-if="notificationConfig.methods.includes('webhook')">
                   <el-divider content-position="left">Webhook配置</el-divider>
                   <el-form-item label="Webhook URL">
-                    <el-input v-model="notificationConfig.webhook.url" placeholder="https://..." />
+                    <el-input
+                      v-model="notificationConfig.webhook.url"
+                      placeholder="https://..."
+                    />
                   </el-form-item>
                   <el-form-item label="请求方法">
                     <el-select v-model="notificationConfig.webhook.method">
@@ -399,7 +426,9 @@
                 </template>
 
                 <!-- 钉钉配置 -->
-                <template v-if="notificationConfig.methods.includes('dingtalk')">
+                <template
+                  v-if="notificationConfig.methods.includes('dingtalk')"
+                >
                   <el-divider content-position="left">钉钉配置</el-divider>
                   <el-form-item label="机器人Token">
                     <el-input v-model="notificationConfig.dingtalk.token" />
@@ -425,7 +454,12 @@
                 end-placeholder="结束时间"
                 size="small"
               />
-              <el-select v-model="historyFilters.severity" placeholder="告警级别" size="small" clearable>
+              <el-select
+                v-model="historyFilters.severity"
+                placeholder="告警级别"
+                size="small"
+                clearable
+              >
                 <el-option label="严重" value="critical" />
                 <el-option label="警告" value="warning" />
                 <el-option label="信息" value="info" />
@@ -444,8 +478,11 @@
                     {{ getSeverityText(alert.severity) }}
                   </el-tag>
                   <span class="alert-time">{{ formatTime(alert.time) }}</span>
-                  <el-tag :type="alert.resolved ? 'success' : 'danger'" size="small">
-                    {{ alert.resolved ? '已解决' : '未解决' }}
+                  <el-tag
+                    :type="alert.resolved ? 'success' : 'danger'"
+                    size="small"
+                  >
+                    {{ alert.resolved ? "已解决" : "未解决" }}
                   </el-tag>
                 </div>
                 <div class="alert-content">
@@ -455,7 +492,10 @@
                 </div>
               </div>
 
-              <el-empty v-if="alertHistory.length === 0" description="暂无告警历史" />
+              <el-empty
+                v-if="alertHistory.length === 0"
+                description="暂无告警历史"
+              />
             </div>
           </div>
         </el-tab-pane>
@@ -469,7 +509,12 @@
       width="500px"
       append-to-body
     >
-      <el-form :model="currentRule" :rules="ruleRules" ref="ruleFormRef" label-width="80px">
+      <el-form
+        ref="ruleFormRef"
+        :model="currentRule"
+        :rules="ruleRules"
+        label-width="80px"
+      >
         <el-form-item label="规则名称" prop="name">
           <el-input v-model="currentRule.name" placeholder="请输入规则名称" />
         </el-form-item>
@@ -547,48 +592,51 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
-import { DEFAULT_THRESHOLDS, type MetricsThresholdConfig } from "@/utils/metricsThreshold";
+import {
+  DEFAULT_THRESHOLDS,
+  type MetricsThresholdConfig,
+} from "@/utils/metricsThreshold";
 
 // 状态
 const visible = ref(false);
-const activeTab = ref('rules');
+const activeTab = ref("rules");
 const ruleDialogVisible = ref(false);
 const editingRuleIndex = ref(-1);
 
 // 告警规则
 const alertRules = ref<any[]>([
   {
-    name: 'CPU使用率过高',
-    metric: 'cpu_usage',
-    operator: 'gt',
+    name: "CPU使用率过高",
+    metric: "cpu_usage",
+    operator: "gt",
     threshold: 80,
-    severity: 'warning',
+    severity: "warning",
     duration: 300,
-    description: 'CPU使用率超过80%持续5分钟',
-    enabled: true
+    description: "CPU使用率超过80%持续5分钟",
+    enabled: true,
   },
   {
-    name: '内存使用率严重',
-    metric: 'memory_usage',
-    operator: 'gt',
+    name: "内存使用率严重",
+    metric: "memory_usage",
+    operator: "gt",
     threshold: 90,
-    severity: 'critical',
+    severity: "critical",
     duration: 60,
-    description: '内存使用率超过90%',
-    enabled: true
-  }
+    description: "内存使用率超过90%",
+    enabled: true,
+  },
 ]);
 
 // 当前编辑的规则
 const currentRule = reactive({
-  name: '',
-  metric: '',
-  operator: '',
+  name: "",
+  metric: "",
+  operator: "",
   threshold: 0,
-  severity: 'warning',
+  severity: "warning",
   duration: 300,
-  description: '',
-  enabled: true
+  description: "",
+  enabled: true,
 });
 
 // 阈值配置
@@ -597,71 +645,61 @@ const thresholdConfig = reactive<MetricsThresholdConfig>({
   memory: { ...DEFAULT_THRESHOLDS.memory },
   disk: { ...DEFAULT_THRESHOLDS.disk },
   temperature: { ...DEFAULT_THRESHOLDS.temperature },
-  network: { ...DEFAULT_THRESHOLDS.network }
+  network: { ...DEFAULT_THRESHOLDS.network },
 });
 
 // 通知配置
 const notificationConfig = reactive({
   enabled: true,
-  methods: ['email'],
+  methods: ["email"],
   email: {
-    recipients: '',
-    smtpHost: '',
-    smtpPort: 587
+    recipients: "",
+    smtpHost: "",
+    smtpPort: 587,
   },
   webhook: {
-    url: '',
-    method: 'POST'
+    url: "",
+    method: "POST",
   },
   dingtalk: {
-    token: '',
-    secret: ''
-  }
+    token: "",
+    secret: "",
+  },
 });
 
 // 告警历史
 const alertHistory = ref<any[]>([
   {
-    title: 'CPU使用率过高',
-    description: 'server01的CPU使用率达到85%',
-    severity: 'warning',
+    title: "CPU使用率过高",
+    description: "server01的CPU使用率达到85%",
+    severity: "warning",
     time: new Date(Date.now() - 3600000),
-    serverName: 'server01',
-    resolved: true
+    serverName: "server01",
+    resolved: true,
   },
   {
-    title: '内存使用率严重',
-    description: 'server02的内存使用率达到95%',
-    severity: 'critical',
+    title: "内存使用率严重",
+    description: "server02的内存使用率达到95%",
+    severity: "critical",
     time: new Date(Date.now() - 1800000),
-    serverName: 'server02',
-    resolved: false
-  }
+    serverName: "server02",
+    resolved: false,
+  },
 ]);
 
 // 历史查询过滤器
 const historyFilters = reactive({
   dateRange: [],
-  severity: ''
+  severity: "",
 });
 
 // 表单验证规则
 const ruleRules = {
-  name: [
-    { required: true, message: '请输入规则名称', trigger: 'blur' }
-  ],
-  metric: [
-    { required: true, message: '请选择监控指标', trigger: 'change' }
-  ],
-  operator: [
-    { required: true, message: '请选择比较操作', trigger: 'change' }
-  ],
-  threshold: [
-    { required: true, message: '请输入阈值', trigger: 'blur' }
-  ],
-  severity: [
-    { required: true, message: '请选择告警级别', trigger: 'change' }
-  ]
+  name: [{ required: true, message: "请输入规则名称", trigger: "blur" }],
+  metric: [{ required: true, message: "请选择监控指标", trigger: "change" }],
+  operator: [{ required: true, message: "请选择比较操作", trigger: "change" }],
+  threshold: [{ required: true, message: "请输入阈值", trigger: "blur" }],
+  severity: [{ required: true, message: "请选择告警级别", trigger: "change" }],
 };
 
 const ruleFormRef = ref();
@@ -690,38 +728,38 @@ const editRule = (index: number) => {
 
 const deleteRule = (index: number) => {
   alertRules.value.splice(index, 1);
-  message.success('规则已删除');
+  message.success("规则已删除");
 };
 
 const updateRule = (index: number) => {
-  message.success('规则状态已更新');
+  message.success("规则状态已更新");
 };
 
 const resetCurrentRule = () => {
   Object.assign(currentRule, {
-    name: '',
-    metric: '',
-    operator: '',
+    name: "",
+    metric: "",
+    operator: "",
     threshold: 0,
-    severity: 'warning',
+    severity: "warning",
     duration: 300,
-    description: '',
-    enabled: true
+    description: "",
+    enabled: true,
   });
 };
 
 const saveRule = async () => {
   try {
     await ruleFormRef.value?.validate();
-    
+
     if (editingRuleIndex.value === -1) {
       alertRules.value.push({ ...currentRule });
-      message.success('规则添加成功');
+      message.success("规则添加成功");
     } else {
       Object.assign(alertRules.value[editingRuleIndex.value], currentRule);
-      message.success('规则更新成功');
+      message.success("规则更新成功");
     }
-    
+
     ruleDialogVisible.value = false;
   } catch (error) {
     // 表单验证失败
@@ -730,29 +768,29 @@ const saveRule = async () => {
 
 const importRules = () => {
   // TODO: 实现规则导入
-  message.info('功能开发中');
+  message.info("功能开发中");
 };
 
 const exportRules = () => {
   const data = JSON.stringify(alertRules.value, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
+  const blob = new Blob([data], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = `alert_rules_${Date.now()}.json`;
   link.click();
   URL.revokeObjectURL(url);
-  message.success('规则导出成功');
+  message.success("规则导出成功");
 };
 
 const loadAlertHistory = () => {
   // TODO: 根据过滤条件加载告警历史
-  message.success('告警历史已刷新');
+  message.success("告警历史已刷新");
 };
 
 const saveConfig = () => {
   // TODO: 保存告警配置
-  message.success('配置保存成功');
+  message.success("配置保存成功");
 };
 
 /**
@@ -764,7 +802,7 @@ const resetThresholds = () => {
   Object.assign(thresholdConfig.disk, DEFAULT_THRESHOLDS.disk);
   Object.assign(thresholdConfig.temperature, DEFAULT_THRESHOLDS.temperature);
   Object.assign(thresholdConfig.network, DEFAULT_THRESHOLDS.network);
-  message.success('阈值已重置为默认值');
+  message.success("阈值已重置为默认值");
 };
 
 /**
@@ -774,51 +812,51 @@ const saveThresholds = async () => {
   try {
     // TODO: 调用API保存阈值配置
     // await saveThresholdConfig(thresholdConfig);
-    message.success('阈值配置保存成功');
+    message.success("阈值配置保存成功");
   } catch (error) {
-    message.error('阈值配置保存失败');
+    message.error("阈值配置保存失败");
   }
 };
 
 const getSeverityType = (severity: string) => {
   const typeMap = {
-    critical: 'danger',
-    warning: 'warning',
-    info: 'info'
+    critical: "danger",
+    warning: "warning",
+    info: "info",
   };
-  return typeMap[severity as keyof typeof typeMap] || 'info';
+  return typeMap[severity as keyof typeof typeMap] || "info";
 };
 
 const getSeverityText = (severity: string) => {
   const textMap = {
-    critical: '严重',
-    warning: '警告',
-    info: '信息'
+    critical: "严重",
+    warning: "警告",
+    info: "信息",
   };
-  return textMap[severity as keyof typeof textMap] || '未知';
+  return textMap[severity as keyof typeof textMap] || "未知";
 };
 
 const getOperatorText = (operator: string) => {
   const textMap = {
-    gt: '>',
-    gte: '>=',
-    lt: '<',
-    lte: '<=',
-    eq: '='
+    gt: ">",
+    gte: ">=",
+    lt: "<",
+    lte: "<=",
+    eq: "=",
   };
   return textMap[operator as keyof typeof textMap] || operator;
 };
 
 const getUnitText = (metric: string) => {
   const unitMap = {
-    cpu_usage: '%',
-    memory_usage: '%',
-    disk_usage: '%',
-    network_latency: 'ms',
-    disk_io: 'MB/s',
-    load_average: ''
+    cpu_usage: "%",
+    memory_usage: "%",
+    disk_usage: "%",
+    network_latency: "ms",
+    disk_io: "MB/s",
+    load_average: "",
   };
-  return unitMap[metric as keyof typeof unitMap] || '';
+  return unitMap[metric as keyof typeof unitMap] || "";
 };
 
 const getMaxValue = (metric: string) => {
@@ -828,7 +866,7 @@ const getMaxValue = (metric: string) => {
     disk_usage: 100,
     network_latency: 10000,
     disk_io: 1000,
-    load_average: 100
+    load_average: 100,
   };
   return maxMap[metric as keyof typeof maxMap] || 100;
 };
@@ -840,7 +878,7 @@ const getStepValue = (metric: string) => {
     disk_usage: 1,
     network_latency: 10,
     disk_io: 10,
-    load_average: 0.1
+    load_average: 0.1,
   };
   return stepMap[metric as keyof typeof stepMap] || 1;
 };
@@ -851,7 +889,7 @@ const formatTime = (time: Date) => {
 
 // 暴露方法
 defineExpose({
-  open
+  open,
 });
 </script>
 

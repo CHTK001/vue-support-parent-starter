@@ -93,7 +93,7 @@ export function useFileSystemWebSocket() {
    */
   const onMessage = (
     messageType: FileSystemWebSocketMessageType,
-    handler: (message: FileSystemWebSocketMessage) => void
+    handler: (message: FileSystemWebSocketMessage) => void,
   ) => {
     if (!messageHandlers.has(messageType)) {
       messageHandlers.set(messageType, new Set());
@@ -306,7 +306,7 @@ export function useFileUploadProgress() {
       if (message.fileId && message.data?.progress !== undefined) {
         uploadProgresses.value.set(message.fileId, message.data.progress);
       }
-    }
+    },
   );
 
   // 监听上传完成
@@ -316,7 +316,7 @@ export function useFileUploadProgress() {
       if (message.fileId) {
         uploadProgresses.value.set(message.fileId, 100);
       }
-    }
+    },
   );
 
   // 监听上传失败

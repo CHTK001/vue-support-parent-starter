@@ -1,6 +1,12 @@
 ﻿<template>
-  <sc-dialog v-model="visible" title="上传文件到服务器/节点" width="680px" :close-on-click-modal="false" @close="handleClose">
-    <el-form :model="form" label-width="100px" :rules="rules" ref="formRef">
+  <sc-dialog
+    v-model="visible"
+    title="上传文件到服务器/节点"
+    width="680px"
+    :close-on-click-modal="false"
+    @close="handleClose"
+  >
+    <el-form ref="formRef" :model="form" label-width="100px" :rules="rules">
       <el-form-item label="上传对象" prop="type">
         <el-radio-group v-model="form.type" size="small">
           <el-radio-button label="SERVER">服务器</el-radio-button>
@@ -8,15 +14,43 @@
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item v-if="form.type === 'SERVER'" label="服务器" prop="serverIds">
-        <el-select v-model="form.serverIds" multiple filterable clearable placeholder="请选择服务器" style="width: 100%">
-          <el-option v-for="opt in serverOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+      <el-form-item
+        v-if="form.type === 'SERVER'"
+        label="服务器"
+        prop="serverIds"
+      >
+        <el-select
+          v-model="form.serverIds"
+          multiple
+          filterable
+          clearable
+          placeholder="请选择服务器"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="opt in serverOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
         </el-select>
       </el-form-item>
 
       <el-form-item v-else label="节点" prop="nodeIds">
-        <el-select v-model="form.nodeIds" multiple filterable clearable placeholder="请选择节点" style="width: 100%">
-          <el-option v-for="opt in nodeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+        <el-select
+          v-model="form.nodeIds"
+          multiple
+          filterable
+          clearable
+          placeholder="请选择节点"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="opt in nodeOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
         </el-select>
       </el-form-item>
 
@@ -29,8 +63,18 @@
       </el-form-item>
 
       <el-form-item label="选择文件" prop="files">
-        <el-upload drag :auto-upload="false" :on-change="handleUploadChange" :on-remove="handleRemove" multiple :file-list="fileList">
-          <IconifyIconOnline icon="ri:upload-cloud-2-line" style="font-size: 28px; color: #64748b" />
+        <el-upload
+          drag
+          :auto-upload="false"
+          :on-change="handleUploadChange"
+          :on-remove="handleRemove"
+          multiple
+          :file-list="fileList"
+        >
+          <IconifyIconOnline
+            icon="ri:upload-cloud-2-line"
+            style="font-size: 28px; color: #64748b"
+          />
           <div class="el-upload__text">
             将文件拖到此处，或
             <em>点击上传</em>
@@ -41,7 +85,9 @@
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleConfirm">开始上传</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleConfirm"
+        >开始上传</el-button
+      >
     </template>
   </sc-dialog>
 </template>
@@ -63,9 +109,12 @@ interface Props {
     tasks: Array<{
       id: number;
       name: string;
-      run: (signal: AbortSignal, onProgress: (p: number) => void) => Promise<void>;
+      run: (
+        signal: AbortSignal,
+        onProgress: (p: number) => void,
+      ) => Promise<void>;
       meta?: any;
-    }>
+    }>,
   ) => void;
   presetFiles?: File[];
 }
@@ -73,13 +122,13 @@ interface Props {
 // 监听预设文件，用于“同步”场景
 watch(
   () => props.presetFiles,
-  files => {
+  (files) => {
     if (files && files.length) {
       form.value.files = files;
-      fileList.value = files.map(f => ({ name: f.name, raw: f }));
+      fileList.value = files.map((f) => ({ name: f.name, raw: f }));
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const props = defineProps<Props>();
@@ -98,14 +147,18 @@ const form = ref({
   nodeIds: [] as Array<number | string>,
   dirPath: props.currentPath || "/opt/data",
   overwrite: false,
-  files: [] as File[]
+  files: [] as File[],
 });
 
 const rules = {
-  serverIds: [{ required: () => form.value.type === "SERVER", message: "请选择服务器" }],
-  nodeIds: [{ required: () => form.value.type === "NODE", message: "请选择节点" }],
+  serverIds: [
+    { required: () => form.value.type === "SERVER", message: "请选择服务器" },
+  ],
+  nodeIds: [
+    { required: () => form.value.type === "NODE", message: "请选择节点" },
+  ],
   dirPath: [{ required: true, message: "请输入目标目录" }],
-  files: [{ required: true, message: "请选择文件" }]
+  files: [{ required: true, message: "请选择文件" }],
 };
 
 onMounted(async () => {
@@ -120,7 +173,7 @@ async function loadServerOptions() {
     const records = res?.data?.data || res?.data?.data || res?.records || [];
     serverOptions.value = (records || []).map((s: any) => ({
       label: `${s.monitorSysGenServerName || s.monitorSysGenServerHost || s.monitorSysGenServerId}`,
-      value: String(s.monitorSysGenServerId ?? s.id ?? s.serverId)
+      value: String(s.monitorSysGenServerId ?? s.id ?? s.serverId),
     }));
   } catch (e) {
     serverOptions.value = [];
@@ -133,7 +186,7 @@ async function loadNodeOptions() {
     const list = res?.data?.data || res?.data || res?.list || [];
     nodeOptions.value = (list || []).map((n: any) => ({
       label: `${n.name || n.nodeId || n.id}`,
-      value: String(n.id ?? n.nodeId ?? n.code ?? n.name)
+      value: String(n.id ?? n.nodeId ?? n.code ?? n.name),
     }));
   } catch (e) {
     nodeOptions.value = [];
@@ -141,12 +194,12 @@ async function loadNodeOptions() {
 }
 
 function handleUploadChange(file: any, files: any[]) {
-  form.value.files = files.map(f => f.raw).filter(Boolean);
+  form.value.files = files.map((f) => f.raw).filter(Boolean);
   fileList.value = files;
 }
 
 function handleRemove(file: any, files: any[]) {
-  form.value.files = files.map(f => f.raw).filter(Boolean);
+  form.value.files = files.map((f) => f.raw).filter(Boolean);
   fileList.value = files;
 }
 
@@ -175,7 +228,10 @@ async function handleConfirm() {
     const tasks: Array<{
       id: number;
       name: string;
-      run: (signal: AbortSignal, onProgress: (p: number) => void) => Promise<void>;
+      run: (
+        signal: AbortSignal,
+        onProgress: (p: number) => void,
+      ) => Promise<void>;
     }> = [];
 
     if (form.value.type === "SERVER") {
@@ -190,7 +246,7 @@ async function handleConfirm() {
             meta: {
               file,
               target: { type: "SERVER", id: sid },
-              dirPath: form.value.dirPath
+              dirPath: form.value.dirPath,
             },
             run: (signal, onProgress) =>
               uploadServerFileWithProgress(
@@ -198,14 +254,16 @@ async function handleConfirm() {
                   serverId: sid,
                   targetPath: form.value.dirPath,
                   file,
-                  overwrite: form.value.overwrite
+                  overwrite: form.value.overwrite,
                 },
-                e => {
-                  const percent = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
+                (e) => {
+                  const percent = e.total
+                    ? Math.round((e.loaded / e.total) * 100)
+                    : 0;
                   onProgress(percent);
                 },
-                signal
-              ).then(() => void 0)
+                signal,
+              ).then(() => void 0),
           });
         }
       }
@@ -221,7 +279,7 @@ async function handleConfirm() {
             meta: {
               file,
               target: { type: "NODE", id: nid },
-              dirPath: form.value.dirPath
+              dirPath: form.value.dirPath,
             },
             run: (signal, onProgress) =>
               uploadFileToNode(
@@ -229,14 +287,16 @@ async function handleConfirm() {
                   nodeId: String(nid),
                   remoteFilePath: form.value.dirPath,
                   file,
-                  overwrite: form.value.overwrite
+                  overwrite: form.value.overwrite,
                 },
-                e => {
-                  const percent = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
+                (e) => {
+                  const percent = e.total
+                    ? Math.round((e.loaded / e.total) * 100)
+                    : 0;
                   onProgress(percent);
                 },
-                signal
-              ).then(() => void 0)
+                signal,
+              ).then(() => void 0),
           });
         }
       }
@@ -260,13 +320,12 @@ function handleClose() {
 // 双向绑定
 watch(
   () => props.modelValue,
-  v => (visible.value = v)
+  (v) => (visible.value = v),
 );
-watch(visible, v => emit("update:modelValue", v));
+watch(visible, (v) => emit("update:modelValue", v));
 </script>
 
 <style scoped lang="scss">
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -275,5 +334,4 @@ watch(visible, v => emit("update:modelValue", v));
     padding: 12px 16px;
   }
 }
-
 </style>

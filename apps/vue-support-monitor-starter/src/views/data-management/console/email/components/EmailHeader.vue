@@ -5,7 +5,9 @@
       <h2 class="email-title">邮箱控制台</h2>
     </div>
     <div class="header-right">
-      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh">刷新</el-button>
+      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh"
+        >刷新</el-button
+      >
       <!--<el-button type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleCompose">撰写邮件</el-button>
       <el-button type="success" :icon="useRenderIcon('ri:cloud-line')" @click="handleCloudSync">云同步</el-button>
       <el-button type="warning" :icon="useRenderIcon('ri:upload-cloud-line')" @click="handleCloudBackup">云备份</el-button>-->
@@ -50,7 +52,17 @@ async function clearEmailCacheFromDB(settingId: number) {
   try {
     const EMAIL_CACHE_PREFIX = "email_cache";
     // 清理前几页的缓存（假设最多缓存10页，支持多个文件夹）
-    const folders = ["INBOX","收件箱", "草稿箱", "已发送", "已删除", "垃圾邮件", "病毒文件夹", "广告邮件", "订阅邮件"];
+    const folders = [
+      "INBOX",
+      "收件箱",
+      "草稿箱",
+      "已发送",
+      "已删除",
+      "垃圾邮件",
+      "病毒文件夹",
+      "广告邮件",
+      "订阅邮件",
+    ];
     const clearPromises = [];
 
     for (const folder of folders) {
@@ -96,7 +108,6 @@ function handleCloudBackup() {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -129,7 +140,6 @@ function handleCloudBackup() {
     z-index: 1;
   }
 }
-
 
 .email-header {
   display: flex;
@@ -164,7 +174,6 @@ function handleCloudBackup() {
   gap: 12px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -173,5 +182,4 @@ function handleCloudBackup() {
     padding: 12px 16px;
   }
 }
-
 </style>

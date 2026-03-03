@@ -48,7 +48,7 @@
           placeholder="行数"
         />
 
-        <el-button type="primary" @click="loadLogContent" :loading="loading">
+        <el-button type="primary" :loading="loading" @click="loadLogContent">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
         </el-button>
@@ -145,7 +145,7 @@ const loadLogFiles = async () => {
   try {
     const response = await getLogFilesForNodeControl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     if (response.success && response.data) {
       logFiles.value = response.data;
@@ -170,7 +170,7 @@ const loadLogContent = async () => {
       props.nodeInfo.ipAddress,
       props.nodeInfo.port,
       selectedLogFile.value,
-      lines.value
+      lines.value,
     );
     if (response.success && response.data) {
       logContent.value = response.data;
@@ -257,7 +257,7 @@ watch(
       loadLogContent();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(visible, (newVisible) => {
@@ -370,7 +370,6 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -379,5 +378,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

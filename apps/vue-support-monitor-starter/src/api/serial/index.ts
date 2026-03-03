@@ -45,7 +45,9 @@ export const fetchSerialUpdate = (data: MonitorSysGenSerial) => {
  * @returns
  */
 export const fetchSerialDelete = (id: string | number) => {
-  return http.request("delete", `${PREFIX}/delete`, { params: { id: String(id) } });
+  return http.request("delete", `${PREFIX}/delete`, {
+    params: { id: String(id) },
+  });
 };
 
 /**

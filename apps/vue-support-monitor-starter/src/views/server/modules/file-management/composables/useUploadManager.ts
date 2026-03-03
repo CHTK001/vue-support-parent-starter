@@ -6,7 +6,7 @@ export interface UploadTask {
   name: string; // 文件名 + 目标标识
   run: (
     signal: AbortSignal,
-    onProgress: (percent: number) => Promise<void> | void
+    onProgress: (percent: number) => Promise<void> | void,
   ) => Promise<void>;
   meta?: any; // 透传元数据（例如 file、dirPath 等）
 }
@@ -85,7 +85,7 @@ export function useUploadManager(opts: Options) {
           });
           // 指数退避
           await new Promise((r) =>
-            setTimeout(r, Math.min(2000 * rec.retries, 8000))
+            setTimeout(r, Math.min(2000 * rec.retries, 8000)),
           );
           await task
             .run(controller.signal, onProgress)

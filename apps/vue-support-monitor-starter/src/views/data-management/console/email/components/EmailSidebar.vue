@@ -6,16 +6,18 @@
         <div v-if="isLoading" class="loading-placeholder">
           <el-skeleton :rows="3" animated />
         </div>
-        <div 
+        <div
+          v-for="folder in localFolders"
           v-else
-          v-for="folder in localFolders" 
-          :key="folder.key" 
-          :class="['folder-item', { active: activeFolder === folder.key }]" 
+          :key="folder.key"
+          :class="['folder-item', { active: activeFolder === folder.key }]"
           @click="selectFolder(folder.key)"
         >
           <IconifyIconOnline :icon="folder.icon" class="folder-icon" />
           <span class="folder-name">{{ folder.name }}</span>
-          <span v-if="folder.count > 0" class="folder-count">{{ folder.count }}</span>
+          <span v-if="folder.count > 0" class="folder-count">{{
+            folder.count
+          }}</span>
         </div>
       </div>
     </div>
@@ -26,14 +28,14 @@
         <div v-if="isLoading" class="loading-placeholder">
           <el-skeleton :rows="2" animated />
         </div>
-        <div 
+        <div
+          v-for="tag in localTags"
           v-else
-          v-for="tag in localTags" 
-          :key="tag.key" 
-          :class="['tag-item', { active: activeTag === tag.key }]" 
+          :key="tag.key"
+          :class="['tag-item', { active: activeTag === tag.key }]"
           @click="selectTag(tag.key)"
         >
-          <div :class="['tag-color', tag.color]"></div>
+          <div :class="['tag-color', tag.color]" />
           <span class="tag-name">{{ tag.name }}</span>
         </div>
       </div>
@@ -42,8 +44,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
-import { indexedDBProxy } from '@repo/utils';
+import { ref, onMounted, watch } from "vue";
+import { indexedDBProxy } from "@repo/utils";
 
 // 定义接口
 interface Folder {
@@ -76,9 +78,9 @@ const props = defineProps<{
 
 // 定义事件
 const emit = defineEmits<{
-  'folder-select': [folderKey: string];
-  'tag-select': [tagKey: string];
-  'menu-loaded': [menuData: MenuData];
+  "folder-select": [folderKey: string];
+  "tag-select": [tagKey: string];
+  "menu-loaded": [menuData: MenuData];
 }>();
 
 // 本地状态
@@ -94,24 +96,24 @@ async function loadMenuFromDB() {
   try {
     const menuKey = getMenuKey(props.settingId);
     const cachedMenu: MenuData | null = await indexedDBProxy().getItem(menuKey);
-    
+
     if (cachedMenu && cachedMenu.folders && cachedMenu.tags) {
-      console.log('[EmailSidebar] 从IndexedDB加载菜单数据', {
+      console.log("[EmailSidebar] 从IndexedDB加载菜单数据", {
         settingId: props.settingId,
         foldersCount: cachedMenu.folders.length,
         tagsCount: cachedMenu.tags.length,
-        lastUpdated: new Date(cachedMenu.lastUpdated).toISOString()
+        lastUpdated: new Date(cachedMenu.lastUpdated).toISOString(),
       });
-      
+
       localFolders.value = cachedMenu.folders;
       localTags.value = cachedMenu.tags;
-      
+
       // 通知父组件菜单已加载
-      emit('menu-loaded', cachedMenu);
+      emit("menu-loaded", cachedMenu);
       return true;
     }
   } catch (error) {
-    console.error('[EmailSidebar] 从IndexedDB加载菜单数据失败:', error);
+    console.error("[EmailSidebar] 从IndexedDB加载菜单数据失败:", error);
   }
   return false;
 }
@@ -124,17 +126,17 @@ async function saveMenuToDB(folders: Folder[], tags: Tag[]) {
     const menuData: MenuData = {
       folders: JSON.parse(JSON.stringify(folders)),
       tags: JSON.parse(JSON.stringify(tags)),
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
     };
-    
+
     await indexedDBProxy().setItem(menuKey, menuData);
-    console.log('[EmailSidebar] 菜单数据已保存到IndexedDB', {
+    console.log("[EmailSidebar] 菜单数据已保存到IndexedDB", {
       settingId: props.settingId,
       foldersCount: folders.length,
-      tagsCount: tags.length
+      tagsCount: tags.length,
     });
   } catch (error) {
-    console.error('[EmailSidebar] 保存菜单数据到IndexedDB失败:', error);
+    console.error("[EmailSidebar] 保存菜单数据到IndexedDB失败:", error);
   }
 }
 
@@ -143,9 +145,9 @@ async function clearMenuFromDB(settingId: number) {
   try {
     const menuKey = getMenuKey(settingId);
     await indexedDBProxy().removeItem(menuKey);
-    console.log('[EmailSidebar] 已清空IndexedDB中的菜单数据', { settingId });
+    console.log("[EmailSidebar] 已清空IndexedDB中的菜单数据", { settingId });
   } catch (error) {
-    console.error('[EmailSidebar] 清空IndexedDB菜单数据失败:', error);
+    console.error("[EmailSidebar] 清空IndexedDB菜单数据失败:", error);
   }
 }
 
@@ -162,47 +164,46 @@ watch(
       saveMenuToDB(localFolders.value, newTags);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 组件挂载时加载数据
 onMounted(async () => {
   isLoading.value = true;
-  
+
   // 先尝试从IndexedDB加载
   const loaded = await loadMenuFromDB();
-  
+
   // 如果IndexedDB中没有数据，使用props中的数据
   if (!loaded) {
     localFolders.value = props.folders || [];
     localTags.value = props.tags || [];
-    
+
     // 如果props有数据，保存到IndexedDB
     if (props.folders && props.folders.length > 0) {
       await saveMenuToDB(props.folders, props.tags || []);
     }
   }
-  
+
   isLoading.value = false;
 });
 
 // 方法
 function selectFolder(folderKey: string) {
-  emit('folder-select', folderKey);
+  emit("folder-select", folderKey);
 }
 
 function selectTag(tagKey: string) {
-  emit('tag-select', tagKey);
+  emit("tag-select", tagKey);
 }
 
 // 暴露清空方法给父组件
 defineExpose({
-  clearMenuFromDB: () => clearMenuFromDB(props.settingId)
+  clearMenuFromDB: () => clearMenuFromDB(props.settingId),
 });
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -235,7 +236,6 @@ defineExpose({
     z-index: 1;
   }
 }
-
 
 .email-sidebar {
   width: 240px;
@@ -289,7 +289,7 @@ defineExpose({
 .folder-icon {
   font-size: 16px;
   margin-right: 8px;
-   color: var(--el-text-color);
+  color: var(--el-text-color);
 }
 
 .folder-item.active .folder-icon {
@@ -359,7 +359,6 @@ defineExpose({
   margin: 2px 0;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -368,5 +367,4 @@ defineExpose({
     padding: 12px 16px;
   }
 }
-
 </style>

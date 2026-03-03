@@ -6,7 +6,7 @@
     size="400px"
     :close-on-click-modal="false"
   >
-    <div class="file-detail" v-if="fileInfo">
+    <div v-if="fileInfo" class="file-detail">
       <!-- 文件图标和名称 -->
       <div class="file-header">
         <div class="file-icon-large">
@@ -27,9 +27,11 @@
         <div class="detail-list">
           <div class="detail-item">
             <span class="label">类型:</span>
-            <span class="value">{{ fileInfo.isDirectory ? "文件夹" : "文件" }}</span>
+            <span class="value">{{
+              fileInfo.isDirectory ? "文件夹" : "文件"
+            }}</span>
           </div>
-          <div class="detail-item" v-if="!fileInfo.isDirectory">
+          <div v-if="!fileInfo.isDirectory" class="detail-item">
             <span class="label">大小:</span>
             <span class="value">{{ formatFileSize(fileInfo.size) }}</span>
           </div>
@@ -37,7 +39,7 @@
             <span class="label">修改时间:</span>
             <span class="value">{{ formatTime(fileInfo.modifiedTime) }}</span>
           </div>
-          <div class="detail-item" v-if="fileInfo.permissions">
+          <div v-if="fileInfo.permissions" class="detail-item">
             <span class="label">权限:</span>
             <span class="value">{{ fileInfo.permissions }}</span>
           </div>
@@ -52,12 +54,12 @@
             <IconifyIconOnline icon="ri:download-line" class="mr-1" />
             下载 (开发中)
           </el-button>
-          
+
           <el-button size="small" disabled>
             <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
             重命名 (开发中)
           </el-button>
-          
+
           <el-button size="small" type="danger" disabled>
             <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
             删除 (开发中)
@@ -378,7 +380,6 @@ const getFileIcon = (file: FileInfo) => {
   justify-content: flex-start;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -387,5 +388,4 @@ const getFileIcon = (file: FileInfo) => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -15,7 +15,7 @@
         show-icon
         :closable="false"
       />
-      
+
       <div class="config-placeholder">
         <el-empty description="组件配置功能开发中..." />
       </div>
@@ -24,9 +24,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="visible = false">关闭</el-button>
-        <el-button type="primary" disabled>
-          保存配置
-        </el-button>
+        <el-button type="primary" disabled> 保存配置 </el-button>
       </div>
     </template>
   </sc-dialog>

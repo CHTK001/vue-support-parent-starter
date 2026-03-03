@@ -12,12 +12,22 @@ import { t } from "@repo/config";
 import SparkMD5 from "spark-md5";
 import { concurrentExecution } from "@/utils/const";
 import { generateShardingId } from "@/api/common";
-import { GlobalWindow } from "@/interface/common";
+import type { GlobalWindow } from "@/interface/common";
 
 const _window = window as unknown as GlobalWindow;
 
-const uploadFileSliceSize = Number(_window.uploadFileSliceSize === "<uploadFileSliceSize>" ? 1 : _window.uploadFileSliceSize) || 1;
-const uploadFileConcurrent = Number(_window.uploadFileConcurrent === "<uploadFileConcurrent>" ? 1 : _window.uploadFileConcurrent) || 1;
+const uploadFileSliceSize =
+  Number(
+    _window.uploadFileSliceSize === "<uploadFileSliceSize>"
+      ? 1
+      : _window.uploadFileSliceSize,
+  ) || 1;
+const uploadFileConcurrent =
+  Number(
+    _window.uploadFileConcurrent === "<uploadFileConcurrent>"
+      ? 1
+      : _window.uploadFileConcurrent,
+  ) || 1;
 
 interface PiecesPar {
   file: File;
@@ -44,7 +54,18 @@ interface PiecesPar {
  * @params success {Function} 成功回调函数
  * @params error {Function} 失败回调函数
  */
-export const uploadPieces = ({ file, uploadCallback, uploadBeforeAbrot, success, process, error, resolveFileProcess, resolveFileEnd, uploadChunkError, concurrentNum = uploadFileConcurrent }: PiecesPar) => {
+export const uploadPieces = ({
+  file,
+  uploadCallback,
+  uploadBeforeAbrot,
+  success,
+  process,
+  error,
+  resolveFileProcess,
+  resolveFileEnd,
+  uploadChunkError,
+  concurrentNum = uploadFileConcurrent,
+}: PiecesPar) => {
   // 如果文件传入为空直接 return 返回
   if (!file || file.length < 1) {
     return error(t("i18n_6e69656ffb"));
@@ -59,7 +80,10 @@ export const uploadPieces = ({ file, uploadCallback, uploadBeforeAbrot, success,
   const chunkList: number[] = []; // 分片列表
   const uploaded: number[] = []; // 已经上传的
   let total: number = 0;
-  const blobSlice = (File.prototype as any).slice || (File.prototype as any).mozSlice || (File.prototype as any).webkitSlice;
+  const blobSlice =
+    (File.prototype as any).slice ||
+    (File.prototype as any).mozSlice ||
+    (File.prototype as any).webkitSlice;
 
   /***
    * 获取md5
@@ -78,7 +102,10 @@ export const uploadPieces = ({ file, uploadCallback, uploadBeforeAbrot, success,
     const batch = 1024 * 1024 * 2;
     const asyncUpdate = function () {
       if (start < total) {
-        resolveFileProcess && resolveFileProcess(t("i18n_6a8402afcb") + ((start / total) * 100).toFixed(2) + "%");
+        resolveFileProcess &&
+          resolveFileProcess(
+            t("i18n_6a8402afcb") + ((start / total) * 100).toFixed(2) + "%",
+          );
         const end = Math.min(start + batch, total);
         reader.readAsArrayBuffer(blobSlice.call(file, start, end));
         start = end;
@@ -140,7 +167,11 @@ export const uploadPieces = ({ file, uploadCallback, uploadBeforeAbrot, success,
   /***
    * 获取每一个分片的详情
    **/
-  const getChunkInfo = (file: File, currentChunk: number, chunkSize: number): IChunkInfo => {
+  const getChunkInfo = (
+    file: File,
+    currentChunk: number,
+    chunkSize: number,
+  ): IChunkInfo => {
     const start: number = currentChunk * chunkSize;
     const end: number = Math.min(file.size, start + chunkSize);
     const chunk: Blob = blobSlice.call(file, start, end);
@@ -173,9 +204,16 @@ export const uploadPieces = ({ file, uploadCallback, uploadBeforeAbrot, success,
         uploadCallback(uploadData)
           .then(() => {
             uploaded.push(chunkInfo.currentChunk + 1);
-            const sd = parseInt(String((uploaded.length / chunkInfo.chunkCount) * 100));
+            const sd = parseInt(
+              String((uploaded.length / chunkInfo.chunkCount) * 100),
+            );
             // console.log(chunk);
-            process(sd, Math.min(uploaded.length * chunkSize, total), total, new Date().getTime() - startTime);
+            process(
+              sd,
+              Math.min(uploaded.length * chunkSize, total),
+              total,
+              new Date().getTime() - startTime,
+            );
             //
             /***
              * 创建文件上传参数

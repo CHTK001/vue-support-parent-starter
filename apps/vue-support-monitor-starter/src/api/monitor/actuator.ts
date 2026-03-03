@@ -23,7 +23,9 @@ export interface LogLevelRequest {
  * @returns 响应结果
  */
 export const fetchActuatorCall = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "/v1/actuator/call", { data: params });
+  return http.request<ReturnResult<any>>("post", "/v1/actuator/call", {
+    data: params,
+  });
 };
 
 /**
@@ -33,5 +35,7 @@ export const fetchActuatorCall = (params: any) => {
  * @returns 设置结果
  */
 export const setNodeLogLevel = (params: LogLevelRequest) => {
-  return http.request<ReturnResult<boolean>>("post", "/v1/actuator/log-level", { data: params });
+  return http.request<ReturnResult<boolean>>("post", "/v1/actuator/log-level", {
+    data: params,
+  });
 };

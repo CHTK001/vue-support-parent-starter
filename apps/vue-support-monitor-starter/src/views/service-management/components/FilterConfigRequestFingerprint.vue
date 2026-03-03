@@ -84,8 +84,8 @@
               v-for="header in config.includeHeaders"
               :key="header"
               closable
-              @close="removeHeader(header)"
               type="info"
+              @close="removeHeader(header)"
             >
               {{ header }}
             </el-tag>
@@ -221,7 +221,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(visibleInner, (v) => emit("update:visible", v));
@@ -285,7 +285,7 @@ async function handleSave() {
   try {
     const res = await saveServletFilterConfig(
       props.filterSettingId,
-      config as any
+      config as any,
     );
     if (res.success) {
       message("请求指纹配置保存成功，已热应用", { type: "success" });
@@ -549,7 +549,6 @@ function getDuplicateStrategyText() {
   padding: 10px 24px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -558,5 +557,4 @@ function getDuplicateStrategyText() {
     padding: 12px 16px;
   }
 }
-
 </style>

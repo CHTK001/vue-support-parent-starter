@@ -71,7 +71,7 @@
             <div
               class="status-bar"
               :class="row.jobTriggerStatus === 1 ? 'running' : 'stopped'"
-            ></div>
+            />
 
             <!-- 卡片头部 -->
             <div class="card-header">
@@ -87,7 +87,7 @@
                   <span
                     class="status-dot"
                     :class="row.jobTriggerStatus === 1 ? 'online' : 'offline'"
-                  ></span>
+                  />
                 </div>
                 <div class="job-title-info">
                   <h3 class="job-name">{{ row.jobName }}</h3>
@@ -108,9 +108,9 @@
               </div>
               <el-dropdown
                 trigger="click"
-                @command="(cmd) => handleCommand(cmd, row)"
                 class="more-dropdown"
                 popper-class="job-dropdown-popper"
+                @command="(cmd) => handleCommand(cmd, row)"
               >
                 <el-button class="more-btn" @click.stop>
                   <IconifyIconOnline icon="ri:more-2-fill" />
@@ -179,7 +179,7 @@
                         </div>
                       </div>
                     </el-dropdown-item>
-                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-divider" />
                     <el-dropdown-item command="delete">
                       <div class="dropdown-item-content danger">
                         <div class="dropdown-item-icon delete">
@@ -630,7 +630,7 @@ const nextTriggerTime = async (row) => {
 // 获取执行器名称
 const getExecutorName = (jobGroup) => {
   const executor = executorData.value.find(
-    (item) => item.monitorId === jobGroup
+    (item) => item.monitorId === jobGroup,
   );
   return executor ? executor.monitorName : "未知";
 };
@@ -712,7 +712,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -745,7 +744,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .job-management-container {
   padding: 16px;
@@ -1160,14 +1158,22 @@ onMounted(() => {
     align-items: center;
     gap: 12px;
     padding: 20px 24px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9),
+      var(--el-color-primary-light-8)
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
 
     .header-icon {
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3)
+      );
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1257,7 +1263,9 @@ onMounted(() => {
 .job-dropdown-popper {
   padding: 0 !important;
   border-radius: 16px !important;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.15),
+    0 8px 16px rgba(0, 0, 0, 0.1) !important;
   border: 1px solid var(--el-border-color-lighter) !important;
   backdrop-filter: blur(20px);
   overflow: hidden;
@@ -1304,7 +1312,11 @@ onMounted(() => {
       width: 28px;
       height: 28px;
       border-radius: 8px;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3)
+      );
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1519,14 +1531,22 @@ onMounted(() => {
     align-items: center;
     gap: 12px;
     padding: 20px 24px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9),
+      var(--el-color-primary-light-8)
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
 
     .header-icon {
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3)
+      );
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1573,7 +1593,11 @@ onMounted(() => {
         width: 26px;
         height: 26px;
         border-radius: 8px;
-        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary),
+          var(--el-color-primary-light-3)
+        );
         color: #fff;
         font-size: 12px;
         font-weight: 600;

@@ -46,11 +46,15 @@ export function getWorkSpaceList(params) {
  * } params
  */
 export function getWorkSpaceGroupList(params) {
-  return http.get("/system/workspace/list-group-all", { params }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/system/workspace/list-group-all",
+    { params },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /*
@@ -59,11 +63,15 @@ export function getWorkSpaceGroupList(params) {
  * } params
  */
 export function getWorkSpaceListAll() {
-  return http.get("/system/workspace/list_all", {}, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/system/workspace/list_all",
+    {},
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /*
@@ -72,11 +80,15 @@ export function getWorkSpaceListAll() {
  * } params
  */
 export function deleteWorkspace(id) {
-  return http.get("/system/workspace/delete", { params: { id } }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/system/workspace/delete",
+    { params: { id } },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /*
@@ -85,11 +97,15 @@ export function deleteWorkspace(id) {
  * } params
  */
 export function preDeleteWorkspace(id) {
-  return http.get("/system/workspace/pre-check-delete", { params: { id } }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/system/workspace/pre-check-delete",
+    { params: { id } },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /*
@@ -136,20 +152,28 @@ export function editWorkspaceEnv(data) {
  * } params
  */
 export function deleteWorkspaceEnv(params) {
-  return http.get("/system/workspace_env/delete", { params }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/system/workspace_env/delete",
+    { params },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 export function getTriggerUrlWorkspaceEnv(params) {
-  return http.post("/system/workspace_env/trigger-url", {}, {
-    params,
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.post(
+    "/system/workspace_env/trigger-url",
+    {},
+    {
+      params,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /**

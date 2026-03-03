@@ -192,7 +192,7 @@ export function saveFieldComment(
     comment: string;
     dataType?: string;
     nullable?: boolean;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/field/comment`,
@@ -222,7 +222,7 @@ export function getStructureCapabilities(settingId: number) {
 export function analyzeTable(
   settingId: number,
   nodePath: string,
-  limit = 1000
+  limit = 1000,
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/analyze`,
@@ -244,7 +244,7 @@ export function getConsoleChildren(
   settingId: number,
   parentPath: string,
   page?: number,
-  size?: number
+  size?: number,
 ) {
   const params: any = { parentPath };
   if (typeof page === "number") params.page = page;
@@ -259,7 +259,7 @@ export function getConsoleChildren(
 export function getConsoleNode(
   settingId: number,
   nodePath: string,
-  action?: string
+  action?: string,
 ) {
   const params: any = { nodePath };
   if (action) params.action = action;
@@ -283,7 +283,7 @@ export function executeConsole(
   command: string,
   type: string = "sql",
   queryId?: string,
-  pagination?: { page: number; size: number; enabled: boolean }
+  pagination?: { page: number; size: number; enabled: boolean },
 ) {
   const params: Record<string, unknown> = { type, queryId };
   if (pagination?.enabled) {
@@ -303,7 +303,7 @@ export function executeConsole(
 /** 表结构：重命名表 */
 export function renameTable(
   settingId: number,
-  payload: { nodePath: string; newName: string }
+  payload: { nodePath: string; newName: string },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/rename`,
@@ -315,7 +315,7 @@ export function renameTable(
 /** 表结构：备份表 */
 export function backupTable(
   settingId: number,
-  payload: { nodePath: string; backupName: string }
+  payload: { nodePath: string; backupName: string },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/backup`,
@@ -349,7 +349,7 @@ export function createTableIndex(
     unique?: boolean;
     indexType?: string;
     comment?: string;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/indexes`,
@@ -364,7 +364,7 @@ export function createTableIndex(
 export function deleteTableIndex(
   settingId: number,
   tableName: string,
-  indexName: string
+  indexName: string,
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/indexes`,
@@ -397,7 +397,7 @@ export function createTablePartition(
     method: string;
     expression: string;
     description?: string;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/partitions`,
@@ -412,7 +412,7 @@ export function createTablePartition(
 export function deleteTablePartition(
   settingId: number,
   tableName: string,
-  partitionName: string
+  partitionName: string,
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/partitions`,
@@ -479,7 +479,7 @@ export function addColumn(
     comment?: string;
     position?: string;
     afterColumn?: string;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/column/add`,
@@ -499,7 +499,7 @@ export function modifyColumn(
     nullable?: boolean;
     defaultValue?: string;
     comment?: string;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/column/modify`,
@@ -511,7 +511,7 @@ export function modifyColumn(
 /** 删除字段 */
 export function dropColumn(
   settingId: number,
-  payload: { tableName: string; columnName: string }
+  payload: { tableName: string; columnName: string },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/column/drop`,
@@ -523,7 +523,7 @@ export function dropColumn(
 /** 批量删除字段 */
 export function batchDropColumn(
   settingId: number,
-  payload: { tableName: string; columnNames: string[] }
+  payload: { tableName: string; columnNames: string[] },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/column/batch-drop`,
@@ -546,7 +546,7 @@ export function batchAddColumn(
       position?: string;
       afterColumn?: string;
     }>;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/column/batch-add`,
@@ -568,7 +568,7 @@ export function batchModifyColumn(
       defaultValue?: string;
       comment?: string;
     }>;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/column/batch-modify`,
@@ -585,7 +585,7 @@ export function reorderColumn(
     columnName: string;
     position: string;
     afterColumn?: string;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/column/reorder`,
@@ -604,7 +604,7 @@ export function modifyTableComment(
   payload: {
     tableName: string;
     comment: string;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/comment`,
@@ -647,7 +647,7 @@ export function batchModifyTableStructure(
       position: string;
       afterColumn?: string;
     }>;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/batch`,
@@ -669,7 +669,7 @@ export function updateTableRow(
     primaryValue: any;
     columnName: string;
     newValue: any;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/row/update`,
@@ -689,7 +689,7 @@ export function deleteTableRow(
     tableName: string;
     primaryKey: string;
     primaryValue: any;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/row/delete`,
@@ -708,7 +708,7 @@ export function insertTableRow(
   payload: {
     tableName: string;
     data: Record<string, any>;
-  }
+  },
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/row/insert`,

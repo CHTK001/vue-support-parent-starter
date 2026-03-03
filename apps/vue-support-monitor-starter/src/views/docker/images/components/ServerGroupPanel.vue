@@ -243,7 +243,7 @@ const currentServer = computed(() => {
 const currentServerImages = computed(() => {
   if (!selectedServerId.value) return [];
   return props.images.filter(
-    (img) => img.systemSoftImageServerId === selectedServerId.value
+    (img) => img.systemSoftImageServerId === selectedServerId.value,
   );
 });
 
@@ -256,13 +256,13 @@ const filteredImages = computed(() => {
     result = result.filter(
       (img) =>
         img.systemSoftImageName?.toLowerCase().includes(keyword) ||
-        img.systemSoftImageTag?.toLowerCase().includes(keyword)
+        img.systemSoftImageTag?.toLowerCase().includes(keyword),
     );
   }
 
   if (filterStatus.value) {
     result = result.filter(
-      (img) => img.systemSoftImageStatus === filterStatus.value
+      (img) => img.systemSoftImageStatus === filterStatus.value,
     );
   }
 
@@ -339,7 +339,7 @@ function formatDate(date: string | undefined): string {
 
 // 获取状态标签类型
 function getStatusTagType(
-  status: string | undefined
+  status: string | undefined,
 ): "success" | "warning" | "danger" | "info" {
   switch (status) {
     case "AVAILABLE":
@@ -375,12 +375,11 @@ watch(
       handleScroll();
     });
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -413,7 +412,6 @@ watch(
     z-index: 1;
   }
 }
-
 
 .server-group-panel {
   display: flex;
@@ -647,7 +645,6 @@ watch(
   flex-wrap: wrap;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -656,5 +653,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -76,7 +76,9 @@
                 show-icon
               >
                 <template #title>
-                  <span>此查看器需要部署 OnlyOffice Document Server 才能使用</span>
+                  <span
+                    >此查看器需要部署 OnlyOffice Document Server 才能使用</span
+                  >
                 </template>
               </el-alert>
               <div class="config-form">
@@ -117,7 +119,7 @@
               </div>
             </div>
             <div class="viewer-meta">
-              <div class="meta-item" v-if="viewer.supportedExtensions?.length">
+              <div v-if="viewer.supportedExtensions?.length" class="meta-item">
                 <span class="meta-label">支持扩展名:</span>
                 <div class="extension-tags">
                   <el-tag
@@ -137,7 +139,7 @@
                   </el-tag>
                 </div>
               </div>
-              <div class="meta-item" v-if="viewer.targetFormat">
+              <div v-if="viewer.targetFormat" class="meta-item">
                 <span class="meta-label">输出格式:</span>
                 <el-tag size="small">{{ viewer.targetFormat }}</el-tag>
               </div>
@@ -153,7 +155,7 @@
       </div>
 
       <!-- 统计信息 -->
-      <div class="viewer-stats" v-if="viewerList.length > 0">
+      <div v-if="viewerList.length > 0" class="viewer-stats">
         <span class="stats-item">
           <IconifyIconOnline icon="ri:eye-line" />
           总计: {{ viewerList.length }} 个查看器
@@ -205,10 +207,10 @@ const viewerList = ref<ViewerInfo[]>([]);
 
 // 计算启用/禁用数量
 const enabledCount = computed(
-  () => viewerList.value.filter((v) => v.enabled).length
+  () => viewerList.value.filter((v) => v.enabled).length,
 );
 const disabledCount = computed(
-  () => viewerList.value.filter((v) => !v.enabled).length
+  () => viewerList.value.filter((v) => !v.enabled).length,
 );
 
 // 加载数据
@@ -249,7 +251,7 @@ async function handleSave() {
 
     // 收集OnlyOffice配置
     const onlyofficeViewer = viewerList.value.find((v) =>
-      isOnlyOfficeViewer(v)
+      isOnlyOfficeViewer(v),
     );
     const onlyofficeConfig = onlyofficeViewer
       ? {
@@ -292,7 +294,7 @@ watch(
       await loadData();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>
 
@@ -460,7 +462,6 @@ watch(
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -469,5 +470,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>

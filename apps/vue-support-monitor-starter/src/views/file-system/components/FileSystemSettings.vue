@@ -185,11 +185,12 @@
                   active-text="启用"
                   inactive-text="禁用"
                 />
-                <div class="form-item-tip">启用后支持 Office 文档等格式转换预览</div>
+                <div class="form-item-tip">
+                  启用后支持 Office 文档等格式转换预览
+                </div>
               </el-form-item>
             </el-col>
-            <el-col :span="12">
-            </el-col>
+            <el-col :span="12" />
           </el-row>
 
           <el-row :gutter="16">
@@ -407,7 +408,7 @@ watch(
       loadConfig();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(visible, (newVal) => {
@@ -559,11 +560,10 @@ const handleClose = () => {
 
 .form-item-tip {
   font-size: 12px;
-   color: var(--el-text-color);
+  color: var(--el-text-color);
   margin-top: 4px;
   line-height: 1.4;
 }
-
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -573,5 +573,4 @@ const handleClose = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

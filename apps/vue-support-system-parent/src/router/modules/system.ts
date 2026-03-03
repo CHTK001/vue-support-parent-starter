@@ -16,7 +16,7 @@ export default [
       {
         path: "/system/log",
         name: "LogManagement",
-        component: () => import("@pages/system/src/log/LogIndex.vue"),
+        component: () => import("@pages/system/log/LogIndex.vue"),
         meta: {
           title: "系统日志",
           showParent: true,
@@ -25,7 +25,7 @@ export default [
       {
         path: "/system/log/detail",
         name: "LogDetail",
-        component: () => import("@pages/system/src/log/LogDetail.vue"),
+        component: () => import("@pages/system/log/LogDetail.vue"),
         meta: {
           title: "日志详情",
           showParent: true,
@@ -43,7 +43,7 @@ export default [
       {
         path: "/system/holiday",
         name: "HolidayManagement",
-        component: () => import("@pages/system/src/holiday/HolidayIndex.vue"),
+        component: () => import("@pages/system/holiday/HolidayIndex.vue"),
         meta: {
           title: "节假日管理",
           showParent: true,
@@ -53,7 +53,7 @@ export default [
         path: "/system/holiday/calendar",
         name: "HolidayCalendar",
         component: () =>
-          import("@pages/system/src/holiday/HolidayCalendar.vue"),
+          import("@pages/system/holiday/HolidayCalendar.vue"),
         meta: {
           title: "节假日日历",
           showParent: true,

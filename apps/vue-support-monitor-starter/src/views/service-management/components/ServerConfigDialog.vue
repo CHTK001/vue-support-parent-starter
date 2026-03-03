@@ -4,8 +4,8 @@
     title="服务配置"
     width="1200px"
     :close-on-click-modal="false"
-    @close="handleClose"
     class="server-config-dialog"
+    @close="handleClose"
   >
     <div class="config-container">
       <!-- 左侧：可用的 Filter -->
@@ -25,14 +25,19 @@
               {{ availableFilters.length }} 个可用
             </el-tag>
             <el-tooltip content="刷新列表" placement="top">
-              <el-button type="primary" size="small" circle @click="refreshAvailableFilters">
+              <el-button
+                type="primary"
+                size="small"
+                circle
+                @click="refreshAvailableFilters"
+              >
                 <IconifyIconOnline icon="ri:refresh-line" />
               </el-button>
             </el-tooltip>
           </div>
         </div>
 
-        <el-scrollbar class="panel-content" v-loading="availableLoading">
+        <el-scrollbar v-loading="availableLoading" class="panel-content">
           <div class="filter-list">
             <div
               v-for="(filter, index) in availableFilters"
@@ -42,10 +47,14 @@
               <div class="card-index">{{ index + 1 }}</div>
               <div class="card-body">
                 <div class="card-header">
-                  <span class="card-name">{{ filter.describe || filter.name }}</span>
-                  <span class="card-type">{{ filter.describe ? filter.name : filter.describeType }}</span>
+                  <span class="card-name">{{
+                    filter.describe || filter.name
+                  }}</span>
+                  <span class="card-type">{{
+                    filter.describe ? filter.name : filter.describeType
+                  }}</span>
                 </div>
-                <div class="card-desc" v-if="filter.describeDetail">
+                <div v-if="filter.describeDetail" class="card-desc">
                   {{ filter.describeDetail }}
                 </div>
               </div>
@@ -53,8 +62,8 @@
                 <el-button
                   type="primary"
                   size="small"
-                  @click="installFilter(filter)"
                   :loading="installLoading[filter.type]"
+                  @click="installFilter(filter)"
                 >
                   <IconifyIconOnline icon="ri:add-line" />
                   安装
@@ -92,14 +101,19 @@
                 <IconifyIconOnline icon="ri:refresh-line" />
               </el-button>
             </el-tooltip>
-            <el-button type="success" size="small" @click="saveOrder" :loading="saveLoading">
+            <el-button
+              type="success"
+              size="small"
+              :loading="saveLoading"
+              @click="saveOrder"
+            >
               <IconifyIconOnline icon="ri:save-line" />
               保存排序
             </el-button>
           </div>
         </div>
 
-        <el-scrollbar class="panel-content" v-loading="installedLoading">
+        <el-scrollbar v-loading="installedLoading" class="panel-content">
           <draggable
             v-model="installedFilters"
             item-key="systemServerSettingId"
@@ -119,45 +133,76 @@
                 <div class="card-status">
                   <span
                     class="status-dot"
-                    :class="filter.systemServerSettingEnabled ? 'active' : 'inactive'"
-                  ></span>
+                    :class="
+                      filter.systemServerSettingEnabled ? 'active' : 'inactive'
+                    "
+                  />
                 </div>
                 <div class="card-body">
                   <div class="card-header">
-                    <span class="card-name clickable" @click="openConfigDialog(filter)">
+                    <span
+                      class="card-name clickable"
+                      @click="openConfigDialog(filter)"
+                    >
                       {{ filter.systemServerSettingName }}
                     </span>
                     <el-tag
-                      :type="filter.systemServerSettingEnabled ? 'success' : 'info'"
+                      :type="
+                        filter.systemServerSettingEnabled ? 'success' : 'info'
+                      "
                       size="small"
                       effect="light"
                     >
-                      {{ filter.systemServerSettingEnabled ? '已启用' : '已禁用' }}
+                      {{
+                        filter.systemServerSettingEnabled ? "已启用" : "已禁用"
+                      }}
                     </el-tag>
                   </div>
                   <div class="card-meta">
-                    <span class="meta-type">{{ filter.systemServerSettingType }}</span>
+                    <span class="meta-type">{{
+                      filter.systemServerSettingType
+                    }}</span>
                   </div>
-                  <div class="card-desc" v-if="filter.systemServerSettingDescription">
+                  <div
+                    v-if="filter.systemServerSettingDescription"
+                    class="card-desc"
+                  >
                     {{ filter.systemServerSettingDescription }}
                   </div>
                 </div>
                 <div class="card-actions">
-                  <el-tooltip :content="filter.systemServerSettingEnabled ? '禁用' : '启用'" placement="top">
+                  <el-tooltip
+                    :content="
+                      filter.systemServerSettingEnabled ? '禁用' : '启用'
+                    "
+                    placement="top"
+                  >
                     <el-button
-                      :type="filter.systemServerSettingEnabled ? 'warning' : 'success'"
+                      :type="
+                        filter.systemServerSettingEnabled
+                          ? 'warning'
+                          : 'success'
+                      "
                       size="small"
                       circle
-                      @click="toggleFilterStatus(filter)"
                       :loading="toggleLoading[filter.systemServerSettingId]"
+                      @click="toggleFilterStatus(filter)"
                     >
                       <IconifyIconOnline
-                        :icon="filter.systemServerSettingEnabled ? 'ri:pause-fill' : 'ri:play-fill'"
+                        :icon="
+                          filter.systemServerSettingEnabled
+                            ? 'ri:pause-fill'
+                            : 'ri:play-fill'
+                        "
                       />
                     </el-button>
                   </el-tooltip>
                   <el-tooltip content="配置" placement="top">
-                    <el-button size="small" circle @click="openConfigDialog(filter)">
+                    <el-button
+                      size="small"
+                      circle
+                      @click="openConfigDialog(filter)"
+                    >
                       <IconifyIconOnline icon="ri:settings-3-line" />
                     </el-button>
                   </el-tooltip>
@@ -166,8 +211,8 @@
                       type="danger"
                       size="small"
                       circle
-                      @click="uninstallFilter(filter)"
                       :loading="uninstallLoading[filter.systemServerSettingId]"
+                      @click="uninstallFilter(filter)"
                     >
                       <IconifyIconOnline icon="ri:delete-bin-line" />
                     </el-button>
@@ -182,7 +227,11 @@
             description="暂无已安装的组件"
             :image-size="80"
           >
-            <el-button type="primary" size="small" @click="refreshAvailableFilters">
+            <el-button
+              type="primary"
+              size="small"
+              @click="refreshAvailableFilters"
+            >
               <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
               从左侧选择安装
             </el-button>
@@ -317,7 +366,7 @@ const loadAvailableFilters = async () => {
         }
 
         return item.supportedTypes.includes(
-          props.server?.systemServerType?.toLocaleUpperCase()
+          props.server?.systemServerType?.toLocaleUpperCase(),
         );
       });
     } else {
@@ -392,13 +441,13 @@ const uninstallFilter = async (filter: SystemServerSetting) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     uninstallLoading.value[filter.systemServerSettingId!] = true;
 
     const response = await uninstallServletFilter(
-      filter.systemServerSettingId!
+      filter.systemServerSettingId!,
     );
     if (response.success) {
       message("卸载成功", { type: "success" });
@@ -426,9 +475,9 @@ const toggleFilterStatus = async (filter: SystemServerSetting) => {
     const response = await apiCall(filter.systemServerSettingId!);
 
     if (response.success) {
-      message(
-        filter.systemServerSettingEnabled ? "禁用成功" : "启用成功"
-      , { type: "success" });
+      message(filter.systemServerSettingEnabled ? "禁用成功" : "启用成功", {
+        type: "success",
+      });
       loadInstalledFilters();
     } else {
       message(response.msg || "操作失败", { type: "error" });
@@ -462,7 +511,7 @@ const saveOrder = async () => {
 
     const response = await updateServletFilterOrder(
       props.serverId,
-      settingOrders
+      settingOrders,
     );
     if (response.success) {
       message("排序保存成功", { type: "success" });
@@ -506,7 +555,7 @@ const getFilterComponent = (filterType: string) => {
 const openConfigDialog = (filter: SystemServerSetting) => {
   currentFilterSetting.value = filter;
   activeFilterComponent.value = getFilterComponent(
-    filter.systemServerSettingType || ""
+    filter.systemServerSettingType || "",
   );
   showFilterDialog.value = true;
 };
@@ -543,7 +592,7 @@ watch(
       loadAvailableFilters();
       loadInstalledFilters();
     }
-  }
+  },
 );
 </script>
 
@@ -556,7 +605,11 @@ watch(
   .el-dialog__header {
     padding: 20px 24px;
     margin: 0;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
 
     .el-dialog__title {
@@ -613,11 +666,19 @@ watch(
 }
 
 .available-panel .panel-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-bg-color) 100%
+  );
 }
 
 .installed-panel .panel-header {
-  background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-bg-color) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-success-light-9) 0%,
+    var(--el-bg-color) 100%
+  );
 }
 
 .panel-title {
@@ -635,13 +696,21 @@ watch(
     font-size: 20px;
 
     &.available-icon {
-      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
       color: #fff;
       box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
     }
 
     &.installed-icon {
-      background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-success) 0%,
+        var(--el-color-success-light-3) 100%
+      );
       color: #fff;
       box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.3);
     }
@@ -706,7 +775,11 @@ watch(
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
     color: #fff;
     font-size: 13px;
     font-weight: 600;
@@ -864,7 +937,6 @@ watch(
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -873,5 +945,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>

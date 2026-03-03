@@ -10,14 +10,14 @@
         刷新
       </el-button>
       <el-button @click="handleAutoRefresh">
-        <IconifyIconOnline 
-          :icon="autoRefresh ? 'ri:pause-line' : 'ri:play-line'" 
-          class="mr-1" 
+        <IconifyIconOnline
+          :icon="autoRefresh ? 'ri:pause-line' : 'ri:play-line'"
+          class="mr-1"
         />
-        {{ autoRefresh ? '暂停自动刷新' : '自动刷新' }}
+        {{ autoRefresh ? "暂停自动刷新" : "自动刷新" }}
       </el-button>
     </div>
-    
+
     <div class="toolbar-right">
       <el-button @click="handleExport">
         <IconifyIconOnline icon="ri:download-line" class="mr-1" />
@@ -54,49 +54,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from "vue";
 
 interface Emits {
-  (e: 'create'): void
-  (e: 'refresh'): void
-  (e: 'auto-refresh', enabled: boolean): void
-  (e: 'export'): void
-  (e: 'batch-operation', command: string): void
+  (e: "create"): void;
+  (e: "refresh"): void;
+  (e: "auto-refresh", enabled: boolean): void;
+  (e: "export"): void;
+  (e: "batch-operation", command: string): void;
 }
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>();
 
-const autoRefresh = ref(false)
+const autoRefresh = ref(false);
 
 // 创建容器
 const handleCreate = () => {
-  emit('create')
-}
+  emit("create");
+};
 
 // 刷新
 const handleRefresh = () => {
-  emit('refresh')
-}
+  emit("refresh");
+};
 
 // 自动刷新
 const handleAutoRefresh = () => {
-  autoRefresh.value = !autoRefresh.value
-  emit('auto-refresh', autoRefresh.value)
-}
+  autoRefresh.value = !autoRefresh.value;
+  emit("auto-refresh", autoRefresh.value);
+};
 
 // 导出数据
 const handleExport = () => {
-  emit('export')
-}
+  emit("export");
+};
 
 // 处理下拉菜单命令
 const handleCommand = (command: string) => {
-  emit('batch-operation', command)
-}
+  emit("batch-operation", command);
+};
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -130,7 +129,6 @@ const handleCommand = (command: string) => {
   }
 }
 
-
 .container-action-toolbar {
   display: flex;
   justify-content: space-between;
@@ -153,7 +151,7 @@ const handleCommand = (command: string) => {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .toolbar-left,
   .toolbar-right {
     width: 100%;

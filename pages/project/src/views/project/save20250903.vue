@@ -65,8 +65,10 @@
                   <div>
                     <span>AppKey</span>
                     <span v-if="form.sysProjectAppKey"
-                      ><ScIcon v-copy:click="form.sysProjectAppKey" class="top-[2px] cursor-pointer"> <component :is="useRenderIcon('ep:copy-document')"></component> </el-icon
-                    ></span>
+                      ><ScIcon v-copy:click="form.sysProjectAppKey" class="top-[2px] cursor-pointer">
+                        <component :is="useRenderIcon('ep:copy-document')"></component>
+                      </ScIcon></span
+                    >
                   </div>
                 </template>
                 <ScInput v-model="form.sysProjectAppKey" placeholder="请输入AppKey" type="password" show-password />

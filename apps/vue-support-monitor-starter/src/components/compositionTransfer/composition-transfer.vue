@@ -16,7 +16,12 @@
           :checked-keys="leftCheckedKey"
           @check="
             (_, props) => {
-              handleLeftChecked(_, props, [...selectedKeys, ...targetKeys], onItemSelect)
+              handleLeftChecked(
+                _,
+                props,
+                [...selectedKeys, ...targetKeys],
+                onItemSelect,
+              );
             }
           "
         >
@@ -25,7 +30,7 @@
           </template>
         </a-tree>
         <a-empty v-else :image="Empty.PRESENTED_IMAGE_SIMPLE">
-          <template #description>{{ $t('i18n_21efd88b67') }}</template>
+          <template #description>{{ $t("i18n_21efd88b67") }}</template>
         </a-empty>
       </template>
       <template v-else-if="direction === 'right'">
@@ -37,7 +42,12 @@
           :checked-keys="rightCheckedKey"
           @check="
             (_, props) => {
-              handleRightChecked(_, props, [...selectedKeys, ...targetKeys], onItemSelect)
+              handleRightChecked(
+                _,
+                props,
+                [...selectedKeys, ...targetKeys],
+                onItemSelect,
+              );
             }
           "
         >
@@ -46,27 +56,34 @@
           </template>
         </a-tree>
         <a-empty v-else :image="Empty.PRESENTED_IMAGE_SIMPLE">
-          <template #description>{{ $t('i18n_21efd88b67') }}</template>
+          <template #description>{{ $t("i18n_21efd88b67") }}</template>
         </a-empty>
       </template>
     </template>
   </a-transfer>
 </template>
 <script>
-import { cloneDeep, flatten, getTreeKeys, handleLeftTreeData, handleRightTreeData, isChecked } from './utils'
-import { Empty } from 'ant-design-vue'
+import {
+  cloneDeep,
+  flatten,
+  getTreeKeys,
+  handleLeftTreeData,
+  handleRightTreeData,
+  isChecked,
+} from "./utils";
+import { Empty } from "ant-design-vue";
 export default {
   props: {
     /** 树数据 */
     treeData: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     /** 编辑 key */
     editKey: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
@@ -86,86 +103,123 @@ export default {
 
       emitKeys: [], // 往父级组件传递的数据
 
-      deepList: [] // 深层列表
-    }
+      deepList: [], // 深层列表
+    };
   },
   watch: {
     treeData: {
       deep: true,
       handler() {
-        this.processTreeData()
-      }
+        this.processTreeData();
+      },
     },
     editKey: {
       deep: true,
       handler() {
-        this.processTreeData()
-      }
-    }
+        this.processTreeData();
+      },
+    },
   },
   created() {
-    this.processTreeData()
+    this.processTreeData();
   },
   methods: {
     // 处理树数据
     processTreeData() {
-      this.dataSource = []
-      flatten(cloneDeep(this.treeData), this.dataSource)
+      this.dataSource = [];
+      flatten(cloneDeep(this.treeData), this.dataSource);
       if (this.editKey.length) {
-        this.processEditData()
+        this.processEditData();
       } else {
-        this.leftTreeData = handleLeftTreeData(cloneDeep(this.treeData), this.leftCheckedKey)
+        this.leftTreeData = handleLeftTreeData(
+          cloneDeep(this.treeData),
+          this.leftCheckedKey,
+        );
       }
     },
     // 处理编辑数据
     processEditData() {
-      this.leftCheckedAllKey = this.editKey
-      this.rightExpandedKey = this.editKey
-      this.targetKeys = this.editKey
-      this.rightTreeData = handleRightTreeData(cloneDeep(this.treeData), this.editKey)
+      this.leftCheckedAllKey = this.editKey;
+      this.rightExpandedKey = this.editKey;
+      this.targetKeys = this.editKey;
+      this.rightTreeData = handleRightTreeData(
+        cloneDeep(this.treeData),
+        this.editKey,
+      );
 
       // getDeepList(this.deepList, this.treeData);
 
-      this.leftCheckedKey = this.editKey // uniqueTree(this.editKey, this.deepList);
+      this.leftCheckedKey = this.editKey; // uniqueTree(this.editKey, this.deepList);
       // console.log(this.leftCheckedKey, this.editKey);
-      this.leftHalfCheckedKeys = this.leftCheckedAllKey.filter((item) => this.leftCheckedKey.indexOf(item) === -1)
-      this.leftTreeData = handleLeftTreeData(cloneDeep(this.treeData), this.leftCheckedKey)
+      this.leftHalfCheckedKeys = this.leftCheckedAllKey.filter(
+        (item) => this.leftCheckedKey.indexOf(item) === -1,
+      );
+      this.leftTreeData = handleLeftTreeData(
+        cloneDeep(this.treeData),
+        this.leftCheckedKey,
+      );
 
-      this.emitKeys = this.rightExpandedKey
+      this.emitKeys = this.rightExpandedKey;
     },
     // 穿梭更改
     onChange(targetKeys, direction) {
-      if (direction === 'right') {
-        this.targetKeys = this.leftCheckedAllKey
-        this.rightCheckedKey = []
-        this.rightTreeData = handleRightTreeData(cloneDeep(this.treeData), this.leftCheckedAllKey, 'right')
-        this.leftTreeData = handleLeftTreeData(cloneDeep(this.treeData), this.leftCheckedKey, 'right')
-      } else if (direction === 'left') {
-        this.rightTreeData = handleRightTreeData(this.rightTreeData, this.rightCheckedKey, 'left')
-        this.leftTreeData = handleLeftTreeData(this.leftTreeData, this.rightCheckedKey, 'left')
-        this.leftCheckedKey = this.leftCheckedKey.filter((item) => this.rightCheckedKey.indexOf(item) === -1)
-        this.targetKeys = this.targetKeys.filter((item) => this.rightCheckedKey.indexOf(item) === -1)
-        this.leftHalfCheckedKeys = this.leftHalfCheckedKeys.filter((item) => this.rightCheckedKey.indexOf(item) === -1)
-        this.rightCheckedKey = []
+      if (direction === "right") {
+        this.targetKeys = this.leftCheckedAllKey;
+        this.rightCheckedKey = [];
+        this.rightTreeData = handleRightTreeData(
+          cloneDeep(this.treeData),
+          this.leftCheckedAllKey,
+          "right",
+        );
+        this.leftTreeData = handleLeftTreeData(
+          cloneDeep(this.treeData),
+          this.leftCheckedKey,
+          "right",
+        );
+      } else if (direction === "left") {
+        this.rightTreeData = handleRightTreeData(
+          this.rightTreeData,
+          this.rightCheckedKey,
+          "left",
+        );
+        this.leftTreeData = handleLeftTreeData(
+          this.leftTreeData,
+          this.rightCheckedKey,
+          "left",
+        );
+        this.leftCheckedKey = this.leftCheckedKey.filter(
+          (item) => this.rightCheckedKey.indexOf(item) === -1,
+        );
+        this.targetKeys = this.targetKeys.filter(
+          (item) => this.rightCheckedKey.indexOf(item) === -1,
+        );
+        this.leftHalfCheckedKeys = this.leftHalfCheckedKeys.filter(
+          (item) => this.rightCheckedKey.indexOf(item) === -1,
+        );
+        this.rightCheckedKey = [];
       }
-      this.rightExpandedKey = getTreeKeys(this.rightTreeData)
-      this.emitKeys = this.rightExpandedKey
+      this.rightExpandedKey = getTreeKeys(this.rightTreeData);
+      this.emitKeys = this.rightExpandedKey;
     },
     // 左侧选择
     handleLeftChecked(_, { node, halfCheckedKeys }, checkedKeys, itemSelect) {
-      this.leftCheckedKey = _
-      this.leftHalfCheckedKeys = [...new Set([...this.leftHalfCheckedKeys, ...halfCheckedKeys])]
-      this.leftCheckedAllKey = [...new Set([...this.leftHalfCheckedKeys, ...halfCheckedKeys, ..._])]
-      const { eventKey } = node
-      itemSelect(eventKey, !isChecked(checkedKeys, eventKey))
+      this.leftCheckedKey = _;
+      this.leftHalfCheckedKeys = [
+        ...new Set([...this.leftHalfCheckedKeys, ...halfCheckedKeys]),
+      ];
+      this.leftCheckedAllKey = [
+        ...new Set([...this.leftHalfCheckedKeys, ...halfCheckedKeys, ..._]),
+      ];
+      const { eventKey } = node;
+      itemSelect(eventKey, !isChecked(checkedKeys, eventKey));
     },
     // 右侧选择
     handleRightChecked(_, { node, halfCheckedKeys }, checkedKeys, itemSelect) {
-      this.rightCheckedKey = _
-      this.rightCheckedAllKey = [...halfCheckedKeys, ..._]
-      const { eventKey } = node
-      itemSelect(eventKey, isChecked(_, eventKey))
-    }
-  }
-}
+      this.rightCheckedKey = _;
+      this.rightCheckedAllKey = [...halfCheckedKeys, ..._];
+      const { eventKey } = node;
+      itemSelect(eventKey, isChecked(_, eventKey));
+    },
+  },
+};
 </script>

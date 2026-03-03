@@ -37,11 +37,15 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <el-button @click="handleRefresh" :loading="loading">
+        <el-button :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
-        <el-button type="primary" @click="handleSyncStatus" :loading="syncLoading">
+        <el-button
+          type="primary"
+          :loading="syncLoading"
+          @click="handleSyncStatus"
+        >
           <IconifyIconOnline icon="ri:loop-left-line" class="mr-1" />
           同步状态
         </el-button>
@@ -107,7 +111,7 @@
         </el-select>
       </div>
       <div class="toolbar-right">
-        <el-button-group class="batch-btn-group" v-if="selectedIds.length > 0">
+        <el-button-group v-if="selectedIds.length > 0" class="batch-btn-group">
           <el-button type="success" @click="handleBatchStart">
             <IconifyIconOnline icon="ri:play-fill" class="mr-1" />
             启动 ({{ selectedIds.length }})
@@ -177,7 +181,9 @@
         <el-table-column label="服务器" width="180">
           <template #default="{ row }">
             <div class="server-info">
-              <div class="server-name">{{ getServerName(row.systemServerId) }}</div>
+              <div class="server-name">
+                {{ getServerName(row.systemServerId) }}
+              </div>
             </div>
           </template>
         </el-table-column>
@@ -260,8 +266,8 @@
               <el-button
                 size="small"
                 type="success"
-                @click="handleStart(row)"
                 :disabled="row.systemSoftContainerStatus === 'running'"
+                @click="handleStart(row)"
               >
                 <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                 启动
@@ -269,8 +275,8 @@
               <el-button
                 size="small"
                 type="warning"
-                @click="handleStop(row)"
                 :disabled="row.systemSoftContainerStatus !== 'running'"
+                @click="handleStop(row)"
               >
                 <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                 停止
@@ -397,7 +403,9 @@ const handleRefresh = () => {
 
 // 监听表格选择变化
 const handleSelectionChange = (selection: SystemSoftContainer[]) => {
-  selectedIds.value = selection.map(item => item.systemSoftContainerId!).filter(Boolean);
+  selectedIds.value = selection
+    .map((item) => item.systemSoftContainerId!)
+    .filter(Boolean);
 };
 
 const handleSearch = () => {
@@ -447,7 +455,7 @@ const formatTime = (time?: string) =>
 const handleStart = async (container: SystemSoftContainer) => {
   try {
     const response = await containerApi.startContainer(
-      container.systemSoftContainerId!
+      container.systemSoftContainerId!,
     );
     if (response.code === "00000") {
       message.success("容器启动成功");
@@ -469,7 +477,7 @@ const handleStop = async (container: SystemSoftContainer) => {
     });
 
     const response = await containerApi.stopContainer(
-      container.systemSoftContainerId!
+      container.systemSoftContainerId!,
     );
     if (response.code === "00000") {
       message.success("容器停止成功");
@@ -488,7 +496,7 @@ const handleStop = async (container: SystemSoftContainer) => {
 
 const handleMoreAction = async (
   command: string,
-  container: SystemSoftContainer
+  container: SystemSoftContainer,
 ) => {
   currentContainer.value = container;
 
@@ -511,7 +519,7 @@ const handleMoreAction = async (
 const handleRestart = async (container: SystemSoftContainer) => {
   try {
     const response = await containerApi.restartContainer(
-      container.systemSoftContainerId!
+      container.systemSoftContainerId!,
     );
     if (response.code === "00000") {
       message.success("容器重启成功");
@@ -533,11 +541,11 @@ const handleDelete = async (container: SystemSoftContainer) => {
       "删除确认",
       {
         type: "error",
-      }
+      },
     );
 
     const response = await containerApi.deleteContainer(
-      container.systemSoftContainerId!
+      container.systemSoftContainerId!,
     );
     if (response.code === "00000") {
       message.success("容器删除成功");
@@ -610,7 +618,7 @@ const handleBatchStop = async () => {
       "批量停止确认",
       {
         type: "warning",
-      }
+      },
     );
 
     // 使用现有的批量操作API
@@ -646,7 +654,7 @@ const handleBatchDelete = async () => {
       "批量删除确认",
       {
         type: "error",
-      }
+      },
     );
 
     // 使用现有的批量操作API
@@ -706,12 +714,11 @@ async function openExec(row: any) {
   try {
     // 获取服务器信息
     const serverId = String(
-      row.systemServerId || row.systemSoftContainerServerId || row.serverId
+      row.systemServerId || row.systemSoftContainerServerId || row.serverId,
     );
     if (!serverId) return message.warning("缺少服务器ID");
     const { data, code, msg } = await getServerInfo(serverId);
-    if (code !== 0 || !data)
-      return message.error(msg || "获取服务器信息失败");
+    if (code !== 0 || !data) return message.error(msg || "获取服务器信息失败");
 
     // 打开终端并设置数据
     // ServerTerminalDialog 暴露 setData/open 方法
@@ -724,7 +731,7 @@ async function openExec(row: any) {
     const shell = "/bin/sh";
     setTimeout(() => {
       sendServerData(serverId, `docker exec -it ${name} ${shell}\n`).catch(
-        () => {}
+        () => {},
       );
     }, 800);
   } catch (e) {
@@ -735,7 +742,6 @@ async function openExec(row: any) {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -768,7 +774,6 @@ async function openExec(row: any) {
     z-index: 1;
   }
 }
-
 
 .container-management {
   padding: 16px;

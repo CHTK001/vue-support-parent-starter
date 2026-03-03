@@ -64,11 +64,15 @@ export function importData(formData) {
  * @return {Promise} 请求结果 Promise 对象
  */
 export function getRepositoryInfo(params) {
-  return http.get("/build/repository/get", { params }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/build/repository/get",
+    { params },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /**
@@ -77,11 +81,15 @@ export function getRepositoryInfo(params) {
  * @return {Promise} 请求结果 Promise 对象
  */
 export function listRepositoryGroup(params) {
-  return http.get("/build/repository/list-group", { params }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/build/repository/list-group",
+    { params },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /**
@@ -127,33 +135,49 @@ export function deleteRepository(params) {
  * @returns
  */
 export function restHideField(id) {
-  return http.post("/build/repository/rest_hide_field", { id }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.post(
+    "/build/repository/rest_hide_field",
+    { id },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 export function authorizeRepos(param) {
-  return http.get("/build/repository/authorize_repos", { params: param }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/build/repository/authorize_repos",
+    { params: param },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 export function providerInfo() {
-  return http.get("/build/repository/provider_info", {}, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/build/repository/provider_info",
+    {},
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 export function sortItem(params) {
-  return http.get("/build/repository/sort-item", { params }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/build/repository/sort-item",
+    { params },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }

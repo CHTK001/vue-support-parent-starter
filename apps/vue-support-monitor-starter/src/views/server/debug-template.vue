@@ -1,13 +1,13 @@
 <template>
   <div class="debug-container system-container modern-bg">
     <h2>模板逻辑调试</h2>
-    
+
     <div class="controls">
       <el-button @click="leftPanelMinimized = !leftPanelMinimized">
-        {{ leftPanelMinimized ? '展开面板' : '最小化面板' }}
+        {{ leftPanelMinimized ? "展开面板" : "最小化面板" }}
       </el-button>
       <el-button @click="toggleServers">
-        {{ servers.length > 0 ? '清空服务器' : '添加服务器' }}
+        {{ servers.length > 0 ? "清空服务器" : "添加服务器" }}
       </el-button>
     </div>
 
@@ -18,13 +18,16 @@
     </div>
 
     <!-- 模拟原始模板结构 -->
-    <div class="server-list-container" :style="{ width: leftPanelMinimized ? '60px' : '400px' }">
+    <div
+      class="server-list-container"
+      :style="{ width: leftPanelMinimized ? '60px' : '400px' }"
+    >
       <h3>服务器列表显示</h3>
-      
+
       <!-- 最小化状态下的简化服务器列表 -->
       <template v-if="leftPanelMinimized">
         <div class="section-title">最小化状态:</div>
-        
+
         <!-- 最小化状态下的空状态 -->
         <div v-if="filteredServers.length === 0" class="server-mini-empty">
           <div class="mini-empty-icon">
@@ -32,7 +35,7 @@
           </div>
           <span>暂无服务器</span>
         </div>
-        
+
         <!-- 最小化状态下的服务器列表 -->
         <div
           v-for="server in filteredServers"
@@ -46,7 +49,7 @@
       <!-- 正常状态下的完整服务器列表 -->
       <template v-else>
         <div class="section-title">正常状态:</div>
-        
+
         <!-- 正常状态下的空状态 -->
         <el-empty v-if="filteredServers.length === 0" description="暂无服务器">
           <el-button type="primary">新增服务器</el-button>
@@ -60,7 +63,9 @@
             class="server-card"
           >
             <div class="server-name">{{ server.name }}</div>
-            <div class="server-address">{{ server.host }}:{{ server.port }}</div>
+            <div class="server-address">
+              {{ server.host }}:{{ server.port }}
+            </div>
             <div class="server-protocol">{{ server.protocol }}</div>
           </div>
         </template>
@@ -106,9 +111,27 @@ const toggleServers = () => {
     servers.value = [];
   } else {
     servers.value = [
-      { id: '1', name: '服务器1', host: '192.168.1.1', port: 22, protocol: 'SSH' },
-      { id: '2', name: '服务器2', host: '192.168.1.2', port: 22, protocol: 'SSH' },
-      { id: '3', name: '服务器3', host: '192.168.1.3', port: 3389, protocol: 'RDP' },
+      {
+        id: "1",
+        name: "服务器1",
+        host: "192.168.1.1",
+        port: 22,
+        protocol: "SSH",
+      },
+      {
+        id: "2",
+        name: "服务器2",
+        host: "192.168.1.2",
+        port: 22,
+        protocol: "SSH",
+      },
+      {
+        id: "3",
+        name: "服务器3",
+        host: "192.168.1.3",
+        port: 3389,
+        protocol: "RDP",
+      },
     ];
   }
 };
@@ -145,7 +168,7 @@ const toggleServers = () => {
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
-  
+
   h2 {
     font-size: 28px;
     font-weight: 700;
@@ -160,13 +183,13 @@ const toggleServers = () => {
   display: flex;
   gap: $spacing-md;
   flex-wrap: wrap;
-  
+
   .el-button {
     border-radius: $radius-md;
     padding: $button-padding-lg;
     font-weight: 500;
     transition: all $duration-fast $ease-standard;
-    
+
     &:hover {
       transform: translateY(-2px);
       box-shadow: $shadow-md;
@@ -181,7 +204,7 @@ const toggleServers = () => {
   border: 1px solid $border-light;
   @include glass-effect(0.92, 16px);
   box-shadow: $shadow-md;
-  
+
   p {
     margin: $spacing-sm 0;
     font-weight: $font-weight-semibold;
@@ -199,12 +222,12 @@ const toggleServers = () => {
   min-height: 200px;
   @include glass-effect(0.94, 18px);
   box-shadow: $shadow-lg;
-  
+
   &:hover {
     border-color: $border-primary;
     box-shadow: $shadow-hover-lg;
   }
-  
+
   h3 {
     margin-top: 0;
     margin-bottom: $spacing-xl;
@@ -234,7 +257,7 @@ const toggleServers = () => {
   border-radius: $radius-md;
   justify-content: center;
   border: 1px dashed $border-light;
-  
+
   .mini-empty-icon {
     width: 48px;
     height: 48px;
@@ -246,7 +269,7 @@ const toggleServers = () => {
     color: var(--el-color-primary);
     font-size: 24px;
   }
-  
+
   span {
     font-size: 14px;
     color: var(--el-text-color-regular);
@@ -265,7 +288,7 @@ const toggleServers = () => {
   color: var(--el-text-color-primary);
   border: 1px solid rgba(99, 102, 241, 0.18);
   transition: all $duration-fast $ease-standard;
-  
+
   &:hover {
     background: rgba(99, 102, 241, 0.1);
     transform: translateX(4px);
@@ -280,26 +303,26 @@ const toggleServers = () => {
   @include glass-effect(0.9, 14px);
   box-shadow: $shadow-md;
   transition: all $duration-normal $ease-standard;
-  
+
   &:hover {
     box-shadow: $shadow-hover-md;
     transform: translateY(-2px);
     border-color: $border-primary;
   }
-  
+
   .server-name {
     font-weight: 600;
     margin-bottom: 8px;
     color: var(--el-text-color-primary);
     font-size: 16px;
   }
-  
+
   .server-address {
     color: var(--el-text-color-regular);
     margin-bottom: 6px;
     font-size: 14px;
   }
-  
+
   .server-protocol {
     color: var(--el-text-color-placeholder);
     font-size: 12px;
@@ -313,7 +336,7 @@ const toggleServers = () => {
   border: 1px solid rgba(99, 102, 241, 0.18);
   @include glass-effect(0.9, 16px);
   box-shadow: $shadow-md;
-  
+
   h3 {
     margin-top: 0;
     margin-bottom: $spacing-xl;
@@ -321,31 +344,31 @@ const toggleServers = () => {
     font-size: $font-xl;
     font-weight: $font-weight-semibold;
   }
-  
+
   .logic-item {
     margin-bottom: $spacing-xl;
     padding: $spacing-lg;
     background: rgba(255, 255, 255, 0.55);
     border-radius: $radius-md;
     border-left: 4px solid var(--el-color-primary);
-    
+
     strong {
       color: var(--el-color-primary);
       font-size: 15px;
       display: block;
       margin-bottom: $spacing-md;
     }
-    
+
     ul {
       margin-top: $spacing-md;
       padding-left: $spacing-2xl;
-      
+
       li {
         margin-bottom: $spacing-sm;
         color: var(--el-text-color-regular);
         line-height: 1.6;
         font-size: 14px;
-        
+
         &::marker {
           color: var(--el-color-primary);
         }

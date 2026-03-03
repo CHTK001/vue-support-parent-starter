@@ -109,7 +109,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
     build: {
       // https://cn.vitejs.dev/guide/build.html#browser-compatibility
-      target: "es2015",
+      target: "es2020",
       sourcemap: false,
       minify: "terser",
       // 消除打包大小超过500kb警告

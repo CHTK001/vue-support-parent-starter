@@ -4,8 +4,8 @@
     title="增强版HTTP代理配置"
     width="900px"
     :close-on-click-modal="false"
-    @close="handleClose"
     draggable
+    @close="handleClose"
   >
     <div class="proxy-config-container thin-scrollbar">
       <!-- 基础配置 -->
@@ -99,7 +99,7 @@
             />
             <div class="form-tip">建议设置为CPU核心数</div>
           </el-form-item>
-          <el-form-item label="最大线程数" v-if="config.poolType !== 'FIXED'">
+          <el-form-item v-if="config.poolType !== 'FIXED'" label="最大线程数">
             <el-input-number
               v-model="config.maxPoolSize"
               :min="config.corePoolSize"
@@ -108,7 +108,7 @@
             />
             <div class="form-tip">建议设置为CPU核心数*4</div>
           </el-form-item>
-          <el-form-item label="队列容量" v-if="config.poolType !== 'CACHED'">
+          <el-form-item v-if="config.poolType !== 'CACHED'" label="队列容量">
             <el-input-number
               v-model="config.queueCapacity"
               :min="100"
@@ -118,7 +118,7 @@
             />
             <div class="form-tip">等待队列的最大任务数</div>
           </el-form-item>
-          <el-form-item label="空闲存活(秒)" v-if="config.poolType !== 'FIXED'">
+          <el-form-item v-if="config.poolType !== 'FIXED'" label="空闲存活(秒)">
             <el-input-number
               v-model="config.keepAliveSeconds"
               :min="0"
@@ -310,7 +310,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(visibleInner, (v) => emit("update:visible", v));
@@ -346,7 +346,7 @@ async function handleSave() {
   try {
     const res = await saveServletFilterConfig(
       props.filterSettingId,
-      config as any
+      config as any,
     );
     if (res.success) {
       message("增强代理配置保存成功，已热重载", { type: "success" });

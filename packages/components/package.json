@@ -12,6 +12,27 @@
       "require": "./index.ts",
       "default": "./index.ts"
     },
+    "./ReIcon": {
+      "types": "./ReIcon/index.ts",
+      "development": "./ReIcon/index.ts",
+      "import": "./ReIcon/index.ts",
+      "require": "./ReIcon/index.ts",
+      "default": "./ReIcon/index.ts"
+    },
+    "./ReAuth": {
+      "types": "./ReAuth/index.ts",
+      "development": "./ReAuth/index.ts",
+      "import": "./ReAuth/index.ts",
+      "require": "./ReAuth/index.ts",
+      "default": "./ReAuth/index.ts"
+    },
+    "./ReDialog": {
+      "types": "./ReDialog/index.ts",
+      "development": "./ReDialog/index.ts",
+      "import": "./ReDialog/index.ts",
+      "require": "./ReDialog/index.ts",
+      "default": "./ReDialog/index.ts"
+    },
     "./*": "./*"
   },
   "private": true,

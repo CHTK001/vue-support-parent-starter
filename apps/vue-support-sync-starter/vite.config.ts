@@ -103,7 +103,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     resolve: {
       alias: createAlias(import.meta.url),
       dedupe: ["vue", "vue-router"],
-      preserveSymlinks: false,
+      preserveSymlinks: true,
     },
     server: {
       port: VITE_PORT || 3000,
@@ -140,6 +140,12 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
       },
       rollupOptions: {
+        /**
+         * 说明：
+         * - @repo/core 内部存在对 @repo/font-encryption 的可选动态导入
+         * - 本应用不依赖该模块，为避免构建期强制解析导致失败，这里显式 external
+         */
+        external: ["@repo/font-encryption"],
         input: {
           index: pathResolve("./index.html", import.meta.url),
         },

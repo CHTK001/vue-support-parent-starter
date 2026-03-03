@@ -3857,9 +3857,6 @@ importers:
       vue:
         specifier: 'catalog:'
         version: 3.5.28(typescript@5.9.3)
-      vue-drag-resize:
-        specifier: ^2.0.2
-        version: 2.0.3
       vue-grid-layout:
         specifier: 'catalog:'
         version: 3.0.0-beta1(@interactjs/core@1.10.27(@interactjs/utils@1.10.27))(@interactjs/utils@1.10.27)(typescript@5.9.3)
@@ -18619,9 +18616,6 @@ packages:
       '@vue/composition-api':
         optional: true
 
-  vue-drag-resize@2.0.3:
-    resolution: {integrity: sha512-5q03tZ/LyvQsg1iHRcqs+wI2OKNbNIWl9+7V8rVL6MxJhZLCIYSSgbAUaDE38LhD6dFd5aJhdgNmES61AxjXuw==}
-
   vue-element-plus-x@1.3.98:
     resolution: {integrity: sha512-Mi8wvrsNRfHspzAY1Z4HkKYhfDdSm5/4vMNF82P+W81tbPb1jA2x/6KkldpyZrylRnuO6OBQz5s/Gtt0nzIf6w==}
     peerDependencies:
@@ -33366,8 +33360,6 @@ snapshots:
   vue-demi@0.14.10(vue@3.5.29(typescript@5.9.3)):
     dependencies:
       vue: 3.5.29(typescript@5.9.3)
-
-  vue-drag-resize@2.0.3: {}
 
   vue-element-plus-x@1.3.98(rollup@4.58.0)(vue@3.5.28(typescript@5.9.3)):
     dependencies:

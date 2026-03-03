@@ -12,7 +12,10 @@ export { store };
 export {
   createAppBootstrap,
   quickBootstrap,
-  createStandardApp,
   AppBootstrap,
 } from "./app-bootstrap";
-export type { BootstrapOptions, StandardAppOptions } from "./app-bootstrap";
+export type { BootstrapOptions } from "./app-bootstrap";
+
+// 标准应用启动器（依赖较多，建议按需引入）
+export { createStandardApp } from "./standard-app";
+export type { StandardAppOptions } from "./standard-app";

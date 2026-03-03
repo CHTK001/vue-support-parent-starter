@@ -1,5 +1,8 @@
 <template>
-  <div class="server-component system-container modern-bg" :class="{ 'is-fullscreen': isFullscreen }">
+  <div
+    class="server-component system-container modern-bg"
+    :class="{ 'is-fullscreen': isFullscreen }"
+  >
     <div v-if="showTitle" class="component-header">
       <div class="component-title">{{ title }}</div>
       <div class="component-actions">
@@ -8,17 +11,32 @@
             <IconifyIconOnline icon="ep:refresh" />
           </el-button>
         </el-tooltip>
-        <el-tooltip v-if="editable" content="配置图表" placement="top" :show-after="300">
+        <el-tooltip
+          v-if="editable"
+          content="配置图表"
+          placement="top"
+          :show-after="300"
+        >
           <el-button link @click="$emit('editChartConfig', item)">
             <IconifyIconOnline icon="ep:setting" />
           </el-button>
         </el-tooltip>
-        <el-tooltip v-if="editable" content="编辑查询" placement="top" :show-after="300">
+        <el-tooltip
+          v-if="editable"
+          content="编辑查询"
+          placement="top"
+          :show-after="300"
+        >
           <el-button link @click="$emit('editComponent', item)">
             <IconifyIconOnline icon="ep:edit" />
           </el-button>
         </el-tooltip>
-        <el-tooltip v-if="editable" content="移除" placement="top" :show-after="300">
+        <el-tooltip
+          v-if="editable"
+          content="移除"
+          placement="top"
+          :show-after="300"
+        >
           <el-button link @click="$emit('removeComponent', item)">
             <IconifyIconOnline icon="ep:delete" />
           </el-button>
@@ -42,23 +60,68 @@
         </div>
       </div>
       <div v-else-if="chartType === 'line'" class="chart-wrapper">
-        <line-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" :defaultTimeRange="30" @timeRangeChange="handleTimeRangeChange" />
+        <line-chart
+          :chart-data="chartData"
+          :height="chartHeight"
+          :loading="loading"
+          :chart-config="chartConfig"
+          :tip="tip"
+          :defaultTimeRange="30"
+          @timeRangeChange="handleTimeRangeChange"
+        />
       </div>
       <div v-else-if="chartType === 'gauge'" class="chart-wrapper">
-        <gauge-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" />
+        <gauge-chart
+          :chart-data="chartData"
+          :height="chartHeight"
+          :loading="loading"
+          :chart-config="chartConfig"
+          :tip="tip"
+        />
       </div>
       <div v-else-if="chartType === 'card'" class="chart-wrapper">
-        <card-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" :query-time="queryTime" />
+        <card-chart
+          :chart-data="chartData"
+          :height="chartHeight"
+          :loading="loading"
+          :chart-config="chartConfig"
+          :tip="tip"
+          :query-time="queryTime"
+        />
       </div>
       <div v-else-if="chartType === 'bar'" class="chart-wrapper">
-        <bar-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" />
+        <bar-chart
+          :chart-data="chartData"
+          :height="chartHeight"
+          :loading="loading"
+          :chart-config="chartConfig"
+          :tip="tip"
+        />
       </div>
       <div v-else-if="chartType === 'pie'" class="chart-wrapper">
-        <pie-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" />
+        <pie-chart
+          :chart-data="chartData"
+          :height="chartHeight"
+          :loading="loading"
+          :chart-config="chartConfig"
+          :tip="tip"
+        />
       </div>
       <div v-else-if="chartType === 'table'" class="table-wrapper">
-        <el-table :data="tableData" stripe style="width: 100%" :max-height="tableHeight" size="small">
-          <el-table-column v-for="(column, index) in tableColumns" :key="index" :prop="column.prop" :label="column.label" :width="column.width" />
+        <el-table
+          :data="tableData"
+          stripe
+          style="width: 100%"
+          :max-height="tableHeight"
+          size="small"
+        >
+          <el-table-column
+            v-for="(column, index) in tableColumns"
+            :key="index"
+            :prop="column.prop"
+            :label="column.label"
+            :width="column.width"
+          />
         </el-table>
       </div>
     </div>
@@ -66,7 +129,9 @@
       <div class="query-info">
         <span class="query-time">{{ queryTime }}</span>
         <span v-if="valueUnit" class="value-unit">
-          <el-tag size="small" type="info">{{ getValueUnitLabel(valueUnit) }}</el-tag>
+          <el-tag size="small" type="info">{{
+            getValueUnitLabel(valueUnit)
+          }}</el-tag>
         </span>
       </div>
       <div v-if="refreshInterval > 0" class="refresh-info">
@@ -89,56 +154,68 @@ import { IconifyIconOnline } from "@repo/components/ReIcon";
 const props = defineProps({
   item: {
     type: Object,
-    required: true
+    required: true,
   },
   chartData: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   error: {
     type: String,
-    default: ""
+    default: "",
   },
   editable: {
     type: Boolean,
-    default: false
+    default: false,
   },
   refreshInterval: {
     type: Number,
-    default: 0
+    default: 0,
   },
   queryTime: {
     type: String,
-    default: ""
+    default: "",
   },
   height: {
     type: [Number, String],
-    default: 250
+    default: 250,
   },
   chartConfig: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   showTitle: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
 
-const emit = defineEmits(["fetchData", "editComponent", "removeComponent", "editChartConfig", "timeRangeChange"]);
+const emit = defineEmits([
+  "fetchData",
+  "editComponent",
+  "removeComponent",
+  "editChartConfig",
+  "timeRangeChange",
+]);
 
 // 组件标题
 const title = computed(() => {
-  return props.item.title || props.item.monitorSysGenServerComponentName || "未命名组件";
+  return (
+    props.item.title ||
+    props.item.monitorSysGenServerComponentName ||
+    "未命名组件"
+  );
 });
 
 // 图表类型
 const chartType = computed(() => {
-  return props.item.type || props.item.monitorSysGenServerComponentType || "line";
+  return (
+    props.item.type || props.item.monitorSysGenServerComponentType || "line"
+  );
 });
 
 // 提示信息
@@ -148,7 +225,11 @@ const tip = computed(() => {
 
 // 数据单位
 const valueUnit = computed(() => {
-  return props.item.valueUnit || props.item.monitorSysGenServerDetailComponentValueUnit || "";
+  return (
+    props.item.valueUnit ||
+    props.item.monitorSysGenServerDetailComponentValueUnit ||
+    ""
+  );
 });
 
 // 是否有数据
@@ -161,7 +242,11 @@ const hasData = computed(() => {
   }
 
   if (chartType.value === "card") {
-    return props.chartData !== null && props.chartData !== undefined && props.chartData !== "";
+    return (
+      props.chartData !== null &&
+      props.chartData !== undefined &&
+      props.chartData !== ""
+    );
   }
 
   // 对于其他图表类型，检查 chartData 是否有有效数据
@@ -179,7 +264,9 @@ const hasData = computed(() => {
   if (typeof props.chartData === "object") {
     // 检查对象是否有有效的数据属性（排除只有 error、updateTime、expressionType 等元数据的情况）
     const keys = Object.keys(props.chartData);
-    const dataKeys = keys.filter(key => !["error", "updateTime", "expressionType"].includes(key));
+    const dataKeys = keys.filter(
+      (key) => !["error", "updateTime", "expressionType"].includes(key),
+    );
     return dataKeys.length > 0;
   }
 
@@ -188,7 +275,9 @@ const hasData = computed(() => {
 
 // 图表高度
 const chartHeight = computed(() => {
-  return typeof props.height === "number" ? props.height : parseInt(props.height) || 250;
+  return typeof props.height === "number"
+    ? props.height
+    : parseInt(props.height) || 250;
 });
 
 // 表格高度
@@ -221,7 +310,7 @@ const refreshTimer = ref(null);
 // 监听刷新间隔变化
 watch(
   () => props.refreshInterval,
-  newInterval => {
+  (newInterval) => {
     if (refreshTimer.value) {
       clearInterval(refreshTimer.value);
       refreshTimer.value = null;
@@ -238,7 +327,7 @@ watch(
       }, 1000);
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 生命周期
@@ -257,13 +346,13 @@ onBeforeUnmount(() => {
 /**
  * 获取数值单位标签
  */
-const getValueUnitLabel = unit => {
+const getValueUnitLabel = (unit) => {
   const unitMap = {
     percent: "%",
     bytes: "B",
     status: "状态",
     count: "个",
-    time: "s"
+    time: "s",
   };
   return unitMap[unit] || unit;
 };
@@ -278,7 +367,7 @@ const fetchData = () => {
 /**
  * 时间范围变化处理
  */
-const handleTimeRangeChange = timeRange => {
+const handleTimeRangeChange = (timeRange) => {
   emit("timeRangeChange", props.item, timeRange);
 };
 
@@ -291,7 +380,6 @@ const handleFullscreenChange = () => {
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -324,7 +412,6 @@ const handleFullscreenChange = () => {
     z-index: 1;
   }
 }
-
 
 .server-component {
   height: 100%;
@@ -411,7 +498,7 @@ const handleFullscreenChange = () => {
         flex-direction: column;
         align-items: center;
         gap: 8px;
-         color: var(--el-text-color);
+        color: var(--el-text-color);
 
         .loading-icon,
         .empty-icon {
@@ -520,7 +607,6 @@ const handleFullscreenChange = () => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -529,5 +615,4 @@ const handleFullscreenChange = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

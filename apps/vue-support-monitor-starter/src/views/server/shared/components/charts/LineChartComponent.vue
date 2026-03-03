@@ -5,47 +5,35 @@
         <IconifyIconOnline icon="ri:line-chart-line" class="chart-icon" />
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
-      <div class="chart-actions" v-if="editMode">
-        <el-button
-          type="primary"
-          text
-          size="small"
-          @click="handleEdit"
-        >
+      <div v-if="editMode" class="chart-actions">
+        <el-button type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
         </el-button>
-        <el-button
-          type="danger"
-          text
-          size="small"
-          @click="handleDelete"
-        >
+        <el-button type="danger" text size="small" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" />
         </el-button>
       </div>
     </div>
-    
-    <div class="chart-content" v-loading="loading">
-      <div ref="chartRef" class="line-chart"></div>
+
+    <div v-loading="loading" class="chart-content">
+      <div ref="chartRef" class="line-chart" />
       <div class="chart-info">
         <div class="current-value">
           <span class="label">当前值:</span>
           <span class="value">{{ displayValue }}</span>
-          <span class="unit" v-if="unit">{{ unit }}</span>
+          <span v-if="unit" class="unit">{{ unit }}</span>
         </div>
-        <div class="last-update">
-          最后更新: {{ lastUpdateTime }}
-        </div>
+        <div class="last-update">最后更新: {{ lastUpdateTime }}</div>
       </div>
     </div>
 
-    <div class="chart-footer" v-if="!editMode">
+    <div v-if="!editMode" class="chart-footer">
       <el-button
         type="primary"
         text
         size="small"
-        @click="handleRefresh"
         :loading="refreshing"
+        @click="handleRefresh"
       >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
@@ -58,7 +46,10 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { message } from "@repo/utils";
 import * as echarts from "echarts";
-import { executeComponentQuery, type ServerDetailComponent } from "@/api/server";
+import {
+  executeComponentQuery,
+  type ServerDetailComponent,
+} from "@/api/server";
 
 // 定义属性
 const props = defineProps<{
@@ -94,20 +85,22 @@ const displayValue = computed(() => {
 
 const chartConfig = computed(() => {
   try {
-    const config = JSON.parse(props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}");
+    const config = JSON.parse(
+      props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}",
+    );
     return {
       unit: config.unit || "",
       legend: config.legend !== false,
       color: config.color || "#409EFF",
       smooth: config.smooth !== false,
-      ...config
+      ...config,
     };
   } catch {
     return {
       unit: "",
       legend: true,
       color: "#409EFF",
-      smooth: true
+      smooth: true,
     };
   }
 });
@@ -131,73 +124,73 @@ const updateChart = () => {
   if (!chartInstance.value) return;
 
   const config = chartConfig.value;
-  const times = data.value.map(item => item.time);
-  const values = data.value.map(item => item.value);
+  const times = data.value.map((item) => item.time);
+  const values = data.value.map((item) => item.value);
 
   const option = {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       formatter: (params: any) => {
         const param = params[0];
         return `${param.name}<br/>${param.seriesName}: ${param.value}${config.unit}`;
-      }
+      },
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      top: config.legend ? '15%' : '3%',
-      containLabel: true
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      top: config.legend ? "15%" : "3%",
+      containLabel: true,
     },
     xAxis: {
-      type: 'category',
+      type: "category",
       boundaryGap: false,
       data: times,
       axisLabel: {
         fontSize: 10,
-        color: '#999'
+        color: "#999",
       },
       axisLine: {
         lineStyle: {
-          color: '#E4E7ED'
-        }
-      }
+          color: "#E4E7ED",
+        },
+      },
     },
     yAxis: {
-      type: 'value',
+      type: "value",
       axisLabel: {
         fontSize: 10,
-        color: '#999',
-        formatter: `{value}${config.unit}`
+        color: "#999",
+        formatter: `{value}${config.unit}`,
       },
       axisLine: {
         lineStyle: {
-          color: '#E4E7ED'
-        }
+          color: "#E4E7ED",
+        },
       },
       splitLine: {
         lineStyle: {
-          color: '#F2F6FC'
-        }
-      }
+          color: "#F2F6FC",
+        },
+      },
     },
     series: [
       {
         name: props.componentData.monitorSysGenServerDetailComponentTitle,
-        type: 'line',
+        type: "line",
         smooth: config.smooth,
-        symbol: 'circle',
+        symbol: "circle",
         symbolSize: 4,
         lineStyle: {
           color: config.color,
-          width: 2
+          width: 2,
         },
         itemStyle: {
-          color: config.color
+          color: config.color,
         },
         areaStyle: {
           color: {
-            type: 'linear',
+            type: "linear",
             x: 0,
             y: 0,
             x2: 0,
@@ -205,18 +198,18 @@ const updateChart = () => {
             colorStops: [
               {
                 offset: 0,
-                color: config.color + '40'
+                color: config.color + "40",
               },
               {
                 offset: 1,
-                color: config.color + '10'
-              }
-            ]
-          }
+                color: config.color + "10",
+              },
+            ],
+          },
         },
-        data: values
-      }
-    ]
+        data: values,
+      },
+    ],
   };
 
   if (config.legend) {
@@ -225,8 +218,8 @@ const updateChart = () => {
       top: 0,
       textStyle: {
         fontSize: 12,
-        color: '#666'
-      }
+        color: "#666",
+      },
     };
   }
 
@@ -248,7 +241,7 @@ const resizeChart = () => {
 const loadData = async () => {
   try {
     loading.value = true;
-    
+
     const timeRange = {
       start: Date.now() - 30 * 60 * 1000, // 最近30分钟
       end: Date.now(),
@@ -256,17 +249,19 @@ const loadData = async () => {
 
     const res = await executeComponentQuery(
       props.componentData.monitorSysGenServerDetailComponentId!,
-      timeRange
+      timeRange,
     );
 
     if (res.code === "00000") {
       // 处理返回的数据，转换为时间序列
       let newData: Array<{ time: string; value: number }> = [];
-      
+
       if (Array.isArray(res.data)) {
         newData = res.data.map((item: any, index: number) => ({
-          time: new Date(Date.now() - (res.data.length - index - 1) * 60 * 1000).toLocaleTimeString(),
-          value: parseFloat(item.value || item) || 0
+          time: new Date(
+            Date.now() - (res.data.length - index - 1) * 60 * 1000,
+          ).toLocaleTimeString(),
+          value: parseFloat(item.value || item) || 0,
         }));
       } else {
         // 如果返回单个值，生成模拟时间序列
@@ -275,14 +270,14 @@ const loadData = async () => {
         for (let i = 29; i >= 0; i--) {
           newData.push({
             time: new Date(now - i * 60 * 1000).toLocaleTimeString(),
-            value: value + (Math.random() - 0.5) * value * 0.1 // 添加一些随机变化
+            value: value + (Math.random() - 0.5) * value * 0.1, // 添加一些随机变化
           });
         }
       }
-      
+
       data.value = newData;
       lastUpdateTime.value = new Date().toLocaleTimeString();
-      
+
       // 更新图表
       nextTick(() => {
         updateChart();
@@ -327,8 +322,10 @@ const handleDelete = () => {
  * 启动自动刷新
  */
 const startAutoRefresh = () => {
-  const interval = (props.componentData.monitorSysGenServerDetailComponentRefreshInterval || 30) * 1000;
-  
+  const interval =
+    (props.componentData.monitorSysGenServerDetailComponentRefreshInterval ||
+      30) * 1000;
+
   refreshTimer.value = setInterval(() => {
     if (!props.editMode) {
       loadData();
@@ -360,14 +357,14 @@ onMounted(() => {
       startAutoRefresh();
     }
   });
-  
-  window.addEventListener('resize', handleResize);
+
+  window.addEventListener("resize", handleResize);
 });
 
 onUnmounted(() => {
   stopAutoRefresh();
-  window.removeEventListener('resize', handleResize);
-  
+  window.removeEventListener("resize", handleResize);
+
   if (chartInstance.value) {
     chartInstance.value.dispose();
   }
@@ -375,7 +372,6 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -408,7 +404,6 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
-
 
 .line-chart-component {
   height: 100%;

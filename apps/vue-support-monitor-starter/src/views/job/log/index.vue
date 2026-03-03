@@ -14,10 +14,10 @@
           <div class="chart-right">
             <div v-if="showChart" class="chart-legend">
               <span class="legend-item success">
-                <span class="legend-dot"></span>成功
+                <span class="legend-dot" />成功
               </span>
               <span class="legend-item danger">
-                <span class="legend-dot"></span>失败
+                <span class="legend-dot" />失败
               </span>
             </div>
             <IconifyIconOnline
@@ -130,10 +130,7 @@
           <el-table-column label="状态" prop="level" width="70" align="center">
             <template #default="scope">
               <div class="status-cell">
-                <span
-                  class="status-dot"
-                  :class="getStatusClass(scope.row)"
-                ></span>
+                <span class="status-dot" :class="getStatusClass(scope.row)" />
               </div>
             </template>
           </el-table-column>
@@ -311,7 +308,7 @@ export default {
   components: {
     info,
     ScStatusIndicator: defineAsyncComponent(
-      () => import("@repo/components/ScMini/scStatusIndicator.vue")
+      () => import("@repo/components/ScMini/scStatusIndicator.vue"),
     ),
     scEcharts,
     cat,
@@ -560,7 +557,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -577,8 +573,6 @@ export default {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -612,7 +606,6 @@ export default {
     z-index: 1;
   }
 }
-
 
 .job-log-wrapper {
   height: 100%;
@@ -1057,7 +1050,6 @@ export default {
   font-size: 13px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1066,5 +1058,4 @@ export default {
     padding: 12px 16px;
   }
 }
-
 </style>

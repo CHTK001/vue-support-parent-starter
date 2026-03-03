@@ -15,7 +15,9 @@
               {{ containerData.systemSoftContainerName }}
             </el-descriptions-item>
             <el-descriptions-item label="容器ID">
-              <span class="container-id">{{ containerData.systemSoftContainerId }}</span>
+              <span class="container-id">{{
+                containerData.systemSoftContainerId
+              }}</span>
             </el-descriptions-item>
             <el-descriptions-item label="镜像名称">
               {{ containerData.systemSoftContainerImageName }}
@@ -24,7 +26,9 @@
               {{ containerData.systemSoftContainerImageTag }}
             </el-descriptions-item>
             <el-descriptions-item label="运行状态">
-              <el-tag :type="getStatusType(containerData.systemSoftContainerStatus)">
+              <el-tag
+                :type="getStatusType(containerData.systemSoftContainerStatus)"
+              >
                 {{ getStatusText(containerData.systemSoftContainerStatus) }}
               </el-tag>
             </el-descriptions-item>
@@ -38,10 +42,10 @@
               {{ formatTime(containerData.systemSoftContainerStartedTime) }}
             </el-descriptions-item>
             <el-descriptions-item label="重启策略">
-              {{ containerData.systemSoftContainerRestartPolicy || '默认' }}
+              {{ containerData.systemSoftContainerRestartPolicy || "默认" }}
             </el-descriptions-item>
             <el-descriptions-item label="自动删除">
-              {{ containerData.systemSoftContainerAutoRemove ? '是' : '否' }}
+              {{ containerData.systemSoftContainerAutoRemove ? "是" : "否" }}
             </el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
@@ -52,25 +56,32 @@
             <div class="section-title">端口映射</div>
             <div class="port-mappings">
               <div
-                v-for="port in parsePortMappings(containerData.systemSoftContainerPorts)"
+                v-for="port in parsePortMappings(
+                  containerData.systemSoftContainerPorts,
+                )"
                 :key="port"
                 class="port-mapping-item"
               >
                 <el-tag class="port-tag">{{ port }}</el-tag>
               </div>
-              <div v-if="!containerData.systemSoftContainerPorts" class="no-data">
+              <div
+                v-if="!containerData.systemSoftContainerPorts"
+                class="no-data"
+              >
                 暂无端口映射
               </div>
             </div>
-            
+
             <div class="section-title">网络模式</div>
             <div class="network-mode">
-              {{ containerData.systemSoftContainerNetworkMode || '默认桥接模式' }}
+              {{
+                containerData.systemSoftContainerNetworkMode || "默认桥接模式"
+              }}
             </div>
-            
+
             <div class="section-title">IP地址</div>
             <div class="ip-address">
-              {{ containerData.systemSoftContainerIpAddress || '未分配' }}
+              {{ containerData.systemSoftContainerIpAddress || "未分配" }}
             </div>
           </div>
         </el-tab-pane>
@@ -83,69 +94,135 @@
               <div class="resource-chart">
                 <el-progress
                   type="circle"
-                  :percentage="containerData.systemSoftContainerCpuPercent || containerData.systemSoftContainerCpuUsage || 0"
-                  :color="getUsageColor(containerData.systemSoftContainerCpuPercent || containerData.systemSoftContainerCpuUsage || 0)"
+                  :percentage="
+                    containerData.systemSoftContainerCpuPercent ||
+                    containerData.systemSoftContainerCpuUsage ||
+                    0
+                  "
+                  :color="
+                    getUsageColor(
+                      containerData.systemSoftContainerCpuPercent ||
+                        containerData.systemSoftContainerCpuUsage ||
+                        0,
+                    )
+                  "
                   :width="120"
                 />
               </div>
               <div class="resource-value">
-                {{ (containerData.systemSoftContainerCpuPercent || containerData.systemSoftContainerCpuUsage || 0).toFixed(2) }}%
+                {{
+                  (
+                    containerData.systemSoftContainerCpuPercent ||
+                    containerData.systemSoftContainerCpuUsage ||
+                    0
+                  ).toFixed(2)
+                }}%
               </div>
             </div>
-            
+
             <div class="resource-card">
               <div class="resource-title">内存使用率</div>
               <div class="resource-chart">
                 <el-progress
                   type="circle"
-                  :percentage="containerData.systemSoftContainerMemoryPercent || containerData.systemSoftContainerMemoryUsage || 0"
-                  :color="getUsageColor(containerData.systemSoftContainerMemoryPercent || containerData.systemSoftContainerMemoryUsage || 0)"
+                  :percentage="
+                    containerData.systemSoftContainerMemoryPercent ||
+                    containerData.systemSoftContainerMemoryUsage ||
+                    0
+                  "
+                  :color="
+                    getUsageColor(
+                      containerData.systemSoftContainerMemoryPercent ||
+                        containerData.systemSoftContainerMemoryUsage ||
+                        0,
+                    )
+                  "
                   :width="120"
                 />
               </div>
               <div class="resource-value">
-                {{ (containerData.systemSoftContainerMemoryPercent || containerData.systemSoftContainerMemoryUsage || 0).toFixed(2) }}%
+                {{
+                  (
+                    containerData.systemSoftContainerMemoryPercent ||
+                    containerData.systemSoftContainerMemoryUsage ||
+                    0
+                  ).toFixed(2)
+                }}%
               </div>
             </div>
-            
+
             <div class="resource-card">
               <div class="resource-title">内存使用</div>
               <div class="resource-stats">
                 <div class="stat-item">
                   <span class="stat-label">使用：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerMemoryUsageBytes || containerData.systemSoftContainerMemoryUsage || 0) }}</span>
+                  <span class="stat-value">{{
+                    formatBytes(
+                      containerData.systemSoftContainerMemoryUsageBytes ||
+                        containerData.systemSoftContainerMemoryUsage ||
+                        0,
+                    )
+                  }}</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-label">限制：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerMemoryLimit || 0) }}</span>
+                  <span class="stat-value">{{
+                    formatBytes(
+                      containerData.systemSoftContainerMemoryLimit || 0,
+                    )
+                  }}</span>
                 </div>
               </div>
             </div>
-            
+
             <div class="resource-card">
               <div class="resource-title">磁盘IO</div>
               <div class="resource-stats">
                 <div class="stat-item">
                   <span class="stat-label">读取：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsDiskRead || containerData.systemSoftContainerDiskRead || 0) }}</span>
+                  <span class="stat-value">{{
+                    formatBytes(
+                      containerData.systemSoftContainerStatsDiskRead ||
+                        containerData.systemSoftContainerDiskRead ||
+                        0,
+                    )
+                  }}</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-label">写入：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsDiskWrite || containerData.systemSoftContainerDiskWrite || 0) }}</span>
+                  <span class="stat-value">{{
+                    formatBytes(
+                      containerData.systemSoftContainerStatsDiskWrite ||
+                        containerData.systemSoftContainerDiskWrite ||
+                        0,
+                    )
+                  }}</span>
                 </div>
               </div>
             </div>
-            
+
             <div class="resource-card">
               <div class="resource-title">网络IO</div>
               <div class="resource-stats">
                 <div class="stat-item">
                   <span class="stat-label">接收：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsNetworkRxBytes || containerData.systemSoftContainerNetworkRx || 0) }}</span>
+                  <span class="stat-value">{{
+                    formatBytes(
+                      containerData.systemSoftContainerStatsNetworkRxBytes ||
+                        containerData.systemSoftContainerNetworkRx ||
+                        0,
+                    )
+                  }}</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-label">发送：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsNetworkTxBytes || containerData.systemSoftContainerNetworkTx || 0) }}</span>
+                  <span class="stat-value">{{
+                    formatBytes(
+                      containerData.systemSoftContainerStatsNetworkTxBytes ||
+                        containerData.systemSoftContainerNetworkTx ||
+                        0,
+                    )
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -155,30 +232,36 @@
         <!-- 环境变量 -->
         <el-tab-pane label="环境变量" name="environment">
           <div class="environment-section">
-            <div v-if="containerData.systemSoftContainerEnvVars" class="env-vars">
-              <pre class="env-code">{{ formatEnvVars(containerData.systemSoftContainerEnvVars) }}</pre>
+            <div
+              v-if="containerData.systemSoftContainerEnvVars"
+              class="env-vars"
+            >
+              <pre class="env-code">{{
+                formatEnvVars(containerData.systemSoftContainerEnvVars)
+              }}</pre>
             </div>
-            <div v-else class="no-data">
-              暂无环境变量配置
-            </div>
+            <div v-else class="no-data">暂无环境变量配置</div>
           </div>
         </el-tab-pane>
 
         <!-- 卷挂载 -->
         <el-tab-pane label="存储挂载" name="volumes">
           <div class="volumes-section">
-            <div v-if="containerData.systemSoftContainerVolumes" class="volumes-list">
+            <div
+              v-if="containerData.systemSoftContainerVolumes"
+              class="volumes-list"
+            >
               <div
-                v-for="volume in parseVolumes(containerData.systemSoftContainerVolumes)"
+                v-for="volume in parseVolumes(
+                  containerData.systemSoftContainerVolumes,
+                )"
                 :key="volume"
                 class="volume-item"
               >
                 <el-tag class="volume-tag">{{ volume }}</el-tag>
               </div>
             </div>
-            <div v-else class="no-data">
-              暂无存储挂载配置
-            </div>
+            <div v-else class="no-data">暂无存储挂载配置</div>
           </div>
         </el-tab-pane>
 
@@ -190,31 +273,50 @@
                 {{ containerData.systemSoftContainerName }}
               </el-descriptions-item>
               <el-descriptions-item label="镜像">
-                {{ containerData.systemSoftContainerImage }}:{{ containerData.systemSoftContainerImageTag }}
+                {{ containerData.systemSoftContainerImage }}:{{
+                  containerData.systemSoftContainerImageTag
+                }}
               </el-descriptions-item>
               <el-descriptions-item label="命令">
-                {{ containerData.systemSoftContainerCommand || '默认' }}
+                {{ containerData.systemSoftContainerCommand || "默认" }}
               </el-descriptions-item>
               <el-descriptions-item label="参数">
-                {{ containerData.systemSoftContainerArgs || '无' }}
+                {{ containerData.systemSoftContainerArgs || "无" }}
               </el-descriptions-item>
               <el-descriptions-item label="网络模式">
-                {{ containerData.systemSoftContainerNetworks || '默认桥接' }}
+                {{ containerData.systemSoftContainerNetworks || "默认桥接" }}
               </el-descriptions-item>
               <el-descriptions-item label="重启策略">
-                {{ containerData.systemSoftContainerAutoRestart ? '自动重启' : '不重启' }}
+                {{
+                  containerData.systemSoftContainerAutoRestart
+                    ? "自动重启"
+                    : "不重启"
+                }}
               </el-descriptions-item>
               <el-descriptions-item label="CPU限制">
-                {{ containerData.systemSoftContainerCpuLimit ? `${containerData.systemSoftContainerCpuLimit} 核` : '无限制' }}
+                {{
+                  containerData.systemSoftContainerCpuLimit
+                    ? `${containerData.systemSoftContainerCpuLimit} 核`
+                    : "无限制"
+                }}
               </el-descriptions-item>
               <el-descriptions-item label="内存限制">
-                {{ containerData.systemSoftContainerMemoryLimit ? formatBytes(containerData.systemSoftContainerMemoryLimit) : '无限制' }}
+                {{
+                  containerData.systemSoftContainerMemoryLimit
+                    ? formatBytes(containerData.systemSoftContainerMemoryLimit)
+                    : "无限制"
+                }}
               </el-descriptions-item>
             </el-descriptions>
-            
-            <div v-if="containerData.systemSoftContainerConfig" class="config-json">
+
+            <div
+              v-if="containerData.systemSoftContainerConfig"
+              class="config-json"
+            >
               <div class="section-title">完整配置（JSON）</div>
-              <pre class="config-code">{{ formatJson(containerData.systemSoftContainerConfig) }}</pre>
+              <pre class="config-code">{{
+                formatJson(containerData.systemSoftContainerConfig)
+              }}</pre>
             </div>
           </div>
         </el-tab-pane>
@@ -224,49 +326,49 @@
           <div class="charts-section">
             <div class="chart-row">
               <div class="chart-item">
-                <ContainerRealtimeChart 
-                  :container-id="containerData.systemSoftContainerId!" 
-                  title="CPU使用率" 
-                  data-type="cpu" 
+                <ContainerRealtimeChart
+                  :container-id="containerData.systemSoftContainerId!"
+                  title="CPU使用率"
+                  data-type="cpu"
                 />
               </div>
               <div class="chart-item">
-                <ContainerRealtimeChart 
-                  :container-id="containerData.systemSoftContainerId!" 
-                  title="内存使用" 
-                  data-type="memory" 
-                />
-              </div>
-            </div>
-            <div class="chart-row">
-              <div class="chart-item">
-                <ContainerRealtimeChart 
-                  :container-id="containerData.systemSoftContainerId!" 
-                  title="磁盘读取" 
-                  data-type="diskRead" 
-                />
-              </div>
-              <div class="chart-item">
-                <ContainerRealtimeChart 
-                  :container-id="containerData.systemSoftContainerId!" 
-                  title="磁盘写入" 
-                  data-type="diskWrite" 
+                <ContainerRealtimeChart
+                  :container-id="containerData.systemSoftContainerId!"
+                  title="内存使用"
+                  data-type="memory"
                 />
               </div>
             </div>
             <div class="chart-row">
               <div class="chart-item">
-                <ContainerRealtimeChart 
-                  :container-id="containerData.systemSoftContainerId!" 
-                  title="网络接收" 
-                  data-type="networkRx" 
+                <ContainerRealtimeChart
+                  :container-id="containerData.systemSoftContainerId!"
+                  title="磁盘读取"
+                  data-type="diskRead"
                 />
               </div>
               <div class="chart-item">
-                <ContainerRealtimeChart 
-                  :container-id="containerData.systemSoftContainerId!" 
-                  title="网络发送" 
-                  data-type="networkTx" 
+                <ContainerRealtimeChart
+                  :container-id="containerData.systemSoftContainerId!"
+                  title="磁盘写入"
+                  data-type="diskWrite"
+                />
+              </div>
+            </div>
+            <div class="chart-row">
+              <div class="chart-item">
+                <ContainerRealtimeChart
+                  :container-id="containerData.systemSoftContainerId!"
+                  title="网络接收"
+                  data-type="networkRx"
+                />
+              </div>
+              <div class="chart-item">
+                <ContainerRealtimeChart
+                  :container-id="containerData.systemSoftContainerId!"
+                  title="网络发送"
+                  data-type="networkTx"
                 />
               </div>
             </div>
@@ -274,11 +376,11 @@
         </el-tab-pane>
       </el-tabs>
     </div>
-    
+
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" @click="handleRefresh" :loading="refreshing">
+        <el-button type="primary" :loading="refreshing" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新数据
         </el-button>
@@ -288,139 +390,153 @@
 </template>
 
 <script setup lang="ts">
-import { containerApi, type SystemSoftContainer } from '@/api/docker'
+import { containerApi, type SystemSoftContainer } from "@/api/docker";
 import { message } from "@repo/utils";
-import { computed, ref, watch } from 'vue'
-import ContainerRealtimeChart from '../../monitoring/components/ContainerRealtimeChart.vue'
+import { computed, ref, watch } from "vue";
+import ContainerRealtimeChart from "../../monitoring/components/ContainerRealtimeChart.vue";
 
 interface Props {
-  visible: boolean
-  containerData?: SystemSoftContainer | null
+  visible: boolean;
+  containerData?: SystemSoftContainer | null;
 }
 
 interface Emits {
-  (e: 'update:visible', value: boolean): void
+  (e: "update:visible", value: boolean): void;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
-const activeTab = ref('basic')
-const refreshing = ref(false)
+const activeTab = ref("basic");
+const refreshing = ref(false);
 
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (value) => emit('update:visible', value)
-})
+  set: (value) => emit("update:visible", value),
+});
 
 // 监听对话框打开
 watch(dialogVisible, (visible) => {
   if (visible) {
-    activeTab.value = 'basic'
+    activeTab.value = "basic";
   }
-})
+});
 
 // 工具函数
 const getStatusType = (status?: string) => {
-  const map = { running: 'success', stopped: 'warning', paused: 'info', restarting: 'warning', error: 'danger' }
-  return map[status] || 'info'
-}
+  const map = {
+    running: "success",
+    stopped: "warning",
+    paused: "info",
+    restarting: "warning",
+    error: "danger",
+  };
+  return map[status] || "info";
+};
 
 const getStatusText = (status?: string) => {
-  const map = { running: '运行中', stopped: '已停止', paused: '暂停', restarting: '重启中', error: '错误' }
-  return map[status] || '未知'
-}
+  const map = {
+    running: "运行中",
+    stopped: "已停止",
+    paused: "暂停",
+    restarting: "重启中",
+    error: "错误",
+  };
+  return map[status] || "未知";
+};
 
 const getUsageColor = (percentage: number) => {
-  if (percentage < 50) return '#67c23a'
-  if (percentage < 80) return '#e6a23c'
-  return '#f56c6c'
-}
+  if (percentage < 50) return "#67c23a";
+  if (percentage < 80) return "#e6a23c";
+  return "#f56c6c";
+};
 
 const formatTime = (time?: string) => {
-  if (!time) return '-'
-  return new Date(time).toLocaleString()
-}
+  if (!time) return "-";
+  return new Date(time).toLocaleString();
+};
 
 const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
 
 const parsePortMappings = (ports?: string) => {
-  if (!ports) return []
+  if (!ports) return [];
   try {
-    const mappings = JSON.parse(ports)
+    const mappings = JSON.parse(ports);
     if (Array.isArray(mappings)) {
-      return mappings.map(p => `${p.hostPort}:${p.containerPort}`)
+      return mappings.map((p) => `${p.hostPort}:${p.containerPort}`);
     }
-    return []
+    return [];
   } catch {
-    return ports.split(',').filter(Boolean)
+    return ports.split(",").filter(Boolean);
   }
-}
+};
 
 const parseVolumes = (volumes?: string) => {
-  if (!volumes) return []
+  if (!volumes) return [];
   try {
-    const volumeList = JSON.parse(volumes)
-    return Array.isArray(volumeList) ? volumeList : []
+    const volumeList = JSON.parse(volumes);
+    return Array.isArray(volumeList) ? volumeList : [];
   } catch {
-    return volumes.split(',').filter(Boolean)
+    return volumes.split(",").filter(Boolean);
   }
-}
+};
 
 const formatEnvVars = (envVars?: string) => {
-  if (!envVars) return '暂无环境变量'
+  if (!envVars) return "暂无环境变量";
   try {
-    const vars = JSON.parse(envVars)
-    if (typeof vars === 'object') {
+    const vars = JSON.parse(envVars);
+    if (typeof vars === "object") {
       return Object.entries(vars)
         .map(([key, value]) => `${key}=${value}`)
-        .join('\n')
+        .join("\n");
     }
-    return envVars
+    return envVars;
   } catch {
-    return envVars
+    return envVars;
   }
-}
+};
 
 const formatJson = (jsonStr?: string) => {
-  if (!jsonStr) return '{}'
+  if (!jsonStr) return "{}";
   try {
-    const obj = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr
-    return JSON.stringify(obj, null, 2)
+    const obj = typeof jsonStr === "string" ? JSON.parse(jsonStr) : jsonStr;
+    return JSON.stringify(obj, null, 2);
   } catch {
-    return jsonStr
+    return jsonStr;
   }
-}
+};
 
 const handleRefresh = async () => {
-  if (!props.containerData?.systemSoftContainerId) return
-  
+  if (!props.containerData?.systemSoftContainerId) return;
+
   try {
-    refreshing.value = true
+    refreshing.value = true;
     // 修复方法调用错误，使用正确的API方法
-    const response = await containerApi.getContainerById(props.containerData.systemSoftContainerId)
-    if (response.code === '00000') {
-      message('容器数据已刷新', { type: "success" })
+    const response = await containerApi.getContainerById(
+      props.containerData.systemSoftContainerId,
+    );
+    if (response.code === "00000") {
+      message("容器数据已刷新", { type: "success" });
       // 这里可以触发父组件更新数据
     } else {
-      message(response.message || '刷新失败', { type: "error" })
+      message(response.message || "刷新失败", { type: "error" });
     }
   } catch (error) {
-    message('刷新容器数据失败', { type: "error" })
+    message("刷新容器数据失败", { type: "error" });
   } finally {
-    refreshing.value = false
+    refreshing.value = false;
   }
-}
+};
 
 const handleClose = () => {
-  dialogVisible.value = false
-}
+  dialogVisible.value = false;
+};
 </script>
 
 <style scoped lang="scss">
@@ -437,7 +553,9 @@ const handleClose = () => {
   font-size: 12px;
 }
 
-.network-section, .environment-section, .volumes-section {
+.network-section,
+.environment-section,
+.volumes-section {
   padding: 16px 0;
 }
 
@@ -461,12 +579,14 @@ const handleClose = () => {
   margin-bottom: 8px;
 }
 
-.port-tag, .volume-tag {
+.port-tag,
+.volume-tag {
   font-family: monospace;
   font-size: 12px;
 }
 
-.network-mode, .ip-address {
+.network-mode,
+.ip-address {
   padding: 8px 12px;
   background: #f8f9fa;
   border-radius: 4px;
@@ -531,14 +651,15 @@ const handleClose = () => {
   font-size: 14px;
 }
 
-.env-vars, .volumes-list {
+.env-vars,
+.volumes-list {
   background: #f8f9fa;
   border-radius: 8px;
   padding: 16px;
 }
 
 .env-code {
-  font-family: 'Consolas', 'Monaco', 'Menlo', monospace;
+  font-family: "Consolas", "Monaco", "Menlo", monospace;
   font-size: 12px;
   line-height: 1.6;
   color: #303133;
@@ -573,7 +694,7 @@ const handleClose = () => {
 }
 
 .config-code {
-  font-family: 'Consolas', 'Monaco', 'Menlo', monospace;
+  font-family: "Consolas", "Monaco", "Menlo", monospace;
   font-size: 12px;
   line-height: 1.6;
   color: #303133;
@@ -613,7 +734,7 @@ const handleClose = () => {
   .resources-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .chart-row {
     flex-direction: column;
   }

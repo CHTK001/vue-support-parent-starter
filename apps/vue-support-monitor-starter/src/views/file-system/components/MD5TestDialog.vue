@@ -17,7 +17,9 @@
           <IconifyIconOnline icon="ri:file-upload-line" class="upload-icon" />
           <div class="upload-text">
             <p>选择文件测试MD5计算</p>
-            <p class="text-sm text-[var(--el-text-color-regular)]">支持任意文件类型</p>
+            <p class="text-sm text-[var(--el-text-color-regular)]">
+              支持任意文件类型
+            </p>
           </div>
         </div>
       </el-upload>
@@ -25,9 +27,14 @@
       <div v-if="selectedFile" class="file-info">
         <h4>文件信息</h4>
         <p><strong>文件名:</strong> {{ selectedFile.name }}</p>
-        <p><strong>文件大小:</strong> {{ formatFileSize(selectedFile.size) }}</p>
-        <p><strong>文件类型:</strong> {{ selectedFile.type || '未知' }}</p>
-        <p><strong>最后修改:</strong> {{ new Date(selectedFile.lastModified).toLocaleString() }}</p>
+        <p>
+          <strong>文件大小:</strong> {{ formatFileSize(selectedFile.size) }}
+        </p>
+        <p><strong>文件类型:</strong> {{ selectedFile.type || "未知" }}</p>
+        <p>
+          <strong>最后修改:</strong>
+          {{ new Date(selectedFile.lastModified).toLocaleString() }}
+        </p>
       </div>
 
       <div v-if="isCalculating" class="calculating">
@@ -37,17 +44,17 @@
 
       <div v-if="results.length" class="results">
         <h4>计算结果</h4>
-        <div v-for="(result, index) in results" :key="index" class="result-item">
+        <div
+          v-for="(result, index) in results"
+          :key="index"
+          class="result-item"
+        >
           <div class="result-header">
             <strong>{{ result.method }}</strong>
             <span class="time">{{ result.time }}ms</span>
           </div>
           <div class="result-hash">
-            <el-input
-              :value="result.hash"
-              readonly
-              size="small"
-            >
+            <el-input :value="result.hash" readonly size="small">
               <template #append>
                 <el-button @click="copyToClipboard(result.hash)">
                   <IconifyIconOnline icon="ri:file-copy-line" />
@@ -59,7 +66,12 @@
       </div>
 
       <div class="actions">
-        <el-button v-if="selectedFile" type="primary" @click="calculateMD5" :loading="isCalculating">
+        <el-button
+          v-if="selectedFile"
+          type="primary"
+          :loading="isCalculating"
+          @click="calculateMD5"
+        >
           计算MD5
         </el-button>
         <el-button @click="clearResults">清空结果</el-button>
@@ -92,11 +104,13 @@ const visible = computed({
 const selectedFile = ref<File | null>(null);
 const isCalculating = ref(false);
 const progress = ref(0);
-const results = ref<Array<{
-  method: string;
-  hash: string;
-  time: number;
-}>>([]);
+const results = ref<
+  Array<{
+    method: string;
+    hash: string;
+    time: number;
+  }>
+>([]);
 
 /**
  * 处理文件选择
@@ -120,7 +134,7 @@ const calculateStandardMD5 = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     const spark = new SparkMD5.ArrayBuffer();
-    
+
     reader.onload = (e) => {
       try {
         spark.append(e.target?.result as ArrayBuffer);
@@ -130,7 +144,7 @@ const calculateStandardMD5 = async (file: File): Promise<string> => {
         reject(error);
       }
     };
-    
+
     reader.onerror = () => reject(new Error("读取文件失败"));
     reader.readAsArrayBuffer(file);
   });
@@ -151,7 +165,7 @@ const calculateChunkedMD5 = async (file: File): Promise<string> => {
       const start = currentChunk * chunkSize;
       const end = Math.min(start + chunkSize, file.size);
       const chunk = file.slice(start, end);
-      
+
       fileReader.readAsArrayBuffer(chunk);
     };
 
@@ -159,7 +173,7 @@ const calculateChunkedMD5 = async (file: File): Promise<string> => {
       try {
         spark.append(e.target?.result as ArrayBuffer);
         currentChunk++;
-        
+
         // 更新进度
         progress.value = Math.round((currentChunk / chunks) * 100);
 
@@ -194,11 +208,11 @@ const calculateMD5 = async () => {
     const startTime1 = Date.now();
     const hash1 = await calculateStandardMD5(selectedFile.value);
     const time1 = Date.now() - startTime1;
-    
+
     results.value.push({
       method: "标准方法",
       hash: hash1,
-      time: time1
+      time: time1,
     });
 
     // 分片方法
@@ -206,11 +220,11 @@ const calculateMD5 = async () => {
     const startTime2 = Date.now();
     const hash2 = await calculateChunkedMD5(selectedFile.value);
     const time2 = Date.now() - startTime2;
-    
+
     results.value.push({
       method: "分片方法",
       hash: hash2,
-      time: time2
+      time: time2,
     });
 
     // 验证结果一致性
@@ -219,7 +233,6 @@ const calculateMD5 = async () => {
     } else {
       message("警告：两种方法计算结果不一致！", { type: "error" });
     }
-
   } catch (error) {
     console.error("MD5计算失败:", error);
     message("MD5计算失败", { type: "error" });
@@ -320,7 +333,7 @@ const clearResults = () => {
         margin-bottom: 8px;
 
         .time {
-           color: var(--el-text-color-primary);
+          color: var(--el-text-color-primary);
           font-size: 12px;
         }
       }
@@ -341,7 +354,6 @@ const clearResults = () => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -350,5 +362,4 @@ const clearResults = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

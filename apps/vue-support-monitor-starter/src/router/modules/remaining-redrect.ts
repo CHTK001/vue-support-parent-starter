@@ -8,13 +8,13 @@ export default {
   meta: {
     title: $t("status.pureLoad"),
     showLink: false,
-    rank: 102
+    rank: 102,
   },
   children: [
     {
       path: "/redirect/:path(.*)",
       name: "Redirect",
-      component: () => import("@repo/pages/layout/redirect.vue")
-    }
-  ]
+      component: () => import("@repo/pages/layout/redirect.vue"),
+    },
+  ],
 } satisfies RouteConfigsTable;

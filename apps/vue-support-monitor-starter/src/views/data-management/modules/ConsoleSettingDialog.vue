@@ -1,5 +1,11 @@
 ﻿<template>
-  <sc-dialog v-model="visibleLocal" title="控制台权限设置" width="520px" @close="handleClose" class="data-console-setting-dialog">
+  <sc-dialog
+    v-model="visibleLocal"
+    title="控制台权限设置"
+    width="520px"
+    class="data-console-setting-dialog"
+    @close="handleClose"
+  >
     <div v-if="isJdbc" class="section">
       <div class="section-title">JDBC 控制台</div>
       <el-form label-width="140px">
@@ -40,95 +46,145 @@
       </el-form>
     </div>
     <template #footer>
-      <el-button @click="visibleLocal=false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+      <el-button @click="visibleLocal = false">取消</el-button>
+      <el-button type="primary" :loading="saving" @click="handleSave"
+        >保存</el-button
+      >
     </template>
   </sc-dialog>
 </template>
 <script setup lang="ts">
-import { computed,ref, watch, reactive } from 'vue'
-import { getConsoleConfig, saveConsoleConfig } from '@/api/data-management/system-data'
+import { computed, ref, watch, reactive } from "vue";
+import {
+  getConsoleConfig,
+  saveConsoleConfig,
+} from "@/api/data-management/system-data";
 
-const props = defineProps<{ modelValue: boolean; settingId: number | null; settingType?: string }>()
-const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'saved'): void }>()
+const props = defineProps<{
+  modelValue: boolean;
+  settingId: number | null;
+  settingType?: string;
+}>();
+const emit = defineEmits<{
+  (e: "update:modelValue", v: boolean): void;
+  (e: "saved"): void;
+}>();
 
-const visibleLocal = ref(false)
-const saving = ref(false)
+const visibleLocal = ref(false);
+const saving = ref(false);
 
 interface ConsoleConfig {
   jdbc: {
-    viewTableStructure: boolean
-    copyTableName: boolean
-    copyCreateTable: boolean
-    addFieldComment: boolean
-  }
+    viewTableStructure: boolean;
+    copyTableName: boolean;
+    copyCreateTable: boolean;
+    addFieldComment: boolean;
+  };
   redis: {
-    copyKeyName: boolean
-    viewTtl: boolean
-  }
+    copyKeyName: boolean;
+    viewTtl: boolean;
+  };
   zk: {
-    createNode: boolean
-    deleteNode: boolean
-  }
+    createNode: boolean;
+    deleteNode: boolean;
+  };
 }
 
 const form = reactive<ConsoleConfig>({
-  jdbc: { viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true },
+  jdbc: {
+    viewTableStructure: true,
+    copyTableName: true,
+    copyCreateTable: false,
+    addFieldComment: true,
+  },
   redis: { copyKeyName: true, viewTtl: true },
   zk: { createNode: false, deleteNode: false },
-})
+});
 
-const isJdbc = computed(() => (props.settingType || '').toLowerCase().includes('jdbc') || (props.settingType || '').toLowerCase().includes('sql'))
-const isRedis = computed(() => (props.settingType || '').toLowerCase().includes('redis'))
-const isZk = computed(() => (props.settingType || '').toLowerCase().includes('zk') || (props.settingType || '').toLowerCase().includes('zookeeper'))
+const isJdbc = computed(
+  () =>
+    (props.settingType || "").toLowerCase().includes("jdbc") ||
+    (props.settingType || "").toLowerCase().includes("sql"),
+);
+const isRedis = computed(() =>
+  (props.settingType || "").toLowerCase().includes("redis"),
+);
+const isZk = computed(
+  () =>
+    (props.settingType || "").toLowerCase().includes("zk") ||
+    (props.settingType || "").toLowerCase().includes("zookeeper"),
+);
 
 watch(
   () => props.modelValue,
   async (v) => {
-    visibleLocal.value = v
+    visibleLocal.value = v;
     if (v && props.settingId) {
-      const res = await getConsoleConfig(props.settingId)
-      const text = res?.data as string | undefined
+      const res = await getConsoleConfig(props.settingId);
+      const text = res?.data as string | undefined;
       if (text) {
         try {
-          const cfg = JSON.parse(text)
-          form.jdbc = Object.assign({ viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true }, cfg?.jdbc || {})
-          form.redis = Object.assign({ copyKeyName: true, viewTtl: true }, cfg?.redis || {})
-          form.zk = Object.assign({ createNode: false, deleteNode: false }, cfg?.zk || {})
+          const cfg = JSON.parse(text);
+          form.jdbc = Object.assign(
+            {
+              viewTableStructure: true,
+              copyTableName: true,
+              copyCreateTable: false,
+              addFieldComment: true,
+            },
+            cfg?.jdbc || {},
+          );
+          form.redis = Object.assign(
+            { copyKeyName: true, viewTtl: true },
+            cfg?.redis || {},
+          );
+          form.zk = Object.assign(
+            { createNode: false, deleteNode: false },
+            cfg?.zk || {},
+          );
         } catch (_) {
           // ignore parse error, keep default
         }
       }
     }
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 function handleClose() {
-  emit('update:modelValue', false)
+  emit("update:modelValue", false);
 }
 
 async function handleSave() {
-  if (!props.settingId) return
-  saving.value = true
+  if (!props.settingId) return;
+  saving.value = true;
   try {
-    const cfg: ConsoleConfig = { jdbc: { ...form.jdbc }, redis: { ...form.redis }, zk: { ...form.zk } }
-    await saveConsoleConfig(props.settingId, cfg)
-    emit('saved')
-    emit('update:modelValue', false)
+    const cfg: ConsoleConfig = {
+      jdbc: { ...form.jdbc },
+      redis: { ...form.redis },
+      zk: { ...form.zk },
+    };
+    await saveConsoleConfig(props.settingId, cfg);
+    emit("saved");
+    emit("update:modelValue", false);
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 </script>
 <style scoped lang="scss">
-.section { padding: 8px 4px }
-.section-title { font-weight: 600; color: var(--el-text-color-regular); margin-bottom: 8px }
+.section {
+  padding: 8px 4px;
+}
+.section-title {
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  margin-bottom: 8px;
+}
 .data-console-setting-dialog :deep(.el-dialog__body) {
   padding-left: 24px;
   padding-right: 24px;
 }
-
 
 /* 响应式设计 */
 @media (max-width: 768px) {
@@ -138,6 +194,4 @@ async function handleSave() {
     padding: 12px 16px;
   }
 }
-
 </style>
-

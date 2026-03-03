@@ -133,7 +133,7 @@ export const getFileSystemPage = (params: any) => {
   return http.request<ReturnPageResult<FileSystem>>(
     "get",
     "/v1/filesystem/page",
-    { params }
+    { params },
   );
 };
 
@@ -143,7 +143,7 @@ export const getFileSystemPage = (params: any) => {
 export const getFileStatistics = () => {
   return http.request<ReturnResult<FileStatistics>>(
     "get",
-    "/v1/filesystem/statistics"
+    "/v1/filesystem/statistics",
   );
 };
 
@@ -182,7 +182,7 @@ export const initChunkUpload = (data: {
         chunkSize: data.chunkSize,
         groupId: data.groupId,
       },
-    }
+    },
   );
 };
 
@@ -198,7 +198,7 @@ export const uploadChunk = (data: FormData) => {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    }
+    },
   );
 };
 
@@ -224,7 +224,7 @@ export const checkUploadStatus = (fileId: number) => {
 export const manualMergeFile = (fileId: number) => {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/v1/filesystem/manual-merge/${fileId}`
+    `/v1/filesystem/manual-merge/${fileId}`,
   );
 };
 
@@ -234,7 +234,7 @@ export const manualMergeFile = (fileId: number) => {
 export const deleteFile = (fileId: number) => {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    `/v1/filesystem/${fileId}`
+    `/v1/filesystem/${fileId}`,
   );
 };
 
@@ -277,7 +277,7 @@ export const distributeFileSystemFile = (data: {
 export const getHttpAccessUrl = (fileId: number) => {
   return http.request<ReturnResult<string>>(
     "get",
-    `/v1/filesystem/http-url/${fileId}`
+    `/v1/filesystem/http-url/${fileId}`,
   );
 };
 
@@ -290,7 +290,7 @@ export const toggleHttpAccess = (fileId: number, enabled: boolean) => {
     `/v1/filesystem/http-access/${fileId}`,
     {
       params: { enabled },
-    }
+    },
   );
 };
 
@@ -300,7 +300,7 @@ export const toggleHttpAccess = (fileId: number, enabled: boolean) => {
 export const cleanExpiredFiles = () => {
   return http.request<ReturnResult<number>>(
     "delete",
-    "/v1/filesystem/clean-expired"
+    "/v1/filesystem/clean-expired",
   );
 };
 
@@ -310,7 +310,7 @@ export const cleanExpiredFiles = () => {
 export const retryMergeTask = (fileId: number) => {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/v1/filesystem/retry-merge/${fileId}`
+    `/v1/filesystem/retry-merge/${fileId}`,
   );
 };
 
@@ -320,7 +320,7 @@ export const retryMergeTask = (fileId: number) => {
 export const getFileSystemConfig = () => {
   return http.request<ReturnResult<FileSystemSetting>>(
     "get",
-    "/v1/filesystem/config"
+    "/v1/filesystem/config",
   );
 };
 
@@ -339,7 +339,7 @@ export const updateFileSystemConfig = (config: Partial<FileSystemSetting>) => {
 export const getFileSystemRealtimeStatus = () => {
   return http.request<ReturnResult<FileSystemRealtimeStatus>>(
     "get",
-    "/v1/filesystem/realtime-status"
+    "/v1/filesystem/realtime-status",
   );
 };
 
@@ -349,7 +349,7 @@ export const getFileSystemRealtimeStatus = () => {
 export const getFileDetail = (fileId: number) => {
   return http.request<ReturnResult<FileSystem>>(
     "get",
-    `/v1/filesystem/${fileId}`
+    `/v1/filesystem/${fileId}`,
   );
 };
 
@@ -362,7 +362,7 @@ export const checkFileExists = (fileMd5: string) => {
     "/v1/filesystem/check-exists",
     {
       params: { fileMd5 },
-    }
+    },
   );
 };
 
@@ -372,7 +372,7 @@ export const checkFileExists = (fileMd5: string) => {
 export const getSystemDrives = () => {
   return http.request<ReturnResult<DriveInfo[]>>(
     "get",
-    "/v1/system-info/drives"
+    "/v1/system-info/drives",
   );
 };
 
@@ -381,13 +381,13 @@ export const getSystemDrives = () => {
  */
 export const getDirectories = (
   path: string,
-  includeHidden: boolean = false
+  includeHidden: boolean = false,
 ) => {
   return http.request<ReturnResult<DirectoryInfo[]>>(
     "get",
     "/v1/system-info/directories",
     {
       params: { path, includeHidden },
-    }
+    },
   );
 };

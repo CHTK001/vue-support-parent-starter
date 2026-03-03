@@ -14,7 +14,6 @@ import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import { vitePluginFakeServer } from "vite-plugin-fake-server";
 import { prismjsPlugin } from "vite-plugin-prismjs";
 import { codeInspectorPlugin } from "code-inspector-plugin";
-import topLevelAwait from "vite-plugin-top-level-await";
 import svgLoader from "vite-svg-loader";
 import removeNoMatch from "vite-plugin-router-warn";
 import {
@@ -127,11 +126,6 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     vue(),
     // jsx、tsx语法支持
     vueJsx(),
-    // WASM 顶层 await 支持
-    topLevelAwait({
-      promiseExportName: "__tla",
-      promiseImportName: (i) => `__tla_${i}`,
-    }),
     prismjsPlugin({
       languages: "all",
       plugins: [

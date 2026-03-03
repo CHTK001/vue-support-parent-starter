@@ -228,19 +228,19 @@
               <div class="card-actions">
                 <el-button-group size="small">
                   <el-button
-                    @click.stop="openNodeDocumentation(row)"
                     title="API文档"
+                    @click.stop="openNodeDocumentation(row)"
                   >
                     <IconifyIconOnline icon="ri:file-text-line" />
                   </el-button>
                   <el-button
-                    @click.stop="handleCheckNodeHealth(row)"
                     :loading="nodeCheckingStatus[row.nodeId]"
                     title="健康检查"
+                    @click.stop="handleCheckNodeHealth(row)"
                   >
                     <IconifyIconOnline icon="ri:stethoscope-line" />
                   </el-button>
-                  <el-button @click.stop="viewNodeDetail(row)" title="查看详情">
+                  <el-button title="查看详情" @click.stop="viewNodeDetail(row)">
                     <IconifyIconOnline icon="ri:eye-line" />
                   </el-button>
                 </el-button-group>
@@ -295,10 +295,7 @@
     />
 
     <!-- URL QPS 统计组件 -->
-    <UrlQps
-      v-model="showUrlQpsDialog"
-      :node-info="selectedNodeForUrlQps"
-    />
+    <UrlQps v-model="showUrlQpsDialog" :node-info="selectedNodeForUrlQps" />
   </div>
 </template>
 
@@ -423,14 +420,14 @@ const getNodePageList = async (params: any) => {
             (node.nodeName && node.nodeName.toLowerCase().includes(keyword)) ||
             (node.applicationName &&
               node.applicationName.toLowerCase().includes(keyword)) ||
-            (node.ipAddress && node.ipAddress.toLowerCase().includes(keyword))
+            (node.ipAddress && node.ipAddress.toLowerCase().includes(keyword)),
         );
       }
 
       // 应用名称筛选
       if (params.applicationName) {
         data = data.filter(
-          (node) => node.applicationName === params.applicationName
+          (node) => node.applicationName === params.applicationName,
         );
       }
 
@@ -585,14 +582,14 @@ const filterByStatus = (status: string) => {
 const getOnlineRate = () => {
   if (nodeStats.value.totalNodes === 0) return 0;
   return Math.round(
-    (nodeStats.value.onlineNodes / nodeStats.value.totalNodes) * 100
+    (nodeStats.value.onlineNodes / nodeStats.value.totalNodes) * 100,
   );
 };
 
 const getHealthRate = () => {
   if (nodeStats.value.totalNodes === 0) return 0;
   return Math.round(
-    (nodeStats.value.healthyNodes / nodeStats.value.totalNodes) * 100
+    (nodeStats.value.healthyNodes / nodeStats.value.totalNodes) * 100,
   );
 };
 
@@ -849,7 +846,7 @@ const handleCheckNodeHealth = async (node: OnlineNodeInfo) => {
     const response = await apiCheckNodeHealth(node.ipAddress, node.port);
     if (response.code === "00000") {
       message.success(
-        `节点 ${node.nodeName || node.applicationName} 健康检查通过`
+        `节点 ${node.nodeName || node.applicationName} 健康检查通过`,
       );
     } else {
       message.warning(`节点健康检查失败: ${response.msg}`);
@@ -869,7 +866,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -902,7 +898,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .node-management-container {
   padding: 16px;

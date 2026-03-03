@@ -18,18 +18,24 @@
           <div class="header-text">
             <h3>MyBatis 配置</h3>
             <p v-if="nodeInfo">
-              <span class="node-name">{{ nodeInfo.nodeName || nodeInfo.applicationName }}</span>
-              <span class="node-address">{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
+              <span class="node-name">{{
+                nodeInfo.nodeName || nodeInfo.applicationName
+              }}</span>
+              <span class="node-address"
+                >{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span
+              >
             </p>
           </div>
         </div>
-        <div class="header-stats" v-if="statistics">
+        <div v-if="statistics" class="header-stats">
           <div class="stat-item">
             <span class="stat-value">{{ statistics.mapperCount || 0 }}</span>
             <span class="stat-label">Mapper</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">{{ statistics.mappedStatementCount || 0 }}</span>
+            <span class="stat-value">{{
+              statistics.mappedStatementCount || 0
+            }}</span>
             <span class="stat-label">SQL 语句</span>
           </div>
         </div>
@@ -50,7 +56,7 @@
               <IconifyIconOnline icon="ri:search-line" />
             </template>
           </el-input>
-          <span class="search-result" v-if="searchText">
+          <span v-if="searchText" class="search-result">
             找到 <strong>{{ filteredMappers.length }}</strong> 个
           </span>
         </div>
@@ -66,11 +72,7 @@
             </el-button>
           </el-tooltip>
           <el-tooltip content="刷新配置" placement="top">
-            <el-button
-              type="primary"
-              :loading="loading"
-              @click="handleRefresh"
-            >
+            <el-button type="primary" :loading="loading" @click="handleRefresh">
               <IconifyIconOnline v-if="!loading" icon="ri:refresh-line" />
             </el-button>
           </el-tooltip>
@@ -91,32 +93,57 @@
         >
           <el-table-column type="expand">
             <template #default="{ row }">
-              <div class="mapper-detail" v-if="row.statements && row.statements.length > 0">
+              <div
+                v-if="row.statements && row.statements.length > 0"
+                class="mapper-detail"
+              >
                 <div class="detail-header">
                   <span class="detail-title">SQL 语句列表</span>
-                  <el-tag size="small" type="info">{{ row.statements.length }} 个</el-tag>
+                  <el-tag size="small" type="info"
+                    >{{ row.statements.length }} 个</el-tag
+                  >
                 </div>
                 <el-table :data="row.statements" size="small" border>
-                  <el-table-column label="方法名" prop="methodName" min-width="180">
+                  <el-table-column
+                    label="方法名"
+                    prop="methodName"
+                    min-width="180"
+                  >
                     <template #default="{ row: stmt }">
                       <span class="method-name">{{ stmt.methodName }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column label="类型" prop="sqlCommandType" width="100" align="center">
+                  <el-table-column
+                    label="类型"
+                    prop="sqlCommandType"
+                    width="100"
+                    align="center"
+                  >
                     <template #default="{ row: stmt }">
-                      <el-tag :type="getSqlTypeTagType(stmt.sqlCommandType)" size="small">
+                      <el-tag
+                        :type="getSqlTypeTagType(stmt.sqlCommandType)"
+                        size="small"
+                      >
                         {{ stmt.sqlCommandType }}
                       </el-tag>
                     </template>
                   </el-table-column>
-                  <el-table-column label="返回类型" prop="resultType" min-width="200">
+                  <el-table-column
+                    label="返回类型"
+                    prop="resultType"
+                    min-width="200"
+                  >
                     <template #default="{ row: stmt }">
                       <span class="result-type" :title="stmt.resultType">
-                        {{ stmt.resultType || '-' }}
+                        {{ stmt.resultType || "-" }}
                       </span>
                     </template>
                   </el-table-column>
-                  <el-table-column label="资源文件" prop="resource" min-width="200">
+                  <el-table-column
+                    label="资源文件"
+                    prop="resource"
+                    min-width="200"
+                  >
                     <template #default="{ row: stmt }">
                       <span class="resource-path" :title="stmt.resource">
                         {{ getResourceFileName(stmt.resource) }}
@@ -125,7 +152,7 @@
                   </el-table-column>
                 </el-table>
               </div>
-              <div class="mapper-detail-empty" v-else>
+              <div v-else class="mapper-detail-empty">
                 <el-empty description="暂无 SQL 语句" :image-size="60" />
               </div>
             </template>
@@ -139,7 +166,9 @@
                 </div>
                 <div class="mapper-info">
                   <span class="mapper-simple-name">{{ row.simpleName }}</span>
-                  <span class="mapper-full-name" :title="row.name">{{ row.name }}</span>
+                  <span class="mapper-full-name" :title="row.name">{{
+                    row.name
+                  }}</span>
                 </div>
               </div>
             </template>
@@ -153,14 +182,19 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="180" align="center" fixed="right">
+          <el-table-column
+            label="操作"
+            width="180"
+            align="center"
+            fixed="right"
+          >
             <template #default="{ row }">
               <el-button
                 type="primary"
                 size="small"
                 :loading="row.loadingDetail"
-                @click="loadMapperDetail(row)"
                 plain
+                @click="loadMapperDetail(row)"
               >
                 查看详情
               </el-button>
@@ -168,8 +202,8 @@
                 type="warning"
                 size="small"
                 :loading="row.refreshing"
-                @click="handleRefreshXml(row)"
                 plain
+                @click="handleRefreshXml(row)"
               >
                 刷新
               </el-button>
@@ -240,7 +274,7 @@ const encodeNodeUrl = (ip: string, port: number): string => {
  * 获取 SQL 类型标签类型
  */
 const getSqlTypeTagType = (
-  type?: string
+  type?: string,
 ): "success" | "warning" | "info" | "primary" | "danger" | undefined => {
   switch (type) {
     case "SELECT":
@@ -301,7 +335,7 @@ const searchText = ref("");
 const filteredMappers = computed(() => {
   if (!searchText.value) return mappers.value;
   return mappers.value.filter((mapper) =>
-    mapper.name?.toLowerCase().includes(searchText.value.toLowerCase())
+    mapper.name?.toLowerCase().includes(searchText.value.toLowerCase()),
   );
 });
 
@@ -314,7 +348,7 @@ watch(
       loadStatistics();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听弹框显示状态
@@ -337,7 +371,7 @@ const loadMappers = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await getNodeMappers(encodedNodeUrl, searchText.value);
 
@@ -348,7 +382,9 @@ const loadMappers = async () => {
         refreshing: false,
       }));
     } else {
-      message.error("获取 Mapper 列表失败: " + ((response as any).msg || "未知错误"));
+      message.error(
+        "获取 Mapper 列表失败: " + ((response as any).msg || "未知错误"),
+      );
       mappers.value = [];
     }
   } catch (error) {
@@ -367,7 +403,7 @@ const loadStatistics = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await getMyBatisStatistics(encodedNodeUrl);
 
@@ -387,14 +423,16 @@ const loadMapperDetail = async (mapper: MapperInfo) => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await getMapperDetail(encodedNodeUrl, mapper.name);
 
     if (response.success && (response as any).data) {
       mapper.statements = (response as any).data.statements || [];
     } else {
-      message.error("获取 Mapper 详情失败: " + ((response as any).msg || "未知错误"));
+      message.error(
+        "获取 Mapper 详情失败: " + ((response as any).msg || "未知错误"),
+      );
     }
   } catch (error) {
     console.error("Load mapper detail error:", error);
@@ -422,7 +460,7 @@ const handleRefreshXml = async (mapper: MapperInfo) => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await refreshXml(encodedNodeUrl, resource);
 
@@ -448,13 +486,15 @@ const handleRefreshAllXml = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await refreshAllXml(encodedNodeUrl);
 
     if (response.success) {
       const data = (response as any).data || {};
-      message.success(`刷新完成: ${data.refreshedCount || 0}/${data.totalResources || 0}`);
+      message.success(
+        `刷新完成: ${data.refreshedCount || 0}/${data.totalResources || 0}`,
+      );
       await loadMappers();
     } else {
       message.error("刷新 XML 失败: " + ((response as any).msg || "未知错误"));
@@ -705,7 +745,6 @@ const handleClose = () => {
   gap: 10px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -714,5 +753,4 @@ const handleClose = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

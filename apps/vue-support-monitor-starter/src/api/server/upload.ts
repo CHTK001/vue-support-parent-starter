@@ -13,14 +13,14 @@ export function uploadServerFileWithProgress(
     scriptId?: number | string;
   },
   onUploadProgress?: (e: ProgressEvent) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ) {
   const formData = new FormData();
   formData.append("file", params.file);
-  
+
   // 添加其他参数
-  Object.keys(params).forEach(key => {
-    if (key !== 'file') {
+  Object.keys(params).forEach((key) => {
+    if (key !== "file") {
       const value = params[key as keyof typeof params];
       if (value !== undefined && value !== null) {
         formData.append(key, value.toString());
@@ -28,10 +28,14 @@ export function uploadServerFileWithProgress(
     }
   });
 
-  return http.post(getConfig().BaseUrl + "/v1/file-management/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-    timeout: 0,
-    onUploadProgress,
-    signal
-  });
+  return http.post(
+    getConfig().BaseUrl + "/v1/file-management/upload",
+    formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 0,
+      onUploadProgress,
+      signal,
+    },
+  );
 }

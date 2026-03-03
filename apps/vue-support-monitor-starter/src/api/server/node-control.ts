@@ -120,7 +120,7 @@ export const getLogFilesForNodeControl = (ipAddress: string, port: number) => {
     "/v1/node/control/log/files",
     {
       params: { ipAddress, port },
-    }
+    },
   );
 };
 
@@ -131,14 +131,14 @@ export const getLogContentForNodeControl = (
   ipAddress: string,
   port: number,
   logFile?: string,
-  lines?: number
+  lines?: number,
 ) => {
   return http.request<ReturnResult<string>>(
     "get",
     "/v1/node/control/log/content",
     {
       params: { ipAddress, port, logFile, lines: lines || 100 },
-    }
+    },
   );
 };
 
@@ -151,7 +151,7 @@ export const setLogLevelForNodeControl = (request: NodeControlRequest) => {
     "/v1/node/control/log/level",
     {
       data: request,
-    }
+    },
   );
 };
 
@@ -162,14 +162,14 @@ export const setLogLevelForNodeControl = (request: NodeControlRequest) => {
  */
 export const getEnvironmentForNodeControl = (
   ipAddress: string,
-  port: number
+  port: number,
 ) => {
   return http.request<ReturnResult<Record<string, unknown>>>(
     "get",
     "/v1/node/control/config/env",
     {
       params: { ipAddress, port },
-    }
+    },
   );
 };
 
@@ -179,14 +179,14 @@ export const getEnvironmentForNodeControl = (
 export const getConfigPropsForNodeControl = (
   ipAddress: string,
   port: number,
-  prefix?: string
+  prefix?: string,
 ) => {
   return http.request<ReturnResult<Record<string, unknown>>>(
     "get",
     "/v1/node/control/config/props",
     {
       params: { ipAddress, port, prefix },
-    }
+    },
   );
 };
 
@@ -195,14 +195,14 @@ export const getConfigPropsForNodeControl = (
  */
 export const getSystemInfoForNodeControl = (
   ipAddress: string,
-  port: number
+  port: number,
 ) => {
   return http.request<ReturnResult<Record<string, unknown>>>(
     "get",
     "/v1/node/control/config/system",
     {
       params: { ipAddress, port },
-    }
+    },
   );
 };
 
@@ -213,14 +213,14 @@ export const getSystemInfoForNodeControl = (
  */
 export const getNodeMetricsForNodeControl = (
   ipAddress: string,
-  port: number
+  port: number,
 ) => {
   return http.request<ReturnResult<NodeMetricsDTO>>(
     "get",
     "/v1/node/control/metrics",
     {
       params: { ipAddress, port },
-    }
+    },
   );
 };
 
@@ -230,14 +230,14 @@ export const getNodeMetricsForNodeControl = (
 export const getNodeMetricsHistoryForNodeControl = (
   ipAddress: string,
   port: number,
-  minutes?: number
+  minutes?: number,
 ) => {
   return http.request<ReturnResult<NodeMetricsDTO[]>>(
     "get",
     "/v1/node/control/metrics/history",
     {
       params: { ipAddress, port, minutes: minutes || 30 },
-    }
+    },
   );
 };
 
@@ -252,7 +252,7 @@ export const restartNodeForNodeControl = (ipAddress: string, port: number) => {
     "/v1/node/control/restart",
     {
       params: { ipAddress, port },
-    }
+    },
   );
 };
 
@@ -265,7 +265,7 @@ export const shutdownNodeForNodeControl = (ipAddress: string, port: number) => {
     "/v1/node/control/shutdown",
     {
       params: { ipAddress, port },
-    }
+    },
   );
 };
 
@@ -275,14 +275,14 @@ export const shutdownNodeForNodeControl = (ipAddress: string, port: number) => {
  * 发送控制命令
  */
 export const sendControlCommandForNodeControl = (
-  request: NodeControlRequest
+  request: NodeControlRequest,
 ) => {
   return http.request<ReturnResult<unknown>>(
     "post",
     "/v1/node/control/command",
     {
       data: request,
-    }
+    },
   );
 };
 

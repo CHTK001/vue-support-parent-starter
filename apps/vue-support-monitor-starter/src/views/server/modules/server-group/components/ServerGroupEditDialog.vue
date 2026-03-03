@@ -77,7 +77,7 @@
                 :style="{
                   backgroundColor: formData.monitorSysGenServerGroupColor,
                 }"
-              ></span>
+              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -280,7 +280,7 @@ const rules = {
             ", 排除ID:",
             excludeId,
             ", 模式:",
-            mode.value
+            mode.value,
           );
           const result = await checkGroupNameExists(value, excludeId);
           console.log("[分组名称校验] 校验结果:", result);
@@ -386,7 +386,7 @@ const handleSubmit = async () => {
       emit("success");
     } else {
       message.error(
-        result.message || `${mode.value === "add" ? "新增" : "编辑"}分组失败`
+        result.message || `${mode.value === "add" ? "新增" : "编辑"}分组失败`,
       );
     }
   } catch (error) {
@@ -499,7 +499,6 @@ defineExpose({
   gap: 12px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -508,5 +507,4 @@ defineExpose({
     padding: 12px 16px;
   }
 }
-
 </style>

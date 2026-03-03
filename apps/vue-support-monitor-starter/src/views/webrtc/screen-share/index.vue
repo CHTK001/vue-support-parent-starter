@@ -3,19 +3,23 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/webrtc' }">WebRTC管理</el-breadcrumb-item>
+        <el-breadcrumb-item :to="{ path: '/webrtc' }"
+          >WebRTC管理</el-breadcrumb-item
+        >
         <el-breadcrumb-item>屏幕共享</el-breadcrumb-item>
       </el-breadcrumb>
     </div>
 
     <!-- 共享界面 -->
-    <div class="share-interface" v-if="isSharing">
+    <div v-if="isSharing" class="share-interface">
       <!-- 共享信息栏 -->
       <div class="share-info-bar">
         <div class="share-status">
           <el-icon class="sharing-icon"><Monitor /></el-icon>
           <span class="status-text">正在共享屏幕</span>
-          <el-tag type="success" size="small">{{ shareType === 'screen' ? '整个屏幕' : '应用窗口' }}</el-tag>
+          <el-tag type="success" size="small">{{
+            shareType === "screen" ? "整个屏幕" : "应用窗口"
+          }}</el-tag>
         </div>
         <div class="share-time">
           <span>{{ formatDuration(shareDuration) }}</span>
@@ -27,7 +31,7 @@
           </el-button>
           <el-button type="warning" size="small" @click="pauseShare">
             <el-icon><VideoPause /></el-icon>
-            {{ isPaused ? '恢复' : '暂停' }}
+            {{ isPaused ? "恢复" : "暂停" }}
           </el-button>
           <el-button type="danger" size="small" @click="stopShare">
             <el-icon><VideoPlay /></el-icon>
@@ -45,19 +49,19 @@
             autoplay
             muted
             playsinline
-          ></video>
+          />
           <div class="preview-overlay">
             <div class="preview-info">
               <span>预览窗口</span>
               <el-button type="text" @click="togglePreview">
-                <el-icon><{{ showPreview ? 'Hide' : 'View' }} /></el-icon>
+                <el-icon><{{ showPreview ? "Hide" : "View" }} /></el-icon>
               </el-button>
             </div>
           </div>
         </div>
-        
+
         <!-- 观看者列表 -->
-        <div class="viewers-panel" v-if="showViewers">
+        <div v-if="showViewers" class="viewers-panel">
           <div class="panel-header">
             <span>观看者列表</span>
             <el-button type="text" @click="showViewers = false">
@@ -96,34 +100,28 @@
             circle
             @click="toggleAudio"
           >
-            <el-icon><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else /></el-icon>
+            <el-icon
+              ><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else
+            /></el-icon>
           </el-button>
-          
-          <el-button
-            type="warning"
-            size="large"
-            circle
-            @click="pauseShare"
-          >
-            <el-icon><VideoPause v-if="!isPaused" /><VideoPlay v-else /></el-icon>
+
+          <el-button type="warning" size="large" circle @click="pauseShare">
+            <el-icon
+              ><VideoPause v-if="!isPaused" /><VideoPlay v-else
+            /></el-icon>
           </el-button>
-          
-          <el-button
-            type="danger"
-            size="large"
-            circle
-            @click="stopShare"
-          >
+
+          <el-button type="danger" size="large" circle @click="stopShare">
             <el-icon><Close /></el-icon>
           </el-button>
         </div>
-        
+
         <div class="additional-controls">
           <el-button type="info" size="small" @click="showSettings = true">
             <el-icon><Setting /></el-icon>
             设置
           </el-button>
-          
+
           <el-button type="success" size="small" @click="showInvite = true">
             <el-icon><Share /></el-icon>
             邀请观看
@@ -133,7 +131,7 @@
     </div>
 
     <!-- 主界面 -->
-    <div class="main-interface" v-else>
+    <div v-else class="main-interface">
       <!-- 开始共享 -->
       <el-card class="start-share-card" shadow="hover">
         <template #header>
@@ -141,7 +139,7 @@
             <span>开始屏幕共享</span>
           </div>
         </template>
-        
+
         <div class="share-options">
           <div class="option-group">
             <h4>选择共享内容</h4>
@@ -155,7 +153,7 @@
                   </div>
                 </div>
               </el-radio>
-              
+
               <el-radio value="window" class="share-option">
                 <div class="option-content">
                   <el-icon class="option-icon"><Crop /></el-icon>
@@ -165,7 +163,7 @@
                   </div>
                 </div>
               </el-radio>
-              
+
               <el-radio value="tab" class="share-option">
                 <div class="option-content">
                   <el-icon class="option-icon"><Document /></el-icon>
@@ -177,7 +175,7 @@
               </el-radio>
             </el-radio-group>
           </div>
-          
+
           <div class="option-group">
             <h4>共享设置</h4>
             <el-form :model="shareSettings" label-width="120px">
@@ -188,21 +186,24 @@
                   <el-option label="流畅 (480p)" value="low" />
                 </el-select>
               </el-form-item>
-              
+
               <el-form-item label="帧率">
-                <el-select v-model="shareSettings.frameRate" style="width: 100%">
+                <el-select
+                  v-model="shareSettings.frameRate"
+                  style="width: 100%"
+                >
                   <el-option label="60 FPS" :value="60" />
                   <el-option label="30 FPS" :value="30" />
                   <el-option label="15 FPS" :value="15" />
                 </el-select>
               </el-form-item>
-              
+
               <el-form-item>
                 <el-checkbox v-model="shareSettings.includeAudio">
                   包含系统音频
                 </el-checkbox>
               </el-form-item>
-              
+
               <el-form-item>
                 <el-checkbox v-model="shareSettings.enablePointer">
                   显示鼠标指针
@@ -210,7 +211,7 @@
               </el-form-item>
             </el-form>
           </div>
-          
+
           <div class="start-actions">
             <el-button
               type="primary"
@@ -232,12 +233,12 @@
             <span>加入观看</span>
           </div>
         </template>
-        
+
         <el-form :model="joinForm" label-width="100px">
           <el-form-item label="共享ID">
             <el-input v-model="joinForm.shareId" placeholder="请输入共享ID" />
           </el-form-item>
-          
+
           <el-form-item label="访问密码">
             <el-input
               v-model="joinForm.password"
@@ -246,7 +247,7 @@
               show-password
             />
           </el-form-item>
-          
+
           <el-form-item>
             <el-button
               type="success"
@@ -272,7 +273,7 @@
             </el-button>
           </div>
         </template>
-        
+
         <el-table :data="activeShares" style="width: 100%">
           <el-table-column prop="title" label="共享标题" min-width="150" />
           <el-table-column prop="shareType" label="类型" width="100">
@@ -310,8 +311,11 @@
         <el-table-column prop="username" label="用户名" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'online' ? 'success' : 'info'" size="small">
-              {{ row.status === 'online' ? '在线' : '离线' }}
+            <el-tag
+              :type="row.status === 'online' ? 'success' : 'info'"
+              size="small"
+            >
+              {{ row.status === "online" ? "在线" : "离线" }}
             </el-tag>
           </template>
         </el-table-column>
@@ -322,11 +326,7 @@
         </el-table-column>
         <el-table-column label="操作" width="100">
           <template #default="{ row }">
-            <el-button
-              type="danger"
-              size="small"
-              @click="kickViewer(row)"
-            >
+            <el-button type="danger" size="small" @click="kickViewer(row)">
               移除
             </el-button>
           </template>
@@ -346,7 +346,7 @@
             </template>
           </el-input>
         </el-form-item>
-        
+
         <el-form-item label="邀请用户">
           <el-select
             v-model="selectedInviteUsers"
@@ -363,7 +363,7 @@
           </el-select>
         </el-form-item>
       </div>
-      
+
       <template #footer>
         <el-button @click="showInvite = false">取消</el-button>
         <el-button type="primary" @click="sendInvitations">
@@ -382,7 +382,7 @@
             <el-option label="流畅 (480p)" value="low" />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="帧率">
           <el-select v-model="shareSettings.frameRate" style="width: 100%">
             <el-option label="60 FPS" :value="60" />
@@ -390,31 +390,29 @@
             <el-option label="15 FPS" :value="15" />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item>
           <el-checkbox v-model="shareSettings.includeAudio">
             包含系统音频
           </el-checkbox>
         </el-form-item>
-        
+
         <el-form-item>
           <el-checkbox v-model="shareSettings.enablePointer">
             显示鼠标指针
           </el-checkbox>
         </el-form-item>
-        
+
         <el-form-item>
           <el-checkbox v-model="shareSettings.allowControl">
             允许远程控制
           </el-checkbox>
         </el-form-item>
       </el-form>
-      
+
       <template #footer>
         <el-button @click="showSettings = false">取消</el-button>
-        <el-button type="primary" @click="applySettings">
-          应用设置
-        </el-button>
+        <el-button type="primary" @click="applySettings"> 应用设置 </el-button>
       </template>
     </sc-dialog>
   </div>
@@ -428,10 +426,10 @@
  * @version 1.0.0
  */
 
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
-import { ElMessageBox } from 'element-plus';
+import { ElMessageBox } from "element-plus";
 import {
   Monitor,
   User,
@@ -446,10 +444,10 @@ import {
   Document,
   View,
   Refresh,
-  CopyDocument
-} from '@element-plus/icons-vue';
-import { getOnlineUsers, type WebRTCUser } from '@/api/webrtc';
-import { useWebRTCScreenShare } from '@/composables/webrtc/useWebRTCScreenShare';
+  CopyDocument,
+} from "@element-plus/icons-vue";
+import { getOnlineUsers, type WebRTCUser } from "@/api/webrtc";
+import { useWebRTCScreenShare } from "@/composables/webrtc/useWebRTCScreenShare";
 
 const router = useRouter();
 
@@ -463,7 +461,7 @@ const {
   startScreenShare,
   stopScreenShare,
   pauseScreenShare,
-  toggleAudio
+  toggleAudio,
 } = useWebRTCScreenShare();
 
 // 视频引用
@@ -479,47 +477,47 @@ const showInvite = ref(false);
 const selectedInviteUsers = ref<string[]>([]);
 
 // 共享类型
-const shareType = ref<'screen' | 'window' | 'tab'>('screen');
+const shareType = ref<"screen" | "window" | "tab">("screen");
 
 // 表单数据
 const shareSettings = reactive({
-  quality: 'medium',
+  quality: "medium",
   frameRate: 30,
   includeAudio: true,
   enablePointer: true,
-  allowControl: false
+  allowControl: false,
 });
 
 const joinForm = reactive({
-  shareId: '',
-  password: ''
+  shareId: "",
+  password: "",
 });
 
 // 活跃共享列表
 const activeShares = ref([
   {
-    id: '1',
-    title: '项目演示',
-    shareType: 'screen',
+    id: "1",
+    title: "项目演示",
+    shareType: "screen",
     viewerCount: 5,
-    ownerName: '张三',
-    startTime: new Date().toISOString()
+    ownerName: "张三",
+    startTime: new Date().toISOString(),
   },
   {
-    id: '2',
-    title: '代码审查',
-    shareType: 'window',
+    id: "2",
+    title: "代码审查",
+    shareType: "window",
     viewerCount: 3,
-    ownerName: '李四',
-    startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-  }
+    ownerName: "李四",
+    startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+  },
 ]);
 
 const availableUsers = ref<WebRTCUser[]>([]);
 
 // 计算属性
 const shareLink = computed(() => {
-  if (!isSharing.value) return '';
+  if (!isSharing.value) return "";
   return `${window.location.origin}/webrtc/screen-share/watch/123456`;
 });
 
@@ -528,11 +526,11 @@ const shareLink = computed(() => {
  */
 const getShareTypeTag = (type: string) => {
   const tags = {
-    screen: 'primary',
-    window: 'success',
-    tab: 'warning'
+    screen: "primary",
+    window: "success",
+    tab: "warning",
   };
-  return tags[type as keyof typeof tags] || 'info';
+  return tags[type as keyof typeof tags] || "info";
 };
 
 /**
@@ -540,11 +538,11 @@ const getShareTypeTag = (type: string) => {
  */
 const getShareTypeText = (type: string) => {
   const texts = {
-    screen: '整屏',
-    window: '窗口',
-    tab: '标签页'
+    screen: "整屏",
+    window: "窗口",
+    tab: "标签页",
   };
-  return texts[type as keyof typeof texts] || '未知';
+  return texts[type as keyof typeof texts] || "未知";
 };
 
 /**
@@ -553,28 +551,42 @@ const getShareTypeText = (type: string) => {
 const startShare = async () => {
   try {
     starting.value = true;
-    
+
     const constraints = {
       video: {
         mediaSource: shareType.value,
-        width: { ideal: shareSettings.quality === 'high' ? 1920 : shareSettings.quality === 'medium' ? 1280 : 854 },
-        height: { ideal: shareSettings.quality === 'high' ? 1080 : shareSettings.quality === 'medium' ? 720 : 480 },
-        frameRate: { ideal: shareSettings.frameRate }
+        width: {
+          ideal:
+            shareSettings.quality === "high"
+              ? 1920
+              : shareSettings.quality === "medium"
+                ? 1280
+                : 854,
+        },
+        height: {
+          ideal:
+            shareSettings.quality === "high"
+              ? 1080
+              : shareSettings.quality === "medium"
+                ? 720
+                : 480,
+        },
+        frameRate: { ideal: shareSettings.frameRate },
       },
-      audio: shareSettings.includeAudio
+      audio: shareSettings.includeAudio,
     };
-    
+
     await startScreenShare(constraints);
-    
+
     // 设置预览视频
     if (previewVideoRef.value) {
       // TODO: 设置预览流
     }
-    
-    message('屏幕共享已开始', { type: "success" });
+
+    message("屏幕共享已开始", { type: "success" });
   } catch (error) {
-    console.error('开始屏幕共享失败:', error);
-    message('开始屏幕共享失败', { type: "error" });
+    console.error("开始屏幕共享失败:", error);
+    message("开始屏幕共享失败", { type: "error" });
   } finally {
     starting.value = false;
   }
@@ -585,22 +597,18 @@ const startShare = async () => {
  */
 const stopShare = async () => {
   try {
-    await ElMessageBox.confirm(
-      '确定要停止屏幕共享吗？',
-      '确认停止',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-    
+    await ElMessageBox.confirm("确定要停止屏幕共享吗？", "确认停止", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+
     await stopScreenShare();
-    message('屏幕共享已停止', { type: "success" });
+    message("屏幕共享已停止", { type: "success" });
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('停止屏幕共享失败:', error);
-      message('停止屏幕共享失败', { type: "error" });
+    if (error !== "cancel") {
+      console.error("停止屏幕共享失败:", error);
+      message("停止屏幕共享失败", { type: "error" });
     }
   }
 };
@@ -611,10 +619,12 @@ const stopShare = async () => {
 const pauseShare = async () => {
   try {
     await pauseScreenShare();
-    message(isPaused.value ? '屏幕共享已暂停' : '屏幕共享已恢复', { type: "success" });
+    message(isPaused.value ? "屏幕共享已暂停" : "屏幕共享已恢复", {
+      type: "success",
+    });
   } catch (error) {
-    console.error('暂停/恢复共享失败:', error);
-    message('操作失败', { type: "error" });
+    console.error("暂停/恢复共享失败:", error);
+    message("操作失败", { type: "error" });
   }
 };
 
@@ -630,17 +640,17 @@ const togglePreview = () => {
  */
 const joinWatch = async () => {
   if (!joinForm.shareId) {
-    message('请输入共享ID', { type: "warning" });
+    message("请输入共享ID", { type: "warning" });
     return;
   }
-  
+
   try {
     joining.value = true;
     // TODO: 实现加入观看逻辑
-    message('加入观看成功', { type: "success" });
+    message("加入观看成功", { type: "success" });
   } catch (error) {
-    console.error('加入观看失败:', error);
-    message('加入观看失败', { type: "error" });
+    console.error("加入观看失败:", error);
+    message("加入观看失败", { type: "error" });
   } finally {
     joining.value = false;
   }
@@ -652,10 +662,10 @@ const joinWatch = async () => {
 const quickJoinWatch = async (share: any) => {
   try {
     // TODO: 实现快速加入观看逻辑
-    message('加入观看成功', { type: "success" });
+    message("加入观看成功", { type: "success" });
   } catch (error) {
-    console.error('加入观看失败:', error);
-    message('加入观看失败', { type: "error" });
+    console.error("加入观看失败:", error);
+    message("加入观看失败", { type: "error" });
   }
 };
 
@@ -666,20 +676,20 @@ const kickViewer = async (viewer: any) => {
   try {
     await ElMessageBox.confirm(
       `确定要移除观看者 ${viewer.username} 吗？`,
-      '确认移除',
+      "确认移除",
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
     );
-    
+
     // TODO: 实现移除观看者逻辑
     message(`已移除观看者 ${viewer.username}`, { type: "success" });
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('移除观看者失败:', error);
-      message('移除观看者失败', { type: "error" });
+    if (error !== "cancel") {
+      console.error("移除观看者失败:", error);
+      message("移除观看者失败", { type: "error" });
     }
   }
 };
@@ -690,10 +700,10 @@ const kickViewer = async (viewer: any) => {
 const loadActiveShares = async () => {
   try {
     // TODO: 实现加载活跃共享列表
-    message('刷新成功', { type: "success" });
+    message("刷新成功", { type: "success" });
   } catch (error) {
-    console.error('加载活跃共享列表失败:', error);
-    message('加载失败', { type: "error" });
+    console.error("加载活跃共享列表失败:", error);
+    message("加载失败", { type: "error" });
   }
 };
 
@@ -705,7 +715,7 @@ const loadAvailableUsers = async () => {
     const { data } = await getOnlineUsers();
     availableUsers.value = data.records;
   } catch (error) {
-    console.error('加载用户列表失败:', error);
+    console.error("加载用户列表失败:", error);
   }
 };
 
@@ -715,9 +725,9 @@ const loadAvailableUsers = async () => {
 const copyShareLink = async () => {
   try {
     await navigator.clipboard.writeText(shareLink.value);
-    message('共享链接已复制到剪贴板', { type: "success" });
+    message("共享链接已复制到剪贴板", { type: "success" });
   } catch (error) {
-    message('复制失败', { type: "error" });
+    message("复制失败", { type: "error" });
   }
 };
 
@@ -726,12 +736,14 @@ const copyShareLink = async () => {
  */
 const sendInvitations = () => {
   if (selectedInviteUsers.value.length === 0) {
-    message('请选择要邀请的用户', { type: "warning" });
+    message("请选择要邀请的用户", { type: "warning" });
     return;
   }
-  
+
   // TODO: 实现发送邀请逻辑
-  message(`已向 ${selectedInviteUsers.value.length} 位用户发送邀请`, { type: "success" });
+  message(`已向 ${selectedInviteUsers.value.length} 位用户发送邀请`, {
+    type: "success",
+  });
   showInvite.value = false;
   selectedInviteUsers.value = [];
 };
@@ -741,7 +753,7 @@ const sendInvitations = () => {
  */
 const applySettings = () => {
   // TODO: 实现应用设置逻辑
-  message('设置已应用', { type: "success" });
+  message("设置已应用", { type: "success" });
   showSettings.value = false;
 };
 
@@ -752,11 +764,11 @@ const formatDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-  
+
   if (hours > 0) {
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
-  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
 /**
@@ -780,7 +792,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -797,8 +808,6 @@ onUnmounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -833,7 +842,6 @@ onUnmounted(() => {
   }
 }
 
-
 .screen-share-container {
   padding: 20px;
   height: 100vh;
@@ -843,7 +851,7 @@ onUnmounted(() => {
 
 .page-header {
   margin-bottom: 20px;
-  
+
   :deep(.el-breadcrumb__inner) {
     color: var(--el-text-color-primary);
   }
@@ -853,7 +861,7 @@ onUnmounted(() => {
   height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
-  
+
   .share-info-bar {
     display: flex;
     justify-content: space-between;
@@ -862,61 +870,67 @@ onUnmounted(() => {
     background-color: rgba(0, 0, 0, 0.8);
     border-radius: 8px;
     margin-bottom: 12px;
-    
+
     .share-status {
       display: flex;
       align-items: center;
       gap: 8px;
-      
+
       .sharing-icon {
         color: #67c23a;
         font-size: 20px;
       }
-      
+
       .status-text {
         font-weight: 600;
         font-size: 16px;
       }
     }
-    
+
     .share-time {
       font-size: 16px;
       font-weight: 600;
       color: #67c23a;
     }
-    
+
     .share-actions {
       display: flex;
       gap: 8px;
     }
   }
-  
+
   .preview-container {
     flex: 1;
     display: flex;
     gap: 12px;
-    
+
     .preview-window {
       flex: 1;
       position: relative;
       border-radius: 12px;
       overflow: hidden;
-      
+
       .preview-video {
         width: 100%;
         height: 100%;
         object-fit: contain;
       }
-      
+
       .preview-overlay {
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.7) 100%);
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.7) 0%,
+          transparent 20%,
+          transparent 80%,
+          rgba(0, 0, 0, 0.7) 100%
+        );
         pointer-events: none;
-        
+
         .preview-info {
           position: absolute;
           top: 20px;
@@ -928,21 +942,21 @@ onUnmounted(() => {
           padding: 8px 16px;
           border-radius: 20px;
           pointer-events: auto;
-          
+
           span {
             font-weight: 600;
           }
         }
       }
     }
-    
+
     .viewers-panel {
       width: 300px;
       background-color: #2a2a2a;
       border-radius: 12px;
       display: flex;
       flex-direction: column;
-      
+
       .panel-header {
         display: flex;
         justify-content: space-between;
@@ -951,12 +965,12 @@ onUnmounted(() => {
         border-bottom: 1px solid #404040;
         font-weight: 600;
       }
-      
+
       .viewers-list {
         flex: 1;
         padding: 12px;
         overflow-y: auto;
-        
+
         .viewer-item {
           display: flex;
           align-items: center;
@@ -965,31 +979,31 @@ onUnmounted(() => {
           border-radius: 8px;
           margin-bottom: 8px;
           transition: background-color 0.3s ease;
-          
+
           &:hover {
             background-color: #404040;
           }
-          
+
           .viewer-info {
             flex: 1;
-            
+
             .viewer-name {
               display: block;
               font-weight: 500;
               margin-bottom: 2px;
             }
-            
+
             .viewer-status {
               font-size: 12px;
-               color: var(--el-text-color-primary);
+              color: var(--el-text-color-primary);
             }
           }
-          
+
           .viewer-actions {
             opacity: 0;
             transition: opacity 0.3s ease;
           }
-          
+
           &:hover .viewer-actions {
             opacity: 1;
           }
@@ -997,7 +1011,7 @@ onUnmounted(() => {
       }
     }
   }
-  
+
   .control-bar {
     display: flex;
     justify-content: space-between;
@@ -1006,22 +1020,22 @@ onUnmounted(() => {
     background-color: rgba(0, 0, 0, 0.8);
     border-radius: 12px;
     margin-top: 12px;
-    
+
     .control-group {
       display: flex;
       gap: 20px;
       align-items: center;
-      
+
       .el-button {
         width: 60px;
         height: 60px;
-        
+
         .el-icon {
           font-size: 24px;
         }
       }
     }
-    
+
     .additional-controls {
       display: flex;
       gap: 12px;
@@ -1035,29 +1049,29 @@ onUnmounted(() => {
   grid-template-rows: auto 1fr;
   gap: 20px;
   height: calc(100vh - 100px);
-  
+
   .start-share-card {
     grid-column: 1 / -1;
   }
-  
+
   .join-watch-card {
     grid-column: 1;
   }
-  
+
   .active-shares-card {
     grid-column: 2;
   }
-  
+
   .start-share-card,
   .join-watch-card,
   .active-shares-card {
     background-color: #2a2a2a;
     border: 1px solid #404040;
-    
+
     :deep(.el-card__header) {
       background-color: var(--el-text-color-primary);
       border-bottom: 1px solid #404040;
-      
+
       .card-header {
         display: flex;
         justify-content: space-between;
@@ -1065,7 +1079,7 @@ onUnmounted(() => {
         color: var(--el-text-color-primary);
       }
     }
-    
+
     :deep(.el-card__body) {
       color: var(--el-text-color-primary);
     }
@@ -1075,59 +1089,59 @@ onUnmounted(() => {
 .share-options {
   .option-group {
     margin-bottom: 30px;
-    
+
     h4 {
       margin-bottom: 16px;
       color: var(--el-text-color-primary);
     }
-    
+
     .share-type-group {
       display: flex;
       flex-direction: column;
       gap: 12px;
-      
+
       .share-option {
         border: 1px solid #404040;
         border-radius: 8px;
         padding: 16px;
         transition: all 0.3s ease;
-        
+
         &:hover {
           border-color: #409eff;
           background-color: rgba(64, 158, 255, 0.1);
         }
-        
+
         :deep(.el-radio__input.is-checked + .el-radio__label) {
           color: #409eff;
         }
-        
+
         .option-content {
           display: flex;
           align-items: center;
           gap: 16px;
-          
+
           .option-icon {
             font-size: 32px;
             color: #409eff;
           }
-          
+
           .option-text {
             .option-title {
               display: block;
               font-weight: 600;
               margin-bottom: 4px;
             }
-            
+
             .option-desc {
               font-size: 14px;
-               color: var(--el-text-color-primary);
+              color: var(--el-text-color-primary);
             }
           }
         }
       }
     }
   }
-  
+
   .start-actions {
     text-align: center;
     margin-top: 30px;
@@ -1189,7 +1203,6 @@ onUnmounted(() => {
   background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1198,5 +1211,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

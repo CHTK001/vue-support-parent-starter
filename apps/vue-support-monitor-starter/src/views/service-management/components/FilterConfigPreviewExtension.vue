@@ -6,7 +6,7 @@
     :close-on-click-modal="false"
     @closed="handleClose"
   >
-    <div class="preview-extension-config" v-loading="loading">
+    <div v-loading="loading" class="preview-extension-config">
       <!-- 模式切换 -->
       <el-card class="config-card" shadow="never">
         <template #header>
@@ -46,9 +46,9 @@
 
       <!-- 黑名单配置 -->
       <el-card
+        v-show="!config.whitelistMode"
         class="config-card"
         shadow="never"
-        v-show="!config.whitelistMode"
       >
         <template #header>
           <div class="card-header">
@@ -73,8 +73,8 @@
               <template #prepend>.</template>
               <template #append>
                 <el-button
-                  @click="addDisabledExtension"
                   :disabled="!newDisabledExt.trim()"
+                  @click="addDisabledExtension"
                 >
                   <IconifyIconOnline icon="ri:add-line" />
                 </el-button>
@@ -118,7 +118,7 @@
       </el-card>
 
       <!-- 白名单配置 -->
-      <el-card class="config-card" shadow="never" v-show="config.whitelistMode">
+      <el-card v-show="config.whitelistMode" class="config-card" shadow="never">
         <template #header>
           <div class="card-header">
             <span class="title">
@@ -142,8 +142,8 @@
               <template #prepend>.</template>
               <template #append>
                 <el-button
-                  @click="addAllowedExtension"
                   :disabled="!newAllowedExt.trim()"
+                  @click="addAllowedExtension"
                 >
                   <IconifyIconOnline icon="ri:add-line" />
                 </el-button>
@@ -196,7 +196,7 @@
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
         <el-button type="danger" @click="handleClear">清空配置</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving"
+        <el-button type="primary" :loading="saving" @click="handleSave"
           >保存</el-button
         >
       </div>
@@ -282,8 +282,9 @@ async function loadConfig() {
  */
 function onModeChange() {
   message(
-    config.value.whitelistMode ? "已切换到白名单模式" : "已切换到黑名单模式"
-  , { type: "info" });
+    config.value.whitelistMode ? "已切换到白名单模式" : "已切换到黑名单模式",
+    { type: "info" },
+  );
 }
 
 /**
@@ -415,7 +416,7 @@ watch(
       loadConfig();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>
 
@@ -542,7 +543,6 @@ watch(
   gap: 12px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -551,5 +551,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>

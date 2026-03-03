@@ -18,7 +18,7 @@
       />
 
       <!-- 配置信息头部 -->
-      <div class="config-header" v-if="filterSetting">
+      <div v-if="filterSetting" class="config-header">
         <div class="header-info">
           <div class="info-item">
             <IconifyIconOnline icon="ri:settings-3-line" class="info-icon" />
@@ -28,8 +28,8 @@
             }}</el-tag>
           </div>
           <div
-            class="info-item"
             v-if="filterSetting.systemServerSettingDescription"
+            class="info-item"
           >
             <IconifyIconOnline icon="ri:file-text-line" class="info-icon" />
             <span class="info-label">描述：</span>
@@ -55,9 +55,9 @@
           <el-tag type="primary" size="small" round>{{ rows.length }}</el-tag>
         </div>
 
-        <el-scrollbar class="config-scrollbar" v-loading="loading">
+        <el-scrollbar v-loading="loading" class="config-scrollbar">
           <div class="config-list">
-            <div class="config-item" v-for="(row, idx) in rows" :key="row._key">
+            <div v-for="(row, idx) in rows" :key="row._key" class="config-item">
               <div class="item-index">{{ idx + 1 }}</div>
               <div class="item-content">
                 <el-input
@@ -105,7 +105,7 @@
         </el-scrollbar>
 
         <!-- 添加按钮 -->
-        <div class="add-row-btn" v-if="rows.length > 0">
+        <div v-if="rows.length > 0" class="add-row-btn">
           <el-button type="primary" link @click="addRow">
             <IconifyIconOnline icon="ri:add-circle-line" />
             新增一行
@@ -158,7 +158,7 @@ const saving = ref(false);
 const loading = ref(false);
 
 const settingId = computed(
-  () => props.filterSetting?.systemServerSettingId || null
+  () => props.filterSetting?.systemServerSettingId || null,
 );
 
 type KvRow = { _key: string; id?: number; name: string; value: string };
@@ -170,7 +170,7 @@ watch(
     visibleInner.value = !!v;
     if (v) await loadData();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(visibleInner, (v) => emit("update:visible", v));
@@ -392,7 +392,6 @@ function handleClose() {
   gap: 12px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -401,5 +400,4 @@ function handleClose() {
     padding: 12px 16px;
   }
 }
-
 </style>

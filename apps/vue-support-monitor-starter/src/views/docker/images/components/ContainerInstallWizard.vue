@@ -4,8 +4,8 @@
     title="安装容器"
     width="800px"
     :show-close="true"
-    @close="handleClose"
     class="install-wizard-dialog"
+    @close="handleClose"
   >
     <!-- 步骤条 -->
     <el-steps
@@ -23,7 +23,7 @@
     <div class="wizard-content">
       <!-- 步骤1：基本信息 -->
       <div v-show="currentStep === 0" class="step-content">
-        <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
+        <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
           <el-form-item label="镜像">
             <div class="image-display">
               <IconifyIconOnline icon="ri:image-line" class="mr-2" />
@@ -132,8 +132,8 @@
           <el-button
             type="primary"
             plain
-            @click="addPortMapping"
             class="add-btn"
+            @click="addPortMapping"
           >
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加端口映射
@@ -170,7 +170,7 @@
               <IconifyIconOnline icon="ri:delete-bin-line" />
             </el-button>
           </div>
-          <el-button type="primary" plain @click="addEnvVar" class="add-btn">
+          <el-button type="primary" plain class="add-btn" @click="addEnvVar">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加环境变量
           </el-button>
@@ -214,8 +214,8 @@
           <el-button
             type="primary"
             plain
-            @click="addVolumeMount"
             class="add-btn"
+            @click="addVolumeMount"
           >
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加数据卷
@@ -236,13 +236,13 @@
 
     <template #footer>
       <div class="wizard-footer">
-        <el-button @click="visibleProxy = false" :disabled="installing"
+        <el-button :disabled="installing" @click="visibleProxy = false"
           >取消</el-button
         >
         <el-button
           v-if="currentStep > 0"
-          @click="prevStep"
           :disabled="installing"
+          @click="prevStep"
         >
           <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
           上一步
@@ -253,9 +253,9 @@
         </el-button>
         <el-button v-else type="primary" :loading="installing" @click="submit">
           <IconifyIconOnline
+            v-if="!installing"
             icon="ri:play-circle-line"
             class="mr-1"
-            v-if="!installing"
           />
           {{ installing ? "创建中..." : "创建容器" }}
         </el-button>
@@ -345,7 +345,7 @@ watch(
     if (val) {
       resetForm();
     }
-  }
+  },
 );
 
 // 重置表单
@@ -477,7 +477,7 @@ const submit = async () => {
       volumes: form.value.volumeMounts
         .filter((v) => v.hostPath && v.containerPath)
         .map(
-          (v) => `${v.hostPath}:${v.containerPath}${v.readOnly ? ":ro" : ""}`
+          (v) => `${v.hostPath}:${v.containerPath}${v.readOnly ? ":ro" : ""}`,
         ),
     };
 
@@ -623,7 +623,6 @@ const submit = async () => {
   gap: 12px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -632,5 +631,4 @@ const submit = async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

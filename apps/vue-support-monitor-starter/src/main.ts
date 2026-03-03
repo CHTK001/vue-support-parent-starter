@@ -1,4 +1,4 @@
-import { createStandardApp } from "@repo/core";
+import { createStandardApp } from "@repo/core/src/standard-app";
 import { setupDirectives } from "./directives";
 import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
 import GlobalSocketPlugin from "./plugins/globalSocket";

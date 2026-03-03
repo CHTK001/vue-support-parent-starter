@@ -8,46 +8,46 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import { ColumnType } from 'ant-design-vue/es/table'
-import { RenderExpandIconProps } from 'ant-design-vue/es/vc-table/interface'
-import { CustomSlotsType } from 'ant-design-vue/es/_util/type'
+import type { ColumnType } from "ant-design-vue/es/table";
+import type { RenderExpandIconProps } from "ant-design-vue/es/vc-table/interface";
+import type { CustomSlotsType } from "ant-design-vue/es/_util/type";
 export type CustomColumnType = ColumnType & {
-  checked?: boolean
-}
+  checked?: boolean;
+};
 export type CatchStorageType = {
-  key: string
-  checked: boolean
-}
+  key: string;
+  checked: boolean;
+};
 
-export type TableLayoutType = 'table' | 'card' | undefined
+export type TableLayoutType = "table" | "card" | undefined;
 
 export type CustomTableType = {
-  columns: CustomColumnType[]
-  storageKey: string
-}
+  columns: CustomColumnType[];
+  storageKey: string;
+};
 
 export type CustomTableSlotsType = CustomSlotsType<{
-  emptyText?: any
-  expandIcon?: RenderExpandIconProps<any>
-  title?: any
-  footer?: any
-  summary?: any
-  tableHelp?: any
-  toolPrefix?: any
+  emptyText?: any;
+  expandIcon?: RenderExpandIconProps<any>;
+  title?: any;
+  footer?: any;
+  summary?: any;
+  tableHelp?: any;
+  toolPrefix?: any;
   tableBodyCell?: (props: {
-    text: any
-    value: any
-    record: Record<string, any>
-    index: number
-    column: ColumnType
-  }) => void
-  cardBodyCell?: any
-  expandedRowRender?: any
-  expandColumnTitle?: any
-  emptyDescription: string
+    text: any;
+    value: any;
+    record: Record<string, any>;
+    index: number;
+    column: ColumnType;
+  }) => void;
+  cardBodyCell?: any;
+  expandedRowRender?: any;
+  expandColumnTitle?: any;
+  emptyDescription: string;
   // bodyCell?: (props: { text: any; value: any; record: Record<string, any>; index: number; column: ColumnType }) => void
-  headerCell?: (props: { title: any; column: ColumnType }) => void
-  customFilterIcon?: any
-  customFilterDropdown?: any
-  default: any
-}>
+  headerCell?: (props: { title: any; column: ColumnType }) => void;
+  customFilterIcon?: any;
+  customFilterDropdown?: any;
+  default: any;
+}>;

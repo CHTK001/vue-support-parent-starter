@@ -5,60 +5,131 @@
       <div class="header-left">
         <div class="server-info">
           <div class="server-title">
-            <IconifyIconOnline :icon="getProtocolIcon(serverInfo?.protocol)" class="server-icon" />
-            <span class="server-name">{{ serverInfo?.name || "服务器详情" }}</span>
-            <el-tag :type="getStatusType(serverInfo?.status)" size="small" class="status-tag">
+            <IconifyIconOnline
+              :icon="getProtocolIcon(serverInfo?.protocol)"
+              class="server-icon"
+            />
+            <span class="server-name">{{
+              serverInfo?.name || "服务器详情"
+            }}</span>
+            <el-tag
+              :type="getStatusType(serverInfo?.status)"
+              size="small"
+              class="status-tag"
+            >
               {{ getStatusText(serverInfo?.status) }}
             </el-tag>
           </div>
-          <div class="server-subtitle">{{ serverInfo?.host }}:{{ serverInfo?.port }} | {{ serverInfo?.protocol }}</div>
+          <div class="server-subtitle">
+            {{ serverInfo?.host }}:{{ serverInfo?.port }} |
+            {{ serverInfo?.protocol }}
+          </div>
         </div>
       </div>
       <div class="header-right">
-        <el-button type="success" @click="handleRefresh" :loading="refreshLoading" plain size="small">
+        <el-button
+          type="success"
+          :loading="refreshLoading"
+          plain
+          size="small"
+          @click="handleRefresh"
+        >
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
-        <el-button type="primary" @click="handleInitDefaultComponents" :loading="loading" plain size="small">
+        <el-button
+          type="primary"
+          :loading="loading"
+          plain
+          size="small"
+          @click="handleInitDefaultComponents"
+        >
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           初始化组件
         </el-button>
-        <el-button type="info" @click="handleManageComponents" plain size="small">
+        <el-button
+          type="info"
+          plain
+          size="small"
+          @click="handleManageComponents"
+        >
           <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
           管理组件
         </el-button>
-        <el-button :type="editMode ? 'success' : 'warning'" @click="toggleEditMode" plain size="small">
-          <IconifyIconOnline :icon="editMode ? 'ri:save-line' : 'ri:edit-line'" class="mr-1" />
+        <el-button
+          :type="editMode ? 'success' : 'warning'"
+          plain
+          size="small"
+          @click="toggleEditMode"
+        >
+          <IconifyIconOnline
+            :icon="editMode ? 'ri:save-line' : 'ri:edit-line'"
+            class="mr-1"
+          />
           {{ editMode ? "保存布局" : "编辑布局" }}
         </el-button>
       </div>
     </div>
 
     <!-- 组件网格布局 -->
-    <div class="components-container" v-loading="loading">
+    <div v-loading="loading" class="components-container">
       <div v-if="components.length === 0" class="empty-state">
         <el-empty description="暂无组件">
-          <el-button type="primary" @click="handleInitDefaultComponents"> 初始化默认组件 </el-button>
+          <el-button type="primary" @click="handleInitDefaultComponents">
+            初始化默认组件
+          </el-button>
         </el-empty>
       </div>
 
-      <GridLayoutEditor v-else ref="gridLayoutEditorRef" :layout="layout" :edit-mode="editMode" @layout-updated="handleLayoutUpdated" @component-edit="handleComponentEdit" @component-delete="handleComponentDelete">
+      <GridLayoutEditor
+        v-else
+        ref="gridLayoutEditorRef"
+        :layout="layout"
+        :edit-mode="editMode"
+        @layout-updated="handleLayoutUpdated"
+        @component-edit="handleComponentEdit"
+        @component-delete="handleComponentDelete"
+      >
         <template #component="{ item }">
-          <component :is="getComponentType(item.componentType)" :component-data="item" :server-id="serverId" :edit-mode="editMode" @edit="handleComponentEdit" @delete="handleComponentDelete" @refresh="handleComponentRefresh" />
+          <component
+            :is="getComponentType(item.componentType)"
+            :component-data="item"
+            :server-id="serverId"
+            :edit-mode="editMode"
+            @edit="handleComponentEdit"
+            @delete="handleComponentDelete"
+            @refresh="handleComponentRefresh"
+          />
         </template>
       </GridLayoutEditor>
     </div>
 
     <!-- 组件编辑对话框 -->
-    <ComponentEditDialog ref="componentEditDialogRef" :server-id="serverId" @saved="handleComponentSaved" />
+    <ComponentEditDialog
+      ref="componentEditDialogRef"
+      :server-id="serverId"
+      @saved="handleComponentSaved"
+    />
 
     <!-- 组件管理对话框 -->
-    <ComponentManageDialog ref="componentManageDialogRef" :server-id="serverId" @managed="handleComponentsManaged" />
+    <ComponentManageDialog
+      ref="componentManageDialogRef"
+      :server-id="serverId"
+      @managed="handleComponentsManaged"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { batchUpdateComponentPosition, deleteServerDetailComponent, getEnabledServerDetailComponents, getServerInfo, initDefaultComponentsForServerDetail, type ServerComponent, type ServerDisplayData } from "@/api/server";
+import {
+  batchUpdateComponentPosition,
+  deleteServerDetailComponent,
+  getEnabledServerDetailComponents,
+  getServerInfo,
+  initDefaultComponentsForServerDetail,
+  type ServerComponent,
+  type ServerDisplayData,
+} from "@/api/server";
 import { message } from "@repo/utils";
 import { ref, watch } from "vue";
 
@@ -105,7 +176,9 @@ const componentTypeMap = {
  * 获取组件类型
  */
 const getComponentType = (type: string) => {
-  return componentTypeMap[type as keyof typeof componentTypeMap] || CardComponent;
+  return (
+    componentTypeMap[type as keyof typeof componentTypeMap] || CardComponent
+  );
 };
 
 /**
@@ -174,7 +247,9 @@ const loadComponents = async () => {
         let position = { x: 0, y: 0, w: 6, h: 6 };
         try {
           if (component.monitorSysGenServerComponentPosition) {
-            position = JSON.parse(component.monitorSysGenServerComponentPosition);
+            position = JSON.parse(
+              component.monitorSysGenServerComponentPosition,
+            );
           }
         } catch (e) {
           console.warn("解析组件位置失败:", e);
@@ -268,7 +343,10 @@ const handleSaveLayout = async () => {
       }),
     }));
 
-    const res = await batchUpdateComponentPosition(props.serverId, layoutData as any);
+    const res = await batchUpdateComponentPosition(
+      props.serverId,
+      layoutData as any,
+    );
     if (res.code === "00000") {
       message.success("布局保存成功");
     } else {
@@ -342,12 +420,11 @@ watch(
       loadComponents();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>
 
 <style lang="scss" scoped>
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -364,8 +441,6 @@ watch(
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -399,7 +474,6 @@ watch(
     z-index: 1;
   }
 }
-
 
 .server-detail-components {
   height: 100%;
@@ -471,7 +545,6 @@ watch(
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -480,5 +553,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>

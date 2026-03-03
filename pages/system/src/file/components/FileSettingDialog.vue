@@ -238,9 +238,7 @@
 
     <template #footer>
       <ScButton @click="visible = false">取消</ScButton>
-      <ScButton type="primary" :loading="loading" @click="handleSubmit"
-        >保存</el-button
-      >
+      <ScButton type="primary" :loading="loading" @click="handleSubmit">保存</ScButton>
     </template>
   </sc-dialog>
 </template>

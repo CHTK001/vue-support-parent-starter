@@ -47,7 +47,7 @@
       </div>
     </template>
 
-    <el-scrollbar max-height="500px" v-loading="loading">
+    <el-scrollbar v-loading="loading" max-height="500px">
       <div v-if="records.length === 0" class="empty-state">
         <IconifyIconOnline icon="ri:history-line" class="empty-icon" />
         <p class="empty-text">暂无历史记录</p>
@@ -270,7 +270,7 @@ async function loadHistory() {
           systemSoftRecordUser: "admin",
           systemSoftRecordContainerId: "abc123def456",
           systemSoftRecordStartTime: new Date(
-            Date.now() - 3600000 - 5000
+            Date.now() - 3600000 - 5000,
           ).toISOString(),
           systemSoftRecordEndTime: new Date(Date.now() - 3600000).toISOString(),
           systemSoftRecordDuration: 5000,
@@ -308,7 +308,7 @@ function formatDuration(ms: number): string {
 
 // 获取时间轴类型
 function getTimelineType(
-  status: number
+  status: number,
 ): "success" | "warning" | "danger" | "info" | "primary" {
   switch (status) {
     case 1:
@@ -324,7 +324,7 @@ function getTimelineType(
 
 // 获取状态类型
 function getStatusType(
-  status: number
+  status: number,
 ): "success" | "warning" | "danger" | "info" {
   switch (status) {
     case 1:
@@ -389,7 +389,7 @@ watch(
     if (val && props.image) {
       loadHistory();
     }
-  }
+  },
 );
 
 watch(visible, (val) => {
@@ -573,7 +573,6 @@ watch(visible, (val) => {
   align-items: center;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -582,5 +581,4 @@ watch(visible, (val) => {
     padding: 12px 16px;
   }
 }
-
 </style>

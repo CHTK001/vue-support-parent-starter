@@ -1,5 +1,9 @@
 <template>
-  <div class="sync-task-design system-container modern-bg" @keydown="handleKeyDown" tabindex="0">
+  <div
+    class="sync-task-design system-container modern-bg"
+    tabindex="0"
+    @keydown="handleKeyDown"
+  >
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
@@ -7,7 +11,9 @@
           <el-icon><ArrowLeft /></el-icon>
           返回
         </el-button>
-        <span class="task-name">{{ taskData?.syncTaskName || "加载中..." }}</span>
+        <span class="task-name">{{
+          taskData?.syncTaskName || "加载中..."
+        }}</span>
         <el-tag v-if="taskData" :type="getStatusType(taskData.syncTaskStatus)">
           {{ getStatusText(taskData.syncTaskStatus) }}
         </el-tag>
@@ -142,25 +148,45 @@
             :class="[
               node.syncNodeType?.toLowerCase(),
               { selected: selectedNodeKey === node.syncNodeKey },
-              { copied: copiedNodes.some(n => n.syncNodeKey === node.syncNodeKey) }
+              {
+                copied: copiedNodes.some(
+                  (n) => n.syncNodeKey === node.syncNodeKey,
+                ),
+              },
             ]"
             :style="getNodeStyle(node)"
             @click.stop="handleNodeClick(node)"
             @mousedown="handleNodeMouseDown($event, node)"
           >
             <div class="node-header">
-              <span class="node-type">{{ getNodeTypeText(node.syncNodeType) }}</span>
-              <el-icon class="node-delete" @click.stop="handleDeleteNode(node)"><Close /></el-icon>
+              <span class="node-type">{{
+                getNodeTypeText(node.syncNodeType)
+              }}</span>
+              <el-icon class="node-delete" @click.stop="handleDeleteNode(node)"
+                ><Close
+              /></el-icon>
             </div>
             <div class="node-body">
-              <div class="node-name">{{ node.syncNodeName || node.syncNodeSpiName }}</div>
+              <div class="node-name">
+                {{ node.syncNodeName || node.syncNodeSpiName }}
+              </div>
             </div>
-            <div class="node-port input-port" @mousedown.stop="handlePortMouseDown($event, node, 'input')"></div>
-            <div class="node-port output-port" @mousedown.stop="handlePortMouseDown($event, node, 'output')"></div>
+            <div
+              class="node-port input-port"
+              @mousedown.stop="handlePortMouseDown($event, node, 'input')"
+            />
+            <div
+              class="node-port output-port"
+              @mousedown.stop="handlePortMouseDown($event, node, 'output')"
+            />
           </div>
 
           <!-- 连线 -->
-          <svg class="connections-svg" :width="canvasWidth" :height="canvasHeight">
+          <svg
+            class="connections-svg"
+            :width="canvasWidth"
+            :height="canvasHeight"
+          >
             <path
               v-for="conn in connections"
               :key="`${conn.sourceNodeKey}-${conn.targetNodeKey}`"
@@ -200,10 +226,16 @@
           <h3>节点配置</h3>
           <el-form label-position="top" size="small">
             <el-form-item label="节点名称">
-              <el-input v-model="selectedNode.syncNodeName" placeholder="请输入节点名称" />
+              <el-input
+                v-model="selectedNode.syncNodeName"
+                placeholder="请输入节点名称"
+              />
             </el-form-item>
             <el-form-item label="节点类型">
-              <el-input :value="getNodeTypeText(selectedNode.syncNodeType)" disabled />
+              <el-input
+                :value="getNodeTypeText(selectedNode.syncNodeType)"
+                disabled
+              />
             </el-form-item>
             <el-form-item label="SPI类型">
               <el-input :value="selectedNode.syncNodeSpiName" disabled />
@@ -265,7 +297,13 @@
               <el-button type="primary" @click="handleSaveNodeConfig">
                 保存配置
               </el-button>
-              <el-button v-if="selectedNode.syncNodeType === 'INPUT' || selectedNode.syncNodeType === 'OUTPUT'" @click="handleTestConnection">
+              <el-button
+                v-if="
+                  selectedNode.syncNodeType === 'INPUT' ||
+                  selectedNode.syncNodeType === 'OUTPUT'
+                "
+                @click="handleTestConnection"
+              >
                 测试连接
               </el-button>
             </el-form-item>
@@ -277,7 +315,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  onUnmounted,
+  watch,
+  nextTick,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import {
@@ -339,7 +385,9 @@ const historyStack = ref<HistoryState[]>([]);
 const historyIndex = ref(-1);
 const maxHistorySize = 50;
 const canUndo = computed(() => historyIndex.value > 0);
-const canRedo = computed(() => historyIndex.value < historyStack.value.length - 1);
+const canRedo = computed(
+  () => historyIndex.value < historyStack.value.length - 1,
+);
 
 // 复制粘贴
 const copiedNodes = ref<SyncNode[]>([]);
@@ -357,14 +405,16 @@ const activeCollapse = ref(["INPUT", "OUTPUT"]);
 // 选中状态
 const selectedNodeKey = ref<string | null>(null);
 const selectedNode = computed(() =>
-  nodes.value.find((n) => n.syncNodeKey === selectedNodeKey.value)
+  nodes.value.find((n) => n.syncNodeKey === selectedNodeKey.value),
 );
 const selectedNodeParams = ref<SpiParameter[]>([]);
 const nodeConfig = reactive<Record<string, any>>({});
 
 // 连线相关
 const tempConnection = ref<string | null>(null);
-const connectingPort = ref<{ node: SyncNode; type: "input" | "output" } | null>(null);
+const connectingPort = ref<{ node: SyncNode; type: "input" | "output" } | null>(
+  null,
+);
 
 // 拖拽相关
 const draggingNode = ref<SyncNode | null>(null);
@@ -373,7 +423,7 @@ const dragOffset = reactive({ x: 0, y: 0 });
 // 画布变换样式
 const canvasTransformStyle = computed(() => ({
   transform: `scale(${zoomLevel.value}) translate(${panOffset.x}px, ${panOffset.y}px)`,
-  transformOrigin: '0 0',
+  transformOrigin: "0 0",
 }));
 
 // 小地图相关
@@ -432,35 +482,39 @@ const handleRedo = () => {
 // 复制节点
 const handleCopy = () => {
   if (!selectedNodeKey.value) return;
-  const node = nodes.value.find(n => n.syncNodeKey === selectedNodeKey.value);
+  const node = nodes.value.find((n) => n.syncNodeKey === selectedNodeKey.value);
   if (node) {
     copiedNodes.value = [JSON.parse(JSON.stringify(node))];
     // 复制相关连线
-    copiedConnections.value = connections.value.filter(
-      c => c.sourceNodeKey === node.syncNodeKey || c.targetNodeKey === node.syncNodeKey
-    ).map(c => JSON.parse(JSON.stringify(c)));
-    ElMessage.success('已复制节点');
+    copiedConnections.value = connections.value
+      .filter(
+        (c) =>
+          c.sourceNodeKey === node.syncNodeKey ||
+          c.targetNodeKey === node.syncNodeKey,
+      )
+      .map((c) => JSON.parse(JSON.stringify(c)));
+    ElMessage.success("已复制节点");
   }
 };
 
 // 粘贴节点
 const handlePaste = () => {
   if (copiedNodes.value.length === 0) return;
-  
+
   const keyMap = new Map<string, string>();
   const pastedNodes: SyncNode[] = [];
-  
-  copiedNodes.value.forEach(node => {
+
+  copiedNodes.value.forEach((node) => {
     const newKey = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     keyMap.set(node.syncNodeKey!, newKey);
-    
+
     let pos = { x: 100, y: 100 };
     if (node.syncNodePosition) {
       try {
         pos = JSON.parse(node.syncNodePosition);
       } catch (e) {}
     }
-    
+
     const newNode: SyncNode = {
       ...node,
       syncNodeKey: newKey,
@@ -469,11 +523,11 @@ const handlePaste = () => {
     };
     pastedNodes.push(newNode);
   });
-  
+
   nodes.value.push(...pastedNodes);
-  
+
   // 复制连线（仅复制节点之间的连线）
-  copiedConnections.value.forEach(conn => {
+  copiedConnections.value.forEach((conn) => {
     const newSource = keyMap.get(conn.sourceNodeKey!);
     const newTarget = keyMap.get(conn.targetNodeKey!);
     if (newSource && newTarget) {
@@ -484,15 +538,15 @@ const handlePaste = () => {
       });
     }
   });
-  
+
   saveHistory();
-  ElMessage.success('已粘贴节点');
+  ElMessage.success("已粘贴节点");
 };
 
 // 自动布局
 const handleAutoLayout = () => {
   if (nodes.value.length === 0) return;
-  
+
   // 按类型分组
   const groups: Record<string, SyncNode[]> = {
     INPUT: [],
@@ -500,13 +554,13 @@ const handleAutoLayout = () => {
     DATA_CENTER: [],
     OUTPUT: [],
   };
-  
-  nodes.value.forEach(node => {
+
+  nodes.value.forEach((node) => {
     if (node.syncNodeType && groups[node.syncNodeType]) {
       groups[node.syncNodeType].push(node);
     }
   });
-  
+
   // 布局参数
   const startX = 100;
   const startY = 100;
@@ -514,36 +568,39 @@ const handleAutoLayout = () => {
   const nodeHeight = 100;
   const gapX = 100;
   const gapY = 50;
-  
+
   // 按列布局
-  const columns = ['INPUT', 'FILTER', 'DATA_CENTER', 'OUTPUT'];
+  const columns = ["INPUT", "FILTER", "DATA_CENTER", "OUTPUT"];
   let currentX = startX;
-  
-  columns.forEach(col => {
+
+  columns.forEach((col) => {
     const nodesInCol = groups[col];
     let currentY = startY;
-    
-    nodesInCol.forEach(node => {
+
+    nodesInCol.forEach((node) => {
       node.syncNodePosition = JSON.stringify({ x: currentX, y: currentY });
       currentY += nodeHeight + gapY;
     });
-    
+
     if (nodesInCol.length > 0) {
       currentX += nodeWidth + gapX;
     }
   });
-  
+
   saveHistory();
-  ElMessage.success('自动布局完成');
+  ElMessage.success("自动布局完成");
 };
 
 // 适应画布
 const handleFitView = () => {
   if (nodes.value.length === 0 || !canvasRef.value) return;
-  
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  
-  nodes.value.forEach(node => {
+
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+
+  nodes.value.forEach((node) => {
     let pos = { x: 100, y: 100 };
     if (node.syncNodePosition) {
       try {
@@ -555,15 +612,15 @@ const handleFitView = () => {
     maxX = Math.max(maxX, pos.x + 180);
     maxY = Math.max(maxY, pos.y + 80);
   });
-  
+
   const rect = canvasRef.value.getBoundingClientRect();
   const contentWidth = maxX - minX + 100;
   const contentHeight = maxY - minY + 100;
-  
+
   const scaleX = rect.width / contentWidth;
   const scaleY = rect.height / contentHeight;
   const newZoom = Math.min(scaleX, scaleY, 1.5);
-  
+
   zoomLevel.value = Math.max(0.25, Math.min(newZoom, 2));
   panOffset.x = -minX + 50;
   panOffset.y = -minY + 50;
@@ -592,7 +649,7 @@ const handleMinimapClick = (e: MouseEvent) => {
   const rect = target.getBoundingClientRect();
   const x = (e.clientX - rect.left) / minimapScale;
   const y = (e.clientY - rect.top) / minimapScale;
-  
+
   if (canvasRef.value) {
     const canvasRect = canvasRef.value.getBoundingClientRect();
     panOffset.x = -(x - canvasRect.width / (2 * zoomLevel.value));
@@ -617,44 +674,46 @@ const getMinimapNodeStyle = (node: SyncNode) => {
 // 键盘快捷键
 const handleKeyDown = (e: KeyboardEvent) => {
   // Ctrl+Z 撤销
-  if (e.ctrlKey && e.key === 'z') {
+  if (e.ctrlKey && e.key === "z") {
     e.preventDefault();
     handleUndo();
     return;
   }
-  
+
   // Ctrl+Y 重做
-  if (e.ctrlKey && e.key === 'y') {
+  if (e.ctrlKey && e.key === "y") {
     e.preventDefault();
     handleRedo();
     return;
   }
-  
+
   // Ctrl+C 复制
-  if (e.ctrlKey && e.key === 'c') {
+  if (e.ctrlKey && e.key === "c") {
     e.preventDefault();
     handleCopy();
     return;
   }
-  
+
   // Ctrl+V 粘贴
-  if (e.ctrlKey && e.key === 'v') {
+  if (e.ctrlKey && e.key === "v") {
     e.preventDefault();
     handlePaste();
     return;
   }
-  
+
   // Delete 删除选中节点
-  if (e.key === 'Delete' && selectedNodeKey.value) {
-    const node = nodes.value.find(n => n.syncNodeKey === selectedNodeKey.value);
+  if (e.key === "Delete" && selectedNodeKey.value) {
+    const node = nodes.value.find(
+      (n) => n.syncNodeKey === selectedNodeKey.value,
+    );
     if (node) {
       handleDeleteNode(node);
     }
     return;
   }
-  
+
   // Ctrl+S 保存
-  if (e.ctrlKey && e.key === 's') {
+  if (e.ctrlKey && e.key === "s") {
     e.preventDefault();
     handleSave();
     return;
@@ -697,7 +756,10 @@ const handleSave = async () => {
       task: taskData.value || undefined,
       nodes: nodes.value,
       connections: connections.value,
-      layout: JSON.stringify({ canvasWidth: canvasWidth.value, canvasHeight: canvasHeight.value }),
+      layout: JSON.stringify({
+        canvasWidth: canvasWidth.value,
+        canvasHeight: canvasHeight.value,
+      }),
     });
     if (res.data?.success) {
       ElMessage.success("保存成功");
@@ -769,7 +831,11 @@ const getNodeTypeText = (type?: string) => {
 const handleDragStart = (event: DragEvent, nodeType: string, spi: SpiInfo) => {
   event.dataTransfer?.setData(
     "application/json",
-    JSON.stringify({ nodeType, spiName: spi.name, displayName: spi.displayName })
+    JSON.stringify({
+      nodeType,
+      spiName: spi.name,
+      displayName: spi.displayName,
+    }),
   );
 };
 
@@ -790,7 +856,10 @@ const handleDrop = (event: DragEvent) => {
     syncNodeType: nodeType,
     syncNodeSpiName: spiName,
     syncNodeName: displayName,
-    syncNodePosition: JSON.stringify({ x: (x - panOffset.x) / zoomLevel.value, y: (y - panOffset.y) / zoomLevel.value }),
+    syncNodePosition: JSON.stringify({
+      x: (x - panOffset.x) / zoomLevel.value,
+      y: (y - panOffset.y) / zoomLevel.value,
+    }),
     syncNodeEnabled: 1,
   };
 
@@ -819,7 +888,10 @@ const handleNodeClick = async (node: SyncNode) => {
   // 加载参数配置
   if (node.syncNodeType && node.syncNodeSpiName) {
     try {
-      const res = await getSpiParameters(node.syncNodeType, node.syncNodeSpiName);
+      const res = await getSpiParameters(
+        node.syncNodeType,
+        node.syncNodeSpiName,
+      );
       if (res.data?.success) {
         selectedNodeParams.value = res.data.data || [];
       }
@@ -838,7 +910,10 @@ const handleNodeClick = async (node: SyncNode) => {
 
   // 设置默认值
   selectedNodeParams.value.forEach((param) => {
-    if (nodeConfig[param.name] === undefined && param.defaultValue !== undefined) {
+    if (
+      nodeConfig[param.name] === undefined &&
+      param.defaultValue !== undefined
+    ) {
       nodeConfig[param.name] = param.defaultValue;
     }
   });
@@ -852,7 +927,9 @@ const handleDeleteNode = (node: SyncNode) => {
   }
   // 删除相关连线
   connections.value = connections.value.filter(
-    (c) => c.sourceNodeKey !== node.syncNodeKey && c.targetNodeKey !== node.syncNodeKey
+    (c) =>
+      c.sourceNodeKey !== node.syncNodeKey &&
+      c.targetNodeKey !== node.syncNodeKey,
   );
   if (selectedNodeKey.value === node.syncNodeKey) {
     selectedNodeKey.value = null;
@@ -896,14 +973,21 @@ const handleNodeMouseDown = (event: MouseEvent, node: SyncNode) => {
 };
 
 // 端口连线
-const handlePortMouseDown = (event: MouseEvent, node: SyncNode, portType: "input" | "output") => {
+const handlePortMouseDown = (
+  event: MouseEvent,
+  node: SyncNode,
+  portType: "input" | "output",
+) => {
   event.stopPropagation();
   connectingPort.value = { node, type: portType };
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!connectingPort.value || !canvasRef.value) return;
     const rect = canvasRef.value.getBoundingClientRect();
-    const startPos = getPortPosition(connectingPort.value.node, connectingPort.value.type);
+    const startPos = getPortPosition(
+      connectingPort.value.node,
+      connectingPort.value.type,
+    );
     const endX = e.clientX - rect.left;
     const endY = e.clientY - rect.top;
     tempConnection.value = `M ${startPos.x} ${startPos.y} C ${startPos.x + 50} ${startPos.y}, ${endX - 50} ${endY}, ${endX} ${endY}`;
@@ -917,17 +1001,30 @@ const handlePortMouseDown = (event: MouseEvent, node: SyncNode, portType: "input
       if (targetNodeEl) {
         const targetNodeKey = nodes.value.find((n) => {
           const style = getNodeStyle(n);
-          return targetNodeEl.style.left === style.left && targetNodeEl.style.top === style.top;
+          return (
+            targetNodeEl.style.left === style.left &&
+            targetNodeEl.style.top === style.top
+          );
         })?.syncNodeKey;
 
-        if (targetNodeKey && targetNodeKey !== connectingPort.value.node.syncNodeKey) {
+        if (
+          targetNodeKey &&
+          targetNodeKey !== connectingPort.value.node.syncNodeKey
+        ) {
           const isInputPort = target.classList.contains("input-port");
-          const sourceKey = connectingPort.value.type === "output" ? connectingPort.value.node.syncNodeKey : targetNodeKey;
-          const targetKey = connectingPort.value.type === "output" ? targetNodeKey : connectingPort.value.node.syncNodeKey;
+          const sourceKey =
+            connectingPort.value.type === "output"
+              ? connectingPort.value.node.syncNodeKey
+              : targetNodeKey;
+          const targetKey =
+            connectingPort.value.type === "output"
+              ? targetNodeKey
+              : connectingPort.value.node.syncNodeKey;
 
           // 避免重复连线
           const exists = connections.value.some(
-            (c) => c.sourceNodeKey === sourceKey && c.targetNodeKey === targetKey
+            (c) =>
+              c.sourceNodeKey === sourceKey && c.targetNodeKey === targetKey,
           );
           if (!exists) {
             connections.value.push({
@@ -968,8 +1065,12 @@ const getPortPosition = (node: SyncNode, portType: "input" | "output") => {
 
 // 获取连线路径
 const getConnectionPath = (conn: SyncConnection) => {
-  const sourceNode = nodes.value.find((n) => n.syncNodeKey === conn.sourceNodeKey);
-  const targetNode = nodes.value.find((n) => n.syncNodeKey === conn.targetNodeKey);
+  const sourceNode = nodes.value.find(
+    (n) => n.syncNodeKey === conn.sourceNodeKey,
+  );
+  const targetNode = nodes.value.find(
+    (n) => n.syncNodeKey === conn.targetNodeKey,
+  );
   if (!sourceNode || !targetNode) return "";
 
   const start = getPortPosition(sourceNode, "output");
@@ -983,7 +1084,9 @@ const getConnectionPath = (conn: SyncConnection) => {
 const handleConnectionClick = (conn: SyncConnection) => {
   // 删除连线
   const idx = connections.value.findIndex(
-    (c) => c.sourceNodeKey === conn.sourceNodeKey && c.targetNodeKey === conn.targetNodeKey
+    (c) =>
+      c.sourceNodeKey === conn.sourceNodeKey &&
+      c.targetNodeKey === conn.targetNodeKey,
   );
   if (idx !== -1) {
     connections.value.splice(idx, 1);
@@ -1012,7 +1115,7 @@ const handleTestConnection = async () => {
     const res = await testSpiConnection(
       selectedNode.value.syncNodeType!,
       selectedNode.value.syncNodeSpiName!,
-      nodeConfig
+      nodeConfig,
     );
     if (res.data?.success) {
       ElMessage.success(res.data.data || "连接成功");
@@ -1042,7 +1145,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -1075,7 +1177,6 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
-
 
 .sync-task-design {
   height: 100vh;
@@ -1354,7 +1455,6 @@ onUnmounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1363,5 +1463,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

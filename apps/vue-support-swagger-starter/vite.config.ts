@@ -72,7 +72,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       exclude,
     },
     build: {
-      target: "es2015",
+      // 说明：部分依赖包含 BigInt 字面量，最低需要 ES2020
+      target: "es2020",
       sourcemap: false,
       chunkSizeWarningLimit: 4000,
       terserOptions: {

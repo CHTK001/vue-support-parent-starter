@@ -18,12 +18,16 @@
           <div class="header-text">
             <h3>日志配置</h3>
             <p v-if="nodeInfo">
-              <span class="node-name">{{ nodeInfo.nodeName || nodeInfo.applicationName }}</span>
-              <span class="node-address">{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
+              <span class="node-name">{{
+                nodeInfo.nodeName || nodeInfo.applicationName
+              }}</span>
+              <span class="node-address"
+                >{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span
+              >
             </p>
           </div>
         </div>
-        <div class="header-stats" v-if="loggers.length > 0">
+        <div v-if="loggers.length > 0" class="header-stats">
           <div class="stat-item">
             <span class="stat-value">{{ loggers.length }}</span>
             <span class="stat-label">日志器</span>
@@ -46,7 +50,7 @@
               <IconifyIconOnline icon="ri:search-line" />
             </template>
           </el-input>
-          <span class="search-result" v-if="searchText">
+          <span v-if="searchText" class="search-result">
             找到 <strong>{{ filteredLoggers.length }}</strong> 个
           </span>
         </div>
@@ -55,8 +59,8 @@
             <el-button
               type="primary"
               :icon="loading ? '' : undefined"
-              @click="handleRefresh"
               :loading="loading"
+              @click="handleRefresh"
             >
               <IconifyIconOnline v-if="!loading" icon="ri:refresh-line" />
               刷新
@@ -80,9 +84,16 @@
           <el-table-column label="日志器名称" min-width="280">
             <template #default="{ row }">
               <div class="logger-name-cell">
-                <div class="logger-icon-wrapper" :class="{ 'is-root': row.loggerName === 'ROOT' }">
+                <div
+                  class="logger-icon-wrapper"
+                  :class="{ 'is-root': row.loggerName === 'ROOT' }"
+                >
                   <IconifyIconOnline
-                    :icon="row.loggerName === 'ROOT' ? 'ri:home-5-line' : 'ri:code-s-slash-line'"
+                    :icon="
+                      row.loggerName === 'ROOT'
+                        ? 'ri:home-5-line'
+                        : 'ri:code-s-slash-line'
+                    "
                   />
                 </div>
                 <span class="logger-name-text" :title="row.loggerName">
@@ -123,8 +134,15 @@
           <el-table-column label="继承" width="70" align="center">
             <template #default="{ row }">
               <IconifyIconOnline
-                :icon="row.additive ? 'ri:checkbox-circle-fill' : 'ri:close-circle-line'"
-                :class="['inherit-icon', row.additive ? 'is-active' : 'is-inactive']"
+                :icon="
+                  row.additive
+                    ? 'ri:checkbox-circle-fill'
+                    : 'ri:close-circle-line'
+                "
+                :class="[
+                  'inherit-icon',
+                  row.additive ? 'is-active' : 'is-inactive',
+                ]"
               />
             </template>
           </el-table-column>
@@ -144,7 +162,11 @@
                   :value="level"
                 >
                   <div class="level-option">
-                    <el-tag :type="getLevelTagType(level)" size="small" effect="light">
+                    <el-tag
+                      :type="getLevelTagType(level)"
+                      size="small"
+                      effect="light"
+                    >
                       {{ level }}
                     </el-tag>
                   </div>
@@ -159,9 +181,11 @@
                 type="primary"
                 size="small"
                 :loading="row.updating"
-                :disabled="!row.newLevel || row.newLevel === row.configuredLevel"
-                @click="updateLoggerLevel(row)"
+                :disabled="
+                  !row.newLevel || row.newLevel === row.configuredLevel
+                "
                 plain
+                @click="updateLoggerLevel(row)"
               >
                 应用
               </el-button>
@@ -231,7 +255,7 @@ const encodeNodeUrl = (ip: string, port: number): string => {
  * 获取日志等级标签类型
  */
 const getLevelTagType = (
-  level?: string
+  level?: string,
 ): "success" | "warning" | "info" | "primary" | "danger" | undefined => {
   switch (level) {
     case "ERROR":
@@ -287,7 +311,7 @@ const logLevels: LogLevel[] = ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
 const filteredLoggers = computed(() => {
   if (!searchText.value) return loggers.value;
   return loggers.value.filter((logger: any) =>
-    logger.loggerName?.toLowerCase().includes(searchText.value.toLowerCase())
+    logger.loggerName?.toLowerCase().includes(searchText.value.toLowerCase()),
   );
 });
 
@@ -299,7 +323,7 @@ watch(
       loadLoggers();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听弹框显示状态
@@ -321,7 +345,7 @@ const loadLoggers = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await getNodeLoggers(encodedNodeUrl);
 
@@ -335,7 +359,7 @@ const loadLoggers = async () => {
       }));
     } else {
       message.error(
-        "获取日志配置失败: " + ((response as any).msg || "未知错误")
+        "获取日志配置失败: " + ((response as any).msg || "未知错误"),
       );
       loggers.value = [];
     }
@@ -356,7 +380,7 @@ const handleRefresh = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await refreshNodeLoggers(encodedNodeUrl);
 
@@ -365,7 +389,7 @@ const handleRefresh = async () => {
       message.success("日志配置刷新成功");
     } else {
       message.error(
-        "刷新日志配置失败: " + ((response as any).msg || "未知错误")
+        "刷新日志配置失败: " + ((response as any).msg || "未知错误"),
       );
     }
   } catch (error) {
@@ -407,12 +431,12 @@ const updateLoggerLevel = async (logger: any) => {
     console.warn("SyncServer 方式失败，回退到 HTTP 方式:", syncResponse.msg);
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await setLoggerLevel(
       encodedNodeUrl,
       logger.loggerName,
-      logger.newLevel || ""
+      logger.newLevel || "",
     );
 
     if (response.success) {
@@ -421,7 +445,7 @@ const updateLoggerLevel = async (logger: any) => {
       await loadLoggers();
     } else {
       message.error(
-        "设置日志等级失败: " + ((response as any).msg || "未知错误")
+        "设置日志等级失败: " + ((response as any).msg || "未知错误"),
       );
     }
   } catch (error) {
@@ -633,7 +657,6 @@ const handleClose = () => {
   gap: 10px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -642,5 +665,4 @@ const handleClose = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

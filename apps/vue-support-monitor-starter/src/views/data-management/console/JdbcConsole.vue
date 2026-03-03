@@ -129,7 +129,7 @@
           tab-position="top"
         >
           <el-tab-pane name="result" class="!h-full" label="结果">
-            <div class="result" v-if="columns.length">
+            <div v-if="columns.length" class="result">
               <el-popover
                 v-model:visible="columnFilterVisible"
                 trigger="click"
@@ -178,8 +178,8 @@
               </el-popover>
             </div>
             <el-table
-              border
               v-if="columns.length"
+              border
               :data="rows"
               size="small"
               height="580px"
@@ -225,7 +225,7 @@
                             class="bar"
                             :style="barStyle(col.name, b)"
                             @click.stop="toggleFilter(col.name, b.value)"
-                          ></div>
+                          />
                         </el-tooltip>
                       </div>
                     </div>
@@ -396,7 +396,7 @@ async function loadConsoleConfig() {
           copyCreateTable: false,
           addFieldComment: true,
         },
-        parsed.jdbc || {}
+        parsed.jdbc || {},
       );
       consoleConfig.value = parsed;
     } catch (_) {
@@ -457,7 +457,7 @@ async function handleNodeClick(node: any) {
 // 懒加载子节点（结合 hasChildren 展示展开图标）
 const loadChildrenLazy = async (
   node: any,
-  resolve: (children: any[]) => void
+  resolve: (children: any[]) => void,
 ) => {
   // 根节点（node.level === 0）直接返回已有 children
   if (!node || node.level === 0) {
@@ -645,7 +645,7 @@ function barTooltip(col: string, b: { value: string; count: number }) {
 
 const filters = ref<Record<string, Set<string>>>({});
 const hasActiveFilters = computed(() =>
-  Object.values(filters.value).some((s) => s && s.size > 0)
+  Object.values(filters.value).some((s) => s && s.size > 0),
 );
 function toggleFilter(col: string, value: string) {
   if (!filters.value[col]) filters.value[col] = new Set();
@@ -739,7 +739,7 @@ function buildMenuItems(type): MenuItem[] {
   }
   if (
     allow(
-      consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE")
+      consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE"),
     )
   ) {
     items.push({
@@ -862,7 +862,11 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入新表名：",
           "重命名表",
-          { confirmButtonText: "确定", cancelButtonText: "取消",inputValue: contextNode.value.name }
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputValue: contextNode.value.name,
+          },
         );
         if (!value || !value.trim()) return;
         await renameTable(props.id, {
@@ -872,7 +876,7 @@ async function onMenuSelect(key: string) {
         ElMessage.success("已重命名");
         contextNode.value.name = value.trim();
         refreshNodeChildren({
-          path: contextNode.value.parentPath
+          path: contextNode.value.parentPath,
         });
         // await refreshContextNodeChildren();
       } catch (_) {}
@@ -889,7 +893,11 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入备份表名：",
           "备份表",
-          { confirmButtonText: "确定", cancelButtonText: "取消", inputValue: defaultName }
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputValue: defaultName,
+          },
         );
         if (!value || !value.trim()) return;
         await backupTable(props.id, {
@@ -898,7 +906,7 @@ async function onMenuSelect(key: string) {
         });
         ElMessage.success("已发起备份");
         refreshNodeChildren({
-          path: contextNode.value.parentPath
+          path: contextNode.value.parentPath,
         });
       } catch (_) {}
       break;
@@ -927,7 +935,10 @@ async function refreshNodeChildren(node: any) {
   try {
     const res = await getConsoleChildren(props.id, node?.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+    if (
+      treeRef.value &&
+      typeof treeRef.value.updateKeyChildren === "function"
+    ) {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node?.path, records);
     } else {
@@ -950,7 +961,10 @@ async function refreshContextNodeChildren() {
   try {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+    if (
+      treeRef.value &&
+      typeof treeRef.value.updateKeyChildren === "function"
+    ) {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
@@ -994,7 +1008,7 @@ async function copyCreateSql(node: any) {
   const res = await getConsoleNode(props.id, node.path, "ddl");
   const ddl = res?.data?.data || "";
   await navigator.clipboard.writeText(
-    typeof ddl === "string" ? ddl : JSON.stringify(ddl)
+    typeof ddl === "string" ? ddl : JSON.stringify(ddl),
   );
 }
 
@@ -1015,7 +1029,7 @@ async function addFieldComment(node: any) {
         inputType: "textarea",
         inputPlaceholder: "请输入注释...",
         inputValue: node?.properties?.comment || "",
-      }
+      },
     );
     if (!value || !value.trim()) return;
     await saveFieldComment(props.id, {
@@ -1036,7 +1050,6 @@ onMounted(async () => {
 });
 </script>
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -1069,7 +1082,6 @@ onMounted(async () => {
     z-index: 1;
   }
 }
-
 
 .console {
   display: grid;
@@ -1233,7 +1245,6 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1242,5 +1253,4 @@ onMounted(async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

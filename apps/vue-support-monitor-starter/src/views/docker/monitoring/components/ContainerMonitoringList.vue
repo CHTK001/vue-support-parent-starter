@@ -10,16 +10,20 @@
       :total="pagination?.total || 0"
       :page-size="pagination?.pageSize || 10"
       :current-page="pagination?.page || 1"
+      table-name="container-monitoring"
       @size-change="onSizeChange"
       @current-change="onCurrentChange"
-      table-name="container-monitoring"
     >
       <el-table-column label="容器信息" min-width="250">
         <template #default="{ row }">
           <div class="container-info">
             <div class="container-details">
-              <div class="container-name">{{ row.systemSoftContainerName }}</div>
-              <div class="container-id">{{ row.systemSoftContainerId?.substring(0, 12) }}</div>
+              <div class="container-name">
+                {{ row.systemSoftContainerName }}
+              </div>
+              <div class="container-id">
+                {{ row.systemSoftContainerId?.substring(0, 12) }}
+              </div>
             </div>
           </div>
         </template>
@@ -36,7 +40,10 @@
 
       <el-table-column label="运行状态" width="120">
         <template #default="{ row }">
-          <el-tag :type="getStatusType(row.systemSoftContainerStatus)" size="small">
+          <el-tag
+            :type="getStatusType(row.systemSoftContainerStatus)"
+            size="small"
+          >
             {{ getStatusText(row.systemSoftContainerStatus) }}
           </el-tag>
         </template>
@@ -45,15 +52,21 @@
       <el-table-column label="服务器" width="180">
         <template #default="{ row }">
           <div class="server-info">
-            <div class="server-name">{{ row.systemSoftContainerServerName }}</div>
+            <div class="server-name">
+              {{ row.systemSoftContainerServerName }}
+            </div>
           </div>
         </template>
       </el-table-column>
 
       <el-table-column label="CPU使用率" width="150">
         <template #default="{ row }">
-          <ResourceUsageBar 
-            :value="row.systemSoftContainerCpuPercent || row.systemSoftContainerCpuUsage || 0" 
+          <ResourceUsageBar
+            :value="
+              row.systemSoftContainerCpuPercent ||
+              row.systemSoftContainerCpuUsage ||
+              0
+            "
             type="cpu"
           />
         </template>
@@ -61,8 +74,12 @@
 
       <el-table-column label="内存使用率" width="150">
         <template #default="{ row }">
-          <ResourceUsageBar 
-            :value="row.systemSoftContainerMemoryPercent || row.systemSoftContainerMemoryUsage || 0" 
+          <ResourceUsageBar
+            :value="
+              row.systemSoftContainerMemoryPercent ||
+              row.systemSoftContainerMemoryUsage ||
+              0
+            "
             type="memory"
           />
         </template>
@@ -70,9 +87,17 @@
 
       <el-table-column label="磁盘IO" width="180">
         <template #default="{ row }">
-          <IODataDisplay 
-            :read-value="row.systemSoftContainerStatsDiskRead || row.systemSoftContainerDiskRead || 0"
-            :write-value="row.systemSoftContainerStatsDiskWrite || row.systemSoftContainerDiskWrite || 0"
+          <IODataDisplay
+            :read-value="
+              row.systemSoftContainerStatsDiskRead ||
+              row.systemSoftContainerDiskRead ||
+              0
+            "
+            :write-value="
+              row.systemSoftContainerStatsDiskWrite ||
+              row.systemSoftContainerDiskWrite ||
+              0
+            "
             read-label="读取"
             write-label="写入"
           />
@@ -81,9 +106,17 @@
 
       <el-table-column label="网络IO" width="180">
         <template #default="{ row }">
-          <IODataDisplay 
-            :read-value="row.systemSoftContainerStatsNetworkRxBytes || row.systemSoftContainerNetworkRx || 0"
-            :write-value="row.systemSoftContainerStatsNetworkTxBytes || row.systemSoftContainerNetworkTx || 0"
+          <IODataDisplay
+            :read-value="
+              row.systemSoftContainerStatsNetworkRxBytes ||
+              row.systemSoftContainerNetworkRx ||
+              0
+            "
+            :write-value="
+              row.systemSoftContainerStatsNetworkTxBytes ||
+              row.systemSoftContainerNetworkTx ||
+              0
+            "
             read-label="接收"
             write-label="发送"
           />
@@ -99,9 +132,9 @@
         </template>
       </el-table-column>
     </ScTable>
-    
+
     <!-- 分页 -->
-    <div class="pagination-container" v-if="showPagination && pagination">
+    <div v-if="showPagination && pagination" class="pagination-container">
       <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
@@ -116,69 +149,80 @@
 </template>
 
 <script setup lang="ts">
-import { type SystemSoftContainer } from '@/api/docker'
-import IODataDisplay from './IODataDisplay.vue'
-import ResourceUsageBar from './ResourceUsageBar.vue'
-import ScTable from "@repo/components/ScTable/index.vue"
-import { defineEmits, defineProps } from 'vue'
+import { type SystemSoftContainer } from "@/api/docker";
+import IODataDisplay from "./IODataDisplay.vue";
+import ResourceUsageBar from "./ResourceUsageBar.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
+import { defineEmits, defineProps } from "vue";
 
 interface Pagination {
-  page: number
-  pageSize: number
-  total: number
+  page: number;
+  pageSize: number;
+  total: number;
 }
 
 interface Props {
-  containers?: SystemSoftContainer[]
-  url?: Function
-  params?: Record<string, any>
-  loading?: boolean
-  pagination?: Pagination
-  showPagination?: boolean
+  containers?: SystemSoftContainer[];
+  url?: Function;
+  params?: Record<string, any>;
+  loading?: boolean;
+  pagination?: Pagination;
+  showPagination?: boolean;
 }
 
 interface Emits {
-  (e: 'view-detail', container: SystemSoftContainer): void
-  (e: 'size-change', size: number): void
-  (e: 'current-change', page: number): void
+  (e: "view-detail", container: SystemSoftContainer): void;
+  (e: "size-change", size: number): void;
+  (e: "current-change", page: number): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   containers: () => [],
   loading: false,
   pagination: () => ({ page: 1, pageSize: 10, total: 0 }),
-  showPagination: true
-})
+  showPagination: true,
+});
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>();
 
 // 工具函数
 const getStatusType = (status?: string) => {
-  const map = { running: 'success', stopped: 'warning', paused: 'info', restarting: 'warning', error: 'danger' }
-  return map[status] || 'info'
-}
+  const map = {
+    running: "success",
+    stopped: "warning",
+    paused: "info",
+    restarting: "warning",
+    error: "danger",
+  };
+  return map[status] || "info";
+};
 
 const getStatusText = (status?: string) => {
-  const map = { running: '运行中', stopped: '已停止', paused: '暂停', restarting: '重启中', error: '错误' }
-  return map[status] || '未知'
-}
+  const map = {
+    running: "运行中",
+    stopped: "已停止",
+    paused: "暂停",
+    restarting: "重启中",
+    error: "错误",
+  };
+  return map[status] || "未知";
+};
 
 // 事件处理
 const onViewDetail = (container: SystemSoftContainer) => {
-  emit('view-detail', container)
-}
+  emit("view-detail", container);
+};
 
 const onSizeChange = (size: number) => {
-  emit('size-change', size)
-}
+  emit("size-change", size);
+};
 
 const onCurrentChange = (page: number) => {
-  emit('current-change', page)
-}
+  emit("current-change", page);
+};
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -211,7 +255,6 @@ const onCurrentChange = (page: number) => {
     z-index: 1;
   }
 }
-
 
 .container-info {
   display: flex;
@@ -270,7 +313,6 @@ const onCurrentChange = (page: number) => {
   border-top: 1px solid #f0f2f5;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -279,5 +321,4 @@ const onCurrentChange = (page: number) => {
     padding: 12px 16px;
   }
 }
-
 </style>

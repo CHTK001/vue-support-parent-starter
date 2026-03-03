@@ -17,7 +17,7 @@
           placeholder="请输入组件名称"
         />
       </el-form-item>
-      
+
       <el-form-item label="组件类型" prop="monitorSysGenServerComponentType">
         <el-select
           v-model="formData.monitorSysGenServerComponentType"
@@ -31,8 +31,11 @@
           <el-option label="饼图" value="pie" />
         </el-select>
       </el-form-item>
-      
-      <el-form-item label="表达式类型" prop="monitorSysGenServerComponentExpressionType">
+
+      <el-form-item
+        label="表达式类型"
+        prop="monitorSysGenServerComponentExpressionType"
+      >
         <el-select
           v-model="formData.monitorSysGenServerComponentExpressionType"
           placeholder="请选择表达式类型"
@@ -43,8 +46,11 @@
           <el-option label="组件选择" value="COMPONENT" />
         </el-select>
       </el-form-item>
-      
-      <el-form-item label="表达式" prop="monitorSysGenServerComponentExpression">
+
+      <el-form-item
+        label="表达式"
+        prop="monitorSysGenServerComponentExpression"
+      >
         <el-input
           v-model="formData.monitorSysGenServerComponentExpression"
           type="textarea"
@@ -52,14 +58,14 @@
           placeholder="请输入表达式"
         />
       </el-form-item>
-      
+
       <el-form-item label="单位">
         <el-input
           v-model="formData.monitorSysGenServerComponentUnit"
           placeholder="请输入单位，如：%、MB、个等"
         />
       </el-form-item>
-      
+
       <el-form-item label="描述">
         <el-input
           v-model="formData.monitorSysGenServerComponentDescription"
@@ -68,7 +74,7 @@
           placeholder="请输入组件描述"
         />
       </el-form-item>
-      
+
       <el-form-item label="启用状态">
         <el-switch
           v-model="formData.monitorSysGenServerComponentEnabled"
@@ -77,12 +83,12 @@
         />
       </el-form-item>
     </el-form>
-    
+
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" :loading="loading" @click="handleSubmit">
-          {{ isEdit ? '更新' : '创建' }}
+          {{ isEdit ? "更新" : "创建" }}
         </el-button>
       </div>
     </template>
@@ -96,13 +102,13 @@ import { type FormInstance, type FormRules } from "element-plus";
 import {
   createServerComponent,
   updateServerComponent,
-  type ServerComponent
+  type ServerComponent,
 } from "@/api/server";
 import {
   convertFormDataToApiData,
   convertApiDataToFormData,
   validateComponentData,
-  type ComponentFormData
+  type ComponentFormData,
 } from "@/utils/component-field-mapping";
 
 // 定义属性
@@ -126,41 +132,46 @@ const formRef = ref<FormInstance>();
 // 表单数据
 const formData = ref<ComponentFormData>({
   monitorSysGenServerId: 0,
-  monitorSysGenServerComponentName: '',
-  monitorSysGenServerComponentType: 'card',
-  monitorSysGenServerComponentExpressionType: 'PROMETHEUS',
-  monitorSysGenServerComponentExpression: '',
-  monitorSysGenServerComponentUnit: '',
-  monitorSysGenServerComponentDescription: '',
-  monitorSysGenServerComponentEnabled: true
+  monitorSysGenServerComponentName: "",
+  monitorSysGenServerComponentType: "card",
+  monitorSysGenServerComponentExpressionType: "PROMETHEUS",
+  monitorSysGenServerComponentExpression: "",
+  monitorSysGenServerComponentUnit: "",
+  monitorSysGenServerComponentDescription: "",
+  monitorSysGenServerComponentEnabled: true,
 });
 
 // 表单验证规则
 const formRules: FormRules = {
   monitorSysGenServerComponentName: [
-    { required: true, message: '请输入组件名称', trigger: 'blur' }
+    { required: true, message: "请输入组件名称", trigger: "blur" },
   ],
   monitorSysGenServerComponentType: [
-    { required: true, message: '请选择组件类型', trigger: 'change' }
+    { required: true, message: "请选择组件类型", trigger: "change" },
   ],
   monitorSysGenServerComponentExpressionType: [
-    { required: true, message: '请选择表达式类型', trigger: 'change' }
+    { required: true, message: "请选择表达式类型", trigger: "change" },
   ],
   monitorSysGenServerComponentExpression: [
-    { required: true, message: '请输入表达式', trigger: 'blur' }
-  ]
+    { required: true, message: "请输入表达式", trigger: "blur" },
+  ],
 };
 
 // 计算属性
-const isEdit = computed(() => !!props.component?.monitorSysGenServerComponentId);
+const isEdit = computed(
+  () => !!props.component?.monitorSysGenServerComponentId,
+);
 
 // 监听对话框显示状态
-watch(() => props.modelValue, (val) => {
-  dialogVisible.value = val;
-  if (val) {
-    initForm();
-  }
-});
+watch(
+  () => props.modelValue,
+  (val) => {
+    dialogVisible.value = val;
+    if (val) {
+      initForm();
+    }
+  },
+);
 
 watch(dialogVisible, (val) => {
   emit("update:modelValue", val);
@@ -177,13 +188,13 @@ const initForm = () => {
     // 新增模式，重置表单
     formData.value = {
       monitorSysGenServerId: props.serverId || 0,
-      monitorSysGenServerComponentName: '',
-      monitorSysGenServerComponentType: 'card',
-      monitorSysGenServerComponentExpressionType: 'PROMETHEUS',
-      monitorSysGenServerComponentExpression: '',
-      monitorSysGenServerComponentUnit: '',
-      monitorSysGenServerComponentDescription: '',
-      monitorSysGenServerComponentEnabled: true
+      monitorSysGenServerComponentName: "",
+      monitorSysGenServerComponentType: "card",
+      monitorSysGenServerComponentExpressionType: "PROMETHEUS",
+      monitorSysGenServerComponentExpression: "",
+      monitorSysGenServerComponentUnit: "",
+      monitorSysGenServerComponentDescription: "",
+      monitorSysGenServerComponentEnabled: true,
     };
   }
 
@@ -202,12 +213,13 @@ const handleSubmit = async () => {
     if (!valid) return;
 
     // 确保服务器ID正确设置
-    formData.value.monitorSysGenServerId = props.serverId || formData.value.monitorSysGenServerId;
+    formData.value.monitorSysGenServerId =
+      props.serverId || formData.value.monitorSysGenServerId;
 
     // 使用工具函数验证数据
     const validation = validateComponentData(formData.value);
     if (!validation.isValid) {
-      message(validation.errors.join(', ', { type: "error" }));
+      message(validation.errors.join(", ", { type: "error" }));
       return;
     }
 
@@ -220,7 +232,7 @@ const handleSubmit = async () => {
       // 更新组件
       const res = await updateServerComponent(
         formData.value.monitorSysGenServerComponentId!,
-        submitData
+        submitData,
       );
 
       if (res.code === "00000") {
@@ -265,7 +277,6 @@ const handleClose = () => {
   gap: 8px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -274,5 +285,4 @@ const handleClose = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

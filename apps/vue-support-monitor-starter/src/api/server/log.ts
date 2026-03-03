@@ -91,7 +91,11 @@ export interface ServerLogConfigSaveParams {
  * @returns 日志分页数据
  */
 export function getServerLogPage(params: ServerLogPageParams) {
-  return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>("get", "v1/gen/server-log/page", { params });
+  return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>(
+    "get",
+    "v1/gen/server-log/page",
+    { params },
+  );
 }
 
 /**
@@ -100,7 +104,11 @@ export function getServerLogPage(params: ServerLogPageParams) {
  * @returns 日志详细信息
  */
 export function getServerLogDetail(id: number) {
-  return http.request<ReturnResult<ServerLog>>("get", "v1/gen/server-log/page", { params: { monitorSysGenServerLogId: id } });
+  return http.request<ReturnResult<ServerLog>>(
+    "get",
+    "v1/gen/server-log/page",
+    { params: { monitorSysGenServerLogId: id } },
+  );
 }
 
 /**
@@ -109,7 +117,11 @@ export function getServerLogDetail(id: number) {
  * @returns 删除结果
  */
 export function deleteServerLog(id: number) {
-  return http.request<ReturnResult<boolean>>("delete", "v1/gen/server-log/delete", { params: { id: id.toString() } });
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "v1/gen/server-log/delete",
+    { params: { id: id.toString() } },
+  );
 }
 
 /**
@@ -118,7 +130,11 @@ export function deleteServerLog(id: number) {
  * @returns 删除结果
  */
 export function batchDeleteServerLogs(ids: number[]) {
-  return http.request<ReturnResult<boolean>>("delete", "v1/gen/server-log/delete", { params: { id: ids.join(",") } });
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "v1/gen/server-log/delete",
+    { params: { id: ids.join(",") } },
+  );
 }
 
 /**
@@ -127,8 +143,15 @@ export function batchDeleteServerLogs(ids: number[]) {
  * @param params 查询参数
  * @returns 日志列表
  */
-export function getServerLogsByServerId(serverId: number, params?: Omit<ServerLogPageParams, "monitorSysGenServerId">) {
-  return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>("get", "v1/gen/server-log/page", { params: { ...params, monitorSysGenServerId: serverId } });
+export function getServerLogsByServerId(
+  serverId: number,
+  params?: Omit<ServerLogPageParams, "monitorSysGenServerId">,
+) {
+  return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>(
+    "get",
+    "v1/gen/server-log/page",
+    { params: { ...params, monitorSysGenServerId: serverId } },
+  );
 }
 
 /**
@@ -137,8 +160,15 @@ export function getServerLogsByServerId(serverId: number, params?: Omit<ServerLo
  * @param params 查询参数
  * @returns 日志列表
  */
-export function getServerLogsByLevel(level: string, params?: Omit<ServerLogPageParams, "monitorSysGenServerLogLevel">) {
-  return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>("get", "v1/gen/server-log/page", { params: { ...params, monitorSysGenServerLogLevel: level } });
+export function getServerLogsByLevel(
+  level: string,
+  params?: Omit<ServerLogPageParams, "monitorSysGenServerLogLevel">,
+) {
+  return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>(
+    "get",
+    "v1/gen/server-log/page",
+    { params: { ...params, monitorSysGenServerLogLevel: level } },
+  );
 }
 
 /**
@@ -147,8 +177,15 @@ export function getServerLogsByLevel(level: string, params?: Omit<ServerLogPageP
  * @param params 查询参数
  * @returns 日志列表
  */
-export function searchServerLogs(keyword: string, params?: ServerLogPageParams) {
-  return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>("get", "v1/gen/server-log/search", { params: { ...params, keyword } });
+export function searchServerLogs(
+  keyword: string,
+  params?: ServerLogPageParams,
+) {
+  return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>(
+    "get",
+    "v1/gen/server-log/search",
+    { params: { ...params, keyword } },
+  );
 }
 
 /**
@@ -157,7 +194,11 @@ export function searchServerLogs(keyword: string, params?: ServerLogPageParams) 
  * @returns 统计数据
  */
 export function getServerLogStatistics(serverId?: number) {
-  return http.request<ReturnResult<any>>("get", "v1/gen/server-log/statistics", { params: serverId ? { serverId } : undefined });
+  return http.request<ReturnResult<any>>(
+    "get",
+    "v1/gen/server-log/statistics",
+    { params: serverId ? { serverId } : undefined },
+  );
 }
 
 /**
@@ -168,7 +209,7 @@ export function getServerLogStatistics(serverId?: number) {
 export function exportServerLogs(params: ServerLogPageParams) {
   return http.request<Blob>("get", "v1/gen/server-log/export", {
     params,
-    responseType: "blob"
+    responseType: "blob",
   });
 }
 
@@ -179,7 +220,11 @@ export function exportServerLogs(params: ServerLogPageParams) {
  * @returns 清理结果
  */
 export function cleanupServerLogs(serverId: number, beforeDate?: string) {
-  return http.request<ReturnResult<number>>("delete", "v1/gen/server-log/cleanup", { params: { serverId, beforeDate } });
+  return http.request<ReturnResult<number>>(
+    "delete",
+    "v1/gen/server-log/cleanup",
+    { params: { serverId, beforeDate } },
+  );
 }
 
 // ==================== 日志配置 API ====================
@@ -190,7 +235,11 @@ export function cleanupServerLogs(serverId: number, beforeDate?: string) {
  * @returns 日志配置
  */
 export function getServerLogConfig(serverId: number) {
-  return http.request<ReturnResult<ServerLogConfig>>("get", "v1/gen/server-log-config/page", { params: { monitorSysGenServerId: serverId } });
+  return http.request<ReturnResult<ServerLogConfig>>(
+    "get",
+    "v1/gen/server-log-config/page",
+    { params: { monitorSysGenServerId: serverId } },
+  );
 }
 
 /**
@@ -199,7 +248,11 @@ export function getServerLogConfig(serverId: number) {
  * @returns 保存结果
  */
 export function saveServerLogConfig(data: ServerLogConfigSaveParams) {
-  return http.request<ReturnResult<ServerLogConfig>>("post", "v1/gen/server-log-config/save", { data });
+  return http.request<ReturnResult<ServerLogConfig>>(
+    "post",
+    "v1/gen/server-log-config/save",
+    { data },
+  );
 }
 
 /**
@@ -208,7 +261,11 @@ export function saveServerLogConfig(data: ServerLogConfigSaveParams) {
  * @returns 更新结果
  */
 export function updateServerLogConfig(data: ServerLogConfigSaveParams) {
-  return http.request<ReturnResult<boolean>>("put", "v1/gen/server-log-config/update", { data });
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "v1/gen/server-log-config/update",
+    { data },
+  );
 }
 
 /**
@@ -217,7 +274,11 @@ export function updateServerLogConfig(data: ServerLogConfigSaveParams) {
  * @returns 删除结果
  */
 export function deleteServerLogConfig(id: number) {
-  return http.request<ReturnResult<boolean>>("delete", "v1/gen/server-log-config/delete", { params: { id: id.toString() } });
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "v1/gen/server-log-config/delete",
+    { params: { id: id.toString() } },
+  );
 }
 
 /**
@@ -227,7 +288,11 @@ export function deleteServerLogConfig(id: number) {
  * @returns 操作结果
  */
 export function toggleLogCollection(serverId: number, enabled: boolean) {
-  return http.request<ReturnResult<boolean>>("post", "v1/gen/server-log-config/toggle", { params: { serverId, enabled: enabled ? 1 : 0 } });
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server-log-config/toggle",
+    { params: { serverId, enabled: enabled ? 1 : 0 } },
+  );
 }
 
 /**
@@ -237,7 +302,11 @@ export function toggleLogCollection(serverId: number, enabled: boolean) {
  * @returns 操作结果
  */
 export function toggleRealTimeLog(serverId: number, enabled: boolean) {
-  return http.request<ReturnResult<boolean>>("post", "v1/gen/server-log-config/toggle-realtime", { params: { serverId, enabled: enabled ? 1 : 0 } });
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server-log-config/toggle-realtime",
+    { params: { serverId, enabled: enabled ? 1 : 0 } },
+  );
 }
 
 // ==================== 常量和枚举 ====================
@@ -250,7 +319,7 @@ export const LOG_LEVEL = {
   INFO: "INFO",
   WARN: "WARN",
   ERROR: "ERROR",
-  FATAL: "FATAL"
+  FATAL: "FATAL",
 } as const;
 
 export type LogLevel = (typeof LOG_LEVEL)[keyof typeof LOG_LEVEL];
@@ -263,7 +332,7 @@ export const logLevelMap: Record<LogLevel, { color: string; text: string }> = {
   [LOG_LEVEL.INFO]: { color: "primary", text: "信息" },
   [LOG_LEVEL.WARN]: { color: "warning", text: "警告" },
   [LOG_LEVEL.ERROR]: { color: "danger", text: "错误" },
-  [LOG_LEVEL.FATAL]: { color: "danger", text: "致命" }
+  [LOG_LEVEL.FATAL]: { color: "danger", text: "致命" },
 };
 
 /**
@@ -291,7 +360,7 @@ export const LOG_SOURCE = {
   SYSTEM: "SYSTEM",
   APPLICATION: "APPLICATION",
   SECURITY: "SECURITY",
-  ACCESS: "ACCESS"
+  ACCESS: "ACCESS",
 } as const;
 
 export type LogSource = (typeof LOG_SOURCE)[keyof typeof LOG_SOURCE];
@@ -299,12 +368,13 @@ export type LogSource = (typeof LOG_SOURCE)[keyof typeof LOG_SOURCE];
 /**
  * 日志来源映射
  */
-export const logSourceMap: Record<LogSource, { color: string; text: string }> = {
-  [LOG_SOURCE.SYSTEM]: { color: "primary", text: "系统" },
-  [LOG_SOURCE.APPLICATION]: { color: "success", text: "应用" },
-  [LOG_SOURCE.SECURITY]: { color: "warning", text: "安全" },
-  [LOG_SOURCE.ACCESS]: { color: "info", text: "访问" }
-};
+export const logSourceMap: Record<LogSource, { color: string; text: string }> =
+  {
+    [LOG_SOURCE.SYSTEM]: { color: "primary", text: "系统" },
+    [LOG_SOURCE.APPLICATION]: { color: "success", text: "应用" },
+    [LOG_SOURCE.SECURITY]: { color: "warning", text: "安全" },
+    [LOG_SOURCE.ACCESS]: { color: "info", text: "访问" },
+  };
 
 /**
  * 获取日志来源颜色

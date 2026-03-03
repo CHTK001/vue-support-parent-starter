@@ -22,7 +22,12 @@
         </div>
 
         <div class="query-options">
-          <el-select v-model="selectedComponentId" placeholder="选择组件" style="width: 200px" @change="handleComponentChange">
+          <el-select
+            v-model="selectedComponentId"
+            placeholder="选择组件"
+            style="width: 200px"
+            @change="handleComponentChange"
+          >
             <el-option
               v-for="component in components"
               :key="component.monitorSysGenServerComponentId"
@@ -31,7 +36,11 @@
             />
           </el-select>
 
-          <el-select v-model="stepValue" placeholder="步长" style="width: 120px">
+          <el-select
+            v-model="stepValue"
+            placeholder="步长"
+            style="width: 120px"
+          >
             <el-option label="15秒" :value="15" />
             <el-option label="30秒" :value="30" />
             <el-option label="1分钟" :value="60" />
@@ -41,18 +50,22 @@
         </div>
       </div>
 
-      <div class="query-stats" v-if="queryResult">
+      <div v-if="queryResult" class="query-stats">
         <el-tag type="success" size="small">查询时间: {{ queryTime }}ms</el-tag>
         <el-tag type="info" size="small">数据点: {{ dataPointCount }}</el-tag>
-        <el-tag type="warning" size="small">更新时间: {{ lastUpdateTime }}</el-tag>
+        <el-tag type="warning" size="small"
+          >更新时间: {{ lastUpdateTime }}</el-tag
+        >
       </div>
     </div>
 
     <!-- 数据展示区域 -->
-    <div class="query-content" v-loading="loading">
+    <div v-loading="loading" class="query-content">
       <div v-if="!queryResult" class="empty-state">
         <el-empty description="请选择组件并设置时间范围进行查询">
-          <el-button type="primary" @click="handleQuickQuery">快速查询（最近1小时）</el-button>
+          <el-button type="primary" @click="handleQuickQuery"
+            >快速查询（最近1小时）</el-button
+          >
         </el-empty>
       </div>
 
@@ -61,11 +74,26 @@
         <div class="component-info">
           <h3>{{ selectedComponent?.monitorSysGenServerComponentName }}</h3>
           <div class="component-meta">
-            <el-tag :type="getComponentTypeColor(selectedComponent?.monitorSysGenServerComponentType)" size="small">
-              {{ getComponentTypeName(selectedComponent?.monitorSysGenServerComponentType) }}
+            <el-tag
+              :type="
+                getComponentTypeColor(
+                  selectedComponent?.monitorSysGenServerComponentType,
+                )
+              "
+              size="small"
+            >
+              {{
+                getComponentTypeName(
+                  selectedComponent?.monitorSysGenServerComponentType,
+                )
+              }}
             </el-tag>
             <el-tag type="info" size="small">
-              {{ getExpressionTypeName(selectedComponent?.monitorSysGenServerComponentExpressionType) }}
+              {{
+                getExpressionTypeName(
+                  selectedComponent?.monitorSysGenServerComponentExpressionType,
+                )
+              }}
             </el-tag>
           </div>
         </div>
@@ -75,7 +103,7 @@
           <el-tabs v-model="activeTab" type="card">
             <el-tab-pane label="图表视图" name="chart">
               <div class="chart-container">
-                <div ref="chartRef" class="chart" style="height: 400px"></div>
+                <div ref="chartRef" class="chart" style="height: 400px" />
               </div>
             </el-tab-pane>
 
@@ -87,7 +115,11 @@
 
             <el-tab-pane label="表格视图" name="table">
               <div class="table-view">
-                <el-table :data="tableData" style="width: 100%" max-height="400">
+                <el-table
+                  :data="tableData"
+                  style="width: 100%"
+                  max-height="400"
+                >
                   <el-table-column prop="timestamp" label="时间" width="180">
                     <template #default="{ row }">
                       {{ formatTimestamp(row.timestamp) }}
@@ -109,7 +141,12 @@
 import { ref, computed, onMounted, nextTick } from "vue";
 import { message } from "@repo/utils";
 import * as echarts from "echarts";
-import { getComponentsByServerId, getComponentData, getComponentRealtimeData, type ServerComponent } from "@/api/server";
+import {
+  getComponentsByServerId,
+  getComponentData,
+  getComponentRealtimeData,
+  type ServerComponent,
+} from "@/api/server";
 
 // 定义属性
 const props = defineProps<{
@@ -131,7 +168,10 @@ const chartRef = ref<HTMLElement>();
 let chart: echarts.ECharts | null = null;
 
 // 默认时间
-const defaultTime = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)];
+const defaultTime = [
+  new Date(2000, 1, 1, 0, 0, 0),
+  new Date(2000, 1, 1, 23, 59, 59),
+];
 
 // 时间快捷选项
 const dateShortcuts = [
@@ -142,7 +182,7 @@ const dateShortcuts = [
       const start = new Date();
       start.setTime(start.getTime() - 15 * 60 * 1000);
       return [start, end];
-    }
+    },
   },
   {
     text: "最近1小时",
@@ -151,7 +191,7 @@ const dateShortcuts = [
       const start = new Date();
       start.setTime(start.getTime() - 60 * 60 * 1000);
       return [start, end];
-    }
+    },
   },
   {
     text: "最近6小时",
@@ -160,7 +200,7 @@ const dateShortcuts = [
       const start = new Date();
       start.setTime(start.getTime() - 6 * 60 * 60 * 1000);
       return [start, end];
-    }
+    },
   },
   {
     text: "最近24小时",
@@ -169,13 +209,15 @@ const dateShortcuts = [
       const start = new Date();
       start.setTime(start.getTime() - 24 * 60 * 60 * 1000);
       return [start, end];
-    }
-  }
+    },
+  },
 ];
 
 // 计算属性
 const selectedComponent = computed(() => {
-  return components.value.find(c => c.monitorSysGenServerComponentId === selectedComponentId.value);
+  return components.value.find(
+    (c) => c.monitorSysGenServerComponentId === selectedComponentId.value,
+  );
 });
 
 const tableData = computed(() => {
@@ -186,7 +228,10 @@ const tableData = computed(() => {
     return queryResult.value.data.map((item: any, index: number) => ({
       timestamp: item.timestamp || Date.now() - index * 60 * 1000,
       value: item.value || item,
-      metric: item.metric || selectedComponent.value?.monitorSysGenServerComponentName || "未知"
+      metric:
+        item.metric ||
+        selectedComponent.value?.monitorSysGenServerComponentName ||
+        "未知",
     }));
   }
 
@@ -194,8 +239,9 @@ const tableData = computed(() => {
     {
       timestamp: Date.now(),
       value: queryResult.value.data,
-      metric: selectedComponent.value?.monitorSysGenServerComponentName || "未知"
-    }
+      metric:
+        selectedComponent.value?.monitorSysGenServerComponentName || "未知",
+    },
   ];
 });
 
@@ -208,7 +254,8 @@ const loadComponents = async () => {
     if (res.code === "00000") {
       components.value = res.data || [];
       if (components.value.length > 0) {
-        selectedComponentId.value = components.value[0].monitorSysGenServerComponentId;
+        selectedComponentId.value =
+          components.value[0].monitorSysGenServerComponentId;
       }
     }
   } catch (error) {
@@ -237,18 +284,28 @@ const handleQuery = async () => {
     const endTime = parseInt(timeRangeValue.value[1]);
 
     // 获取选中组件的信息
-    const selectedComponent = components.value.find(c => c.monitorSysGenServerComponentId === selectedComponentId.value);
+    const selectedComponent = components.value.find(
+      (c) => c.monitorSysGenServerComponentId === selectedComponentId.value,
+    );
 
     const start = Date.now();
     let res;
 
     // 根据组件的表达式类型选择查询方式
-    if (selectedComponent?.monitorSysGenServerComponentExpressionType === "REALTIME") {
+    if (
+      selectedComponent?.monitorSysGenServerComponentExpressionType ===
+      "REALTIME"
+    ) {
       // 实时数据查询
       res = await getComponentRealtimeData(selectedComponentId.value);
     } else {
       // 其他类型使用统一的数据查询接口
-      res = await getComponentData(selectedComponentId.value, startTime, endTime, stepValue.value);
+      res = await getComponentData(
+        selectedComponentId.value,
+        startTime,
+        endTime,
+        stepValue.value,
+      );
     }
 
     queryTime.value = Date.now() - start;
@@ -288,7 +345,10 @@ const handleQuickQuery = () => {
   const start = new Date();
   start.setTime(start.getTime() - 60 * 60 * 1000); // 最近1小时
 
-  timeRangeValue.value = [Math.floor(start.getTime() / 1000).toString(), Math.floor(end.getTime() / 1000).toString()];
+  timeRangeValue.value = [
+    Math.floor(start.getTime() / 1000).toString(),
+    Math.floor(end.getTime() / 1000).toString(),
+  ];
 
   handleQuery();
 };
@@ -313,25 +373,26 @@ const updateChart = () => {
   // 根据数据格式生成图表配置
   const option = {
     title: {
-      text: selectedComponent.value?.monitorSysGenServerComponentName || "组件数据",
-      left: "center"
+      text:
+        selectedComponent.value?.monitorSysGenServerComponentName || "组件数据",
+      left: "center",
     },
     tooltip: {
-      trigger: "axis"
+      trigger: "axis",
     },
     xAxis: {
-      type: "time"
+      type: "time",
     },
     yAxis: {
-      type: "value"
+      type: "value",
     },
     series: [
       {
         name: "数值",
         type: "line",
-        data: generateChartData()
-      }
-    ]
+        data: generateChartData(),
+      },
+    ],
   };
 
   chart.setOption(option);
@@ -344,7 +405,12 @@ const generateChartData = () => {
   if (!queryResult.value?.data) return [];
 
   if (Array.isArray(queryResult.value.data)) {
-    return queryResult.value.data.map((item: any, index: number) => [item.timestamp ? new Date(item.timestamp * 1000) : new Date(Date.now() - index * 60 * 1000), item.value || item]);
+    return queryResult.value.data.map((item: any, index: number) => [
+      item.timestamp
+        ? new Date(item.timestamp * 1000)
+        : new Date(Date.now() - index * 60 * 1000),
+      item.value || item,
+    ]);
   }
 
   return [[new Date(), queryResult.value.data]];
@@ -366,7 +432,7 @@ const getComponentTypeColor = (type: string) => {
     gauge: "success",
     line: "info",
     bar: "warning",
-    pie: "danger"
+    pie: "danger",
   };
   return colorMap[type] || "info";
 };
@@ -380,7 +446,7 @@ const getComponentTypeName = (type: string) => {
     gauge: "仪表盘",
     line: "折线图",
     bar: "柱状图",
-    pie: "饼图"
+    pie: "饼图",
   };
   return nameMap[type] || "未知";
 };
@@ -393,7 +459,7 @@ const getExpressionTypeName = (type?: string) => {
     PROMETHEUS: "Prometheus PromQL",
     SQL: "SQL查询",
     COMPONENT: "组件选择",
-    REALTIME: "实时数据"
+    REALTIME: "实时数据",
   };
   return typeMap[type || "COMPONENT"] || "未知";
 };
@@ -405,7 +471,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -438,7 +503,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .component-data-query {
   padding: 20px;
@@ -514,7 +578,6 @@ onMounted(() => {
   width: 100%;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -523,5 +586,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -12,10 +12,10 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-button type="primary" @click="handleAdd" :icon="Plus">
+          <el-button type="primary" :icon="Plus" @click="handleAdd">
             新增分组
           </el-button>
-          <el-button @click="handleRefresh" :icon="Refresh" :loading="loading">
+          <el-button :icon="Refresh" :loading="loading" @click="handleRefresh">
             刷新
           </el-button>
         </div>
@@ -32,7 +32,7 @@
       </div>
 
       <!-- 分组列表 -->
-      <div class="group-list" v-loading="loading">
+      <div v-loading="loading" class="group-list">
         <el-empty
           v-if="filteredGroups.length === 0"
           description="暂无分组数据"
@@ -106,15 +106,15 @@
 
             <div class="card-footer">
               <el-button-group>
-                <el-button size="small" @click="handleEdit(group)" :icon="Edit">
+                <el-button size="small" :icon="Edit" @click="handleEdit(group)">
                   编辑
                 </el-button>
                 <el-button
                   v-if="group.monitorSysGenServerGroupIsDefault !== 1"
                   size="small"
                   type="primary"
-                  @click="handleSetDefault(group)"
                   :icon="Star"
+                  @click="handleSetDefault(group)"
                 >
                   设为默认
                 </el-button>
@@ -125,12 +125,12 @@
                       ? 'warning'
                       : 'success'
                   "
-                  @click="handleToggleStatus(group)"
                   :icon="
                     group.monitorSysGenServerGroupStatus === 1
                       ? 'el-icon-close'
                       : 'el-icon-check'
                   "
+                  @click="handleToggleStatus(group)"
                 >
                   {{
                     group.monitorSysGenServerGroupStatus === 1 ? "禁用" : "启用"
@@ -143,8 +143,8 @@
                   "
                   size="small"
                   type="danger"
-                  @click="handleDelete(group)"
                   :icon="Delete"
+                  @click="handleDelete(group)"
                 >
                   删除
                 </el-button>
@@ -200,7 +200,7 @@ const filteredGroups = computed(() => {
   return groups.value.filter((group) =>
     group.monitorSysGenServerGroupName
       ?.toLowerCase()
-      .includes(searchKeyword.value.toLowerCase())
+      .includes(searchKeyword.value.toLowerCase()),
   );
 });
 
@@ -227,7 +227,7 @@ const loadGroups = async () => {
         if (group.monitorSysGenServerGroupId) {
           try {
             const countResult = await getGroupServerCount(
-              group.monitorSysGenServerGroupId
+              group.monitorSysGenServerGroupId,
             );
             if (countResult.success) {
               group.serverCount = countResult.data;
@@ -304,7 +304,7 @@ const handleToggleStatus = async (group: ServerGroup) => {
     const newStatus = group.monitorSysGenServerGroupStatus === 1 ? 0 : 1;
     const result = await toggleGroupStatus(
       group.monitorSysGenServerGroupId,
-      newStatus
+      newStatus,
     );
     if (result.success) {
       message.success(`${newStatus === 1 ? "启用" : "禁用"}分组成功`);
@@ -332,7 +332,7 @@ const handleDelete = async (group: ServerGroup) => {
         type: "warning",
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-      }
+      },
     );
 
     const result = await deleteServerGroup(group.monitorSysGenServerGroupId);
@@ -505,7 +505,6 @@ defineExpose({
   justify-content: flex-end;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -514,5 +513,4 @@ defineExpose({
     padding: 12px 16px;
   }
 }
-
 </style>

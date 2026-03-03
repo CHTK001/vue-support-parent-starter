@@ -78,5 +78,4 @@ onMounted(async () => {
   z-index: 1000;
   overflow: hidden;
 }
-
 </style>

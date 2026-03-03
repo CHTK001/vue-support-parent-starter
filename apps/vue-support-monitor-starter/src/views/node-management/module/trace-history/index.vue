@@ -57,11 +57,7 @@
         >
           <div class="trace-header">
             <div class="trace-info">
-              <el-tag
-                :type="getStatusType(trace)"
-                size="small"
-                effect="dark"
-              >
+              <el-tag :type="getStatusType(trace)" size="small" effect="dark">
                 {{ trace.category || "UNKNOWN" }}
               </el-tag>
               <span class="method-name">{{ trace.method || "-" }}</span>
@@ -102,7 +98,10 @@
           </div>
         </div>
 
-        <el-empty v-if="!loading && traceList.length === 0" description="暂无链路数据" />
+        <el-empty
+          v-if="!loading && traceList.length === 0"
+          description="暂无链路数据"
+        />
       </div>
 
       <!-- 分页 -->
@@ -150,7 +149,12 @@
               {{ selectedTrace.protocol }}
             </el-descriptions-item>
             <el-descriptions-item label="状态码">
-              <el-tag :type="selectedTrace.statusCode === '200' ? 'success' : 'danger'" size="small">
+              <el-tag
+                :type="
+                  selectedTrace.statusCode === '200' ? 'success' : 'danger'
+                "
+                size="small"
+              >
                 {{ selectedTrace.statusCode || "-" }}
               </el-tag>
             </el-descriptions-item>
@@ -238,7 +242,9 @@
               placement="top"
             >
               <div class="child-span">
-                <el-tag size="small" effect="plain">{{ child.category }}</el-tag>
+                <el-tag size="small" effect="plain">{{
+                  child.category
+                }}</el-tag>
                 <span class="child-method">{{ child.method }}</span>
                 <span class="child-address">{{ child.address }}</span>
               </div>
@@ -290,7 +296,7 @@ const loadTraceData = async () => {
       startTime,
       endTime,
       currentPage.value,
-      pageSize.value
+      pageSize.value,
     );
 
     if (response.success && response.data) {
@@ -351,7 +357,8 @@ const handleViewDetail = (trace: AgentTraceDTO) => {
  */
 const getStatusType = (trace: AgentTraceDTO) => {
   if (trace.error) return "danger" as const;
-  if (trace.statusCode === "200" || !trace.statusCode) return "success" as const;
+  if (trace.statusCode === "200" || !trace.statusCode)
+    return "success" as const;
   return "warning" as const;
 };
 
@@ -387,7 +394,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -420,7 +426,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .trace-history {
   padding: 20px;
@@ -645,7 +650,6 @@ onMounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -654,5 +658,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

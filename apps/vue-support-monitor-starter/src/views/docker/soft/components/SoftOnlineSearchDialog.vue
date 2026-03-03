@@ -200,7 +200,8 @@ async function handleImportSingle(row: any) {
 
 async function handleImport() {
   const selection = tableRef.value?.getSelection?.() || [];
-  if (!selection.length) return message("请选择要导入的软件", { type: "warning" });
+  if (!selection.length)
+    return message("请选择要导入的软件", { type: "warning" });
   try {
     saving.value = true;
     const payload = {
@@ -397,7 +398,6 @@ async function handleImport() {
   justify-content: flex-end;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -406,5 +406,4 @@ async function handleImport() {
     padding: 12px 16px;
   }
 }
-
 </style>

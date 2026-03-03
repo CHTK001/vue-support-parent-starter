@@ -4,17 +4,42 @@
       <div class="list-controls">
         <el-checkbox v-model="selectAll" @change="handleSelectAll" />
         <el-button-group class="action-buttons">
-          <el-button size="small" :icon="useRenderIcon('ri:delete-bin-line')" @click="handleDeleteSelected">删除</el-button>
-          <el-button size="small" :icon="useRenderIcon('ri:star-line')" @click="handleStarSelected">标星</el-button>
-          <el-button size="small" :icon="useRenderIcon('ri:mail-check-line')" @click="handleMarkAsRead">标记已读</el-button>
+          <el-button
+            size="small"
+            :icon="useRenderIcon('ri:delete-bin-line')"
+            @click="handleDeleteSelected"
+            >删除</el-button
+          >
+          <el-button
+            size="small"
+            :icon="useRenderIcon('ri:star-line')"
+            @click="handleStarSelected"
+            >标星</el-button
+          >
+          <el-button
+            size="small"
+            :icon="useRenderIcon('ri:mail-check-line')"
+            @click="handleMarkAsRead"
+            >标记已读</el-button
+          >
         </el-button-group>
       </div>
       <div class="list-search">
-        <el-input v-model="searchQuery" placeholder="搜索邮件..." :prefix-icon="useRenderIcon('ri:search-line')" clearable @input="handleSearch" />
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索邮件..."
+          :prefix-icon="useRenderIcon('ri:search-line')"
+          clearable
+          @input="handleSearch"
+        />
       </div>
     </div>
 
-    <div ref="listContentRef" class="list-content overflow-x-hidden" @scroll="handleScroll">
+    <div
+      ref="listContentRef"
+      class="list-content overflow-x-hidden"
+      @scroll="handleScroll"
+    >
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-state">
         <el-skeleton :rows="5" animated />
@@ -22,16 +47,16 @@
 
       <!-- 邮件列表 -->
       <div
-        v-else
         v-for="email in emailData"
+        v-else
         :key="email.messageId"
         :class="[
           'email-item',
           {
             active: mouseClick === email.messageId,
             unread: !email.read,
-            starred: email.starred
-          }
+            starred: email.starred,
+          },
         ]"
         @click="selectEmail(email)"
       >
@@ -39,7 +64,10 @@
           <el-checkbox v-model="email.selected" @click.stop />
         </div>
         <div class="email-star" @click.stop="toggleStar(email)">
-          <IconifyIconOnline :icon="email.starred ? 'ri:star-fill' : 'ri:star-line'" :class="{ starred: email.starred }" />
+          <IconifyIconOnline
+            :icon="email.starred ? 'ri:star-fill' : 'ri:star-line'"
+            :class="{ starred: email.starred }"
+          />
         </div>
         <div class="email-sender">
           <div class="sender-avatar">
@@ -48,7 +76,9 @@
           <span class="sender-name" :title="email.from">{{ email.from }}</span>
         </div>
         <div class="email-content-preview">
-          <div class="email-subject" :title="email.subject">{{ email.subject }}</div>
+          <div class="email-subject" :title="email.subject">
+            {{ email.subject }}
+          </div>
           <div class="email-preview">{{ email.preview }}</div>
         </div>
         <div class="email-meta">
@@ -69,22 +99,32 @@
       </div>
 
       <!-- 加载更多按钮 -->
-      <div v-if="!loading && !loadingMore && hasMore !== false && emailData.length > 0" class="load-more-button">
-        <el-button 
-          type="primary" 
-          :loading="loadingMore" 
-          @click="handleLoadMore"
+      <div
+        v-if="
+          !loading && !loadingMore && hasMore !== false && emailData.length > 0
+        "
+        class="load-more-button"
+      >
+        <el-button
+          type="primary"
+          :loading="loadingMore"
           class="load-more-btn"
+          @click="handleLoadMore"
         >
           <template #loading>
             <IconifyIconOnline icon="ri:loader-4-line" class="loading-icon" />
           </template>
-          {{ loadingMore ? '加载中...' : '加载更多' }}
+          {{ loadingMore ? "加载中..." : "加载更多" }}
         </el-button>
       </div>
 
       <!-- 没有更多数据提示 -->
-      <div v-if="!loading && !loadingMore && hasMore === false && emailData.length > 0" class="no-more-data">
+      <div
+        v-if="
+          !loading && !loadingMore && hasMore === false && emailData.length > 0
+        "
+        class="no-more-data"
+      >
         <div class="no-more-text">已加载全部邮件</div>
       </div>
 
@@ -149,12 +189,15 @@ const mouseClick = ref();
 // 监听全选状态
 watch(
   () => props.emails,
-  v => {
+  (v) => {
     emailData.value = v;
-    const selectedCount = emailData.value.filter(email => email.selected).length;
-    selectAll.value = selectedCount > 0 && selectedCount === emailData.value.length;
+    const selectedCount = emailData.value.filter(
+      (email) => email.selected,
+    ).length;
+    selectAll.value =
+      selectedCount > 0 && selectedCount === emailData.value.length;
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 );
 
 // 方法
@@ -168,13 +211,13 @@ function toggleStar(email: Email) {
 }
 
 function handleSelectAll() {
-  props.emails.forEach(email => {
+  props.emails.forEach((email) => {
     email.selected = selectAll.value;
   });
 }
 
 function handleDeleteSelected() {
-  const selectedEmails = props.emails.filter(email => email.selected);
+  const selectedEmails = props.emails.filter((email) => email.selected);
   if (selectedEmails.length === 0) {
     ElMessage.warning("请先选择要删除的邮件");
     return;
@@ -183,7 +226,7 @@ function handleDeleteSelected() {
 }
 
 function handleStarSelected() {
-  const selectedEmails = props.emails.filter(email => email.selected);
+  const selectedEmails = props.emails.filter((email) => email.selected);
   if (selectedEmails.length === 0) {
     ElMessage.warning("请先选择要标星的邮件");
     return;
@@ -192,7 +235,7 @@ function handleStarSelected() {
 }
 
 function handleMarkAsRead() {
-  const selectedEmails = props.emails.filter(email => email.selected);
+  const selectedEmails = props.emails.filter((email) => email.selected);
   if (selectedEmails.length === 0) {
     ElMessage.warning("请先选择要标记的邮件");
     return;
@@ -209,11 +252,11 @@ function handleLoadMore() {
   if (props.loading || props.loadingMore || isLoadingMore.value) {
     return;
   }
-  
+
   if (props.hasMore !== false) {
     isLoadingMore.value = true;
     emit("load-more");
-    
+
     // 防抖处理，避免重复触发
     setTimeout(() => {
       isLoadingMore.value = false;
@@ -223,7 +266,12 @@ function handleLoadMore() {
 
 // 滚动处理函数
 function handleScroll() {
-  if (!listContentRef.value || props.loading || props.loadingMore || isLoadingMore.value) {
+  if (
+    !listContentRef.value ||
+    props.loading ||
+    props.loadingMore ||
+    isLoadingMore.value
+  ) {
     return;
   }
 
@@ -253,7 +301,7 @@ function resetScroll() {
 
 // 暴露方法给父组件
 defineExpose({
-  resetScroll
+  resetScroll,
 });
 
 function formatTime(time: any) {
@@ -277,7 +325,6 @@ function formatTime(time: any) {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -310,7 +357,6 @@ function formatTime(time: any) {
     z-index: 1;
   }
 }
-
 
 .email-list {
   width: 400px;
@@ -379,7 +425,7 @@ function formatTime(time: any) {
 
 /* 已读邮件样式 */
 .email-item:not(.unread) {
-   background: var(--el-bg-color-overlay);
+  background: var(--el-bg-color-overlay);
   color: #6b7280;
 }
 
@@ -451,7 +497,7 @@ function formatTime(time: any) {
   justify-content: center;
   margin-right: 8px;
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .sender-name {
@@ -478,7 +524,7 @@ function formatTime(time: any) {
 
 .email-preview {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -493,13 +539,13 @@ function formatTime(time: any) {
 
 .email-time {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   white-space: nowrap;
 }
 
 .email-attachment {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .loading-state {
@@ -512,7 +558,7 @@ function formatTime(time: any) {
   align-items: center;
   justify-content: center;
   height: 200px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .empty-icon {
@@ -558,7 +604,7 @@ function formatTime(time: any) {
   gap: 8px;
   margin-top: 12px;
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .loading-icon {
@@ -622,7 +668,6 @@ function formatTime(time: any) {
   background: #a1a1a1;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -631,5 +676,4 @@ function formatTime(time: any) {
     padding: 12px 16px;
   }
 }
-
 </style>

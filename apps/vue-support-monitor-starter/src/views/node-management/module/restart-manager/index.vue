@@ -52,11 +52,11 @@
             {{ isOnline ? "在线" : "离线" }}
           </el-tag>
         </div>
-        <div class="status-item" v-if="nodeInfo">
+        <div v-if="nodeInfo" class="status-item">
           <span class="status-label">应用名称</span>
           <span class="status-value">{{ nodeInfo.applicationName }}</span>
         </div>
-        <div class="status-item" v-if="nodeInfo">
+        <div v-if="nodeInfo" class="status-item">
           <span class="status-label">节点地址</span>
           <span class="status-value">
             {{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}
@@ -71,8 +71,8 @@
           size="large"
           :loading="loading.restart"
           :disabled="!isOnline"
-          @click="handleRestart"
           class="action-btn"
+          @click="handleRestart"
         >
           <IconifyIconOnline icon="ri:restart-line" />
           重启节点
@@ -83,8 +83,8 @@
           size="large"
           :loading="loading.shutdown"
           :disabled="!isOnline"
-          @click="handleShutdown"
           class="action-btn"
+          @click="handleShutdown"
         >
           <IconifyIconOnline icon="ri:shut-down-line" />
           关闭节点
@@ -171,7 +171,7 @@ const checkNodeStatus = async () => {
   try {
     const response = await isNodeOnlineForNodeControl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     if (response.success) {
       isOnline.value = response.data ?? false;
@@ -199,13 +199,13 @@ const handleRestart = async () => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     loading.restart = true;
     const response = await restartNodeForNodeControl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
 
     if (response.success) {
@@ -238,13 +238,13 @@ const handleShutdown = async () => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "error",
-      }
+      },
     );
 
     loading.shutdown = true;
     const response = await shutdownNodeForNodeControl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
 
     if (response.success) {
@@ -277,7 +277,7 @@ watch(
       checkNodeStatus();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(visible, (newVisible) => {
@@ -427,7 +427,6 @@ watch(visible, (newVisible) => {
   gap: 12px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -436,5 +435,4 @@ watch(visible, (newVisible) => {
     padding: 12px 16px;
   }
 }
-
 </style>

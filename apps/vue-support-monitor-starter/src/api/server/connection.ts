@@ -16,25 +16,27 @@ import { http, type ReturnResult } from "@repo/utils";
  * 连接状态枚举
  */
 export const CONNECTION_STATUS = {
-  OFFLINE: 0,     // 离线
-  ONLINE: 1,      // 在线
-  CONNECTING: 2,  // 连接中
-  FAILED: 3       // 连接失败
+  OFFLINE: 0, // 离线
+  ONLINE: 1, // 在线
+  CONNECTING: 2, // 连接中
+  FAILED: 3, // 连接失败
 } as const;
 
-export type ConnectionStatus = typeof CONNECTION_STATUS[keyof typeof CONNECTION_STATUS];
+export type ConnectionStatus =
+  (typeof CONNECTION_STATUS)[keyof typeof CONNECTION_STATUS];
 
 /**
  * WebSocket消息类型枚举
  */
 export const WS_MESSAGE_TYPE = {
-  CONNECTION_STATUS_CHANGE: 'connection_status_change',
-  CONNECTION_TEST_RESULT: 'connection_test_result',
-  SERVER_ONLINE: 'server_online',
-  SERVER_OFFLINE: 'server_offline'
+  CONNECTION_STATUS_CHANGE: "connection_status_change",
+  CONNECTION_TEST_RESULT: "connection_test_result",
+  SERVER_ONLINE: "server_online",
+  SERVER_OFFLINE: "server_offline",
 } as const;
 
-export type WSMessageType = typeof WS_MESSAGE_TYPE[keyof typeof WS_MESSAGE_TYPE];
+export type WSMessageType =
+  (typeof WS_MESSAGE_TYPE)[keyof typeof WS_MESSAGE_TYPE];
 
 // ==================== 类型定义 ====================
 
@@ -144,12 +146,12 @@ export interface ConnectionStatistics {
  * @param params 查询参数
  * @returns 连接状态分页数据
  */
-export function getConnectionStatusPageList(params: ConnectionStatusPageParams) {
-  return http.request<ReturnResult<{ records: ServerConnectionStatus[]; total: number }>>(
-    "get",
-    "v1/server/connection-status/page",
-    { params }
-  );
+export function getConnectionStatusPageList(
+  params: ConnectionStatusPageParams,
+) {
+  return http.request<
+    ReturnResult<{ records: ServerConnectionStatus[]; total: number }>
+  >("get", "v1/server/connection-status/page", { params });
 }
 
 /**
@@ -161,7 +163,7 @@ export function getServerConnectionStatus(serverId: string) {
   return http.request<ReturnResult<ServerConnectionStatus>>(
     "get",
     "v1/server/connection-status/detail",
-    { params: { serverId } }
+    { params: { serverId } },
   );
 }
 
@@ -172,7 +174,7 @@ export function getServerConnectionStatus(serverId: string) {
 export function getOnlineServers() {
   return http.request<ReturnResult<ServerConnectionStatus[]>>(
     "get",
-    "v1/server/connection-status/online"
+    "v1/server/connection-status/online",
   );
 }
 
@@ -183,7 +185,7 @@ export function getOnlineServers() {
 export function getOfflineServers() {
   return http.request<ReturnResult<ServerConnectionStatus[]>>(
     "get",
-    "v1/server/connection-status/offline"
+    "v1/server/connection-status/offline",
   );
 }
 
@@ -196,7 +198,7 @@ export function testServerConnection(serverId: string) {
   return http.request<ReturnResult<ConnectionTestResult>>(
     "post",
     "v1/server/connection-status/test",
-    { data: { serverId } }
+    { data: { serverId } },
   );
 }
 
@@ -209,7 +211,7 @@ export function batchTestServerConnection(serverIds: string[]) {
   return http.request<ReturnResult<BatchTestResult>>(
     "post",
     "v1/server/connection-status/batch-test",
-    { data: { serverIds } }
+    { data: { serverIds } },
   );
 }
 
@@ -222,7 +224,7 @@ export function checkConnectionStatus(serverId: string) {
   return http.request<ReturnResult<ServerConnectionStatus>>(
     "post",
     "v1/server/connection-status/check",
-    { data: { serverId } }
+    { data: { serverId } },
   );
 }
 
@@ -235,7 +237,7 @@ export function batchCheckConnectionStatus(serverIds: string[]) {
   return http.request<ReturnResult<BatchTestResult>>(
     "post",
     "v1/server/connection-status/batch-check",
-    { data: { serverIds } }
+    { data: { serverIds } },
   );
 }
 
@@ -251,7 +253,7 @@ export function getConnectionStatistics(params?: {
   return http.request<ReturnResult<ConnectionStatistics>>(
     "get",
     "v1/server/connection-status/statistics",
-    { params }
+    { params },
   );
 }
 
@@ -261,15 +263,18 @@ export function getConnectionStatistics(params?: {
  * @param params 查询参数
  * @returns 历史记录列表
  */
-export function getConnectionHistory(serverId: string, params?: {
-  startTime?: string;
-  endTime?: string;
-  limit?: number;
-}) {
+export function getConnectionHistory(
+  serverId: string,
+  params?: {
+    startTime?: string;
+    endTime?: string;
+    limit?: number;
+  },
+) {
   return http.request<ReturnResult<ServerConnectionStatus[]>>(
     "get",
     "v1/server/connection-status/history",
-    { params: { serverId, ...params } }
+    { params: { serverId, ...params } },
   );
 }
 
@@ -287,7 +292,7 @@ export function getConnectionTrend(params?: {
   return http.request<ReturnResult<any[]>>(
     "get",
     "v1/server/connection-status/trend",
-    { params }
+    { params },
   );
 }
 
@@ -297,14 +302,17 @@ export function getConnectionTrend(params?: {
  * @param params 查询参数
  * @returns 响应时间统计数据
  */
-export function getResponseTimeStats(serverId: string, params?: {
-  startTime?: string;
-  endTime?: string;
-}) {
+export function getResponseTimeStats(
+  serverId: string,
+  params?: {
+    startTime?: string;
+    endTime?: string;
+  },
+) {
   return http.request<ReturnResult<any>>(
     "get",
     "v1/server/connection-status/response-time",
-    { params: { serverId, ...params } }
+    { params: { serverId, ...params } },
   );
 }
 
@@ -334,7 +342,7 @@ export const connectionStatusMap: Record<ConnectionStatus, StatusMapItem> = {
  * @returns 状态描述文本
  */
 export function getConnectionStatusText(status: ConnectionStatus): string {
-  return connectionStatusMap[status]?.text || '未知';
+  return connectionStatusMap[status]?.text || "未知";
 }
 
 /**
@@ -342,8 +350,10 @@ export function getConnectionStatusText(status: ConnectionStatus): string {
  * @param status 连接状态
  * @returns 颜色类型
  */
-export function getConnectionStatusColor(status: ConnectionStatus): "success" | "warning" | "danger" | "info" {
-  return connectionStatusMap[status]?.color || 'info';
+export function getConnectionStatusColor(
+  status: ConnectionStatus,
+): "success" | "warning" | "danger" | "info" {
+  return connectionStatusMap[status]?.color || "info";
 }
 
 /**
@@ -388,7 +398,7 @@ export function isFailed(status: ConnectionStatus): boolean {
  * @returns 格式化后的响应时间字符串
  */
 export function formatResponseTime(responseTime: number): string {
-  if (!responseTime || responseTime < 0) return '-';
+  if (!responseTime || responseTime < 0) return "-";
 
   if (responseTime < 1000) {
     return `${responseTime}ms`;
@@ -463,7 +473,7 @@ export class ServerConnectionWebSocket {
       this.socket = new WebSocket(this.config.url);
 
       this.socket.onopen = () => {
-        console.log('服务器连接状态WebSocket已连接');
+        console.log("服务器连接状态WebSocket已连接");
         this.reconnectAttempts = 0;
         this.isManualClose = false;
 
@@ -471,7 +481,7 @@ export class ServerConnectionWebSocket {
           this.startHeartbeat();
         }
 
-        this.emit('connected', null);
+        this.emit("connected", null);
       };
 
       this.socket.onmessage = (event) => {
@@ -479,15 +489,15 @@ export class ServerConnectionWebSocket {
           const message: ServerConnectionMessage = JSON.parse(event.data);
           this.handleMessage(message);
         } catch (error) {
-          console.error('解析WebSocket消息失败:', error);
-          this.emit('error', error);
+          console.error("解析WebSocket消息失败:", error);
+          this.emit("error", error);
         }
       };
 
       this.socket.onclose = (event) => {
-        console.log('服务器连接状态WebSocket已断开', event.code, event.reason);
+        console.log("服务器连接状态WebSocket已断开", event.code, event.reason);
         this.stopHeartbeat();
-        this.emit('disconnected', { code: event.code, reason: event.reason });
+        this.emit("disconnected", { code: event.code, reason: event.reason });
 
         if (!this.isManualClose) {
           this.scheduleReconnect();
@@ -495,12 +505,12 @@ export class ServerConnectionWebSocket {
       };
 
       this.socket.onerror = (error) => {
-        console.error('服务器连接状态WebSocket错误:', error);
-        this.emit('error', error);
+        console.error("服务器连接状态WebSocket错误:", error);
+        this.emit("error", error);
       };
     } catch (error) {
-      console.error('创建WebSocket连接失败:', error);
-      this.emit('error', error);
+      console.error("创建WebSocket连接失败:", error);
+      this.emit("error", error);
       this.scheduleReconnect();
     }
   }
@@ -511,21 +521,21 @@ export class ServerConnectionWebSocket {
   private handleMessage(message: ServerConnectionMessage): void {
     // 处理特定类型的消息处理器
     const handlers = this.messageHandlers.get(message.messageType) || [];
-    handlers.forEach(handler => {
+    handlers.forEach((handler) => {
       try {
         handler(message);
       } catch (error) {
-        console.error('处理WebSocket消息失败:', error);
+        console.error("处理WebSocket消息失败:", error);
       }
     });
 
     // 触发通用消息处理器
-    const allHandlers = this.messageHandlers.get('*') || [];
-    allHandlers.forEach(handler => {
+    const allHandlers = this.messageHandlers.get("*") || [];
+    allHandlers.forEach((handler) => {
       try {
         handler(message);
       } catch (error) {
-        console.error('处理WebSocket消息失败:', error);
+        console.error("处理WebSocket消息失败:", error);
       }
     });
   }
@@ -534,15 +544,20 @@ export class ServerConnectionWebSocket {
    * 安排重连
    */
   private scheduleReconnect(): void {
-    if (this.reconnectAttempts < this.maxReconnectAttempts && !this.isManualClose) {
+    if (
+      this.reconnectAttempts < this.maxReconnectAttempts &&
+      !this.isManualClose
+    ) {
       this.reconnectTimer = window.setTimeout(() => {
         this.reconnectAttempts++;
-        console.log(`尝试重连WebSocket (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        console.log(
+          `尝试重连WebSocket (${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
+        );
         this.connect();
       }, this.reconnectInterval);
     } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('WebSocket重连次数已达上限');
-      this.emit('maxReconnectAttemptsReached', null);
+      console.error("WebSocket重连次数已达上限");
+      this.emit("maxReconnectAttemptsReached", null);
     }
   }
 
@@ -556,7 +571,7 @@ export class ServerConnectionWebSocket {
 
     this.heartbeatTimer = window.setInterval(() => {
       if (this.isConnected()) {
-        this.send({ type: 'heartbeat', timestamp: Date.now() });
+        this.send({ type: "heartbeat", timestamp: Date.now() });
       }
     }, this.heartbeatInterval);
   }
@@ -605,11 +620,11 @@ export class ServerConnectionWebSocket {
    */
   private emit(event: string, data?: any) {
     const handlers = this.messageHandlers.get(event) || [];
-    handlers.forEach(handler => {
+    handlers.forEach((handler) => {
       try {
         handler(data);
       } catch (error) {
-        console.error('触发事件处理器失败:', error);
+        console.error("触发事件处理器失败:", error);
       }
     });
   }
@@ -622,7 +637,7 @@ export class ServerConnectionWebSocket {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(message));
     } else {
-      console.warn('WebSocket未连接，无法发送消息');
+      console.warn("WebSocket未连接，无法发送消息");
     }
   }
 

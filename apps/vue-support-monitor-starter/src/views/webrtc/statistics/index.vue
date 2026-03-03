@@ -3,7 +3,9 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/webrtc' }">WebRTC管理</el-breadcrumb-item>
+        <el-breadcrumb-item :to="{ path: '/webrtc' }"
+          >WebRTC管理</el-breadcrumb-item
+        >
         <el-breadcrumb-item>房间统计</el-breadcrumb-item>
       </el-breadcrumb>
     </div>
@@ -60,7 +62,9 @@
                 <el-icon><Timer /></el-icon>
               </div>
               <div class="stat-info">
-                <div class="stat-value">{{ formatDuration(systemStats.totalDuration) }}</div>
+                <div class="stat-value">
+                  {{ formatDuration(systemStats.totalDuration) }}
+                </div>
                 <div class="stat-label">总通话时长</div>
               </div>
             </div>
@@ -78,14 +82,18 @@
             <template #header>
               <div class="card-header">
                 <span>房间使用趋势</span>
-                <el-select v-model="trendPeriod" size="small" style="width: 120px">
+                <el-select
+                  v-model="trendPeriod"
+                  size="small"
+                  style="width: 120px"
+                >
                   <el-option label="今日" value="today" />
                   <el-option label="本周" value="week" />
                   <el-option label="本月" value="month" />
                 </el-select>
               </div>
             </template>
-            <div ref="roomTrendChartRef" class="chart-container"></div>
+            <div ref="roomTrendChartRef" class="chart-container" />
           </el-card>
         </el-col>
 
@@ -100,7 +108,7 @@
                 </el-button>
               </div>
             </template>
-            <div ref="roomTypeChartRef" class="chart-container"></div>
+            <div ref="roomTypeChartRef" class="chart-container" />
           </el-card>
         </el-col>
       </el-row>
@@ -112,14 +120,18 @@
             <template #header>
               <div class="card-header">
                 <span>用户活跃度</span>
-                <el-select v-model="activityPeriod" size="small" style="width: 120px">
+                <el-select
+                  v-model="activityPeriod"
+                  size="small"
+                  style="width: 120px"
+                >
                   <el-option label="24小时" value="24h" />
                   <el-option label="7天" value="7d" />
                   <el-option label="30天" value="30d" />
                 </el-select>
               </div>
             </template>
-            <div ref="userActivityChartRef" class="chart-container"></div>
+            <div ref="userActivityChartRef" class="chart-container" />
           </el-card>
         </el-col>
 
@@ -129,10 +141,15 @@
             <template #header>
               <div class="card-header">
                 <span>系统性能监控</span>
-                <el-switch v-model="realTimeMonitoring" active-text="实时监控" size="small" @change="toggleRealTimeMonitoring" />
+                <el-switch
+                  v-model="realTimeMonitoring"
+                  active-text="实时监控"
+                  size="small"
+                  @change="toggleRealTimeMonitoring"
+                />
               </div>
             </template>
-            <div ref="performanceChartRef" class="chart-container"></div>
+            <div ref="performanceChartRef" class="chart-container" />
           </el-card>
         </el-col>
       </el-row>
@@ -145,7 +162,13 @@
           <div class="card-header">
             <span>房间详细统计</span>
             <div class="header-actions">
-              <el-input v-model="searchKeyword" placeholder="搜索房间" size="small" style="width: 200px; margin-right: 12px" clearable>
+              <el-input
+                v-model="searchKeyword"
+                placeholder="搜索房间"
+                size="small"
+                style="width: 200px; margin-right: 12px"
+                clearable
+              >
                 <template #prefix>
                   <el-icon><Search /></el-icon>
                 </template>
@@ -162,7 +185,12 @@
           </div>
         </template>
 
-        <el-table :data="filteredRoomStats" style="width: 100%" v-loading="loading" row-key="roomId">
+        <el-table
+          v-loading="loading"
+          :data="filteredRoomStats"
+          style="width: 100%"
+          row-key="roomId"
+        >
           <el-table-column prop="roomName" label="房间名称" min-width="150" />
           <el-table-column prop="roomType" label="类型" width="100">
             <template #default="{ row }">
@@ -190,41 +218,74 @@
           </el-table-column>
           <el-table-column prop="status" label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+              <el-tag
+                :type="row.status === 'active' ? 'success' : 'info'"
+                size="small"
+              >
                 {{ row.status === "active" ? "活跃" : "已结束" }}
               </el-tag>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="150">
             <template #default="{ row }">
-              <el-button type="primary" size="small" @click="viewRoomDetail(row)"> 详情 </el-button>
-              <el-button type="info" size="small" @click="viewRoomHistory(row)"> 历史 </el-button>
+              <el-button
+                type="primary"
+                size="small"
+                @click="viewRoomDetail(row)"
+              >
+                详情
+              </el-button>
+              <el-button type="info" size="small" @click="viewRoomHistory(row)">
+                历史
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
 
         <div class="pagination-container">
-          <el-pagination v-model:current-page="pagination.currentPage" v-model:page-size="pagination.pageSize" :page-sizes="[10, 20, 50, 100]" :total="pagination.total" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+          <el-pagination
+            v-model:current-page="pagination.currentPage"
+            v-model:page-size="pagination.pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="pagination.total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
         </div>
       </el-card>
     </div>
 
     <!-- 房间详情对话框 -->
     <sc-dialog v-model="showRoomDetail" title="房间详情" width="800px">
-      <div class="room-detail-content" v-if="selectedRoom">
+      <div v-if="selectedRoom" class="room-detail-content">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="房间名称">{{ selectedRoom.roomName }}</el-descriptions-item>
+          <el-descriptions-item label="房间名称">{{
+            selectedRoom.roomName
+          }}</el-descriptions-item>
           <el-descriptions-item label="房间类型">
             <el-tag :type="getRoomTypeTag(selectedRoom.roomType)" size="small">
               {{ getRoomTypeText(selectedRoom.roomType) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="创建者">{{ selectedRoom.creatorName }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ formatTime(selectedRoom.createTime) }}</el-descriptions-item>
-          <el-descriptions-item label="总参与人数">{{ selectedRoom.totalUsers }}</el-descriptions-item>
-          <el-descriptions-item label="峰值人数">{{ selectedRoom.peakUsers }}</el-descriptions-item>
-          <el-descriptions-item label="总时长">{{ formatDuration(selectedRoom.totalDuration) }}</el-descriptions-item>
-          <el-descriptions-item label="平均时长">{{ formatDuration(selectedRoom.avgDuration) }}</el-descriptions-item>
+          <el-descriptions-item label="创建者">{{
+            selectedRoom.creatorName
+          }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{
+            formatTime(selectedRoom.createTime)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="总参与人数">{{
+            selectedRoom.totalUsers
+          }}</el-descriptions-item>
+          <el-descriptions-item label="峰值人数">{{
+            selectedRoom.peakUsers
+          }}</el-descriptions-item>
+          <el-descriptions-item label="总时长">{{
+            formatDuration(selectedRoom.totalDuration)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="平均时长">{{
+            formatDuration(selectedRoom.avgDuration)
+          }}</el-descriptions-item>
         </el-descriptions>
 
         <!-- 参与者列表 -->
@@ -256,7 +317,11 @@
     <sc-dialog v-model="showRoomHistory" title="房间历史" width="1000px">
       <div class="room-history-content">
         <!-- 历史图表 -->
-        <div ref="roomHistoryChartRef" class="chart-container" style="height: 300px; margin-bottom: 20px"></div>
+        <div
+          ref="roomHistoryChartRef"
+          class="chart-container"
+          style="height: 300px; margin-bottom: 20px"
+        />
 
         <!-- 历史记录表格 -->
         <el-table :data="roomHistoryData" style="width: 100%">
@@ -288,11 +353,33 @@
  * @version 1.0.0
  */
 
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  onUnmounted,
+  watch,
+  nextTick,
+} from "vue";
 import { message } from "@repo/utils";
-import { House, VideoCamera, User, Timer, Refresh, Search, Download } from "@element-plus/icons-vue";
+import {
+  House,
+  VideoCamera,
+  User,
+  Timer,
+  Refresh,
+  Search,
+  Download,
+} from "@element-plus/icons-vue";
 import * as echarts from "echarts";
-import { getSystemStatistics, getRoomStatistics, getRoomHistory, type SystemStatistics, type RoomStatistics } from "@/api/webrtc/statistics";
+import {
+  getSystemStatistics,
+  getRoomStatistics,
+  getRoomHistory,
+  type SystemStatistics,
+  type RoomStatistics,
+} from "@/api/webrtc/statistics";
 
 // 图表引用
 const roomTrendChartRef = ref<HTMLElement>();
@@ -347,7 +434,9 @@ let monitoringTimer: NodeJS.Timeout | null = null;
 // 计算属性
 const filteredRoomStats = computed(() => {
   if (!searchKeyword.value) return roomStats.value;
-  return roomStats.value.filter((room) => room.roomName.toLowerCase().includes(searchKeyword.value.toLowerCase()));
+  return roomStats.value.filter((room) =>
+    room.roomName.toLowerCase().includes(searchKeyword.value.toLowerCase()),
+  );
 });
 
 /**
@@ -887,7 +976,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -904,8 +992,6 @@ onUnmounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -939,7 +1025,6 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
-
 
 .statistics-container {
   padding: 20px;
@@ -1013,7 +1098,7 @@ onUnmounted(() => {
 
         .stat-label {
           font-size: 14px;
-           color: var(--el-text-color-primary);
+          color: var(--el-text-color-primary);
         }
       }
     }
@@ -1114,7 +1199,6 @@ onUnmounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1123,5 +1207,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

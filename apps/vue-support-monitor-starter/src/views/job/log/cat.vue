@@ -107,7 +107,6 @@ export default {
 };
 </script>
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -141,7 +140,6 @@ export default {
   }
 }
 
-
 .code-style {
   overflow-y: auto;
   height: 600px;
@@ -160,7 +158,6 @@ export default {
     monospace;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -169,5 +166,4 @@ export default {
     padding: 12px 16px;
   }
 }
-
 </style>

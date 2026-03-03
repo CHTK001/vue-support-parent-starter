@@ -40,8 +40,9 @@
                 v-if="row.sysFileSystemGroupIsDefault"
                 size="small"
                 type="success"
-                >默认</el-tag
               >
+                默认
+              </ScTag>
             </div>
           </template>
         </ScTableColumn>
@@ -78,9 +79,7 @@
         </ScTableColumn>
         <ScTableColumn label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <ScButton type="primary" link size="small" @click="handleEdit(row)"
-              >编辑</el-button
-            >
+            <ScButton type="primary" link size="small" @click="handleEdit(row)">编辑</ScButton>
             <ScButton 
               type="danger"
               link
@@ -152,9 +151,7 @@
       </ScForm>
       <template #footer>
         <ScButton @click="showEditDialog = false">取消</ScButton>
-        <ScButton type="primary" :loading="saving" @click="handleSave"
-          >保存</el-button
-        >
+        <ScButton type="primary" :loading="saving" @click="handleSave">保存</ScButton>
       </template>
     </sc-dialog>
   </sc-dialog>

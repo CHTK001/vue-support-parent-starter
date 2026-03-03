@@ -46,12 +46,19 @@ export function getSystemStatistics() {
  * 获取房间统计信息
  */
 export function getRoomStatistics(roomId?: string) {
-  return http.get<RoomStatistics[]>("/webrtc/statistics/rooms", { params: { roomId } });
+  return http.get<RoomStatistics[]>("/webrtc/statistics/rooms", {
+    params: { roomId },
+  });
 }
 
 /**
  * 获取房间历史记录
  */
-export function getRoomHistory(params?: { startDate?: string; endDate?: string; page?: number; pageSize?: number }) {
+export function getRoomHistory(params?: {
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  pageSize?: number;
+}) {
   return http.get("/webrtc/statistics/history", { params });
 }

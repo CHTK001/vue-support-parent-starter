@@ -5,30 +5,20 @@
         <IconifyIconOnline :icon="getIcon()" class="card-icon" />
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
-      <div class="card-actions" v-if="editMode">
-        <el-button
-          type="primary"
-          text
-          size="small"
-          @click="handleEdit"
-        >
+      <div v-if="editMode" class="card-actions">
+        <el-button type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
         </el-button>
-        <el-button
-          type="danger"
-          text
-          size="small"
-          @click="handleDelete"
-        >
+        <el-button type="danger" text size="small" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" />
         </el-button>
       </div>
     </div>
-    
-    <div class="card-content" v-loading="loading">
+
+    <div v-loading="loading" class="card-content">
       <div class="metric-value">
         <span class="value">{{ displayValue }}</span>
-        <span class="unit" v-if="unit">{{ unit }}</span>
+        <span v-if="unit" class="unit">{{ unit }}</span>
       </div>
 
       <!-- 进度条显示（仅对百分比类型的指标显示） -->
@@ -41,21 +31,22 @@
         />
       </div>
 
-      <div class="metric-description" v-if="componentData.monitorSysGenServerDetailComponentDesc">
+      <div
+        v-if="componentData.monitorSysGenServerDetailComponentDesc"
+        class="metric-description"
+      >
         {{ componentData.monitorSysGenServerDetailComponentDesc }}
       </div>
-      <div class="last-update">
-        最后更新: {{ lastUpdateTime }}
-      </div>
+      <div class="last-update">最后更新: {{ lastUpdateTime }}</div>
     </div>
 
-    <div class="card-footer" v-if="!editMode">
+    <div v-if="!editMode" class="card-footer">
       <el-button
         type="primary"
         text
         size="small"
-        @click="handleRefresh"
         :loading="refreshing"
+        @click="handleRefresh"
       >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
@@ -67,7 +58,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
-import { executeComponentQuery, type ServerDetailComponent } from "@/api/server";
+import {
+  executeComponentQuery,
+  type ServerDetailComponent,
+} from "@/api/server";
 
 // 定义属性
 const props = defineProps<{
@@ -95,17 +89,19 @@ const displayValue = computed(() => {
   if (data.value === null || data.value === undefined) {
     return "--";
   }
-  
+
   if (typeof data.value === "number") {
     return data.value.toLocaleString();
   }
-  
+
   return String(data.value);
 });
 
 const unit = computed(() => {
   try {
-    const config = JSON.parse(props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}");
+    const config = JSON.parse(
+      props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}",
+    );
     return config.unit || "";
   } catch {
     return "";
@@ -115,7 +111,9 @@ const unit = computed(() => {
 // 判断是否显示进度条
 const showProgressBar = computed(() => {
   try {
-    const config = JSON.parse(props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}");
+    const config = JSON.parse(
+      props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}",
+    );
     return config.showProgress === true || isPercentageMetric.value;
   } catch {
     return isPercentageMetric.value;
@@ -124,13 +122,23 @@ const showProgressBar = computed(() => {
 
 // 判断是否为百分比类型的指标
 const isPercentageMetric = computed(() => {
-  const title = props.componentData.monitorSysGenServerDetailComponentTitle?.toLowerCase() || "";
-  return title.includes("使用率") || title.includes("cpu") || title.includes("memory") || title.includes("内存") || title.includes("磁盘");
+  const title =
+    props.componentData.monitorSysGenServerDetailComponentTitle?.toLowerCase() ||
+    "";
+  return (
+    title.includes("使用率") ||
+    title.includes("cpu") ||
+    title.includes("memory") ||
+    title.includes("内存") ||
+    title.includes("磁盘")
+  );
 });
 
 // 获取指标类型
 const metricType = computed(() => {
-  const title = props.componentData.monitorSysGenServerDetailComponentTitle?.toLowerCase() || "";
+  const title =
+    props.componentData.monitorSysGenServerDetailComponentTitle?.toLowerCase() ||
+    "";
   if (title.includes("cpu")) return "cpu";
   if (title.includes("memory") || title.includes("内存")) return "memory";
   if (title.includes("磁盘") || title.includes("disk")) return "disk";
@@ -142,7 +150,10 @@ const metricType = computed(() => {
 const progressPercentage = computed(() => {
   if (data.value === null || data.value === undefined) return 0;
 
-  const numValue = typeof data.value === "number" ? data.value : parseFloat(String(data.value));
+  const numValue =
+    typeof data.value === "number"
+      ? data.value
+      : parseFloat(String(data.value));
   if (isNaN(numValue)) return 0;
 
   // 如果值大于100，可能是原始值需要转换为百分比
@@ -158,7 +169,9 @@ const progressPercentage = computed(() => {
  */
 const getIcon = () => {
   try {
-    const config = JSON.parse(props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}");
+    const config = JSON.parse(
+      props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}",
+    );
     return config.icon || "ri:dashboard-line";
   } catch {
     return "ri:dashboard-line";
@@ -168,22 +181,23 @@ const getIcon = () => {
 /**
  * 获取进度条颜色（支持渐变和不同指标类型）
  */
-const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
+const getProgressColor = (percentage: number, metricType: string = "cpu") => {
   // 定义不同指标的阈值
   const thresholds = {
     cpu: { normal: 50, warning: 80, critical: 90 },
     memory: { normal: 60, warning: 80, critical: 90 },
     disk: { normal: 70, warning: 85, critical: 95 },
-    network: { normal: 60, warning: 80, critical: 90 }
+    network: { normal: 60, warning: 80, critical: 90 },
   };
 
-  const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
+  const threshold =
+    thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
 
   // 返回渐变色配置
   return [
-    { color: '#67c23a', percentage: threshold.normal },
-    { color: '#e6a23c', percentage: threshold.warning },
-    { color: '#f56c6c', percentage: 100 }
+    { color: "#67c23a", percentage: threshold.normal },
+    { color: "#e6a23c", percentage: threshold.warning },
+    { color: "#f56c6c", percentage: 100 },
   ];
 };
 
@@ -193,7 +207,7 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
 const loadData = async () => {
   try {
     loading.value = true;
-    
+
     const timeRange = {
       start: Date.now() - 5 * 60 * 1000, // 最近5分钟
       end: Date.now(),
@@ -201,7 +215,7 @@ const loadData = async () => {
 
     const res = await executeComponentQuery(
       props.componentData.monitorSysGenServerDetailComponentId!,
-      timeRange
+      timeRange,
     );
 
     if (res.code === "00000") {
@@ -213,7 +227,7 @@ const loadData = async () => {
       } else {
         data.value = res.data;
       }
-      
+
       lastUpdateTime.value = new Date().toLocaleTimeString();
     } else {
       console.error("查询数据失败:", res.msg);
@@ -255,8 +269,10 @@ const handleDelete = () => {
  * 启动自动刷新
  */
 const startAutoRefresh = () => {
-  const interval = (props.componentData.monitorSysGenServerDetailComponentRefreshInterval || 30) * 1000;
-  
+  const interval =
+    (props.componentData.monitorSysGenServerDetailComponentRefreshInterval ||
+      30) * 1000;
+
   refreshTimer.value = setInterval(() => {
     if (!props.editMode) {
       loadData();

@@ -1,5 +1,10 @@
 ﻿<template>
-  <sc-dialog v-model="visibleProxy" class="soft-sync-dialog" :show-close="true" width="680px">
+  <sc-dialog
+    v-model="visibleProxy"
+    class="soft-sync-dialog"
+    :show-close="true"
+    width="680px"
+  >
     <template #header>
       <div class="dlg-header">
         <div class="title">
@@ -17,37 +22,71 @@
           选择同步服务器
         </div>
         <div class="server-cards">
-          <div v-for="server in servers" :key="server.monitorSysGenServerId" class="server-card"
-            :class="{ selected: selectedServerIds.includes(server.monitorSysGenServerId) }" 
-            @click="toggleServerSelect(server.monitorSysGenServerId)">
+          <div
+            v-for="server in servers"
+            :key="server.monitorSysGenServerId"
+            class="server-card"
+            :class="{
+              selected: selectedServerIds.includes(
+                server.monitorSysGenServerId,
+              ),
+            }"
+            @click="toggleServerSelect(server.monitorSysGenServerId)"
+          >
             <div class="card-header">
               <div class="server-name">
-                <IconifyIconOnline icon="ri:checkbox-blank-circle-fill" 
-                  :class="['status-indicator', getStatusClass(server.monitorSysGenServerConnectionStatus)]" />
-                {{ server.monitorSysGenServerName || '-' }}
+                <IconifyIconOnline
+                  icon="ri:checkbox-blank-circle-fill"
+                  :class="[
+                    'status-indicator',
+                    getStatusClass(server.monitorSysGenServerConnectionStatus),
+                  ]"
+                />
+                {{ server.monitorSysGenServerName || "-" }}
               </div>
-              <el-tag :type="getStatusType(server.monitorSysGenServerConnectionStatus) as any" size="small">
+              <el-tag
+                :type="
+                  getStatusType(
+                    server.monitorSysGenServerConnectionStatus,
+                  ) as any
+                "
+                size="small"
+              >
                 {{ getStatusText(server.monitorSysGenServerConnectionStatus) }}
               </el-tag>
             </div>
             <div class="card-body">
               <div class="server-host">
                 <IconifyIconOnline icon="ri:global-line" class="mr-1" />
-                {{ server.monitorSysGenServerHost || '-' }}:{{ server.monitorSysGenServerPort || '-' }}
+                {{ server.monitorSysGenServerHost || "-" }}:{{
+                  server.monitorSysGenServerPort || "-"
+                }}
               </div>
-              <div class="server-tags" v-if="server.monitorSysGenServerTags">
-                <el-tag v-for="tag in (server.monitorSysGenServerTags || '').split(',')" 
-                  :key="tag" size="small" type="info">{{ tag }}</el-tag>
+              <div v-if="server.monitorSysGenServerTags" class="server-tags">
+                <el-tag
+                  v-for="tag in (server.monitorSysGenServerTags || '').split(
+                    ',',
+                  )"
+                  :key="tag"
+                  size="small"
+                  type="info"
+                  >{{ tag }}</el-tag
+                >
               </div>
             </div>
-            <div class="card-check" v-if="selectedServerIds.includes(server.monitorSysGenServerId)">
+            <div
+              v-if="selectedServerIds.includes(server.monitorSysGenServerId)"
+              class="card-check"
+            >
               <IconifyIconOnline icon="ri:checkbox-circle-fill" />
             </div>
           </div>
         </div>
         <div class="server-hint">
           <IconifyIconOnline icon="ri:information-line" class="mr-1" />
-          已选择 <b>{{ selectedServerCount }}</b> 台服务器，将从这些服务器获取Docker镜像列表并同步
+          已选择
+          <b>{{ selectedServerCount }}</b>
+          台服务器，将从这些服务器获取Docker镜像列表并同步
         </div>
       </div>
 
@@ -57,14 +96,18 @@
           <IconifyIconOnline icon="ri:database-2-line" class="icon" />
           <div class="info-content">
             <div class="info-title">同步内容</div>
-            <div class="info-value">Docker镜像列表（使用DockerProtocolClient.listImage）</div>
+            <div class="info-value">
+              Docker镜像列表（使用DockerProtocolClient.listImage）
+            </div>
           </div>
         </div>
         <div class="info-item">
           <IconifyIconOnline icon="ri:save-line" class="icon" />
           <div class="info-content">
             <div class="info-title">保存位置</div>
-            <div class="info-value">SystemSoftImage表（镜像信息关联到对应软件）</div>
+            <div class="info-value">
+              SystemSoftImage表（镜像信息关联到对应软件）
+            </div>
           </div>
         </div>
         <div class="info-item">
@@ -80,9 +123,18 @@
     <template #footer>
       <div class="dlg-footer">
         <el-button @click="visibleProxy = false">取消</el-button>
-        <el-button type="primary" :loading="syncing" :disabled="selectedServerCount === 0" @click="submit">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" v-if="!syncing" />
-          {{ syncing ? '同步中...' : '开始同步' }}
+        <el-button
+          type="primary"
+          :loading="syncing"
+          :disabled="selectedServerCount === 0"
+          @click="submit"
+        >
+          <IconifyIconOnline
+            v-if="!syncing"
+            icon="ri:refresh-line"
+            class="mr-1"
+          />
+          {{ syncing ? "同步中..." : "开始同步" }}
         </el-button>
       </div>
     </template>
@@ -90,17 +142,25 @@
 </template>
 
 <script setup lang="ts">
-import { getServerList, softwareApi } from '@/api/docker';
+import { getServerList, softwareApi } from "@/api/docker";
 import { message } from "@repo/utils";
-import { ElNotification } from 'element-plus';
-import { computed, ref, watch } from 'vue';
+import { ElNotification } from "element-plus";
+import { computed, ref, watch } from "vue";
 
-interface Props { visible: boolean }
-interface Emits { (e: 'update:visible', v: boolean): void; (e: 'success'): void }
+interface Props {
+  visible: boolean;
+}
+interface Emits {
+  (e: "update:visible", v: boolean): void;
+  (e: "success"): void;
+}
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
-const visibleProxy = computed({ get: () => props.visible, set: v => emit('update:visible', v) });
+const visibleProxy = computed({
+  get: () => props.visible,
+  set: (v) => emit("update:visible", v),
+});
 
 const servers = ref<any[]>([]);
 const selectedServerIds = ref<number[]>([]);
@@ -111,13 +171,13 @@ const selectedServerCount = computed(() => selectedServerIds.value.length);
 async function loadServers() {
   try {
     const res: any = await getServerList();
-    if (res?.code === '00000') {
+    if (res?.code === "00000") {
       servers.value = res.data || [];
     } else if (Array.isArray(res)) {
       servers.value = res || [];
     }
   } catch (err) {
-    console.error('加载服务器失败', err);
+    console.error("加载服务器失败", err);
   }
 }
 
@@ -128,77 +188,97 @@ function toggleServerSelect(id: number) {
 }
 
 // 获取服务器连接状态类型
-function getStatusType(status: number | undefined): 'success' | 'info' | 'warning' | 'danger' {
+function getStatusType(
+  status: number | undefined,
+): "success" | "info" | "warning" | "danger" {
   switch (status) {
-    case 1: return 'success';
-    case 0: return 'info';
-    case 2: return 'warning';
-    case 3: return 'danger';
-    default: return 'info';
+    case 1:
+      return "success";
+    case 0:
+      return "info";
+    case 2:
+      return "warning";
+    case 3:
+      return "danger";
+    default:
+      return "info";
   }
 }
 
 // 获取服务器连接状态文本
 function getStatusText(status: number | undefined): string {
   switch (status) {
-    case 1: return '在线';
-    case 0: return '离线';
-    case 2: return '连接中';
-    case 3: return '失败';
-    default: return '未知';
+    case 1:
+      return "在线";
+    case 0:
+      return "离线";
+    case 2:
+      return "连接中";
+    case 3:
+      return "失败";
+    default:
+      return "未知";
   }
 }
 
 // 获取服务器状态样式类
 function getStatusClass(status: number | undefined): string {
   switch (status) {
-    case 1: return 'status-online';
-    case 0: return 'status-offline';
-    case 2: return 'status-connecting';
-    case 3: return 'status-error';
-    default: return 'status-unknown';
+    case 1:
+      return "status-online";
+    case 0:
+      return "status-offline";
+    case 2:
+      return "status-connecting";
+    case 3:
+      return "status-error";
+    default:
+      return "status-unknown";
   }
 }
 
 // 监听对话框打开/关闭
-watch(() => visibleProxy.value, (val) => {
-  if (val) {
-    loadServers();
-  } else {
-    selectedServerIds.value = [];
-  }
-});
+watch(
+  () => visibleProxy.value,
+  (val) => {
+    if (val) {
+      loadServers();
+    } else {
+      selectedServerIds.value = [];
+    }
+  },
+);
 
 async function submit() {
   const ids = selectedServerIds.value || [];
   if (!ids.length) {
-    return message('请选择至少一台服务器', { type: "warning" });
+    return message("请选择至少一台服务器", { type: "warning" });
   }
-  
+
   try {
     syncing.value = true;
-    
+
     const payload = {
-      serverIds: ids
+      serverIds: ids,
     };
-    
+
     const result = await softwareApi.syncImages(payload as any);
-    
-    if (result.code === '00000') {
+
+    if (result.code === "00000") {
       // 通知父组件同步成功
-      emit('success');
-      
+      emit("success");
+
       // 关闭对话框
       visibleProxy.value = false;
     } else {
-      message(result.msg || '同步失败', { type: "error" });
+      message(result.msg || "同步失败", { type: "error" });
     }
   } catch (error: any) {
-    console.error('同步镜像失败', error);
+    console.error("同步镜像失败", error);
     ElNotification.error({
-      title: '同步失败',
-      message: error?.message || '请稍后重试',
-      position: 'bottom-right'
+      title: "同步失败",
+      message: error?.message || "请稍后重试",
+      position: "bottom-right",
     });
   } finally {
     syncing.value = false;
@@ -264,7 +344,7 @@ async function submit() {
   border-radius: 8px;
   padding: 12px;
   cursor: pointer;
-  transition: all .2s ease;
+  transition: all 0.2s ease;
   background: #fff;
 }
 
@@ -401,7 +481,6 @@ async function submit() {
   gap: 12px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -410,6 +489,4 @@ async function submit() {
     padding: 12px 16px;
   }
 }
-
 </style>
-

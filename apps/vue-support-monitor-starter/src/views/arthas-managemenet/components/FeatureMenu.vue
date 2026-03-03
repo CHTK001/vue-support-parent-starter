@@ -34,7 +34,6 @@ function onSelect(key: string) {
   margin-right: 6px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -43,5 +42,4 @@ function onSelect(key: string) {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -89,8 +89,8 @@
                 :key="icon"
                 size="small"
                 text
-                @click="formData.fileSystemGroupIcon = icon"
                 :class="{ 'is-active': formData.fileSystemGroupIcon === icon }"
+                @click="formData.fileSystemGroupIcon = icon"
               >
                 <IconifyIconOnline :icon="icon" />
               </el-button>
@@ -132,7 +132,7 @@
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{ isEdit ? '更新' : '创建' }}
+          {{ isEdit ? "更新" : "创建" }}
         </el-button>
       </div>
     </template>
@@ -230,7 +230,13 @@ const rules: FormRules = {
     },
   ],
   fileSystemGroupSort: [
-    { type: "number", min: 0, max: 999, message: "排序值范围为0-999", trigger: "blur" },
+    {
+      type: "number",
+      min: 0,
+      max: 999,
+      message: "排序值范围为0-999",
+      trigger: "blur",
+    },
   ],
 };
 
@@ -249,7 +255,7 @@ watch(
       loadParentGroups();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(visible, (newVal) => {
@@ -317,7 +323,9 @@ const handleSubmit = async () => {
     const res = await apiCall(formData);
 
     if (res.code === "00000" || res.code === 0) {
-      message(isEdit.value ? "更新分组成功" : "创建分组成功", { type: "success" });
+      message(isEdit.value ? "更新分组成功" : "创建分组成功", {
+        type: "success",
+      });
       handleClose();
       emit("success");
     } else {
@@ -387,7 +395,6 @@ defineExpose({
   gap: 12px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -396,5 +403,4 @@ defineExpose({
     padding: 12px 16px;
   }
 }
-
 </style>

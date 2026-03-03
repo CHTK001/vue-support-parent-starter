@@ -5,16 +5,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import InfluxConsole from '@/views/data-management/console/influx/InfluxConsole.vue'
+import { computed } from "vue";
+import { useRoute } from "vue-router";
+import InfluxConsole from "@/views/data-management/console/influx/InfluxConsole.vue";
 
-const route = useRoute()
-const id = computed(() => Number(route.query.id))
+const route = useRoute();
+const id = computed(() => Number(route.query.id));
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -48,12 +47,10 @@ const id = computed(() => Number(route.query.id))
   }
 }
 
-
 .page {
   padding: 8px;
   height: 100%;
 }
-
 
 /* 响应式设计 */
 @media (max-width: 768px) {
@@ -63,6 +60,4 @@ const id = computed(() => Number(route.query.id))
     padding: 12px 16px;
   }
 }
-
 </style>
-

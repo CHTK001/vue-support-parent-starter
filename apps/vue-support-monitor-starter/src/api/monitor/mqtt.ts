@@ -7,8 +7,8 @@ export const fetchPageForMqtt = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/mqtt/server/page", {
     params,
     headers: {
-      "x-remote-animation": "false"
-    }
+      "x-remote-animation": "false",
+    },
   });
 };
 /**
@@ -16,7 +16,7 @@ export const fetchPageForMqtt = (params: any) => {
  */
 export const fetchSaveForMqtt = (params: any) => {
   return http.request<ReturnResult<any>>("post", "/v1/mqtt/server/save", {
-    data: params
+    data: params,
   });
 };
 /**
@@ -24,7 +24,7 @@ export const fetchSaveForMqtt = (params: any) => {
  */
 export const fetchUpdateForMqtt = (params: any) => {
   return http.request<ReturnResult<any>>("put", "/v1/mqtt/server/update", {
-    data: params
+    data: params,
   });
 };
 /**
@@ -32,7 +32,7 @@ export const fetchUpdateForMqtt = (params: any) => {
  */
 export const fetchDeleteForMqtt = (params: any) => {
   return http.request<ReturnResult<any>>("delete", "/v1/mqtt/server/delete", {
-    params
+    params,
   });
 };
 /**
@@ -40,7 +40,7 @@ export const fetchDeleteForMqtt = (params: any) => {
  */
 export const fetchStartForMqtt = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/mqtt/server/start", {
-    params
+    params,
   });
 };
 /**
@@ -48,6 +48,6 @@ export const fetchStartForMqtt = (params: any) => {
  */
 export const fetchStopForMqtt = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/mqtt/server/stop", {
-    params
+    params,
   });
 };

@@ -331,8 +331,9 @@ const handlePreview = async () => {
               <ScIcon v-else color="red" title="离线">
                 <component
                   :is="useRenderIcon('humbleicons:wifi-off')"
-                /> </el-icon
-              >{{ row.sysDeviceName }}
+                />
+              </ScIcon>
+              {{ row.sysDeviceName }}
               <div class="absolute top-2 right-0 z-[99]" title="管道数量">
                 <ScBadge type="primary" :value="row.sysDeviceChannelCount">
                 </ScBadge>
@@ -514,8 +515,9 @@ const handlePreview = async () => {
                     plain
                     link
                     :icon="useRenderIcon('ep:delete')"
-                    >{{ $t("buttons.delete") }}</el-button
                   >
+                    {{ $t("buttons.delete") }}
+                  </ScButton>
                 </template>
               </ScPopconfirm>
             </template>

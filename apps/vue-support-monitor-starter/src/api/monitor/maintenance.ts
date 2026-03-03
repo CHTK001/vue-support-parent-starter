@@ -21,7 +21,9 @@ export function fetchMaintenanceGroupDetail(id: number) {
  * @param params 维护组数据
  */
 export function createMaintenanceGroup(params: any) {
-  return http.request<ReturnResult<any>>("post", "/v1/maintenance/group/save", { data: params });
+  return http.request<ReturnResult<any>>("post", "/v1/maintenance/group/save", {
+    data: params,
+  });
 }
 
 /**
@@ -29,7 +31,11 @@ export function createMaintenanceGroup(params: any) {
  * @param params 维护组数据
  */
 export function updateMaintenanceGroup(params: any) {
-  return http.request<ReturnResult<any>>("put", "/v1/maintenance/group/update", { data: params });
+  return http.request<ReturnResult<any>>(
+    "put",
+    "/v1/maintenance/group/update",
+    { data: params },
+  );
 }
 
 /**
@@ -37,7 +43,10 @@ export function updateMaintenanceGroup(params: any) {
  * @param id 维护组ID
  */
 export function deleteMaintenanceGroup(id: number) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/group/delete/${id}`);
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/group/delete/${id}`,
+  );
 }
 
 /**
@@ -46,12 +55,16 @@ export function deleteMaintenanceGroup(id: number) {
  * @param enabled 是否启用
  */
 export function enableMaintenanceGroup(id: number, enabled: boolean) {
-  return http.request<ReturnResult<any>>("put", `/v1/maintenance/group/update`, {
-    data: {
-      maintenanceGroupId: id,
-      maintenanceGroupEnabled: enabled
-    }
-  });
+  return http.request<ReturnResult<any>>(
+    "put",
+    `/v1/maintenance/group/update`,
+    {
+      data: {
+        maintenanceGroupId: id,
+        maintenanceGroupEnabled: enabled,
+      },
+    },
+  );
 }
 
 /**
@@ -59,7 +72,9 @@ export function enableMaintenanceGroup(id: number, enabled: boolean) {
  * @param groupId 维护组ID
  */
 export function fetchMaintenanceHosts(params: any) {
-  return http.request<ReturnResult<any>>("get", "/v1/maintenance/host/list", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/maintenance/host/list", {
+    params,
+  });
 }
 
 /**
@@ -67,7 +82,9 @@ export function fetchMaintenanceHosts(params: any) {
  * @param params 维护主机数据
  */
 export function createMaintenanceHost(params: any) {
-  return http.request<ReturnResult<any>>("post", "/v1/maintenance/host/save", { data: params });
+  return http.request<ReturnResult<any>>("post", "/v1/maintenance/host/save", {
+    data: params,
+  });
 }
 
 /**
@@ -75,7 +92,9 @@ export function createMaintenanceHost(params: any) {
  * @param params 维护主机数据
  */
 export function updateMaintenanceHost(params: any) {
-  return http.request<ReturnResult<any>>("put", "/v1/maintenance/host/update", { data: params });
+  return http.request<ReturnResult<any>>("put", "/v1/maintenance/host/update", {
+    data: params,
+  });
 }
 
 /**
@@ -83,7 +102,10 @@ export function updateMaintenanceHost(params: any) {
  * @param id 维护主机ID
  */
 export function deleteMaintenanceHost(id: number) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/host/delete/${id}`);
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/host/delete/${id}`,
+  );
 }
 
 /**
@@ -95,8 +117,8 @@ export function enableMaintenanceHost(id: number, enabled: boolean) {
   return http.request<ReturnResult<any>>("put", `/v1/maintenance/host/update`, {
     data: {
       maintenanceHostId: id,
-      maintenanceHostEnabled: enabled
-    }
+      maintenanceHostEnabled: enabled,
+    },
   });
 }
 
@@ -105,7 +127,10 @@ export function enableMaintenanceHost(id: number, enabled: boolean) {
  * @param id 维护主机ID
  */
 export function testHostConnection(id: number) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/host/test/${id}`);
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/host/test/${id}`,
+  );
 }
 
 /**
@@ -113,7 +138,9 @@ export function testHostConnection(id: number) {
  * @param groupId 维护组ID
  */
 export function fetchMaintenanceScripts(groupId: number) {
-  return http.request<ReturnResult<any>>("get", "/v1/maintenance/script/list", { params: { groupId } });
+  return http.request<ReturnResult<any>>("get", "/v1/maintenance/script/list", {
+    params: { groupId },
+  });
 }
 
 /**
@@ -121,7 +148,11 @@ export function fetchMaintenanceScripts(groupId: number) {
  * @param params 维护脚本数据
  */
 export function createMaintenanceScript(params: any) {
-  return http.request<ReturnResult<any>>("post", "/v1/maintenance/script/save", { data: params });
+  return http.request<ReturnResult<any>>(
+    "post",
+    "/v1/maintenance/script/save",
+    { data: params },
+  );
 }
 
 /**
@@ -129,7 +160,11 @@ export function createMaintenanceScript(params: any) {
  * @param params 维护脚本数据
  */
 export function updateMaintenanceScript(params: any) {
-  return http.request<ReturnResult<any>>("put", "/v1/maintenance/script/update", { data: params });
+  return http.request<ReturnResult<any>>(
+    "put",
+    "/v1/maintenance/script/update",
+    { data: params },
+  );
 }
 
 /**
@@ -137,7 +172,10 @@ export function updateMaintenanceScript(params: any) {
  * @param id 维护脚本ID
  */
 export function deleteMaintenanceScript(id: number) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/script/delete/${id}`);
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/script/delete/${id}`,
+  );
 }
 
 /**
@@ -145,7 +183,10 @@ export function deleteMaintenanceScript(id: number) {
  * @param id 脚本ID
  */
 export function syncMaintenanceScript(id: number) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/script/${id}/sync`);
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/script/${id}/sync`,
+  );
 }
 
 /**
@@ -157,8 +198,8 @@ export function executeMaintenanceScript(id: number, params: any) {
   return http.request<ReturnResult<any>>("post", "/v1/maintenance/script/run", {
     data: {
       maintenanceScriptId: id,
-      ...params
-    }
+      ...params,
+    },
   });
 }
 
@@ -170,8 +211,8 @@ export function uploadFileToGroup(formData: FormData) {
   return http.request<ReturnResult<any>>("put", "/v1/maintenance/file/upload", {
     data: formData,
     headers: {
-      "Content-Type": "multipart/form-data"
-    }
+      "Content-Type": "multipart/form-data",
+    },
   });
 }
 
@@ -180,7 +221,9 @@ export function uploadFileToGroup(formData: FormData) {
  * @param groupId 维护组ID
  */
 export function fetchMaintenanceFiles(params: any) {
-  return http.request<ReturnResult<any>>("get", "/v1/maintenance/file/list", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/maintenance/file/list", {
+    params,
+  });
 }
 
 /**
@@ -188,7 +231,10 @@ export function fetchMaintenanceFiles(params: any) {
  * @param id 文件ID
  */
 export function deleteMaintenanceFile(id: number) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/file/delete/${id}`);
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/file/delete/${id}`,
+  );
 }
 
 /**
@@ -197,7 +243,11 @@ export function deleteMaintenanceFile(id: number) {
  * @param params 部署参数，包含groupId
  */
 export function deployFile(id: number, params: any) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/file/deploy/${id}`, { data: params });
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/file/deploy/${id}`,
+    { data: params },
+  );
 }
 
 /**
@@ -205,7 +255,10 @@ export function deployFile(id: number, params: any) {
  * @param id 文件ID
  */
 export function syncMaintenanceFile(id: number) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/file/${id}/sync`);
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/file/${id}/sync`,
+  );
 }
 
 /**
@@ -213,7 +266,9 @@ export function syncMaintenanceFile(id: number) {
  * @param params 维护文件数据
  */
 export function updateMaintenanceFile(params: any) {
-  return http.request<ReturnResult<any>>("put", "/v1/maintenance/file/update", { data: params });
+  return http.request<ReturnResult<any>>("put", "/v1/maintenance/file/update", {
+    data: params,
+  });
 }
 
 /**
@@ -221,7 +276,11 @@ export function updateMaintenanceFile(params: any) {
  * @param groupId 维护组ID
  */
 export function getMaintenanceLogs(params: any) {
-  return http.request<ReturnResult<any>>("get", `/v1/maintenance/log/group/${params?.groupId}`, { params });
+  return http.request<ReturnResult<any>>(
+    "get",
+    `/v1/maintenance/log/group/${params?.groupId}`,
+    { params },
+  );
 }
 
 /**
@@ -230,12 +289,16 @@ export function getMaintenanceLogs(params: any) {
  * @param formData 文件表单数据
  */
 export function replaceFile(fileId: number, formData: FormData) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/file/replace/${fileId}`, {
-    data: formData,
-    headers: {
-      "Content-Type": "multipart/form-data"
-    }
-  });
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/file/replace/${fileId}`,
+    {
+      data: formData,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
 }
 
 /**
@@ -243,5 +306,8 @@ export function replaceFile(fileId: number, formData: FormData) {
  * @param hostId 主机ID
  */
 export function openTerminal(hostId: number) {
-  return http.request<ReturnResult<any>>("post", `/v1/maintenance/host/terminal/${hostId}`);
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/maintenance/host/terminal/${hostId}`,
+  );
 }

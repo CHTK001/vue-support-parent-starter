@@ -13,7 +13,7 @@ const loading = ref(false);
  * 处理左侧图片上传变更
  * @param {Object} file - 上传的文件对象
  */
-const handleLeftChange = async file => {
+const handleLeftChange = async (file) => {
   leftFile.value = file.raw;
   sourceImage.value = null;
 };
@@ -22,7 +22,7 @@ const handleLeftChange = async file => {
  * 处理右侧图片上传变更
  * @param {Object} file - 上传的文件对象
  */
-const handleRightChange = async file => {
+const handleRightChange = async (file) => {
   rightFile.value = file.raw;
   sourceImage.value = null;
 };
@@ -69,8 +69,18 @@ const handleGenerate = async () => {
             <el-row class="phantom-upload-row">
               <!-- 左侧上传 -->
               <el-col :span="10" class="phantom-upload-item">
-                <el-upload drag class="phantom-upload" :auto-upload="false" :limit="1" :on-change="handleLeftChange" accept=".jpeg,.jpg,.png">
-                  <IconifyIconOnline icon="ep:upload" class="phantom-upload-icon" />
+                <el-upload
+                  drag
+                  class="phantom-upload"
+                  :auto-upload="false"
+                  :limit="1"
+                  :on-change="handleLeftChange"
+                  accept=".jpeg,.jpg,.png"
+                >
+                  <IconifyIconOnline
+                    icon="ep:upload"
+                    class="phantom-upload-icon"
+                  />
                   <div class="phantom-upload-text">上传亮色图片</div>
                   <div class="phantom-upload-tip">支持 JPG、PNG 格式</div>
                 </el-upload>
@@ -78,7 +88,12 @@ const handleGenerate = async () => {
 
               <!-- 生成按钮 -->
               <el-col :span="4" class="phantom-generate-col">
-                <el-button type="primary" class="phantom-generate-btn" :loading="loading" @click="handleGenerate">
+                <el-button
+                  type="primary"
+                  class="phantom-generate-btn"
+                  :loading="loading"
+                  @click="handleGenerate"
+                >
                   <IconifyIconOnline icon="ri:magic-line" />
                   <span>生成</span>
                 </el-button>
@@ -86,8 +101,18 @@ const handleGenerate = async () => {
 
               <!-- 右侧上传 -->
               <el-col :span="10" class="phantom-upload-item">
-                <el-upload drag class="phantom-upload" :auto-upload="false" :limit="1" :on-change="handleRightChange" accept=".jpeg,.jpg,.png">
-                  <IconifyIconOnline icon="ep:upload" class="phantom-upload-icon" />
+                <el-upload
+                  drag
+                  class="phantom-upload"
+                  :auto-upload="false"
+                  :limit="1"
+                  :on-change="handleRightChange"
+                  accept=".jpeg,.jpg,.png"
+                >
+                  <IconifyIconOnline
+                    icon="ep:upload"
+                    class="phantom-upload-icon"
+                  />
                   <div class="phantom-upload-text">上传暗色图片</div>
                   <div class="phantom-upload-tip">支持 JPG、PNG 格式</div>
                 </el-upload>
@@ -100,7 +125,13 @@ const handleGenerate = async () => {
             <div class="phantom-preview">
               <div class="phantom-preview-header">预览结果</div>
               <div class="phantom-preview-content">
-                <el-image v-if="sourceImage" :src="sourceImage" class="phantom-result-image" fit="contain" :preview-src-list="sourceImage ? [sourceImage] : []" />
+                <el-image
+                  v-if="sourceImage"
+                  :src="sourceImage"
+                  class="phantom-result-image"
+                  fit="contain"
+                  :preview-src-list="sourceImage ? [sourceImage] : []"
+                />
                 <el-empty v-else description="请上传两张图片后点击生成" />
               </div>
             </div>
@@ -112,7 +143,6 @@ const handleGenerate = async () => {
 </template>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -145,7 +175,6 @@ const handleGenerate = async () => {
     z-index: 1;
   }
 }
-
 
 .phantom {
   &-container {
@@ -295,7 +324,6 @@ const handleGenerate = async () => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -304,5 +332,4 @@ const handleGenerate = async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

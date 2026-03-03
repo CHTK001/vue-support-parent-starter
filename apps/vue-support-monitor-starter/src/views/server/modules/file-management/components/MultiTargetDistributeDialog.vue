@@ -1,6 +1,12 @@
 ﻿<template>
-  <sc-dialog v-model="visible" title="同步到服务器/节点" width="680px" :close-on-click-modal="false" @close="handleClose">
-    <el-form :model="form" label-width="100px" :rules="rules" ref="formRef">
+  <sc-dialog
+    v-model="visible"
+    title="同步到服务器/节点"
+    width="680px"
+    :close-on-click-modal="false"
+    @close="handleClose"
+  >
+    <el-form ref="formRef" :model="form" label-width="100px" :rules="rules">
       <el-form-item label="同步对象" prop="type">
         <el-radio-group v-model="form.type" size="small">
           <el-radio-button label="SERVER">服务器</el-radio-button>
@@ -8,15 +14,43 @@
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item v-if="form.type === 'SERVER'" label="服务器" prop="serverIds">
-        <el-select v-model="form.serverIds" multiple filterable clearable placeholder="请选择服务器" style="width: 100%">
-          <el-option v-for="opt in serverOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+      <el-form-item
+        v-if="form.type === 'SERVER'"
+        label="服务器"
+        prop="serverIds"
+      >
+        <el-select
+          v-model="form.serverIds"
+          multiple
+          filterable
+          clearable
+          placeholder="请选择服务器"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="opt in serverOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
         </el-select>
       </el-form-item>
 
       <el-form-item v-else label="节点" prop="nodeIds">
-        <el-select v-model="form.nodeIds" multiple filterable clearable placeholder="请选择节点" style="width: 100%">
-          <el-option v-for="opt in nodeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+        <el-select
+          v-model="form.nodeIds"
+          multiple
+          filterable
+          clearable
+          placeholder="请选择节点"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="opt in nodeOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
         </el-select>
       </el-form-item>
 
@@ -29,13 +63,19 @@
       </el-form-item>
 
       <el-alert type="info" :closable="false" show-icon>
-        <template #title>源文件：{{ sourceFilePath }}（源服务器ID：{{ sourceServerId }}）</template>
+        <template #title
+          >源文件：{{ sourceFilePath }}（源服务器ID：{{
+            sourceServerId
+          }}）</template
+        >
       </el-alert>
     </el-form>
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleConfirm">开始同步</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleConfirm"
+        >开始同步</el-button
+      >
     </template>
   </sc-dialog>
 </template>
@@ -68,13 +108,17 @@ const form = ref({
   serverIds: [] as Array<number | string>,
   nodeIds: [] as Array<number | string>,
   dirPath: props.currentPath || "/opt/data",
-  overwrite: false
+  overwrite: false,
 });
 
 const rules = {
-  serverIds: [{ required: () => form.value.type === "SERVER", message: "请选择服务器" }],
-  nodeIds: [{ required: () => form.value.type === "NODE", message: "请选择节点" }],
-  dirPath: [{ required: true, message: "请输入目标目录" }]
+  serverIds: [
+    { required: () => form.value.type === "SERVER", message: "请选择服务器" },
+  ],
+  nodeIds: [
+    { required: () => form.value.type === "NODE", message: "请选择节点" },
+  ],
+  dirPath: [{ required: true, message: "请输入目标目录" }],
 };
 
 onMounted(async () => {
@@ -89,7 +133,7 @@ async function loadServerOptions() {
     const list = res?.data?.data || res?.data || res?.list || [];
     serverOptions.value = (list || []).map((s: any) => ({
       label: `${s.monitorSysGenServerName || s.name || s.id}`,
-      value: s.monitorSysGenServerId ?? s.id
+      value: s.monitorSysGenServerId ?? s.id,
     }));
   } catch (e) {
     serverOptions.value = [];
@@ -102,7 +146,7 @@ async function loadNodeOptions() {
     const list = res?.data?.data || res?.data || res?.list || [];
     nodeOptions.value = (list || []).map((n: any) => ({
       label: `${n.name || n.nodeId || n.id}`,
-      value: String(n.id ?? n.nodeId ?? n.code ?? n.name)
+      value: String(n.id ?? n.nodeId ?? n.code ?? n.name),
     }));
   } catch (e) {
     nodeOptions.value = [];
@@ -117,9 +161,12 @@ async function handleConfirm() {
       sourceServerId: props.sourceServerId,
       sourceFilePath: props.sourceFilePath,
       targetType: form.value.type,
-      targetIds: form.value.type === "SERVER" ? form.value.serverIds : form.value.nodeIds,
+      targetIds:
+        form.value.type === "SERVER"
+          ? form.value.serverIds
+          : form.value.nodeIds,
       targetDir: form.value.dirPath,
-      overwrite: form.value.overwrite
+      overwrite: form.value.overwrite,
     } as any;
 
     const resp: any = await distributeFile(req);
@@ -143,13 +190,12 @@ function handleClose() {
 
 watch(
   () => props.modelValue,
-  v => (visible.value = v)
+  (v) => (visible.value = v),
 );
-watch(visible, v => emit("update:modelValue", v));
+watch(visible, (v) => emit("update:modelValue", v));
 </script>
 
 <style scoped lang="scss">
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -158,5 +204,4 @@ watch(visible, v => emit("update:modelValue", v));
     padding: 12px 16px;
   }
 }
-
 </style>

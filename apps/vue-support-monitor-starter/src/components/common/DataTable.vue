@@ -20,22 +20,22 @@
         :sortable="column.sortable"
         :formatter="column.formatter"
       >
-        <template #default="scope" v-if="slots[column.prop]">
+        <template v-if="slots[column.prop]" #default="scope">
           <slot
             :name="column.prop"
             :row="scope.row"
             :column="scope.column"
             :$index="scope.$index"
-          ></slot>
+          />
         </template>
       </el-table-column>
 
       <!-- 默认插槽用于添加额外的列 -->
-      <slot></slot>
+      <slot />
     </el-table>
 
     <!-- 分页 -->
-    <div class="data-table__pagination" v-if="showPagination">
+    <div v-if="showPagination" class="data-table__pagination">
       <el-pagination
         :current-page="currentPage"
         :page-size="pageSize"

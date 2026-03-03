@@ -28,8 +28,8 @@
             </el-button>
             <el-button
               size="small"
-              @click="handleReconnect"
               :loading="connecting"
+              @click="handleReconnect"
             >
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               重连
@@ -56,14 +56,14 @@
         v-if="serverData.monitorSysGenServerProtocol === 'SSH'"
         ref="terminalRef"
         class="terminal-wrapper ssh-terminal"
-      ></div>
+      />
 
       <!-- RDP 远程桌面 -->
       <div
         v-else-if="serverData.monitorSysGenServerProtocol === 'RDP'"
         class="terminal-wrapper rdp-terminal"
       >
-        <div ref="rdpDisplayRef" class="rdp-display" tabindex="0"></div>
+        <div ref="rdpDisplayRef" class="rdp-display" tabindex="0" />
         <div class="rdp-controls">
           <div class="rdp-status">
             <el-tag
@@ -78,24 +78,24 @@
           <div class="rdp-actions">
             <el-button
               size="small"
-              @click="handleClipboard('rdp')"
               :disabled="!isConnected"
+              @click="handleClipboard('rdp')"
             >
               <IconifyIconOnline icon="ep:document-copy" />
               剪贴板
             </el-button>
             <el-button
               size="small"
-              @click="handleScreenshot('rdp')"
               :disabled="!isConnected"
+              @click="handleScreenshot('rdp')"
             >
               <IconifyIconOnline icon="ep:camera" />
               截图
             </el-button>
             <el-button
               size="small"
-              @click="handleScreenResize(1024, 768, 'rdp')"
               :disabled="!isConnected"
+              @click="handleScreenResize(1024, 768, 'rdp')"
             >
               <IconifyIconOnline icon="ep:full-screen" />
               调整尺寸
@@ -103,8 +103,8 @@
             <el-button
               size="small"
               type="danger"
-              @click="handleDisconnect('rdp')"
               :disabled="!isConnected"
+              @click="handleDisconnect('rdp')"
               >断开连接</el-button
             >
           </div>
@@ -116,7 +116,7 @@
         v-else-if="serverData.monitorSysGenServerProtocol === 'VNC'"
         class="terminal-wrapper vnc-terminal"
       >
-        <div ref="vncDisplayRef" class="vnc-display" tabindex="0"></div>
+        <div ref="vncDisplayRef" class="vnc-display" tabindex="0" />
         <div class="vnc-controls">
           <div class="vnc-status">
             <el-tag
@@ -131,24 +131,24 @@
           <div class="vnc-actions">
             <el-button
               size="small"
-              @click="handleClipboard('vnc')"
               :disabled="!isConnected || vncConfig.readOnly"
+              @click="handleClipboard('vnc')"
             >
               <IconifyIconOnline icon="ep:document-copy" />
               剪贴板
             </el-button>
             <el-button
               size="small"
-              @click="handleScreenshot('vnc')"
               :disabled="!isConnected"
+              @click="handleScreenshot('vnc')"
             >
               <IconifyIconOnline icon="ep:camera" />
               截图
             </el-button>
             <el-button
               size="small"
-              @click="handleScreenResize(1024, 768, 'vnc')"
               :disabled="!isConnected"
+              @click="handleScreenResize(1024, 768, 'vnc')"
             >
               <IconifyIconOnline icon="ep:full-screen" />
               调整尺寸
@@ -156,8 +156,8 @@
             <el-button
               size="small"
               type="danger"
-              @click="handleDisconnect('vnc')"
               :disabled="!isConnected"
+              @click="handleDisconnect('vnc')"
               >断开连接</el-button
             >
           </div>
@@ -388,7 +388,7 @@ const initSSHTerminal = () => {
         JSON.stringify({
           type: "input",
           data: data,
-        })
+        }),
       );
     }
   });
@@ -399,7 +399,7 @@ const initSSHTerminal = () => {
       resizeServerTerminal(
         String(serverData.monitorSysGenServerId),
         cols,
-        rows
+        rows,
       );
     }
   });
@@ -461,7 +461,7 @@ const initVNCTerminal = () => {
 const connectSSHWebSocket = () => {
   const wsUrl = getWebSocketUrl(
     "/socket/ssh",
-    `id=${serverData.monitorSysGenServerId}&type=ssh`
+    `id=${serverData.monitorSysGenServerId}&type=ssh`,
   );
 
   sshWebSocket = new WebSocket(wsUrl);
@@ -519,7 +519,7 @@ const connectRDPWebSocket = () => {
     const wsUrl = createWebSocketUrl(
       "/websocket/rdp",
       "rdp",
-      serverData.monitorSysGenServerId
+      serverData.monitorSysGenServerId,
     );
 
     // 使用 Guacamole 客户端连接
@@ -555,7 +555,7 @@ const connectVNCWebSocket = () => {
     const wsUrl = createWebSocketUrl(
       "/websocket/vnc",
       "vnc",
-      serverData.monitorSysGenServerId
+      serverData.monitorSysGenServerId,
     );
 
     // 使用 Guacamole 客户端连接
@@ -595,11 +595,11 @@ const handleRemoteDisconnected = () => {
  * 当远程桌面连接失败（如 Linux 无桌面环境）时，自动切换到 SSH 终端
  */
 const handleFallbackToSSH = () => {
-  console.log('REMOTE 模式降级到 SSH');
-  
+  console.log("REMOTE 模式降级到 SSH");
+
   // 切换协议类型
-  serverData.monitorSysGenServerProtocol = 'SSH';
-  
+  serverData.monitorSysGenServerProtocol = "SSH";
+
   // 重新初始化终端（现在会使用 SSH 模式）
   nextTick(() => {
     initTerminal();
@@ -611,7 +611,7 @@ const handleFallbackToSSH = () => {
  */
 const setupGuacamoleEventHandlers = (
   client: GuacamoleClientManager,
-  protocol: "rdp" | "vnc"
+  protocol: "rdp" | "vnc",
 ) => {
   // 状态变化事件
   client.setOnStateChange((state: number) => {
@@ -645,7 +645,7 @@ const setupGuacamoleEventHandlers = (
     isConnected.value = false;
     connectionStatus.value = "error";
     message.error(
-      `${protocol.toUpperCase()} 连接错误: ${error.message || "未知错误"}`
+      `${protocol.toUpperCase()} 连接错误: ${error.message || "未知错误"}`,
     );
   });
 
@@ -672,7 +672,7 @@ const setupGuacamoleEventHandlers = (
 const handleScreenResize = (
   width: number,
   height: number,
-  protocol: "rdp" | "vnc"
+  protocol: "rdp" | "vnc",
 ) => {
   const client = protocol === "rdp" ? rdpClient : vncClient;
   if (!client || !client.isConnected()) {
@@ -690,7 +690,7 @@ const handleScreenResize = (
     }
 
     message.success(
-      `${protocol.toUpperCase()} 屏幕尺寸已调整为 ${width}x${height}`
+      `${protocol.toUpperCase()} 屏幕尺寸已调整为 ${width}x${height}`,
     );
   } catch (error) {
     console.error("调整屏幕尺寸失败:", error);
@@ -784,7 +784,10 @@ const handleClear = () => {
   } else if (serverData.monitorSysGenServerProtocol === "VNC" && vncClient) {
     vncClient.disconnect();
     setTimeout(() => connectVNCWebSocket(), 1000);
-  } else if (serverData.monitorSysGenServerProtocol === "REMOTE" && nativeRemoteRef.value) {
+  } else if (
+    serverData.monitorSysGenServerProtocol === "REMOTE" &&
+    nativeRemoteRef.value
+  ) {
     // REMOTE 模式重新连接
     nativeRemoteRef.value.reconnect?.();
   }

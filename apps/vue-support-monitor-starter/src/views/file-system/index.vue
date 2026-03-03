@@ -6,10 +6,10 @@
         <template #header>
           <div class="card-header">
             <span>SSE连接调试信息</span>
-            <el-button @click="testSSEConnection" type="primary" size="small">
+            <el-button type="primary" size="small" @click="testSSEConnection">
               测试连接
             </el-button>
-            <el-button @click="testBackendAPI" type="success" size="small">
+            <el-button type="success" size="small" @click="testBackendAPI">
               测试后端API
             </el-button>
           </div>
@@ -187,12 +187,18 @@
                     设置
                   </el-dropdown-item>
                   <el-dropdown-item @click="showMD5TestDialog = true">
-                    <IconifyIconOnline icon="ri:shield-check-line" class="mr-2" />
+                    <IconifyIconOnline
+                      icon="ri:shield-check-line"
+                      class="mr-2"
+                    />
                     MD5测试
                   </el-dropdown-item>
-                  <el-dropdown-item divided @click="showDebugInfo = !showDebugInfo">
+                  <el-dropdown-item
+                    divided
+                    @click="showDebugInfo = !showDebugInfo"
+                  >
                     <IconifyIconOnline icon="ri:bug-line" class="mr-2" />
-                    {{ showDebugInfo ? '关闭调试' : '调试模式' }}
+                    {{ showDebugInfo ? "关闭调试" : "调试模式" }}
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -248,7 +254,7 @@
                       Math.round(
                         (row.fileSystemChunkUploaded /
                           row.fileSystemChunkTotal) *
-                          100
+                          100,
                       )
                     "
                     :status="getProgressStatus(row.fileSystemStatus)"
@@ -576,7 +582,7 @@ const handleGroupSelect = (data: FileSystemGroup) => {
     "选择分组:",
     data.fileSystemGroupName,
     "ID:",
-    data.fileSystemGroupId
+    data.fileSystemGroupId,
   );
 };
 
@@ -701,7 +707,7 @@ watch(
   () => {
     tableRef.value?.refresh();
   },
-  { deep: true }
+  { deep: true },
 );
 
 /**
@@ -744,7 +750,7 @@ const getFileIcon = (fileType: string) => {
  * 获取状态类型
  */
 const getStatusType = (
-  status: number
+  status: number,
 ): "success" | "warning" | "info" | "primary" | "danger" => {
   const typeMap: Record<
     number,
@@ -825,7 +831,7 @@ const handleDelete = async (file: FileSystem) => {
       "确认删除",
       {
         type: "warning",
-      }
+      },
     );
 
     const res = await deleteFile(file.fileSystemId!);
@@ -853,7 +859,7 @@ const handleBatchDelete = async () => {
       "确认批量删除",
       {
         type: "warning",
-      }
+      },
     );
 
     const fileIds = selectedFiles.value.map((f) => f.fileSystemId!);
@@ -879,11 +885,11 @@ const handleToggleHttpAccess = async (file: FileSystem) => {
   try {
     const res = await toggleHttpAccess(
       file.fileSystemId!,
-      file.fileSystemHttpAccessEnabled!
+      file.fileSystemHttpAccessEnabled!,
     );
     if (res.code === "00000") {
       message.success(
-        file.fileSystemHttpAccessEnabled ? "已启用HTTP访问" : "已禁用HTTP访问"
+        file.fileSystemHttpAccessEnabled ? "已启用HTTP访问" : "已禁用HTTP访问",
       );
     } else {
       // 恢复原状态
@@ -908,7 +914,7 @@ const handleCleanExpired = async () => {
       "确认清理",
       {
         type: "warning",
-      }
+      },
     );
 
     const res = await cleanExpiredFiles();
@@ -1037,7 +1043,7 @@ const testBackendAPI = async () => {
       console.log(
         "SSE状态端点响应:",
         statusResponse.status,
-        statusResponse.statusText
+        statusResponse.statusText,
       );
 
       if (statusResponse.ok) {
@@ -1058,7 +1064,6 @@ const testBackendAPI = async () => {
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -1075,8 +1080,6 @@ const testBackendAPI = async () => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -1110,7 +1113,6 @@ const testBackendAPI = async () => {
     z-index: 1;
   }
 }
-
 
 .file-system-page {
   padding: 16px;

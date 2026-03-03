@@ -1,7 +1,7 @@
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useServerWebSocket } from './useServerWebSocket';
-import { message } from '@repo/utils';
-import type { ServerWebSocketMessage } from '@/api/server';
+import { ref, onMounted, onUnmounted } from "vue";
+import { useServerWebSocket } from "./useServerWebSocket";
+import { message } from "@repo/utils";
+import type { ServerWebSocketMessage } from "@/api/server";
 
 /**
  * 服务器事件处理 Composable
@@ -9,16 +9,18 @@ import type { ServerWebSocketMessage } from '@/api/server';
  */
 export function useServerEvents() {
   const { onMessage, MESSAGE_TYPE } = useServerWebSocket();
-  
+
   // 存储取消订阅函数
   const unsubscribeFunctions = new Set<() => void>();
 
   /**
    * 监听服务器创建事件
    */
-  const onServerCreated = (handler: (message: ServerWebSocketMessage) => void) => {
+  const onServerCreated = (
+    handler: (message: ServerWebSocketMessage) => void,
+  ) => {
     const unsubscribe = onMessage(MESSAGE_TYPE.SERVER_CREATED, (message) => {
-      console.log('服务器创建事件:', message);
+      console.log("服务器创建事件:", message);
       handler(message);
     });
     unsubscribeFunctions.add(unsubscribe);
@@ -28,9 +30,11 @@ export function useServerEvents() {
   /**
    * 监听服务器更新事件
    */
-  const onServerUpdated = (handler: (message: ServerWebSocketMessage) => void) => {
+  const onServerUpdated = (
+    handler: (message: ServerWebSocketMessage) => void,
+  ) => {
     const unsubscribe = onMessage(MESSAGE_TYPE.SERVER_UPDATED, (message) => {
-      console.log('服务器更新事件:', message);
+      console.log("服务器更新事件:", message);
       handler(message);
     });
     unsubscribeFunctions.add(unsubscribe);
@@ -40,9 +44,11 @@ export function useServerEvents() {
   /**
    * 监听服务器健康状态事件
    */
-  const onServerHealth = (handler: (message: ServerWebSocketMessage) => void) => {
+  const onServerHealth = (
+    handler: (message: ServerWebSocketMessage) => void,
+  ) => {
     const unsubscribe = onMessage(MESSAGE_TYPE.SERVER_HEALTH, (message) => {
-      console.log('服务器健康状态事件:', message);
+      console.log("服务器健康状态事件:", message);
       handler(message);
     });
     unsubscribeFunctions.add(unsubscribe);
@@ -52,9 +58,11 @@ export function useServerEvents() {
   /**
    * 监听服务器延迟事件
    */
-  const onServerLatency = (handler: (message: ServerWebSocketMessage) => void) => {
+  const onServerLatency = (
+    handler: (message: ServerWebSocketMessage) => void,
+  ) => {
     const unsubscribe = onMessage(MESSAGE_TYPE.SERVER_LATENCY, (message) => {
-      console.log('服务器延迟事件:', message);
+      console.log("服务器延迟事件:", message);
       handler(message);
     });
     unsubscribeFunctions.add(unsubscribe);
@@ -64,11 +72,16 @@ export function useServerEvents() {
   /**
    * 监听批量服务器延迟事件
    */
-  const onBatchServerLatency = (handler: (message: ServerWebSocketMessage) => void) => {
-    const unsubscribe = onMessage(MESSAGE_TYPE.BATCH_SERVER_LATENCY, (message) => {
-      console.log('批量服务器延迟事件:', message);
-      handler(message);
-    });
+  const onBatchServerLatency = (
+    handler: (message: ServerWebSocketMessage) => void,
+  ) => {
+    const unsubscribe = onMessage(
+      MESSAGE_TYPE.BATCH_SERVER_LATENCY,
+      (message) => {
+        console.log("批量服务器延迟事件:", message);
+        handler(message);
+      },
+    );
     unsubscribeFunctions.add(unsubscribe);
     return unsubscribe;
   };
@@ -76,9 +89,11 @@ export function useServerEvents() {
   /**
    * 监听服务器在线事件
    */
-  const onServerOnline = (handler: (message: ServerWebSocketMessage) => void) => {
+  const onServerOnline = (
+    handler: (message: ServerWebSocketMessage) => void,
+  ) => {
     const unsubscribe = onMessage(MESSAGE_TYPE.SERVER_ONLINE, (message) => {
-      console.log('服务器上线事件:', message);
+      console.log("服务器上线事件:", message);
       handler(message);
     });
     unsubscribeFunctions.add(unsubscribe);
@@ -88,9 +103,11 @@ export function useServerEvents() {
   /**
    * 监听服务器离线事件
    */
-  const onServerOffline = (handler: (message: ServerWebSocketMessage) => void) => {
+  const onServerOffline = (
+    handler: (message: ServerWebSocketMessage) => void,
+  ) => {
     const unsubscribe = onMessage(MESSAGE_TYPE.SERVER_OFFLINE, (message) => {
-      console.log('服务器离线事件:', message);
+      console.log("服务器离线事件:", message);
       handler(message);
     });
     unsubscribeFunctions.add(unsubscribe);
@@ -100,11 +117,16 @@ export function useServerEvents() {
   /**
    * 监听连接状态变化事件
    */
-  const onConnectionStatusChange = (handler: (message: ServerWebSocketMessage) => void) => {
-    const unsubscribe = onMessage(MESSAGE_TYPE.CONNECTION_STATUS_CHANGE, (message) => {
-      console.log('连接状态变化事件:', message);
-      handler(message);
-    });
+  const onConnectionStatusChange = (
+    handler: (message: ServerWebSocketMessage) => void,
+  ) => {
+    const unsubscribe = onMessage(
+      MESSAGE_TYPE.CONNECTION_STATUS_CHANGE,
+      (message) => {
+        console.log("连接状态变化事件:", message);
+        handler(message);
+      },
+    );
     unsubscribeFunctions.add(unsubscribe);
     return unsubscribe;
   };
@@ -112,11 +134,16 @@ export function useServerEvents() {
   /**
    * 监听连接测试结果事件
    */
-  const onConnectionTestResult = (handler: (message: ServerWebSocketMessage) => void) => {
-    const unsubscribe = onMessage(MESSAGE_TYPE.CONNECTION_TEST_RESULT, (message) => {
-      console.log('连接测试结果事件:', message);
-      handler(message);
-    });
+  const onConnectionTestResult = (
+    handler: (message: ServerWebSocketMessage) => void,
+  ) => {
+    const unsubscribe = onMessage(
+      MESSAGE_TYPE.CONNECTION_TEST_RESULT,
+      (message) => {
+        console.log("连接测试结果事件:", message);
+        handler(message);
+      },
+    );
     unsubscribeFunctions.add(unsubscribe);
     return unsubscribe;
   };
@@ -125,11 +152,11 @@ export function useServerEvents() {
    * 清理所有订阅
    */
   const cleanup = () => {
-    unsubscribeFunctions.forEach(unsubscribe => {
+    unsubscribeFunctions.forEach((unsubscribe) => {
       try {
         unsubscribe();
       } catch (error) {
-        console.error('清理订阅失败:', error);
+        console.error("清理订阅失败:", error);
       }
     });
     unsubscribeFunctions.clear();
@@ -151,9 +178,9 @@ export function useServerEvents() {
     onServerOffline,
     onConnectionStatusChange,
     onConnectionTestResult,
-    
+
     // 工具方法
-    cleanup
+    cleanup,
   };
 }
 
@@ -169,7 +196,7 @@ export function useServerEventHandlers() {
     onServerLatency,
     onServerOnline,
     onServerOffline,
-    onConnectionStatusChange
+    onConnectionStatusChange,
   } = useServerEvents();
 
   // 自动处理服务器创建事件
@@ -177,7 +204,9 @@ export function useServerEventHandlers() {
     if (msg.data?.success) {
       message.success(`服务器 "${msg.serverName}" 创建成功`);
     } else {
-      message.error(`服务器 "${msg.serverName}" 创建失败: ${msg.errorMessage || '未知错误'}`);
+      message.error(
+        `服务器 "${msg.serverName}" 创建失败: ${msg.errorMessage || "未知错误"}`,
+      );
     }
   });
 
@@ -189,7 +218,9 @@ export function useServerEventHandlers() {
         message.info(msg.errorMessage);
       }
     } else {
-      message.error(`服务器 "${msg.serverName}" 更新失败: ${msg.errorMessage || '未知错误'}`);
+      message.error(
+        `服务器 "${msg.serverName}" 更新失败: ${msg.errorMessage || "未知错误"}`,
+      );
     }
   });
 
@@ -212,12 +243,17 @@ export function useServerEventHandlers() {
 
   // 自动处理连接状态变化事件
   onConnectionStatusChange((msg) => {
-    if (msg.connectionStatus === 1) { // 在线
+    if (msg.connectionStatus === 1) {
+      // 在线
       message.success(`服务器 "${msg.serverName}" 连接成功`);
-    } else if (msg.connectionStatus === 0) { // 离线
+    } else if (msg.connectionStatus === 0) {
+      // 离线
       message.warning(`服务器 "${msg.serverName}" 连接断开`);
-    } else if (msg.connectionStatus === 3) { // 连接失败
-      message.error(`服务器 "${msg.serverName}" 连接失败: ${msg.errorMessage || '未知错误'}`);
+    } else if (msg.connectionStatus === 3) {
+      // 连接失败
+      message.error(
+        `服务器 "${msg.serverName}" 连接失败: ${msg.errorMessage || "未知错误"}`,
+      );
     }
   });
 

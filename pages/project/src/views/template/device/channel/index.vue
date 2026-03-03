@@ -370,9 +370,9 @@ defineExpose({
       <template #footer>
         <div class="dialog-footer">
           <ScButton @click="handleClose">取 消</ScButton>
-          <ScButton type="primary" @click="handleSubmit" :loading="loading"
-            >保 存</el-button
-          >
+          <ScButton type="primary" @click="handleSubmit" :loading="loading">
+            保 存
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

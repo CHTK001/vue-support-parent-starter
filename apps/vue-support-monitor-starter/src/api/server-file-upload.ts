@@ -3,5 +3,4 @@
  * 重新导出 server/file-upload.ts 中的所有内容
  */
 
-export * from './server/file-upload';
-
+export * from "./server/file-upload";

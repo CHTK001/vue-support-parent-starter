@@ -5,7 +5,12 @@
       <!-- 路径导航 -->
       <div class="path-navigation">
         <el-breadcrumb separator="/">
-          <el-breadcrumb-item v-for="(item, index) in pathItems" :key="index" :class="{ clickable: index < pathItems.length - 1 }" @click="navigateToPath(item.path)">
+          <el-breadcrumb-item
+            v-for="(item, index) in pathItems"
+            :key="index"
+            :class="{ clickable: index < pathItems.length - 1 }"
+            @click="navigateToPath(item.path)"
+          >
             {{ item.name }}
           </el-breadcrumb-item>
         </el-breadcrumb>
@@ -14,7 +19,12 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <!-- 返回上一层按钮 -->
-        <el-button size="small" @click="goBack" :disabled="!canGoBack" title="返回上一层">
+        <el-button
+          size="small"
+          :disabled="!canGoBack"
+          title="返回上一层"
+          @click="goBack"
+        >
           <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
           返回上一层
         </el-button>
@@ -33,7 +43,7 @@
     </div>
 
     <!-- 文件列表内容 -->
-    <div class="list-content" v-loading="loading">
+    <div v-loading="loading" class="list-content">
       <!-- 空状态提示 -->
       <div v-if="!hasLoadedOnce && fileList.length === 0" class="empty-state">
         <IconifyIconOnline icon="ri:folder-open-line" class="empty-icon" />
@@ -41,12 +51,29 @@
       </div>
 
       <!-- 列表视图 -->
-      <div v-else class="list-view" :class="{ 'drop-over': listDragOver }" @dragenter.prevent="onListDragEnter" @dragover.prevent @dragleave.prevent="onListDragLeave" @drop.stop="onDropToList">
-        <el-table :data="fileList" @row-dblclick="handleRowDoubleClick" @row-contextmenu="handleRowRightClick" stripe height="100%">
+      <div
+        v-else
+        class="list-view"
+        :class="{ 'drop-over': listDragOver }"
+        @dragenter.prevent="onListDragEnter"
+        @dragover.prevent
+        @dragleave.prevent="onListDragLeave"
+        @drop.stop="onDropToList"
+      >
+        <el-table
+          :data="fileList"
+          stripe
+          height="100%"
+          @row-dblclick="handleRowDoubleClick"
+          @row-contextmenu="handleRowRightClick"
+        >
           <el-table-column label="名称" min-width="300">
             <template #default="{ row }">
               <div class="file-item" @click="handleFileClick(row)">
-                <IconifyIconOnline :icon="getFileIcon(row)" :class="['file-icon', { 'folder-icon': row.isDirectory }]" />
+                <IconifyIconOnline
+                  :icon="getFileIcon(row)"
+                  :class="['file-icon', { 'folder-icon': row.isDirectory }]"
+                />
                 <span class="file-name">{{ row.name }}</span>
               </div>
             </template>
@@ -66,19 +93,27 @@
 
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
-              <el-dropdown @command="command => handleFileAction(command, row)">
+              <el-dropdown
+                @command="(command) => handleFileAction(command, row)"
+              >
                 <el-button size="small" text>
                   操作
                   <IconifyIconOnline icon="ri:arrow-down-s-line" />
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="download" v-if="!row.isDirectory">
+                    <el-dropdown-item
+                      v-if="!row.isDirectory"
+                      command="download"
+                    >
                       <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                       下载
                     </el-dropdown-item>
-                    <el-dropdown-item command="sync" v-if="!row.isDirectory">
-                      <IconifyIconOnline icon="ri:share-forward-line" class="mr-1" />
+                    <el-dropdown-item v-if="!row.isDirectory" command="sync">
+                      <IconifyIconOnline
+                        icon="ri:share-forward-line"
+                        class="mr-1"
+                      />
                       同步
                     </el-dropdown-item>
                     <el-dropdown-item command="rename">
@@ -86,7 +121,10 @@
                       重命名
                     </el-dropdown-item>
                     <el-dropdown-item command="delete" divided>
-                      <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+                      <IconifyIconOnline
+                        icon="ri:delete-bin-line"
+                        class="mr-1"
+                      />
                       删除
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -110,7 +148,7 @@
       class="context-menu"
       :style="{
         left: contextMenuPosition.x + 'px',
-        top: contextMenuPosition.y + 'px'
+        top: contextMenuPosition.y + 'px',
       }"
       @click.stop
     >
@@ -118,11 +156,23 @@
         <IconifyIconOnline icon="ri:file-copy-line" class="menu-icon" />
         <span>复制文件路径</span>
       </div>
-      <div v-if="selectedContextFile && !selectedContextFile.isDirectory && isFilePreviewable(selectedContextFile)" class="menu-item" @click="previewFileAction">
+      <div
+        v-if="
+          selectedContextFile &&
+          !selectedContextFile.isDirectory &&
+          isFilePreviewable(selectedContextFile)
+        "
+        class="menu-item"
+        @click="previewFileAction"
+      >
         <IconifyIconOnline icon="ri:eye-line" class="menu-icon" />
         <span>预览</span>
       </div>
-      <div v-if="selectedContextFile && !selectedContextFile.isDirectory" class="menu-item" @click="downloadFileAction">
+      <div
+        v-if="selectedContextFile && !selectedContextFile.isDirectory"
+        class="menu-item"
+        @click="downloadFileAction"
+      >
         <IconifyIconOnline icon="ri:download-line" class="menu-icon" />
         <span>下载</span>
       </div>
@@ -133,10 +183,19 @@
     </div>
 
     <!-- 新建文件夹对话框 -->
-    <sc-dialog v-model="createFolderVisible" title="新建文件夹" width="400px" :close-on-click-modal="false">
+    <sc-dialog
+      v-model="createFolderVisible"
+      title="新建文件夹"
+      width="400px"
+      :close-on-click-modal="false"
+    >
       <el-form :model="createFolderForm" label-width="80px">
         <el-form-item label="文件夹名">
-          <el-input v-model="createFolderForm.name" placeholder="请输入文件夹名称" @keyup.enter="confirmCreateFolder" />
+          <el-input
+            v-model="createFolderForm.name"
+            placeholder="请输入文件夹名称"
+            @keyup.enter="confirmCreateFolder"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -147,8 +206,8 @@
 
     <!-- 文件预览对话框 -->
     <sc-dialog
-      draggable
       v-model="previewDialogVisible"
+      draggable
       :title="`文件预览 - ${previewFileInfo?.name || ''}`"
       width="90%"
       top="5vh"
@@ -156,8 +215,14 @@
       :destroy-on-close="true"
       class="file-preview-dialog"
     >
-      <div class="preview-container" v-if="previewFileInfo">
-        <iframe :src="getPreviewUrl(previewFileInfo)" class="preview-iframe min-h-[768px]" frameborder="0" @load="onIframeLoad" @error="onIframeError"></iframe>
+      <div v-if="previewFileInfo" class="preview-container">
+        <iframe
+          :src="getPreviewUrl(previewFileInfo)"
+          class="preview-iframe min-h-[768px]"
+          frameborder="0"
+          @load="onIframeLoad"
+          @error="onIframeError"
+        />
       </div>
     </sc-dialog>
   </div>
@@ -165,7 +230,13 @@
 
 <script setup lang="ts">
 import type { FileInfo } from "@/api/server/file-management";
-import { createDirectory, deleteFile, downloadFile, getFileList, renameFile } from "@/api/server/file-management";
+import {
+  createDirectory,
+  deleteFile,
+  downloadFile,
+  getFileList,
+  renameFile,
+} from "@/api/server/file-management";
 import { formatBytes } from "@pureadmin/utils";
 import { getConfig } from "@repo/config";
 import dayjs from "dayjs";
@@ -193,7 +264,7 @@ const fileList = ref<FileInfo[]>([]);
 const hasLoadedOnce = ref(false); // 标记是否已经加载过一次
 const createFolderVisible = ref(false);
 const createFolderForm = reactive({
-  name: ""
+  name: "",
 });
 
 // 右键菜单相关
@@ -214,7 +285,7 @@ const pathItems = computed(() => {
   const items = [{ name: "根目录", path: "/" }];
 
   let currentPath = "";
-  parts.forEach(part => {
+  parts.forEach((part) => {
     currentPath += `/${part}`;
     items.push({ name: part, path: currentPath });
   });
@@ -257,7 +328,11 @@ const loadFileList = async () => {
 
   try {
     loading.value = true;
-    console.log("FileList: Loading file list for", props.serverId, props.currentPath);
+    console.log(
+      "FileList: Loading file list for",
+      props.serverId,
+      props.currentPath,
+    );
 
     const res = await getFileList(props.serverId, props.currentPath);
     console.log("FileList: API response", res);
@@ -501,7 +576,11 @@ const handleRowDoubleClick = (file: FileInfo) => {
 /**
  * 处理右键点击
  */
-const handleRowRightClick = (file: FileInfo, _column: any, event: MouseEvent) => {
+const handleRowRightClick = (
+  file: FileInfo,
+  _column: any,
+  event: MouseEvent,
+) => {
   event.preventDefault();
   selectedContextFile.value = file;
 
@@ -545,10 +624,14 @@ const copyFilePath = async () => {
  * 下载文件
  */
 const downloadFileAction = async () => {
-  if (!selectedContextFile.value || selectedContextFile.value.isDirectory) return;
+  if (!selectedContextFile.value || selectedContextFile.value.isDirectory)
+    return;
 
   try {
-    const response = await downloadFile(props.serverId, selectedContextFile.value.path);
+    const response = await downloadFile(
+      props.serverId,
+      selectedContextFile.value.path,
+    );
 
     if (response.code === "00000" && response.data?.success) {
       // 处理下载
@@ -581,7 +664,8 @@ const downloadFileAction = async () => {
  * 预览文件
  */
 const previewFileAction = () => {
-  if (!selectedContextFile.value || selectedContextFile.value.isDirectory) return;
+  if (!selectedContextFile.value || selectedContextFile.value.isDirectory)
+    return;
 
   // 检查文件是否可预览
   if (!isFilePreviewable(selectedContextFile.value)) {
@@ -675,7 +759,7 @@ const isFilePreviewable = (file: FileInfo) => {
     "sql",
     "sh",
     "bat",
-    "ps1"
+    "ps1",
   ];
 
   return previewableExtensions.includes(ext);
@@ -714,7 +798,9 @@ const onDropToList = (ev: DragEvent) => {
       if (entry) entries.push(entry);
     }
     if (entries.length) {
-      readEntriesRecursive(entries).then(files => emit("drop-upload", props.currentPath, files));
+      readEntriesRecursive(entries).then((files) =>
+        emit("drop-upload", props.currentPath, files),
+      );
       return;
     }
   }
@@ -726,11 +812,11 @@ const onDropToList = (ev: DragEvent) => {
 async function readEntriesRecursive(entries: any[]): Promise<File[]> {
   const collected: File[] = [];
   async function walk(entry: any, pathPrefix = ""): Promise<void> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       if (entry.isFile) {
         entry.file((file: File) => {
           Object.defineProperty(file, "webkitRelativePath", {
-            value: pathPrefix + file.name
+            value: pathPrefix + file.name,
           });
           collected.push(file);
           resolve();
@@ -821,11 +907,15 @@ const handleFileAction = async (command: string, file: FileInfo) => {
  */
 const renameFileAction = async (file: FileInfo) => {
   try {
-    const { value: newName } = await messageBox.prompt("请输入新的文件名", "重命名", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      inputValue: file.name
-    });
+    const { value: newName } = await messageBox.prompt(
+      "请输入新的文件名",
+      "重命名",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputValue: file.name,
+      },
+    );
 
     if (newName && newName !== file.name) {
       const res = await renameFile(props.serverId, file.path, newName);
@@ -850,7 +940,7 @@ const deleteFileAction = async (file: FileInfo) => {
     await messageBox.confirm(`确定要删除 "${file.name}" 吗？`, "删除确认", {
       type: "warning",
       confirmButtonText: "确定",
-      cancelButtonText: "取消"
+      cancelButtonText: "取消",
     });
 
     const res = await deleteFile(props.serverId, file.path, file.isDirectory);
@@ -879,7 +969,7 @@ const getPreviewUrl = (file: FileInfo) => {
     filePath: file.path,
     serverId: props.serverId.toString(),
     previewType: "auto",
-    maxSizeMB: "10"
+    maxSizeMB: "10",
   });
 
   return `${previewUrl}?${params.toString()}`;
@@ -907,7 +997,10 @@ const downloadPreviewFile = async () => {
   if (!previewFileInfo.value) return;
 
   try {
-    const response = await downloadFile(props.serverId, previewFileInfo.value.path);
+    const response = await downloadFile(
+      props.serverId,
+      previewFileInfo.value.path,
+    );
 
     if (response.code === "00000" && response.data?.success) {
       // 处理下载
@@ -937,12 +1030,11 @@ const downloadPreviewFile = async () => {
 defineExpose({
   refreshList,
   loadFileList,
-  resetState
+  resetState,
 });
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -976,18 +1068,17 @@ defineExpose({
   }
 }
 
-
 .file-list {
   height: 100%;
   display: flex;
   flex-direction: column;
-   background: var(--el-bg-color-overlay); /* 设置文件列表背景为白色 */
+  background: var(--el-bg-color-overlay); /* 设置文件列表背景为白色 */
 }
 
 .list-header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--el-border-color-light);
-   background: var(--el-bg-color-overlay); /* 设置列表头部背景为白色 */
+  background: var(--el-bg-color-overlay); /* 设置列表头部背景为白色 */
 }
 
 .path-navigation {

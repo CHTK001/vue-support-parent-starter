@@ -1,5 +1,11 @@
 ﻿<template>
-  <sc-dialog v-model="dialogVisible" :title="`配置 ${filterName}`" width="800px" :close-on-click-modal="false" @close="handleClose">
+  <sc-dialog
+    v-model="dialogVisible"
+    :title="`配置 ${filterName}`"
+    width="800px"
+    :close-on-click-modal="false"
+    @close="handleClose"
+  >
     <div class="config-container">
       <div class="config-header">
         <div class="filter-info">
@@ -8,8 +14,13 @@
         </div>
       </div>
 
-      <div class="config-content" v-loading="loading">
-        <el-form ref="formRef" :model="formData" label-width="150px" label-position="right">
+      <div v-loading="loading" class="config-content">
+        <el-form
+          ref="formRef"
+          :model="formData"
+          label-width="150px"
+          label-position="right"
+        >
           <el-form-item
             v-for="item in configItems"
             :key="item.systemServerSettingItemId"
@@ -19,32 +30,55 @@
           >
             <!-- 字符串类型 -->
             <el-input
-              v-if="item.systemServerSettingItemType === 'string' || !item.systemServerSettingItemType"
+              v-if="
+                item.systemServerSettingItemType === 'string' ||
+                !item.systemServerSettingItemType
+              "
               v-model="formData[item.systemServerSettingItemName]"
-              :placeholder="item.systemServerSettingItemDescription || `请输入${item.systemServerSettingItemName}`"
+              :placeholder="
+                item.systemServerSettingItemDescription ||
+                `请输入${item.systemServerSettingItemName}`
+              "
               clearable
             />
 
             <!-- 数字类型 -->
             <el-input-number
-              v-else-if="item.systemServerSettingItemType === 'number' || item.systemServerSettingItemType === 'integer'"
+              v-else-if="
+                item.systemServerSettingItemType === 'number' ||
+                item.systemServerSettingItemType === 'integer'
+              "
               v-model="formData[item.systemServerSettingItemName]"
-              :placeholder="item.systemServerSettingItemDescription || `请输入${item.systemServerSettingItemName}`"
+              :placeholder="
+                item.systemServerSettingItemDescription ||
+                `请输入${item.systemServerSettingItemName}`
+              "
               style="width: 100%"
             />
 
             <!-- 浮点数类型 -->
             <el-input-number
-              v-else-if="item.systemServerSettingItemType === 'double' || item.systemServerSettingItemType === 'float'"
+              v-else-if="
+                item.systemServerSettingItemType === 'double' ||
+                item.systemServerSettingItemType === 'float'
+              "
               v-model="formData[item.systemServerSettingItemName]"
               :precision="2"
               :step="0.1"
-              :placeholder="item.systemServerSettingItemDescription || `请输入${item.systemServerSettingItemName}`"
+              :placeholder="
+                item.systemServerSettingItemDescription ||
+                `请输入${item.systemServerSettingItemName}`
+              "
               style="width: 100%"
             />
 
             <!-- 布尔类型 -->
-            <el-switch v-else-if="item.systemServerSettingItemType === 'boolean'" v-model="formData[item.systemServerSettingItemName]" active-text="是" inactive-text="否" />
+            <el-switch
+              v-else-if="item.systemServerSettingItemType === 'boolean'"
+              v-model="formData[item.systemServerSettingItemName]"
+              active-text="是"
+              inactive-text="否"
+            />
 
             <!-- JSON类型 -->
             <el-input
@@ -52,19 +86,38 @@
               v-model="formData[item.systemServerSettingItemName]"
               type="textarea"
               :rows="4"
-              :placeholder="item.systemServerSettingItemDescription || `请输入JSON格式的${item.systemServerSettingItemName}`"
+              :placeholder="
+                item.systemServerSettingItemDescription ||
+                `请输入JSON格式的${item.systemServerSettingItemName}`
+              "
             />
 
             <!-- 其他类型默认为字符串 -->
-            <el-input v-else v-model="formData[item.systemServerSettingItemName]" :placeholder="item.systemServerSettingItemDescription || `请输入${item.systemServerSettingItemName}`" clearable />
+            <el-input
+              v-else
+              v-model="formData[item.systemServerSettingItemName]"
+              :placeholder="
+                item.systemServerSettingItemDescription ||
+                `请输入${item.systemServerSettingItemName}`
+              "
+              clearable
+            />
 
             <!-- 配置项描述 -->
-            <div v-if="item.systemServerSettingItemDescription" class="item-description">
+            <div
+              v-if="item.systemServerSettingItemDescription"
+              class="item-description"
+            >
               {{ item.systemServerSettingItemDescription }}
             </div>
 
             <!-- 默认值提示 -->
-            <div v-if="item.systemServerSettingItemDefaultValue" class="item-default">默认值: {{ item.systemServerSettingItemDefaultValue }}</div>
+            <div
+              v-if="item.systemServerSettingItemDefaultValue"
+              class="item-default"
+            >
+              默认值: {{ item.systemServerSettingItemDefaultValue }}
+            </div>
           </el-form-item>
         </el-form>
       </div>
@@ -74,7 +127,9 @@
       <div class="dialog-footer">
         <el-button @click="resetToDefaults">重置为默认值</el-button>
         <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave"
+          >保存配置</el-button
+        >
       </div>
     </template>
   </sc-dialog>
@@ -89,7 +144,7 @@ import {
   batchUpdateSystemServerSettingItemValues,
   batchResetSystemServerSettingItemsToDefault,
   type SystemServerSettingItem,
-  type ItemValueUpdate
+  type ItemValueUpdate,
 } from "@/api/system-server-setting-item";
 
 // Props
@@ -104,7 +159,7 @@ const props = withDefaults(defineProps<Props>(), {
   visible: false,
   settingId: null,
   filterName: "",
-  filterDescription: ""
+  filterDescription: "",
 });
 
 // Emits
@@ -123,7 +178,7 @@ const formData = reactive<Record<string, any>>({});
 // 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
-  set: value => emit("update:visible", value)
+  set: (value) => emit("update:visible", value),
 });
 
 // 获取配置项验证规则
@@ -134,7 +189,7 @@ const getItemRules = (item: SystemServerSettingItem): FormRules[string] => {
     rules.push({
       required: true,
       message: `${item.systemServerSettingItemName}为必填项`,
-      trigger: "blur"
+      trigger: "blur",
     });
   }
 
@@ -142,7 +197,7 @@ const getItemRules = (item: SystemServerSettingItem): FormRules[string] => {
     rules.push({
       pattern: new RegExp(item.systemServerSettingItemValidationRule),
       message: `${item.systemServerSettingItemName}格式不正确`,
-      trigger: "blur"
+      trigger: "blur",
     });
   }
 
@@ -155,21 +210,29 @@ const loadConfigItems = async () => {
 
   loading.value = true;
   try {
-    const response = await getSystemServerSettingItemBySettingId(props.settingId);
+    const response = await getSystemServerSettingItemBySettingId(
+      props.settingId,
+    );
     if (response.success) {
       configItems.value = response.data || [];
 
       // 初始化表单数据
       const newFormData: Record<string, any> = {};
-      configItems.value.forEach(item => {
+      configItems.value.forEach((item) => {
         let value = item.systemServerSettingItemValue as any;
 
         // 根据类型转换值
         if (item.systemServerSettingItemType === "boolean") {
           value = value === "true" || value === true;
-        } else if (item.systemServerSettingItemType === "number" || item.systemServerSettingItemType === "integer") {
+        } else if (
+          item.systemServerSettingItemType === "number" ||
+          item.systemServerSettingItemType === "integer"
+        ) {
           value = value ? Number(value) : undefined;
-        } else if (item.systemServerSettingItemType === "double" || item.systemServerSettingItemType === "float") {
+        } else if (
+          item.systemServerSettingItemType === "double" ||
+          item.systemServerSettingItemType === "float"
+        ) {
           value = value ? parseFloat(value) : undefined;
         }
 
@@ -191,22 +254,22 @@ const loadConfigItems = async () => {
 // 监听settingId变化
 watch(
   () => props.settingId,
-  newSettingId => {
+  (newSettingId) => {
     if (newSettingId && props.visible) {
       loadConfigItems();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听对话框显示状态
 watch(
   () => props.visible,
-  visible => {
+  (visible) => {
     if (visible && props.settingId) {
       loadConfigItems();
     }
-  }
+  },
 );
 
 // 重置为默认值
@@ -215,10 +278,12 @@ const resetToDefaults = async () => {
     await ElMessageBox.confirm("确定要重置所有配置项为默认值吗？", "确认重置", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
-      type: "warning"
+      type: "warning",
     });
 
-    const itemIds = configItems.value.map(item => item.systemServerSettingItemId!);
+    const itemIds = configItems.value.map(
+      (item) => item.systemServerSettingItemId!,
+    );
     const response = await batchResetSystemServerSettingItemsToDefault(itemIds);
 
     if (response.success) {
@@ -246,9 +311,9 @@ const handleSave = async () => {
     saving.value = true;
 
     // 构建更新数据
-    const updates: ItemValueUpdate[] = configItems.value.map(item => ({
+    const updates: ItemValueUpdate[] = configItems.value.map((item) => ({
       itemId: item.systemServerSettingItemId!,
-      value: String(formData[item.systemServerSettingItemName] || "")
+      value: String(formData[item.systemServerSettingItemName] || ""),
     }));
 
     const response = await batchUpdateSystemServerSettingItemValues(updates);
@@ -302,7 +367,7 @@ const handleClose = () => {
 
     .item-description {
       font-size: 12px;
-       color: var(--el-text-color-primary);
+      color: var(--el-text-color-primary);
       margin-top: 4px;
       line-height: 1.4;
     }
@@ -321,7 +386,6 @@ const handleClose = () => {
   gap: 12px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -330,5 +394,4 @@ const handleClose = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

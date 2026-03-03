@@ -8,7 +8,11 @@
             <el-breadcrumb-item
               v-for="(item, index) in breadcrumbItems"
               :key="index"
-              :to="item.path ? { path: '/file-manager', query: { path: item.path } } : undefined"
+              :to="
+                item.path
+                  ? { path: '/file-manager', query: { path: item.path } }
+                  : undefined
+              "
               class="breadcrumb-item"
             >
               <IconifyIconOnline :icon="item.icon" class="breadcrumb-icon" />
@@ -16,15 +20,17 @@
             </el-breadcrumb-item>
           </el-breadcrumb>
         </div>
-        <div class="selection-info" v-if="selectedFiles.length > 0">
-          <span class="selection-count">已选择 {{ selectedFiles.length }} 项</span>
-          <el-button size="small" @click="clearSelection" class="clear-btn">
+        <div v-if="selectedFiles.length > 0" class="selection-info">
+          <span class="selection-count"
+            >已选择 {{ selectedFiles.length }} 项</span
+          >
+          <el-button size="small" class="clear-btn" @click="clearSelection">
             <IconifyIconOnline icon="ri:close-line" />
             清除选择
           </el-button>
         </div>
       </div>
-      
+
       <div class="header-actions">
         <div class="view-controls">
           <el-radio-group v-model="viewMode" size="small">
@@ -38,7 +44,7 @@
             </el-radio-button>
           </el-radio-group>
         </div>
-        
+
         <div class="sort-controls">
           <el-select v-model="sortBy" size="small" style="width: 120px">
             <el-option label="名称" value="name" />
@@ -48,14 +54,16 @@
           </el-select>
           <el-button
             size="small"
-            @click="toggleSortOrder"
             class="sort-order-btn"
+            @click="toggleSortOrder"
           >
-            <IconifyIconOnline :icon="sortOrder === 'asc' ? 'ri:sort-asc' : 'ri:sort-desc'" />
+            <IconifyIconOnline
+              :icon="sortOrder === 'asc' ? 'ri:sort-asc' : 'ri:sort-desc'"
+            />
           </el-button>
         </div>
-        
-        <el-button size="small" @click="refreshList" :loading="isLoading">
+
+        <el-button size="small" :loading="isLoading" @click="refreshList">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
         </el-button>
@@ -68,7 +76,7 @@
       <div v-if="isLoading" class="loading-container">
         <el-skeleton :rows="8" animated />
       </div>
-      
+
       <!-- 空状态 -->
       <div v-else-if="filteredFiles.length === 0" class="empty-container">
         <div class="empty-content">
@@ -81,21 +89,21 @@
           </el-button>
         </div>
       </div>
-      
+
       <!-- 列表视图 -->
       <div v-else-if="viewMode === 'list'" class="list-view">
         <el-table
           :data="filteredFiles"
+          class="file-table"
+          stripe
+          highlight-current-row
           @selection-change="handleSelectionChange"
           @row-click="handleRowClick"
           @row-dblclick="handleRowDoubleClick"
           @row-contextmenu="handleRowContextMenu"
-          class="file-table"
-          stripe
-          highlight-current-row
         >
           <el-table-column type="selection" width="55" />
-          
+
           <el-table-column label="名称" prop="name" min-width="200">
             <template #default="{ row }">
               <div class="file-name-cell">
@@ -108,19 +116,23 @@
                 </div>
                 <div class="file-info">
                   <div class="file-name">{{ row.name }}</div>
-                  <div class="file-path" v-if="row.isDirectory">{{ row.childCount }} 项</div>
+                  <div v-if="row.isDirectory" class="file-path">
+                    {{ row.childCount }} 项
+                  </div>
                 </div>
               </div>
             </template>
           </el-table-column>
-          
+
           <el-table-column label="大小" prop="size" width="120" sortable>
             <template #default="{ row }">
-              <span v-if="!row.isDirectory">{{ formatFileSize(row.size) }}</span>
+              <span v-if="!row.isDirectory">{{
+                formatFileSize(row.size)
+              }}</span>
               <span v-else class="directory-size">--</span>
             </template>
           </el-table-column>
-          
+
           <el-table-column label="类型" prop="type" width="120">
             <template #default="{ row }">
               <el-tag :type="getFileTypeTagType(row.type)" size="small">
@@ -128,13 +140,18 @@
               </el-tag>
             </template>
           </el-table-column>
-          
-          <el-table-column label="修改时间" prop="modifiedTime" width="180" sortable>
+
+          <el-table-column
+            label="修改时间"
+            prop="modifiedTime"
+            width="180"
+            sortable
+          >
             <template #default="{ row }">
               {{ formatDate(row.modifiedTime) }}
             </template>
           </el-table-column>
-          
+
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <div class="file-actions">
@@ -142,34 +159,30 @@
                   <el-button
                     size="small"
                     circle
-                    @click.stop="previewFile(row)"
                     :disabled="!canPreview(row)"
+                    @click.stop="previewFile(row)"
                   >
                     <IconifyIconOnline icon="ri:eye-line" />
                   </el-button>
                 </el-tooltip>
-                
+
                 <el-tooltip content="下载" placement="top">
                   <el-button
                     size="small"
                     circle
-                    @click.stop="downloadFile(row)"
                     :disabled="row.isDirectory"
+                    @click.stop="downloadFile(row)"
                   >
                     <IconifyIconOnline icon="ri:download-line" />
                   </el-button>
                 </el-tooltip>
-                
+
                 <el-tooltip content="重命名" placement="top">
-                  <el-button
-                    size="small"
-                    circle
-                    @click.stop="renameFile(row)"
-                  >
+                  <el-button size="small" circle @click.stop="renameFile(row)">
                     <IconifyIconOnline icon="ri:edit-line" />
                   </el-button>
                 </el-tooltip>
-                
+
                 <el-tooltip content="删除" placement="top">
                   <el-button
                     size="small"
@@ -185,7 +198,7 @@
           </el-table-column>
         </el-table>
       </div>
-      
+
       <!-- 网格视图 -->
       <div v-else class="grid-view">
         <div class="file-grid">
@@ -193,9 +206,9 @@
             v-for="file in filteredFiles"
             :key="file.path"
             class="file-card"
-            :class="{ 
-              'selected': selectedFiles.includes(file),
-              'is-directory': file.isDirectory
+            :class="{
+              selected: selectedFiles.includes(file),
+              'is-directory': file.isDirectory,
             }"
             @click="handleCardClick(file, $event)"
             @dblclick="handleCardDoubleClick(file)"
@@ -208,15 +221,22 @@
                 @click.stop
               />
             </div>
-            
+
             <div class="card-content">
               <div class="file-thumbnail">
                 <div v-if="file.isDirectory" class="folder-thumbnail">
-                  <IconifyIconOnline icon="ri:folder-fill" class="folder-icon" />
+                  <IconifyIconOnline
+                    icon="ri:folder-fill"
+                    class="folder-icon"
+                  />
                   <span class="folder-count">{{ file.childCount }}</span>
                 </div>
                 <div v-else-if="isImageFile(file)" class="image-thumbnail">
-                  <img :src="getImageThumbnail(file)" :alt="file.name" @error="handleImageError" />
+                  <img
+                    :src="getImageThumbnail(file)"
+                    :alt="file.name"
+                    @error="handleImageError"
+                  />
                 </div>
                 <div v-else class="file-icon-thumbnail">
                   <IconifyIconOnline
@@ -226,17 +246,21 @@
                   />
                 </div>
               </div>
-              
+
               <div class="file-details">
                 <div class="file-name" :title="file.name">{{ file.name }}</div>
                 <div class="file-meta">
-                  <span class="file-size" v-if="!file.isDirectory">{{ formatFileSize(file.size) }}</span>
-                  <span class="file-type">{{ getFileTypeText(file.type) }}</span>
+                  <span v-if="!file.isDirectory" class="file-size">{{
+                    formatFileSize(file.size)
+                  }}</span>
+                  <span class="file-type">{{
+                    getFileTypeText(file.type)
+                  }}</span>
                 </div>
                 <div class="file-date">{{ formatDate(file.modifiedTime) }}</div>
               </div>
             </div>
-            
+
             <div class="card-actions">
               <el-dropdown trigger="click" @click.stop>
                 <el-button size="small" circle class="more-btn">
@@ -244,20 +268,35 @@
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item @click="previewFile(file)" :disabled="!canPreview(file)">
+                    <el-dropdown-item
+                      :disabled="!canPreview(file)"
+                      @click="previewFile(file)"
+                    >
                       <IconifyIconOnline icon="ri:eye-line" class="menu-icon" />
                       预览
                     </el-dropdown-item>
-                    <el-dropdown-item @click="downloadFile(file)" :disabled="file.isDirectory">
-                      <IconifyIconOnline icon="ri:download-line" class="menu-icon" />
+                    <el-dropdown-item
+                      :disabled="file.isDirectory"
+                      @click="downloadFile(file)"
+                    >
+                      <IconifyIconOnline
+                        icon="ri:download-line"
+                        class="menu-icon"
+                      />
                       下载
                     </el-dropdown-item>
                     <el-dropdown-item @click="renameFile(file)">
-                      <IconifyIconOnline icon="ri:edit-line" class="menu-icon" />
+                      <IconifyIconOnline
+                        icon="ri:edit-line"
+                        class="menu-icon"
+                      />
                       重命名
                     </el-dropdown-item>
                     <el-dropdown-item divided @click="deleteFile(file)">
-                      <IconifyIconOnline icon="ri:delete-bin-line" class="menu-icon" />
+                      <IconifyIconOnline
+                        icon="ri:delete-bin-line"
+                        class="menu-icon"
+                      />
                       删除
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -270,7 +309,7 @@
     </div>
 
     <!-- 分页 -->
-    <div class="list-pagination" v-if="totalFiles > pageSize">
+    <div v-if="totalFiles > pageSize" class="list-pagination">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
@@ -285,414 +324,421 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessageBox } from 'element-plus'
-import { computed, ref, watch } from 'vue'
+import { ElMessageBox } from "element-plus";
+import { computed, ref, watch } from "vue";
 
 // 文件接口
 interface FileItem {
-  name: string
-  path: string
-  type: string
-  size: number
-  isDirectory: boolean
-  modifiedTime: string
-  childCount?: number
-  thumbnail?: string
+  name: string;
+  path: string;
+  type: string;
+  size: number;
+  isDirectory: boolean;
+  modifiedTime: string;
+  childCount?: number;
+  thumbnail?: string;
 }
 
 // 面包屑项接口
 interface BreadcrumbItem {
-  name: string
-  path?: string
-  icon: string
+  name: string;
+  path?: string;
+  icon: string;
 }
 
 // Props
 interface Props {
-  currentPath: string
-  files: FileItem[]
-  isLoading?: boolean
-  searchText?: string
+  currentPath: string;
+  files: FileItem[];
+  isLoading?: boolean;
+  searchText?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  currentPath: '/',
+  currentPath: "/",
   files: () => [],
   isLoading: false,
-  searchText: ''
-})
+  searchText: "",
+});
 
 // Emits
 const emit = defineEmits<{
-  'file-select': [file: FileItem]
-  'file-open': [file: FileItem]
-  'file-preview': [file: FileItem]
-  'file-download': [file: FileItem]
-  'file-rename': [file: FileItem]
-  'file-delete': [file: FileItem]
-  'files-select': [files: FileItem[]]
-  'upload-files': []
-  'refresh': []
-}>()
+  "file-select": [file: FileItem];
+  "file-open": [file: FileItem];
+  "file-preview": [file: FileItem];
+  "file-download": [file: FileItem];
+  "file-rename": [file: FileItem];
+  "file-delete": [file: FileItem];
+  "files-select": [files: FileItem[]];
+  "upload-files": [];
+  refresh: [];
+}>();
 
 // 响应式数据
-const viewMode = ref<'list' | 'grid'>('list')
-const sortBy = ref('name')
-const sortOrder = ref<'asc' | 'desc'>('asc')
-const selectedFiles = ref<FileItem[]>([])
-const currentPage = ref(1)
-const pageSize = ref(50)
+const viewMode = ref<"list" | "grid">("list");
+const sortBy = ref("name");
+const sortOrder = ref<"asc" | "desc">("asc");
+const selectedFiles = ref<FileItem[]>([]);
+const currentPage = ref(1);
+const pageSize = ref(50);
 
 // 计算属性
 const breadcrumbItems = computed((): BreadcrumbItem[] => {
-  const pathParts = props.currentPath.split('/').filter(part => part)
+  const pathParts = props.currentPath.split("/").filter((part) => part);
   const items: BreadcrumbItem[] = [
-    { name: '根目录', path: '/', icon: 'ri:home-line' }
-  ]
-  
-  let currentPath = ''
-  pathParts.forEach(part => {
-    currentPath += '/' + part
+    { name: "根目录", path: "/", icon: "ri:home-line" },
+  ];
+
+  let currentPath = "";
+  pathParts.forEach((part) => {
+    currentPath += "/" + part;
     items.push({
       name: part,
       path: currentPath,
-      icon: 'ri:folder-line'
-    })
-  })
-  
-  return items
-})
+      icon: "ri:folder-line",
+    });
+  });
+
+  return items;
+});
 
 const filteredFiles = computed(() => {
-  let files = [...props.files]
-  
+  let files = [...props.files];
+
   // 搜索过滤
   if (props.searchText) {
-    const searchTerm = props.searchText.toLowerCase()
-    files = files.filter(file => 
-      file.name.toLowerCase().includes(searchTerm)
-    )
+    const searchTerm = props.searchText.toLowerCase();
+    files = files.filter((file) =>
+      file.name.toLowerCase().includes(searchTerm),
+    );
   }
-  
+
   // 排序
   files.sort((a, b) => {
     // 文件夹优先
-    if (a.isDirectory && !b.isDirectory) return -1
-    if (!a.isDirectory && b.isDirectory) return 1
-    
-    let aValue: any = a[sortBy.value as keyof FileItem]
-    let bValue: any = b[sortBy.value as keyof FileItem]
-    
-    if (sortBy.value === 'size') {
-      aValue = a.isDirectory ? 0 : a.size
-      bValue = b.isDirectory ? 0 : b.size
-    } else if (sortBy.value === 'modifiedTime') {
-      aValue = new Date(a.modifiedTime).getTime()
-      bValue = new Date(b.modifiedTime).getTime()
+    if (a.isDirectory && !b.isDirectory) return -1;
+    if (!a.isDirectory && b.isDirectory) return 1;
+
+    let aValue: any = a[sortBy.value as keyof FileItem];
+    let bValue: any = b[sortBy.value as keyof FileItem];
+
+    if (sortBy.value === "size") {
+      aValue = a.isDirectory ? 0 : a.size;
+      bValue = b.isDirectory ? 0 : b.size;
+    } else if (sortBy.value === "modifiedTime") {
+      aValue = new Date(a.modifiedTime).getTime();
+      bValue = new Date(b.modifiedTime).getTime();
     } else {
-      aValue = String(aValue).toLowerCase()
-      bValue = String(bValue).toLowerCase()
+      aValue = String(aValue).toLowerCase();
+      bValue = String(bValue).toLowerCase();
     }
-    
-    if (sortOrder.value === 'asc') {
-      return aValue > bValue ? 1 : -1
+
+    if (sortOrder.value === "asc") {
+      return aValue > bValue ? 1 : -1;
     } else {
-      return aValue < bValue ? 1 : -1
+      return aValue < bValue ? 1 : -1;
     }
-  })
-  
+  });
+
   // 分页
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return files.slice(start, end)
-})
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return files.slice(start, end);
+});
 
 const totalFiles = computed(() => {
-  let count = props.files.length
-  
+  let count = props.files.length;
+
   if (props.searchText) {
-    const searchTerm = props.searchText.toLowerCase()
-    count = props.files.filter(file => 
-      file.name.toLowerCase().includes(searchTerm)
-    ).length
+    const searchTerm = props.searchText.toLowerCase();
+    count = props.files.filter((file) =>
+      file.name.toLowerCase().includes(searchTerm),
+    ).length;
   }
-  
-  return count
-})
+
+  return count;
+});
 
 // 方法
 const getFileIcon = (file: FileItem): string => {
   if (file.isDirectory) {
-    return 'ri:folder-fill'
+    return "ri:folder-fill";
   }
-  
+
   const iconMap: Record<string, string> = {
-    image: 'ri:image-fill',
-    video: 'ri:video-fill',
-    audio: 'ri:music-fill',
-    document: 'ri:file-text-fill',
-    pdf: 'ri:file-pdf-fill',
-    archive: 'ri:file-zip-fill',
-    code: 'ri:code-fill',
-    text: 'ri:file-text-line',
-    unknown: 'ri:file-line'
-  }
-  
-  return iconMap[file.type] || iconMap.unknown
-}
+    image: "ri:image-fill",
+    video: "ri:video-fill",
+    audio: "ri:music-fill",
+    document: "ri:file-text-fill",
+    pdf: "ri:file-pdf-fill",
+    archive: "ri:file-zip-fill",
+    code: "ri:code-fill",
+    text: "ri:file-text-line",
+    unknown: "ri:file-line",
+  };
+
+  return iconMap[file.type] || iconMap.unknown;
+};
 
 const getFileIconClass = (file: FileItem): string => {
   if (file.isDirectory) {
-    return 'folder-icon'
+    return "folder-icon";
   }
-  
+
   const classMap: Record<string, string> = {
-    image: 'image-icon',
-    video: 'video-icon',
-    audio: 'audio-icon',
-    document: 'document-icon',
-    pdf: 'pdf-icon',
-    archive: 'archive-icon',
-    code: 'code-icon',
-    text: 'text-icon',
-    unknown: 'unknown-icon'
-  }
-  
-  return classMap[file.type] || classMap.unknown
-}
+    image: "image-icon",
+    video: "video-icon",
+    audio: "audio-icon",
+    document: "document-icon",
+    pdf: "pdf-icon",
+    archive: "archive-icon",
+    code: "code-icon",
+    text: "text-icon",
+    unknown: "unknown-icon",
+  };
+
+  return classMap[file.type] || classMap.unknown;
+};
 
 const getFileTypeText = (type: string): string => {
   const typeMap: Record<string, string> = {
-    folder: '文件夹',
-    image: '图片',
-    video: '视频',
-    audio: '音频',
-    document: '文档',
-    pdf: 'PDF',
-    archive: '压缩包',
-    code: '代码',
-    text: '文本',
-    unknown: '未知'
-  }
-  
-  return typeMap[type] || typeMap.unknown
-}
+    folder: "文件夹",
+    image: "图片",
+    video: "视频",
+    audio: "音频",
+    document: "文档",
+    pdf: "PDF",
+    archive: "压缩包",
+    code: "代码",
+    text: "文本",
+    unknown: "未知",
+  };
+
+  return typeMap[type] || typeMap.unknown;
+};
 
 const getFileTypeTagType = (type: string): string => {
   const tagTypeMap: Record<string, string> = {
-    folder: '',
-    image: 'success',
-    video: 'danger',
-    audio: 'warning',
-    document: 'info',
-    pdf: 'danger',
-    archive: 'warning',
-    code: 'success',
-    text: 'info',
-    unknown: ''
-  }
-  
-  return tagTypeMap[type] || ''
-}
+    folder: "",
+    image: "success",
+    video: "danger",
+    audio: "warning",
+    document: "info",
+    pdf: "danger",
+    archive: "warning",
+    code: "success",
+    text: "info",
+    unknown: "",
+  };
+
+  return tagTypeMap[type] || "";
+};
 
 const formatFileSize = (size: number): string => {
-  if (size === 0) return '0 B'
-  
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  const k = 1024
-  const i = Math.floor(Math.log(size) / Math.log(k))
-  
-  return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + units[i]
-}
+  if (size === 0) return "0 B";
+
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const k = 1024;
+  const i = Math.floor(Math.log(size) / Math.log(k));
+
+  return parseFloat((size / Math.pow(k, i)).toFixed(2)) + " " + units[i];
+};
 
 const formatDate = (dateString: string): string => {
-  if (!dateString) return ''
-  
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffTime = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-  
+  if (!dateString) return "";
+
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
   if (diffDays === 0) {
-    return date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return date.toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } else if (diffDays === 1) {
-    return '昨天 ' + date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return (
+      "昨天 " +
+      date.toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    );
   } else if (diffDays < 7) {
-    return diffDays + '天前'
+    return diffDays + "天前";
   } else {
-    return date.toLocaleDateString('zh-CN')
+    return date.toLocaleDateString("zh-CN");
   }
-}
+};
 
 const isImageFile = (file: FileItem): boolean => {
-  return file.type === 'image'
-}
+  return file.type === "image";
+};
 
 const getImageThumbnail = (file: FileItem): string => {
   // 这里应该返回实际的缩略图URL
-  return file.thumbnail || `/api/files/thumbnail?path=${encodeURIComponent(file.path)}`
-}
+  return (
+    file.thumbnail ||
+    `/api/files/thumbnail?path=${encodeURIComponent(file.path)}`
+  );
+};
 
 const handleImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.style.display = 'none'
-  
+  const img = event.target as HTMLImageElement;
+  img.style.display = "none";
+
   // 显示默认图标
-  const parent = img.parentElement
+  const parent = img.parentElement;
   if (parent) {
-    parent.innerHTML = '<i class="ri-image-line file-icon image-icon"></i>'
+    parent.innerHTML = '<i class="ri-image-line file-icon image-icon"></i>';
   }
-}
+};
 
 const canPreview = (file: FileItem): boolean => {
-  const previewableTypes = ['image', 'text', 'pdf', 'video', 'audio']
-  return previewableTypes.includes(file.type)
-}
+  const previewableTypes = ["image", "text", "pdf", "video", "audio"];
+  return previewableTypes.includes(file.type);
+};
 
 const toggleSortOrder = () => {
-  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-}
+  sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+};
 
 const clearSelection = () => {
-  selectedFiles.value = []
-  emit('files-select', [])
-}
+  selectedFiles.value = [];
+  emit("files-select", []);
+};
 
 const refreshList = () => {
-  emit('refresh')
-}
+  emit("refresh");
+};
 
 // 事件处理
 const handleSelectionChange = (selection: FileItem[]) => {
-  selectedFiles.value = selection
-  emit('files-select', selection)
-}
+  selectedFiles.value = selection;
+  emit("files-select", selection);
+};
 
 const handleRowClick = (file: FileItem) => {
-  emit('file-select', file)
-}
+  emit("file-select", file);
+};
 
 const handleRowDoubleClick = (file: FileItem) => {
-  emit('file-open', file)
-}
+  emit("file-open", file);
+};
 
 const handleRowContextMenu = (file: FileItem, event: Event) => {
-  event.preventDefault()
+  event.preventDefault();
   // 处理右键菜单
-}
+};
 
 const handleCardClick = (file: FileItem, event: MouseEvent) => {
   if (event.ctrlKey || event.metaKey) {
     // Ctrl/Cmd + 点击：切换选择
-    const index = selectedFiles.value.indexOf(file)
+    const index = selectedFiles.value.indexOf(file);
     if (index > -1) {
-      selectedFiles.value.splice(index, 1)
+      selectedFiles.value.splice(index, 1);
     } else {
-      selectedFiles.value.push(file)
+      selectedFiles.value.push(file);
     }
   } else if (event.shiftKey && selectedFiles.value.length > 0) {
     // Shift + 点击：范围选择
-    const lastSelected = selectedFiles.value[selectedFiles.value.length - 1]
-    const lastIndex = filteredFiles.value.indexOf(lastSelected)
-    const currentIndex = filteredFiles.value.indexOf(file)
-    
-    const start = Math.min(lastIndex, currentIndex)
-    const end = Math.max(lastIndex, currentIndex)
-    
-    selectedFiles.value = filteredFiles.value.slice(start, end + 1)
+    const lastSelected = selectedFiles.value[selectedFiles.value.length - 1];
+    const lastIndex = filteredFiles.value.indexOf(lastSelected);
+    const currentIndex = filteredFiles.value.indexOf(file);
+
+    const start = Math.min(lastIndex, currentIndex);
+    const end = Math.max(lastIndex, currentIndex);
+
+    selectedFiles.value = filteredFiles.value.slice(start, end + 1);
   } else {
     // 普通点击：单选
-    selectedFiles.value = [file]
+    selectedFiles.value = [file];
   }
-  
-  emit('files-select', selectedFiles.value)
-  emit('file-select', file)
-}
+
+  emit("files-select", selectedFiles.value);
+  emit("file-select", file);
+};
 
 const handleCardDoubleClick = (file: FileItem) => {
-  emit('file-open', file)
-}
+  emit("file-open", file);
+};
 
 const handleCardContextMenu = (file: FileItem, event: MouseEvent) => {
-  event.preventDefault()
+  event.preventDefault();
   // 处理右键菜单
-}
+};
 
 const handleCardSelection = (file: FileItem, checked: boolean) => {
   if (checked) {
     if (!selectedFiles.value.includes(file)) {
-      selectedFiles.value.push(file)
+      selectedFiles.value.push(file);
     }
   } else {
-    const index = selectedFiles.value.indexOf(file)
+    const index = selectedFiles.value.indexOf(file);
     if (index > -1) {
-      selectedFiles.value.splice(index, 1)
+      selectedFiles.value.splice(index, 1);
     }
   }
-  
-  emit('files-select', selectedFiles.value)
-}
+
+  emit("files-select", selectedFiles.value);
+};
 
 const handleSizeChange = (size: number) => {
-  pageSize.value = size
-  currentPage.value = 1
-}
+  pageSize.value = size;
+  currentPage.value = 1;
+};
 
 const handleCurrentChange = (page: number) => {
-  currentPage.value = page
-}
+  currentPage.value = page;
+};
 
 // 文件操作
 const previewFile = (file: FileItem) => {
-  emit('file-preview', file)
-}
+  emit("file-preview", file);
+};
 
 const downloadFile = (file: FileItem) => {
-  emit('file-download', file)
-}
+  emit("file-download", file);
+};
 
 const renameFile = (file: FileItem) => {
-  emit('file-rename', file)
-}
+  emit("file-rename", file);
+};
 
 const deleteFile = async (file: FileItem) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除 "${file.name}" 吗？`,
-      '确认删除',
-      {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
-    emit('file-delete', file)
+    await ElMessageBox.confirm(`确定要删除 "${file.name}" 吗？`, "确认删除", {
+      confirmButtonText: "删除",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+
+    emit("file-delete", file);
   } catch {
     // 用户取消删除
   }
-}
+};
 
 // 监听当前路径变化
-watch(() => props.currentPath, () => {
-  clearSelection()
-  currentPage.value = 1
-})
+watch(
+  () => props.currentPath,
+  () => {
+    clearSelection();
+    currentPage.value = 1;
+  },
+);
 
 // 监听搜索文本变化
-watch(() => props.searchText, () => {
-  currentPage.value = 1
-})
+watch(
+  () => props.searchText,
+  () => {
+    currentPage.value = 1;
+  },
+);
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -726,12 +772,11 @@ watch(() => props.searchText, () => {
   }
 }
 
-
 .file-list {
   height: 100%;
   display: flex;
   flex-direction: column;
-   background: var(--el-bg-color-overlay);
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   border: 1px solid #e4e7ed;
   overflow: hidden;
@@ -824,7 +869,7 @@ watch(() => props.searchText, () => {
 
       .empty-content {
         text-align: center;
-         color: var(--el-text-color-primary);
+        color: var(--el-text-color-primary);
 
         .empty-icon {
           font-size: 64px;
@@ -856,16 +901,36 @@ watch(() => props.searchText, () => {
             .icon {
               font-size: 24px;
 
-              &.folder-icon { color: #ffc107; }
-              &.image-icon { color: #28a745; }
-              &.video-icon { color: #dc3545; }
-              &.audio-icon { color: #6f42c1; }
-              &.document-icon { color: #007bff; }
-              &.pdf-icon { color: #dc3545; }
-              &.archive-icon { color: #fd7e14; }
-              &.code-icon { color: #20c997; }
-              &.text-icon { color: #6c757d; }
-              &.unknown-icon { color: #adb5bd; }
+              &.folder-icon {
+                color: #ffc107;
+              }
+              &.image-icon {
+                color: #28a745;
+              }
+              &.video-icon {
+                color: #dc3545;
+              }
+              &.audio-icon {
+                color: #6f42c1;
+              }
+              &.document-icon {
+                color: #007bff;
+              }
+              &.pdf-icon {
+                color: #dc3545;
+              }
+              &.archive-icon {
+                color: #fd7e14;
+              }
+              &.code-icon {
+                color: #20c997;
+              }
+              &.text-icon {
+                color: #6c757d;
+              }
+              &.unknown-icon {
+                color: #adb5bd;
+              }
             }
           }
 
@@ -883,7 +948,7 @@ watch(() => props.searchText, () => {
 
             .file-path {
               font-size: 12px;
-               color: var(--el-text-color-primary);
+              color: var(--el-text-color-primary);
             }
           }
         }
@@ -909,7 +974,7 @@ watch(() => props.searchText, () => {
 
         .file-card {
           position: relative;
-           background: var(--el-bg-color-overlay);
+          background: var(--el-bg-color-overlay);
           border: 1px solid #e4e7ed;
           border-radius: 12px;
           padding: 16px;
@@ -988,15 +1053,33 @@ watch(() => props.searchText, () => {
                 .file-icon {
                   font-size: 48px;
 
-                  &.image-icon { color: #28a745; }
-                  &.video-icon { color: #dc3545; }
-                  &.audio-icon { color: #6f42c1; }
-                  &.document-icon { color: #007bff; }
-                  &.pdf-icon { color: #dc3545; }
-                  &.archive-icon { color: #fd7e14; }
-                  &.code-icon { color: #20c997; }
-                  &.text-icon { color: #6c757d; }
-                  &.unknown-icon { color: #adb5bd; }
+                  &.image-icon {
+                    color: #28a745;
+                  }
+                  &.video-icon {
+                    color: #dc3545;
+                  }
+                  &.audio-icon {
+                    color: #6f42c1;
+                  }
+                  &.document-icon {
+                    color: #007bff;
+                  }
+                  &.pdf-icon {
+                    color: #dc3545;
+                  }
+                  &.archive-icon {
+                    color: #fd7e14;
+                  }
+                  &.code-icon {
+                    color: #20c997;
+                  }
+                  &.text-icon {
+                    color: #6c757d;
+                  }
+                  &.unknown-icon {
+                    color: #adb5bd;
+                  }
                 }
               }
             }
@@ -1017,7 +1100,7 @@ watch(() => props.searchText, () => {
                 gap: 8px;
                 margin-bottom: 4px;
                 font-size: 12px;
-                 color: var(--el-text-color-primary);
+                color: var(--el-text-color-primary);
 
                 .file-size {
                   background: #f0f2f5;
@@ -1054,7 +1137,7 @@ watch(() => props.searchText, () => {
               border: 1px solid #e4e7ed;
 
               &:hover {
-                 background: var(--el-bg-color-overlay);
+                background: var(--el-bg-color-overlay);
                 border-color: #409eff;
               }
             }

@@ -38,8 +38,9 @@
             <ScTag 
               type="primary"
               :class="{ 'tag-custom': true, 'font-bold': row.sysAiModuleName }"
-              >{{ row.sysAiModuleName || "-" }}</el-tag
             >
+              {{ row.sysAiModuleName || "-" }}
+            </ScTag>
           </div>
         </template>
       </ScTableColumn>
@@ -91,8 +92,9 @@
               )"
               :key="item"
               style="margin: 2px"
-              >{{ item }}</el-tag
             >
+              {{ item }}
+            </ScTag>
           </div>
         </template>
       </ScTableColumn>

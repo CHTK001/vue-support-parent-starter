@@ -1,23 +1,58 @@
 <template>
-  <sc-dialog v-model="visible" :title="mode === 'add' ? '添加组件' : '编辑组件'" width="800px" :close-on-click-modal="false" destroy-on-close class="component-edit-dialog">
-    <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px" class="component-form">
+  <sc-dialog
+    v-model="visible"
+    :title="mode === 'add' ? '添加组件' : '编辑组件'"
+    width="800px"
+    :close-on-click-modal="false"
+    destroy-on-close
+    class="component-edit-dialog"
+  >
+    <el-form
+      ref="formRef"
+      :model="formData"
+      :rules="rules"
+      label-width="120px"
+      class="component-form"
+    >
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="组件名称" prop="monitorSysGenServerDetailComponentName">
-            <el-input v-model="formData.monitorSysGenServerDetailComponentName" placeholder="请输入组件名称" clearable />
+          <el-form-item
+            label="组件名称"
+            prop="monitorSysGenServerDetailComponentName"
+          >
+            <el-input
+              v-model="formData.monitorSysGenServerDetailComponentName"
+              placeholder="请输入组件名称"
+              clearable
+            />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="组件标题" prop="monitorSysGenServerDetailComponentTitle">
-            <el-input v-model="formData.monitorSysGenServerDetailComponentTitle" placeholder="请输入组件标题" clearable />
+          <el-form-item
+            label="组件标题"
+            prop="monitorSysGenServerDetailComponentTitle"
+          >
+            <el-input
+              v-model="formData.monitorSysGenServerDetailComponentTitle"
+              placeholder="请输入组件标题"
+              clearable
+            />
           </el-form-item>
         </el-col>
       </el-row>
 
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="组件类型" prop="monitorSysGenServerDetailComponentType">
-            <el-select v-model="formData.monitorSysGenServerDetailComponentType" placeholder="选择组件类型" style="width: 100%" @change="handleComponentTypeChange">
+          <el-form-item
+            label="组件类型"
+            prop="monitorSysGenServerDetailComponentType"
+          >
+            <el-select
+              v-model="formData.monitorSysGenServerDetailComponentType"
+              placeholder="选择组件类型"
+              style="width: 100%"
+              @change="handleComponentTypeChange"
+            >
               <el-option label="卡片" value="card" />
               <el-option label="仪表盘" value="gauge" />
               <el-option label="折线图" value="line" />
@@ -28,8 +63,18 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="表达式类型" prop="monitorSysGenServerDetailComponentExpressionType">
-            <el-select v-model="formData.monitorSysGenServerDetailComponentExpressionType" placeholder="选择表达式类型" style="width: 100%" @change="handleExpressionTypeChange">
+          <el-form-item
+            label="表达式类型"
+            prop="monitorSysGenServerDetailComponentExpressionType"
+          >
+            <el-select
+              v-model="
+                formData.monitorSysGenServerDetailComponentExpressionType
+              "
+              placeholder="选择表达式类型"
+              style="width: 100%"
+              @change="handleExpressionTypeChange"
+            >
               <el-option label="Prometheus" value="PROMETHEUS" />
               <el-option label="SQL" value="SQL" />
             </el-select>
@@ -37,14 +82,30 @@
         </el-col>
       </el-row>
 
-      <el-form-item label="查询表达式" prop="monitorSysGenServerDetailComponentExpression">
-        <el-input v-model="formData.monitorSysGenServerDetailComponentExpression" type="textarea" :rows="4" :placeholder="expressionPlaceholder" show-word-limit maxlength="2000" />
+      <el-form-item
+        label="查询表达式"
+        prop="monitorSysGenServerDetailComponentExpression"
+      >
+        <el-input
+          v-model="formData.monitorSysGenServerDetailComponentExpression"
+          type="textarea"
+          :rows="4"
+          :placeholder="expressionPlaceholder"
+          show-word-limit
+          maxlength="2000"
+        />
         <div class="expression-help">
-          <el-button type="primary" text @click="handleValidateExpression" :loading="validating" size="small">
+          <el-button
+            type="primary"
+            text
+            :loading="validating"
+            size="small"
+            @click="handleValidateExpression"
+          >
             <IconifyIconOnline icon="ri:check-line" class="mr-1" />
             验证表达式
           </el-button>
-          <el-button type="info" text @click="showExpressionHelp" size="small">
+          <el-button type="info" text size="small" @click="showExpressionHelp">
             <IconifyIconOnline icon="ri:question-line" class="mr-1" />
             语法帮助
           </el-button>
@@ -54,34 +115,72 @@
       <el-row :gutter="20">
         <el-col :span="8">
           <el-form-item label="刷新间隔(秒)">
-            <el-input-number v-model="formData.monitorSysGenServerDetailComponentRefreshInterval" :min="10" :max="3600" placeholder="秒" style="width: 100%" />
+            <el-input-number
+              v-model="
+                formData.monitorSysGenServerDetailComponentRefreshInterval
+              "
+              :min="10"
+              :max="3600"
+              placeholder="秒"
+              style="width: 100%"
+            />
           </el-form-item>
         </el-col>
         <el-col :span="8">
           <el-form-item label="宽度">
-            <el-input-number v-model="layoutConfig.w" :min="2" :max="24" placeholder="网格单位" style="width: 100%" />
+            <el-input-number
+              v-model="layoutConfig.w"
+              :min="2"
+              :max="24"
+              placeholder="网格单位"
+              style="width: 100%"
+            />
           </el-form-item>
         </el-col>
         <el-col :span="8">
           <el-form-item label="高度">
-            <el-input-number v-model="layoutConfig.h" :min="2" :max="20" placeholder="网格单位" style="width: 100%" />
+            <el-input-number
+              v-model="layoutConfig.h"
+              :min="2"
+              :max="20"
+              placeholder="网格单位"
+              style="width: 100%"
+            />
           </el-form-item>
         </el-col>
       </el-row>
 
       <el-form-item label="组件描述">
-        <el-input v-model="formData.monitorSysGenServerDetailComponentDesc" type="textarea" :rows="2" placeholder="请输入组件描述" maxlength="500" show-word-limit />
+        <el-input
+          v-model="formData.monitorSysGenServerDetailComponentDesc"
+          type="textarea"
+          :rows="2"
+          placeholder="请输入组件描述"
+          maxlength="500"
+          show-word-limit
+        />
       </el-form-item>
 
       <!-- 图表配置 -->
-      <el-form-item label="图表配置" v-if="needChartConfig">
-        <el-input v-model="chartConfigStr" type="textarea" :rows="6" placeholder="请输入JSON格式的图表配置" @blur="handleChartConfigChange" />
+      <el-form-item v-if="needChartConfig" label="图表配置">
+        <el-input
+          v-model="chartConfigStr"
+          type="textarea"
+          :rows="6"
+          placeholder="请输入JSON格式的图表配置"
+          @blur="handleChartConfigChange"
+        />
         <div class="config-help">
-          <el-button type="primary" text @click="handleValidateConfig" size="small">
+          <el-button
+            type="primary"
+            text
+            size="small"
+            @click="handleValidateConfig"
+          >
             <IconifyIconOnline icon="ri:check-line" class="mr-1" />
             验证配置
           </el-button>
-          <el-button type="info" text @click="showConfigTemplate" size="small">
+          <el-button type="info" text size="small" @click="showConfigTemplate">
             <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
             配置模板
           </el-button>
@@ -102,12 +201,19 @@
     <ExpressionHelpDialog ref="expressionHelpDialogRef" />
 
     <!-- 配置模板对话框 -->
-    <ConfigTemplateDialog ref="configTemplateDialogRef" @select="handleTemplateSelect" />
+    <ConfigTemplateDialog
+      ref="configTemplateDialogRef"
+      @select="handleTemplateSelect"
+    />
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { saveServerDetailComponent, validateComponentExpression, type ServerDetailComponent } from "@/api/server";
+import {
+  saveServerDetailComponent,
+  validateComponentExpression,
+  type ServerDetailComponent,
+} from "@/api/server";
 import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref } from "vue";
 
@@ -161,15 +267,25 @@ const rules = {
     { required: true, message: "请输入组件名称", trigger: "blur" },
     { min: 2, max: 50, message: "长度在 2 到 50 个字符", trigger: "blur" },
   ],
-  monitorSysGenServerDetailComponentTitle: [{ required: true, message: "请输入组件标题", trigger: "blur" }],
-  monitorSysGenServerDetailComponentType: [{ required: true, message: "请选择组件类型", trigger: "change" }],
-  monitorSysGenServerDetailComponentExpressionType: [{ required: true, message: "请选择表达式类型", trigger: "change" }],
-  monitorSysGenServerDetailComponentExpression: [{ required: true, message: "请输入查询表达式", trigger: "blur" }],
+  monitorSysGenServerDetailComponentTitle: [
+    { required: true, message: "请输入组件标题", trigger: "blur" },
+  ],
+  monitorSysGenServerDetailComponentType: [
+    { required: true, message: "请选择组件类型", trigger: "change" },
+  ],
+  monitorSysGenServerDetailComponentExpressionType: [
+    { required: true, message: "请选择表达式类型", trigger: "change" },
+  ],
+  monitorSysGenServerDetailComponentExpression: [
+    { required: true, message: "请输入查询表达式", trigger: "blur" },
+  ],
 };
 
 // 计算属性
 const expressionPlaceholder = computed(() => {
-  if (formData.monitorSysGenServerDetailComponentExpressionType === "PROMETHEUS") {
+  if (
+    formData.monitorSysGenServerDetailComponentExpressionType === "PROMETHEUS"
+  ) {
     return "请输入Prometheus PromQL表达式，例如：cpu_usage_percent";
   } else {
     return "请输入SQL查询语句，例如：SELECT cpu_usage FROM metrics WHERE server_id = ?";
@@ -177,7 +293,9 @@ const expressionPlaceholder = computed(() => {
 });
 
 const needChartConfig = computed(() => {
-  return ["gauge", "line", "bar", "pie"].includes(formData.monitorSysGenServerDetailComponentType || "");
+  return ["gauge", "line", "bar", "pie"].includes(
+    formData.monitorSysGenServerDetailComponentType || "",
+  );
 });
 
 /**
@@ -193,7 +311,9 @@ const open = (editMode: "add" | "edit" = "add", data?: any) => {
     // 解析位置信息
     try {
       if (data.monitorSysGenServerDetailComponentPosition) {
-        const position = JSON.parse(data.monitorSysGenServerDetailComponentPosition);
+        const position = JSON.parse(
+          data.monitorSysGenServerDetailComponentPosition,
+        );
         Object.assign(layoutConfig, position);
       }
     } catch (e) {
@@ -201,7 +321,8 @@ const open = (editMode: "add" | "edit" = "add", data?: any) => {
     }
 
     // 设置图表配置
-    chartConfigStr.value = data.monitorSysGenServerDetailComponentChartConfig || "";
+    chartConfigStr.value =
+      data.monitorSysGenServerDetailComponentChartConfig || "";
   } else if (editMode === "add" && data) {
     formData.monitorSysGenServerId = data.serverId;
     resetForm();
@@ -254,7 +375,10 @@ const handleComponentTypeChange = () => {
     table: { w: 12, h: 10 },
   };
 
-  const defaultSize = sizeMap[formData.monitorSysGenServerDetailComponentType as keyof typeof sizeMap];
+  const defaultSize =
+    sizeMap[
+      formData.monitorSysGenServerDetailComponentType as keyof typeof sizeMap
+    ];
   if (defaultSize) {
     Object.assign(layoutConfig, defaultSize);
   }
@@ -278,7 +402,11 @@ const handleValidateExpression = async () => {
 
   try {
     validating.value = true;
-    const res = await validateComponentExpression(formData.monitorSysGenServerDetailComponentExpressionType!, formData.monitorSysGenServerDetailComponentExpression, formData.monitorSysGenServerId!);
+    const res = await validateComponentExpression(
+      formData.monitorSysGenServerDetailComponentExpressionType!,
+      formData.monitorSysGenServerDetailComponentExpression,
+      formData.monitorSysGenServerId!,
+    );
 
     if (res.code === "00000") {
       message.success(res.data ? "表达式验证通过" : "表达式验证失败");
@@ -297,7 +425,9 @@ const handleValidateExpression = async () => {
  * 显示表达式帮助
  */
 const showExpressionHelp = () => {
-  expressionHelpDialogRef.value?.open(formData.monitorSysGenServerDetailComponentExpressionType);
+  expressionHelpDialogRef.value?.open(
+    formData.monitorSysGenServerDetailComponentExpressionType,
+  );
 };
 
 /**
@@ -307,7 +437,8 @@ const handleChartConfigChange = () => {
   try {
     if (chartConfigStr.value) {
       JSON.parse(chartConfigStr.value);
-      formData.monitorSysGenServerDetailComponentChartConfig = chartConfigStr.value;
+      formData.monitorSysGenServerDetailComponentChartConfig =
+        chartConfigStr.value;
     }
   } catch (e) {
     message.warning("图表配置格式不正确，请检查JSON格式");
@@ -334,7 +465,9 @@ const handleValidateConfig = () => {
  * 显示配置模板
  */
 const showConfigTemplate = () => {
-  configTemplateDialogRef.value?.open(formData.monitorSysGenServerDetailComponentType);
+  configTemplateDialogRef.value?.open(
+    formData.monitorSysGenServerDetailComponentType,
+  );
 };
 
 /**
@@ -355,14 +488,18 @@ const handleSubmit = async () => {
     loading.value = true;
 
     // 设置位置信息
-    formData.monitorSysGenServerDetailComponentPosition = JSON.stringify(layoutConfig);
+    formData.monitorSysGenServerDetailComponentPosition =
+      JSON.stringify(layoutConfig);
 
     // 设置图表配置
     if (chartConfigStr.value) {
-      formData.monitorSysGenServerDetailComponentChartConfig = chartConfigStr.value;
+      formData.monitorSysGenServerDetailComponentChartConfig =
+        chartConfigStr.value;
     }
 
-    const res = await saveServerDetailComponent(formData as ServerDetailComponent);
+    const res = await saveServerDetailComponent(
+      formData as ServerDetailComponent,
+    );
 
     if (res.code === "00000") {
       message.success(mode.value === "add" ? "添加成功" : "保存成功");

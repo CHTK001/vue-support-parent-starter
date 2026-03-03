@@ -43,11 +43,13 @@ export interface ItemValueUpdate {
 /**
  * 分页查询配置项
  */
-export function getSystemServerSettingItemPage(params: SystemServerSettingItemPageParams) {
+export function getSystemServerSettingItemPage(
+  params: SystemServerSettingItemPageParams,
+) {
   return request({
     url: "/api/system/server/setting/item/page",
     method: "get",
-    params
+    params,
   });
 }
 
@@ -57,7 +59,7 @@ export function getSystemServerSettingItemPage(params: SystemServerSettingItemPa
 export function getSystemServerSettingItemById(id: number) {
   return request({
     url: `/api/system/server/setting/item/${id}`,
-    method: "get"
+    method: "get",
   });
 }
 
@@ -67,7 +69,7 @@ export function getSystemServerSettingItemById(id: number) {
 export function getSystemServerSettingItemBySettingId(settingId: number) {
   return request({
     url: `/api/system/server/setting/item/setting/${settingId}`,
-    method: "get"
+    method: "get",
   });
 }
 
@@ -78,7 +80,7 @@ export function addSystemServerSettingItem(data: SystemServerSettingItem) {
   return request({
     url: "/api/system/server/setting/item",
     method: "post",
-    data
+    data,
   });
 }
 
@@ -89,7 +91,7 @@ export function updateSystemServerSettingItem(data: SystemServerSettingItem) {
   return request({
     url: "/api/system/server/setting/item",
     method: "put",
-    data
+    data,
   });
 }
 
@@ -99,41 +101,49 @@ export function updateSystemServerSettingItem(data: SystemServerSettingItem) {
 export function deleteSystemServerSettingItem(id: number) {
   return request({
     url: `/api/system/server/setting/item/${id}`,
-    method: "delete"
+    method: "delete",
   });
 }
 
 /**
  * 批量保存配置项
  */
-export function batchSaveSystemServerSettingItems(settingId: number, items: SystemServerSettingItem[]) {
+export function batchSaveSystemServerSettingItems(
+  settingId: number,
+  items: SystemServerSettingItem[],
+) {
   return request({
     url: "/api/system/server/setting/item/batch",
     method: "post",
     params: { settingId },
-    data: items
+    data: items,
   });
 }
 
 /**
  * 更新配置项值
  */
-export function updateSystemServerSettingItemValue(itemId: number, value: string) {
+export function updateSystemServerSettingItemValue(
+  itemId: number,
+  value: string,
+) {
   return request({
     url: `/api/system/server/setting/item/${itemId}/value`,
     method: "put",
-    params: { value }
+    params: { value },
   });
 }
 
 /**
  * 批量更新配置项值
  */
-export function batchUpdateSystemServerSettingItemValues(updates: ItemValueUpdate[]) {
+export function batchUpdateSystemServerSettingItemValues(
+  updates: ItemValueUpdate[],
+) {
   return request({
     url: "/api/system/server/setting/item/batch-values",
     method: "put",
-    data: updates
+    data: updates,
   });
 }
 
@@ -143,28 +153,33 @@ export function batchUpdateSystemServerSettingItemValues(updates: ItemValueUpdat
 export function deleteSystemServerSettingItemsBySettingId(settingId: number) {
   return request({
     url: `/api/system/server/setting/item/setting/${settingId}`,
-    method: "delete"
+    method: "delete",
   });
 }
 
 /**
  * 验证配置项值
  */
-export function validateSystemServerSettingItemValue(item: SystemServerSettingItem) {
+export function validateSystemServerSettingItemValue(
+  item: SystemServerSettingItem,
+) {
   return request({
     url: "/api/system/server/setting/item/validate",
     method: "post",
-    data: item
+    data: item,
   });
 }
 
 /**
  * 获取配置项的默认值
  */
-export function getSystemServerSettingItemDefaultValue(settingId: number, itemName: string) {
+export function getSystemServerSettingItemDefaultValue(
+  settingId: number,
+  itemName: string,
+) {
   return request({
     url: `/api/system/server/setting/item/setting/${settingId}/item/${itemName}/default-value`,
-    method: "get"
+    method: "get",
   });
 }
 
@@ -174,7 +189,7 @@ export function getSystemServerSettingItemDefaultValue(settingId: number, itemNa
 export function resetSystemServerSettingItemToDefault(itemId: number) {
   return request({
     url: `/api/system/server/setting/item/${itemId}/reset`,
-    method: "post"
+    method: "post",
   });
 }
 
@@ -185,27 +200,32 @@ export function batchResetSystemServerSettingItemsToDefault(itemIds: number[]) {
   return request({
     url: "/api/system/server/setting/item/batch-reset",
     method: "post",
-    data: itemIds
+    data: itemIds,
   });
 }
 
 /**
  * 根据配置ID和必填状态查询配置项列表
  */
-export function getSystemServerSettingItemBySettingIdAndRequired(settingId: number, required: boolean) {
+export function getSystemServerSettingItemBySettingIdAndRequired(
+  settingId: number,
+  required: boolean,
+) {
   return request({
     url: `/api/system/server/setting/item/setting/${settingId}/required/${required}`,
-    method: "get"
+    method: "get",
   });
 }
 
 /**
  * 检查必填配置项是否都已配置
  */
-export function checkSystemServerSettingRequiredItemsConfigured(settingId: number) {
+export function checkSystemServerSettingRequiredItemsConfigured(
+  settingId: number,
+) {
   return request({
     url: `/api/system/server/setting/item/setting/${settingId}/check-required`,
-    method: "get"
+    method: "get",
   });
 }
 
@@ -215,6 +235,6 @@ export function checkSystemServerSettingRequiredItemsConfigured(settingId: numbe
 export function getSystemServerSettingItemsAsMap(settingId: number) {
   return request({
     url: `/api/system/server/setting/item/setting/${settingId}/as-map`,
-    method: "get"
+    method: "get",
   });
 }

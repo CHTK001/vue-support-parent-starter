@@ -58,7 +58,7 @@
             <span
               class="status-dot"
               :class="`status-${row.acmeAccountStatus || 'unknown'}`"
-            ></span>
+            />
             <span class="status-text">{{
               getStatusLabel(row.acmeAccountStatus)
             }}</span>
@@ -133,7 +133,7 @@ function getServerName(url: string) {
  * 获取状态类型
  */
 function getStatusType(
-  status: string
+  status: string,
 ): "success" | "warning" | "danger" | "info" {
   const item = ACCOUNT_STATUS.find((s) => s.value === status);
   return (item?.type as "success" | "warning" | "danger" | "info") || "info";
@@ -163,7 +163,7 @@ async function handleDelete(row: AcmeAccount) {
     await ElMessageBox.confirm(
       `确定要删除账户 ${row.acmeAccountEmail} 吗？`,
       "删除确认",
-      { type: "warning" }
+      { type: "warning" },
     );
     await deleteAccount(row.acmeAccountId!);
     message("删除成功", { type: "success" });
@@ -193,7 +193,6 @@ defineExpose({ refresh });
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -226,7 +225,6 @@ defineExpose({ refresh });
     z-index: 1;
   }
 }
-
 
 .account-list {
   flex: 1;
@@ -350,7 +348,6 @@ defineExpose({ refresh });
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -359,5 +356,4 @@ defineExpose({ refresh });
     padding: 12px 16px;
   }
 }
-
 </style>

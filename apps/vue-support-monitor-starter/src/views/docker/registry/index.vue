@@ -57,7 +57,7 @@
               :class="
                 row.systemSoftRegistryStatus === 1 ? 'active' : 'inactive'
               "
-            ></div>
+            />
 
             <!-- 卡片头部 -->
             <div class="card-header">
@@ -325,7 +325,7 @@ const handleDelete = async (registryId: number) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     const response = await registryApi.deleteRegistry(registryId);
@@ -377,7 +377,7 @@ const handleBatchDelete = async () => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     const response = await registryApi.batchDeleteRegistries(selectedIds.value);
@@ -446,13 +446,13 @@ const getRegistryGradient = (type?: string) => {
 // 切换启用状态
 const handleToggleStatus = async (
   row: SystemSoftRegistry,
-  enabled: boolean
+  enabled: boolean,
 ) => {
   try {
     const payload = { ...row, systemSoftRegistryStatus: enabled ? 1 : 0 };
     const res = await registryApi.updateRegistry(
       row.systemSoftRegistryId!,
-      payload
+      payload,
     );
     if (res.code === "00000") {
       message.success(enabled ? "已启用" : "已禁用");
@@ -520,7 +520,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -537,8 +536,6 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -572,7 +569,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .registry-management {
   padding: 20px;

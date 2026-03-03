@@ -207,8 +207,9 @@
                 v-model="form.sysAiVincentTemplateRemark"
                 placeholder="请输入备注"
               ></ScInput>
-            </ScFormItem> </el-form
-        ></ScCol>
+            </ScFormItem>
+          </ScForm>
+        </ScCol>
       </ScRow>
     </sc-dialog>
   </div>

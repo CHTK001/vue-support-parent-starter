@@ -340,8 +340,9 @@ const dialogClose = async () => {
                           plain
                           link
                           :icon="useRenderIcon(Delete)"
-                          >删除</el-button
                         >
+                          删除
+                        </ScButton>
                       </template>
                     </ScPopconfirm>
                   </template>

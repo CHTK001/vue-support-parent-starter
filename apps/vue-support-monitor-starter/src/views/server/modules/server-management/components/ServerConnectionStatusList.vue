@@ -23,7 +23,9 @@
                 <IconifyIconOnline icon="ri:checkbox-circle-line" />
               </div>
               <div class="status-info">
-                <div class="status-value">{{ statistics.connectedServers }}</div>
+                <div class="status-value">
+                  {{ statistics.connectedServers }}
+                </div>
                 <div class="status-label">在线</div>
               </div>
             </div>
@@ -36,7 +38,9 @@
                 <IconifyIconOnline icon="ri:close-circle-line" />
               </div>
               <div class="status-info">
-                <div class="status-value">{{ statistics.disconnectedServers }}</div>
+                <div class="status-value">
+                  {{ statistics.disconnectedServers }}
+                </div>
                 <div class="status-label">离线</div>
               </div>
             </div>
@@ -61,17 +65,21 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button type="primary" @click="handleCheckAll" :loading="checkingAll">
+        <el-button
+          type="primary"
+          :loading="checkingAll"
+          @click="handleCheckAll"
+        >
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           检查所有连接
         </el-button>
-        
+
         <el-button @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
         </el-button>
       </div>
-      
+
       <div class="toolbar-right">
         <el-select
           v-model="filterStatus"
@@ -85,7 +93,7 @@
           <el-option label="连接中" :value="CONNECTION_STATUS.CONNECTING" />
           <el-option label="异常" :value="CONNECTION_STATUS.ERROR" />
         </el-select>
-        
+
         <el-input
           v-model="searchKeyword"
           placeholder="搜索服务器..."
@@ -108,35 +116,44 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" />
-      
+
       <el-table-column label="服务器信息" min-width="200">
         <template #default="{ row }">
           <div class="server-info">
             <div class="server-name">
-              <IconifyIconOnline :icon="getProtocolIcon(row.protocol)" class="protocol-icon" />
+              <IconifyIconOnline
+                :icon="getProtocolIcon(row.protocol)"
+                class="protocol-icon"
+              />
               {{ row.serverName }}
             </div>
             <div class="server-address">{{ row.host }}:{{ row.port }}</div>
           </div>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="连接状态" width="120" align="center">
         <template #default="{ row }">
           <el-tag
-            :type="getConnectionStatusColor(row.monitorSysGenServerConnectionStatus)"
+            :type="
+              getConnectionStatusColor(row.monitorSysGenServerConnectionStatus)
+            "
             size="small"
             effect="light"
           >
             <IconifyIconOnline
-              :icon="getConnectionStatusIcon(row.monitorSysGenServerConnectionStatus)"
+              :icon="
+                getConnectionStatusIcon(row.monitorSysGenServerConnectionStatus)
+              "
               class="mr-1"
             />
-            {{ getConnectionStatusText(row.monitorSysGenServerConnectionStatus) }}
+            {{
+              getConnectionStatusText(row.monitorSysGenServerConnectionStatus)
+            }}
           </el-tag>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="响应时间" width="100" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerConnectionResponseTime">
@@ -145,7 +162,7 @@
           <span v-else class="text-muted">-</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="最后测试时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerConnectionTestTime">
@@ -154,31 +171,36 @@
           <span v-else class="text-muted">从未测试</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="最后成功时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerConnectionLastSuccessTime">
-            {{ formatDateTime(row.monitorSysGenServerConnectionLastSuccessTime) }}
+            {{
+              formatDateTime(row.monitorSysGenServerConnectionLastSuccessTime)
+            }}
           </span>
           <span v-else class="text-muted">从未成功</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="重试次数" width="80" align="center">
         <template #default="{ row }">
           {{ row.monitorSysGenServerConnectionRetryCount || 0 }}
         </template>
       </el-table-column>
-      
+
       <el-table-column label="错误信息" min-width="200">
         <template #default="{ row }">
-          <span v-if="row.monitorSysGenServerConnectionError" class="error-text">
+          <span
+            v-if="row.monitorSysGenServerConnectionError"
+            class="error-text"
+          >
             {{ row.monitorSysGenServerConnectionError }}
           </span>
           <span v-else class="text-muted">无</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="操作" width="200" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
@@ -191,12 +213,12 @@
               <IconifyIconOnline icon="ri:wifi-line" />
               测试
             </el-button>
-            
+
             <el-button size="small" @click="handleViewTrend(row)">
               <IconifyIconOnline icon="ri:line-chart-line" />
               趋势
             </el-button>
-            
+
             <el-button size="small" @click="handleReset(row)">
               <IconifyIconOnline icon="ri:restart-line" />
               重置
@@ -303,17 +325,18 @@ const filteredConnectionStatusList = computed(() => {
 
   // 按状态筛选
   if (filterStatus.value !== "") {
-    result = result.filter(item =>
-      item.monitorSysGenServerConnectionStatus === filterStatus.value
+    result = result.filter(
+      (item) => item.monitorSysGenServerConnectionStatus === filterStatus.value,
     );
   }
 
   // 按关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(item =>
-      item.serverName?.toLowerCase().includes(keyword) ||
-      item.host?.toLowerCase().includes(keyword)
+    result = result.filter(
+      (item) =>
+        item.serverName?.toLowerCase().includes(keyword) ||
+        item.host?.toLowerCase().includes(keyword),
     );
   }
 
@@ -458,7 +481,10 @@ const handleTestConnection = async (connection: any) => {
  */
 const handleViewTrend = async (connection: any) => {
   try {
-    const res = await getServerConnectionTrend(connection.monitorSysGenServerId, 24);
+    const res = await getServerConnectionTrend(
+      connection.monitorSysGenServerId,
+      24,
+    );
     if (res.code === "00000") {
       trendData.value = res.data || [];
       trendDialogVisible.value = true;
@@ -483,10 +509,12 @@ const handleReset = async (connection: any) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
-    const res = await resetServerConnectionStatus(connection.monitorSysGenServerId);
+    const res = await resetServerConnectionStatus(
+      connection.monitorSysGenServerId,
+    );
     if (res.code === "00000") {
       message.success("连接状态重置成功");
       loadConnectionStatusList();
@@ -537,7 +565,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -570,7 +597,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .server-connection-status-list {
   .status-overview {
@@ -619,7 +645,7 @@ onMounted(() => {
 
           .status-label {
             font-size: 14px;
-             color: var(--el-text-color-primary);
+            color: var(--el-text-color-primary);
             margin-top: 4px;
           }
         }
@@ -660,7 +686,7 @@ onMounted(() => {
 
     .server-address {
       font-size: 12px;
-       color: var(--el-text-color-primary);
+      color: var(--el-text-color-primary);
     }
   }
 
@@ -688,11 +714,10 @@ onMounted(() => {
       justify-content: center;
       background: var(--el-bg-color-overlay);
       border-radius: 8px;
-       color: var(--el-text-color-primary);
+      color: var(--el-text-color-primary);
     }
   }
 }
-
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -702,5 +727,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

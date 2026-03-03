@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { ReDialog } from "@repo/components/ReDialog";
+import { ReDialog } from "@repo/components/ReDialog/index.ts";
 import { ElConfigProvider } from "element-plus";
 import { elementPlusLocale } from "@repo/config";
 </script>

@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "vite",
     "serve": "pnpm dev",
-    "build": "rimraf dist && vite build",
-    "build:staging": "rimraf dist && vite build --mode test",
-    "report": "rimraf dist && vite build",
+    "build": "rimraf dist && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build",
+    "build:staging": "rimraf dist && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build --mode test",
+    "report": "rimraf dist && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "preview": "vite preview",
     "preview:build": "pnpm build && vite preview",
     "typecheck": "tsc --noEmit && vue-tsc --noEmit --skipLibCheck",

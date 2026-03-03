@@ -132,7 +132,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true }
+  { immediate: true },
 );
 watch(visibleInner, (v) => emit("update:visible", v));
 
@@ -289,7 +289,6 @@ function handleClose() {
   padding: 10px 24px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -298,5 +297,4 @@ function handleClose() {
     padding: 12px 16px;
   }
 }
-
 </style>

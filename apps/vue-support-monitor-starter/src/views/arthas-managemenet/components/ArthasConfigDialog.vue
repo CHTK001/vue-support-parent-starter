@@ -8,18 +8,30 @@
         <el-input v-model="form.http" placeholder="http://host:port/api" />
       </el-form-item>
       <el-form-item label="HTTP超时时间(ms)">
-        <el-input-number v-model="httpTimeout" :min="1000" :step="1000" :max="120000" />
+        <el-input-number
+          v-model="httpTimeout"
+          :min="1000"
+          :step="1000"
+          :max="120000"
+        />
       </el-form-item>
       <el-form-item label="用户名">
         <el-input v-model="form.username" placeholder="可选" />
       </el-form-item>
       <el-form-item label="密码">
-        <el-input v-model="form.password" type="password" show-password placeholder="可选" />
+        <el-input
+          v-model="form.password"
+          type="password"
+          show-password
+          placeholder="可选"
+        />
       </el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="close">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="save">保存</el-button>
+      <el-button type="primary" :loading="loading" @click="save"
+        >保存</el-button
+      >
     </template>
   </sc-dialog>
 </template>
@@ -27,7 +39,11 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { message } from "@repo/utils";
-import { getTunnelConfig, setTunnelConfig, type ArthasTunnelConfigDto } from "@/api/arthas/arthas-management";
+import {
+  getTunnelConfig,
+  setTunnelConfig,
+  type ArthasTunnelConfigDto,
+} from "@/api/arthas/arthas-management";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -50,7 +66,9 @@ const form = ref<ArthasTunnelConfigDto>({
 
 // HTTP 超时（仅前端使用，不提交到后端）
 const HTTP_TIMEOUT_KEY = "arthas.http.timeout";
-const httpTimeout = ref<number>(Number(localStorage.getItem(HTTP_TIMEOUT_KEY) || 15000));
+const httpTimeout = ref<number>(
+  Number(localStorage.getItem(HTTP_TIMEOUT_KEY) || 15000),
+);
 
 function close() {
   visible.value = false;
@@ -62,12 +80,16 @@ async function onOpen() {
     loading.value = true;
     const res: any = await getTunnelConfig(props.serverId as any);
     if (res?.success) {
-      form.value.address = res.data?.arthasTunnelConfigAddress || "ws://127.0.0.1:7777/ws";
+      form.value.address =
+        res.data?.arthasTunnelConfigAddress || "ws://127.0.0.1:7777/ws";
       form.value.username = res.data?.arthasTunnelConfigUsername || "";
-      form.value.http = res.data?.arthasTunnelConfigHttp || "http://127.0.0.1:8563/api";
+      form.value.http =
+        res.data?.arthasTunnelConfigHttp || "http://127.0.0.1:8563/api";
       form.value.password = res.data?.arthasTunnelConfigPassword || "";
       // 读取本地已保存的超时，若无则保持默认
-      const t = Number(localStorage.getItem(HTTP_TIMEOUT_KEY) || httpTimeout.value || 15000);
+      const t = Number(
+        localStorage.getItem(HTTP_TIMEOUT_KEY) || httpTimeout.value || 15000,
+      );
       httpTimeout.value = isNaN(t) ? 15000 : t;
     } else {
       message(res?.msg || "获取配置失败", { type: "error" });
@@ -106,6 +128,6 @@ watch(
   (n, o) => {
     // 切换服务器时清空或重新加载
     form.value = { address: "", username: "", password: "" };
-  }
+  },
 );
 </script>

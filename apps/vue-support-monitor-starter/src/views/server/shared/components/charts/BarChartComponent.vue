@@ -5,7 +5,7 @@
         <IconifyIconOnline icon="ri:bar-chart-line" class="chart-icon" />
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
-      <div class="chart-actions" v-if="editMode">
+      <div v-if="editMode" class="chart-actions">
         <el-button type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
         </el-button>
@@ -14,13 +14,19 @@
         </el-button>
       </div>
     </div>
-    
-    <div class="chart-content" v-loading="loading">
-      <div ref="chartRef" class="bar-chart"></div>
+
+    <div v-loading="loading" class="chart-content">
+      <div ref="chartRef" class="bar-chart" />
     </div>
 
-    <div class="chart-footer" v-if="!editMode">
-      <el-button type="primary" text size="small" @click="handleRefresh" :loading="refreshing">
+    <div v-if="!editMode" class="chart-footer">
+      <el-button
+        type="primary"
+        text
+        size="small"
+        :loading="refreshing"
+        @click="handleRefresh"
+      >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
       </el-button>
@@ -53,20 +59,31 @@ const chartInstance = ref<echarts.ECharts>();
 const initChart = () => {
   if (!chartRef.value) return;
   chartInstance.value = echarts.init(chartRef.value);
-  
+
   // 示例数据
   const option = {
-    tooltip: { trigger: 'axis' },
-    grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
-    xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
-    yAxis: { type: 'value' },
-    series: [{
-      data: [120, 200, 150, 80, 70, 110, 130],
-      type: 'bar',
-      itemStyle: { color: '#409EFF' }
-    }]
+    tooltip: { trigger: "axis" },
+    grid: {
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      top: "3%",
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    },
+    yAxis: { type: "value" },
+    series: [
+      {
+        data: [120, 200, 150, 80, 70, 110, 130],
+        type: "bar",
+        itemStyle: { color: "#409EFF" },
+      },
+    ],
   };
-  
+
   chartInstance.value.setOption(option);
 };
 
@@ -79,21 +96,21 @@ const handleRefresh = () => {
 };
 
 const handleEdit = () => emit("edit", props.componentData);
-const handleDelete = () => emit("delete", props.componentData.monitorSysGenServerDetailComponentId!);
+const handleDelete = () =>
+  emit("delete", props.componentData.monitorSysGenServerDetailComponentId!);
 
 onMounted(() => {
   nextTick(() => initChart());
-  window.addEventListener('resize', () => chartInstance.value?.resize());
+  window.addEventListener("resize", () => chartInstance.value?.resize());
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', () => chartInstance.value?.resize());
+  window.removeEventListener("resize", () => chartInstance.value?.resize());
   chartInstance.value?.dispose();
 });
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -126,7 +143,6 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
-
 
 .bar-chart-component {
   height: 100%;
@@ -194,7 +210,6 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -203,5 +218,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

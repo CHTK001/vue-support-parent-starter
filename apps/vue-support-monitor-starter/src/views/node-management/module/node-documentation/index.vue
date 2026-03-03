@@ -3,12 +3,12 @@
     <!-- 顶部导航栏 -->
     <div class="doc-header">
       <div class="header-left">
-        <el-button @click="goBack" size="small" type="primary" plain>
-          <i class="ri-arrow-left-line"></i>
+        <el-button size="small" type="primary" plain @click="goBack">
+          <i class="ri-arrow-left-line" />
           返回
         </el-button>
         <div class="node-info">
-          <i class="ri-server-line"></i>
+          <i class="ri-server-line" />
           <span class="node-name">{{ nodeInfo.nodeName }}</span>
           <el-tag
             size="small"
@@ -19,8 +19,8 @@
         </div>
       </div>
       <div class="header-right">
-        <el-button @click="refreshDocs" :loading="loading" size="small">
-          <i class="ri-refresh-line"></i>
+        <el-button :loading="loading" size="small" @click="refreshDocs">
+          <i class="ri-refresh-line" />
           刷新
         </el-button>
       </div>
@@ -32,18 +32,18 @@
       <div class="doc-sidebar" :style="{ width: sidebarWidth + 'px' }">
         <div class="sidebar-header">
           <div class="header-title">
-            <i class="ri-code-box-line"></i>
+            <i class="ri-code-box-line" />
             <h3>API接口</h3>
           </div>
 
           <!-- 节点地址切换 -->
-          <div class="node-selector" v-if="sameNameNodes.length > 1">
+          <div v-if="sameNameNodes.length > 1" class="node-selector">
             <label class="selector-label">节点地址:</label>
             <el-select
               v-model="currentNodeAddress"
-              @change="switchNode"
               size="small"
               style="width: 100%"
+              @change="switchNode"
             >
               <el-option
                 v-for="node in sameNameNodes"
@@ -69,18 +69,18 @@
             <div class="headers-title">
               <label class="selector-label">全局请求头:</label>
               <el-button
-                @click="showHeaderDialog = true"
                 size="small"
                 type="primary"
                 plain
+                @click="showHeaderDialog = true"
               >
-                <i class="ri-settings-3-line"></i>
+                <i class="ri-settings-3-line" />
                 设置
               </el-button>
             </div>
             <div
-              class="headers-preview"
               v-if="Object.keys(globalHeaders).length > 0"
+              class="headers-preview"
             >
               <div
                 v-for="(value, key) in globalHeaders"
@@ -104,7 +104,7 @@
             clearable
           >
             <template #prefix>
-              <i class="ri-search-line"></i>
+              <i class="ri-search-line" />
             </template>
           </el-input>
         </div>
@@ -124,8 +124,8 @@
             >
               <div
                 class="group-header"
-                @click="toggleGroup(group.name)"
                 :class="{ expanded: expandedGroups.includes(group.name) }"
+                @click="toggleGroup(group.name)"
               >
                 <IconifyIconOnline icon="ri:folder-line" class="group-icon" />
                 <span class="group-name">{{ group.name }}</span>
@@ -173,7 +173,7 @@
       <div
         class="resize-handle resize-handle-1"
         @mousedown="startResize($event, 'sidebar')"
-      ></div>
+      />
 
       <!-- 中间参数面板 -->
       <div class="doc-params" :style="{ width: paramsWidth + 'px' }">
@@ -201,11 +201,11 @@
                   :type="showOnlyRequired ? 'primary' : ''"
                   @click="showOnlyRequired = !showOnlyRequired"
                 >
-                  <i class="ri-star-line"></i>
+                  <i class="ri-star-line" />
                   {{ showOnlyRequired ? "显示全部" : "仅必填" }}
                 </el-button>
                 <el-button @click="clearAllParams">
-                  <i class="ri-delete-bin-line"></i>
+                  <i class="ri-delete-bin-line" />
                   清空参数
                 </el-button>
               </el-button-group>
@@ -300,11 +300,11 @@
             <div class="execute-section">
               <el-button
                 type="primary"
-                @click="executeApi"
                 :loading="executing"
                 size="large"
+                @click="executeApi"
               >
-                <i class="ri-play-line"></i>
+                <i class="ri-play-line" />
                 执行请求
               </el-button>
             </div>
@@ -316,7 +316,7 @@
       <div
         class="resize-handle resize-handle-2"
         @mousedown="startResize($event, 'params')"
-      ></div>
+      />
 
       <!-- 右侧结果面板 -->
       <div class="doc-result">
@@ -325,7 +325,7 @@
             <el-tab-pane label="执行结果" name="result">
               <template #label>
                 <span class="tab-label">
-                  <i class="ri-play-circle-line"></i>
+                  <i class="ri-play-circle-line" />
                   执行结果
                 </span>
               </template>
@@ -333,7 +333,7 @@
             <el-tab-pane label="代码示例" name="examples">
               <template #label>
                 <span class="tab-label">
-                  <i class="ri-code-s-slash-line"></i>
+                  <i class="ri-code-s-slash-line" />
                   代码示例
                 </span>
               </template>
@@ -342,22 +342,22 @@
           <div class="result-actions">
             <el-button
               v-if="activeResultTab === 'result' && lastResponse"
-              @click="copyResponse"
               size="small"
+              @click="copyResponse"
             >
-              <i class="ri-file-copy-line"></i>
+              <i class="ri-file-copy-line" />
               复制结果
             </el-button>
             <el-button
               v-if="activeResultTab === 'examples'"
-              @click="copyCodeExample"
               size="small"
+              @click="copyCodeExample"
             >
-              <i class="ri-file-copy-line"></i>
+              <i class="ri-file-copy-line" />
               复制代码
             </el-button>
-            <el-button v-if="lastResponse" @click="clearResponse" size="small">
-              <i class="ri-delete-bin-line"></i>
+            <el-button v-if="lastResponse" size="small" @click="clearResponse">
+              <i class="ri-delete-bin-line" />
               清空
             </el-button>
           </div>
@@ -384,7 +384,7 @@
                   }}</span>
                 </div>
                 <div class="response-time">
-                  <i class="ri-time-line"></i>
+                  <i class="ri-time-line" />
                   {{ lastResponse.duration }}ms
                 </div>
               </div>
@@ -393,7 +393,7 @@
               <div class="response-headers">
                 <div class="section-header" @click="toggleHeadersCollapse">
                   <h4>
-                    <i class="ri-file-list-3-line"></i>
+                    <i class="ri-file-list-3-line" />
                     响应头
                     <span
                       v-if="
@@ -407,22 +407,22 @@
                   </h4>
                   <div class="header-actions">
                     <el-button
-                      size="small"
-                      text
-                      @click.stop="copyHeaders"
                       v-if="
                         lastResponse.headers &&
                         Object.keys(lastResponse.headers).length > 0
                       "
+                      size="small"
+                      text
+                      @click.stop="copyHeaders"
                     >
-                      <i class="ri-file-copy-line"></i>
+                      <i class="ri-file-copy-line" />
                       复制
                     </el-button>
                     <el-button
                       size="small"
                       text
-                      @click.stop="toggleHeadersCollapse"
                       class="collapse-btn"
+                      @click.stop="toggleHeadersCollapse"
                     >
                       <i
                         :class="
@@ -430,7 +430,7 @@
                             ? 'ri-arrow-down-s-line'
                             : 'ri-arrow-up-s-line'
                         "
-                      ></i>
+                      />
                     </el-button>
                   </div>
                 </div>
@@ -443,7 +443,7 @@
                       "
                       class="empty-state"
                     >
-                      <i class="ri-inbox-line"></i>
+                      <i class="ri-inbox-line" />
                       <span>无响应头信息</span>
                     </div>
                     <div v-else class="headers-table">
@@ -472,19 +472,19 @@
                   </h4>
                   <div class="body-actions">
                     <el-button
+                      v-if="lastResponse.data"
                       size="small"
                       text
                       @click="copyResponseBody"
-                      v-if="lastResponse.data"
                     >
                       <IconifyIconOnline icon="ri:file-copy-line" />
                       复制
                     </el-button>
                     <el-button
+                      v-if="lastResponse.data"
                       size="small"
                       text
                       @click="downloadResponse"
-                      v-if="lastResponse.data"
                     >
                       <IconifyIconOnline icon="ri:download-line" />
                       下载
@@ -674,29 +674,29 @@
               style="flex: 2; margin-left: 8px"
             />
             <el-button
-              @click="removeHeader(index)"
               size="small"
               type="danger"
               plain
               style="margin-left: 8px"
+              @click="removeHeader(index)"
             >
-              <i class="ri-delete-bin-line"></i>
+              <i class="ri-delete-bin-line" />
             </el-button>
           </div>
         </div>
 
         <div class="header-actions">
-          <el-button @click="addHeader" size="small" type="primary" plain>
-            <i class="ri-add-line"></i>
+          <el-button size="small" type="primary" plain @click="addHeader">
+            <i class="ri-add-line" />
             添加请求头
           </el-button>
           <el-button
-            @click="addCommonHeaders"
             size="small"
             type="success"
             plain
+            @click="addCommonHeaders"
           >
-            <i class="ri-magic-line"></i>
+            <i class="ri-magic-line" />
             添加常用请求头
           </el-button>
         </div>
@@ -728,15 +728,15 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="resetHeaders" size="small">
-            <i class="ri-refresh-line"></i>
+          <el-button size="small" @click="resetHeaders">
+            <i class="ri-refresh-line" />
             重置
           </el-button>
-          <el-button @click="showHeaderDialog = false" size="small">
+          <el-button size="small" @click="showHeaderDialog = false">
             取消
           </el-button>
-          <el-button @click="saveHeaders" type="primary" size="small">
-            <i class="ri-save-line"></i>
+          <el-button type="primary" size="small" @click="saveHeaders">
+            <i class="ri-save-line" />
             保存
           </el-button>
         </div>
@@ -864,7 +864,7 @@ const filteredApiGroups = computed(() => {
           api.summary
             ?.toLowerCase()
             .includes(searchKeyword.value.toLowerCase()) ||
-          api.method.toLowerCase().includes(searchKeyword.value.toLowerCase())
+          api.method.toLowerCase().includes(searchKeyword.value.toLowerCase()),
       ),
     }))
     .filter((group) => group.apis.length > 0);
@@ -937,7 +937,7 @@ const loadSameNameNodes = async () => {
 // 切换节点
 const switchNode = async (newAddress: string) => {
   const selectedNode = sameNameNodes.value.find(
-    (node) => node.address === newAddress
+    (node) => node.address === newAddress,
   );
   if (!selectedNode) return;
 
@@ -966,12 +966,12 @@ const loadApiDocs = async () => {
       fetchNodeApiDocs(
         nodeInfo.nodeId,
         nodeInfo.nodeAddress,
-        nodeInfo.contextPath
+        nodeInfo.contextPath,
       ),
       fetchNodeSwaggerResources(
         nodeInfo.nodeId,
         nodeInfo.nodeAddress,
-        nodeInfo.contextPath
+        nodeInfo.contextPath,
       ),
     ]);
 
@@ -1061,7 +1061,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           role: "user",
         },
         null,
-        2
+        2,
       );
     } else if (path.includes("product") || path.includes("item")) {
       return JSON.stringify(
@@ -1075,7 +1075,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           tags: ["新品", "热销"],
         },
         null,
-        2
+        2,
       );
     } else if (path.includes("order")) {
       return JSON.stringify(
@@ -1098,7 +1098,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           paymentMethod: "credit_card",
         },
         null,
-        2
+        2,
       );
     } else {
       return JSON.stringify(
@@ -1113,7 +1113,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           },
         },
         null,
-        2
+        2,
       );
     }
   } else if (method === "PUT") {
@@ -1130,7 +1130,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           lastModified: new Date().toISOString(),
         },
         null,
-        2
+        2,
       );
     } else if (path.includes("product") || path.includes("item")) {
       return JSON.stringify(
@@ -1144,7 +1144,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           lastUpdated: new Date().toISOString(),
         },
         null,
-        2
+        2,
       );
     } else {
       return JSON.stringify(
@@ -1157,7 +1157,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           updatedAt: new Date().toISOString(),
         },
         null,
-        2
+        2,
       );
     }
   } else if (method === "PATCH") {
@@ -1169,7 +1169,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           status: "active",
         },
         null,
-        2
+        2,
       );
     } else if (path.includes("product") || path.includes("item")) {
       return JSON.stringify(
@@ -1179,7 +1179,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           description: "部分更新的产品描述",
         },
         null,
-        2
+        2,
       );
     } else {
       return JSON.stringify(
@@ -1188,7 +1188,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
           description: "部分更新的描述",
         },
         null,
-        2
+        2,
       );
     }
   } else {
@@ -1200,7 +1200,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
         timestamp: new Date().toISOString(),
       },
       null,
-      2
+      2,
     );
   }
 };
@@ -1539,7 +1539,7 @@ const generatePythonCode = () => {
         acc[key] = value;
         return acc;
       },
-      {} as Record<string, string>
+      {} as Record<string, string>,
     );
 
   let code = `# Python - 使用 requests 库
@@ -1690,7 +1690,7 @@ const handleHeaderDialogClose = () => {
     ([key, value]) => ({
       key,
       value,
-    })
+    }),
   );
 };
 
@@ -2398,7 +2398,7 @@ watch(showHeaderDialog, (newValue) => {
       ([key, value]) => ({
         key,
         value,
-      })
+      }),
     );
     // 如果没有任何请求头，添加一个空行
     if (tempHeaders.value.length === 0) {
@@ -2409,7 +2409,6 @@ watch(showHeaderDialog, (newValue) => {
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -2442,7 +2441,6 @@ watch(showHeaderDialog, (newValue) => {
     z-index: 1;
   }
 }
-
 
 .node-documentation {
   height: 100vh;
@@ -3601,7 +3599,6 @@ watch(showHeaderDialog, (newValue) => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -3610,5 +3607,4 @@ watch(showHeaderDialog, (newValue) => {
     padding: 12px 16px;
   }
 }
-
 </style>

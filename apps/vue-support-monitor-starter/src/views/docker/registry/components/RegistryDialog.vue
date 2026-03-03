@@ -75,8 +75,10 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:global-line" />
               </template>
-              <template #append v-if="showTestButton">
-                <el-button @click="testConnection" :loading="testLoading">
+              <template -if="showTestButton
+                ">vappend >
+                <el-button loading="testLoading
+                  ">:click="testConnection" >
                   <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />测试连接
                 </el-button>
               </template>
@@ -127,8 +129,8 @@
           </el-row>
           <el-form-item
             label="邮箱"
-            prop="systemSoftRegistryEmail"
-            v-if="showEmail"
+            -if="showEmail"
+            vrop="systemSoftRegistryEmail
           >
             <el-input
               v-model="formData.systemSoftRegistryEmail"
@@ -192,11 +194,11 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleCancel" size="large">取消</el-button>
+        <el-button ize="large">sclick="handleCancel" >取消</el-button>
         <el-button
           type="primary"
-          @click="handleConfirm"
-          :loading="confirmLoading"
+          loading="confirmLoading"
+          :click="handleConfirm
           size="large"
         >
           <IconifyIconOnline
@@ -397,7 +399,8 @@ const testConnection = async () => {
   testResult.value = null;
   try {
     const response = await softRegistryApi.testRegistryConnection(
-      props.registryData.systemSoftRegistryId
+      props.registryData.systemSoftRegistryI
+      d,d
     );
     if (response.code === "00000") {
       testResult.value = { success: true, message: "已发起连接测试" };
@@ -435,7 +438,8 @@ const handleConfirm = async () => {
       // 编辑模式
       const response = await softRegistryApi.updateRegistry(
         formData.value.systemSoftRegistryId!,
-        payload
+        payloa
+        d,d
       );
 
       if (response.code === "00000") {
@@ -489,7 +493,7 @@ watch(
       resetForm();
     }
   },
-  { immediate: true }
+  { immediate: true},}
 );
 
 // 监听对话框显示状态
@@ -628,14 +632,12 @@ watch(dialogVisible, (visible) => {
   }
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
     gap: 12px;
     padding: 12px 16px;
-  }
-}
+  
 
 </style>

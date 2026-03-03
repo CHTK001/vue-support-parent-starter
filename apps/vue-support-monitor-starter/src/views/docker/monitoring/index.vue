@@ -13,16 +13,24 @@
           </div>
         </div>
         <div class="header-actions">
-          <el-button @click="handleRefresh" :loading="loading" class="action-btn">
+          <el-button
+            :loading="loading"
+            class="action-btn"
+            @click="handleRefresh"
+          >
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
           </el-button>
-          <el-button type="success" @click="handleAutoRefresh" class="action-btn">
-            <IconifyIconOnline 
-              :icon="autoRefresh ? 'ri:pause-line' : 'ri:play-line'" 
-              class="mr-1" 
+          <el-button
+            type="success"
+            class="action-btn"
+            @click="handleAutoRefresh"
+          >
+            <IconifyIconOnline
+              :icon="autoRefresh ? 'ri:pause-line' : 'ri:play-line'"
+              class="mr-1"
             />
-            {{ autoRefresh ? '暂停' : '自动刷新' }}
+            {{ autoRefresh ? "暂停" : "自动刷新" }}
           </el-button>
         </div>
       </div>
@@ -97,7 +105,11 @@
     <el-card class="monitoring-table-card">
       <ContainerMonitoringList
         :url="containerApi.getContainerPageList"
-        :params="{ ...searchParams, page: pagination.page, pageSize: pagination.pageSize }"
+        :params="{
+          ...searchParams,
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+        }"
         :loading="loading"
         :pagination="pagination"
         :show-pagination="true"
@@ -116,181 +128,210 @@
 </template>
 
 <script setup lang="ts">
-import { containerApi, getServerList, type ContainerStatusStatistics, type SystemSoftContainer } from '@/api/docker'
+import {
+  containerApi,
+  getServerList,
+  type ContainerStatusStatistics,
+  type SystemSoftContainer,
+} from "@/api/docker";
 import { message } from "@repo/utils";
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
-import ContainerDetailDialog from '../containers/components/ContainerDetailDialog.vue'
-import ContainerMonitoringList from './components/ContainerMonitoringList.vue'
-import ContainerStatusStatsComponent from './components/ContainerStatusStats.vue'
-import MonitoringOverview from './components/MonitoringOverview.vue'
+import { onMounted, onUnmounted, reactive, ref } from "vue";
+import ContainerDetailDialog from "../containers/components/ContainerDetailDialog.vue";
+import ContainerMonitoringList from "./components/ContainerMonitoringList.vue";
+import ContainerStatusStatsComponent from "./components/ContainerStatusStats.vue";
+import MonitoringOverview from "./components/MonitoringOverview.vue";
 
 // 响应式数据
-const loading = ref(false)
-const autoRefresh = ref(false)
-const monitoringList = ref<SystemSoftContainer[]>([])
-const serverOptions = ref<any[]>([])
-const detailDialogVisible = ref(false)
-const currentContainer = ref<SystemSoftContainer | null>(null)
-const containerStats = ref<ContainerStatusStatistics>({ total: 0 })
+const loading = ref(false);
+const autoRefresh = ref(false);
+const monitoringList = ref<SystemSoftContainer[]>([]);
+const serverOptions = ref<any[]>([]);
+const detailDialogVisible = ref(false);
+const currentContainer = ref<SystemSoftContainer | null>(null);
+const containerStats = ref<ContainerStatusStatistics>({ total: 0 });
 
 // 搜索参数
 const searchParams = reactive({
-  keyword: '',
-  status: '',
-  serverId: ''
-})
+  keyword: "",
+  status: "",
+  serverId: "",
+});
 
 // 分页参数
 const pagination = reactive({
   page: 1,
   pageSize: 10,
-  total: 0
-})
+  total: 0,
+});
 
 // 概览统计
 const overviewStats = reactive({
   avgCpuUsage: 0,
   avgMemoryUsage: 0,
   totalContainers: 0,
-  runningContainers: 0
-})
+  runningContainers: 0,
+});
 
 // 定时器
-let refreshTimer: any = null
+let refreshTimer: any = null;
 
 // 基础方法
 const loadMonitoringData = async () => {
   try {
-    loading.value = true
-    const params = { ...searchParams, page: pagination.page, pageSize: pagination.pageSize }
-    Object.keys(params).forEach(key => {
-      if (params[key] === '') delete params[key]
-    })
-    
-    const response = await containerApi.getContainerPageList(params)
-    if (response.code === '00000') {
-      monitoringList.value = response.data.records || []
-      pagination.total = response.data.total || 0
-      calculateOverviewStats()
+    loading.value = true;
+    const params = {
+      ...searchParams,
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+    };
+    Object.keys(params).forEach((key) => {
+      if (params[key] === "") delete params[key];
+    });
+
+    const response = await containerApi.getContainerPageList(params);
+    if (response.code === "00000") {
+      monitoringList.value = response.data.records || [];
+      pagination.total = response.data.total || 0;
+      calculateOverviewStats();
     }
   } catch (error) {
-    message('加载监控数据失败', { type: "error" })
+    message("加载监控数据失败", { type: "error" });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // 加载容器状态统计
 const loadContainerStats = async () => {
   try {
-    const response = await containerApi.getContainerStatusStats()
-    if (response.code === '00000') {
-      containerStats.value = response.data || { total: 0 }
+    const response = await containerApi.getContainerStatusStats();
+    if (response.code === "00000") {
+      containerStats.value = response.data || { total: 0 };
     }
   } catch (error) {
-    console.error('加载容器状态统计失败:', error)
+    console.error("加载容器状态统计失败:", error);
   }
-}
+};
 
 const calculateOverviewStats = () => {
   if (monitoringList.value.length === 0) {
-    overviewStats.avgCpuUsage = 0
-    overviewStats.avgMemoryUsage = 0
-    overviewStats.totalContainers = 0
-    overviewStats.runningContainers = 0
-    return
+    overviewStats.avgCpuUsage = 0;
+    overviewStats.avgMemoryUsage = 0;
+    overviewStats.totalContainers = 0;
+    overviewStats.runningContainers = 0;
+    return;
   }
 
   // 计算平均CPU和内存使用率
-  const cpuSum = monitoringList.value.reduce((sum, container) => 
-    sum + (container.systemSoftContainerCpuPercent || container.systemSoftContainerCpuUsage || 0), 0)
-  
-  const memorySum = monitoringList.value.reduce((sum, container) => 
-    sum + (container.systemSoftContainerMemoryPercent || container.systemSoftContainerMemoryUsage || 0), 0)
-  
-  overviewStats.avgCpuUsage = cpuSum / monitoringList.value.length
-  overviewStats.avgMemoryUsage = memorySum / monitoringList.value.length
-  
+  const cpuSum = monitoringList.value.reduce(
+    (sum, container) =>
+      sum +
+      (container.systemSoftContainerCpuPercent ||
+        container.systemSoftContainerCpuUsage ||
+        0),
+    0,
+  );
+
+  const memorySum = monitoringList.value.reduce(
+    (sum, container) =>
+      sum +
+      (container.systemSoftContainerMemoryPercent ||
+        container.systemSoftContainerMemoryUsage ||
+        0),
+    0,
+  );
+
+  overviewStats.avgCpuUsage = cpuSum / monitoringList.value.length;
+  overviewStats.avgMemoryUsage = memorySum / monitoringList.value.length;
+
   // 计算容器总数和运行中容器数
-  overviewStats.totalContainers = monitoringList.value.length
+  overviewStats.totalContainers = monitoringList.value.length;
   overviewStats.runningContainers = monitoringList.value.filter(
-    container => container.systemSoftContainerStatus === 'running'
-  ).length
-}
+    (container) => container.systemSoftContainerStatus === "running",
+  ).length;
+};
 
 const handleRefresh = () => {
-  loadMonitoringData()
-  loadContainerStats()
-}
+  loadMonitoringData();
+  loadContainerStats();
+};
 
 const handleAutoRefresh = () => {
-  autoRefresh.value = !autoRefresh.value
+  autoRefresh.value = !autoRefresh.value;
   if (autoRefresh.value) {
-    startAutoRefresh()
+    startAutoRefresh();
   } else {
-    stopAutoRefresh()
+    stopAutoRefresh();
   }
-}
+};
 
 const startAutoRefresh = () => {
   if (refreshTimer) {
-    clearInterval(refreshTimer)
+    clearInterval(refreshTimer);
   }
-  
+
   refreshTimer = setInterval(() => {
     if (autoRefresh.value) {
-      loadMonitoringData()
-      loadContainerStats()
+      loadMonitoringData();
+      loadContainerStats();
     }
-  }, 5000) // 每5秒刷新一次
-}
+  }, 5000); // 每5秒刷新一次
+};
 
 const stopAutoRefresh = () => {
   if (refreshTimer) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
+    clearInterval(refreshTimer);
+    refreshTimer = null;
   }
-}
+};
 
-const handleSearch = () => { pagination.page = 1; loadMonitoringData() }
+const handleSearch = () => {
+  pagination.page = 1;
+  loadMonitoringData();
+};
 
 // 容器操作
 const viewContainerDetail = (container: SystemSoftContainer) => {
-  currentContainer.value = container
-  detailDialogVisible.value = true
-}
+  currentContainer.value = container;
+  detailDialogVisible.value = true;
+};
 
 // 分页处理
-const handleSizeChange = (size: number) => { pagination.pageSize = size; loadMonitoringData() }
-const handleCurrentChange = (page: number) => { pagination.page = page; loadMonitoringData() }
+const handleSizeChange = (size: number) => {
+  pagination.pageSize = size;
+  loadMonitoringData();
+};
+const handleCurrentChange = (page: number) => {
+  pagination.page = page;
+  loadMonitoringData();
+};
 
 // 加载服务器列表
 const loadServers = async () => {
   try {
-    const response = await getServerList()
-    if (response.code === '00000') {
-      serverOptions.value = response.data || []
+    const response = await getServerList();
+    if (response.code === "00000") {
+      serverOptions.value = response.data || [];
     }
   } catch (error) {
-    console.error('加载服务器列表失败:', error)
+    console.error("加载服务器列表失败:", error);
   }
-}
+};
 
 // 组件挂载
 onMounted(() => {
-  loadMonitoringData()
-  loadContainerStats()
-  loadServers()
-})
+  loadMonitoringData();
+  loadContainerStats();
+  loadServers();
+});
 
 // 组件卸载
 onUnmounted(() => {
-  stopAutoRefresh()
-})
+  stopAutoRefresh();
+});
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -323,7 +364,6 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
-
 
 .container-monitoring {
   padding: 0;
@@ -451,7 +491,7 @@ onUnmounted(() => {
     .search-input {
       width: 220px;
     }
-    
+
     .filter-select {
       width: 120px;
     }
@@ -496,27 +536,27 @@ onUnmounted(() => {
   .monitoring-table-card {
     margin: 12px 16px 16px;
   }
-  
+
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .search-bar {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .search-left {
     flex-direction: column;
   }
-  
+
   .search-input,
   .filter-select {
     width: 100%;
   }
-  
+
   .header-right {
     flex-direction: column;
     width: 100%;

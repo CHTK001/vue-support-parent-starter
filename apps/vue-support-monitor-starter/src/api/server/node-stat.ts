@@ -10,13 +10,33 @@
 
 import { t } from "@repo/config";
 import { http } from "@repo/utils";
-import { parseTime, formatPercent2, renderSize, formatDuration } from "@/utils/const";
+import {
+  parseTime,
+  formatPercent2,
+  renderSize,
+  formatDuration,
+} from "@/utils/const";
 import * as echarts from "echarts/core";
-import { GridComponent, TitleComponent, LegendComponent, TooltipComponent, DataZoomComponent } from "echarts/components";
+import {
+  GridComponent,
+  TitleComponent,
+  LegendComponent,
+  TooltipComponent,
+  DataZoomComponent,
+} from "echarts/components";
 import { LineChart } from "echarts/charts";
 import { UniversalTransition } from "echarts/features";
 import { CanvasRenderer } from "echarts/renderers";
-echarts.use([GridComponent, LineChart, CanvasRenderer, UniversalTransition, TitleComponent, LegendComponent, TooltipComponent, DataZoomComponent]);
+echarts.use([
+  GridComponent,
+  LineChart,
+  CanvasRenderer,
+  UniversalTransition,
+  TitleComponent,
+  LegendComponent,
+  TooltipComponent,
+  DataZoomComponent,
+]);
 
 // 获取机器信息
 export function machineInfo(params) {
@@ -58,7 +78,17 @@ const defaultData = {
   legend: {
     // data: legends,
   },
-  color: ["#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de", "#3ba272", "#fc8452", "#9a60b4", "#ea7ccc"],
+  color: [
+    "#5470c6",
+    "#91cc75",
+    "#fac858",
+    "#ee6666",
+    "#73c0de",
+    "#3ba272",
+    "#fc8452",
+    "#9a60b4",
+    "#ea7ccc",
+  ],
   grid: {
     left: "1%",
     right: "2%",
@@ -181,7 +211,12 @@ export function generateNodeTopChart(data) {
       formatter: function (params) {
         let html = params[0].name + "<br>";
         for (let i = 0; i < params.length; i++) {
-          html += params[i].marker + params[i].seriesName + ":" + formatPercent2(params[i].value) + "<br>";
+          html +=
+            params[i].marker +
+            params[i].seriesName +
+            ":" +
+            formatPercent2(params[i].value) +
+            "<br>";
         }
         return html;
       },
@@ -250,7 +285,12 @@ export function generateNodeNetChart(data) {
       formatter: function (params) {
         let html = params[0].name + "<br>";
         for (let i = 0; i < params.length; i++) {
-          html += params[i].marker + params[i].seriesName + ":" + renderSize(params[i].value) + "/s <br>";
+          html +=
+            params[i].marker +
+            params[i].seriesName +
+            ":" +
+            renderSize(params[i].value) +
+            "/s <br>";
         }
         return html;
       },
@@ -308,7 +348,12 @@ export function generateNodeNetworkTimeChart(data) {
       formatter: function (params) {
         let html = params[0].name + "<br>";
         for (let i = 0; i < params.length; i++) {
-          html += params[i].marker + params[i].seriesName + ":" + formatDuration(params[i].value) + " <br>";
+          html +=
+            params[i].marker +
+            params[i].seriesName +
+            ":" +
+            formatDuration(params[i].value) +
+            " <br>";
         }
         return html;
       },

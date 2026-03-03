@@ -16,21 +16,31 @@
             <div class="card-header">
               <span>服务器信息</span>
               <el-tag
-                :type="getConnectionStatusType(serverInfo?.monitorSysGenServerConnectionStatus)"
+                :type="
+                  getConnectionStatusType(
+                    serverInfo?.monitorSysGenServerConnectionStatus,
+                  )
+                "
                 size="small"
                 effect="light"
               >
-                {{ getConnectionStatusText(serverInfo?.monitorSysGenServerConnectionStatus) }}
+                {{
+                  getConnectionStatusText(
+                    serverInfo?.monitorSysGenServerConnectionStatus,
+                  )
+                }}
               </el-tag>
             </div>
           </template>
-          
+
           <el-descriptions v-if="serverInfo" :column="3" border>
             <el-descriptions-item label="服务器名称">
               {{ serverInfo.monitorSysGenServerName }}
             </el-descriptions-item>
             <el-descriptions-item label="地址">
-              {{ serverInfo.monitorSysGenServerHost }}:{{ serverInfo.monitorSysGenServerPort }}
+              {{ serverInfo.monitorSysGenServerHost }}:{{
+                serverInfo.monitorSysGenServerPort
+              }}
             </el-descriptions-item>
             <el-descriptions-item label="协议">
               {{ serverInfo.monitorSysGenServerProtocol }}
@@ -44,10 +54,12 @@
               />
             </el-descriptions-item>
             <el-descriptions-item label="最后连接时间">
-              {{ formatDateTime(serverInfo.monitorSysGenServerLastConnectTime) }}
+              {{
+                formatDateTime(serverInfo.monitorSysGenServerLastConnectTime)
+              }}
             </el-descriptions-item>
             <el-descriptions-item label="描述">
-              {{ serverInfo.monitorSysGenServerDesc || '无' }}
+              {{ serverInfo.monitorSysGenServerDesc || "无" }}
             </el-descriptions-item>
           </el-descriptions>
         </el-card>
@@ -84,7 +96,9 @@
                   <IconifyIconOnline icon="ri:database-line" />
                 </div>
                 <div class="metric-info">
-                  <div class="metric-value">{{ currentMetrics.memoryUsage }}%</div>
+                  <div class="metric-value">
+                    {{ currentMetrics.memoryUsage }}%
+                  </div>
                   <div class="metric-label">内存使用率</div>
                 </div>
               </div>
@@ -105,7 +119,9 @@
                   <IconifyIconOnline icon="ri:hard-drive-line" />
                 </div>
                 <div class="metric-info">
-                  <div class="metric-value">{{ currentMetrics.diskUsage }}%</div>
+                  <div class="metric-value">
+                    {{ currentMetrics.diskUsage }}%
+                  </div>
                   <div class="metric-label">磁盘使用率</div>
                 </div>
               </div>
@@ -118,7 +134,7 @@
               />
             </el-card>
           </el-col>
-          
+
           <el-col :span="6">
             <el-card class="metric-card">
               <div class="metric-content">
@@ -126,7 +142,9 @@
                   <IconifyIconOnline icon="ri:speed-line" />
                 </div>
                 <div class="metric-info">
-                  <div class="metric-value">{{ currentMetrics.loadAverage.toFixed(2) }}</div>
+                  <div class="metric-value">
+                    {{ currentMetrics.loadAverage.toFixed(2) }}
+                  </div>
                   <div class="metric-label">负载平均值</div>
                 </div>
               </div>
@@ -146,7 +164,7 @@
               </div>
             </div>
           </el-tab-pane>
-          
+
           <el-tab-pane label="内存监控" name="memory">
             <div class="chart-container">
               <div class="chart-placeholder">
@@ -155,7 +173,7 @@
               </div>
             </div>
           </el-tab-pane>
-          
+
           <el-tab-pane label="磁盘监控" name="disk">
             <div class="chart-container">
               <div class="chart-placeholder">
@@ -164,7 +182,7 @@
               </div>
             </div>
           </el-tab-pane>
-          
+
           <el-tab-pane label="网络监控" name="network">
             <div class="chart-container">
               <div class="chart-placeholder">
@@ -181,23 +199,23 @@
       <div class="actions-section">
         <el-button
           type="primary"
-          @click="handleCollectMetrics"
           :loading="collecting"
+          @click="handleCollectMetrics"
         >
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           手动收集
         </el-button>
-        
+
         <el-button @click="handleExportData">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           导出数据
         </el-button>
-        
+
         <el-button @click="handleViewHistory">
           <IconifyIconOnline icon="ri:history-line" class="mr-1" />
           历史记录
         </el-button>
-        
+
         <el-switch
           v-model="autoRefresh"
           active-text="自动刷新"
@@ -210,11 +228,18 @@
 </template>
 
 <script setup lang="ts">
-import { ScProgress } from '@repo/components'
+import { ScProgress } from "@repo/components";
 import { ref, reactive, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
-import { collectServerMetrics, enableServerMonitoring, disableServerMonitoring } from "@/api/server";
-import { getConnectionStatusColor, getConnectionStatusText } from "@/api/server/connection-status";
+import {
+  collectServerMetrics,
+  enableServerMonitoring,
+  disableServerMonitoring,
+} from "@/api/server";
+import {
+  getConnectionStatusColor,
+  getConnectionStatusText,
+} from "@/api/server/connection-status";
 import type { ServerInfo } from "@/api/server";
 
 // 响应式状态
@@ -258,24 +283,25 @@ const getConnectionStatusText = (status?: number) => {
 /**
  * 获取进度条颜色（支持渐变和不同指标类型）
  */
-const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
+const getProgressColor = (percentage: number, metricType: string = "cpu") => {
   // 定义不同指标的阈值
   const thresholds = {
     cpu: { normal: 50, warning: 80, critical: 90 },
     memory: { normal: 60, warning: 80, critical: 90 },
     disk: { normal: 70, warning: 85, critical: 95 },
-    network: { normal: 60, warning: 80, critical: 90 }
+    network: { normal: 60, warning: 80, critical: 90 },
   };
 
-  const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
+  const threshold =
+    thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
 
   // 返回渐变色配置
   return [
-    { color: '#67c23a', percentage: threshold.normal },
-    { color: '#e6a23c', percentage: threshold.warning },
-    { color: '#f56c6c', percentage: 100 }
-  ]
-}
+    { color: "#67c23a", percentage: threshold.normal },
+    { color: "#e6a23c", percentage: threshold.warning },
+    { color: "#f56c6c", percentage: 100 },
+  ];
+};
 
 /**
  * ScProgress 阶段颜色
@@ -286,14 +312,14 @@ const getProgressStages = (metricType: string) => {
     memory: { normal: 60, warning: 85, critical: 100 },
     disk: { normal: 70, warning: 85, critical: 100 },
     network: { normal: 60, warning: 80, critical: 100 },
-  } as const
-  const t = (thresholds as any)[metricType] || thresholds.cpu
+  } as const;
+  const t = (thresholds as any)[metricType] || thresholds.cpu;
   return [
-    { threshold: t.normal, color: '#67c23a' },
-    { threshold: t.warning, color: '#e6a23c' },
-    { threshold: t.critical, color: '#f56c6c' }
-  ]
-}
+    { threshold: t.normal, color: "#67c23a" },
+    { threshold: t.warning, color: "#e6a23c" },
+    { threshold: t.critical, color: "#f56c6c" },
+  ];
+};
 
 /**
  * 格式化字节
@@ -320,10 +346,10 @@ const formatDateTime = (dateTime?: string) => {
 const open = (server: ServerInfo) => {
   serverInfo.value = server;
   visible.value = true;
-  
+
   // 加载初始数据
   loadMetrics();
-  
+
   // 如果启用了自动刷新，开始定时器
   if (autoRefresh.value) {
     startAutoRefresh();
@@ -335,7 +361,7 @@ const open = (server: ServerInfo) => {
  */
 const loadMetrics = async () => {
   if (!serverInfo.value) return;
-  
+
   try {
     // 这里应该调用获取服务器指标的API
     // 暂时使用模拟数据
@@ -348,13 +374,13 @@ const loadMetrics = async () => {
       loadAverage: Math.random() * 4,
       uptime: Math.floor(Math.random() * 86400),
     });
-    
+
     // 添加到历史记录
     metricsHistory.value.push({
       timestamp: new Date(),
       ...currentMetrics,
     });
-    
+
     // 保持最近100条记录
     if (metricsHistory.value.length > 100) {
       metricsHistory.value.shift();
@@ -369,13 +395,17 @@ const loadMetrics = async () => {
  */
 const handleMonitorToggle = async (enabled: number) => {
   if (!serverInfo.value) return;
-  
+
   try {
     if (enabled === 1) {
-      await enableServerMonitoring(serverInfo.value.monitorSysGenServerId.toString());
+      await enableServerMonitoring(
+        serverInfo.value.monitorSysGenServerId.toString(),
+      );
       message.success("监控已启用");
     } else {
-      await disableServerMonitoring(serverInfo.value.monitorSysGenServerId.toString());
+      await disableServerMonitoring(
+        serverInfo.value.monitorSysGenServerId.toString(),
+      );
       message.success("监控已禁用");
     }
   } catch (error) {
@@ -391,10 +421,12 @@ const handleMonitorToggle = async (enabled: number) => {
  */
 const handleCollectMetrics = async () => {
   if (!serverInfo.value) return;
-  
+
   try {
     collecting.value = true;
-    await collectServerMetrics(serverInfo.value.monitorSysGenServerId.toString());
+    await collectServerMetrics(
+      serverInfo.value.monitorSysGenServerId.toString(),
+    );
     await loadMetrics();
     message.success("指标收集成功");
   } catch (error) {
@@ -413,14 +445,14 @@ const handleExportData = () => {
     message.warning("暂无数据可导出");
     return;
   }
-  
+
   try {
     const csvContent = generateCSV();
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `server-metrics-${serverInfo.value?.monitorSysGenServerName}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `server-metrics-${serverInfo.value?.monitorSysGenServerName}-${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
     message.success("数据导出成功");
@@ -434,8 +466,16 @@ const handleExportData = () => {
  * 生成CSV内容
  */
 const generateCSV = () => {
-  const headers = ["时间", "CPU使用率", "内存使用率", "磁盘使用率", "网络入站", "网络出站", "负载平均值"];
-  const rows = metricsHistory.value.map(item => [
+  const headers = [
+    "时间",
+    "CPU使用率",
+    "内存使用率",
+    "磁盘使用率",
+    "网络入站",
+    "网络出站",
+    "负载平均值",
+  ];
+  const rows = metricsHistory.value.map((item) => [
     item.timestamp.toISOString(),
     item.cpuUsage,
     item.memoryUsage,
@@ -444,8 +484,8 @@ const generateCSV = () => {
     item.networkOut,
     item.loadAverage,
   ]);
-  
-  return [headers, ...rows].map(row => row.join(",")).join("\n");
+
+  return [headers, ...rows].map((row) => row.join(",")).join("\n");
 };
 
 /**
@@ -472,7 +512,7 @@ const handleAutoRefreshToggle = (enabled: boolean) => {
  */
 const startAutoRefresh = () => {
   if (refreshTimer) return;
-  
+
   refreshTimer = setInterval(() => {
     loadMetrics();
   }, 5000); // 每5秒刷新一次
@@ -505,7 +545,10 @@ onMounted(() => {
 onUnmounted(() => {
   stopAutoRefresh();
   // 保存自动刷新设置
-  localStorage.setItem("monitor-auto-refresh", JSON.stringify(autoRefresh.value));
+  localStorage.setItem(
+    "monitor-auto-refresh",
+    JSON.stringify(autoRefresh.value),
+  );
 });
 </script>
 
@@ -574,7 +617,7 @@ onUnmounted(() => {
 
           .metric-label {
             font-size: 12px;
-             color: var(--el-text-color-primary);
+            color: var(--el-text-color-primary);
             margin-top: 4px;
           }
         }
@@ -593,7 +636,7 @@ onUnmounted(() => {
 
       .chart-placeholder {
         text-align: center;
-         color: var(--el-text-color-primary);
+        color: var(--el-text-color-primary);
         background: var(--el-bg-color-overlay);
         border-radius: 8px;
         padding: 40px;
@@ -621,7 +664,6 @@ onUnmounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -630,5 +672,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -65,15 +65,15 @@
         </el-button>
         <!-- 面包屑与上级 -->
         <div class="crumbs">
-          <el-button size="small" @click="goUp" :disabled="!canGoUp"
+          <el-button size="small" :disabled="!canGoUp" @click="goUp"
             >上级</el-button
           >
           <el-breadcrumb separator="/" class="bc">
             <el-breadcrumb-item
               v-for="(c, i) in crumbs"
               :key="i"
-              @click="onCrumbClick(i)"
               class="bc-item"
+              @click="onCrumbClick(i)"
             >
               {{ c.name || "/" }}
             </el-breadcrumb-item>
@@ -121,14 +121,14 @@
           <span class="gap" />
           <el-button
             size="small"
-            @click="goPrevPage"
             :disabled="pager.page <= 1"
+            @click="goPrevPage"
             >上一页</el-button
           >
           <el-button
             size="small"
-            @click="goNextPage"
             :disabled="previewItems.length < pager.limit"
+            @click="goNextPage"
             >下一页</el-button
           >
         </div>
@@ -372,7 +372,7 @@ const iconModules = import.meta.glob("@/assets/images/*.{png,webp,svg}", {
 // 创建文件图标管理器
 const iconManager = createFileIconManager(
   iconModules,
-  iconModules["/src/assets/images/unknown.png"] || ""
+  iconModules["/src/assets/images/unknown.png"] || "",
 );
 
 const serverInfo = ref<SystemServer | any>({});
@@ -512,7 +512,9 @@ async function onDrop(e: DragEvent) {
 
     // 检查文件大小
     if (file.size > maxSize) {
-      message(`文件 ${file.name} 超过10MB限制，请使用分片上传`, { type: "warning" });
+      message(`文件 ${file.name} 超过10MB限制，请使用分片上传`, {
+        type: "warning",
+      });
       continue;
     }
 
@@ -545,7 +547,9 @@ async function onDrop(e: DragEvent) {
     } catch (err: any) {
       uploadItem.progress = 100;
       uploadItem.status = "exception";
-      message(`${file.name} 上传失败: ${err?.message || "未知错误"}`, { type: "error" });
+      message(`${file.name} 上传失败: ${err?.message || "未知错误"}`, {
+        type: "error",
+      });
     }
 
     // 3秒后移除上传项
@@ -917,7 +921,7 @@ async function fetchPreviewItems() {
       s,
       currentPath.value,
       pager.value.limit,
-      pager.value.marker || ""
+      pager.value.marker || "",
     );
     const now = Date.now();
     const cached = listCache.get(key);
@@ -934,7 +938,7 @@ async function fetchPreviewItems() {
     params.append("endpoint", s.fileStorageEndpoint || "");
     params.append(
       "basePath",
-      currentPath.value || s.fileStorageBasePath || "/"
+      currentPath.value || s.fileStorageBasePath || "/",
     );
     // 通过 limit 控制后端返回条数
     params.append("limit", String(pager.value.limit));
@@ -1002,12 +1006,11 @@ watch(
   () => {
     updateUrlQuery();
   },
-  { flush: "post" }
+  { flush: "post" },
 );
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -1040,7 +1043,6 @@ watch(
     z-index: 1;
   }
 }
-
 
 .fs-full {
   display: grid;
@@ -1766,7 +1768,6 @@ watch(
   }
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -1775,5 +1776,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>

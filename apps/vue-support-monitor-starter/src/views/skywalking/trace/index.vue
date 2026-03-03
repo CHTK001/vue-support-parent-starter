@@ -12,7 +12,12 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-select v-model="filterForm.configId" placeholder="选择配置" @change="handleConfigChange" style="width: 160px">
+        <el-select
+          v-model="filterForm.configId"
+          placeholder="选择配置"
+          style="width: 160px"
+          @change="handleConfigChange"
+        >
           <el-option
             v-for="item in configList"
             :key="item.skywalkingConfigId"
@@ -20,10 +25,26 @@
             :value="item.skywalkingConfigId"
           />
         </el-select>
-        <el-select v-model="filterForm.serviceId" placeholder="选择服务" clearable filterable style="width: 160px">
-          <el-option v-for="item in serviceList" :key="item.id" :label="item.name" :value="item.id" />
+        <el-select
+          v-model="filterForm.serviceId"
+          placeholder="选择服务"
+          clearable
+          filterable
+          style="width: 160px"
+        >
+          <el-option
+            v-for="item in serviceList"
+            :key="item.id"
+            :label="item.name"
+            :value="item.id"
+          />
         </el-select>
-        <el-input v-model="filterForm.traceId" placeholder="TraceID" clearable style="width: 200px" />
+        <el-input
+          v-model="filterForm.traceId"
+          placeholder="TraceID"
+          clearable
+          style="width: 200px"
+        />
         <el-date-picker
           v-model="timeRange"
           type="datetimerange"
@@ -32,37 +53,49 @@
           end-placeholder="结束"
           format="MM-DD HH:mm"
           value-format="YYYY-MM-DD HHmm"
-          @change="handleTimeChange"
           style="width: 260px"
+          @change="handleTimeChange"
         />
-        <el-select v-model="filterForm.traceState" placeholder="状态" style="width: 100px">
+        <el-select
+          v-model="filterForm.traceState"
+          placeholder="状态"
+          style="width: 100px"
+        >
           <el-option label="全部" value="ALL" />
           <el-option label="成功" value="SUCCESS" />
           <el-option label="错误" value="ERROR" />
         </el-select>
-        <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+        <el-button type="primary" :icon="Search" @click="handleSearch"
+          >查询</el-button
+        >
         <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
       </div>
     </div>
 
     <!-- 表格区域 -->
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="tableData" border stripe @row-click="handleRowClick">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        stripe
+        @row-click="handleRowClick"
+      >
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.isError ? 'danger' : 'success'" size="small">
-              {{ row.isError ? '错误' : '成功' }}
+              {{ row.isError ? "错误" : "成功" }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="Trace ID" min-width="300">
           <template #default="{ row }">
-            <span class="trace-id">{{ row.traceIds?.[0] || '-' }}</span>
+            <span class="trace-id">{{ row.traceIds?.[0] || "-" }}</span>
           </template>
         </el-table-column>
         <el-table-column label="端点" min-width="300" show-overflow-tooltip>
           <template #default="{ row }">
-            {{ row.endpointNames?.join(', ') || '-' }}
+            {{ row.endpointNames?.join(", ") || "-" }}
           </template>
         </el-table-column>
         <el-table-column prop="duration" label="耗时" width="120" align="right">
@@ -96,7 +129,10 @@ import { ref, reactive, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Search, RefreshRight, Connection } from "@element-plus/icons-vue";
-import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
+import {
+  getEnabledSkywalkingConfigs,
+  type SkywalkingConfig,
+} from "@/api/skywalking/config";
 import {
   getSkywalkingServices,
   querySkywalkingTraces,
@@ -259,7 +295,6 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -276,8 +311,6 @@ onMounted(async () => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -312,7 +345,6 @@ onMounted(async () => {
   }
 }
 
-
 .skywalking-trace {
   padding: 20px;
   min-height: 100vh;
@@ -340,7 +372,7 @@ onMounted(async () => {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
+        background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
         border-radius: 10px;
         color: #fff;
       }
@@ -417,7 +449,6 @@ onMounted(async () => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -426,5 +457,4 @@ onMounted(async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

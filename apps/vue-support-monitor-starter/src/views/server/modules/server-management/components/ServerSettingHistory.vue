@@ -11,21 +11,17 @@
           {{ serverInfo.monitorSysGenServerName }}
         </el-tag>
       </div>
-      
+
       <div class="header-right">
         <el-button-group>
-          <el-button 
-            size="small" 
-            @click="handleRefresh"
-            :loading="loading"
-          >
+          <el-button size="small" :loading="loading" @click="handleRefresh">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
           </el-button>
-          <el-button 
-            size="small" 
-            @click="handleExport"
+          <el-button
+            size="small"
             :loading="exportLoading"
+            @click="handleExport"
           >
             <IconifyIconOnline icon="ri:download-line" class="mr-1" />
             导出
@@ -35,7 +31,7 @@
     </div>
 
     <!-- 统计信息卡片 -->
-    <div class="statistics-cards" v-if="statistics">
+    <div v-if="statistics" class="statistics-cards">
       <el-row :gutter="16">
         <el-col :span="6">
           <el-card class="stat-card">
@@ -52,7 +48,10 @@
               <div class="stat-value">{{ statistics.createCount || 0 }}</div>
               <div class="stat-label">创建次数</div>
             </div>
-            <IconifyIconOnline icon="ri:add-circle-line" class="stat-icon create" />
+            <IconifyIconOnline
+              icon="ri:add-circle-line"
+              class="stat-icon create"
+            />
           </el-card>
         </el-col>
         <el-col :span="6">
@@ -61,7 +60,10 @@
               <div class="stat-value">{{ statistics.updateCount || 0 }}</div>
               <div class="stat-label">更新次数</div>
             </div>
-            <IconifyIconOnline icon="ri:edit-circle-line" class="stat-icon update" />
+            <IconifyIconOnline
+              icon="ri:edit-circle-line"
+              class="stat-icon update"
+            />
           </el-card>
         </el-col>
         <el-col :span="6">
@@ -70,7 +72,10 @@
               <div class="stat-value">{{ statistics.deleteCount || 0 }}</div>
               <div class="stat-label">删除次数</div>
             </div>
-            <IconifyIconOnline icon="ri:delete-bin-line" class="stat-icon delete" />
+            <IconifyIconOnline
+              icon="ri:delete-bin-line"
+              class="stat-icon delete"
+            />
           </el-card>
         </el-col>
       </el-row>
@@ -80,21 +85,21 @@
     <div class="filter-bar">
       <el-form :model="filterForm" inline>
         <el-form-item label="变更类型">
-          <el-select 
-            v-model="filterForm.changeType" 
+          <el-select
+            v-model="filterForm.changeType"
             placeholder="全部类型"
             clearable
             @change="handleFilter"
           >
-            <el-option 
-              v-for="(name, type) in ChangeTypeNames" 
+            <el-option
+              v-for="(name, type) in ChangeTypeNames"
               :key="type"
-              :label="name" 
+              :label="name"
               :value="type"
             />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="时间范围">
           <el-date-picker
             v-model="filterForm.timeRange"
@@ -107,7 +112,7 @@
             @change="handleFilter"
           />
         </el-form-item>
-        
+
         <el-form-item label="变更用户">
           <el-input
             v-model="filterForm.changeUser"
@@ -121,12 +126,12 @@
 
     <!-- 历史记录列表 -->
     <div class="history-list">
-      <el-table 
-        :data="historyList" 
+      <el-table
         v-loading="loading"
+        :data="historyList"
         stripe
+        style="cursor: pointer"
         @row-click="handleRowClick"
-        style="cursor: pointer;"
       >
         <el-table-column prop="changeTime" label="变更时间" width="180">
           <template #default="{ row }">
@@ -136,62 +141,63 @@
             </div>
           </template>
         </el-table-column>
-        
+
         <el-table-column prop="changeType" label="变更类型" width="100">
           <template #default="{ row }">
-            <el-tag 
-              :type="ChangeTypeColors[row.changeType]" 
-              size="small"
-            >
+            <el-tag :type="ChangeTypeColors[row.changeType]" size="small">
               {{ ChangeTypeNames[row.changeType] }}
             </el-tag>
           </template>
         </el-table-column>
-        
-        <el-table-column prop="changeDescription" label="变更描述" min-width="200">
+
+        <el-table-column
+          prop="changeDescription"
+          label="变更描述"
+          min-width="200"
+        >
           <template #default="{ row }">
             <div class="description-cell">
               {{ row.changeDescription }}
             </div>
           </template>
         </el-table-column>
-        
+
         <el-table-column prop="changeUser" label="变更用户" width="120">
           <template #default="{ row }">
             <div class="user-cell">
               <IconifyIconOnline icon="ri:user-line" class="mr-1" />
-              {{ row.changeUser || '系统' }}
+              {{ row.changeUser || "系统" }}
             </div>
           </template>
         </el-table-column>
-        
+
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button-group>
-              <el-button 
-                type="primary" 
-                text 
+              <el-button
+                type="primary"
+                text
                 size="small"
                 @click.stop="handleViewDetail(row)"
               >
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详情
               </el-button>
-              
-              <el-button 
+
+              <el-button
                 v-if="row.settingSnapshot"
-                type="warning" 
-                text 
+                type="warning"
+                text
                 size="small"
                 @click.stop="handleRestore(row)"
               >
                 <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
                 恢复
               </el-button>
-              
-              <el-button 
-                type="info" 
-                text 
+
+              <el-button
+                type="info"
+                text
                 size="small"
                 @click.stop="handleCompare(row)"
               >
@@ -202,7 +208,7 @@
           </template>
         </el-table-column>
       </el-table>
-      
+
       <!-- 分页 -->
       <div class="pagination-wrapper">
         <el-pagination
@@ -258,7 +264,7 @@ const ChangeTypeNames = {
   CREATE: "创建",
   UPDATE: "更新",
   DELETE: "删除",
-  RESTORE: "恢复"
+  RESTORE: "恢复",
 } as const;
 
 // 变更类型颜色
@@ -266,7 +272,7 @@ const ChangeTypeColors = {
   CREATE: "success",
   UPDATE: "primary",
   DELETE: "danger",
-  RESTORE: "warning"
+  RESTORE: "warning",
 } as const;
 
 // 定义属性
@@ -296,14 +302,14 @@ const compareDialogVisible = ref(false);
 const filterForm = reactive({
   changeType: "",
   timeRange: [] as string[],
-  changeUser: ""
+  changeUser: "",
 });
 
 // 分页
 const pagination = reactive({
   page: 1,
   pageSize: 20,
-  total: 0
+  total: 0,
 });
 
 /**
@@ -313,9 +319,12 @@ const loadHistoryList = async () => {
   try {
     loading.value = true;
 
-    const result = await getServerSettingHistory(props.serverId, pagination.pageSize);
+    const result = await getServerSettingHistory(
+      props.serverId,
+      pagination.pageSize,
+    );
 
-    if (result.code === '00000') {
+    if (result.code === "00000") {
       historyList.value = result.data || [];
       pagination.total = result.data?.length || 0;
     }
@@ -336,11 +345,15 @@ const loadStatistics = async () => {
       const stats = {
         totalCount: historyList.value.length,
         serverCount: 1,
-        createCount: historyList.value.filter(h => h.changeType === 'CREATE').length,
-        updateCount: historyList.value.filter(h => h.changeType === 'UPDATE').length,
-        deleteCount: historyList.value.filter(h => h.changeType === 'DELETE').length,
-        latestChangeTime: historyList.value[0]?.time || '',
-        earliestChangeTime: historyList.value[historyList.value.length - 1]?.time || ''
+        createCount: historyList.value.filter((h) => h.changeType === "CREATE")
+          .length,
+        updateCount: historyList.value.filter((h) => h.changeType === "UPDATE")
+          .length,
+        deleteCount: historyList.value.filter((h) => h.changeType === "DELETE")
+          .length,
+        latestChangeTime: historyList.value[0]?.time || "",
+        earliestChangeTime:
+          historyList.value[historyList.value.length - 1]?.time || "",
       };
       statistics.value = stats;
     }
@@ -375,10 +388,12 @@ const handleExport = async () => {
     const exportData = {
       serverId: props.serverId,
       exportTime: new Date().toISOString(),
-      historyList: historyList.value
+      historyList: historyList.value,
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -430,10 +445,10 @@ const handleRestore = async (row: ServerSettingHistory) => {
       {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-        type: "warning"
-      }
+        type: "warning",
+      },
     );
-    
+
     // 简化恢复功能，只是提示用户手动恢复
     message.info("请根据历史记录信息手动恢复配置");
     emit("restored", row.id);
@@ -457,7 +472,9 @@ const handleCompare = (row: ServerSettingHistory) => {
  * 处理从详情恢复
  */
 const handleRestoreFromDetail = (historyId: number) => {
-  const history = historyList.value.find(h => h.monitorSysGenServerSettingHistoryId === historyId);
+  const history = historyList.value.find(
+    (h) => h.monitorSysGenServerSettingHistoryId === historyId,
+  );
   if (history) {
     handleRestore(history);
   }
@@ -489,11 +506,15 @@ const handleCurrentChange = (page: number) => {
 };
 
 // 监听服务器ID变化
-watch(() => props.serverId, () => {
-  if (props.serverId) {
-    handleRefresh();
-  }
-}, { immediate: true });
+watch(
+  () => props.serverId,
+  () => {
+    if (props.serverId) {
+      handleRefresh();
+    }
+  },
+  { immediate: true },
+);
 
 // 组件挂载时加载数据
 onMounted(() => {
@@ -504,7 +525,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -537,7 +557,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .server-setting-history {
   .history-header {
@@ -590,7 +609,7 @@ onMounted(() => {
 
         .stat-label {
           font-size: 14px;
-           color: var(--el-text-color-primary);
+          color: var(--el-text-color-primary);
         }
       }
 
@@ -650,7 +669,6 @@ onMounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -659,5 +677,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

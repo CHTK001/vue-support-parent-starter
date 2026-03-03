@@ -112,7 +112,7 @@ const loadServerList = async () => {
   try {
     const res = await http.request<ReturnResult<any[]>>(
       "get",
-      "/api/monitor/gen-server/list"
+      "/api/monitor/gen-server/list",
     );
     if (res.code === "00000") {
       serverList.value = res.data || [];
@@ -148,7 +148,7 @@ const handlePull = async () => {
 
   // 添加到操作监控
   const server = serverList.value.find(
-    (s) => s.systemServerId === form.serverId
+    (s) => s.systemServerId === form.serverId,
   );
   const operationId = operationStore.addOperation({
     type: "pull",
@@ -210,7 +210,6 @@ onMounted(() => {
   width: 100%;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -219,5 +218,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

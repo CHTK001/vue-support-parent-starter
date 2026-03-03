@@ -8,9 +8,9 @@
     class="file-preview-dialog"
     top="5vh"
   >
-    <div class="preview-content" v-loading="loading">
+    <div v-loading="loading" class="preview-content">
       <!-- 文件信息 -->
-      <div class="file-info" v-if="fileInfo">
+      <div v-if="fileInfo" class="file-info">
         <div class="info-item">
           <span class="label">文件名:</span>
           <span class="value">{{ fileInfo.name }}</span>
@@ -145,8 +145,8 @@
 <script setup lang="ts">
 import type { FileInfo } from "@/api/server/file-management";
 import {
-    downloadFile as apiDownloadFile,
-    previewFile,
+  downloadFile as apiDownloadFile,
+  previewFile,
 } from "@/api/server/file-management";
 import { formatBytes } from "@pureadmin/utils";
 import dayjs from "dayjs";
@@ -401,7 +401,7 @@ const loadFileContent = async () => {
       props.serverId,
       props.fileInfo.path,
       "auto",
-      10
+      10,
     );
     if (response.success && response.data) {
       fileContent.value = response.data.content || "";
@@ -482,7 +482,7 @@ watch(
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听文件信息变化
@@ -496,7 +496,7 @@ watch(
         await loadFileContent();
       }
     }
-  }
+  },
 );
 </script>
 
@@ -573,7 +573,7 @@ watch(
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-   background: var(--el-bg-color-overlay); /* 设置工具栏背景为白色 */
+  background: var(--el-bg-color-overlay); /* 设置工具栏背景为白色 */
   border-bottom: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
 }
@@ -601,7 +601,7 @@ watch(
   flex: 1;
   overflow: auto;
   padding: 20px;
-   background: var(--el-bg-color-overlay); /* 设置代码内容背景为白色 */
+  background: var(--el-bg-color-overlay); /* 设置代码内容背景为白色 */
 }
 
 .text-content pre,
