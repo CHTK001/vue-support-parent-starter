@@ -6,7 +6,7 @@
     :before-close="handleClose"
     destroy-on-close
   >
-    <div class="history-detail" v-if="historyData">
+    <div v-if="historyData" class="history-detail">
       <!-- 基本信息 -->
       <div class="detail-section">
         <h4 class="section-title">
@@ -21,8 +21,8 @@
             </div>
           </el-descriptions-item>
           <el-descriptions-item label="变更类型">
-            <el-tag 
-              :type="ChangeTypeColors[historyData.changeType]" 
+            <el-tag
+              :type="ChangeTypeColors[historyData.changeType]"
               size="small"
             >
               {{ ChangeTypeNames[historyData.changeType] }}
@@ -31,7 +31,7 @@
           <el-descriptions-item label="变更用户">
             <div class="user-info">
               <IconifyIconOnline icon="ri:user-line" class="mr-1" />
-              {{ historyData.changeUser || '系统' }}
+              {{ historyData.changeUser || "系统" }}
             </div>
           </el-descriptions-item>
           <el-descriptions-item label="变更描述">
@@ -41,14 +41,14 @@
       </div>
 
       <!-- 配置快照 -->
-      <div class="detail-section" v-if="configSnapshot">
+      <div v-if="configSnapshot" class="detail-section">
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:camera-line" class="mr-2" />
           配置快照
-          <el-button 
-            type="primary" 
-            text 
-            size="small" 
+          <el-button
+            type="primary"
+            text
+            size="small"
             class="ml-2"
             @click="handleCopySnapshot"
           >
@@ -87,7 +87,10 @@
       </div>
 
       <!-- 变更字段 -->
-      <div class="detail-section" v-if="changedFields && changedFields.length > 0">
+      <div
+        v-if="changedFields && changedFields.length > 0"
+        class="detail-section"
+      >
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:git-compare-line" class="mr-2" />
           变更字段
@@ -117,9 +120,9 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">关闭</el-button>
-        <el-button 
+        <el-button
           v-if="historyData?.settingSnapshot"
-          type="warning" 
+          type="warning"
           @click="handleRestore"
         >
           <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
@@ -133,11 +136,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { message } from "@repo/utils";
-import { 
+import {
   type ServerSettingHistory,
   getHistoryDetail,
   ChangeTypeNames,
-  ChangeTypeColors
+  ChangeTypeColors,
 } from "@/api/server/settingHistory";
 
 // 定义属性
@@ -163,7 +166,7 @@ const detailData = ref<any>(null);
 // 树形组件属性
 const treeProps = {
   children: "children",
-  label: "label"
+  label: "label",
 };
 
 // 计算属性
@@ -203,23 +206,23 @@ const changedFields = computed(() => {
  */
 const convertToTreeData = (obj: any, parentKey = ""): any[] => {
   const result: any[] = [];
-  
+
   for (const [key, value] of Object.entries(obj)) {
     const fullKey = parentKey ? `${parentKey}.${key}` : key;
     const node: any = {
       key: fullKey,
-      label: key
+      label: key,
     };
-    
+
     if (value && typeof value === "object" && !Array.isArray(value)) {
       node.children = convertToTreeData(value, fullKey);
     } else {
       node.value = value;
     }
-    
+
     result.push(node);
   }
-  
+
   return result;
 };
 
@@ -277,10 +280,12 @@ const handleCopySnapshot = async () => {
  */
 const loadDetailData = async () => {
   if (!props.historyData) return;
-  
+
   try {
     loading.value = true;
-    const result = await getHistoryDetail(props.historyData.monitorSysGenServerSettingHistoryId);
+    const result = await getHistoryDetail(
+      props.historyData.monitorSysGenServerSettingHistoryId,
+    );
     if (result.success) {
       detailData.value = result.data;
     }
@@ -292,12 +297,15 @@ const loadDetailData = async () => {
 };
 
 // 监听visible变化
-watch(() => props.visible, (newVal) => {
-  dialogVisible.value = newVal;
-  if (newVal && props.historyData) {
-    loadDetailData();
-  }
-});
+watch(
+  () => props.visible,
+  (newVal) => {
+    dialogVisible.value = newVal;
+    if (newVal && props.historyData) {
+      loadDetailData();
+    }
+  },
+);
 
 // 监听dialogVisible变化
 watch(dialogVisible, (newVal) => {
@@ -350,7 +358,7 @@ watch(dialogVisible, (newVal) => {
 
         .node-value {
           color: #606266;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
           font-size: 12px;
         }
       }
@@ -366,7 +374,7 @@ watch(dialogVisible, (newVal) => {
 
       pre {
         margin: 0;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         font-size: 12px;
         line-height: 1.5;
         color: var(--el-text-color-primary);
@@ -376,7 +384,7 @@ watch(dialogVisible, (newVal) => {
 
   .changed-fields {
     .value-cell {
-      font-family: 'Courier New', monospace;
+      font-family: "Courier New", monospace;
       font-size: 12px;
       padding: 4px 8px;
       border-radius: 4px;
@@ -404,7 +412,6 @@ watch(dialogVisible, (newVal) => {
   gap: 12px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -413,5 +420,4 @@ watch(dialogVisible, (newVal) => {
     padding: 12px 16px;
   }
 }
-
 </style>

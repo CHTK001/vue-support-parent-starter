@@ -19,38 +19,39 @@ export const SOFT_WS_MESSAGE_TYPE = {
   CONTAINER_STARTED: "container_started",
   CONTAINER_STOPPED: "container_stopped",
   CONTAINER_RESTARTED: "container_restarted",
-  
+
   // 容器日志相关
   CONTAINER_LOG: "container_log",
   CONTAINER_LOG_ERROR: "container_log_error",
-  
+
   // 容器统计相关
   CONTAINER_STATS: "container_stats",
   CONTAINER_RESOURCE_USAGE: "container_resource_usage",
-  
+
   // 安装进度相关
   INSTALL_PROGRESS: "install_progress",
   INSTALL_STARTED: "install_started",
   INSTALL_COMPLETED: "install_completed",
   INSTALL_FAILED: "install_failed",
-  
+
   // 卸载进度相关
   UNINSTALL_PROGRESS: "uninstall_progress",
   UNINSTALL_STARTED: "uninstall_started",
   UNINSTALL_COMPLETED: "uninstall_completed",
   UNINSTALL_FAILED: "uninstall_failed",
-  
+
   // 软件同步相关
   SOFT_SYNC_PROGRESS: "soft_sync_progress",
   SOFT_SYNC_COMPLETED: "soft_sync_completed",
   SOFT_SYNC_FAILED: "soft_sync_failed",
-  
+
   // 系统事件
   SYSTEM_STATUS: "system_status",
-  HEARTBEAT: "heartbeat"
+  HEARTBEAT: "heartbeat",
 } as const;
 
-export type SoftWebSocketMessageType = typeof SOFT_WS_MESSAGE_TYPE[keyof typeof SOFT_WS_MESSAGE_TYPE];
+export type SoftWebSocketMessageType =
+  (typeof SOFT_WS_MESSAGE_TYPE)[keyof typeof SOFT_WS_MESSAGE_TYPE];
 
 // WebSocket消息接口
 export interface SoftWebSocketMessage {
@@ -96,7 +97,7 @@ export interface ContainerLogMessage extends SoftWebSocketMessage {
     containerId: string;
     log: string;
     timestamp: string;
-    level: 'info' | 'warn' | 'error' | 'debug';
+    level: "info" | "warn" | "error" | "debug";
   };
 }
 
@@ -140,15 +141,18 @@ export function useSoftWebSocket() {
     connecting: false,
     error: null,
     lastHeartbeat: 0,
-    reconnectAttempts: 0
+    reconnectAttempts: 0,
   });
-  
+
   // 消息处理器映射
-  const messageHandlers = new Map<SoftWebSocketMessageType, Set<SoftMessageHandler>>();
-  
+  const messageHandlers = new Map<
+    SoftWebSocketMessageType,
+    Set<SoftMessageHandler>
+  >();
+
   // 主题订阅映射
   const topicSubscriptions = new Map<string, Set<string>>();
-  
+
   // WebSocket主题信息
   const topics = ref<{
     containerStatus: string;
@@ -156,7 +160,7 @@ export function useSoftWebSocket() {
     containerStatistics: string;
     containerEvents: string;
   } | null>(null);
-  
+
   /**
    * 初始化WebSocket连接
    */
@@ -164,87 +168,89 @@ export function useSoftWebSocket() {
     if (state.connecting || state.connected) {
       return state.connected;
     }
-    
+
     try {
       state.connecting = true;
       state.error = null;
-      
+
       // 获取WebSocket主题信息
       const topicsRes = await getWebSocketTopics();
       if (topicsRes.code === "00000" && topicsRes.data) {
         topics.value = topicsRes.data;
       }
-      
+
       // 创建WebSocket连接
-      const wsUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8080';
+      const wsUrl = import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8080";
       const fullUrl = `${wsUrl}/ws/soft`;
-      
+
       wsManager.value = new WebSocketManager({
         url: fullUrl,
         reconnectInterval: 3000,
         maxReconnectAttempts: 10,
         heartbeatInterval: 30000,
-        heartbeatMessage: JSON.stringify({ type: 'heartbeat', timestamp: Date.now() }),
-        
+        heartbeatMessage: JSON.stringify({
+          type: "heartbeat",
+          timestamp: Date.now(),
+        }),
+
         onOpen: (event) => {
-          console.log('软件管理WebSocket连接已建立');
+          console.log("软件管理WebSocket连接已建立");
           state.connected = true;
           state.connecting = false;
           state.reconnectAttempts = 0;
           state.error = null;
-          
+
           // 发送认证信息（如果需要）
           sendAuth();
         },
-        
+
         onMessage: (event) => {
           try {
             const message: SoftWebSocketMessage = JSON.parse(event.data);
             handleMessage(message);
           } catch (error) {
-            console.error('解析WebSocket消息失败:', error);
+            console.error("解析WebSocket消息失败:", error);
           }
         },
-        
+
         onError: (event) => {
-          console.error('软件管理WebSocket错误:', event);
-          state.error = '连接错误';
+          console.error("软件管理WebSocket错误:", event);
+          state.error = "连接错误";
         },
-        
+
         onClose: (event) => {
-          console.log('软件管理WebSocket连接已关闭:', event.code, event.reason);
+          console.log("软件管理WebSocket连接已关闭:", event.code, event.reason);
           state.connected = false;
           state.connecting = false;
-          
+
           if (event.code !== 1000) {
-            state.error = `连接关闭: ${event.reason || '未知原因'}`;
+            state.error = `连接关闭: ${event.reason || "未知原因"}`;
           }
         },
-        
+
         onReconnect: (attempt) => {
           console.log(`软件管理WebSocket重连尝试: ${attempt}`);
           state.reconnectAttempts = attempt;
           state.connecting = true;
         },
-        
+
         onMaxReconnectAttemptsReached: () => {
-          console.error('软件管理WebSocket重连次数已达上限');
-          state.error = '连接失败，请刷新页面重试';
-          message('WebSocket连接失败，实时功能不可用', { type: "error" });
-        }
+          console.error("软件管理WebSocket重连次数已达上限");
+          state.error = "连接失败，请刷新页面重试";
+          message("WebSocket连接失败，实时功能不可用", { type: "error" });
+        },
       });
-      
+
       wsManager.value.connect();
       return true;
-      
     } catch (error) {
-      console.error('初始化软件管理WebSocket失败:', error);
+      console.error("初始化软件管理WebSocket失败:", error);
       state.connecting = false;
-      state.error = error instanceof Error ? error.message : '连接失败';
+      state.error = error instanceof Error ? error.message : "连接失败";
       return false;
     }
   };
-  
+
   /**
    * 断开WebSocket连接
    */
@@ -253,32 +259,33 @@ export function useSoftWebSocket() {
       wsManager.value.disconnect();
       wsManager.value = null;
     }
-    
+
     state.connected = false;
     state.connecting = false;
     state.error = null;
-    
+
     // 清理订阅
     messageHandlers.clear();
     topicSubscriptions.clear();
   };
-  
+
   /**
    * 发送认证信息
    */
   const sendAuth = (): void => {
     if (!wsManager.value?.isConnected()) return;
-    
-    const authToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+    const authToken =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
     if (authToken) {
       wsManager.value.sendJSON({
-        type: 'auth',
+        type: "auth",
         token: authToken,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
   };
-  
+
   /**
    * 处理WebSocket消息
    */
@@ -288,11 +295,11 @@ export function useSoftWebSocket() {
       state.lastHeartbeat = Date.now();
       return;
     }
-    
+
     // 调用注册的消息处理器
     const handlers = messageHandlers.get(message.type);
     if (handlers) {
-      handlers.forEach(handler => {
+      handlers.forEach((handler) => {
         try {
           handler(message);
         } catch (error) {
@@ -303,26 +310,26 @@ export function useSoftWebSocket() {
       console.warn(`未处理的WebSocket消息类型: ${message.type}`);
     }
   };
-  
+
   /**
    * 注册消息处理器
    */
   const onMessage = <T extends SoftWebSocketMessage>(
     type: SoftWebSocketMessageType,
-    handler: SoftMessageHandler<T>
+    handler: SoftMessageHandler<T>,
   ): void => {
     if (!messageHandlers.has(type)) {
       messageHandlers.set(type, new Set());
     }
     messageHandlers.get(type)!.add(handler as SoftMessageHandler);
   };
-  
+
   /**
    * 移除消息处理器
    */
   const offMessage = (
     type: SoftWebSocketMessageType,
-    handler: SoftMessageHandler
+    handler: SoftMessageHandler,
   ): void => {
     const handlers = messageHandlers.get(type);
     if (handlers) {
@@ -332,139 +339,139 @@ export function useSoftWebSocket() {
       }
     }
   };
-  
+
   /**
    * 订阅容器状态变化
    */
   const subscribeContainerStatus = (containerId: string): void => {
     if (!wsManager.value?.isConnected()) return;
-    
+
     wsManager.value.sendJSON({
-      type: 'subscribe',
-      topic: 'container_status',
+      type: "subscribe",
+      topic: "container_status",
       containerId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     // 记录订阅
-    if (!topicSubscriptions.has('container_status')) {
-      topicSubscriptions.set('container_status', new Set());
+    if (!topicSubscriptions.has("container_status")) {
+      topicSubscriptions.set("container_status", new Set());
     }
-    topicSubscriptions.get('container_status')!.add(containerId);
+    topicSubscriptions.get("container_status")!.add(containerId);
   };
-  
+
   /**
    * 取消订阅容器状态
    */
   const unsubscribeContainerStatus = (containerId: string): void => {
     if (!wsManager.value?.isConnected()) return;
-    
+
     wsManager.value.sendJSON({
-      type: 'unsubscribe',
-      topic: 'container_status',
+      type: "unsubscribe",
+      topic: "container_status",
       containerId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     // 移除订阅记录
-    const subscriptions = topicSubscriptions.get('container_status');
+    const subscriptions = topicSubscriptions.get("container_status");
     if (subscriptions) {
       subscriptions.delete(containerId);
     }
   };
-  
+
   /**
    * 订阅容器日志
    */
   const subscribeContainerLogs = (containerId: string): void => {
     if (!wsManager.value?.isConnected()) return;
-    
+
     wsManager.value.sendJSON({
-      type: 'subscribe',
-      topic: 'container_logs',
+      type: "subscribe",
+      topic: "container_logs",
       containerId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   };
-  
+
   /**
    * 取消订阅容器日志
    */
   const unsubscribeContainerLogs = (containerId: string): void => {
     if (!wsManager.value?.isConnected()) return;
-    
+
     wsManager.value.sendJSON({
-      type: 'unsubscribe',
-      topic: 'container_logs',
+      type: "unsubscribe",
+      topic: "container_logs",
       containerId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   };
-  
+
   /**
    * 订阅安装进度
    */
   const subscribeInstallProgress = (recordId: number): void => {
     if (!wsManager.value?.isConnected()) return;
-    
+
     wsManager.value.sendJSON({
-      type: 'subscribe',
-      topic: 'install_progress',
+      type: "subscribe",
+      topic: "install_progress",
       recordId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   };
-  
+
   /**
    * 取消订阅安装进度
    */
   const unsubscribeInstallProgress = (recordId: number): void => {
     if (!wsManager.value?.isConnected()) return;
-    
+
     wsManager.value.sendJSON({
-      type: 'unsubscribe',
-      topic: 'install_progress',
+      type: "unsubscribe",
+      topic: "install_progress",
       recordId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   };
-  
+
   /**
    * 发送消息
    */
   const sendMessage = (message: Partial<SoftWebSocketMessage>): boolean => {
     if (!wsManager.value?.isConnected()) {
-      console.warn('WebSocket未连接，无法发送消息');
+      console.warn("WebSocket未连接，无法发送消息");
       return false;
     }
-    
+
     const fullMessage = {
       timestamp: Date.now(),
-      ...message
+      ...message,
     };
-    
+
     return wsManager.value.sendJSON(fullMessage);
   };
-  
+
   // 组件卸载时清理
   onUnmounted(() => {
     disconnect();
   });
-  
+
   return {
     // 状态
     state,
     topics,
-    
+
     // 连接管理
     connect,
     disconnect,
-    
+
     // 消息处理
     onMessage,
     offMessage,
     sendMessage,
-    
+
     // 订阅管理
     subscribeContainerStatus,
     unsubscribeContainerStatus,
@@ -472,9 +479,9 @@ export function useSoftWebSocket() {
     unsubscribeContainerLogs,
     subscribeInstallProgress,
     unsubscribeInstallProgress,
-    
+
     // 消息类型常量
-    SOFT_WS_MESSAGE_TYPE
+    SOFT_WS_MESSAGE_TYPE,
   };
 }
 
@@ -486,5 +493,5 @@ export type {
   ContainerLogMessage,
   ContainerStatsMessage,
   SoftWebSocketState,
-  SoftMessageHandler
+  SoftMessageHandler,
 };

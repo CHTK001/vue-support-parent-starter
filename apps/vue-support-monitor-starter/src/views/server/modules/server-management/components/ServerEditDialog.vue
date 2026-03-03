@@ -83,7 +83,7 @@
                       label=""
                       class="divider-option"
                     >
-                      <div class="option-divider"></div>
+                      <div class="option-divider" />
                     </el-option>
 
                     <!-- 现有组选项 -->
@@ -203,8 +203,8 @@
                         <el-button
                           type="text"
                           size="small"
-                          @click="detectServerInfo"
                           :loading="detectLoading"
+                          @click="detectServerInfo"
                         >
                           <IconifyIconOnline icon="ri:refresh-line" />
                         </el-button>
@@ -287,12 +287,12 @@
                     v-model="formData.monitorSysGenServerOsType"
                     placeholder="选择操作系统类型"
                     style="width: 100%"
-                    @change="handleOsTypeChange"
                     :disabled="
                       formData.monitorSysGenServerIsLocal === 1 &&
                       !!osInfo?.osType
                     "
                     filterable
+                    @change="handleOsTypeChange"
                   >
                     <el-option-group label="Windows 系列">
                       <el-option label="Windows Server" value="Windows Server">
@@ -1038,7 +1038,7 @@ const handleOsTypeChange = () => {
   ) {
     // 查找匹配的操作系统版本
     const matchedOs = Object.keys(osVersionMap).find((os) =>
-      osTypeLower.includes(os.toLowerCase())
+      osTypeLower.includes(os.toLowerCase()),
     );
     if (matchedOs) {
       formData.monitorSysGenServerOsVersion = osVersionMap[matchedOs];
@@ -1232,7 +1232,7 @@ const handleSubmit = async () => {
       monitorSysGenServerPort: Number(formData.monitorSysGenServerPort),
       monitorSysGenServerIsLocal: Number(formData.monitorSysGenServerIsLocal),
       monitorSysGenServerStatus: Number(
-        formData.monitorSysGenServerStatus || 1
+        formData.monitorSysGenServerStatus || 1,
       ),
       // 处理操作系统信息
       monitorSysGenServerOsType:

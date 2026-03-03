@@ -1,7 +1,7 @@
 ﻿<template>
   <sc-dialog
-    draggable
     v-model="visibleInner"
+    draggable
     title="QPS限流配置"
     width="900px"
     :close-on-click-modal="false"
@@ -120,8 +120,8 @@
               v-for="ip in config.whitelistIps"
               :key="ip"
               closable
-              @close="removeFromWhitelist(ip)"
               type="success"
+              @close="removeFromWhitelist(ip)"
             >
               {{ ip }}
             </el-tag>
@@ -148,8 +148,8 @@
               v-for="ip in config.blacklistIps"
               :key="ip"
               closable
-              @close="removeFromBlacklist(ip)"
               type="danger"
+              @close="removeFromBlacklist(ip)"
             >
               {{ ip }}
             </el-tag>
@@ -237,7 +237,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(visibleInner, (v) => emit("update:visible", v));
@@ -510,7 +510,6 @@ function removeFromBlacklist(ip: string) {
   padding: 10px 24px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -519,5 +518,4 @@ function removeFromBlacklist(ip: string) {
     padding: 12px 16px;
   }
 }
-
 </style>

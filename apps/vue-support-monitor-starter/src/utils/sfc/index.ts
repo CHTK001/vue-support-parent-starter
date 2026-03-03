@@ -43,15 +43,27 @@ const getOptions = (name, sysSfcId) => {
         // self
         path = refPath;
       } else if (relPath.indexOf("iconify-icons") !== -1) {
-        path = String(new URL(relPath.replace("@", "/node_modules/@"), window.location.href)) + ".js";
+        path =
+          String(
+            new URL(
+              relPath.replace("@", "/node_modules/@"),
+              window.location.href,
+            ),
+          ) + ".js";
       } else if (relPath[0] === "@" && relPath.indexOf(".") === -1) {
-        path = String(new URL(relPath.replace("@", "/src/"), window.location.href)) + ".ts";
+        path =
+          String(new URL(relPath.replace("@", "/src/"), window.location.href)) +
+          ".ts";
       } else if (relPath[0] === "@" && relPath.indexOf(".") != -1) {
-        path = String(new URL(relPath.replace("@", "/src/"), window.location.href));
+        path = String(
+          new URL(relPath.replace("@", "/src/"), window.location.href),
+        );
       } else if (relPath[0] !== "." && relPath[0] !== "/") {
         path = relPath;
       } else if (relPath[0] == ".") {
-        path = String(new URL("/src" + relPath.substring(1), window.location.href));
+        path = String(
+          new URL("/src" + relPath.substring(1), window.location.href),
+        );
       } else {
         path = String(new URL(relPath, window.location.href));
       }
@@ -63,7 +75,15 @@ const getOptions = (name, sysSfcId) => {
         return code?.data;
       }
       url = /.*?\.js|.mjs|.ts|.css|.less|.vue$/.test(url) ? url : `${url}.vue`;
-      const type = /.*?\.js|.mjs.*$/.test(url) ? ".mjs" : /.*?\.vue.*$/.test(url) ? ".vue" : /.*?\.css.*$/.test(url) ? ".css" : /.*?\.ts.*$/.test(url) ? ".ts" : ".vue";
+      const type = /.*?\.js|.mjs.*$/.test(url)
+        ? ".mjs"
+        : /.*?\.vue.*$/.test(url)
+          ? ".vue"
+          : /.*?\.css.*$/.test(url)
+            ? ".css"
+            : /.*?\.ts.*$/.test(url)
+              ? ".ts"
+              : ".vue";
       const getContentData = async () => {
         const res = await fetch(url);
         const rs = await res.text();
@@ -88,7 +108,10 @@ const getOptions = (name, sysSfcId) => {
       const sassDepImporter = {
         canonicalize: (str) => new URL(str, "file:"),
         load: async (url) => {
-          const res = options.getResource({ refPath: filename, relPath: url.pathname }, options);
+          const res = options.getResource(
+            { refPath: filename, relPath: url.pathname },
+            options,
+          );
           const content = await res.getContent();
           return {
             contents: await content.getContentData(false),

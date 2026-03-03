@@ -24,7 +24,7 @@ class GlobalSocket {
   private async doConnect(): Promise<boolean> {
     if (this.connecting) return false;
     this.connecting = true;
-    
+
     try {
       // 异步加载配置，不阻塞主线程
       await useConfigStore().load();
@@ -52,7 +52,8 @@ class GlobalSocket {
     if (!this.client) return;
     try {
       if (typeof this.client.close === "function") this.client.close();
-      else if (typeof this.client.disconnect === "function") this.client.disconnect();
+      else if (typeof this.client.disconnect === "function")
+        this.client.disconnect();
     } catch {}
     this.client = null;
   }
@@ -61,7 +62,12 @@ class GlobalSocket {
     if (!this.client) return () => {};
     const cb = (raw: any) => {
       try {
-        const payload = typeof raw === "string" ? JSON.parse(raw) : (raw?.data ? JSON.parse(raw.data) : raw);
+        const payload =
+          typeof raw === "string"
+            ? JSON.parse(raw)
+            : raw?.data
+              ? JSON.parse(raw.data)
+              : raw;
         handler(payload);
       } catch {
         handler(raw);
@@ -69,19 +75,26 @@ class GlobalSocket {
     };
     this.client.on(topic, cb);
     return () => {
-      if (this.client && typeof this.client.off === "function") this.client.off(topic, cb);
+      if (this.client && typeof this.client.off === "function")
+        this.client.off(topic, cb);
     };
   }
 
   emit(topic: string, data: any) {
     if (!this.client) return false;
-    this.client.emit(topic, typeof data === "string" ? data : JSON.stringify(data));
+    this.client.emit(
+      topic,
+      typeof data === "string" ? data : JSON.stringify(data),
+    );
     return true;
   }
 }
 
 export function getGlobalSocket(): GlobalSocket {
-  return (window as any).__GLOBAL_SOCKET__ || ((window as any).__GLOBAL_SOCKET__ = new GlobalSocket());
+  return (
+    (window as any).__GLOBAL_SOCKET__ ||
+    ((window as any).__GLOBAL_SOCKET__ = new GlobalSocket())
+  );
 }
 
 const plugin = {
@@ -92,5 +105,3 @@ const plugin = {
 };
 
 export default plugin;
-
-

@@ -6,18 +6,23 @@
         <span class="header-title">容器告警</span>
       </div>
       <div class="header-right">
-        <el-button @click="handleRefresh" :loading="loading" size="small" circle>
+        <el-button
+          :loading="loading"
+          size="small"
+          circle
+          @click="handleRefresh"
+        >
           <IconifyIconOnline icon="ri:refresh-line" />
         </el-button>
       </div>
     </div>
-    
+
     <div class="alerts-content">
       <el-empty v-if="alerts.length === 0" description="暂无告警信息" />
-      
+
       <div v-else class="alerts-list">
-        <div 
-          v-for="alert in alerts" 
+        <div
+          v-for="alert in alerts"
           :key="alert.id"
           class="alert-item"
           :class="`alert-${alert.level}`"
@@ -42,85 +47,84 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref } from "vue";
 
 interface ContainerAlert {
-  id: string
-  title: string
-  message: string
-  level: 'info' | 'warning' | 'error' | 'critical'
-  time: string
-  containerName: string
-  containerId: number
+  id: string;
+  title: string;
+  message: string;
+  level: "info" | "warning" | "error" | "critical";
+  time: string;
+  containerName: string;
+  containerId: number;
 }
 
 // 响应式数据
-const loading = ref(false)
-const alerts = ref<ContainerAlert[]>([])
+const loading = ref(false);
+const alerts = ref<ContainerAlert[]>([]);
 
 // 获取告警信息
 const fetchAlerts = async () => {
-  if (loading.value) return
-  loading.value = true
-  
+  if (loading.value) return;
+  loading.value = true;
+
   try {
     // 这里使用模拟数据，实际应用中应该从API获取告警数据
     alerts.value = [
       {
-        id: '1',
-        title: 'CPU使用率过高',
-        message: '容器 nginx-proxy 的CPU使用率超过90%',
-        level: 'warning',
+        id: "1",
+        title: "CPU使用率过高",
+        message: "容器 nginx-proxy 的CPU使用率超过90%",
+        level: "warning",
         time: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-        containerName: 'nginx-proxy',
-        containerId: 1001
+        containerName: "nginx-proxy",
+        containerId: 1001,
       },
       {
-        id: '2',
-        title: '内存不足',
-        message: '容器 mysql-db 的内存使用接近限制',
-        level: 'error',
+        id: "2",
+        title: "内存不足",
+        message: "容器 mysql-db 的内存使用接近限制",
+        level: "error",
         time: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        containerName: 'mysql-db',
-        containerId: 1002
-      }
-    ]
+        containerName: "mysql-db",
+        containerId: 1002,
+      },
+    ];
   } catch (error) {
-    console.error('获取告警信息失败:', error)
+    console.error("获取告警信息失败:", error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // 刷新数据
 const handleRefresh = () => {
-  fetchAlerts()
-}
+  fetchAlerts();
+};
 
 // 根据告警级别获取图标
 const getAlertIcon = (level: string) => {
   const icons = {
-    info: 'ri:information-line',
-    warning: 'ri:alarm-warning-line',
-    error: 'ri:error-warning-line',
-    critical: 'ri:alert-line'
-  }
-  return icons[level] || 'ri:information-line'
-}
+    info: "ri:information-line",
+    warning: "ri:alarm-warning-line",
+    error: "ri:error-warning-line",
+    critical: "ri:alert-line",
+  };
+  return icons[level] || "ri:information-line";
+};
 
 // 格式化时间
 const formatTime = (time: string) => {
-  return new Date(time).toLocaleString()
-}
+  return new Date(time).toLocaleString();
+};
 
 // 组件挂载时获取数据
 onMounted(() => {
-  fetchAlerts()
-})
+  fetchAlerts();
+});
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -153,7 +157,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .container-alerts {
   background: white;
@@ -256,7 +259,6 @@ onMounted(() => {
   margin-left: 12px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -265,5 +267,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -69,7 +69,7 @@
               <IconifyIconOnline icon="ri:download-line" class="mr-1" />
               导出
             </el-button>
-            <el-button size="small" @click="clearLogs" type="danger" plain>
+            <el-button size="small" type="danger" plain @click="clearLogs">
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               清理
             </el-button>
@@ -78,7 +78,7 @@
       </div>
 
       <!-- 日志列表 -->
-      <div class="log-list" v-loading="loading">
+      <div v-loading="loading" class="log-list">
         <el-table
           :data="logs"
           stripe
@@ -220,7 +220,7 @@
       width="700px"
       append-to-body
     >
-      <div class="log-detail" v-if="selectedLog">
+      <div v-if="selectedLog" class="log-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="记录时间">
             {{ formatTime(selectedLog.monitorSysGenServerLogCreateTime) }}
@@ -281,8 +281,8 @@
 
         <!-- 异常堆栈信息 -->
         <div
-          class="detail-content"
           v-if="selectedLog.monitorSysGenServerLogExceptionStack"
+          class="detail-content"
         >
           <el-divider content-position="left">异常堆栈信息</el-divider>
           <div class="detail-section">
@@ -294,8 +294,8 @@
 
         <!-- 额外数据 -->
         <div
-          class="detail-content"
           v-if="selectedLog.monitorSysGenServerLogExtraData"
+          class="detail-content"
         >
           <el-divider content-position="left">额外数据</el-divider>
           <div class="detail-section">
@@ -486,7 +486,7 @@ const clearLogs = async () => {
         type: "warning",
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-      }
+      },
     );
 
     const result = await cleanupServerLogs(currentServerId.value);

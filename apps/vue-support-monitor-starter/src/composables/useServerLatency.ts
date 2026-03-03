@@ -1,6 +1,6 @@
-import { ref, reactive, computed, onMounted, onUnmounted, readonly } from 'vue';
-import { message } from '@repo/utils';
-import { useServerWebSocket } from './useServerWebSocket';
+import { ref, reactive, computed, onMounted, onUnmounted, readonly } from "vue";
+import { message } from "@repo/utils";
+import { useServerWebSocket } from "./useServerWebSocket";
 import {
   getServerLatency,
   getBatchServerLatency,
@@ -12,8 +12,8 @@ import {
   type LatencyStatistics,
   type ServerDisplayData,
   getLatencyStatus,
-  formatLatencyText
-} from '@/api/server';
+  formatLatencyText,
+} from "@/api/server";
 
 /**
  * 延迟数据存储
@@ -35,7 +35,7 @@ export function useServerLatency() {
 
   // 延迟数据存储
   const latencyStore = reactive<LatencyStore>({});
-  
+
   // 统计数据
   const statistics = ref<LatencyStatistics | null>(null);
   const statusDistribution = ref<any>(null);
@@ -58,7 +58,7 @@ export function useServerLatency() {
    */
   const getFormattedLatency = (serverId: string | number) => {
     const data = getServerLatencyData(serverId);
-    return data ? formatLatencyText(data.latency) : '未检测';
+    return data ? formatLatencyText(data.latency) : "未检测";
   };
 
   /**
@@ -73,25 +73,24 @@ export function useServerLatency() {
    * 批量获取服务器延迟
    */
   const fetchBatchLatency = async (serverIds: number[]) => {
-    if(!serverIds.length) {
+    if (!serverIds.length) {
       return [];
     }
     try {
-      
       loading.value = true;
       const result = await getBatchServerLatency(serverIds);
-      
-      if (result.code === '00000' && result.data) {
+
+      if (result.code === "00000" && result.data) {
         // 更新延迟存储
         Object.entries(result.data).forEach(([serverId, latency]) => {
           updateLatencyData(Number(serverId), latency as any);
         });
       }
-      
+
       return result;
     } catch (error) {
-      console.error('批量获取延迟失败:', error);
-      message.error('获取延迟数据失败');
+      console.error("批量获取延迟失败:", error);
+      message.error("获取延迟数据失败");
       return null;
     } finally {
       loading.value = false;
@@ -104,12 +103,12 @@ export function useServerLatency() {
   const fetchLatencyStatistics = async () => {
     try {
       const result = await getLatencyStatistics();
-      if (result.code === '00000') {
+      if (result.code === "00000") {
         statistics.value = result.data;
       }
       return result;
     } catch (error) {
-      console.error('获取延迟统计失败:', error);
+      console.error("获取延迟统计失败:", error);
       return null;
     }
   };
@@ -120,12 +119,12 @@ export function useServerLatency() {
   const fetchStatusDistribution = async () => {
     try {
       const result = await getLatencyStatusDistribution();
-      if (result.code === '00000') {
+      if (result.code === "00000") {
         statusDistribution.value = result.data;
       }
       return result;
     } catch (error) {
-      console.error('获取状态分布失败:', error);
+      console.error("获取状态分布失败:", error);
       return null;
     }
   };
@@ -136,12 +135,12 @@ export function useServerLatency() {
   const fetchLatencyAlerts = async () => {
     try {
       const result = await checkLatencyAlerts();
-      if (result.code === '00000') {
+      if (result.code === "00000") {
         alerts.value = result.data || [];
       }
       return result;
     } catch (error) {
-      console.error('检查延迟告警失败:', error);
+      console.error("检查延迟告警失败:", error);
       return null;
     }
   };
@@ -149,16 +148,20 @@ export function useServerLatency() {
   /**
    * 更新延迟数据
    */
-  const updateLatencyData = (serverId: number, latency: number, timestamp?: number) => {
+  const updateLatencyData = (
+    serverId: number,
+    latency: number,
+    timestamp?: number,
+  ) => {
     const id = String(serverId);
     const status = getLatencyStatus(latency);
-    
+
     latencyStore[id] = {
       latency,
       timestamp: timestamp || Date.now(),
-      status: status.status
+      status: status.status,
     };
-    
+
     lastUpdateTime.value = Date.now();
   };
 
@@ -166,7 +169,7 @@ export function useServerLatency() {
    * 更新服务器列表的延迟信息
    */
   const updateServerListLatency = (servers: ServerDisplayData[]) => {
-    servers.forEach(server => {
+    servers.forEach((server) => {
       const latencyData = getServerLatencyData(server.id);
       if (latencyData) {
         server.latency = latencyData.latency;
@@ -181,7 +184,7 @@ export function useServerLatency() {
    */
   const cleanupExpiredData = (maxAge: number = 5 * 60 * 1000) => {
     const now = Date.now();
-    Object.keys(latencyStore).forEach(serverId => {
+    Object.keys(latencyStore).forEach((serverId) => {
       const data = latencyStore[serverId];
       if (now - data.timestamp > maxAge) {
         delete latencyStore[serverId];
@@ -191,41 +194,50 @@ export function useServerLatency() {
 
   // 计算属性
   const totalServers = computed(() => Object.keys(latencyStore).length);
-  
+
   const onlineServers = computed(() => {
-    return Object.values(latencyStore).filter(data => data.latency >= 0).length;
+    return Object.values(latencyStore).filter((data) => data.latency >= 0)
+      .length;
   });
-  
+
   const normalServers = computed(() => {
-    return Object.values(latencyStore).filter(data => data.status === 'normal').length;
+    return Object.values(latencyStore).filter(
+      (data) => data.status === "normal",
+    ).length;
   });
-  
+
   const highLatencyServers = computed(() => {
-    return Object.values(latencyStore).filter(data => data.status === 'high').length;
+    return Object.values(latencyStore).filter((data) => data.status === "high")
+      .length;
   });
-  
+
   const abnormalServers = computed(() => {
-    return Object.values(latencyStore).filter(data => data.status === 'abnormal').length;
+    return Object.values(latencyStore).filter(
+      (data) => data.status === "abnormal",
+    ).length;
   });
 
   // WebSocket 消息处理
   const handleLatencyMessage = (message: any) => {
     try {
-      const data = typeof message.data === 'string' ? JSON.parse(message.data) : message.data;
-      
+      const data =
+        typeof message.data === "string"
+          ? JSON.parse(message.data)
+          : message.data;
+
       switch (message.messageType) {
         case SERVER_WS_MESSAGE_TYPE.SERVER_LATENCY:
           // 单个服务器延迟更新
-          if (data.serverId && typeof data.latency === 'number') {
+          if (data.serverId && typeof data.latency === "number") {
             updateLatencyData(data.serverId, data.latency, data.timestamp);
           }
           break;
-          
+
         case SERVER_WS_MESSAGE_TYPE.BATCH_SERVER_LATENCY:
           // 批量延迟更新
           if (Array.isArray(data)) {
             data.forEach((item: ServerLatencyData) => {
-              if (item.serverId && typeof item.latency === 'number') {
+              if (item.serverId && typeof item.latency === "number") {
                 updateLatencyData(item.serverId, item.latency, item.timestamp);
               }
             });
@@ -233,7 +245,7 @@ export function useServerLatency() {
           break;
       }
     } catch (error) {
-      console.error('处理延迟消息失败:', error);
+      console.error("处理延迟消息失败:", error);
     }
   };
 
@@ -243,12 +255,15 @@ export function useServerLatency() {
 
   // 定期清理过期数据
   let cleanupTimer: NodeJS.Timeout;
-  
+
   onMounted(() => {
     // 每5分钟清理一次过期数据
-    cleanupTimer = setInterval(() => {
-      cleanupExpiredData();
-    }, 5 * 60 * 1000);
+    cleanupTimer = setInterval(
+      () => {
+        cleanupExpiredData();
+      },
+      5 * 60 * 1000,
+    );
   });
 
   onUnmounted(() => {
@@ -284,7 +299,7 @@ export function useServerLatency() {
     fetchLatencyAlerts,
     updateLatencyData,
     updateServerListLatency,
-    cleanupExpiredData
+    cleanupExpiredData,
   };
 }
 

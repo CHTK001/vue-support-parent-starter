@@ -1,11 +1,26 @@
 ﻿<template>
   <div class="system-container modern-bg">
-    <sc-dialog v-model="showBackupDialog" draggable title="备份数据" width="60%" @close="handleClose" class="!max-h-[80vh] overflow-auto">
+    <sc-dialog
+      v-model="showBackupDialog"
+      draggable
+      title="备份数据"
+      width="60%"
+      class="!max-h-[80vh] overflow-auto"
+      @close="handleClose"
+    >
       <ul v-if="data.length">
         <li v-for="item in data">
           <!-- 高亮结果 -->
-          <pre v-if="item" style="background: #f6f8fa; padding: 12px; border-radius: 4px; overflow: auto">
-<code ref="codeEl" class="line-numbers language-sql" v-html="item"></code>
+          <pre
+            v-if="item"
+            style="
+              background: #f6f8fa;
+              padding: 12px;
+              border-radius: 4px;
+              overflow: auto;
+            "
+          >
+<code ref="codeEl" class="line-numbers language-sql" v-html="item"/>
 </pre>
         </li>
       </ul>
@@ -29,7 +44,9 @@ const props = defineProps<{
   data: any;
 }>();
 function copy(formatted) {
-  navigator.clipboard.writeText(formatted.value.replace(/&lt;/g, "<").replace(/&gt;/g, ">"));
+  navigator.clipboard.writeText(
+    formatted.value.replace(/&lt;/g, "<").replace(/&gt;/g, ">"),
+  );
 }
 const handleClose = () => {
   showBackupDialog.value = false;
@@ -40,18 +57,17 @@ watch(
   () => props.visibe,
   (val) => {
     showBackupDialog.value = val;
-  }
+  },
 );
 watch(
   () => props.data,
   (val) => {
     data.value = val;
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 );
 </script>
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -85,8 +101,6 @@ watch(
   }
 }
 
-
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -95,6 +109,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>
-

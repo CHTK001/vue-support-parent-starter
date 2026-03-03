@@ -13,11 +13,15 @@
           </div>
         </div>
         <div class="header-actions">
-          <el-button @click="refreshRecords" :loading="loading" class="action-btn">
+          <el-button
+            :loading="loading"
+            class="action-btn"
+            @click="refreshRecords"
+          >
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
           </el-button>
-          <el-button type="primary" @click="exportRecords" class="action-btn">
+          <el-button type="primary" class="action-btn" @click="exportRecords">
             <IconifyIconOnline icon="ri:download-line" class="mr-1" />
             导出
           </el-button>
@@ -28,25 +32,51 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <el-input v-model="searchParams.keyword" placeholder="搜索软件名称、版本或服务器" class="search-input" clearable @keyup.enter="loadRecords">
+        <el-input
+          v-model="searchParams.keyword"
+          placeholder="搜索软件名称、版本或服务器"
+          class="search-input"
+          clearable
+          @keyup.enter="loadRecords"
+        >
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select v-model="searchParams.status" placeholder="状态" clearable class="filter-select">
+        <el-select
+          v-model="searchParams.status"
+          placeholder="状态"
+          clearable
+          class="filter-select"
+        >
           <el-option label="全部" value="" />
           <el-option label="安装中" value="INSTALLING" />
           <el-option label="成功" value="SUCCESS" />
           <el-option label="失败" value="FAILED" />
           <el-option label="已取消" value="CANCELLED" />
         </el-select>
-        <el-select v-model="searchParams.installMethod" placeholder="安装方式" clearable class="filter-select">
+        <el-select
+          v-model="searchParams.installMethod"
+          placeholder="安装方式"
+          clearable
+          class="filter-select"
+        >
           <el-option label="全部" value="" />
           <el-option label="Docker CLI" value="DOCKER_CLI" />
           <el-option label="Compose" value="COMPOSE" />
           <el-option label="Swarm" value="SWARM" />
         </el-select>
-        <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" @change="handleDateChange" class="date-picker" />
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+          class="date-picker"
+          @change="handleDateChange"
+        />
         <el-button type="primary" @click="loadRecords">
           <IconifyIconOnline icon="ri:search-line" class="mr-1" />
           搜索
@@ -60,7 +90,11 @@
 
     <!-- 统计信息 -->
     <div class="stats-section">
-      <StatsCard :stats="statsData" :details="statsDetails" :show-toggle="true" />
+      <StatsCard
+        :stats="statsData"
+        :details="statsDetails"
+        :show-toggle="true"
+      />
     </div>
 
     <!-- 记录列表 -->
@@ -69,7 +103,11 @@
         <div class="card-header">
           <span>安装记录列表</span>
           <div class="header-actions">
-            <el-button size="small" @click="batchDelete" :disabled="selectedRecords.length === 0">
+            <el-button
+              size="small"
+              :disabled="selectedRecords.length === 0"
+              @click="batchDelete"
+            >
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               批量删除
             </el-button>
@@ -87,7 +125,12 @@
         height="100%"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="systemSoftName" label="软件名称" width="150" show-overflow-tooltip />
+        <el-table-column
+          prop="systemSoftName"
+          label="软件名称"
+          width="150"
+          show-overflow-tooltip
+        />
         <el-table-column prop="version" label="版本" width="120" />
         <el-table-column prop="serverId" label="服务器" width="180">
           <template #default="{ row }">
@@ -99,12 +142,16 @@
         </el-table-column>
         <el-table-column prop="installMethod" label="安装方式" width="120">
           <template #default="{ row }">
-            <el-tag size="small" :type="getMethodType(row.installMethod)">{{ getMethodLabel(row.installMethod) }}</el-tag>
+            <el-tag size="small" :type="getMethodType(row.installMethod)">{{
+              getMethodLabel(row.installMethod)
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ getStatusLabel(row.status) }}</el-tag>
+            <el-tag :type="getStatusType(row.status)">{{
+              getStatusLabel(row.status)
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="progress" label="进度" width="200">
@@ -129,7 +176,11 @@
               />
             </div>
             <div v-else class="progress-container">
-              <el-progress :percentage="row.progress || 0" :status="getProgressStatus(row.status)" :stroke-width="8" />
+              <el-progress
+                :percentage="row.progress || 0"
+                :status="getProgressStatus(row.status)"
+                :stroke-width="8"
+              />
               <span class="progress-text">{{ row.progress || 0 }}%</span>
             </div>
           </template>
@@ -160,11 +211,17 @@
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="retry" :disabled="row.status !== 'FAILED'">
+                  <el-dropdown-item
+                    command="retry"
+                    :disabled="row.status !== 'FAILED'"
+                  >
                     <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
                     重试安装
                   </el-dropdown-item>
-                  <el-dropdown-item command="cancel" :disabled="row.status !== 'INSTALLING'">
+                  <el-dropdown-item
+                    command="cancel"
+                    :disabled="row.status !== 'INSTALLING'"
+                  >
                     <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                     取消安装
                   </el-dropdown-item>
@@ -178,29 +235,59 @@
           </template>
         </el-table-column>
       </ScTable>
-
     </el-card>
 
     <!-- 详情对话框 -->
-    <sc-dialog v-model="detailVisible" title="安装记录详情" width="800px" destroy-on-close>
+    <sc-dialog
+      v-model="detailVisible"
+      title="安装记录详情"
+      width="800px"
+      destroy-on-close
+    >
       <div v-if="currentRecord" class="record-detail">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="记录ID">{{ currentRecord.recordId }}</el-descriptions-item>
-          <el-descriptions-item label="软件名称">{{ currentRecord.systemSoftName }}</el-descriptions-item>
-          <el-descriptions-item label="版本">{{ currentRecord.version }}</el-descriptions-item>
-          <el-descriptions-item label="服务器">{{ getServerName(currentRecord.serverId) }}</el-descriptions-item>
-          <el-descriptions-item label="安装方式">{{ getMethodLabel(currentRecord.installMethod) }}</el-descriptions-item>
+          <el-descriptions-item label="记录ID">{{
+            currentRecord.recordId
+          }}</el-descriptions-item>
+          <el-descriptions-item label="软件名称">{{
+            currentRecord.systemSoftName
+          }}</el-descriptions-item>
+          <el-descriptions-item label="版本">{{
+            currentRecord.version
+          }}</el-descriptions-item>
+          <el-descriptions-item label="服务器">{{
+            getServerName(currentRecord.serverId)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="安装方式">{{
+            getMethodLabel(currentRecord.installMethod)
+          }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(currentRecord.status)">{{ getStatusLabel(currentRecord.status) }}</el-tag>
+            <el-tag :type="getStatusType(currentRecord.status)">{{
+              getStatusLabel(currentRecord.status)
+            }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="进度">{{ currentRecord.progress || 0 }}%</el-descriptions-item>
-          <el-descriptions-item label="开始时间">{{ formatDate(currentRecord.createTime) }}</el-descriptions-item>
-          <el-descriptions-item label="结束时间">{{ formatDate(currentRecord.endTime) }}</el-descriptions-item>
-          <el-descriptions-item label="耗时">{{ formatDuration(currentRecord.startTime, currentRecord.endTime) }}</el-descriptions-item>
+          <el-descriptions-item label="进度"
+            >{{ currentRecord.progress || 0 }}%</el-descriptions-item
+          >
+          <el-descriptions-item label="开始时间">{{
+            formatDate(currentRecord.createTime)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="结束时间">{{
+            formatDate(currentRecord.endTime)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="耗时">{{
+            formatDuration(currentRecord.startTime, currentRecord.endTime)
+          }}</el-descriptions-item>
           <el-descriptions-item label="安装参数" :span="2">
-            <pre class="params-code">{{ formatParams(currentRecord.installParams) }}</pre>
+            <pre class="params-code">{{
+              formatParams(currentRecord.installParams)
+            }}</pre>
           </el-descriptions-item>
-          <el-descriptions-item label="错误信息" :span="2" v-if="currentRecord.errorMessage">
+          <el-descriptions-item
+            v-if="currentRecord.errorMessage"
+            label="错误信息"
+            :span="2"
+          >
             <div class="error-message">{{ currentRecord.errorMessage }}</div>
           </el-descriptions-item>
         </el-descriptions>
@@ -208,10 +295,15 @@
     </sc-dialog>
 
     <!-- 日志对话框 -->
-    <sc-dialog v-model="logsVisible" title="安装日志" width="900px" destroy-on-close>
+    <sc-dialog
+      v-model="logsVisible"
+      title="安装日志"
+      width="900px"
+      destroy-on-close
+    >
       <div class="logs-container">
         <div class="logs-header">
-          <el-button size="small" @click="refreshLogs" :loading="logsLoading">
+          <el-button size="small" :loading="logsLoading" @click="refreshLogs">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
           </el-button>
@@ -220,7 +312,7 @@
             下载
           </el-button>
         </div>
-        <div class="logs-content" ref="logsContentRef">
+        <div ref="logsContentRef" class="logs-content">
           <pre v-if="logs" class="logs-text">{{ logs }}</pre>
           <div v-else class="logs-empty">
             <IconifyIconOnline icon="ri:file-text-line" />
@@ -234,7 +326,13 @@
 
 <script setup lang="ts">
 import { getServerPageList } from "@/api/server";
-import { cancelInstallSoft, deleteInstallRecord, getInstallLogs, getSoftInstallRecords, retryInstallSoft } from "@/api/soft";
+import {
+  cancelInstallSoft,
+  deleteInstallRecord,
+  getInstallLogs,
+  getSoftInstallRecords,
+  retryInstallSoft,
+} from "@/api/soft";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { computed, nextTick, onMounted, ref } from "vue";
@@ -294,9 +392,15 @@ const pageParams = ref({
 
 // 统计信息
 const stats = computed(() => {
-  const successCount = recordsList.value.filter((r) => r.status === "SUCCESS").length;
-  const installingCount = recordsList.value.filter((r) => r.status === "INSTALLING").length;
-  const failedCount = recordsList.value.filter((r) => r.status === "FAILED").length;
+  const successCount = recordsList.value.filter(
+    (r) => r.status === "SUCCESS",
+  ).length;
+  const installingCount = recordsList.value.filter(
+    (r) => r.status === "INSTALLING",
+  ).length;
+  const failedCount = recordsList.value.filter(
+    (r) => r.status === "FAILED",
+  ).length;
   const totalCount = recordsList.value.length;
 
   return {
@@ -350,7 +454,10 @@ const statsData = computed(() => [
 
 // 统计详情数据
 const statsDetails = computed(() => {
-  const successRate = stats.value.totalCount > 0 ? (stats.value.successCount / stats.value.totalCount) * 100 : 0;
+  const successRate =
+    stats.value.totalCount > 0
+      ? (stats.value.successCount / stats.value.totalCount) * 100
+      : 0;
 
   return {
     systemSoftware: Math.floor(stats.value.successCount * 0.3),
@@ -495,11 +602,15 @@ const handleAction = async (command: string, record: SystemSoftRecord) => {
 
 const retryInstall = async (record: SystemSoftRecord) => {
   try {
-    await ElMessageBox.confirm(`确认重试安装 ${record.systemSoftName} v${record.version}？`, "确认重试", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await ElMessageBox.confirm(
+      `确认重试安装 ${record.systemSoftName} v${record.version}？`,
+      "确认重试",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
+    );
 
     const res = await retryInstallSoft({ recordId: record.recordId! });
     if (res.code === "00000") {
@@ -515,11 +626,15 @@ const retryInstall = async (record: SystemSoftRecord) => {
 
 const cancelInstall = async (record: SystemSoftRecord) => {
   try {
-    await ElMessageBox.confirm(`确认取消安装 ${record.systemSoftName} v${record.version}？`, "确认取消", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await ElMessageBox.confirm(
+      `确认取消安装 ${record.systemSoftName} v${record.version}？`,
+      "确认取消",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
+    );
 
     const res = await cancelInstallSoft({ recordId: record.recordId! });
     if (res.code === "00000") {
@@ -535,11 +650,15 @@ const cancelInstall = async (record: SystemSoftRecord) => {
 
 const deleteRecord = async (record: SystemSoftRecord) => {
   try {
-    await ElMessageBox.confirm(`确认删除安装记录 ${record.systemSoftName} v${record.version}？此操作不可恢复。`, "确认删除", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "error",
-    });
+    await ElMessageBox.confirm(
+      `确认删除安装记录 ${record.systemSoftName} v${record.version}？此操作不可恢复。`,
+      "确认删除",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "error",
+      },
+    );
 
     const res = await deleteInstallRecord({ recordId: record.recordId! });
     if (res.code === "00000") {
@@ -555,11 +674,15 @@ const deleteRecord = async (record: SystemSoftRecord) => {
 
 const batchDelete = async () => {
   try {
-    await ElMessageBox.confirm(`确认删除选中的 ${selectedRecords.value.length} 条记录？此操作不可恢复。`, "确认批量删除", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "error",
-    });
+    await ElMessageBox.confirm(
+      `确认删除选中的 ${selectedRecords.value.length} 条记录？此操作不可恢复。`,
+      "确认批量删除",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "error",
+      },
+    );
 
     // 这里可以调用批量删除API
     message.success("批量删除成功");
@@ -588,7 +711,8 @@ const formatDuration = (startTime: string | Date, endTime: string | Date) => {
   const duration = Math.floor((end - start) / 1000);
 
   if (duration < 60) return `${duration}秒`;
-  if (duration < 3600) return `${Math.floor(duration / 60)}分${duration % 60}秒`;
+  if (duration < 3600)
+    return `${Math.floor(duration / 60)}分${duration % 60}秒`;
   return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`;
 };
 
@@ -663,7 +787,6 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -696,7 +819,6 @@ onMounted(async () => {
     z-index: 1;
   }
 }
-
 
 .records-page {
   padding: 0;

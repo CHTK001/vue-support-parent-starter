@@ -104,7 +104,9 @@
 
       <!-- 指标采集相关配置（开启指标采集时显示） -->
       <div
-        v-show="formData.monitorSysGenServerSettingMetricsCollectionEnabled === 1"
+        v-show="
+          formData.monitorSysGenServerSettingMetricsCollectionEnabled === 1
+        "
       >
         <!-- 指标上报方式 -->
         <el-form-item prop="monitorSysGenServerSettingDataReportMethod">
@@ -121,8 +123,8 @@
             </div>
           </template>
           <ScSelect
-            layout="select"
             v-model="formData.monitorSysGenServerSettingDataReportMethod"
+            layout="select"
             :options="reportMethodOptions"
             placeholder="请选择上报方式"
             style="width: 200px"
@@ -440,8 +442,8 @@
           </div>
         </template>
         <ScSelect
-          layout="select"
           v-model="formData.monitorSysGenServerSettingAlertNotificationMethod"
+          layout="select"
           :options="alertNotificationMethodOptions"
           placeholder="请选择告警方式"
           style="width: 200px !important"
@@ -774,8 +776,8 @@
           </div>
         </template>
         <ScSelect
-          layout="select"
           v-model="formData.monitorSysGenServerSettingDockerConnectionType"
+          layout="select"
           :options="dockerConnectionTypeOptions"
           placeholder="请选择连接方式"
           style="width: 200px !important"
@@ -1095,7 +1097,9 @@
         <!-- 执行方式说明 -->
         <div class="execute-method-tips">
           <div
-            v-if="formData.monitorSysGenServerSettingScriptExecuteMethod === 'SSH'"
+            v-if="
+              formData.monitorSysGenServerSettingScriptExecuteMethod === 'SSH'
+            "
             class="method-tip-card"
           >
             <div class="tip-header">
@@ -1112,7 +1116,9 @@
             </div>
           </div>
           <div
-            v-else-if="formData.monitorSysGenServerSettingScriptExecuteMethod === 'NODE'"
+            v-else-if="
+              formData.monitorSysGenServerSettingScriptExecuteMethod === 'NODE'
+            "
             class="method-tip-card"
           >
             <div class="tip-header">
@@ -1219,8 +1225,8 @@
           </div>
         </template>
         <ScSelect
-          layout="select"
           v-model="formData.monitorSysGenServerSettingProxyType"
+          layout="select"
           :options="proxyTypeOptions"
           placeholder="请选择代理类型"
           style="width: 200px !important"
@@ -1594,7 +1600,9 @@
 
         <!-- 文件管理模式 -->
         <el-form-item
-          v-show="formData.monitorSysGenServerSettingFileManagementEnabled === 1"
+          v-show="
+            formData.monitorSysGenServerSettingFileManagementEnabled === 1
+          "
           prop="monitorSysGenServerSettingFileManagementMode"
         >
           <template #label>
@@ -1610,8 +1618,8 @@
             </div>
           </template>
           <ScSelect
-            layout="select"
             v-model="formData.monitorSysGenServerSettingFileManagementMode"
+            layout="select"
             :options="fileManagementModeOptions"
             placeholder="请选择文件管理模式"
             @change="handleFileManagementModeChange"
@@ -1620,7 +1628,9 @@
 
         <!-- 文件管理模式说明卡片 -->
         <div
-          v-show="formData.monitorSysGenServerSettingFileManagementEnabled === 1"
+          v-show="
+            formData.monitorSysGenServerSettingFileManagementEnabled === 1
+          "
           class="report-method-tips"
         >
           <div
@@ -1714,8 +1724,10 @@
             </div>
           </template>
           <ScSelect
+            v-model="
+              formData.monitorSysGenServerSettingFileManagementNodeClient
+            "
             layout="select"
-            v-model="formData.monitorSysGenServerSettingFileManagementNodeClient"
             :options="nodeClientOptions"
             placeholder="请选择NODE客户端"
             :loading="loadingNodeClients"
@@ -2039,8 +2051,8 @@
       <el-form-item>
         <el-button
           type="primary"
-          @click="testPrometheusConnection"
           :loading="testingConnection"
+          @click="testPrometheusConnection"
         >
           <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
           测试连接
@@ -2179,50 +2191,48 @@ const DEFAULT_VALUES = {
 
 // ScSelect 选项定义
 const reportMethodOptions = [
-  { label: '不上报', value: 'NONE' },
-  { label: '节点上报', value: 'NODE' },
-  { label: '本地采集', value: 'LOCAL' },
-  { label: 'Prometheus', value: 'PROMETHEUS' },
+  { label: "不上报", value: "NONE" },
+  { label: "节点上报", value: "NODE" },
+  { label: "本地采集", value: "LOCAL" },
+  { label: "Prometheus", value: "PROMETHEUS" },
 ];
 
 const alertNotificationMethodOptions = [
-  { label: '邮件', value: 'EMAIL' },
-  { label: '短信', value: 'SMS' },
-  { label: '钉钉', value: 'DINGTALK' },
-  { label: '企业微信', value: 'WECHAT' },
-  { label: '网页推送', value: 'WEB_PUSH' },
-  { label: 'Webhook', value: 'WEBHOOK' },
+  { label: "邮件", value: "EMAIL" },
+  { label: "短信", value: "SMS" },
+  { label: "钉钉", value: "DINGTALK" },
+  { label: "企业微信", value: "WECHAT" },
+  { label: "网页推送", value: "WEB_PUSH" },
+  { label: "Webhook", value: "WEBHOOK" },
 ];
 
 const dockerConnectionTypeOptions = [
-  { label: 'Shell命令', value: 'SHELL' },
-  { label: 'Docker API', value: 'API' },
+  { label: "Shell命令", value: "SHELL" },
+  { label: "Docker API", value: "API" },
 ];
 
 const proxyTypeOptions = [
-  { label: 'HTTP代理', value: 'HTTP' },
-  { label: 'SOCKS5代理', value: 'SOCKS5' },
-  { label: 'Guacamole代理', value: 'GUACAMOLE' },
+  { label: "HTTP代理", value: "HTTP" },
+  { label: "SOCKS5代理", value: "SOCKS5" },
+  { label: "Guacamole代理", value: "GUACAMOLE" },
 ];
 
 // 文件管理模式选项 (computed, 因为依赖 isLocalServer)
 const fileManagementModeOptions = computed(() => {
-  const options = [
-    { label: '不启用', value: 'NONE' },
-  ];
+  const options = [{ label: "不启用", value: "NONE" }];
   if (props.isLocalServer) {
-    options.push({ label: '本地连接', value: 'LOCAL' });
+    options.push({ label: "本地连接", value: "LOCAL" });
   }
   options.push(
-    { label: 'SSH连接', value: 'SSH' },
-    { label: 'NODE客户端', value: 'NODE' }
+    { label: "SSH连接", value: "SSH" },
+    { label: "NODE客户端", value: "NODE" },
   );
   return options;
 });
 
 // NODE客户端选项 (computed, 因为依赖 nodeClients)
 const nodeClientOptions = computed(() => {
-  return nodeClients.value.map(client => ({
+  return nodeClients.value.map((client) => ({
     label: `${client.name} (${client.address})`,
     value: client.serverId,
   }));
@@ -2375,14 +2385,14 @@ watch(
       });
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // Docker API 连接超时（秒）双向绑定（内部以毫秒存储）
 const dockerConnectTimeoutSeconds = computed({
   get() {
     const ms = Number(
-      formData.monitorSysGenServerSettingDockerConnectTimeoutMillis || 30000
+      formData.monitorSysGenServerSettingDockerConnectTimeoutMillis || 30000,
     );
     return Math.max(1, Math.round(ms / 1000));
   },
@@ -2406,7 +2416,7 @@ watch(
       });
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 当启用 Docker 且选择 API 连接方式时，自动填充默认主机和端口
@@ -2430,7 +2440,7 @@ watch(
       }
       handleChange();
     }
-  }
+  },
 );
 
 /**
@@ -2538,7 +2548,7 @@ const handleFileManagementModeChange = () => {
       // 如果已有配置，解析并加载
       try {
         const config = JSON.parse(
-          formData.monitorSysGenServerSettingFileManagementApiConfig
+          formData.monitorSysGenServerSettingFileManagementApiConfig,
         );
         Object.assign(apiConfig, config);
       } catch (error) {
@@ -2579,7 +2589,7 @@ const loadNodeClients = async () => {
       const selected = nodeClients.value.find(
         (client) =>
           client.serverId ===
-          formData.monitorSysGenServerSettingFileManagementNodeClient
+          formData.monitorSysGenServerSettingFileManagementNodeClient,
       );
       selectedNodeClient.value = selected || null;
     }
@@ -2623,7 +2633,7 @@ const testFileManagementConnection = async () => {
 
     // 调用API测试连接
     const result = await testFileManagementConnectionApi(
-      formData.monitorSysGenServerId
+      formData.monitorSysGenServerId,
     );
 
     if (result.data) {
@@ -2643,7 +2653,6 @@ const testFileManagementConnection = async () => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -2676,7 +2685,6 @@ const testFileManagementConnection = async () => {
     z-index: 1;
   }
 }
-
 
 :deep(.sc-select),
 :deep(.el-select__wrapper) {
@@ -3060,7 +3068,6 @@ const testFileManagementConnection = async () => {
   box-shadow: 0 4px 8px rgba(64, 158, 255, 0.4);
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -3069,5 +3076,4 @@ const testFileManagementConnection = async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

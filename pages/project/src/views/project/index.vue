@@ -92,12 +92,13 @@
                       </div>
                     </div>
                     <div class="project-tags">
-                      <ScTag 
+                      <ScTag
                         type="primary"
                         effect="plain"
                         class="project-name-tag"
-                        >{{ row?.sysProjectName }}</el-tag
                       >
+                        {{ row?.sysProjectName }}
+                      </ScTag>
                     </div>
                     <div class="project-actions">
                       <template

@@ -18,26 +18,34 @@
           <div class="header-text">
             <h3>URL QPS 统计</h3>
             <p v-if="nodeInfo">
-              <span class="node-name">{{ nodeInfo.nodeName || nodeInfo.applicationName }}</span>
-              <span class="node-address">{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
+              <span class="node-name">{{
+                nodeInfo.nodeName || nodeInfo.applicationName
+              }}</span>
+              <span class="node-address"
+                >{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span
+              >
             </p>
           </div>
         </div>
-        <div class="header-stats" v-if="summary">
+        <div v-if="summary" class="header-stats">
           <div class="stat-item">
             <span class="stat-value">{{ summary.totalUrls || 0 }}</span>
             <span class="stat-label">接口数</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">{{ formatNumber(summary.totalRequests) }}</span>
+            <span class="stat-value">{{
+              formatNumber(summary.totalRequests)
+            }}</span>
             <span class="stat-label">总请求</span>
           </div>
           <div class="stat-item success">
-            <span class="stat-value">{{ summary.successRate || '0%' }}</span>
+            <span class="stat-value">{{ summary.successRate || "0%" }}</span>
             <span class="stat-label">成功率</span>
           </div>
-          <div class="stat-item time" v-if="summary.lastUpdateTime">
-            <span class="stat-value">{{ formatTime(summary.lastUpdateTime) }}</span>
+          <div v-if="summary.lastUpdateTime" class="stat-item time">
+            <span class="stat-value">{{
+              formatTime(summary.lastUpdateTime)
+            }}</span>
             <span class="stat-label">最新更新</span>
           </div>
         </div>
@@ -61,7 +69,7 @@
                   <IconifyIconOnline icon="ri:search-line" />
                 </template>
               </el-input>
-              <span class="search-result" v-if="searchText">
+              <span v-if="searchText" class="search-result">
                 找到 <strong>{{ filteredQpsData.length }}</strong> 个
               </span>
             </div>
@@ -70,10 +78,13 @@
                 <el-button
                   type="danger"
                   :loading="clearing"
-                  @click="handleClearData"
                   plain
+                  @click="handleClearData"
                 >
-                  <IconifyIconOnline v-if="!clearing" icon="ri:delete-bin-line" />
+                  <IconifyIconOnline
+                    v-if="!clearing"
+                    icon="ri:delete-bin-line"
+                  />
                   清除
                 </el-button>
               </el-tooltip>
@@ -104,8 +115,12 @@
               <el-table-column label="URL" min-width="280">
                 <template #default="{ row }">
                   <div class="url-cell">
-                    <el-tag :type="getMethodTagType(row.method)" size="small" class="method-tag">
-                      {{ row.method || 'ALL' }}
+                    <el-tag
+                      :type="getMethodTagType(row.method)"
+                      size="small"
+                      class="method-tag"
+                    >
+                      {{ row.method || "ALL" }}
                     </el-tag>
                     <span class="url-path" :title="row.url">{{ row.url }}</span>
                   </div>
@@ -120,19 +135,26 @@
 
               <el-table-column label="总请求" width="100" align="center">
                 <template #default="{ row }">
-                  <span class="count-value">{{ formatNumber(row.historyTotalCount) }}</span>
+                  <span class="count-value">{{
+                    formatNumber(row.historyTotalCount)
+                  }}</span>
                 </template>
               </el-table-column>
 
               <el-table-column label="成功" width="90" align="center">
                 <template #default="{ row }">
-                  <span class="success-count">{{ formatNumber(row.historySuccessCount) }}</span>
+                  <span class="success-count">{{
+                    formatNumber(row.historySuccessCount)
+                  }}</span>
                 </template>
               </el-table-column>
 
               <el-table-column label="失败" width="90" align="center">
                 <template #default="{ row }">
-                  <span class="fail-count" :class="{ 'has-fail': row.historyFailCount > 0 }">
+                  <span
+                    class="fail-count"
+                    :class="{ 'has-fail': row.historyFailCount > 0 }"
+                  >
                     {{ formatNumber(row.historyFailCount) }}
                   </span>
                 </template>
@@ -140,7 +162,9 @@
 
               <el-table-column label="平均耗时" width="100" align="center">
                 <template #default="{ row }">
-                  <span class="duration-value">{{ row.avgDuration || 0 }}ms</span>
+                  <span class="duration-value"
+                    >{{ row.avgDuration || 0 }}ms</span
+                  >
                 </template>
               </el-table-column>
 
@@ -179,7 +203,7 @@
                   <IconifyIconOnline icon="ri:search-line" />
                 </template>
               </el-input>
-              <span class="search-result" v-if="mappingSearchText">
+              <span v-if="mappingSearchText" class="search-result">
                 找到 <strong>{{ filteredMappings.length }}</strong> 个
               </span>
             </div>
@@ -190,7 +214,10 @@
                   :loading="loadingMappings"
                   @click="loadMappings"
                 >
-                  <IconifyIconOnline v-if="!loadingMappings" icon="ri:refresh-line" />
+                  <IconifyIconOnline
+                    v-if="!loadingMappings"
+                    icon="ri:refresh-line"
+                  />
                 </el-button>
               </el-tooltip>
             </div>
@@ -211,7 +238,10 @@
               <el-table-column label="URL 模式" min-width="280">
                 <template #default="{ row }">
                   <div class="url-cell">
-                    <div class="methods-wrapper" v-if="row.methods && row.methods.length > 0">
+                    <div
+                      v-if="row.methods && row.methods.length > 0"
+                      class="methods-wrapper"
+                    >
                       <el-tag
                         v-for="method in row.methods"
                         :key="method"
@@ -222,8 +252,12 @@
                         {{ method }}
                       </el-tag>
                     </div>
-                    <el-tag v-else type="info" size="small" class="method-tag">ALL</el-tag>
-                    <span class="url-path" :title="row.pattern">{{ row.pattern }}</span>
+                    <el-tag v-else type="info" size="small" class="method-tag"
+                      >ALL</el-tag
+                    >
+                    <span class="url-path" :title="row.pattern">{{
+                      row.pattern
+                    }}</span>
                   </div>
                 </template>
               </el-table-column>
@@ -231,7 +265,7 @@
               <el-table-column label="处理器" min-width="300">
                 <template #default="{ row }">
                   <span class="handler-text" :title="row.handler">
-                    {{ row.handler || '-' }}
+                    {{ row.handler || "-" }}
                   </span>
                 </template>
               </el-table-column>
@@ -340,7 +374,7 @@ const formatNumber = (num?: number): string => {
  * 获取 HTTP 方法标签类型
  */
 const getMethodTagType = (
-  method?: string
+  method?: string,
 ): "success" | "warning" | "info" | "primary" | "danger" | undefined => {
   switch (method?.toUpperCase()) {
     case "GET":
@@ -429,7 +463,7 @@ const filteredQpsData = computed(() => {
   let data = qpsData.value;
   if (searchText.value) {
     data = data.filter((item) =>
-      item.url?.toLowerCase().includes(searchText.value.toLowerCase())
+      item.url?.toLowerCase().includes(searchText.value.toLowerCase()),
     );
   }
   // 按 QPS 降序排序
@@ -440,7 +474,7 @@ const filteredQpsData = computed(() => {
 const filteredMappings = computed(() => {
   if (!mappingSearchText.value) return mappings.value;
   return mappings.value.filter((item) =>
-    item.pattern?.toLowerCase().includes(mappingSearchText.value.toLowerCase())
+    item.pattern?.toLowerCase().includes(mappingSearchText.value.toLowerCase()),
   );
 });
 
@@ -453,7 +487,7 @@ watch(
       loadSummary();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听弹框显示状态
@@ -486,7 +520,7 @@ const loadQpsData = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await getNodeUrlQps(encodedNodeUrl);
 
@@ -510,7 +544,7 @@ const loadSummary = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await getNodeQpsSummary(encodedNodeUrl);
 
@@ -530,14 +564,16 @@ const loadMappings = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await getNodeUrlMappings(encodedNodeUrl);
 
     if (response.success && (response as any).data) {
       mappings.value = (response as any).data || [];
     } else {
-      message.error("获取 URL 映射失败: " + ((response as any).msg || "未知错误"));
+      message.error(
+        "获取 URL 映射失败: " + ((response as any).msg || "未知错误"),
+      );
       mappings.value = [];
     }
   } catch (error) {
@@ -563,7 +599,7 @@ const handleClearData = async () => {
     clearing.value = true;
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port
+      props.nodeInfo.port,
     );
     const response = await clearNodeQpsData(encodedNodeUrl);
 
@@ -826,7 +862,6 @@ const handleClose = () => {
   gap: 10px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -835,5 +870,4 @@ const handleClose = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

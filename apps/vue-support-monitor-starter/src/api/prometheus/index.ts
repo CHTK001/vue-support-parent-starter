@@ -4,20 +4,30 @@ import { http, type ReturnResult } from "@repo/utils";
  * 获取prometheus系统信息
  */
 export const fetchPrometheusQueryRange = (data: PrometheusQueryRequest) => {
-  return http.request<ReturnResult<any>>("post", "/v2/prometheus/queryRange", { data: data });
+  return http.request<ReturnResult<any>>("post", "/v2/prometheus/queryRange", {
+    data: data,
+  });
 };
 
 /**
  * 获取prometheus系统信息
  */
 export const fetchPrometheusQueryGen = (data: PrometheusGenQueryRequest) => {
-  return http.request<ReturnResult<any>>("post", "/v2/prometheus/queryGen", { data: data });
+  return http.request<ReturnResult<any>>("post", "/v2/prometheus/queryGen", {
+    data: data,
+  });
 };
 /**
  * 获取prometheus系统信息
  */
-export const fetchPrometheusQueryRangeGen = (data: PrometheusGenQueryRangeRequest) => {
-  return http.request<ReturnResult<any>>("post", "/v2/prometheus/queryRangeGen", { data: data });
+export const fetchPrometheusQueryRangeGen = (
+  data: PrometheusGenQueryRangeRequest,
+) => {
+  return http.request<ReturnResult<any>>(
+    "post",
+    "/v2/prometheus/queryRangeGen",
+    { data: data },
+  );
 };
 
 /**

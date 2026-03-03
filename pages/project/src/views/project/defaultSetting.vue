@@ -35,8 +35,9 @@
           type="primary"
           :icon="useRenderIcon('ri:save-2-line')"
           @click="handleSubmit"
-          >保存</el-button
         >
+          保存
+        </ScButton>
       </template>
     </sc-dialog>
   </div>

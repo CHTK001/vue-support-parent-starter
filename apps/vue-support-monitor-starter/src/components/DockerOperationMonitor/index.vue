@@ -13,9 +13,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { ScMessageDialog } from '@repo/components';
-import { useDockerOperationStore } from '@/stores/dockerOperation';
+import { computed } from "vue";
+import { ScMessageDialog } from "@repo/components";
+import { useDockerOperationStore } from "@/stores/dockerOperation";
 
 /**
  * Docker操作监控组件
@@ -28,8 +28,8 @@ import { useDockerOperationStore } from '@/stores/dockerOperation';
 const store = useDockerOperationStore();
 
 // 转换操作列表格式
-const operationList = computed(() => 
-  store.operations.map(op => ({
+const operationList = computed(() =>
+  store.operations.map((op) => ({
     id: op.id,
     type: op.type,
     title: op.title,
@@ -39,7 +39,7 @@ const operationList = computed(() =>
     error: op.error,
     createdAt: op.createdAt,
     updatedAt: op.updatedAt,
-  }))
+  })),
 );
 
 // 清除已完成的操作

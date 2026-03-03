@@ -7,7 +7,7 @@
   >
     <div class="node-detail-content">
       <!-- 节点基本信息 -->
-      <div class="node-info-section" v-if="nodeInfo">
+      <div v-if="nodeInfo" class="node-info-section">
         <div class="info-header">
           <div class="info-icon">
             <IconifyIconOnline icon="ri:server-line" />
@@ -196,8 +196,13 @@ const featureList = computed(() => [
  * 获取状态类型
  * @param status 状态
  */
-const getStatusType = (status: string): "success" | "warning" | "danger" | "info" | "primary" => {
-  const statusMap: Record<string, "success" | "warning" | "danger" | "info" | "primary"> = {
+const getStatusType = (
+  status: string,
+): "success" | "warning" | "danger" | "info" | "primary" => {
+  const statusMap: Record<
+    string,
+    "success" | "warning" | "danger" | "info" | "primary"
+  > = {
     ONLINE: "success",
     OFFLINE: "danger",
     CONNECTING: "warning",
@@ -340,7 +345,7 @@ const checkNodeHealth = async (node: OnlineNodeInfo) => {
     const response = await apiCheckNodeHealth(node.ipAddress, node.port);
     if (response.code === "00000") {
       message.success(
-        `节点 ${node.nodeName || node.applicationName} 健康检查通过`
+        `节点 ${node.nodeName || node.applicationName} 健康检查通过`,
       );
     } else {
       message.warning(`节点健康检查失败: ${response.msg}`);

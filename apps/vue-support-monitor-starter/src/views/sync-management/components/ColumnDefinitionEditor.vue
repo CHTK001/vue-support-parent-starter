@@ -2,11 +2,21 @@
   <div class="column-definition-editor system-container modern-bg">
     <!-- 工具栏 -->
     <div class="editor-toolbar">
-      <el-button type="primary" :icon="Plus" @click="addColumn">添加列</el-button>
-      <el-button :icon="Download" @click="importFromSource" :disabled="!canImport">
+      <el-button type="primary" :icon="Plus" @click="addColumn"
+        >添加列</el-button
+      >
+      <el-button
+        :icon="Download"
+        :disabled="!canImport"
+        @click="importFromSource"
+      >
         从源表导入
       </el-button>
-      <el-button :icon="View" @click="previewSql" :disabled="columns.length === 0">
+      <el-button
+        :icon="View"
+        :disabled="columns.length === 0"
+        @click="previewSql"
+      >
         预览SQL
       </el-button>
       <el-button
@@ -14,8 +24,8 @@
         type="success"
         :icon="Promotion"
         :loading="creating"
-        @click="handleCreateTable"
         :disabled="columns.length === 0"
+        @click="handleCreateTable"
       >
         立即建表
       </el-button>
@@ -29,15 +39,23 @@
         inactive-text="手动建表"
         @change="handleAutoCreateChange"
       />
-      <el-tooltip content="启用后，同步任务执行时会自动创建目标表（如果不存在）">
+      <el-tooltip
+        content="启用后，同步任务执行时会自动创建目标表（如果不存在）"
+      >
         <el-icon class="help-icon"><QuestionFilled /></el-icon>
       </el-tooltip>
     </div>
 
     <!-- 列定义表格 -->
-    <el-table :data="columns" border stripe class="columns-table" max-height="400">
+    <el-table
+      :data="columns"
+      border
+      stripe
+      class="columns-table"
+      max-height="400"
+    >
       <el-table-column type="index" width="50" label="#" />
-      
+
       <el-table-column prop="name" label="列名" min-width="120">
         <template #default="{ row, $index }">
           <el-input
@@ -79,15 +97,31 @@
       <el-table-column label="约束" width="160">
         <template #default="{ row }">
           <div class="constraints">
-            <el-checkbox v-model="row.primaryKey" size="small" @change="emitChange">主键</el-checkbox>
-            <el-checkbox v-model="row.autoIncrement" size="small" @change="emitChange" :disabled="!row.primaryKey">自增</el-checkbox>
+            <el-checkbox
+              v-model="row.primaryKey"
+              size="small"
+              @change="emitChange"
+              >主键</el-checkbox
+            >
+            <el-checkbox
+              v-model="row.autoIncrement"
+              size="small"
+              :disabled="!row.primaryKey"
+              @change="emitChange"
+              >自增</el-checkbox
+            >
           </div>
         </template>
       </el-table-column>
 
       <el-table-column prop="nullable" label="可空" width="60" align="center">
         <template #default="{ row }">
-          <el-checkbox v-model="row.nullable" size="small" :disabled="row.primaryKey" @change="emitChange" />
+          <el-checkbox
+            v-model="row.nullable"
+            size="small"
+            :disabled="row.primaryKey"
+            @change="emitChange"
+          />
         </template>
       </el-table-column>
 
@@ -152,7 +186,11 @@
     </el-table>
 
     <!-- 空状态 -->
-    <el-empty v-if="columns.length === 0" description='暂无列定义，点击"添加列"开始定义' :image-size="80" />
+    <el-empty
+      v-if="columns.length === 0"
+      description='暂无列定义，点击"添加列"开始定义'
+      :image-size="80"
+    />
 
     <!-- SQL预览对话框 -->
     <sc-dialog v-model="sqlPreviewVisible" title="建表SQL预览" width="700px">
@@ -246,7 +284,7 @@ watch(
   (newVal) => {
     columns.value = newVal ? [...newVal] : [];
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 watch(
@@ -254,7 +292,7 @@ watch(
   (newVal) => {
     autoCreateEnabled.value = newVal;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 触发更新
@@ -367,7 +405,7 @@ const handleCreateTable = async () => {
     await ElMessageBox.confirm(
       `确定要在目标数据库中创建表 "${props.tableName}" 吗？`,
       "确认建表",
-      { type: "warning" }
+      { type: "warning" },
     );
   } catch {
     return;
@@ -375,7 +413,11 @@ const handleCreateTable = async () => {
 
   creating.value = true;
   try {
-    const res = await createOutputTable(props.nodeConfig, props.tableName, columns.value);
+    const res = await createOutputTable(
+      props.nodeConfig,
+      props.tableName,
+      columns.value,
+    );
     if (res.data?.success) {
       ElMessage.success("表创建成功");
     } else {
@@ -391,7 +433,6 @@ const handleCreateTable = async () => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -424,7 +465,6 @@ const handleCreateTable = async () => {
     z-index: 1;
   }
 }
-
 
 .column-definition-editor {
   .editor-toolbar {
@@ -462,7 +502,6 @@ const handleCreateTable = async () => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -471,5 +510,4 @@ const handleCreateTable = async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

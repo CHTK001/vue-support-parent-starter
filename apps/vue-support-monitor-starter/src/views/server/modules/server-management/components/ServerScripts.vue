@@ -523,7 +523,7 @@ const handleValidateScript = async (script: ServerScript) => {
   try {
     const res = await validateScript(
       script.monitorSysGenServerScriptContent,
-      script.monitorSysGenServerScriptType
+      script.monitorSysGenServerScriptType,
     );
     if (res.code === "00000") {
       message.success("脚本语法检查通过");
@@ -548,7 +548,7 @@ const handleDeleteScript = async (script: ServerScript) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     const res = await deleteServerScript(script.monitorSysGenServerScriptId);
@@ -629,7 +629,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -662,7 +661,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .server-scripts {
   .toolbar {
@@ -698,7 +696,7 @@ onMounted(() => {
 
     .script-desc {
       font-size: 12px;
-       color: var(--el-text-color);
+      color: var(--el-text-color);
       margin-bottom: 4px;
     }
 
@@ -767,13 +765,12 @@ onMounted(() => {
   }
 
   .upload-tip {
-     color: var(--el-text-color);
+    color: var(--el-text-color);
     font-size: 12px;
     text-align: center;
     margin-top: 8px;
   }
 }
-
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -783,5 +780,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

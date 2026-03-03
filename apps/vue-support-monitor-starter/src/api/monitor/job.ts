@@ -7,8 +7,8 @@ export const fetchJobPageList = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/job/page", {
     params,
     headers: {
-      "x-remote-animation": "false"
-    }
+      "x-remote-animation": "false",
+    },
   });
 };
 
@@ -37,28 +37,36 @@ export const fetchJobStart = (params: any) => {
  * 删除任务
  */
 export const fetchJobDelete = (params: any) => {
-  return http.request<ReturnResult<any>>("delete", "/v1/job/delete", { params });
+  return http.request<ReturnResult<any>>("delete", "/v1/job/delete", {
+    params,
+  });
 };
 
 /**
  * 新增任务
  */
 export const fetchJobSave = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "/v1/job/save", { data: params });
+  return http.request<ReturnResult<any>>("post", "/v1/job/save", {
+    data: params,
+  });
 };
 
 /**
  * 修改任务
  */
 export const fetchJobUpdate = (params: any) => {
-  return http.request<ReturnResult<any>>("put", "/v1/job/update", { data: params });
+  return http.request<ReturnResult<any>>("put", "/v1/job/update", {
+    data: params,
+  });
 };
 
 /**
  * 获取任务下次触发时间
  */
 export const fetchJobNextTriggerTime = (params: any) => {
-  return http.request<ReturnResult<any>>("get", "/v1/job/nextTriggerTime", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/job/nextTriggerTime", {
+    params,
+  });
 };
 
 /**

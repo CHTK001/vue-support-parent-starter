@@ -78,8 +78,8 @@
           <el-button
             type="primary"
             size="large"
-            @click="openEdit()"
             class="create-btn"
+            @click="openEdit()"
           >
             <IconifyIconOnline icon="ri:add-line" />
             新建数据源
@@ -91,8 +91,8 @@
     <!-- 内容区域 -->
     <div class="content-section">
       <ScTable
-        class="enhanced-card-grid"
         ref="tableRef"
+        class="enhanced-card-grid"
         :loading="loading"
         :url="pageSystemDataSettings"
         :params="queryParams"
@@ -118,7 +118,7 @@
               <div
                 class="card-status-indicator"
                 :class="getStatusClass(item)"
-              ></div>
+              />
 
               <!-- 卡片头部 -->
               <div class="enhanced-card-header">
@@ -270,7 +270,7 @@
                     class="status-indicator"
                     :class="getConnectionStatus(item)"
                   >
-                    <div class="status-dot"></div>
+                    <div class="status-dot" />
                     <span class="status-text">{{
                       getConnectionStatusText(item)
                     }}</span>
@@ -279,7 +279,7 @@
               </div>
 
               <!-- 背景装饰 -->
-              <div class="card-decoration" :style="bgStyle(item)"></div>
+              <div class="card-decoration" :style="bgStyle(item)" />
 
               <!-- 操作按钮 -->
               <div class="enhanced-card-actions" @click.stop>
@@ -288,8 +288,8 @@
                     <el-button
                       size="small"
                       type="primary"
-                      @click.stop.prevent="openConsole(item)"
                       class="action-btn primary-action"
+                      @click.stop.prevent="openConsole(item)"
                     >
                       <IconifyIconOnline icon="ri:login-circle-line" />
                     </el-button>
@@ -330,15 +330,11 @@
         </div>
       </template>
       <div class="doc-iframe-container">
-        <div class="iframe-loading" v-if="docLoading">
+        <div v-if="docLoading" class="iframe-loading">
           <IconifyIconOnline icon="ri:loader-4-line" class="loading-icon" />
           <span>加载中...</span>
         </div>
-        <iframe
-          :src="docUrl"
-          class="doc-iframe"
-          @load="docLoading = false"
-        ></iframe>
+        <iframe :src="docUrl" class="doc-iframe" @load="docLoading = false" />
       </div>
     </sc-dialog>
     <ConsoleSettingDialog
@@ -356,13 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  computed,
-  onMounted,
-  watch,
-  reactive,
-} from "vue";
+import { ref, computed, onMounted, watch, reactive } from "vue";
 import {
   pageSystemDataSettings,
   deleteSystemDataSetting,
@@ -452,8 +442,8 @@ const sortKey = ref<"name" | "type">("name");
 const typeOptions = computed(
   () =>
     Array.from(
-      new Set(list.value.map((i) => i.systemDataSettingType).filter(Boolean))
-    ) as string[]
+      new Set(list.value.map((i) => i.systemDataSettingType).filter(Boolean)),
+    ) as string[],
 );
 
 // 交给 ScTable 处理分页与过滤，这里保留 options 构建
@@ -468,7 +458,7 @@ watch([searchKey, typeFilter], () => {
 });
 
 function getTypeTag(
-  type?: string
+  type?: string,
 ): "success" | "warning" | "info" | "primary" | "danger" {
   const t = (type || "").toLowerCase();
   if (t.includes("jdbc") || t.includes("sql")) {
@@ -535,32 +525,27 @@ function openConsole(row: SystemDataSetting) {
       name: "dataJdbcConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (type.includes("redis")) {
+  } else if (type.includes("redis")) {
     _url = router.resolve({
       name: "dataRedisConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (type.includes("zk") || type.includes("zookeeper")) {
+  } else if (type.includes("zk") || type.includes("zookeeper")) {
     _url = router.resolve({
       name: "dataZookeeperConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
- else  if (type.includes("influx")) {
+  } else if (type.includes("influx")) {
     _url = router.resolve({
       name: "dataInfluxConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (type.includes("mqtt")) {
+  } else if (type.includes("mqtt")) {
     _url = router.resolve({
       name: "dataMqttConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (
+  } else if (
     type.includes("graph") ||
     type.includes("graphdb") ||
     type.includes("neo4j")
@@ -569,14 +554,13 @@ function openConsole(row: SystemDataSetting) {
       name: "dataGraphConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (type.includes("email")) {
+  } else if (type.includes("email")) {
     _url = router.resolve({
       name: "dataEmailConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
   }
-   window.open(_url, '_blank')
+  window.open(_url, "_blank");
 }
 
 function openSetting(row: SystemDataSetting) {
@@ -733,7 +717,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -766,7 +749,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 /* 页面主容器 */
 .data-management-page {
@@ -1675,13 +1657,21 @@ onMounted(() => {
     align-items: center;
     gap: 16px;
     padding: 24px 32px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9),
+      var(--el-color-primary-light-8)
+    );
 
     .header-icon {
       width: 52px;
       height: 52px;
       border-radius: 14px;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3)
+      );
       display: flex;
       align-items: center;
       justify-content: center;

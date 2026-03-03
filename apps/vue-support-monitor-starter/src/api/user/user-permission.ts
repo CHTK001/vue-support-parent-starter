@@ -12,20 +12,20 @@ import { http } from "@repo/utils";
 
 // 权限组列表
 export function getList(params) {
-  return http.post('/user-permission-group/get-list', params);
+  return http.post("/user-permission-group/get-list", params);
 }
 
 // 编辑
 export function editPermissionGroup(params) {
-  return http.post('/user-permission-group/edit', params);
+  return http.post("/user-permission-group/edit", params);
 }
 
 // 所有列表
 export function getUserPermissionListAll() {
-  return http.get('/user-permission-group/get-list-all');
+  return http.get("/user-permission-group/get-list-all");
 }
 
 // 删除
 export function deletePermissionGroup(id) {
-  return http.get('/user-permission-group/delete', { params: { id } });
+  return http.get("/user-permission-group/delete", { params: { id } });
 }

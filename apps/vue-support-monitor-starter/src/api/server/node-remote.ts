@@ -12,7 +12,7 @@ export function uploadFileToNode(
     scriptId?: number | string;
   },
   onUploadProgress?: (e: ProgressEvent) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ) {
   const fd = new FormData();
   fd.append("nodeId", params.nodeId);
@@ -27,6 +27,6 @@ export function uploadFileToNode(
     data: fd,
     headers: { "Content-Type": "multipart/form-data" },
     onUploadProgress,
-    signal
+    signal,
   } as any);
 }

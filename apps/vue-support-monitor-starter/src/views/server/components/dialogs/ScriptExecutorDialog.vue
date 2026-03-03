@@ -17,23 +17,38 @@
                 <el-dropdown @command="handleTemplateCommand">
                   <el-button size="small" text>
                     模板
-                    <IconifyIconOnline icon="ri:arrow-down-s-line" class="ml-1" />
+                    <IconifyIconOnline
+                      icon="ri:arrow-down-s-line"
+                      class="ml-1"
+                    />
                   </el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item command="system_info">系统信息</el-dropdown-item>
-                      <el-dropdown-item command="disk_usage">磁盘使用</el-dropdown-item>
-                      <el-dropdown-item command="memory_info">内存信息</el-dropdown-item>
-                      <el-dropdown-item command="process_list">进程列表</el-dropdown-item>
-                      <el-dropdown-item command="network_info">网络信息</el-dropdown-item>
-                      <el-dropdown-item command="service_status">服务状态</el-dropdown-item>
+                      <el-dropdown-item command="system_info"
+                        >系统信息</el-dropdown-item
+                      >
+                      <el-dropdown-item command="disk_usage"
+                        >磁盘使用</el-dropdown-item
+                      >
+                      <el-dropdown-item command="memory_info"
+                        >内存信息</el-dropdown-item
+                      >
+                      <el-dropdown-item command="process_list"
+                        >进程列表</el-dropdown-item
+                      >
+                      <el-dropdown-item command="network_info"
+                        >网络信息</el-dropdown-item
+                      >
+                      <el-dropdown-item command="service_status"
+                        >服务状态</el-dropdown-item
+                      >
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
                 <el-button size="small" @click="clearScript">清空</el-button>
               </div>
             </div>
-            
+
             <el-form :model="formData" label-width="80px" size="small">
               <el-form-item label="脚本类型">
                 <el-select v-model="formData.scriptType" style="width: 100%">
@@ -43,7 +58,7 @@
                   <el-option label="批处理" value="batch" />
                 </el-select>
               </el-form-item>
-              
+
               <el-form-item label="执行超时">
                 <el-input-number
                   v-model="formData.timeout"
@@ -69,14 +84,14 @@
             <div class="script-footer">
               <el-button
                 type="primary"
-                @click="executeScript"
                 :loading="executing"
                 :disabled="!formData.script.trim()"
+                @click="executeScript"
               >
                 <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                 执行脚本
               </el-button>
-              <el-button @click="stopExecution" :disabled="!executing">
+              <el-button :disabled="!executing" @click="stopExecution">
                 <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                 停止执行
               </el-button>
@@ -90,13 +105,17 @@
             <div class="panel-header">
               <h4>执行结果</h4>
               <div class="result-actions">
-                <el-button size="small" @click="clearOutput">清空输出</el-button>
-                <el-button size="small" @click="downloadOutput">下载结果</el-button>
+                <el-button size="small" @click="clearOutput"
+                  >清空输出</el-button
+                >
+                <el-button size="small" @click="downloadOutput"
+                  >下载结果</el-button
+                >
               </div>
             </div>
 
             <!-- 执行状态 -->
-            <div class="execution-status" v-if="executing || executionResult">
+            <div v-if="executing || executionResult" class="execution-status">
               <el-tag
                 :type="getStatusType(executionStatus)"
                 size="small"
@@ -104,7 +123,7 @@
               >
                 {{ getStatusText(executionStatus) }}
               </el-tag>
-              <span class="execution-time" v-if="executionTime">
+              <span v-if="executionTime" class="execution-time">
                 执行时间: {{ executionTime }}ms
               </span>
             </div>
@@ -114,19 +133,23 @@
               <div class="output-tabs">
                 <el-tabs v-model="activeTab" size="small">
                   <el-tab-pane label="标准输出" name="stdout">
-                    <div class="output-content" ref="stdoutRef">
-                      <pre v-if="outputData.stdout">{{ outputData.stdout }}</pre>
+                    <div ref="stdoutRef" class="output-content">
+                      <pre v-if="outputData.stdout">{{
+                        outputData.stdout
+                      }}</pre>
                       <div v-else class="empty-output">暂无输出</div>
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="错误输出" name="stderr">
-                    <div class="output-content" ref="stderrRef">
-                      <pre v-if="outputData.stderr" class="error-output">{{ outputData.stderr }}</pre>
+                    <div ref="stderrRef" class="output-content">
+                      <pre v-if="outputData.stderr" class="error-output">{{
+                        outputData.stderr
+                      }}</pre>
                       <div v-else class="empty-output">暂无错误输出</div>
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="执行日志" name="logs">
-                    <div class="output-content" ref="logsRef">
+                    <div ref="logsRef" class="output-content">
                       <div
                         v-for="(log, index) in executionLogs"
                         :key="index"
@@ -136,7 +159,12 @@
                         <span class="log-time">{{ formatTime(log.time) }}</span>
                         <span class="log-message">{{ log.message }}</span>
                       </div>
-                      <div v-if="executionLogs.length === 0" class="empty-output">暂无日志</div>
+                      <div
+                        v-if="executionLogs.length === 0"
+                        class="empty-output"
+                      >
+                        暂无日志
+                      </div>
                     </div>
                   </el-tab-pane>
                 </el-tabs>
@@ -147,7 +175,7 @@
       </el-row>
 
       <!-- 目标服务器选择 -->
-      <div class="server-selection" v-if="!targetServer">
+      <div v-if="!targetServer" class="server-selection">
         <el-divider content-position="left">目标服务器</el-divider>
         <el-checkbox-group v-model="selectedServers">
           <el-checkbox
@@ -165,7 +193,11 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" @click="saveScript" :disabled="!formData.script.trim()">
+        <el-button
+          type="primary"
+          :disabled="!formData.script.trim()"
+          @click="saveScript"
+        >
           保存脚本
         </el-button>
       </div>
@@ -186,22 +218,24 @@ const props = defineProps<{
 // 状态
 const visible = ref(false);
 const executing = ref(false);
-const executionStatus = ref<'running' | 'success' | 'error' | 'timeout'>('running');
+const executionStatus = ref<"running" | "success" | "error" | "timeout">(
+  "running",
+);
 const executionTime = ref(0);
 const executionResult = ref(false);
-const activeTab = ref('stdout');
+const activeTab = ref("stdout");
 
 // 表单数据
 const formData = reactive({
-  scriptType: 'shell',
-  script: '',
-  timeout: 60
+  scriptType: "shell",
+  script: "",
+  timeout: 60,
 });
 
 // 输出数据
 const outputData = reactive({
-  stdout: '',
-  stderr: ''
+  stdout: "",
+  stderr: "",
 });
 
 // 执行日志
@@ -241,7 +275,7 @@ Write-Host "=== CPU信息 ==="
 Get-WmiObject -Class Win32_Processor | Select-Object Name, NumberOfCores
 Write-Host ""
 Write-Host "=== 磁盘信息 ==="
-Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace`
+Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace`,
   },
   disk_usage: {
     shell: `#!/bin/bash
@@ -253,7 +287,7 @@ echo "=== 大文件查找 (>100M) ==="
 find / -type f -size +100M -exec ls -lh {} \\; 2>/dev/null | head -10`,
     powershell: `# 磁盘使用情况
 Write-Host "=== 磁盘使用情况 ==="
-Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}, @{Name="Usage%";Expression={[math]::Round(($_.Size-$_.FreeSpace)/$_.Size*100,2)}}`
+Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}, @{Name="Usage%";Expression={[math]::Round(($_.Size-$_.FreeSpace)/$_.Size*100,2)}}`,
   },
   memory_info: {
     shell: `#!/bin/bash
@@ -268,42 +302,42 @@ Write-Host "=== 内存使用情况 ==="
 Get-WmiObject -Class Win32_OperatingSystem | Select-Object @{Name="TotalMemory(GB)";Expression={[math]::Round($_.TotalVisibleMemorySize/1MB,2)}}, @{Name="FreeMemory(GB)";Expression={[math]::Round($_.FreePhysicalMemory/1MB,2)}}
 Write-Host ""
 Write-Host "=== 内存占用TOP10进程 ==="
-Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10 Name, @{Name="Memory(MB)";Expression={[math]::Round($_.WorkingSet/1MB,2)}}`
-  }
+Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10 Name, @{Name="Memory(MB)";Expression={[math]::Round($_.WorkingSet/1MB,2)}}`,
+  },
 };
 
 // 方法
 const open = (server?: any, servers?: any[]) => {
   targetServer.value = server || null;
   availableServers.value = servers || [];
-  
+
   if (server) {
     selectedServers.value = [server.id];
   }
-  
+
   visible.value = true;
   resetForm();
 };
 
 const resetForm = () => {
-  formData.scriptType = 'shell';
-  formData.script = '';
+  formData.scriptType = "shell";
+  formData.script = "";
   formData.timeout = 60;
-  
-  outputData.stdout = '';
-  outputData.stderr = '';
+
+  outputData.stdout = "";
+  outputData.stderr = "";
   executionLogs.value = [];
-  
+
   executing.value = false;
   executionResult.value = false;
-  executionStatus.value = 'running';
+  executionStatus.value = "running";
   executionTime.value = 0;
-  activeTab.value = 'stdout';
+  activeTab.value = "stdout";
 };
 
 const handleClose = () => {
   if (executing.value) {
-    message.warning('脚本执行中，请等待完成或停止执行');
+    message.warning("脚本执行中，请等待完成或停止执行");
     return;
   }
   visible.value = false;
@@ -313,7 +347,8 @@ const handleClose = () => {
 const handleTemplateCommand = (command: string) => {
   const template = scriptTemplates[command as keyof typeof scriptTemplates];
   if (template) {
-    const scriptContent = template[formData.scriptType as keyof typeof template];
+    const scriptContent =
+      template[formData.scriptType as keyof typeof template];
     if (scriptContent) {
       formData.script = scriptContent;
     } else {
@@ -323,51 +358,50 @@ const handleTemplateCommand = (command: string) => {
 };
 
 const clearScript = () => {
-  formData.script = '';
+  formData.script = "";
 };
 
 const clearOutput = () => {
-  outputData.stdout = '';
-  outputData.stderr = '';
+  outputData.stdout = "";
+  outputData.stderr = "";
   executionLogs.value = [];
 };
 
 const executeScript = async () => {
   if (!formData.script.trim()) {
-    message.warning('请输入脚本内容');
+    message.warning("请输入脚本内容");
     return;
   }
 
   if (!targetServer.value && selectedServers.value.length === 0) {
-    message.warning('请选择目标服务器');
+    message.warning("请选择目标服务器");
     return;
   }
 
   try {
     executing.value = true;
     executionResult.value = false;
-    executionStatus.value = 'running';
+    executionStatus.value = "running";
     clearOutput();
-    
-    addLog('info', '开始执行脚本...');
-    
+
+    addLog("info", "开始执行脚本...");
+
     const startTime = Date.now();
-    
+
     // 模拟脚本执行
     await simulateScriptExecution();
-    
+
     executionTime.value = Date.now() - startTime;
-    executionStatus.value = 'success';
+    executionStatus.value = "success";
     executionResult.value = true;
-    
-    addLog('success', `脚本执行完成，耗时 ${executionTime.value}ms`);
-    message.success('脚本执行成功');
-    
+
+    addLog("success", `脚本执行完成，耗时 ${executionTime.value}ms`);
+    message.success("脚本执行成功");
   } catch (error) {
-    executionStatus.value = 'error';
+    executionStatus.value = "error";
     executionResult.value = true;
-    addLog('error', `脚本执行失败: ${error}`);
-    message.error('脚本执行失败');
+    addLog("error", `脚本执行失败: ${error}`);
+    message.error("脚本执行失败");
   } finally {
     executing.value = false;
   }
@@ -375,78 +409,81 @@ const executeScript = async () => {
 
 const simulateScriptExecution = async () => {
   // 模拟脚本执行过程
-  addLog('info', '连接到目标服务器...');
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  addLog('info', '上传脚本文件...');
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  addLog('info', '设置执行权限...');
-  await new Promise(resolve => setTimeout(resolve, 200));
-  
-  addLog('info', '开始执行脚本...');
-  
+  addLog("info", "连接到目标服务器...");
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  addLog("info", "上传脚本文件...");
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  addLog("info", "设置执行权限...");
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  addLog("info", "开始执行脚本...");
+
   // 模拟输出
   const outputs = [
-    '=== 系统信息 ===',
-    'Linux server01 5.4.0-74-generic #83-Ubuntu SMP Sat May 8 02:35:39 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux',
-    '',
-    '=== CPU信息 ===',
-    'model name	: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz',
-    '',
-    '=== 内存信息 ===',
-    '              total        used        free      shared  buff/cache   available',
-    'Mem:           15Gi       2.1Gi        10Gi       1.0Mi       3.2Gi        13Gi',
-    'Swap:         2.0Gi          0B       2.0Gi',
-    '',
-    '=== 磁盘信息 ===',
-    'Filesystem      Size  Used Avail Use% Mounted on',
-    '/dev/sda1        20G  8.1G   11G  43% /',
-    '/dev/sda2       100G   45G   50G  48% /home'
+    "=== 系统信息 ===",
+    "Linux server01 5.4.0-74-generic #83-Ubuntu SMP Sat May 8 02:35:39 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux",
+    "",
+    "=== CPU信息 ===",
+    "model name	: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz",
+    "",
+    "=== 内存信息 ===",
+    "              total        used        free      shared  buff/cache   available",
+    "Mem:           15Gi       2.1Gi        10Gi       1.0Mi       3.2Gi        13Gi",
+    "Swap:         2.0Gi          0B       2.0Gi",
+    "",
+    "=== 磁盘信息 ===",
+    "Filesystem      Size  Used Avail Use% Mounted on",
+    "/dev/sda1        20G  8.1G   11G  43% /",
+    "/dev/sda2       100G   45G   50G  48% /home",
   ];
-  
+
   for (const output of outputs) {
-    outputData.stdout += output + '\n';
-    await new Promise(resolve => setTimeout(resolve, 100));
+    outputData.stdout += output + "\n";
+    await new Promise((resolve) => setTimeout(resolve, 100));
     scrollToBottom(stdoutRef.value);
   }
-  
-  addLog('info', '脚本执行完成');
+
+  addLog("info", "脚本执行完成");
 };
 
 const stopExecution = () => {
   if (executing.value) {
     executing.value = false;
-    executionStatus.value = 'error';
-    addLog('warning', '脚本执行已停止');
-    message.warning('脚本执行已停止');
+    executionStatus.value = "error";
+    addLog("warning", "脚本执行已停止");
+    message.warning("脚本执行已停止");
   }
 };
 
 const downloadOutput = () => {
   const content = `脚本执行结果\n\n标准输出:\n${outputData.stdout}\n\n错误输出:\n${outputData.stderr}`;
-  const blob = new Blob([content], { type: 'text/plain' });
+  const blob = new Blob([content], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = `script_output_${Date.now()}.txt`;
   link.click();
   URL.revokeObjectURL(url);
-  message.success('输出结果已下载');
+  message.success("输出结果已下载");
 };
 
 const saveScript = () => {
   // TODO: 实现脚本保存功能
-  message.success('脚本已保存');
+  message.success("脚本已保存");
 };
 
-const addLog = (level: 'info' | 'success' | 'warning' | 'error', message: string) => {
+const addLog = (
+  level: "info" | "success" | "warning" | "error",
+  message: string,
+) => {
   executionLogs.value.push({
     level,
     message,
-    time: new Date()
+    time: new Date(),
   });
-  
+
   nextTick(() => {
     scrollToBottom(logsRef.value);
   });
@@ -460,22 +497,22 @@ const scrollToBottom = (element?: HTMLElement) => {
 
 const getStatusType = (status: string) => {
   const typeMap = {
-    running: 'warning',
-    success: 'success',
-    error: 'danger',
-    timeout: 'warning'
+    running: "warning",
+    success: "success",
+    error: "danger",
+    timeout: "warning",
   };
-  return typeMap[status as keyof typeof typeMap] || 'info';
+  return typeMap[status as keyof typeof typeMap] || "info";
 };
 
 const getStatusText = (status: string) => {
   const textMap = {
-    running: '执行中',
-    success: '执行成功',
-    error: '执行失败',
-    timeout: '执行超时'
+    running: "执行中",
+    success: "执行成功",
+    error: "执行失败",
+    timeout: "执行超时",
   };
-  return textMap[status as keyof typeof textMap] || '未知状态';
+  return textMap[status as keyof typeof textMap] || "未知状态";
 };
 
 const formatTime = (time: Date) => {
@@ -484,7 +521,7 @@ const formatTime = (time: Date) => {
 
 // 暴露方法
 defineExpose({
-  open
+  open,
 });
 </script>
 

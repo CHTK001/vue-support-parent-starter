@@ -1,21 +1,21 @@
 <template>
-  <div 
-    v-show="visible" 
-    class="common-context-menu" 
+  <div
+    v-show="visible"
+    class="common-context-menu"
     :style="{ left: x + 'px', top: y + 'px' }"
     @contextmenu.prevent
   >
     <template v-for="item in items" :key="item.key">
       <div v-if="item.divider" class="menu-divider" />
-      <div 
+      <div
         v-else
         class="menu-item"
         :class="{ disabled: item.disabled }"
         @click="handleClick(item)"
       >
-        <IconifyIconOnline 
-          v-if="item.icon" 
-          :icon="item.icon" 
+        <IconifyIconOnline
+          v-if="item.icon"
+          :icon="item.icon"
           class="menu-item-icon"
         />
         <span class="menu-item-label">{{ item.label }}</span>
@@ -25,55 +25,55 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from "vue";
 
 export interface MenuItem {
-  key: string
-  label: string
-  icon?: string
-  disabled?: boolean
-  divider?: boolean
+  key: string;
+  label: string;
+  icon?: string;
+  disabled?: boolean;
+  divider?: boolean;
 }
 
 interface Props {
-  items?: MenuItem[]
-  visible?: boolean
-  x?: number
-  y?: number
+  items?: MenuItem[];
+  visible?: boolean;
+  x?: number;
+  y?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   items: () => [],
   visible: false,
   x: 0,
-  y: 0
-})
+  y: 0,
+});
 
 const emit = defineEmits<{
-  (e: 'select', key: string): void
-  (e: 'close'): void
-}>()
+  (e: "select", key: string): void;
+  (e: "close"): void;
+}>();
 
 function handleClick(item: MenuItem) {
-  if (item.disabled) return
-  emit('select', item.key)
-  emit('close')
+  if (item.disabled) return;
+  emit("select", item.key);
+  emit("close");
 }
 
 function handleClickOutside(event: MouseEvent) {
-  const element = document.querySelector('.common-context-menu')
+  const element = document.querySelector(".common-context-menu");
   if (element && !element.contains(event.target as Node)) {
-    emit('close')
+    emit("close");
   }
 }
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
+  document.addEventListener("click", handleClickOutside);
+});
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
+  document.removeEventListener("click", handleClickOutside);
+});
 </script>
 
 <style scoped lang="scss">
@@ -84,7 +84,9 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 8px;
   min-width: 180px;
 }

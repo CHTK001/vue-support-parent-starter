@@ -1,12 +1,17 @@
 <script setup>
-import { defineAsyncComponent, reactive, ref, computed } from "vue";
-import { GridLayout } from "grid-layout-plus";
-import Widgets from "@repo/assets/svg/no-widgets.svg?component";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import "gridstack/dist/gridstack.min.css";
+
+import { GridStack } from "gridstack";
+import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+
 import { useLayoutLayoutStore } from "@repo/core";
 
 const loadingCollection = {};
 const userLayoutObject = useLayoutLayoutStore();
+
+const GRID_COLUMN_COUNT = 12;
+const GRID_CELL_HEIGHT = 90;
+const GRID_MARGIN = 12;
 
 const props = defineProps({
   modelValue: {
@@ -15,13 +20,16 @@ const props = defineProps({
   },
 });
 
+const gridEl = ref();
+const gridRef = ref();
+
 /**
  * 获取部件标题
  * @param key 部件key
  */
 const getWidgetTitle = (key) => {
   const comp = userLayoutObject.getComponent(key);
-  return comp?.sysSfcChineseName || comp?.sysSfcName || '未命名部件';
+  return comp?.sysSfcChineseName || comp?.sysSfcName || "未命名部件";
 };
 
 /**
@@ -29,7 +37,23 @@ const getWidgetTitle = (key) => {
  * @param item 部件项
  */
 const getTypeLabel = (item) => {
-  return item.type === 1 ? '本地' : '远程';
+  return item.type === 1 ? "本地" : "远程";
+};
+
+/**
+ * 编辑模式下，是否正在展示真实组件内容。
+ * - 本地组件：编辑模式下一直可见
+ * - 远程组件：由“预览/隐藏”开关控制
+ * @param item 部件项
+ */
+const isEditingContentVisible = (item) => {
+  if (!props.modelValue) {
+    return false;
+  }
+  if (item?.type === 1) {
+    return true;
+  }
+  return !!userLayoutObject.loadRemoteComponent(item.id);
 };
 
 /**
@@ -39,157 +63,325 @@ const getTypeLabel = (item) => {
 const handleRemove = async (key) => {
   userLayoutObject.removeComp(key);
 };
+
+/**
+ * 初始化/刷新 gridstack。
+ * 只在“部件列表变化”时刷新，拖拽/缩放过程中仅同步数据，不重建实例。
+ */
+const initGridStack = async () => {
+  await nextTick();
+  if (!gridEl.value) {
+    return;
+  }
+
+  if (gridRef.value) {
+    gridRef.value.destroy(false);
+    gridRef.value = null;
+  }
+
+  const grid = GridStack.init(
+    {
+      column: GRID_COLUMN_COUNT,
+      cellHeight: GRID_CELL_HEIGHT,
+      margin: GRID_MARGIN,
+      float: true,
+      animate: true,
+      disableOneColumnMode: false,
+      minRow: 1,
+      draggable: true,
+      resizable: {
+        handles: "all",
+      },
+    },
+    gridEl.value,
+  );
+
+  grid.on("change", (event, items) => {
+    if (!Array.isArray(items) || items.length === 0) {
+      return;
+    }
+    items.forEach((node) => {
+      userLayoutObject.updateComponent(node);
+      userLayoutObject.updateLayout(node);
+    });
+  });
+
+  gridRef.value = grid;
+  if (props.modelValue) {
+    grid.enable();
+  } else {
+    grid.disable();
+  }
+};
+
+const setEditMode = (enabled) => {
+  if (!gridRef.value) {
+    return;
+  }
+  if (enabled) {
+    gridRef.value.enable();
+    return;
+  }
+  gridRef.value.disable();
+};
+
+watch(
+  () => props.modelValue,
+  (val) => {
+    setEditMode(!!val);
+  },
+);
+
+watch(
+  () => (userLayoutObject.layout || []).map((it) => it?.id).join(","),
+  () => {
+    initGridStack();
+  },
+);
+
+onMounted(() => {
+  initGridStack();
+});
+
+onUnmounted(() => {
+  if (gridRef.value) {
+    gridRef.value.destroy(false);
+    gridRef.value = null;
+  }
+});
 </script>
+
 <template>
   <div class="customizing h-full">
-    <GridLayout 
-      class="!h-full grid-layout-container" 
-      :row-height="80" 
-      v-model:layout="userLayoutObject.layout" 
-      :is-draggable="props.modelValue" 
-      :is-resizable="props.modelValue" 
-      vertical-compact 
-      use-css-transforms
-    >
-      <template #item="{ item }">
-        <div class="item">
+    <div ref="gridEl" class="grid-stack grid-layout-container">
+      <div
+        v-for="item in userLayoutObject.layout"
+        :key="item.id"
+        class="grid-stack-item"
+        :gs-id="item.id"
+        :gs-x="item.x"
+        :gs-y="item.y"
+        :gs-w="item.w"
+        :gs-h="item.h"
+        :gs-min-w="item.minW || 1"
+        :gs-min-h="item.minH || 1"
+        :gs-max-w="item.maxW || 12"
+        :gs-max-h="item.maxH || undefined"
+        :gs-no-move="!props.modelValue"
+        :gs-no-resize="!props.modelValue"
+      >
+        <div class="grid-stack-item-content">
           <div class="widgets-item">
             <!-- 部件内容 -->
             <div class="widget-content h-full">
-              <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)" animated>
+              <el-skeleton
+                class="h-full"
+                :loading="userLayoutObject.isLoaded(item.id, loadingCollection)"
+                animated
+              >
                 <template #template>
                   <div class="!w-full !h-full" style="width: 100% !important">
-                    <div class="!h-full" v-if="(item.type == 1 && props.modelValue) || !props.modelValue || userLayoutObject.loadRemoteComponent(item.id)">
+                    <div
+                      class="!h-full"
+                      v-if="
+                        (item.type == 1 && props.modelValue) ||
+                        !props.modelValue ||
+                        userLayoutObject.loadRemoteComponent(item.id)
+                      "
+                    >
                       <keep-alive class="!h-full">
-                        <component 
-                          class="!h-full" 
-                          :is="userLayoutObject.loadComponent(item.id)" 
-                          :frameInfo="userLayoutObject.loadFrameInfo(item.id)" 
-                          :key="userLayoutObject.loadFrameInfo(item.id).key" 
-                          @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" 
+                        <component
+                          class="!h-full"
+                          :is="userLayoutObject.loadComponent(item.id)"
+                          :frameInfo="userLayoutObject.loadFrameInfo(item.id)"
+                          :key="userLayoutObject.loadFrameInfo(item.id).key"
+                          @loaded="
+                            () => userLayoutObject.loaded(item.id, loadingCollection)
+                          "
                         />
                       </keep-alive>
                     </div>
                     <div v-else-if="props.modelValue" class="widget-placeholder">
-                      <el-icon :size="48" color="var(--el-color-primary-light-5)">
-                        <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon || 'ri:apps-line')" />
-                      </el-icon>
-                      <span class="placeholder-text">{{ getWidgetTitle(item.id) }}</span>
+                      <span class="placeholder-text">{{
+                        getWidgetTitle(item.id)
+                      }}</span>
                     </div>
                   </div>
                 </template>
               </el-skeleton>
             </div>
-            
+
             <!-- 编辑模式遮罩层 -->
-            <div v-if="props.modelValue" class="customize-overlay" :class="{ 'is-local': item.type === 1 }">
+            <div
+              v-if="props.modelValue"
+              class="customize-overlay"
+              :class="{
+                'is-local': item.type === 1,
+                'is-minimal': isEditingContentVisible(item),
+              }"
+            >
               <!-- 操作按钮组 -->
               <div class="overlay-actions">
                 <el-tooltip content="预览/隐藏" placement="top" v-if="item.type != 1">
                   <el-button
-                    :type="userLayoutObject.loadRemoteComponent(item.id) ? 'primary' : 'info'"
-                    circle
+                    :type="
+                      userLayoutObject.loadRemoteComponent(item.id)
+                        ? 'primary'
+                        : 'info'
+                    "
                     size="small"
-                    @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))"
+                    @click.stop="
+                      userLayoutObject.loadRemoteComponent(
+                        item.id,
+                        !userLayoutObject.loadRemoteComponent(item.id),
+                      )
+                    "
                   >
-                    <el-icon>
-                      <component :is="useRenderIcon(userLayoutObject.loadRemoteComponent(item.id) ? 'ri:eye-line' : 'ri:eye-close-line')" />
-                    </el-icon>
+                    {{ userLayoutObject.loadRemoteComponent(item.id) ? "隐藏" : "预览" }}
                   </el-button>
                 </el-tooltip>
                 <el-tooltip content="移除部件" placement="top">
-                  <el-button type="danger" circle size="small" @click="handleRemove(item.id)">
-                    <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click.stop="handleRemove(item.id)"
+                  >
+                    移除
                   </el-button>
                 </el-tooltip>
               </div>
-              
-              <!-- 拖拽区域 -->
-              <div class="drag-area" v-if="item.type !== 1">
-                <div class="drag-icon">
-                  <el-icon :size="28">
-                    <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon || 'ri:apps-line')" />
-                  </el-icon>
-                </div>
+
+              <!-- 信息展示区域 -->
+              <div v-if="!isEditingContentVisible(item)" class="drag-area">
                 <div class="drag-info">
                   <span class="drag-title">{{ getWidgetTitle(item.id) }}</span>
-                  <el-tag size="small" :type="item.type === 1 ? 'success' : 'primary'" class="drag-type">
+                  <el-tag
+                    size="small"
+                    :type="item.type === 1 ? 'success' : 'primary'"
+                    class="drag-type"
+                  >
                     {{ getTypeLabel(item) }}
                   </el-tag>
                 </div>
                 <div class="drag-hint">
-                  <el-icon :size="14"><component :is="useRenderIcon('ri:drag-move-2-line')" /></el-icon>
                   <span>拖拽移动</span>
                 </div>
               </div>
-              
+
               <!-- 调整大小提示 -->
-              <div class="resize-hint">
-                <el-icon :size="12"><component :is="useRenderIcon('ri:expand-diagonal-line')" /></el-icon>
-              </div>
+              <div v-if="!isEditingContentVisible(item)" class="resize-hint" />
             </div>
           </div>
         </div>
-      </template>
-    </GridLayout>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-/* Grid Layout 样式 */
-:deep(.vgl-item) {
-  transition: none !important;
+/* gridstack 容器 */
+.grid-layout-container {
+  padding: 10px;
 }
 
-:deep(.vgl-item__resizer) {
+/* 让 gridstack 的内容撑满 */
+::deep(.grid-stack-item-content) {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  pointer-events: auto;
+}
+
+/* resize handle 置顶，避免被遮罩层挡住 */
+::deep(.grid-stack-item > .ui-resizable-handle),
+::deep(.grid-stack-item > .gs-resize-handle) {
   z-index: 99;
-  width: 16px !important;
-  height: 16px !important;
-  bottom: 4px !important;
-  right: 4px !important;
+  width: 20px;
+  height: 20px;
   background: var(--el-color-primary);
+  border: 2px solid var(--el-bg-color);
   border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+::deep(.grid-stack-item > .ui-resizable-handle:hover),
+::deep(.grid-stack-item > .gs-resize-handle:hover) {
   opacity: 1;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    transform: scale(1.2);
-  }
+  transform: scale(1.2);
 }
 
-.vgl-layout {
-  --vgl-placeholder-bg: var(--el-color-primary-light-7);
+/* 四角 resize handle */
+::deep(.grid-stack-item > .ui-resizable-se),
+::deep(.grid-stack-item > .gs-resize-handle-se) {
+  cursor: nwse-resize;
 }
 
-:deep(.vgl-item--placeholder) {
-  border: 2px dashed var(--el-color-primary);
-  border-radius: 12px;
-  background: var(--el-color-primary-light-9) !important;
-  opacity: 0.6 !important;
+::deep(.grid-stack-item > .ui-resizable-sw),
+::deep(.grid-stack-item > .gs-resize-handle-sw) {
+  cursor: nesw-resize;
+}
+
+::deep(.grid-stack-item > .ui-resizable-ne),
+::deep(.grid-stack-item > .gs-resize-handle-ne) {
+  cursor: nesw-resize;
+}
+
+::deep(.grid-stack-item > .ui-resizable-nw),
+::deep(.grid-stack-item > .gs-resize-handle-nw) {
+  cursor: nwse-resize;
+}
+
+/* 边缘 resize handle */
+::deep(.grid-stack-item > .ui-resizable-n),
+::deep(.grid-stack-item > .gs-resize-handle-n) {
+  cursor: ns-resize;
+  width: 100%;
+  height: 10px;
+  top: -5px;
+  left: 0;
+}
+
+::deep(.grid-stack-item > .ui-resizable-s),
+::deep(.grid-stack-item > .gs-resize-handle-s) {
+  cursor: ns-resize;
+  width: 100%;
+  height: 10px;
+  bottom: -5px;
+  left: 0;
+}
+
+::deep(.grid-stack-item > .ui-resizable-e),
+::deep(.grid-stack-item > .gs-resize-handle-e) {
+  cursor: ew-resize;
+  width: 10px;
+  height: 100%;
+  right: -5px;
+  top: 0;
+}
+
+::deep(.grid-stack-item > .ui-resizable-w),
+::deep(.grid-stack-item > .gs-resize-handle-w) {
+  cursor: ew-resize;
+  width: 10px;
+  height: 100%;
+  left: -5px;
+  top: 0;
 }
 
 /* 基础布局 */
-.grid-layout-container {
-  padding: 8px;
-}
-
-.item {
-  width: 100%;
-  height: 100%;
-}
-
 .widgets-item {
   position: relative;
   height: 100%;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--el-bg-color);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s ease, background 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s ease, background 0.3s ease, transform 0.2s ease;
   will-change: transform;
-  
+
   /* Glassmorphism Support */
-  [data-theme='glass'] & {
+  [data-theme="glass"] & {
     background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(12px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
@@ -198,9 +390,9 @@ const handleRemove = async (key) => {
 }
 
 .widgets-item:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  
-  [data-theme='glass'] & {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+  [data-theme="glass"] & {
     background: rgba(255, 255, 255, 0.75);
     box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
   }
@@ -208,8 +400,20 @@ const handleRemove = async (key) => {
 
 /* 部件内容 */
 .widget-content {
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
+}
+
+/* 拖拽时的视觉反馈 */
+::deep(.grid-stack-item.ui-draggable-dragging) {
+  opacity: 0.8;
+  z-index: 1000;
+  transform: rotate(2deg);
+}
+
+::deep(.grid-stack-item.ui-resizable-resizing) {
+  opacity: 0.9;
+  z-index: 1000;
 }
 
 /* 占位符样式 */
@@ -219,19 +423,29 @@ const handleRemove = async (key) => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: linear-gradient(135deg, var(--el-fill-color-light), var(--el-fill-color));
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-light),
+    var(--el-fill-color)
+  );
   gap: 12px;
-  
-  [data-theme='glass'] & {
+
+  [data-theme="glass"] & {
     background: transparent;
   }
-  
+
   .placeholder-text {
     font-size: 14px;
     color: var(--el-text-color-secondary);
     font-weight: 500;
   }
 }
+
+/* 编辑模式下整个卡片可拖动 */
+::deep(.grid-stack-item:not(.ui-draggable-disabled)) .widgets-item {
+  cursor: move;
+}
+
 
 /* 编辑模式遮罩层 */
 .customize-overlay {
@@ -246,12 +460,12 @@ const handleRemove = async (key) => {
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.9);
-  cursor: move;
   border: 2px dashed var(--el-color-primary-light-3);
-  border-radius: 12px;
+  border-radius: 8px;
   backdrop-filter: blur(4px);
-  
-  [data-theme='glass'] & {
+  pointer-events: none;
+
+  [data-theme="glass"] & {
     background: rgba(255, 255, 255, 0.4);
     border-color: rgba(255, 255, 255, 0.5);
   }
@@ -259,6 +473,12 @@ const handleRemove = async (key) => {
 
 .customize-overlay.is-local {
   background: transparent;
+  backdrop-filter: none;
+}
+
+.customize-overlay.is-minimal {
+  background: transparent;
+  border: none;
   backdrop-filter: none;
 }
 
@@ -277,12 +497,14 @@ const handleRemove = async (key) => {
   opacity: 0;
   transform: translateY(-10px);
   transition: all 0.3s ease;
-  
+  pointer-events: auto;
+
   :deep(.el-button) {
-    width: 32px;
-    height: 32px;
+    height: 28px;
+    padding: 0 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    
+    cursor: pointer;
+
     &:hover {
       transform: scale(1.1);
     }
@@ -294,7 +516,7 @@ const handleRemove = async (key) => {
   transform: translateY(0);
 }
 
-/* 拖拽区域 */
+/* 拖拽区域（信息展示区域） */
 .drag-area {
   display: flex;
   flex-direction: column;
@@ -302,28 +524,7 @@ const handleRemove = async (key) => {
   justify-content: center;
   gap: 8px;
   padding: 20px;
-}
-
-.drag-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-7), var(--el-color-primary-light-5));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-color-primary);
-  margin-bottom: 4px;
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-  transition: transform 0.3s ease;
-  
-  [data-theme='glass'] & {
-    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.2), rgba(var(--el-color-primary-rgb), 0.4));
-  }
-}
-
-.widgets-item:hover .drag-icon {
-  transform: scale(1.1) rotate(5deg);
+  pointer-events: none;
 }
 
 .drag-info {
@@ -369,53 +570,57 @@ const handleRemove = async (key) => {
   justify-content: center;
   color: var(--el-color-primary);
   opacity: 0.6;
+  pointer-events: none;
+}
+
+.resize-hint::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--el-color-primary);
+  border-bottom: 2px solid var(--el-color-primary);
+  transform: rotate(-45deg);
 }
 
 /* 深色模式 */
 .dark {
   .widgets-item {
     background: var(--el-bg-color);
-    
-    [data-theme='glass'] & {
+
+    [data-theme="glass"] & {
       background: rgba(30, 30, 30, 0.6);
       border-color: rgba(255, 255, 255, 0.1);
     }
   }
-  
+
   .customize-overlay {
     background: rgba(30, 30, 30, 0.9);
     backdrop-filter: blur(8px);
-    
-    [data-theme='glass'] & {
+
+    [data-theme="glass"] & {
       background: rgba(0, 0, 0, 0.5);
     }
   }
-  
+
   .widgets-item:hover .customize-overlay {
     background: rgba(30, 30, 30, 0.95);
-    
-    [data-theme='glass'] & {
+
+    [data-theme="glass"] & {
       background: rgba(0, 0, 0, 0.6);
     }
   }
-  
+
   .widget-placeholder {
-    background: linear-gradient(135deg, var(--el-fill-color), var(--el-fill-color-dark));
-    
-    [data-theme='glass'] & {
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color),
+      var(--el-fill-color-dark)
+    );
+
+    [data-theme="glass"] & {
       background: transparent;
     }
   }
-  
-  .drag-icon {
-    background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
-    color: #fff;
-  }
-}
-
-/* 拖拽幽灵样式 */
-.widgets-wrapper .sortable-ghost {
-  opacity: 0.5;
 }
 
 /* 响应式 */
@@ -423,19 +628,14 @@ const handleRemove = async (key) => {
   .drag-area {
     padding: 12px;
   }
-  
-  .drag-icon {
-    width: 44px;
-    height: 44px;
-  }
-  
+
   .drag-title {
     font-size: 13px;
   }
-  
+
   .overlay-actions :deep(.el-button) {
-    width: 28px;
     height: 28px;
+    padding: 0 8px;
   }
 }
 </style>

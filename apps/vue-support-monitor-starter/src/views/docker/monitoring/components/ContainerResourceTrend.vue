@@ -6,7 +6,11 @@
         <span class="header-title">资源使用趋势</span>
       </div>
       <div class="header-right">
-        <el-select v-model="timeRange" size="small" @change="handleTimeRangeChange">
+        <el-select
+          v-model="timeRange"
+          size="small"
+          @change="handleTimeRangeChange"
+        >
           <el-option label="最近1小时" value="1h" />
           <el-option label="最近6小时" value="6h" />
           <el-option label="最近12小时" value="12h" />
@@ -14,125 +18,127 @@
         </el-select>
       </div>
     </div>
-    
+
     <div class="trend-content">
-      <div class="chart-container" ref="chartContainerRef"></div>
+      <div ref="chartContainerRef" class="chart-container" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import * as echarts from 'echarts'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import * as echarts from "echarts";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 
 interface Props {
-  containerId?: number
+  containerId?: number;
 }
 
 interface ChartData {
-  timestamps: string[]
-  cpuUsage: number[]
-  memoryUsage: number[]
-  networkRx: number[]
-  networkTx: number[]
+  timestamps: string[];
+  cpuUsage: number[];
+  memoryUsage: number[];
+  networkRx: number[];
+  networkTx: number[];
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
-const timeRange = ref('1h')
-const chartContainerRef = ref<HTMLElement>()
-let chartInstance: echarts.ECharts | null = null
+const timeRange = ref("1h");
+const chartContainerRef = ref<HTMLElement>();
+let chartInstance: echarts.ECharts | null = null;
 
 // 初始化图表
 const initChart = () => {
   if (chartContainerRef.value) {
-    chartInstance = echarts.init(chartContainerRef.value)
-    updateChart()
+    chartInstance = echarts.init(chartContainerRef.value);
+    updateChart();
   }
-}
+};
 
 // 更新图表
 const updateChart = () => {
-  if (!chartInstance) return
-  
+  if (!chartInstance) return;
+
   // 生成模拟数据
-  const data = generateMockData()
-  
+  const data = generateMockData();
+
   const option = {
     tooltip: {
-      trigger: 'axis'
+      trigger: "axis",
     },
     legend: {
-      data: ['CPU使用率', '内存使用率', '网络接收', '网络发送']
+      data: ["CPU使用率", "内存使用率", "网络接收", "网络发送"],
     },
     xAxis: {
-      type: 'category',
-      data: data.timestamps
+      type: "category",
+      data: data.timestamps,
     },
     yAxis: [
       {
-        type: 'value',
-        name: '使用率(%)',
-        position: 'left',
+        type: "value",
+        name: "使用率(%)",
+        position: "left",
         axisLabel: {
-          formatter: '{value}%'
-        }
+          formatter: "{value}%",
+        },
       },
       {
-        type: 'value',
-        name: '网络(B/s)',
-        position: 'right',
+        type: "value",
+        name: "网络(B/s)",
+        position: "right",
         axisLabel: {
           formatter: (value: number) => {
-            if (value === 0) return '0 B'
-            const k = 1024
-            const sizes = ['B', 'KB', 'MB', 'GB']
-            const i = Math.floor(Math.log(value) / Math.log(k))
-            return parseFloat((value / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-          }
-        }
-      }
+            if (value === 0) return "0 B";
+            const k = 1024;
+            const sizes = ["B", "KB", "MB", "GB"];
+            const i = Math.floor(Math.log(value) / Math.log(k));
+            return (
+              parseFloat((value / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+            );
+          },
+        },
+      },
     ],
     series: [
       {
-        name: 'CPU使用率',
-        type: 'line',
+        name: "CPU使用率",
+        type: "line",
         data: data.cpuUsage,
         smooth: true,
-        yAxisIndex: 0
+        yAxisIndex: 0,
       },
       {
-        name: '内存使用率',
-        type: 'line',
+        name: "内存使用率",
+        type: "line",
         data: data.memoryUsage,
         smooth: true,
-        yAxisIndex: 0
+        yAxisIndex: 0,
       },
       {
-        name: '网络接收',
-        type: 'line',
+        name: "网络接收",
+        type: "line",
         data: data.networkRx,
         smooth: true,
-        yAxisIndex: 1
+        yAxisIndex: 1,
       },
       {
-        name: '网络发送',
-        type: 'line',
+        name: "网络发送",
+        type: "line",
         data: data.networkTx,
         smooth: true,
-        yAxisIndex: 1
-      }
+        yAxisIndex: 1,
+      },
     ],
     grid: {
-      left: '10%',
-      right: '10%',
-      bottom: '15%',
-      top: '20%'
-    }
-  }
-  
-  chartInstance.setOption(option)
-}
+      left: "10%",
+      right: "10%",
+      bottom: "15%",
+      top: "20%",
+    },
+  };
+
+  chartInstance.setOption(option);
+};
 
 // 生成模拟数据
 const generateMockData = (): ChartData => {
@@ -141,65 +147,76 @@ const generateMockData = (): ChartData => {
     cpuUsage: [],
     memoryUsage: [],
     networkRx: [],
-    networkTx: []
-  }
-  
-  const now = new Date()
-  const points = timeRange.value === '1h' ? 60 : 
-                timeRange.value === '6h' ? 72 : 
-                timeRange.value === '12h' ? 72 : 96
-  
-  const interval = timeRange.value === '1h' ? 1 : 
-                  timeRange.value === '6h' ? 5 : 
-                  timeRange.value === '12h' ? 10 : 15
-  
+    networkTx: [],
+  };
+
+  const now = new Date();
+  const points =
+    timeRange.value === "1h"
+      ? 60
+      : timeRange.value === "6h"
+        ? 72
+        : timeRange.value === "12h"
+          ? 72
+          : 96;
+
+  const interval =
+    timeRange.value === "1h"
+      ? 1
+      : timeRange.value === "6h"
+        ? 5
+        : timeRange.value === "12h"
+          ? 10
+          : 15;
+
   for (let i = points - 1; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * interval * 60000)
-    data.timestamps.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
-    
+    const time = new Date(now.getTime() - i * interval * 60000);
+    data.timestamps.push(
+      time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    );
+
     // 生成模拟数据
-    data.cpuUsage.push(20 + Math.random() * 60)
-    data.memoryUsage.push(30 + Math.random() * 50)
-    data.networkRx.push(Math.random() * 1000000)
-    data.networkTx.push(Math.random() * 800000)
+    data.cpuUsage.push(20 + Math.random() * 60);
+    data.memoryUsage.push(30 + Math.random() * 50);
+    data.networkRx.push(Math.random() * 1000000);
+    data.networkTx.push(Math.random() * 800000);
   }
-  
-  return data
-}
+
+  return data;
+};
 
 // 处理时间范围变化
 const handleTimeRangeChange = () => {
-  updateChart()
-}
+  updateChart();
+};
 
 // 监听数据变化并更新图表
 watch(timeRange, () => {
-  updateChart()
-})
+  updateChart();
+});
 
 // 组件挂载
 onMounted(() => {
-  initChart()
-  
+  initChart();
+
   // 添加窗口大小变化监听
-  window.addEventListener('resize', () => {
+  window.addEventListener("resize", () => {
     if (chartInstance) {
-      chartInstance.resize()
+      chartInstance.resize();
     }
-  })
-})
+  });
+});
 
 // 组件卸载
 onUnmounted(() => {
   if (chartInstance) {
-    chartInstance.dispose()
-    chartInstance = null
+    chartInstance.dispose();
+    chartInstance = null;
   }
-})
+});
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -232,7 +249,6 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
-
 
 .container-resource-trend {
   background: white;
@@ -278,7 +294,6 @@ onUnmounted(() => {
   border: 1px solid #e4e7ed;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -287,5 +302,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

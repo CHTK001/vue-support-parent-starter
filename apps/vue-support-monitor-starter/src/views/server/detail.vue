@@ -3,10 +3,10 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <el-button type="primary" plain @click="goBack" class="back-btn" circle>
+        <el-button type="primary" plain class="back-btn" circle @click="goBack">
           <IconifyIconOnline icon="ri:arrow-left-line" />
         </el-button>
-        <div class="divider-vertical"></div>
+        <div class="divider-vertical" />
         <div class="server-info">
           <div class="server-title">
             <div class="server-icon-wrapper">
@@ -51,71 +51,71 @@
         <div class="action-group primary-actions">
           <el-button
             type="success"
-            @click="handleRefresh"
             :loading="refreshLoading"
             class="action-btn"
+            @click="handleRefresh"
           >
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
           </el-button>
           <el-button
             type="primary"
-            @click="handleAddComponent"
             class="action-btn"
+            @click="handleAddComponent"
           >
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加组件
           </el-button>
         </div>
-        <div class="divider-vertical"></div>
+        <div class="divider-vertical" />
         <!-- 工具操作组 -->
         <div class="action-group tool-actions">
           <el-button
             type="info"
-            @click="handleFileManager"
             plain
             class="action-btn"
+            @click="handleFileManager"
           >
             <IconifyIconOnline icon="ri:folder-line" class="mr-1" />
             文件管理
           </el-button>
           <el-button
             type="warning"
-            @click="handleManageComponents"
             plain
             class="action-btn"
+            @click="handleManageComponents"
           >
             <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
             管理组件
           </el-button>
         </div>
-        <div class="divider-vertical"></div>
+        <div class="divider-vertical" />
         <!-- 配置操作组 -->
         <div class="action-group config-actions">
           <el-button
-            @click="handleComponentConfig"
             plain
             class="action-btn"
             title="组件配置"
+            @click="handleComponentConfig"
           >
             <IconifyIconOnline icon="ri:dashboard-line" />
           </el-button>
           <el-button
-            @click="handleLayoutConfig"
             plain
             class="action-btn"
             title="布局配置"
+            @click="handleLayoutConfig"
           >
             <IconifyIconOnline icon="ri:layout-grid-line" />
           </el-button>
         </div>
-        <div class="divider-vertical"></div>
+        <div class="divider-vertical" />
         <!-- 视图切换 -->
         <el-button
           :type="editMode ? 'success' : 'default'"
-          @click="toggleEditMode"
           :plain="!editMode"
           class="action-btn view-toggle"
+          @click="toggleEditMode"
         >
           <IconifyIconOnline
             :icon="editMode ? 'ri:eye-line' : 'ri:edit-line'"
@@ -127,7 +127,7 @@
     </div>
 
     <!-- 组件网格布局 -->
-    <div class="components-container" v-loading="loading">
+    <div v-loading="loading" class="components-container">
       <GridLayoutEditor
         ref="gridLayoutEditorRef"
         :layout="layout"
@@ -163,13 +163,13 @@
             </span>
           </div>
           <div class="toolbar-actions">
-            <el-button @click="handleCancelEdit" class="cancel-btn">
+            <el-button class="cancel-btn" @click="handleCancelEdit">
               取消
             </el-button>
             <el-button
               type="primary"
-              @click="handleSaveLayout"
               class="save-btn"
+              @click="handleSaveLayout"
             >
               <IconifyIconOnline icon="ri:save-line" class="mr-1" />
               保存布局
@@ -305,7 +305,7 @@ const getProtocolIcon = (protocol?: string) => {
  * 获取状态类型
  */
 const getStatusType = (
-  status?: number
+  status?: number,
 ): "success" | "info" | "warning" | "danger" => {
   const typeMap: Record<number, "success" | "info" | "warning" | "danger"> = {
     0: "info",
@@ -492,7 +492,7 @@ const handleSaveLayout = async () => {
     // 将布局信息映射回组件数据
     const updatedComponents = components.value.map((component) => {
       const layoutItem = layout.value.find(
-        (item) => item.i === String(component.monitorSysGenServerComponentId)
+        (item) => item.i === String(component.monitorSysGenServerComponentId),
       );
       if (layoutItem) {
         return {
@@ -510,7 +510,7 @@ const handleSaveLayout = async () => {
 
     const res = await batchUpdateComponentPosition(
       serverId.value,
-      updatedComponents
+      updatedComponents,
     );
     if (res.code === "00000") {
       message.success("布局保存成功");
@@ -586,7 +586,7 @@ const loadComponents = async () => {
         try {
           if (component.monitorSysGenServerComponentPosition) {
             position = JSON.parse(
-              component.monitorSysGenServerComponentPosition
+              component.monitorSysGenServerComponentPosition,
             );
           }
         } catch (e) {

@@ -35,7 +35,7 @@ export const getServerGroupPage = (params: ServerGroupPageParams) => {
   return http.request<ReturnResult<{ records: ServerGroup[]; total: number }>>(
     "get",
     "/v1/server/group/page",
-    { params }
+    { params },
   );
 };
 
@@ -45,7 +45,7 @@ export const getServerGroupPage = (params: ServerGroupPageParams) => {
 export const getEnabledServerGroups = () => {
   return http.request<ReturnResult<ServerGroup[]>>(
     "get",
-    "/v1/server/group/enabled"
+    "/v1/server/group/enabled",
   );
 };
 
@@ -55,7 +55,7 @@ export const getEnabledServerGroups = () => {
 export const getAllServerGroups = () => {
   return http.request<ReturnResult<ServerGroup[]>>(
     "get",
-    "/v1/server/group/all"
+    "/v1/server/group/all",
   );
 };
 
@@ -65,7 +65,7 @@ export const getAllServerGroups = () => {
 export const getServerGroupById = (groupId: number) => {
   return http.request<ReturnResult<ServerGroup>>(
     "get",
-    `/v1/server/group/${groupId}`
+    `/v1/server/group/${groupId}`,
   );
 };
 
@@ -93,7 +93,7 @@ export const updateServerGroup = (data: ServerGroup) => {
 export const deleteServerGroup = (groupId: number) => {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    `/v1/server/group/${groupId}`
+    `/v1/server/group/${groupId}`,
   );
 };
 
@@ -106,7 +106,7 @@ export const checkGroupNameExists = (groupName: string, excludeId?: number) => {
     "/v1/server/group/check-name",
     {
       params: { groupName, excludeId },
-    }
+    },
   );
 };
 
@@ -116,7 +116,7 @@ export const checkGroupNameExists = (groupName: string, excludeId?: number) => {
 export const getDefaultGroup = () => {
   return http.request<ReturnResult<ServerGroup>>(
     "get",
-    "/v1/server/group/default"
+    "/v1/server/group/default",
   );
 };
 
@@ -126,7 +126,7 @@ export const getDefaultGroup = () => {
 export const setDefaultGroup = (groupId: number) => {
   return http.request<ReturnResult<boolean>>(
     "put",
-    `/v1/server/group/${groupId}/set-default`
+    `/v1/server/group/${groupId}/set-default`,
   );
 };
 
@@ -136,7 +136,7 @@ export const setDefaultGroup = (groupId: number) => {
 export const getGroupServerCount = (groupId: number) => {
   return http.request<ReturnResult<number>>(
     "get",
-    `/v1/server/group/${groupId}/server-count`
+    `/v1/server/group/${groupId}/server-count`,
   );
 };
 
@@ -149,7 +149,7 @@ export const moveServersToGroup = (serverIds: number[], groupId: number) => {
     "/v1/server/group/move-servers",
     {
       data: { serverIds, groupId },
-    }
+    },
   );
 };
 
@@ -160,7 +160,7 @@ export const toggleGroupStatus = (groupId: number, status: number) => {
   return http.request<ReturnResult<boolean>>(
     "put",
     `/v1/server/group/${groupId}/status`,
-    { data: { status } }
+    { data: { status } },
   );
 };
 
@@ -171,6 +171,6 @@ export const updateGroupSort = (groupId: number, sort: number) => {
   return http.request<ReturnResult<boolean>>(
     "put",
     `/v1/server/group/${groupId}/sort`,
-    { data: { sort } }
+    { data: { sort } },
   );
 };

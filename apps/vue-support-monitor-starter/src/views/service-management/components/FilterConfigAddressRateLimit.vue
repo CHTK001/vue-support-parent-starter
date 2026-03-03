@@ -4,8 +4,8 @@
     title="地址限流配置"
     width="800px"
     :close-on-click-modal="false"
-    @close="handleClose"
     draggable
+    @close="handleClose"
   >
     <div class="address-limit-container">
       <!-- 规则说明 -->
@@ -27,7 +27,7 @@
 
       <!-- 规则列表 -->
       <div class="rule-list thin-scrollbar">
-        <div class="rule-row" v-for="(r, idx) in rules" :key="idx">
+        <div v-for="(r, idx) in rules" :key="idx" class="rule-row">
           <div class="col-type">
             <el-select v-model="r.addressRateLimitType" placeholder="类型">
               <el-option label="限流" value="RATE_LIMIT">
@@ -139,7 +139,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true }
+  { immediate: true },
 );
 watch(visibleInner, (v) => emit("update:visible", v));
 
@@ -148,7 +148,7 @@ async function loadData() {
   try {
     const res = await getAddressRateLimitRules(
       props.serverId,
-      props.filterSettingId
+      props.filterSettingId,
     );
     if (res.success && Array.isArray(res.data)) {
       rules.value = res.data;
@@ -173,7 +173,7 @@ async function handleSave() {
     const res = await saveAddressRateLimitRules(
       props.serverId,
       props.filterSettingId,
-      rules.value
+      rules.value,
     );
     if (res.success) {
       message("保存成功，已热应用", { type: "success" });
@@ -327,7 +327,6 @@ function handleClose() {
   padding: 10px 24px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -336,5 +335,4 @@ function handleClose() {
     padding: 12px 16px;
   }
 }
-
 </style>

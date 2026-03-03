@@ -27,13 +27,13 @@
 
     <template #sidebar-header>
       <!-- 节点地址切换 -->
-      <div class="node-selector" v-if="sameNameNodes.length > 1">
+      <div v-if="sameNameNodes.length > 1" class="node-selector">
         <label class="selector-label">节点地址:</label>
         <el-select
           v-model="currentNodeAddress"
-          @change="switchNode"
           size="small"
           style="width: 100%"
+          @change="switchNode"
         >
           <el-option
             v-for="node in sameNameNodes"
@@ -158,7 +158,7 @@ const loadSameNameNodes = async () => {
 // 切换节点
 const switchNode = async (newAddress: string) => {
   const selectedNode = sameNameNodes.value.find(
-    (node) => node.address === newAddress
+    (node) => node.address === newAddress,
   );
   if (!selectedNode) return;
 
@@ -177,7 +177,7 @@ const loadApiDocs = async () => {
     const response = await fetchNodeApiDocs(
       nodeInfo.nodeId,
       nodeInfo.nodeAddress,
-      nodeInfo.contextPath
+      nodeInfo.contextPath,
     );
 
     if (response.success && response.data) {
@@ -381,7 +381,6 @@ onMounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -390,5 +389,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

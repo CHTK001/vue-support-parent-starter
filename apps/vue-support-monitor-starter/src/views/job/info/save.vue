@@ -296,19 +296,6 @@ export default {
   components: {
     scCron,
   },
-  computed: {
-    modeIcon() {
-      const iconMap = {
-        add: "ri:add-circle-line",
-        edit: "ri:edit-line",
-        copy: "ri:file-copy-line",
-      };
-      return iconMap[this.mode] || "ri:add-circle-line";
-    },
-    modeClass() {
-      return `mode-${this.mode}`;
-    },
-  },
   data() {
     return {
       loading: false,
@@ -369,12 +356,25 @@ export default {
       },
     };
   },
+  computed: {
+    modeIcon() {
+      const iconMap = {
+        add: "ri:add-circle-line",
+        edit: "ri:edit-line",
+        copy: "ri:file-copy-line",
+      };
+      return iconMap[this.mode] || "ri:add-circle-line";
+    },
+    modeClass() {
+      return `mode-${this.mode}`;
+    },
+  },
   methods: {
     async submit() {
       this.loading = !0;
       var res = undefined;
       const appItem = this.executorData.filter(
-        (it) => it.monitorId == this.form.monitorId
+        (it) => it.monitorId == this.form.monitorId,
       );
       if (appItem && appItem.length > 0) {
         this.form.jobApplicationName = appItem[0].monitorApplicationName;
@@ -383,7 +383,7 @@ export default {
         res = await fetchJobSave(this.form).finally(() => (this.loading = !1));
       } else {
         res = await fetchJobUpdate(this.form).finally(
-          () => (this.loading = !1)
+          () => (this.loading = !1),
         );
       }
       if (res.code === "00000") {
@@ -563,7 +563,6 @@ export default {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -572,5 +571,4 @@ export default {
     padding: 12px 16px;
   }
 }
-
 </style>

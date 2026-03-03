@@ -37,8 +37,8 @@
               </el-tag>
             </div>
             <div
-              class="server-check"
               v-if="selectedServerIds.includes(server.monitorSysGenServerId)"
+              class="server-check"
             >
               <IconifyIconOnline icon="ri:check-line" />
             </div>
@@ -52,7 +52,7 @@
                 }}</span
               >
             </div>
-            <div class="server-info-row" v-if="server.monitorSysGenServerTags">
+            <div v-if="server.monitorSysGenServerTags" class="server-info-row">
               <IconifyIconOnline icon="ri:price-tag-3-line" class="info-icon" />
               <div class="server-tags">
                 <el-tag
@@ -88,9 +88,9 @@
           @click="submit"
         >
           <IconifyIconOnline
+            v-if="!syncing"
             icon="ri:refresh-line"
             class="mr-1"
-            v-if="!syncing"
           />
           {{ syncing ? "同步中..." : "开始同步" }}
         </el-button>
@@ -155,7 +155,7 @@ function toggleServerSelect(id: number) {
 
 // 获取状态类型
 function getStatusType(
-  status: number | undefined
+  status: number | undefined,
 ): "success" | "info" | "warning" | "danger" {
   if (status === 1) return "success";
   if (status === 0) return "danger";
@@ -249,7 +249,7 @@ watch(
     } else {
       selectedServerIds.value = [];
     }
-  }
+  },
 );
 </script>
 
@@ -366,7 +366,6 @@ watch(
   gap: 8px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -375,5 +374,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>

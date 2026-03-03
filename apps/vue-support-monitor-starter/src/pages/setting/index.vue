@@ -30,10 +30,10 @@
           @click="setMode('side')"
         >
           <div class="nav-preview side">
-            <div class="preview-sidebar"></div>
+            <div class="preview-sidebar" />
             <div class="preview-main">
-              <div class="preview-header"></div>
-              <div class="preview-content"></div>
+              <div class="preview-header" />
+              <div class="preview-content" />
             </div>
           </div>
           <div class="nav-info">
@@ -44,7 +44,7 @@
             </div>
             <p class="nav-desc">左侧垂直菜单，空间利用高，适合功能较多的系统</p>
           </div>
-          <div class="nav-check" v-if="form.navMode === 'side'">
+          <div v-if="form.navMode === 'side'" class="nav-check">
             <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
@@ -55,9 +55,9 @@
           @click="setMode('top')"
         >
           <div class="nav-preview top">
-            <div class="preview-topbar"></div>
+            <div class="preview-topbar" />
             <div class="preview-body">
-              <div class="preview-content"></div>
+              <div class="preview-content" />
             </div>
           </div>
           <div class="nav-info">
@@ -70,7 +70,7 @@
               顶部水平菜单，简洁直观，适合一级模块较少的场景
             </p>
           </div>
-          <div class="nav-check" v-if="form.navMode === 'top'">
+          <div v-if="form.navMode === 'top'" class="nav-check">
             <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
@@ -81,10 +81,10 @@
           @click="setMode('mix')"
         >
           <div class="nav-preview mix">
-            <div class="preview-topbar"></div>
+            <div class="preview-topbar" />
             <div class="preview-body">
-              <div class="preview-sidebar"></div>
-              <div class="preview-content"></div>
+              <div class="preview-sidebar" />
+              <div class="preview-content" />
             </div>
           </div>
           <div class="nav-info">
@@ -97,7 +97,7 @@
               顶部一级导航 + 左侧二级导航，层级清晰，适合中大型系统
             </p>
           </div>
-          <div class="nav-check" v-if="form.navMode === 'mix'">
+          <div v-if="form.navMode === 'mix'" class="nav-check">
             <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>

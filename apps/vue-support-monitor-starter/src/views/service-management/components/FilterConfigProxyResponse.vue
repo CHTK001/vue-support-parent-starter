@@ -44,8 +44,8 @@
 
       <!-- 请求前脚本 -->
       <div
-        class="config-section"
         v-if="config.phase === 'before' || config.phase === 'both'"
+        class="config-section"
       >
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:arrow-right-circle-line" />
@@ -70,8 +70,8 @@
 
       <!-- 响应后脚本 -->
       <div
-        class="config-section"
         v-if="config.phase === 'after' || config.phase === 'both'"
+        class="config-section"
       >
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:arrow-left-circle-line" />
@@ -294,7 +294,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(visibleInner, (v) => emit("update:visible", v));
@@ -481,7 +481,6 @@ function handleClose() {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -490,5 +489,4 @@ function handleClose() {
     padding: 12px 16px;
   }
 }
-
 </style>

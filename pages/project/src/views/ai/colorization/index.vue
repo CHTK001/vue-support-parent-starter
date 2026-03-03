@@ -283,14 +283,15 @@ onMounted(async () => {
                         <div
                           class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300"
                         >
-                          <ScImage 
+                          <ScImage
                             :src="item.sysProjectIcon"
                             fit="scale-down"
                             class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
-                            ><template #error
-                              ><div class="error-icon">AI</div></template
-                            ></el-image
                           >
+                            <template #error>
+                              <div class="error-icon">AI</div>
+                            </template>
+                          </ScImage>
                           <div class="flex flex-col">
                             <span class="text-[15px] font-medium">{{
                               item.sysAiModuleName
@@ -305,13 +306,15 @@ onMounted(async () => {
                   </ScOption>
                   <template #label="{ label }">
                     <div class="flex items-center gap-3">
-                      <ScImage 
+                      <ScImage
                         class="!w-[32px] !h-[32px] rounded-lg"
                         :src="modelSelectLabel?.sysProjectIcon"
-                        ><template #error
-                          ><div class="error-icon">AI</div></template
-                        ></el-image
-                      ><span>{{ label }}</span>
+                      >
+                        <template #error>
+                          <div class="error-icon">AI</div>
+                        </template>
+                      </ScImage>
+                      <span>{{ label }}</span>
                     </div>
                   </template>
                 </ScSelect>

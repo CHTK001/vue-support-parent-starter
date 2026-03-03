@@ -95,7 +95,7 @@ export function getScriptTypeTagType(type: ScriptType | string): string {
  * 获取执行状态图标
  */
 export function getExecutionStatusIcon(
-  status: ExecutionStatus | string
+  status: ExecutionStatus | string,
 ): string {
   const iconMap: Record<string, string> = {
     PENDING: "ri:time-line",
@@ -111,7 +111,7 @@ export function getExecutionStatusIcon(
  * 获取执行状态标签类型
  */
 export function getExecutionStatusTagType(
-  status: ExecutionStatus | string
+  status: ExecutionStatus | string,
 ): string {
   const typeMap: Record<string, string> = {
     PENDING: "info",
@@ -127,7 +127,7 @@ export function getExecutionStatusTagType(
  * 获取执行状态文本
  */
 export function getExecutionStatusText(
-  status: ExecutionStatus | string
+  status: ExecutionStatus | string,
 ): string {
   const textMap: Record<string, string> = {
     PENDING: "等待中",
@@ -143,7 +143,7 @@ export function getExecutionStatusText(
  * 获取执行状态样式类
  */
 export function getExecutionStatusClass(
-  status: ExecutionStatus | string
+  status: ExecutionStatus | string,
 ): string {
   const classMap: Record<string, string> = {
     PENDING: "status-pending",
@@ -160,7 +160,7 @@ export function getExecutionStatusClass(
  */
 export function getScriptTemplate(
   type: ScriptType | string,
-  description: string = ""
+  description: string = "",
 ): string {
   const date = new Date().toLocaleDateString("zh-CN");
 
@@ -534,7 +534,7 @@ export function validateScriptName(name: string): {
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null;
 
@@ -556,7 +556,7 @@ export function debounce<T extends (...args: any[]) => any>(
  */
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null;
   let previous = 0;

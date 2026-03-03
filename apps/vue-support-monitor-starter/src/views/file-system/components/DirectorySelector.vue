@@ -71,7 +71,7 @@ watch(
   (newValue) => {
     selectedValue.value = newValue || "";
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 处理选择变化
@@ -135,7 +135,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -168,7 +167,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .directory-selector {
   width: 100%;
@@ -207,7 +205,6 @@ onMounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -216,5 +213,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

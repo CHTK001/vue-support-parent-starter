@@ -99,15 +99,15 @@
 
               <!-- 扩展配置区域 -->
               <div
-                class="setting-section"
                 v-if="global.openSetting || global.openPlugin"
+                class="setting-section"
               >
                 <div class="section-title">
                   <IconifyIconOnline icon="ri:apps-line" />
                   <span>扩展配置</span>
                 </div>
                 <div class="ext-config">
-                  <div class="config-item" v-if="global.openSetting">
+                  <div v-if="global.openSetting" class="config-item">
                     <label class="config-label">
                       <IconifyIconOnline icon="ri:list-settings-line" />
                       参数设置
@@ -129,7 +129,7 @@
                       />
                     </el-select>
                   </div>
-                  <div class="config-item" v-if="global.openPlugin">
+                  <div v-if="global.openPlugin" class="config-item">
                     <label class="config-label">
                       <IconifyIconOnline icon="ri:puzzle-line" />
                       启用插件
@@ -179,8 +179,8 @@
 
               <!-- 水印配置区域 -->
               <div
-                class="setting-section watermark-section"
                 v-if="global.openWatermark"
+                class="setting-section watermark-section"
               >
                 <div class="section-title">
                   <IconifyIconOnline icon="ri:drop-line" />
@@ -276,7 +276,7 @@
               <div
                 class="storage-status-bar"
                 :class="s.fileStorageEnabled ? 'enabled' : 'disabled'"
-              ></div>
+              />
 
               <!-- 头部：图标 + 类型 + 状态 -->
               <div class="storage-header">
@@ -357,7 +357,7 @@
           <template #header>
             <div class="card-header">存储配置</div>
           </template>
-          <div class="preview-panel" v-if="rightPreview.visible">
+          <div v-if="rightPreview.visible" class="preview-panel">
             <!-- 预览头部工具栏 -->
             <div class="preview-toolbar">
               <div class="toolbar-left">
@@ -454,15 +454,15 @@
               <div class="page-info">共 {{ previewItems.length }} 项</div>
               <div class="page-controls">
                 <el-button-group size="small">
-                  <el-button @click="goPrevPage" :disabled="pager.page <= 1">
+                  <el-button :disabled="pager.page <= 1" @click="goPrevPage">
                     <IconifyIconOnline icon="ri:arrow-left-s-line" />
                   </el-button>
                   <el-button disabled class="page-number">{{
                     pager.page
                   }}</el-button>
                   <el-button
-                    @click="goNextPage"
                     :disabled="previewItems.length < pager.limit"
+                    @click="goNextPage"
                   >
                     <IconifyIconOnline icon="ri:arrow-right-s-line" />
                   </el-button>
@@ -495,9 +495,9 @@
               </el-radio-group>
             </div> -->
             <el-form
+              ref="detailFormRef"
               :model="currentStorage"
               :rules="formRules(currentStorage)"
-              ref="detailFormRef"
               label-width="120px"
               class="storage-form"
             >
@@ -569,12 +569,12 @@
                 </el-form-item>
 
                 <el-form-item
-                  label="区域"
-                  prop="fileStorageRegion"
                   v-if="
                     currentStorage.fileStorageType === 'S3' ||
                     currentStorage.fileStorageType === 'ALIYUN'
                   "
+                  label="区域"
+                  prop="fileStorageRegion"
                 >
                   <el-input
                     v-model="currentStorage.fileStorageRegion"
@@ -657,10 +657,7 @@ import {
 import DirectorySelector from "@/views/file-system/components/DirectorySelector.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { message } from "@repo/utils";
-import { ElMessageBox,
-  type FormInstance,
-  type FormRules,
-} from "element-plus";
+import { ElMessageBox, type FormInstance, type FormRules } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
 
 interface Props {
@@ -748,7 +745,7 @@ watch(
   [imageSettingSelection, imageFilterSelection, () => global.value.openPlugin],
   () => {
     applySelectionsToGlobal();
-  }
+  },
 );
 
 watch(
@@ -757,7 +754,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true }
+  { immediate: true },
 );
 watch(visibleInner, (v) => emit("update:visible", v));
 
@@ -955,7 +952,7 @@ const getFileColorClass = (ext: string): string => {
   // 代码
   if (
     ["js", "ts", "vue", "html", "css", "json", "java", "py", "xml"].includes(
-      lowerExt
+      lowerExt,
     )
   )
     return "color-code";
@@ -979,7 +976,7 @@ function makeCacheKey(
   s: any,
   basePath: string,
   limit: number,
-  marker: string
+  marker: string,
 ) {
   return [
     serverId,
@@ -998,7 +995,7 @@ const pager = ref({ page: 1, limit: 20, marker: "", nextMarker: "" });
 
 function base64EncodeUtf8(input: string) {
   // 将 UTF-8 字符串编码为 base64（兼容中文）
-  // eslint-disable-next-line no-undef
+
   return btoa(unescape(encodeURIComponent(input)));
 }
 function hexEncode(str: string) {
@@ -1082,7 +1079,7 @@ async function fetchPreviewItems() {
       s,
       basePath,
       pager.value.limit,
-      pager.value.marker || ""
+      pager.value.marker || "",
     );
     const now = Date.now();
     const cached = listCache.get(key);
@@ -1158,7 +1155,7 @@ async function removeStorage(idx: number) {
     if (storage.systemServerSettingFileStorageId) {
       try {
         const res = await deleteFileStorageById(
-          storage.systemServerSettingFileStorageId
+          storage.systemServerSettingFileStorageId,
         );
         if (!res.success) {
           message(res.msg || "删除失败", { type: "error" });
@@ -1227,7 +1224,7 @@ async function loadGlobal() {
     global.value.watermarkX = Number(cfg.watermarkX ?? 0);
     global.value.watermarkY = Number(cfg.watermarkY ?? 0);
     global.value.formatCacheTimeMinutes = Number(
-      cfg.formatCacheTimeMinutes ?? 1440
+      cfg.formatCacheTimeMinutes ?? 1440,
     );
   }
 }
@@ -1284,7 +1281,7 @@ async function loadConfigItems() {
         if (String(name).toLowerCase() === "filestoragetype") {
           const opts = (it.options || it.values || [])
             .map((o: any) =>
-              typeof o === "string" ? o : (o?.value ?? o?.label)
+              typeof o === "string" ? o : (o?.value ?? o?.label),
             )
             .filter(Boolean);
           if (opts.length > 0) typeOptions.value = Array.from(new Set(opts));
@@ -1323,7 +1320,7 @@ async function loadTypeOptionsFromSpi() {
       if (list.length > 0) {
         const seen = new Set<string>();
         typeOptions.value = list.filter((it) =>
-          seen.has(it.name) ? false : (seen.add(it.name), true)
+          seen.has(it.name) ? false : (seen.add(it.name), true),
         );
       }
     }
@@ -1345,12 +1342,12 @@ async function loadOptionalProviderOptions() {
             : {
                 name: it?.name ?? it?.value ?? it?.label,
                 describe: it?.describe ?? it?.label,
-              }
+              },
         )
         .filter((it: any) => !!it.name);
       const seen = new Set<string>();
       imageSettingOptions.value = list.filter((it: any) =>
-        seen.has(it.name) ? false : (seen.add(it.name), true)
+        seen.has(it.name) ? false : (seen.add(it.name), true),
       );
     }
     if (filterRes?.success) {
@@ -1362,12 +1359,12 @@ async function loadOptionalProviderOptions() {
             : {
                 name: it?.name ?? it?.value ?? it?.label,
                 describe: it?.describe ?? it?.label,
-              }
+              },
         )
         .filter((it: any) => !!it.name);
       const seen = new Set<string>();
       imageFilterOptions.value = list.filter((it: any) =>
-        seen.has(it.name) ? false : (seen.add(it.name), true)
+        seen.has(it.name) ? false : (seen.add(it.name), true),
       );
     }
     if (global.value.settingsStr)
@@ -1473,7 +1470,7 @@ function reload() {
 
 // 当前选中存储
 const currentStorage = computed(() =>
-  selectedIndex.value != null ? storages.value[selectedIndex.value] : null
+  selectedIndex.value != null ? storages.value[selectedIndex.value] : null,
 );
 
 // 本地目录选择（仅 LOCAL 类型使用）
@@ -1537,7 +1534,7 @@ watch(
       dirSelection.value = currentStorage.value
         .fileStorageEndpoint as unknown as string;
     }
-  }
+  },
 );
 
 // 统一加载
@@ -2371,7 +2368,6 @@ async function loadData() {
   }
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -2380,5 +2376,4 @@ async function loadData() {
     padding: 12px 16px;
   }
 }
-
 </style>

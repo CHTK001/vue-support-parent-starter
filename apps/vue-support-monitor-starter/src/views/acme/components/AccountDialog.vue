@@ -12,15 +12,21 @@
     <template #header>
       <div class="dialog-header">
         <div class="header-icon" :class="isEdit ? 'edit' : 'add'">
-          <IconifyIconOnline :icon="isEdit ? 'mdi:account-edit' : 'mdi:account-plus'" />
+          <IconifyIconOnline
+            :icon="isEdit ? 'mdi:account-edit' : 'mdi:account-plus'"
+          />
         </div>
         <div class="header-info">
-          <h3 class="header-title">{{ isEdit ? '编辑 ACME 账户' : '添加 ACME 账户' }}</h3>
-          <p class="header-desc">{{
-            isEdit
-              ? '修改账户信息后将自动更新关联的证书配置'
-              : 'ACME 账户用于与证书颁发机构通信'
-          }}</p>
+          <h3 class="header-title">
+            {{ isEdit ? "编辑 ACME 账户" : "添加 ACME 账户" }}
+          </h3>
+          <p class="header-desc">
+            {{
+              isEdit
+                ? "修改账户信息后将自动更新关联的证书配置"
+                : "ACME 账户用于与证书颁发机构通信"
+            }}
+          </p>
         </div>
         <button class="close-btn" @click="dialogVisible = false">
           <IconifyIconOnline icon="mdi:close" />
@@ -97,9 +103,14 @@
                 :value="item.value"
               >
                 <div class="server-option">
-                  <IconifyIconOnline icon="mdi:shield-check" class="option-icon" />
+                  <IconifyIconOnline
+                    icon="mdi:shield-check"
+                    class="option-icon"
+                  />
                   <span>{{ item.label }}</span>
-                  <span class="server-badge" v-if="isEabRequired(item.value)">EAB</span>
+                  <span v-if="isEabRequired(item.value)" class="server-badge"
+                    >EAB</span
+                  >
                 </div>
               </el-option>
             </el-option-group>
@@ -109,7 +120,7 @@
 
       <!-- EAB 凭证区域 -->
       <transition name="eab-slide">
-        <div class="eab-section" v-if="showEabFields && eabConfig">
+        <div v-if="showEabFields && eabConfig" class="eab-section">
           <div class="eab-header">
             <div class="eab-badge">
               <IconifyIconOnline icon="mdi:key-chain" />
@@ -120,15 +131,18 @@
               <IconifyIconOnline icon="mdi:open-in-new" />
             </a>
           </div>
-          
+
           <div class="eab-tip">
-            <IconifyIconOnline icon="mdi:lightbulb-on-outline" class="tip-icon" />
+            <IconifyIconOnline
+              icon="mdi:lightbulb-on-outline"
+              class="tip-icon"
+            />
             <div class="tip-content">
               <strong>{{ eabConfig.name }}</strong>
               <span>{{ eabConfig.eabTip }}</span>
             </div>
           </div>
-          
+
           <div class="eab-fields">
             <el-form-item prop="acmeAccountEabKid">
               <template #label>
@@ -192,21 +206,25 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="dialogVisible = false" class="cancel-btn" size="large">
+        <el-button
+          class="cancel-btn"
+          size="large"
+          @click="dialogVisible = false"
+        >
           取消
         </el-button>
         <el-button
           type="primary"
           :loading="submitting"
-          @click="handleSubmit"
           class="submit-btn"
           size="large"
+          @click="handleSubmit"
         >
           <IconifyIconOnline
             v-if="!submitting"
             :icon="isEdit ? 'mdi:content-save' : 'mdi:plus-circle'"
           />
-          {{ isEdit ? '保存更改' : '创建账户' }}
+          {{ isEdit ? "保存更改" : "创建账户" }}
         </el-button>
       </div>
     </template>
@@ -310,7 +328,7 @@ watch(
       }
       formRef.value?.clearValidate();
     }
-  }
+  },
 );
 </script>
 
@@ -668,7 +686,6 @@ watch(
   transform: translateY(-10px);
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -677,7 +694,6 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>
 
 <!-- 全局样式 -->

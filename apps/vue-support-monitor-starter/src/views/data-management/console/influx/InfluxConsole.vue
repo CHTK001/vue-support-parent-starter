@@ -27,7 +27,7 @@
       >
         <template #default="{ node, data }">
           <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
-          <span class="flex justify-between w-full !max-w-[120px]" >
+          <span class="flex justify-between w-full !max-w-[120px]">
             <span>
               <span>{{ data.name }}</span>
               <span class="el-form-item-msg ml-2 mt-[3px]">{{
@@ -77,11 +77,7 @@
           <el-button size="small" @click="onRefreshTree">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
           </el-button>
-          <el-button
-            size="small"
-            v-if="currentPath"
-            @click="handleQueryPolicy"
-          >
+          <el-button v-if="currentPath" size="small" @click="handleQueryPolicy">
             <IconifyIconOnline :icon="icons.structure" class="mr-1" />
             查询策略
           </el-button>
@@ -118,7 +114,7 @@
           tab-position="top"
         >
           <el-tab-pane name="result" class="!h-full" label="结果">
-            <div class="result" v-if="columns.length">
+            <div v-if="columns.length" class="result">
               <el-popover
                 v-model:visible="columnFilterVisible"
                 trigger="click"
@@ -167,8 +163,8 @@
               </el-popover>
             </div>
             <el-table
-              border
               v-if="columns.length"
+              border
               :data="rows"
               size="small"
               height="580px"
@@ -214,7 +210,7 @@
                             class="bar"
                             :style="barStyle(col.name, b)"
                             @click.stop="toggleFilter(col.name, b.value)"
-                          ></div>
+                          />
                         </el-tooltip>
                       </div>
                     </div>
@@ -227,7 +223,7 @@
                       class="comment-text el-form-item-msg"
                       :title="col.name"
                     >
-                      <span v-if="col.comment ">（{{ col.comment }}）</span>
+                      <span v-if="col.comment">（{{ col.comment }}）</span>
                     </div>
                     <div>{{ row[col.name] }}</div>
                   </div>
@@ -347,7 +343,7 @@ function onDragging(e: MouseEvent) {
 }
 
 async function handleQueryPolicy() {
-  const _currentPath =  currentPath.value.split('/');
+  const _currentPath = currentPath.value.split("/");
   sql.value = "SHOW RETENTION POLICIES ON " + _currentPath[1];
   await execute();
 }
@@ -392,7 +388,7 @@ async function loadConsoleConfig() {
           copyCreateTable: false,
           addFieldComment: true,
         },
-        parsed.jdbc || {}
+        parsed.jdbc || {},
       );
       consoleConfig.value = parsed;
     } catch (_) {
@@ -436,7 +432,7 @@ async function handleNodeClick(node: any) {
   currentPath.value = node?.path;
   // 若为表节点，打开表（查询+注释）
   const type = (node?.type || "").toString().toUpperCase();
-  const databaseName = node.parentPath.replace('/', '');
+  const databaseName = node.parentPath.replace("/", "");
   if (type.includes("TABLE")) {
     sql.value = `select * from ${node.name} limit 100`;
     await execute();
@@ -454,7 +450,7 @@ async function handleNodeClick(node: any) {
 // 懒加载子节点（结合 hasChildren 展示展开图标）
 const loadChildrenLazy = async (
   node: any,
-  resolve: (children: any[]) => void
+  resolve: (children: any[]) => void,
 ) => {
   // 根节点（node.level === 0）直接返回已有 children
   if (!node || node.level === 0) {
@@ -476,7 +472,6 @@ const loadChildrenLazy = async (
  */
 function getJdbcNodeIcon(node: any, data: any): string {
   try {
-    
     const type = (data?.type || "").toString().toLowerCase();
     if (type) {
       if (
@@ -506,7 +501,12 @@ function getJdbcNodeIcon(node: any, data: any): string {
 async function execute() {
   const start = performance.now();
   searched.value = false;
-  const res = await executeConsole(props.id, sql.value, "sql", currentPath.value);
+  const res = await executeConsole(
+    props.id,
+    sql.value,
+    "sql",
+    currentPath.value,
+  );
   const data = res?.data;
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];
@@ -647,7 +647,7 @@ function barTooltip(col: string, b: { value: string; count: number }) {
 
 const filters = ref<Record<string, Set<string>>>({});
 const hasActiveFilters = computed(() =>
-  Object.values(filters.value).some((s) => s && s.size > 0)
+  Object.values(filters.value).some((s) => s && s.size > 0),
 );
 function toggleFilter(col: string, value: string) {
   if (!filters.value[col]) filters.value[col] = new Set();
@@ -830,7 +830,11 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入新表名：",
           "重命名表",
-          { confirmButtonText: "确定", cancelButtonText: "取消",inputValue: contextNode.value.name }
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputValue: contextNode.value.name,
+          },
         );
         if (!value || !value.trim()) return;
         await renameTable(props.id, {
@@ -840,7 +844,7 @@ async function onMenuSelect(key: string) {
         ElMessage.success("已重命名");
         contextNode.value.name = value.trim();
         refreshNodeChildren({
-          path: contextNode.value.parentPath
+          path: contextNode.value.parentPath,
         });
         // await refreshContextNodeChildren();
       } catch (_) {}
@@ -857,7 +861,11 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入备份表名：",
           "备份表",
-          { confirmButtonText: "确定", cancelButtonText: "取消", inputValue: defaultName }
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputValue: defaultName,
+          },
         );
         if (!value || !value.trim()) return;
         await backupTable(props.id, {
@@ -866,7 +874,7 @@ async function onMenuSelect(key: string) {
         });
         ElMessage.success("已发起备份");
         refreshNodeChildren({
-          path: contextNode.value.parentPath
+          path: contextNode.value.parentPath,
         });
       } catch (_) {}
       break;
@@ -895,7 +903,10 @@ async function refreshNodeChildren(node: any) {
   try {
     const res = await getConsoleChildren(props.id, node?.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+    if (
+      treeRef.value &&
+      typeof treeRef.value.updateKeyChildren === "function"
+    ) {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node?.path, records);
     } else {
@@ -918,7 +929,10 @@ async function refreshContextNodeChildren() {
   try {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+    if (
+      treeRef.value &&
+      typeof treeRef.value.updateKeyChildren === "function"
+    ) {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
@@ -962,7 +976,7 @@ async function copyCreateSql(node: any) {
   const res = await getConsoleNode(props.id, node.path, "ddl");
   const ddl = res?.data?.data || "";
   await navigator.clipboard.writeText(
-    typeof ddl === "string" ? ddl : JSON.stringify(ddl)
+    typeof ddl === "string" ? ddl : JSON.stringify(ddl),
   );
 }
 
@@ -983,7 +997,7 @@ async function addFieldComment(node: any) {
         inputType: "textarea",
         inputPlaceholder: "请输入注释...",
         inputValue: node?.properties?.comment || "",
-      }
+      },
     );
     if (!value || !value.trim()) return;
     await saveFieldComment(props.id, {
@@ -1004,7 +1018,6 @@ onMounted(async () => {
 });
 </script>
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -1037,7 +1050,6 @@ onMounted(async () => {
     z-index: 1;
   }
 }
-
 
 .console {
   display: grid;
@@ -1201,7 +1213,6 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1210,5 +1221,4 @@ onMounted(async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -59,12 +59,18 @@
       </el-card>
 
       <!-- 参数配置 -->
-      <el-card v-if="parameters.length > 0" shadow="never" class="config-section">
+      <el-card
+        v-if="parameters.length > 0"
+        shadow="never"
+        class="config-section"
+      >
         <template #header>
           <div class="section-header">
             <el-icon><Setting /></el-icon>
             <span>参数配置</span>
-            <el-tag size="small" type="info">{{ parameters.length }} 个参数</el-tag>
+            <el-tag size="small" type="info"
+              >{{ parameters.length }} 个参数</el-tag
+            >
           </div>
         </template>
 
@@ -78,7 +84,9 @@
           <template #label>
             <div class="param-label">
               <span>{{ param.label || param.name }}</span>
-              <el-tag v-if="param.required" size="small" type="danger">必填</el-tag>
+              <el-tag v-if="param.required" size="small" type="danger"
+                >必填</el-tag
+              >
             </div>
           </template>
 
@@ -242,7 +250,11 @@
                 @click="removeKeyValueItem(param.name, index)"
               />
             </div>
-            <el-button type="primary" :icon="Plus" @click="addKeyValueItem(param.name)">
+            <el-button
+              type="primary"
+              :icon="Plus"
+              @click="addKeyValueItem(param.name)"
+            >
               添加
             </el-button>
           </div>
@@ -367,7 +379,10 @@ const dialogTitle = computed(() => {
 });
 
 const canTest = computed(() => {
-  return props.node?.syncNodeType === "INPUT" || props.node?.syncNodeType === "OUTPUT";
+  return (
+    props.node?.syncNodeType === "INPUT" ||
+    props.node?.syncNodeType === "OUTPUT"
+  );
 });
 
 // 是否显示列定义编辑器（仅数据库类型输出节点）
@@ -375,9 +390,15 @@ const showColumnEditor = computed(() => {
   if (props.node?.syncNodeType !== "OUTPUT") return false;
   const spiName = props.node?.syncNodeSpiName?.toLowerCase() || "";
   // 数据库类型SPI
-  return ["jdbc", "mysql", "postgresql", "oracle", "sqlserver", "sqlite", "database"].some(
-    (db) => spiName.includes(db)
-  );
+  return [
+    "jdbc",
+    "mysql",
+    "postgresql",
+    "oracle",
+    "sqlserver",
+    "sqlite",
+    "database",
+  ].some((db) => spiName.includes(db));
 });
 
 const formRef = ref<FormInstance>();
@@ -399,10 +420,14 @@ const formData = reactive<FormData>({
 });
 
 // 键值对临时存储
-const keyValueStore = reactive<Record<string, Array<{ key: string; value: string }>>>({});
+const keyValueStore = reactive<
+  Record<string, Array<{ key: string; value: string }>>
+>({});
 
 const formRules: FormRules = {
-  syncNodeName: [{ required: true, message: "请输入节点名称", trigger: "blur" }],
+  syncNodeName: [
+    { required: true, message: "请输入节点名称", trigger: "blur" },
+  ],
 };
 
 // 获取节点类型文本
@@ -420,7 +445,11 @@ const getNodeTypeText = (type?: string) => {
 const getParamRules = (param: SpiParameter) => {
   const rules: any[] = [];
   if (param.required) {
-    rules.push({ required: true, message: `请输入${param.label || param.name}`, trigger: "blur" });
+    rules.push({
+      required: true,
+      message: `请输入${param.label || param.name}`,
+      trigger: "blur",
+    });
   }
   if (param.pattern) {
     rules.push({
@@ -429,7 +458,10 @@ const getParamRules = (param: SpiParameter) => {
       trigger: "blur",
     });
   }
-  if (param.type === "number" && (param.min !== undefined || param.max !== undefined)) {
+  if (
+    param.type === "number" &&
+    (param.min !== undefined || param.max !== undefined)
+  ) {
     rules.push({
       type: "number",
       min: param.min,
@@ -447,7 +479,10 @@ const loadParameters = async () => {
 
   loading.value = true;
   try {
-    const res = await getSpiParameters(props.node.syncNodeType, props.node.syncNodeSpiName);
+    const res = await getSpiParameters(
+      props.node.syncNodeType,
+      props.node.syncNodeSpiName,
+    );
     if (res.data?.success) {
       parameters.value = res.data.data || [];
     }
@@ -476,7 +511,10 @@ const initFormData = () => {
 
   // 设置默认值
   parameters.value.forEach((param) => {
-    if (formData.config[param.name] === undefined && param.defaultValue !== undefined) {
+    if (
+      formData.config[param.name] === undefined &&
+      param.defaultValue !== undefined
+    ) {
       formData.config[param.name] = param.defaultValue;
     }
     // 初始化键值对存储
@@ -584,7 +622,7 @@ const handleTestConnection = async () => {
     const res = await testSpiConnection(
       props.node.syncNodeType!,
       props.node.syncNodeSpiName!,
-      formData.config
+      formData.config,
     );
     if (res.data?.success) {
       ElMessage.success(res.data.data || "连接成功");
@@ -641,7 +679,7 @@ watch(
       });
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
@@ -652,7 +690,7 @@ watch(
         initFormData();
       });
     }
-  }
+  },
 );
 </script>
 
@@ -760,7 +798,6 @@ watch(
   gap: 8px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -769,5 +806,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>

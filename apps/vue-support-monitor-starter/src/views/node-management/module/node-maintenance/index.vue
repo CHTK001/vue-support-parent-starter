@@ -27,7 +27,9 @@
       <div v-if="connected" class="mt-3">
         <el-tag type="success">
           <IconifyIconOnline icon="ep:success-filled" class="mr-1" />
-          已连接: {{ upgradeStatus?.applicationName }} ({{ upgradeStatus?.currentVersion }})
+          已连接: {{ upgradeStatus?.applicationName }} ({{
+            upgradeStatus?.currentVersion
+          }})
         </el-tag>
       </div>
     </ScCard>
@@ -105,7 +107,9 @@
             accept=".jar,.zip"
             :on-change="handleFileChange"
           >
-            <el-button :icon="Upload" :disabled="!connected">选择升级包</el-button>
+            <el-button :icon="Upload" :disabled="!connected"
+              >选择升级包</el-button
+            >
           </el-upload>
           <span v-if="selectedFile" class="text-sm text-gray-500">
             {{ selectedFile.name }} ({{ formatSize(selectedFile.size) }})
@@ -175,19 +179,39 @@
               {{ restorePreview.description }}
             </el-descriptions-item>
             <el-descriptions-item label="差异项数">
-              <el-tag :type="restorePreview.differenceCount > 0 ? 'warning' : 'success'">
+              <el-tag
+                :type="
+                  restorePreview.differenceCount > 0 ? 'warning' : 'success'
+                "
+              >
                 {{ restorePreview.differenceCount }}
               </el-tag>
             </el-descriptions-item>
           </el-descriptions>
 
-          <el-table :data="restorePreview.differences" border stripe max-height="400">
+          <el-table
+            :data="restorePreview.differences"
+            border
+            stripe
+            max-height="400"
+          >
             <el-table-column prop="key" label="配置项" min-width="200" />
-            <el-table-column prop="currentValue" label="当前值" min-width="150" />
-            <el-table-column prop="backupValue" label="备份值" min-width="150" />
+            <el-table-column
+              prop="currentValue"
+              label="当前值"
+              min-width="150"
+            />
+            <el-table-column
+              prop="backupValue"
+              label="备份值"
+              min-width="150"
+            />
             <el-table-column prop="status" label="状态" width="80">
               <template #default="{ row }">
-                <el-tag :type="row.status === '新增' ? 'success' : 'warning'" size="small">
+                <el-tag
+                  :type="row.status === '新增' ? 'success' : 'warning'"
+                  size="small"
+                >
                   {{ row.status }}
                 </el-tag>
               </template>
@@ -318,7 +342,7 @@ const backupTableUrl = computed(() => {
   return async () => {
     const res = await listBackupsForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port
+      nodeInfo.value.port,
     );
     backups.value = res.data || [];
     return { data: res.data || [] };
@@ -330,7 +354,7 @@ const upgradeTableUrl = computed(() => {
   return async () => {
     const res = await listUpgradePackagesForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port
+      nodeInfo.value.port,
     );
     upgradePackages.value = res.data || [];
     return { data: res.data || [] };
@@ -349,7 +373,7 @@ const connectNode = async () => {
   try {
     const res = await getUpgradeStatusForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port
+      nodeInfo.value.port,
     );
     upgradeStatus.value = res.data;
     connected.value = true;
@@ -369,7 +393,7 @@ const loadBackups = async () => {
   try {
     const res = await listBackupsForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port
+      nodeInfo.value.port,
     );
     backups.value = res.data || [];
   } catch {
@@ -386,7 +410,7 @@ const createBackup = async () => {
     await createBackupForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      backupDescription.value || "手动备份"
+      backupDescription.value || "手动备份",
     );
     message("备份创建成功", { type: "success" });
     backupDescription.value = "";
@@ -406,7 +430,7 @@ const viewBackup = async (row: BackupInfo) => {
     const res = await getBackupContentForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      row.fileName
+      row.fileName,
     );
     backupContentJson.value = JSON.stringify(res.data, null, 2);
     viewDialogVisible.value = true;
@@ -423,7 +447,7 @@ const deleteBackup = async (row: BackupInfo) => {
     await deleteBackupForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      row.fileName
+      row.fileName,
     );
     message("删除成功", { type: "success" });
     loadBackups();
@@ -440,7 +464,7 @@ const loadUpgradePackages = async () => {
   try {
     const res = await listUpgradePackagesForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port
+      nodeInfo.value.port,
     );
     upgradePackages.value = res.data || [];
   } catch {
@@ -472,7 +496,7 @@ const uploadPackage = async () => {
         nodeInfo.value.ipAddress,
         nodeInfo.value.port,
         selectedFile.value!.name,
-        base64
+        base64,
       );
       message("上传成功", { type: "success" });
       selectedFile.value = null;
@@ -496,7 +520,7 @@ const executeUpgrade = async (row: UpgradePackageInfo) => {
       nodeInfo.value.port,
       row.fileName,
       true,
-      true
+      true,
     );
     message("升级成功，节点即将重启", { type: "success" });
   } catch {
@@ -512,7 +536,7 @@ const previewRestore = async (row: BackupInfo) => {
     const res = await previewRestoreForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      row.fileName
+      row.fileName,
     );
     restorePreview.value = res.data;
     restoreFileName.value = row.fileName;
@@ -531,7 +555,7 @@ const executeRestore = async () => {
     await executeRestoreForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      restoreFileName.value
+      restoreFileName.value,
     );
     message("还原成功，部分配置需要重启后生效", { type: "success" });
     restorePreview.value = null;
@@ -563,7 +587,6 @@ const formatSize = (bytes?: number) => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -597,11 +620,9 @@ const formatSize = (bytes?: number) => {
   }
 }
 
-
 .node-maintenance {
   padding: 20px;
 }
-
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -611,5 +632,4 @@ const formatSize = (bytes?: number) => {
     padding: 12px 16px;
   }
 }
-
 </style>

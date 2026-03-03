@@ -5,7 +5,7 @@
         <IconifyIconOnline icon="ri:table-line" class="table-icon" />
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
-      <div class="table-actions" v-if="editMode">
+      <div v-if="editMode" class="table-actions">
         <el-button type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
         </el-button>
@@ -14,8 +14,8 @@
         </el-button>
       </div>
     </div>
-    
-    <div class="table-content" v-loading="loading">
+
+    <div v-loading="loading" class="table-content">
       <el-table :data="tableData" style="width: 100%" size="small" stripe>
         <el-table-column
           v-for="column in columns"
@@ -27,8 +27,14 @@
       </el-table>
     </div>
 
-    <div class="table-footer" v-if="!editMode">
-      <el-button type="primary" text size="small" @click="handleRefresh" :loading="refreshing">
+    <div v-if="!editMode" class="table-footer">
+      <el-button
+        type="primary"
+        text
+        size="small"
+        :loading="refreshing"
+        @click="handleRefresh"
+      >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
       </el-button>
@@ -57,16 +63,16 @@ const refreshing = ref(false);
 
 // 示例数据
 const tableData = ref([
-  { name: 'CPU使用率', value: '45%', status: '正常' },
-  { name: '内存使用率', value: '68%', status: '正常' },
-  { name: '磁盘使用率', value: '82%', status: '警告' },
-  { name: '网络IO', value: '1.2MB/s', status: '正常' },
+  { name: "CPU使用率", value: "45%", status: "正常" },
+  { name: "内存使用率", value: "68%", status: "正常" },
+  { name: "磁盘使用率", value: "82%", status: "警告" },
+  { name: "网络IO", value: "1.2MB/s", status: "正常" },
 ]);
 
 const columns = computed(() => [
-  { prop: 'name', label: '指标名称', width: '120' },
-  { prop: 'value', label: '当前值', width: '100' },
-  { prop: 'status', label: '状态', width: '80' },
+  { prop: "name", label: "指标名称", width: "120" },
+  { prop: "value", label: "当前值", width: "100" },
+  { prop: "status", label: "状态", width: "80" },
 ]);
 
 const handleRefresh = () => {
@@ -78,7 +84,8 @@ const handleRefresh = () => {
 };
 
 const handleEdit = () => emit("edit", props.componentData);
-const handleDelete = () => emit("delete", props.componentData.monitorSysGenServerDetailComponentId!);
+const handleDelete = () =>
+  emit("delete", props.componentData.monitorSysGenServerDetailComponentId!);
 </script>
 
 <style lang="scss" scoped>

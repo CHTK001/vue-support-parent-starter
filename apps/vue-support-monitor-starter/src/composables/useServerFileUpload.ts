@@ -72,7 +72,7 @@ export function useServerFileUpload() {
     completedTasks: 0,
     failedTasks: 0,
     maxConcurrent: 5,
-    currentConcurrent: 0
+    currentConcurrent: 0,
   });
 
   // 统计信息
@@ -85,12 +85,14 @@ export function useServerFileUpload() {
     cancelledCount: 0,
     successRate: 0,
     avgUploadTime: 0,
-    totalFileSize: 0
+    totalFileSize: 0,
   });
 
   // 计算属性
   const activeTaskCount = computed(() => {
-    return Array.from(taskProgresses.value.values()).filter(task => task.status === "PROCESSING" || task.status === "UPLOADING").length;
+    return Array.from(taskProgresses.value.values()).filter(
+      (task) => task.status === "PROCESSING" || task.status === "UPLOADING",
+    ).length;
   });
 
   const totalProgress = computed(() => {
@@ -102,7 +104,10 @@ export function useServerFileUpload() {
   });
 
   const totalSpeed = computed(() => {
-    return Array.from(taskProgresses.value.values()).reduce((sum, task) => sum + (task.speed || 0), 0);
+    return Array.from(taskProgresses.value.values()).reduce(
+      (sum, task) => sum + (task.speed || 0),
+      0,
+    );
   });
 
   // Socket.IO消息处理
@@ -148,7 +153,7 @@ export function useServerFileUpload() {
       totalBytes: payload.totalBytes,
       status: payload.status,
       startTime: payload.startTime,
-      estimatedTime: payload.estimatedTime
+      estimatedTime: payload.estimatedTime,
     };
 
     taskProgresses.value.set(payload.taskId, progress);
@@ -198,7 +203,11 @@ export function useServerFileUpload() {
       connectionStatus.value = "CONNECTING";
 
       const config = getConfig();
-      socketClient.value = socket(splitToArray(config.SocketUrl), "/socket.io", {});
+      socketClient.value = socket(
+        splitToArray(config.SocketUrl),
+        "/socket.io",
+        {},
+      );
 
       // 监听连接事件
       socketClient.value.on("connect", () => {
@@ -223,7 +232,10 @@ export function useServerFileUpload() {
       socketClient.value.on("server_file_upload_progress", handleSocketMessage);
       socketClient.value.on("server_file_upload_status", handleSocketMessage);
       socketClient.value.on("server_file_upload_queue", handleSocketMessage);
-      socketClient.value.on("server_file_upload_statistics", handleSocketMessage);
+      socketClient.value.on(
+        "server_file_upload_statistics",
+        handleSocketMessage,
+      );
     } catch (error) {
       console.error("Socket.IO连接失败:", error);
       connectionStatus.value = "ERROR";
@@ -320,6 +332,6 @@ export function useServerFileUpload() {
     clearAllTaskProgress,
     formatFileSize,
     formatSpeed,
-    formatDuration
+    formatDuration,
   };
 }

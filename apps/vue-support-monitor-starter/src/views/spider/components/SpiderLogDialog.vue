@@ -9,7 +9,13 @@
   >
     <div class="log-toolbar">
       <div class="toolbar-left">
-        <el-select v-model="filterLevel" placeholder="日志级别" clearable style="width: 120px" @change="handleFilter">
+        <el-select
+          v-model="filterLevel"
+          placeholder="日志级别"
+          clearable
+          style="width: 120px"
+          @change="handleFilter"
+        >
           <el-option label="INFO" value="INFO" />
           <el-option label="WARN" value="WARN" />
           <el-option label="ERROR" value="ERROR" />
@@ -55,13 +61,30 @@
       </el-table-column>
       <el-table-column label="级别" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="getLevelType(row.level)" size="small">{{ row.level }}</el-tag>
+          <el-tag :type="getLevelType(row.level)" size="small">{{
+            row.level
+          }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="消息" min-width="300" prop="message" show-overflow-tooltip />
-      <el-table-column label="URL" min-width="200" prop="url" show-overflow-tooltip>
+      <el-table-column
+        label="消息"
+        min-width="300"
+        prop="message"
+        show-overflow-tooltip
+      />
+      <el-table-column
+        label="URL"
+        min-width="200"
+        prop="url"
+        show-overflow-tooltip
+      >
         <template #default="{ row }">
-          <el-link v-if="row.url" type="primary" :href="row.url" target="_blank">
+          <el-link
+            v-if="row.url"
+            type="primary"
+            :href="row.url"
+            target="_blank"
+          >
             {{ truncateText(row.url, 50) }}
           </el-link>
           <span v-else class="text-muted">-</span>
@@ -102,7 +125,7 @@ const emit = defineEmits<{
 // 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (val) => emit("update:visible", val)
+  set: (val) => emit("update:visible", val),
 });
 
 // 响应式状态
@@ -117,47 +140,55 @@ let refreshTimer: number | null = null;
 const pagination = reactive({
   page: 1,
   size: 50,
-  total: 0
+  total: 0,
 });
 
 // 过滤后的日志
 const filteredLogs = computed(() => {
   let list = logList.value;
-  
+
   if (filterLevel.value) {
-    list = list.filter(log => log.level === filterLevel.value);
+    list = list.filter((log) => log.level === filterLevel.value);
   }
-  
+
   if (keyword.value) {
     const kw = keyword.value.toLowerCase();
-    list = list.filter(log => 
-      (log.message && log.message.toLowerCase().includes(kw)) ||
-      (log.url && log.url.toLowerCase().includes(kw))
+    list = list.filter(
+      (log) =>
+        (log.message && log.message.toLowerCase().includes(kw)) ||
+        (log.url && log.url.toLowerCase().includes(kw)),
     );
   }
-  
+
   return list;
 });
 
 // 监听对话框打开
-watch(() => props.visible, (val) => {
-  if (val && props.taskId) {
-    loadLogs();
-  } else {
-    stopAutoRefresh();
-  }
-});
+watch(
+  () => props.visible,
+  (val) => {
+    if (val && props.taskId) {
+      loadLogs();
+    } else {
+      stopAutoRefresh();
+    }
+  },
+);
 
 /**
  * 加载日志
  */
 const loadLogs = async () => {
   if (!props.taskId) return;
-  
+
   try {
     loading.value = true;
-    const res = await getSpiderTaskLogs(props.taskId, pagination.page, pagination.size);
-    
+    const res = await getSpiderTaskLogs(
+      props.taskId,
+      pagination.page,
+      pagination.size,
+    );
+
     if (res.code === "00000" && res.data) {
       logList.value = res.data.data || [];
       pagination.total = res.data.total || 0;
@@ -177,7 +208,7 @@ const getLevelType = (level: string) => {
   const map: Record<string, string> = {
     INFO: "success",
     WARN: "warning",
-    ERROR: "danger"
+    ERROR: "danger",
   };
   return map[level] || "info";
 };
@@ -286,13 +317,13 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  
+
   .toolbar-left {
     display: flex;
     gap: 12px;
     align-items: center;
   }
-  
+
   .toolbar-right {
     display: flex;
     gap: 12px;
@@ -318,7 +349,6 @@ onUnmounted(() => {
   background-color: #fdf6ec !important;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -327,5 +357,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

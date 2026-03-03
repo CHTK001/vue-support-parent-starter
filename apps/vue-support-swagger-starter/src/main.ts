@@ -1,4 +1,4 @@
-import { createStandardApp } from "@repo/core";
+import { createStandardApp } from "@repo/core/src/standard-app";
 
 // 样式导入
 import "@repo/assets/style/layout/default/reset.scss";

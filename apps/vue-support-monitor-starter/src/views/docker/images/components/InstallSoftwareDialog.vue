@@ -12,15 +12,27 @@
         <div class="section-title">软件信息</div>
         <div class="software-info-card">
           <div class="software-icon">
-            <img v-if="softwareData?.systemSoftIcon" :src="softwareData.systemSoftIcon" alt="icon" />
-            <IconifyIconOnline v-else icon="ri:apps-line" class="default-icon" />
+            <img
+              v-if="softwareData?.systemSoftIcon"
+              :src="softwareData.systemSoftIcon"
+              alt="icon"
+            />
+            <IconifyIconOnline
+              v-else
+              icon="ri:apps-line"
+              class="default-icon"
+            />
           </div>
           <div class="software-details">
             <div class="software-name">{{ softwareData?.systemSoftName }}</div>
-            <div class="software-desc">{{ softwareData?.systemSoftDesc || '暂无描述' }}</div>
+            <div class="software-desc">
+              {{ softwareData?.systemSoftDesc || "暂无描述" }}
+            </div>
             <div class="software-tags">
               <el-tag
-                v-for="tag in (softwareData?.systemSoftTags || '').split(',').filter(Boolean)"
+                v-for="tag in (softwareData?.systemSoftTags || '')
+                  .split(',')
+                  .filter(Boolean)"
                 :key="tag"
                 size="small"
                 class="tag-item"
@@ -36,7 +48,7 @@
       <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
         <div class="form-section">
           <div class="section-title">安装配置</div>
-          
+
           <el-form-item label="软件版本" prop="version">
             <el-select
               v-model="form.version"
@@ -54,14 +66,18 @@
                 <div class="version-option">
                   <span class="version-tag">{{ version.tag }}</span>
                   <span class="version-info">
-                    {{ version.created ? new Date(version.created).toLocaleDateString() : '' }}
-                    {{ version.size ? ` - ${version.size}` : '' }}
+                    {{
+                      version.created
+                        ? new Date(version.created).toLocaleDateString()
+                        : ""
+                    }}
+                    {{ version.size ? ` - ${version.size}` : "" }}
                   </span>
                 </div>
               </el-option>
             </el-select>
           </el-form-item>
-          
+
           <el-form-item label="目标服务器" prop="serverId">
             <el-select
               v-model="form.serverId"
@@ -81,7 +97,7 @@
               </el-option>
             </el-select>
           </el-form-item>
-          
+
           <el-form-item label="镜像仓库" prop="registryId">
             <el-select
               v-model="form.registryId"
@@ -96,11 +112,9 @@
                 :value="registry.id"
               />
             </el-select>
-            <div class="form-tip">
-              如果不选择，将使用默认的Docker Hub
-            </div>
+            <div class="form-tip">如果不选择，将使用默认的Docker Hub</div>
           </el-form-item>
-          
+
           <el-form-item label="自定义镜像名">
             <el-input
               v-model="form.customImageName"
@@ -111,7 +125,7 @@
               例如: registry.cn-hangzhou.aliyuncs.com/namespace/image:tag
             </div>
           </el-form-item>
-          
+
           <el-form-item label="安装说明">
             <el-input
               v-model="form.installNote"
@@ -123,27 +137,27 @@
             />
           </el-form-item>
         </div>
-        
+
         <div class="form-section">
           <div class="section-title">高级选项</div>
-          
+
           <el-form-item label="自动启动">
             <el-switch v-model="form.autoStart" />
             <div class="form-tip">安装完成后自动启动容器</div>
           </el-form-item>
-          
+
           <el-form-item label="强制拉取">
             <el-switch v-model="form.forcePull" />
             <div class="form-tip">即使本地已存在镜像也重新拉取</div>
           </el-form-item>
-          
+
           <el-form-item label="保留镜像">
             <el-switch v-model="form.keepImage" />
             <div class="form-tip">容器删除后保留镜像文件</div>
           </el-form-item>
         </div>
       </el-form>
-      
+
       <!-- 预览信息 -->
       <div v-if="form.version && form.serverId" class="preview-section">
         <div class="section-title">安装预览</div>
@@ -163,11 +177,11 @@
         </div>
       </div>
     </div>
-    
+
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="loading">
+        <el-button type="primary" :loading="loading" @click="handleSubmit">
           开始安装
         </el-button>
       </span>
@@ -176,142 +190,142 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch } from "vue";
 import { message } from "@repo/utils";
-import { type FormInstance, type FormRules } from 'element-plus'
-import { 
-  softwareApi, 
-  getServerList, 
-  registryApi, 
-  type SystemSoft 
-} from '@/api/docker'
+import { type FormInstance, type FormRules } from "element-plus";
+import {
+  softwareApi,
+  getServerList,
+  registryApi,
+  type SystemSoft,
+} from "@/api/docker";
 
 interface Props {
-  visible: boolean
-  softwareData?: SystemSoft | null
+  visible: boolean;
+  softwareData?: SystemSoft | null;
 }
 
 interface Emits {
-  (e: 'update:visible', value: boolean): void
-  (e: 'success'): void
+  (e: "update:visible", value: boolean): void;
+  (e: "success"): void;
 }
 
 interface VersionInfo {
-  tag: string
-  size?: string
-  created?: string
-  architecture?: string
+  tag: string;
+  size?: string;
+  created?: string;
+  architecture?: string;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
-const formRef = ref<FormInstance>()
-const loading = ref(false)
-const versionsLoading = ref(false)
-const serverOptions = ref<any[]>([])
-const registryOptions = ref<any[]>([])
-const availableVersions = ref<VersionInfo[]>([])
+const formRef = ref<FormInstance>();
+const loading = ref(false);
+const versionsLoading = ref(false);
+const serverOptions = ref<any[]>([]);
+const registryOptions = ref<any[]>([]);
+const availableVersions = ref<VersionInfo[]>([]);
 
 const form = reactive({
-  version: '',
-  serverId: '',
-  registryId: '',
-  customImageName: '',
-  installNote: '',
+  version: "",
+  serverId: "",
+  registryId: "",
+  customImageName: "",
+  installNote: "",
   autoStart: true,
   forcePull: false,
-  keepImage: true
-})
+  keepImage: true,
+});
 
 const rules: FormRules = {
-  version: [
-    { required: true, message: '请选择软件版本', trigger: 'change' }
-  ],
+  version: [{ required: true, message: "请选择软件版本", trigger: "change" }],
   serverId: [
-    { required: true, message: '请选择目标服务器', trigger: 'change' }
-  ]
-}
+    { required: true, message: "请选择目标服务器", trigger: "change" },
+  ],
+};
 
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (value) => emit('update:visible', value)
-})
+  set: (value) => emit("update:visible", value),
+});
 
 // 监听对话框打开
 watch(dialogVisible, (visible) => {
   if (visible && props.softwareData) {
-    loadData()
-    loadVersions()
+    loadData();
+    loadVersions();
   }
-})
+});
 
 const loadData = async () => {
   try {
     // 加载服务器列表
-    const serverResponse = await getServerList()
-    if (serverResponse.code === '00000') {
-      serverOptions.value = serverResponse.data || []
+    const serverResponse = await getServerList();
+    if (serverResponse.code === "00000") {
+      serverOptions.value = serverResponse.data || [];
     }
-    
+
     // 加载镜像仓库列表
-    const registryResponse = await registryApi.getRegistryList()
-    if (registryResponse.code === '00000') {
-      registryOptions.value = registryResponse.data || []
+    const registryResponse = await registryApi.getRegistryList();
+    if (registryResponse.code === "00000") {
+      registryOptions.value = registryResponse.data || [];
     }
   } catch (error) {
-    console.error('加载数据失败:', error)
+    console.error("加载数据失败:", error);
   }
-}
+};
 
 const loadVersions = async () => {
-  if (!props.softwareData) return
-  
+  if (!props.softwareData) return;
+
   try {
-    versionsLoading.value = true
+    versionsLoading.value = true;
     // 这里调用API获取软件的可用版本列表
-    const response = await softwareApi.getSoftwareVersions(props.softwareData.systemSoftId!)
-    if (response.code === '00000') {
-      availableVersions.value = response.data || []
+    const response = await softwareApi.getSoftwareVersions(
+      props.softwareData.systemSoftId!,
+    );
+    if (response.code === "00000") {
+      availableVersions.value = response.data || [];
     }
   } catch (error) {
-    console.error('加载版本列表失败:', error)
+    console.error("加载版本列表失败:", error);
     // 如果API不存在，提供默认版本
     availableVersions.value = [
-      { tag: 'latest', size: 'unknown', created: new Date().toISOString() }
-    ]
+      { tag: "latest", size: "unknown", created: new Date().toISOString() },
+    ];
   } finally {
-    versionsLoading.value = false
+    versionsLoading.value = false;
   }
-}
+};
 
 const handleVersionChange = () => {
   // 版本变化时的处理逻辑
-}
+};
 
 const getFullImageName = () => {
   if (form.customImageName) {
-    return form.customImageName
+    return form.customImageName;
   }
-  
-  if (!props.softwareData || !form.version) return ''
-  
-  const imageName = props.softwareData.systemSoftName
-  return `${imageName}:${form.version}`
-}
+
+  if (!props.softwareData || !form.version) return "";
+
+  const imageName = props.softwareData.systemSoftName;
+  return `${imageName}:${form.version}`;
+};
 
 const getServerName = () => {
-  const server = serverOptions.value.find(s => s.id === form.serverId)
-  return server ? `${server.name} (${server.ip})` : ''
-}
+  const server = serverOptions.value.find((s) => s.id === form.serverId);
+  return server ? `${server.name} (${server.ip})` : "";
+};
 
 const handleSubmit = async () => {
-  if (!formRef.value || !props.softwareData) return
-  
+  if (!formRef.value || !props.softwareData) return;
+
   try {
-    await formRef.value.validate()
-    loading.value = true
-    
+    await formRef.value.validate();
+    loading.value = true;
+
     // 构建安装参数
     const params = {
       softwareId: props.softwareData.systemSoftId,
@@ -322,50 +336,50 @@ const handleSubmit = async () => {
       installNote: form.installNote || undefined,
       autoStart: form.autoStart,
       forcePull: form.forcePull,
-      keepImage: form.keepImage
-    }
-    
-    const response = await softwareApi.installSoftware(params)
-    if (response.code === '00000') {
+      keepImage: form.keepImage,
+    };
+
+    const response = await softwareApi.installSoftware(params);
+    if (response.code === "00000") {
       // ProgressMonitor会自动监听并显示进度
       // operationId: response.data?.operationId
       if (response.data?.operationId) {
         // 等待一小段时间让Socket事件传播
-        setTimeout(() => emit('success'), 1000)
+        setTimeout(() => emit("success"), 1000);
       }
-      
-      message('软件安装任务已创建，请查看进度', { type: "success" })
-      emit('success')
-      handleClose()
+
+      message("软件安装任务已创建，请查看进度", { type: "success" });
+      emit("success");
+      handleClose();
     } else {
-      message(response.message || '软件安装失败', { type: "error" })
+      message(response.message || "软件安装失败", { type: "error" });
     }
   } catch (error) {
-    message('软件安装失败', { type: "error" })
+    message("软件安装失败", { type: "error" });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const handleClose = () => {
   if (!loading.value) {
-    dialogVisible.value = false
-    resetForm()
+    dialogVisible.value = false;
+    resetForm();
   }
-}
+};
 
 const resetForm = () => {
-  form.version = ''
-  form.serverId = ''
-  form.registryId = ''
-  form.customImageName = ''
-  form.installNote = ''
-  form.autoStart = true
-  form.forcePull = false
-  form.keepImage = true
-  availableVersions.value = []
-  formRef.value?.resetFields()
-}
+  form.version = "";
+  form.serverId = "";
+  form.registryId = "";
+  form.customImageName = "";
+  form.installNote = "";
+  form.autoStart = true;
+  form.forcePull = false;
+  form.keepImage = true;
+  availableVersions.value = [];
+  formRef.value?.resetFields();
+};
 </script>
 
 <style scoped lang="scss">
@@ -374,7 +388,9 @@ const resetForm = () => {
   overflow-y: auto;
 }
 
-.form-section, .software-section, .preview-section {
+.form-section,
+.software-section,
+.preview-section {
   margin-bottom: 24px;
 }
 
@@ -447,18 +463,21 @@ const resetForm = () => {
   margin: 0;
 }
 
-.version-option, .server-option {
+.version-option,
+.server-option {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
 }
 
-.version-tag, .server-name {
+.version-tag,
+.server-name {
   font-weight: 500;
 }
 
-.version-info, .server-info {
+.version-info,
+.server-info {
   font-size: 12px;
   color: #909399;
 }
@@ -503,7 +522,6 @@ const resetForm = () => {
   gap: 12px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -512,5 +530,4 @@ const resetForm = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -49,7 +49,7 @@
           class="device-card"
         >
           <div class="device-status">
-            <div class="status-dot online"></div>
+            <div class="status-dot online" />
           </div>
           <div class="device-info">
             <div class="device-main">
@@ -57,15 +57,15 @@
               <span class="device-port">:{{ device.port }}</span>
             </div>
             <div class="device-meta">
-              <span class="meta-item" v-if="device.metadata?.hostname">
+              <span v-if="device.metadata?.hostname" class="meta-item">
                 <IconifyIconOnline icon="ri:computer-line" class="meta-icon" />
                 {{ device.metadata.hostname }}
               </span>
-              <span class="meta-item" v-if="device.metadata?.contextPath">
+              <span v-if="device.metadata?.contextPath" class="meta-item">
                 <IconifyIconOnline icon="ri:link" class="meta-icon" />
                 {{ device.metadata.contextPath }}
               </span>
-              <span class="meta-item" v-if="device.metadata?.javaVersion">
+              <span v-if="device.metadata?.javaVersion" class="meta-item">
                 <IconifyIconOnline
                   icon="simple-icons:openjdk"
                   class="meta-icon"
@@ -354,7 +354,6 @@ const handleVisitDevice = (device: Discovery) => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -363,5 +362,4 @@ const handleVisitDevice = (device: Discovery) => {
     padding: 12px 16px;
   }
 }
-
 </style>

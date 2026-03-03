@@ -20,16 +20,16 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 export const highlight = {
   mounted(el: HTMLElement) {
     const blocks = el.querySelectorAll("pre code");
-    blocks.forEach(block => {
+    blocks.forEach((block) => {
       Prism.highlightElement(block);
     });
   },
   updated(el: HTMLElement) {
     const blocks = el.querySelectorAll("pre code");
-    blocks.forEach(block => {
+    blocks.forEach((block) => {
       Prism.highlightElement(block);
     });
-  }
+  },
 };
 
 // 注册所有指令

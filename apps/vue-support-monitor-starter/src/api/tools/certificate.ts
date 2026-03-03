@@ -12,11 +12,11 @@ import { http } from "@repo/utils";
 import { loadRouterBase } from "../config";
 // 导入证书
 export function certificateImportFile(formData) {
-  return http.post('/certificate/import-file', formData, {
+  return http.post("/certificate/import-file", formData, {
     headers: {
-      'Content-Type': 'multipart/form-data;charset=UTF-8'
-    }
-  })
+      "Content-Type": "multipart/form-data;charset=UTF-8",
+    },
+  });
 }
 
 /**
@@ -48,11 +48,15 @@ export function certListAll(params) {
  * } params
  */
 export function deleteCert(params) {
-  return http.get("/certificate/del", { params }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.get(
+    "/certificate/del",
+    { params },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /**
@@ -62,7 +66,7 @@ export function deleteCert(params) {
  * } params
  */
 export function downloadCert(params) {
-  return loadRouterBase('/certificate/export', params)
+  return loadRouterBase("/certificate/export", params);
 }
 
 // 修改证书

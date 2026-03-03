@@ -60,9 +60,7 @@
 
     <template #footer>
       <ScButton @click="visible = false">取消</ScButton>
-      <ScButton type="primary" :loading="processing" @click="handleCrop"
-        >确定裁剪</el-button
-      >
+      <ScButton type="primary" :loading="processing" @click="handleCrop">确定裁剪</ScButton>
     </template>
   </sc-dialog>
 </template>

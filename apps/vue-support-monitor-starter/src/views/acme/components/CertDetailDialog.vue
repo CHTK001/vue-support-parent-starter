@@ -14,11 +14,14 @@
         </div>
         <div class="header-info">
           <h3>证书详情</h3>
-          <p>{{ detail?.certificate?.acmeCertPrimaryDomain || '加载中...' }}</p>
+          <p>{{ detail?.certificate?.acmeCertPrimaryDomain || "加载中..." }}</p>
         </div>
-        <div class="header-status" v-if="detail?.certificate?.acmeCertStatus">
-          <div class="status-badge" :class="`status-${detail.certificate.acmeCertStatus}`">
-            <span class="status-dot"></span>
+        <div v-if="detail?.certificate?.acmeCertStatus" class="header-status">
+          <div
+            class="status-badge"
+            :class="`status-${detail.certificate.acmeCertStatus}`"
+          >
+            <span class="status-dot" />
             <span>{{ getStatusLabel(detail.certificate.acmeCertStatus) }}</span>
           </div>
         </div>
@@ -35,9 +38,12 @@
             </div>
             <div class="card-content">
               <div class="card-label">主域名</div>
-              <div class="card-value">{{ detail?.certificate?.acmeCertPrimaryDomain }}</div>
-              <div class="card-extra" v-if="detail?.certificate?.acmeCertSan">
-                +{{ (detail.certificate.acmeCertSan || '').split(',').length }} 个备用域名
+              <div class="card-value">
+                {{ detail?.certificate?.acmeCertPrimaryDomain }}
+              </div>
+              <div v-if="detail?.certificate?.acmeCertSan" class="card-extra">
+                +{{ (detail.certificate.acmeCertSan || "").split(",").length }}
+                个备用域名
               </div>
             </div>
           </div>
@@ -48,19 +54,39 @@
             <div class="card-content">
               <div class="card-label">有效期</div>
               <div class="card-value" :class="getExpiryClass()">
-                {{ detail?.daysUntilExpiry != null ? `${detail.daysUntilExpiry} 天` : '-' }}
+                {{
+                  detail?.daysUntilExpiry != null
+                    ? `${detail.daysUntilExpiry} 天`
+                    : "-"
+                }}
               </div>
-              <div class="card-extra">{{ detail?.certificate?.acmeCertNotAfter || '-' }}</div>
+              <div class="card-extra">
+                {{ detail?.certificate?.acmeCertNotAfter || "-" }}
+              </div>
             </div>
           </div>
           <div class="info-card">
             <div class="card-icon challenge">
-              <IconifyIconOnline :icon="detail?.certificate?.acmeCertChallengeType === 'DNS-01' ? 'mdi:dns' : 'mdi:web'" />
+              <IconifyIconOnline
+                :icon="
+                  detail?.certificate?.acmeCertChallengeType === 'DNS-01'
+                    ? 'mdi:dns'
+                    : 'mdi:web'
+                "
+              />
             </div>
             <div class="card-content">
               <div class="card-label">验证方式</div>
-              <div class="card-value">{{ detail?.certificate?.acmeCertChallengeType }}</div>
-              <div class="card-extra">{{ detail?.certificate?.acmeCertChallengeType === 'DNS-01' ? 'DNS记录验证' : 'HTTP文件验证' }}</div>
+              <div class="card-value">
+                {{ detail?.certificate?.acmeCertChallengeType }}
+              </div>
+              <div class="card-extra">
+                {{
+                  detail?.certificate?.acmeCertChallengeType === "DNS-01"
+                    ? "DNS记录验证"
+                    : "HTTP文件验证"
+                }}
+              </div>
             </div>
           </div>
           <div class="info-card">
@@ -69,7 +95,9 @@
             </div>
             <div class="card-content">
               <div class="card-label">关联账户</div>
-              <div class="card-value">{{ detail?.account?.acmeAccountEmail || '-' }}</div>
+              <div class="card-value">
+                {{ detail?.account?.acmeAccountEmail || "-" }}
+              </div>
               <div class="card-extra">ACME 账户</div>
             </div>
           </div>
@@ -83,30 +111,43 @@
           </div>
           <div class="cert-timeline">
             <div class="timeline-item">
-              <div class="timeline-dot start"></div>
+              <div class="timeline-dot start" />
               <div class="timeline-content">
                 <span class="timeline-label">生效时间</span>
-                <span class="timeline-value">{{ detail?.certificate?.acmeCertNotBefore || '-' }}</span>
+                <span class="timeline-value">{{
+                  detail?.certificate?.acmeCertNotBefore || "-"
+                }}</span>
               </div>
             </div>
             <div class="timeline-progress">
-              <div class="progress-bar" :style="{ width: getProgressPercent() + '%' }"></div>
-              <div class="progress-marker" :style="{ left: getProgressPercent() + '%' }">
+              <div
+                class="progress-bar"
+                :style="{ width: getProgressPercent() + '%' }"
+              />
+              <div
+                class="progress-marker"
+                :style="{ left: getProgressPercent() + '%' }"
+              >
                 <span>当前</span>
               </div>
             </div>
             <div class="timeline-item">
-              <div class="timeline-dot end" :class="getExpiryClass()"></div>
+              <div class="timeline-dot end" :class="getExpiryClass()" />
               <div class="timeline-content">
                 <span class="timeline-label">到期时间</span>
-                <span class="timeline-value">{{ detail?.certificate?.acmeCertNotAfter || '-' }}</span>
+                <span class="timeline-value">{{
+                  detail?.certificate?.acmeCertNotAfter || "-"
+                }}</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- 错误信息 -->
-        <div class="error-section" v-if="detail?.certificate?.acmeCertLastError">
+        <div
+          v-if="detail?.certificate?.acmeCertLastError"
+          class="error-section"
+        >
           <el-alert
             :title="detail.certificate.acmeCertLastError"
             type="error"
@@ -116,7 +157,13 @@
         </div>
 
         <!-- 验证信息（待验证状态时显示） -->
-        <div class="validation-section" v-if="detail?.certificate?.acmeCertStatus === 'validating' && validationInfos.length > 0">
+        <div
+          v-if="
+            detail?.certificate?.acmeCertStatus === 'validating' &&
+            validationInfos.length > 0
+          "
+          class="validation-section"
+        >
           <div class="section-title">
             <IconifyIconOnline icon="mdi:shield-check" />
             <span>验证信息</span>
@@ -126,26 +173,45 @@
             title="请按以下信息完成域名验证，部署完成后点击重新验证"
             type="warning"
             :closable="false"
-            style="margin-bottom: 16px;"
+            style="margin-bottom: 16px"
           />
           <div class="validation-list">
-            <div class="validation-item" v-for="(info, index) in validationInfos" :key="index">
+            <div
+              v-for="(info, index) in validationInfos"
+              :key="index"
+              class="validation-item"
+            >
               <div class="validation-header">
                 <div class="validation-domain">
                   <IconifyIconOnline icon="mdi:web" />
                   <span>{{ info.domain }}</span>
                 </div>
-                <el-tag size="small" :type="info.type === 'HTTP-01' ? 'primary' : 'success'">
+                <el-tag
+                  size="small"
+                  :type="info.type === 'HTTP-01' ? 'primary' : 'success'"
+                >
                   {{ info.type }}
                 </el-tag>
               </div>
               <!-- HTTP-01 验证 -->
-              <div class="validation-body" v-if="info.type === 'HTTP-01'">
+              <div v-if="info.type === 'HTTP-01'" class="validation-body">
                 <div class="validation-row">
                   <span class="validation-label">验证地址</span>
                   <div class="validation-value-box">
-                    <code class="validation-code">http://{{ info.domain }}/.well-known/acme-challenge/{{ info.token }}</code>
-                    <el-button size="small" text @click="copyToClipboard(`http://${info.domain}/.well-known/acme-challenge/${info.token}`)">
+                    <code class="validation-code"
+                      >http://{{ info.domain }}/.well-known/acme-challenge/{{
+                        info.token
+                      }}</code
+                    >
+                    <el-button
+                      size="small"
+                      text
+                      @click="
+                        copyToClipboard(
+                          `http://${info.domain}/.well-known/acme-challenge/${info.token}`,
+                        )
+                      "
+                    >
                       <IconifyIconOnline icon="mdi:content-copy" />
                     </el-button>
                   </div>
@@ -153,24 +219,38 @@
                 <div class="validation-row">
                   <span class="validation-label">文件内容</span>
                   <div class="validation-value-box">
-                    <code class="validation-code">{{ info.keyAuthorization }}</code>
-                    <el-button size="small" text @click="copyToClipboard(info.keyAuthorization)">
+                    <code class="validation-code">{{
+                      info.keyAuthorization
+                    }}</code>
+                    <el-button
+                      size="small"
+                      text
+                      @click="copyToClipboard(info.keyAuthorization)"
+                    >
                       <IconifyIconOnline icon="mdi:content-copy" />
                     </el-button>
                   </div>
                 </div>
                 <div class="validation-tip">
                   <IconifyIconOnline icon="mdi:information" />
-                  <span>在服务器上创建文件 <code>/.well-known/acme-challenge/{{ info.token }}</code>，内容为上面的文件内容</span>
+                  <span
+                    >在服务器上创建文件
+                    <code>/.well-known/acme-challenge/{{ info.token }}</code
+                    >，内容为上面的文件内容</span
+                  >
                 </div>
               </div>
               <!-- DNS-01 验证 -->
-              <div class="validation-body" v-if="info.type === 'DNS-01'">
+              <div v-if="info.type === 'DNS-01'" class="validation-body">
                 <div class="validation-row">
                   <span class="validation-label">TXT 记录名</span>
                   <div class="validation-value-box">
                     <code class="validation-code">{{ info.dnsName }}</code>
-                    <el-button size="small" text @click="copyToClipboard(info.dnsName)">
+                    <el-button
+                      size="small"
+                      text
+                      @click="copyToClipboard(info.dnsName)"
+                    >
                       <IconifyIconOnline icon="mdi:content-copy" />
                     </el-button>
                   </div>
@@ -179,14 +259,22 @@
                   <span class="validation-label">TXT 记录值</span>
                   <div class="validation-value-box">
                     <code class="validation-code">{{ info.dnsValue }}</code>
-                    <el-button size="small" text @click="copyToClipboard(info.dnsValue)">
+                    <el-button
+                      size="small"
+                      text
+                      @click="copyToClipboard(info.dnsValue)"
+                    >
                       <IconifyIconOnline icon="mdi:content-copy" />
                     </el-button>
                   </div>
                 </div>
                 <div class="validation-tip">
                   <IconifyIconOnline icon="mdi:information" />
-                  <span>在 DNS 管理面板添加 TXT 记录，名称为 <code>{{ info.dnsName }}</code>，值为上面的 TXT 记录值</span>
+                  <span
+                    >在 DNS 管理面板添加 TXT 记录，名称为
+                    <code>{{ info.dnsName }}</code
+                    >，值为上面的 TXT 记录值</span
+                  >
                 </div>
               </div>
             </div>
@@ -221,12 +309,20 @@
             <div v-show="activeTab === 'chain'" class="code-block">
               <div class="code-header">
                 <span>certificate.pem</span>
-                <el-button size="small" text @click="copyToClipboard(detail?.certificate?.acmeCertChainPem)">
+                <el-button
+                  size="small"
+                  text
+                  @click="
+                    copyToClipboard(detail?.certificate?.acmeCertChainPem)
+                  "
+                >
                   <IconifyIconOnline icon="mdi:content-copy" />
                   复制
                 </el-button>
               </div>
-              <pre class="code-content">{{ detail?.certificate?.acmeCertChainPem || '暂无证书内容' }}</pre>
+              <pre class="code-content">{{
+                detail?.certificate?.acmeCertChainPem || "暂无证书内容"
+              }}</pre>
             </div>
             <div v-show="activeTab === 'key'" class="code-block">
               <div class="key-warning">
@@ -235,12 +331,18 @@
               </div>
               <div class="code-header">
                 <span>private.key</span>
-                <el-button size="small" text @click="copyToClipboard(detail?.certificate?.acmeCertKeyPem)">
+                <el-button
+                  size="small"
+                  text
+                  @click="copyToClipboard(detail?.certificate?.acmeCertKeyPem)"
+                >
                   <IconifyIconOnline icon="mdi:content-copy" />
                   复制
                 </el-button>
               </div>
-              <pre class="code-content">{{ detail?.certificate?.acmeCertKeyPem || '暂无私钥内容' }}</pre>
+              <pre class="code-content">{{
+                detail?.certificate?.acmeCertKeyPem || "暂无私钥内容"
+              }}</pre>
             </div>
           </div>
         </div>
@@ -253,74 +355,110 @@
           </div>
           <div class="history-timeline">
             <div class="history-item">
-              <div class="history-dot create"></div>
-              <div class="history-line"></div>
+              <div class="history-dot create" />
+              <div class="history-line" />
               <div class="history-content">
                 <div class="history-title">创建证书申请</div>
-                <div class="history-time">{{ detail?.certificate?.createTime || '-' }}</div>
+                <div class="history-time">
+                  {{ detail?.certificate?.createTime || "-" }}
+                </div>
               </div>
             </div>
-            <div class="history-item" v-if="detail?.certificate?.acmeCertStatus === 'validating' || detail?.certificate?.acmeCertStatus === 'valid'">
-              <div class="history-dot validating"></div>
-              <div class="history-line"></div>
+            <div
+              v-if="
+                detail?.certificate?.acmeCertStatus === 'validating' ||
+                detail?.certificate?.acmeCertStatus === 'valid'
+              "
+              class="history-item"
+            >
+              <div class="history-dot validating" />
+              <div class="history-line" />
               <div class="history-content">
                 <div class="history-title">开始域名验证</div>
-                <div class="history-desc">{{ detail?.certificate?.acmeCertChallengeType }} 验证方式</div>
+                <div class="history-desc">
+                  {{ detail?.certificate?.acmeCertChallengeType }} 验证方式
+                </div>
               </div>
             </div>
-            <div class="history-item" v-if="detail?.certificate?.acmeCertNotBefore">
-              <div class="history-dot success"></div>
-              <div class="history-line"></div>
+            <div
+              v-if="detail?.certificate?.acmeCertNotBefore"
+              class="history-item"
+            >
+              <div class="history-dot success" />
+              <div class="history-line" />
               <div class="history-content">
                 <div class="history-title">证书签发成功</div>
-                <div class="history-time">{{ detail?.certificate?.acmeCertNotBefore }}</div>
+                <div class="history-time">
+                  {{ detail?.certificate?.acmeCertNotBefore }}
+                </div>
               </div>
             </div>
-            <div class="history-item" v-if="detail?.certificate?.acmeCertStatus === 'failed'">
-              <div class="history-dot failed"></div>
-              <div class="history-line"></div>
+            <div
+              v-if="detail?.certificate?.acmeCertStatus === 'failed'"
+              class="history-item"
+            >
+              <div class="history-dot failed" />
+              <div class="history-line" />
               <div class="history-content">
                 <div class="history-title">申请失败</div>
-                <div class="history-desc text-danger">{{ detail?.certificate?.acmeCertLastError }}</div>
+                <div class="history-desc text-danger">
+                  {{ detail?.certificate?.acmeCertLastError }}
+                </div>
               </div>
             </div>
-            <div class="history-item" v-if="detail?.certificate?.acmeCertRenewAt">
-              <div class="history-dot renew"></div>
+            <div
+              v-if="detail?.certificate?.acmeCertRenewAt"
+              class="history-item"
+            >
+              <div class="history-dot renew" />
               <div class="history-content">
                 <div class="history-title">计划续签时间</div>
-                <div class="history-time">{{ detail?.certificate?.acmeCertRenewAt }}</div>
+                <div class="history-time">
+                  {{ detail?.certificate?.acmeCertRenewAt }}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- 订单记录 -->
-        <div class="orders-section" v-if="detail?.orders?.length">
+        <div v-if="detail?.orders?.length" class="orders-section">
           <div class="section-title">
             <IconifyIconOnline icon="mdi:receipt" />
             <span>订单记录</span>
             <span class="order-count">{{ detail.orders.length }}</span>
           </div>
           <div class="orders-list">
-            <div class="order-item" v-for="order in detail.orders" :key="order.acmeOrderId">
+            <div
+              v-for="order in detail.orders"
+              :key="order.acmeOrderId"
+              class="order-item"
+            >
               <div class="order-header">
                 <div class="order-id">
                   <IconifyIconOnline icon="mdi:identifier" />
                   <span>#{{ order.acmeOrderId }}</span>
                 </div>
-                <div class="order-status-badge" :class="getOrderStatusClass(order.acmeOrderStatus)">
-                  <span class="status-dot"></span>
+                <div
+                  class="order-status-badge"
+                  :class="getOrderStatusClass(order.acmeOrderStatus)"
+                >
+                  <span class="status-dot" />
                   <span>{{ getOrderStatusLabel(order.acmeOrderStatus) }}</span>
                 </div>
               </div>
               <div class="order-body">
-                <div class="order-row" v-if="order.acmeOrderUrl">
+                <div v-if="order.acmeOrderUrl" class="order-row">
                   <span class="order-label">订单URL</span>
-                  <span class="order-value order-url">{{ order.acmeOrderUrl }}</span>
+                  <span class="order-value order-url">{{
+                    order.acmeOrderUrl
+                  }}</span>
                 </div>
-                <div class="order-row" v-if="order.acmeCertificateUrl">
+                <div v-if="order.acmeCertificateUrl" class="order-row">
                   <span class="order-label">证书URL</span>
-                  <span class="order-value">{{ order.acmeCertificateUrl }}</span>
+                  <span class="order-value">{{
+                    order.acmeCertificateUrl
+                  }}</span>
                 </div>
               </div>
               <div class="order-footer">
@@ -328,7 +466,10 @@
                   <IconifyIconOnline icon="mdi:clock-outline" />
                   <span>创建: {{ order.createTime }}</span>
                 </div>
-                <div class="order-time" v-if="order.updateTime !== order.createTime">
+                <div
+                  v-if="order.updateTime !== order.createTime"
+                  class="order-time"
+                >
                   <IconifyIconOnline icon="mdi:update" />
                   <span>更新: {{ order.updateTime }}</span>
                 </div>
@@ -414,11 +555,11 @@ function getStatusLabel(status?: string) {
  */
 function getExpiryClass() {
   const days = detail.value?.daysUntilExpiry;
-  if (days == null) return '';
-  if (days < 0) return 'expired';
-  if (days <= 7) return 'critical';
-  if (days <= 30) return 'warning';
-  return 'normal';
+  if (days == null) return "";
+  if (days < 0) return "expired";
+  if (days <= 7) return "critical";
+  if (days <= 30) return "warning";
+  return "normal";
 }
 
 /**
@@ -452,28 +593,28 @@ async function copyToClipboard(text?: string) {
  * 获取订单状态样式类
  */
 function getOrderStatusClass(status?: string) {
-  if (!status) return '';
+  if (!status) return "";
   const statusMap: Record<string, string> = {
-    'pending': 'pending',
-    'ready': 'ready',
-    'processing': 'processing',
-    'valid': 'valid',
-    'invalid': 'invalid'
+    pending: "pending",
+    ready: "ready",
+    processing: "processing",
+    valid: "valid",
+    invalid: "invalid",
   };
-  return statusMap[status] || '';
+  return statusMap[status] || "";
 }
 
 /**
  * 获取订单状态标签
  */
 function getOrderStatusLabel(status?: string) {
-  if (!status) return '未知';
+  if (!status) return "未知";
   const labelMap: Record<string, string> = {
-    'pending': '待处理',
-    'ready': '就绪',
-    'processing': '处理中',
-    'valid': '已完成',
-    'invalid': '已失效'
+    pending: "待处理",
+    ready: "就绪",
+    processing: "处理中",
+    valid: "已完成",
+    invalid: "已失效",
   };
   return labelMap[status] || status;
 }
@@ -484,18 +625,18 @@ function getOrderStatusLabel(status?: string) {
 function parseValidationInfos() {
   validationInfos.value = [];
   if (!detail.value?.orders?.length) return;
-  
+
   // 取最新的订单
   const latestOrder = detail.value.orders[0];
   if (!latestOrder.acmeAuthzUrls) return;
-  
+
   try {
     const infos = JSON.parse(latestOrder.acmeAuthzUrls);
     if (Array.isArray(infos)) {
       validationInfos.value = infos;
     }
   } catch (e) {
-    console.error('解析验证信息失败', e);
+    console.error("解析验证信息失败", e);
   }
 }
 
@@ -526,7 +667,7 @@ watch(
       activeTab.value = "chain";
       loadDetail();
     }
-  }
+  },
 );
 </script>
 
@@ -603,7 +744,8 @@ watch(
     }
   }
 
-  &.status-expired, &.status-failed {
+  &.status-expired,
+  &.status-failed {
     background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
     .status-dot {
@@ -621,8 +763,13 @@ watch(
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* 信息卡片 */
@@ -662,8 +809,13 @@ watch(
     }
     &.expiry {
       background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      &.warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-      &.critical, &.expired { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+      &.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+      &.critical,
+      &.expired {
+        background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+      }
     }
     &.challenge {
       background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
@@ -690,8 +842,13 @@ watch(
     color: var(--el-text-color-primary);
     word-break: break-all;
 
-    &.warning { color: #f59e0b; }
-    &.critical, &.expired { color: #ef4444; }
+    &.warning {
+      color: #f59e0b;
+    }
+    &.critical,
+    &.expired {
+      color: #ef4444;
+    }
   }
 
   .card-extra {
@@ -758,8 +915,13 @@ watch(
     }
     &.end {
       background: var(--el-color-success);
-      &.warning { background: #f59e0b; }
-      &.critical, &.expired { background: #ef4444; }
+      &.warning {
+        background: #f59e0b;
+      }
+      &.critical,
+      &.expired {
+        background: #ef4444;
+      }
     }
   }
 
@@ -1157,31 +1319,42 @@ watch(
     &.pending {
       background: rgba(59, 130, 246, 0.1);
       color: #3b82f6;
-      .status-dot { background: #3b82f6; }
+      .status-dot {
+        background: #3b82f6;
+      }
     }
 
     &.ready {
       background: rgba(245, 158, 11, 0.1);
       color: #f59e0b;
-      .status-dot { background: #f59e0b; }
+      .status-dot {
+        background: #f59e0b;
+      }
     }
 
     &.processing {
       background: rgba(139, 92, 246, 0.1);
       color: #8b5cf6;
-      .status-dot { background: #8b5cf6; animation: pulse 2s infinite; }
+      .status-dot {
+        background: #8b5cf6;
+        animation: pulse 2s infinite;
+      }
     }
 
     &.valid {
       background: rgba(16, 185, 129, 0.1);
       color: #10b981;
-      .status-dot { background: #10b981; }
+      .status-dot {
+        background: #10b981;
+      }
     }
 
     &.invalid {
       background: rgba(239, 68, 68, 0.1);
       color: #ef4444;
-      .status-dot { background: #ef4444; }
+      .status-dot {
+        background: #ef4444;
+      }
     }
   }
 
@@ -1247,7 +1420,6 @@ watch(
   color: var(--el-color-danger);
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1256,7 +1428,6 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>
 
 <style lang="scss">

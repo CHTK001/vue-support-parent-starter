@@ -1,10 +1,10 @@
 <template>
   <div
+    v-loading="loading"
     class="code-mirror-div"
     :style="{
       height: height,
     }"
-    v-loading="loading"
   >
     <template v-if="!loading">
       <div v-if="showTool" ref="toolBar" class="tool-bar">

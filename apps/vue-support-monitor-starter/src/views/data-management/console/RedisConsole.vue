@@ -1,5 +1,9 @@
 <template>
-  <div class="console system-container modern-bg" :style="gridStyle" @contextmenu.prevent>
+  <div
+    class="console system-container modern-bg"
+    :style="gridStyle"
+    @contextmenu.prevent
+  >
     <!-- 左侧：搜索 + 树（与 JDBC 相同接口） -->
     <div class="left overflow-auto thin-scrollbar">
       <el-input
@@ -14,7 +18,7 @@
         </template>
       </el-input>
       <el-tree
-      ref="treeRef"
+        ref="treeRef"
         class="tree"
         :data="treeData"
         :props="treeProps"
@@ -33,8 +37,8 @@
           <span class="flex justify-between w-full">
             <span>{{ data.name }}</span>
             <span v-if="data.type" class="el-form-item-msg ml-2 mt-[3px]">
-              {{data.description}}
-              {{data.type}}
+              {{ data.description }}
+              {{ data.type }}
             </span>
           </span>
         </template>
@@ -57,7 +61,7 @@
           <span v-if="currentType" class="comment"
             >• 类型：{{ currentType }}</span
           >
-          <span>• TTL: {{nodeValue?.properties?.ttl}}</span>
+          <span>• TTL: {{ nodeValue?.properties?.ttl }}</span>
           <!-- <span>{{nodeValue}}</span> -->
         </div>
         <div class="toolbar">
@@ -183,13 +187,18 @@ async function loadRoot() {
 
 const loadChildrenLazy = async (
   node: any,
-  resolve: (children: any[]) => void
+  resolve: (children: any[]) => void,
 ) => {
   if (!node || node.level === 0) return resolve(treeData.value || []);
   const data = node.data || {};
 
   if (data.leaf === true) return resolve([]);
-  const res = await getConsoleChildren(props.id, data.path, page.value, size.value);
+  const res = await getConsoleChildren(
+    props.id,
+    data.path,
+    page.value,
+    size.value,
+  );
   resolve(extractArrayFromApi(res?.data).map(normalizeTreeNode));
 };
 
@@ -247,7 +256,7 @@ function normalizeValueForView(val: any) {
         hashRows.value = val.map((it: any) =>
           Array.isArray(it)
             ? { field: String(it[0]), value: String(it[1]) }
-            : { field: String(it.field), value: String(it.value) }
+            : { field: String(it.field), value: String(it.value) },
         );
       } else if (val && typeof val === "object") {
         hashRows.value = Object.keys(val).map((k) => ({
@@ -272,7 +281,7 @@ function normalizeValueForView(val: any) {
       zsetRows.value = arr.map((it: any) =>
         Array.isArray(it)
           ? { member: String(it[0]), score: Number(it[1]) }
-          : { member: String(it.member), score: Number(it.score) }
+          : { member: String(it.member), score: Number(it.score) },
       );
       break;
     }
@@ -415,17 +424,19 @@ async function onMenuSelect(key: string) {
   }
 }
 
-
 /**
  * 刷新当前右键节点的子节点
  */
- async function refreshContextNodeChildren() {
+async function refreshContextNodeChildren() {
   const node = contextNode.value;
   if (!node?.path) return;
   try {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+    if (
+      treeRef.value &&
+      typeof treeRef.value.updateKeyChildren === "function"
+    ) {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
@@ -451,7 +462,8 @@ async function deleteKey(node: any) {
   try {
     const ok = window.confirm(`确认删除 Key：${node.name} ?`);
     if (!ok) return;
-    const { executeConsole } = await import("@/api/data-management/system-data");
+    const { executeConsole } =
+      await import("@/api/data-management/system-data");
     await executeConsole(props.id, `DEL ${node.path}`, "redis");
     await refreshContextNodeChildren();
     if (currentPath.value === node.path) {
@@ -479,7 +491,6 @@ onMounted(loadRoot);
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -512,7 +523,6 @@ onMounted(loadRoot);
     z-index: 1;
   }
 }
-
 
 .console {
   display: grid;
@@ -604,7 +614,6 @@ onMounted(loadRoot);
   color: var(--el-text-color-secondary);
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -613,5 +622,4 @@ onMounted(loadRoot);
     padding: 12px 16px;
   }
 }
-
 </style>

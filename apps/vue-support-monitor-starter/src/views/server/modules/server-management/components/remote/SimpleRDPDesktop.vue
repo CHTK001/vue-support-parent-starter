@@ -1,38 +1,35 @@
 <template>
   <div class="simple-rdp-desktop system-container modern-bg">
     <div class="desktop-header">
-      
       <div class="desktop-controls">
         <div class="connection-info">
           <el-tag :type="connectionStatus.type" size="small">
             {{ connectionStatus.text }}
           </el-tag>
-          <span class="server-info">{{ props.server?.monitorSysGenServerName }} - RDP</span>
+          <span class="server-info"
+            >{{ props.server?.monitorSysGenServerName }} - RDP</span
+          >
         </div>
-        <el-button 
-          v-if="!isConnected" 
-          type="primary" 
-          size="small" 
+        <el-button
+          v-if="!isConnected"
+          type="primary"
+          size="small"
           :loading="isConnecting"
           @click="connect"
         >
-          {{ isConnecting ? '连接中...' : '连接' }}
+          {{ isConnecting ? "连接中..." : "连接" }}
         </el-button>
-        
-        <el-button 
-          v-if="isConnected" 
-          type="danger" 
-          size="small" 
+
+        <el-button
+          v-if="isConnected"
+          type="danger"
+          size="small"
           @click="disconnect"
         >
           断开连接
         </el-button>
-        
-        <el-button 
-          v-if="isConnected" 
-          size="small" 
-          @click="takeScreenshot"
-        >
+
+        <el-button v-if="isConnected" size="small" @click="takeScreenshot">
           截图
         </el-button>
       </div>
@@ -43,8 +40,8 @@
       <div
         ref="desktopDisplay"
         class="desktop-display"
-        :class="{ 'connected': isConnected }"
-      ></div>
+        :class="{ connected: isConnected }"
+      />
 
       <div v-if="!isConnected && !isConnecting" class="connection-placeholder">
         <el-empty description="点击连接按钮开始 RDP 会话" />
@@ -52,16 +49,22 @@
 
       <div v-if="isConnecting" class="connecting-overlay">
         <el-loading-spinner />
-        <p>正在连接到 {{ props.server?.monitorSysGenServerHost }}:{{ props.server?.monitorSysGenServerPort }}</p>
+        <p>
+          正在连接到 {{ props.server?.monitorSysGenServerHost }}:{{
+            props.server?.monitorSysGenServerPort
+          }}
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
-import SimpleGuacamoleClient, { GuacamoleStates } from '@/utils/guacamole/simple-client';
+import SimpleGuacamoleClient, {
+  GuacamoleStates,
+} from "@/utils/guacamole/simple-client";
 interface Props {
   server: {
     monitorSysGenServerId: number;
@@ -82,62 +85,64 @@ const currentState = ref(GuacamoleStates.IDLE);
 const isConnecting = ref(false);
 
 // 计算属性
-const isConnected = computed(() => currentState.value === GuacamoleStates.CONNECTED);
+const isConnected = computed(
+  () => currentState.value === GuacamoleStates.CONNECTED,
+);
 
 const connectionStatus = computed(() => {
   switch (currentState.value) {
     case GuacamoleStates.CONNECTED:
-      return { type: 'success' as const, text: '已连接' };
+      return { type: "success" as const, text: "已连接" };
     case GuacamoleStates.CONNECTING:
-      return { type: 'warning' as const, text: '连接中' };
+      return { type: "warning" as const, text: "连接中" };
     case GuacamoleStates.DISCONNECTED:
-      return { type: 'info' as const, text: '未连接' };
+      return { type: "info" as const, text: "未连接" };
     default:
-      return { type: 'info' as const, text: '空闲' };
+      return { type: "info" as const, text: "空闲" };
   }
 });
 
 // 方法
 const connect = async () => {
   if (!props.server || !desktopDisplay.value) {
-    message('服务器信息不完整或显示容器未准备好', { type: "error" });
+    message("服务器信息不完整或显示容器未准备好", { type: "error" });
     return;
   }
 
   try {
     isConnecting.value = true;
-    
+
     // 创建 Guacamole 客户端配置
     const config = {
       serverId: props.server.monitorSysGenServerId,
-      protocol: 'rdp' as const,
+      protocol: "rdp" as const,
       host: props.server.monitorSysGenServerHost,
       port: props.server.monitorSysGenServerPort || 3389,
-      username: props.server.monitorSysGenServerUsername || '',
-      password: props.server.monitorSysGenServerPassword || '',
-      resolution: '1920x1080',
+      username: props.server.monitorSysGenServerUsername || "",
+      password: props.server.monitorSysGenServerPassword || "",
+      resolution: "1920x1080",
       colorDepth: 32,
       enableAudio: true,
-      enableClipboard: true
+      enableClipboard: true,
     };
 
     // 创建客户端
     guacamoleClient.value = new SimpleGuacamoleClient(config, {
       onStateChange: (state: number) => {
         currentState.value = state;
-        console.log('RDP 连接状态变化:', state);
+        console.log("RDP 连接状态变化:", state);
       },
       onError: (error: any) => {
-        console.error('RDP 连接错误:', error);
+        console.error("RDP 连接错误:", error);
         message(`连接错误: ${error.message || error}`, { type: "error" });
         isConnecting.value = false;
       },
       onName: (name: string) => {
-        console.log('RDP 会话名称:', name);
+        console.log("RDP 会话名称:", name);
       },
       onClipboard: (_stream: any, mimetype: string) => {
-        console.log('收到剪贴板数据:', mimetype);
-      }
+        console.log("收到剪贴板数据:", mimetype);
+      },
     });
 
     // 连接到服务器
@@ -145,11 +150,10 @@ const connect = async () => {
 
     // 绑定到显示容器
     guacamoleClient.value.attachTo(desktopDisplay.value);
-    
-    message('RDP 连接成功', { type: "success" });
-    
+
+    message("RDP 连接成功", { type: "success" });
   } catch (error) {
-    console.error('RDP 连接失败:', error);
+    console.error("RDP 连接失败:", error);
     message(`连接失败: ${error}`, { type: "error" });
   } finally {
     isConnecting.value = false;
@@ -162,7 +166,7 @@ const disconnect = () => {
     guacamoleClient.value = null;
   }
   currentState.value = GuacamoleStates.DISCONNECTED;
-  message('已断开 RDP 连接', { type: "success" });
+  message("已断开 RDP 连接", { type: "success" });
 };
 
 const takeScreenshot = () => {
@@ -170,20 +174,20 @@ const takeScreenshot = () => {
     const screenshot = guacamoleClient.value.screenshot();
     if (screenshot) {
       // 创建下载链接
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.download = `rdp-screenshot-${Date.now()}.png`;
       link.href = screenshot;
       link.click();
-      message('截图已保存', { type: "success" });
+      message("截图已保存", { type: "success" });
     } else {
-      message('截图失败', { type: "error" });
+      message("截图失败", { type: "error" });
     }
   }
 };
 
 // 生命周期
 onMounted(() => {
-  console.log('SimpleRDPDesktop 组件已挂载');
+  console.log("SimpleRDPDesktop 组件已挂载");
   // 移除自动连接，改为手动点击连接按钮
 });
 
@@ -195,7 +199,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -228,7 +231,6 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
-
 
 .simple-rdp-desktop {
   display: flex;
@@ -313,7 +315,6 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -322,5 +323,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -12,90 +12,85 @@
         </el-icon>
         <span class="title-text">{{ getStatusText() }}</span>
       </div>
-      
+
       <div class="progress-actions">
-        <el-button 
-          v-if="canCancel" 
-          size="small" 
-          type="danger" 
+        <el-button
+          v-if="canCancel"
+          size="small"
+          type="danger"
           text
           @click="handleCancel"
         >
           取消
         </el-button>
-        
-        <el-button 
-          v-if="canRetry" 
-          size="small" 
-          type="primary" 
+
+        <el-button
+          v-if="canRetry"
+          size="small"
+          type="primary"
           text
           @click="handleRetry"
         >
           重试
         </el-button>
-        
-        <el-button 
-          v-if="canClose" 
-          size="small" 
-          text
-          @click="handleClose"
-        >
+
+        <el-button v-if="canClose" size="small" text @click="handleClose">
           关闭
         </el-button>
       </div>
     </div>
-    
+
     <!-- 软件信息 -->
     <div v-if="softwareInfo" class="software-info">
       <div class="software-basic">
         <div class="software-name">{{ softwareInfo.name }}</div>
         <div class="software-version">v{{ softwareInfo.version }}</div>
       </div>
-      
+
       <div class="software-details">
         <span class="detail-item">
           <el-icon><Files /></el-icon>
           {{ formatBytes(softwareInfo.size || 0) }}
         </span>
-        
+
         <span v-if="softwareInfo.category" class="detail-item">
           <el-icon><Collection /></el-icon>
           {{ softwareInfo.category }}
         </span>
-        
+
         <span v-if="estimatedTime" class="detail-item">
           <el-icon><Timer /></el-icon>
           预计 {{ estimatedTime }}
         </span>
       </div>
     </div>
-    
+
     <!-- 主进度条 -->
     <div class="main-progress">
       <div class="progress-info">
         <span class="progress-text">{{ currentStep }}</span>
         <span class="progress-percentage">{{ Math.round(progress) }}%</span>
       </div>
-      
-      <el-progress 
-        :percentage="progress" 
+
+      <el-progress
+        :percentage="progress"
         :status="getProgressStatus()"
         :stroke-width="12"
         :show-text="false"
         class="progress-bar"
       />
     </div>
-    
+
     <!-- 详细步骤 -->
     <div v-if="showSteps" class="progress-steps">
-      <div 
-        v-for="(step, index) in steps" 
+      <div
+        v-for="(step, index) in steps"
         :key="index"
         class="step-item"
         :class="{
           'step-active': index === currentStepIndex,
           'step-completed': index < currentStepIndex,
-          'step-failed': step.status === 'failed'
+          'step-failed': step.status === 'failed',
         }"
       >
         <div class="step-icon">
@@ -110,29 +105,29 @@
           </el-icon>
           <span v-else class="step-number">{{ index + 1 }}</span>
         </div>
-        
+
         <div class="step-content">
           <div class="step-title">{{ step.title }}</div>
           <div v-if="step.description" class="step-description">
             {{ step.description }}
           </div>
-          
+
           <div v-if="step.progress !== undefined" class="step-progress">
-            <el-progress 
-              :percentage="step.progress" 
+            <el-progress
+              :percentage="step.progress"
               :stroke-width="4"
               :show-text="false"
               :status="step.status === 'failed' ? 'exception' : undefined"
             />
           </div>
         </div>
-        
+
         <div v-if="step.duration" class="step-duration">
           {{ formatDuration(step.duration) }}
         </div>
       </div>
     </div>
-    
+
     <!-- 速度和统计信息 -->
     <div v-if="showStats" class="progress-stats">
       <div class="stats-grid">
@@ -140,36 +135,34 @@
           <span class="stat-label">下载速度</span>
           <span class="stat-value">{{ formatSpeed(downloadSpeed) }}</span>
         </div>
-        
+
         <div class="stat-item">
           <span class="stat-label">已用时间</span>
           <span class="stat-value">{{ formatDuration(elapsedTime) }}</span>
         </div>
-        
+
         <div class="stat-item">
           <span class="stat-label">剩余时间</span>
           <span class="stat-value">{{ formatDuration(remainingTime) }}</span>
         </div>
-        
+
         <div class="stat-item">
           <span class="stat-label">完成进度</span>
           <span class="stat-value">{{ completedSteps }}/{{ totalSteps }}</span>
         </div>
       </div>
     </div>
-    
+
     <!-- 日志输出 -->
     <div v-if="showLogs && logs.length > 0" class="progress-logs">
       <div class="logs-header">
         <span class="logs-title">安装日志</span>
-        <el-button size="small" text @click="clearLogs">
-          清空
-        </el-button>
+        <el-button size="small" text @click="clearLogs"> 清空 </el-button>
       </div>
-      
-      <div class="logs-content" ref="logsContainer">
-        <div 
-          v-for="(log, index) in logs" 
+
+      <div ref="logsContainer" class="logs-content">
+        <div
+          v-for="(log, index) in logs"
           :key="index"
           class="log-item"
           :class="`log-${log.level}`"
@@ -180,11 +173,11 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 错误信息 -->
     <div v-if="error" class="progress-error">
-      <el-alert 
-        :title="error.title || '安装失败'" 
+      <el-alert
+        :title="error.title || '安装失败'"
         :description="error.message"
         type="error"
         :closable="false"
@@ -205,7 +198,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue';
+import { ref, computed, nextTick, watch } from "vue";
 import {
   Download,
   Loading,
@@ -214,8 +207,8 @@ import {
   Clock,
   Files,
   Collection,
-  Timer
-} from '@element-plus/icons-vue';
+  Timer,
+} from "@element-plus/icons-vue";
 
 interface SoftwareInfo {
   name: string;
@@ -227,14 +220,14 @@ interface SoftwareInfo {
 interface ProgressStep {
   title: string;
   description?: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   progress?: number;
   duration?: number;
 }
 
 interface LogEntry {
   timestamp: number;
-  level: 'info' | 'warn' | 'error' | 'debug';
+  level: "info" | "warn" | "error" | "debug";
   message: string;
 }
 
@@ -245,7 +238,13 @@ interface ErrorInfo {
 }
 
 interface Props {
-  status: 'pending' | 'downloading' | 'installing' | 'completed' | 'failed' | 'cancelled';
+  status:
+    | "pending"
+    | "downloading"
+    | "installing"
+    | "completed"
+    | "failed"
+    | "cancelled";
   progress: number;
   currentStep: string;
   currentStepIndex: number;
@@ -266,7 +265,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   progress: 0,
-  currentStep: '',
+  currentStep: "",
   currentStepIndex: 0,
   steps: () => [],
   downloadSpeed: 0,
@@ -278,7 +277,7 @@ const props = withDefaults(defineProps<Props>(), {
   showLogs: false,
   canCancel: false,
   canRetry: false,
-  canClose: false
+  canClose: false,
 });
 
 const emit = defineEmits<{
@@ -291,7 +290,7 @@ const emit = defineEmits<{
 const logsContainer = ref<HTMLElement>();
 
 const completedSteps = computed(() => {
-  return props.steps.filter(step => step.status === 'completed').length;
+  return props.steps.filter((step) => step.status === "completed").length;
 });
 
 const totalSteps = computed(() => {
@@ -307,44 +306,44 @@ const estimatedTime = computed(() => {
 
 const getStatusText = () => {
   switch (props.status) {
-    case 'pending':
-      return '准备安装';
-    case 'downloading':
-      return '正在下载';
-    case 'installing':
-      return '正在安装';
-    case 'completed':
-      return '安装完成';
-    case 'failed':
-      return '安装失败';
-    case 'cancelled':
-      return '已取消';
+    case "pending":
+      return "准备安装";
+    case "downloading":
+      return "正在下载";
+    case "installing":
+      return "正在安装";
+    case "completed":
+      return "安装完成";
+    case "failed":
+      return "安装失败";
+    case "cancelled":
+      return "已取消";
     default:
-      return '未知状态';
+      return "未知状态";
   }
 };
 
 const getProgressStatus = () => {
   switch (props.status) {
-    case 'completed':
-      return 'success';
-    case 'failed':
-      return 'exception';
+    case "completed":
+      return "success";
+    case "failed":
+      return "exception";
     default:
       return undefined;
   }
 };
 
 const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
 const formatSpeed = (bytesPerSecond: number) => {
-  return formatBytes(bytesPerSecond) + '/s';
+  return formatBytes(bytesPerSecond) + "/s";
 };
 
 const formatDuration = (seconds: number) => {
@@ -366,32 +365,34 @@ const formatTime = (timestamp: number) => {
 };
 
 const handleCancel = () => {
-  emit('cancel');
+  emit("cancel");
 };
 
 const handleRetry = () => {
-  emit('retry');
+  emit("retry");
 };
 
 const handleClose = () => {
-  emit('close');
+  emit("close");
 };
 
 const clearLogs = () => {
-  emit('clearLogs');
+  emit("clearLogs");
 };
 
 // 自动滚动到最新日志
-watch(() => props.logs.length, async () => {
-  if (props.showLogs && logsContainer.value) {
-    await nextTick();
-    logsContainer.value.scrollTop = logsContainer.value.scrollHeight;
-  }
-});
+watch(
+  () => props.logs.length,
+  async () => {
+    if (props.showLogs && logsContainer.value) {
+      await nextTick();
+      logsContainer.value.scrollTop = logsContainer.value.scrollHeight;
+    }
+  },
+);
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -424,7 +425,6 @@ watch(() => props.logs.length, async () => {
     z-index: 1;
   }
 }
-
 
 .install-progress {
   background: var(--el-bg-color-overlay);
@@ -483,7 +483,7 @@ watch(() => props.logs.length, async () => {
 
 .software-version {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   background: #e4e7ed;
   padding: 2px 8px;
   border-radius: 4px;
@@ -553,7 +553,7 @@ watch(() => props.logs.length, async () => {
   height: 24px;
   border-radius: 50%;
   background: #e4e7ed;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   font-size: 12px;
   font-weight: 600;
   flex-shrink: 0;
@@ -601,7 +601,7 @@ watch(() => props.logs.length, async () => {
 
 .step-duration {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   flex-shrink: 0;
 }
 
@@ -659,7 +659,7 @@ watch(() => props.logs.length, async () => {
   background: var(--el-bg-color-overlay);
   border-radius: 6px;
   padding: 12px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 12px;
 }
 
@@ -671,7 +671,7 @@ watch(() => props.logs.length, async () => {
 }
 
 .log-time {
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   flex-shrink: 0;
 }
 
@@ -694,7 +694,7 @@ watch(() => props.logs.length, async () => {
 }
 
 .log-debug .log-level {
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .log-message {
@@ -727,27 +727,27 @@ watch(() => props.logs.length, async () => {
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .software-basic {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
-  
+
   .software-details {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .step-item {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .step-duration {
     align-self: flex-start;
   }

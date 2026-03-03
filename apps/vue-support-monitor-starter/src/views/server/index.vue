@@ -14,12 +14,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, defineAsyncComponent } from "vue";
+import {
+  ref,
+  onMounted,
+  onUnmounted,
+  computed,
+  defineAsyncComponent,
+} from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { useServerMetricsStore } from "@/stores/serverMetrics";
 import { useGlobalServerLatency } from "@/composables/useServerLatency";
-import { createNamedSocketService, closeNamedSocketService, getNamedSocketService, parseSocketMessage, type SocketTemplate } from "@repo/core";
+import {
+  createNamedSocketService,
+  closeNamedSocketService,
+  getNamedSocketService,
+  parseSocketMessage,
+  type SocketTemplate,
+} from "@repo/core";
 import { getConfig } from "@repo/config";
 import {
   getServerPageList,
@@ -29,11 +41,13 @@ import {
   type ServerMetricsDisplay,
   mapServerListToDisplayData,
   mapServerMetricsToDisplay,
-  SERVER_WS_MESSAGE_TYPE
+  SERVER_WS_MESSAGE_TYPE,
 } from "@/api/server";
 
 // 导入 server-management 组件
-const ServerManagement = defineAsyncComponent(() => import("./modules/server-management/index.vue"));
+const ServerManagement = defineAsyncComponent(
+  () => import("./modules/server-management/index.vue"),
+);
 
 // 响应式状态
 const loading = ref(false);
@@ -45,7 +59,9 @@ const serverMetrics = ref<Map<string, ServerMetricsDisplay>>(new Map());
 
 // Socket 服务实例
 const globalSocketService = ref<SocketTemplate | null>(null);
-const wsConnected = computed(() => globalSocketService.value?.isConnected || false);
+const wsConnected = computed(
+  () => globalSocketService.value?.isConnected || false,
+);
 const GLOBAL_SOCKET_NAME = "server-global";
 
 // ServerMetrics Store
@@ -62,7 +78,7 @@ const loadServers = async () => {
     loading.value = true;
     const res = (await getServerPageList({
       page: 1,
-      pageSize: 1000 // 加载所有服务器
+      pageSize: 1000, // 加载所有服务器
     })) as any;
 
     if (res.code == "00000") {
@@ -148,13 +164,13 @@ const connectServer = async (server: any) => {
 
     const socketName = `server-${server.id}`;
     const config = getConfig();
-    
+
     // 先关闭已存在的连接
     const existingService = getNamedSocketService(socketName);
     if (existingService) {
       closeNamedSocketService(socketName);
     }
-    
+
     // 创建命名 Socket 服务
     const socketService = createNamedSocketService(socketName, {
       protocol: "socketio",
@@ -169,13 +185,16 @@ const connectServer = async (server: any) => {
     socketService.on("connect", () => {
       console.log("Socket连接成功，发送ssh_connect请求到 gen/server");
       // 发送 SSH 连接请求消息到 gen/server 主题
-      socketService.emit("gen/server", JSON.stringify({
-        messageType: "ssh_connect",
-        serverId: Number(server.id),
-        serverHost: server.host,
-        serverPort: server.port || 22,
-        timestamp: Date.now(),
-      }));
+      socketService.emit(
+        "gen/server",
+        JSON.stringify({
+          messageType: "ssh_connect",
+          serverId: Number(server.id),
+          serverHost: server.host,
+          serverPort: server.port || 22,
+          timestamp: Date.now(),
+        }),
+      );
       message.success("服务器连接成功");
     });
 
@@ -201,18 +220,21 @@ const disconnectServer = async (server: any) => {
     message.info("正在断开连接...");
 
     const socketName = `server-${server.id}`;
-    
+
     // 检查是否存在连接
     const existingService = getNamedSocketService(socketName);
     if (existingService) {
       // 发送断开连接消息到 gen/server 主题
-      existingService.emit("gen/server", JSON.stringify({
-        messageType: "ssh_disconnect",
-        serverId: Number(server.id),
-        errorMessage: "用户主动断开",
-        timestamp: Date.now(),
-      }));
-      
+      existingService.emit(
+        "gen/server",
+        JSON.stringify({
+          messageType: "ssh_disconnect",
+          serverId: Number(server.id),
+          errorMessage: "用户主动断开",
+          timestamp: Date.now(),
+        }),
+      );
+
       // 关闭 Socket 服务
       closeNamedSocketService(socketName);
       console.log("Socket服务已关闭:", socketName);
@@ -231,11 +253,15 @@ const disconnectServer = async (server: any) => {
  */
 const deleteServerConfirm = async (server: any) => {
   try {
-    await ElMessageBox.confirm(`确定要删除服务器 "${server.name}" 吗？`, "删除确认", {
-      type: "warning",
-      confirmButtonText: "确定",
-      cancelButtonText: "取消"
-    });
+    await ElMessageBox.confirm(
+      `确定要删除服务器 "${server.name}" 吗？`,
+      "删除确认",
+      {
+        type: "warning",
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+      },
+    );
 
     const res = await deleteServer(server.id);
     if (res.code == "00000") {
@@ -273,7 +299,7 @@ const safeExtractValue = (newValue: any, oldValue: any): number => {
  */
 const handleSocketMessage = (msgData: any) => {
   const messageType = msgData.messageType;
-  
+
   switch (messageType) {
     case "server_metrics":
       console.log("收到server_metrics消息:", msgData);
@@ -281,13 +307,33 @@ const handleSocketMessage = (msgData: any) => {
         const data = msgData.data;
         const currentMetrics = serverMetrics.value.get(msgData.serverId as any);
 
-        const cpuUsage = safeExtractValue(data.cpu?.usage ?? data.cpuUsage, currentMetrics?.cpuUsage);
-        const memoryUsage = safeExtractValue(data.memory?.usage ?? data.memoryUsage, currentMetrics?.memoryUsage);
-        const diskUsage = safeExtractValue(data.disk?.usage ?? data.diskUsage, currentMetrics?.diskUsage);
-        const networkIn = safeExtractValue(data.network?.in ?? data.networkIn, currentMetrics?.networkIn);
-        const networkOut = safeExtractValue(data.network?.out ?? data.networkOut, currentMetrics?.networkOut);
+        const cpuUsage = safeExtractValue(
+          data.cpu?.usage ?? data.cpuUsage,
+          currentMetrics?.cpuUsage,
+        );
+        const memoryUsage = safeExtractValue(
+          data.memory?.usage ?? data.memoryUsage,
+          currentMetrics?.memoryUsage,
+        );
+        const diskUsage = safeExtractValue(
+          data.disk?.usage ?? data.diskUsage,
+          currentMetrics?.diskUsage,
+        );
+        const networkIn = safeExtractValue(
+          data.network?.in ?? data.networkIn,
+          currentMetrics?.networkIn,
+        );
+        const networkOut = safeExtractValue(
+          data.network?.out ?? data.networkOut,
+          currentMetrics?.networkOut,
+        );
         const osInfo = data.osInfo ? JSON.parse(data.osInfo) : {};
-        const loadAverage = data.loadAverage ?? (data.cpu?.load1m ? `${data.cpu.load1m} ${data.cpu.load5m || 0} ${data.cpu.load15m || 0}` : undefined) ?? currentMetrics?.loadAverage;
+        const loadAverage =
+          data.loadAverage ??
+          (data.cpu?.load1m
+            ? `${data.cpu.load1m} ${data.cpu.load5m || 0} ${data.cpu.load15m || 0}`
+            : undefined) ??
+          currentMetrics?.loadAverage;
 
         serverMetricsStore.updateServerMetrics(msgData.serverId, {
           serverId: msgData.serverId,
@@ -310,7 +356,7 @@ const handleSocketMessage = (msgData: any) => {
           osName: osInfo.osName,
           osVersion: osInfo.osVersion,
           hostname: osInfo.hostname || "未知",
-          extraInfo: data.extraInfo
+          extraInfo: data.extraInfo,
         });
 
         const displayMetrics = mapServerMetricsToDisplay(data);
@@ -329,9 +375,12 @@ const handleSocketMessage = (msgData: any) => {
     case "connection_status_change":
       console.log("收到connection_status_change消息:", msgData);
       if (msgData.serverId) {
-        const serverIndex = servers.value.findIndex(s => s.id === String(msgData.serverId));
+        const serverIndex = servers.value.findIndex(
+          (s) => s.id === String(msgData.serverId),
+        );
         if (serverIndex !== -1) {
-          servers.value[serverIndex].connectionStatus = msgData.connectionStatus as any;
+          servers.value[serverIndex].connectionStatus =
+            msgData.connectionStatus as any;
         }
       }
       break;
@@ -343,9 +392,19 @@ const handleSocketMessage = (msgData: any) => {
     case SERVER_WS_MESSAGE_TYPE.SERVER_LATENCY:
     case "server_latency":
       console.log("收到server_latency消息:", msgData);
-      if (msgData.serverId && msgData.data && typeof msgData.data.latency === "number") {
-        latencyManager.updateLatencyData(msgData.serverId, msgData.data.latency, msgData.data.timestamp);
-        const serverIndex = servers.value.findIndex(s => s.id === String(msgData.serverId));
+      if (
+        msgData.serverId &&
+        msgData.data &&
+        typeof msgData.data.latency === "number"
+      ) {
+        latencyManager.updateLatencyData(
+          msgData.serverId,
+          msgData.data.latency,
+          msgData.data.timestamp,
+        );
+        const serverIndex = servers.value.findIndex(
+          (s) => s.id === String(msgData.serverId),
+        );
         if (serverIndex !== -1) {
           servers.value[serverIndex].latency = msgData.data.latency;
         }
@@ -358,8 +417,14 @@ const handleSocketMessage = (msgData: any) => {
       if (Array.isArray(msgData.data)) {
         msgData.data.forEach((latencyData: any) => {
           if (latencyData.serverId && typeof latencyData.latency === "number") {
-            latencyManager.updateLatencyData(latencyData.serverId, latencyData.latency, latencyData.timestamp);
-            const serverIndex = servers.value.findIndex(s => s.id === String(latencyData.serverId));
+            latencyManager.updateLatencyData(
+              latencyData.serverId,
+              latencyData.latency,
+              latencyData.timestamp,
+            );
+            const serverIndex = servers.value.findIndex(
+              (s) => s.id === String(latencyData.serverId),
+            );
             if (serverIndex !== -1) {
               servers.value[serverIndex].latency = latencyData.latency;
             }
@@ -375,15 +440,15 @@ const handleSocketMessage = (msgData: any) => {
  */
 const initSocketService = () => {
   console.log("初始化Socket服务...");
-  
+
   const config = getConfig();
-  
+
   // 先关闭已存在的连接
   const existing = getNamedSocketService(GLOBAL_SOCKET_NAME);
   if (existing) {
     closeNamedSocketService(GLOBAL_SOCKET_NAME);
   }
-  
+
   // 创建全局 Socket 服务
   globalSocketService.value = createNamedSocketService(GLOBAL_SOCKET_NAME, {
     protocol: "socketio",
@@ -406,15 +471,19 @@ const initSocketService = () => {
     try {
       const data = parseSocketMessage(rawMessage);
       let messageData = data;
-      
-      if (data && (data as any).data && typeof (data as any).data === "string") {
+
+      if (
+        data &&
+        (data as any).data &&
+        typeof (data as any).data === "string"
+      ) {
         try {
           messageData = JSON.parse((data as any).data);
         } catch {
           messageData = data;
         }
       }
-      
+
       handleSocketMessage(messageData);
     } catch (error) {
       console.error("解析Socket消息失败:", error);
@@ -496,7 +565,6 @@ onUnmounted(() => {
   }
 }
 
-
 .server-wrapper {
   height: 100%;
   width: 100%;
@@ -540,11 +608,9 @@ onUnmounted(() => {
   }
 }
 
-
 @include respond-to(sm) {
   .server-wrapper {
     min-height: 100svh;
   }
 }
-
 </style>

@@ -3,19 +3,37 @@
     <!-- 搜索和筛选工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-input v-model="searchKeyword" placeholder="搜索服务器名称、地址..." clearable style="width: 300px" @input="handleSearch">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索服务器名称、地址..."
+          clearable
+          style="width: 300px"
+          @input="handleSearch"
+        >
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
         </el-input>
 
-        <el-select v-model="filterProtocol" placeholder="协议类型" clearable style="width: 120px; margin-left: 12px" @change="handleFilter">
+        <el-select
+          v-model="filterProtocol"
+          placeholder="协议类型"
+          clearable
+          style="width: 120px; margin-left: 12px"
+          @change="handleFilter"
+        >
           <el-option label="SSH" value="SSH" />
           <el-option label="RDP" value="RDP" />
           <el-option label="VNC" value="VNC" />
         </el-select>
 
-        <el-select v-model="filterStatus" placeholder="连接状态" clearable style="width: 120px; margin-left: 12px" @change="handleFilter">
+        <el-select
+          v-model="filterStatus"
+          placeholder="连接状态"
+          clearable
+          style="width: 120px; margin-left: 12px"
+          @change="handleFilter"
+        >
           <el-option label="在线" :value="1" />
           <el-option label="离线" :value="0" />
           <el-option label="连接中" :value="2" />
@@ -39,7 +57,9 @@
               <el-dropdown-item command="test">批量测试连接</el-dropdown-item>
               <el-dropdown-item command="enable">批量启用</el-dropdown-item>
               <el-dropdown-item command="disable">批量禁用</el-dropdown-item>
-              <el-dropdown-item command="delete" divided>批量删除</el-dropdown-item>
+              <el-dropdown-item command="delete" divided
+                >批量删除</el-dropdown-item
+              >
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -47,19 +67,37 @@
     </div>
 
     <!-- 服务器表格 -->
-    <el-table v-loading="loading" :data="serverList" stripe @selection-change="handleSelectionChange">
+    <el-table
+      v-loading="loading"
+      :data="serverList"
+      stripe
+      @selection-change="handleSelectionChange"
+    >
       <el-table-column type="selection" width="55" />
 
       <el-table-column label="服务器信息" min-width="200">
         <template #default="{ row }">
           <div class="server-info">
             <div class="server-name">
-              <IconifyIconOnline :icon="getProtocolIcon(row.monitorSysGenServerProtocol)" class="protocol-icon" />
+              <IconifyIconOnline
+                :icon="getProtocolIcon(row.monitorSysGenServerProtocol)"
+                class="protocol-icon"
+              />
               {{ row.monitorSysGenServerName }}
             </div>
-            <div class="server-address">{{ row.monitorSysGenServerHost }}:{{ row.monitorSysGenServerPort }}</div>
+            <div class="server-address">
+              {{ row.monitorSysGenServerHost }}:{{
+                row.monitorSysGenServerPort
+              }}
+            </div>
             <div v-if="row.monitorSysGenServerTags" class="server-tags">
-              <el-tag v-for="tag in getTagList(row.monitorSysGenServerTags)" :key="tag" size="small" type="info" effect="plain">
+              <el-tag
+                v-for="tag in getTagList(row.monitorSysGenServerTags)"
+                :key="tag"
+                size="small"
+                type="info"
+                effect="plain"
+              >
                 {{ tag }}
               </el-tag>
             </div>
@@ -69,7 +107,10 @@
 
       <el-table-column label="协议" width="80" align="center">
         <template #default="{ row }">
-          <el-tag :type="getProtocolType(row.monitorSysGenServerProtocol)" size="small">
+          <el-tag
+            :type="getProtocolType(row.monitorSysGenServerProtocol)"
+            size="small"
+          >
             {{ row.monitorSysGenServerProtocol }}
           </el-tag>
         </template>
@@ -77,21 +118,39 @@
 
       <el-table-column label="连接状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="getConnectionStatusType(row.monitorSysGenServerConnectionStatus)" size="small" effect="light">
-            {{ getConnectionStatusText(row.monitorSysGenServerConnectionStatus) }}
+          <el-tag
+            :type="
+              getConnectionStatusType(row.monitorSysGenServerConnectionStatus)
+            "
+            size="small"
+            effect="light"
+          >
+            {{
+              getConnectionStatusText(row.monitorSysGenServerConnectionStatus)
+            }}
           </el-tag>
         </template>
       </el-table-column>
 
       <el-table-column label="服务器状态" width="100" align="center">
         <template #default="{ row }">
-          <el-switch v-model="row.monitorSysGenServerStatus" :active-value="1" :inactive-value="0" @change="handleStatusChange(row)" />
+          <el-switch
+            v-model="row.monitorSysGenServerStatus"
+            :active-value="1"
+            :inactive-value="0"
+            @change="handleStatusChange(row)"
+          />
         </template>
       </el-table-column>
 
       <el-table-column label="监控设置" width="120" align="center">
         <template #default="{ row }">
-          <ServerQuickSetting :server-id="row.monitorSysGenServerId" :server-name="row.monitorSysGenServerName" @open-full-setting="handleOpenFullSetting" @setting-changed="handleSettingChanged" />
+          <ServerQuickSetting
+            :server-id="row.monitorSysGenServerId"
+            :server-name="row.monitorSysGenServerName"
+            @open-full-setting="handleOpenFullSetting"
+            @setting-changed="handleSettingChanged"
+          />
         </template>
       </el-table-column>
 
@@ -107,7 +166,11 @@
       <el-table-column label="操作" width="300" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
-            <el-button size="small" type="primary" @click="$emit('connect', row)">
+            <el-button
+              size="small"
+              type="primary"
+              @click="$emit('connect', row)"
+            >
               <IconifyIconOnline icon="ri:play-line" />
             </el-button>
 
@@ -127,7 +190,7 @@
               <IconifyIconOnline icon="ri:upload-line" />
             </el-button>
 
-            <el-dropdown @command="cmd => handleAction(cmd, row)">
+            <el-dropdown @command="(cmd) => handleAction(cmd, row)">
               <el-button size="small">
                 <IconifyIconOnline icon="ri:more-line" />
               </el-button>
@@ -135,11 +198,15 @@
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
                   <el-dropdown-item command="config">配置管理</el-dropdown-item>
-                  <el-dropdown-item command="setting">服务器设置</el-dropdown-item>
+                  <el-dropdown-item command="setting"
+                    >服务器设置</el-dropdown-item
+                  >
                   <el-dropdown-item command="test">测试连接</el-dropdown-item>
                   <el-dropdown-item command="logs">查看日志</el-dropdown-item>
                   <el-dropdown-item command="clone">克隆配置</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided
+                    >删除</el-dropdown-item
+                  >
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -168,8 +235,20 @@ import { ref, reactive, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import ServerQuickSetting from "./ServerQuickSetting.vue";
-import { getServerPageList, updateServer, deleteServer, testServerConnection, batchOperateServers, cloneServer, type ServerInfo } from "@/api/server";
-import { CONNECTION_STATUS, getConnectionStatusColor, getConnectionStatusText } from "@/api/server/connection-status";
+import {
+  getServerPageList,
+  updateServer,
+  deleteServer,
+  testServerConnection,
+  batchOperateServers,
+  cloneServer,
+  type ServerInfo,
+} from "@/api/server";
+import {
+  CONNECTION_STATUS,
+  getConnectionStatusColor,
+  getConnectionStatusText,
+} from "@/api/server/connection-status";
 
 // 定义事件
 const emit = defineEmits<{
@@ -199,7 +278,7 @@ const filterStatus = ref("");
 const pagination = reactive({
   page: 1,
   pageSize: 20,
-  total: 0
+  total: 0,
 });
 
 /**
@@ -213,7 +292,7 @@ const loadServerList = async () => {
       pageSize: pagination.pageSize,
       monitorSysGenServerName: searchKeyword.value || undefined,
       monitorSysGenServerProtocol: filterProtocol.value || undefined,
-      monitorSysGenServerConnectionStatus: filterStatus.value || undefined
+      monitorSysGenServerConnectionStatus: filterStatus.value || undefined,
     };
 
     const res = await getServerPageList(params);
@@ -236,7 +315,7 @@ const getProtocolIcon = (protocol: string) => {
   const iconMap: Record<string, string> = {
     SSH: "ri:terminal-line",
     RDP: "ri:computer-line",
-    VNC: "ri:remote-control-line"
+    VNC: "ri:remote-control-line",
   };
   return iconMap[protocol] || "ri:server-line";
 };
@@ -248,7 +327,7 @@ const getProtocolType = (protocol: string) => {
   const typeMap: Record<string, string> = {
     SSH: "primary",
     RDP: "success",
-    VNC: "warning"
+    VNC: "warning",
   };
   return typeMap[protocol] || "info";
 };
@@ -264,7 +343,7 @@ const getConnectionStatusType = (status: number) => {
  * 获取标签列表
  */
 const getTagList = (tags: string) => {
-  return tags ? tags.split(",").filter(tag => tag.trim()) : [];
+  return tags ? tags.split(",").filter((tag) => tag.trim()) : [];
 };
 
 /**
@@ -311,14 +390,15 @@ const handleStatusChange = async (server: ServerInfo) => {
   try {
     await updateServer({
       monitorSysGenServerId: server.monitorSysGenServerId,
-      monitorSysGenServerStatus: server.monitorSysGenServerStatus
+      monitorSysGenServerStatus: server.monitorSysGenServerStatus,
     } as any);
     message.success("状态更新成功");
   } catch (error) {
     console.error("状态更新失败:", error);
     message.error("状态更新失败");
     // 回滚状态
-    server.monitorSysGenServerStatus = server.monitorSysGenServerStatus === 1 ? 0 : 1;
+    server.monitorSysGenServerStatus =
+      server.monitorSysGenServerStatus === 1 ? 0 : 1;
   }
 };
 
@@ -357,7 +437,9 @@ const handleAction = async (command: string, server: ServerInfo) => {
 const handleTestConnection = async (server: ServerInfo) => {
   try {
     loading.value = true;
-    const res = await testServerConnection(server.monitorSysGenServerId.toString());
+    const res = await testServerConnection(
+      server.monitorSysGenServerId.toString(),
+    );
     if (res.code === "00000") {
       message.success("连接测试成功");
     } else {
@@ -376,16 +458,20 @@ const handleTestConnection = async (server: ServerInfo) => {
  */
 const handleCloneServer = async (server: ServerInfo) => {
   try {
-    const { value: targetName } = await ElMessageBox.prompt("请输入新服务器名称", "克隆服务器", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      inputPattern: /^.{2,50}$/,
-      inputErrorMessage: "名称长度在 2 到 50 个字符"
-    });
+    const { value: targetName } = await ElMessageBox.prompt(
+      "请输入新服务器名称",
+      "克隆服务器",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputPattern: /^.{2,50}$/,
+        inputErrorMessage: "名称长度在 2 到 50 个字符",
+      },
+    );
 
     const res = await cloneServer({
       sourceId: server.monitorSysGenServerId.toString(),
-      targetName
+      targetName,
     });
 
     if (res.code === "00000") {
@@ -407,11 +493,15 @@ const handleCloneServer = async (server: ServerInfo) => {
  */
 const handleDeleteServer = async (server: ServerInfo) => {
   try {
-    await ElMessageBox.confirm(`确定要删除服务器 "${server.monitorSysGenServerName}" 吗？`, "删除确认", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning"
-    });
+    await ElMessageBox.confirm(
+      `确定要删除服务器 "${server.monitorSysGenServerName}" 吗？`,
+      "删除确认",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
+    );
 
     const res = await deleteServer(server.monitorSysGenServerId.toString());
     if (res.code === "00000") {
@@ -439,13 +529,19 @@ const handleBatchAction = async (command: string) => {
   }
 
   try {
-    await ElMessageBox.confirm(`确定要对选中的 ${selectedServers.value.length} 台服务器执行 "${command}" 操作吗？`, "批量操作确认", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning"
-    });
+    await ElMessageBox.confirm(
+      `确定要对选中的 ${selectedServers.value.length} 台服务器执行 "${command}" 操作吗？`,
+      "批量操作确认",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
+    );
 
-    const ids = selectedServers.value.map(server => server.monitorSysGenServerId.toString());
+    const ids = selectedServers.value.map((server) =>
+      server.monitorSysGenServerId.toString(),
+    );
     const res = await batchOperateServers({ ids, action: command as any });
 
     if (res.code === "00000") {
@@ -490,7 +586,9 @@ const refresh = () => {
  * 处理打开完整设置
  */
 const handleOpenFullSetting = (serverId: number) => {
-  const server = serverList.value.find(s => s.monitorSysGenServerId === serverId);
+  const server = serverList.value.find(
+    (s) => s.monitorSysGenServerId === serverId,
+  );
   if (server) {
     emit("setting", server);
   }
@@ -506,7 +604,7 @@ const handleSettingChanged = (serverId: number) => {
 
 // 暴露方法
 defineExpose({
-  refresh
+  refresh,
 });
 
 // 生命周期
@@ -516,7 +614,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -549,7 +646,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .server-list {
   .toolbar {
@@ -585,7 +681,7 @@ onMounted(() => {
 
     .server-address {
       font-size: 12px;
-       color: var(--el-text-color);
+      color: var(--el-text-color);
       margin-bottom: 4px;
     }
 
@@ -614,7 +710,6 @@ onMounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -623,5 +718,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

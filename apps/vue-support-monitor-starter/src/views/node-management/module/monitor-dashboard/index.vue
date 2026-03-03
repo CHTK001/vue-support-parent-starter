@@ -19,7 +19,7 @@
           <IconifyIconOnline icon="ri:time-line" />
           更新时间: {{ formatTime(lastUpdateTime) }}
         </span>
-        <el-button @click="refreshData" :loading="loading">
+        <el-button :loading="loading" @click="refreshData">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
         </el-button>
@@ -387,7 +387,7 @@ const refreshData = async () => {
   try {
     const response = await getNodeMetricsForNodeControl(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port
+      nodeInfo.value.port,
     );
     if (response.success && response.data) {
       metrics.value = response.data;
@@ -476,7 +476,6 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -509,7 +508,6 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
-
 
 .monitor-dashboard {
   padding: 24px;

@@ -13,7 +13,7 @@
  */
 import { CACHE_WORKSPACE_ID } from "@/utils/const";
 import { getHashQuery } from "@/utils/utils";
-import { RouteLocationNormalized } from "vue-router";
+import type { RouteLocationNormalized } from "vue-router";
 import { executionRequest } from "@/api/external";
 import { parseTime, pageBuildInfo } from "@/utils/const";
 

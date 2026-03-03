@@ -398,8 +398,9 @@ const resetForm = async (ref) => {
                     plain
                     link
                     :icon="useRenderIcon('ep:delete')"
-                    >{{ $t("buttons.delete") }}</el-button
                   >
+                    {{ $t("buttons.delete") }}
+                  </ScButton>
                 </template>
               </ScPopconfirm>
             </template>

@@ -15,7 +15,7 @@
         show-icon
         :closable="false"
       />
-      
+
       <div class="layout-placeholder">
         <el-empty description="布局配置功能开发中..." />
       </div>
@@ -24,9 +24,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="visible = false">关闭</el-button>
-        <el-button type="primary" disabled>
-          应用布局
-        </el-button>
+        <el-button type="primary" disabled> 应用布局 </el-button>
       </div>
     </template>
   </sc-dialog>

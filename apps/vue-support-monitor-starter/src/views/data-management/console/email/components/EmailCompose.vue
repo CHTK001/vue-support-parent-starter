@@ -4,14 +4,19 @@
       <h3>撰写邮件</h3>
       <div class="compose-actions">
         <el-button size="small" @click="handleSaveDraft">保存草稿</el-button>
-        <el-button type="primary" size="small" @click="handleSend">发送</el-button>
+        <el-button type="primary" size="small" @click="handleSend"
+          >发送</el-button
+        >
         <el-button size="small" @click="handleClose">关闭</el-button>
       </div>
     </div>
     <div class="compose-form">
       <div class="form-row">
         <label>收件人：</label>
-        <el-input v-model="form.to" placeholder="输入收件人邮箱地址，多个用逗号分隔" />
+        <el-input
+          v-model="form.to"
+          placeholder="输入收件人邮箱地址，多个用逗号分隔"
+        />
       </div>
       <div class="form-row">
         <label>抄送：</label>
@@ -23,11 +28,11 @@
       </div>
       <div class="form-row full">
         <label>内容：</label>
-        <CodeEditor 
-          v-model:content="form.content" 
-          :height="'300px'" 
-          :options="{ mode: 'markdown' }" 
-          :showTool="true" 
+        <CodeEditor
+          v-model:content="form.content"
+          :height="'300px'"
+          :options="{ mode: 'markdown' }"
+          :showTool="true"
         />
       </div>
     </div>
@@ -35,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch } from "vue";
 import CodeEditor from "@/components/codeEditor/index.vue";
 import { ElMessage } from "element-plus";
 
@@ -55,29 +60,33 @@ const props = defineProps<{
 // 定义事件
 const emit = defineEmits<{
   send: [form: ComposeForm];
-  'save-draft': [form: ComposeForm];
+  "save-draft": [form: ComposeForm];
   close: [];
 }>();
 
 // 响应式数据
 const form = ref<ComposeForm>({
-  to: '',
-  cc: '',
-  subject: '',
-  content: ''
+  to: "",
+  cc: "",
+  subject: "",
+  content: "",
 });
 
 // 监听初始表单数据
-watch(() => props.initialForm, (newForm) => {
-  if (newForm) {
-    form.value = {
-      to: newForm.to || '',
-      cc: newForm.cc || '',
-      subject: newForm.subject || '',
-      content: newForm.content || ''
-    };
-  }
-}, { immediate: true });
+watch(
+  () => props.initialForm,
+  (newForm) => {
+    if (newForm) {
+      form.value = {
+        to: newForm.to || "",
+        cc: newForm.cc || "",
+        subject: newForm.subject || "",
+        content: newForm.content || "",
+      };
+    }
+  },
+  { immediate: true },
+);
 
 // 方法
 function handleSend() {
@@ -85,35 +94,34 @@ function handleSend() {
     ElMessage.warning("请填写收件人和主题");
     return;
   }
-  emit('send', { ...form.value });
+  emit("send", { ...form.value });
 }
 
 function handleSaveDraft() {
-  emit('save-draft', { ...form.value });
+  emit("save-draft", { ...form.value });
 }
 
 function handleClose() {
-  emit('close');
+  emit("close");
 }
 
 // 重置表单
 function resetForm() {
   form.value = {
-    to: '',
-    cc: '',
-    subject: '',
-    content: ''
+    to: "",
+    cc: "",
+    subject: "",
+    content: "",
   };
 }
 
 // 暴露方法给父组件
 defineExpose({
-  resetForm
+  resetForm,
 });
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -146,7 +154,6 @@ defineExpose({
     z-index: 1;
   }
 }
-
 
 .compose-area {
   height: 100%;
@@ -227,7 +234,6 @@ defineExpose({
   background: #a1a1a1;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -236,5 +242,4 @@ defineExpose({
     padding: 12px 16px;
   }
 }
-
 </style>

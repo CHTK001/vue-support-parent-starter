@@ -15,15 +15,37 @@
         <div class="header-left">
           <IconifyIconOnline icon="ri:eye-line" class="header-icon" />
           <span :id="titleId" :class="titleClass" class="dialog-title">
-            组件预览 - {{ componentData?.monitorSysGenServerDetailComponentName || '未命名组件' }}
+            组件预览 -
+            {{
+              componentData?.monitorSysGenServerDetailComponentName ||
+              "未命名组件"
+            }}
           </span>
         </div>
         <div class="header-right">
-          <el-tag :type="getComponentTypeColor(componentData?.monitorSysGenServerDetailComponentType)" size="small">
-            <IconifyIconOnline :icon="getComponentTypeIcon(componentData?.monitorSysGenServerDetailComponentType)" class="mr-1" />
-            {{ getComponentTypeName(componentData?.monitorSysGenServerDetailComponentType) }}
+          <el-tag
+            :type="
+              getComponentTypeColor(
+                componentData?.monitorSysGenServerDetailComponentType,
+              )
+            "
+            size="small"
+          >
+            <IconifyIconOnline
+              :icon="
+                getComponentTypeIcon(
+                  componentData?.monitorSysGenServerDetailComponentType,
+                )
+              "
+              class="mr-1"
+            />
+            {{
+              getComponentTypeName(
+                componentData?.monitorSysGenServerDetailComponentType,
+              )
+            }}
           </el-tag>
-          <el-button size="small" @click="handleRefresh" :loading="loading">
+          <el-button size="small" :loading="loading" @click="handleRefresh">
             <IconifyIconOnline icon="ri:refresh-line" />
             刷新
           </el-button>
@@ -31,29 +53,46 @@
       </div>
     </template>
 
-    <div class="preview-content" v-loading="loading">
+    <div v-loading="loading" class="preview-content">
       <!-- 组件信息 -->
       <div class="component-info">
         <div class="info-item">
           <span class="label">组件名称：</span>
-          <span class="value">{{ componentData?.monitorSysGenServerDetailComponentName }}</span>
+          <span class="value">{{
+            componentData?.monitorSysGenServerDetailComponentName
+          }}</span>
         </div>
         <div class="info-item">
           <span class="label">组件标题：</span>
-          <span class="value">{{ componentData?.monitorSysGenServerDetailComponentTitle }}</span>
+          <span class="value">{{
+            componentData?.monitorSysGenServerDetailComponentTitle
+          }}</span>
         </div>
         <div class="info-item">
           <span class="label">组件类型：</span>
-          <span class="value">{{ getComponentTypeName(componentData?.monitorSysGenServerDetailComponentType) }}</span>
+          <span class="value">{{
+            getComponentTypeName(
+              componentData?.monitorSysGenServerDetailComponentType,
+            )
+          }}</span>
         </div>
         <div class="info-item">
           <span class="label">表达式类型：</span>
-          <span class="value">{{ getExpressionTypeName(componentData?.monitorSysGenServerDetailComponentExpressionType) }}</span>
+          <span class="value">{{
+            getExpressionTypeName(
+              componentData?.monitorSysGenServerDetailComponentExpressionType,
+            )
+          }}</span>
         </div>
-        <div class="info-item" v-if="componentData?.monitorSysGenServerDetailComponentExpression">
+        <div
+          v-if="componentData?.monitorSysGenServerDetailComponentExpression"
+          class="info-item"
+        >
           <span class="label">查询表达式：</span>
           <div class="expression-value">
-            <code>{{ componentData.monitorSysGenServerDetailComponentExpression }}</code>
+            <code>{{
+              componentData.monitorSysGenServerDetailComponentExpression
+            }}</code>
           </div>
         </div>
       </div>
@@ -67,22 +106,22 @@
           </h4>
           <div class="preview-actions">
             <el-button-group>
-              <el-button 
-                size="small" 
+              <el-button
+                size="small"
                 :type="previewSize === 'small' ? 'primary' : ''"
                 @click="previewSize = 'small'"
               >
                 小
               </el-button>
-              <el-button 
-                size="small" 
+              <el-button
+                size="small"
                 :type="previewSize === 'medium' ? 'primary' : ''"
                 @click="previewSize = 'medium'"
               >
                 中
               </el-button>
-              <el-button 
-                size="small" 
+              <el-button
+                size="small"
                 :type="previewSize === 'large' ? 'primary' : ''"
                 @click="previewSize = 'large'"
               >
@@ -91,53 +130,103 @@
             </el-button-group>
           </div>
         </div>
-        
+
         <div class="preview-wrapper" :class="`preview-${previewSize}`">
           <!-- 模拟预览组件 -->
-          <div class="mock-component" :class="componentData?.monitorSysGenServerDetailComponentType">
+          <div
+            class="mock-component"
+            :class="componentData?.monitorSysGenServerDetailComponentType"
+          >
             <div class="component-header">
-              <h5>{{ componentData?.monitorSysGenServerDetailComponentTitle || '组件标题' }}</h5>
+              <h5>
+                {{
+                  componentData?.monitorSysGenServerDetailComponentTitle ||
+                  "组件标题"
+                }}
+              </h5>
             </div>
             <div class="component-body">
               <!-- 根据组件类型显示不同的预览内容 -->
-              <div v-if="componentData?.monitorSysGenServerDetailComponentType === 'card'" class="card-preview">
+              <div
+                v-if="
+                  componentData?.monitorSysGenServerDetailComponentType ===
+                  'card'
+                "
+                class="card-preview"
+              >
                 <div class="metric-value">{{ mockData.value }}</div>
                 <div class="metric-unit">{{ mockData.unit }}</div>
                 <div class="metric-trend" :class="mockData.trend">
-                  <IconifyIconOnline :icon="mockData.trend === 'up' ? 'ri:arrow-up-line' : 'ri:arrow-down-line'" />
+                  <IconifyIconOnline
+                    :icon="
+                      mockData.trend === 'up'
+                        ? 'ri:arrow-up-line'
+                        : 'ri:arrow-down-line'
+                    "
+                  />
                   {{ mockData.change }}
                 </div>
               </div>
-              
-              <div v-else-if="componentData?.monitorSysGenServerDetailComponentType === 'gauge'" class="gauge-preview">
+
+              <div
+                v-else-if="
+                  componentData?.monitorSysGenServerDetailComponentType ===
+                  'gauge'
+                "
+                class="gauge-preview"
+              >
                 <div class="gauge-circle">
                   <div class="gauge-value">{{ mockData.percentage }}%</div>
                 </div>
                 <div class="gauge-label">{{ mockData.label }}</div>
               </div>
-              
-              <div v-else-if="componentData?.monitorSysGenServerDetailComponentType === 'line'" class="chart-preview">
+
+              <div
+                v-else-if="
+                  componentData?.monitorSysGenServerDetailComponentType ===
+                  'line'
+                "
+                class="chart-preview"
+              >
                 <div class="chart-placeholder">
                   <IconifyIconOnline icon="ri:line-chart-line" />
                   <span>折线图预览</span>
                 </div>
               </div>
-              
-              <div v-else-if="componentData?.monitorSysGenServerDetailComponentType === 'bar'" class="chart-preview">
+
+              <div
+                v-else-if="
+                  componentData?.monitorSysGenServerDetailComponentType ===
+                  'bar'
+                "
+                class="chart-preview"
+              >
                 <div class="chart-placeholder">
                   <IconifyIconOnline icon="ri:bar-chart-line" />
                   <span>柱状图预览</span>
                 </div>
               </div>
-              
-              <div v-else-if="componentData?.monitorSysGenServerDetailComponentType === 'pie'" class="chart-preview">
+
+              <div
+                v-else-if="
+                  componentData?.monitorSysGenServerDetailComponentType ===
+                  'pie'
+                "
+                class="chart-preview"
+              >
                 <div class="chart-placeholder">
                   <IconifyIconOnline icon="ri:pie-chart-line" />
                   <span>饼图预览</span>
                 </div>
               </div>
-              
-              <div v-else-if="componentData?.monitorSysGenServerDetailComponentType === 'table'" class="table-preview">
+
+              <div
+                v-else-if="
+                  componentData?.monitorSysGenServerDetailComponentType ===
+                  'table'
+                "
+                class="table-preview"
+              >
                 <table>
                   <thead>
                     <tr>
@@ -147,22 +236,37 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(item, index) in mockData.tableData" :key="index">
+                    <tr
+                      v-for="(item, index) in mockData.tableData"
+                      :key="index"
+                    >
                       <td>{{ item.metric }}</td>
                       <td>{{ item.value }}</td>
                       <td>
-                        <el-tag :type="item.status === 'normal' ? 'success' : 'warning'" size="small">
-                          {{ item.status === 'normal' ? '正常' : '警告' }}
+                        <el-tag
+                          :type="
+                            item.status === 'normal' ? 'success' : 'warning'
+                          "
+                          size="small"
+                        >
+                          {{ item.status === "normal" ? "正常" : "警告" }}
                         </el-tag>
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              
+
               <div v-else class="default-preview">
                 <IconifyIconOnline icon="ri:dashboard-line" />
-                <span>{{ getComponentTypeName(componentData?.monitorSysGenServerDetailComponentType) }} 预览</span>
+                <span
+                  >{{
+                    getComponentTypeName(
+                      componentData?.monitorSysGenServerDetailComponentType,
+                    )
+                  }}
+                  预览</span
+                >
               </div>
             </div>
           </div>
@@ -173,7 +277,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="visible = false">关闭</el-button>
-        <el-button type="primary" @click="handleRefresh" :loading="loading">
+        <el-button type="primary" :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新预览
         </el-button>
@@ -195,22 +299,22 @@ const props = defineProps<{
 // 响应式状态
 const visible = ref(false);
 const loading = ref(false);
-const previewSize = ref<'small' | 'medium' | 'large'>('medium');
+const previewSize = ref<"small" | "medium" | "large">("medium");
 const componentData = ref<ServerDetailComponent>();
 
 // 模拟数据
 const mockData = reactive({
-  value: '85.6',
-  unit: '%',
-  change: '+2.3%',
-  trend: 'up',
+  value: "85.6",
+  unit: "%",
+  change: "+2.3%",
+  trend: "up",
   percentage: 76,
-  label: 'CPU使用率',
+  label: "CPU使用率",
   tableData: [
-    { metric: 'CPU使用率', value: '85.6%', status: 'normal' },
-    { metric: '内存使用率', value: '92.3%', status: 'warning' },
-    { metric: '磁盘使用率', value: '45.2%', status: 'normal' },
-  ]
+    { metric: "CPU使用率", value: "85.6%", status: "normal" },
+    { metric: "内存使用率", value: "92.3%", status: "warning" },
+    { metric: "磁盘使用率", value: "45.2%", status: "normal" },
+  ],
 });
 
 /**
@@ -227,15 +331,16 @@ const open = (data: ServerDetailComponent) => {
  */
 const handleRefresh = () => {
   loading.value = true;
-  
+
   // 模拟数据加载
   setTimeout(() => {
     // 生成随机模拟数据
     mockData.value = (Math.random() * 100).toFixed(1);
     mockData.percentage = Math.floor(Math.random() * 100);
-    mockData.change = (Math.random() > 0.5 ? '+' : '-') + (Math.random() * 10).toFixed(1) + '%';
-    mockData.trend = mockData.change.startsWith('+') ? 'up' : 'down';
-    
+    mockData.change =
+      (Math.random() > 0.5 ? "+" : "-") + (Math.random() * 10).toFixed(1) + "%";
+    mockData.trend = mockData.change.startsWith("+") ? "up" : "down";
+
     loading.value = false;
   }, 1000);
 };
@@ -245,14 +350,14 @@ const handleRefresh = () => {
  */
 const getComponentTypeName = (type?: string) => {
   const typeMap: Record<string, string> = {
-    card: '卡片',
-    gauge: '仪表盘',
-    line: '折线图',
-    bar: '柱状图',
-    pie: '饼图',
-    table: '表格'
+    card: "卡片",
+    gauge: "仪表盘",
+    line: "折线图",
+    bar: "柱状图",
+    pie: "饼图",
+    table: "表格",
   };
-  return typeMap[type || 'card'] || '未知';
+  return typeMap[type || "card"] || "未知";
 };
 
 /**
@@ -260,14 +365,14 @@ const getComponentTypeName = (type?: string) => {
  */
 const getComponentTypeIcon = (type?: string) => {
   const iconMap: Record<string, string> = {
-    card: 'ri:dashboard-line',
-    gauge: 'ri:dashboard-3-line',
-    line: 'ri:line-chart-line',
-    bar: 'ri:bar-chart-line',
-    pie: 'ri:pie-chart-line',
-    table: 'ri:table-line'
+    card: "ri:dashboard-line",
+    gauge: "ri:dashboard-3-line",
+    line: "ri:line-chart-line",
+    bar: "ri:bar-chart-line",
+    pie: "ri:pie-chart-line",
+    table: "ri:table-line",
   };
-  return iconMap[type || 'card'] || 'ri:dashboard-line';
+  return iconMap[type || "card"] || "ri:dashboard-line";
 };
 
 /**
@@ -275,14 +380,14 @@ const getComponentTypeIcon = (type?: string) => {
  */
 const getComponentTypeColor = (type?: string) => {
   const colorMap: Record<string, string> = {
-    card: 'primary',
-    gauge: 'success',
-    line: 'warning',
-    bar: 'info',
-    pie: 'danger',
-    table: ''
+    card: "primary",
+    gauge: "success",
+    line: "warning",
+    bar: "info",
+    pie: "danger",
+    table: "",
   };
-  return colorMap[type || 'card'] || '';
+  return colorMap[type || "card"] || "";
 };
 
 /**
@@ -290,11 +395,11 @@ const getComponentTypeColor = (type?: string) => {
  */
 const getExpressionTypeName = (type?: string) => {
   const typeMap: Record<string, string> = {
-    PROMETHEUS: 'Prometheus PromQL',
-    COMPONENT: '组件选择',
-    SQL: 'SQL查询'
+    PROMETHEUS: "Prometheus PromQL",
+    COMPONENT: "组件选择",
+    SQL: "SQL查询",
   };
-  return typeMap[type || 'COMPONENT'] || '未知';
+  return typeMap[type || "COMPONENT"] || "未知";
 };
 
 // 暴露方法
@@ -377,7 +482,7 @@ defineExpose({
           background: var(--el-fill-color-extra-light);
           padding: 8px 12px;
           border-radius: 4px;
-          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
           font-size: 12px;
           color: var(--el-color-primary);
           word-break: break-all;
@@ -497,7 +602,10 @@ defineExpose({
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: conic-gradient(var(--el-color-primary) 0deg 270deg, var(--el-fill-color-light) 270deg 360deg);
+    background: conic-gradient(
+      var(--el-color-primary) 0deg 270deg,
+      var(--el-fill-color-light) 270deg 360deg
+    );
     display: flex;
     align-items: center;
     justify-content: center;
@@ -505,7 +613,7 @@ defineExpose({
     position: relative;
 
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       width: 80px;
       height: 80px;
@@ -559,7 +667,8 @@ defineExpose({
     width: 100%;
     border-collapse: collapse;
 
-    th, td {
+    th,
+    td {
       padding: 8px 12px;
       text-align: left;
       border-bottom: 1px solid var(--el-border-color-light);

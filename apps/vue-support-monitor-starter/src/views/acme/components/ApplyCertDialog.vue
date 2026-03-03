@@ -14,12 +14,12 @@
           <span class="step-num">1</span>
           <span class="step-text">填写信息</span>
         </div>
-        <div class="step-line"></div>
+        <div class="step-line" />
         <div class="step">
           <span class="step-num">2</span>
           <span class="step-text">域名验证</span>
         </div>
-        <div class="step-line"></div>
+        <div class="step-line" />
         <div class="step">
           <span class="step-num">3</span>
           <span class="step-text">获取证书</span>
@@ -92,8 +92,7 @@
           default-first-option
           placeholder="输入域名后按 Enter 添加"
           style="width: 100%"
-        >
-        </el-select>
+        />
         <div class="field-desc">
           <IconifyIconOnline icon="mdi:information-outline" />
           <span>
@@ -125,7 +124,7 @@
                 <div class="card-title">{{ item.label }}</div>
                 <div class="card-desc">{{ item.desc }}</div>
               </div>
-              <div class="card-check" v-if="selected">
+              <div v-if="selected" class="card-check">
                 <IconifyIconOnline icon="mdi:check-circle" />
               </div>
             </div>
@@ -134,7 +133,11 @@
       </el-form-item>
 
       <!-- 部署模式（仅 HTTP-01 时显示） -->
-      <el-form-item label="部署模式" prop="deployMode" v-if="form.challengeType === 'HTTP-01'">
+      <el-form-item
+        v-if="form.challengeType === 'HTTP-01'"
+        label="部署模式"
+        prop="deployMode"
+      >
         <el-radio-group v-model="form.deployMode">
           <el-radio value="local">本机部署</el-radio>
           <el-radio value="ssh">远程部署 (SSH)</el-radio>
@@ -142,14 +145,21 @@
         </el-radio-group>
         <div class="field-desc">
           <IconifyIconOnline icon="mdi:information-outline" />
-          <span v-if="form.deployMode === 'local'">本机部署：域名需解析到本服务器，系统自动响应验证请求</span>
-          <span v-else-if="form.deployMode === 'ssh'">远程部署：通过 SSH 在远程服务器创建验证文件</span>
+          <span v-if="form.deployMode === 'local'"
+            >本机部署：域名需解析到本服务器，系统自动响应验证请求</span
+          >
+          <span v-else-if="form.deployMode === 'ssh'"
+            >远程部署：通过 SSH 在远程服务器创建验证文件</span
+          >
           <span v-else>手动部署：查看验证信息后自行配置</span>
         </div>
       </el-form-item>
 
       <!-- SSH 配置（仅 SSH 模式时显示） -->
-      <div class="ssh-config" v-if="form.challengeType === 'HTTP-01' && form.deployMode === 'ssh'">
+      <div
+        v-if="form.challengeType === 'HTTP-01' && form.deployMode === 'ssh'"
+        class="ssh-config"
+      >
         <div class="config-title">
           <IconifyIconOnline icon="mdi:server" />
           <span>SSH 连接配置</span>
@@ -157,7 +167,10 @@
         <el-row :gutter="12">
           <el-col :span="16">
             <el-form-item label="服务器地址" prop="sshHost">
-              <el-input v-model="form.sshHost" placeholder="域名指向的服务器 IP">
+              <el-input
+                v-model="form.sshHost"
+                placeholder="域名指向的服务器 IP"
+              >
                 <template #prefix>
                   <IconifyIconOnline icon="mdi:server" />
                 </template>
@@ -166,7 +179,12 @@
           </el-col>
           <el-col :span="8">
             <el-form-item label="端口" prop="sshPort">
-              <el-input-number v-model="form.sshPort" :min="1" :max="65535" style="width: 100%" />
+              <el-input-number
+                v-model="form.sshPort"
+                :min="1"
+                :max="65535"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -182,7 +200,12 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="密码" prop="sshPassword">
-              <el-input v-model="form.sshPassword" type="password" show-password placeholder="SSH 密码">
+              <el-input
+                v-model="form.sshPassword"
+                type="password"
+                show-password
+                placeholder="SSH 密码"
+              >
                 <template #prefix>
                   <IconifyIconOnline icon="mdi:lock" />
                 </template>
@@ -198,7 +221,10 @@
           </el-input>
           <div class="field-desc">
             <IconifyIconOnline icon="mdi:information-outline" />
-            <span>Nginx/Apache 的网站根目录，系统会在此目录下创建 <code>/.well-known/acme-challenge/</code> 文件</span>
+            <span
+              >Nginx/Apache 的网站根目录，系统会在此目录下创建
+              <code>/.well-known/acme-challenge/</code> 文件</span
+            >
           </div>
         </el-form-item>
         <!-- Nginx 配置参考 -->
@@ -211,9 +237,11 @@
               复制
             </el-button>
           </div>
-          <pre class="nginx-code">location /.well-known/acme-challenge/ {
-    root {{ form.webrootPath || '/var/www/html' }};
-}</pre>
+          <pre class="nginx-code">
+location /.well-known/acme-challenge/ {
+    root {{ form.webrootPath || "/var/www/html" }};
+}</pre
+          >
         </div>
       </div>
 
@@ -308,14 +336,14 @@
     </el-form>
 
     <template #footer>
-      <div class="dialog-footer" v-if="!submitSuccess">
+      <div v-if="!submitSuccess" class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
           <IconifyIconOnline icon="mdi:certificate" class="mr-1" />
           提交申请
         </el-button>
       </div>
-      <div class="dialog-footer success-footer" v-else>
+      <div v-else class="dialog-footer success-footer">
         <el-button @click="handleClose">关闭</el-button>
         <el-button type="primary" @click="handleViewCert">
           <IconifyIconOnline icon="mdi:eye-outline" class="mr-1" />
@@ -434,7 +462,7 @@ function getServerName(url: string): string {
  */
 async function copyNginxConfig() {
   const config = `location /.well-known/acme-challenge/ {
-    root ${form.webrootPath || '/var/www/html'};
+    root ${form.webrootPath || "/var/www/html"};
 }`;
   try {
     await navigator.clipboard.writeText(config);
@@ -467,7 +495,7 @@ async function handleSubmit() {
 
   submitting.value = true;
   try {
-    const res = await applyCert(form) as unknown as { data: number };
+    const res = (await applyCert(form)) as unknown as { data: number };
     submittedCertId.value = res.data;
     submitSuccess.value = true;
     message("证书申请已提交，请在消息中心查看进度", { type: "success" });
@@ -529,7 +557,7 @@ watch(
       formRef.value?.clearValidate();
       loadAccounts();
     }
-  }
+  },
 );
 
 onMounted(() => {
@@ -812,7 +840,6 @@ onMounted(() => {
   margin-right: 4px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -821,7 +848,6 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>
 
 <!-- 全局样式：账户下拉菜单宽度 -->
