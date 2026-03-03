@@ -402,7 +402,7 @@ import {
   TechDeco, 
   TechGeometry,
   TechPanelTitle 
-} from "@repo/components/TechUI";
+} from "@repo/sc-visualization/TechUI";
 import CodePreview from "./CodePreview.vue";
 
 const handleClick = (variant: string) => {
@@ -440,7 +440,7 @@ const codeTabs = [
 <\/template>
 
 <script setup>
-import { TechButton } from "@repo/components/TechUI";
+import { TechButton } from "@repo/sc-visualization/TechUI";
 <\/script>`
   },
   {
@@ -464,7 +464,7 @@ import { TechButton } from "@repo/components/TechUI";
 <\/template>
 
 <script setup>
-import { TechPanel } from "@repo/components/TechUI";
+import { TechPanel } from "@repo/sc-visualization/TechUI";
 <\/script>`
   },
   {
@@ -488,7 +488,7 @@ import { TechPanel } from "@repo/components/TechUI";
 <\/template>
 
 <script setup>
-import { TechHeader } from "@repo/components/TechUI";
+import { TechHeader } from "@repo/sc-visualization/TechUI";
 <\/script>`
   }
 ];

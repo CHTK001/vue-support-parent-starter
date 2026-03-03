@@ -405,12 +405,42 @@ class Slf4jLoggerImpl implements Slf4jLogger {
 /**
  * Logger 缓存
  */
-const loggerCache = new Map<string, Slf4jLogger>();
+var loggerCache: Map<string, Slf4jLogger> | undefined;
 
 /**
  * 全局日志配置
  */
-let globalOptions: Slf4jLoggerOptions = {};
+var globalOptions: Slf4jLoggerOptions | undefined;
+
+/**
+ * 内部工具：根据名称获取或创建 Logger
+ * 说明：避免在此处直接依赖 LoggerFactory，防止在存在循环依赖时触发
+ * 「Cannot access 'LoggerFactory' before initialization」错误。
+ */
+function getOrCreateLogger(name: string | (new () => any)): Slf4jLogger {
+  if (!loggerCache) {
+    loggerCache = new Map<string, Slf4jLogger>();
+  }
+  if (!globalOptions) {
+    globalOptions = {};
+  }
+
+  let loggerName: string;
+
+  if (typeof name === "string") {
+    loggerName = name;
+  } else {
+    loggerName = name?.name || "Unknown";
+  }
+
+  let logger = loggerCache.get(loggerName);
+  if (!logger) {
+    logger = new Slf4jLoggerImpl(loggerName, globalOptions);
+    loggerCache.set(loggerName, logger);
+  }
+
+  return logger;
+}
 
 /**
  * SLF4J 风格的 LoggerFactory
@@ -421,9 +451,12 @@ export class LoggerFactory {
    * @param options 日志配置选项
    */
   static setGlobalOptions(options: Slf4jLoggerOptions): void {
+    if (!globalOptions) {
+      globalOptions = {};
+    }
     globalOptions = { ...globalOptions, ...options };
     // 清除缓存，使新配置生效
-    loggerCache.clear();
+    loggerCache?.clear();
   }
 
   /**
@@ -432,30 +465,14 @@ export class LoggerFactory {
    * @returns Logger 实例
    */
   static getLogger(name: string | (new () => any)): Slf4jLogger {
-    let loggerName: string;
-
-    if (typeof name === "string") {
-      loggerName = name;
-    } else {
-      // 从构造函数获取类名
-      loggerName = name.name || "Unknown";
-    }
-
-    // 从缓存获取
-    let logger = loggerCache.get(loggerName);
-    if (!logger) {
-      logger = new Slf4jLoggerImpl(loggerName, globalOptions);
-      loggerCache.set(loggerName, logger);
-    }
-
-    return logger;
+    return getOrCreateLogger(name);
   }
 
   /**
    * 清除 Logger 缓存
    */
   static clearCache(): void {
-    loggerCache.clear();
+    loggerCache?.clear();
   }
 }
 
@@ -465,5 +482,5 @@ export class LoggerFactory {
  * @returns Logger 实例
  */
 export function getLogger(name: string | (new () => any)): Slf4jLogger {
-  return LoggerFactory.getLogger(name);
+  return getOrCreateLogger(name);
 }

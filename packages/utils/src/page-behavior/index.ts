@@ -42,6 +42,12 @@ class PageBehaviorManager {
   /** 刷新回调 */
   private refreshCallback: (() => void) | null = null;
 
+  /** 滚动事件监听函数 */
+  private scrollHandler: (() => void) | null = null;
+
+  /** 页面显示事件监听函数 */
+  private pageshowHandler: (() => void) | null = null;
+
   /**
    * 初始化页面行为管理器
    * @param refreshCallback 刷新回调函数
@@ -80,13 +86,20 @@ class PageBehaviorManager {
 
   /** 初始化滚动位置记忆 */
   private initScrollMemory(): void {
+    if (!this.scrollHandler) {
+      this.scrollHandler = this.handleScroll.bind(this);
+    }
+    if (!this.pageshowHandler) {
+      this.pageshowHandler = this.restoreScroll.bind(this);
+    }
+
     // 监听滚动事件
-    window.addEventListener("scroll", this.handleScroll.bind(this), {
+    window.addEventListener("scroll", this.scrollHandler, {
       passive: true,
     });
 
     // 页面显示时恢复滚动位置
-    window.addEventListener("pageshow", this.restoreScroll.bind(this));
+    window.addEventListener("pageshow", this.pageshowHandler);
   }
 
   /** 处理滚动事件 */
@@ -162,8 +175,14 @@ class PageBehaviorManager {
     }
 
     // 移除滚动监听
-    window.removeEventListener("scroll", this.handleScroll.bind(this));
-    window.removeEventListener("pageshow", this.restoreScroll.bind(this));
+    if (this.scrollHandler) {
+      window.removeEventListener("scroll", this.scrollHandler);
+      this.scrollHandler = null;
+    }
+    if (this.pageshowHandler) {
+      window.removeEventListener("pageshow", this.pageshowHandler);
+      this.pageshowHandler = null;
+    }
   }
 
   /** 清除滚动位置缓存 */
