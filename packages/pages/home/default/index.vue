@@ -339,7 +339,12 @@ onUnmounted(() => {
           <el-icon :size="20">
             <component :is="useRenderIcon('ri:apps-2-add-line')" />
           </el-icon>
-          <span>添加部件</span>
+          <div class="aside-title-text">
+            <span>添加部件</span>
+            <span class="aside-subtitle">
+              已添加 {{ widgetStats.active }} / {{ widgetStats.total }} 个
+            </span>
+          </div>
         </div>
         <div class="aside-close" @click="handleClose()">
           <el-icon :size="18">
@@ -352,7 +357,7 @@ onUnmounted(() => {
       <div class="aside-search">
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索部件..."
+          placeholder="搜索部件（名称或描述）..."
           clearable
           :prefix-icon="useRenderIcon('ep:search')"
         />
@@ -372,12 +377,17 @@ onUnmounted(() => {
       </div>
 
       <!-- 部件列表 -->
-      <div class="aside-list">
+      <div class="aside-list thin-scrollbar">
+        <div class="list-tip" v-if="filteredWidgetList.length">
+          当前筛选到
+          <span class="list-tip-count">{{ filteredWidgetList.length }}</span>
+          个部件
+        </div>
         <div v-if="filteredWidgetList.length === 0" class="list-empty">
           <el-icon :size="40" color="var(--el-text-color-placeholder)">
             <component :is="useRenderIcon('ri:inbox-line')" />
           </el-icon>
-          <p>没有找到匹配的部件</p>
+          <p>没有找到匹配的部件，请尝试调整搜索或筛选条件</p>
         </div>
         <div
           v-for="item in filteredWidgetList"
@@ -682,8 +692,22 @@ html.dark .widgets-aside {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
-  font-weight: 600;
+}
+
+.aside-title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span:first-child {
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+.aside-subtitle {
+  font-size: 12px;
+  opacity: 0.9;
 }
 
 .aside-close {
@@ -745,6 +769,7 @@ html.dark .widgets-aside {
   flex: 1;
   overflow-y: auto;
   padding: 0 20px 20px;
+  max-height: 500px;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -754,6 +779,18 @@ html.dark .widgets-aside {
     background: var(--el-border-color);
     border-radius: 3px;
   }
+}
+
+.list-tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  padding: 8px 2px 6px;
+}
+
+.list-tip-count {
+  color: var(--el-color-primary);
+  font-weight: 600;
+  padding: 0 2px;
 }
 
 .list-empty {
