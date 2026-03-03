@@ -15,7 +15,8 @@
         <div class="header-right">
           <div class="search-wrapper">
             <IconifyIconOnline icon="ri:search-line" class="search-icon" />
-            <ScInput 
+            <!-- 示例页搜索框强制使用 Element Plus 输入框，不跟随 8bit 像素主题 -->
+            <el-input
               v-model="searchText"
               placeholder="搜索组件..."
               clearable
