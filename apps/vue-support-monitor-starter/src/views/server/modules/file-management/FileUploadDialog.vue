@@ -25,7 +25,7 @@
               <IconifyIconOnline icon="ri:folder-open-line" />
             </template>
           </el-input>
-          <el-button @click="selectPath" type="primary">
+          <el-button type="primary" @click="selectPath">
             <IconifyIconOnline icon="ri:folder-open-line" class="mr-1" />
             选择路径
           </el-button>
@@ -73,7 +73,7 @@
       </div>
 
       <!-- 文件列表 -->
-      <div class="file-list-section" v-if="fileList.length > 0">
+      <div v-if="fileList.length > 0" class="file-list-section">
         <div class="section-title">
           <IconifyIconOnline icon="ri:file-list-line" class="mr-2" />
           待上传文件 ({{ fileList.length }})
@@ -172,14 +172,14 @@
         </div>
         <div class="footer-actions">
           <el-button @click="closeDialog">取消</el-button>
-          <el-button @click="clearFiles" v-if="fileList.length > 0"
+          <el-button v-if="fileList.length > 0" @click="clearFiles"
             >清空</el-button
           >
           <el-button
             type="primary"
-            @click="startUpload"
             :disabled="fileList.length === 0 || !uploadPath || isUploading"
             :loading="isUploading"
+            @click="startUpload"
           >
             <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
             {{ isUploading ? "上传中..." : "开始上传" }}
@@ -256,7 +256,7 @@ watch(
       uploadPath.value = newPath;
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 /**
@@ -473,7 +473,6 @@ const handleDrop = (event: DragEvent) => {
   margin: 0;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -482,5 +481,4 @@ const handleDrop = (event: DragEvent) => {
     padding: 12px 16px;
   }
 }
-
 </style>

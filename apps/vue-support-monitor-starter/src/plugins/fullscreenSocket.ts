@@ -10,5 +10,3 @@ export function setupFullscreenSocket(router: Router) {
     }
   });
 }
-
-

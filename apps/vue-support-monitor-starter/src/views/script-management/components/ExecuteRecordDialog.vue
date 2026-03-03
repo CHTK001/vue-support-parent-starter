@@ -1,12 +1,12 @@
 ﻿<template>
   <sc-dialog
     :model-value="visible"
-    @update:model-value="$emit('update:visible', $event)"
     title="脚本执行记录"
     width="90%"
     top="5vh"
     :close-on-click-modal="false"
     class="execute-record-dialog"
+    @update:model-value="$emit('update:visible', $event)"
     @close="handleClose"
   >
     <div class="dialog-content">
@@ -85,7 +85,10 @@
           <template #default="{ row }">
             <div class="script-info">
               <div class="script-name">{{ row.monitorSysGenScriptName }}</div>
-              <el-tag size="small" :type="getTypeTagType(row.monitorSysGenScriptType)">
+              <el-tag
+                size="small"
+                :type="getTypeTagType(row.monitorSysGenScriptType)"
+              >
                 {{ row.monitorSysGenScriptType }}
               </el-tag>
             </div>
@@ -94,7 +97,14 @@
 
         <el-table-column label="执行方式" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.monitorSysGenScriptExecuteMethod === 'SSH' ? 'success' : 'primary'" size="small">
+            <el-tag
+              :type="
+                row.monitorSysGenScriptExecuteMethod === 'SSH'
+                  ? 'success'
+                  : 'primary'
+              "
+              size="small"
+            >
               {{ row.monitorSysGenScriptExecuteMethod }}
             </el-tag>
           </template>
@@ -104,7 +114,9 @@
           <template #default="{ row }">
             <div class="server-list">
               <el-tag
-                v-for="server in getServerList(row.monitorSysGenScriptExecuteServerNames)"
+                v-for="server in getServerList(
+                  row.monitorSysGenScriptExecuteServerNames,
+                )"
                 :key="server"
                 size="small"
                 type="info"
@@ -118,7 +130,10 @@
 
         <el-table-column label="执行结果" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="getResultTagType(row.monitorSysGenScriptExecuteResult)" size="small">
+            <el-tag
+              :type="getResultTagType(row.monitorSysGenScriptExecuteResult)"
+              size="small"
+            >
               {{ getResultText(row.monitorSysGenScriptExecuteResult) }}
             </el-tag>
           </template>
@@ -126,19 +141,23 @@
 
         <el-table-column label="耗时" width="100" align="center">
           <template #default="{ row }">
-            <span class="duration">{{ formatDuration(row.monitorSysGenScriptExecuteDuration) }}</span>
+            <span class="duration">{{
+              formatDuration(row.monitorSysGenScriptExecuteDuration)
+            }}</span>
           </template>
         </el-table-column>
 
         <el-table-column label="执行时间" width="160" align="center">
           <template #default="{ row }">
-            <span class="execute-time">{{ formatTime(row.monitorSysGenScriptExecuteTime) }}</span>
+            <span class="execute-time">{{
+              formatTime(row.monitorSysGenScriptExecuteTime)
+            }}</span>
           </template>
         </el-table-column>
 
         <el-table-column label="执行人" width="100" align="center">
           <template #default="{ row }">
-            {{ row.monitorSysGenScriptExecuteUser || '-' }}
+            {{ row.monitorSysGenScriptExecuteUser || "-" }}
           </template>
         </el-table-column>
 
@@ -146,12 +165,21 @@
           <template #default="{ row }">
             <el-button-group>
               <el-tooltip content="查看详情" placement="top">
-                <el-button text size="small" @click.stop="handleViewDetail(row)">
+                <el-button
+                  text
+                  size="small"
+                  @click.stop="handleViewDetail(row)"
+                >
                   <IconifyIconOnline icon="ri:eye-line" />
                 </el-button>
               </el-tooltip>
               <el-tooltip content="删除" placement="top">
-                <el-button text size="small" type="danger" @click.stop="handleDelete(row)">
+                <el-button
+                  text
+                  size="small"
+                  type="danger"
+                  @click.stop="handleDelete(row)"
+                >
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                 </el-button>
               </el-tooltip>
@@ -190,31 +218,54 @@
               {{ selectedRecord.monitorSysGenScriptName }}
             </el-descriptions-item>
             <el-descriptions-item label="脚本类型">
-              <el-tag size="small" :type="getTypeTagType(selectedRecord.monitorSysGenScriptType)">
+              <el-tag
+                size="small"
+                :type="getTypeTagType(selectedRecord.monitorSysGenScriptType)"
+              >
                 {{ selectedRecord.monitorSysGenScriptType }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="执行方式">
-              <el-tag :type="selectedRecord.monitorSysGenScriptExecuteMethod === 'SSH' ? 'success' : 'primary'" size="small">
+              <el-tag
+                :type="
+                  selectedRecord.monitorSysGenScriptExecuteMethod === 'SSH'
+                    ? 'success'
+                    : 'primary'
+                "
+                size="small"
+              >
                 {{ selectedRecord.monitorSysGenScriptExecuteMethod }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="执行结果">
-              <el-tag :type="getResultTagType(selectedRecord.monitorSysGenScriptExecuteResult)" size="small">
-                {{ getResultText(selectedRecord.monitorSysGenScriptExecuteResult) }}
+              <el-tag
+                :type="
+                  getResultTagType(
+                    selectedRecord.monitorSysGenScriptExecuteResult,
+                  )
+                "
+                size="small"
+              >
+                {{
+                  getResultText(selectedRecord.monitorSysGenScriptExecuteResult)
+                }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="执行时间">
               {{ formatTime(selectedRecord.monitorSysGenScriptExecuteTime) }}
             </el-descriptions-item>
             <el-descriptions-item label="耗时">
-              {{ formatDuration(selectedRecord.monitorSysGenScriptExecuteDuration) }}
+              {{
+                formatDuration(
+                  selectedRecord.monitorSysGenScriptExecuteDuration,
+                )
+              }}
             </el-descriptions-item>
             <el-descriptions-item label="退出码">
-              {{ selectedRecord.monitorSysGenScriptExecuteExitCode ?? '-' }}
+              {{ selectedRecord.monitorSysGenScriptExecuteExitCode ?? "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="执行人">
-              {{ selectedRecord.monitorSysGenScriptExecuteUser || '-' }}
+              {{ selectedRecord.monitorSysGenScriptExecuteUser || "-" }}
             </el-descriptions-item>
           </el-descriptions>
         </div>
@@ -224,7 +275,9 @@
           <h4>目标服务器</h4>
           <div class="server-tags">
             <el-tag
-              v-for="server in getServerList(selectedRecord.monitorSysGenScriptExecuteServerNames)"
+              v-for="server in getServerList(
+                selectedRecord.monitorSysGenScriptExecuteServerNames,
+              )"
               :key="server"
               size="default"
               type="info"
@@ -245,13 +298,24 @@
         <!-- 执行输出 -->
         <div class="detail-section">
           <h4>执行输出</h4>
-          <div class="output-block" :class="{ error: selectedRecord.monitorSysGenScriptExecuteResult === 'FAILED' }">
-            <pre>{{ selectedRecord.monitorSysGenScriptExecuteOutput || '无输出' }}</pre>
+          <div
+            class="output-block"
+            :class="{
+              error:
+                selectedRecord.monitorSysGenScriptExecuteResult === 'FAILED',
+            }"
+          >
+            <pre>{{
+              selectedRecord.monitorSysGenScriptExecuteOutput || "无输出"
+            }}</pre>
           </div>
         </div>
 
         <!-- 错误信息 -->
-        <div v-if="selectedRecord.monitorSysGenScriptExecuteError" class="detail-section">
+        <div
+          v-if="selectedRecord.monitorSysGenScriptExecuteError"
+          class="detail-section"
+        >
           <h4>错误信息</h4>
           <div class="error-block">
             <pre>{{ selectedRecord.monitorSysGenScriptExecuteError }}</pre>
@@ -321,7 +385,7 @@ watch(
       }
       loadRecords();
     }
-  }
+  },
 );
 
 // 加载记录
@@ -400,7 +464,9 @@ const handleDelete = async (record: ScriptExecuteRecord) => {
       cancelButtonText: "取消",
     });
 
-    const response: any = await deleteScriptExecuteRecord(record.monitorSysGenScriptExecuteRecordId);
+    const response: any = await deleteScriptExecuteRecord(
+      record.monitorSysGenScriptExecuteRecordId,
+    );
     if (response.success) {
       message("删除成功", { type: "success" });
       loadRecords();
@@ -418,13 +484,15 @@ const handleDelete = async (record: ScriptExecuteRecord) => {
 const handleClearAll = async () => {
   try {
     await ElMessageBox.confirm(
-      props.scriptId ? "确定要清空该脚本的所有执行记录吗？" : "确定要清空所有执行记录吗？",
+      props.scriptId
+        ? "确定要清空该脚本的所有执行记录吗？"
+        : "确定要清空所有执行记录吗？",
       "清空确认",
       {
         type: "warning",
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-      }
+      },
     );
 
     const response: any = await clearScriptExecuteRecords(props.scriptId);
@@ -453,8 +521,13 @@ const getServerList = (serverNames?: string): string[] => {
 };
 
 // 获取类型标签颜色
-const getTypeTagType = (type?: string): "primary" | "success" | "warning" | "info" | "danger" => {
-  const typeMap: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
+const getTypeTagType = (
+  type?: string,
+): "primary" | "success" | "warning" | "info" | "danger" => {
+  const typeMap: Record<
+    string,
+    "primary" | "success" | "warning" | "info" | "danger"
+  > = {
     SHELL: "success",
     PYTHON: "primary",
     POWERSHELL: "info",
@@ -466,7 +539,9 @@ const getTypeTagType = (type?: string): "primary" | "success" | "warning" | "inf
 };
 
 // 获取结果标签颜色
-const getResultTagType = (result?: string): "success" | "danger" | "warning" | "info" => {
+const getResultTagType = (
+  result?: string,
+): "success" | "danger" | "warning" | "info" => {
   const resultMap: Record<string, "success" | "danger" | "warning" | "info"> = {
     SUCCESS: "success",
     FAILED: "danger",
@@ -682,7 +757,6 @@ const formatTime = (time?: string): string => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -691,5 +765,4 @@ const formatTime = (time?: string): string => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -11,7 +11,7 @@
 import { t } from "@repo/config";
 import { initDefaultProps } from "ant-design-vue/es/_util/props-util";
 import { tableProps } from "ant-design-vue/es/table";
-import { CustomColumnType } from "./types";
+import type { CustomColumnType } from "./types";
 
 export const customTableProps = initDefaultProps(
   {
@@ -74,5 +74,5 @@ export const customTableProps = initDefaultProps(
     autoRefreshTime: 10,
     activePage: false,
     emptyDescription: t("i18n_807ed6f5a6"),
-  }
+  },
 );

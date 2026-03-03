@@ -28,7 +28,12 @@
             查询
           </el-button>
           <el-tooltip content="刷新统计" placement="top">
-            <el-button type="primary" :icon="Refresh" :loading="statsLoading" @click="loadStats" />
+            <el-button
+              type="primary"
+              :icon="Refresh"
+              :loading="statsLoading"
+              @click="loadStats"
+            />
           </el-tooltip>
         </div>
       </div>
@@ -88,7 +93,10 @@
           />
         </div>
 
-        <el-empty v-if="!statsLoading && stats.nodes.length === 0" description="暂无节点数据" />
+        <el-empty
+          v-if="!statsLoading && stats.nodes.length === 0"
+          description="暂无节点数据"
+        />
       </div>
     </el-card>
 
@@ -99,7 +107,12 @@
           <span class="title">
             <IconifyIconOnline icon="ri:list-check" />
             句柄列表
-            <el-tag v-if="selectedNodeAddress" size="small" type="info" class="selected-node">
+            <el-tag
+              v-if="selectedNodeAddress"
+              size="small"
+              type="info"
+              class="selected-node"
+            >
               {{ selectedNodeAddress }}
             </el-tag>
           </span>
@@ -153,8 +166,16 @@
         </template>
       </ScTable>
 
-      <el-empty v-if="!handlesLoading && fileHandles.length === 0 && selectedNodeAddress" description="该节点暂无句柄数据" />
-      <el-empty v-if="!handlesLoading && !selectedNodeAddress" description="请选择节点或输入IP:端口查询" />
+      <el-empty
+        v-if="
+          !handlesLoading && fileHandles.length === 0 && selectedNodeAddress
+        "
+        description="该节点暂无句柄数据"
+      />
+      <el-empty
+        v-if="!handlesLoading && !selectedNodeAddress"
+        description="请选择节点或输入IP:端口查询"
+      />
     </el-card>
   </div>
 </template>
@@ -196,7 +217,12 @@ const tableColumns = [
   { label: "读写", prop: "bytes", slot: "bytes", width: 180 },
   { label: "PID", prop: "pid", width: 100 },
   { label: "打开时间", prop: "openTime", slot: "openTime", width: 160 },
-  { label: "最后访问", prop: "lastAccessTime", slot: "lastAccessTime", width: 160 },
+  {
+    label: "最后访问",
+    prop: "lastAccessTime",
+    slot: "lastAccessTime",
+    width: 160,
+  },
 ];
 
 /**
@@ -230,9 +256,12 @@ const loadFileHandles = async () => {
 
   handlesLoading.value = true;
   selectedNodeAddress.value = `${ipAddress.value}:${port.value}`;
-  
+
   try {
-    const response = await getFileHandlesForAgent(ipAddress.value, Number(port.value));
+    const response = await getFileHandlesForAgent(
+      ipAddress.value,
+      Number(port.value),
+    );
     if (response.success && response.data) {
       fileHandles.value = response.data;
     } else {
@@ -315,7 +344,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -348,7 +376,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .file-handles {
   padding: 20px;

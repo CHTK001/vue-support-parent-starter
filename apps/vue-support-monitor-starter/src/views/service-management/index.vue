@@ -121,7 +121,7 @@
             :class="getServerCardClass(server.systemServerStatus)"
           >
             <!-- 顶部状态条 -->
-            <div class="status-bar"></div>
+            <div class="status-bar" />
 
             <!-- 卡片主体 -->
             <div class="card-content">
@@ -195,7 +195,7 @@
                   <IconifyIconOnline icon="ri:folder-line" />
                   <span>{{ server.systemServerContextPath || "/" }}</span>
                 </div>
-                <div class="detail-item" v-if="server.systemServerTimeout">
+                <div v-if="server.systemServerTimeout" class="detail-item">
                   <IconifyIconOnline icon="ri:time-line" />
                   <span>{{ server.systemServerTimeout }}ms</span>
                 </div>
@@ -209,9 +209,9 @@
                     server.systemServerStatus === 'ERROR'
                   "
                   type="success"
-                  @click="startServer(server.systemServerId)"
                   :loading="actionLoading[server.systemServerId]"
                   class="action-btn"
+                  @click="startServer(server.systemServerId)"
                 >
                   <IconifyIconOnline icon="ri:play-fill" />
                   启动
@@ -219,9 +219,9 @@
                 <el-button
                   v-else-if="server.systemServerStatus === 'RUNNING'"
                   type="danger"
-                  @click="stopServer(server.systemServerId)"
                   :loading="actionLoading[server.systemServerId]"
                   class="action-btn"
+                  @click="stopServer(server.systemServerId)"
                 >
                   <IconifyIconOnline icon="ri:stop-fill" />
                   停止
@@ -242,13 +242,13 @@
                   <el-tooltip content="日志" placement="top">
                     <el-button
                       circle
-                      @click="openServerLog(server.systemServerId, server)"
                       :disabled="server.systemServerStatus !== 'RUNNING'"
+                      @click="openServerLog(server.systemServerId, server)"
                     >
                       <IconifyIconOnline icon="ri:file-list-3-line" />
                     </el-button>
                   </el-tooltip>
-                  <el-dropdown @command="handleServerAction" trigger="click">
+                  <el-dropdown trigger="click" @command="handleServerAction">
                     <el-button circle>
                       <IconifyIconOnline icon="ri:more-2-fill" />
                     </el-button>
@@ -492,7 +492,7 @@ const handleOpen = async (server) => {
       ? "localhost"
       : server.systemServerHost || "localhost";
   window.open(
-    `http://${host}:${server.systemServerPort}${server.systemServerContextPath || ""}`
+    `http://${host}:${server.systemServerPort}${server.systemServerContextPath || ""}`,
   );
 };
 
@@ -642,7 +642,7 @@ const handleDeleteServer = async (serverId: number) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     const response = await deleteSystemServer(serverId);
@@ -704,7 +704,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -721,8 +720,6 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -756,7 +753,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .service-management-container {
   padding: 24px;

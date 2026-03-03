@@ -1,7 +1,7 @@
 <template>
   <div class="container-group-view system-container modern-bg">
     <ProgressMonitor />
-    
+
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -9,14 +9,20 @@
           <IconifyIconOnline icon="ri:container-line" class="title-icon" />
           <span>容器管理（分组视图）</span>
         </div>
-        <div class="page-subtitle">通过服务器或容器分组查看和管理Docker容器</div>
+        <div class="page-subtitle">
+          通过服务器或容器分组查看和管理Docker容器
+        </div>
       </div>
       <div class="header-right">
-        <el-radio-group v-model="groupMode" size="default" @change="handleGroupModeChange">
+        <el-radio-group
+          v-model="groupMode"
+          size="default"
+          @change="handleGroupModeChange"
+        >
           <el-radio-button label="server">按服务器分组</el-radio-button>
           <el-radio-button label="software">按软件分组</el-radio-button>
         </el-radio-group>
-        <el-button @click="handleRefresh" :loading="loading">
+        <el-button :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
@@ -25,10 +31,10 @@
 
     <!-- 搜索栏 -->
     <div class="search-bar">
-      <el-input 
-        v-model="searchParams.keyword" 
-        placeholder="搜索容器名称或镜像..." 
-        class="search-input" 
+      <el-input
+        v-model="searchParams.keyword"
+        placeholder="搜索容器名称或镜像..."
+        class="search-input"
         clearable
         @keyup.enter="handleSearch"
       >
@@ -36,13 +42,23 @@
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
-      <el-select v-model="searchParams.status" placeholder="状态筛选" clearable @change="handleSearch">
+      <el-select
+        v-model="searchParams.status"
+        placeholder="状态筛选"
+        clearable
+        @change="handleSearch"
+      >
         <el-option label="全部" value="" />
         <el-option label="运行中" value="running" />
         <el-option label="已停止" value="stopped" />
         <el-option label="暂停" value="paused" />
       </el-select>
-      <el-select v-model="searchParams.serverId" placeholder="选择服务器" clearable @change="handleSearch">
+      <el-select
+        v-model="searchParams.serverId"
+        placeholder="选择服务器"
+        clearable
+        @change="handleSearch"
+      >
         <el-option label="全部服务器" value="" />
         <el-option
           v-for="server in serverOptions"
@@ -51,7 +67,7 @@
           :value="server.id"
         />
       </el-select>
-      <el-button @click="handleSyncStatus" :loading="syncLoading">
+      <el-button :loading="syncLoading" @click="handleSyncStatus">
         <IconifyIconOnline icon="ri:loop-left-line" class="mr-1" />
         同步状态
       </el-button>
@@ -62,33 +78,37 @@
       <!-- 按服务器分组 -->
       <div v-if="groupMode === 'server'" class="server-groups">
         <el-collapse v-model="activeGroups" accordion>
-          <el-collapse-item 
-            v-for="group in serverGroups" 
-            :key="group.serverId" 
+          <el-collapse-item
+            v-for="group in serverGroups"
+            :key="group.serverId"
             :name="group.serverId"
           >
             <template #title>
               <div class="group-header">
                 <div class="group-title">
                   <IconifyIconOnline icon="ri:server-line" class="group-icon" />
-                  <span class="group-name">{{ group.serverName || `服务器 #${group.serverId}` }}</span>
-                  <el-tag size="small" class="group-count">{{ group.containers.length }} 个容器</el-tag>
+                  <span class="group-name">{{
+                    group.serverName || `服务器 #${group.serverId}`
+                  }}</span>
+                  <el-tag size="small" class="group-count"
+                    >{{ group.containers.length }} 个容器</el-tag
+                  >
                 </div>
                 <div class="group-actions" @click.stop>
-                  <el-button 
-                    size="small" 
-                    type="primary" 
-                    @click="handleGroupStartAll(group.serverId)"
+                  <el-button
+                    size="small"
+                    type="primary"
                     :disabled="!hasStoppedContainers(group.containers)"
+                    @click="handleGroupStartAll(group.serverId)"
                   >
                     <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                     启动全部
                   </el-button>
-                  <el-button 
-                    size="small" 
-                    type="warning" 
-                    @click="handleGroupStopAll(group.serverId)"
+                  <el-button
+                    size="small"
+                    type="warning"
                     :disabled="!hasRunningContainers(group.containers)"
+                    @click="handleGroupStopAll(group.serverId)"
                   >
                     <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                     停止全部
@@ -97,8 +117,8 @@
               </div>
             </template>
             <div class="containers-grid">
-              <ContainerCard 
-                v-for="container in group.containers" 
+              <ContainerCard
+                v-for="container in group.containers"
                 :key="container.systemSoftContainerId"
                 :container="container"
                 @start="handleStart"
@@ -118,29 +138,33 @@
       <!-- 按软件分组 -->
       <div v-else class="software-groups">
         <el-collapse v-model="activeGroups" accordion>
-          <el-collapse-item 
-            v-for="group in softwareGroups" 
-            :key="group.softId" 
+          <el-collapse-item
+            v-for="group in softwareGroups"
+            :key="group.softId"
             :name="group.softId"
           >
             <template #title>
               <div class="group-header">
                 <div class="group-title">
                   <IconifyIconOnline icon="ri:apps-line" class="group-icon" />
-                  <span class="group-name">{{ group.softName || `软件 #${group.softId}` }}</span>
-                  <el-tag size="small" class="group-count">{{ group.containers.length }} 个容器</el-tag>
+                  <span class="group-name">{{
+                    group.softName || `软件 #${group.softId}`
+                  }}</span>
+                  <el-tag size="small" class="group-count"
+                    >{{ group.containers.length }} 个容器</el-tag
+                  >
                 </div>
                 <div class="group-stats">
-                  <el-tag 
-                    v-if="getRunningCount(group.containers) > 0" 
-                    type="success" 
+                  <el-tag
+                    v-if="getRunningCount(group.containers) > 0"
+                    type="success"
                     size="small"
                   >
                     {{ getRunningCount(group.containers) }} 运行中
                   </el-tag>
-                  <el-tag 
-                    v-if="getStoppedCount(group.containers) > 0" 
-                    type="info" 
+                  <el-tag
+                    v-if="getStoppedCount(group.containers) > 0"
+                    type="info"
                     size="small"
                   >
                     {{ getStoppedCount(group.containers) }} 已停止
@@ -149,8 +173,8 @@
               </div>
             </template>
             <div class="containers-grid">
-              <ContainerCard 
-                v-for="container in group.containers" 
+              <ContainerCard
+                v-for="container in group.containers"
                 :key="container.systemSoftContainerId"
                 :container="container"
                 @start="handleStart"
@@ -164,15 +188,24 @@
             </div>
           </el-collapse-item>
         </el-collapse>
-        <el-empty v-if="softwareGroups.length === 0" description="暂无容器数据" />
+        <el-empty
+          v-if="softwareGroups.length === 0"
+          description="暂无容器数据"
+        />
       </div>
     </div>
 
     <!-- 容器详情对话框 -->
-    <ContainerDetailDialog v-model:visible="detailDialogVisible" :container-data="currentContainer" />
+    <ContainerDetailDialog
+      v-model:visible="detailDialogVisible"
+      :container-data="currentContainer"
+    />
 
     <!-- 容器日志对话框 -->
-    <ContainerLogsDialog v-model:visible="logsDialogVisible" :container-data="currentContainer" />
+    <ContainerLogsDialog
+      v-model:visible="logsDialogVisible"
+      :container-data="currentContainer"
+    />
 
     <!-- 终端对话框 -->
     <ServerTerminalDialog ref="terminalRef" />
@@ -180,401 +213,439 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from "vue";
 import { message, messageBox } from "@repo/utils";
-import ProgressMonitor from '@/components/ProgressMonitor.vue'
-import ServerTerminalDialog from '@/views/server/modules/server-management/components/ServerTerminalDialog.vue'
-import ContainerDetailDialog from './components/ContainerDetailDialog.vue'
-import ContainerLogsDialog from './components/ContainerLogsDialog.vue'
-import ContainerCard from './components/ContainerCard.vue'
-import { containerApi, getServerList, type SystemSoftContainer } from '@/api/docker'
-import { getServerInfo, sendServerData } from '@/api/server'
+import ProgressMonitor from "@/components/ProgressMonitor.vue";
+import ServerTerminalDialog from "@/views/server/modules/server-management/components/ServerTerminalDialog.vue";
+import ContainerDetailDialog from "./components/ContainerDetailDialog.vue";
+import ContainerLogsDialog from "./components/ContainerLogsDialog.vue";
+import ContainerCard from "./components/ContainerCard.vue";
+import {
+  containerApi,
+  getServerList,
+  type SystemSoftContainer,
+} from "@/api/docker";
+import { getServerInfo, sendServerData } from "@/api/server";
 
 // 状态
-const groupMode = ref<'server' | 'software'>('server')
-const loading = ref(false)
-const syncLoading = ref(false)
-const activeGroups = ref<(number | string)[]>([])
-const containerList = ref<SystemSoftContainer[]>([])
-const serverList = ref<any[]>([])
-const serverOptions = ref<any[]>([])
+const groupMode = ref<"server" | "software">("server");
+const loading = ref(false);
+const syncLoading = ref(false);
+const activeGroups = ref<(number | string)[]>([]);
+const containerList = ref<SystemSoftContainer[]>([]);
+const serverList = ref<any[]>([]);
+const serverOptions = ref<any[]>([]);
 
 // 搜索参数（与表格视图保持一致）
 const searchParams = reactive({
-  keyword: '',
-  status: '',
-  serverId: '',
-})
+  keyword: "",
+  status: "",
+  serverId: "",
+});
 
 // 对话框状态
-const detailDialogVisible = ref(false)
-const logsDialogVisible = ref(false)
-const currentContainer = ref<SystemSoftContainer | null>(null)
-const terminalRef = ref()
+const detailDialogVisible = ref(false);
+const logsDialogVisible = ref(false);
+const currentContainer = ref<SystemSoftContainer | null>(null);
+const terminalRef = ref();
 
 // 分组数据
 interface ServerGroup {
-  serverId: number
-  serverName: string
-  containers: SystemSoftContainer[]
+  serverId: number;
+  serverName: string;
+  containers: SystemSoftContainer[];
 }
 
 interface SoftwareGroup {
-  softId: number
-  softName: string
-  containers: SystemSoftContainer[]
+  softId: number;
+  softName: string;
+  containers: SystemSoftContainer[];
 }
 
 // 按服务器分组
 const serverGroups = computed<ServerGroup[]>(() => {
-  const groups = new Map<number, ServerGroup>()
-  
-  filteredContainers.value.forEach(container => {
-    const serverId = container.systemServerId || 0
+  const groups = new Map<number, ServerGroup>();
+
+  filteredContainers.value.forEach((container) => {
+    const serverId = container.systemServerId || 0;
     if (!groups.has(serverId)) {
-      const server = serverOptions.value.find(s => s.id === serverId)
+      const server = serverOptions.value.find((s) => s.id === serverId);
       groups.set(serverId, {
         serverId,
         serverName: server?.name || `服务器 #${serverId}`,
-        containers: []
-      })
+        containers: [],
+      });
     }
-    groups.get(serverId)!.containers.push(container)
-  })
-  
-  return Array.from(groups.values())
-})
+    groups.get(serverId)!.containers.push(container);
+  });
+
+  return Array.from(groups.values());
+});
 
 // 按软件分组
 const softwareGroups = computed<SoftwareGroup[]>(() => {
-  const groups = new Map<number, SoftwareGroup>()
-  
-  filteredContainers.value.forEach(container => {
-    const softId = container.systemSoftId || 0
+  const groups = new Map<number, SoftwareGroup>();
+
+  filteredContainers.value.forEach((container) => {
+    const softId = container.systemSoftId || 0;
     if (!groups.has(softId)) {
       groups.set(softId, {
         softId,
         softName: container.systemSoftContainerImage || `软件 #${softId}`,
-        containers: []
-      })
+        containers: [],
+      });
     }
-    groups.get(softId)!.containers.push(container)
-  })
-  
-  return Array.from(groups.values())
-})
+    groups.get(softId)!.containers.push(container);
+  });
+
+  return Array.from(groups.values());
+});
 
 // 过滤后的容器列表（前端仅做展示筛选，主要筛选由后端完成）
 const filteredContainers = computed(() => {
-  return containerList.value
-})
+  return containerList.value;
+});
 
 // 工具函数
 const hasRunningContainers = (containers: SystemSoftContainer[]) => {
-  return containers.some(c => c.systemSoftContainerStatus === 'running')
-}
+  return containers.some((c) => c.systemSoftContainerStatus === "running");
+};
 
 const hasStoppedContainers = (containers: SystemSoftContainer[]) => {
-  return containers.some(c => c.systemSoftContainerStatus === 'stopped' || c.systemSoftContainerStatus === 'exited')
-}
+  return containers.some(
+    (c) =>
+      c.systemSoftContainerStatus === "stopped" ||
+      c.systemSoftContainerStatus === "exited",
+  );
+};
 
 const getRunningCount = (containers: SystemSoftContainer[]) => {
-  return containers.filter(c => c.systemSoftContainerStatus === 'running').length
-}
+  return containers.filter((c) => c.systemSoftContainerStatus === "running")
+    .length;
+};
 
 const getStoppedCount = (containers: SystemSoftContainer[]) => {
-  return containers.filter(c => c.systemSoftContainerStatus === 'stopped' || c.systemSoftContainerStatus === 'exited').length
-}
+  return containers.filter(
+    (c) =>
+      c.systemSoftContainerStatus === "stopped" ||
+      c.systemSoftContainerStatus === "exited",
+  ).length;
+};
 
 // 数据加载（统一使用后端筛选）
 const loadContainers = async () => {
   try {
-    loading.value = true
+    loading.value = true;
     // 构建查询参数，与表格视图保持一致
-    const params: any = { 
-      page: 1, 
-      size: 1000 
-    }
-    
+    const params: any = {
+      page: 1,
+      size: 1000,
+    };
+
     // 添加筛选参数
     if (searchParams.keyword) {
-      params.keyword = searchParams.keyword
+      params.keyword = searchParams.keyword;
     }
     if (searchParams.status) {
-      params.status = searchParams.status
+      params.status = searchParams.status;
     }
     if (searchParams.serverId) {
-      params.serverId = searchParams.serverId
+      params.serverId = searchParams.serverId;
     }
-    
-    const response = await containerApi.getContainerPageList(params)
-    if (response.code === '00000') {
-      containerList.value = response.data.records || []
+
+    const response = await containerApi.getContainerPageList(params);
+    if (response.code === "00000") {
+      containerList.value = response.data.records || [];
     } else {
-      message.error(response.msg || '加载容器列表失败')
+      message.error(response.msg || "加载容器列表失败");
     }
   } catch (error) {
-    message.error('加载容器列表失败')
+    message.error("加载容器列表失败");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const loadServers = async () => {
   try {
-    const response = await getServerList()
-    if (response.code === '00000') {
-      const servers = response.data || []
-      serverList.value = servers
+    const response = await getServerList();
+    if (response.code === "00000") {
+      const servers = response.data || [];
+      serverList.value = servers;
       serverOptions.value = servers.map((s: any) => ({
         id: s.monitorSysGenServerId,
         name: s.monitorSysGenServerName,
         host: s.monitorSysGenServerHost,
-      }))
+      }));
     }
   } catch (error) {
-    console.error('加载服务器列表失败:', error)
+    console.error("加载服务器列表失败:", error);
   }
-}
+};
 
 // 同步容器状态
 const handleSyncStatus = async () => {
   try {
-    syncLoading.value = true
-    const serverId = searchParams.serverId ? Number(searchParams.serverId) : undefined
-    const response = await containerApi.syncContainerStatus(serverId)
-    if (response.code === '00000') {
-      message.success('容器状态同步成功')
+    syncLoading.value = true;
+    const serverId = searchParams.serverId
+      ? Number(searchParams.serverId)
+      : undefined;
+    const response = await containerApi.syncContainerStatus(serverId);
+    if (response.code === "00000") {
+      message.success("容器状态同步成功");
       setTimeout(() => {
-        loadContainers()
-      }, 1000)
+        loadContainers();
+      }, 1000);
     } else {
-      message.error(response.msg || '同步失败')
+      message.error(response.msg || "同步失败");
     }
   } catch (error) {
-    message.error('同步容器状态失败')
+    message.error("同步容器状态失败");
   } finally {
-    syncLoading.value = false
+    syncLoading.value = false;
   }
-}
+};
 
 // 事件处理
 const handleRefresh = () => {
-  loadContainers()
-}
+  loadContainers();
+};
 
 const handleSearch = () => {
   // 重新加载数据，使用后端筛选
-  loadContainers()
-}
+  loadContainers();
+};
 
 const handleGroupModeChange = () => {
-  activeGroups.value = []
-}
+  activeGroups.value = [];
+};
 
 // 组操作
 const handleGroupStartAll = async (serverId: number) => {
-  const group = serverGroups.value.find(g => g.serverId === serverId)
-  if (!group) return
-  
-  const stoppedContainers = group.containers.filter(c => 
-    c.systemSoftContainerStatus === 'stopped' || c.systemSoftContainerStatus === 'exited'
-  )
-  
+  const group = serverGroups.value.find((g) => g.serverId === serverId);
+  if (!group) return;
+
+  const stoppedContainers = group.containers.filter(
+    (c) =>
+      c.systemSoftContainerStatus === "stopped" ||
+      c.systemSoftContainerStatus === "exited",
+  );
+
   if (stoppedContainers.length === 0) {
-    message.warning('没有需要启动的容器')
-    return
+    message.warning("没有需要启动的容器");
+    return;
   }
-  
+
   try {
     await messageBox.confirm(
       `确定要启动服务器 "${group.serverName}" 上的 ${stoppedContainers.length} 个已停止容器吗？`,
-      '批量启动确认',
-      { type: 'warning' }
-    )
-    
+      "批量启动确认",
+      { type: "warning" },
+    );
+
     const response = await containerApi.batchOperateContainers({
-      containerIds: stoppedContainers.map(c => c.systemSoftContainerId!),
-      operation: 'start'
-    })
-    
-    if (response.code === '00000') {
-      message.success(`批量启动完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
+      containerIds: stoppedContainers.map((c) => c.systemSoftContainerId!),
+      operation: "start",
+    });
+
+    if (response.code === "00000") {
+      message.success(
+        `批量启动完成，成功: ${response.data.success}，失败: ${response.data.failed}`,
+      );
       setTimeout(() => {
-        loadContainers()
-      }, 1000)
+        loadContainers();
+      }, 1000);
     } else {
-      message.error(response.msg || '批量启动失败')
+      message.error(response.msg || "批量启动失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      message.error('批量启动容器失败')
+    if (error !== "cancel") {
+      message.error("批量启动容器失败");
     }
   }
-}
+};
 
 const handleGroupStopAll = async (serverId: number) => {
-  const group = serverGroups.value.find(g => g.serverId === serverId)
-  if (!group) return
-  
-  const runningContainers = group.containers.filter(c => c.systemSoftContainerStatus === 'running')
-  
+  const group = serverGroups.value.find((g) => g.serverId === serverId);
+  if (!group) return;
+
+  const runningContainers = group.containers.filter(
+    (c) => c.systemSoftContainerStatus === "running",
+  );
+
   if (runningContainers.length === 0) {
-    message.warning('没有需要停止的容器')
-    return
+    message.warning("没有需要停止的容器");
+    return;
   }
-  
+
   try {
     await messageBox.confirm(
       `确定要停止服务器 "${group.serverName}" 上的 ${runningContainers.length} 个运行中容器吗？`,
-      '批量停止确认',
-      { type: 'warning' }
-    )
-    
+      "批量停止确认",
+      { type: "warning" },
+    );
+
     const response = await containerApi.batchOperateContainers({
-      containerIds: runningContainers.map(c => c.systemSoftContainerId!),
-      operation: 'stop'
-    })
-    
-    if (response.code === '00000') {
-      message.success(`批量停止完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
+      containerIds: runningContainers.map((c) => c.systemSoftContainerId!),
+      operation: "stop",
+    });
+
+    if (response.code === "00000") {
+      message.success(
+        `批量停止完成，成功: ${response.data.success}，失败: ${response.data.failed}`,
+      );
       setTimeout(() => {
-        loadContainers()
-      }, 1000)
+        loadContainers();
+      }, 1000);
     } else {
-      message.error(response.msg || '批量停止失败')
+      message.error(response.msg || "批量停止失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      message.error('批量停止容器失败')
+    if (error !== "cancel") {
+      message.error("批量停止容器失败");
     }
   }
-}
+};
 
 // 容器操作
 const handleStart = async (container: SystemSoftContainer) => {
   try {
-    const response = await containerApi.startContainer(container.systemSoftContainerId!)
-    if (response.code === '00000') {
-      message.success('容器启动成功')
+    const response = await containerApi.startContainer(
+      container.systemSoftContainerId!,
+    );
+    if (response.code === "00000") {
+      message.success("容器启动成功");
       setTimeout(() => {
-        loadContainers()
-      }, 1000)
+        loadContainers();
+      }, 1000);
     } else {
-      message.error(response.msg || '容器启动失败')
+      message.error(response.msg || "容器启动失败");
     }
   } catch (error) {
-    message.error('容器启动失败')
+    message.error("容器启动失败");
   }
-}
+};
 
 const handleStop = async (container: SystemSoftContainer) => {
   try {
-    await messageBox.confirm('确定要停止这个容器吗？', '停止确认', { type: 'warning' })
-    
-    const response = await containerApi.stopContainer(container.systemSoftContainerId!)
-    if (response.code === '00000') {
-      message.success('容器停止成功')
+    await messageBox.confirm("确定要停止这个容器吗？", "停止确认", {
+      type: "warning",
+    });
+
+    const response = await containerApi.stopContainer(
+      container.systemSoftContainerId!,
+    );
+    if (response.code === "00000") {
+      message.success("容器停止成功");
       setTimeout(() => {
-        loadContainers()
-      }, 1000)
+        loadContainers();
+      }, 1000);
     } else {
-      message.error(response.msg || '容器停止失败')
+      message.error(response.msg || "容器停止失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      message.error('容器停止失败')
+    if (error !== "cancel") {
+      message.error("容器停止失败");
     }
   }
-}
+};
 
 const handleRestart = async (container: SystemSoftContainer) => {
   try {
-    const response = await containerApi.restartContainer(container.systemSoftContainerId!)
-    if (response.code === '00000') {
-      message.success('容器重启成功')
+    const response = await containerApi.restartContainer(
+      container.systemSoftContainerId!,
+    );
+    if (response.code === "00000") {
+      message.success("容器重启成功");
       setTimeout(() => {
-        loadContainers()
-      }, 1000)
+        loadContainers();
+      }, 1000);
     } else {
-      message.error(response.msg || '容器重启失败')
+      message.error(response.msg || "容器重启失败");
     }
   } catch (error) {
-    message.error('容器重启失败')
+    message.error("容器重启失败");
   }
-}
+};
 
 const handleDelete = async (container: SystemSoftContainer) => {
   try {
     await messageBox.confirm(
-      '确定要删除这个容器吗？此操作不可恢复！',
-      '删除确认',
-      { type: 'error' }
-    )
-    
-    const response = await containerApi.deleteContainer(container.systemSoftContainerId!)
-    if (response.code === '00000') {
-      message.success('容器删除成功')
+      "确定要删除这个容器吗？此操作不可恢复！",
+      "删除确认",
+      { type: "error" },
+    );
+
+    const response = await containerApi.deleteContainer(
+      container.systemSoftContainerId!,
+    );
+    if (response.code === "00000") {
+      message.success("容器删除成功");
       setTimeout(() => {
-        loadContainers()
-      }, 1000)
+        loadContainers();
+      }, 1000);
     } else {
-      message.error(response.msg || '容器删除失败')
+      message.error(response.msg || "容器删除失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      message.error('容器删除失败')
+    if (error !== "cancel") {
+      message.error("容器删除失败");
     }
   }
-}
+};
 
 const handleDetail = (container: SystemSoftContainer) => {
-  currentContainer.value = container
-  detailDialogVisible.value = true
-}
+  currentContainer.value = container;
+  detailDialogVisible.value = true;
+};
 
 const handleLogs = (container: SystemSoftContainer) => {
-  currentContainer.value = container
-  logsDialogVisible.value = true
-}
+  currentContainer.value = container;
+  logsDialogVisible.value = true;
+};
 
 const handleExec = async (container: SystemSoftContainer) => {
   try {
-    const serverId = String(container.systemServerId || container.systemSoftContainerServerId)
+    const serverId = String(
+      container.systemServerId || container.systemSoftContainerServerId,
+    );
     if (!serverId) {
-      message.warning('缺少服务器ID')
-      return
+      message.warning("缺少服务器ID");
+      return;
     }
-    
-    const { data, code, msg } = await getServerInfo(serverId)
+
+    const { data, code, msg } = await getServerInfo(serverId);
     if (code !== 0 || !data) {
-      message.error(msg || '获取服务器信息失败')
-      return
+      message.error(msg || "获取服务器信息失败");
+      return;
     }
-    
-    terminalRef.value?.setData?.(data)
-    terminalRef.value?.open?.()
-    
-    const containerName = container.systemSoftContainerName || container.containerName
-    const shell = '/bin/sh'
+
+    terminalRef.value?.setData?.(data);
+    terminalRef.value?.open?.();
+
+    const containerName =
+      container.systemSoftContainerName || container.containerName;
+    const shell = "/bin/sh";
     setTimeout(() => {
-      sendServerData(serverId, `docker exec -it ${containerName} ${shell}\n`).catch(() => {})
-    }, 800)
+      sendServerData(
+        serverId,
+        `docker exec -it ${containerName} ${shell}\n`,
+      ).catch(() => {});
+    }, 800);
   } catch (error) {
-    console.error(error)
-    message.error('进入容器失败')
+    console.error(error);
+    message.error("进入容器失败");
   }
-}
+};
 
 // 生命周期
 onMounted(() => {
-  loadContainers()
-  loadServers()
-})
+  loadContainers();
+  loadServers();
+});
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -591,8 +662,6 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -626,7 +695,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .container-group-view {
   padding: 20px;
@@ -797,4 +865,3 @@ onMounted(() => {
   }
 }
 </style>
-

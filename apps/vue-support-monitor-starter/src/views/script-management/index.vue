@@ -54,22 +54,52 @@
           @change="handleFilter"
         >
           <el-option label="Shell" value="SHELL">
-            <span class="type-option"><IconifyIconOnline icon="ri:terminal-line" class="mr-2" />Shell</span>
+            <span class="type-option"
+              ><IconifyIconOnline
+                icon="ri:terminal-line"
+                class="mr-2"
+              />Shell</span
+            >
           </el-option>
           <el-option label="Python" value="PYTHON">
-            <span class="type-option"><IconifyIconOnline icon="ri:file-code-line" class="mr-2" />Python</span>
+            <span class="type-option"
+              ><IconifyIconOnline
+                icon="ri:file-code-line"
+                class="mr-2"
+              />Python</span
+            >
           </el-option>
           <el-option label="PowerShell" value="POWERSHELL">
-            <span class="type-option"><IconifyIconOnline icon="ri:windows-line" class="mr-2" />PowerShell</span>
+            <span class="type-option"
+              ><IconifyIconOnline
+                icon="ri:windows-line"
+                class="mr-2"
+              />PowerShell</span
+            >
           </el-option>
           <el-option label="Batch" value="BATCH">
-            <span class="type-option"><IconifyIconOnline icon="ri:file-text-line" class="mr-2" />Batch</span>
+            <span class="type-option"
+              ><IconifyIconOnline
+                icon="ri:file-text-line"
+                class="mr-2"
+              />Batch</span
+            >
           </el-option>
           <el-option label="JavaScript" value="JAVASCRIPT">
-            <span class="type-option"><IconifyIconOnline icon="ri:javascript-line" class="mr-2" />JavaScript</span>
+            <span class="type-option"
+              ><IconifyIconOnline
+                icon="ri:javascript-line"
+                class="mr-2"
+              />JavaScript</span
+            >
           </el-option>
           <el-option label="SQL" value="SQL">
-            <span class="type-option"><IconifyIconOnline icon="ri:database-2-line" class="mr-2" />SQL</span>
+            <span class="type-option"
+              ><IconifyIconOnline
+                icon="ri:database-2-line"
+                class="mr-2"
+              />SQL</span
+            >
           </el-option>
         </el-select>
         <el-select
@@ -80,10 +110,14 @@
           @change="handleFilter"
         >
           <el-option label="启用" :value="1">
-            <span class="status-option"><span class="status-dot enabled" />启用</span>
+            <span class="status-option"
+              ><span class="status-dot enabled" />启用</span
+            >
           </el-option>
           <el-option label="禁用" :value="0">
-            <span class="status-option"><span class="status-dot disabled" />禁用</span>
+            <span class="status-option"
+              ><span class="status-dot disabled" />禁用</span
+            >
           </el-option>
         </el-select>
       </div>
@@ -116,7 +150,6 @@
       row-key="monitorSysGenScriptId"
       @loaded="handleDataLoaded"
     >
-
       <!-- 卡片内容 -->
       <template #default="{ row }">
         <div class="script-card" @click="handleEdit(row)">
@@ -128,12 +161,19 @@
 
           <!-- 卡片头部 -->
           <div class="card-header">
-            <div class="script-icon" :class="getIconClass(row.monitorSysGenScriptType)">
-              <IconifyIconOnline :icon="getScriptTypeIcon(row.monitorSysGenScriptType)" />
+            <div
+              class="script-icon"
+              :class="getIconClass(row.monitorSysGenScriptType)"
+            >
+              <IconifyIconOnline
+                :icon="getScriptTypeIcon(row.monitorSysGenScriptType)"
+              />
             </div>
             <div class="script-meta">
               <h3 class="script-name">{{ row.monitorSysGenScriptName }}</h3>
-              <p class="script-desc">{{ row.monitorSysGenScriptDescription || '暂无描述' }}</p>
+              <p class="script-desc">
+                {{ row.monitorSysGenScriptDescription || "暂无描述" }}
+              </p>
             </div>
           </div>
 
@@ -144,7 +184,10 @@
                 <IconifyIconOnline icon="ri:code-box-line" />
                 类型
               </span>
-              <el-tag size="small" :type="getTypeTagType(row.monitorSysGenScriptType)">
+              <el-tag
+                size="small"
+                :type="getTypeTagType(row.monitorSysGenScriptType)"
+              >
                 {{ row.monitorSysGenScriptType }}
               </el-tag>
             </div>
@@ -155,12 +198,14 @@
               </span>
               <span class="info-value">{{ formatTime(row.updateTime) }}</span>
             </div>
-            <div class="info-row" v-if="row.monitorSysGenScriptCategory">
+            <div v-if="row.monitorSysGenScriptCategory" class="info-row">
               <span class="info-label">
                 <IconifyIconOnline icon="ri:folder-line" />
                 分类
               </span>
-              <span class="info-value">{{ row.monitorSysGenScriptCategory }}</span>
+              <span class="info-value">{{
+                row.monitorSysGenScriptCategory
+              }}</span>
             </div>
           </div>
 
@@ -306,7 +351,7 @@ const fetchScripts = async (params: any) => {
 const handleDataLoaded = (data: any) => {
   totalCount.value = data.total || 0;
   enabledCount.value = (data.data || []).filter(
-    (s: Script) => s.monitorSysGenScriptStatus === "ENABLED"
+    (s: Script) => s.monitorSysGenScriptStatus === "ENABLED",
   ).length;
 };
 
@@ -339,10 +384,11 @@ const handleEdit = (script: Script) => {
 // 状态切换
 const handleStatusChange = async (script: Script) => {
   try {
-    const statusValue = script.monitorSysGenScriptStatus === ScriptStatus.ENABLED ? 1 : 0;
+    const statusValue =
+      script.monitorSysGenScriptStatus === ScriptStatus.ENABLED ? 1 : 0;
     const response: any = await ScriptAPI.updateScriptStatus(
       script.monitorSysGenScriptId!,
-      statusValue
+      statusValue,
     );
     if (response.success) {
       message("状态更新成功", { type: "success" });
@@ -367,7 +413,7 @@ const handleCopy = async (script: Script) => {
   try {
     const response: any = await ScriptAPI.copyScript(
       script.monitorSysGenScriptId!,
-      `${script.monitorSysGenScriptName}_副本`
+      `${script.monitorSysGenScriptName}_副本`,
     );
     if (response.success) {
       message("脚本复制成功", { type: "success" });
@@ -390,11 +436,11 @@ const handleDelete = async (script: Script) => {
         type: "warning",
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-      }
+      },
     );
 
     const response: any = await ScriptAPI.deleteScript(
-      script.monitorSysGenScriptId!
+      script.monitorSysGenScriptId!,
     );
     if (response.success) {
       message("脚本删除成功", { type: "success" });
@@ -460,8 +506,13 @@ const getIconClass = (type: string) => {
 };
 
 // 获取类型标签颜色
-const getTypeTagType = (type: string): "primary" | "success" | "warning" | "info" | "danger" => {
-  const typeMap: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
+const getTypeTagType = (
+  type: string,
+): "primary" | "success" | "warning" | "info" | "danger" => {
+  const typeMap: Record<
+    string,
+    "primary" | "success" | "warning" | "info" | "danger"
+  > = {
     SHELL: "success",
     PYTHON: "primary",
     POWERSHELL: "info",
@@ -474,7 +525,6 @@ const getTypeTagType = (type: string): "primary" | "success" | "warning" | "info
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -507,7 +557,6 @@ const getTypeTagType = (type: string): "primary" | "success" | "warning" | "info
     z-index: 1;
   }
 }
-
 
 .script-management-page {
   min-height: 100%;
@@ -671,7 +720,11 @@ const getTypeTagType = (type: string): "primary" | "success" | "warning" | "info
     transition: background 0.3s;
 
     &.active {
-      background: linear-gradient(90deg, var(--el-color-success), var(--el-color-success-light-3));
+      background: linear-gradient(
+        90deg,
+        var(--el-color-success),
+        var(--el-color-success-light-3)
+      );
     }
   }
 

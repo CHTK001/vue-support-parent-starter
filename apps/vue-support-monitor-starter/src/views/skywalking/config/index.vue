@@ -12,14 +12,28 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-input v-model="searchForm.name" placeholder="配置名称" clearable style="width: 160px" />
-        <el-select v-model="searchForm.status" placeholder="状态" clearable style="width: 100px">
+        <el-input
+          v-model="searchForm.name"
+          placeholder="配置名称"
+          clearable
+          style="width: 160px"
+        />
+        <el-select
+          v-model="searchForm.status"
+          placeholder="状态"
+          clearable
+          style="width: 100px"
+        >
           <el-option label="启用" :value="1" />
           <el-option label="禁用" :value="0" />
         </el-select>
-        <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+        <el-button type="primary" :icon="Search" @click="handleSearch"
+          >查询</el-button
+        >
         <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
-        <el-button type="success" :icon="Plus" @click="handleAdd">新增配置</el-button>
+        <el-button type="success" :icon="Plus" @click="handleAdd"
+          >新增配置</el-button
+        >
       </div>
     </div>
 
@@ -34,13 +48,24 @@
         stripe
         height="100%"
       >
-        <el-table-column prop="skywalkingConfigName" label="配置名称" min-width="150" />
-        <el-table-column prop="skywalkingConfigHost" label="服务地址" min-width="150" />
+        <el-table-column
+          prop="skywalkingConfigName"
+          label="配置名称"
+          min-width="150"
+        />
+        <el-table-column
+          prop="skywalkingConfigHost"
+          label="服务地址"
+          min-width="150"
+        />
         <el-table-column prop="skywalkingConfigPort" label="端口" width="100" />
         <el-table-column label="HTTPS" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.skywalkingConfigUseHttps === 1 ? 'success' : 'info'" size="small">
-              {{ row.skywalkingConfigUseHttps === 1 ? '是' : '否' }}
+            <el-tag
+              :type="row.skywalkingConfigUseHttps === 1 ? 'success' : 'info'"
+              size="small"
+            >
+              {{ row.skywalkingConfigUseHttps === 1 ? "是" : "否" }}
             </el-tag>
           </template>
         </el-table-column>
@@ -54,13 +79,25 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="skywalkingConfigDesc" label="描述" min-width="200" show-overflow-tooltip />
+        <el-table-column
+          prop="skywalkingConfigDesc"
+          label="描述"
+          min-width="200"
+          show-overflow-tooltip
+        />
         <el-table-column prop="createTime" label="创建时间" width="180" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleTest(row)">测试</el-button>
-            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-popconfirm title="确定删除该配置吗？" @confirm="handleDelete(row)">
+            <el-button type="primary" link size="small" @click="handleTest(row)"
+              >测试</el-button
+            >
+            <el-button type="primary" link size="small" @click="handleEdit(row)"
+              >编辑</el-button
+            >
+            <el-popconfirm
+              title="确定删除该配置吗？"
+              @confirm="handleDelete(row)"
+            >
               <template #reference>
                 <el-button type="danger" link size="small">删除</el-button>
               </template>
@@ -71,37 +108,46 @@
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <sc-dialog 
-      v-model="dialogVisible" 
-      :title="dialogTitle" 
-      width="850px" 
+    <sc-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="850px"
       destroy-on-close
       :icon="formData.skywalkingConfigId ? 'ri:edit-line' : 'ri:add-line'"
       icon-mode="inline"
       :show-footer="false"
     >
       <div class="config-form-wrapper">
-        <el-form ref="formRef" :model="formData" :rules="rules" label-width="110px" class="config-form">
+        <el-form
+          ref="formRef"
+          :model="formData"
+          :rules="rules"
+          label-width="110px"
+          class="config-form"
+        >
           <!-- 基本信息 -->
           <div class="form-section">
             <div class="section-header">
-              <IconifyIconOnline icon="ri:information-line" class="section-icon" />
+              <IconifyIconOnline
+                icon="ri:information-line"
+                class="section-icon"
+              />
               <span>基本信息</span>
             </div>
             <div class="section-content">
               <el-form-item label="配置名称" prop="skywalkingConfigName">
-                <el-input 
-                  v-model="formData.skywalkingConfigName" 
+                <el-input
+                  v-model="formData.skywalkingConfigName"
                   placeholder="请输入配置名称"
                   :prefix-icon="useRenderIcon('ri:bookmark-line')"
                 />
               </el-form-item>
               <el-form-item label="描述">
-                <el-input 
-                  v-model="formData.skywalkingConfigDesc" 
-                  type="textarea" 
-                  :rows="2" 
-                  placeholder="请输入配置描述（可选）" 
+                <el-input
+                  v-model="formData.skywalkingConfigDesc"
+                  type="textarea"
+                  :rows="2"
+                  placeholder="请输入配置描述（可选）"
                 />
               </el-form-item>
             </div>
@@ -117,8 +163,8 @@
               <el-row :gutter="16">
                 <el-col :span="16">
                   <el-form-item label="服务地址" prop="skywalkingConfigHost">
-                    <el-input 
-                      v-model="formData.skywalkingConfigHost" 
+                    <el-input
+                      v-model="formData.skywalkingConfigHost"
                       placeholder="如: localhost 或 192.168.1.100"
                       :prefix-icon="useRenderIcon('ri:server-line')"
                     />
@@ -126,10 +172,10 @@
                 </el-col>
                 <el-col :span="8">
                   <el-form-item label="端口" prop="skywalkingConfigPort">
-                    <el-input-number 
-                      v-model="formData.skywalkingConfigPort" 
-                      :min="1" 
-                      :max="65535" 
+                    <el-input-number
+                      v-model="formData.skywalkingConfigPort"
+                      :min="1"
+                      :max="65535"
                       controls-position="right"
                       style="width: 100%"
                     />
@@ -138,14 +184,16 @@
               </el-row>
               <el-form-item label="启用 HTTPS">
                 <div class="switch-wrapper">
-                  <el-switch 
-                    v-model="formData.skywalkingConfigUseHttps" 
-                    :active-value="1" 
+                  <el-switch
+                    v-model="formData.skywalkingConfigUseHttps"
+                    :active-value="1"
                     :inactive-value="0"
                     active-text="是"
                     inactive-text="否"
                   />
-                  <span class="switch-hint">如果 SkyWalking 服务启用了 HTTPS，请开启此选项</span>
+                  <span class="switch-hint"
+                    >如果 SkyWalking 服务启用了 HTTPS，请开启此选项</span
+                  >
                 </div>
               </el-form-item>
             </div>
@@ -154,16 +202,21 @@
           <!-- 认证配置 -->
           <div class="form-section">
             <div class="section-header">
-              <IconifyIconOnline icon="ri:shield-keyhole-line" class="section-icon" />
+              <IconifyIconOnline
+                icon="ri:shield-keyhole-line"
+                class="section-icon"
+              />
               <span>认证配置</span>
-              <el-tag type="info" size="small" class="optional-tag">可选</el-tag>
+              <el-tag type="info" size="small" class="optional-tag"
+                >可选</el-tag
+              >
             </div>
             <div class="section-content">
               <el-row :gutter="16">
                 <el-col :span="12">
                   <el-form-item label="用户名">
-                    <el-input 
-                      v-model="formData.skywalkingConfigUsername" 
+                    <el-input
+                      v-model="formData.skywalkingConfigUsername"
                       placeholder="请输入用户名"
                       :prefix-icon="useRenderIcon('ri:user-line')"
                     />
@@ -171,10 +224,10 @@
                 </el-col>
                 <el-col :span="12">
                   <el-form-item label="密码">
-                    <el-input 
-                      v-model="formData.skywalkingConfigPassword" 
-                      type="password" 
-                      placeholder="请输入密码" 
+                    <el-input
+                      v-model="formData.skywalkingConfigPassword"
+                      type="password"
+                      placeholder="请输入密码"
                       show-password
                       :prefix-icon="useRenderIcon('ri:lock-line')"
                     />
@@ -193,14 +246,17 @@
             <div class="section-content">
               <el-form-item label="启用状态">
                 <div class="switch-wrapper">
-                  <el-switch 
-                    v-model="formData.skywalkingConfigStatus" 
-                    :active-value="1" 
+                  <el-switch
+                    v-model="formData.skywalkingConfigStatus"
+                    :active-value="1"
                     :inactive-value="0"
                     active-text="启用"
                     inactive-text="禁用"
                     inline-prompt
-                    style="--el-switch-on-color: var(--el-color-success); --el-switch-off-color: var(--el-color-danger)"
+                    style="
+                      --el-switch-on-color: var(--el-color-success);
+                      --el-switch-off-color: var(--el-color-danger);
+                    "
                   />
                   <span class="switch-hint">禁用后该配置将不会被使用</span>
                 </div>
@@ -215,9 +271,13 @@
             <IconifyIconOnline icon="ri:close-line" />
             取消
           </el-button>
-          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+          <el-button
+            type="primary"
+            :loading="submitLoading"
+            @click="handleSubmit"
+          >
             <IconifyIconOnline icon="ri:check-line" />
-            {{ formData.skywalkingConfigId ? '更新配置' : '创建配置' }}
+            {{ formData.skywalkingConfigId ? "更新配置" : "创建配置" }}
           </el-button>
         </div>
       </div>
@@ -275,9 +335,15 @@ const formData = reactive<SkywalkingConfig>({
 
 // 表单验证规则
 const rules: FormRules = {
-  skywalkingConfigName: [{ required: true, message: "请输入配置名称", trigger: "blur" }],
-  skywalkingConfigHost: [{ required: true, message: "请输入服务地址", trigger: "blur" }],
-  skywalkingConfigPort: [{ required: true, message: "请输入端口", trigger: "blur" }],
+  skywalkingConfigName: [
+    { required: true, message: "请输入配置名称", trigger: "blur" },
+  ],
+  skywalkingConfigHost: [
+    { required: true, message: "请输入服务地址", trigger: "blur" },
+  ],
+  skywalkingConfigPort: [
+    { required: true, message: "请输入端口", trigger: "blur" },
+  ],
 };
 
 // 搜索
@@ -323,7 +389,9 @@ const handleSubmit = async () => {
 
   submitLoading.value = true;
   try {
-    const api = formData.skywalkingConfigId ? updateSkywalkingConfig : saveSkywalkingConfig;
+    const api = formData.skywalkingConfigId
+      ? updateSkywalkingConfig
+      : saveSkywalkingConfig;
     const res = await api(formData);
     if (res.code === "00000") {
       ElMessage.success(formData.skywalkingConfigId ? "更新成功" : "新增成功");
@@ -370,11 +438,9 @@ const handleToggleStatus = async (row: SkywalkingConfig) => {
     row.skywalkingConfigStatus = row.skywalkingConfigStatus === 1 ? 0 : 1;
   }
 };
-
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -391,8 +457,6 @@ const handleToggleStatus = async (row: SkywalkingConfig) => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -427,7 +491,6 @@ const handleToggleStatus = async (row: SkywalkingConfig) => {
   }
 }
 
-
 .skywalking-config {
   padding: 20px;
   height: 100%;
@@ -460,7 +523,7 @@ const handleToggleStatus = async (row: SkywalkingConfig) => {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
+        background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
         border-radius: 10px;
         color: #fff;
       }
@@ -543,7 +606,11 @@ const handleToggleStatus = async (row: SkywalkingConfig) => {
     align-items: center;
     gap: 8px;
     padding: 12px 16px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-fill-color-light) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-fill-color-light) 100%
+    );
     border-bottom: 1px solid var(--el-border-color-lighter);
     font-weight: 600;
     font-size: 14px;
@@ -604,7 +671,6 @@ const handleToggleStatus = async (row: SkywalkingConfig) => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -613,5 +679,4 @@ const handleToggleStatus = async (row: SkywalkingConfig) => {
     padding: 12px 16px;
   }
 }
-
 </style>

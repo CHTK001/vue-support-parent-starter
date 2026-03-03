@@ -102,7 +102,9 @@ export function getOnlineUsers() {
  * 获取房间列表
  */
 export function getRoomList(params?: RoomListParams) {
-  return http.get<{ list: RoomInfo[]; total: number }>("/webrtc/rooms", { params });
+  return http.get<{ list: RoomInfo[]; total: number }>("/webrtc/rooms", {
+    params,
+  });
 }
 
 /**
@@ -116,7 +118,9 @@ export function createRoom(data: CreateRoomParams) {
  * 加入房间
  */
 export function joinRoom(params: { roomId: string; password?: string }) {
-  return http.post(`/webrtc/rooms/${params.roomId}/join`, { password: params.password });
+  return http.post(`/webrtc/rooms/${params.roomId}/join`, {
+    password: params.password,
+  });
 }
 
 /**

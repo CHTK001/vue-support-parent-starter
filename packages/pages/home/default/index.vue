@@ -40,7 +40,7 @@ const handlePreviewError = (id) => {
 };
 
 const CustomLayout = defineAsyncComponent(
-  () => import("./layout/CustomLayout.vue"),
+  () => import("./layout/DraggableLayout.vue"),
 );
 const openRemoteLayout = getConfig().RemoteLayout;
 const openLocationLayout = getConfig().LocationLayout;

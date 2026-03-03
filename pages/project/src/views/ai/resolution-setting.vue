@@ -50,9 +50,7 @@
 
       <template #footer>
         <ScButton @click="env.visible = false">取 消</ScButton>
-        <ScButton type="primary" @click="debounce(handleUpdate(), 1000, true)"
-          >确 定</el-button
-        >
+        <ScButton type="primary" @click="debounce(handleUpdate(), 1000, true)">确 定</ScButton>
       </template>
     </sc-dialog>
   </div>

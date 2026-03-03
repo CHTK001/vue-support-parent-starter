@@ -43,7 +43,9 @@
           >
             <IconifyIconOnline icon="mdi:certificate" />
             <span>证书列表</span>
-            <span class="tab-badge" v-if="stats.validCount">{{ stats.validCount }}</span>
+            <span v-if="stats.validCount" class="tab-badge">{{
+              stats.validCount
+            }}</span>
           </div>
           <div
             class="tab-item"
@@ -52,7 +54,9 @@
           >
             <IconifyIconOnline icon="mdi:account-group" />
             <span>账户管理</span>
-            <span class="tab-badge" v-if="stats.accountCount">{{ stats.accountCount }}</span>
+            <span v-if="stats.accountCount" class="tab-badge">{{
+              stats.accountCount
+            }}</span>
           </div>
         </div>
         <div class="tabs-actions">
@@ -67,11 +71,11 @@
         </div>
       </div>
       <!-- 证书列表内容 -->
-      <div class="tab-content" v-show="activeTab === 'certs'">
+      <div v-show="activeTab === 'certs'" class="tab-content">
         <CertList ref="certListRef" @copy="handleCopyCert" />
       </div>
       <!-- 账户管理内容 -->
-      <div class="tab-content" v-show="activeTab === 'accounts'">
+      <div v-show="activeTab === 'accounts'" class="tab-content">
         <AccountList ref="accountListRef" />
       </div>
     </div>
@@ -101,7 +105,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ScCard } from "@repo/components";
-import { getCertStats, type AcmeCertStats, type AcmeCertificate } from "@/api/acme";
+import {
+  getCertStats,
+  type AcmeCertStats,
+  type AcmeCertificate,
+} from "@/api/acme";
 import CertList from "./components/CertList.vue";
 import AccountList from "./components/AccountList.vue";
 import ApplyCertDialog from "./components/ApplyCertDialog.vue";

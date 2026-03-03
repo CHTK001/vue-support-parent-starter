@@ -4,11 +4,18 @@
       <h4 class="mb-4 font-medium">串口参数</h4>
 
       <el-form-item label="串口" prop="monitorSerialPort">
-        <el-input v-model="form.monitorSerialPort" placeholder="请输入串口，如COM1、/dev/ttyUSB0" />
+        <el-input
+          v-model="form.monitorSerialPort"
+          placeholder="请输入串口，如COM1、/dev/ttyUSB0"
+        />
       </el-form-item>
 
       <el-form-item label="波特率" prop="monitorSerialBaudRate">
-        <el-select v-model="form.monitorSerialBaudRate" placeholder="选择波特率" class="w-full">
+        <el-select
+          v-model="form.monitorSerialBaudRate"
+          placeholder="选择波特率"
+          class="w-full"
+        >
           <el-option :value="110" label="110" />
           <el-option :value="300" label="300" />
           <el-option :value="1200" label="1200" />
@@ -27,7 +34,11 @@
       </el-form-item>
 
       <el-form-item label="数据位" prop="monitorSerialDataBits">
-        <el-select v-model="form.monitorSerialDataBits" placeholder="选择数据位" class="w-full">
+        <el-select
+          v-model="form.monitorSerialDataBits"
+          placeholder="选择数据位"
+          class="w-full"
+        >
           <el-option :value="5" label="5" />
           <el-option :value="6" label="6" />
           <el-option :value="7" label="7" />
@@ -36,7 +47,11 @@
       </el-form-item>
 
       <el-form-item label="停止位" prop="monitorSerialStopBits">
-        <el-select v-model="form.monitorSerialStopBits" placeholder="选择停止位" class="w-full">
+        <el-select
+          v-model="form.monitorSerialStopBits"
+          placeholder="选择停止位"
+          class="w-full"
+        >
           <el-option :value="1" label="1" />
           <el-option :value="1.5" label="1.5" />
           <el-option :value="2" label="2" />
@@ -44,7 +59,11 @@
       </el-form-item>
 
       <el-form-item label="校验位" prop="monitorSerialParity">
-        <el-select v-model="form.monitorSerialParity" placeholder="选择校验位" class="w-full">
+        <el-select
+          v-model="form.monitorSerialParity"
+          placeholder="选择校验位"
+          class="w-full"
+        >
           <el-option value="none" label="无校验" />
           <el-option value="even" label="偶校验" />
           <el-option value="odd" label="奇校验" />
@@ -54,7 +73,11 @@
       </el-form-item>
 
       <el-form-item label="流控制" prop="monitorSerialFlowControl">
-        <el-select v-model="form.monitorSerialFlowControl" placeholder="选择流控制" class="w-full">
+        <el-select
+          v-model="form.monitorSerialFlowControl"
+          placeholder="选择流控制"
+          class="w-full"
+        >
           <el-option value="none" label="无" />
           <el-option value="hardware" label="硬件流控" />
           <el-option value="software" label="软件流控" />
@@ -65,7 +88,11 @@
       <h4 class="mb-4 font-medium">显示设置</h4>
 
       <el-form-item label="接收格式" prop="monitorSerialReceiveFormat">
-        <el-select v-model="form.monitorSerialReceiveFormat" placeholder="选择接收格式" class="w-full">
+        <el-select
+          v-model="form.monitorSerialReceiveFormat"
+          placeholder="选择接收格式"
+          class="w-full"
+        >
           <el-option value="text" label="文本" />
           <el-option value="hex" label="HEX" />
         </el-select>
@@ -88,17 +115,35 @@
 
       <el-form-item>
         <div class="command-presets">
-          <div v-for="(preset, index) in form.monitorSerialCommandPresets" :key="index" class="command-preset-item mb-4">
+          <div
+            v-for="(preset, index) in form.monitorSerialCommandPresets"
+            :key="index"
+            class="command-preset-item mb-4"
+          >
             <div class="flex items-center justify-between mb-2">
               <h5 class="font-medium">预设命令 {{ index + 1 }}</h5>
-              <el-button type="danger" size="small" @click="removeCommandPreset(index)">
+              <el-button
+                type="danger"
+                size="small"
+                @click="removeCommandPreset(index)"
+              >
                 <IconifyIconOnline icon="ep:delete" />
               </el-button>
             </div>
-            <el-input v-model="preset.name" placeholder="命令名称" class="mb-2" />
-            <el-input v-model="preset.command" placeholder="命令内容" class="mb-2" />
+            <el-input
+              v-model="preset.name"
+              placeholder="命令名称"
+              class="mb-2"
+            />
+            <el-input
+              v-model="preset.command"
+              placeholder="命令内容"
+              class="mb-2"
+            />
             <div class="flex items-center">
-              <el-checkbox v-model="preset.addNewline">发送后添加换行</el-checkbox>
+              <el-checkbox v-model="preset.addNewline"
+                >发送后添加换行</el-checkbox
+              >
               <el-radio-group v-model="preset.type" class="ml-4">
                 <el-radio label="text">文本</el-radio>
                 <el-radio label="hex">HEX</el-radio>
@@ -161,7 +206,7 @@ watch(
       }
     }
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 );
 
 // 添加命令预设
@@ -191,7 +236,6 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -225,7 +269,6 @@ defineExpose({
   }
 }
 
-
 .serial-settings-container {
   max-height: 60vh;
   overflow-y: auto;
@@ -244,7 +287,6 @@ h4 {
   background-color: var(--el-fill-color-light);
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -253,5 +295,4 @@ h4 {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -45,12 +45,16 @@ export function uploadShardingFile(baseUrl, formData) {
  * @param {String} id
  */
 export function getRootFileList(baseUrl, id) {
-  return http.post(baseUrl + "root_file_data.json", {}, {
-    params: { id },
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.post(
+    baseUrl + "root_file_data.json",
+    {},
+    {
+      params: { id },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /**
@@ -58,12 +62,16 @@ export function getRootFileList(baseUrl, id) {
  * @param {id, path, children} params
  */
 export function getFileList(baseUrl, params) {
-  return http.post(baseUrl + "list_file_data.json", {}, {
-    params,
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.post(
+    baseUrl + "list_file_data.json",
+    {},
+    {
+      params,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /**
@@ -117,12 +125,16 @@ export function updateFileData(baseUrl, params) {
  * @returns {id, path, name,unFolder} params x
  */
 export function newFileFolder(baseUrl, params) {
-  return http.post(baseUrl + "new_file_folder.json", {}, {
-    params,
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  return http.post(
+    baseUrl + "new_file_folder.json",
+    {},
+    {
+      params,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
     },
-  });
+  );
 }
 
 /**

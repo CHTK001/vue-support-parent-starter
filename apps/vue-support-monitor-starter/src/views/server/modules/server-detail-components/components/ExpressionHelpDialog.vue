@@ -93,7 +93,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
               class="example-item"
               @click="
                 selectExpression(
-                  '100 - (avg(irate(node_cpu_seconds_total{mode=&quot;idle&quot;}[5m])) * 100)'
+                  '100 - (avg(irate(node_cpu_seconds_total{mode=&quot;idle&quot;}[5m])) * 100)',
                 )
               "
             >
@@ -113,7 +113,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
               class="example-item"
               @click="
                 selectExpression(
-                  '(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100'
+                  '(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100',
                 )
               "
             >
@@ -133,7 +133,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
               class="example-item"
               @click="
                 selectExpression(
-                  '(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100'
+                  '(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100',
                 )
               "
             >
@@ -373,7 +373,7 @@ const serverReportType = ref<string>("prometheus");
  */
 const open = (
   type: string = "PROMETHEUS",
-  reportType: string = "prometheus"
+  reportType: string = "prometheus",
 ) => {
   expressionType.value = type;
   serverReportType.value = reportType;

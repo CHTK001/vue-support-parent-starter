@@ -81,7 +81,7 @@
               controls-position="right"
             />
           </el-form-item>
-          <el-form-item label="配置信息" v-if="systemConfig">
+          <el-form-item v-if="systemConfig" label="配置信息">
             <div class="config-info">
               <span class="config-item"
                 >分片大小: {{ systemConfig.chunkSize }}MB</span
@@ -205,8 +205,9 @@ const addFiles = (files: File[]) => {
   const validFiles = files.filter((file) => {
     if (file.size > maxSize) {
       message(
-        `文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`
-      , { type: "warning" });
+        `文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`,
+        { type: "warning" },
+      );
       return false;
     }
     return true;
@@ -345,7 +346,7 @@ const uploadFileChunk = async (
   file: File,
   fileId: number,
   chunkNumber: number,
-  chunkSize: number
+  chunkSize: number,
 ) => {
   const start = chunkNumber * chunkSize;
   const end = Math.min(start + chunkSize, file.size);
@@ -491,7 +492,7 @@ onMounted(() => {
 
         .secondary-text {
           font-size: 14px;
-           color: var(--el-text-color-primary);
+          color: var(--el-text-color-primary);
           margin: 0;
         }
       }
@@ -555,7 +556,7 @@ onMounted(() => {
 
             .file-size {
               font-size: 12px;
-               color: var(--el-text-color-primary);
+              color: var(--el-text-color-primary);
             }
           }
         }
@@ -590,7 +591,6 @@ onMounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -599,5 +599,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

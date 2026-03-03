@@ -92,10 +92,10 @@
 
     <div class="relative h-full w-full">
       <ScTable
+        ref="tableRef"
         class="card-grid"
         :url="fetchAppPageList"
         :col-size="4"
-        ref="tableRef"
         layout="card"
       >
         <template #empty>
@@ -119,7 +119,7 @@
         <template #default="{ row: item }">
           <div class="app-card" @click="handleCardClick(item)">
             <!-- 状态指示器 -->
-            <div class="status-indicator" :class="getStatusClass(item)"></div>
+            <div class="status-indicator" :class="getStatusClass(item)" />
 
             <!-- 卡片头部 -->
             <div class="card-header">
@@ -190,7 +190,7 @@
               </div>
 
               <!-- 标签区域 -->
-              <div class="tags-section" v-if="item.tags && item.tags.length">
+              <div v-if="item.tags && item.tags.length" class="tags-section">
                 <el-tag
                   v-for="tag in item.tags"
                   :key="tag"
@@ -244,7 +244,7 @@
       :data="currentData"
       :visible="editDialogStatus"
       @success="handleSuccessOpenEit"
-    ></EditDialog>
+    />
 
     <DetailDialog v-model:visible="detailDialogStatus" :data="detailData" />
   </div>
@@ -255,7 +255,7 @@ import { ref, computed, onMounted } from "vue";
 import EditDialog from "./modules/EditDialog.vue";
 import DetailDialog from "./modules/DetailDialog.vue";
 import { fetchAppDelete, fetchAppPageList } from "@/api/monitor/app";
-import { ElMessageBox} from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { message } from "@repo/utils";
 
 const tableRef = ref<any>();
@@ -274,7 +274,7 @@ const query = ref<{ keyword: string; platform: string | undefined }>({
 // 统计数据
 const totalApps = computed(() => appList.value.length);
 const activeApps = computed(
-  () => appList.value.filter((app) => app.status === "active").length
+  () => appList.value.filter((app) => app.status === "active").length,
 );
 
 const reload = () => {

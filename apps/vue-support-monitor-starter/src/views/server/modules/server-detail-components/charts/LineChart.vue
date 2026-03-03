@@ -1,9 +1,12 @@
 <template>
-  <div class="line-chart system-container modern-bg" :style="{ height: (height - 10) + 'px' }">
+  <div
+    class="line-chart system-container modern-bg"
+    :style="{ height: height - 10 + 'px' }"
+  >
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="3" animated />
     </div>
-    <div v-else ref="chartRef" class="chart-container"></div>
+    <div v-else ref="chartRef" class="chart-container" />
   </div>
 </template>
 
@@ -14,24 +17,24 @@ import * as echarts from "echarts";
 const props = defineProps({
   chartData: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   height: {
     type: [Number, String],
-    default: 300
+    default: 300,
   },
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   chartConfig: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   defaultTimeRange: {
     type: Number,
-    default: 30
-  }
+    default: 30,
+  },
 });
 
 const emit = defineEmits<{
@@ -42,38 +45,48 @@ const chartRef = ref<HTMLElement>();
 const chart = ref<echarts.ECharts>();
 
 // 监听数据变化
-watch(() => props.chartData, () => {
-  updateChart();
-}, { deep: true });
+watch(
+  () => props.chartData,
+  () => {
+    updateChart();
+  },
+  { deep: true },
+);
 
-watch(() => props.loading, (loading) => {
-  if (!loading) {
-    nextTick(() => {
-      initChart();
-    });
-  }
-});
+watch(
+  () => props.loading,
+  (loading) => {
+    if (!loading) {
+      nextTick(() => {
+        initChart();
+      });
+    }
+  },
+);
 
 // 监听高度变化
-watch(() => props.height, () => {
-  nextTick(() => {
-    handleResize();
-  });
-});
+watch(
+  () => props.height,
+  () => {
+    nextTick(() => {
+      handleResize();
+    });
+  },
+);
 
 // 生命周期
 onMounted(() => {
   if (!props.loading) {
     initChart();
   }
-  window.addEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
 });
 
 onBeforeUnmount(() => {
   if (chart.value) {
     chart.value.dispose();
   }
-  window.removeEventListener('resize', handleResize);
+  window.removeEventListener("resize", handleResize);
 });
 
 /**
@@ -82,7 +95,7 @@ onBeforeUnmount(() => {
 const initChart = () => {
   if (!chartRef.value) return;
 
-  chart.value = echarts.init(chartRef.value, 'dark');
+  chart.value = echarts.init(chartRef.value, "dark");
   updateChart();
 
   // 延迟调整图表尺寸，确保容器已完全渲染
@@ -100,7 +113,7 @@ const initChart = () => {
  */
 const updateChart = () => {
   if (!chart.value) return;
-  
+
   const option = generateOption();
   chart.value.setOption(option, true);
 };
@@ -111,97 +124,99 @@ const updateChart = () => {
 const generateOption = () => {
   const data = props.chartData;
   const config = props.chartConfig;
-  
+
   return {
     title: {
-      text: config.title || '',
+      text: config.title || "",
       textStyle: {
-        color: '#e0e0e0',
-        fontSize: config.fontSize || 14
-      }
+        color: "#e0e0e0",
+        fontSize: config.fontSize || 14,
+      },
     },
     tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderColor: '#333',
+      trigger: "axis",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      borderColor: "#333",
       textStyle: {
-        color: '#e0e0e0'
-      }
+        color: "#e0e0e0",
+      },
     },
     legend: {
       show: config.legend?.show !== false,
       textStyle: {
-        color: '#e0e0e0'
+        color: "#e0e0e0",
       },
-      [config.legend?.position || 'top']: 10
+      [config.legend?.position || "top"]: 10,
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      containLabel: true,
     },
     toolbox: {
       show: config.toolbox?.show === true,
       feature: {
         saveAsImage: {
           iconStyle: {
-            borderColor: '#e0e0e0'
-          }
-        }
-      }
+            borderColor: "#e0e0e0",
+          },
+        },
+      },
     },
     xAxis: {
-      type: 'category',
+      type: "category",
       boundaryGap: false,
       data: data.labels || [],
       axisLine: {
         lineStyle: {
-          color: '#666'
-        }
+          color: "#666",
+        },
       },
       axisLabel: {
-        color: '#a0a0a0'
-      }
+        color: "#a0a0a0",
+      },
     },
     yAxis: {
-      type: 'value',
+      type: "value",
       axisLine: {
         lineStyle: {
-          color: '#666'
-        }
+          color: "#666",
+        },
       },
       axisLabel: {
-        color: '#a0a0a0'
+        color: "#a0a0a0",
       },
       splitLine: {
         lineStyle: {
-          color: config.color?.grid || '#333'
-        }
-      }
+          color: config.color?.grid || "#333",
+        },
+      },
     },
     series: (data.datasets || []).map((dataset, index) => ({
       name: dataset.label || `Series ${index + 1}`,
-      type: 'line',
+      type: "line",
       data: dataset.data || [],
       smooth: true,
       lineStyle: {
         width: config.lineWidth || 2,
-        color: dataset.borderColor || config.color?.primary || '#409EFF'
+        color: dataset.borderColor || config.color?.primary || "#409EFF",
       },
-      areaStyle: dataset.fill ? {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          {
-            offset: 0,
-            color: dataset.backgroundColor || 'rgba(64, 158, 255, 0.3)'
-          },
-          {
-            offset: 1,
-            color: dataset.backgroundColor || 'rgba(64, 158, 255, 0.1)'
+      areaStyle: dataset.fill
+        ? {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              {
+                offset: 0,
+                color: dataset.backgroundColor || "rgba(64, 158, 255, 0.3)",
+              },
+              {
+                offset: 1,
+                color: dataset.backgroundColor || "rgba(64, 158, 255, 0.1)",
+              },
+            ]),
           }
-        ])
-      } : undefined
-    }))
+        : undefined,
+    })),
   };
 };
 
@@ -216,7 +231,6 @@ const handleResize = () => {
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -250,7 +264,6 @@ const handleResize = () => {
   }
 }
 
-
 .line-chart {
   width: 100%;
 }
@@ -268,7 +281,6 @@ const handleResize = () => {
   height: 100%;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -277,5 +289,4 @@ const handleResize = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

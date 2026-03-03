@@ -167,15 +167,15 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose" class="cancel-btn">
+        <el-button class="cancel-btn" @click="handleClose">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           取消
         </el-button>
         <el-button
           type="primary"
-          @click="handleSubmit"
           :loading="loading"
           class="submit-btn"
+          @click="handleSubmit"
         >
           <IconifyIconOnline
             :icon="isEdit ? 'ri:save-line' : 'ri:add-line'"
@@ -308,7 +308,7 @@ watch(
       resetForm();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 关闭对话框
@@ -327,7 +327,7 @@ const checkPortAvailableHandler = async () => {
   try {
     const response = await checkPortAvailable(
       formData.systemServerPort,
-      formData.systemServerId
+      formData.systemServerId,
     );
 
     if (response.success) {
@@ -546,7 +546,6 @@ const handleSubmit = async () => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -555,5 +554,4 @@ const handleSubmit = async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

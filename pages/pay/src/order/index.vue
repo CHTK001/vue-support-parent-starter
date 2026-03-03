@@ -59,9 +59,9 @@
             />
           </ScFormItem>
           <ScFormItem>
-            <ScButton @click="handleRefresh"
-              ><iconifyIconOnline icon="ep:refresh" />刷新</el-button
-            >
+            <ScButton @click="handleRefresh">
+              <iconifyIconOnline icon="ep:refresh" />刷新
+            </ScButton>
           </ScFormItem>
         </ScForm>
       </div>
@@ -116,9 +116,9 @@
         <template #default="{ row }">
           <ScPopover placement="bottom" trigger="click" width="420">
             <template #reference>
-              <ScButton text size="small"
-                ><iconifyIconOnline icon="ep:view" />查看</el-button
-              >
+              <ScButton text size="small">
+                <iconifyIconOnline icon="ep:view" />查看
+              </ScButton>
             </template>
             <div class="grid grid-cols-2 gap-2 text-sm">
               <div><b>OpenID</b>：{{ row.payMerchantOrderOpenid || "-" }}</div>
@@ -147,16 +147,18 @@
             size="small"
             :disabled="!canRefund(row)"
             @click="onRefund(row)"
-            ><iconifyIconOnline icon="ri:refund-2-line" />退款</el-button
           >
+            <iconifyIconOnline icon="ri:refund-2-line" />退款
+          </ScButton>
           <ScButton 
             text
             size="small"
             :disabled="!canClose(row)"
             type="danger"
             @click="onClose(row)"
-            ><iconifyIconOnline icon="ep:close" />关闭</el-button
           >
+            <iconifyIconOnline icon="ep:close" />关闭
+          </ScButton>
         </template>
       </ScTableColumn>
     </ScTable>

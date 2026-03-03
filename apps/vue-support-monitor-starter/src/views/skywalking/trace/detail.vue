@@ -8,16 +8,22 @@
             <span class="label">Trace ID:</span>
             <span class="value">{{ traceId }}</span>
             <el-button type="primary" link size="small" @click="copyTraceId">
-              <template #icon><el-icon><CopyDocument /></el-icon></template>
+              <template #icon
+                ><el-icon><CopyDocument /></el-icon
+              ></template>
               复制
             </el-button>
           </div>
           <div class="trace-stats">
-            <el-tag type="info" size="small">Span 数量: {{ traceData?.spans?.length || 0 }}</el-tag>
+            <el-tag type="info" size="small"
+              >Span 数量: {{ traceData?.spans?.length || 0 }}</el-tag
+            >
             <el-tag :type="hasError ? 'danger' : 'success'" size="small">
-              {{ hasError ? '包含错误' : '正常' }}
+              {{ hasError ? "包含错误" : "正常" }}
             </el-tag>
-            <el-tag type="info" size="small">总耗时: {{ totalDuration }}</el-tag>
+            <el-tag type="info" size="small"
+              >总耗时: {{ totalDuration }}</el-tag
+            >
           </div>
         </div>
         <div class="header-actions">
@@ -28,7 +34,7 @@
     </el-card>
 
     <!-- Span 列表 -->
-    <el-card class="span-card" shadow="never" v-loading="loading">
+    <el-card v-loading="loading" class="span-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>Span 列表</span>
@@ -41,16 +47,32 @@
 
       <!-- 列表视图 -->
       <div v-if="viewMode === 'list'" class="span-list">
-        <el-table :data="traceData?.spans || []" border stripe row-key="spanId" default-expand-all>
+        <el-table
+          :data="traceData?.spans || []"
+          border
+          stripe
+          row-key="spanId"
+          default-expand-all
+        >
           <el-table-column label="状态" width="80" align="center">
             <template #default="{ row }">
               <el-tag :type="row.isError ? 'danger' : 'success'" size="small">
-                {{ row.isError ? '错误' : '正常' }}
+                {{ row.isError ? "错误" : "正常" }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="endpointName" label="端点" min-width="250" show-overflow-tooltip />
-          <el-table-column prop="serviceCode" label="服务" min-width="150" show-overflow-tooltip />
+          <el-table-column
+            prop="endpointName"
+            label="端点"
+            min-width="250"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="serviceCode"
+            label="服务"
+            min-width="150"
+            show-overflow-tooltip
+          />
           <el-table-column prop="component" label="组件" width="120" />
           <el-table-column prop="type" label="类型" width="100" />
           <el-table-column label="耗时" width="120" align="right">
@@ -60,7 +82,13 @@
           </el-table-column>
           <el-table-column label="操作" width="100" fixed="right">
             <template #default="{ row }">
-              <el-button type="primary" link size="small" @click="showSpanDetail(row)">详情</el-button>
+              <el-button
+                type="primary"
+                link
+                size="small"
+                @click="showSpanDetail(row)"
+                >详情</el-button
+              >
             </template>
           </el-table-column>
         </el-table>
@@ -68,13 +96,19 @@
 
       <!-- 时间线视图 -->
       <div v-else class="timeline-view">
-        <div v-for="span in sortedSpans" :key="span.segmentId + '-' + span.spanId" class="timeline-item">
+        <div
+          v-for="span in sortedSpans"
+          :key="span.segmentId + '-' + span.spanId"
+          class="timeline-item"
+        >
           <div class="timeline-bar" :style="getBarStyle(span)">
             <span class="bar-label">{{ span.endpointName }}</span>
           </div>
           <div class="timeline-info">
             <span class="service">{{ span.serviceCode }}</span>
-            <span class="duration">{{ formatDuration(span.endTime - span.startTime) }}</span>
+            <span class="duration">{{
+              formatDuration(span.endTime - span.startTime)
+            }}</span>
             <el-tag v-if="span.isError" type="danger" size="small">错误</el-tag>
           </div>
         </div>
@@ -85,28 +119,57 @@
     <sc-drawer v-model="drawerVisible" title="Span 详情" size="600px">
       <template v-if="selectedSpan">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="Span ID">{{ selectedSpan.spanId }}</el-descriptions-item>
-          <el-descriptions-item label="Segment ID">{{ selectedSpan.segmentId }}</el-descriptions-item>
-          <el-descriptions-item label="端点名称">{{ selectedSpan.endpointName }}</el-descriptions-item>
-          <el-descriptions-item label="服务">{{ selectedSpan.serviceCode }}</el-descriptions-item>
-          <el-descriptions-item label="服务实例">{{ selectedSpan.serviceInstanceName }}</el-descriptions-item>
-          <el-descriptions-item label="类型">{{ selectedSpan.type }}</el-descriptions-item>
-          <el-descriptions-item label="组件">{{ selectedSpan.component }}</el-descriptions-item>
-          <el-descriptions-item label="层">{{ selectedSpan.layer }}</el-descriptions-item>
-          <el-descriptions-item label="对端地址">{{ selectedSpan.peer || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="开始时间">{{ formatTimestamp(selectedSpan.startTime) }}</el-descriptions-item>
-          <el-descriptions-item label="结束时间">{{ formatTimestamp(selectedSpan.endTime) }}</el-descriptions-item>
-          <el-descriptions-item label="耗时">{{ formatDuration(selectedSpan.endTime - selectedSpan.startTime) }}</el-descriptions-item>
+          <el-descriptions-item label="Span ID">{{
+            selectedSpan.spanId
+          }}</el-descriptions-item>
+          <el-descriptions-item label="Segment ID">{{
+            selectedSpan.segmentId
+          }}</el-descriptions-item>
+          <el-descriptions-item label="端点名称">{{
+            selectedSpan.endpointName
+          }}</el-descriptions-item>
+          <el-descriptions-item label="服务">{{
+            selectedSpan.serviceCode
+          }}</el-descriptions-item>
+          <el-descriptions-item label="服务实例">{{
+            selectedSpan.serviceInstanceName
+          }}</el-descriptions-item>
+          <el-descriptions-item label="类型">{{
+            selectedSpan.type
+          }}</el-descriptions-item>
+          <el-descriptions-item label="组件">{{
+            selectedSpan.component
+          }}</el-descriptions-item>
+          <el-descriptions-item label="层">{{
+            selectedSpan.layer
+          }}</el-descriptions-item>
+          <el-descriptions-item label="对端地址">{{
+            selectedSpan.peer || "-"
+          }}</el-descriptions-item>
+          <el-descriptions-item label="开始时间">{{
+            formatTimestamp(selectedSpan.startTime)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="结束时间">{{
+            formatTimestamp(selectedSpan.endTime)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="耗时">{{
+            formatDuration(selectedSpan.endTime - selectedSpan.startTime)
+          }}</el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag :type="selectedSpan.isError ? 'danger' : 'success'">
-              {{ selectedSpan.isError ? '错误' : '正常' }}
+              {{ selectedSpan.isError ? "错误" : "正常" }}
             </el-tag>
           </el-descriptions-item>
         </el-descriptions>
 
         <!-- Tags -->
         <div class="section-title">标签</div>
-        <el-table :data="selectedSpan.tags || []" border size="small" max-height="200">
+        <el-table
+          :data="selectedSpan.tags || []"
+          border
+          size="small"
+          max-height="200"
+        >
           <el-table-column prop="key" label="Key" width="200" />
           <el-table-column prop="value" label="Value" show-overflow-tooltip />
         </el-table>
@@ -114,11 +177,19 @@
         <!-- Logs -->
         <div class="section-title">日志</div>
         <div v-if="selectedSpan.logs?.length" class="log-list">
-          <div v-for="(log, idx) in selectedSpan.logs" :key="idx" class="log-item">
+          <div
+            v-for="(log, idx) in selectedSpan.logs"
+            :key="idx"
+            class="log-item"
+          >
             <div class="log-time">{{ formatTimestamp(log.time) }}</div>
             <el-table :data="log.data || []" border size="small">
               <el-table-column prop="key" label="Key" width="150" />
-              <el-table-column prop="value" label="Value" show-overflow-tooltip />
+              <el-table-column
+                prop="value"
+                label="Value"
+                show-overflow-tooltip
+              />
             </el-table>
           </div>
         </div>
@@ -133,7 +204,12 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { CopyDocument } from "@element-plus/icons-vue";
-import { getSkywalkingTraceDetail, formatDuration, formatTimestamp, type Span } from "@/api/skywalking/data";
+import {
+  getSkywalkingTraceDetail,
+  formatDuration,
+  formatTimestamp,
+  type Span,
+} from "@/api/skywalking/data";
 
 defineOptions({ name: "SkywalkingTraceDetail" });
 
@@ -150,7 +226,9 @@ const drawerVisible = ref(false);
 const selectedSpan = ref<Span | null>(null);
 
 // 是否有错误
-const hasError = computed(() => traceData.value?.spans?.some((s) => s.isError) || false);
+const hasError = computed(
+  () => traceData.value?.spans?.some((s) => s.isError) || false,
+);
 
 // 总耗时
 const totalDuration = computed(() => {
@@ -184,12 +262,15 @@ const timelineTotal = computed(() => {
 
 // 获取时间线条样式
 const getBarStyle = (span: Span) => {
-  const left = ((span.startTime - timelineStart.value) / timelineTotal.value) * 100;
+  const left =
+    ((span.startTime - timelineStart.value) / timelineTotal.value) * 100;
   const width = ((span.endTime - span.startTime) / timelineTotal.value) * 100;
   return {
     marginLeft: `${left}%`,
     width: `${Math.max(width, 1)}%`,
-    backgroundColor: span.isError ? "var(--el-color-danger)" : "var(--el-color-primary)",
+    backgroundColor: span.isError
+      ? "var(--el-color-danger)"
+      : "var(--el-color-primary)",
   };
 };
 
@@ -231,7 +312,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -264,7 +344,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .trace-detail {
   padding: 16px;
@@ -371,7 +450,6 @@ onMounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -380,5 +458,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -5,7 +5,7 @@
       <div class="detail-header">
         <div class="detail-subject">{{ email.subject }}</div>
         <div class="detail-actions">
-        <!--
+          <!--
           <el-button
             size="small"
             :icon="useRenderIcon('ri:reply-line')"
@@ -67,13 +67,13 @@
       </div>
 
       <div class="detail-content">
-        <iframe 
+        <iframe
           ref="emailContentFrame"
           class="email-body-iframe"
           :srcdoc="email.content"
           frameborder="0"
           sandbox="allow-same-origin"
-        ></iframe>
+        />
       </div>
     </div>
 
@@ -180,12 +180,12 @@ function parseEmailContent(content: string): string {
       // 转换HTTP/HTTPS链接为可点击链接
       .replace(
         /(https?:\/\/[^\s<>"']+)/gi,
-        '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+        '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
       )
       // 转换邮箱地址为可点击链接
       .replace(
         /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi,
-        '<a href="mailto:$1">$1</a>'
+        '<a href="mailto:$1">$1</a>',
       )
   );
 }
@@ -195,7 +195,7 @@ function parseMultipartAlternativeContent(content: string): string {
   try {
     // 查找HTML部分
     const htmlMatch = content.match(
-      /Content-Type: text\/html[\s\S]*?\n\n([\s\S]*?)(?=\n--)/i
+      /Content-Type: text\/html[\s\S]*?\n\n([\s\S]*?)(?=\n--)/i,
     );
     if (htmlMatch && htmlMatch[1]) {
       return sanitizeHtmlContent(htmlMatch[1].trim());
@@ -203,7 +203,7 @@ function parseMultipartAlternativeContent(content: string): string {
 
     // 如果没有HTML部分，查找纯文本部分
     const textMatch = content.match(
-      /Content-Type: text\/plain[\s\S]*?\n\n([\s\S]*?)(?=\n--)/i
+      /Content-Type: text\/plain[\s\S]*?\n\n([\s\S]*?)(?=\n--)/i,
     );
     if (textMatch && textMatch[1]) {
       const textContent = textMatch[1].trim();
@@ -216,12 +216,12 @@ function parseMultipartAlternativeContent(content: string): string {
           // 转换HTTP/HTTPS链接为可点击链接
           .replace(
             /(https?:\/\/[^\s<>"']+)/gi,
-            '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+            '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
           )
           // 转换邮箱地址为可点击链接
           .replace(
             /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi,
-            '<a href="mailto:$1">$1</a>'
+            '<a href="mailto:$1">$1</a>',
           )
       );
     }
@@ -246,7 +246,7 @@ function sanitizeHtmlContent(htmlContent: string): string {
     /* 移除内联style属性中可能影响全局的样式 */
     .replace(
       /style\s*=\s*["'][^"']*(?:position\s*:\s*(?:fixed|absolute)|z-index\s*:|top\s*:|left\s*:|right\s*:|bottom\s*:)[^"']*["']/gi,
-      ""
+      "",
     )
     /* 移除可能的CSS导入 */
     .replace(/@import[^;]+;/gi, "")
@@ -265,20 +265,20 @@ function sanitizeHtmlContent(htmlContent: string): string {
         attrs += ' target="_blank" rel="noopener noreferrer"';
       }
       return `<a${attrs}>`;
-    }
+    },
   );
 
   /* 转换HTML内容中未被标记的纯文本链接 */
   /* 注意：需要避免转换已经在<a>标签内的链接 */
   sanitized = sanitized.replace(
     /(?!<a[^>]*>)(https?:\/\/[^\s<>"']+)(?![^<]*<\/a>)/gi,
-    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
   );
 
   /* 转换HTML内容中未被标记的邮箱地址 */
   sanitized = sanitized.replace(
     /(?!<a[^>]*>)([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?![^<]*<\/a>)/gi,
-    '<a href="mailto:$1">$1</a>'
+    '<a href="mailto:$1">$1</a>',
   );
 
   return sanitized;
@@ -345,7 +345,7 @@ function downloadAttachment() {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .sender-avatar.large {
@@ -367,7 +367,7 @@ function downloadAttachment() {
 
 .sender-details .sender-email {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -416,7 +416,7 @@ function downloadAttachment() {
 }
 
 .attachment-size {
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   font-size: 12px;
 }
 
@@ -608,7 +608,7 @@ function downloadAttachment() {
 
 .welcome-content {
   text-align: center;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .welcome-icon {
@@ -655,7 +655,6 @@ function downloadAttachment() {
   background: #a1a1a1;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -664,5 +663,4 @@ function downloadAttachment() {
     padding: 12px 16px;
   }
 }
-
 </style>

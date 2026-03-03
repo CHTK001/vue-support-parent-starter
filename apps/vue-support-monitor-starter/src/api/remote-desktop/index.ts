@@ -59,7 +59,10 @@ export function getRemoteDesktopConnectInfo(params?: {
   host?: string;
   websocketPort?: number;
 }) {
-  return http.get<RemoteDesktopConnectInfo>("/api/monitor/remote-desktop/connect", { params });
+  return http.get<RemoteDesktopConnectInfo>(
+    "/api/monitor/remote-desktop/connect",
+    { params },
+  );
 }
 
 /**
@@ -69,14 +72,20 @@ export function getRemoteDesktopStatus(params?: {
   serverId?: number;
   protocol?: string;
 }) {
-  return http.get<RemoteDesktopStatus>("/api/monitor/remote-desktop/status", { params });
+  return http.get<RemoteDesktopStatus>("/api/monitor/remote-desktop/status", {
+    params,
+  });
 }
 
 /**
  * 启动远程桌面服务
  */
 export function startRemoteDesktopService(data: StartRemoteDesktopParams) {
-  return http.post<StartRemoteDesktopResponse>("/api/monitor/remote-desktop/start", null, { params: data });
+  return http.post<StartRemoteDesktopResponse>(
+    "/api/monitor/remote-desktop/start",
+    null,
+    { params: data },
+  );
 }
 
 /**
@@ -85,4 +94,3 @@ export function startRemoteDesktopService(data: StartRemoteDesktopParams) {
 export function stopRemoteDesktopService(data: StopRemoteDesktopParams) {
   return http.post("/api/monitor/remote-desktop/stop", null, { params: data });
 }
-

@@ -7,9 +7,20 @@
       </el-select>
       <el-button type="primary" @click="execute">执行</el-button>
     </div>
-    <CodeEditor v-model:content="text" :options="{ mode: lang === 'cypher' ? 'cypher' : 'javascript' }" :height="'220px'" :showTool="false" />
+    <CodeEditor
+      v-model:content="text"
+      :options="{ mode: lang === 'cypher' ? 'cypher' : 'javascript' }"
+      :height="'220px'"
+      :showTool="false"
+    />
     <el-table :data="rows" size="small" border height="60vh">
-      <el-table-column v-for="c in columns" :key="c" :prop="c" :label="c" :min-width="120" />
+      <el-table-column
+        v-for="c in columns"
+        :key="c"
+        :prop="c"
+        :label="c"
+        :min-width="120"
+      />
     </el-table>
   </div>
 </template>
@@ -23,14 +34,15 @@ const text = ref("MATCH (n) RETURN n LIMIT 25");
 const columns = ref<string[]>([]);
 const rows = ref<any[]>([]);
 async function execute() {
-  const res = await executeConsole(props.id, text.value, "graph", { lang: lang.value });
+  const res = await executeConsole(props.id, text.value, "graph", {
+    lang: lang.value,
+  });
   const data = res?.data?.data || {};
   columns.value = data?.columns || [];
   rows.value = data?.rows || [];
 }
 </script>
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -64,7 +76,6 @@ async function execute() {
   }
 }
 
-
 .console {
   display: flex;
   flex-direction: column;
@@ -76,7 +87,6 @@ async function execute() {
   gap: 8px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -85,5 +95,4 @@ async function execute() {
     padding: 12px 16px;
   }
 }
-
 </style>

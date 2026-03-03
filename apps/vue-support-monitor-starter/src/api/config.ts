@@ -9,17 +9,22 @@
 ///
 
 import { t } from "@repo/config";
-import { GlobalWindow } from "@/interface/common";
-import { IResponse } from "@/interface/request";
+import type { GlobalWindow } from "@/interface/common";
+import type { IResponse } from "@/interface/request";
 import { base64Encode } from "@/utils/check-type";
 import { http, type RequestMethods } from "@repo/utils";
-import { AxiosRequestConfig } from "axios";
+import type { AxiosRequestConfig } from "axios";
 
 const delTimeout: number = 20 * 1000;
 const jpomWindow_ = window as unknown as GlobalWindow;
-const apiTimeout: number = Number(jpomWindow_.apiTimeout === "<apiTimeout>" ? delTimeout : jpomWindow_.apiTimeout);
+const apiTimeout: number = Number(
+  jpomWindow_.apiTimeout === "<apiTimeout>"
+    ? delTimeout
+    : jpomWindow_.apiTimeout,
+);
 // debug routerBase
-const routerBase: string = jpomWindow_.routerBase === "<routerBase>" ? "" : jpomWindow_.routerBase;
+const routerBase: string =
+  jpomWindow_.routerBase === "<routerBase>" ? "" : jpomWindow_.routerBase;
 
 const pro: boolean = process.env.NODE_ENV === "production";
 
@@ -34,7 +39,11 @@ const obj2base64 = (obj: any) => {
     const newData: any = {};
     for (const key of keys) {
       const item = obj[key];
-      if (typeof item === "string" || typeof item === "number" || typeof item === "boolean") {
+      if (
+        typeof item === "string" ||
+        typeof item === "number" ||
+        typeof item === "boolean"
+      ) {
         newData[base64Encode(String(key))] = base64Encode(String(item));
       }
     }
@@ -43,8 +52,15 @@ const obj2base64 = (obj: any) => {
     const newFormData: any = new FormData();
     for (const key of (obj as any).keys()) {
       const item = obj.get(key);
-      if (typeof item === "string" || typeof item === "number" || typeof item === "boolean") {
-        newFormData.append(base64Encode(String(key)), base64Encode(String(item)));
+      if (
+        typeof item === "string" ||
+        typeof item === "number" ||
+        typeof item === "boolean"
+      ) {
+        newFormData.append(
+          base64Encode(String(key)),
+          base64Encode(String(item)),
+        );
       } else {
         newFormData.append(base64Encode(String(key)), item);
       }
@@ -53,7 +69,11 @@ const obj2base64 = (obj: any) => {
   }
   if (Array.isArray(obj)) {
     return obj.map((item: any) => {
-      if (typeof item === "string" || typeof item === "number" || typeof item === "boolean") {
+      if (
+        typeof item === "string" ||
+        typeof item === "number" ||
+        typeof item === "boolean"
+      ) {
         item = base64Encode(String(item));
       }
       return item;
@@ -68,20 +88,32 @@ const obj2base64 = (obj: any) => {
  * @param config AxiosRequestConfig
  * @returns IResponse<T>
  */
-async function request<T = any>(url: string, config?: AxiosRequestConfig): Promise<IResponse<T>>;
-// eslint-disable-next-line no-redeclare
-async function request<T = any>(config: AxiosRequestConfig): Promise<IResponse<T>>;
-// eslint-disable-next-line no-redeclare
-async function request<T = any>(arg: string | AxiosRequestConfig, config?: AxiosRequestConfig): Promise<IResponse<T>> {
+async function request<T = any>(
+  url: string,
+  config?: AxiosRequestConfig,
+): Promise<IResponse<T>>;
+
+async function request<T = any>(
+  config: AxiosRequestConfig,
+): Promise<IResponse<T>>;
+
+async function request<T = any>(
+  arg: string | AxiosRequestConfig,
+  config?: AxiosRequestConfig,
+): Promise<IResponse<T>> {
   config = config || {};
   const options =
     typeof arg === "string"
       ? {
           url: arg,
-          ...config
+          ...config,
         }
       : arg;
-  return http.request((options.method || "GET") as RequestMethods, options.url, options);
+  return http.request(
+    (options.method || "GET") as RequestMethods,
+    options.url,
+    options,
+  );
 }
 
 export default request;
@@ -103,7 +135,10 @@ export function loadRouterBase(url: string, params: any) {
  */
 export function getWebSocketUrl(url: string, parameter: any) {
   const protocol: string = location.protocol === "https:" ? "wss://" : "ws://";
-  const fullUrl: string = ((baseURL || "") + (routerBase || "") + url).replace(new RegExp("//", "gm"), "/");
+  const fullUrl: string = ((baseURL || "") + (routerBase || "") + url).replace(
+    new RegExp("//", "gm"),
+    "/",
+  );
   return `${protocol}${location.host}${fullUrl}?${parameter}`;
 }
 

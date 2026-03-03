@@ -1,7 +1,11 @@
 <template>
   <div class="server-detail-layout h-full system-container modern-bg">
     <!-- 空状态展示 -->
-    <el-empty v-if="!localData.serverId" class="h-full" description="请选择服务器" />
+    <el-empty
+      v-if="!localData.serverId"
+      class="h-full"
+      description="请选择服务器"
+    />
 
     <!-- 主内容区域 -->
     <div v-else class="server-content h-full">
@@ -9,8 +13,13 @@
       <div class="server-header">
         <!-- 服务器信息 -->
         <div class="server-header__info">
-          <IconifyIconOnline icon="ri:server-line" class="server-header__icon" />
-          <span class="server-header__name" :title="localData.serverName">{{ localData.serverName }}</span>
+          <IconifyIconOnline
+            icon="ri:server-line"
+            class="server-header__icon"
+          />
+          <span class="server-header__name" :title="localData.serverName">{{
+            localData.serverName
+          }}</span>
           <el-tag :type="getStatusType(localData.status)" size="small">
             {{ getStatusText(localData.status) }}
           </el-tag>
@@ -39,7 +48,13 @@
           <!-- 自动刷新设置 -->
           <div class="control-item">
             <label class="control-label">自动刷新:</label>
-            <el-select v-model="autoRefreshInterval" placeholder="选择刷新间隔" size="small" style="width: 80px" @change="handleRefreshIntervalChange">
+            <el-select
+              v-model="autoRefreshInterval"
+              placeholder="选择刷新间隔"
+              size="small"
+              style="width: 80px"
+              @change="handleRefreshIntervalChange"
+            >
               <el-option label="不刷新" :value="0" />
               <el-option label="30秒" :value="30" />
               <el-option label="1分钟" :value="60" />
@@ -49,7 +64,10 @@
           </div>
 
           <!-- 刷新倒计时 -->
-          <div v-if="autoRefreshInterval > 0" class="control-item refresh-countdown">
+          <div
+            v-if="autoRefreshInterval > 0"
+            class="control-item refresh-countdown"
+          >
             <span class="countdown-text">{{ refreshCountdown }}s</span>
           </div>
         </div>
@@ -73,7 +91,12 @@
         <!-- 操作按钮 -->
         <div class="server-header__actions">
           <el-tooltip content="手动查询" placement="bottom">
-            <el-button size="small" type="primary" @click="handleManualQuery" :loading="refreshing">
+            <el-button
+              size="small"
+              type="primary"
+              :loading="refreshing"
+              @click="handleManualQuery"
+            >
               <IconifyIconOnline icon="ri:search-line" class="mr-1" />
               查询
             </el-button>
@@ -91,9 +114,19 @@
             </el-button>
           </el-tooltip>
 
-          <el-tooltip :content="editMode ? '预览模式' : '编辑模式'" placement="bottom">
-            <el-button circle size="small" :type="editMode ? 'success' : 'default'" @click="toggleEditMode">
-              <IconifyIconOnline :icon="editMode ? 'ri:eye-line' : 'ri:settings-line'" />
+          <el-tooltip
+            :content="editMode ? '预览模式' : '编辑模式'"
+            placement="bottom"
+          >
+            <el-button
+              circle
+              size="small"
+              :type="editMode ? 'success' : 'default'"
+              @click="toggleEditMode"
+            >
+              <IconifyIconOnline
+                :icon="editMode ? 'ri:eye-line' : 'ri:settings-line'"
+              />
             </el-button>
           </el-tooltip>
         </div>
@@ -104,7 +137,13 @@
         <el-scrollbar class="server-scrollbar">
           <div class="server-content-wrapper">
             <!-- 服务器组件布局视图 -->
-            <ServerComponentLayout ref="serverLayoutRef" :server-id="localData.serverId" :editable="editMode" :time-params="getTimeRangeParams()" class="custom-layout" />
+            <ServerComponentLayout
+              ref="serverLayoutRef"
+              :server-id="localData.serverId"
+              :editable="editMode"
+              :time-params="getTimeRangeParams()"
+              class="custom-layout"
+            />
           </div>
         </el-scrollbar>
       </div>
@@ -122,12 +161,12 @@ import ServerComponentLayout from "./ServerComponentLayout.vue";
 const props = defineProps({
   data: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   serverId: {
     type: Number,
-    default: 0
-  }
+    default: 0,
+  },
 });
 
 const emit = defineEmits<{
@@ -157,7 +196,7 @@ const timeRangeShortcuts = [
       const start = new Date();
       start.setTime(start.getTime() - 3600 * 1000);
       return [start, end];
-    }
+    },
   },
   {
     text: "最近6小时",
@@ -166,7 +205,7 @@ const timeRangeShortcuts = [
       const start = new Date();
       start.setTime(start.getTime() - 3600 * 1000 * 6);
       return [start, end];
-    }
+    },
   },
   {
     text: "最近12小时",
@@ -175,7 +214,7 @@ const timeRangeShortcuts = [
       const start = new Date();
       start.setTime(start.getTime() - 3600 * 1000 * 12);
       return [start, end];
-    }
+    },
   },
   {
     text: "最近24小时",
@@ -184,7 +223,7 @@ const timeRangeShortcuts = [
       const start = new Date();
       start.setTime(start.getTime() - 3600 * 1000 * 24);
       return [start, end];
-    }
+    },
   },
   {
     text: "最近7天",
@@ -193,22 +232,27 @@ const timeRangeShortcuts = [
       const start = new Date();
       start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
       return [start, end];
-    }
-  }
+    },
+  },
 ];
 
 // 本地数据
 const localData = computed(() => {
   // 支持两种传参方式：data 对象或直接传 serverId
-  const serverId = props.serverId || props.data?.serverId || props.data?.monitorSysGenServerId;
-  const serverName = props.data?.serverName || props.data?.monitorSysGenServerName || `服务器 ${serverId}`;
-  const status = props.data?.status || props.data?.monitorSysGenServerStatus || 1; // 默认在线
+  const serverId =
+    props.serverId || props.data?.serverId || props.data?.monitorSysGenServerId;
+  const serverName =
+    props.data?.serverName ||
+    props.data?.monitorSysGenServerName ||
+    `服务器 ${serverId}`;
+  const status =
+    props.data?.status || props.data?.monitorSysGenServerStatus || 1; // 默认在线
 
   return {
     serverId,
     serverName,
     status,
-    ...props.data
+    ...props.data,
   };
 });
 
@@ -224,7 +268,7 @@ const updateMetrics = () => {
       queryTime.value = Date.now() - startTime;
       lastUpdateTime.value = new Date().toLocaleTimeString();
     },
-    Math.random() * 100 + 50
+    Math.random() * 100 + 50,
   );
 
   // 更新组件数量（这里应该从实际数据获取）
@@ -245,12 +289,14 @@ const handleDataChange = () => {
 watch(
   () => [props.data, props.serverId],
   ([newData, newServerId]) => {
-    const serverId = (typeof newServerId === "number" ? newServerId : 0) || (typeof newData === "object" && newData ? newData.serverId : 0);
+    const serverId =
+      (typeof newServerId === "number" ? newServerId : 0) ||
+      (typeof newData === "object" && newData ? newData.serverId : 0);
     if (serverId) {
       handleDataChange();
     }
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 );
 
 // 生命周期
@@ -305,7 +351,7 @@ const getTimeRangeParams = () => {
     return {
       start: new Date(queryTimeRange.value[0]).getTime(),
       end: new Date(queryTimeRange.value[1]).getTime(),
-      step: 60 // 1分钟步长
+      step: 60, // 1分钟步长
     };
   }
 
@@ -314,7 +360,7 @@ const getTimeRangeParams = () => {
   return {
     start: now - 60 * 60 * 1000, // 1小时前
     end: now,
-    step: 60 // 1分钟步长
+    step: 60, // 1分钟步长
   };
 };
 
@@ -323,7 +369,9 @@ const getTimeRangeParams = () => {
  */
 const toggleEditMode = () => {
   editMode.value = !editMode.value;
-  message(`已切换到${editMode.value ? "编辑" : "预览"}模式`, { type: "success" });
+  message(`已切换到${editMode.value ? "编辑" : "预览"}模式`, {
+    type: "success",
+  });
 };
 
 /**
@@ -437,10 +485,12 @@ const handleExport = () => {
       exportTime: new Date().toISOString(),
       // TODO: 从布局组件获取实际配置
       layout: [],
-      components: []
+      components: [],
     };
 
-    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(config, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -461,12 +511,11 @@ const handleExport = () => {
 defineExpose({
   refresh: handleRefresh,
   toggleEditMode,
-  exportConfig: handleExport
+  exportConfig: handleExport,
 });
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -499,7 +548,6 @@ defineExpose({
     z-index: 1;
   }
 }
-
 
 .server-detail-layout {
   height: 100%;
@@ -642,7 +690,6 @@ defineExpose({
   margin-right: 4px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -651,5 +698,4 @@ defineExpose({
     padding: 12px 16px;
   }
 }
-
 </style>

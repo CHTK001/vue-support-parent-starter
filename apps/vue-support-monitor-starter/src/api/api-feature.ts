@@ -75,7 +75,7 @@ export function setNodeFeatureEnabled(
   ipAddress: string,
   port: number,
   featureId: string,
-  enabled: boolean
+  enabled: boolean,
 ) {
   return request({
     url: `/monitor/api-features/node/${featureId}`,
@@ -93,7 +93,7 @@ export function setNodeFeatureEnabled(
 export function setNodeFeatureEnabledBatch(
   ipAddress: string,
   port: number,
-  states: Record<string, boolean>
+  states: Record<string, boolean>,
 ) {
   return request({
     url: "/monitor/api-features/node/batch",

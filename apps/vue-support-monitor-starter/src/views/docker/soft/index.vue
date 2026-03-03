@@ -40,7 +40,7 @@
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
-        <el-button @click="syncVisible = true" type="success" plain>
+        <el-button type="success" plain @click="syncVisible = true">
           <IconifyIconOnline icon="ri:cloud-line" class="mr-1" />
           同步镜像
         </el-button>
@@ -48,7 +48,7 @@
           <IconifyIconOnline icon="ri:search-eye-line" class="mr-1" />
           在线搜索
         </el-button>
-        <el-button type="primary" v-admin @click="openEdit()">
+        <el-button v-admin type="primary" @click="openEdit()">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           新增软件
         </el-button>
@@ -147,8 +147,8 @@
             镜像：{{ row.systemSoftDockerImage || "—" }}
           </div>
           <div
-            class="soft-meta"
             v-if="row.installedServers && row.installedServers.length > 0"
+            class="soft-meta"
           >
             <IconifyIconOnline icon="ri:server-line" class="mr-1" />
             已安装：
@@ -184,13 +184,13 @@
             >
               <IconifyIconOnline icon="ri:download-line" class="mr-1" /> 安装
             </el-button>
-            <el-button size="small" v-role="'admin'" @click="openEdit(row)">
+            <el-button v-role="'admin'" size="small" @click="openEdit(row)">
               <IconifyIconOnline icon="ri:edit-line" class="mr-1" /> 编辑
             </el-button>
             <el-button
+              v-role="'admin'"
               size="small"
               type="danger"
-              v-role="'admin'"
               @click="onDelete(row)"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" /> 删除
@@ -387,16 +387,21 @@ async function reload() {
 // 加载统计数据
 async function loadStats() {
   try {
-    const { code, data } = await softwareApi.getSoftPageList({ page: 1, size: 1000 });
+    const { code, data } = await softwareApi.getSoftPageList({
+      page: 1,
+      size: 1000,
+    });
     if (code === 0 && data?.records) {
       const list = data.records;
       stats.total = list.length;
       stats.enabled = list.filter((s: any) => s.systemSoftStatus === 1).length;
       stats.disabled = list.filter((s: any) => s.systemSoftStatus === 0).length;
-      stats.official = list.filter((s: any) => s.systemSoftIsOfficial === 1).length;
+      stats.official = list.filter(
+        (s: any) => s.systemSoftIsOfficial === 1,
+      ).length;
     }
   } catch (e) {
-    console.error('加载统计数据失败', e);
+    console.error("加载统计数据失败", e);
   }
 }
 
@@ -487,7 +492,6 @@ function onSyncSuccess() {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -520,7 +524,6 @@ function onSyncSuccess() {
     z-index: 1;
   }
 }
-
 
 .soft-management {
   padding: 16px;

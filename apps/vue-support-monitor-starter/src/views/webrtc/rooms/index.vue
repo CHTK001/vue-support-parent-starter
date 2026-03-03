@@ -3,7 +3,9 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/webrtc' }">WebRTC管理</el-breadcrumb-item>
+        <el-breadcrumb-item :to="{ path: '/webrtc' }"
+          >WebRTC管理</el-breadcrumb-item
+        >
         <el-breadcrumb-item>房间管理</el-breadcrumb-item>
       </el-breadcrumb>
       <div class="header-actions">
@@ -26,13 +28,23 @@
           />
         </el-form-item>
         <el-form-item label="房间类型">
-          <el-select v-model="searchForm.roomType" placeholder="请选择房间类型" clearable style="width: 150px">
+          <el-select
+            v-model="searchForm.roomType"
+            placeholder="请选择房间类型"
+            clearable
+            style="width: 150px"
+          >
             <el-option label="视频通话" value="video_call" />
             <el-option label="视频会议" value="video_conference" />
           </el-select>
         </el-form-item>
         <el-form-item label="房间状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px">
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+            style="width: 120px"
+          >
             <el-option label="活跃" value="active" />
             <el-option label="非活跃" value="inactive" />
           </el-select>
@@ -52,25 +64,22 @@
 
     <!-- 房间列表 -->
     <el-card class="table-card" shadow="never">
-      <el-table
-        v-loading="loading"
-        :data="roomList"
-        stripe
-        style="width: 100%"
-      >
+      <el-table v-loading="loading" :data="roomList" stripe style="width: 100%">
         <el-table-column prop="roomId" label="房间ID" width="120" />
         <el-table-column prop="roomName" label="房间名称" min-width="150" />
         <el-table-column prop="roomType" label="房间类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="row.roomType === 'video_call' ? 'primary' : 'success'">
-              {{ row.roomType === 'video_call' ? '视频通话' : '视频会议' }}
+            <el-tag
+              :type="row.roomType === 'video_call' ? 'primary' : 'success'"
+            >
+              {{ row.roomType === "video_call" ? "视频通话" : "视频会议" }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'active' ? 'success' : 'info'">
-              {{ row.status === 'active' ? '活跃' : '非活跃' }}
+              {{ row.status === "active" ? "活跃" : "非活跃" }}
             </el-tag>
           </template>
         </el-table-column>
@@ -85,7 +94,12 @@
             {{ formatTime(row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
+        <el-table-column
+          prop="description"
+          label="描述"
+          min-width="150"
+          show-overflow-tooltip
+        />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="joinRoom(row)">
@@ -102,7 +116,9 @@
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
                   <el-dropdown-item command="users">用户列表</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided
+                    >删除</el-dropdown-item
+                  >
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -138,7 +154,10 @@
         label-width="100px"
       >
         <el-form-item label="房间名称" prop="roomName">
-          <el-input v-model="createForm.roomName" placeholder="请输入房间名称" />
+          <el-input
+            v-model="createForm.roomName"
+            placeholder="请输入房间名称"
+          />
         </el-form-item>
         <el-form-item label="房间类型" prop="roomType">
           <el-radio-group v-model="createForm.roomType">
@@ -173,23 +192,23 @@
       </el-form>
       <template #footer>
         <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleCreateRoom" :loading="createLoading">
+        <el-button
+          type="primary"
+          :loading="createLoading"
+          @click="handleCreateRoom"
+        >
           创建
         </el-button>
       </template>
     </sc-dialog>
 
     <!-- 加入房间对话框 -->
-    <sc-dialog
-      v-model="showJoinDialog"
-      title="加入房间"
-      width="400px"
-    >
+    <sc-dialog v-model="showJoinDialog" title="加入房间" width="400px">
       <el-form :model="joinForm" label-width="80px">
         <el-form-item label="房间名称">
           <el-input v-model="selectedRoom.roomName" readonly />
         </el-form-item>
-        <el-form-item label="房间密码" v-if="selectedRoom.requirePassword">
+        <el-form-item v-if="selectedRoom.requirePassword" label="房间密码">
           <el-input
             v-model="joinForm.password"
             type="password"
@@ -200,7 +219,11 @@
       </el-form>
       <template #footer>
         <el-button @click="showJoinDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleJoinRoom" :loading="joinLoading">
+        <el-button
+          type="primary"
+          :loading="joinLoading"
+          @click="handleJoinRoom"
+        >
           加入
         </el-button>
       </template>
@@ -216,16 +239,11 @@
  * @version 1.0.0
  */
 
-import { ref, reactive, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, reactive, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
-import { ElMessageBox, type FormInstance } from 'element-plus';
-import {
-  Plus,
-  Search,
-  Refresh,
-  ArrowDown
-} from '@element-plus/icons-vue';
+import { ElMessageBox, type FormInstance } from "element-plus";
+import { Plus, Search, Refresh, ArrowDown } from "@element-plus/icons-vue";
 import {
   getRoomList,
   createRoom,
@@ -233,8 +251,8 @@ import {
   deleteRoom,
   type RoomInfo,
   type CreateRoomParams,
-  type RoomListParams
-} from '@/api/webrtc';
+  type RoomListParams,
+} from "@/api/webrtc";
 
 const router = useRouter();
 
@@ -253,30 +271,30 @@ const showJoinDialog = ref(false);
 
 // 搜索表单
 const searchForm = reactive<RoomListParams>({
-  roomName: '',
+  roomName: "",
   roomType: undefined,
-  status: undefined
+  status: undefined,
 });
 
 // 分页信息
 const pagination = reactive({
   page: 1,
   size: 20,
-  total: 0
+  total: 0,
 });
 
 // 创建房间表单
 const createForm = reactive<CreateRoomParams>({
-  roomName: '',
-  roomType: 'video_call',
+  roomName: "",
+  roomType: "video_call",
   maxUsers: 10,
-  description: '',
-  password: ''
+  description: "",
+  password: "",
 });
 
 // 加入房间表单
 const joinForm = reactive({
-  password: ''
+  password: "",
 });
 
 // 选中的房间
@@ -285,15 +303,16 @@ const selectedRoom = ref<RoomInfo>({} as RoomInfo);
 // 创建房间表单验证规则
 const createRules = {
   roomName: [
-    { required: true, message: '请输入房间名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '房间名称长度在 2 到 50 个字符', trigger: 'blur' }
+    { required: true, message: "请输入房间名称", trigger: "blur" },
+    {
+      min: 2,
+      max: 50,
+      message: "房间名称长度在 2 到 50 个字符",
+      trigger: "blur",
+    },
   ],
-  roomType: [
-    { required: true, message: '请选择房间类型', trigger: 'change' }
-  ],
-  maxUsers: [
-    { required: true, message: '请设置最大用户数', trigger: 'blur' }
-  ]
+  roomType: [{ required: true, message: "请选择房间类型", trigger: "change" }],
+  maxUsers: [{ required: true, message: "请设置最大用户数", trigger: "blur" }],
 };
 
 /**
@@ -305,14 +324,14 @@ const loadRoomList = async () => {
     const params = {
       ...searchForm,
       page: pagination.page,
-      size: pagination.size
+      size: pagination.size,
     };
     const { data } = await getRoomList(params);
     roomList.value = data.records;
     pagination.total = data.total;
   } catch (error) {
-    console.error('加载房间列表失败:', error);
-    message('加载房间列表失败', { type: "error" });
+    console.error("加载房间列表失败:", error);
+    message("加载房间列表失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -331,9 +350,9 @@ const handleSearch = () => {
  */
 const handleReset = () => {
   Object.assign(searchForm, {
-    roomName: '',
+    roomName: "",
     roomType: undefined,
-    status: undefined
+    status: undefined,
   });
   pagination.page = 1;
   loadRoomList();
@@ -361,23 +380,23 @@ const handleCurrentChange = (page: number) => {
  */
 const handleCreateRoom = async () => {
   if (!createFormRef.value) return;
-  
+
   try {
     await createFormRef.value.validate();
     createLoading.value = true;
-    
+
     const params = { ...createForm };
     if (!params.password) {
       delete params.password;
     }
-    
+
     await createRoom(params);
-    message('房间创建成功', { type: "success" });
+    message("房间创建成功", { type: "success" });
     showCreateDialog.value = false;
     loadRoomList();
   } catch (error) {
-    console.error('创建房间失败:', error);
-    message('创建房间失败', { type: "error" });
+    console.error("创建房间失败:", error);
+    message("创建房间失败", { type: "error" });
   } finally {
     createLoading.value = false;
   }
@@ -389,11 +408,11 @@ const handleCreateRoom = async () => {
 const handleCloseCreateDialog = () => {
   createFormRef.value?.resetFields();
   Object.assign(createForm, {
-    roomName: '',
-    roomType: 'video_call',
+    roomName: "",
+    roomType: "video_call",
     maxUsers: 10,
-    description: '',
-    password: ''
+    description: "",
+    password: "",
   });
   showCreateDialog.value = false;
 };
@@ -418,24 +437,24 @@ const handleJoinRoom = async () => {
     joinLoading.value = true;
     const params = {
       roomId: selectedRoom.value.roomId,
-      password: joinForm.password
+      password: joinForm.password,
     };
-    
+
     const { data } = await joinRoomApi(params);
     if (data.success) {
-      message('加入房间成功', { type: "success" });
+      message("加入房间成功", { type: "success" });
       showJoinDialog.value = false;
       // 跳转到房间页面
       router.push(`/webrtc/room/${selectedRoom.value.roomId}`);
     } else {
-      message(data.message || '加入房间失败', { type: "error" });
+      message(data.message || "加入房间失败", { type: "error" });
     }
   } catch (error) {
-    console.error('加入房间失败:', error);
-    message('加入房间失败', { type: "error" });
+    console.error("加入房间失败:", error);
+    message("加入房间失败", { type: "error" });
   } finally {
     joinLoading.value = false;
-    joinForm.password = '';
+    joinForm.password = "";
   }
 };
 
@@ -451,15 +470,15 @@ const viewRoomDetail = (room: RoomInfo) => {
  */
 const handleCommand = async (command: string, room: RoomInfo) => {
   switch (command) {
-    case 'edit':
+    case "edit":
       // 编辑房间
       router.push(`/webrtc/rooms/${room.roomId}/edit`);
       break;
-    case 'users':
+    case "users":
       // 查看用户列表
       router.push(`/webrtc/rooms/${room.roomId}/users`);
       break;
-    case 'delete':
+    case "delete":
       // 删除房间
       await handleDeleteRoom(room);
       break;
@@ -473,25 +492,25 @@ const handleDeleteRoom = async (room: RoomInfo) => {
   try {
     await ElMessageBox.confirm(
       `确定要删除房间 "${room.roomName}" 吗？此操作不可恢复。`,
-      '确认删除',
+      "确认删除",
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
     );
-    
+
     const { data } = await deleteRoom(room.roomId);
     if (data.success) {
-      message('房间删除成功', { type: "success" });
+      message("房间删除成功", { type: "success" });
       loadRoomList();
     } else {
-      message(data.message || '删除房间失败', { type: "error" });
+      message(data.message || "删除房间失败", { type: "error" });
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除房间失败:', error);
-      message('删除房间失败', { type: "error" });
+    if (error !== "cancel") {
+      console.error("删除房间失败:", error);
+      message("删除房间失败", { type: "error" });
     }
   }
 };
@@ -510,7 +529,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -527,8 +545,6 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -563,7 +579,6 @@ onMounted(() => {
   }
 }
 
-
 .room-management {
   padding: 20px;
 }
@@ -587,7 +602,6 @@ onMounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -596,5 +610,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

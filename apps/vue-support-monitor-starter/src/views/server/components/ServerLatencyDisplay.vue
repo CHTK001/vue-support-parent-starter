@@ -4,7 +4,7 @@
     <div class="latency-indicator" :class="latencyClass">
       <el-tooltip :content="latencyTooltip" placement="top" :show-after="300">
         <div class="latency-content">
-          <div class="latency-dot" :class="latencyClass"></div>
+          <div class="latency-dot" :class="latencyClass" />
           <span class="latency-text">{{ latencyText }}</span>
         </div>
       </el-tooltip>
@@ -13,7 +13,11 @@
 </template>
 
 <script setup lang="ts">
-import { formatLatencyText, getLatencyStatus, type LatencyStatus } from "@/api/server";
+import {
+  formatLatencyText,
+  getLatencyStatus,
+  type LatencyStatus,
+} from "@/api/server";
 import { computed } from "vue";
 
 interface Props {
@@ -121,7 +125,6 @@ const latencyTooltip = computed(() => {
     z-index: 1;
   }
 }
-
 
 .server-latency-display {
   display: inline-flex;

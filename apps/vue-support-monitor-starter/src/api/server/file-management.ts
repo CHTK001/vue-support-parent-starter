@@ -40,7 +40,7 @@ export function getFileList(
   path: string,
   includeHidden: boolean = false,
   sortBy: string = "name",
-  sortOrder: string = "asc"
+  sortOrder: string = "asc",
 ) {
   console.log("API: getFileList called with", {
     serverId,
@@ -61,7 +61,7 @@ export function getFileList(
         sortBy,
         sortOrder,
       },
-    }
+    },
   );
 }
 
@@ -83,7 +83,7 @@ export function getFileTree(
   includeHidden: boolean = false,
   lazyLoad: boolean = true,
   pageSize: number = 1000,
-  pageIndex: number = 0
+  pageIndex: number = 0,
 ) {
   return http.request<ReturnResult<FileOperationResponse>>(
     "get",
@@ -98,7 +98,7 @@ export function getFileTree(
         pageSize,
         pageIndex,
       },
-    }
+    },
   );
 }
 
@@ -114,7 +114,7 @@ export function uploadFile(
   serverId: number,
   targetPath: string,
   file: File,
-  overwrite: boolean = false
+  overwrite: boolean = false,
 ) {
   const formData = new FormData();
   formData.append("file", file);
@@ -129,7 +129,7 @@ export function uploadFile(
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    }
+    },
   );
 }
 
@@ -143,7 +143,7 @@ export function uploadFile(
 export function createDirectory(
   serverId: number,
   path: string,
-  recursive: boolean = false
+  recursive: boolean = false,
 ) {
   return http.request<ReturnResult<FileOperationResponse>>(
     "post",
@@ -154,7 +154,7 @@ export function createDirectory(
         path,
         recursive,
       },
-    }
+    },
   );
 }
 
@@ -168,7 +168,7 @@ export function createDirectory(
 export function deleteFile(
   serverId: number,
   path: string,
-  recursive: boolean = false
+  recursive: boolean = false,
 ) {
   return http.request<ReturnResult<FileOperationResponse>>(
     "delete",
@@ -179,7 +179,7 @@ export function deleteFile(
         path,
         recursive,
       },
-    }
+    },
   );
 }
 
@@ -202,7 +202,7 @@ export function renameFile(serverId: number, oldPath: string, newName: string) {
         oldPath,
         newName,
       },
-    }
+    },
   );
 }
 
@@ -218,7 +218,7 @@ export function copyFile(
   serverId: number,
   sourcePath: string,
   targetPath: string,
-  overwrite: boolean = false
+  overwrite: boolean = false,
 ) {
   console.log("API: copyFile called with", {
     serverId,
@@ -237,7 +237,7 @@ export function copyFile(
         targetPath,
         overwrite,
       },
-    }
+    },
   );
 }
 
@@ -253,7 +253,7 @@ export function moveFile(
   serverId: number,
   sourcePath: string,
   targetPath: string,
-  overwrite: boolean = false
+  overwrite: boolean = false,
 ) {
   console.log("API: moveFile called with", {
     serverId,
@@ -272,7 +272,7 @@ export function moveFile(
         targetPath,
         overwrite,
       },
-    }
+    },
   );
 }
 
@@ -286,7 +286,7 @@ export function moveFile(
 export function batchDeleteFiles(
   serverId: number,
   paths: string[],
-  recursive: boolean = false
+  recursive: boolean = false,
 ) {
   console.log("API: batchDeleteFiles called with", {
     serverId,
@@ -303,7 +303,7 @@ export function batchDeleteFiles(
         paths,
         recursive,
       },
-    }
+    },
   );
 }
 
@@ -334,7 +334,7 @@ export function readFileContent(serverId: number, filePath: string) {
 export function saveFileContent(
   serverId: number,
   filePath: string,
-  content: string
+  content: string,
 ) {
   console.log("API: saveFileContent called with", {
     serverId,
@@ -351,7 +351,7 @@ export function saveFileContent(
         filePath,
         content,
       },
-    }
+    },
   );
 }
 
@@ -367,7 +367,7 @@ export function previewFile(
   serverId: number,
   filePath: string,
   previewType: string = "auto",
-  maxSizeMB: number = 10
+  maxSizeMB: number = 10,
 ) {
   return http.request<ReturnResult<FileOperationResponse>>(
     "get",
@@ -379,7 +379,7 @@ export function previewFile(
         previewType,
         maxSizeMB,
       },
-    }
+    },
   );
 }
 
@@ -400,6 +400,6 @@ export function downloadFile(serverId: number, filePath: string) {
         serverId,
         filePath,
       },
-    }
+    },
   );
 }

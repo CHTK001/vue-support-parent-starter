@@ -8,26 +8,38 @@
       :placeholder="selectPlaceholder"
       @change="selectChange"
     >
-      <template v-if="canReload" #suffixIcon> <ReloadOutlined @click="refreshSelect" /></template>
+      <template v-if="canReload" #suffixIcon>
+        <ReloadOutlined @click="refreshSelect"
+      /></template>
       <template #dropdownRender="{ menuNode: menu }">
         <v-nodes :vnodes="menu" />
         <a-divider />
         <a-space>
-          <a-input ref="inputRef" v-model:value="selectInput" :max-length="maxLength" :placeholder="inputPlaceholder" />
+          <a-input
+            ref="inputRef"
+            v-model:value="selectInput"
+            :max-length="maxLength"
+            :placeholder="inputPlaceholder"
+          />
           <a-button type="text" @click="addInput(selectInput)">
-            <template #icon> <plus-outlined /> </template>{{ $t('i18n_66ab5e9f24') }}
+            <template #icon> <plus-outlined /> </template
+            >{{ $t("i18n_66ab5e9f24") }}
           </a-button>
-          <slot name="suffix"></slot>
+          <slot name="suffix" />
         </a-space>
       </template>
-      <a-select-option v-if="selectPlaceholder" value="">{{ selectPlaceholder }}</a-select-option>
-      <a-select-option v-for="item in optionList" :key="item">{{ item }} </a-select-option>
+      <a-select-option v-if="selectPlaceholder" value="">{{
+        selectPlaceholder
+      }}</a-select-option>
+      <a-select-option v-for="item in optionList" :key="item"
+        >{{ item }}
+      </a-select-option>
     </a-select>
   </div>
 </template>
 <script>
-import { Select } from 'ant-design-vue'
-import { t } from '@repo/config'
+import { Select } from "ant-design-vue";
+import { t } from "@repo/config";
 export default {
   components: {
     ASelect: Select,
@@ -35,92 +47,92 @@ export default {
       props: {
         vnodes: {
           type: Object,
-          required: true
-        }
+          required: true,
+        },
       },
       render() {
-        return this.vnodes
-      }
-    }
+        return this.vnodes;
+      },
+    },
   },
   props: {
     // 继承原组件所有props
     ...Select.props,
     data: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     inputPlaceholder: {
       type: String,
       default: function () {
-        return t('i18n_101a86bc84')
-      }
+        return t("i18n_101a86bc84");
+      },
     },
     selectPlaceholder: {
       type: String,
       default: function () {
-        return t('i18n_708c9d6d2a')
-      }
+        return t("i18n_708c9d6d2a");
+      },
     },
-    selStyle: { type: String, default: '' },
+    selStyle: { type: String, default: "" },
 
     maxLength: {
       type: Number,
-      default: 200
+      default: 200,
     },
     canReload: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
-  emits: ['update:value', 'onRefreshSelect', 'change', 'addOption'],
+  emits: ["update:value", "onRefreshSelect", "change", "addOption"],
 
   data() {
     return {
-      selectInput: '',
+      selectInput: "",
 
       optionList: [],
-      selected: ''
-    }
+      selected: "",
+    };
   },
   watch: {
     value: {
       handler(v) {
-        this.selected = v
+        this.selected = v;
       },
-      immediate: true
+      immediate: true,
     },
     data: {
       handler(v) {
-        this.optionList = v
+        this.optionList = v;
       },
       deep: true,
-      immediate: true
-    }
+      immediate: true,
+    },
   },
 
   methods: {
     selectChange(v) {
-      this.$emit('update:value', v)
-      this.$emit('change', v)
+      this.$emit("update:value", v);
+      this.$emit("change", v);
     },
     addInput(v) {
       if (!v) {
-        return
+        return;
       }
-      let index = this.optionList.indexOf(v)
+      let index = this.optionList.indexOf(v);
       if (index === -1) {
-        this.optionList = [...this.optionList, v]
+        this.optionList = [...this.optionList, v];
       }
-      this.selectInput = ''
-      this.selected = v
+      this.selectInput = "";
+      this.selected = v;
       //
-      this.selectChange(v)
-      this.$emit('addOption', this.optionList)
+      this.selectChange(v);
+      this.$emit("addOption", this.optionList);
     },
     refreshSelect() {
-      this.$emit('onRefreshSelect')
-    }
-  }
-}
+      this.$emit("onRefreshSelect");
+    },
+  },
+};
 </script>

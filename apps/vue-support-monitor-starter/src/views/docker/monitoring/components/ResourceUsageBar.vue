@@ -12,45 +12,42 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, computed } from 'vue'
-import { ScProgress } from '@repo/components'
+import { defineProps, computed } from "vue";
+import { ScProgress } from "@repo/components";
 
 interface Props {
-  value: number
-  type?: 'cpu' | 'memory'
-  strokeWidth?: number
+  value: number;
+  type?: "cpu" | "memory";
+  strokeWidth?: number;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
-const percentage = computed(() => Math.min(100, Math.max(0, props.value)))
+const percentage = computed(() => Math.min(100, Math.max(0, props.value)));
 
 const stages = computed(() => {
-  if (props.type === 'cpu') {
+  if (props.type === "cpu") {
     return [
-      { threshold: 50, color: '#67c23a' },
-      { threshold: 80, color: '#e6a23c' },
-      { threshold: 100, color: '#f56c6c' }
-    ]
-  } else if (props.type === 'memory') {
+      { threshold: 50, color: "#67c23a" },
+      { threshold: 80, color: "#e6a23c" },
+      { threshold: 100, color: "#f56c6c" },
+    ];
+  } else if (props.type === "memory") {
     return [
-      { threshold: 60, color: '#67c23a' },
-      { threshold: 85, color: '#e6a23c' },
-      { threshold: 100, color: '#f56c6c' }
-    ]
+      { threshold: 60, color: "#67c23a" },
+      { threshold: 85, color: "#e6a23c" },
+      { threshold: 100, color: "#f56c6c" },
+    ];
   }
-  return [
-    { threshold: 100, color: '#409eff' }
-  ]
-})
+  return [{ threshold: 100, color: "#409eff" }];
+});
 
-const formattedValue = computed(() => `${props.value.toFixed(1)}%`)
+const formattedValue = computed(() => `${props.value.toFixed(1)}%`);
 
-const strokeWidth = computed(() => props.strokeWidth || 6)
+const strokeWidth = computed(() => props.strokeWidth || 6);
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -84,7 +81,6 @@ const strokeWidth = computed(() => props.strokeWidth || 6)
   }
 }
 
-
 .resource-bar {
   display: flex;
   align-items: center;
@@ -98,7 +94,6 @@ const strokeWidth = computed(() => props.strokeWidth || 6)
   text-align: right;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -107,5 +102,4 @@ const strokeWidth = computed(() => props.strokeWidth || 6)
     padding: 12px 16px;
   }
 }
-
 </style>

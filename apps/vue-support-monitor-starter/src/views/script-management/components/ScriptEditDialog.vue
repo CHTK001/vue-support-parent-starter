@@ -1,13 +1,13 @@
 ﻿<template>
   <sc-dialog
     :model-value="visible"
-    @update:model-value="$emit('update:visible', $event)"
     :title="isEdit ? '编辑脚本' : '新建脚本'"
     width="85%"
     top="5vh"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     class="simple-script-dialog"
+    @update:model-value="$emit('update:visible', $event)"
     @close="handleClose"
   >
     <div class="dialog-content">
@@ -138,13 +138,13 @@
         <div class="code-editor-wrapper">
           <CodeEditor
             :content="scriptForm.monitorSysGenScriptContent"
-            @update:content="handleContentChange"
             :options="{
               mode: getEditorLanguage(scriptForm.monitorSysGenScriptType),
             }"
             height="500px"
             :show-tool="true"
             placeholder="请输入脚本内容..."
+            @update:content="handleContentChange"
           />
         </div>
       </div>
@@ -153,12 +153,12 @@
     <!-- 对话框底部按钮 -->
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose" size="large">取消</el-button>
+        <el-button size="large" @click="handleClose">取消</el-button>
         <el-button
           type="primary"
-          @click="handleSave"
           :loading="saving"
           size="large"
+          @click="handleSave"
         >
           <IconifyIconOnline icon="ri:save-line" />
           保存脚本
@@ -263,7 +263,7 @@ watch(
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 方法
@@ -288,7 +288,7 @@ const resetForm = () => {
 const loadTemplate = () => {
   scriptForm.monitorSysGenScriptContent = getScriptTemplate(
     scriptForm.monitorSysGenScriptType!,
-    scriptForm.monitorSysGenScriptDescription
+    scriptForm.monitorSysGenScriptDescription,
   );
 };
 
@@ -334,7 +334,7 @@ const handleSave = async () => {
     if (response.success) {
       message(
         scriptForm.monitorSysGenScriptId ? "脚本更新成功" : "脚本创建成功",
-        { type: "success" }
+        { type: "success" },
       );
       emit("save");
       handleClose();
@@ -363,7 +363,11 @@ const handleSave = async () => {
   }
 
   :deep(.el-dialog__header) {
-    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary),
+      var(--el-color-primary-light-3)
+    );
     color: white;
     padding: 20px 24px;
     margin: 0;
@@ -465,7 +469,11 @@ const handleSave = async () => {
         display: block;
         width: 4px;
         height: 18px;
-        background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
+        background: linear-gradient(
+          180deg,
+          var(--el-color-primary),
+          var(--el-color-primary-light-3)
+        );
         border-radius: 2px;
       }
     }
@@ -508,7 +516,6 @@ const handleSave = async () => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -517,5 +524,4 @@ const handleSave = async () => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -4,50 +4,86 @@
       <template #header>
         <h3>组件字段映射测试</h3>
       </template>
-      
+
       <el-space direction="vertical" size="large" style="width: 100%">
         <!-- 测试数据显示 -->
         <el-card>
           <template #header>
             <h4>测试数据</h4>
           </template>
-          
+
           <el-descriptions :column="2" border>
             <el-descriptions-item label="前端字段 (enabled)">
-              <el-tag :type="testFormData.monitorSysGenServerComponentEnabled ? 'success' : 'danger'">
-                {{ testFormData.monitorSysGenServerComponentEnabled ? '启用' : '禁用' }}
+              <el-tag
+                :type="
+                  testFormData.monitorSysGenServerComponentEnabled
+                    ? 'success'
+                    : 'danger'
+                "
+              >
+                {{
+                  testFormData.monitorSysGenServerComponentEnabled
+                    ? "启用"
+                    : "禁用"
+                }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="后端字段 (status)">
-              <el-tag :type="testApiData.monitorSysGenServerComponentStatus === 1 ? 'success' : 'danger'">
-                {{ testApiData.monitorSysGenServerComponentStatus === 1 ? '启用' : '禁用' }}
+              <el-tag
+                :type="
+                  testApiData.monitorSysGenServerComponentStatus === 1
+                    ? 'success'
+                    : 'danger'
+                "
+              >
+                {{
+                  testApiData.monitorSysGenServerComponentStatus === 1
+                    ? "启用"
+                    : "禁用"
+                }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="组件名称">
               {{ testFormData.monitorSysGenServerComponentName }}
             </el-descriptions-item>
             <el-descriptions-item label="组件类型">
-              <el-tag :type="getComponentTypeTagColor(testFormData.monitorSysGenServerComponentType)">
-                {{ getComponentTypeDisplayName(testFormData.monitorSysGenServerComponentType) }}
+              <el-tag
+                :type="
+                  getComponentTypeTagColor(
+                    testFormData.monitorSysGenServerComponentType,
+                  )
+                "
+              >
+                {{
+                  getComponentTypeDisplayName(
+                    testFormData.monitorSysGenServerComponentType,
+                  )
+                }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="表达式类型">
               <el-tag type="info">
-                {{ getExpressionTypeDisplayName(testFormData.monitorSysGenServerComponentExpressionType) }}
+                {{
+                  getExpressionTypeDisplayName(
+                    testFormData.monitorSysGenServerComponentExpressionType,
+                  )
+                }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="表达式">
-              {{ testFormData.monitorSysGenServerComponentExpression || '未设置' }}
+              {{
+                testFormData.monitorSysGenServerComponentExpression || "未设置"
+              }}
             </el-descriptions-item>
           </el-descriptions>
         </el-card>
-        
+
         <!-- 转换测试 -->
         <el-card>
           <template #header>
             <h4>字段转换测试</h4>
           </template>
-          
+
           <el-space>
             <el-button type="primary" @click="testFormToApi">
               前端 → 后端转换
@@ -55,35 +91,37 @@
             <el-button type="success" @click="testApiToForm">
               后端 → 前端转换
             </el-button>
-            <el-button @click="resetTestData">
-              重置测试数据
-            </el-button>
+            <el-button @click="resetTestData"> 重置测试数据 </el-button>
           </el-space>
-          
+
           <el-divider />
-          
+
           <!-- 转换结果 -->
           <div v-if="conversionResult">
             <h5>转换结果:</h5>
             <pre>{{ JSON.stringify(conversionResult, null, 2) }}</pre>
           </div>
         </el-card>
-        
+
         <!-- 验证测试 -->
         <el-card>
           <template #header>
             <h4>数据验证测试</h4>
           </template>
-          
+
           <el-button type="warning" @click="testValidation">
             验证数据完整性
           </el-button>
-          
+
           <div v-if="validationResult" style="margin-top: 16px">
             <el-alert
               :type="validationResult.isValid ? 'success' : 'error'"
               :title="validationResult.isValid ? '验证通过' : '验证失败'"
-              :description="validationResult.isValid ? '数据完整性验证通过' : validationResult.errors.join(', ')"
+              :description="
+                validationResult.isValid
+                  ? '数据完整性验证通过'
+                  : validationResult.errors.join(', ')
+              "
               show-icon
             />
           </div>
@@ -94,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
 import {
   convertFormDataToApiData,
@@ -103,29 +141,29 @@ import {
   getComponentTypeDisplayName,
   getComponentTypeTagColor,
   getExpressionTypeDisplayName,
-  type ComponentFormData
-} from '@/utils/component-field-mapping';
-import type { ServerComponent } from '@/api/server';
+  type ComponentFormData,
+} from "@/utils/component-field-mapping";
+import type { ServerComponent } from "@/api/server";
 
 // 测试数据
 const testFormData = reactive<ComponentFormData>({
   monitorSysGenServerId: 1,
-  monitorSysGenServerComponentName: '测试组件',
-  monitorSysGenServerComponentType: 'card',
-  monitorSysGenServerComponentExpressionType: 'PROMETHEUS',
+  monitorSysGenServerComponentName: "测试组件",
+  monitorSysGenServerComponentType: "card",
+  monitorSysGenServerComponentExpressionType: "PROMETHEUS",
   monitorSysGenServerComponentExpression: 'up{job="node"}',
-  monitorSysGenServerComponentUnit: '%',
-  monitorSysGenServerComponentDescription: '这是一个测试组件',
-  monitorSysGenServerComponentEnabled: true
+  monitorSysGenServerComponentUnit: "%",
+  monitorSysGenServerComponentDescription: "这是一个测试组件",
+  monitorSysGenServerComponentEnabled: true,
 });
 
 const testApiData = reactive<ServerComponent>({
   monitorSysGenServerComponentId: 1,
   monitorSysGenServerId: 1,
-  monitorSysGenServerComponentName: '测试组件',
-  monitorSysGenServerComponentType: 'card',
+  monitorSysGenServerComponentName: "测试组件",
+  monitorSysGenServerComponentType: "card",
   monitorSysGenServerComponentStatus: 1,
-  monitorSysGenServerComponentDescription: '这是一个测试组件'
+  monitorSysGenServerComponentDescription: "这是一个测试组件",
 });
 
 const conversionResult = ref<any>(null);
@@ -138,10 +176,10 @@ const testFormToApi = () => {
   try {
     const result = convertFormDataToApiData(testFormData);
     conversionResult.value = result;
-    message('前端到后端转换成功', { type: "success" });
+    message("前端到后端转换成功", { type: "success" });
   } catch (error) {
-    console.error('转换失败:', error);
-    message('转换失败', { type: "error" });
+    console.error("转换失败:", error);
+    message("转换失败", { type: "error" });
   }
 };
 
@@ -152,10 +190,10 @@ const testApiToForm = () => {
   try {
     const result = convertApiDataToFormData(testApiData);
     conversionResult.value = result;
-    message('后端到前端转换成功', { type: "success" });
+    message("后端到前端转换成功", { type: "success" });
   } catch (error) {
-    console.error('转换失败:', error);
-    message('转换失败', { type: "error" });
+    console.error("转换失败:", error);
+    message("转换失败", { type: "error" });
   }
 };
 
@@ -166,15 +204,15 @@ const testValidation = () => {
   try {
     const result = validateComponentData(testFormData);
     validationResult.value = result;
-    
+
     if (result.isValid) {
-      message('数据验证通过', { type: "success" });
+      message("数据验证通过", { type: "success" });
     } else {
-      message('数据验证失败', { type: "error" });
+      message("数据验证失败", { type: "error" });
     }
   } catch (error) {
-    console.error('验证失败:', error);
-    message('验证失败', { type: "error" });
+    console.error("验证失败:", error);
+    message("验证失败", { type: "error" });
   }
 };
 
@@ -184,33 +222,32 @@ const testValidation = () => {
 const resetTestData = () => {
   Object.assign(testFormData, {
     monitorSysGenServerId: 1,
-    monitorSysGenServerComponentName: '测试组件',
-    monitorSysGenServerComponentType: 'card',
-    monitorSysGenServerComponentExpressionType: 'PROMETHEUS',
+    monitorSysGenServerComponentName: "测试组件",
+    monitorSysGenServerComponentType: "card",
+    monitorSysGenServerComponentExpressionType: "PROMETHEUS",
     monitorSysGenServerComponentExpression: 'up{job="node"}',
-    monitorSysGenServerComponentUnit: '%',
-    monitorSysGenServerComponentDescription: '这是一个测试组件',
-    monitorSysGenServerComponentEnabled: true
+    monitorSysGenServerComponentUnit: "%",
+    monitorSysGenServerComponentDescription: "这是一个测试组件",
+    monitorSysGenServerComponentEnabled: true,
   });
-  
+
   Object.assign(testApiData, {
     monitorSysGenServerComponentId: 1,
     monitorSysGenServerId: 1,
-    monitorSysGenServerComponentName: '测试组件',
-    monitorSysGenServerComponentType: 'card',
+    monitorSysGenServerComponentName: "测试组件",
+    monitorSysGenServerComponentType: "card",
     monitorSysGenServerComponentStatus: 1,
-    monitorSysGenServerComponentDescription: '这是一个测试组件'
+    monitorSysGenServerComponentDescription: "这是一个测试组件",
   });
-  
+
   conversionResult.value = null;
   validationResult.value = null;
-  
-  message('测试数据已重置', { type: "info" });
+
+  message("测试数据已重置", { type: "info" });
 };
 </script>
 
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -244,7 +281,6 @@ const resetTestData = () => {
   }
 }
 
-
 .test-component-fields {
   padding: 20px;
 }
@@ -257,7 +293,6 @@ pre {
   font-size: 12px;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -266,5 +301,4 @@ pre {
     padding: 12px 16px;
   }
 }
-
 </style>

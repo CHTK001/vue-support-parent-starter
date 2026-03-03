@@ -14,11 +14,11 @@
           :loading="loading"
           plain
         >
-          <IconifyIconOnline 
-            :icon="isMonitorEnabled ? 'ri:eye-line' : 'ri:eye-off-line'" 
-            class="mr-1" 
+          <IconifyIconOnline
+            :icon="isMonitorEnabled ? 'ri:eye-line' : 'ri:eye-off-line'"
+            class="mr-1"
           />
-          {{ isMonitorEnabled ? '监控中' : '未监控' }}
+          {{ isMonitorEnabled ? "监控中" : "未监控" }}
         </el-button>
       </template>
 
@@ -31,7 +31,10 @@
         <div class="setting-item">
           <div class="setting-label">
             <span>启用监控</span>
-            <el-tooltip content="开启后将定期收集服务器指标数据" placement="top">
+            <el-tooltip
+              content="开启后将定期收集服务器指标数据"
+              placement="top"
+            >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
@@ -61,7 +64,10 @@
         <div class="setting-item">
           <div class="setting-label">
             <span>启用告警</span>
-            <el-tooltip content="开启后将在指标异常时发送告警通知" placement="top">
+            <el-tooltip
+              content="开启后将在指标异常时发送告警通知"
+              placement="top"
+            >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
@@ -78,9 +84,9 @@
             <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
             完整设置
           </el-button>
-          <el-button 
-            type="primary" 
-            size="small" 
+          <el-button
+            type="primary"
+            size="small"
             :loading="saveLoading"
             @click="handleSave"
           >
@@ -98,7 +104,7 @@ import { message } from "@repo/utils";
 import {
   type ServerSetting,
   getOrCreateServerSetting,
-  saveOrUpdateServerSetting
+  saveOrUpdateServerSetting,
 } from "@/api/server/setting";
 
 // 定义属性
@@ -132,11 +138,15 @@ const localSettings = reactive({
 const isMonitorEnabled = computed(() => localSettings.monitorEnabled === 1);
 
 // 监听服务器ID变化
-watch(() => props.serverId, (newServerId) => {
-  if (newServerId) {
-    loadServerSetting();
-  }
-}, { immediate: true });
+watch(
+  () => props.serverId,
+  (newServerId) => {
+    if (newServerId) {
+      loadServerSetting();
+    }
+  },
+  { immediate: true },
+);
 
 /**
  * 处理可见性变化
@@ -153,19 +163,22 @@ const handleVisibleChange = (newVisible: boolean) => {
  */
 const loadServerSetting = async () => {
   if (!props.serverId) return;
-  
+
   try {
     loading.value = true;
     const result = await getOrCreateServerSetting(props.serverId);
     if (result.code === "00000" && result.data) {
       serverSetting.value = result.data;
       // 更新本地设置
-      localSettings.monitorEnabled = result.data.monitorSysGenServerSettingMonitorEnabled || 0;
-      localSettings.reportEnabled = result.data.monitorSysGenServerSettingReportEnabled || 0;
-      localSettings.alertEnabled = result.data.monitorSysGenServerSettingAlertEnabled || 0;
+      localSettings.monitorEnabled =
+        result.data.monitorSysGenServerSettingMonitorEnabled || 0;
+      localSettings.reportEnabled =
+        result.data.monitorSysGenServerSettingReportEnabled || 0;
+      localSettings.alertEnabled =
+        result.data.monitorSysGenServerSettingAlertEnabled || 0;
     }
   } catch (error) {
-    console.error('加载服务器设置失败:', error);
+    console.error("加载服务器设置失败:", error);
   } finally {
     loading.value = false;
   }
@@ -208,7 +221,7 @@ const handleAlertChange = (value: number) => {
 const handleSave = async () => {
   try {
     saveLoading.value = true;
-    
+
     const submitData = {
       ...serverSetting.value,
       monitorSysGenServerId: props.serverId,
@@ -243,7 +256,6 @@ const handleOpenFullSetting = () => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -276,7 +288,6 @@ const handleOpenFullSetting = () => {
     z-index: 1;
   }
 }
-
 
 .server-quick-setting {
   display: inline-block;
@@ -333,7 +344,6 @@ const handleOpenFullSetting = () => {
   border-top: 1px solid var(--el-border-color-light);
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -342,5 +352,4 @@ const handleOpenFullSetting = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -20,11 +20,28 @@
       </div>
 
       <div class="toolbar-right">
-        <el-select v-model="filterServerId" placeholder="选择服务器" clearable style="width: 150px" @change="handleFilter">
-          <el-option v-for="server in serverList" :key="server.id" :label="server.name" :value="server.id" />
+        <el-select
+          v-model="filterServerId"
+          placeholder="选择服务器"
+          clearable
+          style="width: 150px"
+          @change="handleFilter"
+        >
+          <el-option
+            v-for="server in serverList"
+            :key="server.id"
+            :label="server.name"
+            :value="server.id"
+          />
         </el-select>
 
-        <el-select v-model="filterLevel" placeholder="日志级别" clearable style="width: 120px; margin-left: 12px" @change="handleFilter">
+        <el-select
+          v-model="filterLevel"
+          placeholder="日志级别"
+          clearable
+          style="width: 120px; margin-left: 12px"
+          @change="handleFilter"
+        >
           <el-option label="DEBUG" value="DEBUG" />
           <el-option label="INFO" value="INFO" />
           <el-option label="WARN" value="WARN" />
@@ -32,9 +49,23 @@
           <el-option label="FATAL" value="FATAL" />
         </el-select>
 
-        <el-date-picker v-model="dateRange" type="datetimerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" style="width: 350px; margin-left: 12px" @change="handleFilter" />
+        <el-date-picker
+          v-model="dateRange"
+          type="datetimerange"
+          range-separator="至"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          style="width: 350px; margin-left: 12px"
+          @change="handleFilter"
+        />
 
-        <el-input v-model="searchKeyword" placeholder="搜索日志内容..." clearable style="width: 200px; margin-left: 12px" @input="handleSearch">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索日志内容..."
+          clearable
+          style="width: 200px; margin-left: 12px"
+          @input="handleSearch"
+        >
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
@@ -43,7 +74,13 @@
     </div>
 
     <!-- 日志表格 -->
-    <el-table v-loading="loading" :data="logList" stripe :row-class-name="getRowClassName" @selection-change="handleSelectionChange">
+    <el-table
+      v-loading="loading"
+      :data="logList"
+      stripe
+      :row-class-name="getRowClassName"
+      @selection-change="handleSelectionChange"
+    >
       <el-table-column type="selection" width="55" />
 
       <el-table-column label="时间" width="160" align="center">
@@ -60,7 +97,11 @@
 
       <el-table-column label="级别" width="80" align="center">
         <template #default="{ row }">
-          <el-tag :type="getLogLevelColor(row.monitorSysGenServerLogLevel)" size="small" effect="light">
+          <el-tag
+            :type="getLogLevelColor(row.monitorSysGenServerLogLevel)"
+            size="small"
+            effect="light"
+          >
             {{ row.monitorSysGenServerLogLevel }}
           </el-tag>
         </template>
@@ -75,8 +116,16 @@
       <el-table-column label="日志内容" min-width="400">
         <template #default="{ row }">
           <div class="log-content">
-            <span class="log-text">{{ row.monitorSysGenServerLogContent }}</span>
-            <el-button v-if="row.monitorSysGenServerLogContent.length > 100" type="text" size="small" @click="handleViewFullLog(row)">查看完整</el-button>
+            <span class="log-text">{{
+              row.monitorSysGenServerLogContent
+            }}</span>
+            <el-button
+              v-if="row.monitorSysGenServerLogContent.length > 100"
+              type="text"
+              size="small"
+              @click="handleViewFullLog(row)"
+              >查看完整</el-button
+            >
           </div>
         </template>
       </el-table-column>
@@ -97,7 +146,9 @@
                 <el-dropdown-menu>
                   <el-dropdown-item command="copy">复制内容</el-dropdown-item>
                   <el-dropdown-item command="context">上下文</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided
+                    >删除</el-dropdown-item
+                  >
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -108,11 +159,24 @@
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
-      <el-pagination v-model:current-page="pagination.page" v-model:page-size="pagination.pageSize" :total="pagination.total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+      <el-pagination
+        v-model:current-page="pagination.page"
+        v-model:page-size="pagination.pageSize"
+        :total="pagination.total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
     </div>
 
     <!-- 日志详情对话框 -->
-    <sc-dialog v-model="logDetailVisible" title="日志详情" width="80%" destroy-on-close>
+    <sc-dialog
+      v-model="logDetailVisible"
+      title="日志详情"
+      width="80%"
+      destroy-on-close
+    >
       <div v-if="selectedLog" class="log-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="时间">
@@ -122,7 +186,9 @@
             {{ getServerName(selectedLog.monitorSysGenServerId) }}
           </el-descriptions-item>
           <el-descriptions-item label="级别">
-            <el-tag :type="getLogLevelColor(selectedLog.monitorSysGenServerLogLevel)">
+            <el-tag
+              :type="getLogLevelColor(selectedLog.monitorSysGenServerLogLevel)"
+            >
               {{ selectedLog.monitorSysGenServerLogLevel }}
             </el-tag>
           </el-descriptions-item>
@@ -139,33 +205,58 @@
 
       <template #footer>
         <el-button @click="logDetailVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleCopyLogContent">复制内容</el-button>
+        <el-button type="primary" @click="handleCopyLogContent"
+          >复制内容</el-button
+        >
       </template>
     </sc-dialog>
 
     <!-- 清理日志对话框 -->
-    <sc-dialog v-model="cleanupDialogVisible" title="清理日志" width="400px" destroy-on-close>
+    <sc-dialog
+      v-model="cleanupDialogVisible"
+      title="清理日志"
+      width="400px"
+      destroy-on-close
+    >
       <div class="cleanup-form">
         <el-form :model="cleanupForm" label-width="100px">
           <el-form-item label="保留天数">
-            <el-input-number v-model="cleanupForm.days" :min="1" :max="365" placeholder="保留天数" style="width: 100%" />
+            <el-input-number
+              v-model="cleanupForm.days"
+              :min="1"
+              :max="365"
+              placeholder="保留天数"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item>
-            <el-alert title="注意" :description="`将删除 ${cleanupForm.days} 天前的所有日志记录，此操作不可恢复！`" type="warning" :closable="false" />
+            <el-alert
+              title="注意"
+              :description="`将删除 ${cleanupForm.days} 天前的所有日志记录，此操作不可恢复！`"
+              type="warning"
+              :closable="false"
+            />
           </el-form-item>
         </el-form>
       </div>
 
       <template #footer>
         <el-button @click="cleanupDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="handleConfirmCleanup">确定清理</el-button>
+        <el-button type="danger" @click="handleConfirmCleanup"
+          >确定清理</el-button
+        >
       </template>
     </sc-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { deleteServerLog, exportServerLogs, getLogLevelColor, type ServerLog } from "@/api/server/log";
+import {
+  deleteServerLog,
+  exportServerLogs,
+  getLogLevelColor,
+  type ServerLog,
+} from "@/api/server/log";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
@@ -215,7 +306,9 @@ const loadLogList = async () => {
     const params = {
       page: pagination.page,
       pageSize: pagination.pageSize,
-      monitorSysGenServerId: filterServerId.value ? parseInt(filterServerId.value) : undefined,
+      monitorSysGenServerId: filterServerId.value
+        ? parseInt(filterServerId.value)
+        : undefined,
       monitorSysGenServerLogLevel: filterLevel.value || undefined,
       monitorSysGenServerLogContent: searchKeyword.value || undefined,
       startTime: dateRange.value?.[0]?.toISOString(),
@@ -293,7 +386,9 @@ const handleRefresh = () => {
 const handleExportLogs = async () => {
   try {
     const params = {
-      monitorSysGenServerId: filterServerId.value ? parseInt(filterServerId.value) : undefined,
+      monitorSysGenServerId: filterServerId.value
+        ? parseInt(filterServerId.value)
+        : undefined,
       monitorSysGenServerLogLevel: filterLevel.value || undefined,
       monitorSysGenServerLogContent: searchKeyword.value || undefined,
       startTime: dateRange.value?.[0]?.toISOString(),
@@ -365,7 +460,9 @@ const handleViewFullLog = (log: ServerLog) => {
 const handleCopyLogContent = async () => {
   if (selectedLog.value) {
     try {
-      await navigator.clipboard.writeText(selectedLog.value.monitorSysGenServerLogContent);
+      await navigator.clipboard.writeText(
+        selectedLog.value.monitorSysGenServerLogContent,
+      );
       message.success("日志内容已复制到剪贴板");
     } catch (error) {
       console.error("复制失败:", error);
@@ -469,7 +566,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -502,7 +598,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .server-logs {
   .toolbar {
@@ -575,7 +670,6 @@ onMounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -584,5 +678,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -282,7 +282,7 @@ export const ACME_SERVER_GROUPS = [
 
 /** ACME 服务器扁平列表（兼容旧代码） */
 export const ACME_SERVERS = ACME_SERVER_GROUPS.flatMap(
-  (group) => group.options
+  (group) => group.options,
 );
 
 /** 验证类型 */
@@ -337,25 +337,29 @@ export const EAB_SERVER_CONFIGS: EabServerConfig[] = [
   {
     serverUrl: "https://acme.ssl.com/sslcom-dv-rsa",
     name: "SSL.com (RSA)",
-    eabUrl: "https://www.ssl.com/how-to/obtain-eab-credentials-for-ssl-com-acme/",
+    eabUrl:
+      "https://www.ssl.com/how-to/obtain-eab-credentials-for-ssl-com-acme/",
     eabTip: "登录后在账户设置中获取 ACME 凭证",
   },
   {
     serverUrl: "https://acme.ssl.com/sslcom-dv-ecc",
     name: "SSL.com (ECC)",
-    eabUrl: "https://www.ssl.com/how-to/obtain-eab-credentials-for-ssl-com-acme/",
+    eabUrl:
+      "https://www.ssl.com/how-to/obtain-eab-credentials-for-ssl-com-acme/",
     eabTip: "登录后在账户设置中获取 ACME 凭证",
   },
   {
     serverUrl: "https://dv.acme-v02.api.pki.goog/directory",
     name: "Google Trust Services",
-    eabUrl: "https://cloud.google.com/certificate-manager/docs/public-ca-tutorial",
+    eabUrl:
+      "https://cloud.google.com/certificate-manager/docs/public-ca-tutorial",
     eabTip: "在 Google Cloud Console 中启用 Public CA 并获取凭证",
   },
   {
     serverUrl: "https://dv.acme-v02.test-api.pki.goog/directory",
     name: "Google Trust Services (测试)",
-    eabUrl: "https://cloud.google.com/certificate-manager/docs/public-ca-tutorial",
+    eabUrl:
+      "https://cloud.google.com/certificate-manager/docs/public-ca-tutorial",
     eabTip: "在 Google Cloud Console 中启用 Public CA 并获取凭证",
   },
 ];

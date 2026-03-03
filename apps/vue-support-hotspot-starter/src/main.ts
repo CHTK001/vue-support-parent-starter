@@ -1,4 +1,4 @@
-import { createStandardApp } from "@repo/core";
+import { createStandardApp } from "@repo/core/src/standard-app";
 import { wsService } from "./utils/websocket";
 
 // 样式导入

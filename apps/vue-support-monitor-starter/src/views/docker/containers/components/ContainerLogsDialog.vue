@@ -10,15 +10,20 @@
       <!-- 日志控制栏 -->
       <div class="logs-header">
         <div class="logs-info">
-          <span class="container-name">{{ containerData?.systemSoftContainerName }}</span>
-          <el-tag size="small" :type="getStatusType(containerData?.systemSoftContainerStatus)">
+          <span class="container-name">{{
+            containerData?.systemSoftContainerName
+          }}</span>
+          <el-tag
+            size="small"
+            :type="getStatusType(containerData?.systemSoftContainerStatus)"
+          >
             {{ getStatusText(containerData?.systemSoftContainerStatus) }}
           </el-tag>
         </div>
         <div class="logs-controls">
-          <el-switch 
-            v-model="autoRefresh" 
-            active-text="自动刷新" 
+          <el-switch
+            v-model="autoRefresh"
+            active-text="自动刷新"
             @change="handleAutoRefreshChange"
           />
           <el-input-number
@@ -45,7 +50,7 @@
           </el-select>
         </div>
         <div class="logs-actions">
-          <el-button size="small" @click="loadLogs" :loading="loading">
+          <el-button size="small" :loading="loading" @click="loadLogs">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
           </el-button>
@@ -59,9 +64,9 @@
           </el-button>
         </div>
       </div>
-      
+
       <!-- 日志内容 -->
-      <div class="logs-content" ref="logsContentRef">
+      <div ref="logsContentRef" class="logs-content">
         <div v-if="loading && !logs" class="logs-loading">
           <el-skeleton :rows="10" animated />
         </div>
@@ -76,7 +81,7 @@
           </el-button>
         </div>
       </div>
-      
+
       <!-- 日志统计 -->
       <div class="logs-footer">
         <div class="logs-stats">
@@ -109,7 +114,7 @@
         </div>
       </div>
     </div>
-    
+
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="handleClose">关闭</el-button>
@@ -123,206 +128,227 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onUnmounted, nextTick } from "vue";
 import { message } from "@repo/utils";
-import { containerApi, type SystemSoftContainer } from '@/api/docker'
+import { containerApi, type SystemSoftContainer } from "@/api/docker";
 
 interface Props {
-  visible: boolean
-  containerData?: SystemSoftContainer | null
+  visible: boolean;
+  containerData?: SystemSoftContainer | null;
 }
 
 interface Emits {
-  (e: 'update:visible', value: boolean): void
+  (e: "update:visible", value: boolean): void;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
-const loading = ref(false)
-const logs = ref('')
-const logLines = ref(200)
-const logLevel = ref('')
-const autoRefresh = ref(false)
-const lastUpdateTime = ref('')
-const logsContentRef = ref<HTMLElement>()
+const loading = ref(false);
+const logs = ref("");
+const logLines = ref(200);
+const logLevel = ref("");
+const autoRefresh = ref(false);
+const lastUpdateTime = ref("");
+const logsContentRef = ref<HTMLElement>();
 
 // 日志统计
 const logStats = reactive({
   totalLines: 0,
   errorCount: 0,
-  warnCount: 0
-})
+  warnCount: 0,
+});
 
 // 定时器
-let refreshTimer: NodeJS.Timeout | null = null
+let refreshTimer: NodeJS.Timeout | null = null;
 
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (value) => emit('update:visible', value)
-})
+  set: (value) => emit("update:visible", value),
+});
 
 // 监听对话框状态
 watch(dialogVisible, (visible) => {
   if (visible && props.containerData) {
-    loadLogs()
+    loadLogs();
   } else {
-    stopAutoRefresh()
+    stopAutoRefresh();
   }
-})
+});
 
 // 监听容器数据变化
-watch(() => props.containerData, (newData) => {
-  if (newData && dialogVisible.value) {
-    loadLogs()
-  }
-})
+watch(
+  () => props.containerData,
+  (newData) => {
+    if (newData && dialogVisible.value) {
+      loadLogs();
+    }
+  },
+);
 
 // 工具函数
 const getStatusType = (status?: string) => {
-  const map = { running: 'success', stopped: 'warning', paused: 'info', restarting: 'warning', error: 'danger' }
-  return map[status] || 'info'
-}
+  const map = {
+    running: "success",
+    stopped: "warning",
+    paused: "info",
+    restarting: "warning",
+    error: "danger",
+  };
+  return map[status] || "info";
+};
 
 const getStatusText = (status?: string) => {
-  const map = { running: '运行中', stopped: '已停止', paused: '暂停', restarting: '重启中', error: '错误' }
-  return map[status] || '未知'
-}
+  const map = {
+    running: "运行中",
+    stopped: "已停止",
+    paused: "暂停",
+    restarting: "重启中",
+    error: "错误",
+  };
+  return map[status] || "未知";
+};
 
 // 加载日志
 const loadLogs = async () => {
-  if (!props.containerData?.systemSoftContainerId) return
-  
+  if (!props.containerData?.systemSoftContainerId) return;
+
   try {
-    loading.value = true
-    
+    loading.value = true;
+
     const response = await containerApi.getContainerLogs(
       props.containerData.systemSoftContainerId,
-      logLines.value
-    )
-    if (response.code === '00000') {
-      logs.value = response.data || ''
-      updateLogStats()
-      lastUpdateTime.value = new Date().toLocaleTimeString()
-      
+      logLines.value,
+    );
+    if (response.code === "00000") {
+      logs.value = response.data || "";
+      updateLogStats();
+      lastUpdateTime.value = new Date().toLocaleTimeString();
+
       // 自动滚动到底部
-      await nextTick()
-      scrollToBottom()
+      await nextTick();
+      scrollToBottom();
     } else {
-      message(response.msg || '获取日志失败', { type: "error" })
+      message(response.msg || "获取日志失败", { type: "error" });
     }
   } catch (error) {
-    message('获取容器日志失败', { type: "error" })
+    message("获取容器日志失败", { type: "error" });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // 更新日志统计
 const updateLogStats = () => {
   if (!logs.value) {
-    logStats.totalLines = 0
-    logStats.errorCount = 0
-    logStats.warnCount = 0
-    return
+    logStats.totalLines = 0;
+    logStats.errorCount = 0;
+    logStats.warnCount = 0;
+    return;
   }
-  
-  const lines = logs.value.split('\n')
-  logStats.totalLines = lines.length
-  
+
+  const lines = logs.value.split("\n");
+  logStats.totalLines = lines.length;
+
   // 统计错误和警告数量
-  logStats.errorCount = lines.filter(line => 
-    /\b(error|ERROR|Error|exception|Exception|fatal|FATAL|Fatal)\b/.test(line)
-  ).length
-  
-  logStats.warnCount = lines.filter(line => 
-    /\b(warn|WARN|Warn|warning|WARNING|Warning)\b/.test(line)
-  ).length
-}
+  logStats.errorCount = lines.filter((line) =>
+    /\b(error|ERROR|Error|exception|Exception|fatal|FATAL|Fatal)\b/.test(line),
+  ).length;
+
+  logStats.warnCount = lines.filter((line) =>
+    /\b(warn|WARN|Warn|warning|WARNING|Warning)\b/.test(line),
+  ).length;
+};
 
 // 自动刷新控制
 const handleAutoRefreshChange = (enabled: boolean) => {
   if (enabled) {
-    startAutoRefresh()
+    startAutoRefresh();
   } else {
-    stopAutoRefresh()
+    stopAutoRefresh();
   }
-}
+};
 
 const startAutoRefresh = () => {
   if (refreshTimer) {
-    clearInterval(refreshTimer)
+    clearInterval(refreshTimer);
   }
-  
+
   refreshTimer = setInterval(async () => {
     if (autoRefresh.value && dialogVisible.value && props.containerData) {
-      await loadLogs()
+      await loadLogs();
     }
-  }, 3000) // 每3秒刷新一次
-}
+  }, 3000); // 每3秒刷新一次
+};
 
 const stopAutoRefresh = () => {
   if (refreshTimer) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
+    clearInterval(refreshTimer);
+    refreshTimer = null;
   }
-}
+};
 
 // 滚动控制
 const scrollToTop = () => {
   if (logsContentRef.value) {
-    logsContentRef.value.scrollTop = 0
+    logsContentRef.value.scrollTop = 0;
   }
-}
+};
 
 const scrollToBottom = () => {
   if (logsContentRef.value) {
-    logsContentRef.value.scrollTop = logsContentRef.value.scrollHeight
+    logsContentRef.value.scrollTop = logsContentRef.value.scrollHeight;
   }
-}
+};
 
 // 清空显示
 const clearLogs = () => {
-  logs.value = ''
-  logStats.totalLines = 0
-  logStats.errorCount = 0
-  logStats.warnCount = 0
-}
+  logs.value = "";
+  logStats.totalLines = 0;
+  logStats.errorCount = 0;
+  logStats.warnCount = 0;
+};
 
 // 下载日志
 const downloadLogs = () => {
   if (!logs.value) {
-    message('暂无日志可下载', { type: "warning" })
-    return
+    message("暂无日志可下载", { type: "warning" });
+    return;
   }
-  
-  const containerName = props.containerData?.systemSoftContainerName || 'unknown'
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-  const filename = `container-logs-${containerName}-${timestamp}.txt`
-  
-  const blob = new Blob([logs.value], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-  
-  message('日志文件下载成功', { type: "success" })
-}
+
+  const containerName =
+    props.containerData?.systemSoftContainerName || "unknown";
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filename = `container-logs-${containerName}-${timestamp}.txt`;
+
+  const blob = new Blob([logs.value], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  message("日志文件下载成功", { type: "success" });
+};
 
 // 新窗口打开
 const openInNewWindow = () => {
   if (!logs.value) {
-    message('暂无日志内容', { type: "warning" })
-    return
+    message("暂无日志内容", { type: "warning" });
+    return;
   }
-  
-  const containerName = props.containerData?.systemSoftContainerName || 'Unknown Container'
-  const newWindow = window.open('', '_blank', 'width=1000,height=700,scrollbars=yes')
-  
+
+  const containerName =
+    props.containerData?.systemSoftContainerName || "Unknown Container";
+  const newWindow = window.open(
+    "",
+    "_blank",
+    "width=1000,height=700,scrollbars=yes",
+  );
+
   if (newWindow) {
     newWindow.document.write(`
       <!DOCTYPE html>
@@ -370,27 +396,27 @@ const openInNewWindow = () => {
       <body>
         <div class="header">
           <h3>容器日志 - ${containerName}</h3>
-          <p>容器ID: ${props.containerData?.systemSoftContainerId || 'Unknown'}</p>
+          <p>容器ID: ${props.containerData?.systemSoftContainerId || "Unknown"}</p>
           <p>生成时间: ${new Date().toLocaleString()}</p>
         </div>
         <div class="logs">${logs.value}</div>
       </body>
       </html>
-    `)
-    newWindow.document.close()
+    `);
+    newWindow.document.close();
   }
-}
+};
 
 const handleClose = () => {
-  stopAutoRefresh()
-  autoRefresh.value = false
-  dialogVisible.value = false
-}
+  stopAutoRefresh();
+  autoRefresh.value = false;
+  dialogVisible.value = false;
+};
 
 // 组件卸载时清理定时器
 onUnmounted(() => {
-  stopAutoRefresh()
-})
+  stopAutoRefresh();
+});
 </script>
 
 <style scoped lang="scss">
@@ -457,7 +483,7 @@ onUnmounted(() => {
 }
 
 .logs-text {
-  font-family: 'Consolas', 'Monaco', 'Menlo', monospace;
+  font-family: "Consolas", "Monaco", "Menlo", monospace;
   font-size: 12px;
   line-height: 1.4;
   color: #d4d4d4;

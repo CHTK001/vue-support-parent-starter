@@ -12,8 +12,8 @@
               <el-button
                 size="small"
                 circle
-                @click="refreshStatistics"
                 :loading="loading"
+                @click="refreshStatistics"
               >
                 <IconifyIconOnline icon="ep:refresh" />
               </el-button>
@@ -45,7 +45,7 @@
           <div class="distribution-items">
             <div class="distribution-item normal">
               <div class="item-header">
-                <div class="status-dot normal"></div>
+                <div class="status-dot normal" />
                 <span class="status-text">正常 (&lt;100ms)</span>
               </div>
               <div class="item-stats">
@@ -53,10 +53,10 @@
                 <span class="percentage">({{ normalPercentage }}%)</span>
               </div>
             </div>
-            
+
             <div class="distribution-item high">
               <div class="item-header">
-                <div class="status-dot high"></div>
+                <div class="status-dot high" />
                 <span class="status-text">较高 (100-500ms)</span>
               </div>
               <div class="item-stats">
@@ -64,10 +64,10 @@
                 <span class="percentage">({{ highPercentage }}%)</span>
               </div>
             </div>
-            
+
             <div class="distribution-item abnormal">
               <div class="item-header">
-                <div class="status-dot abnormal"></div>
+                <div class="status-dot abnormal" />
                 <span class="status-text">异常 (&gt;500ms)</span>
               </div>
               <div class="item-stats">
@@ -79,14 +79,17 @@
         </div>
 
         <!-- 告警信息 -->
-        <div class="alerts-section" v-if="alerts.length > 0">
+        <div v-if="alerts.length > 0" class="alerts-section">
           <h4 class="section-title">
-            <IconifyIconOnline icon="ri:alarm-warning-line" class="warning-icon" />
+            <IconifyIconOnline
+              icon="ri:alarm-warning-line"
+              class="warning-icon"
+            />
             延迟告警
           </h4>
           <div class="alerts-list">
-            <div 
-              v-for="alert in alerts.slice(0, 3)" 
+            <div
+              v-for="alert in alerts.slice(0, 3)"
               :key="alert.serverId"
               class="alert-item"
             >
@@ -113,11 +116,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted } from "vue";
 // 移除 @element-plus/icons-vue 导入，使用全局 IconifyIconOnline 组件
-import { useGlobalServerLatency } from '@/composables/useServerLatency';
-import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import { useGlobalServerLatency } from "@/composables/useServerLatency";
+import { formatDistanceToNow } from "date-fns";
+import { zhCN } from "date-fns/locale";
 
 // 延迟管理
 const latencyManager = useGlobalServerLatency();
@@ -126,41 +129,51 @@ const latencyManager = useGlobalServerLatency();
 const totalServers = computed(() => latencyManager.totalServers.value);
 const onlineServers = computed(() => latencyManager.onlineServers.value);
 const normalServers = computed(() => latencyManager.normalServers.value);
-const highLatencyServers = computed(() => latencyManager.highLatencyServers.value);
+const highLatencyServers = computed(
+  () => latencyManager.highLatencyServers.value,
+);
 const abnormalServers = computed(() => latencyManager.abnormalServers.value);
 const loading = computed(() => latencyManager.loading.value);
 const alerts = computed(() => latencyManager.alerts.value);
 
 // 计算百分比
 const onlineRate = computed(() => {
-  return totalServers.value > 0 ? (onlineServers.value / totalServers.value) * 100 : 0;
+  return totalServers.value > 0
+    ? (onlineServers.value / totalServers.value) * 100
+    : 0;
 });
 
 const normalPercentage = computed(() => {
-  return onlineServers.value > 0 ? Math.round((normalServers.value / onlineServers.value) * 100) : 0;
+  return onlineServers.value > 0
+    ? Math.round((normalServers.value / onlineServers.value) * 100)
+    : 0;
 });
 
 const highPercentage = computed(() => {
-  return onlineServers.value > 0 ? Math.round((highLatencyServers.value / onlineServers.value) * 100) : 0;
+  return onlineServers.value > 0
+    ? Math.round((highLatencyServers.value / onlineServers.value) * 100)
+    : 0;
 });
 
 const abnormalPercentage = computed(() => {
-  return onlineServers.value > 0 ? Math.round((abnormalServers.value / onlineServers.value) * 100) : 0;
+  return onlineServers.value > 0
+    ? Math.round((abnormalServers.value / onlineServers.value) * 100)
+    : 0;
 });
 
 // 格式化更新时间
 const formatUpdateTime = computed(() => {
   if (!latencyManager.lastUpdateTime.value) {
-    return '未更新';
+    return "未更新";
   }
-  
+
   try {
     return formatDistanceToNow(new Date(latencyManager.lastUpdateTime.value), {
       addSuffix: true,
-      locale: zhCN
+      locale: zhCN,
     });
   } catch {
-    return '刚刚';
+    return "刚刚";
   }
 });
 
@@ -170,10 +183,10 @@ const refreshStatistics = async () => {
     await Promise.all([
       latencyManager.fetchLatencyStatistics(),
       latencyManager.fetchStatusDistribution(),
-      latencyManager.fetchLatencyAlerts()
+      latencyManager.fetchLatencyAlerts(),
     ]);
   } catch (error) {
-    console.error('刷新延迟统计失败:', error);
+    console.error("刷新延迟统计失败:", error);
   }
 };
 
@@ -183,7 +196,7 @@ let refreshTimer: NodeJS.Timeout;
 onMounted(() => {
   // 初始加载
   refreshStatistics();
-  
+
   // 每分钟刷新一次统计数据
   refreshTimer = setInterval(refreshStatistics, 60000);
 });
@@ -222,7 +235,6 @@ onUnmounted(() => {
   }
 }
 
-
 .latency-statistics-panel {
   .statistics-card {
     border-radius: $radius-lg;
@@ -235,13 +247,13 @@ onUnmounted(() => {
       box-shadow: $shadow-hover-md;
       transform: translateY(-1px);
     }
-    
+
     :deep(.el-card__header) {
       padding: $spacing-lg $spacing-xl;
       border-bottom: 1px solid $border-light;
       background: $gradient-bg-1;
     }
-    
+
     :deep(.el-card__body) {
       padding: $spacing-xl;
     }
@@ -252,17 +264,17 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
+
   .header-left {
     display: flex;
     align-items: center;
     gap: 8px;
-    
+
     .header-icon {
       font-size: 18px;
       color: var(--el-color-primary);
     }
-    
+
     .header-title {
       font-size: 16px;
       font-weight: 600;
@@ -277,28 +289,28 @@ onUnmounted(() => {
     grid-template-columns: repeat(3, 1fr);
     gap: $spacing-lg;
     margin-bottom: $spacing-2xl;
-    
+
     .stat-item {
       text-align: center;
       padding: $spacing-lg;
       border-radius: $radius-md;
       border: 1px solid $border-light;
       @include glass-effect(0.9, 14px);
-      
+
       .stat-value {
         font-size: 24px;
         font-weight: 700;
         color: var(--el-color-primary);
         margin-bottom: $spacing-xs;
       }
-      
+
       .stat-label {
         font-size: 12px;
         color: var(--el-text-color-secondary);
       }
     }
   }
-  
+
   .section-title {
     font-size: 14px;
     font-weight: 600;
@@ -307,21 +319,21 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: $spacing-sm;
-    
+
     .warning-icon {
       color: var(--el-color-warning);
     }
   }
-  
+
   .latency-distribution {
     margin-bottom: $spacing-2xl;
-    
+
     .distribution-items {
       display: flex;
       flex-direction: column;
       gap: $spacing-sm;
     }
-    
+
     .distribution-item {
       display: flex;
       justify-content: space-between;
@@ -336,46 +348,46 @@ onUnmounted(() => {
         transform: translateY(-1px);
         box-shadow: $shadow-sm;
       }
-      
+
       .item-header {
         display: flex;
         align-items: center;
         gap: $spacing-sm;
-        
+
         .status-dot {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          
+
           &.normal {
             background-color: var(--el-color-success);
           }
-          
+
           &.high {
             background-color: var(--el-color-warning);
           }
-          
+
           &.abnormal {
             background-color: var(--el-color-danger);
           }
         }
-        
+
         .status-text {
           font-size: 13px;
           color: var(--el-text-color-regular);
         }
       }
-      
+
       .item-stats {
         display: flex;
         align-items: center;
         gap: 4px;
-        
+
         .count {
           font-weight: 600;
           color: var(--el-text-color-primary);
         }
-        
+
         .percentage {
           font-size: 12px;
           color: var(--el-text-color-secondary);
@@ -383,10 +395,10 @@ onUnmounted(() => {
       }
     }
   }
-  
+
   .alerts-section {
     margin-bottom: $spacing-lg;
-    
+
     .alerts-list {
       .alert-item {
         display: flex;
@@ -403,18 +415,18 @@ onUnmounted(() => {
           transform: translateY(-1px);
           box-shadow: $shadow-sm;
         }
-        
+
         .alert-content {
           display: flex;
           flex-direction: column;
           gap: 2px;
-          
+
           .server-name {
             font-size: 13px;
             font-weight: 500;
             color: var(--el-text-color-primary);
           }
-          
+
           .latency-value {
             font-size: 12px;
             color: var(--el-color-danger);
@@ -422,7 +434,7 @@ onUnmounted(() => {
           }
         }
       }
-      
+
       .more-alerts {
         text-align: center;
         padding: $spacing-sm;
@@ -432,18 +444,18 @@ onUnmounted(() => {
       }
     }
   }
-  
+
   .update-time {
     text-align: center;
     padding-top: $spacing-md;
     border-top: 1px solid $border-light;
-    
+
     .update-label {
       font-size: 12px;
       color: var(--el-text-color-secondary);
       margin-right: 4px;
     }
-    
+
     .update-value {
       font-size: 12px;
       color: var(--el-text-color-regular);

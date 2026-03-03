@@ -1,5 +1,10 @@
 <template>
-  <div class="file-manager-page system-container modern-bg" @dragenter.prevent @dragover.prevent @drop.prevent>
+  <div
+    class="file-manager-page system-container modern-bg"
+    @dragenter.prevent
+    @dragover.prevent
+    @drop.prevent
+  >
     <!-- 主要内容区域 -->
     <div class="manager-content">
       <!-- 左侧文件树 -->
@@ -46,8 +51,20 @@
       <!-- 右侧文件列表 -->
       <div class="right-panel">
         <!-- 工具栏 -->
-        <div class="list-toolbar" style="padding: 8px 12px; display: flex; justify-content: flex-end; gap: 8px">
-          <el-button type="primary" size="small" @click="showUploadDialog = true">
+        <div
+          class="list-toolbar"
+          style="
+            padding: 8px 12px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+          "
+        >
+          <el-button
+            type="primary"
+            size="small"
+            @click="showUploadDialog = true"
+          >
             <IconifyIconOnline icon="ri:upload-cloud-2-line" class="mr-1" />
             上传文件
           </el-button>
@@ -67,9 +84,18 @@
         </div>
 
         <!-- 文件详情面板 -->
-        <div v-if="detailVisible" class="file-detail-panel" :class="{ 'panel-visible': detailVisible }" :style="{ height: detailVisible ? `${detailPanelHeight}px` : '0px' }">
+        <div
+          v-if="detailVisible"
+          class="file-detail-panel"
+          :class="{ 'panel-visible': detailVisible }"
+          :style="{ height: detailVisible ? `${detailPanelHeight}px` : '0px' }"
+        >
           <!-- 拖拽手柄 -->
-          <div class="resize-handle" @mousedown="startResize" @touchstart="startResize">
+          <div
+            class="resize-handle"
+            @mousedown="startResize"
+            @touchstart="startResize"
+          >
             <div class="resize-indicator" />
           </div>
 
@@ -78,13 +104,25 @@
               <IconifyIconOnline icon="ri:file-info-line" class="mr-2" />
               <span>文件属性</span>
             </div>
-            <el-button size="small" text class="close-detail-btn" @click="detailVisible = false">
+            <el-button
+              size="small"
+              text
+              class="close-detail-btn"
+              @click="detailVisible = false"
+            >
               <IconifyIconOnline icon="ri:close-line" />
             </el-button>
           </div>
           <div class="detail-content">
             <!-- 上传对话框 -->
-            <MultiTargetUploadDialog v-model="showUploadDialog" :current-path="currentPath" :queue-status="queueStatus" :enqueue="enqueue" :preset-files="presetFiles" @success="handleUploadSuccess" />
+            <MultiTargetUploadDialog
+              v-model="showUploadDialog"
+              :current-path="currentPath"
+              :queue-status="queueStatus"
+              :enqueue="enqueue"
+              :preset-files="presetFiles"
+              @success="handleUploadSuccess"
+            />
 
             <MultiTargetDistributeDialog
               v-model="showDistributeDialog"
@@ -105,14 +143,25 @@
               @cancel-task="manager.cancelTask($event)"
               @sync-task="handleSyncTask"
             />
-            <FileDetailContent :server-id="serverId" :file-info="selectedFile" @preview="handleFileDetailPreview" @download="handleFileDetailDownload" @delete="handleFileDetailDelete" />
+            <FileDetailContent
+              :server-id="serverId"
+              :file-info="selectedFile"
+              @preview="handleFileDetailPreview"
+              @download="handleFileDetailDownload"
+              @delete="handleFileDetailDelete"
+            />
           </div>
         </div>
       </div>
     </div>
 
     <!-- 文件预览/编辑对话框 -->
-    <FilePreviewDialog v-model:visible="previewVisible" :server-id="serverId" :file-info="selectedFile" @file-updated="handleFileUpdated" />
+    <FilePreviewDialog
+      v-model:visible="previewVisible"
+      :server-id="serverId"
+      :file-info="selectedFile"
+      @file-updated="handleFileUpdated"
+    />
   </div>
 </template>
 
@@ -135,7 +184,13 @@ import { useUploadManager } from "./composables/useUploadManager";
 const showUploadDialog = ref(false);
 
 // 队列状态（与文件系统模块复用）
-const { queueStatus, connect: connectSSE, disconnect: disconnectSSE, onMessage, MESSAGE_TYPE } = useFileSystemSSE();
+const {
+  queueStatus,
+  connect: connectSSE,
+  disconnect: disconnectSSE,
+  onMessage,
+  MESSAGE_TYPE,
+} = useFileSystemSSE();
 const queueStatusRef = ref();
 
 function handleUploadSuccess() {
@@ -152,7 +207,7 @@ function handleQueueUpdate(list: any[]) {
 const manager = useUploadManager({
   concurrency: 3,
   maxRetries: 2,
-  queueMap: queueStatus.value
+  queueMap: queueStatus.value,
 });
 const presetFiles = ref<File[]>([]);
 function handleSyncTask(fileId: number) {
@@ -171,8 +226,11 @@ const enqueue = (
   tasks: Array<{
     id: number;
     name: string;
-    run: (signal: AbortSignal, onProgress: (p: number) => void) => Promise<void>;
-  }>
+    run: (
+      signal: AbortSignal,
+      onProgress: (p: number) => void,
+    ) => Promise<void>;
+  }>,
 ) => {
   manager.enqueue(tasks as any);
 };
@@ -230,7 +288,7 @@ const getFileManagementModeText = (mode: string) => {
     SSH: "SSH连接",
     NODE: "NODE客户端",
     API: "API连接",
-    NONE: "未启用"
+    NONE: "未启用",
   };
   return modeMap[mode] || mode;
 };
@@ -288,7 +346,11 @@ const handlePathChange = async (path: string) => {
     await fileTreeRef.value?.expandToPath(path);
     console.log("FileManagerPage: Tree expanded to path", path);
   } catch (error) {
-    console.error("FileManagerPage: Failed to expand tree to path", path, error);
+    console.error(
+      "FileManagerPage: Failed to expand tree to path",
+      path,
+      error,
+    );
     // 如果展开失败，至少设置当前选中状态
     fileTreeRef.value?.setCurrentPath(path);
   }
@@ -350,7 +412,7 @@ const isPreviewableFile = (file: FileInfo) => {
     "yml",
     "yaml",
     "ini",
-    "conf"
+    "conf",
   ];
   return previewableExts.includes(ext || "");
 };
@@ -390,32 +452,42 @@ async function handleDropUpload(targetDir: string, files: File[]) {
   if (!targetDir.startsWith("/")) targetDir = "/" + targetDir;
 
   // 是否覆盖确认
-  const { value: overwrite } = await ElMessageBox.confirm(`目标目录: ${targetDir}\n共 ${files.length} 个文件。是否覆盖已存在的同名文件？`, "上传确认", {
-    confirmButtonText: "覆盖",
-    cancelButtonText: "不覆盖",
-    distinguishCancelAndClose: true,
-    type: "warning"
-  })
+  const { value: overwrite } = await ElMessageBox.confirm(
+    `目标目录: ${targetDir}\n共 ${files.length} 个文件。是否覆盖已存在的同名文件？`,
+    "上传确认",
+    {
+      confirmButtonText: "覆盖",
+      cancelButtonText: "不覆盖",
+      distinguishCancelAndClose: true,
+      type: "warning",
+    },
+  )
     .then(() => ({ value: true }))
-    .catch(action => ({ value: action === "confirm" }));
+    .catch((action) => ({ value: action === "confirm" }));
 
   // 构建上传任务并入队
-  const tasks = files.map(file => {
+  const tasks = files.map((file) => {
     const id = -Date.now() - Math.floor(Math.random() * 100000);
     const name = `${file.name} @ S:${props.serverId}`;
     return {
       id,
       name,
-      meta: { file, target: { type: "SERVER", id: props.serverId }, dirPath: targetDir },
+      meta: {
+        file,
+        target: { type: "SERVER", id: props.serverId },
+        dirPath: targetDir,
+      },
       run: (signal: AbortSignal, onProgress: (p: number) => void) =>
         uploadServerFileWithProgress(
           { serverId: props.serverId, targetPath: targetDir, file, overwrite },
-          e => {
-            const percent = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
+          (e) => {
+            const percent = e.total
+              ? Math.round((e.loaded / e.total) * 100)
+              : 0;
             onProgress(percent);
           },
-          signal
-        ).then(() => void 0)
+          signal,
+        ).then(() => void 0),
     };
   });
 
@@ -469,7 +541,8 @@ const startResize = (event: MouseEvent | TouchEvent) => {
   const handleMouseMove = (moveEvent: MouseEvent | TouchEvent) => {
     if (!isResizing.value) return;
 
-    const currentY = "touches" in moveEvent ? moveEvent.touches[0].clientY : moveEvent.clientY;
+    const currentY =
+      "touches" in moveEvent ? moveEvent.touches[0].clientY : moveEvent.clientY;
     const deltaY = startY - currentY; // 向上拖拽为正值
     const newHeight = startHeight + deltaY;
 
@@ -477,7 +550,10 @@ const startResize = (event: MouseEvent | TouchEvent) => {
     const maxHeight = window.innerHeight * maxHeightRatio;
 
     // 限制高度范围
-    detailPanelHeight.value = Math.max(minHeight, Math.min(newHeight, maxHeight));
+    detailPanelHeight.value = Math.max(
+      minHeight,
+      Math.min(newHeight, maxHeight),
+    );
   };
 
   const handleMouseUp = () => {
@@ -532,24 +608,26 @@ watch(
   () => props.serverId,
   (newServerId, oldServerId) => {
     if (newServerId !== oldServerId && fileListRef.value) {
-      console.log("FileManagerPage: ServerId changed, resetting file list state");
+      console.log(
+        "FileManagerPage: ServerId changed, resetting file list state",
+      );
       fileListRef.value.resetState();
       currentPath.value = "/"; // 重置路径到根目录
     }
-  }
+  },
 );
 
 // 监听serverId变化，刷新文件树
 watch(
   () => props.serverId,
-  newServerId => {
+  (newServerId) => {
     console.log("FileManagerPage: serverId changed to", newServerId);
     if (newServerId && fileTreeRef.value) {
       // 主动刷新文件树
       fileTreeRef.value.refreshTree();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 生命周期
@@ -581,12 +659,11 @@ defineExpose({
   refreshAll,
   setCurrentPath: (path: string) => {
     currentPath.value = path;
-  }
+  },
 });
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -620,13 +697,12 @@ defineExpose({
   }
 }
 
-
 .file-manager-page {
   height: 100vh; /* 撑满整个视口高度 */
   width: 100vw; /* 撑满整个视口宽度 */
   display: flex;
   flex-direction: column;
-   background: var(--el-bg-color-overlay); /* 设置背景为白色 */
+  background: var(--el-bg-color-overlay); /* 设置背景为白色 */
   overflow: hidden;
   position: fixed; /* 固定定位确保撑满页面 */
   top: 0;
@@ -646,7 +722,7 @@ defineExpose({
   max-width: 400px;
   height: 100%;
   flex-shrink: 0;
-   background: var(--el-bg-color-overlay); /* 设置左侧面板背景为白色 */
+  background: var(--el-bg-color-overlay); /* 设置左侧面板背景为白色 */
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--el-border-color-light);
@@ -745,7 +821,7 @@ defineExpose({
   flex: 1;
   height: 100%;
   overflow: hidden;
-   background: var(--el-bg-color-overlay); /* 设置右侧面板背景为白色 */
+  background: var(--el-bg-color-overlay); /* 设置右侧面板背景为白色 */
   display: flex;
   flex-direction: column;
 }
@@ -760,7 +836,7 @@ defineExpose({
 /* 文件详情面板 */
 .file-detail-panel {
   overflow: hidden;
-   background: var(--el-bg-color-overlay); /* 设置文件详情面板背景为白色 */
+  background: var(--el-bg-color-overlay); /* 设置文件详情面板背景为白色 */
   border-top: 1px solid var(--el-border-color-light);
   transition: height 0.3s ease;
   position: relative;

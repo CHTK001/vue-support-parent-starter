@@ -61,27 +61,27 @@ export const DEFAULT_THRESHOLDS: MetricsThresholdConfig = {
  * 颜色级别枚举
  */
 export enum ColorLevel {
-  NORMAL = 'normal',
-  WARNING = 'warning',
-  CRITICAL = 'critical',
+  NORMAL = "normal",
+  WARNING = "warning",
+  CRITICAL = "critical",
 }
 
 /**
  * 颜色代码映射
  */
 export const COLOR_CODES = {
-  [ColorLevel.NORMAL]: '#67c23a',   // 绿色
-  [ColorLevel.WARNING]: '#e6a23c',  // 黄色
-  [ColorLevel.CRITICAL]: '#f56c6c', // 红色
+  [ColorLevel.NORMAL]: "#67c23a", // 绿色
+  [ColorLevel.WARNING]: "#e6a23c", // 黄色
+  [ColorLevel.CRITICAL]: "#f56c6c", // 红色
 };
 
 /**
  * Element Plus 类型映射
  */
 export const ELEMENT_TYPES = {
-  [ColorLevel.NORMAL]: 'success',
-  [ColorLevel.WARNING]: 'warning',
-  [ColorLevel.CRITICAL]: 'danger',
+  [ColorLevel.NORMAL]: "success",
+  [ColorLevel.WARNING]: "warning",
+  [ColorLevel.CRITICAL]: "danger",
 };
 
 /**
@@ -100,14 +100,19 @@ export class ThresholdUtils {
   /**
    * 获取指定指标的阈值配置
    */
-  static getThreshold(metricType: keyof MetricsThresholdConfig): ThresholdLevel {
+  static getThreshold(
+    metricType: keyof MetricsThresholdConfig,
+  ): ThresholdLevel {
     return this.thresholds[metricType];
   }
 
   /**
    * 根据值获取颜色级别
    */
-  static getColorLevel(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): ColorLevel {
+  static getColorLevel(
+    metricType: keyof MetricsThresholdConfig,
+    value: number | null | undefined,
+  ): ColorLevel {
     if (value == null) {
       return ColorLevel.NORMAL;
     }
@@ -125,7 +130,10 @@ export class ThresholdUtils {
   /**
    * 根据值获取颜色代码
    */
-  static getColorCode(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): string {
+  static getColorCode(
+    metricType: keyof MetricsThresholdConfig,
+    value: number | null | undefined,
+  ): string {
     const level = this.getColorLevel(metricType, value);
     return COLOR_CODES[level];
   }
@@ -133,7 +141,10 @@ export class ThresholdUtils {
   /**
    * 根据值获取Element Plus类型
    */
-  static getElementType(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): string {
+  static getElementType(
+    metricType: keyof MetricsThresholdConfig,
+    value: number | null | undefined,
+  ): string {
     const level = this.getColorLevel(metricType, value);
     return ELEMENT_TYPES[level];
   }
@@ -141,7 +152,10 @@ export class ThresholdUtils {
   /**
    * 根据值获取CSS类名
    */
-  static getColorClass(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): string {
+  static getColorClass(
+    metricType: keyof MetricsThresholdConfig,
+    value: number | null | undefined,
+  ): string {
     const level = this.getColorLevel(metricType, value);
     return `threshold-${level}`;
   }
@@ -149,22 +163,27 @@ export class ThresholdUtils {
   /**
    * 获取Element Plus进度条颜色配置
    */
-  static getProgressColor(metricType: keyof MetricsThresholdConfig): Record<string, string> {
+  static getProgressColor(
+    metricType: keyof MetricsThresholdConfig,
+  ): Record<string, string> {
     const threshold = this.getThreshold(metricType);
-    
+
     return {
-      '0%': COLOR_CODES[ColorLevel.NORMAL],
+      "0%": COLOR_CODES[ColorLevel.NORMAL],
       [`${threshold.normal}%`]: COLOR_CODES[ColorLevel.NORMAL],
       [`${threshold.warning}%`]: COLOR_CODES[ColorLevel.WARNING],
       [`${threshold.critical}%`]: COLOR_CODES[ColorLevel.CRITICAL],
-      '100%': COLOR_CODES[ColorLevel.CRITICAL],
+      "100%": COLOR_CODES[ColorLevel.CRITICAL],
     };
   }
 
   /**
    * 检查指标是否超过警告阈值
    */
-  static isWarningLevel(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): boolean {
+  static isWarningLevel(
+    metricType: keyof MetricsThresholdConfig,
+    value: number | null | undefined,
+  ): boolean {
     if (value == null) return false;
     const threshold = this.getThreshold(metricType);
     return value >= threshold.warning;
@@ -173,7 +192,10 @@ export class ThresholdUtils {
   /**
    * 检查指标是否超过危险阈值
    */
-  static isCriticalLevel(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): boolean {
+  static isCriticalLevel(
+    metricType: keyof MetricsThresholdConfig,
+    value: number | null | undefined,
+  ): boolean {
     if (value == null) return false;
     const threshold = this.getThreshold(metricType);
     return value >= threshold.critical;
@@ -182,8 +204,11 @@ export class ThresholdUtils {
   /**
    * 获取阈值描述文本
    */
-  static getThresholdDescription(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): string {
-    if (value == null) return '数据无效';
+  static getThresholdDescription(
+    metricType: keyof MetricsThresholdConfig,
+    value: number | null | undefined,
+  ): string {
+    if (value == null) return "数据无效";
 
     const level = this.getColorLevel(metricType, value);
     const metricName = this.getMetricDisplayName(metricType);
@@ -203,13 +228,15 @@ export class ThresholdUtils {
   /**
    * 获取指标显示名称
    */
-  private static getMetricDisplayName(metricType: keyof MetricsThresholdConfig): string {
+  private static getMetricDisplayName(
+    metricType: keyof MetricsThresholdConfig,
+  ): string {
     const nameMap = {
-      cpu: 'CPU使用率',
-      memory: '内存使用率',
-      disk: '磁盘使用率',
-      temperature: '温度',
-      network: '网络使用率',
+      cpu: "CPU使用率",
+      memory: "内存使用率",
+      disk: "磁盘使用率",
+      temperature: "温度",
+      network: "网络使用率",
     };
     return nameMap[metricType] || metricType;
   }
@@ -225,34 +252,48 @@ export class ThresholdUtils {
 /**
  * 便捷函数：获取颜色代码
  */
-export function getMetricColor(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): string {
+export function getMetricColor(
+  metricType: keyof MetricsThresholdConfig,
+  value: number | null | undefined,
+): string {
   return ThresholdUtils.getColorCode(metricType, value);
 }
 
 /**
  * 便捷函数：获取颜色级别
  */
-export function getMetricColorLevel(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): ColorLevel {
+export function getMetricColorLevel(
+  metricType: keyof MetricsThresholdConfig,
+  value: number | null | undefined,
+): ColorLevel {
   return ThresholdUtils.getColorLevel(metricType, value);
 }
 
 /**
  * 便捷函数：获取Element Plus类型
  */
-export function getMetricElementType(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): string {
+export function getMetricElementType(
+  metricType: keyof MetricsThresholdConfig,
+  value: number | null | undefined,
+): string {
   return ThresholdUtils.getElementType(metricType, value);
 }
 
 /**
  * 便捷函数：获取CSS类名
  */
-export function getMetricColorClass(metricType: keyof MetricsThresholdConfig, value: number | null | undefined): string {
+export function getMetricColorClass(
+  metricType: keyof MetricsThresholdConfig,
+  value: number | null | undefined,
+): string {
   return ThresholdUtils.getColorClass(metricType, value);
 }
 
 /**
  * 便捷函数：获取进度条颜色
  */
-export function getMetricProgressColor(metricType: keyof MetricsThresholdConfig): Record<string, string> {
+export function getMetricProgressColor(
+  metricType: keyof MetricsThresholdConfig,
+): Record<string, string> {
   return ThresholdUtils.getProgressColor(metricType);
 }

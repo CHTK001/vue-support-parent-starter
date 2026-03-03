@@ -72,8 +72,8 @@
             </div>
             <div class="domain-info">
               <span class="domain-name">{{ row.acmeCertPrimaryDomain }}</span>
-              <span class="domain-san" v-if="row.acmeCertSan">
-                +{{ (row.acmeCertSan || '').split(',').length }} 个备用域名
+              <span v-if="row.acmeCertSan" class="domain-san">
+                +{{ (row.acmeCertSan || "").split(",").length }} 个备用域名
               </span>
             </div>
           </div>
@@ -86,13 +86,25 @@
         align="center"
       >
         <template #default="{ row }">
-          <div class="challenge-badge" :class="row.acmeCertChallengeType === 'DNS-01' ? 'dns' : 'http'">
-            <IconifyIconOnline :icon="row.acmeCertChallengeType === 'DNS-01' ? 'mdi:dns' : 'mdi:web'" />
+          <div
+            class="challenge-badge"
+            :class="row.acmeCertChallengeType === 'DNS-01' ? 'dns' : 'http'"
+          >
+            <IconifyIconOnline
+              :icon="
+                row.acmeCertChallengeType === 'DNS-01' ? 'mdi:dns' : 'mdi:web'
+              "
+            />
             <span>{{ row.acmeCertChallengeType }}</span>
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="acmeCertStatus" label="状态" width="110" align="center">
+      <el-table-column
+        prop="acmeCertStatus"
+        label="状态"
+        width="110"
+        align="center"
+      >
         <template #default="{ row }">
           <el-tooltip
             v-if="row.acmeCertStatus === 'failed' && row.acmeCertLastError"
@@ -101,30 +113,43 @@
             :show-after="200"
           >
             <div class="status-badge" :class="`status-${row.acmeCertStatus}`">
-              <span class="status-dot"></span>
+              <span class="status-dot" />
               <span>{{ getStatusLabel(row.acmeCertStatus) }}</span>
             </div>
           </el-tooltip>
-          <div v-else class="status-badge" :class="`status-${row.acmeCertStatus}`">
-            <span class="status-dot"></span>
+          <div
+            v-else
+            class="status-badge"
+            :class="`status-${row.acmeCertStatus}`"
+          >
+            <span class="status-dot" />
             <span>{{ getStatusLabel(row.acmeCertStatus) }}</span>
           </div>
         </template>
       </el-table-column>
       <el-table-column prop="acmeCertNotAfter" label="有效期" width="200">
         <template #default="{ row }">
-          <div class="expiry-cell" v-if="row.acmeCertNotAfter">
+          <div v-if="row.acmeCertNotAfter" class="expiry-cell">
             <div class="expiry-info">
-              <span class="expiry-date">{{ formatDate(row.acmeCertNotAfter) }}</span>
-              <span class="expiry-days" :class="getExpiryClass(row.acmeCertNotAfter)">
+              <span class="expiry-date">{{
+                formatDate(row.acmeCertNotAfter)
+              }}</span>
+              <span
+                class="expiry-days"
+                :class="getExpiryClass(row.acmeCertNotAfter)"
+              >
                 {{ getExpiryText(row.acmeCertNotAfter) }}
               </span>
             </div>
             <div class="expiry-progress">
-              <div class="progress-bar" :class="getExpiryClass(row.acmeCertNotAfter)" :style="{ width: getExpiryProgress(row) + '%' }"></div>
+              <div
+                class="progress-bar"
+                :class="getExpiryClass(row.acmeCertNotAfter)"
+                :style="{ width: getExpiryProgress(row) + '%' }"
+              />
             </div>
           </div>
-          <span class="empty-text" v-else>-</span>
+          <span v-else class="empty-text">-</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="220" fixed="right" align="center">
@@ -140,13 +165,24 @@
                 <IconifyIconOnline icon="mdi:eye-outline" />
               </button>
             </el-tooltip>
-            <el-tooltip content="下载证书" placement="top" v-if="row.acmeCertStatus === 'valid'">
+            <el-tooltip
+              v-if="row.acmeCertStatus === 'valid'"
+              content="下载证书"
+              placement="top"
+            >
               <button class="action-btn primary" @click="handleDownload(row)">
                 <IconifyIconOnline icon="mdi:download" />
               </button>
             </el-tooltip>
-            <el-tooltip content="重新验证" placement="top" v-if="row.acmeCertStatus === 'validating'">
-              <button class="action-btn warning" @click="handleRetryValidation(row)">
+            <el-tooltip
+              v-if="row.acmeCertStatus === 'validating'"
+              content="重新验证"
+              placement="top"
+            >
+              <button
+                class="action-btn warning"
+                @click="handleRetryValidation(row)"
+              >
                 <IconifyIconOnline icon="mdi:refresh" />
               </button>
             </el-tooltip>
@@ -232,7 +268,7 @@ const queryForm = reactive({
  * 获取状态类型
  */
 function getStatusType(
-  status: string
+  status: string,
 ): "success" | "warning" | "danger" | "info" | "primary" {
   const item = CERT_STATUS.find((s) => s.value === status);
   return (item?.type || "info") as
@@ -259,7 +295,7 @@ function isExpiringSoon(notAfter: string) {
   const expireDate = new Date(notAfter);
   const now = new Date();
   const diffDays = Math.ceil(
-    (expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    (expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
   );
   return diffDays <= 30 && diffDays >= 0;
 }
@@ -268,9 +304,9 @@ function isExpiringSoon(notAfter: string) {
  * 格式化日期
  */
 function formatDate(dateStr: string) {
-  if (!dateStr) return '-';
+  if (!dateStr) return "-";
   const date = new Date(dateStr);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 /**
@@ -280,7 +316,9 @@ function getDaysUntilExpiry(notAfter: string) {
   if (!notAfter) return -1;
   const expireDate = new Date(notAfter);
   const now = new Date();
-  return Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.ceil(
+    (expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+  );
 }
 
 /**
@@ -288,8 +326,8 @@ function getDaysUntilExpiry(notAfter: string) {
  */
 function getExpiryText(notAfter: string) {
   const days = getDaysUntilExpiry(notAfter);
-  if (days < 0) return '已过期';
-  if (days === 0) return '今天到期';
+  if (days < 0) return "已过期";
+  if (days === 0) return "今天到期";
   if (days <= 7) return `${days}天后到期`;
   if (days <= 30) return `${days}天后`;
   return `${days}天`;
@@ -300,10 +338,10 @@ function getExpiryText(notAfter: string) {
  */
 function getExpiryClass(notAfter: string) {
   const days = getDaysUntilExpiry(notAfter);
-  if (days < 0) return 'expired';
-  if (days <= 7) return 'critical';
-  if (days <= 30) return 'warning';
-  return 'normal';
+  if (days < 0) return "expired";
+  if (days <= 7) return "critical";
+  if (days <= 30) return "warning";
+  return "normal";
 }
 
 /**
@@ -420,7 +458,6 @@ defineExpose({ refresh });
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -453,7 +490,6 @@ defineExpose({ refresh });
     z-index: 1;
   }
 }
-
 
 .cert-list {
   flex: 1;
@@ -641,7 +677,8 @@ defineExpose({ refresh });
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -790,7 +827,6 @@ defineExpose({ refresh });
   font-weight: 500;
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -799,5 +835,4 @@ defineExpose({ refresh });
     padding: 12px 16px;
   }
 }
-
 </style>

@@ -13,7 +13,12 @@
         :shortcuts="dateShortcuts"
         @change="handleDateChange"
       />
-      <el-select v-model="granularity" placeholder="统计粒度" style="width: 120px; margin-left: 12px" @change="loadData">
+      <el-select
+        v-model="granularity"
+        placeholder="统计粒度"
+        style="width: 120px; margin-left: 12px"
+        @change="loadData"
+      >
         <el-option label="按小时" value="hour" />
         <el-option label="按天" value="day" />
       </el-select>
@@ -27,37 +32,49 @@
     <el-row :gutter="16" class="summary-row">
       <el-col :span="4">
         <el-card class="summary-card" shadow="hover">
-          <div class="summary-value">{{ statistics?.summary?.totalExecutions || 0 }}</div>
+          <div class="summary-value">
+            {{ statistics?.summary?.totalExecutions || 0 }}
+          </div>
           <div class="summary-label">总执行次数</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card class="summary-card success" shadow="hover">
-          <div class="summary-value">{{ statistics?.summary?.successCount || 0 }}</div>
+          <div class="summary-value">
+            {{ statistics?.summary?.successCount || 0 }}
+          </div>
           <div class="summary-label">成功次数</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card class="summary-card danger" shadow="hover">
-          <div class="summary-value">{{ statistics?.summary?.failCount || 0 }}</div>
+          <div class="summary-value">
+            {{ statistics?.summary?.failCount || 0 }}
+          </div>
           <div class="summary-label">失败次数</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card class="summary-card" shadow="hover">
-          <div class="summary-value">{{ formatPercent(statistics?.summary?.successRate) }}</div>
+          <div class="summary-value">
+            {{ formatPercent(statistics?.summary?.successRate) }}
+          </div>
           <div class="summary-label">成功率</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card class="summary-card" shadow="hover">
-          <div class="summary-value">{{ formatDuration(statistics?.summary?.avgCost) }}</div>
+          <div class="summary-value">
+            {{ formatDuration(statistics?.summary?.avgCost) }}
+          </div>
           <div class="summary-label">平均耗时</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card class="summary-card" shadow="hover">
-          <div class="summary-value">{{ formatNumber(statistics?.summary?.totalReadCount) }}</div>
+          <div class="summary-value">
+            {{ formatNumber(statistics?.summary?.totalReadCount) }}
+          </div>
           <div class="summary-label">总数据量</div>
         </el-card>
       </el-col>
@@ -72,7 +89,7 @@
               <span>执行趋势</span>
             </div>
           </template>
-          <div ref="trendChartRef" class="chart-container"></div>
+          <div ref="trendChartRef" class="chart-container" />
         </el-card>
       </el-col>
       <el-col :span="8">
@@ -82,7 +99,7 @@
               <span>状态分布</span>
             </div>
           </template>
-          <div ref="statusPieRef" class="chart-container"></div>
+          <div ref="statusPieRef" class="chart-container" />
         </el-card>
       </el-col>
     </el-row>
@@ -95,7 +112,7 @@
               <span>触发类型分布</span>
             </div>
           </template>
-          <div ref="triggerPieRef" class="chart-container"></div>
+          <div ref="triggerPieRef" class="chart-container" />
         </el-card>
       </el-col>
       <el-col :span="16">
@@ -105,13 +122,17 @@
               <span>数据量趋势</span>
             </div>
           </template>
-          <div ref="dataChartRef" class="chart-container"></div>
+          <div ref="dataChartRef" class="chart-container" />
         </el-card>
       </el-col>
     </el-row>
 
     <!-- 任务排行榜(仅全局统计时显示) -->
-    <el-card v-if="!taskId && statistics?.taskRanking?.length" class="ranking-card" shadow="hover">
+    <el-card
+      v-if="!taskId && statistics?.taskRanking?.length"
+      class="ranking-card"
+      shadow="hover"
+    >
       <template #header>
         <div class="card-header">
           <span>任务执行排行榜 TOP 10</span>
@@ -151,7 +172,11 @@
 import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { Refresh } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
-import { getStatistics, getTaskStatistics, type SyncTaskStatistics } from "@/api/sync";
+import {
+  getStatistics,
+  getTaskStatistics,
+  type SyncTaskStatistics,
+} from "@/api/sync";
 
 const props = defineProps<{
   taskId?: number;
@@ -366,7 +391,8 @@ const renderStatusPie = () => {
 
 // 触发类型饼图
 const renderTriggerPie = () => {
-  if (!triggerPieRef.value || !statistics.value?.triggerTypeDistribution) return;
+  if (!triggerPieRef.value || !statistics.value?.triggerTypeDistribution)
+    return;
 
   if (!triggerPie) {
     triggerPie = echarts.init(triggerPieRef.value);
@@ -521,9 +547,12 @@ const handleResize = () => {
 };
 
 // 监听taskId变化
-watch(() => props.taskId, () => {
-  loadData();
-});
+watch(
+  () => props.taskId,
+  () => {
+    loadData();
+  },
+);
 
 onMounted(() => {
   loadData();
@@ -540,7 +569,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -574,7 +602,6 @@ onUnmounted(() => {
   }
 }
 
-
 .statistics-charts {
   .filter-bar {
     display: flex;
@@ -602,11 +629,11 @@ onUnmounted(() => {
       }
 
       &.success .summary-value {
-        color: #67C23A;
+        color: #67c23a;
       }
 
       &.danger .summary-value {
-        color: #F56C6C;
+        color: #f56c6c;
       }
     }
   }
@@ -636,7 +663,6 @@ onUnmounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -645,5 +671,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

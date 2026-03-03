@@ -5,8 +5,8 @@
     width="960px"
     :close-on-click-modal="false"
     class="service-discovery-dialog"
-    @close="handleClose"
     draggable
+    @close="handleClose"
   >
     <div class="service-discovery-container">
       <!-- 发现模式选择 -->
@@ -27,7 +27,10 @@
               <div class="mode-card-title">{{ mode.label }}</div>
               <div class="mode-card-desc">{{ mode.describe }}</div>
             </div>
-            <div class="mode-card-check" v-if="config.serviceDiscoveryMode === mode.value">
+            <div
+              v-if="config.serviceDiscoveryMode === mode.value"
+              class="mode-card-check"
+            >
               <IconifyIconOnline icon="ri:check-line" />
             </div>
           </div>
@@ -69,10 +72,16 @@
                 inline-prompt
                 active-text="启用"
                 inactive-text="禁用"
-                style="--el-switch-on-color: #10b981; --el-switch-off-color: #ef4444"
+                style="
+                  --el-switch-on-color: #10b981;
+                  --el-switch-off-color: #ef4444;
+                "
               />
-              <span class="status-text" :class="{ enabled: config.serviceDiscoveryEnabled }">
-                {{ config.serviceDiscoveryEnabled ? '已启用' : '已禁用' }}
+              <span
+                class="status-text"
+                :class="{ enabled: config.serviceDiscoveryEnabled }"
+              >
+                {{ config.serviceDiscoveryEnabled ? "已启用" : "已禁用" }}
               </span>
             </div>
           </div>
@@ -99,7 +108,10 @@
           </div>
           <div class="tip-content">
             <strong>推荐使用</strong>
-            <span>自动发现已连接到 SyncServer 的所有节点，无需手动配置服务器地址和端口</span>
+            <span
+              >自动发现已连接到 SyncServer
+              的所有节点，无需手动配置服务器地址和端口</span
+            >
           </div>
         </div>
       </div>
@@ -118,7 +130,7 @@
             <p>选择 Spring 容器中的 ServiceDiscovery 实现</p>
           </div>
         </div>
-        <div class="config-field" style="max-width: 400px;">
+        <div class="config-field" style="max-width: 400px">
           <label>Bean 名称</label>
           <el-select
             v-model="config.serviceDiscoveryBeanName"
@@ -158,7 +170,12 @@
             <h4>服务映射配置</h4>
             <p>管理服务名称与地址的映射关系</p>
           </div>
-          <el-button type="primary" size="small" @click="addMapping" class="add-btn">
+          <el-button
+            type="primary"
+            size="small"
+            class="add-btn"
+            @click="addMapping"
+          >
             <IconifyIconOnline icon="ri:add-line" />
             新增映射
           </el-button>
@@ -175,7 +192,7 @@
 
         <!-- 映射列表 -->
         <div class="mapping-list">
-          <div class="mapping-row" v-for="(m, idx) in mappings" :key="idx">
+          <div v-for="(m, idx) in mappings" :key="idx" class="mapping-row">
             <div class="col-name">
               <el-input
                 v-model="m.serviceDiscoveryName"
@@ -197,8 +214,8 @@
               />
             </div>
             <div class="col-status">
-              <el-switch 
-                v-model="m.serviceDiscoveryEnabled" 
+              <el-switch
+                v-model="m.serviceDiscoveryEnabled"
                 inline-prompt
                 active-text="开"
                 inactive-text="关"
@@ -372,7 +389,7 @@ const modeOptions = ref<Option[]>(
       icon: "simple-icons:hazelcast",
       describe: "基于 Hazelcast 集群的服务发现",
     },
-  ].map((it) => ({ ...it, value: it.name }))
+  ].map((it) => ({ ...it, value: it.name })),
 );
 const balanceOptions = ref<Option[]>([]);
 const springBeanOptions = ref<Option[]>([]);
@@ -383,7 +400,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true }
+  { immediate: true },
 );
 watch(visibleInner, (v) => emit("update:visible", v));
 
@@ -446,7 +463,7 @@ async function handleSave() {
     ) {
       const r = await saveServiceDiscoveryMappings(
         props.serverId,
-        mappings.value
+        mappings.value,
       );
       if (!r.success) {
         message(r.msg || "保存映射失败", { type: "error" });
@@ -483,7 +500,7 @@ async function loadBalanceOptions() {
         .filter((it: any) => !!it.name);
       const seen = new Set<string>();
       balanceOptions.value = list.filter((it: any) =>
-        seen.has(it.name) ? false : (seen.add(it.name), true)
+        seen.has(it.name) ? false : (seen.add(it.name), true),
       );
       if (
         !config.value.serviceDiscoveryBalance &&
@@ -514,7 +531,7 @@ async function loadSpringBeanOptions() {
         .filter((it: any) => !!it.name);
       const seen = new Set<string>();
       springBeanOptions.value = list.filter((it: any) =>
-        seen.has(it.name) ? false : (seen.add(it.name), true)
+        seen.has(it.name) ? false : (seen.add(it.name), true),
       );
     }
   } catch {}
@@ -668,22 +685,30 @@ async function loadSpringBeanOptions() {
 
       &.monitor {
         background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        :deep(.iconify) { color: #10b981; }
+        :deep(.iconify) {
+          color: #10b981;
+        }
       }
 
       &.spring {
         background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        :deep(.iconify) { color: #6ee7b7; }
+        :deep(.iconify) {
+          color: #6ee7b7;
+        }
       }
 
       &.hazelcast {
         background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        :deep(.iconify) { color: #f59e0b; }
+        :deep(.iconify) {
+          color: #f59e0b;
+        }
       }
 
       &.table {
         background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        :deep(.iconify) { color: #3b82f6; }
+        :deep(.iconify) {
+          color: #3b82f6;
+        }
       }
     }
 
@@ -828,10 +853,14 @@ async function loadSpringBeanOptions() {
 
     .tip-icon {
       background: #a7f3d0;
-      :deep(.iconify) { color: #10b981; }
+      :deep(.iconify) {
+        color: #10b981;
+      }
     }
 
-    .tip-content strong { color: #065f46; }
+    .tip-content strong {
+      color: #065f46;
+    }
   }
 
   &.warning {
@@ -839,10 +868,14 @@ async function loadSpringBeanOptions() {
 
     .tip-icon {
       background: #fde68a;
-      :deep(.iconify) { color: #f59e0b; }
+      :deep(.iconify) {
+        color: #f59e0b;
+      }
     }
 
-    .tip-content strong { color: #92400e; }
+    .tip-content strong {
+      color: #92400e;
+    }
   }
 
   &.info {
@@ -850,7 +883,9 @@ async function loadSpringBeanOptions() {
 
     .tip-icon {
       background: #bfdbfe;
-      :deep(.iconify) { color: #3b82f6; }
+      :deep(.iconify) {
+        color: #3b82f6;
+      }
     }
   }
 }
@@ -991,7 +1026,6 @@ async function loadSpringBeanOptions() {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1000,5 +1034,4 @@ async function loadSpringBeanOptions() {
     padding: 12px 16px;
   }
 }
-
 </style>

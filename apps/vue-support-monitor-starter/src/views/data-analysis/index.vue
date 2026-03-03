@@ -12,7 +12,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 内容区域 -->
     <div class="content-area">
       <div class="content-card">
@@ -33,7 +33,7 @@ import { IconifyIconOnline } from "@repo/components";
 
 // 页面标题
 defineOptions({
-  name: "DataAnalysis"
+  name: "DataAnalysis",
 });
 </script>
 
@@ -48,22 +48,22 @@ defineOptions({
 .page-header {
   @include toolbar-style;
   margin-bottom: $spacing-lg;
-  
+
   .header-content {
     @include flex-between;
     width: 100%;
   }
-  
+
   .header-title {
     @include flex-align-center;
     gap: $spacing-md;
-    
+
     .title-icon {
       font-size: 32px;
       color: $primary-color;
       @include gradient-text;
     }
-    
+
     h2 {
       margin: 0 0 $spacing-xs 0;
       font-size: 24px;
@@ -71,7 +71,7 @@ defineOptions({
       color: var(--el-text-color-primary);
       @include gradient-text;
     }
-    
+
     p {
       margin: 0;
       color: var(--el-text-color-regular);
@@ -91,7 +91,7 @@ defineOptions({
   @include flex-center;
   min-height: 500px;
   padding: $spacing-4xl;
-  
+
   .empty-icon {
     font-size: 80px;
     color: $primary-color;
@@ -101,7 +101,8 @@ defineOptions({
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -114,27 +115,27 @@ defineOptions({
   .data-analysis-container {
     padding: $spacing-md;
   }
-  
+
   .page-header {
     .header-title {
       flex-direction: column;
       align-items: flex-start;
       gap: $spacing-sm;
-      
+
       .title-icon {
         font-size: 24px;
       }
-      
+
       h2 {
         font-size: 20px;
       }
     }
   }
-  
+
   .content-card {
     min-height: 300px;
     padding: $spacing-lg;
-    
+
     .empty-icon {
       font-size: 60px;
     }

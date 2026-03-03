@@ -3,7 +3,9 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/webrtc' }">WebRTC管理</el-breadcrumb-item>
+        <el-breadcrumb-item :to="{ path: '/webrtc' }"
+          >WebRTC管理</el-breadcrumb-item
+        >
         <el-breadcrumb-item>远程桌面</el-breadcrumb-item>
       </el-breadcrumb>
       <h1 class="page-title">WebRTC远程桌面</h1>
@@ -17,7 +19,7 @@
           <span>连接配置</span>
         </div>
       </template>
-      
+
       <el-form :model="config" label-width="120px" class="config-form">
         <el-form-item label="服务器ID">
           <el-input-number
@@ -28,11 +30,7 @@
           />
         </el-form-item>
         <el-form-item label="服务器地址">
-          <el-input
-            v-model="config.host"
-            placeholder="localhost"
-            clearable
-          />
+          <el-input v-model="config.host" placeholder="localhost" clearable />
         </el-form-item>
         <el-form-item label="服务器端口">
           <el-input-number
@@ -44,7 +42,12 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" size="large" @click="connect" :loading="connecting">
+          <el-button
+            type="primary"
+            size="large"
+            :loading="connecting"
+            @click="connect"
+          >
             <el-icon><Connection /></el-icon>
             连接
           </el-button>
@@ -62,9 +65,7 @@
             <el-icon><CircleCheck /></el-icon>
             已连接
           </el-tag>
-          <span class="server-info">
-            {{ config.host }}:{{ config.port }}
-          </span>
+          <span class="server-info"> {{ config.host }}:{{ config.port }} </span>
         </div>
         <div class="toolbar-right">
           <el-button-group>
@@ -97,14 +98,14 @@
           playsinline
           tabindex="0"
           @loadedmetadata="onVideoLoaded"
-        ></video>
-        
+        />
+
         <!-- 加载中 -->
         <div v-if="connecting" class="loading-overlay">
           <el-icon class="loading-icon" :size="48"><Loading /></el-icon>
           <p>正在连接远程桌面...</p>
         </div>
-        
+
         <!-- 连接失败 -->
         <div v-if="errorMessage" class="error-overlay">
           <el-icon :size="48"><CircleClose /></el-icon>
@@ -120,7 +121,9 @@
         <div class="card-header">
           <el-icon><Document /></el-icon>
           <span>连接日志</span>
-          <el-button type="text" size="small" @click="clearLogs">清空</el-button>
+          <el-button type="text" size="small" @click="clearLogs"
+            >清空</el-button
+          >
         </div>
       </template>
       <div class="log-container">
@@ -143,7 +146,7 @@
  * @date 2026-01-03
  */
 
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import {
   Setting,
@@ -154,24 +157,31 @@ import {
   Close,
   Loading,
   CircleClose,
-  Document
-} from '@element-plus/icons-vue';
-import { getWebRTCConnectInfo, getWebRTCStatus } from '@/api/webrtc/remote-desktop';
-import { createNamedSocketService, closeNamedSocketService, type SocketTemplate } from '@repo/core';
-import { getConfig } from '@repo/config';
-import { splitToArray } from '@repo/utils';
+  Document,
+} from "@element-plus/icons-vue";
+import {
+  getWebRTCConnectInfo,
+  getWebRTCStatus,
+} from "@/api/webrtc/remote-desktop";
+import {
+  createNamedSocketService,
+  closeNamedSocketService,
+  type SocketTemplate,
+} from "@repo/core";
+import { getConfig } from "@repo/config";
+import { splitToArray } from "@repo/utils";
 
 // 配置
 const config = ref({
   serverId: undefined as number | undefined,
-  host: 'localhost',
-  port: 21116
+  host: "localhost",
+  port: 21116,
 });
 
 // 状态
 const isConnected = ref(false);
 const connecting = ref(false);
-const errorMessage = ref('');
+const errorMessage = ref("");
 const remoteVideo = ref<HTMLVideoElement | null>(null);
 const videoContainer = ref<HTMLElement | null>(null);
 const logs = ref<Array<{ time: string; message: string; type: string }>>([]);
@@ -180,16 +190,19 @@ const logs = ref<Array<{ time: string; message: string; type: string }>>([]);
 let peerConnection: RTCPeerConnection | null = null;
 let dataChannel: RTCDataChannel | null = null;
 let socketService: SocketTemplate | null = null;
-const socketName = 'webrtc-remote-desktop';
+const socketName = "webrtc-remote-desktop";
 
 /**
  * 添加日志
  */
-const addLog = (message: string, type: 'info' | 'success' | 'error' | 'warn' = 'info') => {
+const addLog = (
+  message: string,
+  type: "info" | "success" | "error" | "warn" = "info",
+) => {
   logs.value.push({
     time: new Date().toLocaleTimeString(),
     message,
-    type
+    type,
   });
   // 限制日志数量
   if (logs.value.length > 100) {
@@ -211,12 +224,12 @@ const loadDefaultConfig = async () => {
   try {
     const { data } = await getWebRTCStatus();
     if (data.enabled) {
-      config.value.host = data.defaultHost || 'localhost';
+      config.value.host = data.defaultHost || "localhost";
       config.value.port = data.defaultPort || 21116;
-      addLog('已加载默认配置', 'success');
+      addLog("已加载默认配置", "success");
     }
   } catch (error) {
-    console.error('加载默认配置失败:', error);
+    console.error("加载默认配置失败:", error);
   }
 };
 
@@ -229,33 +242,32 @@ const connect = async () => {
   }
 
   connecting.value = true;
-  errorMessage.value = '';
-  addLog('开始连接远程桌面...', 'info');
+  errorMessage.value = "";
+  addLog("开始连接远程桌面...", "info");
 
   try {
     // 获取连接信息
     const { data } = await getWebRTCConnectInfo({
       serverId: config.value.serverId,
       host: config.value.host,
-      port: config.value.port
+      port: config.value.port,
     });
 
     if (!data.enabled) {
-      throw new Error('WebRTC服务未启用');
+      throw new Error("WebRTC服务未启用");
     }
 
-    addLog(`连接到 ${data.host}:${data.port}`, 'info');
+    addLog(`连接到 ${data.host}:${data.port}`, "info");
 
     // 创建Socket连接
     await connectSocket(data.host, data.port);
 
     // 初始化WebRTC连接
     await initWebRTCConnection();
-
   } catch (error: any) {
-    errorMessage.value = error.message || '连接失败';
-    addLog(`连接失败: ${errorMessage.value}`, 'error');
-    message(`连接失败: ${errorMessage.value}`, { type: 'error' });
+    errorMessage.value = error.message || "连接失败";
+    addLog(`连接失败: ${errorMessage.value}`, "error");
+    message(`连接失败: ${errorMessage.value}`, { type: "error" });
     connecting.value = false;
   }
 };
@@ -273,15 +285,15 @@ const connectSocket = async (host: string, port: number) => {
       }
 
       // 获取Socket配置
-      const socketConfig = getConfig('SocketUrl');
+      const socketConfig = getConfig("SocketUrl");
       const socketUrls = socketConfig ? splitToArray(socketConfig) : [];
       if (socketUrls.length === 0) {
-        throw new Error('Socket服务器地址未配置');
+        throw new Error("Socket服务器地址未配置");
       }
 
       // 创建命名Socket服务
       socketService = createNamedSocketService(socketName, {
-        protocol: 'socketio',
+        protocol: "socketio",
         urls: socketUrls,
         autoConnect: true,
         reconnection: true,
@@ -290,52 +302,53 @@ const connectSocket = async (host: string, port: number) => {
       });
 
       // 监听连接成功
-      socketService.on('connect', () => {
-        addLog('Socket连接成功', 'success');
+      socketService.on("connect", () => {
+        addLog("Socket连接成功", "success");
         // 发送连接请求
-        socketService!.emit('remote:webrtc:connect', {
+        socketService!.emit("remote:webrtc:connect", {
           serverId: config.value.serverId,
           host: host,
-          port: port
+          port: port,
         });
         resolve();
       });
 
       // 监听连接错误
-      socketService.on('connect_error', (error: any) => {
-        addLog(`Socket连接失败: ${error}`, 'error');
+      socketService.on("connect_error", (error: any) => {
+        addLog(`Socket连接失败: ${error}`, "error");
         reject(new Error(`Socket连接失败: ${error}`));
       });
 
       // 监听连接断开
-      socketService.on('disconnect', () => {
-        addLog('Socket连接已断开', 'warn');
+      socketService.on("disconnect", () => {
+        addLog("Socket连接已断开", "warn");
         isConnected.value = false;
       });
 
       // 监听WebRTC相关事件
-      socketService.on('remote:webrtc:connected', (data: any) => {
-        addLog('WebRTC连接已建立', 'success');
+      socketService.on("remote:webrtc:connected", (data: any) => {
+        addLog("WebRTC连接已建立", "success");
         isConnected.value = true;
         connecting.value = false;
       });
 
-      socketService.on('remote:webrtc:error', (data: any) => {
-        const errorMsg = data?.message || 'WebRTC连接错误';
-        addLog(`WebRTC错误: ${errorMsg}`, 'error');
+      socketService.on("remote:webrtc:error", (data: any) => {
+        const errorMsg = data?.message || "WebRTC连接错误";
+        addLog(`WebRTC错误: ${errorMsg}`, "error");
         errorMessage.value = errorMsg;
         connecting.value = false;
       });
 
       // 监听ICE候选（在整个连接过程中保持活跃）
-      socketService.on('remote:webrtc:ice_candidate', (data: any) => {
+      socketService.on("remote:webrtc:ice_candidate", (data: any) => {
         if (data?.candidate && peerConnection) {
-          peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(err => {
-            addLog(`添加ICE候选失败: ${err}`, 'warn');
-          });
+          peerConnection
+            .addIceCandidate(new RTCIceCandidate(data.candidate))
+            .catch((err) => {
+              addLog(`添加ICE候选失败: ${err}`, "warn");
+            });
         }
       });
-
     } catch (error: any) {
       reject(error);
     }
@@ -347,21 +360,19 @@ const connectSocket = async (host: string, port: number) => {
  */
 const initWebRTCConnection = async () => {
   if (!socketService) {
-    throw new Error('Socket服务未连接');
+    throw new Error("Socket服务未连接");
   }
 
   // 创建RTCPeerConnection
   peerConnection = new RTCPeerConnection({
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
-    ]
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   });
 
   // 处理接收到的视频流
   peerConnection.ontrack = (event) => {
     if (remoteVideo.value && event.streams[0]) {
       remoteVideo.value.srcObject = event.streams[0];
-      addLog('收到视频流', 'success');
+      addLog("收到视频流", "success");
     }
   };
 
@@ -369,30 +380,30 @@ const initWebRTCConnection = async () => {
   peerConnection.onicecandidate = (event) => {
     if (event.candidate && socketService) {
       // 通过Socket发送ICE候选
-      socketService.emit('remote:webrtc:ice_candidate', {
-        candidate: event.candidate
+      socketService.emit("remote:webrtc:ice_candidate", {
+        candidate: event.candidate,
       });
     }
   };
 
   // 创建数据通道用于输入事件
-  dataChannel = peerConnection.createDataChannel('input', {
-    ordered: true
+  dataChannel = peerConnection.createDataChannel("input", {
+    ordered: true,
   });
 
   dataChannel.onopen = () => {
-    addLog('数据通道已打开', 'success');
+    addLog("数据通道已打开", "success");
     setupInputHandlers();
   };
 
   dataChannel.onerror = (error) => {
-    addLog(`数据通道错误: ${error}`, 'error');
+    addLog(`数据通道错误: ${error}`, "error");
   };
 
   // 创建offer
   const offer = await peerConnection.createOffer({
     offerToReceiveVideo: true,
-    offerToReceiveAudio: false
+    offerToReceiveAudio: false,
   });
 
   await peerConnection.setLocalDescription(offer);
@@ -402,25 +413,27 @@ const initWebRTCConnection = async () => {
 
   await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
 
-  addLog('WebRTC连接已建立', 'success');
+  addLog("WebRTC连接已建立", "success");
 };
 
 /**
  * 通过Socket发送offer并接收answer
  */
-const sendOfferAndReceiveAnswer = async (offer: RTCSessionDescriptionInit): Promise<RTCSessionDescriptionInit> => {
+const sendOfferAndReceiveAnswer = async (
+  offer: RTCSessionDescriptionInit,
+): Promise<RTCSessionDescriptionInit> => {
   return new Promise((resolve, reject) => {
     if (!socketService) {
-      reject(new Error('Socket服务未连接'));
+      reject(new Error("Socket服务未连接"));
       return;
     }
 
     // 发送offer
-    socketService.emit('remote:webrtc:offer', {
-      type: 'offer',
-      sdp: offer
+    socketService.emit("remote:webrtc:offer", {
+      type: "offer",
+      sdp: offer,
     });
-    addLog('已发送WebRTC offer', 'info');
+    addLog("已发送WebRTC offer", "info");
 
     let timeoutId: NodeJS.Timeout | null = null;
     let resolved = false;
@@ -428,27 +441,27 @@ const sendOfferAndReceiveAnswer = async (offer: RTCSessionDescriptionInit): Prom
     // 监听answer
     const answerHandler = (data: any) => {
       try {
-        if (data?.type === 'answer' && data?.sdp && !resolved) {
+        if (data?.type === "answer" && data?.sdp && !resolved) {
           resolved = true;
           if (timeoutId) {
             clearTimeout(timeoutId);
           }
-          socketService!.off('remote:webrtc:answer', answerHandler);
+          socketService!.off("remote:webrtc:answer", answerHandler);
           resolve(data);
         }
       } catch (error) {
-        addLog(`处理answer失败: ${error}`, 'error');
+        addLog(`处理answer失败: ${error}`, "error");
       }
     };
 
-    socketService.on('remote:webrtc:answer', answerHandler);
+    socketService.on("remote:webrtc:answer", answerHandler);
 
     // 设置超时
     timeoutId = setTimeout(() => {
       if (!resolved) {
         resolved = true;
-        socketService!.off('remote:webrtc:answer', answerHandler);
-        reject(new Error('等待answer超时'));
+        socketService!.off("remote:webrtc:answer", answerHandler);
+        reject(new Error("等待answer超时"));
       }
     }, 30000);
   });
@@ -465,61 +478,61 @@ const setupInputHandlers = () => {
   const video = remoteVideo.value;
 
   // 鼠标事件
-  video.addEventListener('mousedown', (e) => {
-    sendInputEvent('mousedown', {
+  video.addEventListener("mousedown", (e) => {
+    sendInputEvent("mousedown", {
       button: e.button,
       x: e.offsetX,
-      y: e.offsetY
+      y: e.offsetY,
     });
   });
 
-  video.addEventListener('mouseup', (e) => {
-    sendInputEvent('mouseup', {
+  video.addEventListener("mouseup", (e) => {
+    sendInputEvent("mouseup", {
       button: e.button,
       x: e.offsetX,
-      y: e.offsetY
+      y: e.offsetY,
     });
   });
 
-  video.addEventListener('mousemove', (e) => {
-    sendInputEvent('mousemove', {
+  video.addEventListener("mousemove", (e) => {
+    sendInputEvent("mousemove", {
       x: e.offsetX,
-      y: e.offsetY
+      y: e.offsetY,
     });
   });
 
-  video.addEventListener('wheel', (e) => {
-    sendInputEvent('wheel', {
+  video.addEventListener("wheel", (e) => {
+    sendInputEvent("wheel", {
       deltaX: e.deltaX,
-      deltaY: e.deltaY
+      deltaY: e.deltaY,
     });
   });
 
   // 键盘事件
-  video.addEventListener('keydown', (e) => {
-    sendInputEvent('keydown', {
+  video.addEventListener("keydown", (e) => {
+    sendInputEvent("keydown", {
       key: e.key,
       code: e.code,
-      keyCode: e.keyCode
+      keyCode: e.keyCode,
     });
   });
 
-  video.addEventListener('keyup', (e) => {
-    sendInputEvent('keyup', {
+  video.addEventListener("keyup", (e) => {
+    sendInputEvent("keyup", {
       key: e.key,
       code: e.code,
-      keyCode: e.keyCode
+      keyCode: e.keyCode,
     });
   });
 
-  addLog('输入事件处理器已设置', 'success');
+  addLog("输入事件处理器已设置", "success");
 };
 
 /**
  * 发送输入事件
  */
 const sendInputEvent = (type: string, data: any) => {
-  if (dataChannel && dataChannel.readyState === 'open') {
+  if (dataChannel && dataChannel.readyState === "open") {
     dataChannel.send(JSON.stringify({ type, data }));
   }
 };
@@ -528,7 +541,7 @@ const sendInputEvent = (type: string, data: any) => {
  * 视频加载完成
  */
 const onVideoLoaded = () => {
-  addLog('视频流已加载', 'success');
+  addLog("视频流已加载", "success");
 };
 
 /**
@@ -541,7 +554,7 @@ const disconnect = () => {
   }
 
   if (socketService) {
-    socketService.emit('remote:webrtc:disconnect', {});
+    socketService.emit("remote:webrtc:disconnect", {});
     closeNamedSocketService(socketName);
     socketService = null;
   }
@@ -557,7 +570,7 @@ const disconnect = () => {
 
   isConnected.value = false;
   connecting.value = false;
-  addLog('已断开连接', 'info');
+  addLog("已断开连接", "info");
 };
 
 /**
@@ -593,21 +606,21 @@ const takeScreenshot = () => {
     return;
   }
 
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = remoteVideo.value.videoWidth;
   canvas.height = remoteVideo.value.videoHeight;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   if (ctx) {
     ctx.drawImage(remoteVideo.value, 0, 0);
     canvas.toBlob((blob) => {
       if (blob) {
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
         a.download = `screenshot-${Date.now()}.png`;
         a.click();
         URL.revokeObjectURL(url);
-        addLog('截图已保存', 'success');
+        addLog("截图已保存", "success");
       }
     });
   }
@@ -632,7 +645,7 @@ onMounted(() => {
 
 .page-header {
   margin-bottom: 24px;
-  
+
   .page-title {
     font-size: 28px;
     font-weight: 600;
@@ -643,13 +656,13 @@ onMounted(() => {
 
 .config-card {
   margin-bottom: 24px;
-  
+
   .card-header {
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  
+
   .config-form {
     max-width: 600px;
   }
@@ -665,19 +678,19 @@ onMounted(() => {
     backdrop-filter: blur(20px);
     border-radius: 8px;
     margin-bottom: 16px;
-    
+
     .toolbar-left {
       display: flex;
       align-items: center;
       gap: 12px;
-      
+
       .server-info {
         color: var(--el-text-color-regular);
         font-size: 14px;
       }
     }
   }
-  
+
   .video-container {
     position: relative;
     background: #000;
@@ -687,14 +700,14 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    
+
     .remote-video {
       width: 100%;
       height: auto;
       max-height: 80vh;
       object-fit: contain;
     }
-    
+
     .loading-overlay,
     .error-overlay {
       position: absolute;
@@ -708,11 +721,11 @@ onMounted(() => {
       align-items: center;
       background: rgba(0, 0, 0, 0.7);
       color: white;
-      
+
       .loading-icon {
         animation: rotate 2s linear infinite;
       }
-      
+
       p {
         margin: 16px 0;
         font-size: 16px;
@@ -723,40 +736,40 @@ onMounted(() => {
 
 .log-card {
   margin-top: 24px;
-  
+
   .card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
   }
-  
+
   .log-container {
     max-height: 300px;
     overflow-y: auto;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 12px;
-    
+
     .log-entry {
       padding: 4px 8px;
       margin-bottom: 4px;
       border-radius: 4px;
-      
+
       &.log-info {
         color: #333;
         background: #f5f5f5;
       }
-      
+
       &.log-success {
         color: #44aa44;
         background: #e8f5e9;
       }
-      
+
       &.log-error {
         color: #cc0000;
         background: #ffebee;
       }
-      
+
       &.log-warn {
         color: #ff8800;
         background: #fff3e0;
@@ -774,4 +787,3 @@ onMounted(() => {
   }
 }
 </style>
-

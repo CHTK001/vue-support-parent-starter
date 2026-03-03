@@ -70,8 +70,8 @@
         <el-button
           type="primary"
           size="small"
-          @click="reconnect"
           :loading="isReconnecting"
+          @click="reconnect"
         >
           <IconifyIconOnline icon="ri:refresh-line" />
           重连
@@ -301,7 +301,7 @@ const downloadLogs = () => {
   const content = logs.value
     .map(
       (log) =>
-        `[${log.timestamp}] [${log.level}] ${log.filterName ? `[${log.filterName}]` : ""} ${log.message}`
+        `[${log.timestamp}] [${log.level}] ${log.filterName ? `[${log.filterName}]` : ""} ${log.message}`,
     )
     .join("\n");
 
@@ -381,7 +381,7 @@ watch(
     } else {
       disconnectSSE();
     }
-  }
+  },
 );
 
 // 组件卸载时断开连接
@@ -535,7 +535,6 @@ onUnmounted(() => {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -544,5 +543,4 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>

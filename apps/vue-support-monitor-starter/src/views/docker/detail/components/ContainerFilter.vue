@@ -3,7 +3,7 @@
     <div class="filter-header">
       <div class="header-title">容器过滤</div>
     </div>
-    
+
     <div class="filter-content">
       <el-form :model="filterParams" label-position="top" @submit.prevent>
         <el-row :gutter="20">
@@ -17,7 +17,7 @@
               />
             </el-form-item>
           </el-col>
-          
+
           <el-col :span="12">
             <el-form-item label="镜像名称">
               <el-input
@@ -28,7 +28,7 @@
               />
             </el-form-item>
           </el-col>
-          
+
           <el-col :span="12">
             <el-form-item label="运行状态">
               <el-select
@@ -46,7 +46,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          
+
           <el-col :span="12">
             <el-form-item label="服务器">
               <el-select
@@ -66,7 +66,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <div class="filter-actions">
           <el-button type="primary" @click="applyFilter">
             <IconifyIconOnline icon="ri:search-line" class="mr-1" />
@@ -83,58 +83,57 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from "vue";
 
 interface ServerOption {
-  id: number
-  name: string
+  id: number;
+  name: string;
 }
 
 interface FilterParams {
-  name: string
-  image: string
-  status: string
-  serverId: string
+  name: string;
+  image: string;
+  status: string;
+  serverId: string;
 }
 
 interface Props {
-  serverOptions: ServerOption[]
+  serverOptions: ServerOption[];
 }
 
 interface Emits {
-  (e: 'apply-filter', params: FilterParams): void
-  (e: 'reset-filter'): void
+  (e: "apply-filter", params: FilterParams): void;
+  (e: "reset-filter"): void;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 const filterParams = ref<FilterParams>({
-  name: '',
-  image: '',
-  status: '',
-  serverId: ''
-})
+  name: "",
+  image: "",
+  status: "",
+  serverId: "",
+});
 
 // 应用过滤
 const applyFilter = () => {
-  emit('apply-filter', filterParams.value)
-}
+  emit("apply-filter", filterParams.value);
+};
 
 // 重置过滤
 const resetFilter = () => {
   filterParams.value = {
-    name: '',
-    image: '',
-    status: '',
-    serverId: ''
-  }
-  emit('reset-filter')
-}
+    name: "",
+    image: "",
+    status: "",
+    serverId: "",
+  };
+  emit("reset-filter");
+};
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -168,7 +167,6 @@ const resetFilter = () => {
   }
 }
 
-
 .container-filter {
   background: white;
   border-radius: 8px;
@@ -194,7 +192,6 @@ const resetFilter = () => {
   margin-top: 20px;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -203,5 +200,4 @@ const resetFilter = () => {
     padding: 12px 16px;
   }
 }
-
 </style>

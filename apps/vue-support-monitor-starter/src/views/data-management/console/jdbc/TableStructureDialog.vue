@@ -40,8 +40,8 @@
             <el-button
               type="success"
               size="small"
-              @click="handleInsertRow"
               :disabled="selectedRowIndex < 0"
+              @click="handleInsertRow"
             >
               <IconifyIconOnline icon="ri:insert-row-bottom" class="mr-1" />
               插入字段
@@ -49,8 +49,8 @@
             <el-button
               type="danger"
               size="small"
-              @click="handleDeleteRow"
               :disabled="selectedRows.length === 0 && selectedRowIndex < 0"
+              @click="handleDeleteRow"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               删除字段
@@ -59,18 +59,18 @@
             <el-divider direction="vertical" />
             <el-button
               size="small"
-              @click="handleMoveUp"
               :disabled="selectedRowIndex <= 0"
+              @click="handleMoveUp"
             >
               <IconifyIconOnline icon="ri:arrow-up-line" class="mr-1" />
               上移
             </el-button>
             <el-button
               size="small"
-              @click="handleMoveDown"
               :disabled="
                 selectedRowIndex < 0 || selectedRowIndex >= columns.length - 1
               "
+              @click="handleMoveDown"
             >
               <IconifyIconOnline icon="ri:arrow-down-line" class="mr-1" />
               下移
@@ -83,9 +83,9 @@
             <el-button
               type="warning"
               size="small"
-              @click="handleSaveAll"
               :loading="saving"
               :disabled="!hasChanges"
+              @click="handleSaveAll"
             >
               <IconifyIconOnline icon="ri:save-line" class="mr-1" />
               保存修改
@@ -102,10 +102,10 @@
               height="450px"
               row-key="__key"
               highlight-current-row
+              :row-class-name="getRowClassName"
               @current-change="handleCurrentChange"
               @selection-change="handleSelectionChange"
               @row-dblclick="handleRowDblClick"
-              :row-class-name="getRowClassName"
             >
               <el-table-column type="selection" width="45" fixed="left" />
               <el-table-column type="index" width="50" label="#" fixed="left" />
@@ -334,7 +334,7 @@
         </el-tab-pane>
 
         <!-- 索引 -->
-        <el-tab-pane label="索引" name="indexes" v-if="supportsIndexes">
+        <el-tab-pane v-if="supportsIndexes" label="索引" name="indexes">
           <div class="toolbar">
             <el-button type="primary" size="small" @click="handleAddIndex">
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />
@@ -343,8 +343,8 @@
             <el-button
               type="danger"
               size="small"
-              @click="handleDeleteIndex"
               :disabled="selectedIndexes.length === 0"
+              @click="handleDeleteIndex"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               删除索引
@@ -359,7 +359,7 @@
             </el-button>
           </div>
 
-          <div class="table-wrapper" v-if="indexes.length > 0">
+          <div v-if="indexes.length > 0" class="table-wrapper">
             <el-table
               :data="indexes"
               border
@@ -410,7 +410,7 @@
         </el-tab-pane>
 
         <!-- 分区 -->
-        <el-tab-pane label="分区" name="partitions" v-if="supportsPartitions">
+        <el-tab-pane v-if="supportsPartitions" label="分区" name="partitions">
           <div class="toolbar">
             <el-button type="primary" size="small" @click="handleAddPartition">
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />
@@ -419,8 +419,8 @@
             <el-button
               type="danger"
               size="small"
-              @click="handleDeletePartition"
               :disabled="selectedPartitions.length === 0"
+              @click="handleDeletePartition"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               删除分区
@@ -437,7 +437,7 @@
             </el-button>
           </div>
 
-          <div class="table-wrapper" v-if="partitions.length > 0">
+          <div v-if="partitions.length > 0" class="table-wrapper">
             <el-table
               :data="partitions"
               border
@@ -764,7 +764,7 @@ watch(
         loadPartitions();
       }
     }
-  }
+  },
 );
 
 watch(visible, (val) => {
@@ -953,7 +953,7 @@ async function handleDeleteRow() {
         ? `确定删除字段 "${names}" 吗？`
         : `确定删除 ${rowsToDelete.length} 个字段吗？\n${names}`,
       "确认删除",
-      { type: "warning" }
+      { type: "warning" },
     );
 
     // 遍历删除
@@ -1122,7 +1122,7 @@ async function handleSaveAll() {
 
     // 3. 修改已有字段（只修改真正变化的）
     const modifiedCols = columns.value.filter(
-      (c) => c.__modified && !c.__isNew && isColumnReallyModified(c)
+      (c) => c.__modified && !c.__isNew && isColumnReallyModified(c),
     );
     if (modifiedCols.length > 0) {
       batchRequest.modifyColumns = modifiedCols.map((col) => {
@@ -1143,7 +1143,7 @@ async function handleSaveAll() {
     for (let i = 0; i < columns.value.length; i++) {
       const col = columns.value[i];
       const originalIndex = originalColumns.value.findIndex(
-        (c) => c.__originalName === col.__originalName
+        (c) => c.__originalName === col.__originalName,
       );
 
       if (!col.__isNew && originalIndex !== i && originalIndex >= 0) {
@@ -1267,7 +1267,7 @@ async function handleAddIndex() {
         cancelButtonText: "取消",
         inputPattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
         inputErrorMessage: "索引名称格式不正确",
-      }
+      },
     );
 
     if (!indexName) return;
@@ -1315,7 +1315,7 @@ async function handleDeleteIndex() {
  * 获取索引类型标签
  */
 function getIndexTypeTag(
-  type: string
+  type: string,
 ): "primary" | "success" | "warning" | "info" | "danger" | undefined {
   const typeMap: Record<
     string,
@@ -1372,7 +1372,7 @@ async function handleAddPartition() {
         cancelButtonText: "取消",
         inputPattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
         inputErrorMessage: "分区名称格式不正确",
-      }
+      },
     );
 
     if (!partitionName) return;
@@ -1919,7 +1919,6 @@ async function handleDeletePartition() {
   }
 }
 
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1928,5 +1927,4 @@ async function handleDeletePartition() {
     padding: 12px 16px;
   }
 }
-
 </style>

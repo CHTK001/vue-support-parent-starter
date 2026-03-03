@@ -1,14 +1,14 @@
 ﻿<template>
   <div class="system-container modern-bg">
     <sc-dialog
+      v-model="props.visible"
       title="更新配置"
       width="400px"
       draggable
-      v-model="props.visible"
-      @close="handleClose"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       append-to-body
+      @close="handleClose"
     >
       <el-form :model="form">
         <el-form-item label="平台" prop="monitorApplicationName">
@@ -74,11 +74,10 @@ watch(
     if (val) {
       form.value = val;
     }
-  }
+  },
 );
 </script>
 <style lang="scss" scoped>
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -112,8 +111,6 @@ watch(
   }
 }
 
-
-
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -122,6 +119,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>
-

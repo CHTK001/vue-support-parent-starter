@@ -93,7 +93,7 @@ export interface ServerConnectionStatusPageParams {
 export function testServerConnection(serverId: number) {
   return http.request<ReturnResult<ServerConnectionStatus>>(
     "post",
-    `v1/server/connection/test/${serverId}`
+    `v1/server/connection/test/${serverId}`,
   );
 }
 
@@ -106,7 +106,7 @@ export function batchTestServerConnection(serverIds: number[]) {
   return http.request<ReturnResult<ServerConnectionStatus[]>>(
     "post",
     "v1/server/connection/batch-test",
-    { data: serverIds }
+    { data: serverIds },
   );
 }
 
@@ -117,7 +117,7 @@ export function batchTestServerConnection(serverIds: number[]) {
 export function getAllServerConnectionStatus() {
   return http.request<ReturnResult<ServerConnectionStatus[]>>(
     "get",
-    "v1/server/connection/status/all"
+    "v1/server/connection/status/all",
   );
 }
 
@@ -129,7 +129,7 @@ export function getAllServerConnectionStatus() {
 export function getServerConnectionStatus(serverId: number) {
   return http.request<ReturnResult<ServerConnectionStatus>>(
     "get",
-    `v1/server/connection/status/${serverId}`
+    `v1/server/connection/status/${serverId}`,
   );
 }
 
@@ -138,12 +138,12 @@ export function getServerConnectionStatus(serverId: number) {
  * @param params 查询参数
  * @returns 连接状态历史分页数据
  */
-export function getServerConnectionStatusHistory(params: ServerConnectionStatusPageParams) {
-  return http.request<ReturnResult<{ records: ServerConnectionStatus[]; total: number }>>(
-    "get",
-    "v1/server/connection/history",
-    { params }
-  );
+export function getServerConnectionStatusHistory(
+  params: ServerConnectionStatusPageParams,
+) {
+  return http.request<
+    ReturnResult<{ records: ServerConnectionStatus[]; total: number }>
+  >("get", "v1/server/connection/history", { params });
 }
 
 /**
@@ -153,7 +153,7 @@ export function getServerConnectionStatusHistory(params: ServerConnectionStatusP
 export function getConnectionStatusStatistics() {
   return http.request<ReturnResult<ConnectionStatusStatistics>>(
     "get",
-    "v1/server/connection/statistics"
+    "v1/server/connection/statistics",
   );
 }
 
@@ -166,7 +166,7 @@ export function getLongTimeNoConnectServers(minutes: number = 60) {
   return http.request<ReturnResult<ServerConnectionStatus[]>>(
     "get",
     "v1/server/connection/long-time-no-connect",
-    { params: { minutes } }
+    { params: { minutes } },
   );
 }
 
@@ -177,7 +177,7 @@ export function getLongTimeNoConnectServers(minutes: number = 60) {
 export function checkAllServerConnections() {
   return http.request<ReturnResult<any>>(
     "post",
-    "v1/server/connection/check-all"
+    "v1/server/connection/check-all",
   );
 }
 
@@ -188,7 +188,7 @@ export function checkAllServerConnections() {
 export function getServerConnectionHealthReport() {
   return http.request<ReturnResult<ConnectionHealthReport[]>>(
     "get",
-    "v1/server/connection/health-report"
+    "v1/server/connection/health-report",
   );
 }
 
@@ -200,7 +200,7 @@ export function getServerConnectionHealthReport() {
 export function resetServerConnectionStatus(serverId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `v1/server/connection/reset/${serverId}`
+    `v1/server/connection/reset/${serverId}`,
   );
 }
 
@@ -213,7 +213,7 @@ export function batchResetServerConnectionStatus(serverIds: number[]) {
   return http.request<ReturnResult<any>>(
     "post",
     "v1/server/connection/batch-reset",
-    { data: serverIds }
+    { data: serverIds },
   );
 }
 
@@ -227,7 +227,7 @@ export function getServerConnectionTrend(serverId: number, hours: number = 24) {
   return http.request<ReturnResult<any[]>>(
     "get",
     `v1/server/connection/trend/${serverId}`,
-    { params: { hours } }
+    { params: { hours } },
   );
 }
 
@@ -238,7 +238,7 @@ export function getServerConnectionTrend(serverId: number, hours: number = 24) {
 export function getRealTimeConnectionStatus() {
   return http.request<ReturnResult<any>>(
     "get",
-    "v1/server/connection/realtime"
+    "v1/server/connection/realtime",
   );
 }
 
@@ -252,7 +252,7 @@ export function setConnectionMonitorConfig(serverId: number, config: any) {
   return http.request<ReturnResult<boolean>>(
     "post",
     `v1/server/connection/monitor-config/${serverId}`,
-    { data: config }
+    { data: config },
   );
 }
 
@@ -264,7 +264,7 @@ export function setConnectionMonitorConfig(serverId: number, config: any) {
 export function getConnectionMonitorConfig(serverId: number) {
   return http.request<ReturnResult<any>>(
     "get",
-    `v1/server/connection/monitor-config/${serverId}`
+    `v1/server/connection/monitor-config/${serverId}`,
   );
 }
 
@@ -278,7 +278,7 @@ export function toggleConnectionMonitor(serverId: number, enabled: boolean) {
   return http.request<ReturnResult<boolean>>(
     "post",
     `v1/server/connection/toggle-monitor/${serverId}`,
-    { params: { enabled } }
+    { params: { enabled } },
   );
 }
 
@@ -291,7 +291,7 @@ export function getConnectionFailureReasons(days: number = 7) {
   return http.request<ReturnResult<any[]>>(
     "get",
     "v1/server/connection/failure-reasons",
-    { params: { days } }
+    { params: { days } },
   );
 }
 
@@ -304,7 +304,7 @@ export function exportConnectionStatusReport(params: any) {
   return http.request<ReturnResult<string>>(
     "post",
     "v1/server/connection/export-report",
-    { data: params }
+    { data: params },
   );
 }
 
@@ -314,22 +314,42 @@ export function exportConnectionStatusReport(params: any) {
  * 连接状态枚举
  */
 export const CONNECTION_STATUS = {
-  DISCONNECTED: 0,  // 离线
-  CONNECTED: 1,     // 在线
-  CONNECTING: 2,    // 连接中
-  ERROR: 3,         // 连接失败
+  DISCONNECTED: 0, // 离线
+  CONNECTED: 1, // 在线
+  CONNECTING: 2, // 连接中
+  ERROR: 3, // 连接失败
 } as const;
 
-export type ConnectionStatus = typeof CONNECTION_STATUS[keyof typeof CONNECTION_STATUS];
+export type ConnectionStatus =
+  (typeof CONNECTION_STATUS)[keyof typeof CONNECTION_STATUS];
 
 /**
  * 连接状态映射
  */
-export const connectionStatusMap: Record<ConnectionStatus, { color: string; text: string; icon: string }> = {
-  [CONNECTION_STATUS.DISCONNECTED]: { color: "danger", text: "离线", icon: "offline" },
-  [CONNECTION_STATUS.CONNECTED]: { color: "success", text: "在线", icon: "online" },
-  [CONNECTION_STATUS.CONNECTING]: { color: "warning", text: "连接中", icon: "loading" },
-  [CONNECTION_STATUS.ERROR]: { color: "danger", text: "连接失败", icon: "error" },
+export const connectionStatusMap: Record<
+  ConnectionStatus,
+  { color: string; text: string; icon: string }
+> = {
+  [CONNECTION_STATUS.DISCONNECTED]: {
+    color: "danger",
+    text: "离线",
+    icon: "offline",
+  },
+  [CONNECTION_STATUS.CONNECTED]: {
+    color: "success",
+    text: "在线",
+    icon: "online",
+  },
+  [CONNECTION_STATUS.CONNECTING]: {
+    color: "warning",
+    text: "连接中",
+    icon: "loading",
+  },
+  [CONNECTION_STATUS.ERROR]: {
+    color: "danger",
+    text: "连接失败",
+    icon: "error",
+  },
 };
 
 /**
@@ -338,7 +358,7 @@ export const connectionStatusMap: Record<ConnectionStatus, { color: string; text
  * @returns 颜色类型
  */
 export function getConnectionStatusColor(status: ConnectionStatus): string {
-  return connectionStatusMap[status]?.color || 'info';
+  return connectionStatusMap[status]?.color || "info";
 }
 
 /**
@@ -347,7 +367,7 @@ export function getConnectionStatusColor(status: ConnectionStatus): string {
  * @returns 状态文本
  */
 export function getConnectionStatusText(status: ConnectionStatus): string {
-  return connectionStatusMap[status]?.text || '未知';
+  return connectionStatusMap[status]?.text || "未知";
 }
 
 /**
@@ -356,7 +376,7 @@ export function getConnectionStatusText(status: ConnectionStatus): string {
  * @returns 图标名称
  */
 export function getConnectionStatusIcon(status: ConnectionStatus): string {
-  return connectionStatusMap[status]?.icon || 'question';
+  return connectionStatusMap[status]?.icon || "question";
 }
 
 /**
@@ -374,5 +394,8 @@ export function isConnectionStatusNormal(status: ConnectionStatus): boolean {
  * @returns 是否异常
  */
 export function isConnectionStatusError(status: ConnectionStatus): boolean {
-  return status === CONNECTION_STATUS.ERROR || status === CONNECTION_STATUS.DISCONNECTED;
+  return (
+    status === CONNECTION_STATUS.ERROR ||
+    status === CONNECTION_STATUS.DISCONNECTED
+  );
 }

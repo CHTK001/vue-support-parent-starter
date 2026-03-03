@@ -9,11 +9,15 @@
   >
     <div class="help-content">
       <el-tabs v-model="activeTab" type="border-card">
-        <el-tab-pane label="Prometheus" name="prometheus" v-if="expressionType === 'PROMETHEUS'">
+        <el-tab-pane
+          v-if="expressionType === 'PROMETHEUS'"
+          label="Prometheus"
+          name="prometheus"
+        >
           <div class="help-section">
             <h3>Prometheus PromQL 语法</h3>
             <p>Prometheus 查询语言 (PromQL) 用于查询时间序列数据。</p>
-            
+
             <h4>基本语法</h4>
             <div class="code-block">
               <pre><code># 查询指标
@@ -45,15 +49,24 @@ rate(http_requests_total[5m])</code></pre>
             <div class="examples">
               <div class="example-item">
                 <strong>CPU使用率:</strong>
-                <code>100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)</code>
+                <code
+                  >100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) *
+                  100)</code
+                >
               </div>
               <div class="example-item">
                 <strong>内存使用率:</strong>
-                <code>(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100</code>
+                <code
+                  >(1 - (node_memory_MemAvailable_bytes /
+                  node_memory_MemTotal_bytes)) * 100</code
+                >
               </div>
               <div class="example-item">
                 <strong>磁盘使用率:</strong>
-                <code>(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100</code>
+                <code
+                  >(1 - (node_filesystem_avail_bytes /
+                  node_filesystem_size_bytes)) * 100</code
+                >
               </div>
               <div class="example-item">
                 <strong>网络流量:</strong>
@@ -63,11 +76,11 @@ rate(http_requests_total[5m])</code></pre>
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="SQL" name="sql" v-if="expressionType === 'SQL'">
+        <el-tab-pane v-if="expressionType === 'SQL'" label="SQL" name="sql">
           <div class="help-section">
             <h3>SQL 查询语法</h3>
             <p>使用标准 SQL 语法查询服务器监控数据。</p>
-            
+
             <h4>基本语法</h4>
             <div class="code-block">
               <pre><code># 基本查询
@@ -85,7 +98,8 @@ AND collect_time BETWEEN ? AND ?</code></pre>
 
             <h4>可用表和字段</h4>
             <ul>
-              <li><strong>server_metrics</strong> - 服务器指标表
+              <li>
+                <strong>server_metrics</strong> - 服务器指标表
                 <ul>
                   <li>server_id - 服务器ID</li>
                   <li>cpu_usage - CPU使用率</li>
@@ -102,19 +116,31 @@ AND collect_time BETWEEN ? AND ?</code></pre>
             <div class="examples">
               <div class="example-item">
                 <strong>最新CPU使用率:</strong>
-                <code>SELECT cpu_usage FROM server_metrics WHERE server_id = ? ORDER BY collect_time DESC LIMIT 1</code>
+                <code
+                  >SELECT cpu_usage FROM server_metrics WHERE server_id = ?
+                  ORDER BY collect_time DESC LIMIT 1</code
+                >
               </div>
               <div class="example-item">
                 <strong>平均内存使用率:</strong>
-                <code>SELECT AVG(memory_usage) FROM server_metrics WHERE server_id = ? AND collect_time >= NOW() - INTERVAL 1 HOUR</code>
+                <code
+                  >SELECT AVG(memory_usage) FROM server_metrics WHERE server_id
+                  = ? AND collect_time >= NOW() - INTERVAL 1 HOUR</code
+                >
               </div>
               <div class="example-item">
                 <strong>磁盘使用趋势:</strong>
-                <code>SELECT collect_time, disk_usage FROM server_metrics WHERE server_id = ? ORDER BY collect_time DESC LIMIT 100</code>
+                <code
+                  >SELECT collect_time, disk_usage FROM server_metrics WHERE
+                  server_id = ? ORDER BY collect_time DESC LIMIT 100</code
+                >
               </div>
               <div class="example-item">
                 <strong>网络流量统计:</strong>
-                <code>SELECT SUM(network_in) as total_in, SUM(network_out) as total_out FROM server_metrics WHERE server_id = ?</code>
+                <code
+                  >SELECT SUM(network_in) as total_in, SUM(network_out) as
+                  total_out FROM server_metrics WHERE server_id = ?</code
+                >
               </div>
             </div>
 
@@ -283,7 +309,7 @@ defineExpose({
 
       pre {
         margin: 0;
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
         font-size: $font-sm;
         line-height: 1.5;
         color: var(--el-text-color-primary);
@@ -323,7 +349,7 @@ defineExpose({
           @include glass-effect(0.9, 16px);
           padding: $spacing-sm $spacing-md;
           border-radius: $radius-sm;
-          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
           font-size: $font-xs;
           color: var(--el-color-primary);
           word-break: break-all;

@@ -10,7 +10,7 @@
         <div class="page-subtitle">管理Docker镜像的拉取、启动和删除</div>
       </div>
       <div class="header-right">
-        <el-button @click="handleRefresh" :loading="loading">
+        <el-button :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
@@ -24,16 +24,39 @@
     <!-- 搜索栏 -->
     <div class="search-bar">
       <div class="search-left">
-        <el-input v-model="searchParams.keyword" placeholder="搜索镜像名称或标签" class="search-input" clearable @keyup.enter="handleSearch">
+        <el-input
+          v-model="searchParams.keyword"
+          placeholder="搜索镜像名称或标签"
+          class="search-input"
+          clearable
+          @keyup.enter="handleSearch"
+        >
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select v-model="searchParams.serverId" placeholder="服务器" clearable class="filter-select" @change="handleSearch">
+        <el-select
+          v-model="searchParams.serverId"
+          placeholder="服务器"
+          clearable
+          class="filter-select"
+          @change="handleSearch"
+        >
           <el-option label="全部" value="" />
-          <el-option v-for="server in serverOptions" :key="server.id" :label="server.name" :value="server.id" />
+          <el-option
+            v-for="server in serverOptions"
+            :key="server.id"
+            :label="server.name"
+            :value="server.id"
+          />
         </el-select>
-        <el-select v-model="searchParams.status" placeholder="状态" clearable class="filter-select" @change="handleSearch">
+        <el-select
+          v-model="searchParams.status"
+          placeholder="状态"
+          clearable
+          class="filter-select"
+          @change="handleSearch"
+        >
           <el-option label="全部" value="" />
           <el-option label="可用" value="available" />
           <el-option label="拉取中" value="pulling" />
@@ -41,11 +64,15 @@
         </el-select>
       </div>
       <div class="search-right">
-        <el-button @click="handleSyncAll" :loading="syncLoading" type="success">
+        <el-button :loading="syncLoading" type="success" @click="handleSyncAll">
           <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
           同步状态
         </el-button>
-        <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger">
+        <el-button
+          :disabled="selectedIds.length === 0"
+          type="danger"
+          @click="handleBatchDelete"
+        >
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           批量删除
         </el-button>
@@ -59,10 +86,10 @@
         :params="searchParams"
         stripe
         :loading="loading"
-        @selection-change="handleSelectionChange"
         class="images-table"
         table-name="soft-images"
         height="auto"
+        @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
 
@@ -78,7 +105,10 @@
         <el-table-column label="完整名称" min-width="300">
           <template #default="{ row }">
             <div class="image-full-name">
-              {{ row.systemSoftImageFullName || `${row.systemSoftImageName}:${row.systemSoftImageTag}` }}
+              {{
+                row.systemSoftImageFullName ||
+                `${row.systemSoftImageName}:${row.systemSoftImageTag}`
+              }}
             </div>
           </template>
         </el-table-column>
@@ -93,7 +123,10 @@
 
         <el-table-column label="状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="getStatusTag(row.systemSoftImageStatus)" size="small">
+            <el-tag
+              :type="getStatusTag(row.systemSoftImageStatus)"
+              size="small"
+            >
               {{ getStatusText(row.systemSoftImageStatus) }}
             </el-tag>
           </template>
@@ -120,7 +153,12 @@
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button size="small" type="primary" @click="openStartDialog(row)" :disabled="row.systemSoftImageStatus !== 'available'">
+              <el-button
+                size="small"
+                type="primary"
+                :disabled="row.systemSoftImageStatus !== 'available'"
+                @click="openStartDialog(row)"
+              >
                 <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                 启动
               </el-button>
@@ -128,7 +166,11 @@
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详情
               </el-button>
-              <el-button size="small" type="danger" @click="handleDelete(row.systemSoftImageId)">
+              <el-button
+                size="small"
+                type="danger"
+                @click="handleDelete(row.systemSoftImageId)"
+              >
                 <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
                 删除
               </el-button>
@@ -139,10 +181,17 @@
     </el-card>
 
     <!-- 拉取镜像对话框 -->
-    <PullImageDialog v-model:visible="pullDialogVisible" @success="handleDialogSuccess" />
+    <PullImageDialog
+      v-model:visible="pullDialogVisible"
+      @success="handleDialogSuccess"
+    />
 
     <!-- 启动容器对话框 -->
-    <StartContainerDialog v-model:visible="startDialogVisible" :image-data="currentImage" @success="handleDialogSuccess" />
+    <StartContainerDialog
+      v-model:visible="startDialogVisible"
+      :image-data="currentImage"
+      @success="handleDialogSuccess"
+    />
 
     <!-- 批量操作底部工具栏 -->
     <div v-if="selectedIds.length > 0" class="batch-actions">
@@ -177,7 +226,7 @@ const searchParams = reactive({
   serverId: "",
   status: "",
   size: 10,
-  page: 1
+  page: 1,
 });
 
 // 基础方法
@@ -217,7 +266,8 @@ const formatSize = (size?: number) => {
   return `${s.toFixed(2)} ${units[i]}`;
 };
 
-const formatTime = (time?: string) => (time ? new Date(time).toLocaleString() : "-");
+const formatTime = (time?: string) =>
+  time ? new Date(time).toLocaleString() : "-";
 
 // 操作方法
 const openPullDialog = () => {
@@ -277,9 +327,13 @@ const handleBatchDelete = async () => {
   }
 
   try {
-    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 个镜像吗？`, "批量删除确认", {
-      type: "warning",
-    });
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedIds.value.length} 个镜像吗？`,
+      "批量删除确认",
+      {
+        type: "warning",
+      },
+    );
 
     const response = await imageApi.batchDeleteImages(selectedIds.value);
     if (response.code === "00000" || response.success) {
@@ -321,7 +375,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -338,8 +391,6 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
-
-
 
 .modern-bg {
   position: relative;
@@ -373,7 +424,6 @@ onMounted(() => {
     z-index: 1;
   }
 }
-
 
 .images-management {
   padding: 20px;
@@ -523,7 +573,6 @@ onMounted(() => {
   font-weight: 500;
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -532,5 +581,4 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
-
 </style>
