@@ -481,8 +481,6 @@ const components = [
     component: resolveComponent("./components/ScWorkflowExample.vue"),
   },
   {
-
-  {
     name: "ScCron",
     icon: "carbon:time",
     category: "form",
@@ -769,14 +767,6 @@ const components = [
     tags: ["模板", "布局"],
     description: "模板组件示例，展示各种预制模板组件",
     component: resolveComponent("./components/TemplateExample.vue"),
-  },
-  {
-    name: "TechUI",
-    icon: "ri:rocket-2-line",
-    category: "display",
-    tags: ["科技", "风格"],
-    description: "TechUI 科幻风格组件，基于 @techui/scifi 的科幻风格 UI 组件封装（独立页面）",
-    route: "/example/techui",
   },
   {
     name: "ScReteEditor",

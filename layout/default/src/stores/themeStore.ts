@@ -186,6 +186,11 @@ export const useThemeStore = defineStore("theme", () => {
     logger.debug("主题切换: {} -> {}", previousTheme, normalizedThemeKey);
     currentTheme.value = normalizedThemeKey;
 
+    // 持久化到 storage（优先更新本地配置，避免 MutationObserver 读取到旧值）
+    if ($storage?.configure) {
+      $storage.configure.systemTheme = normalizedThemeKey;
+    }
+
     const htmlEl = document.documentElement;
 
     // 更新 data-skin，用于组件主题系统
@@ -217,11 +222,6 @@ export const useThemeStore = defineStore("theme", () => {
 
     // 加载主题字体 CSS（仅 8bit 主题需要）
     loadThemeFont(normalizedThemeKey);
-
-    // 持久化到 storage
-    if ($storage?.configure) {
-      $storage.configure.systemTheme = normalizedThemeKey;
-    }
 
     // 发送主题变更事件
     emitter.emit("systemThemeChange", normalizedThemeKey);
