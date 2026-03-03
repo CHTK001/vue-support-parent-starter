@@ -101,7 +101,9 @@ export const initializeWasmModule = async () => {
     if (typeof wasmInit !== "function") {
       throw new Error("WASM 初始化函数不存在（codec_wasm.js default export）");
     }
-    const exports = await wasmInit(new URL("../build/codec_wasm_bg.wasm", import.meta.url));
+    const exports = await wasmInit(
+      new URL("../build/codec_wasm_bg.wasm", import.meta.url),
+    );
     wasm = exports || wasmCodec;
     wasmLoaded = true;
     console.log("[codec-wasm][初始化] WASM 模块加载成功");

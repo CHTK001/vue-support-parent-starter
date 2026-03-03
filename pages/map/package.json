@@ -38,7 +38,7 @@
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
     "@repo/sc-layer": "workspace:^",
-    "@repo/sc-map": "workspace:^",
+    "@repo/sc-visualization": "workspace:^",
     "element-plus": "catalog:",
     "unbuild": "catalog:",
     "echarts": "catalog:",

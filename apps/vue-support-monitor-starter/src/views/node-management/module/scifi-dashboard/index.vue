@@ -421,7 +421,7 @@ import {
   TechDeco,
   TechGeometry,
   TechPanelTitle,
-} from "@repo/components/TechUI";
+} from "@repo/sc-visualization/TechUI";
 import {
   getNodeMetricsForNodeControl,
   type NodeMetricsDTO,
@@ -600,6 +600,10 @@ const toggleFullscreen = () => {
   }
 };
 
+const handleFullscreenChange = () => {
+  isFullscreen.value = !!document.fullscreenElement;
+};
+
 /**
  * 格式化字节
  */
@@ -703,16 +707,16 @@ onMounted(() => {
   }, 10000);
 
   // 监听全屏变化
-  document.addEventListener("fullscreenchange", () => {
-    isFullscreen.value = !!document.fullscreenElement;
-  });
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
 });
 
 onUnmounted(() => {
   disconnectSocket();
   if (refreshTimer) {
     clearInterval(refreshTimer);
+    refreshTimer = null;
   }
+  document.removeEventListener("fullscreenchange", handleFullscreenChange);
 });
 </script>
 

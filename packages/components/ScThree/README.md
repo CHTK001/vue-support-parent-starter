@@ -355,7 +355,7 @@ function onLayerReady() {
 
 <script setup lang="ts">
 import { ref } from "vue";
-import ScMap from "@repo/sc-map/index.vue";
+import ScMap from "@repo/sc-visualization/index.vue";
 
 const mapRef = ref<InstanceType<typeof ScMap> | null>(null);
 

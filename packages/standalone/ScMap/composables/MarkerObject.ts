@@ -87,6 +87,12 @@ export class MarkerObject {
     iconCreateFunction: null
   };
 
+  // 地图缩放相关事件处理函数引用，便于正确解绑
+  private zoomEndScaleHandler: (() => void) | null = null;
+  private zoomStartHandler: (() => void) | null = null;
+  private zoomHandler: (() => void) | null = null;
+  private zoomEndHandler: (() => void) | null = null;
+
   /**
    * 构造函数
    * @param mapInstance Leaflet地图实例
@@ -108,24 +114,27 @@ export class MarkerObject {
     
     // 绑定地图缩放事件以更新标记大小
     if (this.config.scaleWithZoom) {
-      this.mapInstance.on('zoomend', () => this.updateMarkersScale());
+      this.zoomEndScaleHandler = () => this.updateMarkersScale();
+      this.mapInstance.on('zoomend', this.zoomEndScaleHandler);
     }
     
     // 初始化聚合支持
     this.initClusterSupport();
     
     // 添加对地图缩放开始事件的处理，预防 _latLngToNewLayerPoint 错误
-    this.mapInstance.on('zoomstart', this.handleZoomStart.bind(this));
+    this.zoomStartHandler = this.handleZoomStart.bind(this);
+    this.mapInstance.on('zoomstart', this.zoomStartHandler);
     
     // 添加额外的地图事件监听器来防止缩放过程中的异常
-    this.mapInstance.on('zoom', () => {
+    this.zoomHandler = () => {
       // 缩放期间，暂时避免标记操作
-      this.mapInstance._mapZooming = true;
-    });
+      (this.mapInstance as any)._mapZooming = true;
+    };
+    this.mapInstance.on('zoom', this.zoomHandler);
     
-    this.mapInstance.on('zoomend', () => {
+    this.zoomEndHandler = () => {
       // 缩放结束后，允许标记操作
-      this.mapInstance._mapZooming = false;
+      (this.mapInstance as any)._mapZooming = false;
       
       // 如果集群层存在但其引用的地图已经不存在，重置聚合状态
       if (this.clusterEnabled && this.clusterLayer && (!this.clusterLayer._map || !this.clusterLayer._map.getBounds)) {
@@ -133,7 +142,8 @@ export class MarkerObject {
         this.clusterEnabled = false;
         this.clusterLayer = null;
       }
-    });
+    };
+    this.mapInstance.on('zoomend', this.zoomEndHandler);
     
     logger.debug('MarkerObject已初始化');
   }
@@ -283,10 +293,16 @@ export class MarkerObject {
     // 处理缩放监听
     if (!oldScaleWithZoom && this.config.scaleWithZoom) {
       // 添加监听
-      this.mapInstance.on('zoomend', () => this.updateMarkersScale());
+      if (!this.zoomEndScaleHandler) {
+        this.zoomEndScaleHandler = () => this.updateMarkersScale();
+        this.mapInstance.on('zoomend', this.zoomEndScaleHandler);
+      }
     } else if (oldScaleWithZoom && !this.config.scaleWithZoom) {
       // 移除监听
-      this.mapInstance.off('zoomend');
+      if (this.zoomEndScaleHandler) {
+        this.mapInstance.off('zoomend', this.zoomEndScaleHandler);
+        this.zoomEndScaleHandler = null;
+      }
     }
     
     // 立即应用新配置
@@ -907,7 +923,22 @@ export class MarkerObject {
    */
   public destroy(): void {
     // 清除事件监听
-    this.mapInstance.off('zoomend');
+    if (this.zoomEndScaleHandler) {
+      this.mapInstance.off('zoomend', this.zoomEndScaleHandler);
+      this.zoomEndScaleHandler = null;
+    }
+    if (this.zoomStartHandler) {
+      this.mapInstance.off('zoomstart', this.zoomStartHandler);
+      this.zoomStartHandler = null;
+    }
+    if (this.zoomHandler) {
+      this.mapInstance.off('zoom', this.zoomHandler);
+      this.zoomHandler = null;
+    }
+    if (this.zoomEndHandler) {
+      this.mapInstance.off('zoomend', this.zoomEndHandler);
+      this.zoomEndHandler = null;
+    }
     
     // 清空标记点
     this.clearAll();

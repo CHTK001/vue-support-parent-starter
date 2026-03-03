@@ -123,6 +123,10 @@ export interface StorageConfig {
   showFullscreen?: boolean;
   /** 是否显示顶部时间 */
   showHeaderClock?: boolean;
+  /** 是否显示顶部第二个时间 */
+  headerClockSecondEnabled?: boolean;
+  /** 顶部第二时间的时区 */
+  headerClockSecondTimezone?: string;
   /**
    * 消息中心下拉弹框位置（用于 el-dropdown placement 映射）
    * 值域与 ScSelect layout="position" 一致

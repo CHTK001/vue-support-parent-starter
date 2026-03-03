@@ -10,10 +10,9 @@ import { getConfig } from "@repo/config";
 import type { ThemeKey } from "../types/theme";
 import { layoutThemes, getLayoutTheme, loadThemeStylesheet } from "../themes";
 import { loadThemeFont } from "../utils/loadThemeFont";
+import { getLogger } from "@repo/utils";
 
-// 条件日志函数
-const isDev = import.meta.env.DEV;
-const log = isDev ? console.log.bind(console, "[ThemeStore]") : () => {};
+const logger = getLogger("[ThemeStore]");
 
 export const useThemeStore = defineStore("theme", () => {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -180,7 +179,11 @@ export const useThemeStore = defineStore("theme", () => {
     const normalizedThemeKey = normalizeThemeKey(themeKey);
     if (currentTheme.value === normalizedThemeKey) return;
 
-    log("主题切换:", currentTheme.value, "->", normalizedThemeKey);
+    logger.debug(
+      "主题切换: {} -> {}",
+      currentTheme.value,
+      normalizedThemeKey,
+    );
     currentTheme.value = normalizedThemeKey;
 
     // 更新 DOM 属性
@@ -281,6 +284,10 @@ export const useThemeStore = defineStore("theme", () => {
       "theme-mid-autumn",
       "theme-national-day",
       "theme-new-year",
+      // 内测 / 像素 / 科技等扩展主题
+      "theme-halloween",
+      "theme-8bit",
+      "theme-future-tech",
     ];
     themeClasses.forEach((cls) => htmlEl.classList.remove(cls));
 
@@ -298,7 +305,7 @@ export const useThemeStore = defineStore("theme", () => {
     if (isInitialized) return;
     isInitialized = true;
 
-    log("初始化主题监听器");
+    logger.debug("初始化主题监听器");
 
     // 监听 emitter 事件（用于外部切换）
     emitter.on("systemThemeChange", handleExternalThemeChange);
@@ -320,7 +327,7 @@ export const useThemeStore = defineStore("theme", () => {
   function handleExternalThemeChange(themeKey: string): void {
     const normalizedThemeKey = normalizeThemeKey(themeKey);
     if (currentTheme.value !== normalizedThemeKey) {
-      log("收到外部主题变更:", normalizedThemeKey);
+      logger.debug("收到外部主题变更: {}", normalizedThemeKey);
       currentTheme.value = normalizedThemeKey;
     }
   }
@@ -329,7 +336,7 @@ export const useThemeStore = defineStore("theme", () => {
    * 销毁监听器
    */
   function destroyThemeListener(): void {
-    log("销毁主题监听器");
+    logger.debug("销毁主题监听器");
     emitter.off("systemThemeChange", handleExternalThemeChange);
     isInitialized = false;
   }

@@ -22,7 +22,7 @@
 ```typescript
 import { createApp } from "vue";
 import App from "./App.vue";
-import { initTechUI } from "@repo/components/TechUI";
+import { initTechUI } from "@repo/sc-visualization/TechUI";
 
 // 导入 CSS 样式 (必须 - 确保样式正确加载)
 import "@techui/scifi/dist/index.css";
@@ -57,7 +57,7 @@ initTechUI(app, { debug: true })
 
 ```typescript
 import { createApp } from 'vue';
-import TechUI from '@repo/components/TechUI';
+import TechUI from '@repo/sc-visualization/TechUI';
 
 const app = createApp(App);
 app.use(TechUI);
@@ -67,7 +67,7 @@ app.use(TechUI);
 
 ```vue
 <script setup>
-import { TechButton, TechPanel } from '@repo/components/TechUI';
+import { TechButton, TechPanel } from '@repo/sc-visualization/TechUI';
 </script>
 
 <template>

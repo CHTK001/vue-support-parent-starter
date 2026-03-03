@@ -9,6 +9,8 @@ import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { ScaleLine } from 'ol/control';
 import { fromLonLat, toLonLat } from 'ol/proj';
+import { EventsKey } from 'ol/events';
+import { unByKey } from 'ol/Observable';
 import OSM from 'ol/source/OSM';
 import XYZ from 'ol/source/XYZ';
 import { ElLoading } from 'element-plus';
@@ -36,6 +38,8 @@ export class MapObject {
   private vectorLayer: VectorLayer<any> | null = null;
   // 矢量数据源
   private vectorSource: VectorSource = new VectorSource();
+  // pointermove 事件监听器
+  private pointerMoveListener: EventsKey | null = null;
   // 自定义鼠标移动事件监听器
   private customPointerMoveListener: (event: any, coordinate: CoordinateInfo) => void = () => { };
   // 标记点信息
@@ -168,7 +172,13 @@ export class MapObject {
       }
 
       // 添加pointermove事件，使用MousePosition控件处理坐标
-      this.mapInstance.on('pointermove', this.handleMouseMove.bind(this));
+      if (this.pointerMoveListener) {
+        unByKey(this.pointerMoveListener);
+        this.pointerMoveListener = null;
+      }
+      this.pointerMoveListener = this.mapInstance.on('pointermove', (event) => {
+        this.handleMouseMove(event);
+      });
 
       // 初始化交互控制
       this.initInteractions();
@@ -793,7 +803,10 @@ export class MapObject {
     this.vectorLayer = null;
     
     // 清除监听器
-    this.mapInstance.getTargetElement().removeEventListener('pointermove', this.handleMouseMove.bind(this));
+    if (this.pointerMoveListener) {
+      unByKey(this.pointerMoveListener);
+      this.pointerMoveListener = null;
+    }
     this.customPointerMoveListener = () => {};
     
     // 清除地图实例

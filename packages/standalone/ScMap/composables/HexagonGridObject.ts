@@ -28,6 +28,9 @@ export class HexagonGridObject {
     fillOpacity: 0.1
   };
   private visible: boolean = false;
+  // 地图事件监听函数引用，便于正确解绑
+  private moveEndHandler: (() => void) | null = null;
+  private zoomEndHandler: (() => void) | null = null;
 
   /**
    * 构造函数
@@ -48,9 +51,11 @@ export class HexagonGridObject {
     // 创建图层组
     this.hexagonLayer = L.layerGroup();
     
-    // 绑定地图移动结束事件，用于更新网格
-    this.mapInstance.on('moveend', this.updateGrid.bind(this));
-    this.mapInstance.on('zoomend', this.updateGrid.bind(this));
+    // 绑定地图移动结束和缩放结束事件，用于更新网格
+    this.moveEndHandler = () => this.updateGrid();
+    this.zoomEndHandler = () => this.updateGrid();
+    this.mapInstance.on('moveend', this.moveEndHandler);
+    this.mapInstance.on('zoomend', this.zoomEndHandler);
     
     logger.debug('HexagonGridObject已初始化');
   }
@@ -220,8 +225,14 @@ export class HexagonGridObject {
    */
   public destroy(): void {
     // 解除事件绑定
-    this.mapInstance.off('moveend', this.updateGrid);
-    this.mapInstance.off('zoomend', this.updateGrid);
+    if (this.moveEndHandler) {
+      this.mapInstance.off('moveend', this.moveEndHandler);
+      this.moveEndHandler = null;
+    }
+    if (this.zoomEndHandler) {
+      this.mapInstance.off('zoomend', this.zoomEndHandler);
+      this.zoomEndHandler = null;
+    }
     
     // 清空图层
     this.hexagonLayer.clearLayers();

@@ -429,9 +429,6 @@ const initializeMapComponents = async () => {
     // 标记地图初始化完成
     mapInitialized.value = true;
 
-    // 添加窗口尺寸变化监听，响应式调整地图尺寸
-    window.addEventListener('resize', resizeMap);
-
     // 初始化后立即检查鹰眼状态，确保UI状态与实际工具状态一致
     checkOverviewMapState();
 

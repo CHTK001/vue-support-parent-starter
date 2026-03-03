@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { reactive, ref, onMounted } from "vue";
+import { reactive, ref, onMounted, onBeforeUnmount } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { dateFormat } from "@repo/utils";
@@ -220,12 +220,12 @@ onMounted(() => {
 });
 
 // 组件卸载时清除定时器
-const onBeforeUnmount = () => {
+onBeforeUnmount(() => {
   if (clockTimer) {
     clearInterval(clockTimer);
     clockTimer = null;
   }
-};
+});
 </script>
 
 <template>

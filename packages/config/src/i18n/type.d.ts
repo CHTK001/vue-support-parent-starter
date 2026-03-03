@@ -62,6 +62,12 @@ export interface StorageConfigs {
   enableFestivalTheme?: boolean;
   /** 是否显示头部消息中心按钮 */
   showMessage?: boolean;
+  /** 顶部是否显示时间 */
+  showHeaderClock?: boolean;
+  /** 顶部是否显示第二个时间 */
+  headerClockSecondEnabled?: boolean;
+  /** 顶部第二时间的时区 */
+  headerClockSecondTimezone?: string;
   /** 消息中心下拉弹框位置 */
   messageDropdownPosition?: string;
   /** 消息弹窗启用 */
