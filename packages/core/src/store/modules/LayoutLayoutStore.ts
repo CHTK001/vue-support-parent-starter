@@ -12,6 +12,17 @@ const _NOT_FOUND = defineAsyncComponent(() => import("@repo/pages/error/404.vue"
 export const useLayoutLayoutStore = defineStore({
   id: "useLayoutLayoutStore",
   state: () => ({
+    /**
+     * gridstack 网格元信息
+     * - columnCount: 总列数（越大缩放越精细）
+     * - cellHeight: 单行高度（像素）
+     * - margin: 单元格间距（像素）
+     */
+    gridMeta: {
+      columnCount: 24,
+      cellHeight: 60,
+      margin: 8,
+    },
     /**布局存储key */
     storageKey: "user-layout-setting",
     /**布局存储key */
@@ -30,6 +41,79 @@ export const useLayoutLayoutStore = defineStore({
     modulesWithProps: {},
   }),
   actions: {
+    /**
+     * 获取网格元信息
+     * @returns 网格元信息
+     */
+    getGridMeta() {
+      return this.gridMeta;
+    },
+
+    /**
+     * 兼容旧布局：当存储里没有 gridMeta 或列数与当前不一致时，做一次性迁移。
+     * 迁移策略：按列数比例换算 x / w / minW / maxW（y/h 不做换算）。
+     * @param rawData 原始存储数据（localStorage/远端拉取后的结构）
+     */
+    upgradeLayoutIfNeeded(rawData) {
+      const defaultMeta = this.gridMeta;
+      const rawMeta = rawData?.gridMeta;
+      const oldColumnCount = Number(rawMeta?.columnCount || 12);
+      const newColumnCount = Number(defaultMeta?.columnCount || 12);
+
+      // 有 gridMeta 且列数一致，不需要迁移
+      if (rawMeta && oldColumnCount === newColumnCount) {
+        this.gridMeta = { ...defaultMeta, ...rawMeta };
+        return;
+      }
+
+      // 没有布局数据，不迁移，仅同步 meta
+      if (!Array.isArray(this.layout) || this.layout.length === 0) {
+        this.gridMeta = { ...defaultMeta, ...(rawMeta || {}) };
+        return;
+      }
+
+      const ratio = newColumnCount / oldColumnCount;
+      if (!Number.isFinite(ratio) || ratio <= 0) {
+        this.gridMeta = { ...defaultMeta, ...(rawMeta || {}) };
+        return;
+      }
+
+      this.layout.forEach((item) => {
+        if (!item) {
+          return;
+        }
+        if (Number.isFinite(item.x)) {
+          item.x = Math.max(0, Math.round(item.x * ratio));
+        }
+        if (Number.isFinite(item.w)) {
+          item.w = Math.max(1, Math.round(item.w * ratio));
+        }
+        if (Number.isFinite(item.minW)) {
+          item.minW = Math.max(1, Math.round(item.minW * ratio));
+        }
+        if (Number.isFinite(item.maxW)) {
+          item.maxW = Math.max(1, Math.round(item.maxW * ratio));
+        }
+
+        if (Number.isFinite(item.x) && Number.isFinite(item.w) && item.x + item.w > newColumnCount) {
+          item.x = Math.max(0, newColumnCount - item.w);
+        }
+        if (Number.isFinite(item.maxW)) {
+          item.maxW = Math.min(newColumnCount, item.maxW);
+        }
+      });
+
+      this.gridMeta = { ...defaultMeta, ...(rawMeta || {}), columnCount: newColumnCount };
+
+      // 回写一次，避免重复迁移
+      localStorageProxy().setItem(this.storageKey, {
+        grid: this.grid,
+        layout: this.layout,
+        component: this.component,
+        gridMeta: this.gridMeta,
+      });
+    },
+
     /**
      * 根据组件key获取组件ID
      * @param key 组件标识
@@ -157,6 +241,7 @@ export const useLayoutLayoutStore = defineStore({
     },
 
     async pushComp(item) {
+      const { columnCount } = this.gridMeta || { columnCount: 12 };
       this.layout.push({
         x: item.x || 0,
         y: item.y || 0,
@@ -164,7 +249,7 @@ export const useLayoutLayoutStore = defineStore({
         h: item.h || 1,
         minW: item.minW || 1,
         minH: item.minH || 1,
-        maxW: item.maxW || 12,
+        maxW: item.maxW || columnCount,
         maxH: item.maxH || undefined,
         i: item.key,
         id: item.key,
@@ -252,6 +337,7 @@ export const useLayoutLayoutStore = defineStore({
           grid: this.grid,
           layout: this.layout,
           component: this.component,
+          gridMeta: this.gridMeta,
         });
         return false;
       }
@@ -260,11 +346,13 @@ export const useLayoutLayoutStore = defineStore({
         grid: JSON.stringify(this.grid),
         layout: JSON.stringify(this.layout),
         component: JSON.stringify(this.component),
+        gridMeta: JSON.stringify(this.gridMeta),
       }).then(() => {
         localStorageProxy().setItem(this.storageKey, {
           grid: this.grid,
           layout: this.layout,
           component: this.component,
+          gridMeta: this.gridMeta,
         });
       });
     },
@@ -421,6 +509,7 @@ export const useLayoutLayoutStore = defineStore({
             grid: toObject(res?.grid) || [],
             layout: toObject(res?.layout) || [],
             component: toObject(res?.component) || [[], [], []],
+            gridMeta: toObject(res?.gridMeta) || this.gridMeta,
           });
           resolve(null);
         });
@@ -449,11 +538,23 @@ export const useLayoutLayoutStore = defineStore({
         this.component = data.component;
       }
 
+      // gridMeta（兼容 string / object）
+      if (data?.gridMeta) {
+        if (typeof data.gridMeta === "string") {
+          this.gridMeta = { ...this.gridMeta, ...(JSON.parse(data.gridMeta || "{}") || {}) };
+        } else {
+          this.gridMeta = { ...this.gridMeta, ...(data.gridMeta || {}) };
+        }
+      }
+
       // Clean up orphaned components
       if (Array.isArray(this.layout) && Array.isArray(this.component)) {
         const layoutIds = new Set(this.layout.map((l) => l.id));
         this.component = this.component.filter((c) => layoutIds.has(c.id));
       }
+
+      // 旧布局迁移（会回写缓存）
+      this.upgradeLayoutIfNeeded(data);
 
       await this.allCompsList();
     },
