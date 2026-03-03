@@ -54,6 +54,14 @@ const searchKeyword = ref("");
 const selectedCategory = ref("all");
 
 // 设置项
+const showHeader = ref(localStorage.getItem("home-show-header") !== "false");
+watch(showHeader, (val) => {
+  localStorage.setItem("home-show-header", String(val));
+  if (!val) {
+    showHeaderInfo.value = false;
+  }
+});
+
 const showHeaderInfo = ref(
   localStorage.getItem("home-show-header-info") !== "false",
 );
@@ -220,8 +228,37 @@ onUnmounted(() => {
     :class="['widgets-home', customizing.customizing ? 'customizing' : '']"
   >
     <div class="widgets-content">
+      <!-- 头部隐藏时的轻量工具栏（保留自定义能力） -->
+      <div
+        v-if="!showHeader && customizing.hasLayout"
+        class="widgets-toolbar"
+      >
+        <div class="toolbar-left">
+          <div class="toolbar-title">{{ $t("buttons.board") }}</div>
+        </div>
+        <div class="toolbar-right">
+          <el-button
+            v-if="customizing.customizing"
+            type="primary"
+            :icon="useRenderIcon('ep:check')"
+            round
+            @click="handleUpdate"
+            >{{ $t("buttons.finish") }}</el-button
+          >
+          <el-button
+            v-else
+            type="primary"
+            :icon="useRenderIcon('ep:edit')"
+            round
+            @click="handeCustom"
+            >{{ $t("buttons.custom") }}</el-button
+          >
+        </div>
+      </div>
+
       <!-- 优化后的头部区域 -->
       <div
+        v-if="showHeader"
         class="widgets-header"
         :class="{ 'header-compact': !showHeaderInfo }"
       >
@@ -425,9 +462,14 @@ onUnmounted(() => {
       <!-- 底部操作 -->
       <div class="aside-footer">
         <div class="footer-settings">
-          <el-checkbox v-model="showHeaderInfo" size="small"
-            >显示头部信息</el-checkbox
+          <el-checkbox v-model="showHeader" size="small">显示头部</el-checkbox>
+          <el-checkbox
+            v-if="showHeader"
+            v-model="showHeaderInfo"
+            size="small"
           >
+            显示头部信息
+          </el-checkbox>
         </div>
         <el-button size="small" @click="backDefault()">
           <el-icon class="mr-1"
@@ -464,6 +506,24 @@ onUnmounted(() => {
   padding: 20px;
   display: flex;
   flex-direction: column;
+}
+
+/* 头部关闭时的工具栏 */
+.widgets-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.toolbar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 /* 头部区域 */

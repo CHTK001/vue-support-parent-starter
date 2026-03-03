@@ -19,7 +19,7 @@
   "scripts": {
     "test": "node test/sm2-test.js",
     "dev": "vite",
-    "build": "bash build-wasm.sh"
+    "build": "node ./scripts/build-wasm.mjs"
   },
   "keywords": [
     "webassembly",
