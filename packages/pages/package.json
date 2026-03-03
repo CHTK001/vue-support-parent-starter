@@ -37,6 +37,7 @@
     "vue-grid-layout": "catalog:",
     "vue-i18n": "catalog:",
     "vue-router": "catalog:",
+    "vue3-draggable-resizable": "catalog:",
     "vue3-puzzle-vcode": "catalog:",
     "vuedraggable": "catalog:"
   },

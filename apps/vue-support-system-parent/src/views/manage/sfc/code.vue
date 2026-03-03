@@ -34,9 +34,7 @@
 import "codemirror/mode/vue/vue";
 import { reactive, defineAsyncComponent, defineExpose, ref } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-const ScCodeEditor = defineAsyncComponent(
-  () => import("@repo/components/ScCodeEditor/index.vue"),
-);
+const ScCodeEditor = defineAsyncComponent(() => import("@repo/sc-code-editor"));
 const form = reactive({ sysSfcContent: "" });
 const visible = ref(false);
 const emits = defineEmits(["update:modelValue"]);

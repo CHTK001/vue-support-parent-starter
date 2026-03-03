@@ -219,15 +219,37 @@ export const jsAdd = (a, b) => a + b;
 
 export const encryptStorageKey = (key, systemCode) => systemCode + key;
 
-// WASM 版本
-export const encryptStorageValue = (value, key, systemCode, storageKey, storageEncode) => 
+// WASM 版本（严格模式，不降级）
+export const encryptStorageValue = (value, key, systemCode, storageKey, storageEncode) =>
   callStr("encrypt_storage_value", [value, key, systemCode, storageKey, storageEncode]);
-export const decryptStorageValue = (value, key, systemCode, storageKey, storageEncode) => 
+
+export const decryptStorageValue = (value, key, systemCode, storageKey, storageEncode) =>
   callStr("decrypt_storage_value", [value, key, systemCode, storageKey, storageEncode]);
 
-// JS/TS 版本 (不加密，原样返回)
-export const jsEncryptStorageValue = (value) => value;
-export const jsDecryptStorageValue = (value) => value;
+// JS/TS 版本 (使用 AES 加解密，可由上层自行选择是否走 JS 版本)
+export const jsEncryptStorageValue = (value, storageKey) => {
+  if (!storageKey) {
+    return value;
+  }
+  try {
+    return jsEncryptAES(value, storageKey);
+  } catch (e) {
+    console.error("[codec-wasm][存储加密] JS AES 加密失败:", e);
+    return value;
+  }
+};
+
+export const jsDecryptStorageValue = (value, storageKey) => {
+  if (!storageKey) {
+    return value;
+  }
+  try {
+    return jsDecryptAES(value, storageKey);
+  } catch (e) {
+    console.error("[codec-wasm][存储解密] JS AES 解密失败:", e);
+    return value;
+  }
+};
 
 // ============ UU 系列函数 (WASM 版本) ============
 

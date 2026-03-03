@@ -10,9 +10,7 @@ import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ScFormTable from "@repo/components/ScFormTable/index.vue";
-const ScCodeEditor = defineAsyncComponent(
-  () => import("@repo/components/ScCodeEditor/index.vue"),
-);
+const ScCodeEditor = defineAsyncComponent(() => import("@repo/sc-code-editor"));
 import CodeLayout from "./code.vue";
 export default {
   components: { IconSelect, ScCodeEditor, CodeLayout, ScFormTable },

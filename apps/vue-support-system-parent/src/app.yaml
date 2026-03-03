@@ -44,6 +44,8 @@ OpenShowRefreshToken: true
 # BlockOnConfigLoadFail: false
 # 是否显示错误页面风格切换按钮（默认: false）
 # ShowErrorPageStyleSwitcher: false
+# 是否显示加载动画样式切换按钮（默认: false）
+# ShowLoadingPageStyleSwitcher: false
 # 默认错误页面风格-pixel像素恐龙-space太空-minimal极简-forbidden禁止-notfound迷路-servererror故障（默认: minimal）
 # ErrorPageStyle: minimal
 # 系统加载页面风格-pixel像素恐龙-space太空-minimal极简-servererror服务器（默认: minimal）

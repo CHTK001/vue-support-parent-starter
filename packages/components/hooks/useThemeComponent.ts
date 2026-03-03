@@ -23,6 +23,7 @@ import {
 import * as ElementPlusModule from "element-plus";
 import { storageLocal } from "@pureadmin/utils";
 import { getLogger } from "@repo/utils";
+import { emitter } from "@repo/core";
 
 /**
  * Element Plus 组件映射表
@@ -617,6 +618,11 @@ const globalThemeState = {
    * 待更新的皮肤值（用于防抖）
    */
   pendingSkin: null as string | null,
+
+  /**
+   * systemThemeChange 事件处理器（用于统一清理）
+   */
+  themeChangeHandler: null as ((themeKey: string) => void) | null,
 };
 
 /**
@@ -654,13 +660,16 @@ const initGlobalSkinObserver = () => {
   globalThemeState.skinObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === "attributes" && mutation.attributeName === "data-skin") {
-        const newSkin = getCurrentSkin() || "default";
-        
+        const target = mutation.target as HTMLElement;
+        // 运行时主题切换时只信任 DOM 上的 data-skin，未设置时一律视为 default
+        const attrSkin = target.getAttribute("data-skin");
+        const newSkin = (attrSkin && attrSkin.trim()) || "default";
+
         // 保存待更新的皮肤值
         globalThemeState.pendingSkin = newSkin;
-        
+
         // 使用 requestAnimationFrame 防抖：确保更新在下一帧执行
-        // 这样可以避免在8bit主题下频繁更新导致的性能问题
+        // 这样可以避免在 8bit 主题下频繁更新导致的性能问题
         if (globalThemeState.rafId === null) {
           globalThemeState.rafId = requestAnimationFrame(() => {
             updateSkinWithRAF();
@@ -676,6 +685,23 @@ const initGlobalSkinObserver = () => {
     attributes: true,
     attributeFilter: ["data-skin"],
   });
+
+  // 同步监听全局 systemThemeChange 事件，确保通过主题 store 切换时 currentSkin 也能即时更新
+  if (!globalThemeState.themeChangeHandler) {
+    globalThemeState.themeChangeHandler = (themeKey: string) => {
+      const newSkin = themeKey && themeKey.trim() ? themeKey.trim() : "default";
+      globalThemeState.pendingSkin = newSkin;
+
+      if (globalThemeState.rafId === null) {
+        globalThemeState.rafId = requestAnimationFrame(() => {
+          updateSkinWithRAF();
+          globalThemeState.rafId = null;
+        });
+      }
+    };
+
+    emitter.on("systemThemeChange", globalThemeState.themeChangeHandler);
+  }
 };
 
 /**
@@ -686,6 +712,12 @@ const cleanupGlobalSkinObserver = () => {
   if (globalThemeState.refCount <= 0 && globalThemeState.skinObserver) {
     globalThemeState.skinObserver.disconnect();
     globalThemeState.skinObserver = null;
+  }
+
+  // 注销全局主题事件监听
+  if (globalThemeState.refCount <= 0 && globalThemeState.themeChangeHandler) {
+    emitter.off("systemThemeChange", globalThemeState.themeChangeHandler);
+    globalThemeState.themeChangeHandler = null;
   }
   
   // 清理 requestAnimationFrame

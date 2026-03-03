@@ -2,19 +2,44 @@
 import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
 import { onClickOutside, useStorage } from "@vueuse/core";
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
 import CloseIcon from "@iconify-icons/ep/close";
 
+/**
+ * 设置面板记忆数据
+ * @description 统一记录打开状态与滚动位置，避免拆分多个 key
+ */
+interface PanelMemory {
+  /** 是否可见 */
+  visible: boolean;
+  /** 内容滚动位置（el-scrollbar 的 scrollTop） */
+  scrollTop: number;
+}
+
 const target = ref(null);
+const scrollbarRef = ref<any>(null);
 
 /**
- * 设置面板显示状态（本地记忆）
- * @description 记住面板是打开还是关闭，刷新浏览器后自动恢复
+ * 设置面板记忆（本地持久化）
+ * @description 统一记录显示状态与当前位置，刷新后自动恢复
  */
-const PANEL_VISIBLE_STORAGE_KEY = "LAY_PANEL_VISIBLE";
-const panelVisible = useStorage<boolean>(PANEL_VISIBLE_STORAGE_KEY, false);
-const show = ref<boolean>(panelVisible.value);
+const PANEL_MEMORY_STORAGE_KEY = "LAY_PANEL_MEMORY";
+const panelMemory = useStorage<PanelMemory>(PANEL_MEMORY_STORAGE_KEY, {
+  visible: false,
+  scrollTop: 0,
+});
+
+// 兼容旧版本仅存储 boolean 的场景
+if (typeof panelMemory.value === "boolean") {
+  panelMemory.value = {
+    visible: panelMemory.value,
+    scrollTop: 0,
+  } as PanelMemory;
+}
+
+const show = ref<boolean>(panelMemory.value.visible);
+const scrollTop = ref<number>(panelMemory.value.scrollTop ?? 0);
 
 /**
  * 打开设置面板
@@ -22,7 +47,10 @@ const show = ref<boolean>(panelVisible.value);
  */
 function openPanel(): void {
   show.value = true;
-  panelVisible.value = true;
+  panelMemory.value = {
+    ...panelMemory.value,
+    visible: true,
+  };
 }
 
 /**
@@ -31,7 +59,10 @@ function openPanel(): void {
  */
 function closePanel(): void {
   show.value = false;
-  panelVisible.value = false;
+  panelMemory.value = {
+    ...panelMemory.value,
+    visible: false,
+  };
   emitter.emit("settingPanelClosed");
 }
 
@@ -55,6 +86,18 @@ const iconClass = computed(() => {
 const { t } = useI18n();
 const { onReset } = useDataThemeChange();
 
+/**
+ * 处理滚动事件
+ * @description 记录当前滚动位置，写入同一个记忆对象
+ */
+function handleScroll(payload: { scrollTop: number; scrollLeft: number }): void {
+  scrollTop.value = payload.scrollTop;
+  panelMemory.value = {
+    ...panelMemory.value,
+    scrollTop: scrollTop.value,
+  };
+}
+
 onClickOutside(target, (event: any) => {
   if (!target.value) return;
   if (event.clientX > (target.value as any).offsetLeft) return;
@@ -63,6 +106,17 @@ onClickOutside(target, (event: any) => {
 onMounted(() => {
   emitter.on("openPanel", () => {
     openPanel();
+  });
+
+  // 恢复滚动位置
+  nextTick(() => {
+    if (scrollbarRef.value && scrollTop.value > 0) {
+      try {
+        scrollbarRef.value.setScrollTop(scrollTop.value);
+      } catch {
+        // 忽略滚动恢复异常，避免影响主流程
+      }
+    }
   });
 });
 
@@ -102,7 +156,7 @@ onBeforeUnmount(() => {
             />
           </span>
         </div>
-        <el-scrollbar>
+        <el-scrollbar ref="scrollbarRef" @scroll="handleScroll">
           <slot />
         </el-scrollbar>
 

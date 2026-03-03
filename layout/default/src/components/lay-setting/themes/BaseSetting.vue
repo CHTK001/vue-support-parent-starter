@@ -1707,7 +1707,194 @@ onUnmounted(() => {
         </div>
 
         <!-- 加载动画样式设置区域 -->
-        <LoaderStyleSetting v-model="settings.loaderStyle" />
+        <LoaderStyleSetting
+          v-if="getConfig().ShowLoadingPageStyleSwitcher"
+          v-model="settings.loaderStyle"
+        />
+
+        <!-- 高级设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOnline icon="ri:tools-line" class="section-icon" />
+            <h3 class="section-title">{{ t("panel.advancedSettings") }}</h3>
+            <div class="section-description">
+              {{ t("panel.advancedSettingsDesc") }}
+            </div>
+          </div>
+          <div class="setting-content">
+            <!-- 高级功能开关 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOnline
+                  icon="ri:settings-4-line"
+                  class="group-icon"
+                />
+                {{ t("panel.advancedFeatures") }}
+              </h4>
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.keepAlive"
+                  layout="visual-card"
+                  size="small"
+                  :label="t('panel.componentCache')"
+                  :description="t('panel.componentCacheDesc')"
+                  active-icon="ri:speed-line"
+                  ribbon-color="var(--el-color-success)"
+                  @change="keepAliveChange"
+                />
+                <ScSwitch
+                  v-model="settings.stretch"
+                  layout="visual-card"
+                  size="small"
+                  :label="t('panel.pageStretch')"
+                  :description="t('panel.pageStretchDesc')"
+                  active-icon="ri:fullscreen-line"
+                  ribbon-color="var(--el-color-success)"
+                  @change="stretchSwitchChange"
+                />
+                <ScSwitch
+                  v-if="isDevelopment || isTest"
+                  v-model="settings.debugMode"
+                  layout="visual-card"
+                  size="small"
+                  :label="t('panel.debugMode')"
+                  :description="t('panel.debugModeDesc')"
+                  active-icon="ri:terminal-box-line"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="debugModeChange"
+                />
+                <ScSwitch
+                  v-model="settings.autoLogout"
+                  layout="visual-card"
+                  size="small"
+                  label="超时自动退出"
+                  description="会话超时后自动登出账号，需要后端 Session.enable 与 timeout 配合"
+                  active-icon="ri:logout-circle-r-line"
+                  ribbon-color="var(--el-color-danger)"
+                  @change="autoLogoutChange"
+                />
+              </div>
+              <div
+                v-if="settings.autoLogout"
+                class="setting-item"
+                style="margin-top: 12px"
+              >
+                <div class="setting-item-label">
+                  <span>超时时间</span>
+                  <span class="setting-item-desc">
+                    单位：分钟，超过该时间无操作将自动退出
+                  </span>
+                </div>
+                <div class="setting-item-control">
+                  <ScInputNumber
+                    v-model="settings.sessionTimeoutMinutes"
+                    :min="MIN_SESSION_TIMEOUT_MINUTES"
+                    :max="MAX_SESSION_TIMEOUT_MINUTES"
+                    controls-position="right"
+                    style="max-width: 260px"
+                    @change="sessionTimeoutMinutesChange"
+                  />
+                </div>
+              </div>
+            </div>
+            <!-- 无障碍与缩放 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOnline icon="ri:eye-2-line" class="group-icon" />
+                无障碍与缩放
+              </h4>
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.screenReaderMode"
+                  layout="visual-card"
+                  size="small"
+                  label="读屏优化模式"
+                  description="为视障用户优化焦点高亮和可读性"
+                  active-icon="mdi:access-point"
+                  ribbon-color="var(--el-color-success)"
+                  @change="screenReaderModeChange"
+                />
+                <ScSwitch
+                  v-model="settings.highContrastMode"
+                  layout="visual-card"
+                  size="small"
+                  label="高对比度模式"
+                  description="提高文字与背景对比度，独立于深色模式"
+                  active-icon="mdi:contrast-circle"
+                  ribbon-color="var(--el-color-primary)"
+                  @change="highContrastModeChange"
+                />
+              </div>
+              <div class="setting-item" style="margin-top: 12px">
+                <div class="setting-item-label">
+                  <span>界面缩放</span>
+                  <span class="setting-item-desc">
+                    调整整体界面缩放比例，提升不同分辨率下的可读性
+                  </span>
+                </div>
+                <div class="setting-item-control">
+                  <ScSlider
+                    v-model="settings.uiScale"
+                    :min="0.8"
+                    :max="1.4"
+                    :step="0.05"
+                    :format-tooltip="(val: number) => `${Math.round(val * 100)}%`"
+                    style="max-width: 260px"
+                    @change="uiScaleChange"
+                  />
+                </div>
+              </div>
+            </div>
+            <!-- DevTools 精简版开关（仅开发/测试环境展示） -->
+            <div v-if="isDevelopment || isTest" class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOnline icon="ri:bug-line" class="group-icon" />
+                DevTools 精简工具
+              </h4>
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.devLiteTools"
+                  layout="visual-card"
+                  size="small"
+                  label="精简 DevTools 面板"
+                  description="在页面中启用简化版开发辅助工具面板，仅在非生产环境显示"
+                  active-icon="ri:bug-2-line"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="devLiteToolsChange"
+                />
+
+                <ScSwitch
+                    v-model="settings.devRuler"
+                    layout="visual-card"
+                    size="small"
+                    label="页面标尺"
+                    description="显示水平/垂直参考线，辅助对齐布局，适合像素级还原设计稿"
+                    @change="devRulerChange"
+                  />
+              </div>
+              <div class="switch-card-grid">
+                <ScSwitch
+                    v-model="settings.devGrid"
+                    layout="visual-card"
+                    size="small"
+                    label="栅格网格"
+                    description="在页面上叠加响应式栅格网格，帮助排查列宽、间距是否符合预期"
+                    @change="devGridChange"
+                  />
+                  <ScSwitch
+                    v-model="settings.devHoverInspector"
+                    layout="visual-card"
+                    size="small"
+                    label="悬浮元素探测"
+                    description="鼠标悬浮时高亮当前元素边界与信息，类似浏览器 DevTools；仅建议在开发环境使用"
+                    active-icon="ri:eye-line"
+                    ribbon-color="var(--el-color-warning)"
+                    @change="devHoverInspectorChange"
+                  />
+                </div>
+              </div>
+          </div>
+        </div>
 
         <!-- AI 设置区域 -->
         <div v-if="getConfig().ShowAiChat !== false" class="setting-section">
@@ -1962,18 +2149,7 @@ onUnmounted(() => {
                 />
               </div>
             </div>
-
-            <!-- 开发模式：发送默认测试消息 -->
-            <div v-if="isDevelopment || isTest" class="setting-item">
-              <div class="setting-item-label">
-                <span>开发模式测试</span>
-              </div>
-              <div class="setting-item-control">
-                <ScButton type="primary" link @click="sendDevDefaultMessage">
-                  发送默认数据
-                </ScButton>
-              </div>
-            </div>
+            
           </div>
         </div>
 

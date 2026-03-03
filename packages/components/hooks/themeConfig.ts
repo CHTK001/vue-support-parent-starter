@@ -174,12 +174,10 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
     componentMap: {
       // 表单输入组件
       ElButton: "PxButton",
-      ElInput: "PxInput",
       ElSelect: "PxSelect",
       ElCheckbox: "PxCheckbox",
       ElRadio: "PxRadio",
       ElSlider: "PxSlider",
-      ElInputNumber: "PxInputNumber",
       // 以下组件在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
       // ElRate: "PxRate",
       // ElColorPicker: "PxColorPicker",

@@ -543,18 +543,183 @@ pub fn uu4_decrypt_response(
 // ============ 存储函数（占位） ============
 
 #[wasm_bindgen]
-pub fn encrypt_storage_key(key_ptr: *const u8, key_len: usize, _: *const u8, _: usize) -> *mut u8 {
-    str_to_ptr(&str_from_ptr(key_ptr, key_len))
+pub fn encrypt_storage_key(key_ptr: *const u8, key_len: usize, system_ptr: *const u8, system_len: usize) -> *mut u8 {
+    // JS 层已经拼接 systemCode + key，这里保持兼容直接返回
+    let key = str_from_ptr(key_ptr, key_len);
+    if key.is_empty() {
+        let system = str_from_ptr(system_ptr, system_len);
+        return str_to_ptr(&system);
+    }
+    str_to_ptr(&key)
 }
 
+/// 存储值加密（WASM 版本）：
+///  - 结构：version|salt|iv|cipher|mac 全部 base64 拼接，使用 '.' 分隔
+///  - cipher: AES-128-CBC(PKCS7) 加密 JSON 字符串
+///  - mac: SM3(data = salt + iv + cipher + key 派生串) 的 hex
 #[wasm_bindgen]
-pub fn encrypt_storage_value(val_ptr: *const u8, val_len: usize, _: *const u8, _: usize, _: *const u8, _: usize, _: *const u8, _: usize, _: *const u8, _: usize) -> *mut u8 {
-    str_to_ptr(&str_from_ptr(val_ptr, val_len))
+pub fn encrypt_storage_value(
+    val_ptr: *const u8,
+    val_len: usize,
+    key_ptr: *const u8,
+    key_len: usize,
+    system_ptr: *const u8,
+    system_len: usize,
+    storage_key_ptr: *const u8,
+    storage_key_len: usize,
+    encode_flag_ptr: *const u8,
+    encode_flag_len: usize,
+) -> *mut u8 {
+    use aes::cipher::{KeyIvInit, block_padding::Pkcs7, BlockEncryptMut};
+    type Aes128CbcEnc = cbc::Encryptor<aes::Aes128>;
+
+    let value = str_from_ptr(val_ptr, val_len);
+    let encode_flag = str_from_ptr(encode_flag_ptr, encode_flag_len);
+    if encode_flag.eq_ignore_ascii_case("false") || encode_flag == "0" {
+        return str_to_ptr(&value);
+    }
+
+    let raw_key = str_from_ptr(key_ptr, key_len);
+    let system = str_from_ptr(system_ptr, system_len);
+    let storage_key = str_from_ptr(storage_key_ptr, storage_key_len);
+
+    // 组合一个派生 key：sm3(system + "|" + storage_key + "|" + raw_key)
+    let mut hasher = sm3::Sm3::new();
+    hasher.update(system.as_bytes());
+    hasher.update(b"|");
+    hasher.update(storage_key.as_bytes());
+    hasher.update(b"|");
+    hasher.update(raw_key.as_bytes());
+    let derived = hasher.finalize();
+    let mut enc_key = [0u8; 16];
+    enc_key.copy_from_slice(&derived[..16]);
+
+    // 生成随机 salt 和 iv
+    let mut salt = [0u8; 8];
+    let mut iv = [0u8; 16];
+    OsRng.fill_bytes(&mut salt);
+    OsRng.fill_bytes(&mut iv);
+
+    // 统一把明文包装成 JSON 字符串，便于后续扩展
+    let payload = json!({
+        "v": 1,
+        "d": value,
+    })
+    .to_string();
+
+    let mut buf = payload.into_bytes();
+    // AES-CBC 加密
+    let cipher = Aes128CbcEnc::new(&enc_key.into(), &iv.into());
+    let encrypted = cipher
+        .encrypt_padded_mut::<Pkcs7>(&mut buf, buf.len())
+        .unwrap_or(&[]);
+
+    // 计算 MAC = sm3(salt || iv || cipher || derived_key)
+    let mut mac_hasher = sm3::Sm3::new();
+    mac_hasher.update(&salt);
+    mac_hasher.update(&iv);
+    mac_hasher.update(encrypted);
+    mac_hasher.update(&enc_key);
+    let mac_hex = hex::encode(mac_hasher.finalize());
+
+    let version = "v1";
+    let salt_b64 = general_purpose::STANDARD.encode(&salt);
+    let iv_b64 = general_purpose::STANDARD.encode(&iv);
+    let cipher_b64 = general_purpose::STANDARD.encode(encrypted);
+
+    let result = format!("{}.{}.{}.{}.{}", version, salt_b64, iv_b64, cipher_b64, mac_hex);
+    str_to_ptr(&result)
 }
 
+/// 存储值解密（WASM 版本）：
+/// 解析 version|salt|iv|cipher|mac 结构并做 MAC 校验，失败则返回空串
 #[wasm_bindgen]
-pub fn decrypt_storage_value(val_ptr: *const u8, val_len: usize, _: *const u8, _: usize, _: *const u8, _: usize, _: *const u8, _: usize, _: *const u8, _: usize) -> *mut u8 {
-    str_to_ptr(&str_from_ptr(val_ptr, val_len))
+pub fn decrypt_storage_value(
+    val_ptr: *const u8,
+    val_len: usize,
+    key_ptr: *const u8,
+    key_len: usize,
+    system_ptr: *const u8,
+    system_len: usize,
+    storage_key_ptr: *const u8,
+    storage_key_len: usize,
+    encode_flag_ptr: *const u8,
+    encode_flag_len: usize,
+) -> *mut u8 {
+    use aes::cipher::{KeyIvInit, block_padding::Pkcs7, BlockDecryptMut};
+    type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
+
+    let encoded = str_from_ptr(val_ptr, val_len);
+    let encode_flag = str_from_ptr(encode_flag_ptr, encode_flag_len);
+    if encode_flag.eq_ignore_ascii_case("false") || encode_flag == "0" {
+        return str_to_ptr(&encoded);
+    }
+
+    let parts: Vec<&str> = encoded.split('.').collect();
+    if parts.len() != 5 || parts[0] != "v1" {
+        return str_to_ptr("");
+    }
+
+    let raw_key = str_from_ptr(key_ptr, key_len);
+    let system = str_from_ptr(system_ptr, system_len);
+    let storage_key = str_from_ptr(storage_key_ptr, storage_key_len);
+
+    // 重算派生 key
+    let mut hasher = sm3::Sm3::new();
+    hasher.update(system.as_bytes());
+    hasher.update(b"|");
+    hasher.update(storage_key.as_bytes());
+    hasher.update(b"|");
+    hasher.update(raw_key.as_bytes());
+    let derived = hasher.finalize();
+    let mut enc_key = [0u8; 16];
+    enc_key.copy_from_slice(&derived[..16]);
+
+    let salt = match general_purpose::STANDARD.decode(parts[1]) {
+        Ok(v) if v.len() == 8 => v,
+        _ => return str_to_ptr(""),
+    };
+    let iv = match general_purpose::STANDARD.decode(parts[2]) {
+        Ok(v) if v.len() == 16 => v,
+        _ => return str_to_ptr(""),
+    };
+    let cipher = match general_purpose::STANDARD.decode(parts[3]) {
+        Ok(v) => v,
+        _ => return str_to_ptr(""),
+    };
+    let mac_hex = parts[4];
+
+    // 校验 MAC
+    let mut mac_hasher = sm3::Sm3::new();
+    mac_hasher.update(&salt);
+    mac_hasher.update(&iv);
+    mac_hasher.update(&cipher);
+    mac_hasher.update(&enc_key);
+    let expect_mac = hex::encode(mac_hasher.finalize());
+    if !constant_time_eq::constant_time_eq(expect_mac.as_bytes(), mac_hex.as_bytes()) {
+        return str_to_ptr("");
+    }
+
+    // 解密
+    let cipher_inst = Aes128CbcDec::new(&enc_key.into(), (&iv[..]).into());
+    let mut buf = cipher.clone();
+    let decrypted = match cipher_inst.decrypt_padded_mut::<Pkcs7>(&mut buf) {
+        Ok(d) => d,
+        Err(_) => return str_to_ptr(""),
+    };
+
+    let text = String::from_utf8_lossy(decrypted).into_owned();
+    let parsed: serde_json::Value = match serde_json::from_str(&text) {
+        Ok(v) => v,
+        Err(_) => return str_to_ptr(""),
+    };
+    let data = parsed
+        .get("d")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_string();
+
+    str_to_ptr(&data)
 }
 
 #[wasm_bindgen]
