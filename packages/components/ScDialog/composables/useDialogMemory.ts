@@ -29,6 +29,13 @@ export interface DrawerMemoryData {
   width?: string;
   /** 高度（上下抽屉） */
   height?: string;
+  /** 是否打开 */
+  isOpen?: boolean;
+  /**
+   * 位置
+   * @description 可用于记录内容滚动位置或业务相关的自定义位置
+   */
+  position?: number;
   /** 最后更新时间 */
   timestamp?: number;
 }

@@ -105,7 +105,6 @@ import { useThemeComponent } from "../../hooks/useThemeComponent";
 import ContextMenu from "../plugins/ContextMenu.vue";
 import { useTableCrossHighlight } from "../composables/useTableCrossHighlight";
 import { ScTableColumn } from "../../ScTableColumn";
-import BScroll from "@better-scroll/core";
 
 const logger = getLogger("[ScTable][TableView]");
 
@@ -205,8 +204,6 @@ const emit = defineEmits(["row-click", "selection-change", "sort-change", "heade
 const scTable = ref(null);
 const sortableInstance = ref(null);
 const isDragging = ref(false);
-let bsInstance = null;
-let bsWrapper = null;
 
 // 使用主题组件系统
 const { currentComponent } = useThemeComponent("ElTable");
@@ -428,114 +425,14 @@ watch(
         initDragSort();
       });
     }
-    // 数据变化后刷新 BetterScroll
-    if (!props.dragScrollEnabled) {
-      nextTick(() => {
-        if (bsInstance) {
-          bsInstance.refresh();
-        } else {
-          initBetterScroll();
-        }
-      });
-    }
   },
   { deep: false }
-);
-
-// BetterScroll 滚轮处理（仅在按下 Shift 时生效）
-const handleBetterScrollWheel = event => {
-  if (!bsInstance) {
-    return;
-  }
-  // 仅处理按住 Shift 的情况，其余情况保留浏览器默认行为
-  if (!event.shiftKey) {
-    return;
-  }
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  const deltaX = event.deltaY !== 0 ? event.deltaY : event.deltaX || 0;
-  // 使用 BetterScroll 进行横向滚动
-  // 这里不添加动画时间，保证与原先行为一致、响应更及时
-  bsInstance.scrollBy(-deltaX, 0, 0);
-};
-
-// 初始化 BetterScroll，仅负责横向滚动
-const initBetterScroll = () => {
-  // 若启用了拖拽滚动，则优先使用现有拖拽方案，不再额外接入 BetterScroll，避免冲突
-  if (props.dragScrollEnabled) {
-    return;
-  }
-
-  if (!scTable.value) {
-    return;
-  }
-
-  nextTick(() => {
-    const tableEl = scTable.value?.$el;
-    if (!tableEl) {
-      return;
-    }
-
-    // el-table 的主体滚动容器
-    const bodyWrapper = tableEl.querySelector(".el-table__body-wrapper");
-    if (!bodyWrapper) {
-      return;
-    }
-
-    bsWrapper = bodyWrapper;
-
-    if (bsInstance) {
-      bsInstance.refresh();
-    } else {
-      bsInstance = new BScroll(bsWrapper, {
-        scrollX: true,
-        scrollY: false,
-        bounce: false,
-        momentum: true,
-        // 允许纵向事件透传，防止影响页面整体滚动
-        eventPassthrough: "vertical",
-        probeType: 0
-      });
-    }
-
-    // 绑定 Shift+滚轮事件
-    bsWrapper.addEventListener("wheel", handleBetterScrollWheel, { passive: false, capture: true });
-  });
-};
-
-// 销毁 BetterScroll
-const destroyBetterScroll = () => {
-  if (bsWrapper) {
-    bsWrapper.removeEventListener("wheel", handleBetterScrollWheel, true);
-    bsWrapper = null;
-  }
-  if (bsInstance) {
-    bsInstance.destroy();
-    bsInstance = null;
-  }
-};
-
-// 监听表格高度变化，刷新 BetterScroll（因为 DOM 可能被重新渲染）
-watch(
-  () => props.config.height,
-  () => {
-    nextTick(() => {
-      if (bsInstance) {
-        bsInstance.refresh();
-      } else {
-        initBetterScroll();
-      }
-    });
-  }
 );
 
 onMounted(() => {
   if (props.draggable) {
     initDragSort();
   }
-  initBetterScroll();
 });
 
 // 处理表格右键菜单
@@ -587,7 +484,6 @@ const handleMenuAction = action => {
 
 onBeforeUnmount(() => {
   destroyDragSort();
-  destroyBetterScroll();
 });
 
 // Expose el-table methods

@@ -42,6 +42,8 @@ OpenShowRefreshToken: false
 # BlockOnConfigLoadFail: false
 # 是否显示错误页面风格切换按钮（默认: false）
 ShowErrorPageStyleSwitcher: true
+# 是否显示加载动画样式切换按钮（默认: false）
+# ShowLoadingPageStyleSwitcher: false
 # 默认错误页面风格-pixel像素恐龙-space太空-minimal极简-forbidden禁止-notfound迷路-servererror故障（默认: minimal）
 # ErrorPageStyle: minimal
 # 系统加载页面风格（默认: spinner）
@@ -163,7 +165,7 @@ Layout: hover
 # 缓存与存储配置
 # ===========================================
 # 是否开启缓存加密（默认: true）
-StorageEncode: false
+# StorageEncode: true
 # 缓存加密密钥-16位（默认: 2XNN4K8LC0ELVWN4）
 # StorageKey: "2XNN4K8LC0ELVWN4"
 # 本地响应式存储的命名空间（默认: responsive-）

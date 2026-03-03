@@ -48,6 +48,8 @@
 # BlockOnConfigLoadFail: false
 # 是否显示错误页面风格切换按钮
 # ShowErrorPageStyleSwitcher: true
+# 是否显示加载动画样式切换按钮（默认: false）
+# ShowLoadingPageStyleSwitcher: false
 # 默认错误页面风格：pixel / space / minimal / forbidden / notfound / servererror
 # ErrorPageStyle: minimal
 # 系统加载页面风格：spinner / clock / pixel / cube / dots / pulse

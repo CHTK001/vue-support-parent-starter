@@ -1,8 +1,15 @@
 <template>
-  <div class="sc-text-input-wrapper" :class="{ 'is-invalid': !validationResult.valid, 'is-loading': loading }">
-    <div class="sc-text-input-container" :class="{ 'is-disabled': disabled }">
+  <div
+    class="sc-text-input-wrapper"
+    :class="[skinClass, { 'is-invalid': !validationResult.valid, 'is-loading': loading }]"
+  >
+    <div
+      class="sc-text-input-container"
+      :class="[skinClass, { 'is-disabled': disabled }]"
+    >
       <component
         :is="currentComponent || ElInput"
+        :key="currentSkin"
         ref="inputRef"
         v-model="innerValue"
         :type="type"
@@ -137,8 +144,13 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur", "clear"]);
 
-// 使用 PixelUI 条件导入
-const { currentComponent } = useThemeComponent("ElInput");
+// 使用主题系统仅获取当前皮肤信息，输入组件始终使用 Element Plus 的 ElInput
+const { currentSkin } = useThemeComponent("ElInput");
+
+// 当前皮肤对应的样式类名
+const skinClass = computed(() => {
+  return currentSkin.value === "8bit" ? "is-8bit" : "is-default";
+});
 
 // 当前实际渲染的组件
 
@@ -359,7 +371,7 @@ defineExpose({
   align-items: center;
   position: relative;
 
-  // 现代化的输入框样式
+  // 默认主题下的现代化输入框样式
   :deep(.el-input__wrapper) {
     border-radius: 8px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -373,6 +385,25 @@ defineExpose({
     &.is-focus {
       box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
       transform: translateY(-2px);
+    }
+  }
+
+  // 8bit 皮肤下使用像素风组件自身样式，关闭本地阴影和位移动画
+  &.is-8bit {
+    :deep(.el-input__wrapper) {
+      border-radius: 0;
+      box-shadow: none;
+      transform: none;
+
+      &:hover {
+        box-shadow: none;
+        transform: none;
+      }
+
+      &.is-focus {
+        box-shadow: none;
+        transform: none;
+      }
     }
   }
 

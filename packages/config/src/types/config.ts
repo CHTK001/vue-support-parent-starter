@@ -44,6 +44,8 @@ export interface PlatformConfigs {
   BlockOnConfigLoadFail?: boolean;
   /** 是否显示错误页面风格切换按钮（默认false） */
   ShowErrorPageStyleSwitcher?: boolean;
+  /** 是否显示加载动画样式切换按钮（默认false） */
+  ShowLoadingPageStyleSwitcher?: boolean;
   /** 系统加载页面风格（默认minimal） */
   LoadingPageStyle?: "pixel" | "space" | "minimal" | "servererror";
 
