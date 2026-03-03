@@ -89,6 +89,8 @@ const initGridStack = async () => {
       margin: getGridMeta().margin,
       float: true,
       animate: true,
+      // 显式声明静态网格，避免某些版本 enable/disable 行为不一致导致编辑态失效
+      staticGrid: !props.modelValue,
       disableOneColumnMode: false,
       minRow: 1,
       draggable: true,
@@ -110,22 +112,71 @@ const initGridStack = async () => {
   });
 
   gridRef.value = grid;
-  if (props.modelValue) {
-    grid.enable();
-  } else {
-    grid.disable();
-  }
+  setEditMode(!!props.modelValue);
 };
 
 const setEditMode = (enabled) => {
   if (!gridRef.value) {
     return;
   }
+  const grid = gridRef.value;
+
+  /**
+   * 同步已存在节点的可拖拽/可缩放状态。
+   * 说明：`gs-no-move`/`gs-no-resize` 属性在 GridStack 初始化时会被读取一次，
+   * 后续仅更新 DOM 属性不会自动影响 GridStack 内部 node 状态。
+   * 因此进入/退出编辑模式时，需要显式更新每个 widget 的 noMove/noResize。
+   * @param flag 是否启用编辑模式
+   */
+  const syncWidgetsInteractive = (flag) => {
+    const nodes = grid?.engine?.nodes;
+    if (!Array.isArray(nodes) || nodes.length === 0) {
+      return;
+    }
+    nodes.forEach((node) => {
+      const el = node?.el;
+      if (!el) {
+        return;
+      }
+
+      // 优先用 update 同步内部 node 配置
+      if (typeof grid.update === "function") {
+        grid.update(el, { noMove: !flag, noResize: !flag });
+      }
+
+      // 某些版本提供 movable/resizable，进一步确保交互开关生效
+      if (typeof grid.movable === "function") {
+        grid.movable(el, !!flag);
+      }
+      if (typeof grid.resizable === "function") {
+        grid.resizable(el, !!flag);
+      }
+    });
+  };
+
+  // 兼容不同 gridstack 版本：优先使用 setStatic + enableMove/enableResize
+  if (typeof grid.setStatic === "function") {
+    grid.setStatic(!enabled);
+  }
+  if (typeof grid.enableMove === "function") {
+    grid.enableMove(!!enabled);
+  }
+  if (typeof grid.enableResize === "function") {
+    grid.enableResize(!!enabled);
+  }
+
+  // 兜底：老版本的 enable/disable
   if (enabled) {
-    gridRef.value.enable();
+    if (typeof grid.enable === "function") {
+      grid.enable();
+    }
+    syncWidgetsInteractive(true);
     return;
   }
-  gridRef.value.disable();
+  if (typeof grid.disable === "function") {
+    grid.disable();
+  }
+  syncWidgetsInteractive(false);
 };
 
 watch(

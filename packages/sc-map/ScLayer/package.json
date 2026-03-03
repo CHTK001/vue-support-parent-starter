@@ -1,0 +1,26 @@
+{
+  "name": "@repo/sc-layer",
+  "version": "1.0.0",
+  "description": "地图组件：ScLayer（OpenLayers + Cesium）",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    }
+  },
+  "dependencies": {
+    "@repo/components": "workspace:^",
+    "@repo/utils": "workspace:^",
+    "vue": "catalog:"
+  },
+  "license": "ISC"
+}
+
+
