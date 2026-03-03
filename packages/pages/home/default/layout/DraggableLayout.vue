@@ -9,9 +9,12 @@ import { useLayoutLayoutStore } from "@repo/core";
 const loadingCollection = {};
 const userLayoutObject = useLayoutLayoutStore();
 
-const GRID_COLUMN_COUNT = 12;
-const GRID_CELL_HEIGHT = 90;
-const GRID_MARGIN = 12;
+/**
+ * gridstack 网格配置（精度来自网格粒度）
+ * - 列数越大：横向缩放更细
+ * - cellHeight 越小：纵向缩放更细
+ */
+const getGridMeta = () => userLayoutObject.getGridMeta?.() || { columnCount: 12, cellHeight: 90, margin: 12 };
 
 const props = defineProps({
   modelValue: {
@@ -81,9 +84,9 @@ const initGridStack = async () => {
 
   const grid = GridStack.init(
     {
-      column: GRID_COLUMN_COUNT,
-      cellHeight: GRID_CELL_HEIGHT,
-      margin: GRID_MARGIN,
+      column: getGridMeta().columnCount,
+      cellHeight: getGridMeta().cellHeight,
+      margin: getGridMeta().margin,
       float: true,
       animate: true,
       disableOneColumnMode: false,
