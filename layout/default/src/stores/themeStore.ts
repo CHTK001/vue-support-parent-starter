@@ -177,17 +177,37 @@ export const useThemeStore = defineStore("theme", () => {
    */
   function setTheme(themeKey: ThemeKey): void {
     const normalizedThemeKey = normalizeThemeKey(themeKey);
-    if (currentTheme.value === normalizedThemeKey) return;
+    if (currentTheme.value === normalizedThemeKey) {
+      return;
+    }
 
-    logger.debug(
-      "主题切换: {} -> {}",
-      currentTheme.value,
-      normalizedThemeKey,
-    );
+    const previousTheme = currentTheme.value;
+
+    logger.debug("主题切换: {} -> {}", previousTheme, normalizedThemeKey);
     currentTheme.value = normalizedThemeKey;
 
-    // 更新 DOM 属性
-    document.documentElement.setAttribute("data-skin", normalizedThemeKey);
+    const htmlEl = document.documentElement;
+
+    // 更新 data-skin，用于组件主题系统
+    if (normalizedThemeKey === "default") {
+      // 切回默认主题时，移除 8bit / PixelUI 相关标记与样式，避免残留
+      htmlEl.removeAttribute("data-skin");
+      htmlEl.classList.remove("pixelium");
+
+      // 移除可能存在的 8bit 主题样式表（来自 useThemeComponent / usePixelUI）
+      const pixelThemeLinks = [
+        "pixel-theme-style",
+        "theme-8bit-style",
+      ];
+      pixelThemeLinks.forEach((linkId) => {
+        const linkEl = document.getElementById(linkId);
+        if (linkEl) {
+          linkEl.remove();
+        }
+      });
+    } else {
+      htmlEl.setAttribute("data-skin", normalizedThemeKey);
+    }
 
     // 更新主题类
     updateThemeClass(normalizedThemeKey);
