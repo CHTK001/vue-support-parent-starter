@@ -8,6 +8,7 @@ import { StorageConfigs } from "./type";
 import enLocale from "element-plus/es/locale/lang/en";
 import zhLocale from "element-plus/es/locale/lang/zh-cn";
 import yaml from "js-yaml";
+import { getLogger } from "@repo/utils";
 
 /**
  * 合并对象
@@ -28,6 +29,8 @@ function mergeObjects(obj1, obj2) {
   return obj1;
 }
 
+const logger = getLogger("[i18n]");
+
 const siphonI18n = (function () {
   /**
    * 加载国际化文件
@@ -39,12 +42,15 @@ const siphonI18n = (function () {
   const loadI18nFiles = (globResult: Record<string, any>, parser: (content: string) => any, source: string): Record<string, any> => {
     try {
       const entries = Object.entries(globResult);
-      
+
       //@ts-ignore
       if (import.meta.env?.DEV) {
-        console.log(`[i18n] ${source} - 匹配到 ${entries.length} 个文件:`, entries.map(([key]) => key));
+        logger.info(
+          `[i18n] ${source} - 匹配到 ${entries.length} 个文件:`,
+          entries.map(([key]) => key),
+        );
       }
-      
+
       if (entries.length === 0) {
         return {};
       }
@@ -54,30 +60,37 @@ const siphonI18n = (function () {
             try {
               const matched = key.match(/([A-Za-z0-9-_]+)\./i);
               if (!matched || !matched[1]) {
-                console.warn(`[i18n] ${source} - 无法从路径中提取语言代码: ${key}`);
+                logger.warn(
+                  `[i18n] ${source} - 无法从路径中提取语言代码: ${key}`,
+                );
                 return null;
               }
               const langCode = matched[1];
               const content = value?.default || value;
               if (!content) {
-                console.warn(`[i18n] ${source} - 文件内容为空: ${key}`);
+                logger.warn(`[i18n] ${source} - 文件内容为空: ${key}`);
                 return null;
               }
               const parsed = parser(content);
-      //@ts-ignore
+              //@ts-ignore
               if (import.meta.env?.DEV) {
-                console.log(`[i18n] ${source} - 成功加载: ${key} -> ${langCode}`);
+                logger.info(
+                  `[i18n] ${source} - 成功加载: ${key} -> ${langCode}`,
+                );
               }
               return [langCode, parsed];
             } catch (error) {
-              console.error(`[i18n] ${source} - 解析文件失败: ${key}`, error);
+              logger.error(
+                `[i18n] ${source} - 解析文件失败: ${key}`,
+                error,
+              );
               return null;
             }
           })
           .filter((entry): entry is [string, any] => entry !== null)
       );
     } catch (error) {
-      console.error(`[i18n] ${source} - 加载国际化文件失败`, error);
+      logger.error(`[i18n] ${source} - 加载国际化文件失败`, error);
       return {};
     }
   };
@@ -98,18 +111,26 @@ const siphonI18n = (function () {
   const finalCache = mergeObjects(packageCache, appCache);
 
   // 开发环境下输出调试信息
-      //@ts-ignore
+  //@ts-ignore
   if (import.meta.env?.DEV) {
     const availableLangs = Object.keys(finalCache);
     if (availableLangs.length > 0) {
-      console.log(`[i18n] 已加载语言: ${availableLangs.join(", ")}`);
-      console.log(`[i18n] 各来源加载情况:`);
-      console.log(`  - 相对路径 YAML: ${Object.keys(cache1).join(", ") || "无"}`);
-      console.log(`  - 相对路径 JSON: ${Object.keys(cache2).join(", ") || "无"}`);
-      console.log(`  - 应用级别 YAML: ${Object.keys(extCache).join(", ") || "无"}`);
-      console.log(`  - 应用级别 JSON: ${Object.keys(extCache2).join(", ") || "无"}`);
+      logger.info(`[i18n] 已加载语言: ${availableLangs.join(", ")}`);
+      logger.info("[i18n] 各来源加载情况:");
+      logger.info(
+        `  - 相对路径 YAML: ${Object.keys(cache1).join(", ") || "无"}`,
+      );
+      logger.info(
+        `  - 相对路径 JSON: ${Object.keys(cache2).join(", ") || "无"}`,
+      );
+      logger.info(
+        `  - 应用级别 YAML: ${Object.keys(extCache).join(", ") || "无"}`,
+      );
+      logger.info(
+        `  - 应用级别 JSON: ${Object.keys(extCache2).join(", ") || "无"}`,
+      );
     } else {
-      console.warn("[i18n] 未找到任何国际化文件");
+      logger.warn("[i18n] 未找到任何国际化文件");
     }
   }
 
@@ -117,7 +138,11 @@ const siphonI18n = (function () {
     const result = finalCache[prefix];
       //@ts-ignore
     if (!result && import.meta.env?.DEV) {
-      console.warn(`[i18n] 未找到语言配置: ${prefix}，可用语言: ${Object.keys(finalCache).join(", ")}`);
+      logger.warn(
+        `[i18n] 未找到语言配置: ${prefix}，可用语言: ${Object.keys(
+          finalCache,
+        ).join(", ")}`,
+      );
     }
     return result || {};
   };

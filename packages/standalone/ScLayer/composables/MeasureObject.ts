@@ -141,6 +141,8 @@ export class MeasureObject {
   private enabled: boolean = false;
   // 添加一个标志位，用于防抖
   private _redrawScheduled: boolean = false;
+  // 鼠标移动事件监听函数
+  private handlePointerMoveListener: ((event: any) => void) | null = null;
 
   /**
    * 构造函数
@@ -597,7 +599,10 @@ export class MeasureObject {
     this.mapInstance.addOverlay(this.helpTooltip);
     
     // 添加鼠标移动监听器
-    this.mapInstance.getViewport().addEventListener('pointermove', this.handlePointerMove.bind(this));
+    if (!this.handlePointerMoveListener) {
+      this.handlePointerMoveListener = this.handlePointerMove.bind(this);
+    }
+    this.mapInstance.getViewport().addEventListener('pointermove', this.handlePointerMoveListener);
   }
 
   /**
@@ -618,7 +623,10 @@ export class MeasureObject {
       this.helpTooltip = null;
     }
     // 移除鼠标移动监听器
-    this.mapInstance.getViewport().removeEventListener('pointermove', this.handlePointerMove.bind(this));
+    if (this.handlePointerMoveListener) {
+      this.mapInstance.getViewport().removeEventListener('pointermove', this.handlePointerMoveListener);
+      this.handlePointerMoveListener = null;
+    }
   }
 
   /**

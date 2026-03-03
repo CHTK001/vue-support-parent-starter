@@ -54,7 +54,7 @@
     "@pureadmin/table": "catalog:",
     "@pureadmin/utils": "catalog:",
     "@sintef/prune-cluster": "catalog:",
-    "@techui/scifi": "catalog:",
+
     "@tinymce/tinymce-vue": "^6.3.0",
     "@turf/turf": "catalog:",
     "@vueuse/core": "catalog:",

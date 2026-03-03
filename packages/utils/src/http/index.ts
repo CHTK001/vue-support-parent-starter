@@ -15,7 +15,8 @@ import {
   upgrade,
 } from "@repo/config";
 import { UserResult } from "@repo/core";
-import { localStorageProxy } from "@repo/utils";
+import { localStorageProxy } from "../storage";
+import { getLogger } from "../log";
 import Axios, {
   type AxiosInstance,
   type AxiosRequestConfig,
@@ -37,6 +38,8 @@ import {
   md5Hash as md5HashWasm,
   isWasmLoaded,
 } from "@repo/codec-wasm";
+
+const logger = getLogger("[HTTP]");
 
 /** 响应结果类型 */
 export interface ReturnResult<E> {
@@ -199,7 +202,7 @@ class PureHttp {
     const requestConfig = getRequestConfig();
     if (requestConfig.enableSign === false) {
       if (process.env.NODE_ENV === "development") {
-        console.debug("[HTTP][签名生成] 签名功能已关闭，跳过生成");
+        logger.debug("[HTTP][签名生成] 签名功能已关闭，跳过生成");
       }
       return;
     }
@@ -215,13 +218,16 @@ class PureHttp {
     const sign = generateSign(config, timestamp, nonce, fingerprint);
     config.headers["x-sign"] = sign || "";
     if (process.env.NODE_ENV === "development") {
-      console.debug("[HTTP][签名生成] 安全头已设置", {
-        url: config.url,
-        hasSign: !!sign,
-        timestamp: config.headers["x-timestamp"],
-        nonce: config.headers["x-nonce"],
-        wasmLoaded: isWasmLoaded()
-      });
+      logger.debug(
+        "[HTTP][签名生成] 安全头已设置 {}",
+        {
+          url: config.url,
+          hasSign: !!sign,
+          timestamp: config.headers["x-timestamp"],
+          nonce: config.headers["x-nonce"],
+          wasmLoaded: isWasmLoaded(),
+        },
+      );
     }
   }
 

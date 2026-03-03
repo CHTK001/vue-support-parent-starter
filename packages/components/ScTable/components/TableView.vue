@@ -4,7 +4,6 @@
     :class="[`theme--${theme}`, { 'cross-highlight-enabled': config.crossHighlight && config.border, 'is-draggable': draggable }]"
     :style="crossHighlightCssVars"
     @contextmenu.prevent="handleTableContextMenu"
-    @wheel="handleWheel"
   >
     <VueDragScroll v-if="dragScrollEnabled" class="drag-scroll-wrapper" :drag-direction="'horizontal'" :drag-disabled="false">
       <component
@@ -106,6 +105,7 @@ import { useThemeComponent } from "../../hooks/useThemeComponent";
 import ContextMenu from "../plugins/ContextMenu.vue";
 import { useTableCrossHighlight } from "../composables/useTableCrossHighlight";
 import { ScTableColumn } from "../../ScTableColumn";
+import BScroll from "@better-scroll/core";
 
 const logger = getLogger("[ScTable][TableView]");
 
@@ -205,8 +205,8 @@ const emit = defineEmits(["row-click", "selection-change", "sort-change", "heade
 const scTable = ref(null);
 const sortableInstance = ref(null);
 const isDragging = ref(false);
-let scrollContainer = null;
-let wheelHandler = null;
+let bsInstance = null;
+let bsWrapper = null;
 
 // 使用主题组件系统
 const { currentComponent } = useThemeComponent("ElTable");
@@ -428,54 +428,46 @@ watch(
         initDragSort();
       });
     }
+    // 数据变化后刷新 BetterScroll
+    if (!props.dragScrollEnabled) {
+      nextTick(() => {
+        if (bsInstance) {
+          bsInstance.refresh();
+        } else {
+          initBetterScroll();
+        }
+      });
+    }
   },
   { deep: false }
 );
 
-// 处理滚轮事件（直接在模板中绑定）
-const handleWheel = event => {
-  // 只处理 Shift+滚轮的情况
+// BetterScroll 滚轮处理（仅在按下 Shift 时生效）
+const handleBetterScrollWheel = event => {
+  if (!bsInstance) {
+    return;
+  }
+  // 仅处理按住 Shift 的情况，其余情况保留浏览器默认行为
   if (!event.shiftKey) {
     return;
   }
 
-  // 查找表格的滚动容器
-  if (!scTable.value) {
-    return;
-  }
+  event.preventDefault();
+  event.stopPropagation();
 
-  const tableEl = scTable.value?.$el;
-  if (!tableEl) {
-    return;
-  }
-
-  // 优先查找 el-table__body-wrapper，这是 el-table 的主要滚动容器
-  let targetScrollContainer = tableEl.querySelector(".el-table__body-wrapper");
-  if (!targetScrollContainer) {
-    // 如果找不到，尝试查找 el-scrollbar__wrap
-    targetScrollContainer = tableEl.querySelector(".el-scrollbar__wrap");
-  }
-  if (!targetScrollContainer) {
-    // 最后尝试使用表格元素本身
-    targetScrollContainer = tableEl;
-  }
-
-  if (targetScrollContainer) {
-    // 阻止默认的垂直滚动行为
-    event.preventDefault();
-    event.stopPropagation();
-
-    // 将垂直滚动转换为横向滚动
-    // deltaY 是垂直滚动量，deltaX 是横向滚动量
-    const deltaX = event.deltaY !== 0 ? event.deltaY : event.deltaX || 0;
-
-    // 执行横向滚动
-    targetScrollContainer.scrollLeft += deltaX;
-  }
+  const deltaX = event.deltaY !== 0 ? event.deltaY : event.deltaX || 0;
+  // 使用 BetterScroll 进行横向滚动
+  // 这里不添加动画时间，保证与原先行为一致、响应更及时
+  bsInstance.scrollBy(-deltaX, 0, 0);
 };
 
-// 初始化 Shift+滚轮横向滚动功能
-const initShiftWheelScroll = () => {
+// 初始化 BetterScroll，仅负责横向滚动
+const initBetterScroll = () => {
+  // 若启用了拖拽滚动，则优先使用现有拖拽方案，不再额外接入 BetterScroll，避免冲突
+  if (props.dragScrollEnabled) {
+    return;
+  }
+
   if (!scTable.value) {
     return;
   }
@@ -486,68 +478,55 @@ const initShiftWheelScroll = () => {
       return;
     }
 
-    // 查找表格的滚动容器
-    scrollContainer = tableEl.querySelector(".el-table__body-wrapper");
-    if (!scrollContainer) {
-      scrollContainer = tableEl.querySelector(".el-scrollbar__wrap");
-    }
-    if (!scrollContainer) {
-      scrollContainer = tableEl;
-    }
-
-    if (!scrollContainer) {
+    // el-table 的主体滚动容器
+    const bodyWrapper = tableEl.querySelector(".el-table__body-wrapper");
+    if (!bodyWrapper) {
       return;
     }
 
-    // 创建滚轮事件处理函数
-    wheelHandler = event => {
-      // 检查是否按下了 Shift 键
-      if (event.shiftKey) {
-        // 阻止默认的垂直滚动行为
-        event.preventDefault();
-        event.stopPropagation();
+    bsWrapper = bodyWrapper;
 
-        // 将垂直滚动转换为横向滚动
-        const deltaX = event.deltaY !== 0 ? event.deltaY : event.deltaX || 0;
-        if (scrollContainer) {
-          scrollContainer.scrollLeft += deltaX;
-        }
-      }
-    };
-
-    // 添加滚轮事件监听器到滚动容器
-    // 使用 capture 模式确保事件在捕获阶段被处理
-    scrollContainer.addEventListener("wheel", wheelHandler, { passive: false, capture: true });
-
-    // 同时监听表格容器，确保在表格任何位置都能触发
-    if (tableEl !== scrollContainer) {
-      tableEl.addEventListener("wheel", wheelHandler, { passive: false, capture: true });
+    if (bsInstance) {
+      bsInstance.refresh();
+    } else {
+      bsInstance = new BScroll(bsWrapper, {
+        scrollX: true,
+        scrollY: false,
+        bounce: false,
+        momentum: true,
+        // 允许纵向事件透传，防止影响页面整体滚动
+        eventPassthrough: "vertical",
+        probeType: 0
+      });
     }
+
+    // 绑定 Shift+滚轮事件
+    bsWrapper.addEventListener("wheel", handleBetterScrollWheel, { passive: false, capture: true });
   });
 };
 
-// 销毁 Shift+滚轮横向滚动功能
-const destroyShiftWheelScroll = () => {
-  if (scTable.value && wheelHandler) {
-    const tableEl = scTable.value?.$el;
-    if (tableEl) {
-      tableEl.removeEventListener("wheel", wheelHandler, { capture: true });
-    }
+// 销毁 BetterScroll
+const destroyBetterScroll = () => {
+  if (bsWrapper) {
+    bsWrapper.removeEventListener("wheel", handleBetterScrollWheel, true);
+    bsWrapper = null;
   }
-  if (scrollContainer && wheelHandler) {
-    scrollContainer.removeEventListener("wheel", wheelHandler, { capture: true });
-    scrollContainer = null;
+  if (bsInstance) {
+    bsInstance.destroy();
+    bsInstance = null;
   }
-  wheelHandler = null;
 };
 
-// 监听表格高度变化，重新初始化滚动功能（因为 DOM 可能被重新渲染）
+// 监听表格高度变化，刷新 BetterScroll（因为 DOM 可能被重新渲染）
 watch(
   () => props.config.height,
   () => {
-    destroyShiftWheelScroll();
     nextTick(() => {
-      initShiftWheelScroll();
+      if (bsInstance) {
+        bsInstance.refresh();
+      } else {
+        initBetterScroll();
+      }
     });
   }
 );
@@ -556,7 +535,7 @@ onMounted(() => {
   if (props.draggable) {
     initDragSort();
   }
-  initShiftWheelScroll();
+  initBetterScroll();
 });
 
 // 处理表格右键菜单
@@ -608,7 +587,7 @@ const handleMenuAction = action => {
 
 onBeforeUnmount(() => {
   destroyDragSort();
-  destroyShiftWheelScroll();
+  destroyBetterScroll();
 });
 
 // Expose el-table methods

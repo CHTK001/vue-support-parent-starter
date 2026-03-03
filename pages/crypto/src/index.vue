@@ -108,8 +108,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { TechHeader, TechPanel, TechPanelTitle, TechButton, TechDeco } from "@repo/components/TechUI";
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { TechHeader, TechPanel, TechPanelTitle, TechButton, TechDeco } from "@repo/sc-visualization/TechUI";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import * as echarts from "echarts";
 
@@ -203,22 +203,31 @@ const chartOption = computed(() => ({
   ]
 }));
 
+let liveUpdateTimer: number | null = null;
+
 onMounted(() => {
-   // Simulate live data updates
-   setInterval(() => {
-      const lastPrice = yData[yData.length - 1];
-      const newPrice = lastPrice + (Math.random() - 0.5) * 50;
-      yData.shift();
-      yData.push(newPrice);
-      
-      const d = new Date();
-      xData.shift();
-      xData.push(d.toLocaleTimeString());
-      
-      // Update asks/bids slightly
-      asks.value.forEach(a => a.amount = (Math.random() * 2).toFixed(4));
-      bids.value.forEach(b => b.amount = (Math.random() * 2).toFixed(4));
-   }, 2000);
+  // 模拟行情实时更新
+  liveUpdateTimer = window.setInterval(() => {
+    const lastPrice = yData[yData.length - 1];
+    const newPrice = lastPrice + (Math.random() - 0.5) * 50;
+    yData.shift();
+    yData.push(newPrice);
+
+    const d = new Date();
+    xData.shift();
+    xData.push(d.toLocaleTimeString());
+
+    // 轻微扰动盘口数据
+    asks.value.forEach(a => (a.amount = (Math.random() * 2).toFixed(4)));
+    bids.value.forEach(b => (b.amount = (Math.random() * 2).toFixed(4)));
+  }, 2000);
+});
+
+onBeforeUnmount(() => {
+  if (liveUpdateTimer !== null) {
+    window.clearInterval(liveUpdateTimer);
+    liveUpdateTimer = null;
+  }
 });
 
 </script>

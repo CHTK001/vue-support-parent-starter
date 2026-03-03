@@ -746,8 +746,7 @@ function renderComponent() {
     class: containerClass.value,
     style: containerStyle.value,
     onClick: handleClick,
-    // 添加 data-skin 属性，支持主题切换
-    "data-skin": currentSkin.value || "default"
+
   };
 
   if (props.href) {
@@ -891,23 +890,6 @@ defineExpose({
   line-height: 1.5;
   vertical-align: middle;
   transition: all 0.2s ease;
-
-  // ==================== 主题支持 ====================
-  // 支持通过 data-skin 属性切换主题样式
-  // 示例：8bit 主题（Pixelium）
-  &--skin-8bit {
-    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
-    color: var(--pixelium-text-color, var(--el-text-color-regular));
-  }
-
-  // 可以通过 CSS 变量或选择器为不同主题定制样式
-  // :global([data-skin="8bit"]) & {
-  //   8bit 主题下的特殊样式
-  // }
-
-  // :global([data-skin="default"]) & {
-  //   默认主题样式（如果需要覆盖）
-  // }
 
   // ==================== 类型 ====================
   &--primary {
