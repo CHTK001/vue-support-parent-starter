@@ -481,22 +481,7 @@ const components = [
     component: resolveComponent("./components/ScWorkflowExample.vue"),
   },
   {
-    name: "ScMap",
-    icon: "ri:map-pin-range-line",
-    category: "display",
-    tags: ["地图", "定位"],
-    description: "地图组件",
-    component: resolveComponent("./components/ScMapExample.vue"),
-  },
-  {
-    name: "ScLayer",
-    icon: "ri:map-2-line",
-    category: "display",
-    tags: ["地图", "图层"],
-    description:
-      "基于OpenLayers的地图图层组件，提供测距、标记点、形状绘制等功能",
-    component: resolveComponent("./components/ScLayerExample.vue"),
-  },
+
   {
     name: "ScCron",
     icon: "carbon:time",
@@ -776,14 +761,6 @@ const components = [
     tags: ["3D", "Three.js", "模型"],
     description: "基于 Three.js 的 3D 渲染组件，支持 glTF/glb 模型加载、场景预设、相机控制等功能",
     component: resolveComponent("./components/ScThreeExample.vue"),
-  },
-  {
-    name: "ScThreeMap",
-    icon: "ri:map-3d-line",
-    category: "display",
-    tags: ["3D", "地图", "模型", "联动"],
-    description: "ScThree 与地图组件（ScMap/ScLayer）的联动示例，支持在地图上显示 3D 模型",
-    component: resolveComponent("./components/ScThreeMapExample.vue"),
   },
   {
     name: "Template",

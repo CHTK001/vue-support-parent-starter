@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useDinoClone } from "../../components/ScRouteLoading/loading/useDinoClone";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 
 interface Props {
   loadingText?: string;
@@ -18,30 +17,70 @@ const emit = defineEmits<{
   (e: "gameOver", payload: { score: number; highScore: number }): void;
 }>();
 
-const worldRef = ref<HTMLDivElement | null>(null);
+const iframeRef = ref<HTMLIFrameElement | null>(null);
 const score = ref(0);
 const highScore = ref(0);
 const gameOver = ref(false);
 
-useDinoClone(worldRef, {
-  onScoreChange: (currentScore: number) => {
+const MESSAGE_SCORE = "dino-score";
+const MESSAGE_GAME_OVER = "dino-gameover";
+const MESSAGE_JUMP = "dino-jump";
+
+const postToIframe = (payload: unknown): void => {
+  const win = iframeRef.value?.contentWindow;
+  if (!win) {
+    return;
+  }
+  win.postMessage(payload, window.location.origin);
+};
+
+const handleMessage = (event: MessageEvent): void => {
+  if (event.origin !== window.location.origin) {
+    return;
+  }
+  const data = event.data as { type?: string; score?: number } | null;
+  if (!data?.type) {
+    return;
+  }
+  if (data.type === MESSAGE_SCORE) {
+    const currentScore = Number(data.score ?? 0);
     score.value = currentScore;
     emit("scoreChange", currentScore);
     if (currentScore > highScore.value) {
       highScore.value = currentScore;
       emit("highScoreChange", highScore.value);
     }
-  },
-  onGameOver: (finalScore: number) => {
+    return;
+  }
+  if (data.type === MESSAGE_GAME_OVER) {
+    const finalScore = Number(data.score ?? 0);
     gameOver.value = true;
     emit("gameOver", { score: finalScore, highScore: highScore.value });
   }
+};
+
+const handleKeydown = (event: KeyboardEvent): void => {
+  if (event.code !== "Space" && event.key !== " ") {
+    return;
+  }
+  event.preventDefault();
+  postToIframe({ type: MESSAGE_JUMP });
+};
+
+onMounted(() => {
+  window.addEventListener("message", handleMessage);
+  window.addEventListener("keydown", handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("message", handleMessage);
+  window.removeEventListener("keydown", handleKeydown);
 });
 </script>
 
 <template>
   <div class="cool-loading dino-intro-loading">
-    <div ref="worldRef" class="dino-world" data-world />
+    <iframe ref="iframeRef" class="dino-iframe" title="dino-game" src="/dino-game/index.html" />
 
     <div v-if="gameOver" class="dino-result-overlay">
       <div class="dino-result-card">
@@ -69,10 +108,11 @@ useDinoClone(worldRef, {
   overflow: hidden;
 }
 
-.dino-world {
-  position: relative;
-  background: #f7f7f7;
-  overflow: hidden;
+.dino-iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 
 .dino-result-overlay {

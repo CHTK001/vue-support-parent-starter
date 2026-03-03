@@ -749,6 +749,7 @@ export default defineComponent({
                       v-if="mode != 'view'"
                       v-model="row.sysUserStatus"
                       style="
+
                         --el-switch-on-color: #13ce66;
                         --el-switch-off-color: #ff4949;
                       "

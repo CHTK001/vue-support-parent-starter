@@ -52,8 +52,7 @@ export default [
       {
         path: "/system/holiday/calendar",
         name: "HolidayCalendar",
-        component: () =>
-          import("@pages/system/holiday/HolidayCalendar.vue"),
+        component: () => import("@pages/system/holiday/HolidayCalendar.vue"),
         meta: {
           title: "节假日日历",
           showParent: true,

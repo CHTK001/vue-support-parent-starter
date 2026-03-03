@@ -1,98 +1,46 @@
-button:
-  clearHistory: 清除历史信息
-  save: 保存
 buttons:
   AccountManagement: 账号管理
-  Save: 保存
   accountSetting: 用户设置
-  addDept: 新增组织
-  addDict: 新增字典
-  addTemplate: 添加模板
   back: 返回
   base: 基本信息
   bindSuccess: 绑定成功
   board: 控制台
-  board-card: 控制台
   cancel: 取消
-  channels: 管道管理
   close: 关闭
   confirm: 确定
   custom: 自定义
-  data-perm: 数据权限
   dataManage: 数据管理
   default: 恢复默认
-  delete: 删除
-  disable: 禁用
-  document: 文档
-  edit: 编辑
-  enable: 启用
-  explain: 解释
   finish: 完成
-  formSql: 格式化
-  monitor:
-    job: 任务管理
-    job-list: 任务列表
-    job-log: 任务日志
-    maintenance: 维护管理
-    maintenance-detail: 维护组详情
-    maintenance-group: 维护组
-    nginx: nginx管理
-    online-service-list: 在线服务
-    protection: 守护进程
-    service: 服务管理
-    service-detail: 服务详情
-    service-document: 服务文档
-    service-list: 服务列表
-  'no': 否
-  offline: 离线
-  online: 在线
   open: 开启
-  oss:
-    detail: 详情
   password: 密码管理
-  permission: 权限管理
-  preview-url: 预览地址
   profile: 个人信息
-  pureBackTop: 回到顶部
   pureClearRouter: 清理缓存
-  pureClickCollapse: 点击折叠
-  pureClickExpand: 点击展开
   pureClose: 关闭
   pureCloseAllTabs: 关闭全部标签页
   pureCloseCurrentTab: 关闭当前标签页
   pureCloseLeftTabs: 关闭左侧标签页
   pureCloseOtherTabs: 关闭其他标签页
   pureCloseRightTabs: 关闭右侧标签页
-  pureCloseText: 关
   pureConfirm: 确认
   pureContentExitFullScreen: 内容区退出全屏
   pureContentFullScreen: 内容区全屏
-  pureLogin: 登录
   pureLoginOut: 退出系统
-  pureOpenSystemSet: 打开系统配置
-  pureOpenText: 开
   pureReload: 重新加载
   pureSwitch: 切换
+  pureClickCollapse: 点击折叠侧边栏
+  pureClickExpand: 点击展开侧边栏
+  pureOpenSystemSet: 打开系统设置
+  pureBackTop: 返回顶部
   pushSettings: 通知设置
-  refreshToken: 刷新认证
-  role: 角色
-  role-perm: 角色权限
-  run: 运行
-  save: 保存
-  secret: 密钥管理
   security: 安全管理
   securityLog: 安全日志
-  send: 发送
-  sync: 同步
-  test: 测试
   thirdparty: 三方管理
-  timeline: 历史在线
-  totp: 2fa密钥
+  totp: 双因素认证
   update: 更新
   updateAvatar: 更新头像
   updateInfo: 更新信息
-  view: 预览
-  'yes': 是
+
 field:
   address: 地点
   avatar: 头像
@@ -107,35 +55,35 @@ field:
   phone: 联系电话
   system: 操作系统
   time: 时间
+
 http:
   error:
     serverError: 远程服务不存在!
+
 input:
   keywordSearch: 输入关键字进行过滤
+
 login:
   pureLogin: 登录
-  pureLoginFail: 登录失败
   pureLoginSuccess: 登录成功
   purePassWordReg: 请输入密码
   purePassWordRuleReg: 密码格式应为8-18位数字、字母、符号的任意两种组合
   purePassword: 密码
-  pureTenant: 租户
-  pureTenantReg: 请输入租户号
+  purePasswordReg: 请输入密码
   pureThirdLogin: 第三方登录
   pureThirdLoginBinded: 三方已绑定信息
+  pureTenantCode: 请输入租户编码
   pureUsername: 账号
   pureUsernameReg: 请输入账号
   pureVerifyCodeError: 校验码不正确
   unbind: 解绑
-  unbindFailure: 解绑失败
-  unbindSuccess: 解绑成功
   verifyCode: 请输入校验码
+
 theme:
   selectTheme: 选择主题
   regularThemes: 常规主题
   festivalThemes: 节日主题
   festivalTag: 特别
-  currentTheme: 当前主题
   themes:
     modern:
       name: 现代简约
@@ -143,154 +91,50 @@ theme:
     tech:
       name: 科技未来
       desc: 科技感十足
-    business:
-      name: 商务专业
-      desc: 专业稳重
     pixel:
       name: 像素风
       desc: 复古像素艺术
-    mc:
-      name: Minecraft
-      desc: 致敬方块世界
     random:
       name: 随机主题
       desc: 每次随机
-    newYear:
-      name: 元旦
-      desc: 新年新气象
-    springFestival:
-      name: 春节
-      desc: 喜庆祥和
-    valentinesDay:
-      name: 情人节
-      desc: 浪漫甜蜜
-    midAutumn:
-      name: 中秋
-      desc: 月圆人团圆
-    nationalDay:
-      name: 国庆
-      desc: 祝福祖国
-    christmas:
-      name: 圣诞
-      desc: 温馨浪漫
-    halloween:
-      name: 万圣节
-      desc: 奇妙之夜
-menu:
-  produce-service: 产品与服务
-  produce-star: 我的收藏
+
 menus:
-  pureAbnormal: 异常页面
-  pureDept: 组织机构
-  pureFive: '500'
-  pureFourZeroFour: '404'
-  pureFourZeroOne: '403'
+  pureFive: "500"
+  pureFourZeroFour: "404"
+  pureFourZeroOne: "403"
   pureHome: 首页
-  pureLogin: 登录
-  pureMenu: 菜单管理
-  purePermission: 权限管理
-  purePermissionButton: 按钮权限
-  purePermissionPage: 页面权限
-  pureRole: 角色管理
-  pureSetting: 配置管理
-  pureSystem: 系统设置
-  pureUser: 用户管理
+
 message:
-  addFavoriteSuccess: 收藏成功
-  addWidget: 添加部件
-  auth:
-    tag: 权限
   bindEmail: 已绑定邮箱
-  bindPhone: 已经绑定手机
-  board-card-type: 控制台视图
-  checkSuccess: 检测完成
-  close: 已关闭
-  confimDelete: 确定删除吗？
-  copyError: 复制失败
-  copySuccess: 复制成功
-  dataNoOperator: 当前数据无法操作
-  decodeError: 解码错误
-  decodeSuccess: 解码成功
-  deleteError: 删除失败
-  deleteSuccess: 删除成功
-  downloadError: 下载失败
-  downloadSuccess: 下载成功
-  edit: 编辑
-  emptyInput: 输入不能为空
-  emptyKeyword: 请输入搜索关键词
-  encodeError: 编码错误
-  encodeSuccess: 编码成功
-  executable: 可执行
-  fileEncodeSuccess: 文件编码成功
-  fileLoadError: 文件加载失败
-  fileLoadSuccess: 文件加载成功
-  fileReadError: 文件读取失败
-  fileTooLarge: 文件过大
-  formatError: 格式错误
-  formatSuccess: 格式化成功
-  generateError: 生成失败
-  generateSuccess: 生成成功
-  getCurrentIPError: 获取当前 IP 失败
-  getCurrentIPSuccess: 获取当前 IP 成功
-  getIPError: 获取 IP 地址失败
-  inputRequired: 请输入内容
-  invalidTimeFormat: 无效的时间格式
-  manage: 管理
+  bindPhone: 已绑定手机
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
-  noDataToDownload: 没有数据可下载
   noPlugin: 没有部件啦
-  noQRCode: 请先生成二维码
-  noScanResult: 没有解析结果
-  notValidUrl: 不是有效的URL
-  online: 在线
-  open: 已开启
-  parseError: 解析失败
-  parseSuccess: 解析成功
-  pleaseInput: 请输入
-  queryFailed: 查询失败，请稍后重试!
-  readable: 可读
-  refreshError: 刷新失败
-  removeFavoriteSuccess: 收藏失败
-  rule-type: 规则类型
-  save: 新增
-  scanError: 解析失败
-  scanNoQRCode: 未检测到二维码
-  scanSuccess: 解析成功
-  searchError: 搜索失败
-  searchSuccess: 搜索成功
-  syncSuccess: 同步成功
   tips:
     clearRouter: 缓存清除成功
   unbindEmail: 未绑定邮箱
   unbindPhone: 未绑定手机
-  updateFailed: 更新失败
-  updatePassword: 密码更新成功后，您将被重定向到登录页面，您可以使用新密码重新登录。
   updateSuccess: 更新成功
-  writeable: 可写
-module:
-  endDate: 结束时间
-  login: 登录
-  logout: 登出
-  other: 其它
-  startDate: 开始时间
+
 panel:
-  menuTransitionChange: 菜单过渡动画
-  openOrInlay: 新页面模式
   pureClearCache: 清空缓存
   pureClearCacheAndToLogin: 清空缓存并返回登录页
   pureCloseSystemSet: 关闭配置
-  pureGreyModel: 灰色模式
-  pureHiddenFooter: 隐藏页脚
-  pureHiddenTags: 隐藏标签页
-  pureHorizontalTip: 顶部菜单，简洁概览
   pureInterfaceDisplay: 界面显示
-  pureLayoutBlur: 页面模糊
   pureLayoutModel: 导航模式
   pureLayoutParams: 布局参数
   pureLayoutRadius: 页边角弧度
-  pureMixTip: 混合菜单，灵活多变
-  pureMultiTagsCache: 页签持久化
   pureOverallStyle: 整体风格
+  layoutVerticalTip: 经典侧边导航布局
+  layoutHorizontalTip: 顶部导航布局，适合宽屏场景
+  layoutMixTip: 顶部 + 侧边的混合导航布局
+  layoutHoverTip: 悬停展开的极简侧边导航
+  layoutMobileTip: 为移动端优化的触控导航
+  layoutDoubleTip: 双栏导航，适合多级菜单场景
+  pureGreyModel: 灰色模式
+  pureWeakModel: 色弱模式
+  pureHiddenTags: 隐藏多页签栏
+  pureHiddenFooter: 隐藏页脚
+  pureMultiTagsCache: 多页签缓存
   pureOverallStyleDark: 深色
   pureOverallStyleDarkTip: 月光序曲，沉醉于夜的静谧雅致
   pureOverallStyleLight: 浅色
@@ -313,23 +157,16 @@ panel:
   pureTagsStyleModernTip: 渐变背景、阴影效果，现代化视觉体验
   pureTagsStyleSmart: 灵动
   pureTagsStyleSmartTip: 灵动标签，添趣生辉
+  pureThemeColor: 主题色
   resetSuccess: 已恢复默认设置
   exportSuccess: 设置已导出
   importSuccess: 设置已导入
-  pureThemeColor: 主题色
-  pureVerticalTip: 左侧菜单，亲切熟悉
-  pureWeakModel: 色弱模式
-  transition: 动画设置
-  themeSkin: 主题皮肤
-  themeSkinDesc: 管理和配置系统皮肤主题
-  festivalThemeAuto: 节日主题自动切换
-  festivalThemeAutoDesc: 自动检测并应用节日主题，关闭后需手动切换主题
-  festivalThemeOffTip: 关闭自动切换后，节日装饰元素仍会显示，但不会自动切换主题样式
-  festivalThemeAutoDisabled: 已自动关闭节日主题自动切换
-  autoThemeEnabled: 自动主题已启用
-  autoThemeEnabledDesc: 系统将根据当前日期自动应用节日主题，节日主题已隐藏
-  currentThemeLabel: 当前主题：
-  defaultTheme: 默认
+  cardColorAll: 全部颜色
+  cardColorAllTip: 所有卡片使用随机渐变色
+  cardColorThird: 1/3颜色
+  cardColorThirdTip: 仅使用部分颜色组合
+  cardColorWhite: 纯白模式
+  cardColorWhiteTip: 所有卡片使用纯白背景
   aiChatSkin: AI 设置
   aiChatSkinDesc: 配置 AI 助手
   aiThemePurple: 紫色
@@ -344,19 +181,27 @@ panel:
   aiThemePinkTip: 粉色可爱风
   aiThemeDark: 暗黑
   aiThemeDarkTip: 暗黑酷炫风
-  cardColorAll: 全部颜色
-  cardColorAllTip: 所有卡片使用随机渐变色
-  cardColorThird: 1/3颜色
-  cardColorThirdTip: 仅使用部分颜色组合
-  cardColorWhite: 纯白模式
-  cardColorWhiteTip: 所有卡片使用纯白背景
   layoutModeDesc: 选择适合您的导航布局模式
   layoutVertical: 纵向布局
   layoutVerticalDesc: 侧边导航
-  layoutVerticalTip: 经典侧边栏导航，适合功能丰富的管理系统
   layoutHorizontal: 横向布局
   layoutHorizontalDesc: 顶部导航
-  layoutHorizontalTip: 顶部导航栏设计，充分利用屏幕宽度
+  layoutMix: 混合布局
+  layoutMixDesc: 双导航
+  layoutHover: 悬停导航
+  layoutHoverDesc: 极简设计
+  layoutMobile: 移动导航
+  layoutMobileDesc: 触控优化
+  layoutDouble: 双栏导航
+  layoutDoubleDesc: 双层菜单
+  mobileNavConfig: 移动导航配置
+  mobileNavConfigDesc: 为触控设备优化的导航体验
+  gestureSupport: 支持手势滑动操作
+  largeTouchArea: 大尺寸触控区域
+  bottomNavDesign: 底部导航栏设计
+  doubleNavConfig: 双栏导航配置
+  doubleNavConfigDesc: 配置双栏导航的子菜单展开行为
+  expandMode: 展开模式
   advancedSettings: 高级设置
   advancedSettingsDesc: 更多个性化配置选项
   advancedFeatures: 高级功能
@@ -370,26 +215,6 @@ panel:
   restoreDefault: 恢复默认设置
   exportConfig: 导出配置
   importConfig: 导入配置
-  layoutMix: 混合布局
-  layoutMixDesc: 双导航
-  layoutMixTip: 结合顶部和侧边导航优势
-  layoutHover: 悬停导航
-  layoutHoverDesc: 极简设计
-  layoutHoverTip: 极简设计，鼠标悬停展开子菜单
-  layoutMobile: 移动导航
-  layoutMobileDesc: 触控优化
-  layoutMobileTip: 适用于手机和平板的触控友好导航
-  layoutDouble: 双栏导航
-  layoutDoubleDesc: 双层菜单
-  layoutDoubleTip: 左右双栏布局，支持子菜单展开控制
-  mobileNavConfig: 移动导航配置
-  mobileNavConfigDesc: 为触控设备优化的导航体验
-  gestureSupport: 支持手势滑动操作
-  largeTouchArea: 大尺寸触控区域
-  bottomNavDesign: 底部导航栏设计
-  doubleNavConfig: 双栏导航配置
-  doubleNavConfigDesc: 配置双栏导航的子菜单展开行为
-  expandMode: 展开模式
   animationEffect: 动画效果
   animNone: "无"
   animNoneTip: "不显示动画"
@@ -399,19 +224,12 @@ panel:
   animPulseTip: "脉冲动画效果"
   animShake: "抖动"
   animShakeTip: "抖动动画效果"
-pay:
-  merchant: 租户管理
-  order: 订单管理
-  pay: 支付管理
-product:
-  config: 系统设置, 用于设置系统水印，加解密等
-  default: 基础设置, 用于设置系统里的二维码等基本信息
-rules:
-  sysMenuComponent: 路由组件为必填项
-  sysMenuName: 路由名称为必填项
-  sysMenuPath: 路由路径为必填项
-  sysMenuPerm: 权限标识为必填项
-  sysMenuTitle: 菜单名称为必填项
+  themeStyleLoadFailed: 主题样式加载失败
+  settingsRestored: 设置已恢复
+  settingsExported: 设置已导出
+  settingsImported: 设置已导入
+  importFailed: 导入失败
+
 search:
   performanceMonitor: 性能监控
   showFps: 显示 FPS
@@ -422,17 +240,10 @@ search:
   pureHistory: 搜索历史
   purePlaceholder: 搜索菜单（支持拼音搜索）
   pureTotal: 共
+
 status:
   pureLoad: 加载中...
-  pureMessage: 消息
-  pureNoMessage: 暂无消息
-  pureNoNotify: 暂无通知
-  pureNoTodo: 暂无待办
-  pureNotify: 通知
-  pureTodo: 待办
-system:
-  initializing: 系统初始化中...
-  loading: 加载中...
+
 error:
   forbidden: 访问被拒绝
   forbiddenDesc: 抱歉，您没有权限访问此页面
@@ -442,35 +253,11 @@ error:
   serverErrorDesc: 抱歉，服务器遇到了一些问题
   goHome: 返回首页
   goBack: 返回上页
-  pressToRetry: 按任意键重试
-sys:
-  user:
-    sex:
-      else: 其他
-      female: 女
-      male: 男
-thirdParty:
-  gitee: gitee
+  retry: 重试
+  pageLost: 页面似乎迷路了...
+  noPermission: 您没有访问此页面的权限
+  serverMaintenance: 服务器正在维护中
+
 title:
   email2: 备用邮箱
-  password: 账户密码
   phone: 密保手机
-  question: 密保问题
-  setting: 设置
-tools:
-  codec:
-    device: 设备信息
-    name: 编码
-    token: Token 生成器
-    uuid: uuid生成器
-  name: 工具
-  video:
-    name: 视频
-    video: 解析器
-  web:
-    crontab: 定时器
-    device: 设备信息
-    jwt: Jwt工具
-    name: 网页
-    qrcode: 二维码
-    sql: Sql工具

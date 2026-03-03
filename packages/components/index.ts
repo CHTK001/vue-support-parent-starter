@@ -52,8 +52,6 @@ import { ScSubMenu } from "./ScSubMenu";
 import { ScScrollbar } from "./ScScrollbar";
 import { ScBreadcrumb } from "./ScBreadcrumb";
 import { ScSteps } from "./ScSteps";
-import { ScLayer } from "./ScLayer";
-import ScMap from "./ScMap/index.vue";
 import { ScIcon } from "./ScIcon";
 import { ScEmpty } from "./ScEmpty";
 import { ScTableColumn } from "./ScTableColumn";
@@ -85,8 +83,6 @@ export {
   ScDictSelect,
   ScDrawer,
   ScReteEditor,
-  ScLayer,
-  ScMap,
   ScRouteLoading,
   ScThree,
   ScSlider,
@@ -156,8 +152,6 @@ export default {
   ScDictSelect,
   ScDrawer,
   ScReteEditor,
-  ScLayer,
-  ScMap,
   ScThree,
   ScSlider,
   ScSelect,

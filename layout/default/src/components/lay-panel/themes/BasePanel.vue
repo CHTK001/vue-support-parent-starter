@@ -1,13 +1,39 @@
 ﻿<script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
-import { onClickOutside } from "@vueuse/core";
+import { onClickOutside, useStorage } from "@vueuse/core";
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
 import CloseIcon from "@iconify-icons/ep/close";
 
 const target = ref(null);
-const show = ref<Boolean>(false);
+
+/**
+ * 设置面板显示状态（本地记忆）
+ * @description 记住面板是打开还是关闭，刷新浏览器后自动恢复
+ */
+const PANEL_VISIBLE_STORAGE_KEY = "LAY_PANEL_VISIBLE";
+const panelVisible = useStorage<boolean>(PANEL_VISIBLE_STORAGE_KEY, false);
+const show = ref<boolean>(panelVisible.value);
+
+/**
+ * 打开设置面板
+ * @description 更新 UI 状态并写入本地记忆
+ */
+function openPanel(): void {
+  show.value = true;
+  panelVisible.value = true;
+}
+
+/**
+ * 关闭设置面板
+ * @description 更新 UI 状态并写入本地记忆，同时广播关闭事件
+ */
+function closePanel(): void {
+  show.value = false;
+  panelVisible.value = false;
+  emitter.emit("settingPanelClosed");
+}
 
 const iconClass = computed(() => {
   return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
@@ -17,14 +43,13 @@ const { t } = useI18n();
 const { onReset } = useDataThemeChange();
 
 onClickOutside(target, (event: any) => {
-  if (event.clientX > target.value.offsetLeft) return;
-  show.value = false;
-  // 发射面板关闭事件
-  emitter.emit("settingPanelClosed");
+  if (!target.value) return;
+  if (event.clientX > (target.value as any).offsetLeft) return;
+  closePanel();
 });
 onMounted(() => {
   emitter.on("openPanel", () => {
-    show.value = true;
+    openPanel();
   });
 });
 
@@ -51,7 +76,13 @@ onBeforeUnmount(() => {
             }"
             :class="iconClass"
           >
-            <IconifyIconOffline class="dark:text-white" width="18px" height="18px" :icon="CloseIcon" @click="() => { show = !show; emitter.emit('settingPanelClosed'); }" />
+            <IconifyIconOffline
+              class="dark:text-white"
+              width="18px"
+              height="18px"
+              :icon="CloseIcon"
+              @click="() => closePanel()"
+            />
           </span>
         </div>
         <el-scrollbar>

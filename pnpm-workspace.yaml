@@ -7,6 +7,7 @@ packages:
   - apps/vue-support-system-parent
   - scripts/*
   - packages/*
+  - packages/*/*
   - layout/*
   - pages/*
 catalog:

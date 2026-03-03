@@ -384,6 +384,7 @@ onMounted(async () => {
                     :active-value="0"
                     :inactive-value="1"
                     style="
+
                       --el-switch-on-color: #13ce66;
                       --el-switch-off-color: #ff4949;
                     "

@@ -1,107 +1,89 @@
 buttons:
-  AccountManagement: account management
-  Save: Save
+  AccountManagement: Account Management
   accountSetting: Account
-  addDept: add dept
-  addDict: add dict
-  addTemplate: add template
-  back: return
+  back: Back
   base: Basic information
   bindSuccess: Binding successful
-  board: console
+  board: Console
   cancel: Cancel
+  close: Close
   confirm: Confirm
   custom: Custom
   dataManage: Data management
   default: Restore default
-  delete: Delete
-  disable: Disable
-  edit: edit
-  enable: Enable
   finish: Finish
-  monitor:
-    job: task management
-    job-list: task list
-    online-service-list: online service
-    service: Service Management
-    service-list: Service List
-  'no': 'No'
+  open: Open
   password: Password management
-  profile: personal information
-  pureBackTop: BackTop
-  pureClearRouter: Clear
-  pureClickCollapse: Collapse
-  pureClickExpand: Expand
+  profile: Personal information
+  pureClearRouter: Clear Cache
   pureClose: Close
-  pureCloseAllTabs: Close AllTabs
-  pureCloseCurrentTab: Close CurrentTab
-  pureCloseLeftTabs: Close LeftTabs
-  pureCloseOtherTabs: Close OtherTabs
-  pureCloseRightTabs: Close RightTabs
-  pureCloseText: Close
+  pureCloseAllTabs: Close All Tabs
+  pureCloseCurrentTab: Close Current Tab
+  pureCloseLeftTabs: Close Left Tabs
+  pureCloseOtherTabs: Close Other Tabs
+  pureCloseRightTabs: Close Right Tabs
   pureConfirm: Confirm
-  pureContentExitFullScreen: Content ExitFullScreen
-  pureContentFullScreen: Content FullScreen
-  pureLogin: Login
-  pureLoginOut: LoginOut
-  pureOpenSystemSet: Open System Configs
-  pureOpenText: Open
+  pureContentExitFullScreen: Exit Full Screen
+  pureContentFullScreen: Full Screen
+  pureLoginOut: Logout
   pureReload: Reload
   pureSwitch: Switch
+  pureClickCollapse: Click to collapse sidebar
+  pureClickExpand: Click to expand sidebar
+  pureOpenSystemSet: Open system settings
+  pureBackTop: Back to top
   pushSettings: Notification settings
-  save: preservation
-  secret: Secret
+  security: Security
   securityLog: Security log
-  send: Send
-  sync: synchronization
-  test: test
-  thirdparty: Three party management
+  thirdparty: Third party management
+  totp: Two-factor authentication
   update: Update
   updateAvatar: Update avatar
   updateInfo: Update information
-  view: Preview
-  'yes': 'Yes'
+
 field:
   address: Place
-  avatar: avatar
-  browser: browser
+  avatar: Avatar
+  browser: Browser
   confirmPassword: Confirm new password
-  currentPassword: Current Password
+  currentPassword: Current password
   description: Introduction
-  email: Mail
+  email: Email
   ipAddress: IP address
-  newPassword: New Password
-  nickname: Nick name
+  newPassword: New password
+  nickname: Nickname
   phone: Contact number
-  system: operating system
-  time: time
+  system: Operating system
+  time: Time
+
 http:
   error:
-    serverError: Internal Server Erro
+    serverError: Internal server error!
+
 input:
   keywordSearch: Enter a keyword to filter
+
 login:
   pureLogin: Login
-  pureLoginFail: Login Fail
-  pureLoginSuccess: Login Success
+  pureLoginSuccess: Login success
   purePassWordReg: Please enter password
   purePassWordRuleReg: The password format should be any combination of 8-18 digits
   purePassword: Password
+  purePasswordReg: Please enter password
   pureThirdLogin: Third party login
-  pureThirdLoginBinded: Three parties have bound information
+  pureThirdLoginBinded: Third party account already bound
+  pureTenantCode: Please enter tenant code
   pureUsername: Username
   pureUsernameReg: Please enter username
-  pureVerifyCodeError: The check code is incorrect
+  pureVerifyCodeError: The verification code is incorrect
   unbind: Unbind
-  unbindFailure: Unbinding failed
-  unbindSuccess: Unbind successfully
   verifyCode: Please enter the verification code
+
 theme:
   selectTheme: Select Theme
   regularThemes: Regular Themes
   festivalThemes: Festival Themes
   festivalTag: Special
-  currentTheme: Current Theme
   themes:
     modern:
       name: Modern
@@ -109,140 +91,82 @@ theme:
     tech:
       name: Tech
       desc: Futuristic
-    business:
-      name: Business
-      desc: Professional
     pixel:
       name: Pixel
       desc: Retro Art
-    mc:
-      name: Minecraft
-      desc: Block World
     random:
       name: Random
       desc: Randomize
-    newYear:
-      name: New Year
-      desc: Fresh Start
-    springFestival:
-      name: Spring Festival
-      desc: Festive
-    valentinesDay:
-      name: Valentine's Day
-      desc: Romantic
-    midAutumn:
-      name: Mid-Autumn
-      desc: Reunion
-    nationalDay:
-      name: National Day
-      desc: Patriotic
-    christmas:
-      name: Christmas
-      desc: Cozy
-    halloween:
-      name: Halloween
-      desc: Spooky Night
+
 menus:
-  pureAbnormal: Abnormal Page
-  pureDept: dept Manage
-  pureFive: '500'
-  pureFourZeroFour: '404'
-  pureFourZeroOne: '403'
+  pureFive: "500"
+  pureFourZeroFour: "404"
+  pureFourZeroOne: "403"
   pureHome: Home
-  pureLogin: Login
-  pureMenu: menu Manage
-  purePermission: Permission Manage
-  purePermissionButton: Button Permission
-  purePermissionPage: Page Permission
-  pureRole: role Manage
-  pureSetting: setting Manage
-  pureSystem: system
-  pureUser: user Manage
+
 message:
-  addWidget: Add parts
-  auth:
-    tag: auth tag
   bindEmail: Email already bound
-  bindPhone: Already bound phone
-  dataNoOperator: The data no operator
-  deleteError: delete error
-  deleteSuccess: delete success
-  edit: Edit
-  newPassword: >-
-    The password must be more than 8 characters and must contain letters,
-    numbers, and special symbols
+  bindPhone: Phone already bound
+  newPassword: Password must be at least 8 characters and include letters, numbers and symbols
   noPlugin: No parts
-  pleaseInput: Please enter
-  queryFailed: Query failed, please try again later!
-  save: Save
   tips:
     clearRouter: Cache cleared successfully
-  unbindEmail: Unbound email
-  unbindPhone: The mobile phone has not been bound
-  updatePassword: >-
-    After a successful password update, you will be redirected to the login page
-    where you can log in again using your new password.
-  updateSuccess: update successfully
-module:
-  endDate: end date
-  login: login
-  logout: logout
-  other: other
-  startDate: start date
+  unbindEmail: Email not bound
+  unbindPhone: Phone not bound
+  updateSuccess: Updated successfully
+
 panel:
-  menuTransitionChange: Menu transition animation
   pureClearCache: Clear Cache
   pureClearCacheAndToLogin: Clear cache and return to login page
-  pureCloseSystemSet: Close System Configs
-  pureGreyModel: Grey Model
-  pureHiddenFooter: Hidden Footer
-  pureHiddenTags: Hidden Tags
-  pureHorizontalTip: Top menu, concise overview
+  pureCloseSystemSet: Close Settings
   pureInterfaceDisplay: Interface Display
-  pureLayoutBlur: Page blurry
   pureLayoutModel: Layout Model
-  pureLayoutRadius: Edge corner curvature
-  pureMixTip: Mixed menu, flexible
-  pureMultiTagsCache: MultiTags Cache
+  pureLayoutParams: Layout Parameters
+  pureLayoutRadius: Border Radius
   pureOverallStyle: Overall Style
+  layoutVerticalTip: Classic sidebar navigation layout
+  layoutHorizontalTip: Top navigation layout, suitable for wide screens
+  layoutMixTip: Mixed top + sidebar navigation layout
+  layoutHoverTip: Minimal sidebar navigation with hover expand
+  layoutMobileTip: Navigation optimized for mobile and touch devices
+  layoutDoubleTip: Double-column navigation, suitable for multi-level menus
+  pureGreyModel: Grey mode
+  pureWeakModel: Color-weak mode
+  pureHiddenTags: Hide multi-tab bar
+  pureHiddenFooter: Hide footer
+  pureMultiTagsCache: Multi-tab cache
   pureOverallStyleDark: Dark
-  pureOverallStyleDarkTip: Moonlight Overture, indulge in the tranquility and elegance of the night
+  pureOverallStyleDarkTip: Calm and elegant at night
   pureOverallStyleLight: Light
-  pureOverallStyleLightTip: Set sail freshly and light up the comfortable work interface
+  pureOverallStyleLightTip: Bright and comfortable interface
   pureOverallStyleSystem: Auto
-  pureOverallStyleSystemTip: Synchronize time, the interface naturally responds to morning and dusk
-  pureStretch: Stretch Page
+  pureOverallStyleSystemTip: Follow system appearance
+  pureStretch: Page Width
   pureStretchCustom: Custom
-  pureStretchCustomTip: Minimum 1280, maximum 1600
+  pureStretchCustomTip: Min 1280, Max 1600
   pureStretchFixed: Fixed
-  pureStretchFixedTip: Compact pages make it easy to find the information you need
+  pureStretchFixedTip: Compact pages make it easy to find information
   pureStretchMargin: Page margin
-  pureSystemSet: System Configs
+  pureSystemSet: System Settings
   pureTagsStyle: Tags Style
   pureTagsStyleCard: Card
   pureTagsStyleCardTip: Card tags for efficient browsing
   pureTagsStyleChrome: Chrome
-  pureTagsStyleChromeTip: Chrome style is classic and elegant
+  pureTagsStyleChromeTip: Classic and elegant
   pureTagsStyleModern: Modern
-  pureTagsStyleModernTip: Gradient background, shadow effects, modern visual experience
+  pureTagsStyleModernTip: Gradient, shadow, modern visual experience
   pureTagsStyleSmart: Smart
-  pureTagsStyleSmartTip: Smart tags add fun and brilliance
+  pureTagsStyleSmartTip: Fun and lively
+  pureThemeColor: Theme Color
   resetSuccess: Settings have been reset
   exportSuccess: Settings exported
   importSuccess: Settings imported
-  pureThemeColor: Theme Color
-  pureVerticalTip: The menu on the left is familiar and friendly
-  pureWeakModel: Weak Model
-  transition: Animation settings
-  themeSkin: Theme Skin
-  themeSkinDesc: Manage and configure system theme skins
-  festivalThemeAuto: Auto Festival Theme
-  festivalThemeAutoDesc: Automatically detect and apply festival themes
-  festivalThemeOffTip: Festival decorations will still display but theme styles won't auto-switch
-  autoThemeEnabled: Auto Theme Enabled
-  autoThemeEnabledDesc: System will automatically apply festival themes based on current date
-  currentThemeLabel: "Current Theme:"
-  defaultTheme: Default
+  cardColorAll: All Colors
+  cardColorAllTip: Cards use random gradients
+  cardColorThird: 1/3 Colors
+  cardColorThirdTip: Use partial color combinations
+  cardColorWhite: White Mode
+  cardColorWhiteTip: All cards use white background
   aiChatSkin: AI Settings
   aiChatSkinDesc: Configure AI assistant
   aiThemePurple: Purple
@@ -257,19 +181,27 @@ panel:
   aiThemePinkTip: Cute pink style
   aiThemeDark: Dark
   aiThemeDarkTip: Cool dark style
-  cardColorAll: All Colors
-  cardColorAllTip: Cards use random gradients
-  cardColorThird: 1/3 Colors
-  cardColorThirdTip: Use partial color combinations
-  cardColorWhite: White Mode
-  cardColorWhiteTip: All cards use white background
   layoutModeDesc: Choose your preferred navigation layout
   layoutVertical: Vertical
   layoutVerticalDesc: Side navigation
-  layoutVerticalTip: Classic sidebar navigation for feature-rich systems
   layoutHorizontal: Horizontal
   layoutHorizontalDesc: Top navigation
-  layoutHorizontalTip: Top navigation bar design, maximize screen width
+  layoutMix: Mix
+  layoutMixDesc: Dual nav
+  layoutHover: Hover
+  layoutHoverDesc: Minimal
+  layoutMobile: Mobile
+  layoutMobileDesc: Touch optimized
+  layoutDouble: Double
+  layoutDoubleDesc: Dual menu
+  mobileNavConfig: Mobile Navigation Config
+  mobileNavConfigDesc: Navigation optimized for touch devices
+  gestureSupport: Gesture swipe support
+  largeTouchArea: Large touch areas
+  bottomNavDesign: Bottom navigation bar design
+  doubleNavConfig: Double Column Config
+  doubleNavConfigDesc: Configure submenu expansion behavior
+  expandMode: Expand Mode
   advancedSettings: Advanced Settings
   advancedSettingsDesc: More personalization options
   advancedFeatures: Advanced Features
@@ -283,26 +215,6 @@ panel:
   restoreDefault: Restore Default
   exportConfig: Export Config
   importConfig: Import Config
-  layoutMix: Mix
-  layoutMixDesc: Dual nav
-  layoutMixTip: Combines top and side navigation advantages
-  layoutHover: Hover
-  layoutHoverDesc: Minimal
-  layoutHoverTip: Minimal design, hover to expand submenus
-  layoutMobile: Mobile
-  layoutMobileDesc: Touch optimized
-  layoutMobileTip: Touch-friendly navigation for phones and tablets
-  layoutDouble: Double
-  layoutDoubleDesc: Dual menu
-  layoutDoubleTip: Left-right dual column with submenu expansion control
-  mobileNavConfig: Mobile Navigation Config
-  mobileNavConfigDesc: Navigation optimized for touch devices
-  gestureSupport: Gesture swipe support
-  largeTouchArea: Large touch areas
-  bottomNavDesign: Bottom navigation bar design
-  doubleNavConfig: Double Column Config
-  doubleNavConfigDesc: Configure submenu expansion behavior
-  expandMode: Expand Mode
   animationEffect: Animation Effect
   animNone: "None"
   animNoneTip: "No animation"
@@ -312,74 +224,40 @@ panel:
   animPulseTip: "Pulse animation effect"
   animShake: "Shake"
   animShakeTip: "Shake animation effect"
-product:
-  config: >-
-    System settings, used to set system watermarks, encryption and decryption,
-    etc
-  default: Basic settings, used to set basic information such as QR codes in the system
-rules:
-  sysMenuName: The route name is mandatory
-  sysMenuPath: The routing path is mandatory
-  sysMenuPerm: Permission identification is required
-  sysMenuTitle: The menu name is mandatory
+  themeStyleLoadFailed: Theme style load failed
+  settingsRestored: Settings restored
+  settingsExported: Settings exported
+  settingsImported: Settings imported
+  importFailed: Import failed
+
 search:
   performanceMonitor: Performance Monitor
   showFps: Show FPS
   showMemory: Show Memory
   pureCollect: Collect
-  pureDragSort: （Drag Sort）
+  pureDragSort: (Drag Sort)
   pureEmpty: Empty
   pureHistory: History
   purePlaceholder: Search Menu
   pureTotal: Total
+
 status:
   pureLoad: Loading...
-  pureMessage: Message
-  pureNoMessage: No Message
-  pureNoNotify: No Notify
-  pureNoTodo: No Todo
-  pureNotify: Notify
-  pureTodo: Todo
-system:
-  initializing: System initializing...
-  loading: Loading...
+
 error:
-  forbidden: Access Denied
+  forbidden: Access denied
   forbiddenDesc: Sorry, you don't have permission to access this page
-  notFound: Page Not Found
+  notFound: Page not found
   notFoundDesc: Sorry, the page you visited does not exist or has been removed
-  serverError: Server Error
+  serverError: Server error
   serverErrorDesc: Sorry, the server encountered some problems
-  goHome: Go Home
-  goBack: Go Back
-  pressToRetry: Press any key to retry
-sys:
-  user:
-    sex:
-      else: else
-      female: ' female'
-      male: male
-thirdParty:
-  gitee: gitee
+  goHome: Go home
+  goBack: Go back
+  retry: Retry
+  pageLost: The page seems lost...
+  noPermission: You don't have permission to access this page
+  serverMaintenance: Server is under maintenance
+
 title:
   email2: Alternate email
-  password: Account Password
-  phone: Security mobile phone
-  question: Security issues
-tools:
-  codec:
-    device: Equipment information
-    name: code
-    token: Token Generator
-    uuid: Uuid generator
-  name: tool
-  video:
-    name: video
-    video: Parser
-  web:
-    crontab: timer
-    device: Equipment information
-    jwt: Jwt tool
-    name: Webpage
-    qrcode: QR code
-    sql: SQL Tools
+  phone: Security phone

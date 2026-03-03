@@ -50,7 +50,7 @@ export default {
 //@ts-ignore
 import L from 'leaflet';
 import "leaflet/dist/leaflet.css";
-import '../ScMap/styles/measure.scss'; // 导入测距样式
+import './styles/measure.scss'; // 导入测距样式
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 

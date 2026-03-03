@@ -1,0 +1,25 @@
+{
+  "name": "@repo/sc-map",
+  "version": "1.0.0",
+  "description": "地图组件：ScMap（Leaflet）",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    }
+  },
+  "dependencies": {
+    "@repo/utils": "workspace:^",
+    "vue": "catalog:"
+  },
+  "license": "ISC"
+}
+
+
