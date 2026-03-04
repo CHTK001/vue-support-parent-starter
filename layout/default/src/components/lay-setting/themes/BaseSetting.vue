@@ -240,7 +240,7 @@ const settings = reactive({
   aiChatSkin: $storage.configure?.aiChatSkin ?? "robot",
   aiChatApiKey: $storage.configure?.aiChatApiKey ?? "",
   aiChatApiUrl: $storage.configure?.aiChatApiUrl ?? "",
-  aiChatVendor: $storage.configure?.aiChatVendor ?? "hf",
+  aiChatVendor: $storage.configure?.aiChatVendor ?? "chrome",
   aiChatModel: $storage.configure?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct",
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 false）
   enableFestivalTheme:

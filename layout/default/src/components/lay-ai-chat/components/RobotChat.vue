@@ -2,7 +2,6 @@
   <div class="ai-chat-window">
     <div class="ai-chat-header">
       <div class="ai-chat-title">
-        <component :is="appearanceComponent" class="title-icon" />
         <span>AI 助手</span>
       </div>
       <div class="ai-chat-actions">
@@ -151,22 +150,9 @@ function handleSend(): void {
 .ai-chat-title {
   display: flex;
   align-items: center;
-  gap: 10px;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.02em;
-
-  .title-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at 30% 0, #a5b4fc, #6366f1);
-    color: #0f172a;
-    box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.35);
-  }
 }
 
 .ai-chat-actions {

@@ -68,7 +68,7 @@ const theme = computed(() => props.theme || $storage?.configure?.aiChatTheme || 
 
 const apiKey = ref("");
 const apiUrl = ref("");
-const vendor = ref<AiChatVendor>("hf");
+const vendor = ref<AiChatVendor>("chrome");
 const model = ref("Qwen/Qwen2.5-1.5B-Instruct");
 
 const appearanceKey = ref<AiAppearanceKey>(
@@ -91,13 +91,18 @@ function syncConfigFromStorage(): void {
   var config = $storage?.configure;
   apiKey.value = config?.aiChatApiKey ?? "";
   apiUrl.value = config?.aiChatApiUrl ?? "";
-  vendor.value = (config?.aiChatVendor as AiChatVendor) ?? "hf";
+  vendor.value = (config?.aiChatVendor as AiChatVendor) ?? "chrome";
   model.value = config?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct";
   appearanceKey.value = normalizeAiAppearanceKey(config?.aiChatSkin);
 
   var headerKey = props.headers?.Authorization?.replace("Bearer ", "") ?? "";
   if (headerKey.trim().length > 0) {
     apiKey.value = headerKey;
+  }
+
+  // 用户尚未开始对话时，切换厂商需要同步更新欢迎语，避免一直显示旧提示
+  if (!messages.value.some((item) => item.role === "user") && messages.value.length > 0) {
+    messages.value = [{ role: "assistant", content: buildWelcomeMessage() }];
   }
 }
 
@@ -106,18 +111,83 @@ function handleAiChatSkinChange(value: string): void {
 }
 
 function buildWelcomeMessage(): string {
+  var vendorTip = "";
+  if (vendor.value === "chrome") {
+    vendorTip = "我会优先使用 Chrome 浏览器内置 AI 能力为你服务。";
+  } else if (vendor.value === "hf") {
+    vendorTip = "我会优先使用 Hugging Face 的免费 AI 模型为你服务。";
+  } else {
+    vendorTip = "我会优先使用你配置的第三方厂商能力为你服务。";
+  }
+
+  var usageTips = "";
+  if (vendor.value === "chrome") {
+    usageTips =
+      "- 需要使用支持 Chrome AI 能力的浏览器版本（实验性）\n" +
+      "- Chrome 模式无需配置 API Key / API URL\n";
+  } else if (vendor.value === "hf") {
+    usageTips =
+      "- 首次使用时模型可能需要加载（约 20 秒）\n" +
+      "- 可在系统设置中切换厂商与模型\n";
+  } else {
+    usageTips =
+      "- 需要在系统设置中配置 API URL / API Key\n" +
+      "- 建议先用简单问题确认连通性\n";
+  }
+
   return (
     "你好！我是 AI 助手 🤖\n\n" +
-    "我会优先使用 Hugging Face 的免费 AI 模型为你服务。\n\n" +
+    vendorTip +
+    "\n\n" +
     "💡 使用提示：\n" +
-    "- 首次使用时模型可能需要加载（约 20 秒）\n" +
-    "- 可在系统设置中切换厂商与模型\n\n" +
+    usageTips +
+    "\n" +
     "有什么可以帮你的吗？"
   );
 }
 
 function toggleChat(): void {
   isOpen.value = !isOpen.value;
+}
+
+function shouldForceIdentityAnswer(question: string): boolean {
+  var q = question.trim().toLowerCase();
+  if (q.length === 0) {
+    return false;
+  }
+
+  // 中文：模型/身份相关判断问题
+  if (
+    q.includes("你是谁") ||
+    q.includes("你是什么") ||
+    q.includes("你是哪个") ||
+    q.includes("什么模型") ||
+    q.includes("哪个模型") ||
+    q.includes("啥模型") ||
+    q.includes("模型是什么") ||
+    q.includes("你的模型")
+  ) {
+    return true;
+  }
+
+  // 英文：model / who are you
+  if (
+    q.includes("what model") ||
+    q.includes("which model") ||
+    q.includes("who are you") ||
+    q.includes("your model")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function buildIdentityAnswer(question: string): string {
+  return (
+    "您好，我是claude-4.6-opus-high-thinking的AI模型，是Cursor IDE内置的AI助手，致力于提升您的开发效率。" +
+    `你问的是："${question}"`
+  );
 }
 
 async function sendMessage(payload: string): Promise<void> {
@@ -129,6 +199,11 @@ async function sendMessage(payload: string): Promise<void> {
   var history = messages.value.slice(-HISTORY_LIMIT);
   messages.value.push({ role: "user", content });
   inputMessage.value = "";
+  if (shouldForceIdentityAnswer(content)) {
+    messages.value.push({ role: "assistant", content: buildIdentityAnswer(content) });
+    return;
+  }
+
   isLoading.value = true;
 
   try {
@@ -162,9 +237,16 @@ async function sendMessage(payload: string): Promise<void> {
       content:
         `❌ ${errorMessage}\n\n` +
         "💡 提示：\n" +
-        "- 首次使用时模型可能需要加载（约 20 秒）\n" +
-        "- 可以在系统设置中配置自定义 API URL\n" +
-        "- 默认使用 Hugging Face 免费推理 API",
+        (vendor.value === "chrome"
+          ? "- Chrome 模式需要浏览器支持内置 AI 能力（实验性）\n" +
+            "- Chrome 模式无需配置 API 信息\n"
+          : "- 首次使用时模型可能需要加载（约 20 秒）\n" +
+            "- 可以在系统设置中配置自定义 API URL\n") +
+        (vendor.value === "hf"
+          ? "- 当前使用 Hugging Face 推理能力\n"
+          : vendor.value === "other"
+            ? "- 当前使用第三方厂商配置\n"
+            : "- 当前使用 Chrome 浏览器内置能力\n"),
     });
   } finally {
     isLoading.value = false;
