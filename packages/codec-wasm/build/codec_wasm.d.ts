@@ -35,6 +35,11 @@ export interface InitOutput {
   readonly encrypt_storage_value: (val_ptr: number, val_len: number, _: number, _1: number, _2: number, _3: number, _4: number, _5: number, _6: number, _7: number) => number;
   readonly decrypt_storage_value: (val_ptr: number, val_len: number, _: number, _1: number, _2: number, _3: number, _4: number, _5: number, _6: number, _7: number) => number;
   readonly custom_encrypt_with_codec_keypair: (data_ptr: number, data_len: number, pubkey_ptr: number, pubkey_len: number, privkey_ptr: number, privkey_len: number) => number;
+  readonly font_encrypt_text: (text_ptr: number, text_len: number, encrypt_numbers: boolean, encrypt_chinese: boolean) => number;
+  readonly font_decrypt_text: (text_ptr: number, text_len: number) => number;
+  readonly font_is_encrypted_char: (char_ptr: number, char_len: number) => boolean;
+  readonly font_get_mapped_char_count: () => number;
+  readonly font_get_maps: () => number;
 }
 
 /**

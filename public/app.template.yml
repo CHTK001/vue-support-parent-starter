@@ -240,6 +240,7 @@
 #   retryDelay: 1000           # 重试间隔（毫秒）
 #   showLoading: true          # 显示加载状态
 #   enableSign: true           # 是否启用请求签名（x-sign），默认 true
+#   secretKey: "aP9xL3sV7mQ2zT5kB8nR1cY4wH6eD0fJ"  # Nonce 签名密钥，需与后端 NonceSignProperties.DEFAULT_SECRET 保持一致
 
 # ===========================================
 # 错误处理配置
