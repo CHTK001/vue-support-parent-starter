@@ -263,7 +263,8 @@ const shiftDecrypt = (str, key) => {
   }
 
   try {
-    const encoded = str.substring(3);
+    // "XXJS:" 前缀长度为 5，去掉前缀后再做 base64 解码
+    const encoded = str.substring(5);
     const shifted = atob(encoded);
 
     let offset = 0;
