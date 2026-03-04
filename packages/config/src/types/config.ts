@@ -20,6 +20,8 @@ export interface PlatformConfigs {
   apiVersion?: string;
   /** 签名密钥 */
   secretKey?: string;
+  /** 是否自动提示错误信息 */
+  AutoErrorMessage?: boolean;
 
   // ===========================================
   // 角色权限配置
@@ -40,6 +42,8 @@ export interface PlatformConfigs {
   OpenTenantLogin?: boolean;
   /** 是否开启基础登录 */
   OpenBaseLogin?: boolean;
+  /** 是否开启刷新token */
+  OpenShowRefreshToken?: boolean;
   /** 配置加载失败时是否保持加载页面（默认false，失败后继续进入应用） */
   BlockOnConfigLoadFail?: boolean;
   /** 是否显示错误页面风格切换按钮（默认false） */
@@ -47,7 +51,16 @@ export interface PlatformConfigs {
   /** 是否显示加载动画样式切换按钮（默认false） */
   ShowLoadingPageStyleSwitcher?: boolean;
   /** 系统加载页面风格（默认minimal） */
-  LoadingPageStyle?: "pixel" | "space" | "minimal" | "servererror";
+  LoadingPageStyle?:
+    | "spinner"
+    | "clock"
+    | "pixel"
+    | "cube"
+    | "dots"
+    | "pulse"
+    | "minimal"
+    | "space"
+    | "servererror";
 
   // ===========================================
   // 布局与菜单配置
@@ -90,6 +103,8 @@ export interface PlatformConfigs {
   contentMargin?: Number;
   /** 是否显示FPS监控 */
   ShowFpsMonitor?: boolean;
+  /** 消息弹窗默认开关 */
+  MessagePopupEnabled?: boolean;
 
   // ===========================================
   // 顶部工具栏配置
@@ -216,6 +231,30 @@ export interface PlatformConfigs {
   // ===========================================
   /** 错误页面风格: pixel(像素恐龙) | space(太空风) | minimal(极简风) | forbidden(禁止) | notfound(迷路) | servererror(故障) */
   ErrorPageStyle?: 'pixel' | 'space' | 'minimal' | 'forbidden' | 'notfound' | 'servererror';
+  /** 账户类型（如 tenant） */
+  AccountType?: string;
+
+  // ===========================================
+  // 登录页主题配置
+  // ===========================================
+  /** 默认登录页主题 */
+  LoginTheme?: string;
+  /** 是否启用节日主题自动切换 */
+  EnableFestivalTheme?: boolean;
+  /** 是否启用后台主题管理（登录主题管理页面） */
+  EnableThemeManagement?: boolean;
+  /** 是否启用登录页主题切换器 */
+  EnableLoginThemeSwitcher?: boolean;
+
+  // ===========================================
+  // 系统设置模块配置
+  // ===========================================
+  /** 是否开启邮箱设置 */
+  OpenSettingEmail?: boolean;
+  /** 是否开启短信设置 */
+  OpenSettingSms?: boolean;
+  /** 是否开启 LLM 设置 */
+  OpenSettingLlm?: boolean;
 
   // ===========================================
   // 页面行为配置

@@ -152,7 +152,7 @@
     "stylelint-prettier": "catalog:",
     "svgo": "catalog:",
     "tailwindcss": "catalog:",
-    "tsconfck": "^3.1.5",
+    "tsconfck": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-cdn-import": "catalog:",

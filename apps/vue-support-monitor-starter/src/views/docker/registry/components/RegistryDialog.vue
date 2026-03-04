@@ -75,11 +75,14 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:global-line" />
               </template>
-              <template -if="showTestButton
-                ">vappend >
-                <el-button loading="testLoading
-                  ">:click="testConnection" >
-                  <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />测试连接
+              <template #append>
+                <el-button
+                  v-if="showTestButton"
+                  :loading="testLoading"
+                  @click="testConnection"
+                >
+                  <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
+                  测试连接
                 </el-button>
               </template>
             </el-input>
@@ -129,8 +132,8 @@
           </el-row>
           <el-form-item
             label="邮箱"
-            -if="showEmail"
-            vrop="systemSoftRegistryEmail
+            v-if="showEmail"
+            prop="systemSoftRegistryEmail"
           >
             <el-input
               v-model="formData.systemSoftRegistryEmail"
@@ -194,11 +197,11 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button ize="large">sclick="handleCancel" >取消</el-button>
+        <el-button size="large" @click="handleCancel">取消</el-button>
         <el-button
           type="primary"
-          loading="confirmLoading"
-          :click="handleConfirm
+          :loading="confirmLoading"
+          @click="handleConfirm"
           size="large"
         >
           <IconifyIconOnline
@@ -399,8 +402,7 @@ const testConnection = async () => {
   testResult.value = null;
   try {
     const response = await softRegistryApi.testRegistryConnection(
-      props.registryData.systemSoftRegistryI
-      d,d
+      props.registryData.systemSoftRegistryId!,
     );
     if (response.code === "00000") {
       testResult.value = { success: true, message: "已发起连接测试" };
@@ -438,8 +440,7 @@ const handleConfirm = async () => {
       // 编辑模式
       const response = await softRegistryApi.updateRegistry(
         formData.value.systemSoftRegistryId!,
-        payloa
-        d,d
+        payload,
       );
 
       if (response.code === "00000") {
@@ -493,7 +494,7 @@ watch(
       resetForm();
     }
   },
-  { immediate: true},}
+  { immediate: true },
 );
 
 // 监听对话框显示状态
@@ -638,6 +639,6 @@ watch(dialogVisible, (visible) => {
     flex-direction: column;
     gap: 12px;
     padding: 12px 16px;
-  
-
+  }
+}
 </style>

@@ -756,21 +756,21 @@
 </template>
 
 <script setup lang="ts">
-import ScLayer from "@repo/sc-layer/index.vue";
+import ScLayer from "@repo/scLayer/index.vue";
 import type {
   HeatmapPoint,
   ShapeOption,
   WindConfig,
-} from "@repo/sc-layer/types";
+} from "@repo/scLayer/types";
 import {
   DEFAULT_MAP_CONFIG,
   ToolbarDirection,
   ToolbarPosition,
-} from "@repo/sc-layer/types";
-import { MapTile, MapType } from "@repo/sc-layer/types/index";
+} from "@repo/scLayer/types";
+import { MapTile, MapType } from "@repo/scLayer/types/index";
 import { computed, reactive, ref, watch } from "vue";
 // 引入CesiumObject和模型类型定义
-import type { Model3DOptions } from "@repo/sc-layer/composables/CesiumModelObject";
+import type { Model3DOptions } from "@repo/scLayer/composables/CesiumModelObject";
 
 // 标记点聚合模式的枚举
 const MarkerClusterMode = {
@@ -782,7 +782,7 @@ import type {
   FlightLineConfig,
   FlightLineData,
   FlightLinePoint,
-} from "@repo/sc-layer/types";
+} from "@repo/scLayer/types";
 // 引入Element Plus组件
 import { message } from "@repo/utils";
 

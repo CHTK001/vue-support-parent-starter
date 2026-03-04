@@ -41,6 +41,7 @@ import { uuid } from "@repo/config";
 import { message } from "@repo/utils";
 import TypeIt from "typeit";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { ScAvatar } from "@repo/components";
 
 import MarkdownIt from "markdown-it";
 import mdKatex from "@traptitech/markdown-it-katex";
@@ -48,7 +49,9 @@ import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-dark.css";
 
 export default defineComponent({
-  components: {},
+  components: {
+    ScAvatar,
+  },
   data() {
     return {
       loading: false,

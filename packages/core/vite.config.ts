@@ -1,7 +1,11 @@
-import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
+import { type UserConfigExport, type ConfigEnv } from "vite";
+import { createAlias } from "@repo/build-config";
 
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   return {
+    resolve: {
+      alias: createAlias(import.meta.url),
+    },
     // 服务端渲染
     css: {
       preprocessorOptions: {

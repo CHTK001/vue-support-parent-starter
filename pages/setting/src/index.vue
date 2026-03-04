@@ -7,6 +7,8 @@ const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { localStorageProxy, message, ScLoading } from "@repo/utils";
+import { getConfig } from "@repo/config";
+import { ScButton, ScIcon } from "@repo/components";
 
 import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
@@ -95,7 +97,35 @@ const defaultProductsConfig = [
 const productsConfig = reactive([]);
 
 const products = computed(() => {
-  return productsConfig.filter((it) => !it.hide);
+  const cfg = getConfig();
+  const enableThemeManagement = cfg.EnableThemeManagement !== false;
+  const enableEmail = cfg.OpenSettingEmail !== false;
+  const enableSms = cfg.OpenSettingSms !== false;
+  const enableLlm = cfg.OpenSettingLlm !== false;
+  const enableRefreshToken = cfg.OpenShowRefreshToken !== false;
+
+  return productsConfig.filter((it) => {
+    if (it.hide) {
+      return false;
+    }
+    if (it.group === "theme" && !enableThemeManagement) {
+      return false;
+    }
+    if (it.group === "email" && !enableEmail) {
+      return false;
+    }
+    if (it.group === "sms" && !enableSms) {
+      return false;
+    }
+    if (it.group === "llm" && !enableLlm) {
+      return false;
+    }
+    // 可选：如果后端为刷新 token 提供了单独的配置组，可以通过 OpenShowRefreshToken 控制展示
+    if (it.group === "token" && !enableRefreshToken) {
+      return false;
+    }
+    return true;
+  });
 });
 const saveLayoutRef = ref();
 

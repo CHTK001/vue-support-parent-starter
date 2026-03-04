@@ -22,6 +22,14 @@ import AiChatAppearanceSetting from "./components/AiChatAppearanceSetting.vue";
 import { AI_APPEARANCE_OPTIONS } from "../../lay-ai/appearance";
 import ScSlider from "@repo/components/ScSlider/src/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import {
+  ScButton,
+  ScInput,
+  ScInputNumber,
+  ScRadio,
+  ScRadioGroup,
+  ScTooltip,
+} from "@repo/components";
 import { message } from "@repo/utils";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useTheme } from "../../../hooks/useThemeComponent";

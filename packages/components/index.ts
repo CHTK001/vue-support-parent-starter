@@ -16,7 +16,7 @@ import { ScPanel } from "./ScPanel";
 import ScNumber from "./ScNumber/index.vue";
 import ScDictSelect from "./ScDictSelect/index.vue";
 import ScDrawer from "./ScDrawer/index.vue";
-import { ScReteEditor, useReteEditor } from "./ScReteEditor";
+import { ScDialog } from "./ScDialog";
 import { ScThree } from "./ScThree";
 import { ScSlider } from "./ScSlider";
 import { ScSelect } from "./ScSelect";
@@ -73,6 +73,7 @@ export {
   ScProgress,
   ScImage,
   ScMessageDialog,
+  ScDialog,
   ScDebugConsole,
   ScAnimationFrame,
   ScText,
@@ -82,7 +83,6 @@ export {
   ScNumber,
   ScDictSelect,
   ScDrawer,
-  ScReteEditor,
   ScRouteLoading,
   ScThree,
   ScSlider,
@@ -126,10 +126,8 @@ export {
   ScEmpty,
   ScTableColumn,
   ScOption,
-  useReteEditor,
   useRenderIcon
 };
-export * from "./ScReteEditor/types";
 export * from "./ReIcon";
 export * from "./hooks";
 
@@ -151,7 +149,6 @@ export default {
   ScNumber,
   ScDictSelect,
   ScDrawer,
-  ScReteEditor,
   ScThree,
   ScSlider,
   ScSelect,
@@ -189,5 +186,4 @@ export default {
   ScSubMenu,
   ScBreadcrumb,
   ScSteps,
-  useReteEditor
 };

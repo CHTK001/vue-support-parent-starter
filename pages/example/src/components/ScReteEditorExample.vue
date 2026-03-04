@@ -190,7 +190,7 @@
 import ScTabPane from "@repo/components/ScTabs";
 import { ref, reactive } from "vue";
 import { ScMessage } from "@repo/utils";
-import { ScReteEditor, type EditorData, type BaseNode, type NodeTypeName } from "@repo/components";
+import { ScReteEditor, type EditorData, type BaseNode, type NodeTypeName } from "@repo/scReteEditor";
 
 // =============== 基础用法 ===============
 const basicEditorRef = ref<InstanceType<typeof ScReteEditor>>();
@@ -370,7 +370,7 @@ const basicCodeExample = `<template>
 
 import ScTabPane from "@repo/components/ScTabs";
 import { ref } from 'vue';
-import { ScReteEditor, type EditorData } from '@repo/components';
+import { ScReteEditor, type EditorData } from '@repo/scReteEditor';
 
 const editorData = ref<EditorData>({
   nodes: [],
@@ -424,7 +424,7 @@ const apiCodeExample = `<template>
 
 import ScTabPane from "@repo/components/ScTabs";
 import { ref } from 'vue';
-import { ScReteEditor } from '@repo/components';
+import { ScReteEditor } from '@repo/scReteEditor';
 
 const editorRef = ref<InstanceType<typeof ScReteEditor>>();
 const data = ref({ nodes: [], connections: [] });
@@ -474,7 +474,7 @@ const customNodeCodeExample = `<template>
 
 import ScTabPane from "@repo/components/ScTabs";
 import { ref } from 'vue';
-import { ScReteEditor, type NodeTypeName } from '@repo/components';
+import { ScReteEditor, type NodeTypeName } from '@repo/scReteEditor';
 
 const data = ref({ nodes: [], connections: [] });
 

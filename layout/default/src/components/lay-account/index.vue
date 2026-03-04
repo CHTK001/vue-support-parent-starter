@@ -19,6 +19,7 @@ import AccountManagementIcon from "@iconify-icons/ri/profile-line";
 import ProfileIcon from "@iconify-icons/ri/user-3-line";
 import SecurityLogIcon from "@iconify-icons/ri/window-line";
 import Totp from "./components/Totp.vue";
+import { ScAvatar } from "@repo/components";
 
 defineOptions({
   name: "AccountSettings",

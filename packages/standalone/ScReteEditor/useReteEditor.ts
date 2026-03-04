@@ -6,7 +6,7 @@
  * 
  * @example 基础使用示例
  * ```typescript
- * import { useReteEditor } from '@repo/components';
+ * import { useReteEditor } from '@repo/scReteEditor';
  * 
  * // 在 setup 中使用
  * const {

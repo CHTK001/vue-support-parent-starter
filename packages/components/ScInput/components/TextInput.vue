@@ -8,7 +8,7 @@
       :class="[skinClass, { 'is-disabled': disabled }]"
     >
       <component
-        :is="currentComponent || ElInput"
+        :is="ElInput"
         :key="currentSkin"
         ref="inputRef"
         v-model="innerValue"

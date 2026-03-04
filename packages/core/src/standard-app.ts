@@ -74,64 +74,17 @@ export async function createStandardApp(
     await import("@repo/components/ReIcon");
   const { Auth } = await import("@repo/components/ReAuth");
 
-  // 导入所有 Sc 组件
+  // 导入基础 Sc 组件（只保留核心表格、选择和弹出类组件）
   const {
-    ScButton,
-    ScInput,
-    ScSelect,
-    ScCheckbox,
-    ScCheckboxGroup,
-    ScRadio,
-    ScRadioGroup,
-    ScSlider,
-    ScInputNumber,
-    ScRate,
-    ScColorPicker,
-    ScTag,
-    ScBadge,
-    ScAlert,
-    ScLink,
-    ScDivider,
-    ScAvatar,
-    ScProgress,
-    ScTooltip,
-    ScPopover,
-    ScPopconfirm,
-    ScForm,
-    ScFormItem,
-    ScRow,
-    ScCol,
-    ScTabs,
-    ScMenu,
-    ScBreadcrumb,
-    ScSteps,
-    ScUpload,
-    ScImage,
-    ScTree,
-    ScIcon,
-    ScEmpty,
-    ScTableColumn,
-    ScOption,
-    ScTimePicker,
-    ScDatePicker,
-    ScCascader,
-    ScAutocomplete,
-    ScCard,
     ScTable,
-    ScRibbon,
-    ScMessageDialog,
-    ScDebugConsole,
-    ScText,
-    ScFilterBar,
-    ScContainer,
-    ScPanel,
-    ScNumber,
-    ScDictSelect,
-    ScDrawer,
-    ScReteEditor,
-    ScLayer,
-    ScThree,
+    ScTableColumn,
+    ScButton,
+    ScSelect,
     ScSwitch,
+    ScText,
+    ScDrawer,
+    ScDialog,
+    ScTooltip,
   } = await import("@repo/components");
 
   // 3. 创建应用实例
@@ -139,6 +92,31 @@ export async function createStandardApp(
 
   // 4. 获取平台配置（异步）
   const config = await getPlatformConfig(app);
+
+  // 4.1 根据全局配置初始化加载动画样式（仅在本地未选择样式时生效）
+  try {
+    const loaderStyleFromConfig = config?.LoadingPageStyle;
+    if (loaderStyleFromConfig && !localStorage.getItem("sys-loader-style")) {
+      const mapping: Record<string, string> = {
+        spinner: "simple",
+        clock: "default",
+        pixel: "dinoGame",
+        cube: "blocks",
+        dots: "default",
+        pulse: "pulse",
+        minimal: "simple",
+        space: "rings",
+        servererror: "book",
+      };
+      const internalKey =
+        mapping[String(loaderStyleFromConfig)] || "default";
+      localStorage.setItem("sys-loader-style", internalKey);
+    }
+  } catch (error) {
+    // 初始化失败不影响主流程，记录日志方便排查
+    // eslint-disable-next-line no-console
+    console.warn("[createStandardApp] 初始化加载动画样式失败:", error);
+  }
 
   // 5. 创建 bootstrap 并注册所有功能
   const bootstrap = new AppBootstrap(app);
@@ -162,64 +140,17 @@ export async function createStandardApp(
     .registerComponent("FontIcon", FontIcon)
     .registerComponent("Auth", Auth);
 
-  // 注册所有自定义 Sc 组件
+  // 注册基础 Sc 组件（其余组件按需在业务侧手动注册）
   bootstrap
-    .registerComponent("ScButton", ScButton)
-    .registerComponent("ScInput", ScInput)
-    .registerComponent("ScSelect", ScSelect)
-    .registerComponent("ScCheckbox", ScCheckbox)
-    .registerComponent("ScCheckboxGroup", ScCheckboxGroup)
-    .registerComponent("ScRadio", ScRadio)
-    .registerComponent("ScRadioGroup", ScRadioGroup)
-    .registerComponent("ScSlider", ScSlider)
-    .registerComponent("ScInputNumber", ScInputNumber)
-    .registerComponent("ScRate", ScRate)
-    .registerComponent("ScColorPicker", ScColorPicker)
-    .registerComponent("ScTag", ScTag)
-    .registerComponent("ScBadge", ScBadge)
-    .registerComponent("ScAlert", ScAlert)
-    .registerComponent("ScLink", ScLink)
-    .registerComponent("ScDivider", ScDivider)
-    .registerComponent("ScAvatar", ScAvatar)
-    .registerComponent("ScProgress", ScProgress)
-    .registerComponent("ScTooltip", ScTooltip)
-    .registerComponent("ScPopover", ScPopover)
-    .registerComponent("ScPopconfirm", ScPopconfirm)
-    .registerComponent("ScForm", ScForm)
-    .registerComponent("ScFormItem", ScFormItem)
-    .registerComponent("ScRow", ScRow)
-    .registerComponent("ScCol", ScCol)
-    .registerComponent("ScTabs", ScTabs)
-    .registerComponent("ScMenu", ScMenu)
-    .registerComponent("ScBreadcrumb", ScBreadcrumb)
-    .registerComponent("ScSteps", ScSteps)
-    .registerComponent("ScUpload", ScUpload)
-    .registerComponent("ScImage", ScImage)
-    .registerComponent("ScTree", ScTree)
-    .registerComponent("ScIcon", ScIcon)
-    .registerComponent("ScEmpty", ScEmpty)
-    .registerComponent("ScTableColumn", ScTableColumn)
-    .registerComponent("ScOption", ScOption)
-    .registerComponent("ScTimePicker", ScTimePicker)
-    .registerComponent("ScDatePicker", ScDatePicker)
-    .registerComponent("ScCascader", ScCascader)
-    .registerComponent("ScAutocomplete", ScAutocomplete)
-    .registerComponent("ScCard", ScCard)
     .registerComponent("ScTable", ScTable)
-    .registerComponent("ScRibbon", ScRibbon)
-    .registerComponent("ScMessageDialog", ScMessageDialog)
-    .registerComponent("ScDebugConsole", ScDebugConsole)
-    .registerComponent("ScText", ScText)
-    .registerComponent("ScFilterBar", ScFilterBar)
-    .registerComponent("ScContainer", ScContainer)
-    .registerComponent("ScPanel", ScPanel)
-    .registerComponent("ScNumber", ScNumber)
-    .registerComponent("ScDictSelect", ScDictSelect)
+    .registerComponent("ScTableColumn", ScTableColumn)
+    .registerComponent("ScButton", ScButton)
+    .registerComponent("ScSelect", ScSelect)
+    .registerComponent("ScSwitch", ScSwitch)
     .registerComponent("ScDrawer", ScDrawer)
-    .registerComponent("ScReteEditor", ScReteEditor)
-    .registerComponent("ScLayer", ScLayer)
-    .registerComponent("ScThree", ScThree)
-    .registerComponent("ScSwitch", ScSwitch);
+    .registerComponent("ScDialog", ScDialog)
+    .registerComponent("ScTooltip", ScTooltip)
+    .registerComponent("ScText", ScText);
 
   // 注册自定义组件
   if (Object.keys(components).length > 0) {

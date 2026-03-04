@@ -5,6 +5,8 @@
  * @version 1.0.0
  */
 
+import { getConfig } from "@repo/config";
+
 export interface ThemeConfig {
   /** 登录页主题 */
   LoginTheme: string;
@@ -13,10 +15,22 @@ export interface ThemeConfig {
 }
 
 const STORAGE_KEY = "login-theme-config";
-const DEFAULT_CONFIG: ThemeConfig = {
-  LoginTheme: "modern",
-  EnableFestivalTheme: true,
-};
+
+function getDefaultConfig(): ThemeConfig {
+  const cfg = getConfig() || {};
+  const loginTheme =
+    (cfg.LoginTheme as string) && typeof cfg.LoginTheme === "string"
+      ? (cfg.LoginTheme as string)
+      : "modern";
+  const enableFestival =
+    typeof cfg.EnableFestivalTheme === "boolean"
+      ? (cfg.EnableFestivalTheme as boolean)
+      : true;
+  return {
+    LoginTheme: loginTheme,
+    EnableFestivalTheme: enableFestival,
+  };
+}
 
 /**
  * 获取主题配置
@@ -24,21 +38,22 @@ const DEFAULT_CONFIG: ThemeConfig = {
  */
 export function getThemeConfig(): ThemeConfig {
   try {
+    const defaults = getDefaultConfig();
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
       return {
-        LoginTheme: parsed.LoginTheme || DEFAULT_CONFIG.LoginTheme,
+        LoginTheme: parsed.LoginTheme || defaults.LoginTheme,
         EnableFestivalTheme:
           parsed.EnableFestivalTheme !== undefined
             ? parsed.EnableFestivalTheme
-            : DEFAULT_CONFIG.EnableFestivalTheme,
+            : defaults.EnableFestivalTheme,
       };
     }
   } catch (error) {
     console.warn("[ThemeConfig] Failed to parse theme config from storage:", error);
   }
-  return DEFAULT_CONFIG;
+  return getDefaultConfig();
 }
 
 /**

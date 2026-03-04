@@ -647,9 +647,13 @@ class PureHttp {
       upgrade(resVersion);
     }
     if (!isSuccess(code)) {
-      message(response.data?.msg || data?.message || "Error", {
-        type: "error",
-      });
+      // 是否自动弹出错误提示由 AutoErrorMessage 控制（默认开启，保持兼容）
+      const autoErrorMessage = getConfig().AutoErrorMessage;
+      if (autoErrorMessage !== false) {
+        message(response.data?.msg || data?.message || "Error", {
+          type: "error",
+        });
+      }
       return Promise.reject({
         msg: response.data?.msg || data?.message || "Error",
         code: code,

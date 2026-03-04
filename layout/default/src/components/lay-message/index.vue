@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
 import ScTabPane from "@repo/components/ScTabs";
+import { ScAvatar, ScBadge, ScIcon, ScEmpty, ScButton, ScTabs } from "@repo/components";
 /**
  * 消息菜单组件
  * 支持异步请求获取消息列表，以及通过Socket.IO实时推�?

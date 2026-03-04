@@ -35,6 +35,7 @@
     }
   },
   "dependencies": {
+    "@huggingface/transformers": "catalog:",
     "@pureadmin/theme": "catalog:",
     "@pureadmin/theme-utils": "catalog:",
     "@pureadmin/utils": "catalog:",
@@ -80,7 +81,7 @@
     "@typescript-eslint/parser": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@vitejs/plugin-vue-jsx": "catalog:",
-    "@vue/test-utils": "^2.4.6",
+    "@vue/test-utils": "catalog:",
     "autoprefixer": "catalog:",
     "boxen": "catalog:",
     "cssnano": "catalog:",

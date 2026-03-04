@@ -1,5 +1,5 @@
 {
-  "name": "@repo/sc-code-editor",
+  "name": "@repo/scCodeEditor",
   "version": "1.0.0",
   "description": "代码编辑器组件：ScCodeEditor（CodeMirror）",
   "private": true,

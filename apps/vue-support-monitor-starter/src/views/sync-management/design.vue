@@ -239,7 +239,7 @@ import {
   type EditorData,
   type NodeTypeName,
   type BaseNode,
-} from "@repo/components";
+} from "@repo/scReteEditor";
 import {
   getSyncTaskDesign,
   saveSyncTaskDesign,

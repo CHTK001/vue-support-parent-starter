@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import pkg from "./package.json";
+import { createAlias as createBuildAlias } from "@repo/build-config";
 
 const root: string = process.cwd();
 
@@ -19,9 +20,13 @@ const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
   return resolve(currentFileDir, dir);
 };
 
-const createAlias = (metaUrl: string): Record<string, string> => ({
-  "@": pathResolve("./src", metaUrl),
-});
+const createAlias = (metaUrl: string): Record<string, string> => {
+  const buildAlias = createBuildAlias(metaUrl);
+  return {
+    ...buildAlias,
+    "@": pathResolve("./src", metaUrl),
+  };
+};
 
 const createAppInfo = (packageJson: {
   name: string;
