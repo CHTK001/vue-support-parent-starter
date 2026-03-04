@@ -357,11 +357,14 @@ class PureHttp {
     const token = getToken();
 
     const defaultHeaders = {
-      //@ts-ignore
-      Authorization: formatToken(token),
       "x-req-fingerprint": localStorageProxy().getItem("visitId") || "",
       ...options.headers,
     };
+
+    const authorization = formatToken(token);
+    if(authorization) {
+      defaultHeaders["Authorization"] = authorization;
+    }
 
     fetchEventSource(getConfig().BaseUrl + url, {
       method: options.method || "GET",

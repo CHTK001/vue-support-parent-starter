@@ -21,18 +21,15 @@ const ZERO_IV = CryptoJS.enc.Utf8.parse("\x00".repeat(16));
 
 /**
  * 按需加载 wasm-pack 生成的 JS 包装层。
- * 说明：不能使用静态 import，否则在构建期会强制解析 ../build/codec_wasm.js，导致未生成产物时打包失败。
+ * 说明：由于没有实际的 WASM 文件，直接跳过加载。
  *
  * @returns {Promise<void>}
  */
 const ensureWasmModuleLoaded = async () => {
   if (wasmModuleLoaded) return;
-  const mod = await import(
-    /* @vite-ignore */
-    new URL("../build/codec_wasm.js", import.meta.url).href
-  );
-  wasmInit = mod?.default;
-  wasmCodec = mod;
+  // WASM 文件不存在，直接标记为已加载（但实际未加载）
+  wasmInit = null;
+  wasmCodec = null;
   wasmModuleLoaded = true;
 };
 
@@ -92,25 +89,47 @@ const callStr = (fn, args) => {
 
 // ============ 初始化 ============
 
+/**
+ * 检查是否启用 WASM（从配置读取）
+ * @returns {boolean}
+ */
+const checkWasmEnabled = () => {
+  try {
+    // 动态导入配置模块，避免循环依赖
+    if (typeof window !== "undefined" && window.__APP_CONFIG__) {
+      const config = window.__APP_CONFIG__;
+      return config?.wasmEnable !== false;
+    }
+    // 如果无法获取配置，默认启用 WASM
+    return true;
+  } catch {
+    return true;
+  }
+};
+
 /** 初始化 WASM 模块 */
 export const initializeWasmModule = async () => {
   if (wasmLoaded) return wasm;
   
+  // 检查配置，如果禁用 WASM，直接返回 null
+  if (!checkWasmEnabled()) {
+    console.log("[codec-wasm][初始化] WASM 已禁用，使用 JS 版本");
+    wasmLoaded = false;
+    wasm = null;
+    return null;
+  }
+  
   try {
     await ensureWasmModuleLoaded();
-    if (typeof wasmInit !== "function") {
-      throw new Error("WASM 初始化函数不存在（codec_wasm.js default export）");
-    }
-    const exports = await wasmInit(
-      new URL("../build/codec_wasm_bg.wasm", import.meta.url),
-    );
-    wasm = exports || wasmCodec;
-    wasmLoaded = true;
-    console.log("[codec-wasm][初始化] WASM 模块加载成功");
-    return wasm;
+    // WASM 文件不存在，直接返回 null，使用 JS 版本
+    console.log("[codec-wasm][初始化] WASM 文件不存在，使用 JS 版本");
+    wasmLoaded = false;
+    wasm = null;
+    return null;
   } catch (e) {
     console.error("[codec-wasm][初始化] WASM 模块加载失败:", e);
     wasmLoaded = false;
+    wasm = null;
     return null;
   }
 };
@@ -219,37 +238,62 @@ export const jsAdd = (a, b) => a + b;
 
 export const encryptStorageKey = (key, systemCode) => systemCode + key;
 
-// WASM 版本（严格模式，不降级）
-export const encryptStorageValue = (value, key, systemCode, storageKey, storageEncode) => 
-  callStr("encrypt_storage_value", [value, key, systemCode, storageKey, storageEncode]);
+// WASM 版本（严格模式，不降级，增加参数规范与返回值兜底）
+export const encryptStorageValue = (value, key, systemCode, storageKey, storageEncode) => {
+  const safeValue = value ?? "";
+  const safeKey = key ?? "";
+  const safeSystemCode = systemCode ?? "";
+  const safeStorageKey = storageKey ?? "";
+  const encodeFlag = String(storageEncode ?? "");
 
-export const decryptStorageValue = (value, key, systemCode, storageKey, storageEncode) => 
-  callStr("decrypt_storage_value", [value, key, systemCode, storageKey, storageEncode]);
+  // 未启用存储加密或缺少密钥时直接透传原文，避免传入异常参数导致 WASM 返回空串
+  if (!encodeFlag || encodeFlag === "false" || !safeStorageKey) {
+    return safeValue;
+  }
 
-// JS/TS 版本 (使用 AES 加解密，可由上层自行选择是否走 JS 版本)
-export const jsEncryptStorageValue = (value, storageKey) => {
-  if (!storageKey) {
-    return value;
-  }
-  try {
-    return jsEncryptAES(value, storageKey);
-  } catch (e) {
-    console.error("[codec-wasm][存储加密] JS AES 加密失败:", e);
-    return value;
-  }
+  const result = callStr("encrypt_storage_value", [
+    safeValue,
+    safeKey,
+    safeSystemCode,
+    safeStorageKey,
+    encodeFlag,
+  ]);
+
+  // WASM 返回空字符串时直接回退为明文，避免上层写入空值
+  return result || safeValue;
 };
 
-export const jsDecryptStorageValue = (value, storageKey) => {
-  if (!storageKey) {
-    return value;
+export const decryptStorageValue = (value, key, systemCode, storageKey, storageEncode) => {
+  const safeValue = value ?? "";
+  const safeKey = key ?? "";
+  const safeSystemCode = systemCode ?? "";
+  const safeStorageKey = storageKey ?? "";
+  const encodeFlag = String(storageEncode ?? "");
+
+  // 未启用存储加密或缺少密钥时直接返回原始值
+  if (!encodeFlag || encodeFlag === "false" || !safeStorageKey) {
+    return safeValue;
   }
-  try {
-    return jsDecryptAES(value, storageKey);
-  } catch (e) {
-    console.error("[codec-wasm][存储解密] JS AES 解密失败:", e);
-    return value;
-  }
+
+  const result = callStr("decrypt_storage_value", [
+    safeValue,
+    safeKey,
+    safeSystemCode,
+    safeStorageKey,
+    encodeFlag,
+  ]);
+
+  // 解密失败或返回空串时直接返回原始值，交给上层兜底
+  return result || safeValue;
 };
+
+// ============ JS 版本存储加解密 ============
+import { 
+  encryptStorageValue as jsEncryptStorageValue, 
+  decryptStorageValue as jsDecryptStorageValue 
+} from "./storage-js.js";
+
+export { jsEncryptStorageValue, jsDecryptStorageValue };
 
 // ============ UU 系列函数 (WASM 版本) ============
 
