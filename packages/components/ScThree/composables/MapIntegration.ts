@@ -5,7 +5,7 @@
  * @date 2025-01-XX
  */
 import * as THREE from "three";
-import type { Model3DOptions } from "@repo/sc-layer/composables/CesiumModelObject";
+import type { Model3DOptions } from "@repo/scLayer/composables/CesiumModelObject";
 
 /**
  * 地理坐标转换为 Three.js 坐标

@@ -11,6 +11,7 @@ import { transformI18n } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useRoute, useRouter } from "vue-router";
 import { onBeforeUnmount, onMounted, ref, toRaw, watch, computed } from "vue";
+import { ScIcon, ScTooltip } from "@repo/components";
 import {
   emitter,
   findRouteByPath,

@@ -111,7 +111,7 @@
     "xterm": "catalog:",
     "xterm-addon-attach": "catalog:",
     "xterm-addon-fit": "catalog:",
-    "@xterm/addon-unicode11": "^0.8.0",
+    "@xterm/addon-unicode11": "catalog:",
     "xterm-addon-web-links": "catalog:",
     "@pages/example": "workspace:^",
     "@pages/setting": "workspace:^",

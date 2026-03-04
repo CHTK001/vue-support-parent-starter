@@ -485,7 +485,21 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted } from "vue";
 import { message } from "@repo/utils";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import {
+  ScForm,
+  ScFormItem,
+  ScSwitch,
+  ScSelect,
+  ScOption,
+  ScInputNumber,
+  ScRadio,
+  ScRadioGroup,
+  ScTag,
+  ScButton,
+  ScDivider,
+  ScTable,
+  ScTableColumn,
+} from "@repo/components";
 import CodePreview from "./CodePreview.vue";
 
 // 配置项
