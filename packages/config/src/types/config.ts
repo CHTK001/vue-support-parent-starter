@@ -20,6 +20,8 @@ export interface PlatformConfigs {
   apiVersion?: string;
   /** 签名密钥 */
   secretKey?: string;
+  /** API 接口地址（优先级高于 BaseUrl；若配置则 HTTP/SSE 统一使用该地址） */
+  ApiAddress?: string;
   /** 是否自动提示错误信息 */
   AutoErrorMessage?: boolean;
 
@@ -277,6 +279,12 @@ export interface PlatformConfigs {
    * 注意：启用后加解密将完全使用 WASM 实现，不会降级到 TS 实现
    */
   wasmEnable?: boolean;
+
+  // ===========================================
+  // 兼容旧配置（已废弃/待移除）
+  // ===========================================
+  /** @deprecated 使用 RouterModule 替代 */
+  AutoRouter?: boolean;
 
   // ===========================================
   // 兼容旧配置（已废弃）
