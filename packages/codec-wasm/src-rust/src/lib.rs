@@ -608,10 +608,11 @@ pub fn encrypt_storage_value(
     .to_string();
 
     let mut buf = payload.into_bytes();
+    let buf_len = buf.len();
     // AES-CBC 加密
     let cipher = Aes128CbcEnc::new(&enc_key.into(), &iv.into());
     let encrypted = cipher
-        .encrypt_padded_mut::<Pkcs7>(&mut buf, buf.len())
+        .encrypt_padded_mut::<Pkcs7>(&mut buf, buf_len)
         .unwrap_or(&[]);
 
     // 计算 MAC = sm3(salt || iv || cipher || derived_key)

@@ -6,13 +6,44 @@ echo "[codec-wasm] 开始构建 WASM 模块..."
 
 # 临时移除 Git 的 bin 目录，避免 link.exe 冲突
 ORIGINAL_PATH="$PATH"
-# 移除包含 /usr/bin 和 Git 相关路径，但保留系统路径
-# 在 Windows 上，需要保留 /c/Windows/System32 等路径
-NEW_PATH=$(echo "$PATH" | tr ':' '\n' | grep -vE '(usr/bin|Git.*bin)' | grep -vE '^/usr' | tr '\n' ':' | sed 's/:$//')
+
+# 在 Windows 上，找到 Visual Studio 的 link.exe 并优先使用
+if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ -n "$WINDIR" ]]; then
+  # 查找 Visual Studio 的 link.exe（通常在 VC/Tools/MSVC 目录下）
+  VS_LINKER=$(find "/c/Program Files" "/c/Program Files (x86)" 2>/dev/null | \
+    grep -E "VC/Tools/MSVC.*/bin/Hostx64/x64/link.exe$" | head -1)
+  
+  if [ -n "$VS_LINKER" ]; then
+    VS_BIN_DIR=$(dirname "$VS_LINKER")
+    # 移除 Git 相关路径，并将 VS 的 bin 目录放在最前面
+    NEW_PATH=$(echo "$PATH" | tr ':' '\n' | \
+      grep -vE '(Git|git|usr/bin|mingw|MSYS)' | \
+      grep -vE '^/usr' | \
+      grep -vE '/Program Files.*Git' | \
+      grep -v "$VS_BIN_DIR" | \
+      tr '\n' ':' | sed 's/:$//' | sed 's/::*/:/g')
+    NEW_PATH="$VS_BIN_DIR:$NEW_PATH"
+  else
+    # 如果找不到 VS link.exe，只移除 Git 路径
+    NEW_PATH=$(echo "$PATH" | tr ':' '\n' | \
+      grep -vE '(Git|git|usr/bin|mingw|MSYS)' | \
+      grep -vE '^/usr' | \
+      grep -vE '/Program Files.*Git' | \
+      tr '\n' ':' | sed 's/:$//' | sed 's/::*/:/g')
+  fi
+else
+  # 非 Windows 系统，只移除 Git 路径
+  NEW_PATH=$(echo "$PATH" | tr ':' '\n' | \
+    grep -vE '(Git|git|usr/bin|mingw|MSYS)' | \
+    grep -vE '^/usr' | \
+    tr '\n' ':' | sed 's/:$//' | sed 's/::*/:/g')
+fi
+
 # 如果 NEW_PATH 为空，使用原始 PATH
 if [ -z "$NEW_PATH" ]; then
   NEW_PATH="$ORIGINAL_PATH"
 fi
+
 export PATH="$NEW_PATH"
 
 # 执行构建
