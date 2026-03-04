@@ -326,7 +326,6 @@ const existingScComponentNames = new Set<string>([
   "ScTip",
   "ScTooltip",
   "ScTree",
-  "ScUpload",
   "ScVideo",
   "ScWorkflow",
 ]);
