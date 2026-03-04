@@ -108,6 +108,8 @@ message:
   bindEmail: 已绑定邮箱
   bindPhone: 已绑定手机
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
+  pleaseInput: 请输入
+  updatePassword: 修改密码前请先确认当前密码，操作完成后请妥善保管新密码
   noPlugin: 没有部件啦
   tips:
     clearRouter: 缓存清除成功

@@ -3,6 +3,7 @@ import { nextTick, reactive, ref } from "vue";
 import { des } from "@repo/config";
 import { deviceDetection } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
+import { ScButton, ScDivider } from "@repo/components";
 import Password from "./password.vue";
 import Profile from "./Profile.vue";
 

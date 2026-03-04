@@ -31,7 +31,7 @@
           </ScTableColumn>
           <ScTableColumn prop="title" label="操作">
             <template #default="scope">
-              <ScButton type="primary" size="mini" text plain @click="handleUnBindCode(scope.row)">
+              <ScButton type="primary" size="small" text plain @click="handleUnBindCode(scope.row)">
                 {{ $t("login.unbind") }}
               </ScButton>
             </template>
@@ -43,18 +43,27 @@
 </template>
 <script>
 import { defineComponent } from "vue";
-import { $t, getConfig, transformI18n, uuid } from "@repo/config";
+import { $t, transformI18n, uuid } from "@repo/config";
 import { fetchThirdBindCode, fetchThirdBindInfo, fetchThirdUnbind } from "@repo/core";
+import { fetchSetting } from "@pages/setting";
 import { message } from "@repo/utils";
+import { ScDivider, ScEmpty, ScTable, ScTableColumn, ScButton } from "@repo/components";
 
 export default defineComponent({
+  components: {
+    ScDivider,
+    ScEmpty,
+    ScTable,
+    ScTableColumn,
+    ScButton
+  },
   data() {
     return {
       visible: false,
       url: null,
       thirdParty: [],
       bindThirdParty: [],
-      unbindThirdParty: [],
+      unbindThirdParty: []
     };
   },
   mounted() {
@@ -67,32 +76,32 @@ export default defineComponent({
     $t,
     transformI18n,
     async afterPropertiesSet() {
-      // const { data } = await fetchSetting("sso");
-      const data = getConfigGroup("default");
+      const response = await fetchSetting("sso");
+      const data = response?.data || [];
       this.thirdParty.length = 0;
-      data.forEach((element) => {
-        const _val = element.sysSettingValue === "true";
-        if (_val) {
+      data.forEach(element => {
+        const enabled = element.sysSettingValue === "true";
+        if (enabled) {
           this.thirdParty.push({
             title: element.sysSettingName,
-            icon: "simple-icons:" + element.sysSettingName,
+            icon: "simple-icons:" + element.sysSettingName
           });
         }
-        this.initializeBindInfo();
       });
+      await this.initializeBindInfo();
     },
     async initializeBindInfo() {
       this.unbindThirdParty.length = 0;
       this.bindThirdParty.length = 0;
       const { data } = await fetchThirdBindInfo({});
-      this.thirdParty.forEach((element2) => {
+      this.thirdParty.forEach(element2 => {
         if (data.indexOf(element2.title) > -1) {
           element2.bind = true;
           this.bindThirdParty.push(element2);
         }
       });
-      this.thirdParty.forEach((element2) => {
-        if (data.indexOf(element2.title) == -1) {
+      this.thirdParty.forEach(element2 => {
+        if (data.indexOf(element2.title) === -1) {
           this.unbindThirdParty.push(element2);
         }
       });
@@ -100,9 +109,9 @@ export default defineComponent({
 
     async handleUnBindCode(item) {
       fetchThirdUnbind({
-        loginType: item.title,
-      }).then((res) => {
-        if (res.code == "00000") {
+        loginType: item.title
+      }).then(res => {
+        if (res.code === "00000") {
           message(transformI18n("login.unbindSuccess"), { type: "success" });
           this.initializeBindInfo();
           return;
@@ -115,10 +124,10 @@ export default defineComponent({
         loginType: item.title,
         loginCode: uuid(),
         thirdType: 0,
-        callback: window.location.origin + "/#/bindSuccess",
+        callback: window.location.origin + "/#/bindSuccess"
       });
       window.open(data);
-    },
-  },
+    }
+  }
 });
 </script>

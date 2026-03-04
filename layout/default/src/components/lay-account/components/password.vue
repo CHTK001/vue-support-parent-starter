@@ -31,10 +31,22 @@ import scPasswordStrength from "@repo/components/ScPasswordStrength/index.vue";
 import { Md5 } from "ts-md5";
 import { fetchUpdateUserOwner, useUserStore } from "@repo/core";
 import { transformI18n } from "@repo/config";
+import {
+  ScAlert,
+  ScForm,
+  ScFormItem,
+  ScInput,
+  ScButton
+} from "@repo/components";
 
 export default {
   components: {
-    scPasswordStrength
+    scPasswordStrength,
+    ScAlert,
+    ScForm,
+    ScFormItem,
+    ScInput,
+    ScButton
   },
   props: {
     showTitle: {
@@ -63,8 +75,8 @@ export default {
           },
           {
             validator: (rule, value, callback) => {
-              var reg1 = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*.])[\da-zA-Z~!@#$%^&*.]{8,}$/; //密码必须是8位以上、必须含有字母、数字、特殊符号
-              var reg2 = /(123|234|345|456|567|678|789|012)/; //不能有3个连续数字
+              const reg1 = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*.])[\da-zA-Z~!@#$%^&*.]{8,}$/; // 密码必须是 8 位以上，且必须包含字母、数字和特殊符号
+              const reg2 = /(123|234|345|456|567|678|789|012)/; // 不能有 3 个连续数字
               if (!reg1.test(value)) {
                 callback(new Error("密码必须是8位以上、必须含有字母、数字、特殊符号"));
               } else if (reg2.test(value)) {
@@ -93,29 +105,29 @@ export default {
   methods: {
     save() {
       this.$refs.form.validate(valid => {
-        if (valid) {
-          const form = {};
-          form.newPassword = Md5.hashStr(this.form.newPassword);
-          form.oldPassword = Md5.hashStr(this.form.oldPassword);
-          fetchUpdateUserOwner(form).then(res => {
-            if (res.code == "00000") {
-              this.$alert("密码修改成功，是否跳转至登录页使用新密码登录", "修改成功", {
-                type: "success",
-                center: true
-              })
-                .then(() => {
-                  this.$nextTick(() => {
-                    useUserStore().logOut();
-                  });
-                })
-                .catch(() => {});
-            } else {
-              this.$notify.error({ title: "提示", message: res.msg });
-            }
-          });
-        } else {
+        if (!valid) {
           return false;
         }
+        const form = {};
+        form.newPassword = Md5.hashStr(this.form.newPassword);
+        form.oldPassword = Md5.hashStr(this.form.oldPassword);
+        fetchUpdateUserOwner(form).then(res => {
+          if (res.code === "00000") {
+            this.$alert("密码修改成功，是否跳转至登录页使用新密码登录", "修改成功", {
+              type: "success",
+              center: true
+            })
+              .then(() => {
+                this.$nextTick(() => {
+                  useUserStore().logOut();
+                });
+              })
+              .catch(() => {});
+          } else {
+            this.$notify.error({ title: "提示", message: res.msg });
+          }
+        });
+        return true;
       });
     }
   }

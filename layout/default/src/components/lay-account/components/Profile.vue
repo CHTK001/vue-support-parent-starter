@@ -6,7 +6,15 @@ import type { FormInstance, FormRules } from "element-plus";
 import { deviceDetection } from "@pureadmin/utils";
 import uploadLine from "@iconify-icons/ri/upload-line";
 import ScCropper from "@repo/components/ScCropper/index.vue";
-import { ScAvatar } from "@repo/components";
+import {
+  ScAvatar,
+  ScForm,
+  ScFormItem,
+  ScInput,
+  ScAutocomplete,
+  ScButton,
+  ScDialog
+} from "@repo/components";
 
 defineOptions({
   name: "Profile"
@@ -88,9 +96,9 @@ const handleSubmitImage = () => {
 
 // 更新信息
 const onSubmit = async (formEl: FormInstance) => {
-    await formEl.validate((valid, fields) => {
+  await formEl.validate(valid => {
     if (valid) {
-      fetchUpdateUser(userInfos).then(res => {
+      fetchUpdateUser(userInfos).then(() => {
         message("更新信息成功", { type: "success" });
       });
     }
@@ -131,7 +139,7 @@ getMine().then(res => {
         {{ $t("buttons.updateInfo") }}
       </ScButton>
     </ScForm>
-    <sc-dialog v-model="isShow" width="40%" :title="$t('button.updateAvatar')" destroy-on-close :closeOnClickModal="false" :before-close="handleClose" :fullscreen="deviceDetection()">
+    <sc-dialog v-model="isShow" width="40%" :title="$t('buttons.updateAvatar')" destroy-on-close :closeOnClickModal="false" :before-close="handleClose" :fullscreen="deviceDetection()">
       <sc-cropper ref="cropper" :src="imgSrc" />
       <template #footer>
         <div class="dialog-footer">

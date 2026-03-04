@@ -220,6 +220,7 @@ const findComponent = () => {
 <style lang="scss" scoped>
 .account-page {
   height: 100vh;
+  width: 100vw;
   background: linear-gradient(
     135deg,
     var(--el-bg-color-page) 0%,
@@ -560,9 +561,9 @@ const findComponent = () => {
 
 .content-component {
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  height: auto !important;
+  max-width: 100%;
+  margin: 0;
+  height: 100%;
 
   // 移除内容组件的卡片样式，让子组件自己控制
   :deep(h3) {
@@ -594,10 +595,6 @@ const findComponent = () => {
       font-weight: 500;
       color: var(--el-text-color-primary);
     }
-  }
-
-  @media (max-width: 768px) {
-    max-width: 100%;
   }
 }
 
