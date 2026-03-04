@@ -23,7 +23,7 @@ cbc = "0.1"
 block-padding = "0.3"
 constant_time_eq = "0.2"
 # 添加wasm-bindgen依赖
-wasm-bindgen = "0.2"
+wasm-bindgen = "0.2.95"
 # 添加smcrypto库用于SM2加密解密
 smcrypto = "0.3.1"
 

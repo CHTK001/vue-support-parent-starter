@@ -1,7 +1,6 @@
 //! WASM 加密模块 - Rust 实现
 //! 提供 SM2/SM3/SM4/AES/MD5 等加密算法
 
-use std::alloc::{alloc as rust_alloc, dealloc as rust_dealloc, Layout};
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 use js_sys::Reflect;
@@ -12,52 +11,6 @@ use sm2::elliptic_curve::sec1::ToEncodedPoint;
 use sm2::elliptic_curve::rand_core::{OsRng, RngCore};
 use smcrypto::sm2::{Encrypt, Decrypt};
 use serde_json::json;
-
-// ============ 内存管理 ============
-
-#[wasm_bindgen]
-pub fn alloc(size: usize) -> *mut u8 {
-    if size == 0 { return std::ptr::null_mut(); }
-    let layout = Layout::from_size_align(size, 1).unwrap();
-    unsafe { rust_alloc(layout) }
-}
-
-#[wasm_bindgen]
-pub fn dealloc(ptr: *mut u8, size: usize) {
-    if ptr.is_null() || size == 0 { return; }
-    let layout = Layout::from_size_align(size, 1).unwrap();
-    unsafe { rust_dealloc(ptr, layout) }
-}
-
-// ============ 字符串工具 ============
-
-fn str_from_ptr(ptr: *const u8, len: usize) -> String {
-    if ptr.is_null() || len == 0 || len > 1_000_000 { return String::new(); }
-    unsafe {
-        let slice = std::slice::from_raw_parts(ptr, len);
-        String::from_utf8_lossy(slice).into_owned()
-    }
-}
-
-fn str_to_ptr(s: &str) -> *mut u8 {
-    let bytes = s.as_bytes();
-    let ptr = alloc(bytes.len() + 1);
-    if ptr.is_null() { return ptr; }
-    unsafe {
-        std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len());
-        std::ptr::write(ptr.add(bytes.len()), 0);
-    }
-    ptr
-}
-
-fn strlen(ptr: *mut u8) -> usize {
-    if ptr.is_null() { return 0; }
-    unsafe {
-        let mut len = 0;
-        while *ptr.add(len) != 0 { len += 1; }
-        len
-    }
-}
 
 fn to_16_key(key: &str) -> [u8; 16] {
     let mut arr = [0u8; 16];
@@ -70,29 +23,26 @@ fn to_16_key(key: &str) -> [u8; 16] {
 // ============ 哈希函数 ============
 
 #[wasm_bindgen]
-pub fn sm3_hash(data_ptr: *const u8, data_len: usize) -> *mut u8 {
-    let data = str_from_ptr(data_ptr, data_len);
+pub fn sm3_hash(data: String) -> String {
     let mut hasher = sm3::Sm3::new();
     hasher.update(data.as_bytes());
-    str_to_ptr(&hex::encode(hasher.finalize()))
+    hex::encode(hasher.finalize())
 }
 
 #[wasm_bindgen]
-pub fn md5_hash(data_ptr: *const u8, data_len: usize) -> *mut u8 {
-    let data = str_from_ptr(data_ptr, data_len);
+pub fn md5_hash(data: String) -> String {
     let mut hasher = md5::Md5::new();
     hasher.update(data.as_bytes());
-    str_to_ptr(&hex::encode(hasher.finalize()))
+    hex::encode(hasher.finalize())
 }
 
 // ============ AES 加解密 ============
 
 #[wasm_bindgen]
-pub fn aes_encrypt(data_ptr: *const u8, data_len: usize, key_ptr: *const u8, key_len: usize) -> *mut u8 {
+pub fn aes_encrypt(data: String, key: String) -> String {
     use aes::cipher::{KeyInit, BlockEncryptMut, block_padding::Pkcs7};
     
-    let data = str_from_ptr(data_ptr, data_len);
-    let key = to_16_key(&str_from_ptr(key_ptr, key_len));
+    let key = to_16_key(&key);
     let cipher = aes::Aes128Enc::new(&key.into());
     
     let data_bytes = data.as_bytes();
@@ -102,40 +52,38 @@ pub fn aes_encrypt(data_ptr: *const u8, data_len: usize, key_ptr: *const u8, key
     
     let encrypted = cipher.encrypt_padded_mut::<Pkcs7>(&mut buffer, data_bytes.len())
         .expect("AES encryption failed");
-    str_to_ptr(&general_purpose::STANDARD.encode(encrypted))
+    general_purpose::STANDARD.encode(encrypted)
 }
 
 #[wasm_bindgen]
-pub fn aes_decrypt(data_ptr: *const u8, data_len: usize, key_ptr: *const u8, key_len: usize) -> *mut u8 {
+pub fn aes_decrypt(data: String, key: String) -> String {
     use aes::cipher::{KeyInit, BlockDecryptMut, block_padding::Pkcs7};
     
-    let data = str_from_ptr(data_ptr, data_len);
-    let key = to_16_key(&str_from_ptr(key_ptr, key_len));
+    let key = to_16_key(&key);
     
-    if data.is_empty() { return str_to_ptr(""); }
+    if data.is_empty() { return String::new(); }
     
     let encrypted = match general_purpose::STANDARD.decode(&data) {
         Ok(b) if b.len() % 16 == 0 => b,
-        _ => return str_to_ptr(""),
+        _ => return String::new(),
     };
     
     let cipher = aes::Aes128Dec::new(&key.into());
     let mut buffer = encrypted.clone();
     
     match cipher.decrypt_padded_mut::<Pkcs7>(&mut buffer) {
-        Ok(decrypted) => str_to_ptr(&String::from_utf8_lossy(decrypted)),
-        Err(_) => str_to_ptr(""),
+        Ok(decrypted) => String::from_utf8_lossy(decrypted).into_owned(),
+        Err(_) => String::new(),
     }
 }
 
 // ============ SM4 加解密 ============
 
 #[wasm_bindgen]
-pub fn sm4_encrypt(data_ptr: *const u8, data_len: usize, key_ptr: *const u8, key_len: usize) -> *mut u8 {
+pub fn sm4_encrypt(data: String, key: String) -> String {
     use sm4::cipher::{BlockEncrypt, NewBlockCipher};
     
-    let data = str_from_ptr(data_ptr, data_len);
-    let key = to_16_key(&str_from_ptr(key_ptr, key_len));
+    let key = to_16_key(&key);
     let cipher = sm4::Sm4::new(&key.into());
     
     let data_bytes = data.as_bytes();
@@ -154,19 +102,18 @@ pub fn sm4_encrypt(data_ptr: *const u8, data_len: usize, key_ptr: *const u8, key
         enc_chunk.copy_from_slice(&block);
     }
     
-    str_to_ptr(&hex::encode(&encrypted))
+    hex::encode(&encrypted)
 }
 
 #[wasm_bindgen]
-pub fn sm4_decrypt(data_ptr: *const u8, data_len: usize, key_ptr: *const u8, key_len: usize) -> *mut u8 {
+pub fn sm4_decrypt(data: String, key: String) -> String {
     use sm4::cipher::{BlockDecrypt, NewBlockCipher};
     
-    let data = str_from_ptr(data_ptr, data_len);
-    let key = to_16_key(&str_from_ptr(key_ptr, key_len));
+    let key = to_16_key(&key);
     
     let encrypted = match hex::decode(&data) {
         Ok(b) if b.len() % 16 == 0 => b,
-        _ => return str_to_ptr(""),
+        _ => return String::new(),
     };
     
     let cipher = sm4::Sm4::new(&key.into());
@@ -186,13 +133,13 @@ pub fn sm4_decrypt(data_ptr: *const u8, data_len: usize, key_ptr: *const u8, key
         }
     }
     
-    str_to_ptr(&String::from_utf8_lossy(&decrypted))
+    String::from_utf8_lossy(&decrypted).into_owned()
 }
 
 // ============ SM2 加解密 ============
 
 #[wasm_bindgen]
-pub fn generate_sm2_key_pair() -> *mut u8 {
+pub fn generate_sm2_key_pair() -> String {
     use sm2::elliptic_curve::rand_core::OsRng;
     
     let secret = SecretKey::random(&mut OsRng);
@@ -201,33 +148,27 @@ pub fn generate_sm2_key_pair() -> *mut u8 {
     let priv_hex = hex::encode(secret.to_bytes());
     let pub_hex = hex::encode(public.as_affine().to_encoded_point(false).as_bytes());
     
-    str_to_ptr(&format!(r#"{{"privateKey":"{}","publicKey":"{}"}}"#, priv_hex, pub_hex))
+    format!(r#"{{"privateKey":"{}","publicKey":"{}"}}"#, priv_hex, pub_hex)
 }
 
 #[wasm_bindgen]
-pub fn sm2_encrypt(data_ptr: *const u8, data_len: usize, pubkey_ptr: *const u8, pubkey_len: usize) -> *mut u8 {
-    let data = str_from_ptr(data_ptr, data_len);
-    let pubkey = str_from_ptr(pubkey_ptr, pubkey_len);
-    
+pub fn sm2_encrypt(data: String, pubkey: String) -> String {
     let ctx = Encrypt::new(&pubkey);
-    str_to_ptr(&hex::encode(ctx.encrypt(data.as_bytes())))
+    hex::encode(ctx.encrypt(data.as_bytes()))
 }
 
 #[wasm_bindgen]
-pub fn sm2_decrypt(data_ptr: *const u8, data_len: usize, privkey_ptr: *const u8, privkey_len: usize) -> *mut u8 {
-    let data = str_from_ptr(data_ptr, data_len);
-    let privkey = str_from_ptr(privkey_ptr, privkey_len);
-    
+pub fn sm2_decrypt(data: String, privkey: String) -> String {
     let encrypted = match hex::decode(&data) {
         Ok(b) => b,
-        Err(_) => return str_to_ptr(""),
+        Err(_) => return String::new(),
     };
     
     let ctx = Decrypt::new(&privkey);
     let decrypted = ctx.decrypt_c1c2c3(&encrypted);
     
-    str_to_ptr(&String::from_utf8(decrypted.clone())
-        .unwrap_or_else(|_| String::from_utf8_lossy(&decrypted).into_owned()))
+    String::from_utf8(decrypted.clone())
+        .unwrap_or_else(|_| String::from_utf8_lossy(&decrypted).into_owned())
 }
 
 // ============ 工具函数 ============
@@ -257,26 +198,19 @@ pub fn get_current_timestamp() -> f64 {
 // ============ 签名函数 ============
 
 #[wasm_bindgen]
-pub fn generate_sign(data_ptr: *const u8, data_len: usize, privkey_ptr: *const u8, privkey_len: usize) -> *mut u8 {
-    let data = str_from_ptr(data_ptr, data_len);
-    let privkey = str_from_ptr(privkey_ptr, privkey_len);
-    
-    if data.is_empty() || privkey.is_empty() { return str_to_ptr(""); }
+pub fn generate_sign(data: String, privkey: String) -> String {
+    if data.is_empty() || privkey.is_empty() { return String::new(); }
     
     let ctx = smcrypto::sm2::Sign::new(&privkey);
-    str_to_ptr(&hex::encode(ctx.sign(data.as_bytes())))
+    hex::encode(ctx.sign(data.as_bytes()))
 }
 
 #[wasm_bindgen]
 pub fn verify_sign(
-    data_ptr: *const u8, data_len: usize,
-    sig_ptr: *const u8, sig_len: usize,
-    pubkey_ptr: *const u8, pubkey_len: usize
+    data: String,
+    sig: String,
+    pubkey: String
 ) -> bool {
-    let data = str_from_ptr(data_ptr, data_len);
-    let sig = str_from_ptr(sig_ptr, sig_len);
-    let pubkey = str_from_ptr(pubkey_ptr, pubkey_len);
-    
     if data.is_empty() || sig.is_empty() || pubkey.is_empty() { return false; }
     
     let sig_bytes = match hex::decode(&sig) {
@@ -291,28 +225,25 @@ pub fn verify_sign(
 // ============ UU 系列函数 ============
 
 #[wasm_bindgen]
-pub fn uu3_decrypt_simple(data_ptr: *const u8, data_len: usize) -> *mut u8 {
+pub fn uu3_decrypt_simple(data: String) -> String {
     const KEY: &str = "1234567890Oil#@1";
-    aes_decrypt(data_ptr, data_len, KEY.as_ptr(), KEY.len())
+    aes_decrypt(data, KEY.to_string())
 }
 
 #[wasm_bindgen]
 pub fn uu1_decrypt_response(
-    data_ptr: *const u8, data_len: usize,
-    _origin_ptr: *const u8, _origin_len: usize,
-    ts_ptr: *const u8, ts_len: usize
-) -> *mut u8 {
-    let data = str_from_ptr(data_ptr, data_len);
-    let ts = str_from_ptr(ts_ptr, ts_len);
-    
-    if !data.starts_with("02") { return str_to_ptr(""); }
-    
+    data: String,
+    _origin: String,
+    ts: String
+) -> String {
+    if !data.starts_with("02") { return String::new(); }
+
     let key_len: usize = match ts.parse() {
         Ok(v) => v,
-        Err(_) => return str_to_ptr(""),
+        Err(_) => return String::new(),
     };
     
-    if data.len() < 2 + key_len + 3 + 4 { return str_to_ptr(""); }
+    if data.len() < 2 + key_len + 3 + 4 { return String::new(); }
     
     let key = &data[2..2 + key_len];
     let encrypted = &data[2 + key_len + 3..data.len() - 4];
@@ -327,7 +258,7 @@ pub fn uu1_decrypt_response(
         Err(_) => String::new(),
     };
     
-    str_to_ptr(&format!(r#"{{"data":"{}","success":true}}"#, decrypted.replace('"', "\\\"")))
+    format!(r#"{{"data":"{}","success":true}}"#, decrypted.replace('"', "\\\""))
 }
 
 #[wasm_bindgen]
@@ -358,13 +289,7 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
     
     if ts.is_empty() { return response.clone(); }
     
-    let ptr = uu1_decrypt_response(
-        data_str.as_ptr(), data_str.len(),
-        origin.as_ptr(), origin.len(),
-        ts.as_ptr(), ts.len()
-    );
-    
-    let result = str_from_ptr(ptr, strlen(ptr));
+    let result = uu1_decrypt_response(data_str, origin, ts);
     if result.is_empty() { return response.clone(); }
     
     let new_resp = response.clone();
@@ -409,13 +334,7 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
         let origin = Reflect::get(&headers, &"access-control-origin-key".into())
             .ok().and_then(|v| v.as_string()).unwrap_or_default();
         
-        let ptr = uu1_decrypt_response(
-            data_str.as_ptr(), data_str.len(),
-            origin.as_ptr(), origin.len(),
-            ts.as_ptr(), ts.len()
-        );
-        
-        let result = str_from_ptr(ptr, strlen(ptr));
+        let result = uu1_decrypt_response(data_str, origin, ts);
         if result.is_empty() { return response.clone(); }
         
         let new_resp = response.clone();
@@ -443,8 +362,8 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
 }
 
 #[wasm_bindgen]
-pub fn uu2_encrypt_request(data_ptr: *const u8, data_len: usize, key_ptr: *const u8, key_len: usize) -> *mut u8 {
-    aes_encrypt(data_ptr, data_len, key_ptr, key_len)
+pub fn uu2_encrypt_request(data: String, key: String) -> String {
+    aes_encrypt(data, key)
 }
 
 #[wasm_bindgen]
@@ -485,8 +404,7 @@ pub fn uu2_process_request(request: &JsValue) -> JsValue {
     };
     
     const KEY: &str = "defaultKey";
-    let enc_ptr = aes_encrypt(data_str.as_ptr(), data_str.len(), KEY.as_ptr(), KEY.len());
-    let encrypted = str_from_ptr(enc_ptr, strlen(enc_ptr));
+    let encrypted = aes_encrypt(data_str, KEY.to_string());
     
     let new_req = request.clone();
     let obj = js_sys::Object::new();
@@ -510,21 +428,18 @@ pub fn uu2_process_request(request: &JsValue) -> JsValue {
 
 #[wasm_bindgen]
 pub fn uu4_decrypt_response(
-    data_ptr: *const u8, data_len: usize,
-    _uuid_ptr: *const u8, _uuid_len: usize,
-    ts_ptr: *const u8, ts_len: usize
-) -> *mut u8 {
-    let data = str_from_ptr(data_ptr, data_len);
-    let ts = str_from_ptr(ts_ptr, ts_len);
-    
-    if !data.starts_with("02") { return str_to_ptr(""); }
-    
+    data: String,
+    _uuid: String,
+    ts: String
+) -> String {
+    if !data.starts_with("02") { return String::new(); }
+
     let key_len: usize = match ts.parse() {
         Ok(v) => v,
-        Err(_) => return str_to_ptr(""),
+        Err(_) => return String::new(),
     };
     
-    if data.len() < 2 + key_len + 3 + 4 { return str_to_ptr(""); }
+    if data.len() < 2 + key_len + 3 + 4 { return String::new(); }
     
     let key = &data[2..2 + key_len];
     let encrypted = &data[2 + key_len + 3..data.len() - 4];
@@ -534,54 +449,41 @@ pub fn uu4_decrypt_response(
         Ok(bytes) => {
             let ctx = Decrypt::new(key);
             let dec = ctx.decrypt_c1c2c3(&bytes);
-            str_to_ptr(&String::from_utf8(dec.clone()).unwrap_or_else(|_| String::from_utf8_lossy(&dec).into_owned()))
+            String::from_utf8(dec.clone()).unwrap_or_else(|_| String::from_utf8_lossy(&dec).into_owned())
         }
-        Err(_) => str_to_ptr(""),
+        Err(_) => String::new(),
     }
 }
 
 // ============ 存储函数（占位） ============
 
 #[wasm_bindgen]
-pub fn encrypt_storage_key(key_ptr: *const u8, key_len: usize, system_ptr: *const u8, system_len: usize) -> *mut u8 {
+pub fn encrypt_storage_key(key: String, system: String) -> String {
     // JS 层已经拼接 systemCode + key，这里保持兼容直接返回
-    let key = str_from_ptr(key_ptr, key_len);
     if key.is_empty() {
-        let system = str_from_ptr(system_ptr, system_len);
-        return str_to_ptr(&system);
+        return system;
     }
-    str_to_ptr(&key)
+    key
 }
 
 /// 存储值加密（WASM 版本）：
-///  - 结构：version|salt|iv|cipher|mac 全部 base64 拼接，使用 '.' 分隔
-///  - cipher: AES-128-CBC(PKCS7) 加密 JSON 字符串
-///  - mac: SM3(data = salt + iv + cipher + key 派生串) 的 hex
-#[wasm_bindgen]
-pub fn encrypt_storage_value(
-    val_ptr: *const u8,
-    val_len: usize,
-    key_ptr: *const u8,
-    key_len: usize,
-    system_ptr: *const u8,
-    system_len: usize,
-    storage_key_ptr: *const u8,
-    storage_key_len: usize,
-    encode_flag_ptr: *const u8,
-    encode_flag_len: usize,
-) -> *mut u8 {
+/// - 结构：version|salt|iv|cipher|mac 全部 base64 拼接，使用 '.' 分隔
+/// - cipher: AES-128-CBC(PKCS7) 加密 JSON 字符串
+/// - mac: SM3(data = salt + iv + cipher + key 派生串) 的 hex
+fn encrypt_storage_value_impl(value: &str, raw_key: &str, system: &str, storage_key: &str, encode_flag: &str) -> String {
     use aes::cipher::{KeyIvInit, block_padding::Pkcs7, BlockEncryptMut};
     type Aes128CbcEnc = cbc::Encryptor<aes::Aes128>;
+    const AES_BLOCK_SIZE: usize = 16;
 
-    let value = str_from_ptr(val_ptr, val_len);
-    let encode_flag = str_from_ptr(encode_flag_ptr, encode_flag_len);
+    // 检查 encode_flag
     if encode_flag.eq_ignore_ascii_case("false") || encode_flag == "0" {
-        return str_to_ptr(&value);
+        return value.to_string();
     }
 
-    let raw_key = str_from_ptr(key_ptr, key_len);
-    let system = str_from_ptr(system_ptr, system_len);
-    let storage_key = str_from_ptr(storage_key_ptr, storage_key_len);
+    // 检查必要参数
+    if value.is_empty() || raw_key.is_empty() || system.is_empty() || storage_key.is_empty() {
+        return value.to_string();
+    }
 
     // 组合一个派生 key：sm3(system + "|" + storage_key + "|" + raw_key)
     let mut hasher = sm3::Sm3::new();
@@ -607,13 +509,22 @@ pub fn encrypt_storage_value(
     })
     .to_string();
 
-    let mut buf = payload.into_bytes();
-    let buf_len = buf.len();
+    let data = payload.into_bytes();
+    let data_len = data.len();
+    // 预留 PKCS7 填充空间：cbc::Encryptor::encrypt_padded_mut 要求 buf 具备额外的 block 大小余量
+    let padded_len = ((data_len + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
+    let mut buf = vec![0u8; padded_len + AES_BLOCK_SIZE];
+    buf[..data_len].copy_from_slice(&data);
+    
     // AES-CBC 加密
     let cipher = Aes128CbcEnc::new(&enc_key.into(), &iv.into());
-    let encrypted = cipher
-        .encrypt_padded_mut::<Pkcs7>(&mut buf, buf_len)
-        .unwrap_or(&[]);
+    let encrypted = match cipher.encrypt_padded_mut::<Pkcs7>(&mut buf, data_len) {
+        Ok(data) => data,
+        Err(_) => {
+            // 加密失败，返回原文
+            return value.to_string();
+        }
+    };
 
     // 计算 MAC = sm3(salt || iv || cipher || derived_key)
     let mut mac_hasher = sm3::Sm3::new();
@@ -628,42 +539,23 @@ pub fn encrypt_storage_value(
     let iv_b64 = general_purpose::STANDARD.encode(&iv);
     let cipher_b64 = general_purpose::STANDARD.encode(encrypted);
 
-    let result = format!("{}.{}.{}.{}.{}", version, salt_b64, iv_b64, cipher_b64, mac_hex);
-    str_to_ptr(&result)
+    format!("{}.{}.{}.{}.{}", version, salt_b64, iv_b64, cipher_b64, mac_hex)
 }
 
 /// 存储值解密（WASM 版本）：
 /// 解析 version|salt|iv|cipher|mac 结构并做 MAC 校验，失败则返回空串
-#[wasm_bindgen]
-pub fn decrypt_storage_value(
-    val_ptr: *const u8,
-    val_len: usize,
-    key_ptr: *const u8,
-    key_len: usize,
-    system_ptr: *const u8,
-    system_len: usize,
-    storage_key_ptr: *const u8,
-    storage_key_len: usize,
-    encode_flag_ptr: *const u8,
-    encode_flag_len: usize,
-) -> *mut u8 {
+fn decrypt_storage_value_impl(encoded: &str, raw_key: &str, system: &str, storage_key: &str, encode_flag: &str) -> String {
     use aes::cipher::{KeyIvInit, block_padding::Pkcs7, BlockDecryptMut};
     type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
 
-    let encoded = str_from_ptr(val_ptr, val_len);
-    let encode_flag = str_from_ptr(encode_flag_ptr, encode_flag_len);
     if encode_flag.eq_ignore_ascii_case("false") || encode_flag == "0" {
-        return str_to_ptr(&encoded);
+        return encoded.to_string();
     }
 
     let parts: Vec<&str> = encoded.split('.').collect();
     if parts.len() != 5 || parts[0] != "v1" {
-        return str_to_ptr("");
+        return String::new();
     }
-
-    let raw_key = str_from_ptr(key_ptr, key_len);
-    let system = str_from_ptr(system_ptr, system_len);
-    let storage_key = str_from_ptr(storage_key_ptr, storage_key_len);
 
     // 重算派生 key
     let mut hasher = sm3::Sm3::new();
@@ -678,15 +570,15 @@ pub fn decrypt_storage_value(
 
     let salt = match general_purpose::STANDARD.decode(parts[1]) {
         Ok(v) if v.len() == 8 => v,
-        _ => return str_to_ptr(""),
+        _ => return String::new(),
     };
     let iv = match general_purpose::STANDARD.decode(parts[2]) {
         Ok(v) if v.len() == 16 => v,
-        _ => return str_to_ptr(""),
+        _ => return String::new(),
     };
     let cipher = match general_purpose::STANDARD.decode(parts[3]) {
         Ok(v) => v,
-        _ => return str_to_ptr(""),
+        _ => return String::new(),
     };
     let mac_hex = parts[4];
 
@@ -698,7 +590,7 @@ pub fn decrypt_storage_value(
     mac_hasher.update(&enc_key);
     let expect_mac = hex::encode(mac_hasher.finalize());
     if !constant_time_eq::constant_time_eq(expect_mac.as_bytes(), mac_hex.as_bytes()) {
-        return str_to_ptr("");
+        return String::new();
     }
 
     // 解密
@@ -706,37 +598,45 @@ pub fn decrypt_storage_value(
     let mut buf = cipher.clone();
     let decrypted = match cipher_inst.decrypt_padded_mut::<Pkcs7>(&mut buf) {
         Ok(d) => d,
-        Err(_) => return str_to_ptr(""),
+        Err(_) => return String::new(),
     };
 
     let text = String::from_utf8_lossy(decrypted).into_owned();
     let parsed: serde_json::Value = match serde_json::from_str(&text) {
         Ok(v) => v,
-        Err(_) => return str_to_ptr(""),
+        Err(_) => return String::new(),
     };
-    let data = parsed
+    parsed
         .get("d")
         .and_then(|v| v.as_str())
         .unwrap_or_default()
-        .to_string();
+        .to_string()
+}
 
-    str_to_ptr(&data)
+/// 存储值加密（对外导出：直接返回 JS 字符串，避免返回内存指针）
+#[wasm_bindgen]
+pub fn encrypt_storage_value(value: String, key: String, system: String, storage_key: String, encode_flag: String) -> String {
+    encrypt_storage_value_impl(&value, &key, &system, &storage_key, &encode_flag)
+}
+
+/// 存储值解密（对外导出：直接返回 JS 字符串，避免返回内存指针）
+#[wasm_bindgen]
+pub fn decrypt_storage_value(value: String, key: String, system: String, storage_key: String, encode_flag: String) -> String {
+    decrypt_storage_value_impl(&value, &key, &system, &storage_key, &encode_flag)
 }
 
 #[wasm_bindgen]
 pub fn custom_encrypt_with_codec_keypair(
-    data_ptr: *const u8, data_len: usize,
-    pubkey_ptr: *const u8, pubkey_len: usize,
-    privkey_ptr: *const u8, privkey_len: usize
-) -> *mut u8 {
-    let enc_data_ptr = sm2_encrypt(data_ptr, data_len, pubkey_ptr, pubkey_len);
-    let enc_data = str_from_ptr(enc_data_ptr, strlen(enc_data_ptr));
-    
+    data: String,
+    pubkey: String,
+    privkey: String
+) -> String {
+    let enc_data = sm2_encrypt(data, pubkey);
+
     let ts = format!("{:016}", js_sys::Date::now() as u64 % 10_000_000_000_000_000);
-    let enc_key_ptr = aes_encrypt(privkey_ptr, privkey_len, ts.as_ptr(), ts.len());
-    let enc_key = str_from_ptr(enc_key_ptr, strlen(enc_key_ptr));
+    let enc_key = aes_encrypt(privkey, ts.clone());
     
-    str_to_ptr(&format!(r#"{{"encryptedData":"{}","encryptedKey":"{}","timestamp":"{}"}}"#, enc_data, enc_key, ts))
+    format!(r#"{{"encryptedData":"{}","encryptedKey":"{}","timestamp":"{}"}}"#, enc_data, enc_key, ts)
 }
 
 // ============ 字体加密函数 ============
@@ -881,12 +781,11 @@ fn get_or_init_maps() -> (HashMap<char, char>, HashMap<&'static str, &'static st
 /// 字体加密文本
 #[wasm_bindgen]
 pub fn font_encrypt_text(
-    text_ptr: *const u8, text_len: usize,
+    text: String,
     encrypt_numbers: bool, encrypt_chinese: bool
-) -> *mut u8 {
-    let text = str_from_ptr(text_ptr, text_len);
+) -> String {
     if text.is_empty() {
-        return str_to_ptr("");
+        return String::new();
     }
 
     let (number_map, chinese_map, _, _) = get_or_init_maps();
@@ -906,15 +805,14 @@ pub fn font_encrypt_text(
         }
     }
 
-    str_to_ptr(&result)
+    result
 }
 
 /// 字体解密文本
 #[wasm_bindgen]
-pub fn font_decrypt_text(text_ptr: *const u8, text_len: usize) -> *mut u8 {
-    let text = str_from_ptr(text_ptr, text_len);
+pub fn font_decrypt_text(text: String) -> String {
     if text.is_empty() {
-        return str_to_ptr("");
+        return String::new();
     }
 
     let (_, _, reverse_number_map, reverse_chinese_map) = get_or_init_maps();
@@ -930,13 +828,12 @@ pub fn font_decrypt_text(text_ptr: *const u8, text_len: usize) -> *mut u8 {
         result = result.replace(*mapped, &original.to_string());
     }
 
-    str_to_ptr(&result)
+    result
 }
 
 /// 检查字符是否为加密字符
 #[wasm_bindgen]
-pub fn font_is_encrypted_char(char_ptr: *const u8, char_len: usize) -> bool {
-    let ch = str_from_ptr(char_ptr, char_len);
+pub fn font_is_encrypted_char(ch: String) -> bool {
     if ch.is_empty() {
         return false;
     }
@@ -958,15 +855,15 @@ pub fn font_is_encrypted_char(char_ptr: *const u8, char_len: usize) -> bool {
 
 /// 获取映射的字符数量
 #[wasm_bindgen]
-pub fn font_get_mapped_char_count() -> *mut u8 {
+pub fn font_get_mapped_char_count() -> String {
     let (number_map, chinese_map, _, _) = get_or_init_maps();
     let result = format!(r#"{{"numbers":{},"chinese":{}}}"#, number_map.len(), chinese_map.len());
-    str_to_ptr(&result)
+    result
 }
 
 /// 获取动态映射表（JSON格式，每次调用都重新生成）
 #[wasm_bindgen]
-pub fn font_get_maps() -> *mut u8 {
+pub fn font_get_maps() -> String {
     let (number_map, chinese_map, reverse_number_map, reverse_chinese_map) = generate_new_maps();
     
     // 转换为 JSON 格式
@@ -997,5 +894,5 @@ pub fn font_get_maps() -> *mut u8 {
         "reverseChineseMap": reverse_chinese_map_json
     });
     
-    str_to_ptr(&result.to_string())
+    result.to_string()
 }

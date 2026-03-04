@@ -116,10 +116,8 @@ class PureHttp {
     const nonce = generateNonce();
     config.headers["x-timestamp"] = timestamp.toString();
     config.headers["x-nonce"] = nonce;
-    let fingerprint = config.headers["x-req-fingerprint"] as string;
-    if (!fingerprint || String(fingerprint).trim() === "") {
-      fingerprint = getOrCreateFingerprint();
-    }
+    // 按约定直接使用 getOrCreateFingerprint 获取（避免从 headers 读回导致 number 等脏值透传）
+    const fingerprint = getOrCreateFingerprint();
     // 确保指纹头一定存在，否则后端 hasSignHeaders 会直接判定不完整并跳过/拒绝
     config.headers["x-req-fingerprint"] = fingerprint;
     const sign = generateSign(config, timestamp, nonce, fingerprint);
