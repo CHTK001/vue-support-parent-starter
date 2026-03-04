@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { nextTick, reactive, ref } from "vue";
+import { reactive, ref } from "vue";
 import { fetchBindTotp, fetchUnbindTotp, fetchGetTotpUri } from "@repo/core";
 import { deviceDetection } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
@@ -7,6 +7,7 @@ import Password from "./password.vue";
 import Profile from "./Profile.vue";
 import { message } from "@repo/utils";
 import QrcodeVue from "qrcode.vue";
+import { ScButton, ScDivider } from "@repo/components";
 
 const { t } = useI18n();
 
@@ -33,7 +34,7 @@ async function handleGetToptUri() {
 }
 async function handleUpdateTopt() {
   fetchBindTotp().then((res) => {
-    if (res.code == "00000") {
+    if (res.code === "00000") {
       message(t("message.updateSuccess"), { type: "success" });
       handleGetToptUri();
       return;
@@ -43,7 +44,7 @@ async function handleUpdateTopt() {
 }
 async function handleCloseTopt() {
   fetchUnbindTotp().then((res) => {
-    if (res.code == "00000") {
+    if (res.code === "00000") {
       message(t("message.updateSuccess"), { type: "success" });
       title.value = null;
       return;
