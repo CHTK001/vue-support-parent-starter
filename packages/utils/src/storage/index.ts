@@ -97,6 +97,9 @@ class SyncLocalStorageProxy {
     }
 
     const value = storageLocal().getItem(key);
+    if(!value) {
+      return null as T;
+    }
     if (config.StorageEncode) {
       try {
         // 同步方式处理存储值解密（简化处理，不使用WASM解密）
@@ -165,6 +168,10 @@ class CustomSessionStorageProxy {
     
     const config = getConfig();
     const value = storageSession().getItem(key);
+    if(!value) {
+      return null as T;
+    }
+
     if (config.StorageEncode) {
       try {
         const cipher = value as string;
@@ -221,14 +228,16 @@ class CustomLocalStorageProxy {
       try {
         const plain = JSON.stringify(value);
         // 仅使用 WASM 加密，不允许降级
-        const encrypted = encryptStorageValue(
+        const encryptedRaw = encryptStorageValue(
           plain,
           config.StorageKey,
           config.SystemCode,
           config.StorageKey,
           config.StorageEncode,
         );
-        // 如果WASM异常返回空字符串，则保持明文写入，避免写入空值
+        // WASM 理论上应返回字符串，这里做一次兜底，任何非字符串结果都视作加密失败
+        const encrypted = typeof encryptedRaw === "string" ? encryptedRaw : "";
+        // 如果 WASM 异常返回空字符串，则保持明文写入，避免写入空值或 number 等脏数据
         storageValue = encrypted || plain;
       } catch (error) {
         console.error("存储值加密失败:", error);
@@ -258,9 +267,16 @@ class CustomLocalStorageProxy {
     }
     
     const value = storageLocal().getItem(newKey);
+    if(!value) {
+      return null as T;
+    }
     if (config.StorageEncode) {
       try {
-        const cipher = value as string;
+        // 历史上可能写入过 number 等非字符串，这里仅在字符串场景尝试解密
+        const cipher = typeof value === "string" ? value : "";
+        if (!cipher) {
+          return value as T;
+        }
         // 仅使用 WASM 解密，不允许降级
         const decrypted = decryptStorageValue(
           cipher,
