@@ -25,6 +25,8 @@ export const globalSetting: PlatformConfigs = {
   OpenTenantLogin: false,
   /** 是否开启基础登录 */
   OpenBaseLogin: true,
+  /** 是否开启刷新token（仅控制相关功能入口是否展示，刷新逻辑由HTTP模块统一处理） */
+  OpenShowRefreshToken: false,
   /** 配置加载失败时是否保持加载页面（默认false，失败后继续进入应用） */
   BlockOnConfigLoadFail: false,
   /** 是否显示错误页面风格切换按钮（默认false） */
@@ -35,6 +37,8 @@ export const globalSetting: PlatformConfigs = {
   LoadingPageStyle: "minimal",
   /** 错误页面风格（默认minimal） */
   ErrorPageStyle: "minimal",
+  /** 是否自动提示错误信息（默认 true，与历史行为保持一致） */
+  AutoErrorMessage: true,
 
   // ===========================================
   // 布局与菜单配置
@@ -78,6 +82,8 @@ export const globalSetting: PlatformConfigs = {
   contentMargin: 16,
   /** 是否显示FPS监控 */
   ShowFpsMonitor: false,
+  /** 消息弹窗默认开关 */
+  MessagePopupEnabled: true,
 
   // ===========================================
   // 顶部工具栏配置
@@ -120,6 +126,8 @@ export const globalSetting: PlatformConfigs = {
   LayoutRadius: 10,
   /** 布局模糊程度 */
   LayoutBlur: 10,
+  /** 内容区是否拉伸 */
+  Stretch: false,
 
   // ===========================================
   // 标签页配置

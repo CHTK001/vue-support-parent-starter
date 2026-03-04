@@ -15,7 +15,7 @@
  *   ProcessNode,
  *   type EditorData,
  *   type NodeTypeName 
- * } from '@repo/components';
+ * } from '@repo/scReteEditor';
  * 
  * // 创建节点实例
  * const input = new InputNode('数据输入');
@@ -80,7 +80,7 @@ export class BaseSocket extends ClassicPreset.Socket {
  * 
  * @example
  * ```typescript
- * import { Sockets } from '@repo/components';
+ * import { Sockets } from '@repo/scReteEditor';
  * 
  * // 使用预定义 Socket
  * this.addInput('data', new ClassicPreset.Input(Sockets.data, '数据输入'));
@@ -385,7 +385,7 @@ export type AreaExtra = VueArea2D<Schemes>;
  * 
  * @example
  * ```typescript
- * import { NodeTypes, type NodeTypeName } from '@repo/components';
+ * import { NodeTypes, type NodeTypeName } from '@repo/scReteEditor';
  * 
  * // 根据类型名创建节点
  * const typeName: NodeTypeName = 'process';

@@ -1,5 +1,5 @@
 {
-  "name": "@repo/sc-echarts-map3d",
+  "name": "@repo/scEchartsMap3D",
   "version": "1.0.0",
   "description": "3D ECharts 地图组件（map3D/bar3D 等）",
   "private": true,

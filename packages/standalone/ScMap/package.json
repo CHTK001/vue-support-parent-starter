@@ -1,5 +1,5 @@
 {
-  "name": "@repo/sc-map",
+  "name": "@repo/scMap",
   "version": "1.0.0",
   "description": "地图组件：ScMap（Leaflet）",
   "private": true,

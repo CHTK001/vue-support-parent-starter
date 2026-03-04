@@ -220,10 +220,10 @@ export const jsAdd = (a, b) => a + b;
 export const encryptStorageKey = (key, systemCode) => systemCode + key;
 
 // WASM 版本（严格模式，不降级）
-export const encryptStorageValue = (value, key, systemCode, storageKey, storageEncode) =>
+export const encryptStorageValue = (value, key, systemCode, storageKey, storageEncode) => 
   callStr("encrypt_storage_value", [value, key, systemCode, storageKey, storageEncode]);
 
-export const decryptStorageValue = (value, key, systemCode, storageKey, storageEncode) =>
+export const decryptStorageValue = (value, key, systemCode, storageKey, storageEncode) => 
   callStr("decrypt_storage_value", [value, key, systemCode, storageKey, storageEncode]);
 
 // JS/TS 版本 (使用 AES 加解密，可由上层自行选择是否走 JS 版本)

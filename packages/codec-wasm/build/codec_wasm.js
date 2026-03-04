@@ -71,7 +71,7 @@ if (typeof window !== "undefined") {
   if (!window.__CODEC_WASM_FALLBACK_LOGGED__) {
     window.__CODEC_WASM_FALLBACK_LOGGED__ = true;
     console.info(
-      "[codec-wasm] 未加载 WASM 模块，当前使用 JS 降级实现，部分高级加密能力关闭。"
+      "[codec-wasm] WASM 尚未完成初始化，当前暂时使用 JS 兜底实现，后续加载成功会自动切换为 WASM。"
     );
   }
 }

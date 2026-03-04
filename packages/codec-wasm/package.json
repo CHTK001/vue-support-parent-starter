@@ -36,7 +36,7 @@
     "rimraf": "catalog:"
   },
   "dependencies": {
-    "crypto-js": "^4.2.0",
-    "sm-crypto": "^0.3.12"
+    "crypto-js": "catalog:",
+    "sm-crypto": "catalog:"
   }
 }

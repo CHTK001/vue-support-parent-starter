@@ -1,0 +1,31 @@
+{
+  "name": "@repo/scReteEditor",
+  "version": "1.0.0",
+  "description": "可视化节点编辑器组件：ScReteEditor（Rete.js）",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    }
+  },
+  "dependencies": {
+    "@repo/components": "workspace:^",
+    "vue": "catalog:",
+    "element-plus": "catalog:",
+    "rete": "catalog:",
+    "rete-area-plugin": "catalog:",
+    "rete-auto-arrange-plugin": "catalog:",
+    "rete-connection-plugin": "catalog:",
+    "rete-context-menu-plugin": "catalog:",
+    "rete-minimap-plugin": "catalog:",
+    "rete-vue-plugin": "catalog:"
+  },
+  "license": "ISC"
+}

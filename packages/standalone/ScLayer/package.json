@@ -1,5 +1,5 @@
 {
-  "name": "@repo/sc-layer",
+  "name": "@repo/scLayer",
   "version": "1.0.0",
   "description": "地图组件：ScLayer（OpenLayers + Cesium）",
   "private": true,

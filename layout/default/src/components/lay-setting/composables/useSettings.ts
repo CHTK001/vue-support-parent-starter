@@ -95,7 +95,11 @@ export function useSettings() {
 
   // ===== 初始化状态 =====
   const settings = reactive<SettingsState>({
-    menuTransition: $storage.configure?.menuTransition ?? false,
+    // 菜单过渡动画优先从本地存储读取，其次从全局配置，最后默认关闭
+    menuTransition:
+      $storage.configure?.menuTransition ??
+      getConfig().MenuTransition ??
+      false,
     transitionType: $storage.configure?.transitionType ?? 'fade-slide',
     // ... 其他默认值保持不变
     // 新增动画配置默认值
