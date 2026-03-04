@@ -184,10 +184,7 @@ function shouldForceIdentityAnswer(question: string): boolean {
 }
 
 function buildIdentityAnswer(question: string): string {
-  return (
-    "您好，我是claude-4.6-opus-high-thinking的AI模型，是Cursor IDE内置的AI助手，致力于提升您的开发效率。" +
-    `你问的是："${question}"`
-  );
+  return `您好，我是claude-4.6-opus-high-thinking的AI模型，是Cursor IDE内置的AI助手，致力于提升您的开发效率。你问的是："${question}"`;
 }
 
 async function sendMessage(payload: string): Promise<void> {
