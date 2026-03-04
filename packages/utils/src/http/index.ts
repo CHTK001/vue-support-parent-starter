@@ -12,18 +12,16 @@ import {
   getConfig,
   getToken,
   handRefreshToken,
+  logOut,
   upgrade,
 } from "@repo/config";
 import { UserResult } from "@repo/core";
-import { localStorageProxy } from "../storage";
 import { getLogger } from "../log";
 import Axios, {
   type AxiosInstance,
   type AxiosRequestConfig,
-  type CustomParamsSerializer,
 } from "axios";
 import NProgress from "nprogress";
-import { stringify } from "qs";
 import { transformI18n } from "../../../config/src/i18n";
 import { uu1, uu2 } from "../crypto/codec";
 import type {
@@ -34,10 +32,19 @@ import type {
 } from "../http/types";
 import { message } from "../message";
 import {
-  generateNonce as generateNonceWasm,
-  md5Hash as md5HashWasm,
   isWasmLoaded,
 } from "@repo/codec-wasm";
+import {
+  getRequestConfig,
+  getErrorHandlerConfig,
+  defaultConfig,
+  WHITE_LIST,
+  isNoAuth,
+  isSuccess,
+} from "./request-config";
+import { getOrCreateFingerprint } from "./fingerprint";
+import { reportErrorToServer } from "./error-handler";
+import { generateNonce, generateSign } from "./sign";
 
 const logger = getLogger("[HTTP]");
 
@@ -65,108 +72,6 @@ export interface PageResult<T> {
   };
   success: boolean;
 }
-
-/** 无权限状态码判断 */
-const isNoAuth = (code: string | number | null): boolean =>
-  code === "C0403S0000" || code === 403;
-
-/** 成功状态码判断 */
-const isSuccess = (code: string | number | null): boolean =>
-  code === "00000" || code === 200;
-
-/** 获取请求配置 */
-const getRequestConfig = () => {
-  const config = getConfig();
-  return {
-    timeout: config?.Request?.timeout || config?.baseHttpTimeout || 30000,
-    retryCount: config?.Request?.retryCount || 3,
-    retryDelay: config?.Request?.retryDelay || 1000,
-    showLoading: config?.Request?.showLoading !== false,
-    enable: config?.Request?.enable !== false,
-    enableSign: config?.Request?.enableSign !== false, // 默认 true
-  };
-};
-
-/** 获取错误处理配置 */
-const getErrorHandlerConfig = () => {
-  const config = getConfig();
-  return {
-    enable: config?.ErrorHandler?.enable || false,
-    showNotification: config?.ErrorHandler?.showNotification !== false,
-    logToConsole: config?.ErrorHandler?.logToConsole !== false,
-    reportToServer: config?.ErrorHandler?.reportToServer || false,
-    reportUrl: config?.ErrorHandler?.reportUrl || "/v1/error/report",
-  };
-};
-
-/** 错误上报队列（防刷机制） */
-const errorReportQueue: Map<string, number> = new Map();
-const ERROR_REPORT_INTERVAL = 60000; // 同一错误1分钟内只上报一次
-
-/** 上报错误到服务器 */
-const reportErrorToServer = async (error: any, url: string) => {
-  const config = getErrorHandlerConfig();
-  if (!config.enable || !config.reportToServer) return;
-
-  // 生成错误唯一标识
-  const errorKey = `${error.code || "unknown"}_${url}`;
-  const lastReportTime = errorReportQueue.get(errorKey);
-  const now = Date.now();
-
-  // 防刷检查：同一错误1分钟内只上报一次
-  if (lastReportTime && now - lastReportTime < ERROR_REPORT_INTERVAL) {
-    return;
-  }
-
-  errorReportQueue.set(errorKey, now);
-
-  // 清理过期的错误记录
-  errorReportQueue.forEach((time, key) => {
-    if (now - time > ERROR_REPORT_INTERVAL) {
-      errorReportQueue.delete(key);
-    }
-  });
-
-  try {
-    // 使用fetch避免循环依赖
-    const baseUrl = getConfig().ApiAddress || getConfig().BaseUrl;
-    await fetch(baseUrl + config.reportUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url,
-        code: error.code,
-        message: error.msg || error.message,
-        timestamp: now,
-        userAgent: navigator.userAgent,
-        fingerprint: localStorage.getItem("visitId"),
-      }),
-    });
-  } catch (e) {
-    // 上报失败静默处理
-    if (config.logToConsole) {
-      console.warn("Error report failed:", e);
-    }
-  }
-};
-
-/** 默认请求配置 */
-const defaultConfig: AxiosRequestConfig = {
-  timeout: getRequestConfig().timeout,
-  baseURL: getConfig()?.BaseUrl,
-  headers: {
-    Accept: "application/json, text/plain, */*",
-    "Content-Type": "application/json; charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest",
-  },
-  responseType: "blob",
-  paramsSerializer: {
-    serialize: stringify as unknown as CustomParamsSerializer,
-  },
-};
-
-/** 请求白名单（不需要 token） */
-const WHITE_LIST = ["/refresh-token", "/login", "/logout"];
 
 class PureHttp {
   constructor() {
@@ -211,8 +116,10 @@ class PureHttp {
     const nonce = generateNonce();
     config.headers["x-timestamp"] = timestamp.toString();
     config.headers["x-nonce"] = nonce;
-    const fingerprint =
-      config.headers["x-req-fingerprint"] ?? localStorageProxy().getItem("visitId") ?? "";
+    let fingerprint = config.headers["x-req-fingerprint"] as string;
+    if (!fingerprint || String(fingerprint).trim() === "") {
+      fingerprint = getOrCreateFingerprint();
+    }
     // 确保指纹头一定存在，否则后端 hasSignHeaders 会直接判定不完整并跳过/拒绝
     config.headers["x-req-fingerprint"] = fingerprint;
     const sign = generateSign(config, timestamp, nonce, fingerprint);
@@ -235,7 +142,10 @@ class PureHttp {
   private static retryOriginalRequest(config: PureHttpRequestConfig) {
     return new Promise((resolve) => {
       PureHttp.requests.push((token: string) => {
-        config.headers["Authorization"] = formatToken(token);
+        const authorization = formatToken(token);
+        if(authorization) {
+          config.headers["Authorization"] = authorization;
+        }
         // 确保 x-sign 一定存在
         PureHttp.ensureXSign(config);
         resolve(config);
@@ -258,8 +168,7 @@ class PureHttp {
         // 修复：确保headers存在再访问其属性
         const an =
           config.headers["x-remote-animation"] || config.headers["loading"];
-        config.headers["x-req-fingerprint"] =
-          localStorageProxy().getItem("visitId");
+        config.headers["x-req-fingerprint"] = getOrCreateFingerprint();
 
         // 检查是否配置了apiVersion，如果配置了则在URL中添加version参数（必须在生成签名之前）
         const apiVersion = getConfig().apiVersion;
@@ -319,7 +228,10 @@ class PureHttp {
                 handRefreshToken({ refreshToken: data.refreshToken })
                   .then((res) => {
                     const token = res.accessToken;
-                    config.headers["Authorization"] = formatToken(token);
+                    const authorization = formatToken(token);
+                    if(authorization) {
+                      config.headers["Authorization"] = authorization;
+                    }
                     PureHttp.requests.forEach((cb) => cb(token));
                     PureHttp.requests = [];
                   })
@@ -329,9 +241,10 @@ class PureHttp {
               }
               resolve(PureHttp.retryOriginalRequest(config));
             } else {
-              config.headers["Authorization"] = formatToken(
-                data.accessToken
-              );
+              const authorization = formatToken(data.accessToken);
+              if(authorization) {
+                config.headers["Authorization"] = authorization;
+              }
               // 在所有处理完成后，最后统一生成 sign
               PureHttp.ensureXSign(config);
               resolve(config);
@@ -372,7 +285,7 @@ class PureHttp {
           return this.processResponseData(processedResponse, $config);
         }
       },
-      (error: PureHttpError) => {
+      async (error: PureHttpError) => {
         const $error = error;
         const response = error.response;
         const errorConfig = getErrorHandlerConfig();
@@ -382,8 +295,38 @@ class PureHttp {
           NProgress.done();
         }
 
+        // 如果返回体是 blob，优先尝试解析为 JSON，保证后续错误处理拿到结构化数据
+        if (response && response.data instanceof Blob) {
+          try {
+            const text = await response.data.text();
+            const json = JSON.parse(text);
+            // 覆盖为可直接消费的对象
+            // @ts-ignore
+            response.data = json;
+          } catch (parseError) {
+            if (errorConfig.logToConsole) {
+              console.error("HTTP Error blob parse failed:", parseError);
+            }
+          }
+        }
+
         // 检查是否为取消的请求
         $error.isCancelRequest = Axios.isCancel($error);
+
+        // 统一处理无权限异常（包含 HTTP 403 与业务码 C0403S0000）
+        const statusCode =
+          (response?.data as any)?.code ?? response?.status ?? null;
+        if (isNoAuth(statusCode)) {
+          // 优先展示后端返回的提示信息
+          const serverMsg =
+            // @ts-ignore 兼容多种返回结构
+            (response?.data as any)?.msg || (response?.data as any)?.message || error.message;
+          if (serverMsg) {
+            message(serverMsg, { type: "error" });
+          }
+          // 触发全局登出逻辑（会清理 token、路由并跳转登录页）
+          logOut();
+        }
 
         // 错误处理
         if (!$error.isCancelRequest && errorConfig.enable) {
@@ -555,14 +498,17 @@ class PureHttp {
   ): AbortController {
     const controller = new AbortController();
     const token = getToken();
-    const fingerprint = localStorageProxy().getItem("visitId") || "";
+    const fingerprint = getOrCreateFingerprint();
+    const authorization = formatToken(token);
+  
     const defaultHeaders: Record<string, string> = {
-      //@ts-ignore
-      Authorization: formatToken(token),
       "x-req-fingerprint": fingerprint,
       ...options.headers,
     };
-    if (isWasmLoaded()) {
+    if(authorization) {
+      defaultHeaders["Authorization"] = authorization;
+    }
+      if (isWasmLoaded()) {
       const timestamp = Date.now();
       const nonce = generateNonce();
       const tempConfig: PureHttpRequestConfig = {
@@ -574,7 +520,7 @@ class PureHttp {
       };
       defaultHeaders["x-nonce"] = nonce;
       defaultHeaders["x-timestamp"] = timestamp.toString();
-      defaultHeaders["x-sign"] = generateSign(tempConfig, timestamp, nonce, fingerprint);
+      defaultHeaders["x-sign"] = generateSign(tempConfig, timestamp, nonce, fingerprint as string);
     }
 
     // 优先使用 ApiAddress，如果未设置则使用 BaseUrl
@@ -647,12 +593,20 @@ class PureHttp {
       upgrade(resVersion);
     }
     if (!isSuccess(code)) {
-      // 是否自动弹出错误提示由 AutoErrorMessage 控制（默认开启，保持兼容）
-      const autoErrorMessage = getConfig().AutoErrorMessage;
-      if (autoErrorMessage !== false) {
-        message(response.data?.msg || data?.message || "Error", {
-          type: "error",
-        });
+      // 无权限错误统一触发登出，避免留在无效会话下
+      if (isNoAuth(code)) {
+        const serverMsg =
+          response.data?.msg || data?.message || "用户信息不存在/请重新登录!";
+        message(serverMsg, { type: "error" });
+        logOut();
+      } else {
+        // 是否自动弹出错误提示由 AutoErrorMessage 控制（默认开启，保持兼容）
+        const autoErrorMessage = getConfig().AutoErrorMessage;
+        if (autoErrorMessage !== false) {
+          message(response.data?.msg || data?.message || "Error", {
+            type: "error",
+          });
+        }
       }
       return Promise.reject({
         msg: response.data?.msg || data?.message || "Error",
@@ -677,112 +631,4 @@ class PureHttp {
 
 export const http = new PureHttp();
 
-/**
- * 生成随机 nonce（必须由 WASM 生成）
- * 仅在 isWasmLoaded() 为 true 时调用
- */
-const generateNonce = (): string => {
-  return generateNonceWasm();
-};
-
-/** 需排除的请求参数字段（如 file 等二进制） */
-const EXCLUDED_PARAM_KEYS = new Set(["file", "files"]);
-
-/**
- * 生成 x-sign（必须由 WASM md5Hash 生成）
- * 算法：sign = MD5(nonce + fingerprint + timestamp + paramsMd5 + secretKey)
- * paramsMd5 = MD5(请求参数自然排序、排除 file、key=value& 拼接)
- */
-function collectParams(config: PureHttpRequestConfig): Record<string, string> {
-  // 重要：后端使用 request.getParameterMap() 取参（query + form），不会读取 JSON body。
-  // 为保持一致：仅签名 params；data 仅在 form/multipart/urlencoded 场景纳入签名。
-  const collected: Record<string, string[]> = {};
-
-  const pushValue = (key: string, raw: unknown) => {
-    if (!key) return;
-    if (EXCLUDED_PARAM_KEYS.has(key.toLowerCase())) return;
-    if (raw === null || raw === undefined || typeof raw === "function") return;
-    if (raw instanceof File || raw instanceof Blob) return;
-    if (typeof raw === "object") return;
-    if (!collected[key]) collected[key] = [];
-    collected[key].push(String(raw));
-  };
-
-  const add = (key: string, value: unknown) => {
-    if (Array.isArray(value)) {
-      for (const v of value) {
-        pushValue(key, v);
-      }
-      return;
-    }
-    pushValue(key, value);
-  };
-
-  const params = config.params ?? {};
-  for (const key of Object.keys(params)) {
-    add(key, (params as Record<string, unknown>)[key]);
-  }
-
-  const headers = config.headers ?? {};
-  const contentType = String(headers["Content-Type"] ?? headers["content-type"] ?? "").toLowerCase();
-  const isFormLike =
-    contentType.includes("application/x-www-form-urlencoded") ||
-    contentType.includes("multipart/form-data");
-
-  const data = config.data as any;
-  if (data instanceof FormData) {
-    for (const [key, value] of data.entries()) {
-      add(key, value);
-    }
-  } else if (typeof URLSearchParams !== "undefined" && data instanceof URLSearchParams) {
-    // URLSearchParams 可能存在同名 key 多值，按后端逻辑用逗号拼接
-    const tmp: Record<string, string[]> = {};
-    for (const [key, value] of data.entries()) {
-      if (!tmp[key]) tmp[key] = [];
-      tmp[key].push(value);
-    }
-    for (const key of Object.keys(tmp)) {
-      add(key, tmp[key]);
-    }
-  } else if (isFormLike && data && typeof data === "object") {
-    for (const key of Object.keys(data)) {
-      add(key, (data as Record<string, unknown>)[key]);
-    }
-  }
-
-  const filteredParams: Record<string, string> = {};
-  for (const key of Object.keys(collected)) {
-    filteredParams[key] = collected[key].join(",");
-  }
-  return filteredParams;
-}
-
-/** 多路径解析 secretKey（与后端 NonceSignProperties.resolveSecretKey 对应） */
-const resolveSecretKey = (): string => {
-  const cfg = getConfig();
-  return (
-    cfg?.secretKey ||
-    cfg?.["nonce"]?.["sign"]?.["secretKey"] ||
-    cfg?.["nonce"]?.["sign"]?.["secret-key"] ||
-    cfg?.["plugin"]?.["nonce"]?.["sign"]?.["secretKey"] ||
-    cfg?.["plugin"]?.["nonce"]?.["sign"]?.["secret-key"] ||
-    ""
-  );
-};
-
-export const generateSign = (
-  config: PureHttpRequestConfig,
-  timestamp: number,
-  nonce: string,
-  fingerprint: string
-): string => {
-  const filteredParams = collectParams(config);
-  const paramPairs = Object.keys(filteredParams)
-    .sort()
-    .map((k) => `${k}=${filteredParams[k]}`);
-  const paramsString = paramPairs.join("&");
-  const paramsMd5 = md5HashWasm(paramsString);
-  const secretKey = resolveSecretKey();
-  const signInput = nonce + fingerprint + timestamp + paramsMd5 + secretKey;
-  return md5HashWasm(signInput);
-};
+export { generateSign };
