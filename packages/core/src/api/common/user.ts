@@ -74,6 +74,18 @@ export const fetchGetUserLayout = () => {
   return http.request<ReturnResult<object>>("get", "/v2/user/layout", {});
 };
 
+/** 获取用户偏好配置 */
+export const fetchGetUserPreference = () => {
+  return http.request<ReturnResult<string>>("get", "/v2/user/preference", {});
+};
+
+/** 保存用户偏好配置 */
+export const fetchSaveUserPreference = (preference: string) => {
+  return http.request<ReturnResult<boolean>>("put", "/v2/user/preference", {
+    data: preference,
+  });
+};
+
 /** 保存用户配置 */
 export const fetchSaveUser = (setting) => {
   return http.request<Boolean>("post", "/v2/user/save", { data: setting });

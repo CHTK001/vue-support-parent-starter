@@ -237,7 +237,7 @@ pub fn uu1_decrypt_response(
     ts: String
 ) -> String {
     if !data.starts_with("02") { return String::new(); }
-
+    
     let key_len: usize = match ts.parse() {
         Ok(v) => v,
         Err(_) => return String::new(),
@@ -433,7 +433,7 @@ pub fn uu4_decrypt_response(
     ts: String
 ) -> String {
     if !data.starts_with("02") { return String::new(); }
-
+    
     let key_len: usize = match ts.parse() {
         Ok(v) => v,
         Err(_) => return String::new(),
@@ -632,7 +632,7 @@ pub fn custom_encrypt_with_codec_keypair(
     privkey: String
 ) -> String {
     let enc_data = sm2_encrypt(data, pubkey);
-
+    
     let ts = format!("{:016}", js_sys::Date::now() as u64 % 10_000_000_000_000_000);
     let enc_key = aes_encrypt(privkey, ts.clone());
     

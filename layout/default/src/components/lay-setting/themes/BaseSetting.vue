@@ -30,7 +30,7 @@ import {
   ScRadioGroup,
   ScTooltip,
 } from "@repo/components";
-import { message } from "@repo/utils";
+import { http, message, type ReturnResult } from "@repo/utils";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useTheme } from "../../../hooks/useThemeComponent";
 import { useThemeStore } from "../../../stores/themeStore";
@@ -1577,6 +1577,83 @@ function importSettings() {
 
   input.click();
 }
+
+/** 是否显示云同步功能 */
+const showCloudSync = computed(() => {
+  const enabled = getConfig().ShowCloudSync ?? false;
+  const url = getConfig().CloudSyncUrl ?? "";
+  // 只有启用且配置了地址才显示
+  return enabled && url.trim() !== "";
+});
+
+/** 云同步服务地址 */
+const cloudSyncUrl = computed(() => {
+  return getConfig().CloudSyncUrl ?? "/v2/user/preference";
+});
+
+/** 同步状态 */
+const syncLoading = ref(false);
+
+/** 上传配置到云端 */
+const syncToCloud = async () => {
+  if (!showCloudSync.value || !cloudSyncUrl.value) {
+    message.warning(t("panel.cloudSyncUrlNotConfigured") || "云同步地址未配置");
+    return;
+  }
+
+  syncLoading.value = true;
+  try {
+    const config = JSON.stringify($storage.configure || {});
+    // 支持完整 URL 和相对路径（相对路径会自动拼接 baseURL）
+    const url = cloudSyncUrl.value.trim();
+    await http.request<ReturnResult<boolean>>("put", url, {
+      data: config,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    message.success(t("panel.syncSuccess") || "配置已同步到云端");
+  } catch (error) {
+    console.error("[BaseSetting] 同步配置失败:", error);
+    message.error(t("panel.syncFailed") || "同步配置失败");
+  } finally {
+    syncLoading.value = false;
+  }
+};
+
+/** 从云端下载配置 */
+const syncFromCloud = async () => {
+  if (!showCloudSync.value || !cloudSyncUrl.value) {
+    message.warning(t("panel.cloudSyncUrlNotConfigured") || "云同步地址未配置");
+    return;
+  }
+
+  syncLoading.value = true;
+  try {
+    // 支持完整 URL 和相对路径（相对路径会自动拼接 baseURL）
+    const url = cloudSyncUrl.value.trim();
+    const response = await http.request<ReturnResult<string>>("get", url, {});
+    if (response?.data) {
+      const cloudConfig = JSON.parse(response.data);
+      // 合并云端配置到本地
+      const currentConfig = $storage.configure || {};
+      Object.assign(currentConfig, cloudConfig);
+      $storage.configure = currentConfig;
+      storageLocal().setItem("responsive-configure", currentConfig);
+
+      // 重新加载所有设置
+      location.reload();
+      message.success(t("panel.syncDownloadSuccess") || "已从云端下载配置");
+    } else {
+      message.warning(t("panel.noCloudConfig") || "云端暂无配置");
+    }
+  } catch (error) {
+    console.error("[BaseSetting] 下载配置失败:", error);
+    message.error(t("panel.syncDownloadFailed") || "下载配置失败");
+  } finally {
+    syncLoading.value = false;
+  }
+};
 
 onUnmounted(() => {
   removeMatchMedia();
@@ -3423,6 +3500,40 @@ onUnmounted(() => {
                   <IconifyIconOnline icon="ri:upload-line" />
                   {{ t("panel.importConfig") }}
                 </ScButton>
+              </div>
+            </div>
+
+            <!-- 云同步选项 -->
+            <div v-if="showCloudSync" class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOnline icon="ri:cloud-line" class="group-icon" />
+                {{ t("panel.cloudSync") || "云同步" }}
+              </h4>
+              <div class="reset-actions">
+                <ScButton
+                  type="primary"
+                  plain
+                  :loading="syncLoading"
+                  @click="syncToCloud"
+                >
+                  <IconifyIconOnline icon="ri:cloud-upload-line" />
+                  {{ t("panel.syncToCloud") || "上传到云端" }}
+                </ScButton>
+                <ScButton
+                  type="primary"
+                  plain
+                  :loading="syncLoading"
+                  @click="syncFromCloud"
+                >
+                  <IconifyIconOnline icon="ri:cloud-download-line" />
+                  {{ t("panel.syncFromCloud") || "从云端下载" }}
+                </ScButton>
+              </div>
+              <div v-if="cloudSyncUrl" class="cloud-sync-url">
+                <span class="sync-url-label">
+                  {{ t("panel.syncUrl") || "同步地址" }}:
+                </span>
+                <span class="sync-url-value">{{ cloudSyncUrl }}</span>
               </div>
             </div>
           </div>
