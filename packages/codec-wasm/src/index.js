@@ -96,7 +96,7 @@ export const initializeWasmModule = async () => {
         console.error(
           "[codec-wasm][初始化] 无法导入 codec_wasm.js:",
           importError,
-        );
+            );
         throw importError;
       }
 
@@ -138,9 +138,9 @@ export const sm3Hash = (data) => {
       throw new Error("WASM sm3_hash 返回空串");
     }
     return str;
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
+    }
 };
 
 export const md5Hash = (data) => {
@@ -158,9 +158,9 @@ export const md5Hash = (data) => {
       throw new Error("WASM md5_hash 返回空串");
     }
     return str;
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
+    }
 };
 
 // ============ AES 加解密 ============
@@ -169,22 +169,22 @@ export const encryptAES = (data, key) => {
   if (!wasmLoaded || !wasm?.aes_encrypt) {
     throw new Error("WASM 未就绪，无法执行 AES 加密");
   }
-  try {
-    return wasm.aes_encrypt(data, key);
-  } catch (error) {
-    throw error;
-  }
+    try {
+      return wasm.aes_encrypt(data, key);
+    } catch (error) {
+      throw error;
+    }
 };
 
 export const decryptAES = (data, key) => {
   if (!wasmLoaded || !wasm?.aes_decrypt) {
     throw new Error("WASM 未就绪，无法执行 AES 解密");
   }
-  try {
-    return wasm.aes_decrypt(data, key);
-  } catch (error) {
-    throw error;
-  }
+    try {
+      return wasm.aes_decrypt(data, key);
+    } catch (error) {
+      throw error;
+    }
 };
 
 // ============ SM4 加解密 ============
@@ -193,22 +193,22 @@ export const encryptSM4 = (data, key) => {
   if (!wasmLoaded || !wasm?.sm4_encrypt) {
     throw new Error("WASM 未就绪，无法执行 SM4 加密");
   }
-  try {
-    return wasm.sm4_encrypt(data, key);
-  } catch (error) {
-    throw error;
-  }
+    try {
+      return wasm.sm4_encrypt(data, key);
+    } catch (error) {
+      throw error;
+    }
 };
 
 export const decryptSM4 = (data, key) => {
   if (!wasmLoaded || !wasm?.sm4_decrypt) {
     throw new Error("WASM 未就绪，无法执行 SM4 解密");
   }
-  try {
-    return wasm.sm4_decrypt(data, key);
-  } catch (error) {
-    throw error;
-  }
+    try {
+      return wasm.sm4_decrypt(data, key);
+    } catch (error) {
+      throw error;
+    }
 };
 
 // ============ SM2 加解密 ============
@@ -217,33 +217,33 @@ export const encryptSM2 = (data, pubKey) => {
   if (!wasmLoaded || !wasm?.sm2_encrypt) {
     throw new Error("WASM 未就绪，无法执行 SM2 加密");
   }
-  try {
-    return wasm.sm2_encrypt(data, pubKey);
-  } catch (error) {
-    throw error;
-  }
+    try {
+      return wasm.sm2_encrypt(data, pubKey);
+    } catch (error) {
+      throw error;
+    }
 };
 
 export const decryptSM2 = (data, privKey) => {
   if (!wasmLoaded || !wasm?.sm2_decrypt) {
     throw new Error("WASM 未就绪，无法执行 SM2 解密");
   }
-  try {
-    return wasm.sm2_decrypt(data, privKey);
-  } catch (error) {
-    throw error;
-  }
+    try {
+      return wasm.sm2_decrypt(data, privKey);
+    } catch (error) {
+      throw error;
+    }
 };
 
 export const generateSm2KeyPair = () => {
   if (!wasmLoaded || !wasm?.generate_sm2_key_pair) {
     throw new Error("WASM 未就绪，无法生成 SM2 密钥对");
   }
-  try {
-    return wasm.generate_sm2_key_pair();
-  } catch (error) {
-    throw error; // WASM 执行错误,抛出错误
-  }
+    try {
+      return wasm.generate_sm2_key_pair();
+    } catch (error) {
+      throw error; // WASM 执行错误,抛出错误
+    }
 };
 
 // ============ 签名函数 ============
@@ -252,22 +252,22 @@ export const generateSign = (data, privateKey) => {
   if (!wasmLoaded || !wasm?.generate_sign) {
     throw new Error("WASM 未就绪，无法执行签名");
   }
-  try {
-    return wasm.generate_sign(data, privateKey);
-  } catch (error) {
-    throw error;
-  }
+    try {
+      return wasm.generate_sign(data, privateKey);
+    } catch (error) {
+      throw error;
+    }
 };
 
 export const verifySign = (data, sig, pubKey) => {
   if (!wasmLoaded || !wasm?.verify_sign) {
     throw new Error("WASM 未就绪，无法执行验签");
   }
-  try {
-    return wasm.verify_sign(data, sig, pubKey);
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
+    try {
+      return wasm.verify_sign(data, sig, pubKey);
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
+    }
 };
 
 // ============ 工具函数 ============
@@ -276,34 +276,34 @@ export const generateNonce = () => {
   if (!wasmLoaded || !wasm?.generate_nonce) {
     throw new Error("WASM 未就绪，无法生成随机串");
   }
-  try {
-    // wasm.generate_nonce() 现在是 wasm-bindgen 生成的绑定函数，直接返回字符串
-    return wasm.generate_nonce();
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
+    try {
+      // wasm.generate_nonce() 现在是 wasm-bindgen 生成的绑定函数，直接返回字符串
+      return wasm.generate_nonce();
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
+    }
 };
 
 export const getCurrentTimestamp = () => {
   if (!wasmLoaded || !wasm) {
     throw new Error("WASM 未就绪，无法获取时间戳");
   }
-  try {
-    return call("get_current_timestamp");
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
+    try {
+      return call("get_current_timestamp");
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
+    }
 };
 
 export const add = (a, b) => {
   if (!wasmLoaded || !wasm) {
     throw new Error("WASM 未就绪，无法执行加法运算");
   }
-  try {
-    return call("add", a, b);
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
+    try {
+      return call("add", a, b);
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
+    }
 };
 
 // ============ 存储加解密 ============
@@ -331,19 +331,19 @@ export const encryptStorageValue = (
   if (!wasmLoaded || !wasm?.encrypt_storage_value) {
     throw new Error("WASM 未就绪，无法执行存储加密");
   }
-  try {
-    const result = wasm.encrypt_storage_value(
-      safeValue,
-      safeKey,
-      safeSystemCode,
-      safeStorageKey,
-      encodeFlag,
-    );
+    try {
+      const result = wasm.encrypt_storage_value(
+        safeValue,
+        safeKey,
+        safeSystemCode,
+        safeStorageKey,
+        encodeFlag,
+      );
     // 与 JS 版本行为对齐：WASM 返回空时回退为原文
-    return result || safeValue;
-  } catch (error) {
-    throw error;
-  }
+      return result || safeValue;
+    } catch (error) {
+      throw error;
+    }
 };
 
 export const decryptStorageValue = (
@@ -367,19 +367,19 @@ export const decryptStorageValue = (
   if (!wasmLoaded || !wasm?.decrypt_storage_value) {
     throw new Error("WASM 未就绪，无法执行存储解密");
   }
-  try {
-    const result = wasm.decrypt_storage_value(
-      safeValue,
-      safeKey,
-      safeSystemCode,
-      safeStorageKey,
-      encodeFlag,
-    );
+    try {
+      const result = wasm.decrypt_storage_value(
+        safeValue,
+        safeKey,
+        safeSystemCode,
+        safeStorageKey,
+        encodeFlag,
+      );
     // 直接返回 WASM 结果，如果为空则返回原始值
-    return result || safeValue;
-  } catch (error) {
-    throw error;
-  }
+      return result || safeValue;
+    } catch (error) {
+      throw error;
+    }
 };
 
 // ============ UU 系列函数 (WASM 版本) ============
@@ -389,39 +389,39 @@ export function uu1(response) {
   if (!wasmLoaded || !wasm?.uu1_decrypt_response_object_with_arraybuffer) {
     throw new Error("WASM 未就绪，无法执行 UU1 响应解密");
   }
-  try {
-    const { data, headers } = response;
-    if (!(data instanceof Blob)) return response;
+    try {
+      const { data, headers } = response;
+      if (!(data instanceof Blob)) return response;
 
-    const contentType = headers?.["content-type"] || "";
+      const contentType = headers?.["content-type"] || "";
 
-    if (contentType.includes("application/octet-stream")) {
-      return data.arrayBuffer().then((buffer) =>
-        wasm.uu1_decrypt_response_object_with_arraybuffer({
-          ...response,
-          data: buffer,
-        }),
-      );
+      if (contentType.includes("application/octet-stream")) {
+        return data.arrayBuffer().then((buffer) =>
+          wasm.uu1_decrypt_response_object_with_arraybuffer({
+            ...response,
+            data: buffer,
+          }),
+        );
+      }
+
+      if (contentType.includes("application/json")) {
+        return data.text().then((text) => {
+          try {
+            return { ...response, data: JSON.parse(text) };
+          } catch {
+            return { ...response, data: text };
+          }
+        });
+      }
+
+      if (contentType.includes("text/")) {
+        return data.text().then((text) => ({ ...response, data: text }));
+      }
+
+      return response;
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
     }
-
-    if (contentType.includes("application/json")) {
-      return data.text().then((text) => {
-        try {
-          return { ...response, data: JSON.parse(text) };
-        } catch {
-          return { ...response, data: text };
-        }
-      });
-    }
-
-    if (contentType.includes("text/")) {
-      return data.text().then((text) => ({ ...response, data: text }));
-    }
-
-    return response;
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
 }
 
 /** UU2 - 请求加密 */
@@ -429,11 +429,11 @@ export function uu2_wasm(request) {
   if (!wasmLoaded || !wasm?.uu2_process_request) {
     throw new Error("WASM 未就绪，无法执行 UU2 请求加密");
   }
-  try {
-    return wasm.uu2_process_request(request);
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
+    try {
+      return wasm.uu2_process_request(request);
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
+    }
 }
 
 /** UU3 - 固定密钥解密 */
@@ -441,11 +441,11 @@ export function uu3(encryptedData) {
   if (!wasmLoaded || !wasm?.uu3_decrypt_simple) {
     throw new Error("WASM 未就绪，无法执行 UU3 解密");
   }
-  try {
-    return wasm.uu3_decrypt_simple(encryptedData);
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
+    try {
+      return wasm.uu3_decrypt_simple(encryptedData);
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
+    }
 }
 
 /** UU4 - 响应解密 */
@@ -453,15 +453,15 @@ export function uu4(responseData) {
   if (!wasmLoaded || !wasm?.uu4_decrypt_response) {
     throw new Error("WASM 未就绪，无法执行 UU4 解密");
   }
-  try {
-    return wasm.uu4_decrypt_response(
-      responseData.data,
-      responseData.uuid || "",
-      responseData.timestamp || "",
-    );
-  } catch (error) {
-    throw error; // WASM 执行错误，抛出错误
-  }
+    try {
+      return wasm.uu4_decrypt_response(
+        responseData.data,
+        responseData.uuid || "",
+        responseData.timestamp || "",
+      );
+    } catch (error) {
+      throw error; // WASM 执行错误，抛出错误
+    }
 }
 
 // 别名
