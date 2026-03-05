@@ -81,12 +81,25 @@ export default defineComponent({
       this.thirdParty.length = 0;
       data.forEach(element => {
         const enabled = element.sysSettingValue === "true";
-        if (enabled) {
-          this.thirdParty.push({
-            title: element.sysSettingName,
-            icon: "simple-icons:" + element.sysSettingName
-          });
+        if (!enabled) {
+          return;
         }
+        const name = element.sysSettingName;
+        const bindType = name ? name.toLowerCase() : "";
+        let icon = "simple-icons:" + bindType;
+        if (bindType === "gitee") {
+          icon = "simple-icons:gitee";
+        } else if (bindType === "github") {
+          icon = "mdi:github";
+        } else if (bindType === "wechat") {
+          icon = "ri:wechat-fill";
+        }
+        this.thirdParty.push({
+          title: name,
+          icon,
+          loginType: name,
+          bindType
+        });
       });
       await this.initializeBindInfo();
     },
@@ -95,21 +108,18 @@ export default defineComponent({
       this.bindThirdParty.length = 0;
       const { data } = await fetchThirdBindInfo({});
       this.thirdParty.forEach(element2 => {
-        if (data.indexOf(element2.title) > -1) {
+        if (data.indexOf(element2.bindType) > -1) {
           element2.bind = true;
           this.bindThirdParty.push(element2);
+          return;
         }
-      });
-      this.thirdParty.forEach(element2 => {
-        if (data.indexOf(element2.title) === -1) {
-          this.unbindThirdParty.push(element2);
-        }
+        this.unbindThirdParty.push(element2);
       });
     },
 
     async handleUnBindCode(item) {
       fetchThirdUnbind({
-        loginType: item.title
+        loginType: item.bindType || item.title
       }).then(res => {
         if (res.code === "00000") {
           message(transformI18n("login.unbindSuccess"), { type: "success" });
@@ -121,7 +131,7 @@ export default defineComponent({
     },
     async handleBindCode(item) {
       const { data } = await fetchThirdBindCode({
-        loginType: item.title,
+        loginType: item.loginType || item.title,
         loginCode: uuid(),
         thirdType: 0,
         callback: window.location.origin + "/#/bindSuccess"
