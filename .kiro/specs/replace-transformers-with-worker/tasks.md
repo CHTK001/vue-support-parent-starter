@@ -1,0 +1,117 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Fault Condition** - 模型下载失败和主线程阻塞
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: Scope the property to concrete failing cases: using @huggingface/transformers on main thread for model loading or text inference
+  - Test that when using @huggingface/transformers in main thread context:
+    - Model download fails or requires manual implementation
+    - Main thread is blocked during model loading (UI freezes)
+    - Main thread is blocked during text inference (UI freezes)
+  - Test implementation details from Fault Condition: `isBugCondition(input)` where `input.library == '@huggingface/transformers' AND input.executionContext == 'main-thread' AND input.operation IN ['model-loading', 'text-inference']`
+  - The test assertions should match the Expected Behavior Properties: model should auto-download, execution should be in worker thread, main thread should remain responsive
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found:
+    - Model download failure or manual download requirement
+    - UI freeze during model loading
+    - UI freeze during text inference
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - 文本生成功能保持一致
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs:
+    - Text generation returns valid results
+    - Xenova/Qwen2.5-0.5B-Instruct model is supported
+    - Progress information is provided during loading
+    - Helper functions (buildPrompt, resolveBrowserModel) work correctly
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - For all text generation calls, result should be valid text with consistent quality and format
+    - Model support should remain unchanged
+    - Progress callbacks should continue to work
+    - Helper functions should produce identical outputs
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3_
+
+- [x] 3. Fix for 替换 transformers 库并使用 Web Worker
+  - [x] 3.1 Update package.json dependencies
+    - Remove `@huggingface/transformers` dependency
+    - Add `@xenova/transformers` version ^2.17.2
+    - Ensure TypeScript configuration supports Web Worker
+    - _Bug_Condition: isBugCondition(input) where input.library == '@huggingface/transformers' AND input.executionContext == 'main-thread'_
+    - _Expected_Behavior: Model auto-downloads, execution in worker thread, main thread responsive_
+    - _Preservation: Text generation results, model support, progress information remain unchanged_
+    - _Requirements: 1.1, 2.1_
+
+  - [x] 3.2 Create Web Worker file (transformers.worker.ts)
+    - Create new file: `layout/default/src/components/lay-ai-chat/services/transformers.worker.ts`
+    - Import @xenova/transformers: `import { pipeline, env } from '@xenova/transformers'`
+    - Configure environment: set WASM threads and model permissions
+    - Implement message handler: listen for 'load' and 'generate' messages
+    - Implement model loading: create text-generation pipeline, cache instance
+    - Implement text inference: receive prompt and parameters, execute inference, return result
+    - Implement progress callback: send progress updates via postMessage
+    - _Bug_Condition: isBugCondition(input) where input.executionContext == 'main-thread'_
+    - _Expected_Behavior: Execution in worker thread, main thread responsive_
+    - _Preservation: Text generation results remain unchanged_
+    - _Requirements: 1.2, 1.3, 2.2, 2.3, 3.3_
+
+  - [x] 3.3 Refactor hfTransformersClient.ts to use Worker
+    - Remove direct import of @huggingface/transformers
+    - Create Worker singleton at module level using `new Worker(new URL('./transformers.worker.ts', import.meta.url), { type: 'module' })`
+    - Implement Worker message listener and error handling
+    - Refactor getTextGenerationPipeline to send 'load' message to Worker
+    - Wait for Worker 'loaded' or 'progress' messages
+    - Maintain progress callback console.log output
+    - Refactor generateByTransformersJs to communicate through Worker
+    - Keep original prompt building logic (buildPrompt)
+    - Send 'generate' message to Worker with prompt and parameters
+    - Wait for Worker 'result' message
+    - Keep original result post-processing logic
+    - Implement Promise-based message send/receive mechanism with message ID correlation
+    - Implement timeout handling and error handling with retry logic
+    - _Bug_Condition: isBugCondition(input) where input.library == '@huggingface/transformers' AND input.executionContext == 'main-thread'_
+    - _Expected_Behavior: Model auto-downloads, execution in worker thread, main thread responsive_
+    - _Preservation: buildPrompt, resolveBrowserModel, result processing logic remain unchanged_
+    - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3_
+
+  - [x] 3.4 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - 模型自动下载且后台执行
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied:
+      - Model downloads automatically without manual implementation
+      - Model loading executes in worker thread, main thread remains responsive
+      - Text inference executes in worker thread, main thread remains responsive
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - _Requirements: 2.1, 2.2, 2.3_
+
+  - [x] 3.5 Verify preservation tests still pass
+    - **Property 2: Preservation** - 文本生成功能保持一致
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix:
+      - Text generation returns valid results with consistent quality
+      - Xenova/Qwen2.5-0.5B-Instruct model continues to work
+      - Progress information continues to be provided
+      - Helper functions produce identical outputs
+    - _Requirements: 3.1, 3.2, 3.3_
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Run all unit tests for Worker communication mechanism
+  - Run all property-based tests for text generation functionality
+  - Run integration tests for complete text generation flow
+  - Test Worker lifecycle management (create, reuse, destroy)
+  - Test concurrent request scenarios
+  - Test UI responsiveness in real browser environment
+  - Ensure all tests pass, ask the user if questions arise

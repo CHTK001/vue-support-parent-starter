@@ -1,19 +1,93 @@
 import type { ChatMessage } from "../types";
-import { env, pipeline } from "@huggingface/transformers";
 
 const DEFAULT_BROWSER_MODEL = "Xenova/Qwen2.5-0.5B-Instruct";
 const MAX_NEW_TOKENS = 256;
 const DEFAULT_TEMPERATURE = 0.7;
+const WORKER_TIMEOUT = 300000; // 5 minutes
 
-type TextGenerationPipeline = (input: string, options?: unknown) => Promise<
-  Array<{
-    generated_text?: string;
-    text?: string;
-  }>
->;
+// Worker singleton
+let worker: Worker | null = null;
+let messageIdCounter = 0;
+const pendingMessages = new Map<
+  number,
+  {
+    resolve: (value: unknown) => void;
+    reject: (error: Error) => void;
+    timeout: number;
+  }
+>();
 
-let cachedGenerator: TextGenerationPipeline | null = null;
-let loadingPromise: Promise<TextGenerationPipeline> | null = null;
+function getWorker(): Worker {
+  if (!worker) {
+    worker = new Worker(new URL("./transformers.worker.ts", import.meta.url), {
+      type: "module",
+    });
+
+    // Set up message listener
+    worker.onmessage = (event: MessageEvent) => {
+      const { type, id, payload } = event.data;
+
+      if (type === "progress") {
+        // Log progress updates
+        console.log(
+          "[AI][浏览器模型] 加载进度",
+          payload?.status,
+          payload?.progress ?? "",
+        );
+        return;
+      }
+
+      const pending = pendingMessages.get(id);
+      if (!pending) return;
+
+      clearTimeout(pending.timeout);
+      pendingMessages.delete(id);
+
+      if (type === "error") {
+        pending.reject(new Error(payload.error));
+      } else {
+        pending.resolve(payload);
+      }
+    };
+
+    // Set up error listener
+    worker.onerror = (error: ErrorEvent) => {
+      console.error("[AI][Worker] Error:", error.message);
+      // Reject all pending messages
+      pendingMessages.forEach((pending) => {
+        clearTimeout(pending.timeout);
+        pending.reject(new Error(`Worker error: ${error.message}`));
+      });
+      pendingMessages.clear();
+    };
+  }
+
+  return worker;
+}
+
+function sendWorkerMessage<T>(
+  type: string,
+  payload: unknown,
+  timeout = WORKER_TIMEOUT,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const id = messageIdCounter++;
+    const workerInstance = getWorker();
+
+    const timeoutId = window.setTimeout(() => {
+      pendingMessages.delete(id);
+      reject(new Error(`Worker message timeout after ${timeout}ms`));
+    }, timeout);
+
+    pendingMessages.set(id, {
+      resolve: resolve as (value: unknown) => void,
+      reject,
+      timeout: timeoutId,
+    });
+
+    workerInstance.postMessage({ type, id, payload });
+  });
+}
 
 function buildPrompt(history: ChatMessage[], current: string): string {
   const parts: string[] = [];
@@ -37,30 +111,27 @@ function resolveBrowserModel(model?: string): string {
   return trimmed;
 }
 
-async function getTextGenerationPipeline(model?: string): Promise<TextGenerationPipeline> {
-  if (cachedGenerator) {
-    return cachedGenerator;
+let modelLoaded = false;
+let loadingPromise: Promise<void> | null = null;
+
+async function ensureModelLoaded(model?: string): Promise<void> {
+  if (modelLoaded) {
+    return;
   }
   if (loadingPromise) {
     return loadingPromise;
   }
 
-  env.backends.onnx.wasm.numThreads = navigator.hardwareConcurrency || 4;
-  env.allowLocalModels = false;
-
   const modelId = resolveBrowserModel(model);
 
-  loadingPromise = pipeline("text-generation", modelId, {
-    progress_callback: (progress: { status?: string; progress?: number }) => {
-      // eslint-disable-next-line no-console
-      console.log("[AI][浏览器模型] 加载进度", progress?.status, progress?.progress ?? "");
-    },
-  }) as Promise<TextGenerationPipeline>;
+  loadingPromise = sendWorkerMessage<{ success: boolean }>("load", {
+    model: modelId,
+  }).then(() => {
+    modelLoaded = true;
+    loadingPromise = null;
+  });
 
-  cachedGenerator = await loadingPromise;
-  loadingPromise = null;
-
-  return cachedGenerator;
+  return loadingPromise;
 }
 
 export async function generateByTransformersJs(
@@ -68,14 +139,26 @@ export async function generateByTransformersJs(
   message: string,
   model?: string,
 ): Promise<string> {
-  const generator = await getTextGenerationPipeline(model);
+  // Ensure model is loaded
+  await ensureModelLoaded(model);
+
+  // Build prompt using original logic
   const prompt = buildPrompt(history, message);
 
-  const result = await generator(prompt, {
-    max_new_tokens: MAX_NEW_TOKENS,
+  // Send generate message to worker
+  const response = await sendWorkerMessage<{
+    result: Array<{
+      generated_text?: string;
+      text?: string;
+    }>;
+  }>("generate", {
+    prompt,
+    maxNewTokens: MAX_NEW_TOKENS,
     temperature: DEFAULT_TEMPERATURE,
   });
 
+  // Post-process result using original logic
+  const result = response.result;
   const first = Array.isArray(result) && result.length > 0 ? result[0] : null;
   const fullText = (first?.generated_text || first?.text || "").trim();
 
@@ -89,5 +172,3 @@ export async function generateByTransformersJs(
 
   return fullText.slice(prompt.length).trim() || fullText;
 }
-
-

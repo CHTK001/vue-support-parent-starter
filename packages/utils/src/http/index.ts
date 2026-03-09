@@ -17,10 +17,7 @@ import {
 } from "@repo/config";
 import { UserResult } from "@repo/core";
 import { getLogger } from "../log";
-import Axios, {
-  type AxiosInstance,
-  type AxiosRequestConfig,
-} from "axios";
+import Axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
 import NProgress from "nprogress";
 import { transformI18n } from "../../../config/src/i18n";
 import { uu1, uu2 } from "../crypto/codec";
@@ -31,9 +28,7 @@ import type {
   RequestMethods,
 } from "../http/types";
 import { message } from "../message";
-import {
-  isWasmLoaded,
-} from "@repo/codec-wasm";
+import { isWasmLoaded } from "@repo/codec-wasm";
 import {
   getRequestConfig,
   getErrorHandlerConfig,
@@ -123,16 +118,13 @@ class PureHttp {
     const sign = generateSign(config, timestamp, nonce, fingerprint);
     config.headers["x-sign"] = sign || "";
     if (process.env.NODE_ENV === "development") {
-      logger.debug(
-        "[HTTP][签名生成] 安全头已设置 {}",
-        {
-          url: config.url,
-          hasSign: !!sign,
-          timestamp: config.headers["x-timestamp"],
-          nonce: config.headers["x-nonce"],
-          wasmLoaded: isWasmLoaded(),
-        },
-      );
+      logger.debug("[HTTP][签名生成] 安全头已设置 {}", {
+        url: config.url,
+        hasSign: !!sign,
+        timestamp: config.headers["x-timestamp"],
+        nonce: config.headers["x-nonce"],
+        wasmLoaded: isWasmLoaded(),
+      });
     }
   }
 
@@ -141,7 +133,7 @@ class PureHttp {
     return new Promise((resolve) => {
       PureHttp.requests.push((token: string) => {
         const authorization = formatToken(token);
-        if(authorization) {
+        if (authorization) {
           config.headers["Authorization"] = authorization;
         }
         // 确保 x-sign 一定存在
@@ -227,7 +219,7 @@ class PureHttp {
                   .then((res) => {
                     const token = res.accessToken;
                     const authorization = formatToken(token);
-                    if(authorization) {
+                    if (authorization) {
                       config.headers["Authorization"] = authorization;
                     }
                     PureHttp.requests.forEach((cb) => cb(token));
@@ -240,7 +232,7 @@ class PureHttp {
               resolve(PureHttp.retryOriginalRequest(config));
             } else {
               const authorization = formatToken(data.accessToken);
-              if(authorization) {
+              if (authorization) {
                 config.headers["Authorization"] = authorization;
               }
               // 在所有处理完成后，最后统一生成 sign
@@ -256,7 +248,7 @@ class PureHttp {
       },
       (error) => {
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -297,10 +289,12 @@ class PureHttp {
         if (response && response.data instanceof Blob) {
           try {
             const text = await response.data.text();
-            const json = JSON.parse(text);
-            // 覆盖为可直接消费的对象
-            // @ts-ignore
-            response.data = json;
+            if (text) {
+              const json = JSON.parse(text);
+              // 覆盖为可直接消费的对象
+              // @ts-ignore
+              response.data = json;
+            }
           } catch (parseError) {
             if (errorConfig.logToConsole) {
               console.error("HTTP Error blob parse failed:", parseError);
@@ -318,7 +312,9 @@ class PureHttp {
           // 优先展示后端返回的提示信息
           const serverMsg =
             // @ts-ignore 兼容多种返回结构
-            (response?.data as any)?.msg || (response?.data as any)?.message || error.message;
+            (response?.data as any)?.msg ||
+            (response?.data as any)?.message ||
+            error.message;
           if (serverMsg) {
             message(serverMsg, { type: "error" });
           }
@@ -344,14 +340,14 @@ class PureHttp {
                 code: response?.status,
                 msg: error.message,
               },
-              error.config?.url || "unknown"
+              error.config?.url || "unknown",
             );
           }
         }
 
         // 所有的响应异常 区分来源为取消请求/非取消请求
         return Promise.reject($error);
-      }
+      },
     );
   }
 
@@ -360,7 +356,7 @@ class PureHttp {
     method: RequestMethods,
     url: string,
     param?: AxiosRequestConfig,
-    axiosConfig?: PureHttpRequestConfig
+    axiosConfig?: PureHttpRequestConfig,
   ): Promise<T> & { requestId: string } {
     const config = {
       method,
@@ -410,7 +406,7 @@ class PureHttp {
   public post<T>(
     url: string,
     data?: any,
-    config?: PureHttpRequestConfig
+    config?: PureHttpRequestConfig,
   ): Promise<T> {
     return this.request<T>("post", url, {
       data: data,
@@ -421,7 +417,7 @@ class PureHttp {
   public put<T>(
     url: string,
     data?: any,
-    config?: PureHttpRequestConfig
+    config?: PureHttpRequestConfig,
   ): Promise<T> {
     return this.request<T>("put", url, {
       data: data,
@@ -433,7 +429,7 @@ class PureHttp {
   public get<T>(
     url: string,
     params?: any,
-    config?: PureHttpRequestConfig
+    config?: PureHttpRequestConfig,
   ): Promise<T> {
     return this.request<T>("get", url, {
       params: params,
@@ -444,7 +440,7 @@ class PureHttp {
   public delete<T>(
     url: string,
     params?: any,
-    config?: PureHttpRequestConfig
+    config?: PureHttpRequestConfig,
   ): Promise<T> {
     return this.request<T>("delete", url, {
       params: params,
@@ -492,33 +488,41 @@ class PureHttp {
       method?: string;
       body?: string | FormData;
       signal?: AbortSignal;
-    } = {}
+    } = {},
   ): AbortController {
     const controller = new AbortController();
     const token = getToken();
     const fingerprint = getOrCreateFingerprint();
     const authorization = formatToken(token);
-  
+
     const defaultHeaders: Record<string, string> = {
       "x-req-fingerprint": fingerprint,
       ...options.headers,
     };
-    if(authorization) {
+    if (authorization) {
       defaultHeaders["Authorization"] = authorization;
     }
-      if (isWasmLoaded()) {
+    if (isWasmLoaded()) {
       const timestamp = Date.now();
       const nonce = generateNonce();
       const tempConfig: PureHttpRequestConfig = {
         url,
         method: (options.method || "GET") as any,
         params: {},
-        data: typeof options.body === "object" && options.body !== null ? options.body : {},
+        data:
+          typeof options.body === "object" && options.body !== null
+            ? options.body
+            : {},
         headers: options.headers || {},
       };
       defaultHeaders["x-nonce"] = nonce;
       defaultHeaders["x-timestamp"] = timestamp.toString();
-      defaultHeaders["x-sign"] = generateSign(tempConfig, timestamp, nonce, fingerprint as string);
+      defaultHeaders["x-sign"] = generateSign(
+        tempConfig,
+        timestamp,
+        nonce,
+        fingerprint as string,
+      );
     }
 
     // 优先使用 ApiAddress，如果未设置则使用 BaseUrl
@@ -537,7 +541,7 @@ class PureHttp {
           options.onopen?.(response);
         } else {
           throw new Error(
-            `SSE连接失败: ${response.status} ${response.statusText}`
+            `SSE连接失败: ${response.status} ${response.statusText}`,
           );
         }
       },
@@ -565,7 +569,7 @@ class PureHttp {
   // 处理响应数据的辅助函数
   private processResponseData(
     response: PureHttpResponse,
-    $config: PureHttpRequestConfig
+    $config: PureHttpRequestConfig,
   ) {
     const data = response.data?.data || response.data;
     if (data instanceof Object && data?.data) {

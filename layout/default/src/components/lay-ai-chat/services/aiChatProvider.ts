@@ -104,11 +104,14 @@ async function requestByChrome(req: AiChatRequest): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   var chromeAi = (window as any).ai;
   if (!chromeAi || !chromeAi.languageModel) {
-    throw new Error("当前浏览器不支持 Chrome AI 能力，请切换到 Hugging Face 等厂商。");
+    throw new Error(
+      "当前浏览器不支持 Chrome AI 能力，请切换到 Hugging Face 等厂商。",
+    );
   }
 
   var session = await chromeAi.languageModel.create({
-    systemPrompt: "你是内嵌在管理后台中的中文 AI 助手，需要用简体中文回答问题。",
+    systemPrompt:
+      "你是内嵌在管理后台中的中文 AI 助手，需要用简体中文回答问题。",
   });
 
   var historyText = buildHistoryText(req.history);
@@ -124,9 +127,16 @@ export async function requestAiReply(req: AiChatRequest): Promise<string> {
 
   if (req.vendor === "hf") {
     try {
-      return await generateByTransformersJs(req.history, req.userMessage, req.model);
+      return await generateByTransformersJs(
+        req.history,
+        req.userMessage,
+        req.model,
+      );
     } catch (error) {
-      console.error("[AI][浏览器模型] transformers.js 推理失败，回退到 HTTP 接口", error);
+      console.error(
+        "[AI][浏览器模型] transformers.js 推理失败，回退到 HTTP 接口",
+        error,
+      );
       return await requestByHuggingFace(req);
     }
   }

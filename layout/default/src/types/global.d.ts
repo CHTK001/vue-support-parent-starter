@@ -7,7 +7,11 @@
  */
 
 // 导入统一类型
-import type { ThemeKey as ImportedThemeKey, StorageConfig as ImportedStorageConfig, StorageLayout } from "./theme";
+import type {
+  ThemeKey as ImportedThemeKey,
+  StorageConfig as ImportedStorageConfig,
+  StorageLayout,
+} from "./theme";
 
 // Vite SVG 组件导入声明
 declare module "*.svg?component" {
