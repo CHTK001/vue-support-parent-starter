@@ -16,7 +16,9 @@ import { useNav } from "../../../hooks/useNav";
 import LayPanel from "../../lay-panel/index.vue";
 
 import { debounce, isNumber, storageLocal, useGlobal } from "@pureadmin/utils";
-import Segmented, { type OptionsType } from "@repo/components/ReSegmented/index";
+import Segmented, {
+  type OptionsType,
+} from "@repo/components/ReSegmented/index";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import AiChatAppearanceSetting from "./components/AiChatAppearanceSetting.vue";
 import { AI_APPEARANCE_OPTIONS } from "../../lay-ai/appearance";
@@ -159,7 +161,12 @@ type NewMenuAnimationType = "bounce" | "pulse" | "shake" | "none";
 
 function normalizeNewMenuAnimation(raw: unknown): NewMenuAnimationType {
   const value = String(raw || "");
-  if (value === "bounce" || value === "pulse" || value === "shake" || value === "none") {
+  if (
+    value === "bounce" ||
+    value === "pulse" ||
+    value === "shake" ||
+    value === "none"
+  ) {
     return value;
   }
   return "bounce";
@@ -311,13 +318,25 @@ const standardHeaderClockTimezones: Array<{
   { value: "Pacific/Pago_Pago", region: "美属萨摩亚", offsetHour: -11 },
   { value: "Pacific/Honolulu", region: "美国夏威夷", offsetHour: -10 },
   { value: "America/Anchorage", region: "美国阿拉斯加", offsetHour: -9 },
-  { value: "America/Los_Angeles", region: "美国西部（洛杉矶）", offsetHour: -8 },
+  {
+    value: "America/Los_Angeles",
+    region: "美国西部（洛杉矶）",
+    offsetHour: -8,
+  },
   { value: "America/Denver", region: "美国山区时间（丹佛）", offsetHour: -7 },
-  { value: "America/Chicago", region: "美国中部时间（芝加哥）", offsetHour: -6 },
+  {
+    value: "America/Chicago",
+    region: "美国中部时间（芝加哥）",
+    offsetHour: -6,
+  },
   { value: "America/New_York", region: "美国东部时间（纽约）", offsetHour: -5 },
   { value: "America/Halifax", region: "加拿大大西洋时间", offsetHour: -4 },
   { value: "America/Sao_Paulo", region: "巴西/圣保罗", offsetHour: -3 },
-  { value: "America/Noronha", region: "巴西费尔南多-迪诺罗尼亚", offsetHour: -2 },
+  {
+    value: "America/Noronha",
+    region: "巴西费尔南多-迪诺罗尼亚",
+    offsetHour: -2,
+  },
   { value: "Atlantic/Azores", region: "葡萄牙亚速尔群岛", offsetHour: -1 },
   { value: "Europe/London", region: "英国/伦敦", offsetHour: 0 },
   { value: "Europe/Paris", region: "中欧时间（巴黎）", offsetHour: 1 },
@@ -1923,7 +1942,9 @@ onUnmounted(() => {
                     :min="0.8"
                     :max="1.4"
                     :step="0.05"
-                    :format-tooltip="(val: number) => `${Math.round(val * 100)}%`"
+                    :format-tooltip="
+                      (val: number) => `${Math.round(val * 100)}%`
+                    "
                     style="max-width: 260px"
                     @change="uiScaleChange"
                   />
@@ -1949,35 +1970,35 @@ onUnmounted(() => {
                 />
 
                 <ScSwitch
-                    v-model="settings.devRuler"
-                    layout="visual-card"
-                    size="small"
-                    label="页面标尺"
-                    description="显示水平/垂直参考线，辅助对齐布局，适合像素级还原设计稿"
-                    @change="devRulerChange"
-                  />
+                  v-model="settings.devRuler"
+                  layout="visual-card"
+                  size="small"
+                  label="页面标尺"
+                  description="显示水平/垂直参考线，辅助对齐布局，适合像素级还原设计稿"
+                  @change="devRulerChange"
+                />
               </div>
               <div class="switch-card-grid">
                 <ScSwitch
-                    v-model="settings.devGrid"
-                    layout="visual-card"
-                    size="small"
-                    label="栅格网格"
-                    description="在页面上叠加响应式栅格网格，帮助排查列宽、间距是否符合预期"
-                    @change="devGridChange"
-                  />
-                  <ScSwitch
-                    v-model="settings.devHoverInspector"
-                    layout="visual-card"
-                    size="small"
-                    label="悬浮元素探测"
-                    description="鼠标悬浮时高亮当前元素边界与信息，类似浏览器 DevTools；仅建议在开发环境使用"
-                    active-icon="ri:eye-line"
-                    ribbon-color="var(--el-color-warning)"
-                    @change="devHoverInspectorChange"
-                  />
-                </div>
+                  v-model="settings.devGrid"
+                  layout="visual-card"
+                  size="small"
+                  label="栅格网格"
+                  description="在页面上叠加响应式栅格网格，帮助排查列宽、间距是否符合预期"
+                  @change="devGridChange"
+                />
+                <ScSwitch
+                  v-model="settings.devHoverInspector"
+                  layout="visual-card"
+                  size="small"
+                  label="悬浮元素探测"
+                  description="鼠标悬浮时高亮当前元素边界与信息，类似浏览器 DevTools；仅建议在开发环境使用"
+                  active-icon="ri:eye-line"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="devHoverInspectorChange"
+                />
               </div>
+            </div>
           </div>
         </div>
 
@@ -2234,7 +2255,6 @@ onUnmounted(() => {
                 />
               </div>
             </div>
-            
           </div>
         </div>
 
@@ -2444,35 +2464,6 @@ onUnmounted(() => {
                   </div>
                 </div>
               </ScTooltip>
-            </div>
-          </div>
-        </div>
-        <!-- 移动导航设置 -->
-        <div v-if="layoutTheme.layout === 'mobile'" class="setting-section">
-          <div class="section-header">
-            <IconifyIconOnline icon="ri:smartphone-line" class="section-icon" />
-            <h3 class="section-title">{{ t("panel.mobileNavConfig") }}</h3>
-            <div class="section-description">
-              {{ t("panel.mobileNavConfigDesc") }}
-            </div>
-          </div>
-          <div class="setting-content">
-            <div class="mobile-nav-tips">
-              <div class="tip-item">
-                <IconifyIconOnline icon="ri:gesture-line" class="tip-icon" />
-                <span>{{ t("panel.gestureSupport") }}</span>
-              </div>
-              <div class="tip-item">
-                <IconifyIconOnline icon="ri:thumb-up-line" class="tip-icon" />
-                <span>{{ t("panel.largeTouchArea") }}</span>
-              </div>
-              <div class="tip-item">
-                <IconifyIconOnline
-                  icon="ri:layout-bottom-line"
-                  class="tip-icon"
-                />
-                <span>{{ t("panel.bottomNavDesign") }}</span>
-              </div>
             </div>
           </div>
         </div>
