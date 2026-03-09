@@ -39,7 +39,12 @@ import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
-import { initSession, localStorageProxy, message, stopSession } from "@repo/utils";
+import {
+  initSession,
+  localStorageProxy,
+  message,
+  stopSession,
+} from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
 import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
@@ -242,7 +247,9 @@ function applySessionAutoLogout(): void {
       ? localAutoLogout
       : (sessionConfig.autoLogout ?? false);
   const timeoutSeconds =
-    typeof localTimeout === "number" ? localTimeout : (sessionConfig.timeout ?? 0);
+    typeof localTimeout === "number"
+      ? localTimeout
+      : (sessionConfig.timeout ?? 0);
 
   // 每次应用前先停止，保证不会重复绑定事件/定时器
   stopSession();
