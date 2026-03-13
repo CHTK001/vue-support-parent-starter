@@ -1,0 +1,132 @@
+// 响应式设计样式
+
+// 移动端适配
+@media (max-width: 768px) {
+  .task-list-container,
+  .monitor-container,
+  .design-container,
+  .log-container {
+    padding: 10px !important;
+  }
+
+  .search-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+
+    .el-input,
+    .el-select {
+      width: 100% !important;
+      margin-right: 0 !important;
+    }
+
+    .el-button {
+      flex: 1;
+    }
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 10px;
+
+    h3 {
+      margin-bottom: 10px;
+    }
+
+    > div {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+
+      .el-button {
+        flex: 1;
+      }
+    }
+  }
+
+  .el-table {
+    font-size: 12px;
+
+    .el-table__cell {
+      padding: 8px 0;
+    }
+  }
+
+  .card-view {
+    .el-col {
+      width: 100% !important;
+    }
+  }
+
+  .design-content {
+    flex-direction: column;
+    height: auto !important;
+
+    .node-panel,
+    .property-panel {
+      width: 100% !important;
+      border: none;
+      border-bottom: 1px solid #dcdfe6;
+      padding: 10px 0;
+    }
+
+    .canvas-container {
+      height: 400px;
+    }
+  }
+
+  .log-content {
+    height: 400px !important;
+  }
+}
+
+// 平板适配
+@media (min-width: 769px) and (max-width: 1024px) {
+  .card-view {
+    .el-col {
+      width: 50% !important;
+    }
+  }
+}
+
+// 动画效果
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s;
+}
+
+.slide-enter-from {
+  transform: translateX(-100%);
+}
+
+.slide-leave-to {
+  transform: translateX(100%);
+}
+
+// 通用交互动画
+.hover-scale {
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.hover-shadow {
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
