@@ -50,3 +50,7 @@ export type {
 
 // 导出会话工具
 export * from "./session";
+
+// 导出 HTTP 工具和类型
+export { http } from "./http";
+export type { ReturnResult, PageResult } from "./http";
