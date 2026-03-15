@@ -49,7 +49,7 @@ export class AppBootstrap {
     Object.keys(components).forEach((key) => {
       const component = components[key];
       const existing = this.app.component(key);
-      if (existing && existing === component) return;
+      if (existing) return; // already registered, don't overwrite
       this.app.component(key, component);
     });
     return this;
@@ -57,7 +57,7 @@ export class AppBootstrap {
 
   registerComponent(name: string, component: any): this {
     const existing = this.app.component(name);
-    if (existing && existing === component) return this;
+    if (existing) return this; // already registered, don't overwrite
     this.app.component(name, component);
     return this;
   }
