@@ -16,6 +16,8 @@ import {
   toRaw,
   useAttrs,
   inject,
+  isRef,
+  type Ref,
   type Component,
   onMounted,
   watchEffect,
@@ -25,7 +27,10 @@ import { useNav } from "../../../hooks/useNav";
 import { emitter } from "@repo/core";
 
 // 注入主题化的 SidebarItem 组件（用于递归渲染子菜单）
-const ThemeSidebarItem = inject<Component>("themeSidebarItem");
+const _injectedSidebarItem = inject<Component | Ref<Component>>("themeSidebarItem");
+const ThemeSidebarItem = computed(() =>
+  isRef(_injectedSidebarItem) ? _injectedSidebarItem.value : _injectedSidebarItem
+);
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
 import EpArrowDown from "@iconify-icons/ep/arrow-down-bold";
