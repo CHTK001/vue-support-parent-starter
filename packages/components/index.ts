@@ -1,4 +1,3 @@
-import "@layout/default/skin/index.scss";
 import { ReMenuNewBadge } from "./MenuNewBadge/index.ts";
 import { useRenderIcon } from "./ReIcon/src/hooks";
 import ReSplitPane from "./ReSplitPane/index.vue";
