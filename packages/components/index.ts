@@ -1,4 +1,4 @@
-import { ReMenuNewBadge } from "./MenuNewBadge/index.ts";
+import { ReMenuNewBadge } from "./MenuNewBadge";
 import { useRenderIcon } from "./ReIcon/src/hooks";
 import ReSplitPane from "./ReSplitPane/index.vue";
 import ScCard from "./ScCard/index.vue";
@@ -12,9 +12,10 @@ import { ScText } from "./ScText";
 import { ScFilterBar } from "./ScFilterBar";
 import { ScContainer } from "./ScContainer";
 import { ScPanel } from "./ScPanel";
+import { ScPanelTitle } from "./ScPanelTitle";
 import ScNumber from "./ScNumber/index.vue";
 import ScDictSelect from "./ScDictSelect/index.vue";
-import ScDrawer from "./ScDrawer/index.vue";
+import { ScDrawer } from "./ScDrawer";
 import { ScDialog } from "./ScDialog";
 import { ScThree } from "./ScThree";
 import { ScSlider } from "./ScSlider";
@@ -65,8 +66,35 @@ import { ScMain } from "./ScMain";
 import { ScDropdown } from "./ScDropdown";
 import { ScDropdownMenu } from "./ScDropdownMenu";
 import { ScDropdownItem } from "./ScDropdownItem";
-// 导入 ScMessage 和 ScMessageBox 函数，用于在导出对象中使用
-import { ScMessage, ScMessageBox } from "@repo/utils";
+import { ScTree } from "./ScTree";
+import { ScTip } from "./ScTip";
+import { ScDeco } from "./ScDeco";
+import { ScHeader } from "./ScHeader";
+import ScRegion from "./ScRegion/index.vue";
+import ScSelectFilter from "./ScSelectFilter/index.vue";
+import ScTableSelect from "./ScTableSelect/index.vue";
+import ScPasswordStrength from "./ScPasswordStrength/index.vue";
+import ScCode from "./ScCode/index.vue";
+import ScCompare from "./ScCompare/index.vue";
+import ScContextMenu from "./ScContextMenu/index.vue";
+import ScCron from "./ScCron/index.vue";
+import ScCropper from "./ScCropper/index.vue";
+import ScDrag from "./ScDrag/index.vue";
+import ScDymaicTable from "./ScDymaicTable/index.vue";
+import ScEcharts from "./ScEcharts/index.vue";
+import ScEditor from "./ScEditor/index.vue";
+import ScFile from "./ScFile/index.vue";
+import ScFormTable from "./ScFormTable/index.vue";
+import ScIp from "./ScIp/index.vue";
+import ScLazy from "./ScLazy/index.vue";
+import ScLoadCompent from "./ScLoadCompent/index.vue";
+import ScLoading from "./ScLoading/index.vue";
+import ScPromQL from "./ScPromQL/index.vue";
+import ScSocketMessageDialog from "./ScSocketMessageDialog/index.vue";
+import ScUpload from "./ScUpload/index.vue";
+import ScVideo from "./ScVideo/index.vue";
+import ScWorkflow from "./ScWorkflow/index.vue";
+
 // 重新导出 ScMessage 和 ScMessageBox 函数，统一从 @repo/components 导入
 export { ScMessage, ScMessageBox } from "@repo/utils";
 
@@ -86,6 +114,7 @@ export {
   ScFilterBar,
   ScContainer,
   ScPanel,
+  ScPanelTitle,
   ScNumber,
   ScDictSelect,
   ScDrawer,
@@ -140,6 +169,34 @@ export {
   ScDropdown,
   ScDropdownMenu,
   ScDropdownItem,
+  ScTree,
+  ScTip,
+  ScDeco,
+  ScHeader,
+  ScRegion,
+  ScSelectFilter,
+  ScTableSelect,
+  ScPasswordStrength,
+  ScCode,
+  ScCompare,
+  ScContextMenu,
+  ScCron,
+  ScCropper,
+  ScDrag,
+  ScDymaicTable,
+  ScEcharts,
+  ScEditor,
+  ScFile,
+  ScFormTable,
+  ScIp,
+  ScLazy,
+  ScLoadCompent,
+  ScLoading,
+  ScPromQL,
+  ScSocketMessageDialog,
+  ScUpload,
+  ScVideo,
+  ScWorkflow,
   useRenderIcon
 };
 export * from "./ReIcon";
@@ -160,6 +217,7 @@ export default {
   ScFilterBar,
   ScContainer,
   ScPanel,
+  ScPanelTitle,
   ScNumber,
   ScDictSelect,
   ScDrawer,
@@ -201,5 +259,33 @@ export default {
   ScMenuItem,
   ScSubMenu,
   ScBreadcrumb,
-  ScSteps
+  ScSteps,
+  ScTree,
+  ScTip,
+  ScDeco,
+  ScHeader,
+  ScRegion,
+  ScSelectFilter,
+  ScTableSelect,
+  ScPasswordStrength,
+  ScCode,
+  ScCompare,
+  ScContextMenu,
+  ScCron,
+  ScCropper,
+  ScDrag,
+  ScDymaicTable,
+  ScEcharts,
+  ScEditor,
+  ScFile,
+  ScFormTable,
+  ScIp,
+  ScLazy,
+  ScLoadCompent,
+  ScLoading,
+  ScPromQL,
+  ScSocketMessageDialog,
+  ScUpload,
+  ScVideo,
+  ScWorkflow,
 };
