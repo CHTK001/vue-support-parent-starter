@@ -303,7 +303,7 @@ import {
   fetchUpdateSfc,
   fetchUninstallSfc,
 } from "@repo/core";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import SaveLayout from "./save.vue";
 import ViewLayout from "./view.vue";
 import UploadLayout from "./upload.vue";

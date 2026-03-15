@@ -96,7 +96,7 @@ import { getVideoList } from "../../../api/video";
 import type { DownloadItem } from "../../../types/upload";
 import type { VideoItem } from "../../../types/video";
 const CardSelector = defineAsyncComponent(
-  () => import("@repo/components/ScSelect/index.vue"),
+  () => import("@repo/components"),
 );
 
 // 资源类型定义

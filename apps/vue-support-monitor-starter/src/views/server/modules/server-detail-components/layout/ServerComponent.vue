@@ -149,7 +149,7 @@ import GaugeChart from "../charts/GaugeChart.vue";
 import CardChart from "../charts/CardChart.vue";
 import BarChart from "../charts/BarChart.vue";
 import PieChart from "../charts/PieChart.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 const props = defineProps({
   item: {

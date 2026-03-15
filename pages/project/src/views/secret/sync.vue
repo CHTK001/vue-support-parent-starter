@@ -51,7 +51,7 @@
 
 <script>
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { transformI18n } from "@repo/config";
 import { fetchSmsSync } from "@repo/core";
 import { message } from "@repo/utils";

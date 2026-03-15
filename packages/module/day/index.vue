@@ -6,7 +6,7 @@
  * @version 1.0.1
  */
 import { reactive, onMounted } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 const env = reactive({
   date: new Date(),

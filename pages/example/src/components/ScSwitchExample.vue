@@ -148,9 +148,9 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScSwitch from "@repo/components";
+import ScSelect from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 
 // 布局选项
 const layoutOptions = [

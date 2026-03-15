@@ -13,7 +13,7 @@ import {
 
 import ReAnimateSelector from "@repo/components/ReAnimateSelector/index.vue";
 import ReCol from "@repo/components/ReCol";
-import { IconSelect } from "@repo/components/ReIcon";
+import { IconSelect } from "@repo/components";
 import Segmented from "@repo/components/ReSegmented";
 import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";

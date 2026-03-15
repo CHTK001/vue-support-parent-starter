@@ -56,8 +56,8 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { IconifyIconOnline } from "@repo/components";
+import { useRenderIcon } from "@repo/components";
 import { message } from "@repo/utils";
 import { computed, ref, watch } from "vue";
 

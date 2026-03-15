@@ -7,7 +7,7 @@ import {
 import { message } from "@repo/utils";
 import { pinyin } from "pinyin-pro";
 import { defineAsyncComponent, defineComponent } from "vue";
-import { IconSelect } from "@repo/components/ReIcon";
+import { IconSelect } from "@repo/components";
 export default defineComponent({
   components: {
     IconSelect,

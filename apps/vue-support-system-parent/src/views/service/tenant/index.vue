@@ -9,7 +9,7 @@ import {
 } from "@/api/service/tenant";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { isTimeExpired, message } from "@repo/utils";
 import {
   computed,

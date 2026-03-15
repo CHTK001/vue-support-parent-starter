@@ -8,8 +8,8 @@ import {
   type ServiceStats,
 } from "@/api/service/service";
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 import { message } from "@repo/utils";
 import {
   defineAsyncComponent,

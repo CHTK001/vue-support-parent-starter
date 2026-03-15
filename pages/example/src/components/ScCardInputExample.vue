@@ -185,8 +185,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { message } from "@repo/utils";
-import ScInput from "@repo/components/ScInput/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScInput from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 import { InputType } from "@repo/components/ScInput/types";
 import CodePreview from "./CodePreview.vue";
 
@@ -305,7 +305,7 @@ const codeExample = computed(() => {
 
 <script setup>
 import { ref } from 'vue';
-import ScInput from '@repo/components/ScInput/index.vue';
+import ScInput from '@repo/components';
 
 const selectedValue = ref('${selectedValue.value}');
 
@@ -332,7 +332,7 @@ const handleChange = (value) => {
 
 <script setup>
 import { ref } from 'vue';
-import ScInput from '@repo/components/ScInput/index.vue';
+import ScInput from '@repo/components';
 
 const selectedValue = ref('${variantValues.value.remote}');
 

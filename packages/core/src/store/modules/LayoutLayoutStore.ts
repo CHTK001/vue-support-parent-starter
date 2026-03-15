@@ -385,11 +385,10 @@ export const useLayoutLayoutStore = defineStore({
     },
     myCompsList() {
       return this.allCompsList().filter((item) => {
+        const comp = Array.isArray(this.component) ? this.component : [];
         return (
           !item.disabled &&
-          (this.component
-            ? this.component.filter((i) => i.id === item.key).length === 0
-            : true)
+          comp.filter((i) => i.id === item.key).length === 0
         );
       });
     },
@@ -570,7 +569,13 @@ export const useLayoutLayoutStore = defineStore({
         this.layout = JSON.parse(data?.layout || "[]");
       } else {
         this.layout = data.layout;
-        this.component = data.component;
+      }
+
+      // component 可能是字符串（JSON）或数组，独立解析
+      if (typeof data?.component === "string") {
+        try { this.component = JSON.parse(data.component || "[]"); } catch { this.component = []; }
+      } else {
+        this.component = Array.isArray(data?.component) ? data.component : [];
       }
 
       // gridMeta（兼容 string / object）

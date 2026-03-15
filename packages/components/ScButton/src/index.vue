@@ -1,4 +1,4 @@
-<template>
+  <template>
   <component
     :is="actualComponent"
     :size="size"

@@ -16,6 +16,7 @@ export { useDebugMode } from "./hooks/useDebugMode";
 // Font Encryption
 export {
   useFontEncryption,
+  initFontEncryption,
   type FontEncryptionConfig,
 } from "./utils/useFontEncryption";
 export {
@@ -27,6 +28,9 @@ export { vFontEncryption } from "./directives/fontEncryption";
 
 // Stores
 export { useThemeStore, useThemeStoreHook } from "./stores/themeStore";
+
+// Skin (主题皮肤样式，原 @repo/skin)
+export * from "./skin/themes/index";
 
 // Utils
 export { themeManager } from "./utils/theme-manager";

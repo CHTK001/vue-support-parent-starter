@@ -7,19 +7,19 @@
  */
 
 // 基础系统 (Base Systems)
-@import './spacing.scss';
-@import './responsive.scss';
-@import './accessibility.scss';
+@use './spacing.scss';
+@use './responsive.scss';
+@use './accessibility.scss';
 
 // 组件样式 (Component Styles)
-@import './forms.scss';
-@import './icons.scss';
+@use './forms.scss';
+@use './icons.scss';
 
 // 动画系统 (Animation System)
-@import './animations/micro-interactions.scss';
+@use './animations/micro-interactions.scss';
 
 // 主题系统 (Theme System)
-@import './dark-mode.scss';
+@use './dark-mode.scss';
 
 // 全局重置和基础样式 (Global Reset and Base Styles)
 *,

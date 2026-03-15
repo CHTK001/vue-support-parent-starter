@@ -66,7 +66,7 @@ import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import type { OnlineNodeInfo } from "@/api/server/node-management";
 import { apiCheckNodeHealth } from "@/api/server/node-management";
-import ScDialog from "@repo/components/ScDialog/src/index.vue";
+import ScDialog from "@repo/components";
 
 /**
  * 节点详情组件

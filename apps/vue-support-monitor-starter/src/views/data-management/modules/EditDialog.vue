@@ -396,7 +396,7 @@
 
 import { computed, ref, watch, nextTick } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import ScSelect from "@repo/components";
 import {
   saveSystemDataSetting,
   type SystemDataSetting,

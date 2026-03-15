@@ -249,12 +249,12 @@
 <script setup>
 import { ref, computed } from "vue";
 import { message } from "@repo/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   IconifyIconOffline,
   IconifyIconOnline,
   PixelIcon,
-} from "@repo/components/ReIcon";
+} from "@repo/components";
 import CodePreview from "./CodePreview.vue";
 
 // HTTP图标URL

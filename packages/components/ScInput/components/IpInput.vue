@@ -39,7 +39,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { validate } from "../validation";
 import { getDefaultIcon } from "../defaultIcons";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 interface IpSegment {
   value: string;

@@ -59,7 +59,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
 import { message } from "@repo/utils";
-import ScEditor from "@repo/components/ScEditor/index.vue";
+import ScEditor from "@repo/components";
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -120,7 +120,7 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import ScEditor from "@repo/components/ScEditor/index.vue";
+import ScEditor from "@repo/components";
 
 const content = ref("<p>编辑器内容</p>");`,
   },

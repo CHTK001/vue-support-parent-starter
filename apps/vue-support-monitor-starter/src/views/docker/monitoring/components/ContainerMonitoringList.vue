@@ -152,7 +152,7 @@
 import { type SystemSoftContainer } from "@/api/docker";
 import IODataDisplay from "./IODataDisplay.vue";
 import ResourceUsageBar from "./ResourceUsageBar.vue";
-import ScTable from "@repo/components/ScTable/index.vue";
+import ScTable from "@repo/components";
 import { defineEmits, defineProps } from "vue";
 
 interface Pagination {

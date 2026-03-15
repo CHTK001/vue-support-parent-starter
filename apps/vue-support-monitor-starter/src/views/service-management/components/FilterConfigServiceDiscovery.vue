@@ -338,7 +338,7 @@ import {
   type ServiceDiscoveryConfig,
   type ServiceDiscoveryMapping,
 } from "@/api/system-server-setting";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import ScSelect from "@repo/components";
 import { fetchOptionObjectsList } from "@/api/spi";
 
 interface Props {

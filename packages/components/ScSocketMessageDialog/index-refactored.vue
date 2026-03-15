@@ -64,7 +64,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, type PropType } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import ProcessLayout from "./components/ProcessLayout.vue";
 import LogLayout from "./components/LogLayout.vue";
 import ResizeHandles from "./components/ResizeHandles.vue";

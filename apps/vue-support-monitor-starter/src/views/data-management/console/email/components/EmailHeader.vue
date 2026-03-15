@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { indexedDBProxy, message } from "@repo/utils";
 
 // 定义props

@@ -76,7 +76,7 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   fetchDefaultNameProject,
   fetchDefaultProject,
@@ -94,7 +94,7 @@ import {
   watch,
 } from "vue"; // 添加nextTick和watch
 const ScTableSelect = defineAsyncComponent(
-  () => import("@repo/components/ScTableSelect/index.vue"),
+  () => import("@repo/components"),
 );
 const form = reactive({});
 const hasAuth = shallowRef(true);

@@ -1,6 +1,6 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { useRenderIcon } from "@repo/components";
+import ScSwitch from "@repo/components";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElTag } from "element-plus";

@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import ScSelect from "@repo/components";
 import { resolveAiAppearanceComponent } from "../../../lay-ai/appearance";
 
 interface OptionsType {

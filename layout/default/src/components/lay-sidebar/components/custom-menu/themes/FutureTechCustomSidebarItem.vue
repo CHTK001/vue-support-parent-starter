@@ -4,7 +4,7 @@
  * 科技感青色系
  */
 import { computed, toRaw, provide, ref, onMounted } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   transformI18n,
   resolvePath as configResolvePath,

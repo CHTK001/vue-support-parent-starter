@@ -24,7 +24,7 @@
 </template>
 <script setup>
 import { watch, ref, reactive } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 
 const selectValue = ref("");
 const treeRef = ref();

@@ -30,7 +30,7 @@ import {
   useResizeObserver,
 } from "@pureadmin/utils";
 import { useDefer } from "@repo/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import CloseIcon from "@iconify-icons/ep/close";
 
 // 接收主题类名和背景配置

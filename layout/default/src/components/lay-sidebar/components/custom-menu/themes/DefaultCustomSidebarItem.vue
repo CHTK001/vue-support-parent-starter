@@ -11,7 +11,7 @@ import {
   ref,
   onMounted,
 } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   transformI18n,
   resolvePath as configResolvePath,

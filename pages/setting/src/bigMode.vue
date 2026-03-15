@@ -67,7 +67,7 @@ import { defineComponent } from "vue";
 import { uuid } from "@repo/config";
 import { message } from "@repo/utils";
 import TypeIt from "typeit";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { ScAvatar } from "@repo/components";
 
 import MarkdownIt from "markdown-it";

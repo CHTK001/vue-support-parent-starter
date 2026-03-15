@@ -101,7 +101,7 @@
 
 <script setup lang="ts">
 import { ScTooltip, ScButton, ScInput } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import DemoBlock from "./DemoBlock.vue";
 
 const codes = {

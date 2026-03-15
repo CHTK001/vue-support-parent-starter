@@ -270,7 +270,7 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { computed } from "vue";
 import { ScSlider } from "@repo/components";
 

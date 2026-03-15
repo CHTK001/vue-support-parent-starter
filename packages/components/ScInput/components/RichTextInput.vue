@@ -30,7 +30,7 @@
 import "@wangeditor/editor/dist/css/style.css";
 import "../../ScEditor/style.css";
 import { Editor, Toolbar } from "@wangeditor/editor-for-vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { computed, ref, shallowRef, onBeforeUnmount, watch, onMounted } from "vue";
 import { validate } from "../validation";
 import type { IDomEditor, IEditorConfig, IToolbarConfig } from "@wangeditor/editor";

@@ -361,7 +361,9 @@ export const encryptStorageValue = (
   }
 
   if (!wasmLoaded || !wasm?.encrypt_storage_value) {
-    throw new Error("WASM 未就绪，无法执行存储加密");
+    // WASM 未就绪时降级：直接返回原文（不加密）
+    console.warn("[codec-wasm] WASM 未就绪，存储加密降级为明文");
+    return safeValue;
   }
     try {
       const result = wasm.encrypt_storage_value(
@@ -397,7 +399,9 @@ export const decryptStorageValue = (
   }
 
   if (!wasmLoaded || !wasm?.decrypt_storage_value) {
-    throw new Error("WASM 未就绪，无法执行存储解密");
+    // WASM 未就绪时降级：直接返回原文（不解密）
+    console.warn("[codec-wasm] WASM 未就绪，存储解密降级为明文");
+    return safeValue;
   }
     try {
       const result = wasm.decrypt_storage_value(

@@ -143,7 +143,7 @@
 
 <script setup lang="ts">
 // 直接使用IconifyIconOnline组件，无需变量赋值
-import ScTable from "@repo/components/ScTable/index.vue";
+import ScTable from "@repo/components";
 
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import {
@@ -157,7 +157,7 @@ import {
 import type { VideoSyncConfig } from "../../api/types";
 
 // 导入组件
-import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
+import ScSocketMessageDialog from "@repo/components";
 import { useGlobalSocket } from "@repo/core";
 import { message, ScMessageBox } from "@repo/utils";
 import ConfigCard from "./components/ConfigCard.vue";

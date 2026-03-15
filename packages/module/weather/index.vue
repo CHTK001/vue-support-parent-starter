@@ -7,9 +7,9 @@
  */
 import { ref, onMounted, computed } from "vue";
 import { useWeatherStore } from "@repo/core";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
-import scEcharts from "@repo/components/ScEcharts/index.vue";
-import ScDialog from "@repo/components/ScDialog/src/index.vue";
+import { IconifyIconOnline } from "@repo/components";
+import scEcharts from "@repo/components";
+import ScDialog from "@repo/components";
 
 const weatherStore = useWeatherStore;
 const loading = ref(true);

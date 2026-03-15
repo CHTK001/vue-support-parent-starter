@@ -7,7 +7,7 @@
           <div class="header-left">
             <IconifyIconOnline icon="ri:database-2-line" class="header-icon" />
             <span>SQL 监控</span>
-            <ScTag type="info" size="small">{{ dataList.length }} 条记录</ScTag>
+            <ScTag type="info" size="small">{{ dataList.length }} 条记�?/ScTag>
           </div>
           <div class="header-actions">
             <ScButton v-if="config.lock" type="primary" size="small" @click="config.lock = false">
@@ -60,7 +60,7 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import Prism from "prismjs";
 import "prismjs/components/prism-http.min.js";
 import "prismjs/components/prism-sql.min.js";
@@ -92,7 +92,7 @@ const handleWsMessage = message => {
       while (dataList.length > 10000) {
         dataList.shift();
       }
-      // 自动滚动到底部
+      // 自动滚动到底�?
       if (config.lock) {
         nextTick(() => {
           const container = document.querySelector("#containerRef");

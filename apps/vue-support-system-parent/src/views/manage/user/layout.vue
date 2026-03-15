@@ -1,5 +1,5 @@
 <script>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   defineAsyncComponent,
   defineComponent,
@@ -30,13 +30,13 @@ import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { Base64 } from "js-base64";
 import { rand } from "@vueuse/core";
-import { IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOffline, IconifyIconOnline } from "@repo/components";
 
 const ScIp = defineAsyncComponent(
-  () => import("@repo/components/ScIp/index.vue"),
+  () => import("@repo/components"),
 );
 const ScFilterBar = defineAsyncComponent(
-  () => import("@repo/components/ScFilterBar/index.vue"),
+  () => import("@repo/components"),
 );
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 export default defineComponent({

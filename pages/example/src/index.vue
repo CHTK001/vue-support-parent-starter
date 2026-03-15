@@ -151,7 +151,7 @@
 import { message } from "@repo/utils";
 import { computed, defineAsyncComponent, ref, shallowRef } from "vue";
 import { useRouter } from "vue-router";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 // 路由
 const router = useRouter();

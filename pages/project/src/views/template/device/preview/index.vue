@@ -276,7 +276,7 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { message } from "@repo/utils";
 import { useRoute, useRouter } from "vue-router";
 import {
@@ -290,7 +290,7 @@ import {
   onMounted,
   onUnmounted,
 } from "vue";
-import LoadingComponent from "@repo/components/ScLoadCompent/index.vue";
+import LoadingComponent from "@repo/components";
 import { useFullscreen } from "@vueuse/core";
 import { Base64 } from "js-base64";
 import * as _ from "lodash-es";

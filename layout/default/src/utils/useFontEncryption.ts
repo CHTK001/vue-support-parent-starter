@@ -346,6 +346,13 @@ function getManager(): FontEncryptionManager {
 }
 
 /**
+ * 在组件外部（如 main.ts）直接初始化字体加密，不依赖 Vue 生命周期
+ */
+export function initFontEncryption(config: FontEncryptionConfig): void {
+  getManager().init(config);
+}
+
+/**
  * 字体加密 Hook
  * @param config 字体加密配置（可以是响应式对象）
  */

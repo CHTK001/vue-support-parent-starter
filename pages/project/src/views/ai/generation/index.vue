@@ -376,7 +376,7 @@
   </div>
 </template>
 <script setup>
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { useUserStoreHook } from "@repo/core";
 import {
   clearObject,
@@ -385,7 +385,7 @@ import {
   message,
 } from "@repo/utils";
 
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import ScSelect from "@repo/components";
 import {
   computed,
   defineAsyncComponent,

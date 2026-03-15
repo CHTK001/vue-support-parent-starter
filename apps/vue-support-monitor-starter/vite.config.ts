@@ -225,9 +225,10 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
         scss: {
           additionalData: `
-            @use "@repo/assets/style/layout/default/variables.scss" as *;
-            @use "@repo/assets/style/layout/default/mixin.scss";
+            @use "@layout/default/styles/layout/variables.scss" as *;
+            @use "@layout/default/styles/layout/mixin.scss";
           `,
+          silenceDeprecations: ["color-functions", "global-builtin", "import"],
         },
       },
     },

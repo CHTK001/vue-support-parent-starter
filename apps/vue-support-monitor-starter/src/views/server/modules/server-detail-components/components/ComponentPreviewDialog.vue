@@ -288,7 +288,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import type { ServerDetailComponent } from "@/api/server";
 
 // 定义属性

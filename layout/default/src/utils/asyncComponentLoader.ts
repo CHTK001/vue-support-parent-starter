@@ -10,7 +10,7 @@ import {
   type AsyncComponentLoader,
   type Component,
 } from "vue";
-import ScIcon from "@repo/components/ScIcon/index.vue";
+import ScIcon from "@repo/components";
 import { ScButton } from "@repo/components/ScButton";
 
 /**

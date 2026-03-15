@@ -62,8 +62,8 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import ScCompare from "@repo/components/ScCompare/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScCompare from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 
 const defaultLeft =
   "https://via.placeholder.com/600x300/3b82f6/ffffff?text=Before";

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { isAllEmpty } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace } from "@repo/config";
 import { emitter, getParentPaths, usePermissionStoreHook } from "@repo/core";

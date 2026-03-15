@@ -28,7 +28,7 @@ import {
 } from "@repo/core";
 import { isAllEmpty } from "@pureadmin/utils";
 import { localStorageProxy } from "@repo/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import type { StorageConfigs } from "@repo/config";
 import { useNav } from "../../../../hooks/useNav";
 import {

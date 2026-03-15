@@ -2,7 +2,7 @@
 import { reactive, ref } from "vue";
 import { fetchSaveDept, fetchUpdateDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
-import { IconSelect, IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconSelect, IconifyIconOnline } from "@repo/components";
 import { transformI18n } from "@repo/config";
 
 // Emits

@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { message } from "@repo/utils";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 const props = defineProps<{
   title: string;

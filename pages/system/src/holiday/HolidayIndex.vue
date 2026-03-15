@@ -2,7 +2,7 @@
 import Calendar from "@iconify-icons/ep/calendar";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { useRenderIcon } from "@repo/components";
-import ScFilterBar from "@repo/components/ScFilterBar/index.vue";
+import ScFilterBar from "@repo/components";
 import { message } from "@repo/utils";
 import {
   computed,

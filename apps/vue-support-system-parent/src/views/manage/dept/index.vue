@@ -10,8 +10,8 @@ import { debounce } from "@pureadmin/utils";
 // 导入时间处理工具函数
 import { getTimeAgo } from "@repo/utils";
 // 导入渲染图标的钩子函数
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 // 导入路由实例
 import { router } from "@repo/core";
 // 导入Base64编码库

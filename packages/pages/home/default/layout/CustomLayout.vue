@@ -2,7 +2,7 @@
 import { defineAsyncComponent, reactive, ref, computed } from "vue";
 import { GridLayout } from "grid-layout-plus";
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { useLayoutLayoutStore } from "@repo/core";
 
 const loadingCollection = {};

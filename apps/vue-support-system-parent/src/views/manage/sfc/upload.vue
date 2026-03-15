@@ -84,7 +84,7 @@
 <script setup>
 import { fetchUploadSfc } from "@repo/core";
 import { ref, defineExpose, reactive } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks.ts";
+import { useRenderIcon } from "@repo/components.ts";
 import { message } from "@repo/utils";
 
 const emit = defineEmits(["close", "success"]);

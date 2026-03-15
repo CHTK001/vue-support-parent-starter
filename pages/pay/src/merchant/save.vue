@@ -58,7 +58,7 @@
 import { reactive, ref, defineExpose, watch } from "vue";
 import { fetchSaveMerchant, fetchUpdateMerchant } from "../api/merchant";
 import { message } from "@repo/utils";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScSwitch from "@repo/components";
 
 const visible = ref(false);
 const mode = ref<"add" | "edit">("add");

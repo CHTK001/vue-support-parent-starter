@@ -49,7 +49,7 @@
  * @since 2025-12-04
  */
 import { ref, computed, watch, onMounted } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import type { RegionData, RegionProps, RegionEmits } from "./types";
 import { regionData as defaultRegionData } from "./data";
 import { getRegionDataBySource, getRegionDataBySourceSync } from "./dataSource";

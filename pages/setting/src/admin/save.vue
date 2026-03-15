@@ -3,7 +3,7 @@ import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
 import { fetchUpdateSetting, fetchSaveSetting } from "../api";
 import { $t } from "@repo/config";
 import { message } from "@repo/utils";
-import ScDialog from "@repo/components/ScDialog/src/index.vue";
+import ScDialog from "@repo/components";
 
 const ConfigValueInput = defineAsyncComponent(
   () => import("./ConfigValueInput.vue"),

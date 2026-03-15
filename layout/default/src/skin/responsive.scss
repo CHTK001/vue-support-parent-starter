@@ -1,12 +1,10 @@
+@use 'sass:map';
+
 /**
  * 响应式布局系统
  * Responsive Layout System
- * 
- * 提供响应式断点和布局工具
- * Provides responsive breakpoints and layout utilities
  */
 
-// 断点定义 (Breakpoint definitions)
 $breakpoints: (
   'xs': 480px,
   'sm': 768px,
@@ -16,10 +14,9 @@ $breakpoints: (
   '2xl': 1920px
 );
 
-// 响应式混合 (Responsive mixins)
 @mixin respond-to($breakpoint) {
-  @if map-has-key($breakpoints, $breakpoint) {
-    @media (max-width: map-get($breakpoints, $breakpoint)) {
+  @if map.has-key($breakpoints, $breakpoint) {
+    @media (max-width: map.get($breakpoints, $breakpoint)) {
       @content;
     }
   } @else {
@@ -28,8 +25,8 @@ $breakpoints: (
 }
 
 @mixin respond-above($breakpoint) {
-  @if map-has-key($breakpoints, $breakpoint) {
-    @media (min-width: map-get($breakpoints, $breakpoint) + 1) {
+  @if map.has-key($breakpoints, $breakpoint) {
+    @media (min-width: map.get($breakpoints, $breakpoint) + 1) {
       @content;
     }
   }

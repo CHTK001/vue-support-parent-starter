@@ -24,11 +24,11 @@
             <ScSlider v-model="config.fontSize" :min="10" :max="20" :step="1" :show-tooltip="true" style="width: 80px" />
           </div>
           <div class="control-buttons">
-            <ScTooltip :content="config.lock ? '已开启自动滚动' : '已停止自动滚动'" placement="top">
+            <ScTooltip :content="config.lock ? '已开启自动滚�? : '已停止自动滚�?" placement="top">
               <ScButton v-if="config.lock" type="primary" circle size="small" :icon="useRenderIcon('ep:lock')" @click="config.lock = false" />
               <ScButton v-else type="info" circle size="small" :icon="useRenderIcon('ep:unlock')" @click="config.lock = true" />
             </ScTooltip>
-            <ScTooltip content="滚动到底部" placement="top">
+            <ScTooltip content="滚动到底�? placement="top">
               <ScButton circle type="success" size="small" :icon="useRenderIcon('ep:bottom')" @click="scrollToBottom" />
             </ScTooltip>
             <ScTooltip content="清空日志" placement="top">
@@ -53,7 +53,7 @@
 <script setup>
 import { nextTick, ref, onUnmounted, reactive, onMounted, computed } from "vue";
 import { AnsiUp } from "ansi_up";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { wsService } from "@/utils/websocket";
 import { ScSlider } from "@repo/components";
 
@@ -77,10 +77,10 @@ const warnCount = computed(() => {
 });
 let unsubscribe = null;
 
-// WebSocket 连接状态
+// WebSocket 连接状�?
 const wsConnected = computed(() => wsService.connected.value);
 
-// 滚动到底部
+// 滚动到底�?
 const scrollToBottom = () => {
   nextTick(() => {
     const container = document.querySelector("#logListContainer");
@@ -105,7 +105,7 @@ const handleWsMessage = message => {
       while (dataList.length > 10000) {
         dataList.shift();
       }
-      // 自动滚动到底部
+      // 自动滚动到底�?
       if (config.lock) {
         nextTick(() => {
           const container = document.querySelector("#logListContainer");
@@ -136,7 +136,7 @@ const filter = row => {
       return false;
     }
   }
-  // 再按关键字过滤
+  // 再按关键字过�?
   if (!form.message) {
     return true;
   }

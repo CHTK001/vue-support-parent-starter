@@ -1,4 +1,4 @@
-import "@repo/skin";
+import "@layout/default/skin/index.scss";
 import { ReMenuNewBadge } from "./MenuNewBadge/index.ts";
 import { useRenderIcon } from "./ReIcon/src/hooks";
 import ReSplitPane from "./ReSplitPane/index.vue";
@@ -60,6 +60,12 @@ import ScSwitch from "./ScSwitch/index.vue";
 import ScPagination from "./ScPagination/index.vue";
 import ScRouteLoading from "./ScRouteLoading/index.vue";
 import ScAnimationFrame from "./ScAnimationFrame/index.vue";
+import { ScBacktop } from "./ScBacktop";
+import { ScAside } from "./ScAside";
+import { ScMain } from "./ScMain";
+import { ScDropdown } from "./ScDropdown";
+import { ScDropdownMenu } from "./ScDropdownMenu";
+import { ScDropdownItem } from "./ScDropdownItem";
 // 导入 ScMessage 和 ScMessageBox 函数，用于在导出对象中使用
 import { ScMessage, ScMessageBox } from "@repo/utils";
 // 重新导出 ScMessage 和 ScMessageBox 函数，统一从 @repo/components 导入
@@ -129,6 +135,12 @@ export {
   ScEmpty,
   ScTableColumn,
   ScOption,
+  ScBacktop,
+  ScAside,
+  ScMain,
+  ScDropdown,
+  ScDropdownMenu,
+  ScDropdownItem,
   useRenderIcon
 };
 export * from "./ReIcon";

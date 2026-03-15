@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 const currentDate = ref(new Date());
 

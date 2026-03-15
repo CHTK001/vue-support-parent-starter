@@ -226,8 +226,8 @@
  * @version 1.0.0
  * @since 2024-12-19
  */
-import { IconSelect } from "@repo/components/ReIcon";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { IconSelect } from "@repo/components";
+import ScSwitch from "@repo/components";
 import { clearObject } from "@repo/utils";
 import type { FormInstance, FormRules } from "element-plus";
 import { computed, reactive, ref, watch } from "vue";
