@@ -2,10 +2,19 @@ import "gridstack/dist/gridstack.min.css";
 import { defineStore } from "pinia";
 import "gridstack/dist/gridstack.min.css";
 import { GridStack } from "gridstack";
-import { fetchGetUserLayout, fetchMineSfc, fetchUpdateUserLayout } from "@repo/core";
+import {
+  fetchGetUserLayout,
+  fetchMineSfc,
+  fetchUpdateUserLayout,
+} from "@repo/core";
 import { getConfig } from "@repo/config";
 import { h, render } from "vue";
-import { loadSfcModule, localStorageProxy, message, toObject } from "@repo/utils";
+import {
+  loadSfcModule,
+  localStorageProxy,
+  message,
+  toObject,
+} from "@repo/utils";
 import { layout } from "echarts/types/src/layout/barGrid.js";
 export const useGridStackStore = defineStore({
   id: "GridStackStore",
@@ -91,7 +100,9 @@ export const useGridStackStore = defineStore({
       this.customLayout();
     },
     async removeComp(item) {
-      this.component = this.component ? this.component.filter((it) => it.id != item) : [];
+      this.component = this.component
+        ? this.component.filter((it) => it.id != item)
+        : [];
       this.customLayout();
     },
     async resetLayout() {
@@ -112,7 +123,11 @@ export const useGridStackStore = defineStore({
         this.component.push(item);
       }
       if (layout.join(",") == "24") {
-        this.component[0] = [...this?.component[0], ...this?.component[1], ...this?.component[2]];
+        this.component[0] = [
+          ...this?.component[0],
+          ...this?.component[1],
+          ...this?.component[2],
+        ];
         this.component[1] = [];
         this.component[2] = [];
         if (this.component.length == 4) {
@@ -328,7 +343,12 @@ export const useGridStackStore = defineStore({
     },
     myCompsList() {
       return this.allCompsList().filter((item) => {
-        return !item.disabled && (this.component ? this.component.filter((i) => i.id === item.key).length === 0 : true);
+        return (
+          !item.disabled &&
+          (this.component
+            ? this.component.filter((i) => i.id === item.key).length === 0
+            : true)
+        );
       });
     },
     hasNowCompsList() {

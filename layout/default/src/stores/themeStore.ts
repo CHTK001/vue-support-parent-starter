@@ -200,10 +200,7 @@ export const useThemeStore = defineStore("theme", () => {
       htmlEl.classList.remove("pixelium");
 
       // 移除可能存在的 8bit 主题样式表（来自 useThemeComponent / usePixelUI）
-      const pixelThemeLinks = [
-        "pixel-theme-style",
-        "theme-8bit-style",
-      ];
+      const pixelThemeLinks = ["pixel-theme-style", "theme-8bit-style"];
       pixelThemeLinks.forEach((linkId) => {
         const linkEl = document.getElementById(linkId);
         if (linkEl) {

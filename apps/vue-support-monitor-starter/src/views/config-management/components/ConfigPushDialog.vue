@@ -32,13 +32,13 @@
             <div class="config-value">
               {{ config.monitorSysGenConfigValue || "—" }}
             </div>
-            <el-tag
+            <ScTag
               v-if="config.monitorSysGenConfigEnv"
               size="small"
               type="info"
             >
               {{ config.monitorSysGenConfigEnv }}
-            </el-tag>
+            </ScTag>
           </div>
         </div>
       </div>
@@ -72,7 +72,7 @@
                 />
                 {{ server.monitorSysGenServerName || "-" }}
               </div>
-              <el-tag
+              <ScTag
                 :type="
                   getStatusType(
                     server.monitorSysGenServerConnectionStatus,
@@ -81,7 +81,7 @@
                 size="small"
               >
                 {{ getStatusText(server.monitorSysGenServerConnectionStatus) }}
-              </el-tag>
+              </ScTag>
             </div>
             <div class="card-body">
               <div class="server-host">
@@ -91,7 +91,7 @@
                 }}
               </div>
               <div v-if="server.monitorSysGenServerTags" class="server-tags">
-                <el-tag
+                <ScTag
                   v-for="tag in (server.monitorSysGenServerTags || '').split(
                     ',',
                   )"
@@ -145,8 +145,8 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">取消</el-button>
-        <el-button
+        <ScButton @click="visibleProxy = false">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="pushing"
           :disabled="selectedServerCount === 0"
@@ -158,7 +158,7 @@
             class="mr-1"
           />
           {{ pushing ? "下发中..." : "开始下发" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

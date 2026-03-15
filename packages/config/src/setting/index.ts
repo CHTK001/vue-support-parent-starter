@@ -17,7 +17,7 @@ export const globalSetting: PlatformConfigs = {
   // ===========================================
   // 鉴权与登录配置
   // ===========================================
-  /** 是否开启远程权限控制 */ 
+  /** 是否开启远程权限控制 */
   OpenAuth: true,
   /** 是否开启动态配置面板 */
   OpenSetting: true,
@@ -106,7 +106,7 @@ export const globalSetting: PlatformConfigs = {
   // ===========================================
   // 主题与样式配置
   // ===========================================
-  /** 主题模式 */ 
+  /** 主题模式 */
   Theme: "light",
   /** 是否开启暗黑模式 */
   DarkMode: false,
@@ -141,7 +141,7 @@ export const globalSetting: PlatformConfigs = {
   // 导航菜单配置
   // ===========================================
   /** 布局模式 */
-  Layout: "vertical", 
+  Layout: "vertical",
   /** 菜单箭头图标是否开启动画 */
   MenuArrowIconNoTransition: false,
   /** 菜单搜索历史的最大条目 */

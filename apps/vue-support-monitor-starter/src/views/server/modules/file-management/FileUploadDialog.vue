@@ -16,7 +16,7 @@
           上传目标路径
         </div>
         <div class="path-input-group">
-          <el-input
+          <ScInput
             v-model="uploadPath"
             placeholder="请输入上传路径，如: /home/user/documents"
             class="path-input"
@@ -24,11 +24,11 @@
             <template #prepend>
               <IconifyIconOnline icon="ri:folder-open-line" />
             </template>
-          </el-input>
-          <el-button type="primary" @click="selectPath">
+          </ScInput>
+          <ScButton type="primary" @click="selectPath">
             <IconifyIconOnline icon="ri:folder-open-line" class="mr-1" />
             选择路径
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -103,7 +103,7 @@
 
             <div class="file-status">
               <div v-if="file.uploading" class="upload-progress">
-                <el-progress
+                <ScProgress
                   :percentage="file.progress"
                   :stroke-width="4"
                   :show-text="false"
@@ -134,14 +134,14 @@
             </div>
 
             <div class="file-actions">
-              <el-button
+              <ScButton
                 v-if="!file.uploading && !file.success"
                 size="small"
                 text
                 @click="removeFile(index)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -154,10 +154,10 @@
           上传选项
         </div>
         <div class="options-content">
-          <el-checkbox v-model="overwriteExisting">
+          <ScCheckbox v-model="overwriteExisting">
             覆盖已存在的文件
-          </el-checkbox>
-          <el-checkbox v-model="createDirectory"> 自动创建目录 </el-checkbox>
+          </ScCheckbox>
+          <ScCheckbox v-model="createDirectory"> 自动创建目录 </ScCheckbox>
         </div>
       </div>
     </div>
@@ -171,11 +171,11 @@
           </span>
         </div>
         <div class="footer-actions">
-          <el-button @click="closeDialog">取消</el-button>
-          <el-button v-if="fileList.length > 0" @click="clearFiles"
+          <ScButton @click="closeDialog">取消</ScButton>
+          <ScButton v-if="fileList.length > 0" @click="clearFiles"
             >清空</el-button
           >
-          <el-button
+          <ScButton
             type="primary"
             :disabled="fileList.length === 0 || !uploadPath || isUploading"
             :loading="isUploading"
@@ -183,7 +183,7 @@
           >
             <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
             {{ isUploading ? "上传中..." : "开始上传" }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>

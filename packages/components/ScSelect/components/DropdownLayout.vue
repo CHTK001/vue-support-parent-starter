@@ -1,6 +1,6 @@
 <template>
   <div ref="dropdownRef" class="dropdown-selector" :class="{ open: isOpen, 'direction-horizontal': dropdownDirection === 'horizontal' }">
-    <el-popover
+    <ScPopover
       v-model:visible="isOpen"
       :placement="popoverPlacement"
       :width="popoverWidth"
@@ -43,7 +43,7 @@
         <slot name="header" :item="currentSelectedData" :selectedValues="modelValue" />
         <!-- 搜索栏 -->
         <div v-if="showSearchBar" class="panel-search">
-          <el-input
+          <ScInput
             v-model="searchQuery"
             size="small"
             clearable
@@ -54,7 +54,7 @@
             <template #prefix>
               <IconRenderer icon="ri:search-line" />
             </template>
-          </el-input>
+          </ScInput>
         </div>
         <!-- 当前选择数据展示插槽 -->
         <slot name="summary" :item="currentSelectedData" :selectedValues="modelValue" :selectedCount="currentSelectedData.length" />
@@ -90,14 +90,14 @@
         </div>
         <!-- 多选批量操作栏 -->
         <div v-if="multiple && showBatchActions" class="panel-actions">
-          <el-button size="small" text @click="handleSelectAll">全选</el-button>
-          <el-button size="small" text @click="handleInvertSelection">反选</el-button>
-          <el-button size="small" text @click="handleClearSelection">清空</el-button>
+          <ScButton size="small" text @click="handleSelectAll">全选</ScButton>
+          <ScButton size="small" text @click="handleInvertSelection">反选</ScButton>
+          <ScButton size="small" text @click="handleClearSelection">清空</ScButton>
         </div>
         <!-- 面板底部自定义内容插槽 -->
         <slot name="footer" :item="currentSelectedData" :selectedValues="modelValue" />
       </div>
-    </el-popover>
+    </ScPopover>
   </div>
 </template>
 

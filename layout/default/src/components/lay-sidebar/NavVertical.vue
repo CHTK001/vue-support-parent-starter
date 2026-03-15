@@ -8,10 +8,12 @@ const themeComponents = {
   default: DefaultSidebar,
   // 仅保留实际存在的未来科技主题，其余已删除的节日主题不再懒加载
   "future-tech": defineAsyncComponent(() => import("./themes/FutureTech.vue")),
- 
 };
 
-const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultSidebar);
+const { CurrentComponent, currentTheme } = useThemeComponent(
+  themeComponents,
+  DefaultSidebar,
+);
 </script>
 
 <template>

@@ -11,7 +11,7 @@
       class="user-dialog"
       @close="close"
     >
-      <el-form
+      <ScForm
         ref="dialogFormRef"
         :model="form"
         :rules="rules"
@@ -19,12 +19,12 @@
         label-width="100px"
         class="modern-form user-form"
       >
-        <el-row :gutter="20">
+        <ScRow :gutter="20">
           <!-- 头像区域 -->
-          <el-col :span="24">
+          <ScCol :span="24">
             <div class="avatar-section">
               <div class="avatar-wrapper">
-                <el-upload
+                <ScUpload
                   class="avatar-uploader"
                   action="#"
                   :show-file-list="false"
@@ -33,7 +33,7 @@
                   accept="image/*"
                 >
                   <div class="avatar-container">
-                    <el-avatar
+                    <ScAvatar
                       v-if="form.sysUserAvatar"
                       :size="100"
                       :src="form.sysUserAvatar"
@@ -50,7 +50,7 @@
                       <span>更换头像</span>
                     </div>
                   </div>
-                </el-upload>
+                </ScUpload>
                 <div class="avatar-info">
                   <h3>
                     {{
@@ -61,7 +61,7 @@
                 </div>
               </div>
             </div>
-          </el-col>
+          </ScCol>
 
           <!-- 基本信息区域 -->
           <div class="form-section">
@@ -70,9 +70,9 @@
               <span>基本信息</span>
             </div>
 
-            <el-col :span="12">
-              <el-form-item label="账号名称" prop="sysUserUsername">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="账号名称" prop="sysUserUsername">
+                <ScInput
                   v-model="form.sysUserUsername"
                   placeholder="请输入账号名称"
                   class="custom-input"
@@ -80,13 +80,13 @@
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:account" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="用户昵称" prop="sysUserNickname">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="用户昵称" prop="sysUserNickname">
+                <ScInput
                   v-model="form.sysUserNickname"
                   placeholder="请输入用户昵称"
                   class="custom-input"
@@ -94,13 +94,13 @@
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:card-account-details" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="登录密码" prop="sysUserPassword">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="登录密码" prop="sysUserPassword">
+                <ScInput
                   v-model="form.sysUserPassword"
                   placeholder="请输入登录密码"
                   type="password"
@@ -110,13 +110,13 @@
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:lock" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="手机号" prop="sysUserPhone">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="手机号" prop="sysUserPhone">
+                <ScInput
                   v-model="form.sysUserPhone"
                   placeholder="请输入手机号"
                   class="custom-input"
@@ -124,13 +124,13 @@
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:phone" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="邮箱地址" prop="sysUserEmail">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="邮箱地址" prop="sysUserEmail">
+                <ScInput
                   v-model="form.sysUserEmail"
                   placeholder="请输入邮箱地址"
                   class="custom-input"
@@ -138,12 +138,12 @@
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:email" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="性别" prop="sysUserSex">
+            <ScCol :span="12">
+              <ScFormItem label="性别" prop="sysUserSex">
                 <el-segmented
                   v-model="form.sysUserSex"
                   :options="sexOptions"
@@ -165,8 +165,8 @@
                     </div>
                   </template>
                 </el-segmented>
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
           </div>
 
           <!-- 角色与状态区域 -->
@@ -176,9 +176,9 @@
               <span>角色与状态</span>
             </div>
 
-            <el-col :span="12">
-              <el-form-item label="角色" prop="roleIds">
-                <el-select
+            <ScCol :span="12">
+              <ScFormItem label="角色" prop="roleIds">
+                <ScSelect
                   v-model="form.roleIds"
                   placeholder="请选择角色"
                   class="custom-select"
@@ -190,7 +190,7 @@
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:shield-account" />
                   </template>
-                  <el-option
+                  <ScOption
                     v-for="(item, index) in roleOptions"
                     :key="index"
                     :value="item.sysRoleId"
@@ -208,24 +208,24 @@
                         item.sysRoleCode
                       }}</span>
                     </div>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-            </el-col>
+                  </ScOption>
+                </ScSelect>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="用户状态" prop="sysUserStatus">
+            <ScCol :span="12">
+              <ScFormItem label="用户状态" prop="sysUserStatus">
                 <el-segmented
                   v-model="form.sysUserStatus"
                   :options="statusOptions"
                   class="custom-segmented"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="备注" prop="sysUserRemark">
-                <el-input
+            <ScCol :span="24">
+              <ScFormItem label="备注" prop="sysUserRemark">
+                <ScInput
                   v-model="form.sysUserRemark"
                   placeholder="请输入备注"
                   type="textarea"
@@ -234,19 +234,19 @@
                   maxlength="200"
                   show-word-limit
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
           </div>
-        </el-row>
-      </el-form>
+        </ScRow>
+      </ScForm>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button class="cancel-btn" @click="visible = false">
+          <ScButton class="cancel-btn" @click="visible = false">
             <IconifyIconOnline icon="mdi:close" />
             取 消
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"
@@ -255,7 +255,7 @@
           >
             <IconifyIconOnline icon="mdi:content-save" />
             保 存
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

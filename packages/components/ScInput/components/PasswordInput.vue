@@ -1,7 +1,7 @@
 <template>
   <div class="sc-password-input-wrapper">
     <div class="sc-password-input-container">
-      <el-input
+      <ScInput
         v-model="currentValue"
         class="sc-password-input"
         type="password"
@@ -25,7 +25,7 @@
         <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">
           <slot :name="name" v-bind="slotData || {}" />
         </template>
-      </el-input>
+      </ScInput>
     </div>
     <div v-if="tip && tipPosition === 'bottom'" class="sc-password-input__tip-bottom">
       {{ tip }}

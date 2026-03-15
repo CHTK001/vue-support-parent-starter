@@ -3,9 +3,9 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <el-button type="primary" plain class="back-btn" circle @click="goBack">
+        <ScButton type="primary" plain class="back-btn" circle @click="goBack">
           <IconifyIconOnline icon="ri:arrow-left-line" />
-        </el-button>
+        </ScButton>
         <div class="divider-vertical" />
         <div class="server-info">
           <div class="server-title">
@@ -19,7 +19,7 @@
               <h1 class="server-name">
                 {{ serverInfo?.name || "服务器详情" }}
               </h1>
-              <el-tag
+              <ScTag
                 :type="getStatusType(serverInfo?.status)"
                 size="small"
                 class="status-tag"
@@ -30,7 +30,7 @@
                   class="status-icon"
                 />
                 {{ getStatusText(serverInfo?.status) }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
           <div class="server-meta">
@@ -49,7 +49,7 @@
       <div class="header-right">
         <!-- 主要操作组 -->
         <div class="action-group primary-actions">
-          <el-button
+          <ScButton
             type="success"
             :loading="refreshLoading"
             class="action-btn"
@@ -57,20 +57,20 @@
           >
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             type="primary"
             class="action-btn"
             @click="handleAddComponent"
           >
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加组件
-          </el-button>
+          </ScButton>
         </div>
         <div class="divider-vertical" />
         <!-- 工具操作组 -->
         <div class="action-group tool-actions">
-          <el-button
+          <ScButton
             type="info"
             plain
             class="action-btn"
@@ -78,8 +78,8 @@
           >
             <IconifyIconOnline icon="ri:folder-line" class="mr-1" />
             文件管理
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             type="warning"
             plain
             class="action-btn"
@@ -87,31 +87,31 @@
           >
             <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
             管理组件
-          </el-button>
+          </ScButton>
         </div>
         <div class="divider-vertical" />
         <!-- 配置操作组 -->
         <div class="action-group config-actions">
-          <el-button
+          <ScButton
             plain
             class="action-btn"
             title="组件配置"
             @click="handleComponentConfig"
           >
             <IconifyIconOnline icon="ri:dashboard-line" />
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             plain
             class="action-btn"
             title="布局配置"
             @click="handleLayoutConfig"
           >
             <IconifyIconOnline icon="ri:layout-grid-line" />
-          </el-button>
+          </ScButton>
         </div>
         <div class="divider-vertical" />
         <!-- 视图切换 -->
-        <el-button
+        <ScButton
           :type="editMode ? 'success' : 'default'"
           :plain="!editMode"
           class="action-btn view-toggle"
@@ -122,7 +122,7 @@
             class="mr-1"
           />
           {{ editMode ? "预览" : "编辑" }}
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -163,17 +163,17 @@
             </span>
           </div>
           <div class="toolbar-actions">
-            <el-button class="cancel-btn" @click="handleCancelEdit">
+            <ScButton class="cancel-btn" @click="handleCancelEdit">
               取消
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               type="primary"
               class="save-btn"
               @click="handleSaveLayout"
             >
               <IconifyIconOnline icon="ri:save-line" class="mr-1" />
               保存布局
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>

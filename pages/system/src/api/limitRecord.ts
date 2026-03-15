@@ -78,8 +78,14 @@ export interface LimitRecordQueryParams {
  * @since 2025/9/28
  * @version 1.0.0
  */
-export const fetchLimitRecordPage = (params?: LimitRecordQueryParams): Promise<ReturnResult<PageResult<SysLimitRecord>>> => {
-  return http.request<PageResult<SysLimitRecord>>("get", "/v2/limit/record/page", { params });
+export const fetchLimitRecordPage = (
+  params?: LimitRecordQueryParams,
+): Promise<ReturnResult<PageResult<SysLimitRecord>>> => {
+  return http.request<PageResult<SysLimitRecord>>(
+    "get",
+    "/v2/limit/record/page",
+    { params },
+  );
 };
 
 /**
@@ -90,7 +96,9 @@ export const fetchLimitRecordPage = (params?: LimitRecordQueryParams): Promise<R
  * @since 2025/9/28
  * @version 1.0.0
  */
-export const deleteLimitRecord = (sysLimitRecordId: number): Promise<ReturnResult<boolean>> => {
+export const deleteLimitRecord = (
+  sysLimitRecordId: number,
+): Promise<ReturnResult<boolean>> => {
   const params = { sysLimitRecordId };
   return http.request<boolean>("delete", "/v2/limit/record/delete", { params });
 };
@@ -103,6 +111,10 @@ export const deleteLimitRecord = (sysLimitRecordId: number): Promise<ReturnResul
  * @since 2025/9/28
  * @version 1.0.0
  */
-export const deleteBatchLimitRecord = (ids: number[]): Promise<ReturnResult<boolean>> => {
-  return http.request<boolean>("delete", "/v2/limit/record/deleteBatch", { data: ids });
+export const deleteBatchLimitRecord = (
+  ids: number[],
+): Promise<ReturnResult<boolean>> => {
+  return http.request<boolean>("delete", "/v2/limit/record/deleteBatch", {
+    data: ids,
+  });
 };

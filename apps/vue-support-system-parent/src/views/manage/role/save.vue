@@ -86,7 +86,7 @@ export default defineComponent({
       :title="title"
       @close="close"
     >
-      <el-form
+      <ScForm
         ref="dialogForm"
         :model="form"
         :rules="rules"
@@ -94,15 +94,15 @@ export default defineComponent({
         label-width="100px"
         class="modern-form"
       >
-        <el-form-item label="角色名称" prop="sysRoleName">
-          <el-input v-model="form.sysRoleName" placeholder="请输入角色名称" />
-        </el-form-item>
+        <ScFormItem label="角色名称" prop="sysRoleName">
+          <ScInput v-model="form.sysRoleName" placeholder="请输入角色名称" />
+        </ScFormItem>
 
-        <el-form-item label="角色编码" prop="sysRoleCode">
-          <el-input v-model="form.sysRoleCode" placeholder="请输入角色编码" />
-        </el-form-item>
+        <ScFormItem label="角色编码" prop="sysRoleCode">
+          <ScInput v-model="form.sysRoleCode" placeholder="请输入角色编码" />
+        </ScFormItem>
 
-        <el-form-item label="角色状态" prop="sysRoleStatus">
+        <ScFormItem label="角色状态" prop="sysRoleStatus">
           <el-segmented
             v-model="form.sysRoleStatus"
             :options="[
@@ -110,27 +110,27 @@ export default defineComponent({
               { label: '禁用', value: 0 },
             ]"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="角色优先级" prop="sysRoleSort">
-          <el-input-number
+        <ScFormItem label="角色优先级" prop="sysRoleSort">
+          <ScInputNumber
             v-model="form.sysRoleSort"
             placeholder="请输入角色优先级"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="备注" prop="sysRoleRemark">
-          <el-input
+        <ScFormItem label="备注" prop="sysRoleRemark">
+          <ScInput
             v-model="form.sysRoleRemark"
             placeholder="请输入备注"
             type="textarea"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
 
       <template #footer>
-        <el-button @click="visible = false">取 消</el-button>
-        <el-button
+        <ScButton @click="visible = false">取 消</ScButton>
+        <ScButton
           v-if="mode != 'show'"
           type="primary"
           :loading="loading"

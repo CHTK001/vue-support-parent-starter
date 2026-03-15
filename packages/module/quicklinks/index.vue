@@ -13,11 +13,36 @@ const router = useRouter();
 
 const links = ref([
   { title: "项目管理", icon: "ri:apps-2-line", path: "/app", color: "#409eff" },
-  { title: "节点管理", icon: "ri:server-line", path: "/node-management", color: "#67c23a" },
-  { title: "数据管理", icon: "ri:database-2-line", path: "/data-management", color: "#e6a23c" },
-  { title: "任务调度", icon: "ri:calendar-schedule-line", path: "/job", color: "#f56c6c" },
-  { title: "Docker", icon: "ri:docker-fill", path: "/docker", color: "#0db7ed" },
-  { title: "系统设置", icon: "ri:settings-3-line", path: "/setting", color: "#909399" },
+  {
+    title: "节点管理",
+    icon: "ri:server-line",
+    path: "/node-management",
+    color: "#67c23a",
+  },
+  {
+    title: "数据管理",
+    icon: "ri:database-2-line",
+    path: "/data-management",
+    color: "#e6a23c",
+  },
+  {
+    title: "任务调度",
+    icon: "ri:calendar-schedule-line",
+    path: "/job",
+    color: "#f56c6c",
+  },
+  {
+    title: "Docker",
+    icon: "ri:docker-fill",
+    path: "/docker",
+    color: "#0db7ed",
+  },
+  {
+    title: "系统设置",
+    icon: "ri:settings-3-line",
+    path: "/setting",
+    color: "#909399",
+  },
 ]);
 
 const handleClick = (link) => {
@@ -39,10 +64,13 @@ const handleClick = (link) => {
         class="link-item"
         @click="handleClick(link)"
       >
-        <div class="icon-box" :style="{ backgroundColor: link.color + '15', color: link.color }">
-          <el-icon :size="20">
+        <div
+          class="icon-box"
+          :style="{ backgroundColor: link.color + '15', color: link.color }"
+        >
+          <ScIcon :size="20">
             <component :is="useRenderIcon(link.icon)" />
-          </el-icon>
+          </ScIcon>
         </div>
         <span class="link-label">{{ link.title }}</span>
       </div>
@@ -89,11 +117,11 @@ const handleClick = (link) => {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background: var(--el-fill-color-lighter);
-  
+
   &:hover {
     background: var(--el-fill-color);
     transform: translateY(-2px);
-    
+
     .icon-box {
       transform: scale(1.1);
     }

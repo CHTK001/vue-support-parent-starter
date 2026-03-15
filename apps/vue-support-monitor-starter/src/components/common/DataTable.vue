@@ -1,13 +1,13 @@
 <template>
   <div class="data-table">
-    <el-table
+    <ScTable
       ref="tableRef"
       :data="data"
       :loading="loading"
       v-bind="$attrs"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column
+      <ScTableColumn
         v-for="column in columns"
         :key="column.prop"
         :prop="column.prop"
@@ -28,15 +28,15 @@
             :$index="scope.$index"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
       <!-- 默认插槽用于添加额外的列 -->
       <slot />
-    </el-table>
+    </ScTable>
 
     <!-- 分页 -->
     <div v-if="showPagination" class="data-table__pagination">
-      <el-pagination
+      <ScPagination
         :current-page="currentPage"
         :page-size="pageSize"
         :page-sizes="pageSizes"

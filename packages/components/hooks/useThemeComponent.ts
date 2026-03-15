@@ -4,22 +4,8 @@
  * 支持多主题扩展，新增主题只需修改 themeConfig.ts
  */
 
-import {
-  computed,
-  watch,
-  onBeforeUnmount,
-  onMounted,
-  shallowRef,
-  ref,
-  getCurrentInstance,
-  type Component,
-} from "vue";
-import {
-  getThemeConfig,
-  getThemeComponentName,
-  THEME_CONFIGS,
-  ensureThemePluginForCurrentSkin,
-} from "./themeConfig";
+import { computed, watch, onBeforeUnmount, onMounted, shallowRef, ref, getCurrentInstance, type Component } from "vue";
+import { getThemeConfig, getThemeComponentName, THEME_CONFIGS, ensureThemePluginForCurrentSkin } from "./themeConfig";
 import * as ElementPlusModule from "element-plus";
 import { storageLocal } from "@pureadmin/utils";
 import { getLogger } from "@repo/utils";
@@ -79,10 +65,7 @@ export async function preloadTheme(themeName: string): Promise<void> {
     themePreloadStatus.set(themeName, true);
     logger.info(`[useThemeComponent] 主题 ${themeName} 预加载完成`);
   } catch (error) {
-    logger.error(
-      `[useThemeComponent] 预加载主题 ${themeName} 失败:`,
-      error,
-    );
+    logger.error(`[useThemeComponent] 预加载主题 ${themeName} 失败:`, error);
   }
 }
 
@@ -92,9 +75,7 @@ export async function preloadTheme(themeName: string): Promise<void> {
 export async function preloadAllThemes(): Promise<void> {
   const themes = Object.values(THEME_CONFIGS).filter(config => config.enabled !== false);
 
-  logger.info(
-    `[useThemeComponent] 开始预加载 ${themes.length} 个主题`,
-  );
+  logger.info(`[useThemeComponent] 开始预加载 ${themes.length} 个主题`);
 
   await Promise.all(themes.map(theme => preloadTheme(theme.name)));
 
@@ -133,10 +114,7 @@ export async function switchTheme(themeName: string): Promise<void> {
     // 确保当前主题对应的插件已注册（例如 PixelUI）
     await ensureThemePluginForCurrentSkin();
   } catch (error) {
-    logger.warn(
-      `[useThemeComponent] 切换主题 ${themeName} 时注册主题插件失败:`,
-      error,
-    );
+    logger.warn(`[useThemeComponent] 切换主题 ${themeName} 时注册主题插件失败:`, error);
   }
 
   logger.info(`[useThemeComponent] 主题已切换到: ${themeName}`);
@@ -230,9 +208,7 @@ const loadPixeliumOptionalCss = async (cssFileName: string): Promise<void> => {
           // @ts-ignore - Vite 支持 ?url 后缀，但 TypeScript 可能不识别
           cssModule = await import("@pixelium/web-vue/dist/normalize.css?url");
         } else {
-          logger.warn(
-            `[useThemeComponent] 不支持的 Pixelium CSS 文件: ${cssFileName}`,
-          );
+          logger.warn(`[useThemeComponent] 不支持的 Pixelium CSS 文件: ${cssFileName}`);
           return;
         }
         const cssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
@@ -304,7 +280,7 @@ const loadThemeCss = async (themeName: string): Promise<void> => {
     return;
   }
 
-    try {
+  try {
     // 动态导入 CSS 文件获取 URL
     if (!themeCssUrls.has(themeName)) {
       try {
@@ -339,10 +315,7 @@ const loadThemeCss = async (themeName: string): Promise<void> => {
       await loadPixeliumOptionalCss("normalize.css");
     }
   } catch (error) {
-    logger.error(
-      `[useThemeComponent] 加载 ${themeName} 主题 CSS 失败:`,
-      error,
-    );
+    logger.error(`[useThemeComponent] 加载 ${themeName} 主题 CSS 失败:`, error);
   }
 };
 
@@ -419,9 +392,7 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
         return component;
       }
 
-      logger.warn(
-        `[useThemeComponent] 在 element-plus 中找不到组件 ${themeComponentName}`,
-      );
+      logger.warn(`[useThemeComponent] 在 element-plus 中找不到组件 ${themeComponentName}`);
       return null;
     }
 
@@ -438,9 +409,7 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
     if (config.packageName === "@pixelium/web-vue") {
       themeModule = await import("@pixelium/web-vue");
     } else {
-      logger.warn(
-        `[useThemeComponent] 动态导入暂未适配主题包: ${config.packageName}`,
-      );
+      logger.warn(`[useThemeComponent] 动态导入暂未适配主题包: ${config.packageName}`);
       return null;
     }
 
@@ -451,20 +420,15 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
     if (!component && themeModule.default) {
       component = (themeModule.default as any)[themeComponentName];
     }
-    
+
     // 尝试从模块的所有导出中查找组件（包括命名导出和 default 导出）
     if (!component && config.packageName === "@pixelium/web-vue") {
       // 检查模块的所有键，尝试找到匹配的组件
       const moduleKeys = Object.keys(themeModule);
-      const matchingKey = moduleKeys.find(key => 
-        key === themeComponentName || 
-        key.toLowerCase() === themeComponentName.toLowerCase()
-      );
+      const matchingKey = moduleKeys.find(key => key === themeComponentName || key.toLowerCase() === themeComponentName.toLowerCase());
       if (matchingKey) {
         component = (themeModule as any)[matchingKey];
-        logger.debug(
-          `[useThemeComponent] 从模块导出中找到组件 ${themeComponentName} (导出名: ${matchingKey})`,
-        );
+        logger.debug(`[useThemeComponent] 从模块导出中找到组件 ${themeComponentName} (导出名: ${matchingKey})`);
       }
     }
 
@@ -475,29 +439,32 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
         try {
           // 转换为 kebab-case 格式（Vue 3 全局注册的组件名通常是 kebab-case）
           const withoutPrefix = themeComponentName.replace(/^Px/, "");
-          const kebabName = `px-${withoutPrefix.replace(/([A-Z])/g, "-$1").replace(/^-/, "").toLowerCase()}`;
-          
+          const kebabName = `px-${withoutPrefix
+            .replace(/([A-Z])/g, "-$1")
+            .replace(/^-/, "")
+            .toLowerCase()}`;
+
           // 尝试从当前组件实例的应用上下文中查找全局注册的组件
           // 优先使用传入的实例，如果没有则尝试获取当前实例
           const currentInstance = instance || getCurrentInstance();
           if (currentInstance) {
             const appContext = currentInstance.appContext;
-            
+
             // 尝试多种可能的组件名格式
             // 1. kebab-case: px-dialog, px-text
             // 2. PascalCase: PxDialog, PxText
             // 3. 原始名称: themeComponentName
             // 4. 首字母大写的 kebab-case: Px-dialog, Px-text (某些插件可能使用)
             const possibleNames = [
-              kebabName,                                    // px-dialog
-              themeComponentName,                          // PxDialog
-              `Px${withoutPrefix}`,                        // PxDialog (重复，但保留以兼容)
-              kebabName.charAt(0).toUpperCase() + kebabName.slice(1), // Px-dialog
+              kebabName, // px-dialog
+              themeComponentName, // PxDialog
+              `Px${withoutPrefix}`, // PxDialog (重复，但保留以兼容)
+              kebabName.charAt(0).toUpperCase() + kebabName.slice(1) // Px-dialog
             ];
-            
+
             // 去重
             const uniqueNames = [...new Set(possibleNames)];
-            
+
             for (const name of uniqueNames) {
               const globalComponent = appContext.components[name];
               if (globalComponent) {
@@ -505,55 +472,27 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
                 return globalComponent as Component;
               }
             }
-            
+
             // 调试信息：列出所有全局注册的组件
             const registeredComponents = Object.keys(appContext.components);
-            const pixeliumComponents = registeredComponents.filter(name => 
-              name.toLowerCase().startsWith("px") || 
-              name.startsWith("Px") ||
-              name.toLowerCase().includes("pixel")
-            );
-            
+            const pixeliumComponents = registeredComponents.filter(name => name.toLowerCase().startsWith("px") || name.startsWith("Px") || name.toLowerCase().includes("pixel"));
+
             if (pixeliumComponents.length > 0) {
-              logger.debug(
-                `[useThemeComponent] 已全局注册的 PixelUI 相关组件:`,
-                pixeliumComponents,
-              );
-              logger.debug(
-                `[useThemeComponent] 尝试查找组件 ${themeComponentName}，已尝试的名称:`,
-                uniqueNames,
-              );
-              logger.warn(
-                `[useThemeComponent] 未找到组件 ${themeComponentName}，已注册的 PixelUI 组件:`,
-                pixeliumComponents,
-              );
+              logger.debug(`[useThemeComponent] 已全局注册的 PixelUI 相关组件:`, pixeliumComponents);
+              logger.debug(`[useThemeComponent] 尝试查找组件 ${themeComponentName}，已尝试的名称:`, uniqueNames);
+              logger.warn(`[useThemeComponent] 未找到组件 ${themeComponentName}，已注册的 PixelUI 组件:`, pixeliumComponents);
             } else {
-              logger.warn(
-                `[useThemeComponent] 未找到全局注册的 PixelUI 组件，可能插件尚未加载完成`,
-              );
-              logger.debug(
-                `[useThemeComponent] 尝试查找组件 ${themeComponentName}，已尝试的名称:`,
-                uniqueNames,
-              );
-              logger.debug(
-                `[useThemeComponent] 所有已注册的组件（前30个）:`,
-                registeredComponents.slice(0, 30),
-              );
-              logger.debug(
-                `[useThemeComponent] 组件总数: ${registeredComponents.length}`,
-              );
+              logger.warn(`[useThemeComponent] 未找到全局注册的 PixelUI 组件，可能插件尚未加载完成`);
+              logger.debug(`[useThemeComponent] 尝试查找组件 ${themeComponentName}，已尝试的名称:`, uniqueNames);
+              logger.debug(`[useThemeComponent] 所有已注册的组件（前30个）:`, registeredComponents.slice(0, 30));
+              logger.debug(`[useThemeComponent] 组件总数: ${registeredComponents.length}`);
             }
           } else {
-            logger.warn(
-              `[useThemeComponent] 无法获取组件实例，无法检测全局注册的组件`,
-            );
+            logger.warn(`[useThemeComponent] 无法获取组件实例，无法检测全局注册的组件`);
           }
         } catch (error) {
           // 全局组件查找失败，继续后续回退逻辑
-          logger.debug(
-            `[useThemeComponent] 全局组件查找失败:`,
-            error,
-          );
+          logger.debug(`[useThemeComponent] 全局组件查找失败:`, error);
         }
       }
 
@@ -563,28 +502,21 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
       const fallbackComponent = ELEMENT_PLUS_COMPONENTS[fallbackElementName];
 
       if (fallbackComponent) {
-        logger.warn(
-          `[useThemeComponent] 在 ${config.packageName} 中找不到组件 ${themeComponentName}，回退为 Element Plus 组件 ${fallbackElementName}`,
-        );
+        logger.warn(`[useThemeComponent] 在 ${config.packageName} 中找不到组件 ${themeComponentName}，回退为 Element Plus 组件 ${fallbackElementName}`);
         cache.set(themeComponentName, fallbackComponent);
         return fallbackComponent;
       }
 
       // 如果找不到组件且无法回退到 Element Plus，返回 null
       // 组件应该处理 null 情况，回退到 Element Plus 组件
-      logger.warn(
-        `[useThemeComponent] 在 ${config.packageName} 中找不到组件 ${themeComponentName}，且无法回退到 Element Plus 组件`,
-      );
+      logger.warn(`[useThemeComponent] 在 ${config.packageName} 中找不到组件 ${themeComponentName}，且无法回退到 Element Plus 组件`);
       return null;
     }
 
     cache.set(themeComponentName, component);
     return component;
   } catch (error) {
-    logger.error(
-      `[useThemeComponent] 加载主题组件 ${themeComponentName} 失败:`,
-      error,
-    );
+    logger.error(`[useThemeComponent] 加载主题组件 ${themeComponentName} 失败:`, error);
     return null;
   }
 };
@@ -597,7 +529,7 @@ const globalThemeState = {
   /**
    * 全局 currentSkin ref（所有组件实例共享）
    */
-  currentSkin: ref<string>(typeof document !== "undefined" ? (getCurrentSkin() || "default") : "default"),
+  currentSkin: ref<string>(typeof document !== "undefined" ? getCurrentSkin() || "default" : "default"),
 
   /**
    * MutationObserver 实例（单例）
@@ -622,7 +554,7 @@ const globalThemeState = {
   /**
    * systemThemeChange 事件处理器（用于统一清理）
    */
-  themeChangeHandler: null as ((themeKey: string) => void) | null,
+  themeChangeHandler: null as ((themeKey: string) => void) | null
 };
 
 /**
@@ -657,7 +589,7 @@ const initGlobalSkinObserver = () => {
   }
 
   // 创建 MutationObserver 监听 data-skin 属性变化
-  globalThemeState.skinObserver = new MutationObserver((mutations) => {
+  globalThemeState.skinObserver = new MutationObserver(mutations => {
     for (const mutation of mutations) {
       if (mutation.type === "attributes" && mutation.attributeName === "data-skin") {
         const target = mutation.target as HTMLElement;
@@ -683,7 +615,7 @@ const initGlobalSkinObserver = () => {
   // 开始观察 documentElement 的 data-skin 属性变化
   globalThemeState.skinObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-skin"],
+    attributeFilter: ["data-skin"]
   });
 
   // 同步监听全局 systemThemeChange 事件，确保通过主题 store 切换时 currentSkin 也能即时更新
@@ -719,13 +651,13 @@ const cleanupGlobalSkinObserver = () => {
     emitter.off("systemThemeChange", globalThemeState.themeChangeHandler);
     globalThemeState.themeChangeHandler = null;
   }
-  
+
   // 清理 requestAnimationFrame
   if (globalThemeState.rafId !== null) {
     cancelAnimationFrame(globalThemeState.rafId);
     globalThemeState.rafId = null;
   }
-  
+
   // 清空待更新的皮肤值
   globalThemeState.pendingSkin = null;
 };
@@ -808,9 +740,7 @@ export function useThemeComponent(elementComponentName: string) {
       const component = ELEMENT_PLUS_COMPONENTS[componentName];
       const isDev = (import.meta as any).env?.DEV === true;
       if (!component && isDev) {
-        logger.warn(
-          `[useThemeComponent] 在 Element Plus 中找不到组件: ${componentName}`,
-        );
+        logger.warn(`[useThemeComponent] 在 Element Plus 中找不到组件: ${componentName}`);
       }
       return component || null;
     }
@@ -907,10 +837,10 @@ export function useThemeComponent(elementComponentName: string) {
   onBeforeUnmount(() => {
     // 减少引用计数
     globalThemeState.refCount--;
-    
+
     // 当所有组件实例都卸载时才清理观察器
     cleanupGlobalSkinObserver();
-    
+
     // 清理主题 CSS（注意：这里不清理，因为其他组件可能还在使用）
     // 主题 CSS 的清理由 watch 中的逻辑处理
   });
@@ -960,9 +890,7 @@ export default useThemeComponent;
 export async function initThemeSystem(): Promise<void> {
   const currentSkin = getCurrentSkin();
   if (currentSkin) {
-    logger.info(
-      `[useThemeComponent] 初始化主题系统，当前主题: ${currentSkin}`,
-    );
+    logger.info(`[useThemeComponent] 初始化主题系统，当前主题: ${currentSkin}`);
     await preloadTheme(currentSkin);
   }
 }

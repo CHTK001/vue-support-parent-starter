@@ -6,12 +6,12 @@
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
       <div v-if="editMode" class="gauge-actions">
-        <el-button type="primary" text size="small" @click="handleEdit">
+        <ScButton type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
-        </el-button>
-        <el-button type="danger" text size="small" @click="handleDelete">
+        </ScButton>
+        <ScButton type="danger" text size="small" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -27,7 +27,7 @@
     </div>
 
     <div v-if="!editMode" class="gauge-footer">
-      <el-button
+      <ScButton
         type="primary"
         text
         size="small"
@@ -36,7 +36,7 @@
       >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

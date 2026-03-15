@@ -71,22 +71,22 @@
       @expand-change="onExpandChange"
     >
       <!-- 拖拽手柄列 -->
-      <el-table-column v-if="draggable" :width="dragHandleWidth" label="" fixed="left" class-name="drag-handle-column">
+      <ScTableColumn v-if="draggable" :width="dragHandleWidth" label="" fixed="left" class-name="drag-handle-column">
         <template #default>
           <div class="drag-handle">
             <IconifyIconOnline icon="ep:rank" />
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
       <template v-for="(col, index) in userColumn" :key="col.prop || index">
-        <el-table-column v-if="!col.hide" v-bind="col" :column-key="col.prop">
+        <ScTableColumn v-if="!col.hide" v-bind="col" :column-key="col.prop">
           <template #default="scope" v-if="col.slot">
             <slot :name="col.slot" v-bind="scope"></slot>
           </template>
           <template #header="scope" v-if="col.headerSlot">
             <slot :name="col.headerSlot" v-bind="scope"></slot>
           </template>
-        </el-table-column>
+        </ScTableColumn>
       </template>
       <slot></slot>
     </component>

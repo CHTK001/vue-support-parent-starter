@@ -1,5 +1,5 @@
 <template>
-  <el-card ref="panelRef" class="sc-panel" :class="panelClass" :style="panelStyle" :shadow="shadow" :body-style="{ padding: 0 }">
+  <ScCard ref="panelRef" class="sc-panel" :class="panelClass" :style="panelStyle" :shadow="shadow" :body-style="{ padding: 0 }">
     <!-- 头部 -->
     <template v-if="title || icon || $slots.header || collapsible || maximizable || closable" #header>
       <div class="sc-panel__header" :class="{ 'sc-panel__header--draggable': draggable }" @mousedown="startDrag" @dblclick="handleDoubleClick">
@@ -34,7 +34,7 @@
     <div v-if="$slots.footer && !isCollapsed" class="sc-panel__footer">
       <slot name="footer" />
     </div>
-  </el-card>
+  </ScCard>
 </template>
 
 <script setup lang="ts">
@@ -339,8 +339,6 @@ defineExpose({ toggleCollapse, toggleMaximize });
       }
     }
   }
-
-
 
   // TechUI 数据大屏风格
   &--techui {

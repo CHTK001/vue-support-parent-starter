@@ -15,12 +15,12 @@
           <ScRow>
             <ScCol :span="24">
               <ScFormItem label="模板类型" prop="syncType">
-                <ScSelect 
+                <ScSelect
                   v-model="form.syncType"
                   placeholder="请选择类型"
                   class="w-full min-w-[240px]"
                 >
-                  <ScOption 
+                  <ScOption
                     v-for="item in sysSecretFunctions"
                     :key="item.value"
                     :label="item.label"
@@ -35,7 +35,7 @@
         </ScForm>
         <template #footer>
           <ScButton @click="visible = false">取 消</ScButton>
-          <ScButton 
+          <ScButton
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"

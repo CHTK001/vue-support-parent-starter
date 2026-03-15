@@ -10,36 +10,36 @@
         <div class="page-subtitle">全面监控和管理Docker容器资源</div>
       </div>
       <div class="header-right">
-        <el-button :loading="loading" @click="handleRefresh">
+        <ScButton :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 统计概览 -->
-    <el-row :gutter="20" class="overview-row">
-      <el-col :span="24">
+    <ScRow :gutter="20" class="overview-row">
+      <ScCol :span="24">
         <ContainerStatusStats :stats="containerStats" />
-      </el-col>
-    </el-row>
+      </ScCol>
+    </ScRow>
 
-    <el-row :gutter="20" class="overview-row">
-      <el-col :span="24">
+    <ScRow :gutter="20" class="overview-row">
+      <ScCol :span="24">
         <MonitoringOverview
           :avg-cpu-usage="overviewStats.avgCpuUsage"
           :avg-memory-usage="overviewStats.avgMemoryUsage"
           :total-containers="overviewStats.totalContainers"
           :running-containers="overviewStats.runningContainers"
         />
-      </el-col>
-    </el-row>
+      </ScCol>
+    </ScRow>
 
     <!-- 主要内容区域 -->
-    <el-row :gutter="20" class="content-row">
+    <ScRow :gutter="20" class="content-row">
       <!-- 左侧：容器列表和性能排行榜 -->
-      <el-col :span="16">
-        <el-card class="content-card">
+      <ScCol :span="16">
+        <ScCard class="content-card">
           <template #header>
             <div class="card-header">
               <span>容器列表</span>
@@ -55,9 +55,9 @@
             @size-change="handleSizeChange"
             @current-change="handleCurrentChange"
           />
-        </el-card>
+        </ScCard>
 
-        <el-card class="content-card">
+        <ScCard class="content-card">
           <template #header>
             <div class="card-header">
               <span>性能排行榜</span>
@@ -65,12 +65,12 @@
           </template>
 
           <ContainerPerformanceRanking />
-        </el-card>
-      </el-col>
+        </ScCard>
+      </ScCol>
 
       <!-- 右侧：告警、主机监控和资源趋势 -->
-      <el-col :span="8">
-        <el-card class="content-card">
+      <ScCol :span="8">
+        <ScCard class="content-card">
           <template #header>
             <div class="card-header">
               <span>容器告警</span>
@@ -78,9 +78,9 @@
           </template>
 
           <ContainerAlerts />
-        </el-card>
+        </ScCard>
 
-        <el-card class="content-card">
+        <ScCard class="content-card">
           <template #header>
             <div class="card-header">
               <span>主机资源监控</span>
@@ -88,9 +88,9 @@
           </template>
 
           <ContainerHostMonitor />
-        </el-card>
+        </ScCard>
 
-        <el-card class="content-card">
+        <ScCard class="content-card">
           <template #header>
             <div class="card-header">
               <span>资源使用趋势</span>
@@ -98,9 +98,9 @@
           </template>
 
           <ContainerResourceTrend />
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 容器详情对话框 -->
     <ContainerDetailDialog

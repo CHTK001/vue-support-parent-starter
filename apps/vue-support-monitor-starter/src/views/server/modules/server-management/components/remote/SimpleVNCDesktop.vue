@@ -2,16 +2,16 @@
   <div class="simple-vnc-desktop system-container modern-bg">
     <div class="desktop-header">
       <div class="connection-info">
-        <el-tag :type="connectionStatus.type" size="small">
+        <ScTag :type="connectionStatus.type" size="small">
           {{ connectionStatus.text }}
-        </el-tag>
+        </ScTag>
         <span class="server-info"
           >{{ props.server?.monitorSysGenServerName }} - VNC</span
         >
       </div>
 
       <div class="desktop-controls">
-        <el-button
+        <ScButton
           v-if="!isConnected"
           type="primary"
           size="small"
@@ -19,20 +19,20 @@
           @click="connect"
         >
           {{ isConnecting ? "连接中..." : "连接" }}
-        </el-button>
+        </ScButton>
 
-        <el-button
+        <ScButton
           v-if="isConnected"
           type="danger"
           size="small"
           @click="disconnect"
         >
           断开连接
-        </el-button>
+        </ScButton>
 
-        <el-button v-if="isConnected" size="small" @click="takeScreenshot">
+        <ScButton v-if="isConnected" size="small" @click="takeScreenshot">
           截图
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -45,7 +45,7 @@
       />
 
       <div v-if="!isConnected && !isConnecting" class="connection-placeholder">
-        <el-empty description="点击连接按钮开始 VNC 会话" />
+        <ScEmpty description="点击连接按钮开始 VNC 会话" />
       </div>
 
       <div v-if="isConnecting" class="connecting-overlay">

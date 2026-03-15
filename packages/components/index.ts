@@ -1,5 +1,5 @@
 import "@repo/skin";
-import { ReMenuNewBadge } from "./MenuNewBadge";
+import { ReMenuNewBadge } from "./MenuNewBadge/index.ts";
 import { useRenderIcon } from "./ReIcon/src/hooks";
 import ReSplitPane from "./ReSplitPane/index.vue";
 import ScCard from "./ScCard/index.vue";
@@ -45,7 +45,7 @@ import { ScForm } from "./ScForm";
 import { ScFormItem } from "./ScFormItem";
 import { ScRow } from "./ScRow";
 import { ScCol } from "./ScCol";
-import { ScTabs } from "./ScTabs";
+import { ScTabs, ScTabPane } from "./ScTabs";
 import { ScMenu } from "./ScMenu";
 import { ScMenuItem } from "./ScMenuItem";
 import { ScSubMenu } from "./ScSubMenu";
@@ -57,6 +57,7 @@ import { ScEmpty } from "./ScEmpty";
 import { ScTableColumn } from "./ScTableColumn";
 import { ScOption } from "./ScOption";
 import ScSwitch from "./ScSwitch/index.vue";
+import ScPagination from "./ScPagination/index.vue";
 import ScRouteLoading from "./ScRouteLoading/index.vue";
 import ScAnimationFrame from "./ScAnimationFrame/index.vue";
 // 导入 ScMessage 和 ScMessageBox 函数，用于在导出对象中使用
@@ -84,6 +85,7 @@ export {
   ScDictSelect,
   ScDrawer,
   ScRouteLoading,
+  ScPagination,
   ScThree,
   ScSlider,
   ScSelect,
@@ -116,6 +118,7 @@ export {
   ScRow,
   ScCol,
   ScTabs,
+  ScTabPane,
   ScMenu,
   ScMenuItem,
   ScSubMenu,
@@ -149,6 +152,7 @@ export default {
   ScNumber,
   ScDictSelect,
   ScDrawer,
+  ScPagination,
   ScThree,
   ScSlider,
   ScSelect,
@@ -181,9 +185,10 @@ export default {
   ScRow,
   ScCol,
   ScTabs,
+  ScTabPane,
   ScMenu,
   ScMenuItem,
   ScSubMenu,
   ScBreadcrumb,
-  ScSteps,
+  ScSteps
 };

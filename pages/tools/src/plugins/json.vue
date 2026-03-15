@@ -38,7 +38,7 @@ const highlightedJson = computed(() => {
     const lines = highlighted.split("\n");
     const numberedLines = lines.map(
       (line, index) =>
-        `<span class="json-tool__line-number">${index + 1}</span><span class="json-tool__line-content">${line}</span>`
+        `<span class="json-tool__line-number">${index + 1}</span><span class="json-tool__line-content">${line}</span>`,
     );
     return numberedLines.join("\n");
   }
@@ -72,7 +72,7 @@ const formatJson = () => {
     env.outputJson = JSON.stringify(
       result,
       null,
-      env.compactOutput ? 0 : env.indentSize
+      env.compactOutput ? 0 : env.indentSize,
     );
 
     message(t("message.formatSuccess") || "JSON 格式化成功", {
@@ -243,7 +243,7 @@ const handleFileUpload = (event) => {
                 <span>清空</span>
               </ScButton>
 
-              <ScUpload 
+              <ScUpload
                 action=""
                 :auto-upload="false"
                 :show-file-list="false"
@@ -257,7 +257,7 @@ const handleFileUpload = (event) => {
               </ScUpload>
             </div>
 
-            <ScInput 
+            <ScInput
               v-model="env.inputJson"
               type="textarea"
               :rows="12"
@@ -268,7 +268,7 @@ const handleFileUpload = (event) => {
             <div class="json-tool__options">
               <ScForm :inline="true" size="small">
                 <ScFormItem label="缩进大小">
-                  <ScInputNumber 
+                  <ScInputNumber
                     v-model="env.indentSize"
                     :min="0"
                     :max="8"
@@ -283,7 +283,7 @@ const handleFileUpload = (event) => {
             </div>
 
             <div class="json-tool__actions">
-              <ScButton 
+              <ScButton
                 type="primary"
                 :loading="env.loading"
                 class="json-tool__format-btn"
@@ -293,7 +293,7 @@ const handleFileUpload = (event) => {
                 <span>格式化</span>
               </ScButton>
 
-              <ScButton 
+              <ScButton
                 type="success"
                 class="json-tool__beautify-btn"
                 @click="beautifyJson"
@@ -302,7 +302,7 @@ const handleFileUpload = (event) => {
                 <span>美化</span>
               </ScButton>
 
-              <ScButton 
+              <ScButton
                 type="warning"
                 class="json-tool__compact-btn"
                 @click="compactJson"
@@ -327,7 +327,7 @@ const handleFileUpload = (event) => {
               </div>
             </template>
 
-            <ScEmpty 
+            <ScEmpty
               v-if="!env.outputJson && !env.errorMessage"
               description="请先输入并格式化 JSON"
               class="json-tool__empty"
@@ -350,7 +350,7 @@ const handleFileUpload = (event) => {
 
             <div v-else class="json-tool__result">
               <div class="json-tool__result-actions">
-                <ScButton 
+                <ScButton
                   type="primary"
                   link
                   size="small"
@@ -361,7 +361,7 @@ const handleFileUpload = (event) => {
                   <span>复制</span>
                 </ScButton>
 
-                <ScButton 
+                <ScButton
                   type="success"
                   link
                   size="small"
@@ -458,19 +458,25 @@ const handleFileUpload = (event) => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
     border-radius: 16px;
     padding: 32px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 8px 24px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+    box-shadow: 0 8px 24px
+      color-mix(in srgb, var(--el-color-primary) 30%, transparent);
     display: flex;
     justify-content: space-between;
     align-items: center;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     &:hover {
-      box-shadow: 0 12px 32px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
+      box-shadow: 0 12px 32px
+        color-mix(in srgb, var(--el-color-primary) 40%, transparent);
       transform: translateY(-2px);
     }
 
@@ -551,7 +557,7 @@ const handleFileUpload = (event) => {
   &__input-card {
     margin-bottom: 24px;
     transition: all 0.3s ease;
-    
+
     &:hover {
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
@@ -562,10 +568,10 @@ const handleFileUpload = (event) => {
     gap: 12px;
     margin-bottom: 16px;
     flex-wrap: wrap;
-    
+
     :deep(.el-button) {
       transition: all 0.3s ease;
-      
+
       &:hover {
         transform: translateY(-2px);
       }
@@ -575,13 +581,14 @@ const handleFileUpload = (event) => {
   &__textarea {
     font-family: "Courier New", monospace;
     margin-bottom: 16px;
-    
+
     :deep(.el-textarea__inner) {
       border-radius: 8px;
       transition: all 0.3s ease;
-      
+
       &:focus {
-        box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+        box-shadow: 0 0 0 2px
+          color-mix(in srgb, var(--el-color-primary) 20%, transparent);
       }
     }
   }
@@ -598,14 +605,15 @@ const handleFileUpload = (event) => {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
-    
+
     :deep(.el-button) {
       border-radius: 8px;
       transition: all 0.3s ease;
-      
+
       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+        box-shadow: 0 4px 12px
+          color-mix(in srgb, var(--el-color-primary) 30%, transparent);
       }
     }
   }
@@ -614,7 +622,7 @@ const handleFileUpload = (event) => {
   &__result-card {
     margin-bottom: 24px;
     transition: all 0.3s ease;
-    
+
     &:hover {
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
@@ -632,9 +640,14 @@ const handleFileUpload = (event) => {
 
   &__error {
     padding: 20px;
-    background: color-mix(in srgb, var(--el-color-danger) 10%, var(--el-bg-color));
+    background: color-mix(
+      in srgb,
+      var(--el-color-danger) 10%,
+      var(--el-bg-color)
+    );
     border-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--el-color-danger) 30%, transparent);
+    border: 1px solid
+      color-mix(in srgb, var(--el-color-danger) 30%, transparent);
     display: flex;
     align-items: flex-start;
     gap: 12px;
@@ -671,10 +684,10 @@ const handleFileUpload = (event) => {
     border: 1px solid var(--el-border-color-lighter);
     z-index: 1;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    
+
     :deep(.el-button) {
       transition: all 0.3s ease;
-      
+
       &:hover {
         transform: scale(1.1);
       }
@@ -692,7 +705,7 @@ const handleFileUpload = (event) => {
     white-space: pre-wrap;
     word-break: break-all;
     transition: all 0.3s ease;
-    
+
     &--with-line-numbers {
       .json-tool__line-number {
         display: inline-block;
@@ -709,7 +722,7 @@ const handleFileUpload = (event) => {
   &__tips-card {
     margin-bottom: 24px;
     transition: all 0.3s ease;
-    
+
     &:hover {
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
@@ -725,7 +738,7 @@ const handleFileUpload = (event) => {
     display: flex;
     align-items: flex-start;
     transition: all 0.3s ease;
-    
+
     &:hover {
       transform: translateX(4px);
     }
@@ -733,7 +746,11 @@ const handleFileUpload = (event) => {
     &--warning {
       margin-top: 12px;
       padding: 16px;
-      background: color-mix(in srgb, var(--el-color-warning) 10%, var(--el-bg-color));
+      background: color-mix(
+        in srgb,
+        var(--el-color-warning) 10%,
+        var(--el-bg-color)
+      );
       border-radius: 8px;
       border-left: 4px solid var(--el-color-warning);
     }
@@ -743,7 +760,11 @@ const handleFileUpload = (event) => {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary),
+      var(--el-color-primary-light-3)
+    );
     color: #fff;
     display: flex;
     align-items: center;
@@ -752,7 +773,8 @@ const handleFileUpload = (event) => {
     font-size: 14px;
     margin-right: 12px;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+    box-shadow: 0 2px 8px
+      color-mix(in srgb, var(--el-color-primary) 30%, transparent);
   }
 
   &__tip-icon {

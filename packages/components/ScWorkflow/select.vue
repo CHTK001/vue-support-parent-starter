@@ -4,16 +4,16 @@
       <div class="sc-user-select">
         <div class="sc-user-select__left">
           <div class="sc-user-select__search">
-            <el-input v-model="keyword" prefix-icon="el-icon-search" placeholder="搜索成员">
+            <ScInput v-model="keyword" prefix-icon="el-icon-search" placeholder="搜索成员">
               <template #append>
-                <el-button icon="el-icon-search" @click="search" />
+                <ScButton icon="el-icon-search" @click="search" />
               </template>
-            </el-input>
+            </ScInput>
           </div>
           <div class="sc-user-select__select">
             <div v-loading="showGrouploading" class="sc-user-select__tree">
-              <el-scrollbar>
-                <el-tree
+              <ScScrollbar>
+                <ScTree
                   ref="groupTree"
                   class="menu"
                   :data="group"
@@ -24,12 +24,12 @@
                   :current-node-key="groupId"
                   @node-click="groupClick"
                 />
-              </el-scrollbar>
+              </ScScrollbar>
             </div>
             <div v-loading="showUserloading" class="sc-user-select__user">
               <div class="sc-user-select__user__list">
-                <el-scrollbar ref="userScrollbar">
-                  <el-tree
+                <ScScrollbar ref="userScrollbar">
+                  <ScTree
                     ref="userTree"
                     class="menu"
                     :data="user"
@@ -40,31 +40,31 @@
                     check-on-click-node
                     @check-change="userClick"
                   />
-                </el-scrollbar>
+                </ScScrollbar>
               </div>
               <footer>
-                <el-pagination v-model:currentPage="currentPage" background layout="prev,next" small :total="total" :page-size="pageSize" @current-change="paginationChange" />
+                <ScPagination v-model:currentPage="currentPage" background layout="prev,next" small :total="total" :page-size="pageSize" @current-change="paginationChange" />
               </footer>
             </div>
           </div>
         </div>
         <div class="sc-user-select__toicon">
-          <el-icon><el-icon-arrow-right /></el-icon>
+          <ScIcon><el-icon-arrow-right /></ScIcon>
         </div>
         <div class="sc-user-select__selected">
           <header>已选 ({{ selected.length }})</header>
           <ul>
-            <el-scrollbar>
+            <ScScrollbar>
               <li v-for="(item, index) in selected" :key="item.id">
                 <span class="name">
-                  <el-avatar size="small">{{ item.name.substring(0, 1) }}</el-avatar>
+                  <ScAvatar size="small">{{ item.name.substring(0, 1) }}</ScAvatar>
                   <label>{{ item.name }}</label>
                 </span>
                 <span class="delete">
-                  <el-button type="danger" icon="el-icon-delete" circle size="small" @click="deleteSelected(index)" />
+                  <ScButton type="danger" icon="el-icon-delete" circle size="small" @click="deleteSelected(index)" />
                 </span>
               </li>
-            </el-scrollbar>
+            </ScScrollbar>
           </ul>
         </div>
       </div>
@@ -75,8 +75,8 @@
         <div class="sc-user-select__left">
           <div class="sc-user-select__select">
             <div v-loading="showGrouploading" class="sc-user-select__tree">
-              <el-scrollbar>
-                <el-tree
+              <ScScrollbar>
+                <ScTree
                   ref="groupTree"
                   class="menu"
                   :data="role"
@@ -89,34 +89,34 @@
                   :default-checked-keys="selectedIds"
                   @check-change="roleClick"
                 />
-              </el-scrollbar>
+              </ScScrollbar>
             </div>
           </div>
         </div>
         <div class="sc-user-select__toicon">
-          <el-icon><el-icon-arrow-right /></el-icon>
+          <ScIcon><el-icon-arrow-right /></ScIcon>
         </div>
         <div class="sc-user-select__selected">
           <header>已选 ({{ selected.length }})</header>
           <ul>
-            <el-scrollbar>
+            <ScScrollbar>
               <li v-for="(item, index) in selected" :key="item.id">
                 <span class="name">
                   <label>{{ item.name }}</label>
                 </span>
                 <span class="delete">
-                  <el-button type="danger" icon="el-icon-delete" circle size="small" @click="deleteSelected(index)" />
+                  <ScButton type="danger" icon="el-icon-delete" circle size="small" @click="deleteSelected(index)" />
                 </span>
               </li>
-            </el-scrollbar>
+            </ScScrollbar>
           </ul>
         </div>
       </div>
     </template>
 
     <template #footer>
-      <el-button @click="dialogVisible = false">取 消</el-button>
-      <el-button type="primary" @click="save">确 认</el-button>
+      <ScButton @click="dialogVisible = false">取 消</ScButton>
+      <ScButton type="primary" @click="save">确 认</ScButton>
     </template>
   </sc-dialog>
 </template>

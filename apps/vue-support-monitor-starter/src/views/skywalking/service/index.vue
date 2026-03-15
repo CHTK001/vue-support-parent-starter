@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <div class="header-icon">
-          <el-icon :size="28"><Monitor /></el-icon>
+          <ScIcon :size="28"><Monitor /></ScIcon>
         </div>
         <div class="header-text">
           <h2>服务列表</h2>
@@ -12,20 +12,20 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-select
+        <ScSelect
           v-model="filterForm.configId"
           placeholder="选择配置"
           style="width: 180px"
           @change="handleConfigChange"
         >
-          <el-option
+          <ScOption
             v-for="item in configList"
             :key="item.skywalkingConfigId"
             :label="item.skywalkingConfigName"
             :value="item.skywalkingConfigId"
           />
-        </el-select>
-        <el-date-picker
+        </ScSelect>
+        <ScDatePicker
           v-model="timeRange"
           type="datetimerange"
           range-separator="-"
@@ -36,34 +36,34 @@
           style="width: 280px"
           @change="handleTimeChange"
         />
-        <el-select
+        <ScSelect
           v-model="filterForm.layer"
           placeholder="选择层"
           clearable
           style="width: 120px"
         >
-          <el-option
+          <ScOption
             v-for="layer in layerList"
             :key="layer"
             :label="layer"
             :value="layer"
           />
-        </el-select>
-        <el-input
+        </ScSelect>
+        <ScInput
           v-model="filterForm.keyword"
           placeholder="服务名关键字"
           clearable
           style="width: 160px"
         />
-        <el-button type="primary" :icon="Search" @click="fetchData"
+        <ScButton type="primary" :icon="Search" @click="fetchData"
           >查询</el-button
         >
-        <el-button :icon="RefreshRight" @click="resetFilter">重置</el-button>
+        <ScButton :icon="RefreshRight" @click="resetFilter">重置</ScButton>
       </div>
     </div>
 
     <!-- 服务列表 -->
-    <el-card v-loading="loading" class="table-card" shadow="never">
+    <ScCard v-loading="loading" class="table-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>服务列表</span>
@@ -71,68 +71,68 @@
         </div>
       </template>
 
-      <el-table
+      <ScTable
         :data="filteredList"
         stripe
         border
         style="width: 100%"
         max-height="calc(100vh - 340px)"
       >
-        <el-table-column
+        <ScTableColumn
           prop="name"
           label="服务名称"
           min-width="200"
           show-overflow-tooltip
         >
           <template #default="{ row }">
-            <el-link type="primary" @click="viewServiceDetail(row)">{{
+            <ScLink type="primary" @click="viewServiceDetail(row)">{{
               row.name
-            }}</el-link>
+            }}</ScLink>
           </template>
-        </el-table-column>
-        <el-table-column prop="layer" label="层" width="120" align="center">
+        </ScTableColumn>
+        <ScTableColumn prop="layer" label="层" width="120" align="center">
           <template #default="{ row }">
-            <el-tag size="small">{{ row.layer || "-" }}</el-tag>
+            <ScTag size="small">{{ row.layer || "-" }}</ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="group" label="分组" width="120" align="center">
+        </ScTableColumn>
+        <ScTableColumn prop="group" label="分组" width="120" align="center">
           <template #default="{ row }">
             {{ row.group || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn
           prop="shortName"
           label="短名称"
           min-width="150"
           show-overflow-tooltip
         />
-        <el-table-column label="是否正常" width="100" align="center">
+        <ScTableColumn label="是否正常" width="100" align="center">
           <template #default="{ row }">
-            <el-tag
+            <ScTag
               :type="row.normal === false ? 'danger' : 'success'"
               size="small"
             >
               {{ row.normal === false ? "异常" : "正常" }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" align="center" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="180" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button
+            <ScButton
               type="primary"
               link
               size="small"
               @click="viewServiceDetail(row)"
               >详情</el-button
             >
-            <el-button
+            <ScButton
               type="primary"
               link
               size="small"
               @click="viewServiceTopology(row)"
               >拓扑</el-button
             >
-            <el-button
+            <ScButton
               type="primary"
               link
               size="small"
@@ -140,99 +140,99 @@
               >链路</el-button
             >
           </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+        </ScTableColumn>
+      </ScTable>
+    </ScCard>
 
     <!-- 服务详情抽屉 -->
     <sc-drawer v-model="drawerVisible" title="服务详情" size="720px">
       <template v-if="selectedService">
         <!-- 指标概览卡片 -->
-        <el-row :gutter="12" class="metrics-overview">
-          <el-col :span="6">
+        <ScRow :gutter="12" class="metrics-overview">
+          <ScCol :span="6">
             <div class="metric-item">
               <div class="metric-value">{{ serviceMetrics.cpm }}</div>
               <div class="metric-label">CPM</div>
             </div>
-          </el-col>
-          <el-col :span="6">
+          </ScCol>
+          <ScCol :span="6">
             <div class="metric-item">
               <div class="metric-value">{{ serviceMetrics.respTime }} ms</div>
               <div class="metric-label">响应时间</div>
             </div>
-          </el-col>
-          <el-col :span="6">
+          </ScCol>
+          <ScCol :span="6">
             <div class="metric-item">
               <div class="metric-value">
                 {{ (serviceMetrics.sla / 100).toFixed(2) }}%
               </div>
               <div class="metric-label">成功率</div>
             </div>
-          </el-col>
-          <el-col :span="6">
+          </ScCol>
+          <ScCol :span="6">
             <div class="metric-item">
               <div class="metric-value">
                 {{ (serviceMetrics.apdex / 10000).toFixed(2) }}
               </div>
               <div class="metric-label">Apdex</div>
             </div>
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
 
         <!-- 趋势图表 -->
         <div class="section-title">指标趋势</div>
-        <el-tabs v-model="activeMetricTab">
-          <el-tab-pane label="CPM" name="cpm">
+        <ScTabs v-model="activeMetricTab">
+          <ScTabPane label="CPM" name="cpm">
             <div ref="serviceCpmChartRef" class="service-chart" />
-          </el-tab-pane>
-          <el-tab-pane label="响应时间" name="respTime">
+          </ScTabPane>
+          <ScTabPane label="响应时间" name="respTime">
             <div ref="serviceRespTimeChartRef" class="service-chart" />
-          </el-tab-pane>
-          <el-tab-pane label="成功率" name="sla">
+          </ScTabPane>
+          <ScTabPane label="成功率" name="sla">
             <div ref="serviceSlaChartRef" class="service-chart" />
-          </el-tab-pane>
-        </el-tabs>
+          </ScTabPane>
+        </ScTabs>
 
-        <el-descriptions :column="2" border class="service-info">
-          <el-descriptions-item label="服务ID">{{
+        <ScDescriptions :column="2" border class="service-info">
+          <ScDescriptionsItem label="服务ID">{{
             selectedService.id
-          }}</el-descriptions-item>
-          <el-descriptions-item label="服务名称">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="服务名称">{{
             selectedService.name
-          }}</el-descriptions-item>
-          <el-descriptions-item label="短名称">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="短名称">{{
             selectedService.shortName || "-"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="层">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="层">{{
             selectedService.layer || "-"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="分组">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="分组">{{
             selectedService.group || "-"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="状态">
+            <ScTag
               :type="selectedService.normal === false ? 'danger' : 'success'"
               size="small"
             >
               {{ selectedService.normal === false ? "异常" : "正常" }}
-            </el-tag>
-          </el-descriptions-item>
-        </el-descriptions>
+            </ScTag>
+          </ScDescriptionsItem>
+        </ScDescriptions>
 
         <div class="drawer-actions">
-          <el-button
+          <ScButton
             type="primary"
             @click="viewServiceTopology(selectedService)"
             >查看拓扑</el-button
           >
-          <el-button type="primary" @click="viewServiceTrace(selectedService)"
+          <ScButton type="primary" @click="viewServiceTrace(selectedService)"
             >查看链路</el-button
           >
         </div>
 
         <!-- 服务实例列表 -->
         <div class="section-title">服务实例</div>
-        <el-table
+        <ScTable
           v-loading="instanceLoading"
           :data="serviceInstances"
           stripe
@@ -240,21 +240,21 @@
           size="small"
           style="width: 100%"
         >
-          <el-table-column prop="name" label="实例名称" show-overflow-tooltip />
-          <el-table-column
+          <ScTableColumn prop="name" label="实例名称" show-overflow-tooltip />
+          <ScTableColumn
             prop="language"
             label="语言"
             width="80"
             align="center"
           />
-          <el-table-column
+          <ScTableColumn
             prop="id"
             label="ID"
             width="180"
             show-overflow-tooltip
           />
-        </el-table>
-        <el-empty
+        </ScTable>
+        <ScEmpty
           v-if="!instanceLoading && !serviceInstances.length"
           description="暂无实例数据"
           :image-size="60"

@@ -1,6 +1,6 @@
 <template>
   <div class="home-container">
-    <el-card class="welcome-card">
+    <ScCard class="welcome-card">
       <template #header>
         <div class="card-header">
           <span>欢迎使用 Demo 应用</span>
@@ -9,9 +9,9 @@
       <div class="content">
         <h1>Hello, World!</h1>
         <p>这是一个集成到 Spring Boot 后台项目的 Vue 前端应用</p>
-        <el-button type="primary" @click="handleClick">点击测试</el-button>
+        <ScButton type="primary" @click="handleClick">点击测试</ScButton>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

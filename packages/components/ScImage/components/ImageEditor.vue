@@ -6,12 +6,12 @@
         <!-- 上传新图片 -->
         <div v-if="showUpload" class="toolbar-section">
           <ScTooltip content="上传新图片" placement="top">
-            <el-button @click="triggerUpload">
-              <el-icon>
+            <ScButton @click="triggerUpload">
+              <ScIcon>
                 <component :is="useRenderIcon('ep:upload')" />
-              </el-icon>
+              </ScIcon>
               上传
-            </el-button>
+            </ScButton>
           </ScTooltip>
           <input ref="uploadInput" type="file" accept="image/*" style="display: none" @change="handleUploadChange" />
         </div>
@@ -21,32 +21,32 @@
           <span class="section-title">基础工具</span>
           <el-button-group>
             <ScTooltip v-if="showCrop" content="裁剪" placement="top">
-              <el-button :type="currentTool === 'crop' ? 'primary' : 'default'" @click="selectTool('crop')">
-                <el-icon>
+              <ScButton :type="currentTool === 'crop' ? 'primary' : 'default'" @click="selectTool('crop')">
+                <ScIcon>
                   <component :is="useRenderIcon('ep:crop')" />
-                </el-icon>
-              </el-button>
+                </ScIcon>
+              </ScButton>
             </ScTooltip>
             <ScTooltip v-if="showRotate" content="旋转" placement="top">
-              <el-button @click="rotate(90)">
-                <el-icon>
+              <ScButton @click="rotate(90)">
+                <ScIcon>
                   <component :is="useRenderIcon('ep:refresh-right')" />
-                </el-icon>
-              </el-button>
+                </ScIcon>
+              </ScButton>
             </ScTooltip>
             <ScTooltip v-if="showFlip" content="翻转" placement="top">
-              <el-button @click="flip('horizontal')">
-                <el-icon>
+              <ScButton @click="flip('horizontal')">
+                <ScIcon>
                   <component :is="useRenderIcon('ep:sort')" />
-                </el-icon>
-              </el-button>
+                </ScIcon>
+              </ScButton>
             </ScTooltip>
             <ScTooltip v-if="showRemoveBackground" content="去除背景" placement="top">
-              <el-button :loading="removing" @click="removeBackground">
-                <el-icon v-if="!removing">
+              <ScButton :loading="removing" @click="removeBackground">
+                <ScIcon v-if="!removing">
                   <component :is="useRenderIcon('ep:magic-stick')" />
-                </el-icon>
-              </el-button>
+                </ScIcon>
+              </ScButton>
             </ScTooltip>
           </el-button-group>
         </div>
@@ -54,12 +54,12 @@
         <!-- 裁剪形状 -->
         <div v-if="currentTool === 'crop'" class="toolbar-section">
           <span class="section-title">裁剪形状</span>
-          <el-radio-group v-model="cropShape" size="small">
+          <ScRadioGroup v-model="cropShape" size="small">
             <el-radio-button value="rect">矩形</el-radio-button>
             <el-radio-button value="square">正方形</el-radio-button>
             <el-radio-button value="circle">圆形</el-radio-button>
             <el-radio-button value="rounded">圆角矩形</el-radio-button>
-          </el-radio-group>
+          </ScRadioGroup>
         </div>
 
         <!-- 背景替换 -->
@@ -67,28 +67,28 @@
           <span class="section-title">背景</span>
           <el-button-group>
             <ScTooltip content="纯色背景" placement="top">
-              <el-button @click="showBackgroundPicker = true">
-                <el-icon>
+              <ScButton @click="showBackgroundPicker = true">
+                <ScIcon>
                   <component :is="useRenderIcon('ep:brush')" />
-                </el-icon>
+                </ScIcon>
                 纯色
-              </el-button>
+              </ScButton>
             </ScTooltip>
             <ScTooltip content="图片背景" placement="top">
-              <el-button @click="selectBackgroundImage">
-                <el-icon>
+              <ScButton @click="selectBackgroundImage">
+                <ScIcon>
                   <component :is="useRenderIcon('ep:picture')" />
-                </el-icon>
+                </ScIcon>
                 图片
-              </el-button>
+              </ScButton>
             </ScTooltip>
             <ScTooltip content="移除背景" placement="top">
-              <el-button @click="clearBackground">
-                <el-icon>
+              <ScButton @click="clearBackground">
+                <ScIcon>
                   <component :is="useRenderIcon('ep:delete')" />
-                </el-icon>
+                </ScIcon>
                 清除
-              </el-button>
+              </ScButton>
             </ScTooltip>
           </el-button-group>
         </div>
@@ -115,7 +115,7 @@
 
         <!-- 进度提示 -->
         <div v-if="processing" class="processing-overlay">
-          <el-progress :percentage="processingProgress" :stroke-width="8" />
+          <ScProgress :percentage="processingProgress" :stroke-width="8" />
           <span class="processing-text">{{ processingText }}</span>
         </div>
       </div>
@@ -123,14 +123,14 @@
       <!-- 背景颜色选择器 -->
       <sc-dialog v-model="showBackgroundPicker" title="选择背景颜色" width="300px" append-to-body>
         <div class="color-picker-content">
-          <el-color-picker v-model="backgroundColor" show-alpha />
+          <ScColorPicker v-model="backgroundColor" show-alpha />
           <div class="preset-colors">
             <div v-for="color in presetColors" :key="color" class="preset-color" :style="{ backgroundColor: color }" @click="backgroundColor = color"></div>
           </div>
         </div>
         <template #footer>
-          <el-button @click="showBackgroundPicker = false">取消</el-button>
-          <el-button type="primary" @click="applyBackgroundColor">确定</el-button>
+          <ScButton @click="showBackgroundPicker = false">取消</ScButton>
+          <ScButton type="primary" @click="applyBackgroundColor">确定</ScButton>
         </template>
       </sc-dialog>
 
@@ -139,9 +139,9 @@
     </div>
 
     <template #footer>
-      <el-button @click="handleCancel">取消</el-button>
-      <el-button @click="handleReset">重置</el-button>
-      <el-button type="primary" @click="handleConfirm">确定</el-button>
+      <ScButton @click="handleCancel">取消</ScButton>
+      <ScButton @click="handleReset">重置</ScButton>
+      <ScButton type="primary" @click="handleConfirm">确定</ScButton>
     </template>
   </sc-dialog>
 </template>

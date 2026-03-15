@@ -1,12 +1,5 @@
 <template>
-  <component
-    :is="currentComponent || ElTabPane"
-    :label="label"
-    :name="name"
-    :disabled="disabled"
-    :lazy="lazy"
-    :closable="closable"
-  >
+  <component :is="currentComponent || ElTabPane" :label="label" :name="name" :disabled="disabled" :lazy="lazy" :closable="closable">
     <template v-if="$slots.default" #default>
       <slot />
     </template>
@@ -66,4 +59,3 @@ const props = defineProps({
 
 const { currentComponent } = useThemeComponent("ElTabPane", ElTabPane);
 </script>
-

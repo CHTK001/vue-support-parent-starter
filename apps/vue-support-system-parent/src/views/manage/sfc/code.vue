@@ -11,9 +11,9 @@
     >
       <template #header="{ titleId, titleClass }">
         <div class="dialog-header">
-          <el-icon class="header-icon" :size="22">
+          <ScIcon class="header-icon" :size="22">
             <component :is="useRenderIcon('ri:code-s-slash-line')" />
-          </el-icon>
+          </ScIcon>
           <span :id="titleId" :class="titleClass">编码编辑</span>
         </div>
       </template>

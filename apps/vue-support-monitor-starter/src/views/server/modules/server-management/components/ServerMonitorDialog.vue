@@ -11,11 +11,11 @@
     <div class="monitor-container">
       <!-- 服务器基本信息 -->
       <div class="server-info-card">
-        <el-card>
+        <ScCard>
           <template #header>
             <div class="card-header">
               <span>服务器信息</span>
-              <el-tag
+              <ScTag
                 :type="
                   getConnectionStatusType(
                     serverInfo?.monitorSysGenServerConnectionStatus,
@@ -29,47 +29,47 @@
                     serverInfo?.monitorSysGenServerConnectionStatus,
                   )
                 }}
-              </el-tag>
+              </ScTag>
             </div>
           </template>
 
-          <el-descriptions v-if="serverInfo" :column="3" border>
-            <el-descriptions-item label="服务器名称">
+          <ScDescriptions v-if="serverInfo" :column="3" border>
+            <ScDescriptionsItem label="服务器名称">
               {{ serverInfo.monitorSysGenServerName }}
-            </el-descriptions-item>
-            <el-descriptions-item label="地址">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="地址">
               {{ serverInfo.monitorSysGenServerHost }}:{{
                 serverInfo.monitorSysGenServerPort
               }}
-            </el-descriptions-item>
-            <el-descriptions-item label="协议">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="协议">
               {{ serverInfo.monitorSysGenServerProtocol }}
-            </el-descriptions-item>
-            <el-descriptions-item label="监控状态">
-              <el-switch
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="监控状态">
+              <ScSwitch
                 v-model="serverInfo.monitorSysGenServerMonitorEnabled"
                 :active-value="1"
                 :inactive-value="0"
                 @change="handleMonitorToggle"
               />
-            </el-descriptions-item>
-            <el-descriptions-item label="最后连接时间">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="最后连接时间">
               {{
                 formatDateTime(serverInfo.monitorSysGenServerLastConnectTime)
               }}
-            </el-descriptions-item>
-            <el-descriptions-item label="描述">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="描述">
               {{ serverInfo.monitorSysGenServerDesc || "无" }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </el-card>
+            </ScDescriptionsItem>
+          </ScDescriptions>
+        </ScCard>
       </div>
 
       <!-- 实时指标 -->
       <div class="metrics-section">
-        <el-row :gutter="16">
-          <el-col :span="6">
-            <el-card class="metric-card">
+        <ScRow :gutter="16">
+          <ScCol :span="6">
+            <ScCard class="metric-card">
               <div class="metric-content">
                 <div class="metric-icon cpu">
                   <IconifyIconOnline icon="ri:cpu-line" />
@@ -86,11 +86,11 @@
                 :show-text="false"
                 :stroke-width="6"
               />
-            </el-card>
-          </el-col>
+            </ScCard>
+          </ScCol>
 
-          <el-col :span="6">
-            <el-card class="metric-card">
+          <ScCol :span="6">
+            <ScCard class="metric-card">
               <div class="metric-content">
                 <div class="metric-icon memory">
                   <IconifyIconOnline icon="ri:database-line" />
@@ -109,11 +109,11 @@
                 :show-text="false"
                 :stroke-width="6"
               />
-            </el-card>
-          </el-col>
+            </ScCard>
+          </ScCol>
 
-          <el-col :span="6">
-            <el-card class="metric-card">
+          <ScCol :span="6">
+            <ScCard class="metric-card">
               <div class="metric-content">
                 <div class="metric-icon disk">
                   <IconifyIconOnline icon="ri:hard-drive-line" />
@@ -132,11 +132,11 @@
                 :show-text="false"
                 :stroke-width="6"
               />
-            </el-card>
-          </el-col>
+            </ScCard>
+          </ScCol>
 
-          <el-col :span="6">
-            <el-card class="metric-card">
+          <ScCol :span="6">
+            <ScCard class="metric-card">
               <div class="metric-content">
                 <div class="metric-icon load">
                   <IconifyIconOnline icon="ri:speed-line" />
@@ -148,42 +148,42 @@
                   <div class="metric-label">负载平均值</div>
                 </div>
               </div>
-            </el-card>
-          </el-col>
-        </el-row>
+            </ScCard>
+          </ScCol>
+        </ScRow>
       </div>
 
       <!-- 监控图表 -->
       <div class="charts-section">
-        <el-tabs v-model="activeTab" type="card">
-          <el-tab-pane label="CPU监控" name="cpu">
+        <ScTabs v-model="activeTab" type="card">
+          <ScTabPane label="CPU监控" name="cpu">
             <div class="chart-container">
               <div class="chart-placeholder">
                 <p>CPU使用率趋势图</p>
                 <p>数据点数量: {{ metricsHistory.length }}</p>
               </div>
             </div>
-          </el-tab-pane>
+          </ScTabPane>
 
-          <el-tab-pane label="内存监控" name="memory">
+          <ScTabPane label="内存监控" name="memory">
             <div class="chart-container">
               <div class="chart-placeholder">
                 <p>内存使用率趋势图</p>
                 <p>数据点数量: {{ metricsHistory.length }}</p>
               </div>
             </div>
-          </el-tab-pane>
+          </ScTabPane>
 
-          <el-tab-pane label="磁盘监控" name="disk">
+          <ScTabPane label="磁盘监控" name="disk">
             <div class="chart-container">
               <div class="chart-placeholder">
                 <p>磁盘使用率趋势图</p>
                 <p>数据点数量: {{ metricsHistory.length }}</p>
               </div>
             </div>
-          </el-tab-pane>
+          </ScTabPane>
 
-          <el-tab-pane label="网络监控" name="network">
+          <ScTabPane label="网络监控" name="network">
             <div class="chart-container">
               <div class="chart-placeholder">
                 <p>网络流量趋势图</p>
@@ -191,32 +191,32 @@
                 <p>出站: {{ formatBytes(currentMetrics.networkOut) }}/s</p>
               </div>
             </div>
-          </el-tab-pane>
-        </el-tabs>
+          </ScTabPane>
+        </ScTabs>
       </div>
 
       <!-- 操作按钮 -->
       <div class="actions-section">
-        <el-button
+        <ScButton
           type="primary"
           :loading="collecting"
           @click="handleCollectMetrics"
         >
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           手动收集
-        </el-button>
+        </ScButton>
 
-        <el-button @click="handleExportData">
+        <ScButton @click="handleExportData">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           导出数据
-        </el-button>
+        </ScButton>
 
-        <el-button @click="handleViewHistory">
+        <ScButton @click="handleViewHistory">
           <IconifyIconOnline icon="ri:history-line" class="mr-1" />
           历史记录
-        </el-button>
+        </ScButton>
 
-        <el-switch
+        <ScSwitch
           v-model="autoRefresh"
           active-text="自动刷新"
           inactive-text="手动刷新"

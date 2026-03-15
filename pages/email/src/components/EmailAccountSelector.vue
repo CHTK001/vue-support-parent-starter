@@ -16,7 +16,11 @@ const props = defineProps({
 const emit = defineEmits(["select-account"]);
 
 const selectedAccount = computed(() => {
-  return props.accounts.find((account) => account.emailAccountId === props.selectedAccountId) || props.accounts[0];
+  return (
+    props.accounts.find(
+      (account) => account.emailAccountId === props.selectedAccountId,
+    ) || props.accounts[0]
+  );
 });
 
 const isDropdownOpen = ref(false);
@@ -35,30 +39,58 @@ const selectAccount = (accountId) => {
   <div class="email-account-selector">
     <div class="email-account-selector__current" @click="toggleDropdown">
       <div class="email-account-selector__avatar" v-if="selectedAccount">
-        <img :src="selectedAccount.emailAccountAvatar" :alt="selectedAccount.emailAccountName" />
+        <img
+          :src="selectedAccount.emailAccountAvatar"
+          :alt="selectedAccount.emailAccountName"
+        />
       </div>
       <div class="email-account-selector__info" v-if="selectedAccount">
-        <div class="email-account-selector__name">{{ selectedAccount.emailAccountName }}</div>
-        <div class="email-account-selector__address">{{ selectedAccount.emailAccountAddress }}</div>
+        <div class="email-account-selector__name">
+          {{ selectedAccount.emailAccountName }}
+        </div>
+        <div class="email-account-selector__address">
+          {{ selectedAccount.emailAccountAddress }}
+        </div>
       </div>
       <div class="email-account-selector__toggle">
-        <IconifyIconOnline :icon="isDropdownOpen ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" />
+        <IconifyIconOnline
+          :icon="isDropdownOpen ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'"
+        />
       </div>
     </div>
 
     <div class="email-account-selector__dropdown" v-if="isDropdownOpen">
-      <div v-for="account in accounts" :key="account.emailAccountId" class="email-account-selector__item" :class="{ 'is-active': account.emailAccountId === selectedAccountId }" @click="selectAccount(account.emailAccountId)">
+      <div
+        v-for="account in accounts"
+        :key="account.emailAccountId"
+        class="email-account-selector__item"
+        :class="{ 'is-active': account.emailAccountId === selectedAccountId }"
+        @click="selectAccount(account.emailAccountId)"
+      >
         <div class="email-account-selector__item-avatar">
-          <img :src="account.emailAccountAvatar" :alt="account.emailAccountName" />
-          <div class="email-account-selector__item-badge" v-if="account.emailAccountUnreadCount > 0">
+          <img
+            :src="account.emailAccountAvatar"
+            :alt="account.emailAccountName"
+          />
+          <div
+            class="email-account-selector__item-badge"
+            v-if="account.emailAccountUnreadCount > 0"
+          >
             {{ account.emailAccountUnreadCount }}
           </div>
         </div>
         <div class="email-account-selector__item-info">
-          <div class="email-account-selector__item-name">{{ account.emailAccountName }}</div>
-          <div class="email-account-selector__item-address">{{ account.emailAccountAddress }}</div>
+          <div class="email-account-selector__item-name">
+            {{ account.emailAccountName }}
+          </div>
+          <div class="email-account-selector__item-address">
+            {{ account.emailAccountAddress }}
+          </div>
         </div>
-        <div class="email-account-selector__item-provider" :style="{ color: account.emailAccountColor }">
+        <div
+          class="email-account-selector__item-provider"
+          :style="{ color: account.emailAccountColor }"
+        >
           {{ account.emailAccountProvider }}
         </div>
       </div>

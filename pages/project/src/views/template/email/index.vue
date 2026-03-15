@@ -61,8 +61,8 @@ const renderContent = (h, { node, data }) => {
         style:
           "float: right; color: var(--el-text-color-secondary); font-size: 13px",
       },
-      data?.sysDictItemCode
-    )
+      data?.sysDictItemCode,
+    ),
   );
 };
 onMounted(() => {
@@ -168,17 +168,17 @@ const resetForm = async (ref) => {
     <LogDialog ref="logDialogRef" />
     <EmailDialog ref="emailDialogRef" />
 
-    <el-container>
-      <el-header>
+    <ScContainer>
+      <ScHeader>
         <div class="left-panel">
-          <ScForm 
+          <ScForm
             ref="formRef"
             :inline="true"
             :model="form"
             class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto"
           >
             <ScFormItem label="模板名称" prop="sysEmailTemplateName">
-              <ScInput 
+              <ScInput
                 v-model="form.sysEmailTemplateName"
                 placeholder="请输入模板名称"
                 clearable
@@ -187,13 +187,13 @@ const resetForm = async (ref) => {
             </ScFormItem>
 
             <ScFormItem label="模板类型" prop="sysEmailTemplateCategory">
-              <ScSelect 
+              <ScSelect
                 v-model="form.sysEmailTemplateCategory"
                 placeholder="请选择类型"
                 clearable
                 class="w-full min-w-[240px]"
               >
-                <ScOption 
+                <ScOption
                   v-for="item in categoryData"
                   :key="item.sysDictItemId"
                   :value="item.sysDictItemId"
@@ -205,31 +205,31 @@ const resetForm = async (ref) => {
         </div>
         <div class="right-panel">
           <div class="right-panel-search">
-            <ScButton 
+            <ScButton
               type="primary"
               :icon="useRenderIcon('ri:search-line')"
               :loading="loading.query"
               @click="onSearch"
             />
-            <ScButton 
+            <ScButton
               title="刷新"
               :icon="useRenderIcon('ep:refresh')"
               @click="resetForm(formRef)"
             />
-            <ScButton 
+            <ScButton
               title="新增"
               :icon="useRenderIcon('ep:edit')"
               @click="dialogOpen({}, 'save')"
             />
-            <ScButton 
+            <ScButton
               title="日志"
               :icon="useRenderIcon('ep:files')"
               @click="handleLog"
             />
           </div>
         </div>
-      </el-header>
-      <el-main>
+      </ScHeader>
+      <ScMain>
         <ScTable
           ref="tableRef"
           border
@@ -238,14 +238,14 @@ const resetForm = async (ref) => {
           :params="params"
           class="custom-table-row"
         >
-          <ScTableColumn 
+          <ScTableColumn
             label="序号"
             type="index"
             align="center"
             fixed
             width="60px"
           />
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysEmailTemplateName"
             label="模板名称"
             align="center"
@@ -255,11 +255,11 @@ const resetForm = async (ref) => {
           >
             <template #default="{ row }">
               <div>
-                <ScTooltip 
+                <ScTooltip
                   v-if="row.sysEmailTemplateRemark"
                   :content="row.sysEmailTemplateRemark"
                 >
-                  <ScTag 
+                  <ScTag
                     :title="row.sysEmailTemplateName"
                     effect="dark"
                     size="small"
@@ -279,7 +279,7 @@ const resetForm = async (ref) => {
                   </span>
                 </ScTooltip>
                 <div v-else>
-                  <ScTag 
+                  <ScTag
                     :title="row.sysEmailTemplateName"
                     effect="dark"
                     size="small"
@@ -301,7 +301,7 @@ const resetForm = async (ref) => {
               </div>
             </template>
           </ScTableColumn>
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysEmailTemplateCategory"
             label="模板类型"
             show-overflow-tooltip
@@ -310,7 +310,7 @@ const resetForm = async (ref) => {
               <ScTag>{{ row.sysEmailTemplateCategoryLabel || "/" }}</ScTag>
             </template>
           </ScTableColumn>
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysEmailTemplateContent"
             label="模板内容"
             min-width="360px"
@@ -321,7 +321,7 @@ const resetForm = async (ref) => {
               <span>{{ row.sysEmailTemplateContent || "/" }}</span>
             </template>
           </ScTableColumn>
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysEmailTemplateStatus"
             label="状态"
             align="center"
@@ -336,13 +336,13 @@ const resetForm = async (ref) => {
               />
             </template>
           </ScTableColumn>
-          <ScTableColumn 
+          <ScTableColumn
             prop="sysEmailTemplateSort"
             label="排序"
             align="center"
             width="60px"
           />
-          <ScTableColumn 
+          <ScTableColumn
             prop="updateTime"
             label="最后一次更新时间"
             align="center"
@@ -356,7 +356,7 @@ const resetForm = async (ref) => {
 
           <ScTableColumn label="操作" fixed="right" align="center">
             <template #default="{ row }">
-              <ScButton 
+              <ScButton
                 size="small"
                 plain
                 link
@@ -366,7 +366,7 @@ const resetForm = async (ref) => {
               >
                 {{ $t("buttons.test") }}
               </ScButton>
-              <ScButton 
+              <ScButton
                 size="small"
                 plain
                 link
@@ -376,13 +376,13 @@ const resetForm = async (ref) => {
               >
                 {{ $t("buttons.update") }}
               </ScButton>
-              <ScPopconfirm 
+              <ScPopconfirm
                 v-if="row.sysEmailTemplateDisabled == 0"
                 :title="$t('message.confimDelete')"
                 @confirm="onDelete(row)"
               >
                 <template #reference>
-                  <ScButton 
+                  <ScButton
                     size="small"
                     type="danger"
                     plain
@@ -396,8 +396,8 @@ const resetForm = async (ref) => {
             </template>
           </ScTableColumn>
         </ScTable>
-      </el-main>
-    </el-container>
+      </ScMain>
+    </ScContainer>
   </div>
 </template>
 

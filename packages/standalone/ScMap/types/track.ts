@@ -40,7 +40,7 @@ export interface TrackOptions {
   // 轨迹线透明度
   opacity?: number;
   // 轨迹线样式 (solid, dashed, dotted)
-  style?: 'solid' | 'dashed' | 'dotted';
+  style?: "solid" | "dashed" | "dotted";
   // 是否显示轨迹点
   showPoints?: boolean;
   // 轨迹点样式
@@ -78,7 +78,7 @@ export interface Track {
  */
 
 export interface TrackConfig {
-   // 已走过轨迹样式
+  // 已走过轨迹样式
   passedLineOptions?: {
     color?: string;
     weight?: number;
@@ -87,7 +87,7 @@ export interface TrackConfig {
   // 未走过轨迹样式
   notPassedLineOptions?: {
     color?: string;
-    weight?: number
+    weight?: number;
     opacity?: number;
   };
   // 速度图标分组配置，当移动点的速度大于配置的speed时，使用icon图标
@@ -100,55 +100,55 @@ export interface TrackConfig {
 /**
  * 轨迹播放器事件类型
  */
-export type TrackPlayerEventType = 
-  | 'play'
-  | 'pause'
-  | 'stop'
-  | 'ended'
-  | 'tick'
-  | 'point-select'
-  | 'track-add'
-  | 'track-clear'
-  | 'speed-change'
-  | 'track-select'
-  | 'trackplayer-init';
+export type TrackPlayerEventType =
+  | "play"
+  | "pause"
+  | "stop"
+  | "ended"
+  | "tick"
+  | "point-select"
+  | "track-add"
+  | "track-clear"
+  | "speed-change"
+  | "track-select"
+  | "trackplayer-init";
 
 // 轨迹配置选项
 export interface TrackPlayerConfigOptions {
-  loop?: boolean;          // 是否循环播放
-  speed?: number;          // 默认播放速度(km/h)
-  withCamera?: boolean;    // 是否跟随相机
-  speedFactor?: number;    // 速度因子
-  showNodes?: boolean;     // 是否显示节点（静态点位）
+  loop?: boolean; // 是否循环播放
+  speed?: number; // 默认播放速度(km/h)
+  withCamera?: boolean; // 是否跟随相机
+  speedFactor?: number; // 速度因子
+  showNodes?: boolean; // 是否显示节点（静态点位）
   showNodeAnchors?: boolean; // 是否显示节点锚点（当showNodes设置为true时有效）
   showNodeNames?: boolean; // 是否显示节点名称（静态点位名称）
   showPointNames?: boolean; // 是否显示点位名称（移动点位名称）
-  showSpeed?: boolean;     // 是否显示移动速度
+  showSpeed?: boolean; // 是否显示移动速度
   showNodeSpeed?: boolean; // 是否显示节点速度
-  moveIcon?: string;       // 移动点图标
+  moveIcon?: string; // 移动点图标
   moveIconSize?: number[]; // 移动点图标大小
-  moveIconColor?: string;  // 移动点图标颜色
+  moveIconColor?: string; // 移动点图标颜色
   trackStyle?: {
-    color?: string;        // 轨迹线颜色
-    weight?: number;       // 轨迹线宽度
-    opacity?: number;      // 轨迹线不透明度
-    nodeColor?: string;    // 节点颜色
-    nodeSize?: number;     // 节点大小
-    nodeStyle?: 'circle' | 'marker' | 'none'; // 节点样式
+    color?: string; // 轨迹线颜色
+    weight?: number; // 轨迹线宽度
+    opacity?: number; // 轨迹线不透明度
+    nodeColor?: string; // 节点颜色
+    nodeSize?: number; // 节点大小
+    nodeStyle?: "circle" | "marker" | "none"; // 节点样式
   };
 }
 
 // 默认轨迹播放器配置
 export const DEFAULT_TRACK_PLAYER_CONFIG: TrackConfig = {
   passedLineOptions: {
-    color: 'rgba(24, 144, 255, 1)',
+    color: "rgba(24, 144, 255, 1)",
     weight: 4,
-    opacity: 0.8
+    opacity: 0.8,
   },
   notPassedLineOptions: {
-    color: 'rgba(160, 160, 160, 0.8)',
+    color: "rgba(160, 160, 160, 0.8)",
     weight: 3,
-    opacity: 0.5
+    opacity: 0.5,
   },
-  trackSpeedGroup: DEFAULT_TRACK_SPEED_GROUPS // 使用默认的交通工具速度图标分组配置
+  trackSpeedGroup: DEFAULT_TRACK_SPEED_GROUPS, // 使用默认的交通工具速度图标分组配置
 };

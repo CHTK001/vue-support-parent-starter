@@ -70,7 +70,7 @@ import CodePreview from "./CodePreview.vue";
  */
 
 const content = ref(
-  "<p>这是编辑器的初始内容，支持<strong>加粗</strong>、<em>斜体</em>等格式。</p>"
+  "<p>这是编辑器的初始内容，支持<strong>加粗</strong>、<em>斜体</em>等格式。</p>",
 );
 
 const config = reactive({

@@ -1,18 +1,38 @@
 ﻿<template>
   <div class="sc-object-input">
-    <ScInput v-model="jsonString" type="textarea" :rows="rows" :disabled="disabled" :placeholder="placeholder" @blur="validateAndUpdate" class="object-textarea" />
+    <ScInput
+      v-model="jsonString"
+      type="textarea"
+      :rows="rows"
+      :disabled="disabled"
+      :placeholder="placeholder"
+      @blur="validateAndUpdate"
+      class="object-textarea"
+    />
 
     <div class="object-error" v-if="error">
       {{ error }}
     </div>
 
     <div class="object-actions" v-if="!disabled">
-      <ScButton type="primary" plain size="small" @click="formatJson" :disabled="!isValidJson">
+      <ScButton
+        type="primary"
+        plain
+        size="small"
+        @click="formatJson"
+        :disabled="!isValidJson"
+      >
         <IconifyIconOnline icon="ep:magic-stick" />
         格式化JSON
       </ScButton>
 
-      <ScButton type="info" plain size="small" @click="compactJson" :disabled="!isValidJson">
+      <ScButton
+        type="info"
+        plain
+        size="small"
+        @click="compactJson"
+        :disabled="!isValidJson"
+      >
         <IconifyIconOnline icon="ep:compress" />
         压缩JSON
       </ScButton>
@@ -64,7 +84,7 @@ watch(
   (val) => {
     jsonString.value = val;
     validateJson(val);
-  }
+  },
 );
 
 /**

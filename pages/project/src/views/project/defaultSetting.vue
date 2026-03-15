@@ -8,7 +8,7 @@
       class="default-setting-dialog"
     >
       <ScForm>
-        <ScFormItem 
+        <ScFormItem
           v-for="item in currentValue"
           :key="item.value"
           prop="label"
@@ -31,7 +31,7 @@
       </ScForm>
       <template #footer>
         <ScButton @click="handleClose">取消</ScButton>
-        <ScButton 
+        <ScButton
           type="primary"
           :icon="useRenderIcon('ri:save-2-line')"
           @click="handleSubmit"

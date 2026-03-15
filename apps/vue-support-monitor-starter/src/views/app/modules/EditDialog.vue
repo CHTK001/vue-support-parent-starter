@@ -10,21 +10,21 @@
       append-to-body
       @close="handleClose"
     >
-      <el-form :model="form">
-        <el-form-item label="平台" prop="monitorApplicationName">
-          <el-input
+      <ScForm :model="form">
+        <ScFormItem label="平台" prop="monitorApplicationName">
+          <ScInput
             v-model="form.monitorApplicationName"
             placeholder="请输入平台"
           />
-        </el-form-item>
-        <el-form-item label="名称" prop="monitorName">
-          <el-input v-model="form.monitorName" placeholder="请输入名称" />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+        <ScFormItem label="名称" prop="monitorName">
+          <ScInput v-model="form.monitorName" placeholder="请输入名称" />
+        </ScFormItem>
+      </ScForm>
 
       <template #footer>
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" @click="handleSubmit">确定</ScButton>
       </template>
     </sc-dialog>
   </div>

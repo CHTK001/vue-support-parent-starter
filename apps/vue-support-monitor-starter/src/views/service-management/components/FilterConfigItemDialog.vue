@@ -15,13 +15,13 @@
       </div>
 
       <div v-loading="loading" class="config-content">
-        <el-form
+        <ScForm
           ref="formRef"
           :model="formData"
           label-width="150px"
           label-position="right"
         >
-          <el-form-item
+          <ScFormItem
             v-for="item in configItems"
             :key="item.systemServerSettingItemId"
             :label="item.systemServerSettingItemName"
@@ -29,7 +29,7 @@
             :rules="getItemRules(item)"
           >
             <!-- 字符串类型 -->
-            <el-input
+            <ScInput
               v-if="
                 item.systemServerSettingItemType === 'string' ||
                 !item.systemServerSettingItemType
@@ -43,7 +43,7 @@
             />
 
             <!-- 数字类型 -->
-            <el-input-number
+            <ScInputNumber
               v-else-if="
                 item.systemServerSettingItemType === 'number' ||
                 item.systemServerSettingItemType === 'integer'
@@ -57,7 +57,7 @@
             />
 
             <!-- 浮点数类型 -->
-            <el-input-number
+            <ScInputNumber
               v-else-if="
                 item.systemServerSettingItemType === 'double' ||
                 item.systemServerSettingItemType === 'float'
@@ -73,7 +73,7 @@
             />
 
             <!-- 布尔类型 -->
-            <el-switch
+            <ScSwitch
               v-else-if="item.systemServerSettingItemType === 'boolean'"
               v-model="formData[item.systemServerSettingItemName]"
               active-text="是"
@@ -81,7 +81,7 @@
             />
 
             <!-- JSON类型 -->
-            <el-input
+            <ScInput
               v-else-if="item.systemServerSettingItemType === 'json'"
               v-model="formData[item.systemServerSettingItemName]"
               type="textarea"
@@ -93,7 +93,7 @@
             />
 
             <!-- 其他类型默认为字符串 -->
-            <el-input
+            <ScInput
               v-else
               v-model="formData[item.systemServerSettingItemName]"
               :placeholder="
@@ -118,16 +118,16 @@
             >
               默认值: {{ item.systemServerSettingItemDefaultValue }}
             </div>
-          </el-form-item>
-        </el-form>
+          </ScFormItem>
+        </ScForm>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="resetToDefaults">重置为默认值</el-button>
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave"
+        <ScButton @click="resetToDefaults">重置为默认值</ScButton>
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="handleSave"
           >保存配置</el-button
         >
       </div>

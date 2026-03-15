@@ -186,17 +186,17 @@ export default defineComponent({
       @close="dialogClose"
     />
     <div class="main h-full">
-      <el-container>
-        <el-header class="header-height">
+      <ScContainer>
+        <ScHeader class="header-height">
           <ScInput 
             v-model="dicFilterText"
             :placeholder="useI18n('input.keywordSearch')"
             clearable
           />
-        </el-header>
-        <el-main class="nopadding">
+        </ScHeader>
+        <ScMain class="nopadding">
           <div class="h-full">
-            <el-skeleton v-if="loading.query" animated :count="6" />
+            <ScSkeleton v-if="loading.query" animated :count="6" />
             <ScTree 
               v-else
               ref="treeRef"
@@ -247,8 +247,8 @@ export default defineComponent({
               </template>
             </ScTree>
           </div>
-        </el-main>
-        <el-footer class="footer-height">
+        </ScMain>
+        <ScFooter class="footer-height">
           <ScButton 
             type="primary"
             size="small"
@@ -258,8 +258,8 @@ export default defineComponent({
           >
             {{ useI18n("buttons.addDict") }}
           </ScButton>
-        </el-footer>
-      </el-container>
+        </ScFooter>
+      </ScContainer>
     </div>
   </div>
 </template>

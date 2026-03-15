@@ -4,7 +4,7 @@
     <div class="query-header">
       <div class="query-controls">
         <div class="time-range-selector">
-          <el-date-picker
+          <ScDatePicker
             v-model="timeRangeValue"
             type="datetimerange"
             range-separator="至"
@@ -15,45 +15,45 @@
             :shortcuts="dateShortcuts"
             class="!w-[400px]"
           />
-          <el-button type="primary" :loading="loading" @click="handleQuery">
+          <ScButton type="primary" :loading="loading" @click="handleQuery">
             <IconifyIconOnline icon="ep:search" />
             查询
-          </el-button>
+          </ScButton>
         </div>
 
         <div class="query-options">
-          <el-select
+          <ScSelect
             v-model="selectedComponentId"
             placeholder="选择组件"
             style="width: 200px"
             @change="handleComponentChange"
           >
-            <el-option
+            <ScOption
               v-for="component in components"
               :key="component.monitorSysGenServerComponentId"
               :label="component.monitorSysGenServerComponentName"
               :value="component.monitorSysGenServerComponentId"
             />
-          </el-select>
+          </ScSelect>
 
-          <el-select
+          <ScSelect
             v-model="stepValue"
             placeholder="步长"
             style="width: 120px"
           >
-            <el-option label="15秒" :value="15" />
-            <el-option label="30秒" :value="30" />
-            <el-option label="1分钟" :value="60" />
-            <el-option label="5分钟" :value="300" />
-            <el-option label="15分钟" :value="900" />
-          </el-select>
+            <ScOption label="15秒" :value="15" />
+            <ScOption label="30秒" :value="30" />
+            <ScOption label="1分钟" :value="60" />
+            <ScOption label="5分钟" :value="300" />
+            <ScOption label="15分钟" :value="900" />
+          </ScSelect>
         </div>
       </div>
 
       <div v-if="queryResult" class="query-stats">
-        <el-tag type="success" size="small">查询时间: {{ queryTime }}ms</el-tag>
-        <el-tag type="info" size="small">数据点: {{ dataPointCount }}</el-tag>
-        <el-tag type="warning" size="small"
+        <ScTag type="success" size="small">查询时间: {{ queryTime }}ms</ScTag>
+        <ScTag type="info" size="small">数据点: {{ dataPointCount }}</ScTag>
+        <ScTag type="warning" size="small"
           >更新时间: {{ lastUpdateTime }}</el-tag
         >
       </div>
@@ -62,11 +62,11 @@
     <!-- 数据展示区域 -->
     <div v-loading="loading" class="query-content">
       <div v-if="!queryResult" class="empty-state">
-        <el-empty description="请选择组件并设置时间范围进行查询">
-          <el-button type="primary" @click="handleQuickQuery"
+        <ScEmpty description="请选择组件并设置时间范围进行查询">
+          <ScButton type="primary" @click="handleQuickQuery"
             >快速查询（最近1小时）</el-button
           >
-        </el-empty>
+        </ScEmpty>
       </div>
 
       <div v-else class="data-display">
@@ -74,7 +74,7 @@
         <div class="component-info">
           <h3>{{ selectedComponent?.monitorSysGenServerComponentName }}</h3>
           <div class="component-meta">
-            <el-tag
+            <ScTag
               :type="
                 getComponentTypeColor(
                   selectedComponent?.monitorSysGenServerComponentType,
@@ -87,50 +87,50 @@
                   selectedComponent?.monitorSysGenServerComponentType,
                 )
               }}
-            </el-tag>
-            <el-tag type="info" size="small">
+            </ScTag>
+            <ScTag type="info" size="small">
               {{
                 getExpressionTypeName(
                   selectedComponent?.monitorSysGenServerComponentExpressionType,
                 )
               }}
-            </el-tag>
+            </ScTag>
           </div>
         </div>
 
         <!-- 数据内容 -->
         <div class="data-content">
-          <el-tabs v-model="activeTab" type="card">
-            <el-tab-pane label="图表视图" name="chart">
+          <ScTabs v-model="activeTab" type="card">
+            <ScTabPane label="图表视图" name="chart">
               <div class="chart-container">
                 <div ref="chartRef" class="chart" style="height: 400px" />
               </div>
-            </el-tab-pane>
+            </ScTabPane>
 
-            <el-tab-pane label="原始数据" name="raw">
+            <ScTabPane label="原始数据" name="raw">
               <div class="raw-data">
                 <pre>{{ JSON.stringify(queryResult, null, 2) }}</pre>
               </div>
-            </el-tab-pane>
+            </ScTabPane>
 
-            <el-tab-pane label="表格视图" name="table">
+            <ScTabPane label="表格视图" name="table">
               <div class="table-view">
-                <el-table
+                <ScTable
                   :data="tableData"
                   style="width: 100%"
                   max-height="400"
                 >
-                  <el-table-column prop="timestamp" label="时间" width="180">
+                  <ScTableColumn prop="timestamp" label="时间" width="180">
                     <template #default="{ row }">
                       {{ formatTimestamp(row.timestamp) }}
                     </template>
-                  </el-table-column>
-                  <el-table-column prop="value" label="值" />
-                  <el-table-column prop="metric" label="指标" />
-                </el-table>
+                  </ScTableColumn>
+                  <ScTableColumn prop="value" label="值" />
+                  <ScTableColumn prop="metric" label="指标" />
+                </ScTable>
               </div>
-            </el-tab-pane>
-          </el-tabs>
+            </ScTabPane>
+          </ScTabs>
         </div>
       </div>
     </div>

@@ -1,0 +1,48 @@
+// 圣诞节主题 CSS 变量定义
+
+:root[data-theme="christmas"] {
+  // 主色调
+  --christmas-red: #dc143c;
+  --christmas-green: #2d5016;
+  --christmas-gold: #ffd700;
+  --christmas-white: #ffffff;
+
+  // 辅助色
+  --christmas-red-dark: #8b0000;
+  --christmas-green-dark: #1b3a0f;
+  --christmas-silver: #c0c0c0;
+  --christmas-ice-blue: #e0f2fe;
+
+  // 应用到全局变量
+  --primary-color: var(--christmas-red);
+  --secondary-color: var(--christmas-green);
+  --accent-color: var(--christmas-gold);
+  --bg-color: var(--christmas-white);
+  --text-color: #1a1a1a;
+  --border-color: var(--christmas-gold);
+  --hover-color: var(--christmas-red-dark);
+
+  // 阴影
+  --shadow-sm: 0 2px 8px rgba(220, 20, 60, 0.15);
+  --shadow-md: 0 4px 12px rgba(220, 20, 60, 0.25);
+  --shadow-lg: 0 8px 24px rgba(255, 215, 0, 0.3);
+
+  // 渐变
+  --gradient-primary: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-gold) 100%);
+  --gradient-bg: linear-gradient(180deg, var(--christmas-white) 0%, var(--christmas-ice-blue) 100%);
+  --gradient-green: linear-gradient(180deg, var(--christmas-green) 0%, var(--christmas-green-dark) 100%);
+
+  // 动画时长
+  --transition-fast: 0.2s;
+  --transition-normal: 0.3s;
+  --transition-slow: 0.5s;
+}
+
+// 暗黑模式适配
+:root[data-theme="christmas"][data-mode="dark"] {
+  --christmas-white: #1a2332;
+  --christmas-ice-blue: #0f1419;
+  --text-color: #e0e0e0;
+  --bg-color: var(--christmas-ice-blue);
+  --shadow-md: 0 4px 12px rgba(220, 20, 60, 0.4);
+}

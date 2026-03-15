@@ -3,21 +3,21 @@
     <!-- 控制面板 -->
     <div class="control-panel">
       <div class="control-row">
-        <el-input
+        <ScInput
           v-model="classPattern"
           placeholder="类名/通配（如 com.example.UserService 或 com.example.*Service）"
           style="min-width: 280px"
           clearable
         />
-        <el-input
+        <ScInput
           v-model="methodPattern"
           placeholder="方法名/通配（可选，默认 *）"
           style="width: 200px"
           clearable
         />
-        <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
-        <el-checkbox v-model="declaredOnly">仅声明方法(-d)</el-checkbox>
-        <el-input-number
+        <ScCheckbox v-model="useRegex">正则(-E)</ScCheckbox>
+        <ScCheckbox v-model="declaredOnly">仅声明方法(-d)</ScCheckbox>
+        <ScInputNumber
           v-model="collectMillis"
           :min="2000"
           :max="60000"
@@ -26,20 +26,20 @@
           style="width: 160px"
         />
         <span class="label">超时(ms)</span>
-        <el-button
+        <ScButton
           type="primary"
           :disabled="!nodeId || !classPatternTrim"
           :loading="loading"
           @click="run"
         >
           执行
-        </el-button>
-        <el-button @click="clearData">清空</el-button>
+        </ScButton>
+        <ScButton @click="clearData">清空</ScButton>
       </div>
     </div>
 
     <!-- 错误提示 -->
-    <el-alert
+    <ScAlert
       v-if="error"
       type="error"
       :title="error"
@@ -49,45 +49,45 @@
     />
 
     <!-- 结果表格 -->
-    <el-table v-if="rows.length > 0" :data="rows" stripe>
-      <el-table-column
+    <ScTable v-if="rows.length > 0" :data="rows" stripe>
+      <ScTableColumn
         prop="className"
         label="类名"
         min-width="260"
         show-overflow-tooltip
       />
-      <el-table-column prop="methodName" label="方法" width="180" />
-      <el-table-column
+      <ScTableColumn prop="methodName" label="方法" width="180" />
+      <ScTableColumn
         prop="returnType"
         label="返回类型"
         width="180"
         show-overflow-tooltip
       />
-      <el-table-column prop="modifiers" label="修饰符" width="140" />
-      <el-table-column
+      <ScTableColumn prop="modifiers" label="修饰符" width="140" />
+      <ScTableColumn
         prop="parameters"
         label="参数"
         min-width="220"
         show-overflow-tooltip
       />
-      <el-table-column prop="declared" label="声明" width="90">
+      <ScTableColumn prop="declared" label="声明" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.declared ? 'success' : 'info'" size="small">{{
+          <ScTag :type="row.declared ? 'success' : 'info'" size="small">{{
             row.declared ? "是" : "否"
-          }}</el-tag>
+          }}</ScTag>
         </template>
-      </el-table-column>
-      <el-table-column
+      </ScTableColumn>
+      <ScTableColumn
         prop="classLoader"
         label="类加载器"
         min-width="220"
         show-overflow-tooltip
       />
-    </el-table>
+    </ScTable>
 
     <!-- 空状态 -->
     <div v-if="!loading && !error && rows.length === 0" class="empty-state">
-      <el-empty description="暂无方法信息，请配置类/方法并点击执行" />
+      <ScEmpty description="暂无方法信息，请配置类/方法并点击执行" />
     </div>
   </div>
 </template>

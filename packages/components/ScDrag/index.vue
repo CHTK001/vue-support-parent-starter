@@ -33,7 +33,7 @@ export default defineComponent({
     techTitle: {
       scale: 1.3,
       position: "left",
-      decorationColor: '#fff',
+      decorationColor: "#fff",
       fontWeight: "bold",
       color: $c.yel5
     },
@@ -312,7 +312,7 @@ export default defineComponent({
           <header class="el-dialog__header show-close handle">
             <span role="heading" aria-level="2" class="el-dialog__title">{{ title }}</span>
             <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]">
-              <el-icon
+              <ScIcon
                 size="20"
                 class="!text-[#000]"
                 @click="
@@ -322,10 +322,10 @@ export default defineComponent({
                 "
               >
                 <component :is="useRenderIcon('ep:refresh')" />
-              </el-icon>
-              <el-icon size="20" class="!text-[#000]" @click="doClose()">
+              </ScIcon>
+              <ScIcon size="20" class="!text-[#000]" @click="doClose()">
                 <component :is="useRenderIcon('ep:close')" />
-              </el-icon>
+              </ScIcon>
             </div>
           </header>
           <div id="el-id-1024-54" class="el-dialog__body !p-0">
@@ -335,7 +335,7 @@ export default defineComponent({
         <div v-else class="h-full">
           <aYinTechBorderB4 :config="techConfig" class="h-full min-h-[600px] relative">
             <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]">
-              <el-icon color="#fff" size="20">
+              <ScIcon color="#fff" size="20">
                 <component
                   :is="useRenderIcon('ep:refresh')"
                   @click="
@@ -344,10 +344,10 @@ export default defineComponent({
                     }
                   "
                 />
-              </el-icon>
-              <el-icon color="#fff" size="20" @click="doClose()">
+              </ScIcon>
+              <ScIcon color="#fff" size="20" @click="doClose()">
                 <component :is="useRenderIcon('ep:close')" />
-              </el-icon>
+              </ScIcon>
             </div>
             <panelTitleB1 :config="techTitle">{{ title }}</panelTitleB1>
             <div id="el-id-1024-54" class="el-dialog-tech__body h-full pt-[40px]">
@@ -358,11 +358,11 @@ export default defineComponent({
         <!--v-if-->
       </div>
       <div v-show="!showContent" class="!w-[48px] !h-[48px]">
-        <el-button v-if="!tech" size="default" :icon="miniIcon" class="!h-full !w-full" />
+        <ScButton v-if="!tech" size="default" :icon="miniIcon" class="!h-full !w-full" />
         <techButtonB1 v-else class="!w-[48px] !h-[48px]" @click="showContent = !showContent">
-          <el-icon size="18" class="left-[-5px] top-[5px]">
+          <ScIcon size="18" class="left-[-5px] top-[5px]">
             <component :is="useRenderIcon(miniIcon)" />
-          </el-icon>
+          </ScIcon>
         </techButtonB1>
       </div>
     </div>

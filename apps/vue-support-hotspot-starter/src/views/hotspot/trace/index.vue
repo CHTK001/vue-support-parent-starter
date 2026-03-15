@@ -1,9 +1,9 @@
 ﻿<template>
   <div class="page flex flex-col h-full">
     <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper primary">
               <IconifyIconOnline icon="ri:route-line" class="stat-icon" />
@@ -13,10 +13,10 @@
               <div class="stat-label">追踪记录</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div :class="['stat-icon-wrapper', wsConnected ? 'success' : 'danger']">
               <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
@@ -26,10 +26,10 @@
               <div class="stat-label">WebSocket 状态</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper warning">
               <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
@@ -39,28 +39,28 @@
               <div class="stat-label">数据推送</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper danger">
               <IconifyIconOnline icon="ri:delete-bin-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <el-button type="danger" size="small" @click="clearData">清空数据</el-button>
+              <ScButton type="danger" size="small" @click="clearData">清空数据</ScButton>
               <div class="stat-label">操作</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 内容区域 -->
     <div class="flex-1 overflow-hidden">
-      <el-card shadow="never" class="h-full trace-card">
+      <ScCard shadow="never" class="h-full trace-card">
         <div ref="containerRef" class="h-full overflow-auto">
-          <el-tree
+          <ScTree
             :data="dataList"
             :style="{
               height: '100%',
@@ -80,8 +80,8 @@
                         <span v-if="data.id == data.linkId">
                           <span v-if="(data.description || '').indexOf('span') > -1" v-html="data.description || data.ex" />
                           <span v-else>
-                            <el-tag>Http</el-tag>
-                            <el-tag type="primary" class="ml-1">{{ data.description || data.ex }}</el-tag>
+                            <ScTag>Http</ScTag>
+                            <ScTag type="primary" class="ml-1">{{ data.description || data.ex }}</ScTag>
                           </span>
                         </span>
                         <span v-else>
@@ -97,18 +97,18 @@
                         </span>
                         耗时:
                         <span style="height: 26px">{{ data?.costTime }} ms</span>
-                        <el-icon class="z-[10]" @click="handleShowTrack(data)">
+                        <ScIcon class="z-[10]" @click="handleShowTrack(data)">
                           <component :is="useRenderIcon('ri:information-2-line')" />
-                        </el-icon>
+                        </ScIcon>
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
             </template>
-          </el-tree>
+          </ScTree>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 详情抽屉 -->
@@ -117,34 +117,34 @@
         <span v-html="config.dialogDetailData.description" />
       </template>
       <div class="demo-drawer__content bg-transparent">
-        <el-descriptions border :column="1">
-          <el-descriptions-item label="linkId">
+        <ScDescriptions border :column="1">
+          <ScDescriptionsItem label="linkId">
             {{ config.dialogDetailData.linkId }}
-          </el-descriptions-item>
-          <el-descriptions-item v-if="config.dialogDetailData.applicationName" label="应用地址">
-            <el-tag>{{ config.dialogDetailData.applicationName }}</el-tag>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem v-if="config.dialogDetailData.applicationName" label="应用地址">
+            <ScTag>{{ config.dialogDetailData.applicationName }}</ScTag>
             {{ config.dialogDetailData.applicationHost }}:{{ config.dialogDetailData.applicationPort }}
-          </el-descriptions-item>
-          <el-descriptions-item label="进入方法时间">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</el-descriptions-item>
-          <el-descriptions-item label="耗时">{{ config.dialogDetailData.costTime }} ms</el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="进入方法时间">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="耗时">{{ config.dialogDetailData.costTime }} ms</ScDescriptionsItem>
+        </ScDescriptions>
         <div v-if="config.dialogDetailData.headers && config.dialogDetailData.headers.length > 0">
           <div>header</div>
           <pre><code class="language-http">{{ config.dialogDetailData.headers?.join("\n") }}</code></pre>
         </div>
         <div v-if="config.dialogDetailData.tips && config.dialogDetailData.tips.length > 0">
-          <el-divider />
+          <ScDivider />
           <div>tips</div>
           <pre><code class="language-http"><span v-html="config.dialogDetailData.tips.join('\n')"/></code></pre>
         </div>
         <div v-if="config.dialogDetailData.category == 'SQL'">
-          <el-divider />
+          <ScDivider />
           <div>sql</div>
           <pre><code class="language-sql">{{ format(config.dialogDetailData.description) }}</code></pre>
         </div>
 
         <div v-if="config.dialogDetailData.stackTrace && config.dialogDetailData.stackTrace.length > 0">
-          <el-divider />
+          <ScDivider />
           <div>堆栈</div>
           <pre><code class="language-java">{{ config.dialogDetailData.stackTrace  instanceof Array ? config.dialogDetailData.stackTrace?.join('\r\n') : config.dialogDetailData.stackTrace}}</code></pre>
         </div>

@@ -2,7 +2,7 @@
   <div class="list-input">
     <div class="list-items">
       <div v-for="(item, index) in items" :key="index" class="list-item">
-        <el-input
+        <ScInput
           v-model="items[index]"
           :placeholder="placeholder || '请输入内容'"
           class="item-input"
@@ -10,7 +10,7 @@
           :size="size"
           @input="handleInput"
         />
-        <el-button
+        <ScButton
           v-if="items.length > 1"
           type="danger"
           circle
@@ -20,12 +20,12 @@
           @click="removeItem(index)"
         >
           <IconifyIconOnline icon="ep:delete" />
-        </el-button>
+        </ScButton>
       </div>
-      <el-button type="primary" class="add-btn w-full" :size="size" :disabled="disabled" @click="addItem">
+      <ScButton type="primary" class="add-btn w-full" :size="size" :disabled="disabled" @click="addItem">
         <IconifyIconOnline icon="ep:plus" />
         <span style="margin-left: 4px">添加</span>
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

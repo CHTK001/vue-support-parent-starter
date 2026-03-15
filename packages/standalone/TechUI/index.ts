@@ -19,13 +19,13 @@ import TechGeometry from "./TechGeometry/index.vue";
 import TechPanelTitle from "./TechPanelTitle/index.vue";
 
 // 导出组件
-export { 
-  TechButton, 
-  TechPanel, 
-  TechHeader, 
-  TechDeco, 
+export {
+  TechButton,
+  TechPanel,
+  TechHeader,
+  TechDeco,
   TechGeometry,
-  TechPanelTitle 
+  TechPanelTitle,
 };
 
 // 导出原始初始化函数
@@ -37,32 +37,35 @@ export { techuiScifiInit };
  * @param app Vue 应用实例
  * @param options 配置选项
  */
-export async function initTechUI(app: App, options?: {
-  license?: string | null;
-  features?: {
-    echarts?: boolean;
-    advanced?: boolean;
-  };
-  debug?: boolean;
-}): Promise<void> {
+export async function initTechUI(
+  app: App,
+  options?: {
+    license?: string | null;
+    features?: {
+      echarts?: boolean;
+      advanced?: boolean;
+    };
+    debug?: boolean;
+  },
+): Promise<void> {
   const { license = null, features = {}, debug = false } = options || {};
-  
+
   if (debug) {
     console.log("[TechUI] 开始初始化 WASM 核心...");
   }
-  
+
   // 初始化 @techui/scifi WASM 核心 (必须在使用组件前完成)
   await techuiScifiInit({
     app,
     license,
     features,
-    debug
+    debug,
   });
-  
+
   if (debug) {
     console.log("[TechUI] WASM 核心初始化完成");
   }
-  
+
   // 注册封装组件
   app.component("TechButton", TechButton);
   app.component("TechPanel", TechPanel);
@@ -70,7 +73,7 @@ export async function initTechUI(app: App, options?: {
   app.component("TechDeco", TechDeco);
   app.component("TechGeometry", TechGeometry);
   app.component("TechPanelTitle", TechPanelTitle);
-  
+
   if (debug) {
     console.log("[TechUI] 组件注册完成");
   }
@@ -78,5 +81,5 @@ export async function initTechUI(app: App, options?: {
 
 // 默认导出
 export default {
-  initTechUI
+  initTechUI,
 };

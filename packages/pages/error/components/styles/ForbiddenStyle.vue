@@ -52,7 +52,11 @@ const { t } = useI18n();
       <div class="error-code">
         <span class="code-prefix">ERROR</span>
         <div class="code-number">
-          <span v-for="(digit, index) in String(code).split('')" :key="index" class="digit">
+          <span
+            v-for="(digit, index) in String(code).split('')"
+            :key="index"
+            class="digit"
+          >
             {{ digit }}
           </span>
         </div>
@@ -111,10 +115,8 @@ const { t } = useI18n();
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: linear-gradient(
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px
-    ),
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
 }
@@ -264,7 +266,9 @@ const { t } = useI18n();
   font-size: 5rem;
   font-weight: 900;
   color: #fff;
-  text-shadow: 0 0 30px rgba(231, 76, 60, 0.5), 0 4px 0 #c0392b;
+  text-shadow:
+    0 0 30px rgba(231, 76, 60, 0.5),
+    0 4px 0 #c0392b;
   animation: glitch 3s infinite;
 
   &:nth-child(1) {

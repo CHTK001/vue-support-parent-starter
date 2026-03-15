@@ -18,6 +18,6 @@ export default defineBuildConfig({
     "unbuild",
     "vue-i18n",
     "@repo/components",
-    "./index.vue"
+    "./index.vue",
   ],
-}); 
+});

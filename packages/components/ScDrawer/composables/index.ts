@@ -12,5 +12,5 @@ export {
   type DrawerMemoryData,
   type ComponentMemoryData,
   type ComponentMemoryOptions,
-  type ComponentMemoryReturn,
-} from '../../ScDialog/composables/useDialogMemory';
+  type ComponentMemoryReturn
+} from "../../ScDialog/composables/useDialogMemory";

@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <div class="header-icon">
-          <el-icon :size="28"><Share /></el-icon>
+          <ScIcon :size="28"><Share /></ScIcon>
         </div>
         <div class="header-text">
           <h2>服务拓扑</h2>
@@ -12,20 +12,20 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-select
+        <ScSelect
           v-model="filterForm.configId"
           placeholder="选择配置"
           style="width: 180px"
           @change="handleConfigChange"
         >
-          <el-option
+          <ScOption
             v-for="item in configList"
             :key="item.skywalkingConfigId"
             :label="item.skywalkingConfigName"
             :value="item.skywalkingConfigId"
           />
-        </el-select>
-        <el-date-picker
+        </ScSelect>
+        <ScDatePicker
           v-model="timeRange"
           type="datetimerange"
           range-separator="-"
@@ -36,27 +36,27 @@
           style="width: 280px"
           @change="handleTimeChange"
         />
-        <el-select
+        <ScSelect
           v-model="filterForm.layer"
           placeholder="选择层"
           clearable
           style="width: 120px"
         >
-          <el-option
+          <ScOption
             v-for="layer in layerList"
             :key="layer"
             :label="layer"
             :value="layer"
           />
-        </el-select>
-        <el-button type="primary" :icon="Search" @click="fetchData"
+        </ScSelect>
+        <ScButton type="primary" :icon="Search" @click="fetchData"
           >查询</el-button
         >
       </div>
     </div>
 
     <!-- 拓扑图区域 -->
-    <el-card v-loading="loading" class="topology-card" shadow="never">
+    <ScCard v-loading="loading" class="topology-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>服务拓扑图</span>
@@ -90,7 +90,7 @@
             @click="selectNode(node)"
           >
             <div class="node-icon">
-              <el-icon :size="24"><Monitor /></el-icon>
+              <ScIcon :size="24"><Monitor /></ScIcon>
             </div>
             <div class="node-name">{{ node.name }}</div>
             <div class="node-layer">{{ node.layer || "-" }}</div>
@@ -125,34 +125,34 @@
           </svg>
         </div>
       </div>
-      <el-empty v-else description="暂无拓扑数据" />
-    </el-card>
+      <ScEmpty v-else description="暂无拓扑数据" />
+    </ScCard>
 
     <!-- 节点详情抽屉 -->
     <sc-drawer v-model="drawerVisible" title="节点详情" size="400px">
       <template v-if="selectedNode">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="节点ID">{{
+        <ScDescriptions :column="1" border>
+          <ScDescriptionsItem label="节点ID">{{
             selectedNode.id
-          }}</el-descriptions-item>
-          <el-descriptions-item label="节点名称">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="节点名称">{{
             selectedNode.name
-          }}</el-descriptions-item>
-          <el-descriptions-item label="节点类型">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="节点类型">{{
             selectedNode.type || "-"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="层">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="层">{{
             selectedNode.layer || "-"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="是否真实">
-            <el-tag
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="是否真实">
+            <ScTag
               :type="selectedNode.isReal ? 'success' : 'info'"
               size="small"
             >
               {{ selectedNode.isReal ? "是" : "否" }}
-            </el-tag>
-          </el-descriptions-item>
-        </el-descriptions>
+            </ScTag>
+          </ScDescriptionsItem>
+        </ScDescriptions>
 
         <div class="section-title">调用关系</div>
         <div class="call-list">
@@ -170,7 +170,7 @@
                 : getNodeName(call.source)
             }}</span>
           </div>
-          <el-empty
+          <ScEmpty
             v-if="!nodeRelatedCalls.length"
             description="暂无调用关系"
             :image-size="60"

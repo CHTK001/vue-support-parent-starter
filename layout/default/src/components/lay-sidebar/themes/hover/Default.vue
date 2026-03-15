@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseHover from './BaseHover.vue';
+import BaseHover from "./BaseHover.vue";
 </script>
 
 <template>

@@ -6,14 +6,14 @@
         <span class="header-title">主机资源监控</span>
       </div>
       <div class="header-right">
-        <el-button
+        <ScButton
           :loading="loading"
           size="small"
           circle
           @click="handleRefresh"
         >
           <IconifyIconOnline icon="ri:refresh-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -22,7 +22,7 @@
       <div class="resource-item">
         <div class="resource-label">CPU使用率</div>
         <div class="resource-progress">
-          <el-progress
+          <ScProgress
             :percentage="cpuUsage"
             :color="getUsageColor(cpuUsage)"
             :stroke-width="10"
@@ -36,7 +36,7 @@
       <div class="resource-item">
         <div class="resource-label">内存使用率</div>
         <div class="resource-progress">
-          <el-progress
+          <ScProgress
             :percentage="memoryUsage"
             :color="getUsageColor(memoryUsage)"
             :stroke-width="10"
@@ -50,7 +50,7 @@
       <div class="resource-item">
         <div class="resource-label">磁盘使用率</div>
         <div class="resource-progress">
-          <el-progress
+          <ScProgress
             :percentage="diskUsage"
             :color="getUsageColor(diskUsage)"
             :stroke-width="10"

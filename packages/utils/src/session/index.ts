@@ -52,7 +52,7 @@ class SessionManager {
    */
   init(
     logoutCallback?: () => void,
-    warningCallback?: (remainingTime: number) => void
+    warningCallback?: (remainingTime: number) => void,
   ): void {
     // 重新初始化前先清理，避免重复绑定事件和定时器泄漏
     this.stop();
@@ -231,7 +231,7 @@ export const sessionManager = new SessionManager();
  */
 export function initSession(
   logoutCallback?: () => void,
-  warningCallback?: (remainingTime: number) => void
+  warningCallback?: (remainingTime: number) => void,
 ): void {
   sessionManager.init(logoutCallback, warningCallback);
 }

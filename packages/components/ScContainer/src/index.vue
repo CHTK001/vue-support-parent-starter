@@ -1,97 +1,73 @@
 <template>
-  <el-container class="sc-container" :class="containerClass" :style="containerStyle" :direction="direction">
+  <ScContainer class="sc-container" :class="containerClass" :style="containerStyle" :direction="direction">
     <!-- 头部 -->
-    <el-header v-if="$slots.header" class="sc-container__header" :height="headerHeight">
+    <ScHeader v-if="$slots.header" class="sc-container__header" :height="headerHeight">
       <slot name="header" />
-    </el-header>
+    </ScHeader>
 
     <!-- 中间区域 -->
-    <el-container class="sc-container__body">
+    <ScContainer class="sc-container__body">
       <!-- 左侧边栏 -->
       <template v-if="$slots.aside">
-        <el-aside 
-          v-show="!asideCollapsed" 
-          class="sc-container__aside" 
-          :width="currentAsideWidth"
-          :style="{ width: currentAsideWidth }"
-        >
+        <ScAside v-show="!asideCollapsed" class="sc-container__aside" :width="currentAsideWidth" :style="{ width: currentAsideWidth }">
           <slot name="aside" />
-        </el-aside>
-        
+        </ScAside>
+
         <!-- 左侧拖拽分隔线 -->
-        <div 
-          v-if="resizable && !asideCollapsed"
-          class="sc-container__resizer sc-container__resizer--left"
-          @mousedown="startResizeAside"
-        >
+        <div v-if="resizable && !asideCollapsed" class="sc-container__resizer sc-container__resizer--left" @mousedown="startResizeAside">
           <div class="resizer-handle">
             <span class="resizer-dots">
-              <i></i><i></i><i></i>
+              <i></i>
+              <i></i>
+              <i></i>
             </span>
           </div>
         </div>
-        
+
         <!-- 左侧折叠按钮 -->
-        <div 
-          v-if="collapsible"
-          class="sc-container__collapse-btn sc-container__collapse-btn--left"
-          :class="{ 'is-collapsed': asideCollapsed }"
-          @click="toggleAsideCollapse"
-        >
-          <el-icon>
+        <div v-if="collapsible" class="sc-container__collapse-btn sc-container__collapse-btn--left" :class="{ 'is-collapsed': asideCollapsed }" @click="toggleAsideCollapse">
+          <ScIcon>
             <component :is="useRenderIcon(asideCollapsed ? 'ep:arrow-right' : 'ep:arrow-left')" />
-          </el-icon>
+          </ScIcon>
         </div>
       </template>
 
       <!-- 主内容区 -->
-      <el-main class="sc-container__main">
+      <ScMain class="sc-container__main">
         <slot />
-      </el-main>
+      </ScMain>
 
       <!-- 右侧边栏 -->
       <template v-if="$slots.right">
         <!-- 右侧拖拽分隔线 -->
-        <div 
-          v-if="resizable && !rightCollapsed"
-          class="sc-container__resizer sc-container__resizer--right"
-          @mousedown="startResizeRight"
-        >
+        <div v-if="resizable && !rightCollapsed" class="sc-container__resizer sc-container__resizer--right" @mousedown="startResizeRight">
           <div class="resizer-handle">
             <span class="resizer-dots">
-              <i></i><i></i><i></i>
+              <i></i>
+              <i></i>
+              <i></i>
             </span>
           </div>
         </div>
-        
+
         <!-- 右侧折叠按钮 -->
-        <div 
-          v-if="collapsible"
-          class="sc-container__collapse-btn sc-container__collapse-btn--right"
-          :class="{ 'is-collapsed': rightCollapsed }"
-          @click="toggleRightCollapse"
-        >
-          <el-icon>
+        <div v-if="collapsible" class="sc-container__collapse-btn sc-container__collapse-btn--right" :class="{ 'is-collapsed': rightCollapsed }" @click="toggleRightCollapse">
+          <ScIcon>
             <component :is="useRenderIcon(rightCollapsed ? 'ep:arrow-left' : 'ep:arrow-right')" />
-          </el-icon>
+          </ScIcon>
         </div>
-        
-        <el-aside 
-          v-show="!rightCollapsed" 
-          class="sc-container__right" 
-          :width="currentRightWidth"
-          :style="{ width: currentRightWidth }"
-        >
+
+        <ScAside v-show="!rightCollapsed" class="sc-container__right" :width="currentRightWidth" :style="{ width: currentRightWidth }">
           <slot name="right" />
-        </el-aside>
+        </ScAside>
       </template>
-    </el-container>
+    </ScContainer>
 
     <!-- 底部 -->
-    <el-footer v-if="$slots.footer" class="sc-container__footer" :height="footerHeight">
+    <ScFooter v-if="$slots.footer" class="sc-container__footer" :height="footerHeight">
       <slot name="footer" />
-    </el-footer>
-  </el-container>
+    </ScFooter>
+  </ScContainer>
 </template>
 
 <script setup lang="ts">
@@ -385,12 +361,7 @@ defineExpose({
     transition: background-color 0.2s;
 
     &:hover {
-      background: linear-gradient(to right, 
-        transparent 0%, 
-        var(--el-color-primary-light-8) 30%, 
-        var(--el-color-primary-light-8) 70%, 
-        transparent 100%
-      );
+      background: linear-gradient(to right, transparent 0%, var(--el-color-primary-light-8) 30%, var(--el-color-primary-light-8) 70%, transparent 100%);
 
       .resizer-handle {
         background: var(--el-color-primary);
@@ -496,12 +467,7 @@ html.dark {
   .sc-container {
     &__resizer {
       &:hover {
-        background: linear-gradient(to right, 
-          transparent 0%, 
-          rgba(var(--el-color-primary-rgb), 0.2) 30%, 
-          rgba(var(--el-color-primary-rgb), 0.2) 70%, 
-          transparent 100%
-        );
+        background: linear-gradient(to right, transparent 0%, rgba(var(--el-color-primary-rgb), 0.2) 30%, rgba(var(--el-color-primary-rgb), 0.2) 70%, transparent 100%);
       }
 
       .resizer-handle {

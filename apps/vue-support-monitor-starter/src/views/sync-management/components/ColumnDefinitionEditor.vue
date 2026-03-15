@@ -2,24 +2,24 @@
   <div class="column-definition-editor system-container modern-bg">
     <!-- 工具栏 -->
     <div class="editor-toolbar">
-      <el-button type="primary" :icon="Plus" @click="addColumn"
+      <ScButton type="primary" :icon="Plus" @click="addColumn"
         >添加列</el-button
       >
-      <el-button
+      <ScButton
         :icon="Download"
         :disabled="!canImport"
         @click="importFromSource"
       >
         从源表导入
-      </el-button>
-      <el-button
+      </ScButton>
+      <ScButton
         :icon="View"
         :disabled="columns.length === 0"
         @click="previewSql"
       >
         预览SQL
-      </el-button>
-      <el-button
+      </ScButton>
+      <ScButton
         v-if="showAutoCreateSwitch"
         type="success"
         :icon="Promotion"
@@ -28,61 +28,61 @@
         @click="handleCreateTable"
       >
         立即建表
-      </el-button>
+      </ScButton>
     </div>
 
     <!-- 自动建表开关 -->
     <div v-if="showAutoCreateSwitch" class="auto-create-switch">
-      <el-switch
+      <ScSwitch
         v-model="autoCreateEnabled"
         active-text="执行时自动建表"
         inactive-text="手动建表"
         @change="handleAutoCreateChange"
       />
-      <el-tooltip
+      <ScTooltip
         content="启用后，同步任务执行时会自动创建目标表（如果不存在）"
       >
-        <el-icon class="help-icon"><QuestionFilled /></el-icon>
-      </el-tooltip>
+        <ScIcon class="help-icon"><QuestionFilled /></ScIcon>
+      </ScTooltip>
     </div>
 
     <!-- 列定义表格 -->
-    <el-table
+    <ScTable
       :data="columns"
       border
       stripe
       class="columns-table"
       max-height="400"
     >
-      <el-table-column type="index" width="50" label="#" />
+      <ScTableColumn type="index" width="50" label="#" />
 
-      <el-table-column prop="name" label="列名" min-width="120">
+      <ScTableColumn prop="name" label="列名" min-width="120">
         <template #default="{ row, $index }">
-          <el-input
+          <ScInput
             v-model="row.name"
             placeholder="列名"
             size="small"
             @change="emitChange"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column prop="type" label="类型" width="130">
+      <ScTableColumn prop="type" label="类型" width="130">
         <template #default="{ row }">
-          <el-select v-model="row.type" size="small" @change="emitChange">
-            <el-option
+          <ScSelect v-model="row.type" size="small" @change="emitChange">
+            <ScOption
               v-for="t in columnTypes"
               :key="t.value"
               :label="t.label"
               :value="t.value"
             />
-          </el-select>
+          </ScSelect>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column prop="length" label="长度" width="90">
+      <ScTableColumn prop="length" label="长度" width="90">
         <template #default="{ row }">
-          <el-input-number
+          <ScInputNumber
             v-model="row.length"
             :min="1"
             :max="65535"
@@ -92,18 +92,18 @@
             @change="emitChange"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="约束" width="160">
+      <ScTableColumn label="约束" width="160">
         <template #default="{ row }">
           <div class="constraints">
-            <el-checkbox
+            <ScCheckbox
               v-model="row.primaryKey"
               size="small"
               @change="emitChange"
               >主键</el-checkbox
             >
-            <el-checkbox
+            <ScCheckbox
               v-model="row.autoIncrement"
               size="small"
               :disabled="!row.primaryKey"
@@ -112,69 +112,69 @@
             >
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column prop="nullable" label="可空" width="60" align="center">
+      <ScTableColumn prop="nullable" label="可空" width="60" align="center">
         <template #default="{ row }">
-          <el-checkbox
+          <ScCheckbox
             v-model="row.nullable"
             size="small"
             :disabled="row.primaryKey"
             @change="emitChange"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column prop="defaultValue" label="默认值" width="120">
+      <ScTableColumn prop="defaultValue" label="默认值" width="120">
         <template #default="{ row }">
-          <el-input
+          <ScInput
             v-model="row.defaultValue"
             placeholder="默认值"
             size="small"
             @change="emitChange"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column prop="comment" label="注释" min-width="120">
+      <ScTableColumn prop="comment" label="注释" min-width="120">
         <template #default="{ row }">
-          <el-input
+          <ScInput
             v-model="row.comment"
             placeholder="列注释"
             size="small"
             @change="emitChange"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column prop="sourceField" label="源字段" min-width="120">
+      <ScTableColumn prop="sourceField" label="源字段" min-width="120">
         <template #default="{ row }">
-          <el-input
+          <ScInput
             v-model="row.sourceField"
             placeholder="映射源字段"
             size="small"
             @change="emitChange"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="操作" width="100" fixed="right">
+      <ScTableColumn label="操作" width="100" fixed="right">
         <template #default="{ $index }">
-          <el-button
+          <ScButton
             type="danger"
             :icon="Delete"
             circle
             size="small"
             @click="removeColumn($index)"
           />
-          <el-button
+          <ScButton
             :icon="Top"
             circle
             size="small"
             :disabled="$index === 0"
             @click="moveUp($index)"
           />
-          <el-button
+          <ScButton
             :icon="Bottom"
             circle
             size="small"
@@ -182,11 +182,11 @@
             @click="moveDown($index)"
           />
         </template>
-      </el-table-column>
-    </el-table>
+      </ScTableColumn>
+    </ScTable>
 
     <!-- 空状态 -->
-    <el-empty
+    <ScEmpty
       v-if="columns.length === 0"
       description='暂无列定义，点击"添加列"开始定义'
       :image-size="80"
@@ -194,7 +194,7 @@
 
     <!-- SQL预览对话框 -->
     <sc-dialog v-model="sqlPreviewVisible" title="建表SQL预览" width="700px">
-      <el-input
+      <ScInput
         v-model="previewSqlText"
         type="textarea"
         :rows="15"
@@ -202,8 +202,8 @@
         class="sql-preview"
       />
       <template #footer>
-        <el-button @click="sqlPreviewVisible = false">关闭</el-button>
-        <el-button type="primary" @click="copySql">复制SQL</el-button>
+        <ScButton @click="sqlPreviewVisible = false">关闭</ScButton>
+        <ScButton type="primary" @click="copySql">复制SQL</ScButton>
       </template>
     </sc-dialog>
   </div>

@@ -7,11 +7,11 @@
   >
     <div class="content">
       <div class="import-steps">
-        <el-steps :active="currentStep" align-center finish-status="success">
-          <el-step title="选择服务器" icon="Server" />
-          <el-step title="选择文件" icon="Document" />
-          <el-step title="导入设置" icon="Setting" />
-        </el-steps>
+        <ScSteps :active="currentStep" align-center finish-status="success">
+          <ScStep title="选择服务器" icon="Server" />
+          <ScStep title="选择文件" icon="Document" />
+          <ScStep title="导入设置" icon="Setting" />
+        </ScSteps>
       </div>
 
       <!-- 步骤1: 选择服务器 -->
@@ -35,7 +35,7 @@
                 <div class="server-name">
                   {{ server.monitorSysGenServerName }}
                 </div>
-                <el-tag
+                <ScTag
                   :type="
                     getStatusType(server.monitorSysGenServerConnectionStatus)
                   "
@@ -44,7 +44,7 @@
                   {{
                     getStatusText(server.monitorSysGenServerConnectionStatus)
                   }}
-                </el-tag>
+                </ScTag>
               </div>
               <div
                 v-if="selectedServerId === server.monitorSysGenServerId"
@@ -74,7 +74,7 @@
           选择镜像文件
         </div>
         <div class="file-upload">
-          <el-upload
+          <ScUpload
             class="upload-area"
             drag
             :auto-upload="false"
@@ -83,9 +83,9 @@
             :on-change="handleFileChange"
             :file-list="fileList"
           >
-            <el-icon class="el-icon--upload"
+            <ScIcon class="el-icon--upload"
               ><IconifyIconOnline icon="ri:upload-cloud-line"
-            /></el-icon>
+            /></ScIcon>
             <div class="el-upload__text">
               将镜像文件拖到此处，或<em>点击上传</em>
             </div>
@@ -94,7 +94,7 @@
                 支持 .tar、.tar.gz 或 .tgz 格式的镜像文件
               </div>
             </template>
-          </el-upload>
+          </ScUpload>
         </div>
       </div>
 
@@ -104,24 +104,24 @@
           <IconifyIconOnline icon="ri:settings-3-line" class="mr-2" />
           导入设置
         </div>
-        <el-form :model="importForm" label-width="120px">
-          <el-form-item label="镜像名称">
-            <el-input
+        <ScForm :model="importForm" label-width="120px">
+          <ScFormItem label="镜像名称">
+            <ScInput
               v-model="importForm.imageName"
               placeholder="镜像名称（如：nginx）"
             />
-          </el-form-item>
-          <el-form-item label="镜像标签">
-            <el-input
+          </ScFormItem>
+          <ScFormItem label="镜像标签">
+            <ScInput
               v-model="importForm.imageTag"
               placeholder="镜像标签（如：latest）"
             />
-          </el-form-item>
-          <el-form-item label="强制导入">
-            <el-switch v-model="importForm.force" />
+          </ScFormItem>
+          <ScFormItem label="强制导入">
+            <ScSwitch v-model="importForm.force" />
             <span class="form-tip">如果镜像已存在，是否强制覆盖</span>
-          </el-form-item>
-        </el-form>
+          </ScFormItem>
+        </ScForm>
 
         <div class="import-summary">
           <div class="summary-title">
@@ -154,17 +154,17 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">取消</el-button>
-        <el-button v-if="currentStep > 0" @click="prevStep">上一步</el-button>
-        <el-button
+        <ScButton @click="visibleProxy = false">取消</ScButton>
+        <ScButton v-if="currentStep > 0" @click="prevStep">上一步</ScButton>
+        <ScButton
           v-if="currentStep < 2"
           type="primary"
           :disabled="!canNext"
           @click="nextStep"
         >
           下一步
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           v-if="currentStep === 2"
           type="primary"
           :loading="importing"
@@ -176,7 +176,7 @@
             class="mr-1"
           />
           {{ importing ? "导入中..." : "开始导入" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

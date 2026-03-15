@@ -66,7 +66,10 @@ export async function registerEncryptedFonts(): Promise<void> {
     return;
   }
 
-  if (!("fonts" in document) || typeof (window as any).FontFace !== "function") {
+  if (
+    !("fonts" in document) ||
+    typeof (window as any).FontFace !== "function"
+  ) {
     // 运行环境不支持 FontFace API 时直接跳过，仅依赖默认系统字体
     initialized = true;
     return;
@@ -99,10 +102,7 @@ export async function registerEncryptedFonts(): Promise<void> {
       },
     );
 
-    await Promise.all([
-      primaryFace.load(),
-      secondaryFace.load(),
-    ]);
+    await Promise.all([primaryFace.load(), secondaryFace.load()]);
 
     document.fonts.add(primaryFace);
     document.fonts.add(secondaryFace);

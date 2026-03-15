@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="service-topology system-container modern-bg">
     <!-- 工具栏 -->
-    <el-card class="toolbar-card" shadow="never">
+    <ScCard class="toolbar-card" shadow="never">
       <div class="toolbar">
         <div class="toolbar-left">
           <h3>
@@ -10,23 +10,23 @@
           </h3>
         </div>
         <div class="toolbar-right">
-          <el-tooltip content="刷新" placement="top">
-            <el-button
+          <ScTooltip content="刷新" placement="top">
+            <ScButton
               type="primary"
               :icon="Refresh"
               :loading="loading"
               @click="loadTopologyData"
             />
-          </el-tooltip>
-          <el-tooltip content="适应画布" placement="top">
-            <el-button :icon="FullScreen" @click="fitView" />
-          </el-tooltip>
-          <el-tooltip content="重置视图" placement="top">
-            <el-button :icon="RefreshRight" @click="resetView" />
-          </el-tooltip>
+          </ScTooltip>
+          <ScTooltip content="适应画布" placement="top">
+            <ScButton :icon="FullScreen" @click="fitView" />
+          </ScTooltip>
+          <ScTooltip content="重置视图" placement="top">
+            <ScButton :icon="RefreshRight" @click="resetView" />
+          </ScTooltip>
         </div>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 统计卡片 -->
     <div class="stats-section">
@@ -57,14 +57,14 @@
     </div>
 
     <!-- 图谱容器 -->
-    <el-card class="graph-card" shadow="never">
+    <ScCard class="graph-card" shadow="never">
       <div ref="graphContainer" v-loading="loading" class="graph-container" />
 
-      <el-empty
+      <ScEmpty
         v-if="!loading && topologyData.nodes.length === 0"
         description="暂无服务拓扑数据"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 节点详情抽屉 -->
     <sc-drawer
@@ -82,7 +82,7 @@
           </div>
         </div>
 
-        <el-divider />
+        <ScDivider />
 
         <h4>调用关系</h4>
         <div class="relations-list">
@@ -97,16 +97,16 @@
               <span class="target">{{ edge.target }}</span>
             </div>
             <div class="relation-stats">
-              <el-tag size="small" type="info">
+              <ScTag size="small" type="info">
                 调用 {{ edge.callCount }} 次
-              </el-tag>
+              </ScTag>
               <span class="last-time">
                 {{ formatTime(edge.lastCallTime) }}
               </span>
             </div>
           </div>
 
-          <el-empty
+          <ScEmpty
             v-if="getNodeEdges(selectedNode.id).length === 0"
             description="暂无调用关系"
             :image-size="60"

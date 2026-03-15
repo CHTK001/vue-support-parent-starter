@@ -147,8 +147,6 @@ const currentValue = computed({
 
 const { currentComponent } = useThemeComponent("ElTimePicker");
 
-
-
 const handleChange = (val: TimeValue | [TimeValue, TimeValue]) => {
   emit("change", val);
 };

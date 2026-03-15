@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 万圣节主题专属标签组件
- * 
+ *
  */
 import { $t } from "@repo/config";
 import {
@@ -16,7 +16,15 @@ import { useTags } from "../../../hooks/useTag";
 import { routerArrays } from "../../../types";
 import { onClickOutside } from "@vueuse/core";
 import { usePermissionStoreHook } from "@repo/core";
-import { computed, nextTick, onBeforeUnmount, ref, toRaw, unref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  ref,
+  toRaw,
+  unref,
+  watch,
+} from "vue";
 import {
   delay,
   isAllEmpty,
@@ -139,7 +147,7 @@ const moveToView = async (index: number): Promise<void> => {
       scrollbarDomWidth -
         tabItemOffsetWidth -
         tabItemElOffsetLeft -
-        tabNavPadding
+        tabNavPadding,
     );
   } else {
     translateX.value = -(
@@ -161,7 +169,7 @@ const handleScroll = (offset: number): void => {
       if (translateX.value >= -(tabDomWidth - scrollbarDomWidth)) {
         translateX.value = Math.max(
           translateX.value + offset,
-          scrollbarDomWidth - tabDomWidth
+          scrollbarDomWidth - tabDomWidth,
         );
       }
     } else {
@@ -343,8 +351,8 @@ onClickOutside(contextmenuRef, closeMenu, {
 });
 
 watch(route, () => {
-  if (route.path.startsWith('/redirect')) return;
-  
+  if (route.path.startsWith("/redirect")) return;
+
   activeIndex.value = -1;
   dynamicRouteTag(route.path);
   dynamicTagView();
@@ -356,7 +364,7 @@ onMounted(() => {
   showMenuModel(route.fullPath);
   emitter.off("tagViewsChange");
   emitter.off("changLayoutRoute");
-  
+
   emitter.on("tagViewsChange", (key: any) => {
     if (unref(showTags as any) === key) return;
     (showTags as any).value = key;
@@ -433,7 +441,7 @@ const deferTag = useDefer(tagsViews?.length);
     <span v-show="isShowArrow" class="arrow-right">
       <IconifyIconOffline :icon="ArrowRightSLine" @click="handleScroll(-200)" />
     </span>
-    
+
     <!-- 右键菜单 -->
     <ul
       v-show="visible"
@@ -453,9 +461,9 @@ const deferTag = useDefer(tagsViews?.length);
         </li>
       </div>
     </ul>
-    
+
     <!-- 右侧功能按钮 -->
-    <el-dropdown
+    <ScDropdown
       trigger="click"
       placement="bottom-end"
       popper-class="tag-function-dropdown-popper"
@@ -465,9 +473,9 @@ const deferTag = useDefer(tagsViews?.length);
         <IconifyIconOffline :icon="ArrowDown" class="dark:text-white" />
       </span>
       <template #dropdown>
-        <el-dropdown-menu>
+        <ScDropdownMenu>
           <span v-for="(item, key) in tagsViews" :key="key">
-            <el-dropdown-item
+            <ScDropdownItem
               v-if="deferTag(key)"
               :key="key"
               :command="{ key, item }"
@@ -476,11 +484,11 @@ const deferTag = useDefer(tagsViews?.length);
             >
               <IconifyIconOffline :icon="item.icon" />
               {{ transformI18n(item.text) }}
-            </el-dropdown-item>
+            </ScDropdownItem>
           </span>
-        </el-dropdown-menu>
+        </ScDropdownMenu>
       </template>
-    </el-dropdown>
+    </ScDropdown>
   </div>
 </template>
 
@@ -493,5 +501,5 @@ const deferTag = useDefer(tagsViews?.length);
 </style>
 
 <style lang="scss">
-@use './default.scss';
+@use "./default.scss";
 </style>

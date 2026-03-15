@@ -58,11 +58,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <el-text v-bind="{
-    truncated: !lineClamp,
-    lineClamp,
-    ...$attrs
-  }" ref="textRef" class="new-re-text" @mouseover.self="handleHover">
+  <el-text
+    v-bind="{
+      truncated: !lineClamp,
+      lineClamp,
+      ...$attrs
+    }"
+    ref="textRef"
+    class="new-re-text"
+    @mouseover.self="handleHover"
+  >
     <slot />
   </el-text>
 </template>

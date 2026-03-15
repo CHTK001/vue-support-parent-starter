@@ -76,9 +76,9 @@ defineExpose({
   >
     <template #header="{ titleId, titleClass }">
       <div class="dialog-header">
-        <el-icon class="header-icon" :size="22">
+        <ScIcon class="header-icon" :size="22">
           <component :is="useRenderIcon('ri:feedback-line')" />
-        </el-icon>
+        </ScIcon>
         <span :id="titleId" :class="titleClass">反馈详情</span>
       </div>
     </template>
@@ -86,40 +86,40 @@ defineExpose({
       <!-- 基本信息 -->
       <div class="detail-card">
         <div class="card-header">
-          <el-icon class="card-icon"
+          <ScIcon class="card-icon"
             ><component :is="useRenderIcon('ri:information-line')"
-          /></el-icon>
+          /></ScIcon>
           <span>基本信息</span>
         </div>
-        <el-descriptions :column="2" border class="detail-section">
-          <el-descriptions-item label="反馈类型">
-            <el-tag :type="getTypeConfig(feedbackData.sysFeedbackType).type">
+        <ScDescriptions :column="2" border class="detail-section">
+          <ScDescriptionsItem label="反馈类型">
+            <ScTag :type="getTypeConfig(feedbackData.sysFeedbackType).type">
               {{ getTypeConfig(feedbackData.sysFeedbackType).label }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="反馈状态">
-            <el-tag v-if="feedbackData.sysFeedbackStatus === 1" type="success"
+            </ScTag>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="反馈状态">
+            <ScTag v-if="feedbackData.sysFeedbackStatus === 1" type="success"
               >已处理</el-tag
             >
-            <el-tag v-else type="warning">待处理</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="反馈人">
+            <ScTag v-else type="warning">待处理</ScTag>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="反馈人">
             {{ feedbackData.createBy || "-" }}
-          </el-descriptions-item>
-          <el-descriptions-item label="反馈时间">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="反馈时间">
             {{ feedbackData.createTime || "-" }}
-          </el-descriptions-item>
-          <el-descriptions-item label="反馈内容" :span="2">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="反馈内容" :span="2">
             <div class="content-text">
               {{ feedbackData.sysFeedbackContent || "-" }}
             </div>
-          </el-descriptions-item>
-          <el-descriptions-item label="反馈图片" :span="2">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="反馈图片" :span="2">
             <div
               v-if="getImageList(feedbackData.sysFeedbackImages).length > 0"
               class="image-list"
             >
-              <el-image
+              <ScImage
                 v-for="(img, index) in getImageList(
                   feedbackData.sysFeedbackImages,
                 )"
@@ -132,8 +132,8 @@ defineExpose({
               />
             </div>
             <span v-else>-</span>
-          </el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+        </ScDescriptions>
       </div>
 
       <!-- 处理信息 -->
@@ -142,31 +142,31 @@ defineExpose({
         class="detail-card reply-section"
       >
         <div class="card-header">
-          <el-icon class="card-icon"
+          <ScIcon class="card-icon"
             ><component :is="useRenderIcon('ri:check-double-line')"
-          /></el-icon>
+          /></ScIcon>
           <span>处理信息</span>
         </div>
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="处理人">
+        <ScDescriptions :column="2" border>
+          <ScDescriptionsItem label="处理人">
             {{ feedbackData.sysFeedbackDealName || "-" }}
-          </el-descriptions-item>
-          <el-descriptions-item label="处理时间">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="处理时间">
             {{ feedbackData.sysFeedbackRecoverTime || "-" }}
-          </el-descriptions-item>
-          <el-descriptions-item label="回复内容" :span="2">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="回复内容" :span="2">
             <div class="content-text">
               {{ feedbackData.sysFeedbackRecoverContent || "-" }}
             </div>
-          </el-descriptions-item>
-          <el-descriptions-item label="回复图片" :span="2">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="回复图片" :span="2">
             <div
               v-if="
                 getImageList(feedbackData.sysFeedbackRecoverImages).length > 0
               "
               class="image-list"
             >
-              <el-image
+              <ScImage
                 v-for="(img, index) in getImageList(
                   feedbackData.sysFeedbackRecoverImages,
                 )"
@@ -181,14 +181,14 @@ defineExpose({
               />
             </div>
             <span v-else>-</span>
-          </el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+        </ScDescriptions>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
+        <ScButton @click="handleClose">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

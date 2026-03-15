@@ -14,16 +14,16 @@
           基础配置
         </h4>
         <div class="config-grid">
-          <el-form-item label="启用状态">
-            <el-switch v-model="config.enabled" />
-          </el-form-item>
-          <el-form-item label="响应头名称">
-            <el-input
+          <ScFormItem label="启用状态">
+            <ScSwitch v-model="config.enabled" />
+          </ScFormItem>
+          <ScFormItem label="响应头名称">
+            <ScInput
               v-model="config.headerName"
               placeholder="X-Request-Fingerprint"
               style="width: 200px"
             />
-          </el-form-item>
+          </ScFormItem>
         </div>
       </div>
 
@@ -34,21 +34,21 @@
           指纹算法
         </h4>
         <div class="config-grid">
-          <el-form-item label="摘要算法">
-            <el-select v-model="config.algorithm" style="width: 150px">
-              <el-option label="SHA-256" value="SHA-256" />
-              <el-option label="SHA-1" value="SHA-1" />
-              <el-option label="MD5" value="MD5" />
-              <el-option label="SHA-512" value="SHA-512" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="盐值">
-            <el-input
+          <ScFormItem label="摘要算法">
+            <ScSelect v-model="config.algorithm" style="width: 150px">
+              <ScOption label="SHA-256" value="SHA-256" />
+              <ScOption label="SHA-1" value="SHA-1" />
+              <ScOption label="MD5" value="MD5" />
+              <ScOption label="SHA-512" value="SHA-512" />
+            </ScSelect>
+          </ScFormItem>
+          <ScFormItem label="盐值">
+            <ScInput
               v-model="config.salt"
               placeholder="可选的盐值"
               style="width: 200px"
             />
-          </el-form-item>
+          </ScFormItem>
         </div>
       </div>
 
@@ -59,28 +59,28 @@
           指纹内容
         </h4>
         <div class="content-options">
-          <el-form-item label="包含HTTP方法">
-            <el-switch v-model="config.includeMethod" />
-          </el-form-item>
-          <el-form-item label="包含请求路径">
-            <el-switch v-model="config.includePath" />
-          </el-form-item>
-          <el-form-item label="包含请求参数">
-            <el-switch v-model="config.includeParams" />
-          </el-form-item>
-          <el-form-item label="包含请求体">
-            <el-switch v-model="config.includeBody" />
+          <ScFormItem label="包含HTTP方法">
+            <ScSwitch v-model="config.includeMethod" />
+          </ScFormItem>
+          <ScFormItem label="包含请求路径">
+            <ScSwitch v-model="config.includePath" />
+          </ScFormItem>
+          <ScFormItem label="包含请求参数">
+            <ScSwitch v-model="config.includeParams" />
+          </ScFormItem>
+          <ScFormItem label="包含请求体">
+            <ScSwitch v-model="config.includeBody" />
             <el-text type="warning" size="small">
               注意：包含请求体会增加计算开销
             </el-text>
-          </el-form-item>
+          </ScFormItem>
         </div>
 
         <!-- 请求头配置 -->
         <div class="headers-config">
           <h5>参与指纹的请求头</h5>
           <div class="header-tags">
-            <el-tag
+            <ScTag
               v-for="header in config.includeHeaders"
               :key="header"
               closable
@@ -88,19 +88,19 @@
               @close="removeHeader(header)"
             >
               {{ header }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="add-header">
-            <el-input
+            <ScInput
               v-model="newHeader"
               placeholder="输入请求头名称"
               style="width: 200px"
               @keyup.enter="addHeader"
             />
-            <el-button type="primary" @click="addHeader">
+            <ScButton type="primary" @click="addHeader">
               <IconifyIconOnline icon="ri:add-line" />
               添加
-            </el-button>
+            </ScButton>
           </div>
           <el-text type="info" size="small">
             常用请求头：User-Agent, Content-Type, Authorization, X-Forwarded-For
@@ -115,23 +115,23 @@
           去重配置
         </h4>
         <div class="config-grid">
-          <el-form-item label="有效期">
-            <el-input-number
+          <ScFormItem label="有效期">
+            <ScInputNumber
               v-model="validitySeconds"
               :min="0"
               :max="86400"
               style="width: 150px"
             />
             <span class="unit-text">秒</span>
-          </el-form-item>
-          <el-form-item label="拦截重复请求">
-            <el-switch v-model="config.rejectDuplicate" />
-          </el-form-item>
+          </ScFormItem>
+          <ScFormItem label="拦截重复请求">
+            <ScSwitch v-model="config.rejectDuplicate" />
+          </ScFormItem>
         </div>
         <div class="validity-display">
-          <el-tag type="info">
+          <ScTag type="info">
             当前配置: {{ formatValidityTime(validitySeconds) }}
-          </el-tag>
+          </ScTag>
           <el-text v-if="config.rejectDuplicate" type="warning" size="small">
             启用后，在有效期内的重复请求将被拒绝（HTTP 409）
           </el-text>
@@ -144,25 +144,25 @@
           <IconifyIconOnline icon="ri:eye-line" />
           配置预览
         </h4>
-        <el-card class="config-preview thin-scrollbar">
+        <ScCard class="config-preview thin-scrollbar">
           <div class="preview-info">
             <p><strong>指纹算法：</strong>{{ config.algorithm }}</p>
             <p><strong>响应头：</strong>{{ config.headerName }}</p>
             <p><strong>包含内容：</strong>{{ getIncludeContentText() }}</p>
             <p><strong>去重策略：</strong>{{ getDuplicateStrategyText() }}</p>
           </div>
-          <el-divider />
+          <ScDivider />
           <pre>{{ JSON.stringify(config, null, 2) }}</pre>
-        </el-card>
+        </ScCard>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave">
           保存配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

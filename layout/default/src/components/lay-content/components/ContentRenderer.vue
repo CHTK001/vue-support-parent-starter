@@ -53,15 +53,19 @@ const TransitionWrapper = defineComponent({
 const contentStyle = computed(() => {
   const style: Record<string, string> = {};
   if (props.layoutRadius) {
-    style['border-radius'] = `${props.layoutRadius}px`;
+    style["border-radius"] = `${props.layoutRadius}px`;
   }
-  style['flex'] = '1';
+  style["flex"] = "1";
   return { ...style, ...props.extraStyle };
 });
 </script>
 
 <template>
-  <TransitionWrapper :route="route" :menu-transition="menuTransition" :transition-type="transitionType">
+  <TransitionWrapper
+    :route="route"
+    :menu-transition="menuTransition"
+    :transition-type="transitionType"
+  >
     <keep-alive v-if="isKeepAlive" :include="cachePageList">
       <component
         :is="comp"

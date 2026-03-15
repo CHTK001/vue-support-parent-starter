@@ -67,14 +67,14 @@ defineExpose({
 <template>
   <div>
     <sc-dialog v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
-      <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px">
-        <el-form-item label="名称" prop="sysServiceModuleName">
-          <el-input v-model="env.form.sysServiceModuleName" placeholder="请输入名称" />
-        </el-form-item>
-      </el-form>
+      <ScForm :model="env.form" ref="formRef" :rules="rules" label-width="120px">
+        <ScFormItem label="名称" prop="sysServiceModuleName">
+          <ScInput v-model="env.form.sysServiceModuleName" placeholder="请输入名称" />
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
-        <el-button type="primary" :loading="env.loading" @click="handleUpdate">{{ $t("buttons.confirm") }}</el-button>
+        <ScButton @click="handleClose">{{ $t("buttons.cancel") }}</ScButton>
+        <ScButton type="primary" :loading="env.loading" @click="handleUpdate">{{ $t("buttons.confirm") }}</ScButton>
       </template>
     </sc-dialog>
   </div>

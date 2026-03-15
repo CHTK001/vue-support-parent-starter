@@ -9,7 +9,7 @@
   >
     <div class="config-container">
       <!-- 警告提示 -->
-      <el-alert
+      <ScAlert
         v-if="!settingId"
         type="warning"
         show-icon
@@ -23,9 +23,9 @@
           <div class="info-item">
             <IconifyIconOnline icon="ri:settings-3-line" class="info-icon" />
             <span class="info-label">类型：</span>
-            <el-tag size="small" type="info">{{
+            <ScTag size="small" type="info">{{
               filterSetting.systemServerSettingType
-            }}</el-tag>
+            }}</ScTag>
           </div>
           <div
             v-if="filterSetting.systemServerSettingDescription"
@@ -38,13 +38,13 @@
             }}</span>
           </div>
         </div>
-        <el-tag
+        <ScTag
           :type="filterSetting.systemServerSettingEnabled ? 'success' : 'info'"
           effect="dark"
           round
         >
           {{ filterSetting.systemServerSettingEnabled ? "已启用" : "已禁用" }}
-        </el-tag>
+        </ScTag>
       </div>
 
       <!-- 配置项列表 -->
@@ -52,15 +52,15 @@
         <div class="section-title">
           <IconifyIconOnline icon="ri:list-settings-line" />
           <span>配置项</span>
-          <el-tag type="primary" size="small" round>{{ rows.length }}</el-tag>
+          <ScTag type="primary" size="small" round>{{ rows.length }}</ScTag>
         </div>
 
-        <el-scrollbar v-loading="loading" class="config-scrollbar">
+        <ScScrollbar v-loading="loading" class="config-scrollbar">
           <div class="config-list">
             <div v-for="(row, idx) in rows" :key="row._key" class="config-item">
               <div class="item-index">{{ idx + 1 }}</div>
               <div class="item-content">
-                <el-input
+                <ScInput
                   v-model="row.name"
                   placeholder="参数名 (name)"
                   class="item-name"
@@ -68,8 +68,8 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:key-line" />
                   </template>
-                </el-input>
-                <el-input
+                </ScInput>
+                <ScInput
                   v-model="row.value"
                   placeholder="参数值 (value)"
                   class="item-value"
@@ -77,9 +77,9 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:input-field" />
                   </template>
-                </el-input>
+                </ScInput>
               </div>
-              <el-button
+              <ScButton
                 type="danger"
                 circle
                 size="small"
@@ -87,37 +87,37 @@
                 @click="removeRow(idx)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </div>
 
             <!-- 空状态 -->
-            <el-empty
+            <ScEmpty
               v-if="rows.length === 0"
               description="暂无配置项"
               :image-size="80"
             >
-              <el-button type="primary" @click="addRow">
+              <ScButton type="primary" @click="addRow">
                 <IconifyIconOnline icon="ri:add-line" />
                 添加配置项
-              </el-button>
-            </el-empty>
+              </ScButton>
+            </ScEmpty>
           </div>
-        </el-scrollbar>
+        </ScScrollbar>
 
         <!-- 添加按钮 -->
         <div v-if="rows.length > 0" class="add-row-btn">
-          <el-button type="primary" link @click="addRow">
+          <ScButton type="primary" link @click="addRow">
             <IconifyIconOnline icon="ri:add-circle-line" />
             新增一行
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="saving"
           :disabled="!settingId"
@@ -125,7 +125,7 @@
         >
           <IconifyIconOnline icon="ri:save-line" />
           保存配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

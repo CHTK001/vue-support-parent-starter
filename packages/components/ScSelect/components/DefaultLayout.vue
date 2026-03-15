@@ -1,7 +1,7 @@
 <template>
-  <el-select v-model="modelValue" :placeholder="placeholder" :disabled="disabled" :size="size" :clearable="clearable" @change="handleChange">
-    <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value" :disabled="item.disabled" />
-  </el-select>
+  <ScSelect v-model="modelValue" :placeholder="placeholder" :disabled="disabled" :size="size" :clearable="clearable" @change="handleChange">
+    <ScOption v-for="item in options" :key="item.value" :label="item.label" :value="item.value" :disabled="item.disabled" />
+  </ScSelect>
 </template>
 
 <script setup lang="ts">

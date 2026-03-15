@@ -2,9 +2,9 @@
   <div class="boundary-panel" v-if="visible">
     <div class="panel-header">
       <span class="panel-title">行政区划</span>
-      <el-button type="text" class="close-btn" @click="handleClose">
+      <ScButton type="text" class="close-btn" @click="handleClose">
         <IconifyIconOnline icon="ep:close" />
-      </el-button>
+      </ScButton>
     </div>
 
     <div class="panel-content" v-loading="loading">
@@ -28,18 +28,18 @@
       <!-- 下级区域列表 -->
       <div class="sub-districts" v-if="subDistricts.length > 0">
         <h4>下级行政区</h4>
-        <el-row :gutter="10">
-          <el-col :xs="12" :sm="8" :md="6" :lg="4" v-for="district in subDistricts" :key="district.adcode">
-            <el-card shadow="hover" class="district-card" @click="handleDrillTo(district.adcode)">
+        <ScRow :gutter="10">
+          <ScCol :xs="12" :sm="8" :md="6" :lg="4" v-for="district in subDistricts" :key="district.adcode">
+            <ScCard shadow="hover" class="district-card" @click="handleDrillTo(district.adcode)">
               {{ district.name }}
-            </el-card>
-          </el-col>
-        </el-row>
+            </ScCard>
+          </ScCol>
+        </ScRow>
       </div>
 
       <!-- 提示信息 -->
       <div class="empty-tip" v-if="subDistricts.length === 0 && currentBoundary">
-        <el-empty description="无下级行政区划数据" />
+        <ScEmpty description="无下级行政区划数据" />
       </div>
     </div>
   </div>

@@ -21,13 +21,13 @@ const { title, getLogo, layout } = useNav();
 // Logo 配置
 const logoSize = ref(
   localStorageProxy().getItem<StorageConfigs>(
-    `${responsiveStorageNameSpace()}configure`
-  )?.logoSize ?? 32
+    `${responsiveStorageNameSpace()}configure`,
+  )?.logoSize ?? 32,
 );
 const logoAnimation = ref(
   localStorageProxy().getItem<StorageConfigs>(
-    `${responsiveStorageNameSpace()}configure`
-  )?.logoAnimation ?? "none"
+    `${responsiveStorageNameSpace()}configure`,
+  )?.logoAnimation ?? "none",
 );
 
 // 计算 Logo 样式
@@ -55,7 +55,7 @@ onMounted(() => {
     (config: { logoSize: number; logoAnimation: string }) => {
       logoSize.value = config.logoSize;
       logoAnimation.value = config.logoAnimation;
-    }
+    },
   );
 });
 
@@ -102,7 +102,11 @@ const envBadgeClass = computed(() => {
           {{ title }}
         </span>
         <!-- 环境标识 - 双栏模式下不显示 -->
-        <span v-if="showEnvBadge && layout !== 'double'" class="env-badge" :class="envBadgeClass">
+        <span
+          v-if="showEnvBadge && layout !== 'double'"
+          class="env-badge"
+          :class="envBadgeClass"
+        >
           {{ envBadgeText }}
         </span>
       </router-link>
@@ -123,7 +127,11 @@ const envBadgeClass = computed(() => {
           {{ title }}
         </span>
         <!-- 环境标识 - 双栏模式下不显示 -->
-        <span v-if="showEnvBadge && layout !== 'double'" class="env-badge" :class="envBadgeClass">
+        <span
+          v-if="showEnvBadge && layout !== 'double'"
+          class="env-badge"
+          :class="envBadgeClass"
+        >
           {{ envBadgeText }}
         </span>
       </router-link>
@@ -259,10 +267,10 @@ const envBadgeClass = computed(() => {
   .sidebar-logo-container {
     .sidebar-title {
       color: #ff7518 !important; // 南瓜橙
-      font-family: 'Creepster', 'cursive', sans-serif;
+      font-family: "Creepster", "cursive", sans-serif;
       text-shadow: 0 0 5px rgba(255, 117, 24, 0.3);
     }
-    
+
     // 暗黑模式下微调
     &:global(.dark) .sidebar-title {
       color: #d86b15 !important; // 暗一点的橙色

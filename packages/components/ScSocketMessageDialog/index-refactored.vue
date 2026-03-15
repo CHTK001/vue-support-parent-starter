@@ -4,7 +4,7 @@
     <slot name="header" :data="progressData">
       <div class="process-header">
         <span class="process-title">{{ title }}</span>
-        <el-tag :type="statusType" size="small">{{ statusText }}</el-tag>
+        <ScTag :type="statusType" size="small">{{ statusText }}</ScTag>
       </div>
     </slot>
 
@@ -33,12 +33,12 @@
           </div>
         </slot>
         <div class="header-controls">
-          <el-button type="text" size="small" class="control-btn" :title="isMinimized ? '还原' : '最小化'" @click.stop="toggleMinimize">
+          <ScButton type="text" size="small" class="control-btn" :title="isMinimized ? '还原' : '最小化'" @click.stop="toggleMinimize">
             <IconifyIconOnline :icon="isMinimized ? 'ri:arrow-up-s-line' : 'ri:subtract-line'" width="16" />
-          </el-button>
-          <el-button v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
+          </ScButton>
+          <ScButton v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
             <IconifyIconOnline icon="ri:close-line" width="16" />
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -50,7 +50,7 @@
         <!-- Process 布局 -->
         <template v-else-if="layout === 'process'">
           <div class="process-status">
-            <el-tag :type="statusType" size="small">{{ statusText }}</el-tag>
+            <ScTag :type="statusType" size="small">{{ statusText }}</ScTag>
           </div>
           <ProcessLayout :percentage="percentage" :status="status" :message="message" :current-step="currentStep" />
         </template>

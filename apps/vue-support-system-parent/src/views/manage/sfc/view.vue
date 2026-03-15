@@ -13,22 +13,22 @@
       <template #header="{ titleId, titleClass }">
         <div class="dialog-header">
           <div class="header-left">
-            <el-icon class="header-icon" :size="22">
+            <ScIcon class="header-icon" :size="22">
               <component :is="useRenderIcon('ri:eye-line')" />
-            </el-icon>
+            </ScIcon>
             <span :id="titleId" :class="titleClass">{{ title }}</span>
           </div>
           <div class="header-meta">
-            <el-tag
+            <ScTag
               v-if="dataReact.data.sysSfcVersion"
               type="info"
               size="small"
             >
               v{{ dataReact.data.sysSfcVersion }}
-            </el-tag>
-            <el-tag :type="getStatusType()" size="small">
+            </ScTag>
+            <ScTag :type="getStatusType()" size="small">
               {{ dataReact.data.sysSfcStatus === 1 ? "已启用" : "已禁用" }}
-            </el-tag>
+            </ScTag>
           </div>
         </div>
       </template>
@@ -36,25 +36,25 @@
       <div class="preview-container">
         <!-- 加载状态 -->
         <div v-if="loading" class="loading-state">
-          <el-icon class="loading-icon">
+          <ScIcon class="loading-icon">
             <component :is="useRenderIcon('ri:loader-4-line')" />
-          </el-icon>
+          </ScIcon>
           <span>加载组件中...</span>
         </div>
 
         <!-- 错误状态 -->
         <div v-else-if="error" class="error-state">
-          <el-icon class="error-icon">
+          <ScIcon class="error-icon">
             <component :is="useRenderIcon('ri:error-warning-line')" />
-          </el-icon>
+          </ScIcon>
           <span class="error-text">组件加载失败</span>
           <p class="error-desc">{{ error }}</p>
-          <el-button type="primary" @click="reloadComponent">
-            <el-icon class="mr-1"
+          <ScButton type="primary" @click="reloadComponent">
+            <ScIcon class="mr-1"
               ><component :is="useRenderIcon('ep:refresh')"
-            /></el-icon>
+            /></ScIcon>
             重新加载
-          </el-button>
+          </ScButton>
         </div>
 
         <!-- 组件预览 -->
@@ -68,9 +68,9 @@
             }"
           />
           <div v-else class="empty-state">
-            <el-icon class="empty-icon">
+            <ScIcon class="empty-icon">
               <component :is="useRenderIcon('ri:file-unknow-line')" />
-            </el-icon>
+            </ScIcon>
             <span>暂无可预览内容</span>
           </div>
         </div>
@@ -80,27 +80,27 @@
         <div class="dialog-footer">
           <div class="footer-info">
             <span class="info-item">
-              <el-icon
+              <ScIcon
                 ><component :is="useRenderIcon('ri:code-s-slash-line')"
-              /></el-icon>
+              /></ScIcon>
               {{ dataReact.data.sysSfcName }}
             </span>
             <span
               v-if="dataReact.data.sysSfcType !== undefined"
               class="info-item"
             >
-              <el-icon
+              <ScIcon
                 ><component :is="useRenderIcon('ri:folder-line')"
-              /></el-icon>
+              /></ScIcon>
               {{ getTypeName(dataReact.data.sysSfcType) }}
             </span>
           </div>
-          <el-button @click="onClose">
-            <el-icon class="mr-1"
+          <ScButton @click="onClose">
+            <ScIcon class="mr-1"
               ><component :is="useRenderIcon('ep:close')"
-            /></el-icon>
+            /></ScIcon>
             关闭
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

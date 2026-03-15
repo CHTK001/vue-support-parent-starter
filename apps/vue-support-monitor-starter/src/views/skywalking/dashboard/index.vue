@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-content">
         <div class="header-icon">
-          <el-icon :size="28"><Monitor /></el-icon>
+          <ScIcon :size="28"><Monitor /></ScIcon>
         </div>
         <div class="header-info">
           <h2 class="header-title">SkyWalking 仪表盘</h2>
@@ -12,20 +12,20 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-select
+        <ScSelect
           v-model="filterForm.configId"
           placeholder="选择服务器"
           class="config-select"
           @change="handleConfigChange"
         >
-          <el-option
+          <ScOption
             v-for="item in configList"
             :key="item.skywalkingConfigId"
             :label="item.skywalkingConfigName"
             :value="item.skywalkingConfigId"
           />
-        </el-select>
-        <el-date-picker
+        </ScSelect>
+        <ScDatePicker
           v-model="timeRange"
           type="datetimerange"
           range-separator="-"
@@ -36,47 +36,47 @@
           class="time-picker"
           @change="handleTimeChange"
         />
-        <el-button type="primary" @click="fetchAllData">
-          <el-icon><Search /></el-icon>
+        <ScButton type="primary" @click="fetchAllData">
+          <ScIcon><Search /></ScIcon>
           查询
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           :type="autoRefresh ? 'success' : 'default'"
           @click="toggleAutoRefresh"
         >
-          <el-icon><Refresh /></el-icon>
+          <ScIcon><Refresh /></ScIcon>
           {{ autoRefresh ? "刷新中" : "自动刷新" }}
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 无配置提示 -->
-    <el-card
+    <ScCard
       v-if="!configList.length && !configLoading"
       class="empty-config-card"
       shadow="never"
     >
-      <el-empty description="暂无 SkyWalking 配置" :image-size="120">
+      <ScEmpty description="暂无 SkyWalking 配置" :image-size="120">
         <template #description>
           <div class="empty-config-desc">
             <p>请先添加 SkyWalking 服务器配置，才能查看监控数据</p>
           </div>
         </template>
-        <el-button type="primary" @click="goToConfig">
-          <el-icon><Plus /></el-icon>
+        <ScButton type="primary" @click="goToConfig">
+          <ScIcon><Plus /></ScIcon>
           添加配置
-        </el-button>
-      </el-empty>
-    </el-card>
+        </ScButton>
+      </ScEmpty>
+    </ScCard>
 
     <!-- 指标概览卡片 -->
     <template v-if="configList.length">
-      <el-row :gutter="16" class="metrics-row">
-        <el-col :span="6">
-          <el-card class="metric-card" shadow="hover">
+      <ScRow :gutter="16" class="metrics-row">
+        <ScCol :span="6">
+          <ScCard class="metric-card" shadow="hover">
             <div class="metric-content">
               <div class="metric-icon services">
-                <el-icon :size="32"><Monitor /></el-icon>
+                <ScIcon :size="32"><Monitor /></ScIcon>
               </div>
               <div class="metric-info">
                 <div class="metric-value">
@@ -85,13 +85,13 @@
                 <div class="metric-label">服务总数</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="metric-card" shadow="hover">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="metric-card" shadow="hover">
             <div class="metric-content">
               <div class="metric-icon cpm">
-                <el-icon :size="32"><Odometer /></el-icon>
+                <ScIcon :size="32"><Odometer /></ScIcon>
               </div>
               <div class="metric-info">
                 <div class="metric-value">
@@ -100,13 +100,13 @@
                 <div class="metric-label">总 CPM</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="metric-card" shadow="hover">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="metric-card" shadow="hover">
             <div class="metric-content">
               <div class="metric-icon resptime">
-                <el-icon :size="32"><Timer /></el-icon>
+                <ScIcon :size="32"><Timer /></ScIcon>
               </div>
               <div class="metric-info">
                 <div class="metric-value">
@@ -115,13 +115,13 @@
                 <div class="metric-label">平均响应时间</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="metric-card" shadow="hover">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="metric-card" shadow="hover">
             <div class="metric-content">
               <div class="metric-icon sla">
-                <el-icon :size="32"><CircleCheck /></el-icon>
+                <ScIcon :size="32"><CircleCheck /></ScIcon>
               </div>
               <div class="metric-info">
                 <div class="metric-value">
@@ -130,14 +130,14 @@
                 <div class="metric-label">平均成功率</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
       <!-- 图表区域 -->
-      <el-row :gutter="16" class="charts-row">
-        <el-col :span="12">
-          <el-card v-loading="trendLoading" class="chart-card" shadow="never">
+      <ScRow :gutter="16" class="charts-row">
+        <ScCol :span="12">
+          <ScCard v-loading="trendLoading" class="chart-card" shadow="never">
             <template #header>
               <span>CPM 趋势</span>
             </template>
@@ -146,15 +146,15 @@
               ref="cpmChartRef"
               class="chart-container"
             />
-            <el-empty
+            <ScEmpty
               v-else-if="!trendLoading"
               description="暂无数据"
               :image-size="100"
             />
-          </el-card>
-        </el-col>
-        <el-col :span="12">
-          <el-card v-loading="trendLoading" class="chart-card" shadow="never">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="12">
+          <ScCard v-loading="trendLoading" class="chart-card" shadow="never">
             <template #header>
               <span>响应时间趋势</span>
             </template>
@@ -163,18 +163,18 @@
               ref="respTimeChartRef"
               class="chart-container"
             />
-            <el-empty
+            <ScEmpty
               v-else-if="!trendLoading"
               description="暂无数据"
               :image-size="100"
             />
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
-      <el-row :gutter="16" class="charts-row">
-        <el-col :span="12">
-          <el-card
+      <ScRow :gutter="16" class="charts-row">
+        <ScCol :span="12">
+          <ScCard
             v-loading="slowEndpointsLoading"
             class="chart-card"
             shadow="never"
@@ -187,15 +187,15 @@
               ref="slowEndpointsChartRef"
               class="chart-container"
             />
-            <el-empty
+            <ScEmpty
               v-else-if="!slowEndpointsLoading"
               description="暂无数据"
               :image-size="100"
             />
-          </el-card>
-        </el-col>
-        <el-col :span="12">
-          <el-card v-loading="trendLoading" class="chart-card" shadow="never">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="12">
+          <ScCard v-loading="trendLoading" class="chart-card" shadow="never">
             <template #header>
               <span>成功率趋势</span>
             </template>
@@ -204,19 +204,19 @@
               ref="slaChartRef"
               class="chart-container"
             />
-            <el-empty
+            <ScEmpty
               v-else-if="!trendLoading"
               description="暂无数据"
               :image-size="100"
             />
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
 
       <!-- 错误服务排行 -->
-      <el-row :gutter="16" class="charts-row">
-        <el-col :span="24">
-          <el-card
+      <ScRow :gutter="16" class="charts-row">
+        <ScCol :span="24">
+          <ScCard
             v-loading="errorServicesLoading"
             class="table-card"
             shadow="never"
@@ -224,7 +224,7 @@
             <template #header>
               <span>高错误率服务</span>
             </template>
-            <el-table
+            <ScTable
               v-if="errorServices.length"
               :data="errorServices"
               stripe
@@ -232,26 +232,26 @@
               style="width: 100%"
               max-height="300"
             >
-              <el-table-column type="index" label="#" width="60" />
-              <el-table-column
+              <ScTableColumn type="index" label="#" width="60" />
+              <ScTableColumn
                 prop="name"
                 label="服务名称"
                 min-width="200"
                 show-overflow-tooltip
               />
-              <el-table-column label="错误率" width="200">
+              <ScTableColumn label="错误率" width="200">
                 <template #default="{ row }">
-                  <el-progress
+                  <ScProgress
                     :percentage="Math.min(row.value / 100, 100)"
                     :color="getErrorColor(row.value)"
                     :stroke-width="16"
                     :format="() => (row.value / 100).toFixed(2) + '%'"
                   />
                 </template>
-              </el-table-column>
-              <el-table-column label="操作" width="120" align="center">
+              </ScTableColumn>
+              <ScTableColumn label="操作" width="120" align="center">
                 <template #default="{ row }">
-                  <el-button
+                  <ScButton
                     type="primary"
                     link
                     size="small"
@@ -259,16 +259,16 @@
                     >查看详情</el-button
                   >
                 </template>
-              </el-table-column>
-            </el-table>
-            <el-empty
+              </ScTableColumn>
+            </ScTable>
+            <ScEmpty
               v-else-if="!errorServicesLoading"
               description="暂无数据"
               :image-size="100"
             />
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </template>
   </div>
 </template>

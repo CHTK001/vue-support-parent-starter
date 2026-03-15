@@ -52,7 +52,10 @@ export async function createStandardApp(
   // 1. 首先初始化 WASM（必须第一个执行）
   if (enableWasm) {
     try {
-      const { initializeWasmModule } = await import("@repo/codec-wasm");
+      const { initializeWasmModule, setCodecMode, CodecMode } = await import("@repo/codec-wasm");
+      // 根据环境决定模式：开发环境默认 auto（WASM 不存在时自动降级），生产环境同样 auto
+      // 如需强制 JS 模式可设置 setCodecMode(CodecMode.JS)
+      setCodecMode(CodecMode.AUTO);
       await initializeWasmModule();
     } catch (error) {
       console.warn("[createStandardApp] WASM 模块加载失败:", error);
@@ -108,8 +111,7 @@ export async function createStandardApp(
         space: "rings",
         servererror: "book",
       };
-      const internalKey =
-        mapping[String(loaderStyleFromConfig)] || "default";
+      const internalKey = mapping[String(loaderStyleFromConfig)] || "default";
       localStorage.setItem("sys-loader-style", internalKey);
     }
   } catch (error) {
@@ -197,11 +199,15 @@ export async function createStandardApp(
       if (typeof msg === "string") {
         if (
           msg.includes("__proxyIdCheat__") &&
-          msg.includes("was accessed during render but is not defined on instance")
+          msg.includes(
+            "was accessed during render but is not defined on instance",
+          )
         ) {
           return;
         }
-        if (msg.includes('Slot "default" invoked outside of the render function')) {
+        if (
+          msg.includes('Slot "default" invoked outside of the render function')
+        ) {
           return;
         }
         if (

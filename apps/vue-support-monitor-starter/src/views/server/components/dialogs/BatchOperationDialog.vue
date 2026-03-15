@@ -7,7 +7,7 @@
     @close="handleClose"
   >
     <div class="batch-operation">
-      <el-alert
+      <ScAlert
         title="批量操作提示"
         type="warning"
         :closable="false"
@@ -15,41 +15,41 @@
         class="mb-4"
       >
         <template #default> 请谨慎执行批量操作，某些操作可能无法撤销 </template>
-      </el-alert>
+      </ScAlert>
 
-      <el-form :model="formData" label-width="100px">
-        <el-form-item label="操作类型">
-          <el-select
+      <ScForm :model="formData" label-width="100px">
+        <ScFormItem label="操作类型">
+          <ScSelect
             v-model="formData.operation"
             placeholder="选择操作类型"
             style="width: 100%"
           >
             <el-option-group label="连接操作">
-              <el-option label="批量连接" value="connect" />
-              <el-option label="批量断开" value="disconnect" />
-              <el-option label="测试连接" value="test" />
+              <ScOption label="批量连接" value="connect" />
+              <ScOption label="批量断开" value="disconnect" />
+              <ScOption label="测试连接" value="test" />
             </el-option-group>
             <el-option-group label="监控操作">
-              <el-option label="启用监控" value="enable_monitoring" />
-              <el-option label="禁用监控" value="disable_monitoring" />
-              <el-option label="收集指标" value="collect_metrics" />
+              <ScOption label="启用监控" value="enable_monitoring" />
+              <ScOption label="禁用监控" value="disable_monitoring" />
+              <ScOption label="收集指标" value="collect_metrics" />
             </el-option-group>
             <el-option-group label="状态操作">
-              <el-option label="启用服务器" value="enable" />
-              <el-option label="禁用服务器" value="disable" />
-              <el-option label="设为维护" value="maintenance" />
+              <ScOption label="启用服务器" value="enable" />
+              <ScOption label="禁用服务器" value="disable" />
+              <ScOption label="设为维护" value="maintenance" />
             </el-option-group>
             <el-option-group label="数据操作">
-              <el-option label="导出配置" value="export" />
-              <el-option label="重启服务" value="restart" />
-              <el-option label="删除服务器" value="delete" />
+              <ScOption label="导出配置" value="export" />
+              <ScOption label="重启服务" value="restart" />
+              <ScOption label="删除服务器" value="delete" />
             </el-option-group>
-          </el-select>
-        </el-form-item>
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item v-if="selectedServers.length > 0" label="目标服务器">
+        <ScFormItem v-if="selectedServers.length > 0" label="目标服务器">
           <div class="server-list">
-            <el-tag
+            <ScTag
               v-for="server in selectedServers"
               :key="server.id"
               type="info"
@@ -57,27 +57,27 @@
               class="server-tag"
             >
               {{ server.name }} ({{ server.host }}:{{ server.port }})
-            </el-tag>
+            </ScTag>
           </div>
           <div class="server-count">
             共选择 {{ selectedServers.length }} 台服务器
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item v-if="formData.operation" label="执行方式">
-          <el-radio-group v-model="formData.executeMode">
-            <el-radio label="parallel">并行执行</el-radio>
-            <el-radio label="sequential">顺序执行</el-radio>
-          </el-radio-group>
+        <ScFormItem v-if="formData.operation" label="执行方式">
+          <ScRadioGroup v-model="formData.executeMode">
+            <ScRadio label="parallel">并行执行</ScRadio>
+            <ScRadio label="sequential">顺序执行</ScRadio>
+          </ScRadioGroup>
           <div class="execute-mode-tip">
             <el-text size="small" type="info">
               并行执行速度快但可能影响系统性能，顺序执行稳定但耗时较长
             </el-text>
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item v-if="needsTimeout" label="超时时间">
-          <el-input-number
+        <ScFormItem v-if="needsTimeout" label="超时时间">
+          <ScInputNumber
             v-model="formData.timeout"
             :min="5"
             :max="300"
@@ -87,19 +87,19 @@
           <div class="timeout-tip">
             <el-text size="small" type="info">单位：秒</el-text>
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item v-if="isDangerousOperation" label="确认操作">
-          <el-checkbox v-model="formData.confirmed">
+        <ScFormItem v-if="isDangerousOperation" label="确认操作">
+          <ScCheckbox v-model="formData.confirmed">
             我确认要执行此操作，并了解可能的风险
-          </el-checkbox>
-        </el-form-item>
-      </el-form>
+          </ScCheckbox>
+        </ScFormItem>
+      </ScForm>
 
       <!-- 执行进度 -->
       <div v-if="executing" class="execution-progress">
-        <el-divider content-position="left">执行进度</el-divider>
-        <el-progress
+        <ScDivider content-position="left">执行进度</ScDivider>
+        <ScProgress
           :percentage="progress"
           :status="progressStatus"
           :stroke-width="8"
@@ -127,15 +127,15 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button :disabled="executing" @click="handleClose">取消</el-button>
-        <el-button
+        <ScButton :disabled="executing" @click="handleClose">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="executing"
           :disabled="!canExecute"
           @click="handleExecute"
         >
           {{ executing ? "执行中..." : "开始执行" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

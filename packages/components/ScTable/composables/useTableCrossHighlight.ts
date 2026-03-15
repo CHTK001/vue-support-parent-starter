@@ -4,7 +4,7 @@
  * @author AI Assistant
  * @version 1.0.0
  */
-import { ref, computed, watch, onUnmounted, nextTick, type Ref, type ComputedRef } from 'vue';
+import { ref, computed, watch, onUnmounted, nextTick, type Ref, type ComputedRef } from "vue";
 
 export interface CrossHighlightOptions {
   /** 是否启用 */
@@ -63,11 +63,11 @@ export interface CrossHighlightReturn {
 export function useTableCrossHighlight(options: CrossHighlightOptions = {}): CrossHighlightReturn {
   const {
     enabled = false,
-    highlightColor = 'var(--el-color-primary-light-9)',
-    intersectionColor = 'var(--el-color-primary-light-7)',
-    borderColor = 'var(--el-color-primary)',
+    highlightColor = "var(--el-color-primary-light-9)",
+    intersectionColor = "var(--el-color-primary-light-7)",
+    borderColor = "var(--el-color-primary)",
     borderWidth = 3,
-    showBorder = true,
+    showBorder = true
   } = options;
 
   const isEnabled = ref(enabled);
@@ -75,7 +75,7 @@ export function useTableCrossHighlight(options: CrossHighlightOptions = {}): Cro
   const highlightState = ref<CrossHighlightState>({
     rowIndex: -1,
     colIndex: -1,
-    colProp: null,
+    colProp: null
   });
 
   /** 是否有活动高亮 */
@@ -90,13 +90,13 @@ export function useTableCrossHighlight(options: CrossHighlightOptions = {}): Cro
   const cssVars = computed(() => {
     const state = highlightState.value;
     return {
-      '--cross-highlight-row': state.rowIndex >= 0 ? String(state.rowIndex) : '-1',
-      '--cross-highlight-col': state.colIndex >= 0 ? String(state.colIndex) : '-1',
-      '--cross-highlight-color': highlightColor,
-      '--cross-intersection-color': intersectionColor,
-      '--cross-border-color': borderColor,
-      '--cross-border-width': `${borderWidth}px`,
-      '--cross-border-display': showBorder ? 'block' : 'none',
+      "--cross-highlight-row": state.rowIndex >= 0 ? String(state.rowIndex) : "-1",
+      "--cross-highlight-col": state.colIndex >= 0 ? String(state.colIndex) : "-1",
+      "--cross-highlight-color": highlightColor,
+      "--cross-intersection-color": intersectionColor,
+      "--cross-border-color": borderColor,
+      "--cross-border-width": `${borderWidth}px`,
+      "--cross-border-display": showBorder ? "block" : "none"
     };
   });
 
@@ -115,7 +115,7 @@ export function useTableCrossHighlight(options: CrossHighlightOptions = {}): Cro
     highlightState.value = {
       rowIndex,
       colIndex,
-      colProp: colProp || null,
+      colProp: colProp || null
     };
   };
 
@@ -126,7 +126,7 @@ export function useTableCrossHighlight(options: CrossHighlightOptions = {}): Cro
     highlightState.value = {
       rowIndex: -1,
       colIndex: -1,
-      colProp: null,
+      colProp: null
     };
   };
 
@@ -166,40 +166,40 @@ export function useTableCrossHighlight(options: CrossHighlightOptions = {}): Cro
    * 返回字符串，用于 :class 绑定
    */
   const getCellClass = (rowIndex: number, colIndex: number): string => {
-    if (!isEnabled.value || !hasHighlight.value) return '';
+    if (!isEnabled.value || !hasHighlight.value) return "";
 
     const classes: string[] = [];
 
     if (isRowHighlighted(rowIndex)) {
-      classes.push('cross-highlight-row-cell');
+      classes.push("cross-highlight-row-cell");
     }
 
     if (isColHighlighted(colIndex)) {
-      classes.push('cross-highlight-col-cell');
+      classes.push("cross-highlight-col-cell");
     }
 
     if (isIntersection(rowIndex, colIndex)) {
-      classes.push('cross-highlight-intersection');
+      classes.push("cross-highlight-intersection");
     }
 
-    return classes.join(' ');
+    return classes.join(" ");
   };
 
   /**
    * 获取行高亮类名
    */
   const getRowClass = (rowIndex: number): string => {
-    if (!isEnabled.value || !hasHighlight.value) return '';
-    
+    if (!isEnabled.value || !hasHighlight.value) return "";
+
     if (isRowHighlighted(rowIndex)) {
-      return 'cross-highlight-row';
+      return "cross-highlight-row";
     }
-    
-    return '';
+
+    return "";
   };
 
   // 监听启用状态变化
-  watch(isEnabled, (newVal) => {
+  watch(isEnabled, newVal => {
     if (!newVal) {
       clearHighlight();
     }
@@ -217,7 +217,7 @@ export function useTableCrossHighlight(options: CrossHighlightOptions = {}): Cro
     isColHighlighted,
     isIntersection,
     getCellClass,
-    getRowClass,
+    getRowClass
   };
 }
 

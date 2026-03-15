@@ -191,7 +191,7 @@ onMounted(async () => {
   <div class="system-container tenant-container">
     <SaveDialog ref="saveDialogRef" @success="loadData" />
     <div class="tenant-wrapper">
-      <el-container>
+      <ScContainer>
         <!-- 统计面板 -->
         <div class="tenant-stats">
           <div class="stat-item">
@@ -233,65 +233,65 @@ onMounted(async () => {
         </div>
 
         <!-- 搜索栏 -->
-        <el-header class="tenant-header">
+        <ScHeader class="tenant-header">
           <div class="toolbar-left left-panel">
-            <el-form
+            <ScForm
               ref="formRef"
               :inline="true"
               :model="env.params"
               class="modern-form search-form"
             >
-              <el-form-item label="租户名称" prop="sysTenantName">
-                <el-input
+              <ScFormItem label="租户名称" prop="sysTenantName">
+                <ScInput
                   v-model="env.params.sysTenantName"
                   placeholder="请输入租户名称"
                   clearable
                   class="!w-[180px]"
                   @keyup.enter="onSearch"
                 />
-              </el-form-item>
-              <el-form-item label="状态" prop="sysTenantStatus">
-                <el-select
+              </ScFormItem>
+              <ScFormItem label="状态" prop="sysTenantStatus">
+                <ScSelect
                   v-model="env.params.sysTenantStatus"
                   placeholder="全部"
                   clearable
                   class="!w-[120px]"
                 >
-                  <el-option
+                  <ScOption
                     v-for="item in statusOptions"
                     :key="item.value"
                     :label="item.label"
                     :value="item.value"
                   />
-                </el-select>
-              </el-form-item>
-            </el-form>
+                </ScSelect>
+              </ScFormItem>
+            </ScForm>
           </div>
           <div class="toolbar-right right-panel">
             <div class="right-panel-search">
-              <el-button
+              <ScButton
                 type="primary"
                 :icon="useRenderIcon('ri:search-line')"
                 @click="onSearch"
               >
                 搜索
-              </el-button>
-              <el-button :icon="useRenderIcon('ep:refresh')" @click="resetForm">
+              </ScButton>
+              <ScButton :icon="useRenderIcon('ep:refresh')" @click="resetForm">
                 重置
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 type="success"
                 :icon="useRenderIcon('ep:plus')"
                 @click="handleEdit({}, 'save')"
               >
                 新增
-              </el-button>
+              </ScButton>
             </div>
           </div>
-        </el-header>
+        </ScHeader>
 
         <!-- 数据表格 -->
-        <el-main class="tenant-main">
+        <ScMain class="tenant-main">
           <div class="table-wrapper">
             <ScTable
               ref="tableRef"
@@ -301,20 +301,20 @@ onMounted(async () => {
               class="modern-table"
               @data-loaded="onDataLoaded"
             >
-              <el-table-column
+              <ScTableColumn
                 type="index"
                 label="序号"
                 width="80"
                 align="center"
               >
                 <template #default="scope">
-                  <el-tag type="primary" size="small" effect="plain">{{
+                  <ScTag type="primary" size="small" effect="plain">{{
                     scope.$index + 1
-                  }}</el-tag>
+                  }}</ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="租户信息" min-width="220">
+              <ScTableColumn label="租户信息" min-width="220">
                 <template #default="{ row }">
                   <div class="tenant-info-cell">
                     <div class="tenant-avatar">
@@ -323,14 +323,14 @@ onMounted(async () => {
                     <div class="tenant-details">
                       <div class="tenant-name">
                         <span>{{ row.sysTenantName }}</span>
-                        <el-tag
+                        <ScTag
                           v-if="row.sysTenantStatus === 0"
                           type="success"
                           size="small"
                           class="ml-2"
                           >启用</el-tag
                         >
-                        <el-tag v-else type="info" size="small" class="ml-2"
+                        <ScTag v-else type="info" size="small" class="ml-2"
                           >禁用</el-tag
                         >
                       </div>
@@ -345,9 +345,9 @@ onMounted(async () => {
                     </div>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="联系方式" min-width="140">
+              <ScTableColumn label="联系方式" min-width="140">
                 <template #default="{ row }">
                   <div class="contact-cell">
                     <div v-if="row.sysTenantPhone" class="contact-item">
@@ -361,22 +361,22 @@ onMounted(async () => {
                     <div v-else class="contact-item text-placeholder">-</div>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="订阅服务" min-width="320">
+              <ScTableColumn label="订阅服务" min-width="320">
                 <template #default="{ row }">
                   <div
                     v-if="row?.sysTenantService?.length"
                     class="service-tags"
                   >
-                    <el-tooltip
+                    <ScTooltip
                       v-for="(item, idx) in row?.sysTenantService"
                       :key="idx"
                       placement="top"
                       :raw-content="true"
                       :content="getContent(item)"
                     >
-                      <el-tag
+                      <ScTag
                         :type="
                           isValid(item?.sysTenantServiceValidTime)
                             ? 'success'
@@ -395,14 +395,14 @@ onMounted(async () => {
                           class="mr-1"
                         />
                         {{ getTagName(item?.sysServiceId) || "未知服务" }}
-                      </el-tag>
-                    </el-tooltip>
+                      </ScTag>
+                    </ScTooltip>
                   </div>
                   <span v-else class="text-placeholder">暂无订阅</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column
+              <ScTableColumn
                 label="公司信息"
                 min-width="200"
                 show-overflow-tooltip
@@ -431,11 +431,11 @@ onMounted(async () => {
                   </div>
                   <span v-else class="text-placeholder">-</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="状态" width="120" align="center">
+              <ScTableColumn label="状态" width="120" align="center">
                 <template #default="{ row }">
-                  <el-switch
+                  <ScSwitch
                     v-model="row.sysTenantStatus"
                     :active-value="0"
                     :inactive-value="1"
@@ -445,27 +445,27 @@ onMounted(async () => {
                     @change="handleUpdate(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column
+              <ScTableColumn
                 label="操作"
                 width="180"
                 fixed="right"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-tooltip content="编辑" placement="top">
-                    <el-button
+                  <ScTooltip content="编辑" placement="top">
+                    <ScButton
                       class="btn-action"
                       type="primary"
                       link
                       @click="handleEdit(row, 'edit')"
                     >
                       <IconifyIconOnline icon="ri:edit-line" :size="18" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip content="同步数据" placement="top">
-                    <el-button
+                    </ScButton>
+                  </ScTooltip>
+                  <ScTooltip content="同步数据" placement="top">
+                    <ScButton
                       class="btn-action"
                       type="warning"
                       link
@@ -473,16 +473,16 @@ onMounted(async () => {
                       @click="handleSync(row)"
                     >
                       <IconifyIconOnline icon="ri:refresh-line" :size="18" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-popconfirm
+                    </ScButton>
+                  </ScTooltip>
+                  <ScPopconfirm
                     :title="$t('message.confimDelete')"
                     width="200"
                     @confirm="handleDelete(row)"
                   >
                     <template #reference>
-                      <el-tooltip content="删除" placement="top">
-                        <el-button
+                      <ScTooltip content="删除" placement="top">
+                        <ScButton
                           class="btn-action"
                           type="danger"
                           link
@@ -492,16 +492,16 @@ onMounted(async () => {
                             icon="ri:delete-bin-line"
                             :size="18"
                           />
-                        </el-button>
-                      </el-tooltip>
+                        </ScButton>
+                      </ScTooltip>
                     </template>
-                  </el-popconfirm>
+                  </ScPopconfirm>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
             </ScTable>
           </div>
-        </el-main>
-      </el-container>
+        </ScMain>
+      </ScContainer>
     </div>
   </div>
 </template>

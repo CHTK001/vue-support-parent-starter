@@ -1,16 +1,16 @@
 ﻿<template>
   <div class="workflow-example">
-    <el-container>
-      <el-header>
-        <el-page-header :content="data.name"></el-page-header>
+    <ScContainer>
+      <ScHeader>
+        <ScPageHeader :content="data.name"></ScPageHeader>
         <div class="do">
           <ScButton type="primary" @click="exportJson">导出 JSON</ScButton>
         </div>
-      </el-header>
-      <el-main>
+      </ScHeader>
+      <ScMain>
         <sc-workflow v-model="data.nodeConfig"></sc-workflow>
-      </el-main>
-    </el-container>
+      </ScMain>
+    </ScContainer>
 
     <!-- 代码示例 -->
     <div class="code-section">

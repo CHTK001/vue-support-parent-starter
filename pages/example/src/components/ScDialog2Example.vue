@@ -13,7 +13,7 @@
             </ScFormItem>
 
             <ScFormItem label="宽度">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.width"
                 :min="300"
                 :max="1200"
@@ -44,7 +44,7 @@
               </ScRadioGroup>
             </ScFormItem>
             <ScFormItem v-if="config.icon" label="图标大小">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.iconSize"
                 :min="16"
                 :max="48"
@@ -56,32 +56,32 @@
             <!-- 功能设置 -->
             <ScDivider content-position="left">功能设置</ScDivider>
             <ScFormItem>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.draggable"
                 active-text="允许拖拽"
                 class="mb-2 block"
               />
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.resizable"
                 active-text="允许缩放"
                 class="mb-2 block"
               />
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.modal"
                 active-text="显示遮罩"
                 class="mb-2 block"
               />
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.showClose"
                 active-text="显示关闭按钮"
                 class="mb-2 block"
               />
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.showMinimize"
                 active-text="显示最小化按钮"
                 class="mb-2 block"
               />
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.showMaximize"
                 active-text="显示最大化按钮"
                 class="mb-2 block"
@@ -91,14 +91,14 @@
             <!-- 边缘吸附 -->
             <ScDivider content-position="left">边缘吸附</ScDivider>
             <ScFormItem>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.edgeDock"
                 active-text="启用边缘吸附"
                 class="mb-2 block"
               />
             </ScFormItem>
             <ScFormItem v-if="config.edgeDock" label="吸附阈值">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.edgeThreshold"
                 :min="20"
                 :max="100"
@@ -110,7 +110,7 @@
             <!-- 任务栏设置 -->
             <ScDivider content-position="left">任务栏设置</ScDivider>
             <ScFormItem>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.useTaskbar"
                 active-text="启用任务栏"
                 class="mb-2 block"
@@ -118,7 +118,7 @@
             </ScFormItem>
             <template v-if="config.useTaskbar">
               <ScFormItem label="分组标识">
-                <ScInput 
+                <ScInput
                   v-model="config.group"
                   placeholder="同分组可合并显示"
                 />
@@ -132,7 +132,7 @@
                 </ScSelect>
               </ScFormItem>
               <ScFormItem label="任务栏高度">
-                <ScInputNumber 
+                <ScInputNumber
                   v-model="taskbarConfig.height"
                   :min="32"
                   :max="80"
@@ -140,12 +140,12 @@
                 />
               </ScFormItem>
               <ScFormItem>
-                <ScSwitch 
+                <ScSwitch
                   v-model="taskbarConfig.alwaysVisible"
                   active-text="永久显示"
                   class="mb-2 block"
                 />
-                <ScSwitch 
+                <ScSwitch
                   v-model="taskbarConfig.groupCollapse"
                   active-text="分组合并"
                   class="mb-2 block"
@@ -153,7 +153,7 @@
               </ScFormItem>
             </template>
 
-            <ScButton 
+            <ScButton
               type="primary"
               @click="dialogVisible = true"
               style="width: 100%; margin-top: 16px"
@@ -274,9 +274,7 @@
 
       <template #footer>
         <ScButton @click="dialogVisible = false">取消</ScButton>
-        <ScButton type="primary" @click="dialogVisible = false"
-          >确定</ScButton
-        >
+        <ScButton type="primary" @click="dialogVisible = false">确定</ScButton>
       </template>
     </ScDialog>
 

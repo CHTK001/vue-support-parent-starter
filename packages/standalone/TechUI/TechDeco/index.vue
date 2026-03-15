@@ -1,6 +1,6 @@
 <template>
-  <component 
-    :is="decoComponent" 
+  <component
+    :is="decoComponent"
     v-bind="$attrs"
     :width="width"
     :height="height"
@@ -24,39 +24,42 @@ import { computed, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechDeco",
-  inheritAttrs: false
+  inheritAttrs: false,
 });
 
 // 装饰变体类型 (实际可用: A1, B1-B3, D1)
 type DecoVariant = "A1" | "B1" | "B2" | "B3" | "D1";
 
-const props = withDefaults(defineProps<{
-  /** 装饰变体 */
-  variant?: DecoVariant;
-  /** 宽度 */
-  width?: string | number;
-  /** 高度 */
-  height?: string | number;
-  /** 是否显示发光效果 */
-  glow?: boolean;
-  /** 发光透明度 */
-  glowOpacity?: number;
-  /** 装饰颜色替换 */
-  decorationColorAlt?: boolean;
-  /** 是否启用动画 */
-  animation?: boolean;
-  /** 自定义类名 */
-  className?: string;
-}>(), {
-  variant: "A1",
-  width: "100%",
-  height: "auto",
-  glow: true,
-  glowOpacity: 0.5,
-  decorationColorAlt: false,
-  animation: true,
-  className: ""
-});
+const props = withDefaults(
+  defineProps<{
+    /** 装饰变体 */
+    variant?: DecoVariant;
+    /** 宽度 */
+    width?: string | number;
+    /** 高度 */
+    height?: string | number;
+    /** 是否显示发光效果 */
+    glow?: boolean;
+    /** 发光透明度 */
+    glowOpacity?: number;
+    /** 装饰颜色替换 */
+    decorationColorAlt?: boolean;
+    /** 是否启用动画 */
+    animation?: boolean;
+    /** 自定义类名 */
+    className?: string;
+  }>(),
+  {
+    variant: "A1",
+    width: "100%",
+    height: "auto",
+    glow: true,
+    glowOpacity: 0.5,
+    decorationColorAlt: false,
+    animation: true,
+    className: "",
+  },
+);
 
 // 根据 variant 动态选择组件
 const decoComponent = computed(() => {

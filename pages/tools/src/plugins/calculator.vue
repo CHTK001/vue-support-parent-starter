@@ -249,8 +249,8 @@
         </div>
       </div>
 
-      <el-collapse v-if="calculationHistory.length > 0">
-        <el-collapse-item name="history">
+      <ScCollapse v-if="calculationHistory.length > 0">
+        <ScCollapseItem name="history">
           <template #title>
             <span class="history-title">
               <IconifyIconOnline icon="ep:time" />
@@ -283,8 +283,8 @@
               </div>
             </div>
           </div>
-        </el-collapse-item>
-      </el-collapse>
+        </ScCollapseItem>
+      </ScCollapse>
 
       <template #footer>
         <div class="memory-panel" v-if="showMemory">

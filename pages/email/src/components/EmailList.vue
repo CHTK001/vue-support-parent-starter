@@ -34,7 +34,14 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["select-email", "star-email", "mark-important", "mark-read", "page-change", "refresh"]);
+const emit = defineEmits([
+  "select-email",
+  "star-email",
+  "mark-important",
+  "mark-read",
+  "page-change",
+  "refresh",
+]);
 
 // 处理选择邮件
 const handleSelectEmail = (emailId) => {
@@ -73,7 +80,9 @@ const handleRefresh = () => {
     <div class="email-list__header">
       <div class="email-list__title">
         <span>邮件列表</span>
-        <span class="email-list__count" v-if="totalEmails > 0">({{ totalEmails }})</span>
+        <span class="email-list__count" v-if="totalEmails > 0"
+          >({{ totalEmails }})</span
+        >
       </div>
       <div class="email-list__actions">
         <ScButton type="primary" text circle @click="handleRefresh">
@@ -84,23 +93,42 @@ const handleRefresh = () => {
 
     <!-- 加载中 -->
     <div class="email-list__loading" v-if="loading">
-      <el-skeleton :rows="10" animated />
+      <ScSkeleton :rows="10" animated />
     </div>
 
     <!-- 邮件列表 -->
     <div class="email-list__items" v-else-if="emails.length > 0">
-      <EmailListItem v-for="email in emails" :key="email.emailId" :email="email" :is-selected="email.emailId === selectedEmailId" :labels="labels" @select="handleSelectEmail" @star="handleStarEmail" @mark-important="handleMarkImportant" @mark-read="handleMarkRead" />
+      <EmailListItem
+        v-for="email in emails"
+        :key="email.emailId"
+        :email="email"
+        :is-selected="email.emailId === selectedEmailId"
+        :labels="labels"
+        @select="handleSelectEmail"
+        @star="handleStarEmail"
+        @mark-important="handleMarkImportant"
+        @mark-read="handleMarkRead"
+      />
     </div>
 
     <!-- 无邮件提示 -->
     <div class="email-list__empty" v-else>
-      <IconifyIconOnline icon="ri:inbox-archive-line" class="email-list__empty-icon" />
+      <IconifyIconOnline
+        icon="ri:inbox-archive-line"
+        class="email-list__empty-icon"
+      />
       <div class="email-list__empty-text">没有邮件</div>
     </div>
 
     <!-- 分页 -->
     <div class="email-list__pagination" v-if="totalEmails > pageSize">
-      <el-pagination :current-page="currentPage" :page-size="pageSize" layout="prev, pager, next" :total="totalEmails" @current-change="handlePageChange" />
+      <ScPagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        layout="prev, pager, next"
+        :total="totalEmails"
+        @current-change="handlePageChange"
+      />
     </div>
   </div>
 </template>

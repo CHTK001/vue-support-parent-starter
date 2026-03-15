@@ -9,14 +9,14 @@
   >
     <div v-loading="loading" class="viewer-config-container">
       <!-- 说明信息 -->
-      <el-alert type="info" :closable="false" class="tip-alert">
+      <ScAlert type="info" :closable="false" class="tip-alert">
         <template #title>
           <span
             >视图查看器用于处理文件预览，通过 SPI
             机制动态加载。启用或禁用查看器后将立即热应用到运行中的服务器。</span
           >
         </template>
-      </el-alert>
+      </ScAlert>
 
       <!-- 查看器列表 -->
       <div class="viewer-list">
@@ -34,21 +34,21 @@
                 @change="handleViewerToggle(viewer)"
               />
               <span class="viewer-name">{{ viewer.name }}</span>
-              <el-tag size="small" type="info"
+              <ScTag size="small" type="info"
                 >优先级: {{ viewer.priority }}</el-tag
               >
-              <el-tag
+              <ScTag
                 size="small"
                 :type="viewer.enabled ? 'success' : 'danger'"
               >
                 {{ viewer.enabled ? "已启用" : "已禁用" }}
-              </el-tag>
+              </ScTag>
             </div>
             <div class="viewer-actions">
-              <el-tooltip
+              <ScTooltip
                 :content="viewer.enabled ? '禁用此查看器' : '启用此查看器'"
               >
-                <el-button
+                <ScButton
                   :type="viewer.enabled ? 'danger' : 'success'"
                   size="small"
                   text
@@ -61,15 +61,15 @@
                         : 'ri:checkbox-circle-line'
                     "
                   />
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </div>
           </div>
           <div class="viewer-body">
             <div class="viewer-desc">{{ viewer.description }}</div>
             <!-- OnlyOffice 服务器配置 -->
             <div v-if="isOnlyOfficeViewer(viewer)" class="onlyoffice-config">
-              <el-alert
+              <ScAlert
                 type="warning"
                 :closable="false"
                 class="server-warning"
@@ -80,11 +80,11 @@
                     >此查看器需要部署 OnlyOffice Document Server 才能使用</span
                   >
                 </template>
-              </el-alert>
+              </ScAlert>
               <div class="config-form">
                 <div class="config-item">
                   <span class="config-label">服务器地址:</span>
-                  <el-input
+                  <ScInput
                     v-model="viewer.serverUrl"
                     placeholder="如: http://localhost:8080"
                     size="small"
@@ -94,11 +94,11 @@
                     <template #prepend>
                       <IconifyIconOnline icon="ri:server-line" />
                     </template>
-                  </el-input>
+                  </ScInput>
                 </div>
                 <div class="config-item">
                   <span class="config-label">JWT密钥:</span>
-                  <el-input
+                  <ScInput
                     v-model="viewer.jwtSecret"
                     placeholder="可选，如果OnlyOffice启用了JWT验证"
                     size="small"
@@ -108,13 +108,13 @@
                   />
                 </div>
                 <div class="config-item">
-                  <el-checkbox
+                  <ScCheckbox
                     v-model="viewer.jwtEnabled"
                     :disabled="!viewer.enabled"
                     size="small"
                   >
                     启用JWT验证
-                  </el-checkbox>
+                  </ScCheckbox>
                 </div>
               </div>
             </div>
@@ -122,33 +122,33 @@
               <div v-if="viewer.supportedExtensions?.length" class="meta-item">
                 <span class="meta-label">支持扩展名:</span>
                 <div class="extension-tags">
-                  <el-tag
+                  <ScTag
                     v-for="ext in viewer.supportedExtensions.slice(0, 10)"
                     :key="ext"
                     size="small"
                     type="warning"
                   >
                     {{ ext }}
-                  </el-tag>
-                  <el-tag
+                  </ScTag>
+                  <ScTag
                     v-if="viewer.supportedExtensions.length > 10"
                     size="small"
                     type="info"
                   >
                     +{{ viewer.supportedExtensions.length - 10 }} 更多
-                  </el-tag>
+                  </ScTag>
                 </div>
               </div>
               <div v-if="viewer.targetFormat" class="meta-item">
                 <span class="meta-label">输出格式:</span>
-                <el-tag size="small">{{ viewer.targetFormat }}</el-tag>
+                <ScTag size="small">{{ viewer.targetFormat }}</ScTag>
               </div>
             </div>
           </div>
         </div>
 
         <!-- 空状态 -->
-        <el-empty
+        <ScEmpty
           v-if="!loading && viewerList.length === 0"
           description="暂无可用的视图查看器"
         />
@@ -173,11 +173,11 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="handleSave">
           <IconifyIconOnline icon="ri:save-line" />
           保存并热应用
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

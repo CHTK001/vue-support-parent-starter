@@ -2,17 +2,17 @@
   <div class="server-setting-form system-container modern-bg">
     <!-- 监控配置 -->
     <div v-if="section === 'monitor'" class="setting-section">
-      <el-form-item prop="monitorSysGenServerSettingMonitorEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingMonitorEnabled">
         <template #label>
           <div class="form-label">
             <span>启用监控</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后将定期收集服务器的CPU、内存、磁盘、网络等性能指标数据，用于监控服务器运行状态"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -23,20 +23,20 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 健康检查开关 -->
-      <el-form-item prop="monitorSysGenServerSettingHealthCheckEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingHealthCheckEnabled">
         <template #label>
           <div class="form-label">
             <span>健康检测</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后将定期检测服务器的连接状态和响应延迟，用于判断服务器是否在线"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -47,26 +47,26 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 检测间隔（健康检测开启时显示） -->
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingHealthCheckEnabled === 1"
         prop="monitorSysGenServerSettingMonitorInterval"
       >
         <template #label>
           <div class="form-label">
             <span>检测间隔</span>
-            <el-tooltip
+            <ScTooltip
               content="后台定时检测服务器连接状态的间隔时间，值越小检测越频繁"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input-number
+        <ScInputNumber
           v-model="formData.monitorSysGenServerSettingMonitorInterval"
           :min="30"
           :max="3600"
@@ -76,20 +76,20 @@
           @change="handleChange"
         />
         <span class="form-tip">秒，建议值：60-300</span>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 指标采集开关 -->
-      <el-form-item prop="monitorSysGenServerSettingMetricsCollectionEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingMetricsCollectionEnabled">
         <template #label>
           <div class="form-label">
             <span>指标采集</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后将定期采集服务器的性能指标数据（CPU、内存、磁盘、网络等），用于历史分析和趋势预测"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -100,7 +100,7 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 指标采集相关配置（开启指标采集时显示） -->
       <div
@@ -109,17 +109,17 @@
         "
       >
         <!-- 指标上报方式 -->
-        <el-form-item prop="monitorSysGenServerSettingDataReportMethod">
+        <ScFormItem prop="monitorSysGenServerSettingDataReportMethod">
           <template #label>
             <div class="form-label">
               <span>指标上报方式</span>
-              <el-tooltip
+              <ScTooltip
                 content="选择指标数据的上报方式"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
           <ScSelect
@@ -130,7 +130,7 @@
             style="width: 200px"
             @change="handleChange"
           />
-        </el-form-item>
+        </ScFormItem>
 
         <!-- 指标上报方式说明卡片 -->
         <div class="report-method-tips">
@@ -232,21 +232,21 @@
         </div>
 
         <!-- 采集指标类型 -->
-        <el-form-item>
+        <ScFormItem>
           <template #label>
             <div class="form-label">
               <span>采集指标</span>
-              <el-tooltip
+              <ScTooltip
                 content="选择需要采集的指标类型，默认采集全部指标"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
           <div class="metrics-checkbox-group">
-            <el-checkbox
+            <ScCheckbox
               v-model="formData.monitorSysGenServerSettingCollectCpu"
               :true-value="1"
               :false-value="0"
@@ -256,8 +256,8 @@
                 <IconifyIconOnline icon="ri:cpu-line" class="checkbox-icon" />
                 CPU
               </span>
-            </el-checkbox>
-            <el-checkbox
+            </ScCheckbox>
+            <ScCheckbox
               v-model="formData.monitorSysGenServerSettingCollectMemory"
               :true-value="1"
               :false-value="0"
@@ -267,8 +267,8 @@
                 <IconifyIconOnline icon="ri:ram-2-line" class="checkbox-icon" />
                 内存
               </span>
-            </el-checkbox>
-            <el-checkbox
+            </ScCheckbox>
+            <ScCheckbox
               v-model="formData.monitorSysGenServerSettingCollectDisk"
               :true-value="1"
               :false-value="0"
@@ -281,8 +281,8 @@
                 />
                 磁盘
               </span>
-            </el-checkbox>
-            <el-checkbox
+            </ScCheckbox>
+            <ScCheckbox
               v-model="formData.monitorSysGenServerSettingCollectNetwork"
               :true-value="1"
               :false-value="0"
@@ -292,8 +292,8 @@
                 <IconifyIconOnline icon="ri:wifi-line" class="checkbox-icon" />
                 网络
               </span>
-            </el-checkbox>
-            <el-checkbox
+            </ScCheckbox>
+            <ScCheckbox
               v-model="formData.monitorSysGenServerSettingCollectProcess"
               :true-value="1"
               :false-value="0"
@@ -306,25 +306,25 @@
                 />
                 进程
               </span>
-            </el-checkbox>
+            </ScCheckbox>
           </div>
-        </el-form-item>
+        </ScFormItem>
 
         <!-- 指标保留天数 -->
-        <el-form-item prop="monitorSysGenServerSettingMetricsRetentionDays">
+        <ScFormItem prop="monitorSysGenServerSettingMetricsRetentionDays">
           <template #label>
             <div class="form-label">
               <span>指标保留天数</span>
-              <el-tooltip
+              <ScTooltip
                 content="历史监控数据的保留时间，超过此时间的数据将被自动清理"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
-          <el-input-number
+          <ScInputNumber
             v-model="formData.monitorSysGenServerSettingMetricsRetentionDays"
             :min="1"
             :max="365"
@@ -334,7 +334,7 @@
             @change="handleChange"
           />
           <span class="form-tip">天，建议值：30-90</span>
-        </el-form-item>
+        </ScFormItem>
 
         <!-- Prometheus配置 - 当选择Prometheus上报方式时显示 -->
         <div
@@ -343,11 +343,11 @@
           "
           class="prometheus-basic-config"
         >
-          <el-form-item prop="monitorSysGenServerSettingPrometheusHost">
+          <ScFormItem prop="monitorSysGenServerSettingPrometheusHost">
             <template #label>
               <div class="form-label">
                 <span>Prometheus主机</span>
-                <el-tooltip
+                <ScTooltip
                   content="Prometheus服务器的主机地址，例如：localhost 或 192.168.1.100"
                   placement="top"
                   effect="dark"
@@ -356,10 +356,10 @@
                     icon="ri:question-line"
                     class="help-icon"
                   />
-                </el-tooltip>
+                </ScTooltip>
               </div>
             </template>
-            <el-input
+            <ScInput
               v-model="formData.monitorSysGenServerSettingPrometheusHost"
               placeholder="localhost"
               clearable
@@ -367,13 +367,13 @@
               @change="handleChange"
             />
             <span class="form-tip">Prometheus服务器地址</span>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item prop="monitorSysGenServerSettingPrometheusPort">
+          <ScFormItem prop="monitorSysGenServerSettingPrometheusPort">
             <template #label>
               <div class="form-label">
                 <span>Prometheus端口</span>
-                <el-tooltip
+                <ScTooltip
                   content="Prometheus服务器的端口号，默认为9090"
                   placement="top"
                   effect="dark"
@@ -382,10 +382,10 @@
                     icon="ri:question-line"
                     class="help-icon"
                   />
-                </el-tooltip>
+                </ScTooltip>
               </div>
             </template>
-            <el-input-number
+            <ScInputNumber
               v-model="formData.monitorSysGenServerSettingPrometheusPort"
               :min="1"
               :max="65535"
@@ -395,24 +395,24 @@
               @change="handleChange"
             />
             <span class="form-tip">端口号，默认9090</span>
-          </el-form-item>
+          </ScFormItem>
         </div>
       </div>
     </div>
 
     <!-- 告警配置 -->
     <div v-if="section === 'alert'" class="setting-section">
-      <el-form-item prop="monitorSysGenServerSettingAlertEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingAlertEnabled">
         <template #label>
           <div class="form-label">
             <span>启用告警</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后当监控指标超过设定阈值时将自动发送告警通知，支持多种通知方式"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -423,22 +423,22 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingAlertEnabled"
         prop="monitorSysGenServerSettingAlertNotificationMethod"
       >
         <template #label>
           <div class="form-label">
             <span>告警方式</span>
-            <el-tooltip
+            <ScTooltip
               content="选择告警通知的发送方式，支持邮件、短信、钉钉、企业微信和自定义Webhook"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSelect
@@ -450,9 +450,9 @@
           class="min-w-[200px]"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingAlertEnabled &&
           formData.monitorSysGenServerSettingAlertNotificationMethod
@@ -462,36 +462,36 @@
         <template #label>
           <div class="form-label">
             <span>{{ getNotificationAddressLabel() }}</span>
-            <el-tooltip
+            <ScTooltip
               :content="getNotificationAddressTooltip()"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingAlertNotificationAddress"
           :placeholder="getNotificationAddressPlaceholder()"
           maxlength="500"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 告警阈值配置 -->
       <div v-show="formData.monitorSysGenServerSettingAlertEnabled">
-        <el-divider content-position="left">
+        <ScDivider content-position="left">
           <span class="divider-text">告警阈值配置</span>
-        </el-divider>
+        </ScDivider>
 
-        <el-row :gutter="16">
-          <el-col :span="24">
-            <el-form-item prop="monitorSysGenServerSettingCpuAlertThreshold">
+        <ScRow :gutter="16">
+          <ScCol :span="24">
+            <ScFormItem prop="monitorSysGenServerSettingCpuAlertThreshold">
               <template #label>
                 <div class="form-label">
                   <span>CPU使用率阈值</span>
-                  <el-tooltip
+                  <ScTooltip
                     content="当CPU使用率超过此阈值时触发告警，建议设置为70-85%"
                     placement="top"
                     effect="dark"
@@ -500,10 +500,10 @@
                       icon="ri:question-line"
                       class="help-icon"
                     />
-                  </el-tooltip>
+                  </ScTooltip>
                 </div>
               </template>
-              <el-input-number
+              <ScInputNumber
                 v-model="formData.monitorSysGenServerSettingCpuAlertThreshold"
                 :min="1"
                 :max="100"
@@ -514,14 +514,14 @@
                 @change="handleChange"
               />
               <span class="form-tip">%，建议值：80</span>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item prop="monitorSysGenServerSettingMemoryAlertThreshold">
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="24">
+            <ScFormItem prop="monitorSysGenServerSettingMemoryAlertThreshold">
               <template #label>
                 <div class="form-label">
                   <span>内存使用率阈值</span>
-                  <el-tooltip
+                  <ScTooltip
                     content="当内存使用率超过此阈值时触发告警，建议设置为75-90%"
                     placement="top"
                     effect="dark"
@@ -530,10 +530,10 @@
                       icon="ri:question-line"
                       class="help-icon"
                     />
-                  </el-tooltip>
+                  </ScTooltip>
                 </div>
               </template>
-              <el-input-number
+              <ScInputNumber
                 v-model="
                   formData.monitorSysGenServerSettingMemoryAlertThreshold
                 "
@@ -546,17 +546,17 @@
                 @change="handleChange"
               />
               <span class="form-tip">%，建议值：85</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
 
-        <el-row :gutter="16">
-          <el-col :span="24">
-            <el-form-item prop="monitorSysGenServerSettingDiskAlertThreshold">
+        <ScRow :gutter="16">
+          <ScCol :span="24">
+            <ScFormItem prop="monitorSysGenServerSettingDiskAlertThreshold">
               <template #label>
                 <div class="form-label">
                   <span>磁盘使用率阈值</span>
-                  <el-tooltip
+                  <ScTooltip
                     content="当磁盘使用率超过此阈值时触发告警，建议设置为80-95%"
                     placement="top"
                     effect="dark"
@@ -565,10 +565,10 @@
                       icon="ri:question-line"
                       class="help-icon"
                     />
-                  </el-tooltip>
+                  </ScTooltip>
                 </div>
               </template>
-              <el-input-number
+              <ScInputNumber
                 v-model="formData.monitorSysGenServerSettingDiskAlertThreshold"
                 :min="1"
                 :max="100"
@@ -579,16 +579,16 @@
                 @change="handleChange"
               />
               <span class="form-tip">%，建议值：90</span>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="24">
+            <ScFormItem
               prop="monitorSysGenServerSettingNetworkAlertThreshold"
             >
               <template #label>
                 <div class="form-label">
                   <span>网络流量阈值</span>
-                  <el-tooltip
+                  <ScTooltip
                     content="当网络流量超过此阈值时触发告警，单位为Mbps"
                     placement="top"
                     effect="dark"
@@ -597,10 +597,10 @@
                       icon="ri:question-line"
                       class="help-icon"
                     />
-                  </el-tooltip>
+                  </ScTooltip>
                 </div>
               </template>
-              <el-input-number
+              <ScInputNumber
                 v-model="
                   formData.monitorSysGenServerSettingNetworkAlertThreshold
                 "
@@ -613,26 +613,26 @@
                 @change="handleChange"
               />
               <span class="form-tip">Mbps，建议值：100</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
 
-        <el-form-item
+        <ScFormItem
           prop="monitorSysGenServerSettingResponseTimeAlertThreshold"
         >
           <template #label>
             <div class="form-label">
               <span>响应时间阈值</span>
-              <el-tooltip
+              <ScTooltip
                 content="当服务器响应时间超过此阈值时触发告警，单位为毫秒"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
-          <el-input-number
+          <ScInputNumber
             v-model="
               formData.monitorSysGenServerSettingResponseTimeAlertThreshold
             "
@@ -644,30 +644,30 @@
             @change="handleChange"
           />
           <span class="form-tip">毫秒，建议值：5000</span>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-divider content-position="left">
+        <ScDivider content-position="left">
           <span class="divider-text">通知配置</span>
-        </el-divider>
+        </ScDivider>
       </div>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingAlertEnabled"
         prop="monitorSysGenServerSettingAlertSilenceDuration"
       >
         <template #label>
           <div class="form-label">
             <span>告警静默时间</span>
-            <el-tooltip
+            <ScTooltip
               content="同一类型告警在此时间内不会重复发送，避免告警轰炸，建议15-60分钟"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input-number
+        <ScInputNumber
           v-model="formData.monitorSysGenServerSettingAlertSilenceDuration"
           :min="5"
           :max="1440"
@@ -677,22 +677,22 @@
           @change="handleChange"
         />
         <span class="form-tip">分钟，建议值：15-60</span>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingAlertEnabled"
         prop="monitorSysGenServerSettingAutoRecoveryNotificationEnabled"
       >
         <template #label>
           <div class="form-label">
             <span>自动恢复通知</span>
-            <el-tooltip
+            <ScTooltip
               content="当告警状态恢复正常时是否发送恢复通知，帮助及时了解问题解决情况"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -705,22 +705,22 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
     </div>
 
     <!-- Docker配置 -->
     <div v-if="section === 'docker'" class="setting-section">
-      <el-form-item prop="monitorSysGenServerSettingDockerEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingDockerEnabled">
         <template #label>
           <div class="form-label">
             <span>支持Docker</span>
-            <el-tooltip
+            <ScTooltip
               content="标识服务器是否安装了Docker，开启后可以监控Docker容器和镜像信息"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -731,22 +731,22 @@
           inactive-text="不支持"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingDockerEnabled"
         prop="monitorSysGenServerSettingDockerMonitorEnabled"
       >
         <template #label>
           <div class="form-label">
             <span>启用Docker监控</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后将监控Docker容器的运行状态、资源使用情况和容器日志"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -757,22 +757,22 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingDockerEnabled"
         prop="monitorSysGenServerSettingDockerConnectionType"
       >
         <template #label>
           <div class="form-label">
             <span>连接方式</span>
-            <el-tooltip
+            <ScTooltip
               content="选择连接Docker的方式：Shell命令行方式或Docker API方式"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSelect
@@ -783,7 +783,7 @@
           style="width: 200px !important"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- Docker连接方式说明 -->
       <div
@@ -839,7 +839,7 @@
         </div>
       </div>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingDockerEnabled &&
           formData.monitorSysGenServerSettingDockerConnectionType === 'API'
@@ -849,24 +849,24 @@
         <template #label>
           <div class="form-label">
             <span>Docker API主机</span>
-            <el-tooltip
+            <ScTooltip
               content="Docker API 服务的主机名或IP，默认使用当前服务器IP"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingDockerHost"
           :placeholder="serverHost || '127.0.0.1'"
           maxlength="200"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingDockerEnabled &&
           formData.monitorSysGenServerSettingDockerConnectionType === 'API'
@@ -876,16 +876,16 @@
         <template #label>
           <div class="form-label">
             <span>Docker API端口</span>
-            <el-tooltip
+            <ScTooltip
               content="Docker API 服务的端口，例如：2376"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input-number
+        <ScInputNumber
           v-model="formData.monitorSysGenServerSettingDockerPort"
           :min="1"
           :max="65535"
@@ -894,9 +894,9 @@
           style="width: 200px"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingDockerEnabled &&
           formData.monitorSysGenServerSettingDockerConnectionType === 'API'
@@ -906,24 +906,24 @@
         <template #label>
           <div class="form-label">
             <span>API版本</span>
-            <el-tooltip
+            <ScTooltip
               content="Docker API的版本号，如：1.40、1.41等，可通过 docker version 命令查看"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingDockerApiVersion"
           placeholder="如：1.40"
           maxlength="50"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingDockerEnabled &&
           formData.monitorSysGenServerSettingDockerConnectionType === 'API'
@@ -933,24 +933,24 @@
         <template #label>
           <div class="form-label">
             <span>API用户名</span>
-            <el-tooltip
+            <ScTooltip
               content="Docker API 基本认证用户名（可选）"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingDockerUsername"
           placeholder="可选"
           maxlength="100"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingDockerEnabled &&
           formData.monitorSysGenServerSettingDockerConnectionType === 'API'
@@ -960,16 +960,16 @@
         <template #label>
           <div class="form-label">
             <span>API密码</span>
-            <el-tooltip
+            <ScTooltip
               content="Docker API 基本认证密码（可选）"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingDockerPassword"
           type="password"
           show-password
@@ -977,9 +977,9 @@
           maxlength="100"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingDockerEnabled &&
           formData.monitorSysGenServerSettingDockerConnectionType === 'API'
@@ -989,16 +989,16 @@
         <template #label>
           <div class="form-label">
             <span>连接超时</span>
-            <el-tooltip
+            <ScTooltip
               content="Docker API 连接超时时间（秒，可选）"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input-number
+        <ScInputNumber
           v-model="dockerConnectTimeoutSeconds"
           :min="1"
           :max="600"
@@ -1008,9 +1008,9 @@
           @change="handleChange"
         />
         <span class="form-tip">秒（默认30）</span>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingDockerEnabled &&
           formData.monitorSysGenServerSettingDockerConnectionType === 'API'
@@ -1020,13 +1020,13 @@
         <template #label>
           <div class="form-label">
             <span>启用TLS</span>
-            <el-tooltip
+            <ScTooltip
               content="是否启用TLS加密连接Docker API，提高连接安全性"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -1037,22 +1037,22 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
     </div>
 
     <!-- 脚本执行配置 -->
     <div v-if="section === 'script'" class="setting-section">
-      <el-form-item prop="monitorSysGenServerSettingScriptEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingScriptEnabled">
         <template #label>
           <div class="form-label">
             <span>启用脚本执行</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后允许在该服务器上执行脚本，用于自动化运维任务"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -1063,23 +1063,23 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <div v-show="formData.monitorSysGenServerSettingScriptEnabled === 1">
-        <el-form-item prop="monitorSysGenServerSettingScriptExecuteMethod">
+        <ScFormItem prop="monitorSysGenServerSettingScriptExecuteMethod">
           <template #label>
             <div class="form-label">
               <span>执行方式</span>
-              <el-tooltip
+              <ScTooltip
                 content="选择脚本的执行方式：SSH通过SSH连接执行，NODE通过代理节点执行"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
-          <el-radio-group
+          <ScRadioGroup
             v-model="formData.monitorSysGenServerSettingScriptExecuteMethod"
             @change="handleChange"
           >
@@ -1091,8 +1091,8 @@
               <IconifyIconOnline icon="ri:server-line" class="mr-1" />
               NODE 代理
             </el-radio-button>
-          </el-radio-group>
-        </el-form-item>
+          </ScRadioGroup>
+        </ScFormItem>
 
         <!-- 执行方式说明 -->
         <div class="execute-method-tips">
@@ -1136,20 +1136,20 @@
           </div>
         </div>
 
-        <el-form-item prop="monitorSysGenServerSettingScriptTimeout">
+        <ScFormItem prop="monitorSysGenServerSettingScriptTimeout">
           <template #label>
             <div class="form-label">
               <span>执行超时</span>
-              <el-tooltip
+              <ScTooltip
                 content="脚本执行的最大超时时间，超过该时间将自动终止"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
-          <el-input-number
+          <ScInputNumber
             v-model="formData.monitorSysGenServerSettingScriptTimeout"
             :min="10"
             :max="3600"
@@ -1159,43 +1159,43 @@
             @change="handleChange"
           />
           <span class="form-tip">秒，建议值：300</span>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item prop="monitorSysGenServerSettingScriptWorkDir">
+        <ScFormItem prop="monitorSysGenServerSettingScriptWorkDir">
           <template #label>
             <div class="form-label">
               <span>工作目录</span>
-              <el-tooltip
+              <ScTooltip
                 content="脚本执行时的默认工作目录"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
-          <el-input
+          <ScInput
             v-model="formData.monitorSysGenServerSettingScriptWorkDir"
             placeholder="/home/user 或留空使用默认目录"
             @change="handleChange"
           />
-        </el-form-item>
+        </ScFormItem>
       </div>
     </div>
 
     <!-- 代理配置 -->
     <div v-if="section === 'proxy'" class="setting-section">
-      <el-form-item prop="monitorSysGenServerSettingProxyEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingProxyEnabled">
         <template #label>
           <div class="form-label">
             <span>启用代理</span>
-            <el-tooltip
+            <ScTooltip
               content="通过代理服务器连接目标服务器，适用于网络隔离或需要跳板机的环境"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -1206,22 +1206,22 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingProxyEnabled"
         prop="monitorSysGenServerSettingProxyType"
       >
         <template #label>
           <div class="form-label">
             <span>代理类型</span>
-            <el-tooltip
+            <ScTooltip
               content="选择代理协议类型：HTTP代理适用于Web流量，SOCKS5代理支持更多协议，Guacamole用于远程桌面"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSelect
@@ -1232,49 +1232,49 @@
           style="width: 200px !important"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingProxyEnabled"
         prop="monitorSysGenServerSettingProxyHost"
       >
         <template #label>
           <div class="form-label">
             <span>代理主机</span>
-            <el-tooltip
+            <ScTooltip
               content="代理服务器的IP地址或域名，如：192.168.1.100 或 proxy.example.com"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingProxyHost"
           placeholder="请输入代理主机地址"
           maxlength="100"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingProxyEnabled"
         prop="monitorSysGenServerSettingProxyPort"
       >
         <template #label>
           <div class="form-label">
             <span>代理端口</span>
-            <el-tooltip
+            <ScTooltip
               content="代理服务器的端口号，HTTP代理通常使用8080，SOCKS5代理通常使用1080"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input-number
+        <ScInputNumber
           v-model="formData.monitorSysGenServerSettingProxyPort"
           :min="1"
           :max="65535"
@@ -1282,9 +1282,9 @@
           style="width: 200px"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingProxyEnabled &&
           formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'
@@ -1294,24 +1294,24 @@
         <template #label>
           <div class="form-label">
             <span>代理用户名</span>
-            <el-tooltip
+            <ScTooltip
               content="代理服务器的认证用户名，如果代理不需要认证可留空"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingProxyUsername"
           placeholder="代理用户名(可选)"
           maxlength="100"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="
           formData.monitorSysGenServerSettingProxyEnabled &&
           formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'
@@ -1321,16 +1321,16 @@
         <template #label>
           <div class="form-label">
             <span>代理密码</span>
-            <el-tooltip
+            <ScTooltip
               content="代理服务器的认证密码，如果代理不需要认证可留空"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingProxyPassword"
           type="password"
           placeholder="代理密码(可选)"
@@ -1338,24 +1338,24 @@
           show-password
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
     </div>
 
     <!-- 高级配置 -->
     <div v-if="section === 'advanced'" class="setting-section">
-      <el-form-item
+      <ScFormItem
         prop="monitorSysGenServerSettingPerformanceSuggestionEnabled"
       >
         <template #label>
           <div class="form-label">
             <span>性能优化建议</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后系统将根据监控数据分析服务器性能瓶颈并提供优化建议"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -1368,23 +1368,23 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
     </div>
 
     <!-- 端口配置 -->
     <div v-if="section === 'tasks'" class="setting-section">
       <!-- 端口监控开关 -->
-      <el-form-item prop="monitorSysGenServerSettingPortMonitorEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingPortMonitorEnabled">
         <template #label>
           <div class="form-label">
             <span>端口监控</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后将监控指定端口的连通性和响应时间"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -1395,51 +1395,51 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 监控端口列表 -->
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingPortMonitorEnabled"
         prop="monitorSysGenServerSettingMonitorPorts"
       >
         <template #label>
           <div class="form-label">
             <span>监控端口</span>
-            <el-tooltip
+            <ScTooltip
               content="需要监控的端口列表，多个端口用逗号分隔，如：80,443,3306,6379"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingMonitorPorts"
           placeholder="请输入监控端口，多个端口用逗号分隔，如：80,443,3306"
           maxlength="500"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 端口检测间隔 -->
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingPortMonitorEnabled"
         prop="monitorSysGenServerSettingPortCheckInterval"
       >
         <template #label>
           <div class="form-label">
             <span>端口检测间隔</span>
-            <el-tooltip
+            <ScTooltip
               content="端口状态检测的时间间隔，单位：秒"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input-number
+        <ScInputNumber
           v-model="formData.monitorSysGenServerSettingPortCheckInterval"
           :min="10"
           :max="3600"
@@ -1448,20 +1448,20 @@
           @change="handleChange"
         />
         <span class="unit">秒</span>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 在线状态检测 -->
-      <el-form-item prop="monitorSysGenServerSettingOnlineCheckEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingOnlineCheckEnabled">
         <template #label>
           <div class="form-label">
             <span>在线状态检测</span>
-            <el-tooltip
+            <ScTooltip
               content="定期检测服务器的在线状态"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -1472,25 +1472,25 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingOnlineCheckEnabled === 1"
         prop="monitorSysGenServerSettingOnlineCheckInterval"
       >
         <template #label>
           <div class="form-label">
             <span>在线检测间隔</span>
-            <el-tooltip
+            <ScTooltip
               content="在线状态检测的时间间隔，单位：秒"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input-number
+        <ScInputNumber
           v-model="formData.monitorSysGenServerSettingOnlineCheckInterval"
           :min="10"
           :max="3600"
@@ -1499,20 +1499,20 @@
           @change="handleChange"
         />
         <span class="unit">秒</span>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 延迟检测 -->
-      <el-form-item prop="monitorSysGenServerSettingLatencyCheckEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingLatencyCheckEnabled">
         <template #label>
           <div class="form-label">
             <span>延迟检测</span>
-            <el-tooltip
+            <ScTooltip
               content="定期检测服务器的网络延迟"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -1523,25 +1523,25 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingLatencyCheckEnabled === 1"
         prop="monitorSysGenServerSettingLatencyCheckInterval"
       >
         <template #label>
           <div class="form-label">
             <span>延迟检测间隔</span>
-            <el-tooltip
+            <ScTooltip
               content="延迟检测的时间间隔，单位：秒"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input-number
+        <ScInputNumber
           v-model="formData.monitorSysGenServerSettingLatencyCheckInterval"
           :min="10"
           :max="3600"
@@ -1550,7 +1550,7 @@
           @change="handleChange"
         />
         <span class="unit">秒</span>
-      </el-form-item>
+      </ScFormItem>
     </div>
 
     <!-- 文件管理配置 -->
@@ -1575,17 +1575,17 @@
       <!-- 配置内容（简洁风格） -->
       <div class="file-management-content">
         <!-- 启用文件管理 -->
-        <el-form-item prop="monitorSysGenServerSettingFileManagementEnabled">
+        <ScFormItem prop="monitorSysGenServerSettingFileManagementEnabled">
           <template #label>
             <div class="form-label">
               <span>启用文件管理</span>
-              <el-tooltip
+              <ScTooltip
                 content="开启后可以通过Web界面管理服务器文件系统，支持文件上传、下载、编辑等操作"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
           <ScSwitch
@@ -1596,10 +1596,10 @@
             inactive-text="关闭"
             @change="handleChange"
           />
-        </el-form-item>
+        </ScFormItem>
 
         <!-- 文件管理模式 -->
-        <el-form-item
+        <ScFormItem
           v-show="
             formData.monitorSysGenServerSettingFileManagementEnabled === 1
           "
@@ -1608,13 +1608,13 @@
           <template #label>
             <div class="form-label">
               <span>文件管理模式</span>
-              <el-tooltip
+              <ScTooltip
                 content="选择文件管理的连接方式：LOCAL-本地连接，SSH-SSH连接，NODE-NODE客户端代理，API-API接口连接"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
           <ScSelect
@@ -1624,7 +1624,7 @@
             placeholder="请选择文件管理模式"
             @change="handleFileManagementModeChange"
           />
-        </el-form-item>
+        </ScFormItem>
 
         <!-- 文件管理模式说明卡片 -->
         <div
@@ -1704,7 +1704,7 @@
         </div>
 
         <!-- NODE客户端选择 -->
-        <el-form-item
+        <ScFormItem
           v-show="
             formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
             formData.monitorSysGenServerSettingFileManagementMode === 'NODE'
@@ -1714,13 +1714,13 @@
           <template #label>
             <div class="form-label">
               <span>NODE客户端</span>
-              <el-tooltip
+              <ScTooltip
                 content="选择用于文件管理的NODE客户端，客户端必须在线且支持文件管理功能"
                 placement="top"
                 effect="dark"
               >
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
+              </ScTooltip>
             </div>
           </template>
           <ScSelect
@@ -1734,11 +1734,11 @@
             @change="handleChange"
           />
           <div class="form-item-help">
-            <el-button size="small" type="primary" link @click="loadNodeClients"
+            <ScButton size="small" type="primary" link @click="loadNodeClients"
               >刷新客户端列表</el-button
             >
           </div>
-        </el-form-item>
+        </ScFormItem>
 
         <!-- 高级配置 -->
         <div
@@ -1748,14 +1748,14 @@
           "
           class="advanced-config-section"
         >
-          <el-divider content-position="left">高级配置</el-divider>
+          <ScDivider content-position="left">高级配置</ScDivider>
 
           <!-- 操作超时时间 -->
-          <el-form-item prop="monitorSysGenServerSettingFileManagementTimeout">
+          <ScFormItem prop="monitorSysGenServerSettingFileManagementTimeout">
             <template #label>
               <div class="form-label">
                 <span>操作超时时间</span>
-                <el-tooltip
+                <ScTooltip
                   content="文件操作的超时时间，单位：秒"
                   placement="top"
                   effect="dark"
@@ -1764,26 +1764,26 @@
                     icon="ri:question-line"
                     class="help-icon"
                   />
-                </el-tooltip>
+                </ScTooltip>
               </div>
             </template>
-            <el-input-number
+            <ScInputNumber
               v-model="formData.monitorSysGenServerSettingFileManagementTimeout"
               :min="10"
               :max="300"
               @change="handleChange"
             />
             <span class="input-suffix">秒</span>
-          </el-form-item>
+          </ScFormItem>
 
           <!-- 最大重试次数 -->
-          <el-form-item
+          <ScFormItem
             prop="monitorSysGenServerSettingFileManagementMaxRetries"
           >
             <template #label>
               <div class="form-label">
                 <span>最大重试次数</span>
-                <el-tooltip
+                <ScTooltip
                   content="文件操作失败时的最大重试次数"
                   placement="top"
                   effect="dark"
@@ -1792,10 +1792,10 @@
                     icon="ri:question-line"
                     class="help-icon"
                   />
-                </el-tooltip>
+                </ScTooltip>
               </div>
             </template>
-            <el-input-number
+            <ScInputNumber
               v-model="
                 formData.monitorSysGenServerSettingFileManagementMaxRetries
               "
@@ -1803,16 +1803,16 @@
               :max="10"
               @change="handleChange"
             />
-          </el-form-item>
+          </ScFormItem>
 
           <!-- 健康检查间隔 -->
-          <el-form-item
+          <ScFormItem
             prop="monitorSysGenServerSettingClientHealthCheckInterval"
           >
             <template #label>
               <div class="form-label">
                 <span>健康检查间隔</span>
-                <el-tooltip
+                <ScTooltip
                   content="客户端健康状态检查间隔，单位：秒"
                   placement="top"
                   effect="dark"
@@ -1821,10 +1821,10 @@
                     icon="ri:question-line"
                     class="help-icon"
                   />
-                </el-tooltip>
+                </ScTooltip>
               </div>
             </template>
-            <el-input-number
+            <ScInputNumber
               v-model="
                 formData.monitorSysGenServerSettingClientHealthCheckInterval
               "
@@ -1833,14 +1833,14 @@
               @change="handleChange"
             />
             <span class="input-suffix">秒</span>
-          </el-form-item>
+          </ScFormItem>
 
           <!-- 健康检查超时 -->
-          <el-form-item prop="monitorSysGenServerSettingClientHealthTimeout">
+          <ScFormItem prop="monitorSysGenServerSettingClientHealthTimeout">
             <template #label>
               <div class="form-label">
                 <span>健康检查超时</span>
-                <el-tooltip
+                <ScTooltip
                   content="客户端健康状态检查的超时时间，单位：秒"
                   placement="top"
                   effect="dark"
@@ -1849,97 +1849,97 @@
                     icon="ri:question-line"
                     class="help-icon"
                   />
-                </el-tooltip>
+                </ScTooltip>
               </div>
             </template>
-            <el-input-number
+            <ScInputNumber
               v-model="formData.monitorSysGenServerSettingClientHealthTimeout"
               :min="5"
               :max="60"
               @change="handleChange"
             />
             <span class="input-suffix">秒</span>
-          </el-form-item>
+          </ScFormItem>
         </div>
 
         <!-- 测试连接按钮 -->
-        <el-form-item
+        <ScFormItem
           v-show="
             formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
             formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
           "
         >
-          <el-button
+          <ScButton
             type="primary"
             :loading="testingFileManagement"
             @click="testFileManagementConnection"
           >
             <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
             测试连接
-          </el-button>
-        </el-form-item>
+          </ScButton>
+        </ScFormItem>
       </div>
     </div>
 
     <!-- Prometheus配置 -->
     <div v-if="section === 'prometheus'" class="setting-section">
       <!-- Prometheus服务器配置 -->
-      <el-form-item prop="monitorSysGenServerSettingPrometheusUrl">
+      <ScFormItem prop="monitorSysGenServerSettingPrometheusUrl">
         <template #label>
           <div class="form-label">
             <span>服务器URL</span>
-            <el-tooltip
+            <ScTooltip
               content="Prometheus服务器的完整URL地址，例如：http://localhost:9090"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingPrometheusUrl"
           placeholder="http://localhost:9090"
           clearable
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item prop="monitorSysGenServerSettingPrometheusQueryPath">
+      <ScFormItem prop="monitorSysGenServerSettingPrometheusQueryPath">
         <template #label>
           <div class="form-label">
             <span>查询路径</span>
-            <el-tooltip
+            <ScTooltip
               content="Prometheus API查询路径，默认为 /api/v1/query_range"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingPrometheusQueryPath"
           placeholder="/api/v1/query_range"
           clearable
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item prop="monitorSysGenServerSettingPrometheusTimeout">
+      <ScFormItem prop="monitorSysGenServerSettingPrometheusTimeout">
         <template #label>
           <div class="form-label">
             <span>查询超时</span>
-            <el-tooltip
+            <ScTooltip
               content="Prometheus查询超时时间，单位：秒"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input-number
+        <ScInputNumber
           v-model="formData.monitorSysGenServerSettingPrometheusTimeout"
           :min="1"
           :max="300"
@@ -1948,20 +1948,20 @@
           @change="handleChange"
         />
         <span class="unit">秒</span>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 认证配置 -->
-      <el-form-item prop="monitorSysGenServerSettingPrometheusAuthEnabled">
+      <ScFormItem prop="monitorSysGenServerSettingPrometheusAuthEnabled">
         <template #label>
           <div class="form-label">
             <span>启用认证</span>
-            <el-tooltip
+            <ScTooltip
               content="启用后需要提供用户名和密码进行基本认证"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
         <ScSwitch
@@ -1972,49 +1972,49 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1"
         prop="monitorSysGenServerSettingPrometheusUsername"
       >
         <template #label>
           <div class="form-label">
             <span>用户名</span>
-            <el-tooltip
+            <ScTooltip
               content="Prometheus服务器认证用户名"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingPrometheusUsername"
           placeholder="请输入用户名"
           clearable
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-show="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1"
         prop="monitorSysGenServerSettingPrometheusPassword"
       >
         <template #label>
           <div class="form-label">
             <span>密码</span>
-            <el-tooltip
+            <ScTooltip
               content="Prometheus服务器认证密码"
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingPrometheusPassword"
           type="password"
           placeholder="请输入密码"
@@ -2022,43 +2022,43 @@
           clearable
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 高级配置 -->
-      <el-form-item prop="monitorSysGenServerSettingPrometheusLabels">
+      <ScFormItem prop="monitorSysGenServerSettingPrometheusLabels">
         <template #label>
           <div class="form-label">
             <span>标签过滤器</span>
-            <el-tooltip
+            <ScTooltip
               content='用于过滤Prometheus指标的标签，格式：key1="value1",key2="value2"'
               placement="top"
               effect="dark"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </template>
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerSettingPrometheusLabels"
           type="textarea"
           :rows="3"
           placeholder='instance="server_1",job="node_exporter"'
           @change="handleChange"
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 测试连接 -->
-      <el-form-item>
-        <el-button
+      <ScFormItem>
+        <ScButton
           type="primary"
           :loading="testingConnection"
           @click="testPrometheusConnection"
         >
           <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
           测试连接
-        </el-button>
+        </ScButton>
         <span class="form-item-tip">测试Prometheus服务器连接是否正常</span>
-      </el-form-item>
+      </ScFormItem>
     </div>
   </div>
 </template>

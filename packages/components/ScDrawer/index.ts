@@ -13,19 +13,9 @@ import ScDrawer from "./index.vue";
 export { ScDrawer };
 
 // 导出 Composables
-export {
-  useDrawerMemory,
-  useComponentMemory,
-  clearAllComponentMemory,
-  getAllMemoryKeys,
-} from "./composables";
+export { useDrawerMemory, useComponentMemory, clearAllComponentMemory, getAllMemoryKeys } from "./composables";
 
-export type {
-  DrawerMemoryData,
-  ComponentMemoryData,
-  ComponentMemoryOptions,
-  ComponentMemoryReturn,
-} from "./composables";
+export type { DrawerMemoryData, ComponentMemoryData, ComponentMemoryOptions, ComponentMemoryReturn } from "./composables";
 
 // 默认导出，用于全局注册
 export default {

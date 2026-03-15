@@ -22,7 +22,7 @@ export interface TrackPoint {
   // 静态点位标题（可选，用于记录移动点位经过的静态点位名称）
   staticTitle?: string;
   // 附加信息（可选，用于标记弹窗或其他展示）
-  info?: Array<{key: string, value: string}>;
+  info?: Array<{ key: string; value: string }>;
   // 自定义图标URL（可选，用于设置点位的自定义图标）
   iconUrl?: string;
   // 自定义图标尺寸（可选，用于设置点位图标的尺寸）
@@ -36,7 +36,7 @@ export interface IconSpeedGroup {
   // 图标URL
   icon: string;
   // 图标类型
-  iconType: 'photo' | 'icon';
+  iconType: "photo" | "icon";
 }
 
 //播放参数
@@ -54,17 +54,17 @@ export interface TrackPlayer {
 }
 // 定义轨迹播放器配置接口
 export interface TrackPlayerConfigOptions {
-  loop?: boolean;         // 是否循环播放
-  speed?: number;         // 默认播放速度(km/h)
-  withCamera?: boolean;   // 是否跟随相机
-  speedFactor?: number;   // 速度因子
-  showNodes?: boolean;    // 是否显示节点（静态点位）
+  loop?: boolean; // 是否循环播放
+  speed?: number; // 默认播放速度(km/h)
+  withCamera?: boolean; // 是否跟随相机
+  speedFactor?: number; // 速度因子
+  showNodes?: boolean; // 是否显示节点（静态点位）
   showNodeAnchors?: boolean; // 是否显示节点锚点（当showNodes开启时生效）
-  showNodeNames?: boolean;// 是否显示节点名称（静态点位名称）
+  showNodeNames?: boolean; // 是否显示节点名称（静态点位名称）
   showNodeTime?: boolean; // 是否显示节点时间
-  showPointNames?: boolean;// 是否显示点位名称（移动点位名称）
-  showSpeed?: boolean;    // 是否显示移动速度
-  showNodeSpeed?: boolean;// 是否显示节点速度
+  showPointNames?: boolean; // 是否显示点位名称（移动点位名称）
+  showSpeed?: boolean; // 是否显示移动速度
+  showNodeSpeed?: boolean; // 是否显示节点速度
   updateFrequency?: number; // 更新频率(毫秒)，控制进度更新的时间间隔
   stabilizeViewport?: boolean; // 是否稳定视口，防止播放过程中缩放抖动（默认为false）
 }
@@ -90,7 +90,7 @@ export interface Track {
 }
 
 export interface TrackConfig {
-   // 已走过轨迹样式
+  // 已走过轨迹样式
   passedLineOptions?: {
     color?: string;
     weight?: number;
@@ -99,7 +99,7 @@ export interface TrackConfig {
   // 未走过轨迹样式
   notPassedLineOptions?: {
     color?: string;
-    weight?: number
+    weight?: number;
     opacity?: number;
   };
   // 速度图标分组配置，当移动点的速度大于配置的speed时，使用icon图标
@@ -109,20 +109,20 @@ export interface TrackConfig {
 
 export const DEFAULT_TRACK_CONFIG: TrackConfig = {
   passedLineOptions: {
-    color: 'rgba(24, 144, 255, 1)',
+    color: "rgba(24, 144, 255, 1)",
     weight: 4,
-    opacity: 0.8
+    opacity: 0.8,
   },
   notPassedLineOptions: {
-    color: 'rgba(160, 160, 160, 0.8)',
+    color: "rgba(160, 160, 160, 0.8)",
     weight: 3,
-    opacity: 0.5
+    opacity: 0.5,
   },
   trackSpeedGroup: DEFAULT_TRACK_SPEED_GROUPS,
-  autoRotate: true // 默认开启自动朝向
+  autoRotate: true, // 默认开启自动朝向
 };
 
 // 添加默认导出
 export default {
-  DEFAULT_TRACK_CONFIG
+  DEFAULT_TRACK_CONFIG,
 };

@@ -1,10 +1,10 @@
 <template>
-  <el-menu class="feature-menu" :default-active="modelValue" @select="onSelect">
-    <el-menu-item v-for="f in features" :key="f.key" :index="f.key">
+  <ScMenu class="feature-menu" :default-active="modelValue" @select="onSelect">
+    <ScMenuItem v-for="f in features" :key="f.key" :index="f.key">
       <IconifyIconOnline :icon="f.icon" class="mr-2" />
       <span>{{ f.title }}</span>
-    </el-menu-item>
-  </el-menu>
+    </ScMenuItem>
+  </ScMenu>
 </template>
 
 <script setup lang="ts">

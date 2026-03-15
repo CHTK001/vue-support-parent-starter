@@ -8,10 +8,10 @@ type Result = {
 
 export const getAsyncRoutes = () => {
   if (!getConfig().RemoteMenu) {
-    return new Promise<ReturnResult<Result>>(resolve => {
+    return new Promise<ReturnResult<Result>>((resolve) => {
       resolve({
         data: [],
-        success: true
+        success: true,
       } as any);
     });
   }

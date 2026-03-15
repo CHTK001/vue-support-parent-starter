@@ -2,19 +2,19 @@
  * 坐标系转换对象
  * @description 提供不同坐标系统间的转换功能
  */
-import { MapType } from '../types/map';
-import logger from './LogObject';
-import { getCoordSystemByMapType } from './MapUtils';
+import { MapType } from "../types/map";
+import logger from "./LogObject";
+import { getCoordSystemByMapType } from "./MapUtils";
 
 /**
  * 支持的坐标系统枚举
  */
 export enum CoordSystem {
-  WGS84 = 'WGS84',     // 国际标准坐标系统(GPS)
-  GCJ02 = 'GCJ02',     // 国测局坐标系统(高德、腾讯)
-  BD09 = 'BD09',       // 百度坐标系统
-  EPSG3857 = 'EPSG:3857', // Web墨卡托投影
-  EPSG4326 = 'EPSG:4326'  // WGS84的别名
+  WGS84 = "WGS84", // 国际标准坐标系统(GPS)
+  GCJ02 = "GCJ02", // 国测局坐标系统(高德、腾讯)
+  BD09 = "BD09", // 百度坐标系统
+  EPSG3857 = "EPSG:3857", // Web墨卡托投影
+  EPSG4326 = "EPSG:4326", // WGS84的别名
 }
 
 /**
@@ -31,7 +31,7 @@ export interface Coordinate {
 export interface GcoordConfig {
   sourceSystem?: CoordSystem; // 源坐标系统
   targetSystem?: CoordSystem; // 目标坐标系统
-  mapType?: MapType;          // 地图类型
+  mapType?: MapType; // 地图类型
 }
 
 /**
@@ -49,12 +49,15 @@ export class GcoordObject {
   constructor(config: GcoordConfig = {}) {
     // 默认源坐标系为WGS84(GPS)
     this.sourceSystem = config.sourceSystem || CoordSystem.WGS84;
-    
+
     // 根据地图类型设置默认目标坐标系
     this.mapType = config.mapType || MapType.GAODE;
-    this.targetSystem = config.targetSystem || getCoordSystemByMapType(this.mapType);
-    
-    logger.debug(`GcoordObject已初始化，源坐标系: ${this.sourceSystem}，目标坐标系: ${this.targetSystem}`);
+    this.targetSystem =
+      config.targetSystem || getCoordSystemByMapType(this.mapType);
+
+    logger.debug(
+      `GcoordObject已初始化，源坐标系: ${this.sourceSystem}，目标坐标系: ${this.targetSystem}`,
+    );
   }
 
   /**
@@ -64,7 +67,9 @@ export class GcoordObject {
   public setMapType(mapType: MapType): void {
     this.mapType = mapType;
     this.targetSystem = getCoordSystemByMapType(mapType);
-    logger.debug(`已根据地图类型(${mapType})更新目标坐标系: ${this.targetSystem}`);
+    logger.debug(
+      `已根据地图类型(${mapType})更新目标坐标系: ${this.targetSystem}`,
+    );
   }
 
   /**
@@ -106,8 +111,8 @@ export class GcoordObject {
     magic = 1 - ee * magic * magic;
 
     const sqrtMagic = Math.sqrt(magic);
-    dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * PI);
-    dLng = (dLng * 180.0) / (a / sqrtMagic * Math.cos(radLat) * PI);
+    dLat = (dLat * 180.0) / (((a * (1 - ee)) / (magic * sqrtMagic)) * PI);
+    dLng = (dLng * 180.0) / ((a / sqrtMagic) * Math.cos(radLat) * PI);
 
     const mgLat = lat + dLat;
     const mgLng = lng + dLng;
@@ -132,7 +137,7 @@ export class GcoordObject {
 
     return {
       lng: lng - lngDelta,
-      lat: lat - latDelta
+      lat: lat - latDelta,
     };
   }
 
@@ -210,10 +215,27 @@ export class GcoordObject {
    * 经度转换辅助函数
    */
   private transformLng(x: number, y: number): number {
-    let ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
-    ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
-    ret += (20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin(x / 3.0 * Math.PI)) * 2.0 / 3.0;
-    ret += (150.0 * Math.sin(x / 12.0 * Math.PI) + 300.0 * Math.sin(x / 30.0 * Math.PI)) * 2.0 / 3.0;
+    let ret =
+      300.0 +
+      x +
+      2.0 * y +
+      0.1 * x * x +
+      0.1 * x * y +
+      0.1 * Math.sqrt(Math.abs(x));
+    ret +=
+      ((20.0 * Math.sin(6.0 * x * Math.PI) +
+        20.0 * Math.sin(2.0 * x * Math.PI)) *
+        2.0) /
+      3.0;
+    ret +=
+      ((20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin((x / 3.0) * Math.PI)) *
+        2.0) /
+      3.0;
+    ret +=
+      ((150.0 * Math.sin((x / 12.0) * Math.PI) +
+        300.0 * Math.sin((x / 30.0) * Math.PI)) *
+        2.0) /
+      3.0;
     return ret;
   }
 
@@ -221,10 +243,27 @@ export class GcoordObject {
    * 纬度转换辅助函数
    */
   private transformLat(x: number, y: number): number {
-    let ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
-    ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
-    ret += (20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin(y / 3.0 * Math.PI)) * 2.0 / 3.0;
-    ret += (160.0 * Math.sin(y / 12.0 * Math.PI) + 320.0 * Math.sin(y * Math.PI / 30.0)) * 2.0 / 3.0;
+    let ret =
+      -100.0 +
+      2.0 * x +
+      3.0 * y +
+      0.2 * y * y +
+      0.1 * x * y +
+      0.2 * Math.sqrt(Math.abs(x));
+    ret +=
+      ((20.0 * Math.sin(6.0 * x * Math.PI) +
+        20.0 * Math.sin(2.0 * x * Math.PI)) *
+        2.0) /
+      3.0;
+    ret +=
+      ((20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin((y / 3.0) * Math.PI)) *
+        2.0) /
+      3.0;
+    ret +=
+      ((160.0 * Math.sin((y / 12.0) * Math.PI) +
+        320.0 * Math.sin((y * Math.PI) / 30.0)) *
+        2.0) /
+      3.0;
     return ret;
   }
 
@@ -235,7 +274,11 @@ export class GcoordObject {
    * @param to 目标坐标系统（可选，默认使用当前目标坐标系）
    * @returns 转换后的坐标 [经度, 纬度]
    */
-  public transform(coordinate: number[] | Coordinate, from?: CoordSystem, to?: CoordSystem): number[] {
+  public transform(
+    coordinate: number[] | Coordinate,
+    from?: CoordSystem,
+    to?: CoordSystem,
+  ): number[] {
     // 处理不同的输入格式
     let lng: number, lat: number;
     if (Array.isArray(coordinate)) {
@@ -244,41 +287,53 @@ export class GcoordObject {
       lng = coordinate.lng;
       lat = coordinate.lat;
     }
-    
+
     // 使用指定的坐标系或默认值
     const sourceSystem = from || this.sourceSystem;
     const targetSystem = to || this.targetSystem;
-    
+
     // 如果源坐标系和目标坐标系相同，直接返回
-    if (sourceSystem === targetSystem || 
-       (sourceSystem === CoordSystem.WGS84 && targetSystem === CoordSystem.EPSG4326) ||
-       (sourceSystem === CoordSystem.EPSG4326 && targetSystem === CoordSystem.WGS84)) {
+    if (
+      sourceSystem === targetSystem ||
+      (sourceSystem === CoordSystem.WGS84 &&
+        targetSystem === CoordSystem.EPSG4326) ||
+      (sourceSystem === CoordSystem.EPSG4326 &&
+        targetSystem === CoordSystem.WGS84)
+    ) {
       return [lng, lat];
     }
-    
+
     // 先统一转为WGS84
     let wgs84Coord: Coordinate = { lng, lat };
-    
+
     if (sourceSystem === CoordSystem.GCJ02) {
       wgs84Coord = this.gcj02ToWgs84(lng, lat);
     } else if (sourceSystem === CoordSystem.BD09) {
       wgs84Coord = this.bd09ToWgs84(lng, lat);
-    } else if (sourceSystem !== CoordSystem.WGS84 && sourceSystem !== CoordSystem.EPSG4326) {
+    } else if (
+      sourceSystem !== CoordSystem.WGS84 &&
+      sourceSystem !== CoordSystem.EPSG4326
+    ) {
       logger.warn(`不支持的源坐标系: ${sourceSystem}，将按WGS84处理`);
     }
-    
+
     // 再从WGS84转为目标坐标系
     let result: Coordinate = wgs84Coord;
-    
+
     if (targetSystem === CoordSystem.GCJ02) {
       result = this.wgs84ToGcj02(wgs84Coord.lng, wgs84Coord.lat);
     } else if (targetSystem === CoordSystem.BD09) {
       result = this.wgs84ToBd09(wgs84Coord.lng, wgs84Coord.lat);
-    } else if (targetSystem !== CoordSystem.WGS84 && targetSystem !== CoordSystem.EPSG4326) {
+    } else if (
+      targetSystem !== CoordSystem.WGS84 &&
+      targetSystem !== CoordSystem.EPSG4326
+    ) {
       logger.warn(`不支持的目标坐标系: ${targetSystem}，将按WGS84处理`);
     }
-    
-    logger.debug(`坐标转换: [${lng}, ${lat}] 从 ${sourceSystem} 到 ${targetSystem} => [${result.lng}, ${result.lat}]`);
+
+    logger.debug(
+      `坐标转换: [${lng}, ${lat}] 从 ${sourceSystem} 到 ${targetSystem} => [${result.lng}, ${result.lat}]`,
+    );
     return [result.lng, result.lat];
   }
 
@@ -292,4 +347,4 @@ export class GcoordObject {
     this.targetSystem = target;
     logger.debug(`已更新坐标系统，源: ${source}，目标: ${target}`);
   }
-} 
+}

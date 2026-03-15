@@ -142,5 +142,3 @@ html.theme-future-tech {
   }
 }
 </style>
-
-

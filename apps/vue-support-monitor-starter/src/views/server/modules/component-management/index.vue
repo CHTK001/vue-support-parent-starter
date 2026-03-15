@@ -9,31 +9,31 @@
         </p>
       </div>
       <div class="header-right">
-        <el-button type="primary" @click="handleAddComponent">
+        <ScButton type="primary" @click="handleAddComponent">
           <IconifyIconOnline icon="ep:plus" />
           添加组件
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 查询条件栏 -->
     <div class="query-bar">
       <div class="query-left">
-        <el-select
+        <ScSelect
           v-model="selectedServerId"
           placeholder="选择服务器"
           style="width: 200px"
           @change="handleServerChange"
         >
-          <el-option
+          <ScOption
             v-for="server in servers"
             :key="server.monitorSysGenServerId"
             :label="server.monitorSysGenServerName"
             :value="server.monitorSysGenServerId"
           />
-        </el-select>
+        </ScSelect>
 
-        <el-date-picker
+        <ScDatePicker
           v-model="timeRange"
           type="datetimerange"
           range-separator="至"
@@ -44,23 +44,23 @@
           class="!w-[350px]"
         />
 
-        <el-select v-model="queryStep" placeholder="步长" style="width: 100px">
-          <el-option label="1分钟" :value="60" />
-          <el-option label="5分钟" :value="300" />
-          <el-option label="15分钟" :value="900" />
-          <el-option label="30分钟" :value="1800" />
-        </el-select>
+        <ScSelect v-model="queryStep" placeholder="步长" style="width: 100px">
+          <ScOption label="1分钟" :value="60" />
+          <ScOption label="5分钟" :value="300" />
+          <ScOption label="15分钟" :value="900" />
+          <ScOption label="30分钟" :value="1800" />
+        </ScSelect>
       </div>
 
       <div class="query-right">
-        <el-button type="primary" :loading="loading" @click="handleQuery">
+        <ScButton type="primary" :loading="loading" @click="handleQuery">
           <IconifyIconOnline icon="ep:search" />
           查询数据
-        </el-button>
-        <el-button @click="handleRefresh">
+        </ScButton>
+        <ScButton @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -68,34 +68,34 @@
     <div v-if="queryStats" class="stats-bar">
       <div class="stats-item">
         <span class="stats-label">查询时间:</span>
-        <el-tag type="success" size="small"
+        <ScTag type="success" size="small"
           >{{ queryStats.queryTime }}ms</el-tag
         >
       </div>
       <div class="stats-item">
         <span class="stats-label">组件数量:</span>
-        <el-tag type="info" size="small">{{
+        <ScTag type="info" size="small">{{
           queryStats.componentCount
-        }}</el-tag>
+        }}</ScTag>
       </div>
       <div class="stats-item">
         <span class="stats-label">数据点:</span>
-        <el-tag type="warning" size="small">{{ queryStats.dataPoints }}</el-tag>
+        <ScTag type="warning" size="small">{{ queryStats.dataPoints }}</ScTag>
       </div>
       <div class="stats-item">
         <span class="stats-label">更新时间:</span>
-        <el-tag size="small">{{ queryStats.updateTime }}</el-tag>
+        <ScTag size="small">{{ queryStats.updateTime }}</ScTag>
       </div>
     </div>
 
     <!-- 组件列表 -->
     <div v-loading="loading" class="component-list">
       <div v-if="components.length === 0" class="empty-state">
-        <el-empty description="暂无组件数据">
-          <el-button type="primary" @click="handleAddComponent">
+        <ScEmpty description="暂无组件数据">
+          <ScButton type="primary" @click="handleAddComponent">
             添加第一个组件
-          </el-button>
-        </el-empty>
+          </ScButton>
+        </ScEmpty>
       </div>
 
       <div v-else class="component-grid">
@@ -109,7 +109,7 @@
             <div class="card-title">
               <h4>{{ component.monitorSysGenServerComponentName }}</h4>
               <div class="card-meta">
-                <el-tag
+                <ScTag
                   :type="
                     getComponentTypeTagColor(
                       component.monitorSysGenServerComponentType,
@@ -122,34 +122,34 @@
                       component.monitorSysGenServerComponentType,
                     )
                   }}
-                </el-tag>
-                <el-tag type="info" size="small">
+                </ScTag>
+                <ScTag type="info" size="small">
                   {{
                     getExpressionTypeDisplayName(
                       component.monitorSysGenServerComponentExpressionType,
                     )
                   }}
-                </el-tag>
+                </ScTag>
               </div>
             </div>
             <div class="card-actions">
-              <el-dropdown
+              <ScDropdown
                 @command="(cmd: string) => handleAction(cmd, component)"
               >
-                <el-button text>
+                <ScButton text>
                   <IconifyIconOnline icon="ep:more" />
-                </el-button>
+                </ScButton>
                 <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="view">查看数据</el-dropdown-item>
-                    <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                    <el-dropdown-item command="clone">克隆</el-dropdown-item>
-                    <el-dropdown-item command="delete" divided
+                  <ScDropdownMenu>
+                    <ScDropdownItem command="view">查看数据</ScDropdownItem>
+                    <ScDropdownItem command="edit">编辑</ScDropdownItem>
+                    <ScDropdownItem command="clone">克隆</ScDropdownItem>
+                    <ScDropdownItem command="delete" divided
                       >删除</el-dropdown-item
                     >
-                  </el-dropdown-menu>
+                  </ScDropdownMenu>
                 </template>
-              </el-dropdown>
+              </ScDropdown>
             </div>
           </div>
 
@@ -170,7 +170,7 @@
               </div>
               <div class="info-item">
                 <span class="info-label">状态:</span>
-                <el-tag
+                <ScTag
                   :type="
                     getComponentStatusTagType(
                       component.monitorSysGenServerComponentStatus,
@@ -183,7 +183,7 @@
                       component.monitorSysGenServerComponentStatus,
                     )
                   }}
-                </el-tag>
+                </ScTag>
               </div>
             </div>
 
@@ -219,7 +219,7 @@
               </el-text>
             </div>
             <div class="footer-right">
-              <el-button
+              <ScButton
                 size="small"
                 type="primary"
                 text
@@ -230,7 +230,7 @@
               >
                 <IconifyIconOnline icon="ep:refresh" />
                 查询
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>

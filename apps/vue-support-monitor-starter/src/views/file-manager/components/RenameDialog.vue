@@ -35,15 +35,15 @@
 
       <!-- 重命名表单 -->
       <div class="rename-form">
-        <el-form
+        <ScForm
           ref="formRef"
           :model="formData"
           :rules="formRules"
           label-width="80px"
           @submit.prevent="handleSubmit"
         >
-          <el-form-item label="新名称" prop="newName">
-            <el-input
+          <ScFormItem label="新名称" prop="newName">
+            <ScInput
               v-model="formData.newName"
               placeholder="请输入新的文件名"
               clearable
@@ -55,9 +55,9 @@
               <template #prepend>
                 <IconifyIconOnline icon="ri:edit-line" />
               </template>
-            </el-input>
-          </el-form-item>
-        </el-form>
+            </ScInput>
+          </ScFormItem>
+        </ScForm>
       </div>
 
       <!-- 名称分析 -->
@@ -84,7 +84,7 @@
             }}</span>
           </div>
           <div v-if="nameAnalysis.isTypeChanged" class="analysis-item">
-            <el-alert
+            <ScAlert
               title="类型变更提醒"
               :description="`文件类型将从 ${getFileTypeText(fileInfo.type)} 变更为 ${getFileTypeText(nameAnalysis.detectedType)}`"
               type="warning"
@@ -98,7 +98,7 @@
 
       <!-- 冲突检测 -->
       <div v-if="conflictInfo.hasConflict" class="conflict-detection">
-        <el-alert
+        <ScAlert
           title="名称冲突"
           :description="conflictInfo.message"
           type="error"
@@ -110,61 +110,61 @@
             <div class="conflict-details">
               <p>{{ conflictInfo.message }}</p>
               <div class="conflict-options">
-                <el-radio-group v-model="formData.conflictAction">
-                  <el-radio label="replace">替换现有文件</el-radio>
-                  <el-radio label="rename">自动重命名</el-radio>
-                  <el-radio label="cancel">取消操作</el-radio>
-                </el-radio-group>
+                <ScRadioGroup v-model="formData.conflictAction">
+                  <ScRadio label="replace">替换现有文件</ScRadio>
+                  <ScRadio label="rename">自动重命名</ScRadio>
+                  <ScRadio label="cancel">取消操作</ScRadio>
+                </ScRadioGroup>
               </div>
             </div>
           </template>
-        </el-alert>
+        </ScAlert>
       </div>
 
       <!-- 高级选项 -->
       <div class="advanced-options">
-        <el-collapse v-model="activeCollapse">
-          <el-collapse-item title="高级选项" name="advanced">
+        <ScCollapse v-model="activeCollapse">
+          <ScCollapseItem title="高级选项" name="advanced">
             <div class="options-content">
-              <el-form-item>
-                <el-checkbox v-model="formData.preserveExtension">
+              <ScFormItem>
+                <ScCheckbox v-model="formData.preserveExtension">
                   <IconifyIconOnline
                     icon="ri:file-text-line"
                     class="checkbox-icon"
                   />
                   保持原始扩展名
-                </el-checkbox>
-              </el-form-item>
+                </ScCheckbox>
+              </ScFormItem>
 
-              <el-form-item>
-                <el-checkbox v-model="formData.updateReferences">
+              <ScFormItem>
+                <ScCheckbox v-model="formData.updateReferences">
                   <IconifyIconOnline
                     icon="ri:links-line"
                     class="checkbox-icon"
                   />
                   更新相关引用
-                </el-checkbox>
-              </el-form-item>
+                </ScCheckbox>
+              </ScFormItem>
 
-              <el-form-item>
-                <el-checkbox v-model="formData.createBackup">
+              <ScFormItem>
+                <ScCheckbox v-model="formData.createBackup">
                   <IconifyIconOnline
                     icon="ri:save-line"
                     class="checkbox-icon"
                   />
                   创建备份
-                </el-checkbox>
-              </el-form-item>
+                </ScCheckbox>
+              </ScFormItem>
             </div>
-          </el-collapse-item>
-        </el-collapse>
+          </ScCollapseItem>
+        </ScCollapse>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="isRenaming"
           :disabled="
@@ -179,7 +179,7 @@
             class="btn-icon"
           />
           {{ isRenaming ? "重命名中..." : "确认重命名" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

@@ -186,7 +186,7 @@ export default {
       <template #header="{ titleId, titleClass }">
         <div class="dialog-header">
           <div class="header-left">
-            <el-icon class="header-icon" :size="24">
+            <ScIcon class="header-icon" :size="24">
               <component
                 :is="
                   useRenderIcon(
@@ -194,16 +194,16 @@ export default {
                   )
                 "
               />
-            </el-icon>
+            </ScIcon>
             <span :id="titleId" :class="titleClass">{{ title }}</span>
           </div>
-          <el-tag v-if="form.sysSfcId" type="info" size="small"
+          <ScTag v-if="form.sysSfcId" type="info" size="small"
             >ID: {{ form.sysSfcId }}</el-tag
           >
         </div>
       </template>
 
-      <el-form
+      <ScForm
         ref="dialogForm"
         :model="form"
         :rules="rules"
@@ -214,59 +214,59 @@ export default {
         <!-- 基本信息 -->
         <div class="form-section">
           <div class="section-title">
-            <el-icon
+            <ScIcon
               ><component :is="useRenderIcon('ri:information-line')"
-            /></el-icon>
+            /></ScIcon>
             <span>基本信息</span>
           </div>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="组件名称" prop="sysSfcName">
-                <el-input
+          <ScRow :gutter="20">
+            <ScCol :span="12">
+              <ScFormItem label="组件名称" prop="sysSfcName">
+                <ScInput
                   v-model="form.sysSfcName"
                   placeholder="请输入组件名称（英文）"
                   :prefix-icon="useRenderIcon('ri:code-s-slash-line')"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="中文名称" prop="sysSfcChineseName">
-                <el-input
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="中文名称" prop="sysSfcChineseName">
+                <ScInput
                   v-model="form.sysSfcChineseName"
                   placeholder="请输入组件中文名称"
                   :prefix-icon="useRenderIcon('ri:translate')"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="组件图标" prop="sysSfcIcon">
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="组件图标" prop="sysSfcIcon">
                 <IconSelect v-model="form.sysSfcIcon" class="w-full" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="版本号" prop="sysSfcVersion">
-                <el-input
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="版本号" prop="sysSfcVersion">
+                <ScInput
                   v-model="form.sysSfcVersion"
                   placeholder="如：1.0.0"
                   :prefix-icon="useRenderIcon('ri:price-tag-3-line')"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
         </div>
 
         <!-- 分类与功能 -->
         <div class="form-section">
           <div class="section-title">
-            <el-icon
+            <ScIcon
               ><component :is="useRenderIcon('ri:folder-3-line')"
-            /></el-icon>
+            /></ScIcon>
             <span>分类与功能</span>
           </div>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="组件分类" prop="sysSfcCategory">
-                <el-select
+          <ScRow :gutter="20">
+            <ScCol :span="12">
+              <ScFormItem label="组件分类" prop="sysSfcCategory">
+                <ScSelect
                   v-model="form.sysSfcCategory"
                   placeholder="请选择分类"
                   filterable
@@ -275,20 +275,20 @@ export default {
                   collapse-tags-tooltip
                   class="w-full"
                 >
-                  <el-option
+                  <ScOption
                     v-for="item in sysSfcCategoryCollection"
                     :key="item.value"
                     :label="item.label"
                     :value="item.value"
                   >
                     <span>{{ item.label }}</span>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="组件功能" prop="sysSfcFunction">
-                <el-select
+                  </ScOption>
+                </ScSelect>
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="组件功能" prop="sysSfcFunction">
+                <ScSelect
                   v-model="form.sysSfcFunction"
                   placeholder="请选择组件功能"
                   filterable
@@ -297,30 +297,30 @@ export default {
                   collapse-tags-tooltip
                   class="w-full"
                 >
-                  <el-option
+                  <ScOption
                     v-for="item in dictItem"
                     :key="item.sysDictItemName"
                     :label="item.sysDictItemName"
                     :value="item.sysDictItemName"
                   />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
+                </ScSelect>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
         </div>
 
         <!-- 组件配置 -->
         <div class="form-section">
           <div class="section-title">
-            <el-icon
+            <ScIcon
               ><component :is="useRenderIcon('ri:settings-3-line')"
-            /></el-icon>
+            /></ScIcon>
             <span>组件配置</span>
           </div>
-          <el-row :gutter="20">
-            <el-col :span="24">
-              <el-form-item label="组件类型" prop="sysSfcType">
-                <el-radio-group
+          <ScRow :gutter="20">
+            <ScCol :span="24">
+              <ScFormItem label="组件类型" prop="sysSfcType">
+                <ScRadioGroup
                   v-model="form.sysSfcType"
                   class="type-radio-group"
                 >
@@ -330,7 +330,7 @@ export default {
                     :value="item.value"
                     class="type-radio-item"
                   >
-                    <el-icon class="mr-1">
+                    <ScIcon class="mr-1">
                       <component
                         :is="
                           useRenderIcon(
@@ -344,30 +344,30 @@ export default {
                           )
                         "
                       />
-                    </el-icon>
+                    </ScIcon>
                     {{ item.label }}
                   </el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
+                </ScRadioGroup>
+              </ScFormItem>
+            </ScCol>
 
             <!-- 代码式组件 -->
-            <el-col v-if="form.sysSfcType === 1" :span="24">
-              <el-form-item label="组件代码" prop="sysSfcContent">
+            <ScCol v-if="form.sysSfcType === 1" :span="24">
+              <ScFormItem label="组件代码" prop="sysSfcContent">
                 <template #label>
                   <div class="code-label">
                     <span>组件代码</span>
-                    <el-button
+                    <ScButton
                       type="primary"
                       link
                       size="small"
                       @click="handlePreview"
                     >
-                      <el-icon class="mr-1"
+                      <ScIcon class="mr-1"
                         ><component :is="useRenderIcon('ri:fullscreen-line')"
-                      /></el-icon>
+                      /></ScIcon>
                       全屏编辑
-                    </el-button>
+                    </ScButton>
                   </div>
                 </template>
                 <sc-code-editor
@@ -376,19 +376,19 @@ export default {
                   :options="options"
                   mode="vue"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
             <!-- 远程/本地地址 -->
-            <el-col
+            <ScCol
               v-if="form.sysSfcType === 2 || form.sysSfcType === 3"
               :span="24"
             >
-              <el-form-item
+              <ScFormItem
                 :label="form.sysSfcType === 2 ? '远程地址' : '本地路径'"
                 prop="sysSfcPath"
               >
-                <el-input
+                <ScInput
                   v-model="form.sysSfcPath"
                   :placeholder="
                     form.sysSfcType === 2
@@ -401,57 +401,57 @@ export default {
                     )
                   "
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="代理服务">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="代理服务">
+                <ScInput
                   v-model="form.sysSfcProxy"
                   placeholder="可选，填写代理地址"
                   :prefix-icon="useRenderIcon('ri:server-line')"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col v-if="form.sysSfcDelay || mode === 'edit'" :span="6">
-              <el-form-item label="延迟加载">
-                <el-input-number
+            <ScCol v-if="form.sysSfcDelay || mode === 'edit'" :span="6">
+              <ScFormItem label="延迟加载">
+                <ScInputNumber
                   v-model="form.sysSfcDelay"
                   :min="0"
                   :max="10000"
                   placeholder="毫秒"
                   controls-position="right"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col v-if="form.sysSfcTimeout || mode === 'edit'" :span="6">
-              <el-form-item label="超时时间">
-                <el-input-number
+            <ScCol v-if="form.sysSfcTimeout || mode === 'edit'" :span="6">
+              <ScFormItem label="超时时间">
+                <ScInputNumber
                   v-model="form.sysSfcTimeout"
                   :min="0"
                   :max="60000"
                   placeholder="毫秒"
                   controls-position="right"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
         </div>
 
         <!-- 描述信息 -->
         <div class="form-section">
           <div class="section-title">
-            <el-icon
+            <ScIcon
               ><component :is="useRenderIcon('ri:file-text-line')"
-            /></el-icon>
+            /></ScIcon>
             <span>描述信息</span>
           </div>
-          <el-row :gutter="20">
-            <el-col :span="24">
-              <el-form-item label="组件描述" prop="sysSfcDesc">
-                <el-input
+          <ScRow :gutter="20">
+            <ScCol :span="24">
+              <ScFormItem label="组件描述" prop="sysSfcDesc">
+                <ScInput
                   v-model="form.sysSfcDesc"
                   placeholder="请输入组件功能描述..."
                   type="textarea"
@@ -459,31 +459,31 @@ export default {
                   maxlength="500"
                   show-word-limit
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
         </div>
-      </el-form>
+      </ScForm>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="visible = false">
-            <el-icon class="mr-1"
+          <ScButton @click="visible = false">
+            <ScIcon class="mr-1"
               ><component :is="useRenderIcon('ep:close')"
-            /></el-icon>
+            /></ScIcon>
             取消
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"
             @click="debounce(submit(), 1000, true)"
           >
-            <el-icon class="mr-1"
+            <ScIcon class="mr-1"
               ><component :is="useRenderIcon('ep:check')"
-            /></el-icon>
+            /></ScIcon>
             {{ loading ? "保存中..." : "保存" }}
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

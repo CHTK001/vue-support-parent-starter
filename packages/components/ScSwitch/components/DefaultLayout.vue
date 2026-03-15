@@ -100,7 +100,6 @@ const { currentComponent } = useThemeComponent("ElSwitch");
 
 // 当前实际渲染的组件
 
-
 // 开关绑定值
 const switchValue = ref(props.modelValue);
 

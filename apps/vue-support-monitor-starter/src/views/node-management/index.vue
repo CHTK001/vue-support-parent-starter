@@ -43,10 +43,10 @@
 
     <!-- 搜索和筛选 -->
     <div class="search-section">
-      <el-card class="search-card" shadow="never">
+      <ScCard class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
-            <el-input
+            <ScInput
               v-model="searchKeyword"
               placeholder="搜索节点名称、IP地址或应用名称"
               class="search-input"
@@ -56,37 +56,37 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:search-line" />
               </template>
-            </el-input>
-            <el-select
+            </ScInput>
+            <ScSelect
               v-model="selectedApplication"
               placeholder="选择应用"
               class="app-filter"
               clearable
               @change="handleApplicationFilter"
             >
-              <el-option
+              <ScOption
                 v-for="app in applicationList"
                 :key="app"
                 :label="app"
                 :value="app"
               />
-            </el-select>
-            <el-select
+            </ScSelect>
+            <ScSelect
               v-model="selectedStatus"
               placeholder="节点状态"
               class="status-filter"
               clearable
               @change="handleStatusFilter"
             >
-              <el-option label="在线" value="ONLINE" />
-              <el-option label="离线" value="OFFLINE" />
-              <el-option label="连接中" value="CONNECTING" />
-              <el-option label="异常" value="ERROR" />
-              <el-option label="维护中" value="MAINTENANCE" />
-            </el-select>
+              <ScOption label="在线" value="ONLINE" />
+              <ScOption label="离线" value="OFFLINE" />
+              <ScOption label="连接中" value="CONNECTING" />
+              <ScOption label="异常" value="ERROR" />
+              <ScOption label="维护中" value="MAINTENANCE" />
+            </ScSelect>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 节点列表 -->
@@ -122,14 +122,14 @@
                 </div>
               </div>
               <div class="node-status">
-                <el-tag
+                <ScTag
                   :type="getStatusType(row.status)"
                   :effect="row.status === 'ONLINE' ? 'dark' : 'plain'"
                   class="status-tag"
                 >
                   <IconifyIconOnline :icon="getStatusIcon(row.status)" />
                   {{ getStatusText(row.status) }}
-                </el-tag>
+                </ScTag>
               </div>
             </div>
 
@@ -227,22 +227,22 @@
               </div>
               <div class="card-actions">
                 <el-button-group size="small">
-                  <el-button
+                  <ScButton
                     title="API文档"
                     @click.stop="openNodeDocumentation(row)"
                   >
                     <IconifyIconOnline icon="ri:file-text-line" />
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton
                     :loading="nodeCheckingStatus[row.nodeId]"
                     title="健康检查"
                     @click.stop="handleCheckNodeHealth(row)"
                   >
                     <IconifyIconOnline icon="ri:stethoscope-line" />
-                  </el-button>
-                  <el-button title="查看详情" @click.stop="viewNodeDetail(row)">
+                  </ScButton>
+                  <ScButton title="查看详情" @click.stop="viewNodeDetail(row)">
                     <IconifyIconOnline icon="ri:eye-line" />
-                  </el-button>
+                  </ScButton>
                 </el-button-group>
               </div>
             </div>

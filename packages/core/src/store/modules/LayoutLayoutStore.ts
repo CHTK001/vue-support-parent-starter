@@ -1,13 +1,19 @@
 // 导入必要的依赖
 import { getConfig } from "@repo/config";
-import { fetchGetUserLayout, fetchMineSfc, fetchUpdateUserLayout } from "@repo/core";
+import {
+  fetchGetUserLayout,
+  fetchMineSfc,
+  fetchUpdateUserLayout,
+} from "@repo/core";
 import { loadSfcModule, localStorageProxy, toObject } from "@repo/utils";
 import { defineStore } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 import * as _ from "lodash-es";
 
 // 404 组件的异步加载
-const _NOT_FOUND = defineAsyncComponent(() => import("@repo/pages/error/404.vue"));
+const _NOT_FOUND = defineAsyncComponent(
+  () => import("@repo/pages/error/404.vue"),
+);
 
 export const useLayoutLayoutStore = defineStore({
   id: "useLayoutLayoutStore",
@@ -95,7 +101,11 @@ export const useLayoutLayoutStore = defineStore({
           item.maxW = Math.max(1, Math.round(item.maxW * ratio));
         }
 
-        if (Number.isFinite(item.x) && Number.isFinite(item.w) && item.x + item.w > newColumnCount) {
+        if (
+          Number.isFinite(item.x) &&
+          Number.isFinite(item.w) &&
+          item.x + item.w > newColumnCount
+        ) {
           item.x = Math.max(0, newColumnCount - item.w);
         }
         if (Number.isFinite(item.maxW)) {
@@ -103,7 +113,11 @@ export const useLayoutLayoutStore = defineStore({
         }
       });
 
-      this.gridMeta = { ...defaultMeta, ...(rawMeta || {}), columnCount: newColumnCount };
+      this.gridMeta = {
+        ...defaultMeta,
+        ...(rawMeta || {}),
+        columnCount: newColumnCount,
+      };
 
       // 回写一次，避免重复迁移
       localStorageProxy().setItem(this.storageKey, {
@@ -155,7 +169,11 @@ export const useLayoutLayoutStore = defineStore({
         return _NOT_FOUND;
       }
       if (sysSfc.vue) {
-        return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId, sysSfc);
+        return loadSfcModule(
+          sysSfc.sysSfcName + ".vue",
+          sysSfc.sysSfcId,
+          sysSfc,
+        );
       }
       return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId, sysSfc);
     },
@@ -259,7 +277,9 @@ export const useLayoutLayoutStore = defineStore({
       this.component.push({ id: item.key });
     },
     async removeComp(key) {
-      this.component = this.component ? this.component.filter((it) => it.id != key) : [];
+      this.component = this.component
+        ? this.component.filter((it) => it.id != key)
+        : [];
       this.layout = this.layout.filter((it) => it.id != key);
     },
     async resetLayout() {
@@ -280,7 +300,11 @@ export const useLayoutLayoutStore = defineStore({
         this.component.push(item);
       }
       if (layout.join(",") == "24") {
-        this.component[0] = [...this?.component[0], ...this?.component[1], ...this?.component[2]];
+        this.component[0] = [
+          ...this?.component[0],
+          ...this?.component[1],
+          ...this?.component[2],
+        ];
         this.component[1] = [];
         this.component[2] = [];
         if (this.component.length == 4) {
@@ -361,11 +385,19 @@ export const useLayoutLayoutStore = defineStore({
     },
     myCompsList() {
       return this.allCompsList().filter((item) => {
-        return !item.disabled && (this.component ? this.component.filter((i) => i.id === item.key).length === 0 : true);
+        return (
+          !item.disabled &&
+          (this.component
+            ? this.component.filter((i) => i.id === item.key).length === 0
+            : true)
+        );
       });
     },
     hasSettingCompent() {
-      if (!Array.isArray(this.nowCompsList()) || this.nowCompsList().length == 0) {
+      if (
+        !Array.isArray(this.nowCompsList()) ||
+        this.nowCompsList().length == 0
+      ) {
         return false;
       }
 
@@ -414,7 +446,7 @@ export const useLayoutLayoutStore = defineStore({
         //@ts-ignore
         import.meta.glob(["../../../../module/**/*.vue"], {
           eager: true,
-        })
+        }),
       ).map(([key, value]: any) => {
         _localMapping[key] = value.default;
       });
@@ -423,7 +455,7 @@ export const useLayoutLayoutStore = defineStore({
         import.meta.glob(["../../../../module/**/*.json"], {
           eager: true,
           query: "raw",
-        })
+        }),
       ).map(([key, value]: any) => {
         const setting = JSON.parse(value.default);
         const vueComp = _localMapping[key.replace("config.json", "index.vue")];
@@ -452,7 +484,10 @@ export const useLayoutLayoutStore = defineStore({
         if (!setting.sysSfcIcon) {
           setting.sysSfcIcon = "ri:inbox-2-fill";
         }
-        localModule[key.replace("../../..", "@repo").replace("config.json", "index.vue") + ""] = setting;
+        localModule[
+          key.replace("../../..", "@repo").replace("config.json", "index.vue") +
+            ""
+        ] = setting;
         this.allComps.push(setting);
       });
     },
@@ -541,7 +576,10 @@ export const useLayoutLayoutStore = defineStore({
       // gridMeta（兼容 string / object）
       if (data?.gridMeta) {
         if (typeof data.gridMeta === "string") {
-          this.gridMeta = { ...this.gridMeta, ...(JSON.parse(data.gridMeta || "{}") || {}) };
+          this.gridMeta = {
+            ...this.gridMeta,
+            ...(JSON.parse(data.gridMeta || "{}") || {}),
+          };
         } else {
           this.gridMeta = { ...this.gridMeta, ...(data.gridMeta || {}) };
         }

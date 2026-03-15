@@ -3,7 +3,7 @@
     <div class="chart-header">
       <div class="chart-title">{{ title }}</div>
       <div class="chart-controls">
-        <el-button
+        <ScButton
           size="small"
           :type="autoRefresh ? 'success' : 'default'"
           @click="toggleAutoRefresh"
@@ -13,11 +13,11 @@
             class="mr-1"
           />
           {{ autoRefresh ? "暂停" : "开始" }}
-        </el-button>
-        <el-button size="small" @click="clearData">
+        </ScButton>
+        <ScButton size="small" @click="clearData">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           清空数据
-        </el-button>
+        </ScButton>
       </div>
     </div>
 

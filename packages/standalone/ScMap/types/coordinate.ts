@@ -4,7 +4,11 @@
  */
 
 // 坐标位置类型
-export type CoordinatePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+export type CoordinatePosition =
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right";
 
 // 坐标选项
 export interface CoordinateOptions {
@@ -32,7 +36,7 @@ export interface CoordinateInfo {
 
 // 默认坐标选项
 export const DEFAULT_COORDINATE_OPTIONS: CoordinateOptions = {
-  position: 'bottom-right',
+  position: "bottom-right",
   decimals: 6,
-  showProjected: true
-}; 
+  showProjected: true,
+};

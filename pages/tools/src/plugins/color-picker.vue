@@ -28,7 +28,7 @@
                       <div class="format-item">
                         <div class="format-label">HEX</div>
                         <div class="format-value">
-                          <ScInput 
+                          <ScInput
                             v-model="hexColor"
                             @change="updateFromHex"
                             @focus="$event.target.select()"
@@ -44,7 +44,7 @@
                       <div class="format-item">
                         <div class="format-label">RGB</div>
                         <div class="format-value">
-                          <ScInput 
+                          <ScInput
                             v-model="rgbColor"
                             @focus="$event.target.select()"
                           >
@@ -59,7 +59,7 @@
                       <div class="format-item">
                         <div class="format-label">HSL</div>
                         <div class="format-value">
-                          <ScInput 
+                          <ScInput
                             v-model="hslColor"
                             @focus="$event.target.select()"
                           >
@@ -76,7 +76,7 @@
                 </div>
 
                 <div class="color-picker-main">
-                  <ScColorPicker 
+                  <ScColorPicker
                     v-model="currentColor"
                     show-alpha
                     :predefine="predefineColors"
@@ -93,7 +93,7 @@
               <template #header>
                 <div class="favorites-header">
                   <span>我的收藏颜色</span>
-                  <ScButton 
+                  <ScButton
                     type="primary"
                     @click="addToFavorites"
                     :disabled="isFavorite"
@@ -179,13 +179,13 @@
                       <div class="color-handle">
                         <IconifyIconOnline icon="ri:drag-move-line" />
                       </div>
-                      <ScColorPicker 
+                      <ScColorPicker
                         v-model="element.color"
                         show-alpha
                         @change="updateGradient"
                         size="small"
                       />
-                      <ScInputNumber 
+                      <ScInputNumber
                         v-model="element.position"
                         :min="0"
                         :max="100"
@@ -194,7 +194,7 @@
                         class="position-input"
                       />
                       <span class="position-label">%</span>
-                      <ScButton 
+                      <ScButton
                         type="danger"
                         icon="delete"
                         size="small"
@@ -208,7 +208,7 @@
                   </template>
                 </draggable>
                 <div class="add-color">
-                  <ScButton 
+                  <ScButton
                     type="primary"
                     @click="addGradientColor"
                     :disabled="gradientColors.length >= 10"
@@ -228,14 +228,14 @@
               ></div>
               <div class="gradient-code">
                 <h4>CSS 代码:</h4>
-                <ScInput 
+                <ScInput
                   type="textarea"
                   v-model="gradientCSS"
                   readonly
                   rows="4"
                   class="gradient-textarea"
                 />
-                <ScButton 
+                <ScButton
                   type="primary"
                   @click="copyToClipboard(gradientCSS)"
                   class="copy-gradient"
@@ -253,7 +253,6 @@
 </template>
 
 <script setup>
-
 import ScTabPane from "@repo/components/ScTabs";
 import { ref, computed, watch, onMounted } from "vue";
 import { message } from "@repo/utils";
@@ -376,7 +375,7 @@ const addToFavorites = () => {
     favoriteColors.value.push(currentColor.value);
     localStorage.setItem(
       "favoriteColors",
-      JSON.stringify(favoriteColors.value)
+      JSON.stringify(favoriteColors.value),
     );
     message("已添加到收藏", { type: "success" });
   }
@@ -473,7 +472,7 @@ const gradientCSS = ref("");
 const updateGradient = () => {
   // 按位置排序
   const sortedColors = [...gradientColors.value].sort(
-    (a, b) => a.position - b.position
+    (a, b) => a.position - b.position,
   );
 
   // 生成渐变字符串

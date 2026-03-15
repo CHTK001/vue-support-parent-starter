@@ -2,7 +2,7 @@
   <div class="statistics-charts system-container modern-bg">
     <!-- 时间范围选择 -->
     <div class="filter-bar">
-      <el-date-picker
+      <ScDatePicker
         v-model="dateRange"
         type="datetimerange"
         range-separator="至"
@@ -13,122 +13,122 @@
         :shortcuts="dateShortcuts"
         @change="handleDateChange"
       />
-      <el-select
+      <ScSelect
         v-model="granularity"
         placeholder="统计粒度"
         style="width: 120px; margin-left: 12px"
         @change="loadData"
       >
-        <el-option label="按小时" value="hour" />
-        <el-option label="按天" value="day" />
-      </el-select>
-      <el-button :loading="loading" style="margin-left: 12px" @click="loadData">
-        <el-icon><Refresh /></el-icon>
+        <ScOption label="按小时" value="hour" />
+        <ScOption label="按天" value="day" />
+      </ScSelect>
+      <ScButton :loading="loading" style="margin-left: 12px" @click="loadData">
+        <ScIcon><Refresh /></ScIcon>
         刷新
-      </el-button>
+      </ScButton>
     </div>
 
     <!-- 汇总卡片 -->
-    <el-row :gutter="16" class="summary-row">
-      <el-col :span="4">
-        <el-card class="summary-card" shadow="hover">
+    <ScRow :gutter="16" class="summary-row">
+      <ScCol :span="4">
+        <ScCard class="summary-card" shadow="hover">
           <div class="summary-value">
             {{ statistics?.summary?.totalExecutions || 0 }}
           </div>
           <div class="summary-label">总执行次数</div>
-        </el-card>
-      </el-col>
-      <el-col :span="4">
-        <el-card class="summary-card success" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="4">
+        <ScCard class="summary-card success" shadow="hover">
           <div class="summary-value">
             {{ statistics?.summary?.successCount || 0 }}
           </div>
           <div class="summary-label">成功次数</div>
-        </el-card>
-      </el-col>
-      <el-col :span="4">
-        <el-card class="summary-card danger" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="4">
+        <ScCard class="summary-card danger" shadow="hover">
           <div class="summary-value">
             {{ statistics?.summary?.failCount || 0 }}
           </div>
           <div class="summary-label">失败次数</div>
-        </el-card>
-      </el-col>
-      <el-col :span="4">
-        <el-card class="summary-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="4">
+        <ScCard class="summary-card" shadow="hover">
           <div class="summary-value">
             {{ formatPercent(statistics?.summary?.successRate) }}
           </div>
           <div class="summary-label">成功率</div>
-        </el-card>
-      </el-col>
-      <el-col :span="4">
-        <el-card class="summary-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="4">
+        <ScCard class="summary-card" shadow="hover">
           <div class="summary-value">
             {{ formatDuration(statistics?.summary?.avgCost) }}
           </div>
           <div class="summary-label">平均耗时</div>
-        </el-card>
-      </el-col>
-      <el-col :span="4">
-        <el-card class="summary-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="4">
+        <ScCard class="summary-card" shadow="hover">
           <div class="summary-value">
             {{ formatNumber(statistics?.summary?.totalReadCount) }}
           </div>
           <div class="summary-label">总数据量</div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 图表区域 -->
-    <el-row :gutter="16" class="chart-row">
-      <el-col :span="16">
-        <el-card class="chart-card" shadow="hover">
+    <ScRow :gutter="16" class="chart-row">
+      <ScCol :span="16">
+        <ScCard class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span>执行趋势</span>
             </div>
           </template>
           <div ref="trendChartRef" class="chart-container" />
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card class="chart-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="8">
+        <ScCard class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span>状态分布</span>
             </div>
           </template>
           <div ref="statusPieRef" class="chart-container" />
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
-    <el-row :gutter="16" class="chart-row">
-      <el-col :span="8">
-        <el-card class="chart-card" shadow="hover">
+    <ScRow :gutter="16" class="chart-row">
+      <ScCol :span="8">
+        <ScCard class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span>触发类型分布</span>
             </div>
           </template>
           <div ref="triggerPieRef" class="chart-container" />
-        </el-card>
-      </el-col>
-      <el-col :span="16">
-        <el-card class="chart-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="16">
+        <ScCard class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span>数据量趋势</span>
             </div>
           </template>
           <div ref="dataChartRef" class="chart-container" />
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 任务排行榜(仅全局统计时显示) -->
-    <el-card
+    <ScCard
       v-if="!taskId && statistics?.taskRanking?.length"
       class="ranking-card"
       shadow="hover"
@@ -138,13 +138,13 @@
           <span>任务执行排行榜 TOP 10</span>
         </div>
       </template>
-      <el-table :data="statistics.taskRanking" stripe>
-        <el-table-column type="index" label="排名" width="70" />
-        <el-table-column prop="taskName" label="任务名称" min-width="150" />
-        <el-table-column prop="executions" label="执行次数" width="100" />
-        <el-table-column label="成功率" width="100">
+      <ScTable :data="statistics.taskRanking" stripe>
+        <ScTableColumn type="index" label="排名" width="70" />
+        <ScTableColumn prop="taskName" label="任务名称" min-width="150" />
+        <ScTableColumn prop="executions" label="执行次数" width="100" />
+        <ScTableColumn label="成功率" width="100">
           <template #default="{ row }">
-            <el-progress
+            <ScProgress
               :percentage="row.successRate"
               :color="getProgressColor(row.successRate)"
               :stroke-width="10"
@@ -152,19 +152,19 @@
             />
             <span class="progress-text">{{ row.successRate.toFixed(1) }}%</span>
           </template>
-        </el-table-column>
-        <el-table-column label="平均耗时" width="100">
+        </ScTableColumn>
+        <ScTableColumn label="平均耗时" width="100">
           <template #default="{ row }">
             {{ formatDuration(row.avgCost) }}
           </template>
-        </el-table-column>
-        <el-table-column label="数据量" width="120">
+        </ScTableColumn>
+        <ScTableColumn label="数据量" width="120">
           <template #default="{ row }">
             {{ formatNumber(row.totalDataCount) }}
           </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+        </ScTableColumn>
+      </ScTable>
+    </ScCard>
   </div>
 </template>
 

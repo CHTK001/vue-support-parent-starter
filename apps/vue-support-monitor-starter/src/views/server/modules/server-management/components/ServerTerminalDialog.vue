@@ -16,25 +16,25 @@
             class="mr-2"
           />
           {{ serverData.monitorSysGenServerName }} - 终端
-          <el-tag size="small" class="ml-2">{{
+          <ScTag size="small" class="ml-2">{{
             serverData.monitorSysGenServerProtocol
-          }}</el-tag>
+          }}</ScTag>
         </div>
         <div class="terminal-actions">
           <el-button-group>
-            <el-button size="small" @click="handleClear">
+            <ScButton size="small" @click="handleClear">
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               清屏
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               :loading="connecting"
               @click="handleReconnect"
             >
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               重连
-            </el-button>
-            <el-button size="small" @click="toggleFullscreen">
+            </ScButton>
+            <ScButton size="small" @click="toggleFullscreen">
               <IconifyIconOnline
                 :icon="
                   isFullscreen
@@ -44,7 +44,7 @@
                 class="mr-1"
               />
               {{ isFullscreen ? "退出全屏" : "全屏" }}
-            </el-button>
+            </ScButton>
           </el-button-group>
         </div>
       </div>
@@ -66,41 +66,41 @@
         <div ref="rdpDisplayRef" class="rdp-display" tabindex="0" />
         <div class="rdp-controls">
           <div class="rdp-status">
-            <el-tag
+            <ScTag
               :type="connectionStatus === 'connected' ? 'success' : 'info'"
             >
               {{ connectionStatus === "connected" ? "已连接" : "未连接" }}
-            </el-tag>
+            </ScTag>
             <span class="ml-2"
               >分辨率: {{ rdpConfig.width }}x{{ rdpConfig.height }}</span
             >
           </div>
           <div class="rdp-actions">
-            <el-button
+            <ScButton
               size="small"
               :disabled="!isConnected"
               @click="handleClipboard('rdp')"
             >
               <IconifyIconOnline icon="ep:document-copy" />
               剪贴板
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               :disabled="!isConnected"
               @click="handleScreenshot('rdp')"
             >
               <IconifyIconOnline icon="ep:camera" />
               截图
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               :disabled="!isConnected"
               @click="handleScreenResize(1024, 768, 'rdp')"
             >
               <IconifyIconOnline icon="ep:full-screen" />
               调整尺寸
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               type="danger"
               :disabled="!isConnected"
@@ -119,41 +119,41 @@
         <div ref="vncDisplayRef" class="vnc-display" tabindex="0" />
         <div class="vnc-controls">
           <div class="vnc-status">
-            <el-tag
+            <ScTag
               :type="connectionStatus === 'connected' ? 'success' : 'info'"
             >
               {{ connectionStatus === "connected" ? "已连接" : "未连接" }}
-            </el-tag>
+            </ScTag>
             <span class="ml-2"
               >只读模式: {{ vncConfig.readOnly ? "是" : "否" }}</span
             >
           </div>
           <div class="vnc-actions">
-            <el-button
+            <ScButton
               size="small"
               :disabled="!isConnected || vncConfig.readOnly"
               @click="handleClipboard('vnc')"
             >
               <IconifyIconOnline icon="ep:document-copy" />
               剪贴板
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               :disabled="!isConnected"
               @click="handleScreenshot('vnc')"
             >
               <IconifyIconOnline icon="ep:camera" />
               截图
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               :disabled="!isConnected"
               @click="handleScreenResize(1024, 768, 'vnc')"
             >
               <IconifyIconOnline icon="ep:full-screen" />
               调整尺寸
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               type="danger"
               :disabled="!isConnected"
@@ -190,7 +190,7 @@
           <div class="connection-text">
             {{ connecting ? "正在连接..." : "连接已断开" }}
           </div>
-          <el-button v-if="!connecting" type="primary" @click="handleConnect"
+          <ScButton v-if="!connecting" type="primary" @click="handleConnect"
             >重新连接</el-button
           >
         </div>
@@ -200,9 +200,9 @@
     <template #footer>
       <div class="terminal-footer">
         <div class="connection-info">
-          <el-tag :type="isConnected ? 'success' : 'danger'" size="small">
+          <ScTag :type="isConnected ? 'success' : 'danger'" size="small">
             {{ isConnected ? "已连接" : "未连接" }}
-          </el-tag>
+          </ScTag>
           <span class="ml-2"
             >{{ serverData.monitorSysGenServerHost }}:{{
               serverData.monitorSysGenServerPort
@@ -210,7 +210,7 @@
           >
         </div>
         <div class="footer-actions">
-          <el-button @click="visible = false">关闭</el-button>
+          <ScButton @click="visible = false">关闭</ScButton>
         </div>
       </div>
     </template>

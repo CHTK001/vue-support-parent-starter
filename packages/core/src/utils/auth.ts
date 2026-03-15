@@ -1,7 +1,18 @@
 import { useUserStoreHook } from "../store/modules/UserStore";
-import type { FlatUserResult, UserInfoVO, UserResult } from "../api/common/user";
+import type {
+  FlatUserResult,
+  UserInfoVO,
+  UserResult,
+} from "../api/common/user";
 import { localStorageProxy } from "@repo/utils";
-import { getToken as getGlobalToken, removeToken as removeGlobalToken, setLoginOutFunction, setRefreshTokenFunction, setToken as setGlobalToken, userKey } from "@repo/config";
+import {
+  getToken as getGlobalToken,
+  removeToken as removeGlobalToken,
+  setLoginOutFunction,
+  setRefreshTokenFunction,
+  setToken as setGlobalToken,
+  userKey,
+} from "@repo/config";
 
 /** 获取`token` */
 export function getToken(): UserResult {
@@ -17,18 +28,31 @@ export function getToken(): UserResult {
  * @param data - 用户数据，包含 accessToken、refreshToken、expires 等信息
  * @param userSetting - 用户设置，包含 isRemembered 和 expires 等信息（expires 会被忽略，使用 data.expires）
  */
-export function setToken(data: UserResult, userSetting?: { isRemembered?: boolean; expires?: number }) {
+export function setToken(
+  data: UserResult,
+  userSetting?: { isRemembered?: boolean; expires?: number },
+) {
   const userStore = useUserStoreHook();
   // setGlobalToken 期望的 userSetting 是 { isRemembered, loginDay }，而不是 { isRemembered, expires }
   const setting = {
-    isRemembered: userSetting?.isRemembered ?? data?.isRemembered ?? userStore.isRemembered ?? true,
+    isRemembered:
+      userSetting?.isRemembered ??
+      data?.isRemembered ??
+      userStore.isRemembered ??
+      true,
     loginDay: userStore.loginDay ?? 7,
   };
   const { refreshToken, expires } = setGlobalToken(data, setting);
   setLoginOutFunction(useUserStoreHook().logOut);
   setRefreshTokenFunction(useUserStoreHook().handRefreshToken);
 
-  function setUserKey({ avatar, sysUserUsername, sysUserNickname, roles, perms }: UserInfoVO) {
+  function setUserKey({
+    avatar,
+    sysUserUsername,
+    sysUserNickname,
+    roles,
+    perms,
+  }: UserInfoVO) {
     useUserStoreHook().SET_AVATAR(avatar);
     useUserStoreHook().SET_USERNAME(sysUserUsername);
     useUserStoreHook().SET_NICKNAME(sysUserNickname);
@@ -55,11 +79,18 @@ export function setToken(data: UserResult, userSetting?: { isRemembered?: boolea
       perms,
     } as UserInfoVO);
   } else {
-    const avatar = localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
-    const sysUserUsername = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "";
-    const sysUserNickname = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "";
-    const roles = localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
-    const perms = localStorageProxy().getItem<FlatUserResult>(userKey)?.perms ?? [];
+    const avatar =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
+    const sysUserUsername =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ??
+      "";
+    const sysUserNickname =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
+      "";
+    const roles =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
+    const perms =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.perms ?? [];
     setUserKey({
       avatar,
       sysUserUsername,

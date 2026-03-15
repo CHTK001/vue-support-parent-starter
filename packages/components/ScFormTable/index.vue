@@ -1,37 +1,29 @@
 <template>
   <div ref="scFormTable" class="sc-form-table">
-    <el-table 
-      ref="table" 
-      :data="data" 
-      border 
-      stripe 
-      :height="height"
-      :default-sort="defaultSort"
-      @sort-change="handleSortChange"
-    >
-      <el-table-column type="index" width="50" fixed="left">
+    <ScTable ref="table" :data="data" border stripe :height="height" :default-sort="defaultSort" @sort-change="handleSortChange">
+      <ScTableColumn type="index" width="50" fixed="left">
         <template #header>
-          <el-button v-if="!hideAdd" type="primary" :icon="useRenderIcon('ep:plus')" size="small" circle @click="rowAdd" />
+          <ScButton v-if="!hideAdd" type="primary" :icon="useRenderIcon('ep:plus')" size="small" circle @click="rowAdd" />
         </template>
         <template #default="scope">
           <div :class="['sc-form-table-handle', { 'sc-form-table-handle-delete': !hideDelete }]">
             <span>{{ scope.$index + 1 }}</span>
-            <el-button v-if="!hideDelete" type="danger" :icon="useRenderIcon('ep:delete')" size="small" plain circle @click="rowDel(scope.row, scope.$index)" />
+            <ScButton v-if="!hideDelete" type="danger" :icon="useRenderIcon('ep:delete')" size="small" plain circle @click="rowDel(scope.row, scope.$index)" />
           </div>
         </template>
-      </el-table-column>
-      <el-table-column v-if="dragSort" label="" width="50">
+      </ScTableColumn>
+      <ScTableColumn v-if="dragSort" label="" width="50">
         <template #default>
           <div class="move" style="cursor: move">
             <component :is="useRenderIcon('ep:d-caret')" style="width: 1em; height: 1em" />
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
       <slot />
       <template #empty>
         {{ placeholder }}
       </template>
-    </el-table>
+    </ScTable>
   </div>
 </template>
 
@@ -60,7 +52,7 @@ export default {
   computed: {
     // 版本号用于监听 data 变化，避免深度监听
     dataVersion() {
-      return this.data.length + '-' + JSON.stringify(this.data.map(d => d.id || JSON.stringify(d)));
+      return this.data.length + "-" + JSON.stringify(this.data.map(d => d.id || JSON.stringify(d)));
     }
   },
   watch: {
@@ -120,13 +112,13 @@ export default {
     // 排序变化
     handleSortChange({ column, prop, order }) {
       this.$emit("sort-change", { column, prop, order });
-      
+
       if (prop && order) {
-        const sortOrder = order === 'ascending' ? 1 : -1;
+        const sortOrder = order === "ascending" ? 1 : -1;
         this.data.sort((a, b) => {
           const aVal = a[prop];
           const bVal = b[prop];
-          if (typeof aVal === 'number' && typeof bVal === 'number') {
+          if (typeof aVal === "number" && typeof bVal === "number") {
             return (aVal - bVal) * sortOrder;
           }
           return String(aVal).localeCompare(String(bVal)) * sortOrder;

@@ -1,36 +1,36 @@
 <template>
   <div id="app">
-    <el-container class="layout-container">
-      <el-aside width="200px" class="sidebar">
+    <ScContainer class="layout-container">
+      <ScAside width="200px" class="sidebar">
         <div class="logo">
           <h2>支付管理系统</h2>
         </div>
-        <el-menu
+        <ScMenu
           :default-active="activeMenu"
           router
           class="menu"
         >
-          <el-menu-item index="/orders">
-            <el-icon><Document /></el-icon>
+          <ScMenuItem index="/orders">
+            <ScIcon><Document /></ScIcon>
             <span>订单管理</span>
-          </el-menu-item>
-          <el-menu-item index="/merchants">
-            <el-icon><Shop /></el-icon>
+          </ScMenuItem>
+          <ScMenuItem index="/merchants">
+            <ScIcon><Shop /></ScIcon>
             <span>商户管理</span>
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
-      <el-container>
-        <el-header class="header">
+          </ScMenuItem>
+        </ScMenu>
+      </ScAside>
+      <ScContainer>
+        <ScHeader class="header">
           <div class="header-content">
             <span>欢迎使用支付管理系统</span>
           </div>
-        </el-header>
-        <el-main class="main">
+        </ScHeader>
+        <ScMain class="main">
           <router-view />
-        </el-main>
-      </el-container>
-    </el-container>
+        </ScMain>
+      </ScContainer>
+    </ScContainer>
   </div>
 </template>
 

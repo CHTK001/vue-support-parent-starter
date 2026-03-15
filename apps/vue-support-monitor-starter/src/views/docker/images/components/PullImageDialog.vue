@@ -6,25 +6,25 @@
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <el-form-item label="镜像名称" prop="imageName">
-        <el-input
+    <ScForm ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <ScFormItem label="镜像名称" prop="imageName">
+        <ScInput
           v-model="form.imageName"
           placeholder="例如: nginx, mysql, redis"
           clearable
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="镜像标签" prop="imageTag">
-        <el-input
+      <ScFormItem label="镜像标签" prop="imageTag">
+        <ScInput
           v-model="form.imageTag"
           placeholder="例如: latest, 8.0, alpine"
           clearable
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="完整镜像" prop="fullImageName">
-        <el-input
+      <ScFormItem label="完整镜像" prop="fullImageName">
+        <ScInput
           v-model="form.fullImageName"
           placeholder="完整镜像名称，如: docker.io/library/nginx:latest"
           clearable
@@ -32,47 +32,47 @@
         <div class="form-tip">
           如果填写了完整镜像名称，将优先使用此项，忽略上面的镜像名称和标签
         </div>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="目标服务器" prop="serverId">
-        <el-select
+      <ScFormItem label="目标服务器" prop="serverId">
+        <ScSelect
           v-model="form.serverId"
           placeholder="选择服务器"
           style="width: 100%"
         >
-          <el-option
+          <ScOption
             v-for="server in serverOptions"
             :key="server.id"
             :label="server.name"
             :value="server.id"
           />
-        </el-select>
-      </el-form-item>
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="镜像仓库" prop="registryId">
-        <el-select
+      <ScFormItem label="镜像仓库" prop="registryId">
+        <ScSelect
           v-model="form.registryId"
           placeholder="选择镜像仓库（可选）"
           clearable
           style="width: 100%"
         >
-          <el-option
+          <ScOption
             v-for="registry in registryOptions"
             :key="registry.id"
             :label="registry.name"
             :value="registry.id"
           />
-        </el-select>
+        </ScSelect>
         <div class="form-tip">如果不选择，将使用默认的Docker Hub</div>
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSubmit">
           开始拉取
-        </el-button>
+        </ScButton>
       </span>
     </template>
   </sc-dialog>

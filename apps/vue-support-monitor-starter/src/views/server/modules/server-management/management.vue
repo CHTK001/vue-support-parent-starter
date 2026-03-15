@@ -8,25 +8,25 @@
           服务器管理
         </h1>
         <div class="page-breadcrumb">
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item>监控中心</el-breadcrumb-item>
-            <el-breadcrumb-item>服务器管理</el-breadcrumb-item>
-          </el-breadcrumb>
+          <ScBreadcrumb separator="/">
+            <ScBreadcrumbItem>监控中心</ScBreadcrumbItem>
+            <ScBreadcrumbItem>服务器管理</ScBreadcrumbItem>
+          </ScBreadcrumb>
         </div>
       </div>
       <div class="header-right">
-        <el-button type="primary" @click="handleAddServer">
+        <ScButton type="primary" @click="handleAddServer">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
           新增服务器
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 统计卡片 -->
     <div class="stats-cards">
-      <el-row :gutter="16">
-        <el-col :span="6">
-          <el-card class="stats-card">
+      <ScRow :gutter="16">
+        <ScCol :span="6">
+          <ScCard class="stats-card">
             <div class="stats-content">
               <div class="stats-icon total">
                 <IconifyIconOnline icon="ri:server-line" />
@@ -36,10 +36,10 @@
                 <div class="stats-label">总服务器数</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stats-card">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="stats-card">
             <div class="stats-content">
               <div class="stats-icon online">
                 <IconifyIconOnline icon="ri:checkbox-circle-line" />
@@ -49,10 +49,10 @@
                 <div class="stats-label">在线服务器</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stats-card">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="stats-card">
             <div class="stats-content">
               <div class="stats-icon offline">
                 <IconifyIconOnline icon="ri:close-circle-line" />
@@ -62,10 +62,10 @@
                 <div class="stats-label">离线服务器</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stats-card">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="stats-card">
             <div class="stats-content">
               <div class="stats-icon error">
                 <IconifyIconOnline icon="ri:error-warning-line" />
@@ -75,15 +75,15 @@
                 <div class="stats-label">异常服务器</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
 
     <!-- 功能标签页 -->
     <div class="main-content">
-      <el-tabs v-model="activeTab" type="card" class="management-tabs">
-        <el-tab-pane label="服务器列表" name="servers">
+      <ScTabs v-model="activeTab" type="card" class="management-tabs">
+        <ScTabPane label="服务器列表" name="servers">
           <ServerList
             ref="serverListRef"
             @edit="handleEditServer"
@@ -97,17 +97,17 @@
             @logs="handleServerLogs"
             @upload="handleFileUpload"
           />
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="连接状态" name="connections">
+        <ScTabPane label="连接状态" name="connections">
           <ServerConnectionStatusList
             ref="connectionStatusRef"
             @test="handleTestConnection"
             @batch-test="handleBatchTestConnection"
           />
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="文件上传" name="uploads">
+        <ScTabPane label="文件上传" name="uploads">
           <FileUploadTasks
             ref="fileUploadRef"
             @create="handleCreateUploadTask"
@@ -115,9 +115,9 @@
             @pause="handlePauseUploadTask"
             @cancel="handleCancelUploadTask"
           />
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="脚本管理" name="scripts">
+        <ScTabPane label="脚本管理" name="scripts">
           <ServerScripts
             ref="serverScriptsRef"
             @create="handleCreateScript"
@@ -125,17 +125,17 @@
             @execute="handleExecuteScript"
             @delete="handleDeleteScript"
           />
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="日志管理" name="logs">
+        <ScTabPane label="日志管理" name="logs">
           <ServerLogs
             ref="serverLogsRef"
             @view="handleViewLog"
             @export="handleExportLogs"
             @cleanup="handleCleanupLogs"
           />
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </div>
 
     <!-- 对话框组件 -->

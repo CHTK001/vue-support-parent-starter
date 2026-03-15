@@ -1,0 +1,119 @@
+// 圣诞节主题动画效果
+
+// 飘雪动画
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10vh) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) translateX(100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.christmas-snowfall {
+  animation: snowfall linear infinite;
+}
+
+// 闪烁彩灯
+@keyframes lights-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.christmas-lights-blink {
+  animation: lights-blink 1.5s ease-in-out infinite;
+}
+
+// 礼物盒摇摆
+@keyframes gift-shake {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+
+.christmas-gift-shake {
+  animation: gift-shake 2s ease-in-out infinite;
+}
+
+// 圣诞树装饰闪烁
+@keyframes ornament-sparkle {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5) drop-shadow(0 0 10px var(--christmas-gold));
+  }
+}
+
+.christmas-ornament-sparkle {
+  animation: ornament-sparkle 2s ease-in-out infinite;
+}
+
+// 按钮悬停效果
+.christmas-button-hover {
+  transition: all var(--transition-normal) ease;
+  
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+// 卡片入场动画
+@keyframes card-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.christmas-card-enter {
+  animation: card-slide-in 0.6s ease-out;
+}
+
+// 雪花旋转
+@keyframes snowflake-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.christmas-snowflake-spin {
+  animation: snowflake-spin 10s linear infinite;
+}
+
+// 响应式动画控制
+@media (prefers-reduced-motion: reduce) {
+  .christmas-snowfall,
+  .christmas-lights-blink,
+  .christmas-gift-shake,
+  .christmas-ornament-sparkle,
+  .christmas-snowflake-spin {
+    animation: none;
+  }
+}

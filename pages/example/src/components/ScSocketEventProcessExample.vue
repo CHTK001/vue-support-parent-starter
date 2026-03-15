@@ -455,7 +455,7 @@
     >
       <template #default="{ data, percentage, status }">
         <div class="custom-dialog-content">
-          <el-result
+          <ScResult
             :icon="getResultIcon(status)"
             :title="status"
             :sub-title="`进度: ${percentage}%`"
@@ -467,7 +467,7 @@
                 :color="getProgressColor(percentage)"
               />
             </template>
-          </el-result>
+          </ScResult>
         </div>
       </template>
     </ScSocketEventProcess>

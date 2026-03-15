@@ -4,8 +4,8 @@
  * @author AI
  * @date 2023-03-08
  */
-import * as Cesium from 'cesium';
-import logger from './LogObject';
+import * as Cesium from "cesium";
+import logger from "./LogObject";
 
 // 3D模型配置选项
 export interface Model3DOptions {
@@ -23,8 +23,8 @@ export interface Model3DOptions {
   };
   rotation?: {
     heading?: number; // 偏航角，绕垂直轴旋转（y轴）
-    pitch?: number;   // 俯仰角，绕水平轴旋转（x轴）
-    roll?: number;    // 翻滚角，绕前后轴旋转（z轴）
+    pitch?: number; // 俯仰角，绕水平轴旋转（x轴）
+    roll?: number; // 翻滚角，绕前后轴旋转（z轴）
   };
   minimumPixelSize?: number;
   maximumScale?: number;
@@ -95,7 +95,7 @@ export class CesiumModelObject {
     if (eventHandlers) {
       this.eventHandlers = eventHandlers;
     }
-    logger.info('CesiumModelObject实例已创建');
+    logger.info("CesiumModelObject实例已创建");
   }
 
   /**
@@ -121,7 +121,7 @@ export class CesiumModelObject {
    */
   public addModel(options: Model3DOptions): string | null {
     if (!this.scene) {
-      logger.error('无法添加3D模型: 场景未设置');
+      logger.error("无法添加3D模型: 场景未设置");
       return null;
     }
 
@@ -130,78 +130,90 @@ export class CesiumModelObject {
       const position = Cesium.Cartesian3.fromDegrees(
         options.position.longitude,
         options.position.latitude,
-        options.position.height || 0
+        options.position.height || 0,
       );
 
       // 设置模型旋转
       let heading = Cesium.Math.toRadians(options.rotation?.heading || 0);
       let pitch = Cesium.Math.toRadians(options.rotation?.pitch || 0);
       let roll = Cesium.Math.toRadians(options.rotation?.roll || 0);
-      
+
       const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
-      const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
+      const orientation = Cesium.Transforms.headingPitchRollQuaternion(
+        position,
+        hpr,
+      );
 
       // 创建模型实例
       let modelEntity: any = null;
-      
+
       // 尝试使用不同的方式创建模型
-      if (this.scene.primitives && typeof this.scene.primitives.add === 'function') {
+      if (
+        this.scene.primitives &&
+        typeof this.scene.primitives.add === "function"
+      ) {
         try {
           // 尝试创建简单盒体模型作为占位符
           const boxGeometry = new Cesium.BoxGeometry({
             vertexFormat: Cesium.VertexFormat.ALL,
             minimum: new Cesium.Cartesian3(-50.0, -50.0, -50.0),
-            maximum: new Cesium.Cartesian3(50.0, 50.0, 50.0)
+            maximum: new Cesium.Cartesian3(50.0, 50.0, 50.0),
           });
-          
-          const modelMatrix = Cesium.Matrix4.fromTranslationQuaternionRotationScale(
-            position,
-            orientation,
-            new Cesium.Cartesian3(
-              options.scale?.x || 1.0,
-              options.scale?.y || 1.0,
-              options.scale?.z || 1.0
-            )
-          );
-          
+
+          const modelMatrix =
+            Cesium.Matrix4.fromTranslationQuaternionRotationScale(
+              position,
+              orientation,
+              new Cesium.Cartesian3(
+                options.scale?.x || 1.0,
+                options.scale?.y || 1.0,
+                options.scale?.z || 1.0,
+              ),
+            );
+
           const appearance = new Cesium.MaterialAppearance({
             material: new Cesium.Material({
               fabric: {
-                type: 'Color',
+                type: "Color",
                 uniforms: {
-                  color: options.color ? Cesium.Color.fromCssColorString(options.color) : Cesium.Color.WHITE
-                }
-              }
+                  color: options.color
+                    ? Cesium.Color.fromCssColorString(options.color)
+                    : Cesium.Color.WHITE,
+                },
+              },
             }),
             renderState: {
               depthTest: {
-                enabled: true
-              }
-            }
+                enabled: true,
+              },
+            },
           });
-          
+
           // 创建一个Primitive作为模型
           const modelPrimitive = new Cesium.Primitive({
             geometryInstances: new Cesium.GeometryInstance({
               geometry: boxGeometry,
               modelMatrix: modelMatrix,
-              id: options.id
+              id: options.id,
             }),
             appearance: appearance,
-            asynchronous: false
+            asynchronous: false,
           });
-          
+
           modelEntity = this.scene.primitives.add(modelPrimitive);
-          
+
           // 记录模型创建方式
           logger.info(`使用Primitive方式创建模型 "${options.id}"`);
         } catch (error) {
-          logger.error('创建Primitive模型失败，尝试Entity方式', error);
-          
+          logger.error("创建Primitive模型失败，尝试Entity方式", error);
+
           // 回退到Entity方式
           // 使用类型断言访问可能不存在的entities属性
           const sceneAny = this.scene as any;
-          if (sceneAny.entities && typeof sceneAny.entities.add === 'function') {
+          if (
+            sceneAny.entities &&
+            typeof sceneAny.entities.add === "function"
+          ) {
             // 尝试使用Entity创建
             const modelOptions: any = {
               id: options.id,
@@ -211,23 +223,23 @@ export class CesiumModelObject {
                 dimensions: new Cesium.Cartesian3(
                   (options.scale?.x || 1.0) * 100,
                   (options.scale?.y || 1.0) * 100,
-                  (options.scale?.z || 1.0) * 100
+                  (options.scale?.z || 1.0) * 100,
                 ),
-                material: options.color ? 
-                  Cesium.Color.fromCssColorString(options.color) : 
-                  Cesium.Color.WHITE
-              }
+                material: options.color
+                  ? Cesium.Color.fromCssColorString(options.color)
+                  : Cesium.Color.WHITE,
+              },
             };
-            
+
             modelEntity = sceneAny.entities.add(modelOptions);
             logger.info(`使用Entity方式创建模型 "${options.id}"`);
           } else {
-            logger.error('无法创建模型：Cesium场景不支持Primitive或Entity');
+            logger.error("无法创建模型：Cesium场景不支持Primitive或Entity");
             return null;
           }
         }
       } else {
-        logger.error('无法创建模型：Cesium场景不支持Primitive');
+        logger.error("无法创建模型：Cesium场景不支持Primitive");
         return null;
       }
 
@@ -250,123 +262,146 @@ export class CesiumModelObject {
 
       return options.id;
     } catch (error) {
-      logger.error('添加3D模型失败:', error);
+      logger.error("添加3D模型失败:", error);
       return null;
     }
   }
-  
+
   /**
    * 为模型配置动画
    * @param model 模型实例
    * @param animation 动画配置
    */
-  private configureModelAnimation(model: any, animation: Model3DOptions['animation']): void {
+  private configureModelAnimation(
+    model: any,
+    animation: Model3DOptions["animation"],
+  ): void {
     if (!model) return;
-    
+
     try {
       // 检查模型是否支持动画
-      if (model.activeAnimations && typeof model.activeAnimations.add === 'function') {
+      if (
+        model.activeAnimations &&
+        typeof model.activeAnimations.add === "function"
+      ) {
         const options: any = {};
-        
+
         if (animation?.startTime !== undefined) {
           options.startTime = animation.startTime;
         }
-        
+
         if (animation?.speedFactor !== undefined) {
           options.multiplier = animation.speedFactor;
         }
-        
+
         if (animation?.loop !== undefined) {
           options.loop = animation.loop;
         }
-        
+
         // 添加模型动画
         if (animation?.autoPlay !== false) {
           model.activeAnimations.add({
             ...options,
             // 如果没有指定特定的动画，播放第一个动画
-            name: 0
+            name: 0,
           });
         }
       } else {
-        logger.debug('模型不支持动画，跳过动画配置');
+        logger.debug("模型不支持动画，跳过动画配置");
       }
     } catch (error) {
-      logger.error('配置模型动画失败:', error);
+      logger.error("配置模型动画失败:", error);
     }
   }
-  
+
   /**
    * 添加模型标签
    * @param modelId 模型ID
    * @param position 位置
    * @param labelOptions 标签配置
    */
-  private addModelLabel(modelId: string, position: Cesium.Cartesian3, labelOptions: NonNullable<Model3DOptions['label']>): void {
+  private addModelLabel(
+    modelId: string,
+    position: Cesium.Cartesian3,
+    labelOptions: NonNullable<Model3DOptions["label"]>,
+  ): void {
     if (!this.scene) return;
-    
+
     try {
       // 计算标签位置，可能需要高度偏移
       const labelPosition = new Cesium.Cartesian3(
         position.x,
         position.y,
-        position.z + (labelOptions.heightOffset || 10) // 默认高度偏移10米
+        position.z + (labelOptions.heightOffset || 10), // 默认高度偏移10米
       );
-      
+
       // 检查场景是否支持LabelCollection
-      if (!this.scene.primitives || typeof this.scene.primitives.add !== 'function') {
-        logger.error('无法添加标签：Cesium场景不支持primitive');
+      if (
+        !this.scene.primitives ||
+        typeof this.scene.primitives.add !== "function"
+      ) {
+        logger.error("无法添加标签：Cesium场景不支持primitive");
         return;
       }
-      
+
       try {
         // 创建标签实体
         const labelCollection = new Cesium.LabelCollection();
         this.scene.primitives.add(labelCollection);
-        
+
         const label = labelCollection.add({
           position: labelPosition,
           text: labelOptions.text,
-          font: labelOptions.font || '14pt sans-serif',
-          fillColor: labelOptions.fillColor ? Cesium.Color.fromCssColorString(labelOptions.fillColor) : Cesium.Color.WHITE,
-          outlineColor: labelOptions.outlineColor ? Cesium.Color.fromCssColorString(labelOptions.outlineColor) : Cesium.Color.BLACK,
+          font: labelOptions.font || "14pt sans-serif",
+          fillColor: labelOptions.fillColor
+            ? Cesium.Color.fromCssColorString(labelOptions.fillColor)
+            : Cesium.Color.WHITE,
+          outlineColor: labelOptions.outlineColor
+            ? Cesium.Color.fromCssColorString(labelOptions.outlineColor)
+            : Cesium.Color.BLACK,
           outlineWidth: labelOptions.outlineWidth || 2,
           style: labelOptions.style || Cesium.LabelStyle.FILL_AND_OUTLINE,
           horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-          verticalOrigin: Cesium.VerticalOrigin.BOTTOM
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
         });
-        
+
         // 保存标签实例
         this.labels.set(modelId, { label, collection: labelCollection });
-        
+
         logger.debug(`已为模型 "${modelId}" 添加标签`);
       } catch (error) {
         logger.error(`无法创建LabelCollection:`, error);
-        
+
         // 回退方案：使用Entity创建标签
         // 使用类型断言访问可能不存在的entities属性
         const sceneAny = this.scene as any;
-        if (sceneAny.entities && typeof sceneAny.entities.add === 'function') {
+        if (sceneAny.entities && typeof sceneAny.entities.add === "function") {
           const labelEntity = sceneAny.entities.add({
             position: labelPosition,
             label: {
               text: labelOptions.text,
-              font: labelOptions.font || '14pt sans-serif',
-              fillColor: labelOptions.fillColor ? Cesium.Color.fromCssColorString(labelOptions.fillColor) : Cesium.Color.WHITE,
-              outlineColor: labelOptions.outlineColor ? Cesium.Color.fromCssColorString(labelOptions.outlineColor) : Cesium.Color.BLACK,
+              font: labelOptions.font || "14pt sans-serif",
+              fillColor: labelOptions.fillColor
+                ? Cesium.Color.fromCssColorString(labelOptions.fillColor)
+                : Cesium.Color.WHITE,
+              outlineColor: labelOptions.outlineColor
+                ? Cesium.Color.fromCssColorString(labelOptions.outlineColor)
+                : Cesium.Color.BLACK,
               outlineWidth: labelOptions.outlineWidth || 2,
               style: labelOptions.style || Cesium.LabelStyle.FILL_AND_OUTLINE,
               horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-              verticalOrigin: Cesium.VerticalOrigin.BOTTOM
-            }
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            },
           });
-          
+
           // 保存标签实例
           this.labels.set(modelId, { entity: labelEntity });
-          
+
           logger.debug(`已为模型 "${modelId}" 添加Entity标签`);
         } else {
-          logger.error('无法添加标签：Cesium场景既不支持LabelCollection也不支持Entity');
+          logger.error(
+            "无法添加标签：Cesium场景既不支持LabelCollection也不支持Entity",
+          );
         }
       }
     } catch (error) {
@@ -394,61 +429,65 @@ export class CesiumModelObject {
       if (options.position || options.rotation || options.scale) {
         // 获取当前模型矩阵
         const modelMatrix = model.modelMatrix;
-        
+
         // 创建新的变换参数
         let translation = new Cesium.Cartesian3();
         let rotation = new Cesium.Quaternion();
         let scale = new Cesium.Cartesian3();
-        
+
         // 提取当前变换参数
         Cesium.Matrix4.getTranslation(modelMatrix, translation);
-        
+
         // 这里使用decompose代替getRotation解决类型问题
         const rotationMatrix = new Cesium.Matrix3();
         Cesium.Matrix4.getRotation(modelMatrix, rotationMatrix);
         Cesium.Quaternion.fromRotationMatrix(rotationMatrix, rotation);
-        
+
         Cesium.Matrix4.getScale(modelMatrix, scale);
-        
+
         // 更新位置
         if (options.position) {
           const newPosition = Cesium.Cartesian3.fromDegrees(
             options.position.longitude,
             options.position.latitude,
-            options.position.height || 0
+            options.position.height || 0,
           );
           translation = newPosition;
         }
-        
+
         // 更新旋转
         if (options.rotation) {
           const heading = Cesium.Math.toRadians(options.rotation.heading || 0);
           const pitch = Cesium.Math.toRadians(options.rotation.pitch || 0);
           const roll = Cesium.Math.toRadians(options.rotation.roll || 0);
-          
+
           const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
-          rotation = Cesium.Transforms.headingPitchRollQuaternion(translation, hpr);
+          rotation = Cesium.Transforms.headingPitchRollQuaternion(
+            translation,
+            hpr,
+          );
         }
-        
+
         // 更新缩放
         if (options.scale) {
           scale = new Cesium.Cartesian3(
             options.scale.x || scale.x,
             options.scale.y || scale.y,
-            options.scale.z || scale.z
+            options.scale.z || scale.z,
           );
         }
-        
+
         // 生成新的模型矩阵
-        const newModelMatrix = Cesium.Matrix4.fromTranslationQuaternionRotationScale(
-          translation,
-          rotation,
-          scale
-        );
-        
+        const newModelMatrix =
+          Cesium.Matrix4.fromTranslationQuaternionRotationScale(
+            translation,
+            rotation,
+            scale,
+          );
+
         // 更新模型矩阵
         model.modelMatrix = newModelMatrix;
-        
+
         // 如果有标签，也更新标签位置
         if (this.labels.has(id)) {
           const label = this.labels.get(id);
@@ -458,74 +497,91 @@ export class CesiumModelObject {
             label.position = new Cesium.Cartesian3(
               translation.x,
               translation.y,
-              translation.z + heightOffset
+              translation.z + heightOffset,
             );
           }
         }
       }
-      
+
       // 更新其他模型属性
       if (options.minimumPixelSize !== undefined) {
         model.minimumPixelSize = options.minimumPixelSize;
       }
-      
+
       if (options.maximumScale !== undefined) {
         model.maximumScale = options.maximumScale;
       }
-      
+
       if (options.color !== undefined) {
-        model.color = options.color ? Cesium.Color.fromCssColorString(options.color) : undefined;
+        model.color = options.color
+          ? Cesium.Color.fromCssColorString(options.color)
+          : undefined;
       }
-      
+
       if (options.colorBlendMode !== undefined) {
         model.colorBlendMode = options.colorBlendMode;
       }
-      
+
       if (options.colorBlendAmount !== undefined) {
         model.colorBlendAmount = options.colorBlendAmount;
       }
-      
+
       if (options.silhouetteColor !== undefined) {
-        model.silhouetteColor = options.silhouetteColor ? 
-          Cesium.Color.fromCssColorString(options.silhouetteColor) : undefined;
+        model.silhouetteColor = options.silhouetteColor
+          ? Cesium.Color.fromCssColorString(options.silhouetteColor)
+          : undefined;
       }
-      
+
       if (options.silhouetteSize !== undefined) {
         model.silhouetteSize = options.silhouetteSize;
       }
-      
+
       if (options.distanceDisplayCondition !== undefined) {
-        model.distanceDisplayCondition = options.distanceDisplayCondition ? 
-          new Cesium.DistanceDisplayCondition(
-            options.distanceDisplayCondition.near,
-            options.distanceDisplayCondition.far
-          ) : undefined;
+        model.distanceDisplayCondition = options.distanceDisplayCondition
+          ? new Cesium.DistanceDisplayCondition(
+              options.distanceDisplayCondition.near,
+              options.distanceDisplayCondition.far,
+            )
+          : undefined;
       }
-      
+
       // 更新标签
       if (options.label && this.labels.has(id)) {
         const label = this.labels.get(id);
         if (label) {
           if (options.label.text) label.text = options.label.text;
           if (options.label.font) label.font = options.label.font;
-          if (options.label.fillColor) label.fillColor = Cesium.Color.fromCssColorString(options.label.fillColor);
-          if (options.label.outlineColor) label.outlineColor = Cesium.Color.fromCssColorString(options.label.outlineColor);
-          if (options.label.outlineWidth !== undefined) label.outlineWidth = options.label.outlineWidth;
-          if (options.label.style !== undefined) label.style = options.label.style;
-          if (options.label.scale !== undefined) label.scale = options.label.scale;
-          if (options.label.showBackground !== undefined) label.showBackground = options.label.showBackground;
-          if (options.label.backgroundColor) label.backgroundColor = Cesium.Color.fromCssColorString(options.label.backgroundColor);
+          if (options.label.fillColor)
+            label.fillColor = Cesium.Color.fromCssColorString(
+              options.label.fillColor,
+            );
+          if (options.label.outlineColor)
+            label.outlineColor = Cesium.Color.fromCssColorString(
+              options.label.outlineColor,
+            );
+          if (options.label.outlineWidth !== undefined)
+            label.outlineWidth = options.label.outlineWidth;
+          if (options.label.style !== undefined)
+            label.style = options.label.style;
+          if (options.label.scale !== undefined)
+            label.scale = options.label.scale;
+          if (options.label.showBackground !== undefined)
+            label.showBackground = options.label.showBackground;
+          if (options.label.backgroundColor)
+            label.backgroundColor = Cesium.Color.fromCssColorString(
+              options.label.backgroundColor,
+            );
         }
       } else if (options.label && !this.labels.has(id) && options.position) {
         // 如果原来没有标签但现在需要添加
         const position = Cesium.Cartesian3.fromDegrees(
           options.position.longitude,
           options.position.latitude,
-          options.position.height || 0
+          options.position.height || 0,
         );
         this.addModelLabel(id, position, options.label);
       }
-      
+
       logger.info(`3D模型 "${id}" 已更新`);
       return true;
     } catch (error) {
@@ -551,7 +607,7 @@ export class CesiumModelObject {
     try {
       // 移除模型
       this.scene.primitives.remove(model);
-      
+
       // 如果有标签，也移除标签
       if (this.labels.has(id)) {
         const label = this.labels.get(id);
@@ -560,10 +616,10 @@ export class CesiumModelObject {
         }
         this.labels.delete(id);
       }
-      
+
       // 从模型映射中移除
       this.models.delete(id);
-      
+
       logger.info(`3D模型 "${id}" 已删除`);
       return true;
     } catch (error) {
@@ -595,7 +651,7 @@ export class CesiumModelObject {
    */
   public clearAllModels(): boolean {
     if (!this.scene) {
-      logger.error('无法清除3D模型: 场景未设置');
+      logger.error("无法清除3D模型: 场景未设置");
       return false;
     }
 
@@ -604,22 +660,22 @@ export class CesiumModelObject {
       for (const model of this.models.values()) {
         this.scene.primitives.remove(model);
       }
-      
+
       // 移除所有标签
       for (const label of this.labels.values()) {
         if (label.collection) {
           label.collection.remove(label);
         }
       }
-      
+
       // 清空映射
       this.models.clear();
       this.labels.clear();
-      
-      logger.info('已清除所有3D模型');
+
+      logger.info("已清除所有3D模型");
       return true;
     } catch (error) {
-      logger.error('清除3D模型失败:', error);
+      logger.error("清除3D模型失败:", error);
       return false;
     }
   }
@@ -630,14 +686,17 @@ export class CesiumModelObject {
    * @param options 额外飞行选项
    * @returns 是否成功
    */
-  public flyToModel(id: string, options?: {
-    offset?: {
-      heading?: number;
-      pitch?: number;
-      range?: number;
-    };
-    duration?: number;
-  }): boolean {
+  public flyToModel(
+    id: string,
+    options?: {
+      offset?: {
+        heading?: number;
+        pitch?: number;
+        range?: number;
+      };
+      duration?: number;
+    },
+  ): boolean {
     const model = this.getModel(id);
     if (!model || !this.scene) {
       logger.warn(`无法飞行到模型: 找不到ID为 "${id}" 的模型或场景未设置`);
@@ -651,16 +710,16 @@ export class CesiumModelObject {
         logger.warn(`模型 "${id}" 没有有效的包围球，无法完成飞行定位`);
         return false;
       }
-      
+
       // 设置偏移量
       const heading = Cesium.Math.toRadians(options?.offset?.heading || 0);
       const pitch = Cesium.Math.toRadians(options?.offset?.pitch || -30); // 默认俯视30度
-      const range = options?.offset?.range || (boundingSphere.radius * 4);
+      const range = options?.offset?.range || boundingSphere.radius * 4;
 
       // 飞行到模型位置
       this.scene.camera.flyToBoundingSphere(boundingSphere, {
         offset: new Cesium.HeadingPitchRange(heading, pitch, range),
-        duration: options?.duration || 3.0
+        duration: options?.duration || 3.0,
       });
 
       logger.info(`飞行到模型 "${id}" 已启动`);
@@ -677,37 +736,40 @@ export class CesiumModelObject {
    * @param options 动画选项
    * @returns 是否设置成功
    */
-  public setModelAnimation(id: string, options: {
-    animationIndex?: number;
-    speedFactor?: number;
-    loop?: boolean;
-    reset?: boolean;
-  }): boolean {
+  public setModelAnimation(
+    id: string,
+    options: {
+      animationIndex?: number;
+      speedFactor?: number;
+      loop?: boolean;
+      reset?: boolean;
+    },
+  ): boolean {
     const model = this.getModel(id);
     if (!model) {
       logger.warn(`无法设置模型动画: 找不到ID为 "${id}" 的模型`);
       return false;
     }
-    
+
     try {
       // 确保模型已加载完成并有动画
       if (!model.activeAnimations) {
         logger.warn(`模型 "${id}" 不支持动画或尚未加载完成`);
         return false;
       }
-      
+
       // 如果需要重置，先停止所有动画
       if (options.reset) {
         model.activeAnimations.removeAll();
       }
-      
+
       // 添加动画
       model.activeAnimations.add({
         name: options.animationIndex || 0,
         loop: options.loop !== undefined ? options.loop : true,
-        multiplier: options.speedFactor || 1.0
+        multiplier: options.speedFactor || 1.0,
       });
-      
+
       logger.info(`已设置模型 "${id}" 的动画`);
       return true;
     } catch (error) {
@@ -728,10 +790,10 @@ export class CesiumModelObject {
       logger.warn(`无法设置模型可见性: 找不到ID为 "${id}" 的模型`);
       return false;
     }
-    
+
     try {
       model.show = visible;
-      
+
       // 如果有标签，也设置标签可见性
       if (this.labels.has(id)) {
         const label = this.labels.get(id);
@@ -739,7 +801,7 @@ export class CesiumModelObject {
           label.show = visible;
         }
       }
-      
+
       logger.info(`已设置模型 "${id}" 的可见性: ${visible}`);
       return true;
     } catch (error) {
@@ -753,25 +815,27 @@ export class CesiumModelObject {
    * @param id 模型ID
    * @returns 中心位置的经纬度高度，如果失败则返回null
    */
-  public getModelCenter(id: string): { longitude: number; latitude: number; height: number } | null {
+  public getModelCenter(
+    id: string,
+  ): { longitude: number; latitude: number; height: number } | null {
     const model = this.getModel(id);
     if (!model) {
       logger.warn(`无法获取模型中心: 找不到ID为 "${id}" 的模型`);
       return null;
     }
-    
+
     try {
       // 获取模型矩阵中的位置
       const translation = new Cesium.Cartesian3();
       Cesium.Matrix4.getTranslation(model.modelMatrix, translation);
-      
+
       // 转换为经纬度高度
       const cartographic = Cesium.Cartographic.fromCartesian(translation);
-      
+
       return {
         longitude: Cesium.Math.toDegrees(cartographic.longitude),
         latitude: Cesium.Math.toDegrees(cartographic.latitude),
-        height: cartographic.height
+        height: cartographic.height,
       };
     } catch (error) {
       logger.error(`获取模型 "${id}" 中心位置失败:`, error);
@@ -785,13 +849,13 @@ export class CesiumModelObject {
   public destroy(): void {
     // 清除所有模型
     this.clearAllModels();
-    
+
     // 清除引用
     this.scene = null;
     this.models.clear();
     this.labels.clear();
     this.eventHandlers = {};
-    
-    logger.info('CesiumModelObject已销毁');
+
+    logger.info("CesiumModelObject已销毁");
   }
-} 
+}

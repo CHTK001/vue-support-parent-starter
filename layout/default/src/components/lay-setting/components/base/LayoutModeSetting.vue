@@ -11,7 +11,13 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 const { layoutTheme } = useDataThemeChange();
 
-type LayoutType = "vertical" | "horizontal" | "mix" | "hover" | "double" | "mobile";
+type LayoutType =
+  | "vertical"
+  | "horizontal"
+  | "mix"
+  | "hover"
+  | "double"
+  | "mobile";
 
 const layoutMode = computed<LayoutType>(() => {
   return (layoutTheme.value?.layout as LayoutType) || "vertical";
@@ -28,7 +34,14 @@ const layoutModeOptions = computed<Array<OptionsType>>(() => [
 
 function setLayoutMode(layout: LayoutType): void {
   const fallbackLayout: LayoutType = "vertical";
-  const validLayouts: LayoutType[] = ["vertical", "horizontal", "mix", "hover", "double", "mobile"];
+  const validLayouts: LayoutType[] = [
+    "vertical",
+    "horizontal",
+    "mix",
+    "hover",
+    "double",
+    "mobile",
+  ];
   const targetLayout = validLayouts.includes(layout) ? layout : fallbackLayout;
 
   if (!$storage?.layout) {
@@ -96,5 +109,3 @@ const currentLayoutModeValue = computed(() => layoutMode.value);
   color: var(--el-text-color-primary);
 }
 </style>
-
-

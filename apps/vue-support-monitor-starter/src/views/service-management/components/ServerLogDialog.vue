@@ -10,29 +10,29 @@
     <!-- 工具栏 -->
     <div class="log-toolbar">
       <div class="toolbar-left">
-        <el-select
+        <ScSelect
           v-model="filterLevel"
           placeholder="日志级别"
           clearable
           style="width: 120px"
           @change="handleFilterChange"
         >
-          <el-option label="全部" value="" />
-          <el-option label="DEBUG" value="DEBUG">
-            <el-tag type="info" size="small">DEBUG</el-tag>
-          </el-option>
-          <el-option label="INFO" value="INFO">
-            <el-tag type="success" size="small">INFO</el-tag>
-          </el-option>
-          <el-option label="WARN" value="WARN">
-            <el-tag type="warning" size="small">WARN</el-tag>
-          </el-option>
-          <el-option label="ERROR" value="ERROR">
-            <el-tag type="danger" size="small">ERROR</el-tag>
-          </el-option>
-        </el-select>
+          <ScOption label="全部" value="" />
+          <ScOption label="DEBUG" value="DEBUG">
+            <ScTag type="info" size="small">DEBUG</ScTag>
+          </ScOption>
+          <ScOption label="INFO" value="INFO">
+            <ScTag type="success" size="small">INFO</ScTag>
+          </ScOption>
+          <ScOption label="WARN" value="WARN">
+            <ScTag type="warning" size="small">WARN</ScTag>
+          </ScOption>
+          <ScOption label="ERROR" value="ERROR">
+            <ScTag type="danger" size="small">ERROR</ScTag>
+          </ScOption>
+        </ScSelect>
 
-        <el-input
+        <ScInput
           v-model="searchKeyword"
           placeholder="搜索日志内容"
           clearable
@@ -42,9 +42,9 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </el-input>
+        </ScInput>
 
-        <el-switch
+        <ScSwitch
           v-model="autoScroll"
           active-text="自动滚动"
           inactive-text=""
@@ -53,7 +53,7 @@
       </div>
 
       <div class="toolbar-right">
-        <el-tag
+        <ScTag
           :type="connectionStatus === 'connected' ? 'success' : 'danger'"
           size="small"
         >
@@ -65,9 +65,9 @@
             "
           />
           {{ connectionStatus === "connected" ? "已连接" : "未连接" }}
-        </el-tag>
+        </ScTag>
 
-        <el-button
+        <ScButton
           type="primary"
           size="small"
           :loading="isReconnecting"
@@ -75,17 +75,17 @@
         >
           <IconifyIconOnline icon="ri:refresh-line" />
           重连
-        </el-button>
+        </ScButton>
 
-        <el-button type="warning" size="small" @click="clearLogs">
+        <ScButton type="warning" size="small" @click="clearLogs">
           <IconifyIconOnline icon="ri:delete-bin-line" />
           清空
-        </el-button>
+        </ScButton>
 
-        <el-button type="info" size="small" @click="downloadLogs">
+        <ScButton type="info" size="small" @click="downloadLogs">
           <IconifyIconOnline icon="ri:download-line" />
           导出
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -104,13 +104,13 @@
         :class="'level-' + log.level.toLowerCase()"
       >
         <span class="log-time">{{ formatTime(log.timestamp) }}</span>
-        <el-tag
+        <ScTag
           :type="getLevelTagType(log.level)"
           size="small"
           class="log-level"
         >
           {{ log.level }}
-        </el-tag>
+        </ScTag>
         <span v-if="log.filterName" class="log-filter">
           [{{ log.filterName }}]
         </span>
@@ -127,16 +127,16 @@
         总计: <strong>{{ logs.length }}</strong> 条
       </span>
       <span class="stat-item">
-        <el-tag type="info" size="small">DEBUG</el-tag> {{ logStats.debug }}
+        <ScTag type="info" size="small">DEBUG</ScTag> {{ logStats.debug }}
       </span>
       <span class="stat-item">
-        <el-tag type="success" size="small">INFO</el-tag> {{ logStats.info }}
+        <ScTag type="success" size="small">INFO</ScTag> {{ logStats.info }}
       </span>
       <span class="stat-item">
-        <el-tag type="warning" size="small">WARN</el-tag> {{ logStats.warn }}
+        <ScTag type="warning" size="small">WARN</ScTag> {{ logStats.warn }}
       </span>
       <span class="stat-item">
-        <el-tag type="danger" size="small">ERROR</el-tag> {{ logStats.error }}
+        <ScTag type="danger" size="small">ERROR</ScTag> {{ logStats.error }}
       </span>
     </div>
   </sc-dialog>

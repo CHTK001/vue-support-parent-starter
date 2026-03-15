@@ -441,7 +441,7 @@ function handleFetchSuccess(value) {
   font: `<ScText text="自定义字体" font-family="Georgia, serif" />
 <ScText text="大字体" :font-size="24" />
 <ScText text="粗体" :font-weight="700" />
-<ScText text="彩色文字" color="#ff6600" />`
+<ScText text="彩色文字" color="#ff6600" />`,
 };
 </script>
 

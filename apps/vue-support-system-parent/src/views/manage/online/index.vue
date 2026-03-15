@@ -1,16 +1,16 @@
 <template>
   <div class="system-container online-container">
     <div class="online-wrapper">
-      <el-container>
+      <ScContainer>
         <!-- 页面头部 -->
-        <el-header class="toolbar-section online-header">
+        <ScHeader class="toolbar-section online-header">
           <div class="toolbar-left header-left">
             <div class="header-title">
               <IconifyIconOnline icon="mdi:account-multiple-check" />
               <span>在线用户管理</span>
             </div>
             <div class="header-stats">
-              <el-tag
+              <ScTag
                 type="success"
                 effect="light"
                 size="large"
@@ -21,45 +21,45 @@
                   class="stats-icon"
                 />
                 <span>当前在线: {{ onlineCount }} 人</span>
-              </el-tag>
+              </ScTag>
             </div>
           </div>
           <div class="toolbar-right header-actions">
             <!-- 搜索表单 -->
-            <el-form
+            <ScForm
               :inline="true"
               :model="searchForm"
               class="modern-form search-form"
             >
-              <el-form-item>
-                <el-input
+              <ScFormItem>
+                <ScInput
                   v-model="searchForm.username"
                   placeholder="用户名"
                   clearable
                   class="search-input"
                   :prefix-icon="SearchIcon"
                 />
-              </el-form-item>
-              <el-form-item>
-                <el-input
+              </ScFormItem>
+              <ScFormItem>
+                <ScInput
                   v-model="searchForm.ip"
                   placeholder="IP地址"
                   clearable
                   class="search-input"
                   :prefix-icon="LocationIcon"
                 />
-              </el-form-item>
-            </el-form>
+              </ScFormItem>
+            </ScForm>
             <!-- 操作按钮 -->
-            <el-button type="primary" class="action-btn" @click="handleSearch">
+            <ScButton type="primary" class="action-btn" @click="handleSearch">
               <IconifyIconOnline icon="mdi:magnify" />
               <span>搜索</span>
-            </el-button>
-            <el-button class="action-btn" @click="handleRefresh">
+            </ScButton>
+            <ScButton class="action-btn" @click="handleRefresh">
               <IconifyIconOnline icon="mdi:refresh" />
               <span>刷新</span>
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               type="danger"
               class="action-btn"
               :disabled="selectedUsers.length === 0"
@@ -67,18 +67,18 @@
             >
               <IconifyIconOnline icon="mdi:account-remove" />
               <span>批量踢出 ({{ selectedUsers.length }})</span>
-            </el-button>
+            </ScButton>
           </div>
-        </el-header>
+        </ScHeader>
 
         <!-- 表格主体 -->
-        <el-main class="online-main">
+        <ScMain class="online-main">
           <div class="table-container">
             <!-- 加载骨架屏 -->
-            <el-skeleton v-if="loading" animated :rows="8" />
+            <ScSkeleton v-if="loading" animated :rows="8" />
 
             <!-- 数据表格 -->
-            <el-table
+            <ScTable
               v-else
               :data="tableData"
               row-key="userId"
@@ -86,29 +86,29 @@
               @selection-change="handleSelectionChange"
             >
               <!-- 多选列 -->
-              <el-table-column type="selection" width="55" align="center" />
+              <ScTableColumn type="selection" width="55" align="center" />
 
               <!-- 序号列 -->
-              <el-table-column
+              <ScTableColumn
                 type="index"
                 label="序号"
                 width="80"
                 align="center"
               >
                 <template #default="{ $index }">
-                  <el-tag
+                  <ScTag
                     type="primary"
                     effect="light"
                     size="small"
                     class="index-tag"
                   >
                     {{ $index + 1 }}
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 用户信息列 -->
-              <el-table-column label="用户信息" min-width="200">
+              <ScTableColumn label="用户信息" min-width="200">
                 <template #default="{ row }">
                   <div class="user-info-cell">
                     <div class="user-avatar">
@@ -122,20 +122,20 @@
                     </div>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 登录IP列 -->
-              <el-table-column label="登录IP" min-width="150">
+              <ScTableColumn label="登录IP" min-width="150">
                 <template #default="{ row }">
                   <div class="ip-cell">
                     <IconifyIconOnline icon="mdi:ip-network" class="ip-icon" />
                     <span>{{ row.loginIp || "-" }}</span>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 登录地址列 -->
-              <el-table-column
+              <ScTableColumn
                 label="登录地址"
                 min-width="150"
                 show-overflow-tooltip
@@ -149,25 +149,25 @@
                     <span>{{ row.loginAddress || "未知" }}</span>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 浏览器列 -->
-              <el-table-column label="浏览器" min-width="120">
+              <ScTableColumn label="浏览器" min-width="120">
                 <template #default="{ row }">
-                  <el-tag effect="light" size="small" class="browser-tag">
+                  <ScTag effect="light" size="small" class="browser-tag">
                     <IconifyIconOnline
                       :icon="getBrowserIcon(row.browser)"
                       class="browser-icon"
                     />
                     <span>{{ row.browser || "未知" }}</span>
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 操作系统列 -->
-              <el-table-column label="操作系统" min-width="120">
+              <ScTableColumn label="操作系统" min-width="120">
                 <template #default="{ row }">
-                  <el-tag
+                  <ScTag
                     type="info"
                     effect="light"
                     size="small"
@@ -178,25 +178,25 @@
                       class="os-icon"
                     />
                     <span>{{ row.os || "未知" }}</span>
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 登录方式列 -->
-              <el-table-column label="登录方式" width="100" align="center">
+              <ScTableColumn label="登录方式" width="100" align="center">
                 <template #default="{ row }">
-                  <el-tag
+                  <ScTag
                     :type="getLoginTypeTag(row.loginType)"
                     effect="light"
                     size="small"
                   >
                     {{ getLoginTypeLabel(row.loginType) }}
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 登录时间列 -->
-              <el-table-column label="登录时间" min-width="180">
+              <ScTableColumn label="登录时间" min-width="180">
                 <template #default="{ row }">
                   <div class="time-cell">
                     <IconifyIconOnline
@@ -211,40 +211,40 @@
                     </div>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 操作列 -->
-              <el-table-column
+              <ScTableColumn
                 label="操作"
                 width="120"
                 fixed="right"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-popconfirm
+                  <ScPopconfirm
                     title="确定要强制下线该用户吗？"
                     confirm-button-type="danger"
                     @confirm="handleKickUser(row)"
                   >
                     <template #reference>
-                      <el-button type="danger" link class="kick-btn">
+                      <ScButton type="danger" link class="kick-btn">
                         <IconifyIconOnline icon="mdi:logout" />
                         <span>踢出</span>
-                      </el-button>
+                      </ScButton>
                     </template>
-                  </el-popconfirm>
+                  </ScPopconfirm>
                 </template>
-              </el-table-column>
-            </el-table>
+              </ScTableColumn>
+            </ScTable>
 
             <!-- 空状态 -->
-            <el-empty
+            <ScEmpty
               v-if="!loading && tableData.length === 0"
               description="暂无在线用户"
             />
           </div>
-        </el-main>
-      </el-container>
+        </ScMain>
+      </ScContainer>
     </div>
   </div>
 </template>

@@ -5,11 +5,16 @@ import DefaultMix from "./themes/mix/Default.vue";
 
 // 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
-  'default': DefaultMix,
-  'future-tech': defineAsyncComponent(() => import("./themes/mix/FutureTech.vue")),
+  default: DefaultMix,
+  "future-tech": defineAsyncComponent(
+    () => import("./themes/mix/FutureTech.vue"),
+  ),
 };
 
-const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultMix);
+const { CurrentComponent, currentTheme } = useThemeComponent(
+  themeComponents,
+  DefaultMix,
+);
 </script>
 
 <template>

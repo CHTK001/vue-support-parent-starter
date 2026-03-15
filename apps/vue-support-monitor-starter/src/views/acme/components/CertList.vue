@@ -2,47 +2,47 @@
   <div class="cert-list system-container modern-bg">
     <!-- 工具栏 -->
     <div class="toolbar">
-      <el-form :inline="true" :model="queryForm" class="search-form">
-        <el-form-item label="域名">
-          <el-input
+      <ScForm :inline="true" :model="queryForm" class="search-form">
+        <ScFormItem label="域名">
+          <ScInput
             v-model="queryForm.acmeCertPrimaryDomain"
             placeholder="请输入主域名"
             clearable
             @keyup.enter="handleSearch"
           />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select
+        </ScFormItem>
+        <ScFormItem label="状态">
+          <ScSelect
             v-model="queryForm.acmeCertStatus"
             placeholder="全部"
             clearable
             style="width: 120px"
           >
-            <el-option
+            <ScOption
               v-for="item in CERT_STATUS"
               :key="item.value"
               :label="item.label"
               :value="item.value"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem>
+          <ScButton type="primary" @click="handleSearch">
             <IconifyIconOnline icon="mdi:magnify" />
             查询
-          </el-button>
-          <el-button @click="handleReset">
+          </ScButton>
+          <ScButton @click="handleReset">
             <IconifyIconOnline icon="mdi:refresh" />
             重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </ScButton>
+        </ScFormItem>
+      </ScForm>
       <div class="toolbar-right">
-        <el-tooltip content="检查续签" placement="top">
-          <el-button type="primary" @click="handleRenewCheck">
+        <ScTooltip content="检查续签" placement="top">
+          <ScButton type="primary" @click="handleRenewCheck">
             <IconifyIconOnline icon="mdi:autorenew" />
-          </el-button>
-        </el-tooltip>
+          </ScButton>
+        </ScTooltip>
       </div>
     </div>
 
@@ -55,12 +55,12 @@
       class="cert-table"
       height="auto"
     >
-      <el-table-column prop="acmeCertId" label="ID" width="80" align="center">
+      <ScTableColumn prop="acmeCertId" label="ID" width="80" align="center">
         <template #default="{ row }">
           <span class="id-cell">#{{ row.acmeCertId }}</span>
         </template>
-      </el-table-column>
-      <el-table-column
+      </ScTableColumn>
+      <ScTableColumn
         prop="acmeCertPrimaryDomain"
         label="主域名"
         min-width="200"
@@ -78,8 +78,8 @@
             </div>
           </div>
         </template>
-      </el-table-column>
-      <el-table-column
+      </ScTableColumn>
+      <ScTableColumn
         prop="acmeCertChallengeType"
         label="验证类型"
         width="120"
@@ -98,15 +98,15 @@
             <span>{{ row.acmeCertChallengeType }}</span>
           </div>
         </template>
-      </el-table-column>
-      <el-table-column
+      </ScTableColumn>
+      <ScTableColumn
         prop="acmeCertStatus"
         label="状态"
         width="110"
         align="center"
       >
         <template #default="{ row }">
-          <el-tooltip
+          <ScTooltip
             v-if="row.acmeCertStatus === 'failed' && row.acmeCertLastError"
             :content="row.acmeCertLastError"
             placement="top"
@@ -116,7 +116,7 @@
               <span class="status-dot" />
               <span>{{ getStatusLabel(row.acmeCertStatus) }}</span>
             </div>
-          </el-tooltip>
+          </ScTooltip>
           <div
             v-else
             class="status-badge"
@@ -126,8 +126,8 @@
             <span>{{ getStatusLabel(row.acmeCertStatus) }}</span>
           </div>
         </template>
-      </el-table-column>
-      <el-table-column prop="acmeCertNotAfter" label="有效期" width="200">
+      </ScTableColumn>
+      <ScTableColumn prop="acmeCertNotAfter" label="有效期" width="200">
         <template #default="{ row }">
           <div v-if="row.acmeCertNotAfter" class="expiry-cell">
             <div class="expiry-info">
@@ -151,21 +151,21 @@
           </div>
           <span v-else class="empty-text">-</span>
         </template>
-      </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right" align="center">
+      </ScTableColumn>
+      <ScTableColumn label="操作" width="220" fixed="right" align="center">
         <template #default="{ row }">
           <div class="action-cell">
-            <el-tooltip content="复制申请" placement="top">
+            <ScTooltip content="复制申请" placement="top">
               <button class="action-btn" @click="handleCopy(row)">
                 <IconifyIconOnline icon="mdi:content-copy" />
               </button>
-            </el-tooltip>
-            <el-tooltip content="查看详情" placement="top">
+            </ScTooltip>
+            <ScTooltip content="查看详情" placement="top">
               <button class="action-btn" @click="handleView(row)">
                 <IconifyIconOnline icon="mdi:eye-outline" />
               </button>
-            </el-tooltip>
-            <el-tooltip
+            </ScTooltip>
+            <ScTooltip
               v-if="row.acmeCertStatus === 'valid'"
               content="下载证书"
               placement="top"
@@ -173,8 +173,8 @@
               <button class="action-btn primary" @click="handleDownload(row)">
                 <IconifyIconOnline icon="mdi:download" />
               </button>
-            </el-tooltip>
-            <el-tooltip
+            </ScTooltip>
+            <ScTooltip
               v-if="row.acmeCertStatus === 'validating'"
               content="重新验证"
               placement="top"
@@ -185,8 +185,8 @@
               >
                 <IconifyIconOnline icon="mdi:refresh" />
               </button>
-            </el-tooltip>
-            <el-popconfirm
+            </ScTooltip>
+            <ScPopconfirm
               v-if="row.acmeCertStatus === 'valid'"
               title="确定要续签该证书吗？"
               confirm-button-text="续签"
@@ -198,8 +198,8 @@
                   <IconifyIconOnline icon="mdi:autorenew" />
                 </button>
               </template>
-            </el-popconfirm>
-            <el-popconfirm
+            </ScPopconfirm>
+            <ScPopconfirm
               title="确定要删除该证书吗？"
               confirm-button-text="删除"
               cancel-button-text="取消"
@@ -210,10 +210,10 @@
                   <IconifyIconOnline icon="mdi:delete-outline" />
                 </button>
               </template>
-            </el-popconfirm>
+            </ScPopconfirm>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
     </ScTable>
 
     <!-- 证书详情对话框 -->

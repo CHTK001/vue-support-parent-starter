@@ -3,10 +3,16 @@
     <div class="video-results__container">
       <div class="video-results__header">
         <div class="video-results__count">
-          共找到 <span class="video-results__count-num">{{ totalResults }}</span> 个结果
+          共找到
+          <span class="video-results__count-num">{{ totalResults }}</span>
+          个结果
         </div>
         <div class="video-results__sort">
-          <ScRadioGroup v-model="sortValue" size="small" @change="handleSortChange">
+          <ScRadioGroup
+            v-model="sortValue"
+            size="small"
+            @change="handleSortChange"
+          >
             <el-radio-button label="recommend">推荐</el-radio-button>
             <el-radio-button label="newest">最新上线</el-radio-button>
             <el-radio-button label="videoViews desc">最多播放</el-radio-button>
@@ -16,32 +22,78 @@
       </div>
 
       <!-- 使用ScTable卡片显示结果 -->
-      <ScTable ref="tableRef" layout="card" :page-size="9" :col-size="6" :url="url" :params="tableParams" row-key="videoId" v-loading="loading" @data-loaded="handleDataLoaded">
+      <ScTable
+        ref="tableRef"
+        layout="card"
+        :page-size="9"
+        :col-size="6"
+        :url="url"
+        :params="tableParams"
+        row-key="videoId"
+        v-loading="loading"
+        @data-loaded="handleDataLoaded"
+      >
         <template #default="{ row }">
           <div class="video-results__card" @click="handleVideoClick(row)">
             <div class="video-results__cover">
-              <ScImage referrerpolicy="no-referrer" v-if="row.videoCover" :src="row.videoCover?.split(',')?.[0]" fit="cover">
+              <ScImage
+                referrerpolicy="no-referrer"
+                v-if="row.videoCover"
+                :src="row.videoCover?.split(',')?.[0]"
+                fit="cover"
+              >
                 <template #error>
-                  <ScImage referrerpolicy="no-referrer" v-if="row.videoCover" :src="createCompatibleImageUrl(row.videoCover?.split(',')?.[1], row.videoPlatform)" fit="cover">
+                  <ScImage
+                    referrerpolicy="no-referrer"
+                    v-if="row.videoCover"
+                    :src="
+                      createCompatibleImageUrl(
+                        row.videoCover?.split(',')?.[1],
+                        row.videoPlatform,
+                      )
+                    "
+                    fit="cover"
+                  >
                     <div class="no-cover">暂无封面</div>
                   </ScImage>
                 </template>
               </ScImage>
               <div v-else class="video-results__no-cover">暂无封面</div>
-              <div class="video-results__rating" v-if="row.videoScore">{{ row.videoScore }}分</div>
-              <div class="video-results__views" v-if="row.videoViews">{{ formatViews(row.videoViews) }}次播放</div>
+              <div class="video-results__rating" v-if="row.videoScore">
+                {{ row.videoScore }}分
+              </div>
+              <div class="video-results__views" v-if="row.videoViews">
+                {{ formatViews(row.videoViews) }}次播放
+              </div>
             </div>
             <div class="video-results__info">
-              <div class="video-results__name">{{ row.videoTitle || row.videoName }}</div>
-              <ScTooltip :content="`${row.videoYear || ''}年 ${row.videoDistrict || ''} ${row.videoLanguage || ''}`" placement="top">
+              <div class="video-results__name">
+                {{ row.videoTitle || row.videoName }}
+              </div>
+              <ScTooltip
+                :content="`${row.videoYear || ''}年 ${row.videoDistrict || ''} ${row.videoLanguage || ''}`"
+                placement="top"
+              >
                 <div class="video-results__meta">
-                  <span v-if="row.videoYear">{{ row.videoYear }}年</span><span v-if="row.videoDistrict">· {{ row.videoDistrict }}</span
-                  ><span v-if="row.videoLanguage">· {{ row.videoLanguage }}</span>
+                  <span v-if="row.videoYear">{{ row.videoYear }}年</span
+                  ><span v-if="row.videoDistrict"
+                    >· {{ row.videoDistrict }}</span
+                  ><span v-if="row.videoLanguage"
+                    >· {{ row.videoLanguage }}</span
+                  >
                 </div>
               </ScTooltip>
               <ScTooltip :content="row.videoType || '未分类'" placement="top">
                 <div class="video-results__type" v-if="row.videoType">
-                  <ScTag size="small" class="type-tag mx-[1px]" v-for="(item, index) in (row.videoType || '未分类')?.split(',')" :key="index">{{ item }}</ScTag>
+                  <ScTag
+                    size="small"
+                    class="type-tag mx-[1px]"
+                    v-for="(item, index) in (row.videoType || '未分类')?.split(
+                      ',',
+                    )"
+                    :key="index"
+                    >{{ item }}</ScTag
+                  >
                 </div>
               </ScTooltip>
             </div>
@@ -101,7 +153,7 @@ watch(
   (val) => {
     if (val) params.value = val;
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // 监听props变化
@@ -110,13 +162,16 @@ watch(
   (val) => {
     if (val) sortValue.value = val;
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 const createCompatibleImageUrl = (videoCover, videoPlatform) => {
   if (!videoCover) {
     return null;
   }
-  return ossAddress + `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`;
+  return (
+    ossAddress +
+    `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`
+  );
 };
 
 /**
@@ -269,7 +324,7 @@ defineExpose({
     align-items: center;
     justify-content: center;
     background-color: #e0e0e0;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     font-size: 14px;
   }
 
@@ -377,7 +432,11 @@ defineExpose({
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
     opacity: 0;
     transition: opacity 0.3s ease;
   }

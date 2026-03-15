@@ -4,22 +4,22 @@
     <div class="list-header">
       <!-- 路径导航 -->
       <div class="path-navigation">
-        <el-breadcrumb separator="/">
-          <el-breadcrumb-item
+        <ScBreadcrumb separator="/">
+          <ScBreadcrumbItem
             v-for="(item, index) in pathItems"
             :key="index"
             :class="{ clickable: index < pathItems.length - 1 }"
             @click="navigateToPath(item.path)"
           >
             {{ item.name }}
-          </el-breadcrumb-item>
-        </el-breadcrumb>
+          </ScBreadcrumbItem>
+        </ScBreadcrumb>
       </div>
 
       <!-- 工具栏 -->
       <div class="toolbar">
         <!-- 返回上一层按钮 -->
-        <el-button
+        <ScButton
           size="small"
           :disabled="!canGoBack"
           title="返回上一层"
@@ -27,18 +27,18 @@
         >
           <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
           返回上一层
-        </el-button>
+        </ScButton>
 
         <!-- 操作按钮 -->
-        <el-button size="small" @click="refreshList">
+        <ScButton size="small" @click="refreshList">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
 
-        <el-button size="small" @click="createFolder">
+        <ScButton size="small" @click="createFolder">
           <IconifyIconOnline icon="ri:folder-add-line" class="mr-1" />
           新建文件夹
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -60,14 +60,14 @@
         @dragleave.prevent="onListDragLeave"
         @drop.stop="onDropToList"
       >
-        <el-table
+        <ScTable
           :data="fileList"
           stripe
           height="100%"
           @row-dblclick="handleRowDoubleClick"
           @row-contextmenu="handleRowRightClick"
         >
-          <el-table-column label="名称" min-width="300">
+          <ScTableColumn label="名称" min-width="300">
             <template #default="{ row }">
               <div class="file-item" @click="handleFileClick(row)">
                 <IconifyIconOnline
@@ -77,62 +77,62 @@
                 <span class="file-name">{{ row.name }}</span>
               </div>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="大小" width="120" align="right">
+          <ScTableColumn label="大小" width="120" align="right">
             <template #default="{ row }">
               {{ row.isDirectory ? "-" : formatFileSize(row.size) }}
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="修改时间" width="180">
+          <ScTableColumn label="修改时间" width="180">
             <template #default="{ row }">
               {{ formatTime(row.modifiedTime) }}
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="操作" width="200" fixed="right">
+          <ScTableColumn label="操作" width="200" fixed="right">
             <template #default="{ row }">
-              <el-dropdown
+              <ScDropdown
                 @command="(command) => handleFileAction(command, row)"
               >
-                <el-button size="small" text>
+                <ScButton size="small" text>
                   操作
                   <IconifyIconOnline icon="ri:arrow-down-s-line" />
-                </el-button>
+                </ScButton>
                 <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item
+                  <ScDropdownMenu>
+                    <ScDropdownItem
                       v-if="!row.isDirectory"
                       command="download"
                     >
                       <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                       下载
-                    </el-dropdown-item>
-                    <el-dropdown-item v-if="!row.isDirectory" command="sync">
+                    </ScDropdownItem>
+                    <ScDropdownItem v-if="!row.isDirectory" command="sync">
                       <IconifyIconOnline
                         icon="ri:share-forward-line"
                         class="mr-1"
                       />
                       同步
-                    </el-dropdown-item>
-                    <el-dropdown-item command="rename">
+                    </ScDropdownItem>
+                    <ScDropdownItem command="rename">
                       <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
                       重命名
-                    </el-dropdown-item>
-                    <el-dropdown-item command="delete" divided>
+                    </ScDropdownItem>
+                    <ScDropdownItem command="delete" divided>
                       <IconifyIconOnline
                         icon="ri:delete-bin-line"
                         class="mr-1"
                       />
                       删除
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
+                    </ScDropdownItem>
+                  </ScDropdownMenu>
                 </template>
-              </el-dropdown>
+              </ScDropdown>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
       </div>
 
       <!-- 空状态 -->
@@ -189,18 +189,18 @@
       width="400px"
       :close-on-click-modal="false"
     >
-      <el-form :model="createFolderForm" label-width="80px">
-        <el-form-item label="文件夹名">
-          <el-input
+      <ScForm :model="createFolderForm" label-width="80px">
+        <ScFormItem label="文件夹名">
+          <ScInput
             v-model="createFolderForm.name"
             placeholder="请输入文件夹名称"
             @keyup.enter="confirmCreateFolder"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="createFolderVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmCreateFolder">确定</el-button>
+        <ScButton @click="createFolderVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="confirmCreateFolder">确定</ScButton>
       </template>
     </sc-dialog>
 

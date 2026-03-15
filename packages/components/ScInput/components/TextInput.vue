@@ -1,12 +1,6 @@
 <template>
-  <div
-    class="sc-text-input-wrapper"
-    :class="[skinClass, { 'is-invalid': !validationResult.valid, 'is-loading': loading }]"
-  >
-    <div
-      class="sc-text-input-container"
-      :class="[skinClass, { 'is-disabled': disabled }]"
-    >
+  <div class="sc-text-input-wrapper" :class="[skinClass, { 'is-invalid': !validationResult.valid, 'is-loading': loading }]">
+    <div class="sc-text-input-container" :class="[skinClass, { 'is-disabled': disabled }]">
       <component
         :is="ElInput"
         :key="currentSkin"
@@ -153,7 +147,6 @@ const skinClass = computed(() => {
 });
 
 // 当前实际渲染的组件
-
 
 const inputRef = ref<any>(null);
 const innerValue = ref<string | number>(props.modelValue);

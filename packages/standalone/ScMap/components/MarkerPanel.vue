@@ -6,7 +6,7 @@
   <div v-if="visible" class="marker-panel" :style="panelStyle">
     <div class="marker-panel-content">
       <div class="marker-panel-header">
-        <span class="title">{{ title || '标记点信息' }}</span>
+        <span class="title">{{ title || "标记点信息" }}</span>
         <span class="close-btn" @click="handleClose">×</span>
       </div>
       <div class="marker-panel-body">
@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 //@ts-ignore
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch } from "vue";
 
 // 定义组件属性
 const props = defineProps<{
@@ -48,7 +48,7 @@ const props = defineProps<{
 
 // 定义事件
 const emit = defineEmits<{
-  (e: 'close'): void;
+  (e: "close"): void;
 }>();
 
 // 计算面板样式
@@ -56,7 +56,7 @@ const panelStyle = computed(() => {
   const { x, y } = props.position;
   const offsetX = props.offset?.x || 0;
   const offsetY = props.offset?.y || -10; // 默认向上偏移10px
-  
+
   return {
     left: `${x + offsetX}px`,
     top: `${y + offsetY - 10}px`,
@@ -65,7 +65,7 @@ const panelStyle = computed(() => {
 
 // 处理关闭事件
 const handleClose = () => {
-  emit('close');
+  emit("close");
 };
 </script>
 
@@ -103,7 +103,7 @@ const handleClose = () => {
 .marker-panel-header .close-btn {
   cursor: pointer;
   font-size: 18px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .marker-panel-header .close-btn:hover {
@@ -116,7 +116,7 @@ const handleClose = () => {
 }
 
 .default-content {
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .coords-info {
@@ -136,4 +136,4 @@ const handleClose = () => {
   width: 0;
   height: 0;
 }
-</style> 
+</style>

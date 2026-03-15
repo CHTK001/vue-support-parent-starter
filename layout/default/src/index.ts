@@ -14,7 +14,10 @@ export { useWatermarkSetup } from "./hooks/useWatermarkSetup";
 export { useDebugMode } from "./hooks/useDebugMode";
 
 // Font Encryption
-export { useFontEncryption, type FontEncryptionConfig } from "./utils/useFontEncryption";
+export {
+  useFontEncryption,
+  type FontEncryptionConfig,
+} from "./utils/useFontEncryption";
 export {
   useFontEncryptionControl,
   type FontEncryptionControlOptions,

@@ -10,7 +10,7 @@
     />
 
     <div class="menu-wrapper">
-      <el-container>
+      <ScContainer>
         <!-- 统计面板 -->
         <div class="menu-stats">
           <div class="stat-item">
@@ -51,9 +51,9 @@
           </div>
         </div>
         <!-- 表格头部 -->
-        <el-header class="toolbar-section menu-header">
+        <ScHeader class="toolbar-section menu-header">
           <div class="toolbar-left header-left">
-            <el-input
+            <ScInput
               v-model="searchKeyword"
               placeholder="搜索菜单名称/路由"
               clearable
@@ -63,15 +63,15 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:search-line" />
               </template>
-            </el-input>
+            </ScInput>
           </div>
           <div class="toolbar-right header-actions">
             <!-- 展开/折叠全部 -->
-            <el-tooltip
+            <ScTooltip
               :content="isExpanded ? '折叠全部' : '展开全部'"
               placement="top"
             >
-              <el-button @click="toggleExpandAll">
+              <ScButton @click="toggleExpandAll">
                 <IconifyIconOnline
                   :icon="
                     isExpanded
@@ -79,42 +79,42 @@
                       : 'ri:expand-diagonal-line'
                   "
                 />
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
             <!-- 刷新按钮 -->
-            <el-tooltip content="刷新" placement="top">
-              <el-button
+            <ScTooltip content="刷新" placement="top">
+              <ScButton
                 type="primary"
                 :loading="loading.query"
                 @click="onSearch"
               >
                 <IconifyIconOnline icon="ri:refresh-line" />
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
             <!-- 添加菜单按钮 -->
-            <el-tooltip
+            <ScTooltip
               v-if="getConfig().AccountType != 'tenant'"
               content="添加菜单"
               placement="top"
             >
-              <el-button
+              <ScButton
                 type="success"
                 @click="dialogOpen({ sysMenuType: 0 }, 'save')"
               >
                 <IconifyIconOnline icon="ri:add-line" />
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
           </div>
-        </el-header>
+        </ScHeader>
 
         <!-- 表格主体 -->
-        <el-main class="menu-main">
+        <ScMain class="menu-main">
           <div class="menu-table-container">
             <!-- 加载骨架屏 -->
-            <el-skeleton v-if="loading.query" animated :rows="6" />
+            <ScSkeleton v-if="loading.query" animated :rows="6" />
 
             <!-- 表格 -->
-            <el-table
+            <ScTable
               v-else
               ref="menuTableRef"
               :data="filteredTableData"
@@ -125,7 +125,7 @@
               @row-click="getOpenDetail"
             >
               <!-- 菜单名称列 -->
-              <el-table-column
+              <ScTableColumn
                 prop="sysMenuTitle"
                 label="菜单名称"
                 min-width="220"
@@ -149,17 +149,17 @@
                     </div>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 菜单类型列 -->
-              <el-table-column
+              <ScTableColumn
                 prop="sysMenuType"
                 label="菜单类型"
                 width="120"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-tag
+                  <ScTag
                     :type="getMenuTypeTag(row.sysMenuType).type"
                     effect="light"
                     class="menu-type-tag"
@@ -169,12 +169,12 @@
                       class="tag-icon"
                     />
                     <span>{{ getMenuTypeTag(row.sysMenuType).label }}</span>
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 路由名称列 -->
-              <el-table-column
+              <ScTableColumn
                 prop="sysMenuPath"
                 label="路由名称"
                 min-width="150"
@@ -184,19 +184,19 @@
                   <div class="route-name-cell">
                     <span v-if="row.sysMenuName">{{ row.sysMenuName }}</span>
                     <span v-else class="empty-value">-</span>
-                    <el-icon
+                    <ScIcon
                       v-if="row.sysMenuName"
                       v-copy:click="row.sysMenuName"
                       class="copy-icon"
                     >
                       <IconifyIconOnline icon="mdi:content-copy" />
-                    </el-icon>
+                    </ScIcon>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 路由路径列 -->
-              <el-table-column
+              <ScTableColumn
                 prop="sysMenuPath"
                 label="路由路径"
                 min-width="150"
@@ -206,10 +206,10 @@
                   <span v-if="row.sysMenuPath">{{ row.sysMenuPath }}</span>
                   <span v-else class="empty-value">-</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 组件路径列 -->
-              <el-table-column
+              <ScTableColumn
                 prop="sysMenuComponent"
                 label="组件路径"
                 min-width="180"
@@ -221,10 +221,10 @@
                   }}</span>
                   <span v-else class="empty-value">-</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 排序列 -->
-              <el-table-column
+              <ScTableColumn
                 prop="sysMenuSort"
                 label="排序"
                 width="80"
@@ -232,7 +232,7 @@
               />
 
               <!-- 隐藏列 -->
-              <el-table-column
+              <ScTableColumn
                 v-if="getConfig().AccountType != 'tenant'"
                 prop="sysMenuHidden"
                 label="隐藏"
@@ -240,18 +240,18 @@
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-tag
+                  <ScTag
                     :type="row.sysMenuHidden ? 'danger' : 'success'"
                     effect="light"
                     size="small"
                   >
                     {{ row.sysMenuHidden ? "是" : "否" }}
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 操作列 -->
-              <el-table-column
+              <ScTableColumn
                 v-if="getConfig().AccountType != 'tenant'"
                 label="操作"
                 width="180"
@@ -261,19 +261,19 @@
                 <template #default="{ row }">
                   <div class="action-buttons">
                     <!-- 编辑按钮 -->
-                    <el-tooltip content="编辑菜单" placement="top">
-                      <el-button
+                    <ScTooltip content="编辑菜单" placement="top">
+                      <ScButton
                         type="primary"
                         link
                         @click.stop="dialogOpen(row, 'edit')"
                       >
                         <IconifyIconOnline icon="mdi:pencil" />
-                      </el-button>
-                    </el-tooltip>
+                      </ScButton>
+                    </ScTooltip>
 
                     <!-- 添加子菜单按钮 -->
-                    <el-tooltip content="添加子菜单" placement="top">
-                      <el-button
+                    <ScTooltip content="添加子菜单" placement="top">
+                      <ScButton
                         type="success"
                         link
                         @click.stop="
@@ -284,31 +284,31 @@
                         "
                       >
                         <IconifyIconOnline icon="mdi:playlist-plus" />
-                      </el-button>
-                    </el-tooltip>
+                      </ScButton>
+                    </ScTooltip>
 
                     <!-- 删除确认框 -->
-                    <el-popconfirm
+                    <ScPopconfirm
                       :title="$t('message.confimDelete')"
                       confirm-button-type="danger"
                       cancel-button-type="info"
                       @confirm="onDelete(row)"
                     >
                       <template #reference>
-                        <el-tooltip content="删除菜单" placement="top">
-                          <el-button type="danger" link @click.stop>
+                        <ScTooltip content="删除菜单" placement="top">
+                          <ScButton type="danger" link @click.stop>
                             <IconifyIconOnline icon="mdi:delete" />
-                          </el-button>
-                        </el-tooltip>
+                          </ScButton>
+                        </ScTooltip>
                       </template>
-                    </el-popconfirm>
+                    </ScPopconfirm>
                   </div>
                 </template>
-              </el-table-column>
-            </el-table>
+              </ScTableColumn>
+            </ScTable>
           </div>
-        </el-main>
-      </el-container>
+        </ScMain>
+      </ScContainer>
     </div>
   </div>
 </template>

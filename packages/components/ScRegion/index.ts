@@ -1,10 +1,10 @@
-import { App } from 'vue';
-import ScRegion from './src/index.vue';
+import { App } from "vue";
+import ScRegion from "./src/index.vue";
 
 ScRegion.install = (app: App) => {
-  app.component('ScRegion', ScRegion);
+  app.component("ScRegion", ScRegion);
 };
 
 export default ScRegion;
-export * from './src/types';
-export * from './src/data'; 
+export * from "./src/types";
+export * from "./src/data";

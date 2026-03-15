@@ -7,87 +7,87 @@
     destroy-on-close
     append-to-body
   >
-    <el-steps
+    <ScSteps
       :active="currentStep"
       finish-status="success"
       simple
       style="margin-bottom: 20px"
     >
-      <el-step title="基本配置" />
-      <el-step title="网页预览" />
-      <el-step title="数据提取" />
-      <el-step title="调度配置" />
-    </el-steps>
+      <ScStep title="基本配置" />
+      <ScStep title="网页预览" />
+      <ScStep title="数据提取" />
+      <ScStep title="调度配置" />
+    </ScSteps>
 
     <!-- 步骤1: 基本配置 -->
     <div v-show="currentStep === 0" class="step-content">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="任务名称" prop="spiderTaskName">
-              <el-input
+      <ScForm ref="formRef" :model="form" :rules="rules" label-width="120px">
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="任务名称" prop="spiderTaskName">
+              <ScInput
                 v-model="form.spiderTaskName"
                 placeholder="请输入任务名称"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="目标URL" prop="spiderTaskUrl">
-              <el-input
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="目标URL" prop="spiderTaskUrl">
+              <ScInput
                 v-model="form.spiderTaskUrl"
                 placeholder="请输入目标URL"
               >
                 <template #append>
-                  <el-button :loading="previewLoading" @click="handlePreviewUrl"
+                  <ScButton :loading="previewLoading" @click="handlePreviewUrl"
                     >预览</el-button
                   >
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="任务描述">
-              <el-input
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="24">
+            <ScFormItem label="任务描述">
+              <ScInput
                 v-model="form.spiderTaskDesc"
                 type="textarea"
                 :rows="2"
                 placeholder="请输入任务描述"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="线程数">
-              <el-input-number
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="8">
+            <ScFormItem label="线程数">
+              <ScInputNumber
                 v-model="form.spiderTaskThreadNum"
                 :min="1"
                 :max="10"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="爬取间隔(ms)">
-              <el-input-number
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="爬取间隔(ms)">
+              <ScInputNumber
                 v-model="form.spiderTaskSleepTime"
                 :min="0"
                 :step="100"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="超时时间(s)">
-              <el-input-number
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="超时时间(s)">
+              <ScInputNumber
                 v-model="form.spiderTaskTimeout"
                 :min="1"
                 :max="300"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
     <!-- 步骤2: 网页预览 -->
@@ -96,13 +96,13 @@
         <div class="preview-left">
           <div class="preview-header">
             <span class="preview-title">网页预览</span>
-            <el-button
+            <ScButton
               size="small"
               :loading="previewLoading"
               @click="handleRefreshPreview"
             >
               <IconifyIconOnline icon="ep:refresh" />
-            </el-button>
+            </ScButton>
           </div>
           <div class="preview-content">
             <iframe
@@ -112,7 +112,7 @@
               sandbox="allow-same-origin"
               @load="handleIframeLoad"
             />
-            <el-empty v-else description="请先输入URL并预览" />
+            <ScEmpty v-else description="请先输入URL并预览" />
           </div>
         </div>
         <div class="preview-right">
@@ -120,7 +120,7 @@
             <span class="preview-title">HTML结构 (Elements)</span>
           </div>
           <div class="html-tree-container">
-            <el-tree
+            <ScTree
               ref="htmlTreeRef"
               :data="htmlTree"
               :props="{ label: 'label', children: 'children' }"
@@ -144,7 +144,7 @@
                   }}</span>
                 </span>
               </template>
-            </el-tree>
+            </ScTree>
           </div>
         </div>
       </div>
@@ -155,154 +155,154 @@
       <div class="extract-rules">
         <div class="rules-header">
           <span class="rules-title">数据提取规则</span>
-          <el-button type="primary" size="small" @click="handleAddRule">
+          <ScButton type="primary" size="small" @click="handleAddRule">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加规则
-          </el-button>
+          </ScButton>
         </div>
-        <el-table :data="extractRules" border>
-          <el-table-column label="字段名称" width="150">
+        <ScTable :data="extractRules" border>
+          <ScTableColumn label="字段名称" width="150">
             <template #default="{ row, $index }">
-              <el-input
+              <ScInput
                 v-model="row.name"
                 placeholder="字段名称"
                 size="small"
               />
             </template>
-          </el-table-column>
-          <el-table-column label="选择器类型" width="130">
+          </ScTableColumn>
+          <ScTableColumn label="选择器类型" width="130">
             <template #default="{ row }">
-              <el-select v-model="row.type" size="small" style="width: 100%">
-                <el-option
+              <ScSelect v-model="row.type" size="small" style="width: 100%">
+                <ScOption
                   v-for="t in SELECTOR_TYPES"
                   :key="t.value"
                   :label="t.label"
                   :value="t.value"
                 />
-              </el-select>
+              </ScSelect>
             </template>
-          </el-table-column>
-          <el-table-column label="选择器表达式" min-width="250">
+          </ScTableColumn>
+          <ScTableColumn label="选择器表达式" min-width="250">
             <template #default="{ row }">
-              <el-input
+              <ScInput
                 v-model="row.selector"
                 placeholder="XPath/CSS选择器"
                 size="small"
               >
                 <template #append>
-                  <el-button size="small" @click="handleTestRule(row)"
+                  <ScButton size="small" @click="handleTestRule(row)"
                     >测试</el-button
                   >
                 </template>
-              </el-input>
+              </ScInput>
             </template>
-          </el-table-column>
-          <el-table-column label="多值" width="70" align="center">
+          </ScTableColumn>
+          <ScTableColumn label="多值" width="70" align="center">
             <template #default="{ row }">
-              <el-checkbox v-model="row.multi" />
+              <ScCheckbox v-model="row.multi" />
             </template>
-          </el-table-column>
-          <el-table-column label="必须" width="70" align="center">
+          </ScTableColumn>
+          <ScTableColumn label="必须" width="70" align="center">
             <template #default="{ row }">
-              <el-checkbox v-model="row.required" />
+              <ScCheckbox v-model="row.required" />
             </template>
-          </el-table-column>
-          <el-table-column label="测试结果" min-width="200">
+          </ScTableColumn>
+          <ScTableColumn label="测试结果" min-width="200">
             <template #default="{ row }">
               <div v-if="row.testResult" class="test-result">
-                <el-tag
+                <ScTag
                   v-for="(r, i) in row.testResult.slice(0, 3)"
                   :key="i"
                   size="small"
                   class="result-tag"
                 >
                   {{ truncateText(r, 50) }}
-                </el-tag>
+                </ScTag>
                 <span v-if="row.testResult.length > 3" class="more-count"
                   >+{{ row.testResult.length - 3 }}</span
                 >
               </div>
               <span v-else class="text-muted">未测试</span>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="80" align="center">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="80" align="center">
             <template #default="{ $index }">
-              <el-button
+              <ScButton
                 type="danger"
                 size="small"
                 @click="handleRemoveRule($index)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
       </div>
     </div>
 
     <!-- 步骤4: 调度配置和高级选项 -->
     <div v-show="currentStep === 3" class="step-content">
-      <el-form :model="form" label-width="140px">
+      <ScForm :model="form" label-width="140px">
         <!-- 基本调度配置 -->
-        <el-divider content-position="left">调度配置</el-divider>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="调度类型">
-              <el-radio-group v-model="form.spiderTaskScheduleType">
-                <el-radio label="NONE">一次性执行</el-radio>
-                <el-radio label="CRON">定时任务</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col v-if="form.spiderTaskScheduleType === 'CRON'" :span="12">
-            <el-form-item label="CRON表达式">
-              <el-input
+        <ScDivider content-position="left">调度配置</ScDivider>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="调度类型">
+              <ScRadioGroup v-model="form.spiderTaskScheduleType">
+                <ScRadio label="NONE">一次性执行</ScRadio>
+                <ScRadio label="CRON">定时任务</ScRadio>
+              </ScRadioGroup>
+            </ScFormItem>
+          </ScCol>
+          <ScCol v-if="form.spiderTaskScheduleType === 'CRON'" :span="12">
+            <ScFormItem label="CRON表达式">
+              <ScInput
                 v-model="form.spiderTaskCron"
                 placeholder="0 0 * * * ?"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="存储类型">
-              <el-select
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="存储类型">
+              <ScSelect
                 v-model="form.spiderTaskPipelineType"
                 style="width: 100%"
               >
-                <el-option
+                <ScOption
                   v-for="p in PIPELINE_TYPES"
                   :key="p.value"
                   :label="p.label"
                   :value="p.value"
                 />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="任务状态">
-              <el-switch
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="任务状态">
+              <ScSwitch
                 v-model="form.spiderTaskStatus"
                 :active-value="1"
                 :inactive-value="0"
                 active-text="启用"
                 inactive-text="停用"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
 
         <!-- URL发现配置 -->
-        <el-divider content-position="left">URL发现配置</el-divider>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="启用URL发现">
-              <el-switch
+        <ScDivider content-position="left">URL发现配置</ScDivider>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="启用URL发现">
+              <ScSwitch
                 v-model="form.spiderTaskEnableUrlDiscover"
                 active-text="是"
                 inactive-text="否"
               />
-              <el-tooltip
+              <ScTooltip
                 content="启用后会自动发现并爬取页面中符合模式的链接"
                 placement="top"
               >
@@ -311,105 +311,105 @@
                   class="ml-2"
                   style="color: #909399"
                 />
-              </el-tooltip>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="最大深度">
-              <el-input-number
+              </ScTooltip>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="最大深度">
+              <ScInputNumber
                 v-model="form.spiderTaskMaxDepth"
                 :min="0"
                 :max="10"
                 :disabled="!form.spiderTaskEnableUrlDiscover"
               />
               <span class="form-tip">0表示不限制</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row v-if="form.spiderTaskEnableUrlDiscover" :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="URL匹配模式">
-              <el-input
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow v-if="form.spiderTaskEnableUrlDiscover" :gutter="20">
+          <ScCol :span="24">
+            <ScFormItem label="URL匹配模式">
+              <ScInput
                 v-model="form.spiderTaskUrlPattern"
                 placeholder="正则表达式，如: https://example\.com/article/\d+"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
 
         <!-- 分页爬取配置 -->
-        <el-divider content-position="left">分页爬取配置</el-divider>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="分页URL模式">
-              <el-input
+        <ScDivider content-position="left">分页爬取配置</ScDivider>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="分页URL模式">
+              <ScInput
                 v-model="form.spiderTaskPagePattern"
                 placeholder="如: https://example.com/list?page={page}"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="最大分页数">
-              <el-input-number
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="最大分页数">
+              <ScInputNumber
                 v-model="form.spiderTaskMaxPages"
                 :min="0"
                 :max="1000"
                 :disabled="!form.spiderTaskPagePattern"
               />
               <span class="form-tip">0表示不限制</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
 
         <!-- 高级配置 -->
-        <el-divider content-position="left">高级配置</el-divider>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="增量模式">
-              <el-select
+        <ScDivider content-position="left">高级配置</ScDivider>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="增量模式">
+              <ScSelect
                 v-model="form.spiderTaskIncrementalMode"
                 style="width: 100%"
               >
-                <el-option
+                <ScOption
                   v-for="m in INCREMENTAL_MODES"
                   :key="m.value"
                   :label="m.label"
                   :value="m.value"
                 />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="速率限制">
-              <el-input-number
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="速率限制">
+              <ScInputNumber
                 v-model="form.spiderTaskRateLimit"
                 :min="0"
                 :max="1000"
               />
               <span class="form-tip">请求/分钟，0不限制</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button v-if="currentStep > 0" @click="currentStep--"
+        <ScButton @click="dialogVisible = false">取消</ScButton>
+        <ScButton v-if="currentStep > 0" @click="currentStep--"
           >上一步</el-button
         >
-        <el-button v-if="currentStep < 3" type="primary" @click="handleNextStep"
+        <ScButton v-if="currentStep < 3" type="primary" @click="handleNextStep"
           >下一步</el-button
         >
-        <el-button
+        <ScButton
           v-if="currentStep === 3"
           type="primary"
           :loading="submitLoading"
           @click="handleSubmit"
         >
           {{ isEdit ? "保存" : "创建" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
 

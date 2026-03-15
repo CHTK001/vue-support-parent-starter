@@ -5,7 +5,7 @@
       <ScCard class="toolbar-card" shadow="never">
         <div class="toolbar-container">
           <div class="toolbar-left">
-            <ScInput 
+            <ScInput
               v-model="searchForm.group"
               placeholder="配置分组"
               class="filter-input"
@@ -38,57 +38,92 @@
     <!-- 历史记录列表 -->
     <div class="history-section">
       <ScCard shadow="never">
-        <ScTable 
+        <ScTable
           v-loading="loading"
           :data="historyList"
           row-key="sysSettingHistoryId"
           stripe
           border
         >
-          <ScTableColumn prop="sysSettingHistoryId" label="ID" width="80" align="center" />
+          <ScTableColumn
+            prop="sysSettingHistoryId"
+            label="ID"
+            width="80"
+            align="center"
+          />
           <ScTableColumn prop="sysSettingGroup" label="分组" width="120" />
-          <ScTableColumn prop="sysSettingName" label="配置名称" min-width="150" />
+          <ScTableColumn
+            prop="sysSettingName"
+            label="配置名称"
+            min-width="150"
+          />
           <ScTableColumn label="操作类型" width="100" align="center">
             <template #default="{ row }">
-              <ScTag :type="getOperationTagType(row.sysSettingOperation)" size="small">
+              <ScTag
+                :type="getOperationTagType(row.sysSettingOperation)"
+                size="small"
+              >
                 {{ getOperationLabel(row.sysSettingOperation) }}
               </ScTag>
             </template>
           </ScTableColumn>
           <ScTableColumn label="旧值" min-width="150">
             <template #default="{ row }">
-              <ScTooltip v-if="row.sysSettingOldValue" :content="row.sysSettingOldValue" placement="top">
-                <span class="value-cell">{{ truncateValue(row.sysSettingOldValue) }}</span>
+              <ScTooltip
+                v-if="row.sysSettingOldValue"
+                :content="row.sysSettingOldValue"
+                placement="top"
+              >
+                <span class="value-cell">{{
+                  truncateValue(row.sysSettingOldValue)
+                }}</span>
               </ScTooltip>
               <span v-else class="empty-value">-</span>
             </template>
           </ScTableColumn>
           <ScTableColumn label="新值" min-width="150">
             <template #default="{ row }">
-              <ScTooltip v-if="row.sysSettingNewValue" :content="row.sysSettingNewValue" placement="top">
-                <span class="value-cell">{{ truncateValue(row.sysSettingNewValue) }}</span>
+              <ScTooltip
+                v-if="row.sysSettingNewValue"
+                :content="row.sysSettingNewValue"
+                placement="top"
+              >
+                <span class="value-cell">{{
+                  truncateValue(row.sysSettingNewValue)
+                }}</span>
               </ScTooltip>
               <span v-else class="empty-value">-</span>
             </template>
           </ScTableColumn>
-          <ScTableColumn prop="sysSettingOperatorName" label="操作人" width="100" />
+          <ScTableColumn
+            prop="sysSettingOperatorName"
+            label="操作人"
+            width="100"
+          />
           <ScTableColumn prop="sysSettingRemark" label="备注" width="120" />
           <ScTableColumn prop="createTime" label="操作时间" width="170" />
           <ScTableColumn label="批次号" width="130">
             <template #default="{ row }">
-              <ScLink type="primary" @click="handleViewBatch(row.sysSettingBatchNo)">
+              <ScLink
+                type="primary"
+                @click="handleViewBatch(row.sysSettingBatchNo)"
+              >
                 {{ truncateBatchNo(row.sysSettingBatchNo) }}
               </ScLink>
             </template>
           </ScTableColumn>
           <ScTableColumn label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
-              <ScButton size="small" type="primary" @click="handleViewDetail(row)">
+              <ScButton
+                size="small"
+                type="primary"
+                @click="handleViewDetail(row)"
+              >
                 详情
               </ScButton>
-              <ScButton 
-                size="small" 
-                type="warning" 
+              <ScButton
+                size="small"
+                type="warning"
                 @click="handleRollbackSingle(row)"
                 :disabled="row.sysSettingOperation === 'ROLLBACK'"
               >
@@ -100,7 +135,7 @@
 
         <!-- 分页 -->
         <div class="pagination-container">
-          <el-pagination
+          <ScPagination
             v-model:current-page="pagination.page"
             v-model:page-size="pagination.pageSize"
             :total="pagination.total"
@@ -116,36 +151,58 @@
     <!-- 历史详情对话框 -->
     <sc-dialog v-model="detailDialogVisible" title="变更详情" width="700px">
       <div v-if="currentHistory" class="history-detail">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="ID">{{ currentHistory.sysSettingHistoryId }}</el-descriptions-item>
-          <el-descriptions-item label="配置ID">{{ currentHistory.sysSettingId }}</el-descriptions-item>
-          <el-descriptions-item label="分组">{{ currentHistory.sysSettingGroup }}</el-descriptions-item>
-          <el-descriptions-item label="配置名称">{{ currentHistory.sysSettingName }}</el-descriptions-item>
-          <el-descriptions-item label="操作类型">
-            <ScTag :type="getOperationTagType(currentHistory.sysSettingOperation)">
+        <ScDescriptions :column="2" border>
+          <ScDescriptionsItem label="ID">{{
+            currentHistory.sysSettingHistoryId
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="配置ID">{{
+            currentHistory.sysSettingId
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="分组">{{
+            currentHistory.sysSettingGroup
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="配置名称">{{
+            currentHistory.sysSettingName
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="操作类型">
+            <ScTag
+              :type="getOperationTagType(currentHistory.sysSettingOperation)"
+            >
               {{ getOperationLabel(currentHistory.sysSettingOperation) }}
             </ScTag>
-          </el-descriptions-item>
-          <el-descriptions-item label="操作时间">{{ currentHistory.createTime }}</el-descriptions-item>
-          <el-descriptions-item label="操作人">{{ currentHistory.sysSettingOperatorName }}</el-descriptions-item>
-          <el-descriptions-item label="批次号">{{ currentHistory.sysSettingBatchNo }}</el-descriptions-item>
-          <el-descriptions-item label="备注" :span="2">{{ currentHistory.sysSettingRemark || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="旧值" :span="2">
-            <pre class="value-content">{{ currentHistory.sysSettingOldValue || '-' }}</pre>
-          </el-descriptions-item>
-          <el-descriptions-item label="新值" :span="2">
-            <pre class="value-content">{{ currentHistory.sysSettingNewValue || '-' }}</pre>
-          </el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="操作时间">{{
+            currentHistory.createTime
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="操作人">{{
+            currentHistory.sysSettingOperatorName
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="批次号">{{
+            currentHistory.sysSettingBatchNo
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="备注" :span="2">{{
+            currentHistory.sysSettingRemark || "-"
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="旧值" :span="2">
+            <pre class="value-content">{{
+              currentHistory.sysSettingOldValue || "-"
+            }}</pre>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="新值" :span="2">
+            <pre class="value-content">{{
+              currentHistory.sysSettingNewValue || "-"
+            }}</pre>
+          </ScDescriptionsItem>
+        </ScDescriptions>
       </div>
       <template #footer>
         <ScButton @click="detailDialogVisible = false">关闭</ScButton>
-        <ScButton 
-          type="warning" 
+        <ScButton
+          type="warning"
           @click="handleRollbackSingle(currentHistory)"
           :disabled="currentHistory?.sysSettingOperation === 'ROLLBACK'"
         >
-        回滚此变更
+          回滚此变更
         </ScButton>
       </template>
     </sc-dialog>
@@ -157,23 +214,38 @@
         <ScTableColumn prop="sysSettingGroup" label="分组" width="120" />
         <ScTableColumn label="操作类型" width="100" align="center">
           <template #default="{ row }">
-            <ScTag :type="getOperationTagType(row.sysSettingOperation)" size="small">
+            <ScTag
+              :type="getOperationTagType(row.sysSettingOperation)"
+              size="small"
+            >
               {{ getOperationLabel(row.sysSettingOperation) }}
             </ScTag>
           </template>
         </ScTableColumn>
         <ScTableColumn label="旧值" min-width="150">
           <template #default="{ row }">
-            <ScTooltip v-if="row.sysSettingOldValue" :content="row.sysSettingOldValue" placement="top">
-              <span class="value-cell">{{ truncateValue(row.sysSettingOldValue) }}</span>
+            <ScTooltip
+              v-if="row.sysSettingOldValue"
+              :content="row.sysSettingOldValue"
+              placement="top"
+            >
+              <span class="value-cell">{{
+                truncateValue(row.sysSettingOldValue)
+              }}</span>
             </ScTooltip>
             <span v-else class="empty-value">-</span>
           </template>
         </ScTableColumn>
         <ScTableColumn label="新值" min-width="150">
           <template #default="{ row }">
-            <ScTooltip v-if="row.sysSettingNewValue" :content="row.sysSettingNewValue" placement="top">
-              <span class="value-cell">{{ truncateValue(row.sysSettingNewValue) }}</span>
+            <ScTooltip
+              v-if="row.sysSettingNewValue"
+              :content="row.sysSettingNewValue"
+              placement="top"
+            >
+              <span class="value-cell">{{
+                truncateValue(row.sysSettingNewValue)
+              }}</span>
             </ScTooltip>
             <span v-else class="empty-value">-</span>
           </template>
@@ -191,7 +263,7 @@
     <sc-dialog v-model="importDialogVisible" title="导入配置" width="600px">
       <ScForm label-width="100px">
         <ScFormItem label="配置数据">
-          <ScInput 
+          <ScInput
             v-model="importJson"
             type="textarea"
             :rows="12"
@@ -199,10 +271,14 @@
           />
         </ScFormItem>
         <ScFormItem label="覆盖选项">
-          <ScSwitch v-model="importOverwrite" active-text="覆盖已存在配置" inactive-text="跳过已存在配置" />
+          <ScSwitch
+            v-model="importOverwrite"
+            active-text="覆盖已存在配置"
+            inactive-text="跳过已存在配置"
+          />
         </ScFormItem>
         <ScFormItem>
-          <ScUpload 
+          <ScUpload
             action=""
             :auto-upload="false"
             :show-file-list="false"
@@ -228,7 +304,7 @@
     <sc-dialog v-model="exportDialogVisible" title="导出配置" width="600px">
       <ScForm label-width="100px">
         <ScFormItem label="配置分组">
-          <ScInput 
+          <ScInput
             v-model="exportGroup"
             placeholder="留空导出全部配置，填写则只导出指定分组"
             clearable
@@ -236,12 +312,7 @@
         </ScFormItem>
       </ScForm>
       <div v-if="exportedJson" class="export-result">
-        <ScInput 
-          v-model="exportedJson"
-          type="textarea"
-          :rows="12"
-          readonly
-        />
+        <ScInput v-model="exportedJson" type="textarea" :rows="12" readonly />
         <div class="export-actions">
           <ScButton type="primary" @click="handleCopyExport">
             <i class="ri-file-copy-line"></i>
@@ -255,8 +326,12 @@
       </div>
       <template #footer>
         <ScButton @click="exportDialogVisible = false">关闭</ScButton>
-        <ScButton type="primary" :loading="exportLoading" @click="handleExportConfirm">
-          {{ exportedJson ? '重新导出' : '确认导出' }}
+        <ScButton
+          type="primary"
+          :loading="exportLoading"
+          @click="handleExportConfirm"
+        >
+          {{ exportedJson ? "重新导出" : "确认导出" }}
         </ScButton>
       </template>
     </sc-dialog>
@@ -335,7 +410,9 @@ const getOperationTagType = (operation: string): any => {
 
 const truncateValue = (value: string, maxLength = 50) => {
   if (!value) return "-";
-  return value.length > maxLength ? value.substring(0, maxLength) + "..." : value;
+  return value.length > maxLength
+    ? value.substring(0, maxLength) + "..."
+    : value;
 };
 
 const truncateBatchNo = (batchNo: string) => {
@@ -403,14 +480,14 @@ const handleViewBatch = async (batchNo: string) => {
 // 回滚单条记录
 const handleRollbackSingle = async (row: SettingHistory | null) => {
   if (!row) return;
-  
+
   try {
     await ScMessageBox.confirm(
       `确定要回滚配置 "${row.sysSettingName}" 的变更吗？这将撤销此次操作。`,
       "确认回滚",
-      { type: "warning" }
+      { type: "warning" },
     );
-    
+
     const response = await fetchRollbackSingle(row.sysSettingHistoryId);
     if (response.success) {
       ScMessage.success("回滚成功");
@@ -433,9 +510,9 @@ const handleRollbackBatch = async () => {
     await ScMessageBox.confirm(
       `确定要回滚批次 "${currentBatchNo.value}" 的所有变更吗？这将撤销该批次的所有操作。`,
       "确认回滚",
-      { type: "warning" }
+      { type: "warning" },
     );
-    
+
     const response = await fetchRollbackBatch(currentBatchNo.value);
     if (response.success) {
       ScMessage.success("批次回滚成功");
@@ -535,7 +612,10 @@ const handleImport = async () => {
 
   importLoading.value = true;
   try {
-    const response = await fetchImportSettings(importJson.value, importOverwrite.value);
+    const response = await fetchImportSettings(
+      importJson.value,
+      importOverwrite.value,
+    );
     if (response.success) {
       ScMessage.success(`导入成功，批次号: ${response.data}`);
       importDialogVisible.value = false;

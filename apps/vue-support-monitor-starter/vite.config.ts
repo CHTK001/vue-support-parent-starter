@@ -16,10 +16,7 @@ import { prismjsPlugin } from "vite-plugin-prismjs";
 import { codeInspectorPlugin } from "code-inspector-plugin";
 import svgLoader from "vite-svg-loader";
 import removeNoMatch from "vite-plugin-router-warn";
-import {
-  createAlias as createBuildAlias,
-  getSharedPublicConfig,
-} from "@repo/build-config";
+import { createAlias as createBuildAlias } from "@repo/build-config";
 import pkg from "./package.json";
 
 const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
@@ -178,7 +175,6 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
 
   return {
     base: VITE_PUBLIC_PATH,
-    ...getSharedPublicConfig(),
     define: {
       // 把源码里所有 `process.env` 替换成对象字面量
       "process.env": {},

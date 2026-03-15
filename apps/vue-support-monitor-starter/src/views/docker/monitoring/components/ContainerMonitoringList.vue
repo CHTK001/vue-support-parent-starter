@@ -14,7 +14,7 @@
       @size-change="onSizeChange"
       @current-change="onCurrentChange"
     >
-      <el-table-column label="容器信息" min-width="250">
+      <ScTableColumn label="容器信息" min-width="250">
         <template #default="{ row }">
           <div class="container-info">
             <div class="container-details">
@@ -27,29 +27,29 @@
             </div>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="镜像信息" min-width="200">
+      <ScTableColumn label="镜像信息" min-width="200">
         <template #default="{ row }">
           <div class="image-info">
             <div class="image-name">{{ row.systemSoftContainerImageName }}</div>
             <div class="image-tag">{{ row.systemSoftContainerImageTag }}</div>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="运行状态" width="120">
+      <ScTableColumn label="运行状态" width="120">
         <template #default="{ row }">
-          <el-tag
+          <ScTag
             :type="getStatusType(row.systemSoftContainerStatus)"
             size="small"
           >
             {{ getStatusText(row.systemSoftContainerStatus) }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="服务器" width="180">
+      <ScTableColumn label="服务器" width="180">
         <template #default="{ row }">
           <div class="server-info">
             <div class="server-name">
@@ -57,9 +57,9 @@
             </div>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="CPU使用率" width="150">
+      <ScTableColumn label="CPU使用率" width="150">
         <template #default="{ row }">
           <ResourceUsageBar
             :value="
@@ -70,9 +70,9 @@
             type="cpu"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="内存使用率" width="150">
+      <ScTableColumn label="内存使用率" width="150">
         <template #default="{ row }">
           <ResourceUsageBar
             :value="
@@ -83,9 +83,9 @@
             type="memory"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="磁盘IO" width="180">
+      <ScTableColumn label="磁盘IO" width="180">
         <template #default="{ row }">
           <IODataDisplay
             :read-value="
@@ -102,9 +102,9 @@
             write-label="写入"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="网络IO" width="180">
+      <ScTableColumn label="网络IO" width="180">
         <template #default="{ row }">
           <IODataDisplay
             :read-value="
@@ -121,21 +121,21 @@
             write-label="发送"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="操作" width="120" fixed="right">
+      <ScTableColumn label="操作" width="120" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="onViewDetail(row)">
+          <ScButton size="small" @click="onViewDetail(row)">
             <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
             查看详情
-          </el-button>
+          </ScButton>
         </template>
-      </el-table-column>
+      </ScTableColumn>
     </ScTable>
 
     <!-- 分页 -->
     <div v-if="showPagination && pagination" class="pagination-container">
-      <el-pagination
+      <ScPagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
         :total="pagination.total"

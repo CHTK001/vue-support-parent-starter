@@ -20,7 +20,10 @@ withDefaults(
 
 <template>
   <div class="lay-ai-appearance-robot" :class="`variant-${variant}`">
-    <div class="robot-shell" :style="{ width: `${size}px`, height: `${size}px` }">
+    <div
+      class="robot-shell"
+      :style="{ width: `${size}px`, height: `${size}px` }"
+    >
       <svg
         class="robot-icon"
         viewBox="0 0 24 24"
@@ -61,5 +64,3 @@ withDefaults(
   height: 56%;
 }
 </style>
-
-

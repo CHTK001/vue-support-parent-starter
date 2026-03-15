@@ -132,26 +132,26 @@ export const useConfigStore = defineStore({
       if (this.isLoaded || this.isLoading) {
         return;
       }
-      
+
       const config = getConfig();
       if (!config?.OpenSetting) {
         this.isLoaded = true;
         return;
       }
-      
+
       this.isLoading = true;
-      
+
       try {
         this.version = localStorageProxy().getItem(this.storageVersionKey);
         let dataSetting = localStorageProxy().getItem(this.storageKey);
-      // 验证从localStorage获取的数据是否为有效数组
-      if (typeof dataSetting === "string") {
-        try {
-          dataSetting = JSON.parse(dataSetting);
-        } catch (e) {
-          dataSetting = null;
+        // 验证从localStorage获取的数据是否为有效数组
+        if (typeof dataSetting === "string") {
+          try {
+            dataSetting = JSON.parse(dataSetting);
+          } catch (e) {
+            dataSetting = null;
+          }
         }
-      }
 
         if (!dataSetting) {
           return new Promise<void>(async (resolve) => {
@@ -227,7 +227,9 @@ export const useConfigStore = defineStore({
         }
         // 添加日志便于调试，特别是主题相关配置
         if (element.sysSettingGroup === "theme") {
-          console.debug(`[ConfigStore] Theme setting loaded: ${element.sysSettingName} = ${element.sysSettingValue}`);
+          console.debug(
+            `[ConfigStore] Theme setting loaded: ${element.sysSettingName} = ${element.sysSettingValue}`,
+          );
         }
       });
       this.version = this.systemSetting["config:Version"] || "1";
@@ -241,13 +243,13 @@ export const useConfigStore = defineStore({
       if (this.systemSetting["config:SystemName"]) {
         useSettingStore().setSetting(
           "Title",
-          this.systemSetting["config:SystemName"]
+          this.systemSetting["config:SystemName"],
         );
       }
       if (this.systemSetting["config:BaseUrl"]) {
         useSettingStore().setSetting(
           "BaseUrl",
-          this.systemSetting["config:BaseUrl"]
+          this.systemSetting["config:BaseUrl"],
         );
       }
       // 处理 ApiAddress 配置，如果存在则所有HTTP请求都走这个接口地址
@@ -267,10 +269,10 @@ export const useConfigStore = defineStore({
           "socketio";
         const urls = this.systemSetting["config:SocketUrl"]?.split(",");
         const context = this.systemSetting["config:SocketPath"];
-        
+
         // 缓存全局配置，供 createNamedSocketService 使用
         setGlobalSocketConfig({ protocol, urls, context });
-        
+
         this.openSocket(urls, context, protocol);
       }
       // 初始化百度统计
@@ -289,7 +291,7 @@ export const useConfigStore = defineStore({
     async openSocket(
       urls: string[],
       context?: string,
-      protocol: ProtocolType = "socketio"
+      protocol: ProtocolType = "socketio",
     ) {
       // 使用统一的 socketService 初始化
       const socket = initGlobalSocketService({

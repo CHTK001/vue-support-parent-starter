@@ -1,4 +1,4 @@
-import { LogLevel, Logger, LoggerOptions } from './types';
+import { LogLevel, Logger, LoggerOptions } from "./types";
 
 /**
  * 默认日志选项
@@ -6,7 +6,7 @@ import { LogLevel, Logger, LoggerOptions } from './types';
 const DEFAULT_OPTIONS: LoggerOptions = {
   level: LogLevel.INFO,
   showTimestamp: true,
-  logInProduction: process.env.NODE_ENV === 'production',
+  logInProduction: process.env.NODE_ENV === "production",
   console: true,
 };
 
@@ -14,22 +14,22 @@ const DEFAULT_OPTIONS: LoggerOptions = {
  * 日志级别颜色配置
  */
 const LEVEL_COLORS = {
-  [LogLevel.DEBUG]: '#8a8a8a',
-  [LogLevel.INFO]: '#2196f3',
-  [LogLevel.WARN]: '#ff9800',
-  [LogLevel.ERROR]: '#f44336',
-  [LogLevel.FATAL]: '#b71c1c',
+  [LogLevel.DEBUG]: "#8a8a8a",
+  [LogLevel.INFO]: "#2196f3",
+  [LogLevel.WARN]: "#ff9800",
+  [LogLevel.ERROR]: "#f44336",
+  [LogLevel.FATAL]: "#b71c1c",
 };
 
 /**
  * 日志级别标识
  */
 const LEVEL_EMOJIS = {
-  [LogLevel.DEBUG]: '🔍',
-  [LogLevel.INFO]: 'ℹ️',
-  [LogLevel.WARN]: '⚠️',
-  [LogLevel.ERROR]: '❌',
-  [LogLevel.FATAL]: '☠️',
+  [LogLevel.DEBUG]: "🔍",
+  [LogLevel.INFO]: "ℹ️",
+  [LogLevel.WARN]: "⚠️",
+  [LogLevel.ERROR]: "❌",
+  [LogLevel.FATAL]: "☠️",
 };
 
 /**
@@ -50,12 +50,12 @@ const LEVEL_PRIORITY = {
  */
 function formatDate(date: Date): string {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
@@ -66,21 +66,21 @@ function formatDate(date: Date): string {
  */
 function processPlaceholders(args: any[]): any[] {
   if (args.length <= 1) return args;
-  
+
   const message = args[0];
-  if (typeof message !== 'string') return args;
-  
+  if (typeof message !== "string") return args;
+
   const placeholders = message.match(/\{\}/g);
   if (!placeholders) return args;
-  
+
   const values = args.slice(1, placeholders.length + 1);
   const remaining = args.slice(placeholders.length + 1);
-  
+
   let formattedMessage = message;
-  values.forEach(value => {
-    formattedMessage = formattedMessage.replace('{}', String(value));
+  values.forEach((value) => {
+    formattedMessage = formattedMessage.replace("{}", String(value));
   });
-  
+
   return [formattedMessage, ...remaining];
 }
 
@@ -121,16 +121,16 @@ export class LoggerImpl implements Logger {
    */
   private getPrefix(level: LogLevel): string {
     const parts: string[] = [];
-    
+
     // 添加时间戳，使用自定义格式
     if (this.options.showTimestamp) {
       parts.push(`[${formatDate(new Date())}]`);
     }
-    
+
     // 添加日志级别和表情
     parts.push(`${LEVEL_EMOJIS[level]} ${level.toUpperCase()}`);
-    
-    return parts.join(' ');
+
+    return parts.join(" ");
   }
 
   /**
@@ -140,10 +140,13 @@ export class LoggerImpl implements Logger {
    */
   private shouldLog(level: LogLevel): boolean {
     // 生产环境且禁用控制台日志时不记录
-    if (process.env.NODE_ENV === 'production' && !this.options.logInProduction) {
+    if (
+      process.env.NODE_ENV === "production" &&
+      !this.options.logInProduction
+    ) {
       return false;
     }
-    
+
     // 根据日志级别优先级判断
     return LEVEL_PRIORITY[level] >= LEVEL_PRIORITY[this.options.level];
   }
@@ -173,7 +176,7 @@ export class LoggerImpl implements Logger {
       const color = LEVEL_COLORS[level];
       // 添加字体样式，包括更大的字号
       const style = `color: ${color}; font-size: 14px; font-weight: 500;`;
-      
+
       // 使用控制台特定方法
       switch (level) {
         case LogLevel.DEBUG:
@@ -232,4 +235,4 @@ export class LoggerImpl implements Logger {
   fatal(...args: any[]): void {
     this.log(LogLevel.FATAL, ...args);
   }
-} 
+}

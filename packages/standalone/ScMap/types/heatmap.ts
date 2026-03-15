@@ -69,18 +69,18 @@ export const DEFAULT_HEATMAP_CONFIG: HeatmapConfig = {
   maxZoom: 18,
   minOpacity: 0.05,
   gradient: {
-    0.4: 'blue',
-    0.6: 'cyan',
-    0.7: 'lime',
-    0.8: 'yellow',
-    1.0: 'red'
+    0.4: "blue",
+    0.6: "cyan",
+    0.7: "lime",
+    0.8: "yellow",
+    1.0: "red",
   },
   zIndex: 10,
   showPoints: false,
   pointRadius: 4,
-  pointColor: '#ff0000',
-  pointStrokeColor: '#ffffff',
+  pointColor: "#ff0000",
+  pointStrokeColor: "#ffffff",
   pointStrokeWidth: 1,
   hideOnMoving: false,
-  hideOnZooming: false
-}; 
+  hideOnZooming: false,
+};

@@ -211,7 +211,7 @@ defineExpose({
       @close="dialogClose"
     />
     <div class="dept-wrapper">
-      <el-container>
+      <ScContainer>
         <!-- 统计面板 -->
         <div class="dept-stats">
           <div class="stat-item">
@@ -242,8 +242,8 @@ defineExpose({
             </div>
           </div>
         </div>
-        <el-header class="dept-header">
-          <el-input
+        <ScHeader class="dept-header">
+          <ScInput
             v-model="dicFilterText"
             :placeholder="useI18nText('input.keywordSearch')"
             clearable
@@ -252,12 +252,12 @@ defineExpose({
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
-        </el-header>
-        <el-main class="dept-main">
+          </ScInput>
+        </ScHeader>
+        <ScMain class="dept-main">
           <div class="tree-container">
-            <el-skeleton v-if="loading.query" animated :count="6" />
-            <el-tree
+            <ScSkeleton v-if="loading.query" animated :count="6" />
+            <ScTree
               v-else
               ref="treeRef"
               :filter-node-method="filterNode"
@@ -305,50 +305,50 @@ defineExpose({
                     </div>
                   </div>
                   <div v-if="data?.sysDeptId" class="node-actions">
-                    <el-tooltip content="编辑" placement="top">
-                      <el-button
+                    <ScTooltip content="编辑" placement="top">
+                      <ScButton
                         type="primary"
                         link
                         size="small"
                         @click.stop="dialogOpen(data, 'edit')"
                       >
                         <IconifyIconOnline icon="ri:edit-line" />
-                      </el-button>
-                    </el-tooltip>
-                    <el-popconfirm
+                      </ScButton>
+                    </ScTooltip>
+                    <ScPopconfirm
                       title="确定要删除该部门吗？"
                       @confirm="onDelete(data)"
                     >
                       <template #reference>
-                        <el-tooltip content="删除" placement="top">
-                          <el-button
+                        <ScTooltip content="删除" placement="top">
+                          <ScButton
                             type="danger"
                             link
                             size="small"
                             @click.stop
                           >
                             <IconifyIconOnline icon="ri:delete-bin-line" />
-                          </el-button>
-                        </el-tooltip>
+                          </ScButton>
+                        </ScTooltip>
                       </template>
-                    </el-popconfirm>
+                    </ScPopconfirm>
                   </div>
                 </div>
               </template>
-            </el-tree>
+            </ScTree>
           </div>
-        </el-main>
-        <el-footer class="dept-footer">
-          <el-button
+        </ScMain>
+        <ScFooter class="dept-footer">
+          <ScButton
             type="primary"
             class="add-btn"
             @click="dialogOpen({}, 'save')"
           >
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             {{ useI18nText("buttons.addDept") }}
-          </el-button>
-        </el-footer>
-      </el-container>
+          </ScButton>
+        </ScFooter>
+      </ScContainer>
     </div>
   </div>
 </template>

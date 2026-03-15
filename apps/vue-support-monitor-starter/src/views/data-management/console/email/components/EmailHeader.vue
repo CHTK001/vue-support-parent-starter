@@ -5,12 +5,12 @@
       <h2 class="email-title">邮箱控制台</h2>
     </div>
     <div class="header-right">
-      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh"
+      <ScButton :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh"
         >刷新</el-button
       >
-      <!--<el-button type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleCompose">撰写邮件</el-button>
-      <el-button type="success" :icon="useRenderIcon('ri:cloud-line')" @click="handleCloudSync">云同步</el-button>
-      <el-button type="warning" :icon="useRenderIcon('ri:upload-cloud-line')" @click="handleCloudBackup">云备份</el-button>-->
+      <!--<ScButton type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleCompose">撰写邮件</ScButton>
+      <ScButton type="success" :icon="useRenderIcon('ri:cloud-line')" @click="handleCloudSync">云同步</ScButton>
+      <ScButton type="warning" :icon="useRenderIcon('ri:upload-cloud-line')" @click="handleCloudBackup">云备份</ScButton>-->
     </div>
   </div>
 </template>

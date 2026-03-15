@@ -18,7 +18,7 @@
         <ScRow :gutter="20">
           <ScCol :span="8">
             <ScFormItem label="打字速度">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.speed"
                 :min="50"
                 :max="500"

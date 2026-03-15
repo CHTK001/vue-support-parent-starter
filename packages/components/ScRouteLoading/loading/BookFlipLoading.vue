@@ -27,13 +27,7 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
           <div class="book">
             <div class="page page-stack-left" />
             <div class="page page-stack-right" />
-            <div
-              v-for="(page, index) in pages"
-              :key="page"
-              class="page page-flip"
-              :class="`page-flip-${index}`"
-              :style="{ animationDelay: `${index * 0.5}s` }"
-            />
+            <div v-for="(page, index) in pages" :key="page" class="page page-flip" :class="`page-flip-${index}`" :style="{ animationDelay: `${index * 0.5}s` }" />
           </div>
           <div class="bookmark" />
         </div>
@@ -53,13 +47,7 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(
-    circle at 30% 20%,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(229, 231, 235, 0.8) 30%,
-    rgba(203, 213, 225, 0.6) 60%,
-    rgba(156, 163, 175, 0.4) 100%
-  );
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.9) 0%, rgba(229, 231, 235, 0.8) 30%, rgba(203, 213, 225, 0.6) 60%, rgba(156, 163, 175, 0.4) 100%);
   color: #020617;
   padding: 16px;
   position: relative;
@@ -70,9 +58,7 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
   content: "";
   position: absolute;
   inset: 0;
-  background: 
-    radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(147, 51, 234, 0.05) 0%, transparent 50%);
+  background: radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(147, 51, 234, 0.05) 0%, transparent 50%);
   pointer-events: none;
 }
 
@@ -88,9 +74,8 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
   width: 280px;
   height: 160px;
   border-radius: 24px;
-  background: 
-    radial-gradient(circle at top left, rgba(148, 163, 184, 0.25), transparent 60%),
-    radial-gradient(circle at bottom right, rgba(209, 213, 219, 0.6), #f9fafb),
+  background:
+    radial-gradient(circle at top left, rgba(148, 163, 184, 0.25), transparent 60%), radial-gradient(circle at bottom right, rgba(209, 213, 219, 0.6), #f9fafb),
     linear-gradient(135deg, rgba(249, 250, 251, 0.95) 0%, rgba(243, 244, 246, 0.98) 100%);
   box-shadow:
     0 24px 48px rgba(15, 23, 42, 0.25),
@@ -166,15 +151,8 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
 .book {
   position: relative;
   border-radius: 12px;
-  background: 
-    linear-gradient(135deg, #f9fafb 0%, #e5e7eb 40%, #f3f4f6 100%),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      rgba(148, 163, 184, 0.05) 2px,
-      rgba(148, 163, 184, 0.05) 4px
-    );
+  background:
+    linear-gradient(135deg, #f9fafb 0%, #e5e7eb 40%, #f3f4f6 100%), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(148, 163, 184, 0.05) 2px, rgba(148, 163, 184, 0.05) 4px);
   overflow: hidden;
   transform-style: preserve-3d;
   box-shadow:
@@ -188,19 +166,7 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
   position: absolute;
   inset: 10px 10px;
   width: 50%;
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      #e5e7eb,
-      #e5e7eb 1px,
-      #f9fafb 1px,
-      #f9fafb 5px
-    ),
-    linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0.3) 0%,
-      transparent 20%
-    );
+  background: repeating-linear-gradient(to bottom, #e5e7eb, #e5e7eb 1px, #f9fafb 1px, #f9fafb 5px), linear-gradient(to right, rgba(255, 255, 255, 0.3) 0%, transparent 20%);
 }
 
 .page::before {
@@ -209,34 +175,9 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
   inset: 12px 8px;
   background-image: 
     /* 文字行 */
-    repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent 3px,
-      rgba(107, 114, 128, 0.15) 3px,
-      rgba(107, 114, 128, 0.15) 4px,
-      transparent 4px,
-      transparent 7px
-    ),
-    /* 段落间距 */
-    repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent 18px,
-      rgba(107, 114, 128, 0.12) 18px,
-      rgba(107, 114, 128, 0.12) 19px,
-      transparent 19px,
-      transparent 22px
-    ),
-    /* 左侧缩进 */
-    linear-gradient(
-      to right,
-      transparent 0%,
-      transparent 4px,
-      rgba(107, 114, 128, 0.1) 4px,
-      rgba(107, 114, 128, 0.1) 85%,
-      transparent 85%
-    );
+    repeating-linear-gradient(to bottom, transparent, transparent 3px, rgba(107, 114, 128, 0.15) 3px, rgba(107, 114, 128, 0.15) 4px, transparent 4px, transparent 7px),
+    /* 段落间距 */ repeating-linear-gradient(to bottom, transparent, transparent 18px, rgba(107, 114, 128, 0.12) 18px, rgba(107, 114, 128, 0.12) 19px, transparent 19px, transparent 22px),
+    /* 左侧缩进 */ linear-gradient(to right, transparent 0%, transparent 4px, rgba(107, 114, 128, 0.1) 4px, rgba(107, 114, 128, 0.1) 85%, transparent 85%);
   pointer-events: none;
 }
 
@@ -262,26 +203,13 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
   transform-origin: left center;
   border-radius: 0 8px 8px 0;
   background:
-    repeating-linear-gradient(
-      to bottom,
-      #ffffff,
-      #ffffff 1px,
-      #e5e7eb 1px,
-      #e5e7eb 5px
-    ),
-    linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0.95) 0%,
-      rgba(255, 255, 255, 0.85) 30%,
-      rgba(240, 240, 240, 0.7) 50%,
-      rgba(255, 255, 255, 0.85) 70%,
-      rgba(255, 255, 255, 0.95) 100%
-    );
+    repeating-linear-gradient(to bottom, #ffffff, #ffffff 1px, #e5e7eb 1px, #e5e7eb 5px),
+    linear-gradient(to right, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 30%, rgba(240, 240, 240, 0.7) 50%, rgba(255, 255, 255, 0.85) 70%, rgba(255, 255, 255, 0.95) 100%);
   box-shadow:
     -4px 0 12px rgba(15, 23, 42, 0.3),
     -2px 0 6px rgba(15, 23, 42, 0.15),
     inset 0 0 0 1px rgba(148, 163, 184, 0.7);
-  animation: flip-seamless 2.5s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+  animation: flip-seamless 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   /* 使用动态 z-index，让翻页顺序自然 */
   z-index: calc(20 - var(--page-index, 0));
 }
@@ -303,49 +231,121 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
     ),
     /* 段落间距 */
     repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent calc(18px + var(--para-offset, 0px)),
-      rgba(107, 114, 128, 0.14) calc(18px + var(--para-offset, 0px)),
-      rgba(107, 114, 128, 0.14) calc(19px + var(--para-offset, 0px)),
-      transparent calc(19px + var(--para-offset, 0px)),
-      transparent calc(22px + var(--para-offset, 0px))
-    ),
-    /* 左侧缩进和文字区域 */
-    linear-gradient(
-      to right,
-      transparent 0%,
-      transparent 4px,
-      rgba(107, 114, 128, 0.12) 4px,
-      rgba(107, 114, 128, 0.12) 82%,
-      transparent 82%
-    );
+        to bottom,
+        transparent,
+        transparent calc(18px + var(--para-offset, 0px)),
+        rgba(107, 114, 128, 0.14) calc(18px + var(--para-offset, 0px)),
+        rgba(107, 114, 128, 0.14) calc(19px + var(--para-offset, 0px)),
+        transparent calc(19px + var(--para-offset, 0px)),
+        transparent calc(22px + var(--para-offset, 0px))
+      ),
+    /* 左侧缩进和文字区域 */ linear-gradient(to right, transparent 0%, transparent 4px, rgba(107, 114, 128, 0.12) 4px, rgba(107, 114, 128, 0.12) 82%, transparent 82%);
   pointer-events: none;
   /* 翻页时保持文字内容 */
   transform-style: preserve-3d;
 }
 
 /* 为不同页面设置不同的文字行偏移，让每页看起来内容不同 */
-.page-flip-0 { --page-index: 0; --line-offset: 0px; --para-offset: 0px; }
-.page-flip-1 { --page-index: 1; --line-offset: 0.5px; --para-offset: 1px; }
-.page-flip-2 { --page-index: 2; --line-offset: 1px; --para-offset: 0px; }
-.page-flip-3 { --page-index: 3; --line-offset: 0px; --para-offset: 2px; }
-.page-flip-4 { --page-index: 4; --line-offset: 0.5px; --para-offset: 1px; }
-.page-flip-5 { --page-index: 5; --line-offset: 1px; --para-offset: 0px; }
-.page-flip-6 { --page-index: 6; --line-offset: 0px; --para-offset: 1px; }
-.page-flip-7 { --page-index: 7; --line-offset: 0.5px; --para-offset: 2px; }
-.page-flip-8 { --page-index: 8; --line-offset: 1px; --para-offset: 0px; }
-.page-flip-9 { --page-index: 9; --line-offset: 0px; --para-offset: 1px; }
-.page-flip-10 { --page-index: 10; --line-offset: 0.5px; --para-offset: 0px; }
-.page-flip-11 { --page-index: 11; --line-offset: 1px; --para-offset: 2px; }
-.page-flip-12 { --page-index: 12; --line-offset: 0px; --para-offset: 1px; }
-.page-flip-13 { --page-index: 13; --line-offset: 0.5px; --para-offset: 0px; }
-.page-flip-14 { --page-index: 14; --line-offset: 1px; --para-offset: 1px; }
-.page-flip-15 { --page-index: 15; --line-offset: 0px; --para-offset: 2px; }
-.page-flip-16 { --page-index: 16; --line-offset: 0.5px; --para-offset: 1px; }
-.page-flip-17 { --page-index: 17; --line-offset: 1px; --para-offset: 0px; }
-.page-flip-18 { --page-index: 18; --line-offset: 0px; --para-offset: 1px; }
-.page-flip-19 { --page-index: 19; --line-offset: 0.5px; --para-offset: 2px; }
+.page-flip-0 {
+  --page-index: 0;
+  --line-offset: 0px;
+  --para-offset: 0px;
+}
+.page-flip-1 {
+  --page-index: 1;
+  --line-offset: 0.5px;
+  --para-offset: 1px;
+}
+.page-flip-2 {
+  --page-index: 2;
+  --line-offset: 1px;
+  --para-offset: 0px;
+}
+.page-flip-3 {
+  --page-index: 3;
+  --line-offset: 0px;
+  --para-offset: 2px;
+}
+.page-flip-4 {
+  --page-index: 4;
+  --line-offset: 0.5px;
+  --para-offset: 1px;
+}
+.page-flip-5 {
+  --page-index: 5;
+  --line-offset: 1px;
+  --para-offset: 0px;
+}
+.page-flip-6 {
+  --page-index: 6;
+  --line-offset: 0px;
+  --para-offset: 1px;
+}
+.page-flip-7 {
+  --page-index: 7;
+  --line-offset: 0.5px;
+  --para-offset: 2px;
+}
+.page-flip-8 {
+  --page-index: 8;
+  --line-offset: 1px;
+  --para-offset: 0px;
+}
+.page-flip-9 {
+  --page-index: 9;
+  --line-offset: 0px;
+  --para-offset: 1px;
+}
+.page-flip-10 {
+  --page-index: 10;
+  --line-offset: 0.5px;
+  --para-offset: 0px;
+}
+.page-flip-11 {
+  --page-index: 11;
+  --line-offset: 1px;
+  --para-offset: 2px;
+}
+.page-flip-12 {
+  --page-index: 12;
+  --line-offset: 0px;
+  --para-offset: 1px;
+}
+.page-flip-13 {
+  --page-index: 13;
+  --line-offset: 0.5px;
+  --para-offset: 0px;
+}
+.page-flip-14 {
+  --page-index: 14;
+  --line-offset: 1px;
+  --para-offset: 1px;
+}
+.page-flip-15 {
+  --page-index: 15;
+  --line-offset: 0px;
+  --para-offset: 2px;
+}
+.page-flip-16 {
+  --page-index: 16;
+  --line-offset: 0.5px;
+  --para-offset: 1px;
+}
+.page-flip-17 {
+  --page-index: 17;
+  --line-offset: 1px;
+  --para-offset: 0px;
+}
+.page-flip-18 {
+  --page-index: 18;
+  --line-offset: 0px;
+  --para-offset: 1px;
+}
+.page-flip-19 {
+  --page-index: 19;
+  --line-offset: 0.5px;
+  --para-offset: 2px;
+}
 
 .bookmark {
   position: absolute;
@@ -353,14 +353,9 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
   top: -3px;
   width: 10px;
   height: 36px;
-  background: linear-gradient(
-    180deg,
-    #f97316 0%,
-    #ea580c 50%,
-    #dc2626 100%
-  );
+  background: linear-gradient(180deg, #f97316 0%, #ea580c 50%, #dc2626 100%);
   border-radius: 0 0 999px 999px;
-  box-shadow: 
+  box-shadow:
     0 2px 4px rgba(124, 45, 18, 0.4),
     0 0 0 1px rgba(124, 45, 18, 0.9),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
@@ -389,7 +384,8 @@ const pages = Array.from({ length: pageCount }, (_, i) => i);
 }
 
 @keyframes text-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

@@ -40,7 +40,7 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-input
+          <ScInput
             v-model="searchText"
             placeholder="搜索日志器..."
             clearable
@@ -49,14 +49,14 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
+          </ScInput>
           <span v-if="searchText" class="search-result">
             找到 <strong>{{ filteredLoggers.length }}</strong> 个
           </span>
         </div>
         <div class="toolbar-right">
-          <el-tooltip content="刷新配置" placement="top">
-            <el-button
+          <ScTooltip content="刷新配置" placement="top">
+            <ScButton
               type="primary"
               :icon="loading ? '' : undefined"
               :loading="loading"
@@ -64,8 +64,8 @@
             >
               <IconifyIconOnline v-if="!loading" icon="ri:refresh-line" />
               刷新
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </div>
       </div>
 
@@ -81,7 +81,7 @@
           :loading="loading"
           @refresh="handleRefresh"
         >
-          <el-table-column label="日志器名称" min-width="280">
+          <ScTableColumn label="日志器名称" min-width="280">
             <template #default="{ row }">
               <div class="logger-name-cell">
                 <div
@@ -101,11 +101,11 @@
                 </span>
               </div>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="配置等级" width="110" align="center">
+          <ScTableColumn label="配置等级" width="110" align="center">
             <template #default="{ row }">
-              <el-tag
+              <ScTag
                 v-if="row.configuredLevel"
                 :type="getLevelTagType(row.configuredLevel)"
                 size="small"
@@ -113,25 +113,25 @@
                 round
               >
                 {{ row.configuredLevel }}
-              </el-tag>
+              </ScTag>
               <span v-else class="no-config">-</span>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="有效等级" width="110" align="center">
+          <ScTableColumn label="有效等级" width="110" align="center">
             <template #default="{ row }">
-              <el-tag
+              <ScTag
                 :type="getLevelTagType(row.effectiveLevel)"
                 size="small"
                 effect="dark"
                 round
               >
                 {{ row.effectiveLevel }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="继承" width="70" align="center">
+          <ScTableColumn label="继承" width="70" align="center">
             <template #default="{ row }">
               <IconifyIconOnline
                 :icon="
@@ -145,39 +145,39 @@
                 ]"
               />
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="设置等级" width="130" align="center">
+          <ScTableColumn label="设置等级" width="130" align="center">
             <template #default="{ row }">
-              <el-select
+              <ScSelect
                 v-model="row.newLevel"
                 placeholder="选择"
                 size="small"
                 class="level-select"
               >
-                <el-option
+                <ScOption
                   v-for="level in logLevels"
                   :key="level"
                   :label="level"
                   :value="level"
                 >
                   <div class="level-option">
-                    <el-tag
+                    <ScTag
                       :type="getLevelTagType(level)"
                       size="small"
                       effect="light"
                     >
                       {{ level }}
-                    </el-tag>
+                    </ScTag>
                   </div>
-                </el-option>
-              </el-select>
+                </ScOption>
+              </ScSelect>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="操作" width="90" align="center" fixed="right">
+          <ScTableColumn label="操作" width="90" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button
+              <ScButton
                 type="primary"
                 size="small"
                 :loading="row.updating"
@@ -188,16 +188,16 @@
                 @click="updateLoggerLevel(row)"
               >
                 应用
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
+          </ScTableColumn>
         </ScTable>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
+        <ScButton @click="handleClose">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

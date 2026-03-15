@@ -15,7 +15,10 @@ const timer = setInterval(() => {
   }
 }, 1000);
 const closePage = () => {
-  if (navigator.userAgent.indexOf("Firefox") != -1 || navigator.userAgent.indexOf("Chrome") != -1) {
+  if (
+    navigator.userAgent.indexOf("Firefox") != -1 ||
+    navigator.userAgent.indexOf("Chrome") != -1
+  ) {
     window.location.href = "about:blank";
     window.close();
   } else {
@@ -69,7 +72,7 @@ onUnmounted(() => {
       >
         页面将在{{ remainingTime }}秒后关闭
       </p>
-      <el-button
+      <ScButton
         v-motion
         type="primary"
         :initial="{
@@ -86,7 +89,7 @@ onUnmounted(() => {
         @click="closePage"
       >
         手动关闭页面
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

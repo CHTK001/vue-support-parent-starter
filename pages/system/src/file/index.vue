@@ -3,7 +3,7 @@
     <!-- 页面头部 -->
     <div class="page-header modern-header">
       <div class="header-right">
-        <ScButton 
+        <ScButton
           v-auth="'file:upload'"
           type="primary"
           @click="showUploadDialog = true"
@@ -12,7 +12,7 @@
           上传文件
         </ScButton>
         <ScTooltip v-if="hasAdminRole" content="文件服务设置" placement="top">
-          <ScButton 
+          <ScButton
             v-auth="'file:setting'"
             type="primary"
             plain
@@ -75,14 +75,14 @@
     <div class="toolbar-section">
       <div class="toolbar-left">
         <!-- 分组选择 -->
-        <ScSelect 
+        <ScSelect
           v-model="queryParams.groupId"
           placeholder="选择分组"
           clearable
           style="width: 180px"
           @change="handleSearch"
         >
-          <ScOption 
+          <ScOption
             v-for="group in groupList"
             :key="group.sysFileSystemGroupId"
             :label="group.sysFileSystemGroupName"
@@ -90,7 +90,7 @@
           />
         </ScSelect>
         <!-- 状态筛选 -->
-        <ScSelect 
+        <ScSelect
           v-model="queryParams.status"
           placeholder="文件状态"
           clearable
@@ -105,7 +105,7 @@
           <ScOption label="处理异常" :value="-1" />
         </ScSelect>
         <!-- 关键词搜索 -->
-        <ScInput 
+        <ScInput
           v-model="queryParams.keyword"
           placeholder="搜索文件名"
           clearable
@@ -165,7 +165,7 @@
           </ScTag>
         </template>
         <template #actions="{ row }">
-          <ScButton 
+          <ScButton
             v-if="
               row.sysFileSystemStatus === 2 &&
               setting?.sysFileSystemSettingManualMergeEnabled
@@ -178,7 +178,7 @@
           >
             合并
           </ScButton>
-          <ScButton 
+          <ScButton
             v-if="row.sysFileSystemHttpUrl"
             v-auth="'file:preview'"
             type="primary"
@@ -188,7 +188,7 @@
           >
             预览
           </ScButton>
-          <ScButton 
+          <ScButton
             v-if="row.sysFileSystemHttpUrl"
             v-auth="'file:copy'"
             type="primary"
@@ -198,7 +198,7 @@
           >
             复制
           </ScButton>
-          <ScButton 
+          <ScButton
             v-auth="'file:delete'"
             type="danger"
             link
@@ -245,7 +245,7 @@
             </div>
             <div class="card-meta">
               <span>{{ formatFileSize(file.sysFileSystemSize) }}</span>
-              <ScTag 
+              <ScTag
                 :type="getStatusType(file.sysFileSystemStatus)"
                 size="small"
               >
@@ -254,7 +254,7 @@
             </div>
           </div>
           <div class="card-actions">
-            <ScButton 
+            <ScButton
               v-if="file.sysFileSystemStatus === 2"
               size="small"
               type="primary"
@@ -263,7 +263,7 @@
             >
               <IconifyIconOnline icon="ri:merge-cells-horizontal" />
             </ScButton>
-            <ScButton 
+            <ScButton
               size="small"
               type="danger"
               circle
@@ -278,7 +278,7 @@
 
       <!-- 卡片视图分页 -->
       <div class="card-pagination">
-        <el-pagination
+        <ScPagination
           v-model:current-page="queryParams.page"
           v-model:page-size="queryParams.size"
           :total="total"
@@ -323,7 +323,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
-import { message , ScMessageBox} from "@repo/utils";
+import { message, ScMessageBox } from "@repo/utils";
 
 import { useUserStoreHook } from "@repo/core";
 import {
@@ -436,7 +436,7 @@ const getFileIcon = (ext?: string): string => {
 const isImageFile = (ext?: string): boolean => {
   if (!ext) return false;
   return ["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp"].includes(
-    ext.toLowerCase()
+    ext.toLowerCase(),
   );
 };
 
@@ -451,7 +451,7 @@ const formatFileSize = (bytes?: number): string => {
 
 // 获取状态类型
 const getStatusType = (
-  status?: number
+  status?: number,
 ): "success" | "warning" | "danger" | "info" => {
   switch (status) {
     case 4:
@@ -651,7 +651,8 @@ onMounted(() => {
     rgba(64, 158, 255, 0.12),
     rgba(64, 158, 255, 0.06)
   );
-  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 70%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--el-border-color-lighter) 70%, transparent);
   border-radius: 16px;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
@@ -678,7 +679,8 @@ onMounted(() => {
   gap: 16px;
   padding: clamp(16px, 2vw, 20px);
   background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
   border-radius: 14px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(8px);
@@ -694,7 +696,8 @@ onMounted(() => {
 
 .table-section {
   background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
   border-radius: 14px;
   overflow: hidden;
   flex: 1;
@@ -733,14 +736,19 @@ onMounted(() => {
     overflow: hidden;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+    border: 1px solid
+      color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     backdrop-filter: blur(8px);
 
     &:hover {
       transform: translateY(-6px) scale(1.02);
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      border-color: color-mix(in srgb, var(--el-color-primary) 30%, var(--el-border-color-lighter));
+      border-color: color-mix(
+        in srgb,
+        var(--el-color-primary) 30%,
+        var(--el-border-color-lighter)
+      );
 
       .card-actions {
         opacity: 1;

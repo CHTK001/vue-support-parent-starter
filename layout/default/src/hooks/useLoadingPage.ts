@@ -23,7 +23,7 @@ export function useLoadingPage() {
       isConfigLoaded.value = true;
       // 标记已加载过，下次刷新不显示"初始化"
       sessionStorage.setItem("_app_loaded", "1");
-      
+
       // 执行水印初始化回调
       onWatermarkInit?.();
     } catch (error) {

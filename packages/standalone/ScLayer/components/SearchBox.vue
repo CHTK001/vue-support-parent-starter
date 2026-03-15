@@ -1,35 +1,59 @@
 <template>
-  <div class="search-box" :class="[position, { 'is-select': type === 'select' }]">
+  <div
+    class="search-box"
+    :class="[position, { 'is-select': type === 'select' }]"
+  >
     <div class="search-container">
       <div v-if="showTypeSelector" class="search-type-selector">
         <div class="custom-select">
           <select v-model="currentSearchType" @change="handleSearchTypeChange">
-            <option v-for="typeConfig in searchTypes" :key="typeConfig.type" :value="typeConfig.type">
+            <option
+              v-for="typeConfig in searchTypes"
+              :key="typeConfig.type"
+              :value="typeConfig.type"
+            >
               {{ typeConfig.label }}
             </option>
           </select>
           <div class="select-arrow-wrapper">
-            <IconifyIconOnline icon="ep:caret-bottom" class="select-arrow-icon" />
+            <IconifyIconOnline
+              icon="ep:caret-bottom"
+              class="select-arrow-icon"
+            />
           </div>
         </div>
-        <slot name="type-selector" :current-type="currentSearchType" :search-types="searchTypes" :on-change="handleSearchTypeChange" />
+        <slot
+          name="type-selector"
+          :current-type="currentSearchType"
+          :search-types="searchTypes"
+          :on-change="handleSearchTypeChange"
+        />
       </div>
 
       <!-- 普通搜索输入框 -->
-      <div v-if="currentSearchType !== SearchType.NAVIGATION" class="search-input-container">
+      <div
+        v-if="currentSearchType !== SearchType.NAVIGATION"
+        class="search-input-container"
+      >
         <input
           v-if="type === 'input'"
           v-model="searchText"
           type="text"
           :placeholder="currentPlaceholder"
-          :class="{ 'coordinate-input': currentSearchType === SearchType.COORDINATE }"
+          :class="{
+            'coordinate-input': currentSearchType === SearchType.COORDINATE,
+          }"
           @input="handleInput"
           @keyup.enter="handleSearch"
         />
 
         <select v-else v-model="searchText" @change="handleInput">
           <option value="">请选择</option>
-          <option v-for="option in options" :key="option.value" :value="option.value">
+          <option
+            v-for="option in options"
+            :key="option.value"
+            :value="option.value"
+          >
             {{ option.label }}
           </option>
         </select>
@@ -44,10 +68,23 @@
         <div class="navigation-input-group">
           <div class="nav-input start-input">
             <span class="nav-point-icon start-point-icon">
-              <IconifyIconOnline icon="ri:map-pin-user-fill" class="text-success" />
+              <IconifyIconOnline
+                icon="ri:map-pin-user-fill"
+                class="text-success"
+              />
             </span>
-            <input v-model="navStartPoint" type="text" placeholder="请输入起点" @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
-            <button v-if="navStartPoint" class="nav-clear-btn" @click="clearNavStartPoint">
+            <input
+              v-model="navStartPoint"
+              type="text"
+              placeholder="请输入起点"
+              @input="handleNavInputChange"
+              @keyup.enter="handleNavSearch"
+            />
+            <button
+              v-if="navStartPoint"
+              class="nav-clear-btn"
+              @click="clearNavStartPoint"
+            >
               <IconifyIconOnline icon="ep:circle-close" />
             </button>
           </div>
@@ -58,13 +95,27 @@
             <span class="nav-point-icon end-point-icon">
               <IconifyIconOnline icon="ri:map-pin-fill" class="text-danger" />
             </span>
-            <input v-model="navEndPoint" type="text" placeholder="请输入终点" @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
-            <button v-if="navEndPoint" class="nav-clear-btn" @click="clearNavEndPoint">
+            <input
+              v-model="navEndPoint"
+              type="text"
+              placeholder="请输入终点"
+              @input="handleNavInputChange"
+              @keyup.enter="handleNavSearch"
+            />
+            <button
+              v-if="navEndPoint"
+              class="nav-clear-btn"
+              @click="clearNavEndPoint"
+            >
               <IconifyIconOnline icon="ep:circle-close" />
             </button>
           </div>
         </div>
-        <button type="button" class="nav-search-button" @click="handleNavSearch">
+        <button
+          type="button"
+          class="nav-search-button"
+          @click="handleNavSearch"
+        >
           <IconifyIconOnline icon="ep:search" class="nav-search-icon" />
           <span>查询</span>
         </button>
@@ -72,7 +123,13 @@
     </div>
 
     <!-- 自定义搜索框插槽 -->
-    <slot name="search-input" :search-text="searchText" :placeholder="currentPlaceholder" :on-input="handleInput" :on-search="handleSearch" />
+    <slot
+      name="search-input"
+      :search-text="searchText"
+      :placeholder="currentPlaceholder"
+      :on-input="handleInput"
+      :on-search="handleSearch"
+    />
 
     <!-- 搜索结果列表 -->
     <transition name="slide-fade">
@@ -83,14 +140,26 @@
           class="result-item"
           :class="{
             selected: selectedMarker === result.id,
-            'navigation-origin': currentSearchType === SearchType.NAVIGATION && result.navigationRole === 'origin',
-            'navigation-destination': currentSearchType === SearchType.NAVIGATION && result.navigationRole === 'destination'
+            'navigation-origin':
+              currentSearchType === SearchType.NAVIGATION &&
+              result.navigationRole === 'origin',
+            'navigation-destination':
+              currentSearchType === SearchType.NAVIGATION &&
+              result.navigationRole === 'destination',
           }"
           @click="handleSelect(result)"
         >
           <div class="result-content" @click="handleSelect(result)">
             <!-- 导航搜索结果角标 -->
-            <div v-if="currentSearchType === SearchType.NAVIGATION" class="navigation-role-badge" :class="result.navigationRole === 'origin' ? 'origin-badge' : 'destination-badge'">
+            <div
+              v-if="currentSearchType === SearchType.NAVIGATION"
+              class="navigation-role-badge"
+              :class="
+                result.navigationRole === 'origin'
+                  ? 'origin-badge'
+                  : 'destination-badge'
+              "
+            >
               {{ result.navigationRole === "origin" ? "起" : "终" }}
             </div>
             <div class="result-title">{{ result.name }}</div>
@@ -104,11 +173,24 @@
               {{ formatDistance(result.distance) }}
             </div>
             <div class="action-buttons">
-              <button class="action-btn start-btn" :class="{ active: startPointId === result.id }" title="从这里出发" @click.stop="setAsStartPoint(result)">
-                <IconifyIconOnline icon="ri:map-pin-user-fill" class="start-icon" />
+              <button
+                class="action-btn start-btn"
+                :class="{ active: startPointId === result.id }"
+                title="从这里出发"
+                @click.stop="setAsStartPoint(result)"
+              >
+                <IconifyIconOnline
+                  icon="ri:map-pin-user-fill"
+                  class="start-icon"
+                />
                 从这出发
               </button>
-              <button class="action-btn end-btn" :class="{ active: endPointId === result.id }" title="到这里去" @click.stop="setAsEndPoint(result)">
+              <button
+                class="action-btn end-btn"
+                :class="{ active: endPointId === result.id }"
+                title="到这里去"
+                @click.stop="setAsEndPoint(result)"
+              >
                 <IconifyIconOnline icon="ri:map-pin-fill" class="end-icon" />
                 到这去
               </button>
@@ -117,13 +199,20 @@
         </div>
 
         <!-- 自定义搜索结果插槽 -->
-        <slot name="search-results" :results="results" :on-select="handleSelect" />
+        <slot
+          name="search-results"
+          :results="results"
+          :on-select="handleSelect"
+        />
       </div>
     </transition>
 
     <!-- 添加暂无数据提示 -->
     <transition name="slide-fade">
-      <div v-if="showResults && results.length === 0 && searchText.trim()" class="search-results empty-results">
+      <div
+        v-if="showResults && results.length === 0 && searchText.trim()"
+        class="search-results empty-results"
+      >
         <div class="empty-state">
           <IconifyIconOnline icon="ep:folder-delete" class="empty-icon" />
           <p>未找到结果</p>
@@ -136,13 +225,23 @@
     <div v-if="startPointId && endPointId" class="navigation-panel">
       <div class="route-endpoints">
         <div class="endpoint start-point">
-          <IconifyIconOnline icon="ri:map-pin-user-fill" class="endpoint-icon text-success" />
-          <span class="endpoint-text">起点：{{ getMarkerTitle(startPointMarkerId) }}</span>
+          <IconifyIconOnline
+            icon="ri:map-pin-user-fill"
+            class="endpoint-icon text-success"
+          />
+          <span class="endpoint-text"
+            >起点：{{ getMarkerTitle(startPointMarkerId) }}</span
+          >
         </div>
         <div class="endpoint-divider" />
         <div class="endpoint end-point">
-          <IconifyIconOnline icon="ri:map-pin-fill" class="endpoint-icon text-danger" />
-          <span class="endpoint-text">终点：{{ getMarkerTitle(endPointMarkerId) }}</span>
+          <IconifyIconOnline
+            icon="ri:map-pin-fill"
+            class="endpoint-icon text-danger"
+          />
+          <span class="endpoint-text"
+            >终点：{{ getMarkerTitle(endPointMarkerId) }}</span
+          >
         </div>
       </div>
 
@@ -155,7 +254,10 @@
           :title="type.label"
           @click="selectTransportType(type.value)"
         >
-          <IconifyIconOnline :icon="getTransportIconName(type.value)" class="transport-icon" />
+          <IconifyIconOnline
+            :icon="getTransportIconName(type.value)"
+            class="transport-icon"
+          />
         </div>
       </div>
 
@@ -174,22 +276,41 @@
         v-if="showRouteDetails && routeDetails.length > 0"
         ref="routeDetailsPanel"
         class="route-details"
-        :class="[getRouteDetailsPanelPosition(), { 'is-dragging': isDragging, 'is-closing': isClosing }]"
+        :class="[
+          getRouteDetailsPanelPosition(),
+          { 'is-dragging': isDragging, 'is-closing': isClosing },
+        ]"
         @touchstart="handleTouchStart"
         @touchmove="handleTouchMove"
         @touchend="handleTouchEnd"
       >
         <div class="route-summary">
           <div class="route-info">
-            <span class="route-distance">{{ formatDistance(routeTotalDistance) }}</span>
-            <span class="route-duration">{{ formatDuration(routeTotalDuration) }}</span>
+            <span class="route-distance">{{
+              formatDistance(routeTotalDistance)
+            }}</span>
+            <span class="route-duration">{{
+              formatDuration(routeTotalDuration)
+            }}</span>
           </div>
           <div class="route-actions">
-            <button class="toggle-details-button" @click="showRouteDetailsList = !showRouteDetailsList">
+            <button
+              class="toggle-details-button"
+              @click="showRouteDetailsList = !showRouteDetailsList"
+            >
               <span>{{ showRouteDetailsList ? "收起" : "展开" }}</span>
-              <IconifyIconOnline :icon="showRouteDetailsList ? 'ep:caret-top' : 'ep:caret-bottom'" class="arrow-icon" />
+              <IconifyIconOnline
+                :icon="
+                  showRouteDetailsList ? 'ep:caret-top' : 'ep:caret-bottom'
+                "
+                class="arrow-icon"
+              />
             </button>
-            <button class="close-button" title="关闭导航详情" @click="closeRouteDetails">
+            <button
+              class="close-button"
+              title="关闭导航详情"
+              @click="closeRouteDetails"
+            >
               <IconifyIconOnline icon="ep:close" class="close-icon" />
             </button>
           </div>
@@ -199,15 +320,28 @@
         <div v-if="alternativeRoutes.length > 0" class="route-options">
           <div class="route-option-title">备选路线</div>
           <div class="route-options-list">
-            <div v-for="(route, index) in alternativeRoutes" :key="index" class="route-option" :class="{ active: currentRouteIndex === index }" @click="selectRoute(index)">
+            <div
+              v-for="(route, index) in alternativeRoutes"
+              :key="index"
+              class="route-option"
+              :class="{ active: currentRouteIndex === index }"
+              @click="selectRoute(index)"
+            >
               <div class="route-option-info">
                 <div class="route-option-name">路线 {{ index + 1 }}</div>
                 <div class="route-option-stats">
-                  <span class="route-option-distance">{{ formatDistance(route.distance) }}</span>
-                  <span class="route-option-duration">{{ formatDuration(route.duration) }}</span>
+                  <span class="route-option-distance">{{
+                    formatDistance(route.distance)
+                  }}</span>
+                  <span class="route-option-duration">{{
+                    formatDuration(route.duration)
+                  }}</span>
                 </div>
               </div>
-              <div class="route-option-traffic" :class="getTrafficClass(route.traffic)">
+              <div
+                class="route-option-traffic"
+                :class="getTrafficClass(route.traffic)"
+              >
                 {{ getTrafficText(route.traffic) }}
               </div>
             </div>
@@ -216,16 +350,27 @@
 
         <transition name="slide-down">
           <div v-if="showRouteDetailsList" class="route-steps">
-            <div v-for="(step, index) in routeDetails" :key="index" class="route-step">
+            <div
+              v-for="(step, index) in routeDetails"
+              :key="index"
+              class="route-step"
+            >
               <div class="step-icon-container">
-                <IconifyIconOnline :icon="getStepIcon(step)" class="step-icon" />
+                <IconifyIconOnline
+                  :icon="getStepIcon(step)"
+                  class="step-icon"
+                />
                 <div v-if="index < routeDetails.length - 1" class="step-line" />
               </div>
               <div class="step-content">
                 <div class="step-instruction">{{ step.instruction }}</div>
                 <div class="step-info">
-                  <span v-if="step.roadName" class="road-name">{{ step.roadName }}</span>
-                  <span class="step-distance">{{ formatDistance(step.distance) }}</span>
+                  <span v-if="step.roadName" class="road-name">{{
+                    step.roadName
+                  }}</span>
+                  <span class="step-distance">{{
+                    formatDistance(step.distance)
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -240,11 +385,22 @@
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 import type { PropType } from "vue";
-import { computed, defineExpose, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  defineExpose,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { ConfigObject } from "../composables/ConfigObject";
 import { SearchObject } from "../composables/SearchObject";
 import { SearchHandlerFactory } from "../interfaces/SearchHandler";
-import { DEFAULT_END_ICON, DEFAULT_SEARCH_BOX_CONFIG, DEFAULT_START_ICON } from "../types/default";
+import {
+  DEFAULT_END_ICON,
+  DEFAULT_SEARCH_BOX_CONFIG,
+  DEFAULT_START_ICON,
+} from "../types/default";
 import type { SearchBoxConfig, SearchResult } from "../types/search";
 import { SearchType } from "../types/search";
 
@@ -252,30 +408,31 @@ import { SearchType } from "../types/search";
 const props = defineProps({
   placeholder: {
     type: String,
-    default: "请输入搜索关键词"
+    default: "请输入搜索关键词",
   },
   debounceTime: {
     type: Number,
-    default: 300
+    default: 300,
   },
   position: {
     type: String,
     default: "top-right",
-    validator: (value: string) => ["top-left", "top-right", "bottom-left", "bottom-right"].includes(value)
+    validator: (value: string) =>
+      ["top-left", "top-right", "bottom-left", "bottom-right"].includes(value),
   },
   searchBoxConfig: {
     type: Object as PropType<SearchBoxConfig>,
-    default: () => ({ ...DEFAULT_SEARCH_BOX_CONFIG })
+    default: () => ({ ...DEFAULT_SEARCH_BOX_CONFIG }),
   },
   type: {
     type: String,
     default: "input",
-    validator: (value: string) => ["input", "select"].includes(value)
+    validator: (value: string) => ["input", "select"].includes(value),
   },
   options: {
     type: Array as PropType<{ value: string; label: string }[]>,
-    default: () => []
-  }
+    default: () => [],
+  },
 });
 
 let searchObject: SearchObject = null;
@@ -301,19 +458,28 @@ const navEndPoint = ref("");
 let navSearchTimer: number | null = null;
 
 // 搜索类型相关
-const currentSearchType = ref<SearchType>(props.searchBoxConfig.defaultSearchType || SearchType.KEYWORD);
-const showTypeSelector = computed(() => props.searchBoxConfig.showTypeSelector !== false);
+const currentSearchType = ref<SearchType>(
+  props.searchBoxConfig.defaultSearchType || SearchType.KEYWORD,
+);
+const showTypeSelector = computed(
+  () => props.searchBoxConfig.showTypeSelector !== false,
+);
 const searchTypes = computed(() => props.searchBoxConfig.searchTypes || []);
 
 // 根据当前搜索类型获取占位符
 const currentPlaceholder = computed(() => {
-  const typeConfig = searchTypes.value.find(config => config.type === currentSearchType.value);
+  const typeConfig = searchTypes.value.find(
+    (config) => config.type === currentSearchType.value,
+  );
   return typeConfig?.placeholder || props.placeholder;
 });
 
 // 验证坐标是否有效
 const isValidCoordinate = computed(() => {
-  if (currentSearchType.value !== SearchType.COORDINATE || !searchText.value.trim()) {
+  if (
+    currentSearchType.value !== SearchType.COORDINATE ||
+    !searchText.value.trim()
+  ) {
     return false;
   }
 
@@ -326,11 +492,14 @@ const isValidCoordinate = computed(() => {
   // 如果没有处理器，使用默认验证逻辑
   try {
     // 尝试解析坐标字符串，支持多种格式
-    const coordStr = searchText.value.trim().replace(/，/g, ",").replace(/\s+/g, ",");
+    const coordStr = searchText.value
+      .trim()
+      .replace(/，/g, ",")
+      .replace(/\s+/g, ",");
     const coords = coordStr
       .split(",")
-      .map(s => parseFloat(s.trim()))
-      .filter(n => !isNaN(n));
+      .map((s) => parseFloat(s.trim()))
+      .filter((n) => !isNaN(n));
 
     if (coords.length >= 2) {
       const lng = coords[0];
@@ -347,7 +516,7 @@ const isValidCoordinate = computed(() => {
 });
 
 // 监听搜索类型变化
-watch(currentSearchType, newType => {
+watch(currentSearchType, (newType) => {
   if (searchObject) {
     searchObject.setSearchType(newType);
     emit("type-change", newType);
@@ -361,7 +530,9 @@ watch(currentSearchType, newType => {
 onMounted(() => {
   console.log("SearchBox 组件已挂载，检查搜索对象状态");
   if (!searchObject) {
-    console.warn("搜索对象尚未初始化，请确保在使用搜索功能前调用 setSearchObject 方法");
+    console.warn(
+      "搜索对象尚未初始化，请确保在使用搜索功能前调用 setSearchObject 方法",
+    );
   } else {
     console.log("搜索对象已就绪");
     // 设置初始搜索类型
@@ -370,7 +541,7 @@ onMounted(() => {
 });
 
 // 处理搜索类型变更
-const handleSearchTypeChange = event => {
+const handleSearchTypeChange = (event) => {
   const newType = event.target ? event.target.value : event;
   currentSearchType.value = newType;
   // 清空搜索框
@@ -399,17 +570,27 @@ const handleInput = () => {
       try {
         // 检查 searchObject 是否已初始化
         if (!searchObject) {
-          console.error("搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法");
+          console.error(
+            "搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法",
+          );
           message("搜索功能未准备好，请稍后再试", { type: "error" });
           return;
         }
 
         // 使用搜索处理器验证输入
-        const handler = SearchHandlerFactory.getHandler(currentSearchType.value);
-        if (handler && handler.validateInput && !handler.validateInput(searchText.value)) {
+        const handler = SearchHandlerFactory.getHandler(
+          currentSearchType.value,
+        );
+        if (
+          handler &&
+          handler.validateInput &&
+          !handler.validateInput(searchText.value)
+        ) {
           // 为导航搜索类型提供特殊提示
           if (currentSearchType.value === SearchType.NAVIGATION) {
-            message('请按照"起点-终点"的格式输入，例如：北京-上海', { type: "warning" });
+            message('请按照"起点-终点"的格式输入，例如：北京-上海', {
+              type: "warning",
+            });
           } else {
             message("请输入有效的搜索内容", { type: "warning" });
           }
@@ -421,7 +602,9 @@ const handleInput = () => {
           closeRouteDetails();
         }
 
-        console.log(`开始搜索: ${searchText.value}, 类型: ${currentSearchType.value}`);
+        console.log(
+          `开始搜索: ${searchText.value}, 类型: ${currentSearchType.value}`,
+        );
 
         // 格式化输入（如果处理器支持）
         if (handler && handler.formatInput) {
@@ -431,19 +614,28 @@ const handleInput = () => {
           }
         }
 
-        const searchResults = await searchObject.search(searchText.value, props.searchBoxConfig as any, currentSearchType.value);
+        const searchResults = await searchObject.search(
+          searchText.value,
+          props.searchBoxConfig as any,
+          currentSearchType.value,
+        );
         console.log("搜索结果:", searchResults);
         results.value = searchResults;
         showResults.value = true; // 无论结果是否为空，都显示结果区域
         emit("search", searchResults);
 
         // 如果是导航搜索，并且有结果，显示特殊提示
-        if (currentSearchType.value === SearchType.NAVIGATION && searchResults.length > 0) {
+        if (
+          currentSearchType.value === SearchType.NAVIGATION &&
+          searchResults.length > 0
+        ) {
           message("请选择起点和终点以创建导航路线", { type: "info" });
         }
       } catch (error) {
         console.error("搜索失败:", error);
-        message("搜索失败: " + (error.message || "未知错误", { type: "error" }));
+        message(
+          "搜索失败: " + (error.message || "未知错误", { type: "error" }),
+        );
         results.value = [];
         showResults.value = true; // 搜索失败时也显示空结果
       }
@@ -466,7 +658,11 @@ const handleSearch = async () => {
       }
 
       // 开始搜索
-      await searchObject.search(searchText.value, props.searchBoxConfig, currentSearchType.value);
+      await searchObject.search(
+        searchText.value,
+        props.searchBoxConfig,
+        currentSearchType.value,
+      );
     }
   } catch (error) {
     console.error("搜索失败:", error);
@@ -510,10 +706,10 @@ const setAsStartPoint = (result: SearchResult) => {
         className: "start-point-marker",
         label: {
           text: "起点",
-          className: "start-point-label"
-        }
+          className: "start-point-label",
+        },
       },
-      zIndex: 1000
+      zIndex: 1000,
     });
 
     startPointMarkerId.value = markerId;
@@ -551,10 +747,10 @@ const setAsEndPoint = (result: SearchResult) => {
         className: "end-point-marker",
         label: {
           text: "终点",
-          className: "end-point-label"
-        }
+          className: "end-point-label",
+        },
       },
-      zIndex: 1000
+      zIndex: 1000,
     });
 
     endPointMarkerId.value = markerId;
@@ -567,7 +763,7 @@ const transportTypes = [
   { value: "transit", label: "公交" },
   { value: "walking", label: "步行" },
   { value: "bicycling", label: "骑行" },
-  { value: "ebike", label: "电动车" }
+  { value: "ebike", label: "电动车" },
 ];
 const currentTransportType = ref("driving");
 
@@ -616,7 +812,10 @@ const selectRoute = (index: number) => {
   // 调用 SearchObject 的 switchRoute 方法切换路线
   try {
     if (searchObject) {
-      const success = searchObject.switchRoute(index, currentTransportType.value);
+      const success = searchObject.switchRoute(
+        index,
+        currentTransportType.value,
+      );
       if (success) {
         console.log(`已切换到路线 ${index + 1}`);
       } else {
@@ -634,7 +833,8 @@ const getTrafficClass = (traffic: number | string): string => {
     return "traffic-unknown";
   }
 
-  const trafficValue = typeof traffic === "string" ? parseInt(traffic, 10) : traffic;
+  const trafficValue =
+    typeof traffic === "string" ? parseInt(traffic, 10) : traffic;
 
   if (trafficValue < 1.2) return "traffic-smooth";
   if (trafficValue < 1.5) return "traffic-normal";
@@ -648,7 +848,8 @@ const getTrafficText = (traffic: number | string): string => {
     return "未知";
   }
 
-  const trafficValue = typeof traffic === "string" ? parseInt(traffic, 10) : traffic;
+  const trafficValue =
+    typeof traffic === "string" ? parseInt(traffic, 10) : traffic;
 
   if (trafficValue < 1.2) return "畅通";
   if (trafficValue < 1.5) return "正常";
@@ -666,7 +867,7 @@ const updateRouteDetails = (steps: any[]) => {
     instruction: "起点",
     distance: 0,
     duration: 0,
-    roadName: ""
+    roadName: "",
   });
 
   // 添加各个步骤
@@ -684,7 +885,7 @@ const updateRouteDetails = (steps: any[]) => {
       instruction: step.instruction || `步骤 ${index + 1}`,
       distance,
       duration,
-      roadName
+      roadName,
     });
   });
 
@@ -694,7 +895,7 @@ const updateRouteDetails = (steps: any[]) => {
     instruction: "终点",
     distance: 0,
     duration: 0,
-    roadName: ""
+    roadName: "",
   });
 };
 
@@ -815,7 +1016,7 @@ const checkRouteDetailsVisibility = () => {
     showRouteDetails: showRouteDetails.value,
     hasRouteDetails: routeDetails.value.length > 0,
     position: props.position,
-    panelPosition: getRouteDetailsPanelPosition()
+    panelPosition: getRouteDetailsPanelPosition(),
   });
 };
 
@@ -832,17 +1033,23 @@ const createRouteNavigation = async () => {
     // 检查 ShapeObject 是否已初始化
     if (searchObject.checkShapeObject && !searchObject.checkShapeObject()) {
       console.error("ShapeObject 未初始化，可能无法绘制路线");
-      message("地图绘制组件未准备好，路线可能无法正确显示", { type: "warning" });
+      message("地图绘制组件未准备好，路线可能无法正确显示", {
+        type: "warning",
+      });
     }
 
     // 调用导航方法
     console.log("调用 createNavigation 方法，参数:", {
       startPointMarkerId: startPointMarkerId.value,
       endPointMarkerId: endPointMarkerId.value,
-      transportType: currentTransportType.value
+      transportType: currentTransportType.value,
     });
 
-    await searchObject.createNavigation(startPointMarkerId.value, endPointMarkerId.value, currentTransportType.value);
+    await searchObject.createNavigation(
+      startPointMarkerId.value,
+      endPointMarkerId.value,
+      currentTransportType.value,
+    );
     console.log("导航路线创建成功，准备获取导航信息");
 
     // 获取导航路线信息
@@ -850,7 +1057,12 @@ const createRouteNavigation = async () => {
     console.log("获取到导航信息:", navigationResponse);
 
     // 检查是否有路径数据
-    if (!navigationResponse || !navigationResponse.route || !navigationResponse.route.paths || navigationResponse.route.paths.length === 0) {
+    if (
+      !navigationResponse ||
+      !navigationResponse.route ||
+      !navigationResponse.route.paths ||
+      navigationResponse.route.paths.length === 0
+    ) {
       console.error("导航响应中没有有效的路径数据");
       message("未能获取到有效的导航路径", { type: "error" });
       return;
@@ -860,7 +1072,12 @@ const createRouteNavigation = async () => {
     alternativeRoutes.value = [];
     currentRouteIndex.value = 0;
 
-    if (navigationResponse && navigationResponse.route && navigationResponse.route.paths && navigationResponse.route.paths.length > 0) {
+    if (
+      navigationResponse &&
+      navigationResponse.route &&
+      navigationResponse.route.paths &&
+      navigationResponse.route.paths.length > 0
+    ) {
       // 处理主路线
       const mainPath = navigationResponse.route.paths[0];
       routeTotalDistance.value = mainPath.distance || 0;
@@ -869,12 +1086,12 @@ const createRouteNavigation = async () => {
       console.log("主路线信息:", {
         distance: mainPath.distance,
         duration: mainPath.duration,
-        steps: mainPath.steps?.length || 0
+        steps: mainPath.steps?.length || 0,
       });
 
       // 检查步骤中是否包含polyline数据
       if (mainPath.steps && mainPath.steps.length > 0) {
-        const hasPolyline = mainPath.steps.some(step => step.polyline);
+        const hasPolyline = mainPath.steps.some((step) => step.polyline);
         console.log("步骤中是否包含polyline数据:", hasPolyline);
         if (!hasPolyline) {
           console.warn("步骤中没有polyline数据，可能无法正确绘制路线");
@@ -893,7 +1110,7 @@ const createRouteNavigation = async () => {
           duration: mainPath.duration || 0,
           traffic: mainPath.traffic_condition || 1,
           steps: mainPath.steps || [],
-          isMain: true
+          isMain: true,
         });
 
         // 添加其他备选路线
@@ -904,7 +1121,7 @@ const createRouteNavigation = async () => {
             duration: path.duration || 0,
             traffic: path.traffic_condition || 1,
             steps: path.steps || [],
-            isMain: false
+            isMain: false,
           });
         }
 
@@ -926,22 +1143,22 @@ const createRouteNavigation = async () => {
           instruction: "起点",
           distance: 0,
           duration: 0,
-          roadName: ""
+          roadName: "",
         },
         {
           action: "straight",
           instruction: "沿道路直行",
           distance: 0,
           duration: 0,
-          roadName: "未知道路"
+          roadName: "未知道路",
         },
         {
           action: "end",
           instruction: "终点",
           distance: 0,
           duration: 0,
-          roadName: ""
-        }
+          roadName: "",
+        },
       ];
 
       // 显示路线详情
@@ -1015,7 +1232,7 @@ const clearRoutePoints = () => {
 };
 
 // 修改 handleSelect 方法，避免与起点终点按钮冲突
-const handleSelect = result => {
+const handleSelect = (result) => {
   // 调用 searchObject 的 selectResult 方法
   if (searchObject) {
     searchObject.selectResult(result);
@@ -1072,7 +1289,7 @@ const getMarkerTitle = (markerId: string | null): string => {
   }
 
   // 从搜索结果中查找对应的标记信息
-  const result = results.value.find(r => {
+  const result = results.value.find((r) => {
     if (r.id === startPointId.value && markerId === startPointMarkerId.value) {
       return true;
     }
@@ -1108,7 +1325,7 @@ defineExpose({
   clearResults: () => {
     results.value = [];
     showResults.value = false;
-  }
+  },
 });
 
 // 处理触摸开始
@@ -1200,7 +1417,9 @@ const handleNavSearch = async () => {
 
   try {
     if (!searchObject) {
-      console.error("搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法");
+      console.error(
+        "搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法",
+      );
       message("搜索功能未准备好，请稍后再试", { type: "error" });
       return;
     }
@@ -1215,7 +1434,11 @@ const handleNavSearch = async () => {
     searchText.value = keyword;
 
     console.log(`开始导航搜索: ${keyword}`);
-    const searchResults = await searchObject.search(keyword, props.searchBoxConfig as any, SearchType.NAVIGATION);
+    const searchResults = await searchObject.search(
+      keyword,
+      props.searchBoxConfig as any,
+      SearchType.NAVIGATION,
+    );
     console.log("导航搜索结果:", searchResults);
     results.value = searchResults;
     showResults.value = true;
@@ -1226,7 +1449,9 @@ const handleNavSearch = async () => {
     }
   } catch (error) {
     console.error("导航搜索失败:", error);
-    message("导航搜索失败: " + (error.message || "未知错误", { type: "error" }));
+    message(
+      "导航搜索失败: " + (error.message || "未知错误", { type: "error" }),
+    );
     results.value = [];
     showResults.value = true;
   }

@@ -79,7 +79,11 @@ const { t } = useI18n();
       <!-- 错误代码 -->
       <div class="error-code">
         <div class="code-glitch" data-text="500">
-          <span v-for="(digit, index) in String(code).split('')" :key="index" class="digit">
+          <span
+            v-for="(digit, index) in String(code).split('')"
+            :key="index"
+            class="digit"
+          >
             {{ digit }}
           </span>
         </div>
@@ -98,7 +102,9 @@ const { t } = useI18n();
         <div class="status-panel">
           <div class="status-item">
             <span class="status-icon">🔧</span>
-            <span>{{ t("error.serverMaintenance") || "服务器正在维护中" }}</span>
+            <span>{{
+              t("error.serverMaintenance") || "服务器正在维护中"
+            }}</span>
           </div>
           <div class="progress-bar">
             <div class="progress-fill"></div>
@@ -121,8 +127,13 @@ const { t } = useI18n();
 
     <!-- 代码雨效果 -->
     <div class="code-rain">
-      <span v-for="i in 20" :key="i" class="rain-drop" :style="{ left: `${i * 5}%`, animationDelay: `${i * 0.1}s` }">
-        {{ Math.random() > 0.5 ? '0' : '1' }}
+      <span
+        v-for="i in 20"
+        :key="i"
+        class="rain-drop"
+        :style="{ left: `${i * 5}%`, animationDelay: `${i * 0.1}s` }"
+      >
+        {{ Math.random() > 0.5 ? "0" : "1" }}
       </span>
     </div>
   </div>
@@ -182,7 +193,9 @@ const { t } = useI18n();
   border: 3px solid #444;
   border-radius: 8px;
   padding: 15px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .server-unit {

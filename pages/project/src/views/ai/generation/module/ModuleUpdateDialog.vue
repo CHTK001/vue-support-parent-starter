@@ -8,14 +8,14 @@
   >
     <ScForm :model="form" ref="formRef" :rules="rules" label-width="100px">
       <ScFormItem label="模块名称" prop="sysAiModuleName">
-        <ScInput 
+        <ScInput
           v-model="form.sysAiModuleName"
           placeholder="请输入模块名称"
         ></ScInput>
       </ScFormItem>
 
       <ScFormItem label="模块标识" prop="sysAiModuleCode">
-        <ScInput 
+        <ScInput
           v-model="form.sysAiModuleCode"
           placeholder="请输入模块标识"
         ></ScInput>
@@ -23,7 +23,7 @@
 
       <ScFormItem label="模型类型" prop="sysAiModuleType">
         <ScSelect v-model="form.sysAiModuleType" placeholder="请选择模块类型">
-          <ScOption 
+          <ScOption
             v-for="item in moduleType"
             :key="item.value"
             :label="item.label"
@@ -33,11 +33,11 @@
       </ScFormItem>
 
       <ScFormItem label="模块厂家" prop="sysAiModuleManufacturers">
-        <ScSelect 
+        <ScSelect
           v-model="form.sysAiModuleManufacturers"
           placeholder="请选择模块类型"
         >
-          <ScOption 
+          <ScOption
             v-for="item in manufacturers"
             :key="item.sysDictItemId"
             :label="item.sysDictItemName"
@@ -56,28 +56,28 @@
         ></el-segmented>
       </ScFormItem>
       <ScFormItem label="模型地址" prop="sysAiModuleUrl">
-        <ScInput 
+        <ScInput
           v-model="form.sysAiModuleUrl"
           placeholder="请输入模型地址"
         ></ScInput>
       </ScFormItem>
 
       <ScFormItem label="优先级" prop="sysAiModuleSort">
-        <ScInputNumber 
+        <ScInputNumber
           v-model="form.sysAiModuleSort"
           placeholder="请输入模块优先级"
         ></ScInputNumber>
       </ScFormItem>
 
       <ScFormItem label="版本" prop="sysAiModuleVersion">
-        <ScInput 
+        <ScInput
           v-model="form.sysAiModuleVersion"
           placeholder="请输入版本"
         ></ScInput>
       </ScFormItem>
 
       <ScFormItem label="模块描述" prop="sysAiModuleRemark">
-        <ScInput 
+        <ScInput
           v-model="form.sysAiModuleRemark"
           placeholder="请输入模块描述"
           type="textarea"

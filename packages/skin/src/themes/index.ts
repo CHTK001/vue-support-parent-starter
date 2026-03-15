@@ -4,6 +4,6 @@
  */
 
 // 导入所有主题样式
-import './index.scss';
+import "./index.scss";
 
 export {};

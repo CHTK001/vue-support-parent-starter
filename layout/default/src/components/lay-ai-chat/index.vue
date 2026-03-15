@@ -3,7 +3,11 @@
     v-if="enabled"
     ref="containerRef"
     class="ai-chat-container"
-    :class="[`position-${position}`, `theme-${theme}`, `appearance-${appearanceKey}`]"
+    :class="[
+      `position-${position}`,
+      `theme-${theme}`,
+      `appearance-${appearanceKey}`,
+    ]"
   >
     <div ref="botTriggerRef" class="ai-bot-trigger" @click="toggleChat">
       <component :is="currentAppearanceComponent" />
@@ -64,7 +68,9 @@ const enabled = computed(() => props.visible);
 const position = computed(
   () => props.position || $storage?.configure?.aiChatPosition || "bottom-right",
 );
-const theme = computed(() => props.theme || $storage?.configure?.aiChatTheme || "default");
+const theme = computed(
+  () => props.theme || $storage?.configure?.aiChatTheme || "default",
+);
 
 const apiKey = ref("");
 const apiUrl = ref("");
@@ -101,7 +107,10 @@ function syncConfigFromStorage(): void {
   }
 
   // 用户尚未开始对话时，切换厂商需要同步更新欢迎语，避免一直显示旧提示
-  if (!messages.value.some((item) => item.role === "user") && messages.value.length > 0) {
+  if (
+    !messages.value.some((item) => item.role === "user") &&
+    messages.value.length > 0
+  ) {
     messages.value = [{ role: "assistant", content: buildWelcomeMessage() }];
   }
 }
@@ -197,7 +206,10 @@ async function sendMessage(payload: string): Promise<void> {
   messages.value.push({ role: "user", content });
   inputMessage.value = "";
   if (shouldForceIdentityAnswer(content)) {
-    messages.value.push({ role: "assistant", content: buildIdentityAnswer(content) });
+    messages.value.push({
+      role: "assistant",
+      content: buildIdentityAnswer(content),
+    });
     return;
   }
 

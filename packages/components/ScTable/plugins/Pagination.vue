@@ -332,7 +332,7 @@ onMounted(() => {
 <template>
   <div class="pagination-container" :class="[`theme--${props.theme}`]">
     <!-- 标准分页 -->
-    <el-pagination
+    <ScPagination
       v-if="!props.hidePagination && props.paginationType === 'default'"
       v-model:currentPage="currentPageValue"
       background
@@ -348,18 +348,18 @@ onMounted(() => {
     <!-- 操作按钮 -->
     <div class="table-actions">
       <ScTooltip v-if="!props.hideRefresh" content="刷新" placement="top">
-        <el-button circle size="default" @click="handleRefresh">
+        <ScButton circle size="default" @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" />
-        </el-button>
+        </ScButton>
       </ScTooltip>
 
       <!-- 列设置按钮 - 在列表布局和卡片布局下隐藏 -->
       <template v-if="!!showColumnSettings">
-        <el-popover v-model:visible="columnSettingVisible" placement="bottom" :width="500" trigger="click" popper-class="column-settings-popover">
+        <ScPopover v-model:visible="columnSettingVisible" placement="bottom" :width="500" trigger="click" popper-class="column-settings-popover">
           <template #reference>
-            <el-button circle size="default">
+            <ScButton circle size="default">
               <IconifyIconOnline icon="ep:list" />
-            </el-button>
+            </ScButton>
           </template>
           33
           <div class="column-setting-container">
@@ -374,15 +374,15 @@ onMounted(() => {
               @live-update="handleLiveColumnUpdate"
             />
           </div>
-        </el-popover>
+        </ScPopover>
       </template>
 
       <!-- 表格设置按钮 - 仅在标准表格布局和Canvas表格布局下显示 -->
-      <el-popover v-if="showTableSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
+      <ScPopover v-if="showTableSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
         <template #reference>
-          <el-button circle size="default">
+          <ScButton circle size="default">
             <IconifyIconOnline icon="ep:setting" />
-          </el-button>
+          </ScButton>
         </template>
 
         <div class="table-settings-container">
@@ -421,7 +421,7 @@ onMounted(() => {
                 <span>显示边框</span>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.border" @change="handleBorderChange" />
+                <ScSwitch :model-value="tableConfigData.border" @change="handleBorderChange" />
               </div>
             </div>
 
@@ -432,7 +432,7 @@ onMounted(() => {
                 <span>斑马纹样式</span>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.stripe" @change="handleStripeChange" />
+                <ScSwitch :model-value="tableConfigData.stripe" @change="handleStripeChange" />
               </div>
             </div>
 
@@ -446,7 +446,7 @@ onMounted(() => {
                 <span>启用拖拽排序</span>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
+                <ScSwitch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
               </div>
             </div>
 
@@ -457,7 +457,7 @@ onMounted(() => {
                 <span>单元格十字标记</span>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.crossHighlight" @change="handleCrossHighlightChange" />
+                <ScSwitch :model-value="tableConfigData.crossHighlight" @change="handleCrossHighlightChange" />
               </div>
             </div>
 
@@ -474,7 +474,7 @@ onMounted(() => {
                 </ScTooltip>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.cacheEnabled" @change="handleCacheEnabledChange" />
+                <ScSwitch :model-value="tableConfigData.cacheEnabled" @change="handleCacheEnabledChange" />
               </div>
             </div>
 
@@ -488,19 +488,19 @@ onMounted(() => {
                 </ScTooltip>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.pageMemoryEnabled" @change="handlePageMemoryEnabledChange" />
+                <ScSwitch :model-value="tableConfigData.pageMemoryEnabled" @change="handlePageMemoryEnabledChange" />
               </div>
             </div>
           </div>
         </div>
-      </el-popover>
+      </ScPopover>
 
       <!-- 列表设置按钮 - 只显示拖拽排序选项 -->
-      <el-popover v-if="showListSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
+      <ScPopover v-if="showListSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
         <template #reference>
-          <el-button circle size="default">
+          <ScButton circle size="default">
             <IconifyIconOnline icon="ep:setting" />
-          </el-button>
+          </ScButton>
         </template>
 
         <div class="table-settings-container">
@@ -517,7 +517,7 @@ onMounted(() => {
                 <span>启用拖拽排序</span>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
+                <ScSwitch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
               </div>
             </div>
             <!-- 边框设置 -->
@@ -527,19 +527,19 @@ onMounted(() => {
                 <span>显示边框</span>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.border" @change="handleBorderChange" />
+                <ScSwitch :model-value="tableConfigData.border" @change="handleBorderChange" />
               </div>
             </div>
           </div>
         </div>
-      </el-popover>
+      </ScPopover>
 
       <!-- 卡片设置按钮 - 显示拖拽排序和边框选项 -->
-      <el-popover v-if="showCardSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
+      <ScPopover v-if="showCardSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
         <template #reference>
-          <el-button circle size="default">
+          <ScButton circle size="default">
             <IconifyIconOnline icon="ep:setting" />
-          </el-button>
+          </ScButton>
         </template>
 
         <div class="table-settings-container">
@@ -556,7 +556,7 @@ onMounted(() => {
                 <span>启用拖拽排序</span>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
+                <ScSwitch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
               </div>
             </div>
             <!-- 边框设置 -->
@@ -566,12 +566,12 @@ onMounted(() => {
                 <span>显示边框</span>
               </div>
               <div class="setting-control">
-                <el-switch :model-value="tableConfigData.border" @change="handleBorderChange" />
+                <ScSwitch :model-value="tableConfigData.border" @change="handleBorderChange" />
               </div>
             </div>
           </div>
         </div>
-      </el-popover>
+      </ScPopover>
     </div>
     <!-- 滚动分页触发器（卡片/列表布局） -->
     <div v-if="props.paginationType === 'scroll'" class="scroll-pagination-trigger" style="width: 100%; height: 1px; opacity: 0" />

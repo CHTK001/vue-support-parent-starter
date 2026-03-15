@@ -126,7 +126,9 @@ const openDB = (): Promise<IDBDatabase> => {
           keyPath: "id",
           autoIncrement: true,
         });
-        favStore.createIndex("path_method", ["path", "method"], { unique: true });
+        favStore.createIndex("path_method", ["path", "method"], {
+          unique: true,
+        });
       }
 
       // 创建 Mock 规则存储
@@ -135,7 +137,9 @@ const openDB = (): Promise<IDBDatabase> => {
           keyPath: "id",
           autoIncrement: true,
         });
-        mockStore.createIndex("path_method", ["path", "method"], { unique: true });
+        mockStore.createIndex("path_method", ["path", "method"], {
+          unique: true,
+        });
       }
     };
   });
@@ -146,7 +150,7 @@ const openDB = (): Promise<IDBDatabase> => {
  */
 const getTransaction = async (
   storeName: string,
-  mode: IDBTransactionMode = "readonly"
+  mode: IDBTransactionMode = "readonly",
 ): Promise<IDBObjectStore> => {
   const db = await openDB();
   const transaction = db.transaction(storeName, mode);
@@ -197,16 +201,24 @@ export const DocStorage = {
   /**
    * 保存节点的全局请求头
    */
-  async saveNodeHeaders(nodeId: string, headers: Record<string, string>): Promise<void> {
+  async saveNodeHeaders(
+    nodeId: string,
+    headers: Record<string, string>,
+  ): Promise<void> {
     return this.setNodeConfig(nodeId, "headers", headers);
   },
 
   /**
    * 获取节点的历史记录
    */
-  async getNodeHistory(nodeId: string, limit = 100): Promise<ApiHistoryRecord[]> {
+  async getNodeHistory(
+    nodeId: string,
+    limit = 100,
+  ): Promise<ApiHistoryRecord[]> {
     const allHistory = await this.getHistoryList(limit * 2);
-    return allHistory.filter((h) => h.url?.includes(nodeId) || true).slice(0, limit);
+    return allHistory
+      .filter((h) => h.url?.includes(nodeId) || true)
+      .slice(0, limit);
   },
 
   // ========== 配置操作 ==========
@@ -407,7 +419,9 @@ export const DocStorage = {
   /**
    * 获取全局请求头列表（包含启用状态）
    */
-  async getGlobalHeadersList(): Promise<Array<{ key: string; value: string; enabled: boolean }>> {
+  async getGlobalHeadersList(): Promise<
+    Array<{ key: string; value: string; enabled: boolean }>
+  > {
     try {
       const store = await getTransaction(STORE_NAMES.HEADERS);
       return new Promise((resolve, reject) => {
@@ -418,7 +432,7 @@ export const DocStorage = {
               key: item.key,
               value: item.value,
               enabled: item.enabled !== false,
-            }))
+            })),
           );
         };
         request.onerror = () => reject(request.error);
@@ -432,11 +446,20 @@ export const DocStorage = {
   /**
    * 设置全局请求头
    */
-  async setGlobalHeader(key: string, value: string, enabled = true): Promise<void> {
+  async setGlobalHeader(
+    key: string,
+    value: string,
+    enabled = true,
+  ): Promise<void> {
     try {
       const store = await getTransaction(STORE_NAMES.HEADERS, "readwrite");
       return new Promise((resolve, reject) => {
-        const request = store.put({ key, value, enabled, updatedAt: Date.now() });
+        const request = store.put({
+          key,
+          value,
+          enabled,
+          updatedAt: Date.now(),
+        });
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
       });
@@ -449,7 +472,7 @@ export const DocStorage = {
    * 批量保存全局请求头
    */
   async saveGlobalHeaders(
-    headers: Array<{ key: string; value: string; enabled?: boolean }>
+    headers: Array<{ key: string; value: string; enabled?: boolean }>,
   ): Promise<void> {
     try {
       const store = await getTransaction(STORE_NAMES.HEADERS, "readwrite");
@@ -531,7 +554,9 @@ export const DocStorage = {
   /**
    * 保存 Mock 规则
    */
-  async saveMockRule(rule: Omit<MockRule, "id" | "createdAt" | "updatedAt">): Promise<number> {
+  async saveMockRule(
+    rule: Omit<MockRule, "id" | "createdAt" | "updatedAt">,
+  ): Promise<number> {
     try {
       const store = await getTransaction(STORE_NAMES.MOCK_RULES, "readwrite");
       const now = Date.now();
@@ -583,7 +608,11 @@ export const DocStorage = {
         const getRequest = store.get(id);
         getRequest.onsuccess = () => {
           if (getRequest.result) {
-            const data = { ...getRequest.result, enabled, updatedAt: Date.now() };
+            const data = {
+              ...getRequest.result,
+              enabled,
+              updatedAt: Date.now(),
+            };
             const putRequest = store.put(data);
             putRequest.onsuccess = () => resolve();
             putRequest.onerror = () => reject(putRequest.error);
@@ -603,7 +632,9 @@ export const DocStorage = {
   /**
    * 获取收藏列表
    */
-  async getFavorites(): Promise<Array<{ path: string; method: string; name?: string }>> {
+  async getFavorites(): Promise<
+    Array<{ path: string; method: string; name?: string }>
+  > {
     try {
       const store = await getTransaction(STORE_NAMES.FAVORITES);
       return new Promise((resolve, reject) => {
@@ -620,11 +651,20 @@ export const DocStorage = {
   /**
    * 添加收藏
    */
-  async addFavorite(path: string, method: string, name?: string): Promise<void> {
+  async addFavorite(
+    path: string,
+    method: string,
+    name?: string,
+  ): Promise<void> {
     try {
       const store = await getTransaction(STORE_NAMES.FAVORITES, "readwrite");
       return new Promise((resolve, reject) => {
-        const request = store.add({ path, method, name, createdAt: Date.now() });
+        const request = store.add({
+          path,
+          method,
+          name,
+          createdAt: Date.now(),
+        });
         request.onsuccess = () => resolve();
         request.onerror = () => {
           // 可能已存在，忽略错误

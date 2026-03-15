@@ -178,12 +178,9 @@ const internalMemoryKey = computed(() => {
   return String(id);
 });
 
-const { memoryData, loadMemory, updateMemory } = useDrawerMemory(
-  internalMemoryKey.value,
-  {
-    enabled: props.memoryEnabled,
-  }
-);
+const { memoryData, loadMemory, updateMemory } = useDrawerMemory(internalMemoryKey.value, {
+  enabled: props.memoryEnabled
+});
 
 /**
  * 处理关闭前回调
@@ -266,7 +263,7 @@ watch(visible, val => {
   emit("update:modelValue", val);
   if (props.memoryEnabled) {
     updateMemory({
-      isOpen: val,
+      isOpen: val
     });
   }
 });
@@ -312,7 +309,7 @@ defineExpose({
   /** 记录位置（供外部滚动等场景调用） */
   setMemoryPosition,
   /** 读取已记录的位置 */
-  getMemoryPosition,
+  getMemoryPosition
 });
 </script>
 

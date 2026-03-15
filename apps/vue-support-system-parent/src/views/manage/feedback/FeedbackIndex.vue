@@ -326,101 +326,101 @@ const closeDetail = () => {
       width="500px"
       destroy-on-close
     >
-      <el-form :model="issueForm" label-width="80px">
-        <el-form-item label="回复内容" required>
-          <el-input
+      <ScForm :model="issueForm" label-width="80px">
+        <ScFormItem label="回复内容" required>
+          <ScInput
             v-model="issueForm.sysFeedbackRecoverContent"
             type="textarea"
             :rows="4"
             placeholder="请输入回复内容"
           />
-        </el-form-item>
-        <el-form-item label="回复图片">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="回复图片">
+          <ScInput
             v-model="issueForm.sysFeedbackRecoverImages"
             placeholder="请输入图片地址，多个用逗号分隔"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="visible.issue = false">取消</el-button>
-        <el-button type="primary" :loading="loading.issue" @click="submitIssue"
+        <ScButton @click="visible.issue = false">取消</ScButton>
+        <ScButton type="primary" :loading="loading.issue" @click="submitIssue"
           >确认回复</el-button
         >
       </template>
     </sc-dialog>
 
-    <el-container class="feedback-container">
+    <ScContainer class="feedback-container">
       <!-- 头部搜索区域 -->
-      <el-header class="toolbar-section feedback-header">
+      <ScHeader class="toolbar-section feedback-header">
         <div class="toolbar-left feedback-left-panel">
-          <el-form
+          <ScForm
             ref="formRef"
             label-width="60px"
             :inline="true"
             :model="form"
             class="modern-form feedback-search-form"
           >
-            <el-form-item
+            <ScFormItem
               label="类型"
               prop="sysFeedbackType"
               class="feedback-form-item"
             >
-              <el-select
+              <ScSelect
                 v-model="form.sysFeedbackType"
                 placeholder="请选择类型"
                 clearable
                 class="feedback-select"
               >
-                <el-option
+                <ScOption
                   v-for="item in typeOptions"
                   :key="item.value"
                   :value="item.value"
                   :label="item.label"
                 />
-              </el-select>
-            </el-form-item>
-            <el-form-item
+              </ScSelect>
+            </ScFormItem>
+            <ScFormItem
               label="状态"
               prop="sysFeedbackStatus"
               class="feedback-form-item"
             >
-              <el-select
+              <ScSelect
                 v-model="form.sysFeedbackStatus"
                 placeholder="请选择状态"
                 clearable
                 class="feedback-select"
               >
-                <el-option
+                <ScOption
                   v-for="item in statusOptions"
                   :key="item.value"
                   :value="item.value"
                   :label="item.label"
                 />
-              </el-select>
-            </el-form-item>
-          </el-form>
+              </ScSelect>
+            </ScFormItem>
+          </ScForm>
         </div>
         <div class="toolbar-right feedback-right-panel">
           <div class="feedback-button-container">
-            <el-tooltip content="搜索" placement="top">
-              <el-button
+            <ScTooltip content="搜索" placement="top">
+              <ScButton
                 type="primary"
                 :icon="useRenderIcon('ri:search-line')"
                 :loading="loading.query"
                 @click="onSearch"
               />
-            </el-tooltip>
-            <el-tooltip content="重置" placement="top">
-              <el-button
+            </ScTooltip>
+            <ScTooltip content="重置" placement="top">
+              <ScButton
                 type="primary"
                 :icon="useRenderIcon(Refresh)"
                 @click="resetForm(formRef)"
               />
-            </el-tooltip>
+            </ScTooltip>
           </div>
         </div>
-      </el-header>
+      </ScHeader>
 
       <!-- 统计图表区域 -->
       <div class="feedback-charts">
@@ -453,7 +453,7 @@ const closeDetail = () => {
       </div>
 
       <!-- 主体表格区域 -->
-      <el-main class="feedback-main-content">
+      <ScMain class="feedback-main-content">
         <div class="feedback-content">
           <ScTable
             ref="table"
@@ -462,14 +462,14 @@ const closeDetail = () => {
             class="modern-table feedback-table"
             height="auto"
           >
-            <el-table-column
+            <ScTableColumn
               label="反馈类型"
               prop="sysFeedbackType"
               align="center"
               width="120"
             >
               <template #default="{ row }">
-                <el-tag
+                <ScTag
                   :type="
                     row.sysFeedbackType === 'BUG'
                       ? 'danger'
@@ -479,24 +479,24 @@ const closeDetail = () => {
                   "
                 >
                   {{ transformType(row.sysFeedbackType) }}
-                </el-tag>
+                </ScTag>
               </template>
-            </el-table-column>
-            <el-table-column
+            </ScTableColumn>
+            <ScTableColumn
               label="反馈内容"
               prop="sysFeedbackContent"
               align="left"
               show-overflow-tooltip
               min-width="200"
             />
-            <el-table-column
+            <ScTableColumn
               label="反馈图片"
               prop="sysFeedbackImages"
               align="center"
               width="100"
             >
               <template #default="{ row }">
-                <el-image
+                <ScImage
                   v-if="row.sysFeedbackImages"
                   :src="row.sysFeedbackImages.split(',')[0]"
                   :preview-src-list="row.sysFeedbackImages.split(',')"
@@ -506,14 +506,14 @@ const closeDetail = () => {
                 />
                 <span v-else>-</span>
               </template>
-            </el-table-column>
-            <el-table-column
+            </ScTableColumn>
+            <ScTableColumn
               label="反馈人"
               prop="createBy"
               align="center"
               width="120"
             />
-            <el-table-column
+            <ScTableColumn
               label="反馈时间"
               prop="createTime"
               align="center"
@@ -526,21 +526,21 @@ const closeDetail = () => {
                   <span class="text-gray-400">{{ row.createTime }}</span>
                 </div>
               </template>
-            </el-table-column>
-            <el-table-column
+            </ScTableColumn>
+            <ScTableColumn
               label="状态"
               prop="sysFeedbackStatus"
               align="center"
               width="100"
             >
               <template #default="{ row }">
-                <el-tag v-if="row.sysFeedbackStatus === 1" type="success"
+                <ScTag v-if="row.sysFeedbackStatus === 1" type="success"
                   >已处理</el-tag
                 >
-                <el-tag v-else type="warning">待处理</el-tag>
+                <ScTag v-else type="warning">待处理</ScTag>
               </template>
-            </el-table-column>
-            <el-table-column
+            </ScTableColumn>
+            <ScTableColumn
               label="处理人"
               prop="sysFeedbackDealName"
               align="center"
@@ -549,31 +549,31 @@ const closeDetail = () => {
               <template #default="{ row }">
                 {{ row.sysFeedbackDealName || "-" }}
               </template>
-            </el-table-column>
-            <el-table-column
+            </ScTableColumn>
+            <ScTableColumn
               label="操作"
               align="center"
               width="120"
               fixed="right"
             >
               <template #default="{ row }">
-                <el-button
+                <ScButton
                   v-if="row.sysFeedbackStatus !== 1"
                   type="primary"
                   link
                   @click.stop="openIssue(row)"
                 >
                   回复
-                </el-button>
-                <el-button type="primary" link @click.stop="openDetail(row)"
+                </ScButton>
+                <ScButton type="primary" link @click.stop="openDetail(row)"
                   >详情</el-button
                 >
               </template>
-            </el-table-column>
+            </ScTableColumn>
           </ScTable>
         </div>
-      </el-main>
-    </el-container>
+      </ScMain>
+    </ScContainer>
   </div>
 </template>
 

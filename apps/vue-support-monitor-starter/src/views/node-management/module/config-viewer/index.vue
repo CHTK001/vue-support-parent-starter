@@ -32,9 +32,9 @@
 
     <div class="config-viewer-content">
       <!-- Tab导航 -->
-      <el-tabs v-model="activeTab" class="config-tabs">
+      <ScTabs v-model="activeTab" class="config-tabs">
         <!-- 环境配置 -->
-        <el-tab-pane name="environment">
+        <ScTabPane name="environment">
           <template #label>
             <div class="tab-label">
               <IconifyIconOnline icon="ri:leaf-line" />
@@ -44,7 +44,7 @@
           <div class="tab-content">
             <div class="tab-toolbar">
               <div class="toolbar-left">
-                <el-input
+                <ScInput
                   v-model="envSearchText"
                   placeholder="搜索配置项..."
                   clearable
@@ -53,23 +53,23 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:search-line" />
                   </template>
-                </el-input>
+                </ScInput>
                 <span v-if="envSearchText" class="search-result">
                   找到 <strong>{{ filteredEnvData.length }}</strong> 项
                 </span>
               </div>
-              <el-button
+              <ScButton
                 type="primary"
                 :loading="loading.env"
                 @click="loadEnvironment"
               >
                 <IconifyIconOnline v-if="!loading.env" icon="ri:refresh-line" />
                 刷新
-              </el-button>
+              </ScButton>
             </div>
 
             <div class="config-tree-wrapper">
-              <el-tree
+              <ScTree
                 v-if="filteredEnvData.length > 0"
                 :data="filteredEnvData"
                 :props="{ label: 'key', children: 'children' }"
@@ -110,18 +110,18 @@
                     </span>
                   </div>
                 </template>
-              </el-tree>
-              <el-empty
+              </ScTree>
+              <ScEmpty
                 v-else
                 description="暂无环境配置数据"
                 :image-size="80"
               />
             </div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 配置属性 -->
-        <el-tab-pane name="configProps">
+        <ScTabPane name="configProps">
           <template #label>
             <div class="tab-label">
               <IconifyIconOnline icon="ri:list-settings-line" />
@@ -131,7 +131,7 @@
           <div class="tab-content">
             <div class="tab-toolbar">
               <div class="toolbar-left">
-                <el-input
+                <ScInput
                   v-model="propsSearchText"
                   placeholder="搜索配置项..."
                   clearable
@@ -140,12 +140,12 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:search-line" />
                   </template>
-                </el-input>
+                </ScInput>
                 <span v-if="propsSearchText" class="search-result">
                   找到 <strong>{{ filteredPropsData.length }}</strong> 项
                 </span>
               </div>
-              <el-button
+              <ScButton
                 type="primary"
                 :loading="loading.props"
                 @click="loadConfigProps"
@@ -155,11 +155,11 @@
                   icon="ri:refresh-line"
                 />
                 刷新
-              </el-button>
+              </ScButton>
             </div>
 
             <div class="config-tree-wrapper">
-              <el-tree
+              <ScTree
                 v-if="filteredPropsData.length > 0"
                 :data="filteredPropsData"
                 :props="{ label: 'key', children: 'children' }"
@@ -193,18 +193,18 @@
                     </span>
                   </div>
                 </template>
-              </el-tree>
-              <el-empty
+              </ScTree>
+              <ScEmpty
                 v-else
                 description="暂无配置属性数据"
                 :image-size="80"
               />
             </div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 系统信息 -->
-        <el-tab-pane name="systemInfo">
+        <ScTabPane name="systemInfo">
           <template #label>
             <div class="tab-label">
               <IconifyIconOnline icon="ri:computer-line" />
@@ -214,7 +214,7 @@
           <div class="tab-content">
             <div class="tab-toolbar">
               <div class="toolbar-left" />
-              <el-button
+              <ScButton
                 type="primary"
                 :loading="loading.system"
                 @click="loadSystemInfo"
@@ -224,7 +224,7 @@
                   icon="ri:refresh-line"
                 />
                 刷新
-              </el-button>
+              </ScButton>
             </div>
 
             <div class="system-info-wrapper">
@@ -237,7 +237,7 @@
                     </div>
                     <span class="card-title">健康状态</span>
                   </div>
-                  <el-tag
+                  <ScTag
                     v-if="systemInfo.health"
                     :type="
                       systemInfo.health.status === 'UP' ? 'success' : 'danger'
@@ -246,7 +246,7 @@
                     round
                   >
                     {{ systemInfo.health.status }}
-                  </el-tag>
+                  </ScTag>
                 </div>
                 <div v-if="systemInfo.health?.components" class="card-body">
                   <div class="component-grid">
@@ -271,7 +271,7 @@
                     </div>
                   </div>
                 </div>
-                <el-empty
+                <ScEmpty
                   v-else
                   description="暂无健康状态数据"
                   :image-size="60"
@@ -300,7 +300,7 @@
                     </div>
                   </div>
                 </div>
-                <el-empty
+                <ScEmpty
                   v-else
                   description="暂无应用信息数据"
                   :image-size="60"
@@ -322,7 +322,7 @@
                 </div>
                 <div v-if="systemInfo.metrics?.names" class="card-body">
                   <div class="metrics-list">
-                    <el-tag
+                    <ScTag
                       v-for="name in systemInfo.metrics.names.slice(0, 50)"
                       :key="name"
                       size="small"
@@ -330,7 +330,7 @@
                       class="metric-tag"
                     >
                       {{ name }}
-                    </el-tag>
+                    </ScTag>
                     <span
                       v-if="systemInfo.metrics.names.length > 50"
                       class="more-hint"
@@ -339,17 +339,17 @@
                     </span>
                   </div>
                 </div>
-                <el-empty v-else description="暂无指标数据" :image-size="60" />
+                <ScEmpty v-else description="暂无指标数据" :image-size="60" />
               </div>
             </div>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
+        <ScButton @click="handleClose">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

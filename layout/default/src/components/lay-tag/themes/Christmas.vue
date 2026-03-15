@@ -3,7 +3,7 @@
  * 圣诞主题标签页
  * 使用专属 ChristmasTag 组件，不依赖 showModel
  */
-import ChristmasTag from './ChristmasTag.vue';
+import ChristmasTag from "./ChristmasTag.vue";
 </script>
 
 <template>

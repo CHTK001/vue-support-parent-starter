@@ -6,14 +6,14 @@
     append-to-body
   >
     <div class="dialog-header">
-      <h3>{{ mode === 'add' ? '新增商户' : '编辑商户' }}</h3>
+      <h3>{{ mode === "add" ? "新增商户" : "编辑商户" }}</h3>
     </div>
     <ScForm :model="form" label-width="100px" class="modern-form">
       <ScFormItem label="商户名称" prop="payMerchantName">
         <ScInput v-model="form.payMerchantName" placeholder="请输入商户名称" />
       </ScFormItem>
       <ScFormItem label="备注" prop="payMerchantRemark">
-        <ScInput 
+        <ScInput
           v-model="form.payMerchantRemark"
           type="textarea"
           placeholder="请输入备注"
@@ -35,12 +35,12 @@
           layout="modern"
         />
       </ScFormItem>
-      <ScFormItem 
+      <ScFormItem
         v-if="form.payMerchantOpenTimeout === 1"
         label="超时时间(min)"
         prop="payMerchantOpenTimeoutTime"
       >
-        <ScInputNumber 
+        <ScInputNumber
           v-model="form.payMerchantOpenTimeoutTime"
           :min="1"
           :max="1440"

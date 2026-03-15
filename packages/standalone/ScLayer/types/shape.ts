@@ -7,12 +7,12 @@ import { CoordSystem } from "./coordinate";
 
 // 图形类型枚举
 export enum Shape {
-  POINT = 'Point',
-  LINE = 'LineString',
-  POLYGON = 'Polygon',
-  CIRCLE = 'Circle',
-  RECTANGLE = 'Rectangle',
-  SQUARE = 'Square'
+  POINT = "Point",
+  LINE = "LineString",
+  POLYGON = "Polygon",
+  CIRCLE = "Circle",
+  RECTANGLE = "Rectangle",
+  SQUARE = "Square",
 }
 
 // 图形样式接口
@@ -78,39 +78,39 @@ export interface ShapeOption {
 // 默认样式
 export const DEFAULT_SHAPE_STYLE: ShapeStyle = {
   stroke: {
-    color: 'rgba(24, 144, 255, 1)',
+    color: "rgba(24, 144, 255, 1)",
     width: 2,
-    lineDash: []
+    lineDash: [],
   },
   fill: {
-    color: 'rgba(24, 144, 255, 0.2)'
+    color: "rgba(24, 144, 255, 0.2)",
   },
   point: {
     radius: 5,
     stroke: {
-      color: 'rgba(24, 144, 255, 0.8)',
-      width: 2
+      color: "rgba(24, 144, 255, 0.8)",
+      width: 2,
     },
     fill: {
-      color: 'rgba(255, 255, 255, 0.8)'
-    }
+      color: "rgba(255, 255, 255, 0.8)",
+    },
   },
   text: {
-    font: '14px Calibri,sans-serif',
+    font: "14px Calibri,sans-serif",
     fill: {
-      color: '#333'
+      color: "#333",
     },
     stroke: {
-      color: '#fff',
-      width: 3
+      color: "#fff",
+      width: 3,
     },
     offsetY: -12,
-    padding: [5, 5, 5, 5]
-  }
+    padding: [5, 5, 5, 5],
+  },
 };
 
 // 添加默认导出
 export default {
   Shape,
-  DEFAULT_SHAPE_STYLE
-}; 
+  DEFAULT_SHAPE_STYLE,
+};

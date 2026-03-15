@@ -218,10 +218,10 @@ const convertUnit = () => {
     } else {
       // 其他单位通过因子转换
       const fromUnitObj = env.units[env.unitType].find(
-        (u) => u.value === env.fromUnit
+        (u) => u.value === env.fromUnit,
       );
       const toUnitObj = env.units[env.unitType].find(
-        (u) => u.value === env.toUnit
+        (u) => u.value === env.toUnit,
       );
 
       if (!fromUnitObj || !toUnitObj) {
@@ -252,10 +252,10 @@ const convertUnit = () => {
 
     // 获取单位显示名称
     const fromUnitLabel = env.units[env.unitType].find(
-      (u) => u.value === env.fromUnit
+      (u) => u.value === env.fromUnit,
     ).label;
     const toUnitLabel = env.units[env.unitType].find(
-      (u) => u.value === env.toUnit
+      (u) => u.value === env.toUnit,
     ).label;
 
     // 生成结果
@@ -306,10 +306,10 @@ const loadFromHistory = (item) => {
   // 设置单位
   setTimeout(() => {
     const fromUnitValue = env.units[unitType].find((u) =>
-      u.label.startsWith(item.fromUnit.split(" ")[0])
+      u.label.startsWith(item.fromUnit.split(" ")[0]),
     ).value;
     const toUnitValue = env.units[unitType].find((u) =>
-      u.label.startsWith(item.toUnit.split(" ")[0])
+      u.label.startsWith(item.toUnit.split(" ")[0]),
     ).value;
 
     env.fromUnit = fromUnitValue;
@@ -393,13 +393,13 @@ const getResultIcon = (label) => {
             <ScForm label-position="top">
               <!-- 单位类型选择 -->
               <ScFormItem label="单位类型">
-                <ScSelect 
+                <ScSelect
                   v-model="env.unitType"
                   placeholder="选择单位类型"
                   class="unit-tool__select"
                   @change="handleUnitTypeChange"
                 >
-                  <ScOption 
+                  <ScOption
                     v-for="item in env.unitTypes"
                     :key="item.value"
                     :label="item.label"
@@ -411,12 +411,12 @@ const getResultIcon = (label) => {
               <!-- 转换单位选择 -->
               <div class="unit-tool__unit-row">
                 <ScFormItem label="从">
-                  <ScSelect 
+                  <ScSelect
                     v-model="env.fromUnit"
                     placeholder="选择源单位"
                     class="unit-tool__select"
                   >
-                    <ScOption 
+                    <ScOption
                       v-for="item in env.units[env.unitType]"
                       :key="item.value"
                       :label="item.label"
@@ -426,7 +426,7 @@ const getResultIcon = (label) => {
                 </ScFormItem>
 
                 <div class="unit-tool__swap-btn-container">
-                  <ScButton 
+                  <ScButton
                     type="primary"
                     circle
                     @click="swapUnits"
@@ -437,12 +437,12 @@ const getResultIcon = (label) => {
                 </div>
 
                 <ScFormItem label="到">
-                  <ScSelect 
+                  <ScSelect
                     v-model="env.toUnit"
                     placeholder="选择目标单位"
                     class="unit-tool__select"
                   >
-                    <ScOption 
+                    <ScOption
                       v-for="item in env.units[env.unitType]"
                       :key="item.value"
                       :label="item.label"
@@ -454,7 +454,7 @@ const getResultIcon = (label) => {
 
               <!-- 输入值 -->
               <ScFormItem label="输入值">
-                <ScInput 
+                <ScInput
                   @keyup.stop="convertUnit"
                   v-model="env.inputValue"
                   placeholder="请输入数值"
@@ -470,7 +470,7 @@ const getResultIcon = (label) => {
 
               <!-- 操作按钮 -->
               <div class="unit-tool__actions">
-                <ScButton 
+                <ScButton
                   type="primary"
                   :loading="env.loading"
                   class="unit-tool__convert-btn"
@@ -500,7 +500,7 @@ const getResultIcon = (label) => {
               </div>
             </template>
 
-            <ScEmpty 
+            <ScEmpty
               v-if="!env.history.length"
               description="暂无历史记录"
               class="unit-tool__empty"
@@ -550,7 +550,7 @@ const getResultIcon = (label) => {
               </div>
             </template>
 
-            <ScEmpty 
+            <ScEmpty
               v-if="!env.outputResults.length"
               description="请先输入并转换单位"
               class="unit-tool__empty"
@@ -579,7 +579,7 @@ const getResultIcon = (label) => {
                 </div>
                 <div class="unit-tool__result-value">
                   <span>{{ result.value }}</span>
-                  <ScButton 
+                  <ScButton
                     type="primary"
                     link
                     size="small"
@@ -606,8 +606,8 @@ const getResultIcon = (label) => {
             </template>
 
             <div class="unit-tool__reference">
-              <el-collapse accordion>
-                <el-collapse-item title="长度单位" name="length">
+              <ScCollapse accordion>
+                <ScCollapseItem title="长度单位" name="length">
                   <div class="unit-tool__reference-list">
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 米 (m)</span>
@@ -640,8 +640,8 @@ const getResultIcon = (label) => {
                       >
                     </div>
                   </div>
-                </el-collapse-item>
-                <el-collapse-item title="体积单位" name="volume">
+                </ScCollapseItem>
+                <ScCollapseItem title="体积单位" name="volume">
                   <div class="unit-tool__reference-list">
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name"
@@ -670,8 +670,8 @@ const getResultIcon = (label) => {
                       <span class="unit-tool__reference-value">= 4.546 升</span>
                     </div>
                   </div>
-                </el-collapse-item>
-                <el-collapse-item title="质量单位" name="mass">
+                </ScCollapseItem>
+                <ScCollapseItem title="质量单位" name="mass">
                   <div class="unit-tool__reference-list">
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name">1 千克 (kg)</span>
@@ -698,8 +698,8 @@ const getResultIcon = (label) => {
                       >
                     </div>
                   </div>
-                </el-collapse-item>
-                <el-collapse-item title="温度单位" name="temperature">
+                </ScCollapseItem>
+                <ScCollapseItem title="温度单位" name="temperature">
                   <div class="unit-tool__reference-list">
                     <div class="unit-tool__reference-item">
                       <span class="unit-tool__reference-name"
@@ -726,8 +726,8 @@ const getResultIcon = (label) => {
                       >
                     </div>
                   </div>
-                </el-collapse-item>
-              </el-collapse>
+                </ScCollapseItem>
+              </ScCollapse>
             </div>
           </ScCard>
         </ScCol>

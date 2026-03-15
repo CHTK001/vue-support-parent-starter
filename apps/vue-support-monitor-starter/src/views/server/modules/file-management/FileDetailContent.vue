@@ -46,7 +46,7 @@
     <div class="detail-section">
       <h5 class="section-title">操作</h5>
       <div class="action-buttons">
-        <el-button
+        <ScButton
           v-if="!fileInfo.isDirectory && isPreviewable"
           size="small"
           type="primary"
@@ -54,15 +54,15 @@
         >
           <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
           预览
-        </el-button>
-        <el-button size="small" @click="handleDownload">
+        </ScButton>
+        <ScButton size="small" @click="handleDownload">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           下载
-        </el-button>
-        <el-button size="small" type="danger" @click="handleDelete">
+        </ScButton>
+        <ScButton size="small" type="danger" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           删除
-        </el-button>
+        </ScButton>
       </div>
     </div>
   </div>

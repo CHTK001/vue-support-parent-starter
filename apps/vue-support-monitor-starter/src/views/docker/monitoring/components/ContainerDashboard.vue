@@ -1,8 +1,8 @@
 <template>
   <div class="container-dashboard system-container modern-bg">
-    <el-row :gutter="20">
-      <el-col :span="24">
-        <el-card class="dashboard-card">
+    <ScRow :gutter="20">
+      <ScCol :span="24">
+        <ScCard class="dashboard-card">
           <template #header>
             <div class="card-header">
               <span class="card-title">
@@ -12,9 +12,9 @@
                 />
                 容器监控概览
               </span>
-              <el-button :loading="loading" size="small" @click="handleRefresh">
+              <ScButton :loading="loading" size="small" @click="handleRefresh">
                 <IconifyIconOnline icon="ri:refresh-line" />
-              </el-button>
+              </ScButton>
             </div>
           </template>
 
@@ -73,9 +73,9 @@
               </div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
   </div>
 </template>
 

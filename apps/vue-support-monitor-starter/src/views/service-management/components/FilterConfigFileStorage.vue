@@ -10,7 +10,7 @@
   >
     <div class="three-col">
       <div class="left-col">
-        <el-card class="global-card" shadow="never">
+        <ScCard class="global-card" shadow="never">
           <template #header>
             <div class="card-header-row">
               <div class="card-header">
@@ -22,7 +22,7 @@
               </div>
             </div>
           </template>
-          <el-scrollbar class="global-scrollbar">
+          <ScScrollbar class="global-scrollbar">
             <div class="global-content">
               <!-- 功能开关区域 -->
               <div class="setting-section">
@@ -112,7 +112,7 @@
                       <IconifyIconOnline icon="ri:list-settings-line" />
                       参数设置
                     </label>
-                    <el-select
+                    <ScSelect
                       v-model="imageSettingSelection"
                       multiple
                       filterable
@@ -121,20 +121,20 @@
                       placeholder="选择或自定义参数"
                       class="config-select"
                     >
-                      <el-option
+                      <ScOption
                         v-for="opt in imageSettingOptions"
                         :key="opt.name"
                         :label="opt.describe || opt.name"
                         :value="opt.name"
                       />
-                    </el-select>
+                    </ScSelect>
                   </div>
                   <div v-if="global.openPlugin" class="config-item">
                     <label class="config-label">
                       <IconifyIconOnline icon="ri:puzzle-line" />
                       启用插件
                     </label>
-                    <el-select
+                    <ScSelect
                       v-model="imageFilterSelection"
                       multiple
                       filterable
@@ -143,13 +143,13 @@
                       placeholder="选择或自定义插件"
                       class="config-select"
                     >
-                      <el-option
+                      <ScOption
                         v-for="opt in imageFilterOptions"
                         :key="opt.name"
                         :label="opt.describe || opt.name"
                         :value="opt.name"
                       />
-                    </el-select>
+                    </ScSelect>
                   </div>
                 </div>
               </div>
@@ -164,7 +164,7 @@
                   <div class="cache-item">
                     <span class="cache-label">格式缓存时间</span>
                     <div class="cache-input">
-                      <el-input-number
+                      <ScInputNumber
                         v-model="global.formatCacheTimeMinutes"
                         :min="0"
                         :max="1440 * 7"
@@ -190,7 +190,7 @@
                   <div class="watermark-row">
                     <div class="watermark-item full">
                       <label>水印内容</label>
-                      <el-input
+                      <ScInput
                         v-model="global.watermark"
                         placeholder="文本或图片URL"
                         size="small"
@@ -198,13 +198,13 @@
                         <template #prefix>
                           <IconifyIconOnline icon="ri:text" />
                         </template>
-                      </el-input>
+                      </ScInput>
                     </div>
                   </div>
                   <div class="watermark-row">
                     <div class="watermark-item">
                       <label>颜色</label>
-                      <el-input
+                      <ScInput
                         v-model="global.watermarkColor"
                         placeholder="#RRGGBB"
                         size="small"
@@ -212,11 +212,11 @@
                         <template #prefix>
                           <IconifyIconOnline icon="ri:palette-line" />
                         </template>
-                      </el-input>
+                      </ScInput>
                     </div>
                     <div class="watermark-item">
                       <label>X 坐标</label>
-                      <el-input-number
+                      <ScInputNumber
                         v-model="global.watermarkX"
                         :min="-9999"
                         :max="9999"
@@ -226,7 +226,7 @@
                     </div>
                     <div class="watermark-item">
                       <label>Y 坐标</label>
-                      <el-input-number
+                      <ScInputNumber
                         v-model="global.watermarkY"
                         :min="-9999"
                         :max="9999"
@@ -238,33 +238,33 @@
                 </div>
               </div>
             </div>
-          </el-scrollbar>
-        </el-card>
+          </ScScrollbar>
+        </ScCard>
       </div>
 
       <div class="middle-col">
-        <el-card class="installed-card" shadow="never">
+        <ScCard class="installed-card" shadow="never">
           <template #header>
             <div class="card-header-row">
               <div class="card-header">已安装的存储</div>
               <div class="header-actions">
-                <el-button type="primary" size="small" @click="onAddClick">
+                <ScButton type="primary" size="small" @click="onAddClick">
                   <IconifyIconOnline icon="ri:add-line" />
                   新增存储
-                </el-button>
-                <el-button size="small" @click="openFullPreview">
+                </ScButton>
+                <ScButton size="small" @click="openFullPreview">
                   <IconifyIconOnline icon="ri:eye-line" />
                   预览
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </template>
           <div v-if="storages.length === 0" class="empty-tip">
-            <el-empty description="尚未添加任何文件存储">
-              <el-button type="primary" @click="onAddClick">新增存储</el-button>
-            </el-empty>
+            <ScEmpty description="尚未添加任何文件存储">
+              <ScButton type="primary" @click="onAddClick">新增存储</ScButton>
+            </ScEmpty>
           </div>
-          <el-scrollbar v-else class="installed-list thin-scrollbar">
+          <ScScrollbar v-else class="installed-list thin-scrollbar">
             <div
               v-for="(s, idx) in storages"
               :key="idx"
@@ -291,14 +291,14 @@
                   </div>
                   <div class="storage-seq">#{{ idx + 1 }}</div>
                 </div>
-                <el-tag
+                <ScTag
                   size="small"
                   :type="s.fileStorageEnabled ? 'success' : 'info'"
                   effect="dark"
                   class="storage-status-tag"
                 >
                   {{ s.fileStorageEnabled ? "启用" : "禁用" }}
-                </el-tag>
+                </ScTag>
               </div>
 
               <!-- 路径信息 -->
@@ -318,42 +318,42 @@
 
               <!-- 操作按钮 -->
               <div class="storage-actions">
-                <el-tooltip content="预览文件" placement="top">
-                  <el-button
+                <ScTooltip content="预览文件" placement="top">
+                  <ScButton
                     circle
                     size="small"
                     @click.stop="previewStorage(idx)"
                   >
                     <IconifyIconOnline icon="ri:eye-line" />
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="测试连接" placement="top">
-                  <el-button
+                  </ScButton>
+                </ScTooltip>
+                <ScTooltip content="测试连接" placement="top">
+                  <ScButton
                     circle
                     size="small"
                     @click.stop="testConnection(idx)"
                   >
                     <IconifyIconOnline icon="ri:wifi-line" />
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="删除存储" placement="top">
-                  <el-button
+                  </ScButton>
+                </ScTooltip>
+                <ScTooltip content="删除存储" placement="top">
+                  <ScButton
                     circle
                     size="small"
                     type="danger"
                     @click.stop="removeStorage(idx)"
                   >
                     <IconifyIconOnline icon="ri:delete-bin-line" />
-                  </el-button>
-                </el-tooltip>
+                  </ScButton>
+                </ScTooltip>
               </div>
             </div>
-          </el-scrollbar>
-        </el-card>
+          </ScScrollbar>
+        </ScCard>
       </div>
 
       <div class="right-col">
-        <el-card class="detail-card" shadow="never">
+        <ScCard class="detail-card" shadow="never">
           <template #header>
             <div class="card-header">存储配置</div>
           </template>
@@ -368,9 +368,9 @@
                 />
               </div>
               <div class="toolbar-right">
-                <el-button size="small" circle @click="fetchPreviewItems">
+                <ScButton size="small" circle @click="fetchPreviewItems">
                   <IconifyIconOnline icon="ri:refresh-line" />
-                </el-button>
+                </ScButton>
               </div>
             </div>
 
@@ -394,7 +394,7 @@
                     </div>
                   </div>
                 </div>
-                <el-empty
+                <ScEmpty
                   v-if="previewItems.length === 0"
                   description="暂无文件"
                 />
@@ -419,7 +419,7 @@
                     <div class="card-size">{{ it.size }}</div>
                   </div>
                 </div>
-                <el-empty
+                <ScEmpty
                   v-if="previewItems.length === 0"
                   description="暂无文件"
                 />
@@ -428,7 +428,7 @@
               <!-- 大图视图 -->
               <div v-else class="file-image-view">
                 <div v-for="it in previewItems" :key="it.id" class="image-item">
-                  <el-image
+                  <ScImage
                     :src="it.url"
                     fit="cover"
                     lazy
@@ -439,10 +439,10 @@
                         <IconifyIconOnline icon="ri:image-line" />
                       </div>
                     </template>
-                  </el-image>
+                  </ScImage>
                   <div class="image-name" :title="it.name">{{ it.name }}</div>
                 </div>
-                <el-empty
+                <ScEmpty
                   v-if="previewItems.length === 0"
                   description="暂无图片"
                 />
@@ -454,29 +454,29 @@
               <div class="page-info">共 {{ previewItems.length }} 项</div>
               <div class="page-controls">
                 <el-button-group size="small">
-                  <el-button :disabled="pager.page <= 1" @click="goPrevPage">
+                  <ScButton :disabled="pager.page <= 1" @click="goPrevPage">
                     <IconifyIconOnline icon="ri:arrow-left-s-line" />
-                  </el-button>
-                  <el-button disabled class="page-number">{{
+                  </ScButton>
+                  <ScButton disabled class="page-number">{{
                     pager.page
-                  }}</el-button>
-                  <el-button
+                  }}</ScButton>
+                  <ScButton
                     :disabled="previewItems.length < pager.limit"
                     @click="goNextPage"
                   >
                     <IconifyIconOnline icon="ri:arrow-right-s-line" />
-                  </el-button>
+                  </ScButton>
                 </el-button-group>
-                <el-select
+                <ScSelect
                   v-model="pager.limit"
                   size="small"
                   style="width: 80px; margin-left: 12px"
                   @change="onLimitChange"
                 >
-                  <el-option :value="20" label="20条" />
-                  <el-option :value="50" label="50条" />
-                  <el-option :value="100" label="100条" />
-                </el-select>
+                  <ScOption :value="20" label="20条" />
+                  <ScOption :value="50" label="50条" />
+                  <ScOption :value="100" label="100条" />
+                </ScSelect>
               </div>
             </div>
           </div>
@@ -486,15 +486,15 @@
               :options="typeOptions"
             />
             <!-- <div class="type-group">
-              <el-radio-group v-model="currentStorage.fileStorageType" size="small">
+              <ScRadioGroup v-model="currentStorage.fileStorageType" size="small">
                 <el-radio-button
                   v-for="opt in typeOptions"
                   :key="opt.name"
                   :label="opt.name"
                 >{{ opt.describe || opt.name }}</el-radio-button>
-              </el-radio-group>
+              </ScRadioGroup>
             </div> -->
-            <el-form
+            <ScForm
               ref="detailFormRef"
               :model="currentStorage"
               :rules="formRules(currentStorage)"
@@ -503,24 +503,24 @@
             >
               <!-- 根据存储类型显示不同的配置项 -->
               <template v-if="currentStorage.fileStorageType === 'FILESYSTEM'">
-                <el-form-item label="根路径" prop="fileStorageEndpoint">
+                <ScFormItem label="根路径" prop="fileStorageEndpoint">
                   <div class="dir-picker">
                     <DirectorySelector
                       v-model="currentStorage.fileStorageEndpoint"
                     />
                   </div>
-                </el-form-item>
-                <el-form-item label="基础路径" prop="fileStorageBasePath">
-                  <el-input
+                </ScFormItem>
+                <ScFormItem label="基础路径" prop="fileStorageBasePath">
+                  <ScInput
                     v-model="currentStorage.fileStorageBasePath"
                     placeholder="相对于根路径的基础路径，如: /uploads"
                   />
-                </el-form-item>
+                </ScFormItem>
               </template>
 
               <template v-else>
-                <el-form-item label="端点" prop="fileStorageEndpoint">
-                  <el-input
+                <ScFormItem label="端点" prop="fileStorageEndpoint">
+                  <ScInput
                     v-model="currentStorage.fileStorageEndpoint"
                     placeholder="https://endpoint"
                   />
@@ -539,10 +539,10 @@
                     >
                     <span v-else>对象存储服务端点地址</span>
                   </div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="存储桶" prop="fileStorageBucket">
-                  <el-input
+                <ScFormItem label="存储桶" prop="fileStorageBucket">
+                  <ScInput
                     v-model="currentStorage.fileStorageBucket"
                     placeholder="存储桶名称"
                   />
@@ -550,25 +550,25 @@
                     <IconifyIconOnline icon="ri:information-line" />
                     存储桶名称，用于组织和管理文件
                   </div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="访问密钥" prop="fileStorageAccessKey">
-                  <el-input
+                <ScFormItem label="访问密钥" prop="fileStorageAccessKey">
+                  <ScInput
                     v-model="currentStorage.fileStorageAccessKey"
                     placeholder="Access Key ID"
                   />
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="密钥" prop="fileStorageSecretKey">
-                  <el-input
+                <ScFormItem label="密钥" prop="fileStorageSecretKey">
+                  <ScInput
                     v-model="currentStorage.fileStorageSecretKey"
                     type="password"
                     placeholder="Secret Access Key"
                     show-password
                   />
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item
+                <ScFormItem
                   v-if="
                     currentStorage.fileStorageType === 'S3' ||
                     currentStorage.fileStorageType === 'ALIYUN'
@@ -576,7 +576,7 @@
                   label="区域"
                   prop="fileStorageRegion"
                 >
-                  <el-input
+                  <ScInput
                     v-model="currentStorage.fileStorageRegion"
                     placeholder="区域代码，如: us-east-1"
                   />
@@ -590,10 +590,10 @@
                       >阿里云区域，如: oss-cn-hangzhou, oss-cn-beijing</span
                     >
                   </div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="基础路径" prop="fileStorageBasePath">
-                  <el-input
+                <ScFormItem label="基础路径" prop="fileStorageBasePath">
+                  <ScInput
                     v-model="currentStorage.fileStorageBasePath"
                     placeholder="存储桶内的基础路径，如: /app/uploads"
                   />
@@ -601,12 +601,12 @@
                     <IconifyIconOnline icon="ri:information-line" />
                     在存储桶内的基础路径前缀，用于文件分类管理
                   </div>
-                </el-form-item>
+                </ScFormItem>
               </template>
 
               <!-- 通用配置项 -->
-              <el-form-item label="启用状态">
-                <el-switch
+              <ScFormItem label="启用状态">
+                <ScSwitch
                   v-model="currentStorage.fileStorageEnabled"
                   active-text="启用"
                   inactive-text="禁用"
@@ -615,18 +615,18 @@
                   <IconifyIconOnline icon="ri:information-line" />
                   禁用后该存储配置将不会被使用
                 </div>
-              </el-form-item>
-            </el-form>
+              </ScFormItem>
+            </ScForm>
           </div>
-          <el-empty v-else description="请选择左侧已安装的存储或新增一个" />
-        </el-card>
+          <ScEmpty v-else description="请选择左侧已安装的存储或新增一个" />
+        </ScCard>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave"
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave"
           >保存</el-button
         >
       </div>

@@ -155,51 +155,51 @@ defineExpose({
       draggable
       :close-on-click-modal="false"
     >
-      <el-row>
-        <el-form
+      <ScRow>
+        <ScForm
           ref="formRef"
           :model="env.form"
           :rules="rules"
           label-width="120px"
           class="modern-form"
         >
-          <el-row>
-            <el-col :span="12">
-              <el-form-item label="租户名称" prop="sysTenantName">
-                <el-input
+          <ScRow>
+            <ScCol :span="12">
+              <ScFormItem label="租户名称" prop="sysTenantName">
+                <ScInput
                   v-model="env.form.sysTenantName"
                   placeholder="请输入名称"
                   :maxlength="150"
                   show-word-limit
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="租户编码" prop="sysTenantCode">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="租户编码" prop="sysTenantCode">
+                <ScInput
                   v-model="env.form.sysTenantCode"
                   placeholder="请输入编码"
                   :maxlength="50"
                   show-word-limit
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="负责人账号" prop="sysTenantUsername">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="负责人账号" prop="sysTenantUsername">
+                <ScInput
                   v-model="env.form.sysTenantUsername"
                   placeholder="请输入负责人账号"
                   :maxlength="50"
                   show-word-limit
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="负责人密码" prop="sysTenantPassword">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="负责人密码" prop="sysTenantPassword">
+                <ScInput
                   v-model="env.form.sysTenantPassword"
                   placeholder="请输入负责人密码"
                   :maxlength="50"
@@ -207,11 +207,11 @@ defineExpose({
                   show-password
                   type="password"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="是否启用" prop="sysTenantStatus">
+            <ScCol :span="24">
+              <ScFormItem label="是否启用" prop="sysTenantStatus">
                 <el-segmented
                   v-model="env.form.sysTenantStatus"
                   :options="[
@@ -225,30 +225,30 @@ defineExpose({
                     },
                   ]"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="服务" prop="serviceIds">
-                <el-select
+            <ScCol :span="24">
+              <ScFormItem label="服务" prop="serviceIds">
+                <ScSelect
                   v-model="env.form.serviceIds"
                   multiple
                   placeholder="请选择服务"
                   @change="handleChangeServiceId"
                 >
-                  <el-option
+                  <ScOption
                     v-for="item in env.serviceList"
                     :key="item.sysServiceId"
                     :disabled="item.sysServiceStatus !== 0"
                     :label="item.sysServiceName"
                     :value="item.sysServiceId"
                   />
-                </el-select>
-              </el-form-item>
+                </ScSelect>
+              </ScFormItem>
 
-              <el-form-item v-if="env.form?.serviceIds?.length > 0">
-                <el-form ref="serviceFormRef">
-                  <el-form-item
+              <ScFormItem v-if="env.form?.serviceIds?.length > 0">
+                <ScForm ref="serviceFormRef">
+                  <ScFormItem
                     v-for="(item, index) in env.form?.serviceIds"
                     :key="item"
                     :class="{ 'mt-4': index > 0 }"
@@ -260,54 +260,54 @@ defineExpose({
                     :prop="'service' + item"
                     :label="getServiceName(item)"
                   >
-                    <el-date-picker
+                    <ScDatePicker
                       v-model="serviceForm[item]"
                       value-format="YYYY-MM-DD"
                       format="YYYY-MM-DD"
                       :placeholder="`请选择${getServiceName(item)}服务时间`"
                     />
-                  </el-form-item>
-                </el-form>
-              </el-form-item>
-            </el-col>
+                  </ScFormItem>
+                </ScForm>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="12">
-              <el-form-item label="手机号" prop="sysTenantPhone">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="手机号" prop="sysTenantPhone">
+                <ScInput
                   v-model="env.form.sysTenantPhone"
                   placeholder="请输入手机号"
                   :maxlength="150"
                   show-word-limit
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <!-- <el-col :span="12">
-              <el-form-item label="邮箱" prop="sysTenantEmail">
-                <el-input v-model="env.form.sysTenantEmail" placeholder="请输入邮箱" :maxlength="150" show-word-limit />
-              </el-form-item>
-            </el-col> -->
+            <!-- <ScCol :span="12">
+              <ScFormItem label="邮箱" prop="sysTenantEmail">
+                <ScInput v-model="env.form.sysTenantEmail" placeholder="请输入邮箱" :maxlength="150" show-word-limit />
+              </ScFormItem>
+            </ScCol> -->
 
-            <el-col :span="12">
-              <el-form-item label="公司名称" prop="sysTenantCorporation">
-                <el-input
+            <ScCol :span="12">
+              <ScFormItem label="公司名称" prop="sysTenantCorporation">
+                <ScInput
                   v-model="env.form.sysTenantCorporation"
                   placeholder="请输入公司名称"
                   :maxlength="150"
                   show-word-limit
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <!-- <el-col :span="12">
-              <el-form-item label="签名" prop="sysTenantSign">
-                <el-input v-model="env.form.sysTenantSign" placeholder="请输入签名" :maxlength="150" show-word-limit />
-              </el-form-item>
-            </el-col> -->
+            <!-- <ScCol :span="12">
+              <ScFormItem label="签名" prop="sysTenantSign">
+                <ScInput v-model="env.form.sysTenantSign" placeholder="请输入签名" :maxlength="150" show-word-limit />
+              </ScFormItem>
+            </ScCol> -->
 
-            <el-col v-if="env.form.sysTenantCorporation" :span="24">
-              <el-form-item label="具体地址" prop="sysTenantAddress">
-                <el-input
+            <ScCol v-if="env.form.sysTenantCorporation" :span="24">
+              <ScFormItem label="具体地址" prop="sysTenantAddress">
+                <ScInput
                   v-model="env.form.sysTenantAddress"
                   placeholder="具体地址"
                   :maxlength="250"
@@ -315,21 +315,21 @@ defineExpose({
                   type="textarea"
                   :rows="3"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="优先级" prop="sysTenantSort">
-                <el-input-number
+            <ScCol :span="24">
+              <ScFormItem label="优先级" prop="sysTenantSort">
+                <ScInputNumber
                   v-model="env.form.sysTenantSort"
                   placeholder="请输入编码"
                 />
-              </el-form-item>
-            </el-col>
+              </ScFormItem>
+            </ScCol>
 
-            <el-col :span="24">
-              <el-form-item label="系统地址" prop="sysTenantHomeUrl">
-                <el-input
+            <ScCol :span="24">
+              <ScFormItem label="系统地址" prop="sysTenantHomeUrl">
+                <ScInput
                   v-model="env.form.sysTenantHomeUrl"
                   placeholder="请输入系统地址"
                   :maxlength="250"
@@ -337,11 +337,11 @@ defineExpose({
                   type="textarea"
                   :rows="3"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item label="描述" prop="sysTenantRemark">
-                <el-input
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="24">
+              <ScFormItem label="描述" prop="sysTenantRemark">
+                <ScInput
                   v-model="env.form.sysTenantRemark"
                   placeholder="请输入描述"
                   :maxlength="250"
@@ -349,14 +349,14 @@ defineExpose({
                   type="textarea"
                   :rows="3"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
-      </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
+        </ScForm>
+      </ScRow>
       <template #footer>
-        <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
-        <el-button
+        <ScButton @click="handleClose">{{ $t("buttons.cancel") }}</ScButton>
+        <ScButton
           type="primary"
           :loading="env.loading"
           @click="handleUpdate"

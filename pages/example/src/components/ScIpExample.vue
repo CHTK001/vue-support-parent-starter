@@ -24,7 +24,10 @@
           </ScFormItem>
 
           <ScFormItem label="physicalAddress 物理地址（可选）">
-            <ScInput v-model="config.physicalAddress" placeholder="直接传入则不查询" />
+            <ScInput
+              v-model="config.physicalAddress"
+              placeholder="直接传入则不查询"
+            />
           </ScFormItem>
 
           <ScFormItem label="emptyText 空文本">
@@ -91,7 +94,7 @@ const ipPresets = [
   { label: "Cloudflare", value: "1.1.1.1", icon: "ri:cloud-line" },
   { label: "114 DNS", value: "114.114.114.114", icon: "ri:global-line" },
   { label: "阿里 DNS", value: "223.5.5.5", icon: "ri:alipay-fill" },
-  { label: "内网", value: "192.168.1.1", icon: "ri:home-wifi-line" }
+  { label: "内网", value: "192.168.1.1", icon: "ri:home-wifi-line" },
 ];
 
 // 配置项
@@ -100,7 +103,7 @@ const config = reactive({
   physicalAddress: "",
   showOriginal: true,
   openSearchOriginal: true,
-  emptyText: "未知"
+  emptyText: "未知",
 });
 
 // 生成示例代码
@@ -108,7 +111,7 @@ const generatedCode = computed(() => {
   const props: string[] = [];
 
   props.push(`ip="${config.ip}"`);
-  
+
   if (config.physicalAddress) {
     props.push(`physical-address="${config.physicalAddress}"`);
   }

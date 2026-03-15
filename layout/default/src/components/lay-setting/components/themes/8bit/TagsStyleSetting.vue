@@ -12,4 +12,3 @@ import BaseComponent from "../../base/TagsStyleSetting.vue";
 // 8-bit 主题专属标签样式占位
 // 例如：html[data-skin="8bit"] { }
 </style>
-

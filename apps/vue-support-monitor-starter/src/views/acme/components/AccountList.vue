@@ -2,11 +2,11 @@
   <div class="account-list system-container modern-bg">
     <!-- 工具栏（保留刷新功能，添加账户已移到顶部） -->
     <div class="toolbar">
-      <el-tooltip content="刷新" placement="top">
-        <el-button type="primary" @click="refresh">
+      <ScTooltip content="刷新" placement="top">
+        <ScButton type="primary" @click="refresh">
           <IconifyIconOnline icon="mdi:refresh" />
-        </el-button>
-      </el-tooltip>
+        </ScButton>
+      </ScTooltip>
     </div>
 
     <!-- 账户表格 -->
@@ -17,7 +17,7 @@
       stripe
       height="auto"
     >
-      <el-table-column
+      <ScTableColumn
         prop="acmeAccountId"
         label="ID"
         width="80"
@@ -26,28 +26,28 @@
         <template #default="{ row }">
           <span class="id-cell">#{{ row.acmeAccountId }}</span>
         </template>
-      </el-table-column>
-      <el-table-column prop="acmeAccountEmail" label="邮箱" min-width="220">
+      </ScTableColumn>
+      <ScTableColumn prop="acmeAccountEmail" label="邮箱" min-width="220">
         <template #default="{ row }">
           <div class="email-cell">
             <IconifyIconOnline icon="mdi:email-outline" class="email-icon" />
             <span>{{ row.acmeAccountEmail }}</span>
           </div>
         </template>
-      </el-table-column>
-      <el-table-column
+      </ScTableColumn>
+      <ScTableColumn
         prop="acmeAccountServer"
         label="ACME服务器"
         min-width="200"
       >
         <template #default="{ row }">
-          <el-tag class="server-tag" effect="plain">
+          <ScTag class="server-tag" effect="plain">
             <IconifyIconOnline icon="mdi:server" class="server-icon" />
             {{ getServerName(row.acmeAccountServer) }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
-      <el-table-column
+      </ScTableColumn>
+      <ScTableColumn
         prop="acmeAccountStatus"
         label="状态"
         width="100"
@@ -64,31 +64,31 @@
             }}</span>
           </div>
         </template>
-      </el-table-column>
-      <el-table-column prop="updateTime" label="更新时间" width="170">
+      </ScTableColumn>
+      <ScTableColumn prop="updateTime" label="更新时间" width="170">
         <template #default="{ row }">
           <div class="time-cell">
             <IconifyIconOnline icon="mdi:clock-outline" class="time-icon" />
             <span>{{ row.updateTime || "-" }}</span>
           </div>
         </template>
-      </el-table-column>
-      <el-table-column label="操作" width="120" fixed="right" align="center">
+      </ScTableColumn>
+      <ScTableColumn label="操作" width="120" fixed="right" align="center">
         <template #default="{ row }">
           <div class="action-cell">
-            <el-tooltip content="编辑" placement="top">
-              <el-button class="action-btn" @click="handleEdit(row)">
+            <ScTooltip content="编辑" placement="top">
+              <ScButton class="action-btn" @click="handleEdit(row)">
                 <IconifyIconOnline icon="mdi:pencil-outline" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="删除" placement="top">
-              <el-button class="action-btn danger" @click="handleDelete(row)">
+              </ScButton>
+            </ScTooltip>
+            <ScTooltip content="删除" placement="top">
+              <ScButton class="action-btn danger" @click="handleDelete(row)">
                 <IconifyIconOnline icon="mdi:delete-outline" />
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
     </ScTable>
 
     <!-- 账户编辑对话框 -->

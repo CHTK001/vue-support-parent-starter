@@ -74,7 +74,9 @@ export const fetchUpdateDictItem = (setting) => {
 
 /** 保存字典项配置 */
 export const fetchSaveOrUpdateDictItemProperty = (params) => {
-  return http.request<boolean>("put", "/v2/dict/item/property/saveOrUpdate", { data: params });
+  return http.request<boolean>("put", "/v2/dict/item/property/saveOrUpdate", {
+    data: params,
+  });
 };
 
 /** 获取字典项配置 */

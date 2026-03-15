@@ -48,9 +48,7 @@ export default defineComponent({
 
       if (!$typed) {
         const errorMsg =
-          getBrowserLanguage() === "zh-CN"
-            ? "请确保有且只有一个具有class属性为 'type-it' 的元素"
-            : "Please make sure that there is only one element with a Class attribute with 'type-it'";
+          getBrowserLanguage() === "zh-CN" ? "请确保有且只有一个具有class属性为 'type-it' 的元素" : "Please make sure that there is only one element with a Class attribute with 'type-it'";
         throwError(errorMsg);
         return;
       }
@@ -102,10 +100,6 @@ export default defineComponent({
       destroy: destroyTypeIt
     });
 
-    return () => (
-      <div ref={typedItRef}>
-        {slots.default?.() ?? <span class="type-it"></span>}
-      </div>
-    );
+    return () => <div ref={typedItRef}>{slots.default?.() ?? <span class="type-it"></span>}</div>;
   }
 });

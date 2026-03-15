@@ -5,9 +5,9 @@
       class="serial-toolbar flex justify-between items-center p-3 border-b border-[var(--el-border-color-light)]"
     >
       <div class="serial-info flex items-center">
-        <el-tag :type="isConnected ? 'success' : 'info'" class="mr-2">
+        <ScTag :type="isConnected ? 'success' : 'info'" class="mr-2">
           {{ isConnected ? "已连接" : "未连接" }}
-        </el-tag>
+        </ScTag>
         <span v-if="serialData.monitorSerialName" class="serial-name text-sm">
           {{ serialData.monitorSerialName }} ({{
             serialData.monitorSerialPort || "COM1"
@@ -19,7 +19,7 @@
       </div>
       <div class="serial-actions flex gap-2">
         <el-button-group>
-          <el-button
+          <ScButton
             :type="isConnected ? 'danger' : 'primary'"
             size="small"
             :disabled="!serialData.monitorSerialId || connecting"
@@ -30,11 +30,11 @@
               class="mr-1"
             />
             {{ isConnected ? "断开" : "连接" }}
-          </el-button>
-          <el-button type="primary" size="small" @click="clearOutput">
+          </ScButton>
+          <ScButton type="primary" size="small" @click="clearOutput">
             <IconifyIconOnline icon="ep:delete" class="mr-1" />
             清空
-          </el-button>
+          </ScButton>
         </el-button-group>
       </div>
     </div>
@@ -68,7 +68,7 @@
         class="serial-input p-3 border-t border-[var(--el-border-color-light)]"
       >
         <div class="flex items-center">
-          <el-input
+          <ScInput
             v-model="inputText"
             placeholder="输入发送内容"
             :disabled="!isConnected"
@@ -76,36 +76,36 @@
             @keyup.enter="handleSend"
           >
             <template #append>
-              <el-select
+              <ScSelect
                 v-model="sendMode"
                 style="width: 120px"
                 :disabled="!isConnected"
               >
-                <el-option label="发送文本" value="text" />
-                <el-option label="发送HEX" value="hex" />
-              </el-select>
+                <ScOption label="发送文本" value="text" />
+                <ScOption label="发送HEX" value="hex" />
+              </ScSelect>
             </template>
-          </el-input>
-          <el-button
+          </ScInput>
+          <ScButton
             type="primary"
             class="ml-2"
             :disabled="!isConnected"
             @click="handleSend"
           >
             发送
-          </el-button>
+          </ScButton>
         </div>
         <div class="send-options mt-2 flex items-center">
-          <el-checkbox v-model="autoScroll" :disabled="!isConnected"
+          <ScCheckbox v-model="autoScroll" :disabled="!isConnected"
             >自动滚动</el-checkbox
           >
-          <el-checkbox
+          <ScCheckbox
             v-model="addTimestamp"
             class="ml-4"
             :disabled="!isConnected"
             >添加时间戳</el-checkbox
           >
-          <el-checkbox
+          <ScCheckbox
             v-model="addNewline"
             class="ml-4"
             :disabled="!isConnected"
@@ -119,7 +119,7 @@
             快捷命令:
           </p>
           <div class="flex flex-wrap gap-2">
-            <el-button
+            <ScButton
               v-for="(cmd, index) in quickCommands"
               :key="index"
               size="small"
@@ -127,7 +127,7 @@
               @click="sendQuickCommand(cmd)"
             >
               {{ cmd.name }}
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>

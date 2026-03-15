@@ -18,17 +18,11 @@ const currentIndex = ref(0);
 let typingTimer: number | undefined;
 
 const sentenceList = computed(() => {
-  const custom = (props.sentences || []).map((it) => it.trim()).filter((it) => it.length > 0);
+  const custom = (props.sentences || []).map(it => it.trim()).filter(it => it.length > 0);
   if (custom.length > 0) {
     return custom;
   }
-  return [
-    "正在写入模块配置说明...",
-    "正在整理接口文档草稿...",
-    "正在记录本次操作日志...",
-    "正在生成加载步骤笔记...",
-    "正在同步最新系统参数..."
-  ];
+  return ["正在写入模块配置说明...", "正在整理接口文档草稿...", "正在记录本次操作日志...", "正在生成加载步骤笔记...", "正在同步最新系统参数..."];
 });
 
 const penTransform = computed(() => {
@@ -97,10 +91,7 @@ onBeforeUnmount(() => {
                     {{ displayText }}
                   </span>
                 </div>
-                <div
-                  class="pen-book-pen"
-                  :style="{ transform: penTransform }"
-                >
+                <div class="pen-book-pen" :style="{ transform: penTransform }">
                   <div class="pen-body" />
                   <div class="pen-tip" />
                 </div>
@@ -145,8 +136,7 @@ onBeforeUnmount(() => {
   width: 260px;
   height: 140px;
   border-radius: 20px;
-  background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.25), transparent 60%),
-    radial-gradient(circle at bottom right, rgba(209, 213, 219, 0.7), #f9fafb);
+  background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.25), transparent 60%), radial-gradient(circle at bottom right, rgba(209, 213, 219, 0.7), #f9fafb);
   box-shadow:
     0 20px 38px rgba(15, 23, 42, 0.22),
     0 0 0 1px rgba(148, 163, 184, 0.7);
@@ -315,5 +305,3 @@ onBeforeUnmount(() => {
   color: #6b7280;
 }
 </style>
-
-

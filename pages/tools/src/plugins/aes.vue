@@ -304,7 +304,9 @@ onMounted(() => {
         <div class="aes-tool__header">
           <div class="aes-tool__header-inner">
             <h1 class="aes-tool__header-title">AES 加解密工具</h1>
-            <p class="aes-tool__header-subtitle">高级加密标准(AES)加密和解密工具，支持多种模式和填充方式</p>
+            <p class="aes-tool__header-subtitle">
+              高级加密标准(AES)加密和解密工具，支持多种模式和填充方式
+            </p>
           </div>
         </div>
       </div>
@@ -316,7 +318,14 @@ onMounted(() => {
           <ScCard class="aes-tool__input-card" shadow="hover">
             <template #header>
               <div class="aes-tool__card-header">
-                <IconifyIconOnline :icon="env.action === 'encrypt' ? 'ri:lock-line' : 'ri:lock-unlock-line'" class="aes-tool__card-icon" />
+                <IconifyIconOnline
+                  :icon="
+                    env.action === 'encrypt'
+                      ? 'ri:lock-line'
+                      : 'ri:lock-unlock-line'
+                  "
+                  class="aes-tool__card-icon"
+                />
                 <span>{{ env.action === "encrypt" ? "加密" : "解密" }}</span>
               </div>
             </template>
@@ -324,7 +333,10 @@ onMounted(() => {
             <ScForm label-position="top">
               <!-- 操作类型选择 -->
               <ScFormItem label="操作类型">
-                <ScRadioGroup v-model="env.action" class="aes-tool__radio-group">
+                <ScRadioGroup
+                  v-model="env.action"
+                  class="aes-tool__radio-group"
+                >
                   <ScRadio label="encrypt">
                     <div class="aes-tool__radio-content">
                       <IconifyIconOnline icon="ri:lock-line" />
@@ -341,70 +353,149 @@ onMounted(() => {
               </ScFormItem>
 
               <!-- 输入文本 -->
-              <ScFormItem :label="env.action === 'encrypt' ? '待加密文本' : '待解密文本'">
-                <ScInput v-model="env.inputText" type="textarea" :rows="5" :placeholder="env.action === 'encrypt' ? '请输入要加密的文本' : '请输入要解密的文本'" class="aes-tool__input" />
+              <ScFormItem
+                :label="env.action === 'encrypt' ? '待加密文本' : '待解密文本'"
+              >
+                <ScInput
+                  v-model="env.inputText"
+                  type="textarea"
+                  :rows="5"
+                  :placeholder="
+                    env.action === 'encrypt'
+                      ? '请输入要加密的文本'
+                      : '请输入要解密的文本'
+                  "
+                  class="aes-tool__input"
+                />
               </ScFormItem>
 
               <!-- 密钥 -->
               <ScFormItem label="密钥 (Hex格式)">
                 <div class="aes-tool__input-group">
-                  <ScInput v-model="env.key" placeholder="请输入16/24/32字节的密钥(Hex格式)" class="aes-tool__input" />
+                  <ScInput
+                    v-model="env.key"
+                    placeholder="请输入16/24/32字节的密钥(Hex格式)"
+                    class="aes-tool__input"
+                  />
                   <ScButton type="primary" @click="generateRandomKey">
                     <IconifyIconOnline icon="ri:refresh-line" />
                     <span>生成随机密钥</span>
                   </ScButton>
                 </div>
-                <div class="aes-tool__input-tip">密钥长度: 128位=16字节(32个Hex字符), 192位=24字节(48个Hex字符), 256位=32字节(64个Hex字符)</div>
+                <div class="aes-tool__input-tip">
+                  密钥长度: 128位=16字节(32个Hex字符),
+                  192位=24字节(48个Hex字符), 256位=32字节(64个Hex字符)
+                </div>
               </ScFormItem>
 
               <!-- 初始向量 -->
-              <ScFormItem label="初始向量 IV (Hex格式)" v-if="env.mode !== 'ECB'">
+              <ScFormItem
+                label="初始向量 IV (Hex格式)"
+                v-if="env.mode !== 'ECB'"
+              >
                 <div class="aes-tool__input-group">
-                  <ScInput v-model="env.iv" placeholder="请输入16字节的初始向量(Hex格式)" class="aes-tool__input" />
+                  <ScInput
+                    v-model="env.iv"
+                    placeholder="请输入16字节的初始向量(Hex格式)"
+                    class="aes-tool__input"
+                  />
                   <ScButton type="primary" @click="generateRandomIV">
                     <IconifyIconOnline icon="ri:refresh-line" />
                     <span>生成随机IV</span>
                   </ScButton>
                 </div>
-                <div class="aes-tool__input-tip">初始向量长度: 16字节(32个Hex字符)，ECB模式不需要IV</div>
+                <div class="aes-tool__input-tip">
+                  初始向量长度: 16字节(32个Hex字符)，ECB模式不需要IV
+                </div>
               </ScFormItem>
 
               <!-- 加密模式 -->
               <ScFormItem label="加密模式">
-                <ScSelect v-model="env.mode" placeholder="选择加密模式" class="aes-tool__select">
-                  <ScOption v-for="item in env.modes" :key="item.value" :label="item.label" :value="item.value" />
+                <ScSelect
+                  v-model="env.mode"
+                  placeholder="选择加密模式"
+                  class="aes-tool__select"
+                >
+                  <ScOption
+                    v-for="item in env.modes"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
                 </ScSelect>
               </ScFormItem>
 
               <!-- 填充方式 -->
               <ScFormItem label="填充方式">
-                <ScSelect v-model="env.padding" placeholder="选择填充方式" class="aes-tool__select">
-                  <ScOption v-for="item in env.paddings" :key="item.value" :label="item.label" :value="item.value" />
+                <ScSelect
+                  v-model="env.padding"
+                  placeholder="选择填充方式"
+                  class="aes-tool__select"
+                >
+                  <ScOption
+                    v-for="item in env.paddings"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
                 </ScSelect>
               </ScFormItem>
 
               <!-- 密钥长度 -->
               <ScFormItem label="密钥长度">
-                <ScSelect v-model="env.keySize" placeholder="选择密钥长度" class="aes-tool__select">
-                  <ScOption v-for="item in env.keySizes" :key="item.value" :label="item.label" :value="item.value" />
+                <ScSelect
+                  v-model="env.keySize"
+                  placeholder="选择密钥长度"
+                  class="aes-tool__select"
+                >
+                  <ScOption
+                    v-for="item in env.keySizes"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
                 </ScSelect>
               </ScFormItem>
 
               <!-- 输出格式 -->
               <ScFormItem label="输出格式">
-                <ScSelect v-model="env.outputType" placeholder="选择输出格式" class="aes-tool__select">
-                  <ScOption v-for="item in env.outputTypes" :key="item.value" :label="item.label" :value="item.value" />
+                <ScSelect
+                  v-model="env.outputType"
+                  placeholder="选择输出格式"
+                  class="aes-tool__select"
+                >
+                  <ScOption
+                    v-for="item in env.outputTypes"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
                 </ScSelect>
               </ScFormItem>
 
               <!-- 操作按钮 -->
               <div class="aes-tool__actions">
-                <ScButton type="primary" :loading="env.loading" class="aes-tool__action-btn" @click="handleAction">
-                  <IconifyIconOnline :icon="env.action === 'encrypt' ? 'ri:lock-line' : 'ri:lock-unlock-line'" />
+                <ScButton
+                  type="primary"
+                  :loading="env.loading"
+                  class="aes-tool__action-btn"
+                  @click="handleAction"
+                >
+                  <IconifyIconOnline
+                    :icon="
+                      env.action === 'encrypt'
+                        ? 'ri:lock-line'
+                        : 'ri:lock-unlock-line'
+                    "
+                  />
                   <span>{{ env.action === "encrypt" ? "加密" : "解密" }}</span>
                 </ScButton>
 
-                <ScButton type="success" class="aes-tool__swap-btn" @click="swapInputOutput">
+                <ScButton
+                  type="success"
+                  class="aes-tool__swap-btn"
+                  @click="swapInputOutput"
+                >
                   <IconifyIconOnline icon="ri:swap-line" />
                   <span>交换输入输出</span>
                 </ScButton>
@@ -421,24 +512,36 @@ onMounted(() => {
           <ScCard class="aes-tool__examples-card" shadow="hover">
             <template #header>
               <div class="aes-tool__card-header">
-                <IconifyIconOnline icon="ri:file-list-line" class="aes-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:file-list-line"
+                  class="aes-tool__card-icon"
+                />
                 <span>示例</span>
               </div>
             </template>
 
             <div class="aes-tool__examples">
-              <div v-for="(example, index) in env.examples" :key="index" class="aes-tool__example-item" @click="useExample(example)">
+              <div
+                v-for="(example, index) in env.examples"
+                :key="index"
+                class="aes-tool__example-item"
+                @click="useExample(example)"
+              >
                 <div class="aes-tool__example-header">
                   <span class="aes-tool__example-name">{{ example.name }}</span>
                 </div>
                 <div class="aes-tool__example-details">
                   <div class="aes-tool__example-detail">
                     <span class="aes-tool__example-label">输入:</span>
-                    <span class="aes-tool__example-value">{{ example.input }}</span>
+                    <span class="aes-tool__example-value">{{
+                      example.input
+                    }}</span>
                   </div>
                   <div class="aes-tool__example-detail">
                     <span class="aes-tool__example-label">模式:</span>
-                    <span class="aes-tool__example-value">{{ example.mode }}</span>
+                    <span class="aes-tool__example-value">{{
+                      example.mode
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -451,22 +554,41 @@ onMounted(() => {
           <ScCard class="aes-tool__result-card" shadow="hover">
             <template #header>
               <div class="aes-tool__card-header">
-                <IconifyIconOnline icon="ri:file-list-line" class="aes-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:file-list-line"
+                  class="aes-tool__card-icon"
+                />
                 <span>结果</span>
               </div>
             </template>
 
-            <ScEmpty v-if="!env.outputText" description="请先执行加密或解密操作" class="aes-tool__empty">
+            <ScEmpty
+              v-if="!env.outputText"
+              description="请先执行加密或解密操作"
+              class="aes-tool__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:lock-line" class="aes-tool__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:lock-line"
+                  class="aes-tool__empty-icon"
+                />
               </template>
             </ScEmpty>
 
             <div v-else class="aes-tool__result">
               <ScFormItem label="输出结果">
-                <ScInput v-model="env.outputText" type="textarea" :rows="8" readonly class="aes-tool__output" />
+                <ScInput
+                  v-model="env.outputText"
+                  type="textarea"
+                  :rows="8"
+                  readonly
+                  class="aes-tool__output"
+                />
                 <div class="aes-tool__result-actions">
-                  <ScButton type="primary" @click="copyToClipboard(env.outputText)">
+                  <ScButton
+                    type="primary"
+                    @click="copyToClipboard(env.outputText)"
+                  >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                     <span>复制结果</span>
                   </ScButton>
@@ -479,21 +601,39 @@ onMounted(() => {
           <ScCard class="aes-tool__history-card" shadow="hover">
             <template #header>
               <div class="aes-tool__card-header">
-                <IconifyIconOnline icon="ri:history-line" class="aes-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:history-line"
+                  class="aes-tool__card-icon"
+                />
                 <span>历史记录</span>
               </div>
             </template>
 
-            <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="aes-tool__empty">
+            <ScEmpty
+              v-if="!env.history.length"
+              description="暂无历史记录"
+              class="aes-tool__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:history-line" class="aes-tool__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:history-line"
+                  class="aes-tool__empty-icon"
+                />
               </template>
             </ScEmpty>
 
-            <ScTable v-else :data="env.history" style="width: 100%" max-height="300">
+            <ScTable
+              v-else
+              :data="env.history"
+              style="width: 100%"
+              max-height="300"
+            >
               <ScTableColumn label="类型" width="80">
                 <template #default="scope">
-                  <ScTag :type="scope.row.type === '加密' ? 'success' : 'warning'">{{ scope.row.type }}</ScTag>
+                  <ScTag
+                    :type="scope.row.type === '加密' ? 'success' : 'warning'"
+                    >{{ scope.row.type }}</ScTag
+                  >
                 </template>
               </ScTableColumn>
               <ScTableColumn label="输入" show-overflow-tooltip>
@@ -513,7 +653,12 @@ onMounted(() => {
               </ScTableColumn>
               <ScTableColumn label="操作" width="100" fixed="right">
                 <template #default="scope">
-                  <ScButton type="primary" link size="small" @click="loadFromHistory(scope.row)">
+                  <ScButton
+                    type="primary"
+                    link
+                    size="small"
+                    @click="loadFromHistory(scope.row)"
+                  >
                     <IconifyIconOnline icon="ri:arrow-go-back-line" />
                     <span>加载</span>
                   </ScButton>
@@ -543,13 +688,17 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-danger-light-3) 0%, var(--el-color-danger) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-danger-light-3) 0%,
+      var(--el-color-danger) 100%
+    );
     border-radius: 12px;
     padding: 30px;
     color: #fff;
     box-shadow: 0 4px 20px rgba(var(--el-color-danger-rgb), 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     &:hover {
       box-shadow: 0 6px 24px rgba(var(--el-color-danger-rgb), 0.4);
       transform: translateY(-2px);

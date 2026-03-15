@@ -90,7 +90,7 @@ const closeMessage = () => {
 // 监听 modelValue 变化
 watch(
   () => props.modelValue,
-  (newVal) => {
+  newVal => {
     if (newVal) {
       showMessage();
     } else {
@@ -119,4 +119,3 @@ onUnmounted(() => {
   closeMessage();
 });
 </script>
-

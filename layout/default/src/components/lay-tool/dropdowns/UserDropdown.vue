@@ -6,7 +6,8 @@ import LayAvatar from "../../lay-avatar/index.vue";
 import { ScText } from "@repo/components";
 
 const { t } = useTranslationLang();
-const { logout, username, userAvatar, avatarsStyle, clickClearRouter } = useNav();
+const { logout, username, userAvatar, avatarsStyle, clickClearRouter } =
+  useNav();
 
 /**
  * 跳转到账户设置页面
@@ -17,7 +18,7 @@ const gotoAccountSetting = () => {
 </script>
 
 <template>
-  <el-dropdown
+  <ScDropdown
     trigger="click"
     class="user-dropdown"
     popper-class="user-dropdown-popper"
@@ -28,7 +29,7 @@ const gotoAccountSetting = () => {
         <span class="status-dot"></span>
       </div>
       <div v-if="username" class="user-info">
-        <ScText class="user-name">{{ username }}</ScText>
+        <ScText class="user-name fe-sensitive">{{ username }}</ScText>
         <ScText class="user-role">在线</ScText>
       </div>
       <span class="dropdown-arrow-wrapper">
@@ -36,19 +37,23 @@ const gotoAccountSetting = () => {
       </span>
     </div>
     <template #dropdown>
-      <el-dropdown-menu class="user-menu">
+      <ScDropdownMenu class="user-menu">
         <!-- 用户信息头部 -->
         <div class="menu-header">
-          <LayAvatar :src="userAvatar" :style="avatarsStyle" class="header-avatar" />
+          <LayAvatar
+            :src="userAvatar"
+            :style="avatarsStyle"
+            class="header-avatar"
+          />
           <div class="header-info">
-            <ScText class="header-name">{{ username }}</ScText>
+            <ScText class="header-name fe-sensitive">{{ username }}</ScText>
             <ScText class="header-status">当前在线</ScText>
           </div>
         </div>
 
         <!-- 菜单项容器 -->
         <div class="menu-body">
-          <el-dropdown-item
+          <ScDropdownItem
             v-menu="['AccountSettings']"
             class="menu-item"
             @click="gotoAccountSetting"
@@ -57,34 +62,47 @@ const gotoAccountSetting = () => {
               <IconifyIconOnline icon="ri:user-settings-line" />
             </div>
             <div class="item-content">
-              <ScText class="item-title">{{ t("buttons.accountSetting") }}</ScText>
+              <ScText class="item-title">{{
+                t("buttons.accountSetting")
+              }}</ScText>
               <ScText class="item-desc">管理账户信息与偏好设置</ScText>
             </div>
-            <IconifyIconOnline icon="ri:arrow-right-s-line" class="item-arrow" />
-          </el-dropdown-item>
+            <IconifyIconOnline
+              icon="ri:arrow-right-s-line"
+              class="item-arrow"
+            />
+          </ScDropdownItem>
 
-          <el-dropdown-item class="menu-item" @click="clickClearRouter">
+          <ScDropdownItem class="menu-item" @click="clickClearRouter">
             <div class="item-icon cache-icon">
               <IconifyIconOnline icon="line-md:backup-restore" />
             </div>
             <div class="item-content">
-              <ScText class="item-title">{{ t("buttons.pureClearRouter") }}</ScText>
+              <ScText class="item-title">{{
+                t("buttons.pureClearRouter")
+              }}</ScText>
               <ScText class="item-desc">清除本地缓存数据</ScText>
             </div>
-            <IconifyIconOnline icon="ri:arrow-right-s-line" class="item-arrow" />
-          </el-dropdown-item>
+            <IconifyIconOnline
+              icon="ri:arrow-right-s-line"
+              class="item-arrow"
+            />
+          </ScDropdownItem>
         </div>
 
         <!-- 退出登录 -->
         <div class="menu-footer">
-          <el-dropdown-item class="logout-item" @click="logout">
-            <IconifyIconOnline icon="ri:logout-circle-r-line" class="logout-icon" />
+          <ScDropdownItem class="logout-item" @click="logout">
+            <IconifyIconOnline
+              icon="ri:logout-circle-r-line"
+              class="logout-icon"
+            />
             <ScText>{{ t("buttons.pureLoginOut") }}</ScText>
-          </el-dropdown-item>
+          </ScDropdownItem>
         </div>
-      </el-dropdown-menu>
+      </ScDropdownMenu>
     </template>
-  </el-dropdown>
+  </ScDropdown>
 </template>
 
 <style lang="scss" scoped>
@@ -107,7 +125,11 @@ const gotoAccountSetting = () => {
   }
   padding: 6px 14px 6px 6px;
   border-radius: 28px;
-  background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-lighter) 0%,
+    var(--el-fill-color-light) 100%
+  );
   border: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -121,17 +143,30 @@ const gotoAccountSetting = () => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
     transition: left 0.5s ease;
   }
 
   &:hover {
-    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-light) 0%,
+      var(--el-fill-color) 100%
+    );
     border-color: rgba(var(--el-color-primary-rgb), 0.3);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.1),
+      0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
     transform: translateY(-1px);
 
-    &::before { left: 100%; }
+    &::before {
+      left: 100%;
+    }
 
     .avatar-img {
       transform: scale(1.05);
@@ -139,9 +174,15 @@ const gotoAccountSetting = () => {
     }
 
     .dropdown-arrow-wrapper {
-      background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary-light-8) 0%,
+        var(--el-color-primary-light-9) 100%
+      );
       box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
-      .dropdown-arrow { color: var(--el-color-primary); }
+      .dropdown-arrow {
+        color: var(--el-color-primary);
+      }
     }
   }
 }
@@ -177,8 +218,13 @@ const gotoAccountSetting = () => {
 }
 
 @keyframes pulse-status {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2); }
-  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+  }
 }
 
 .user-info {
@@ -207,7 +253,11 @@ const gotoAccountSetting = () => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--el-fill-color) 0%, var(--el-fill-color-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color) 0%,
+    var(--el-fill-color-light) 100%
+  );
   margin-left: 4px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

@@ -9,7 +9,7 @@
     append-to-body
   >
     <div class="dialog-content">
-      <el-form
+      <ScForm
         ref="formRef"
         :model="formData"
         :rules="rules"
@@ -17,8 +17,8 @@
         label-position="left"
         class="group-form"
       >
-        <el-form-item label="分组名称" prop="fileSystemGroupName">
-          <el-input
+        <ScFormItem label="分组名称" prop="fileSystemGroupName">
+          <ScInput
             v-model="formData.fileSystemGroupName"
             placeholder="请输入分组名称"
             clearable
@@ -28,11 +28,11 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:folder-line" />
             </template>
-          </el-input>
-        </el-form-item>
+          </ScInput>
+        </ScFormItem>
 
-        <el-form-item label="分组路径" prop="fileSystemGroupPath">
-          <el-input
+        <ScFormItem label="分组路径" prop="fileSystemGroupPath">
+          <ScInput
             v-model="formData.fileSystemGroupPath"
             placeholder="请输入分组路径（英文，用于存储目录）"
             clearable
@@ -42,10 +42,10 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:folder-open-line" />
             </template>
-          </el-input>
-        </el-form-item>
+          </ScInput>
+        </ScFormItem>
 
-        <el-form-item label="父级分组" prop="fileSystemGroupParentId">
+        <ScFormItem label="父级分组" prop="fileSystemGroupParentId">
           <el-tree-select
             v-model="formData.fileSystemGroupParentId"
             :data="parentGroupOptions"
@@ -56,10 +56,10 @@
             :render-after-expand="false"
             style="width: 100%"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="分组描述" prop="fileSystemGroupDescription">
-          <el-input
+        <ScFormItem label="分组描述" prop="fileSystemGroupDescription">
+          <ScInput
             v-model="formData.fileSystemGroupDescription"
             type="textarea"
             :rows="3"
@@ -67,11 +67,11 @@
             maxlength="500"
             show-word-limit
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="分组图标" prop="fileSystemGroupIcon">
+        <ScFormItem label="分组图标" prop="fileSystemGroupIcon">
           <div class="icon-selector">
-            <el-input
+            <ScInput
               v-model="formData.fileSystemGroupIcon"
               placeholder="请输入图标名称"
               clearable
@@ -82,9 +82,9 @@
                   :style="{ color: formData.fileSystemGroupColor || '#409EFF' }"
                 />
               </template>
-            </el-input>
+            </ScInput>
             <div class="icon-presets">
-              <el-button
+              <ScButton
                 v-for="icon in iconPresets"
                 :key="icon"
                 size="small"
@@ -93,47 +93,47 @@
                 @click="formData.fileSystemGroupIcon = icon"
               >
                 <IconifyIconOnline :icon="icon" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="分组颜色" prop="fileSystemGroupColor">
-          <el-color-picker
+        <ScFormItem label="分组颜色" prop="fileSystemGroupColor">
+          <ScColorPicker
             v-model="formData.fileSystemGroupColor"
             :predefine="colorPresets"
             show-alpha
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="排序" prop="fileSystemGroupSort">
-          <el-input-number
+        <ScFormItem label="排序" prop="fileSystemGroupSort">
+          <ScInputNumber
             v-model="formData.fileSystemGroupSort"
             :min="0"
             :max="999"
             placeholder="排序值"
             style="width: 200px"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="状态" prop="fileSystemGroupStatus">
-          <el-switch
+        <ScFormItem label="状态" prop="fileSystemGroupStatus">
+          <ScSwitch
             v-model="formData.fileSystemGroupStatus"
             :active-value="1"
             :inactive-value="0"
             active-text="启用"
             inactive-text="禁用"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="submitting" @click="handleSubmit">
           {{ isEdit ? "更新" : "创建" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

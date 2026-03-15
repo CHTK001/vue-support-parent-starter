@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BasePanel from './BasePanel.vue';
+import BasePanel from "./BasePanel.vue";
 </script>
 
 <template>
@@ -17,17 +17,25 @@ $xmas-white: #ffffff;
 
 .christmas-panel-wrapper {
   :deep(.christmas-panel) {
-    background: linear-gradient(180deg, $xmas-green, darken($xmas-green, 5%)) !important;
+    background: linear-gradient(
+      180deg,
+      $xmas-green,
+      darken($xmas-green, 5%)
+    ) !important;
     border: 2px solid rgba($xmas-gold, 0.3) !important;
     border-radius: 12px !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-    
+
     .panel-header {
-      background: linear-gradient(180deg, darken($xmas-green, 5%), darken($xmas-green, 8%)) !important;
+      background: linear-gradient(
+        180deg,
+        darken($xmas-green, 5%),
+        darken($xmas-green, 8%)
+      ) !important;
       border-bottom: 2px solid rgba($xmas-gold, 0.3) !important;
       color: $xmas-gold !important;
     }
-    
+
     .panel-content {
       background: transparent !important;
       color: $xmas-white !important;

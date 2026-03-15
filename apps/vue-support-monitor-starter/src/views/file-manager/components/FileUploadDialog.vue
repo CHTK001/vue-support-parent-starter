@@ -10,7 +10,7 @@
     <div class="upload-container">
       <!-- 上传区域 -->
       <div class="upload-area">
-        <el-upload
+        <ScUpload
           ref="uploadRef"
           :action="uploadUrl"
           :headers="uploadHeaders"
@@ -38,7 +38,7 @@
               </p>
             </div>
           </div>
-        </el-upload>
+        </ScUpload>
       </div>
 
       <!-- 文件列表 -->
@@ -49,10 +49,10 @@
             待上传文件 ({{ fileList.length }})
           </h4>
           <div class="list-actions">
-            <el-button size="small" type="danger" plain @click="clearAllFiles">
+            <ScButton size="small" type="danger" plain @click="clearAllFiles">
               <IconifyIconOnline icon="ri:delete-bin-line" />
               清空
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -90,7 +90,7 @@
               </div>
 
               <div class="file-actions">
-                <el-button
+                <ScButton
                   v-if="file.status !== 'uploading'"
                   size="small"
                   type="danger"
@@ -99,13 +99,13 @@
                   @click="removeFile(index)"
                 >
                   <IconifyIconOnline icon="ri:close-line" />
-                </el-button>
+                </ScButton>
               </div>
             </div>
 
             <!-- 上传进度 -->
             <div v-if="file.status === 'uploading'" class="upload-progress">
-              <el-progress
+              <ScProgress
                 :percentage="file.percentage || 0"
                 :status="file.percentage === 100 ? 'success' : undefined"
                 :stroke-width="6"
@@ -130,9 +130,9 @@
 
       <!-- 上传配置 -->
       <div class="upload-config">
-        <el-form :model="uploadConfig" label-width="100px" size="small">
-          <el-form-item label="上传路径">
-            <el-input
+        <ScForm :model="uploadConfig" label-width="100px" size="small">
+          <ScFormItem label="上传路径">
+            <ScInput
               v-model="uploadConfig.targetPath"
               placeholder="文件将上传到此路径"
               readonly
@@ -141,29 +141,29 @@
               <template #prepend>
                 <IconifyIconOnline icon="ri:folder-line" />
               </template>
-            </el-input>
-          </el-form-item>
+            </ScInput>
+          </ScFormItem>
 
-          <el-form-item label="覆盖策略">
-            <el-radio-group v-model="uploadConfig.overwriteStrategy">
-              <el-radio value="skip">
+          <ScFormItem label="覆盖策略">
+            <ScRadioGroup v-model="uploadConfig.overwriteStrategy">
+              <ScRadio value="skip">
                 <IconifyIconOnline
                   icon="ri:skip-forward-line"
                   class="radio-icon"
                 />
                 跳过重复文件
-              </el-radio>
-              <el-radio value="overwrite">
+              </ScRadio>
+              <ScRadio value="overwrite">
                 <IconifyIconOnline icon="ri:refresh-line" class="radio-icon" />
                 覆盖重复文件
-              </el-radio>
-              <el-radio value="rename">
+              </ScRadio>
+              <ScRadio value="rename">
                 <IconifyIconOnline icon="ri:edit-line" class="radio-icon" />
                 自动重命名
-              </el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-form>
+              </ScRadio>
+            </ScRadioGroup>
+          </ScFormItem>
+        </ScForm>
       </div>
     </div>
 
@@ -176,8 +176,8 @@
           </span>
         </div>
         <div class="footer-right">
-          <el-button @click="handleClose">取消</el-button>
-          <el-button
+          <ScButton @click="handleClose">取消</ScButton>
+          <ScButton
             type="primary"
             :disabled="fileList.length === 0 || isUploading"
             :loading="isUploading"
@@ -189,7 +189,7 @@
               class="btn-icon"
             />
             {{ isUploading ? "上传中..." : "开始上传" }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>

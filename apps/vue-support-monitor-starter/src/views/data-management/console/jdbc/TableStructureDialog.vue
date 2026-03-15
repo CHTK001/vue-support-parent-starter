@@ -12,14 +12,14 @@
       <!-- 表注释 -->
       <div class="table-comment-section">
         <label class="comment-label">表注释：</label>
-        <el-input
+        <ScInput
           v-model="tableComment"
           size="small"
           placeholder="输入表注释"
           style="width: 400px"
           @change="tableCommentModified = true"
         />
-        <el-tag
+        <ScTag
           v-if="tableCommentModified"
           type="warning"
           size="small"
@@ -29,15 +29,15 @@
       </div>
 
       <!-- 标签页 -->
-      <el-tabs v-model="activeTab" type="border-card">
+      <ScTabs v-model="activeTab" type="border-card">
         <!-- 字段列表 -->
-        <el-tab-pane label="字段" name="columns">
+        <ScTabPane label="字段" name="columns">
           <div class="toolbar">
-            <el-button type="primary" size="small" @click="handleAddRow">
+            <ScButton type="primary" size="small" @click="handleAddRow">
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />
               添加字段
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               type="success"
               size="small"
               :disabled="selectedRowIndex < 0"
@@ -45,8 +45,8 @@
             >
               <IconifyIconOnline icon="ri:insert-row-bottom" class="mr-1" />
               插入字段
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               type="danger"
               size="small"
               :disabled="selectedRows.length === 0 && selectedRowIndex < 0"
@@ -55,17 +55,17 @@
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               删除字段
               {{ selectedRows.length > 0 ? `(${selectedRows.length})` : "" }}
-            </el-button>
-            <el-divider direction="vertical" />
-            <el-button
+            </ScButton>
+            <ScDivider direction="vertical" />
+            <ScButton
               size="small"
               :disabled="selectedRowIndex <= 0"
               @click="handleMoveUp"
             >
               <IconifyIconOnline icon="ri:arrow-up-line" class="mr-1" />
               上移
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               :disabled="
                 selectedRowIndex < 0 || selectedRowIndex >= columns.length - 1
@@ -74,13 +74,13 @@
             >
               <IconifyIconOnline icon="ri:arrow-down-line" class="mr-1" />
               下移
-            </el-button>
-            <el-divider direction="vertical" />
-            <el-button size="small" @click="loadStructure">
+            </ScButton>
+            <ScDivider direction="vertical" />
+            <ScButton size="small" @click="loadStructure">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               刷新
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               type="warning"
               size="small"
               :loading="saving"
@@ -89,12 +89,12 @@
             >
               <IconifyIconOnline icon="ri:save-line" class="mr-1" />
               保存修改
-            </el-button>
+            </ScButton>
           </div>
 
           <!-- 可编辑表格 -->
           <div class="table-wrapper">
-            <el-table
+            <ScTable
               ref="tableRef"
               :data="columns"
               border
@@ -107,11 +107,11 @@
               @selection-change="handleSelectionChange"
               @row-dblclick="handleRowDblClick"
             >
-              <el-table-column type="selection" width="45" fixed="left" />
-              <el-table-column type="index" width="50" label="#" fixed="left" />
+              <ScTableColumn type="selection" width="45" fixed="left" />
+              <ScTableColumn type="index" width="50" label="#" fixed="left" />
 
               <!-- 字段名-->
-              <el-table-column
+              <ScTableColumn
                 prop="name"
                 label="字段名"
                 width="160"
@@ -119,23 +119,23 @@
               >
                 <template #default="{ row }">
                   <div class="name-cell">
-                    <el-input
+                    <ScInput
                       v-model="row.name"
                       size="small"
                       placeholder="字段名"
                       @change="markModified(row)"
                     />
                     <div class="name-tags">
-                      <el-tag v-if="row.primaryKey" type="warning" size="small"
+                      <ScTag v-if="row.primaryKey" type="warning" size="small"
                         >PK</el-tag
                       >
-                      <el-tag v-if="row.autoIncrement" type="info" size="small"
+                      <ScTag v-if="row.autoIncrement" type="info" size="small"
                         >AI</el-tag
                       >
-                      <el-tag v-if="row.__isNew" type="success" size="small"
+                      <ScTag v-if="row.__isNew" type="success" size="small"
                         >新</el-tag
                       >
-                      <el-tag
+                      <ScTag
                         v-else-if="
                           row.__modified && isColumnReallyModified(row)
                         "
@@ -146,12 +146,12 @@
                     </div>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 数据类型 -->
-              <el-table-column prop="dataType" label="类型" width="140">
+              <ScTableColumn prop="dataType" label="类型" width="140">
                 <template #default="{ row }">
-                  <el-select
+                  <ScSelect
                     v-model="row.dataType"
                     size="small"
                     filterable
@@ -164,26 +164,26 @@
                       :key="group.label"
                       :label="group.label"
                     >
-                      <el-option
+                      <ScOption
                         v-for="type in group.types"
                         :key="type.value"
                         :label="type.label"
                         :value="type.value"
                       />
                     </el-option-group>
-                  </el-select>
+                  </ScSelect>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 长度 -->
-              <el-table-column
+              <ScTableColumn
                 prop="length"
                 label="长度"
                 width="90"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-input-number
+                  <ScInputNumber
                     v-model="row.length"
                     size="small"
                     :min="0"
@@ -194,17 +194,17 @@
                     @change="markModified(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 小数位 -->
-              <el-table-column
+              <ScTableColumn
                 prop="scale"
                 label="小数位"
                 width="80"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-input-number
+                  <ScInputNumber
                     v-model="row.scale"
                     size="small"
                     :min="0"
@@ -215,79 +215,79 @@
                     @change="markModified(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 不是null -->
-              <el-table-column
+              <ScTableColumn
                 prop="nullable"
                 label="不是null"
                 width="80"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-checkbox
+                  <ScCheckbox
                     v-model="row.notNull"
                     @change="markModified(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 主键 -->
-              <el-table-column
+              <ScTableColumn
                 prop="primaryKey"
                 label="主键"
                 width="60"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-checkbox
+                  <ScCheckbox
                     v-model="row.primaryKey"
                     @change="markModified(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 自增 -->
-              <el-table-column
+              <ScTableColumn
                 prop="autoIncrement"
                 label="自增"
                 width="60"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-checkbox
+                  <ScCheckbox
                     v-model="row.autoIncrement"
                     @change="markModified(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 默认值 -->
-              <el-table-column prop="defaultValue" label="默认值" width="120">
+              <ScTableColumn prop="defaultValue" label="默认值" width="120">
                 <template #default="{ row }">
-                  <el-input
+                  <ScInput
                     v-model="row.defaultValue"
                     size="small"
                     placeholder="-"
                     @change="markModified(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 注释 -->
-              <el-table-column prop="comment" label="注释" min-width="160">
+              <ScTableColumn prop="comment" label="注释" min-width="160">
                 <template #default="{ row }">
-                  <el-input
+                  <ScInput
                     v-model="row.comment"
                     size="small"
                     placeholder="-"
                     @change="markModified(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
               <!-- 操作列 -->
-              <el-table-column
+              <ScTableColumn
                 label="操作"
                 width="80"
                 fixed="right"
@@ -295,7 +295,7 @@
               >
                 <template #default="{ $index }">
                   <div class="row-actions">
-                    <el-button
+                    <ScButton
                       type="primary"
                       link
                       size="small"
@@ -303,8 +303,8 @@
                       @click.stop="handleMoveRowUp($index)"
                     >
                       <IconifyIconOnline icon="ri:arrow-up-s-line" />
-                    </el-button>
-                    <el-button
+                    </ScButton>
+                    <ScButton
                       type="primary"
                       link
                       size="small"
@@ -312,11 +312,11 @@
                       @click.stop="handleMoveRowDown($index)"
                     >
                       <IconifyIconOnline icon="ri:arrow-down-s-line" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </template>
-              </el-table-column>
-            </el-table>
+              </ScTableColumn>
+            </ScTable>
           </div>
 
           <!-- 状态栏 -->
@@ -331,16 +331,16 @@
             </span>
             <span class="status-count">共 {{ columns.length }} 个字段</span>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 索引 -->
-        <el-tab-pane v-if="supportsIndexes" label="索引" name="indexes">
+        <ScTabPane v-if="supportsIndexes" label="索引" name="indexes">
           <div class="toolbar">
-            <el-button type="primary" size="small" @click="handleAddIndex">
+            <ScButton type="primary" size="small" @click="handleAddIndex">
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />
               添加索引
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               type="danger"
               size="small"
               :disabled="selectedIndexes.length === 0"
@@ -351,72 +351,72 @@
               {{
                 selectedIndexes.length > 0 ? `(${selectedIndexes.length})` : ""
               }}
-            </el-button>
-            <el-divider direction="vertical" />
-            <el-button size="small" @click="loadIndexes">
+            </ScButton>
+            <ScDivider direction="vertical" />
+            <ScButton size="small" @click="loadIndexes">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               刷新
-            </el-button>
+            </ScButton>
           </div>
 
           <div v-if="indexes.length > 0" class="table-wrapper">
-            <el-table
+            <ScTable
               :data="indexes"
               border
               size="small"
               height="450px"
               @selection-change="handleIndexSelectionChange"
             >
-              <el-table-column type="selection" width="45" fixed="left" />
-              <el-table-column type="index" width="50" label="#" fixed="left" />
-              <el-table-column prop="name" label="索引名" width="180" />
-              <el-table-column prop="type" label="类型" width="120">
+              <ScTableColumn type="selection" width="45" fixed="left" />
+              <ScTableColumn type="index" width="50" label="#" fixed="left" />
+              <ScTableColumn prop="name" label="索引名" width="180" />
+              <ScTableColumn prop="type" label="类型" width="120">
                 <template #default="{ row }">
-                  <el-tag :type="getIndexTypeTag(row.type)" size="small">
+                  <ScTag :type="getIndexTypeTag(row.type)" size="small">
                     {{ row.type || "NORMAL" }}
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
-              <el-table-column prop="columns" label="字段" min-width="200">
+              </ScTableColumn>
+              <ScTableColumn prop="columns" label="字段" min-width="200">
                 <template #default="{ row }">
                   <div class="index-columns">
-                    <el-tag
+                    <ScTag
                       v-for="col in row.columns"
                       :key="col"
                       size="small"
                       class="mr-1"
                     >
                       {{ col }}
-                    </el-tag>
+                    </ScTag>
                   </div>
                 </template>
-              </el-table-column>
-              <el-table-column
+              </ScTableColumn>
+              <ScTableColumn
                 prop="unique"
                 label="唯一"
                 width="80"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-icon v-if="row.unique" color="var(--el-color-success)">
+                  <ScIcon v-if="row.unique" color="var(--el-color-success)">
                     <IconifyIconOnline icon="ri:checkbox-circle-fill" />
-                  </el-icon>
+                  </ScIcon>
                 </template>
-              </el-table-column>
-              <el-table-column prop="comment" label="注释" min-width="150" />
-            </el-table>
+              </ScTableColumn>
+              <ScTableColumn prop="comment" label="注释" min-width="150" />
+            </ScTable>
           </div>
-          <el-empty v-else description="暂无索引" />
-        </el-tab-pane>
+          <ScEmpty v-else description="暂无索引" />
+        </ScTabPane>
 
         <!-- 分区 -->
-        <el-tab-pane v-if="supportsPartitions" label="分区" name="partitions">
+        <ScTabPane v-if="supportsPartitions" label="分区" name="partitions">
           <div class="toolbar">
-            <el-button type="primary" size="small" @click="handleAddPartition">
+            <ScButton type="primary" size="small" @click="handleAddPartition">
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />
               添加分区
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               type="danger"
               size="small"
               :disabled="selectedPartitions.length === 0"
@@ -429,83 +429,83 @@
                   ? `(${selectedPartitions.length})`
                   : ""
               }}
-            </el-button>
-            <el-divider direction="vertical" />
-            <el-button size="small" @click="loadPartitions">
+            </ScButton>
+            <ScDivider direction="vertical" />
+            <ScButton size="small" @click="loadPartitions">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               刷新
-            </el-button>
+            </ScButton>
           </div>
 
           <div v-if="partitions.length > 0" class="table-wrapper">
-            <el-table
+            <ScTable
               :data="partitions"
               border
               size="small"
               height="450px"
               @selection-change="handlePartitionSelectionChange"
             >
-              <el-table-column type="selection" width="45" fixed="left" />
-              <el-table-column type="index" width="50" label="#" fixed="left" />
-              <el-table-column prop="name" label="分区名" width="180" />
-              <el-table-column prop="method" label="分区方式" width="120">
+              <ScTableColumn type="selection" width="45" fixed="left" />
+              <ScTableColumn type="index" width="50" label="#" fixed="left" />
+              <ScTableColumn prop="name" label="分区名" width="180" />
+              <ScTableColumn prop="method" label="分区方式" width="120">
                 <template #default="{ row }">
-                  <el-tag type="info" size="small">
+                  <ScTag type="info" size="small">
                     {{ row.method || "RANGE" }}
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
-              <el-table-column
+              </ScTableColumn>
+              <ScTableColumn
                 prop="expression"
                 label="分区表达式"
                 min-width="200"
               />
-              <el-table-column
+              <ScTableColumn
                 prop="description"
                 label="描述"
                 min-width="200"
               />
-              <el-table-column
+              <ScTableColumn
                 prop="rows"
                 label="行数"
                 width="100"
                 align="right"
               />
-            </el-table>
+            </ScTable>
           </div>
-          <el-empty v-else description="暂无分区" />
-        </el-tab-pane>
+          <ScEmpty v-else description="暂无分区" />
+        </ScTabPane>
 
         <!-- DDL语句 -->
-        <el-tab-pane label="DDL" name="ddl">
+        <ScTabPane label="DDL" name="ddl">
           <div class="toolbar">
-            <el-button size="small" @click="copyDdl">
+            <ScButton size="small" @click="copyDdl">
               <IconifyIconOnline icon="ri:file-copy-line" class="mr-1" />
               复制
-            </el-button>
-            <el-button size="small" @click="loadStructure">
+            </ScButton>
+            <ScButton size="small" @click="loadStructure">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               刷新
-            </el-button>
+            </ScButton>
           </div>
           <div class="ddl-container">
             <pre class="ddl-code"><code>{{ ddl || '加载中..' }}</code></pre>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button
+        <ScButton @click="handleClose">关闭</ScButton>
+        <ScButton
           type="primary"
           :loading="saving"
           :disabled="!hasChanges"
           @click="handleSaveAll"
         >
           保存修改
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

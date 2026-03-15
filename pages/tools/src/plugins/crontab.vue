@@ -1,5 +1,4 @@
 ﻿<script setup>
-
 import ScTabPane from "@repo/components/ScTabs";
 import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
@@ -187,7 +186,7 @@ const calculateNextExecutions = async () => {
             minute: "2-digit",
             second: "2-digit",
             hour12: false,
-          })
+          }),
         );
         count++;
       }
@@ -309,7 +308,7 @@ const handleCronChange = (val) => {
                       />
                     </div>
                     <div class="crontab-tool__input-actions">
-                      <ScButton 
+                      <ScButton
                         type="primary"
                         :loading="env.loading"
                         @click="calculateNextExecutions"
@@ -317,7 +316,7 @@ const handleCronChange = (val) => {
                         <IconifyIconOnline icon="ri:play-line" />
                         <span>解析表达式</span>
                       </ScButton>
-                      <ScButton 
+                      <ScButton
                         type="success"
                         @click="copyToClipboard(env.inputValue)"
                       >
@@ -330,7 +329,7 @@ const handleCronChange = (val) => {
                   <!-- 常用表达式 -->
                   <ScFormItem label="常用表达式">
                     <div class="crontab-tool__expressions">
-                      <el-scrollbar height="200px">
+                      <ScScrollbar height="200px">
                         <div
                           v-for="(expr, index) in env.cronExpressions"
                           :key="index"
@@ -349,13 +348,13 @@ const handleCronChange = (val) => {
                             {{ expr.description }}
                           </div>
                         </div>
-                      </el-scrollbar>
+                      </ScScrollbar>
                     </div>
                   </ScFormItem>
 
                   <!-- 操作按钮 -->
                   <div class="crontab-tool__actions">
-                    <ScButton 
+                    <ScButton
                       type="primary"
                       :loading="env.loading"
                       class="crontab-tool__parse-btn"
@@ -365,7 +364,7 @@ const handleCronChange = (val) => {
                       <span>解析表达式</span>
                     </ScButton>
 
-                    <ScButton 
+                    <ScButton
                       class="crontab-tool__reset-btn"
                       @click="resetForm"
                     >
@@ -373,7 +372,7 @@ const handleCronChange = (val) => {
                       <span>重置</span>
                     </ScButton>
 
-                    <ScButton 
+                    <ScButton
                       type="success"
                       class="crontab-tool__copy-btn"
                       @click="copyToClipboard(env.inputValue)"
@@ -399,7 +398,7 @@ const handleCronChange = (val) => {
                   </div>
                 </template>
 
-                <ScEmpty 
+                <ScEmpty
                   v-if="!env.nextExecutions.length"
                   description="请先解析 Cron 表达式"
                   class="crontab-tool__empty"

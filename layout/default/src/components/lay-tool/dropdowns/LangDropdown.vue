@@ -15,7 +15,8 @@ const index = 0;
 
 // 获取当前语言的配置
 const currentLanguageConfig = computed(() => {
-  const currentLocale = typeof locale.value === "string" ? locale.value : locale.value.value;
+  const currentLocale =
+    typeof locale.value === "string" ? locale.value : locale.value.value;
   return getLanguageConfig(currentLocale);
 });
 
@@ -26,7 +27,7 @@ const handleLanguageChange = (langCode: string) => {
 </script>
 
 <template>
-  <el-dropdown
+  <ScDropdown
     id="header-translation"
     trigger="click"
     popper-class="lang-dropdown-popper"
@@ -36,24 +37,35 @@ const handleLanguageChange = (langCode: string) => {
         <IconifyIconOnline icon="ri:translate-2" class="lang-main-icon" />
       </div>
       <div class="user-info">
-        <ScText class="user-name">{{ currentLanguageConfig.nativeName }}</ScText>
-        <ScText class="user-role">{{ locale === "zh-CN" ? "语言" : "Language" }}</ScText>
+        <ScText class="user-name">{{
+          currentLanguageConfig.nativeName
+        }}</ScText>
+        <ScText class="user-role">{{
+          locale === "zh-CN" ? "语言" : "Language"
+        }}</ScText>
       </div>
       <span class="dropdown-arrow-wrapper">
         <IconifyIconOnline icon="ri:arrow-down-s-line" class="dropdown-arrow" />
       </span>
     </div>
     <template #dropdown>
-      <el-dropdown-menu class="lang-menu">
+      <ScDropdownMenu class="lang-menu">
         <div class="lang-header">
           <IconifyIconOnline icon="ri:global-line" />
           <ScText>选择语言</ScText>
         </div>
-        <el-dropdown-item
+        <ScDropdownItem
           v-for="(langConfig, index) in languageConfigs"
           :key="langConfig.code"
           v-if="deferLang(index)"
-          :class="['lang-item', { active: (typeof locale === 'string' ? locale : locale.value) === langConfig.code }]"
+          :class="[
+            'lang-item',
+            {
+              active:
+                (typeof locale === 'string' ? locale : locale.value) ===
+                langConfig.code,
+            },
+          ]"
           @click="handleLanguageChange(langConfig.code)"
         >
           <div class="lang-item-content">
@@ -64,14 +76,17 @@ const handleLanguageChange = (langCode: string) => {
             </div>
           </div>
           <IconifyIconOffline
-            v-show="(typeof locale === 'string' ? locale : locale.value) === langConfig.code"
+            v-show="
+              (typeof locale === 'string' ? locale : locale.value) ===
+              langConfig.code
+            "
             class="lang-check"
             :icon="Check"
           />
-        </el-dropdown-item>
-      </el-dropdown-menu>
+        </ScDropdownItem>
+      </ScDropdownMenu>
     </template>
-  </el-dropdown>
+  </ScDropdown>
 </template>
 
 <style lang="scss" scoped>
@@ -82,7 +97,11 @@ const handleLanguageChange = (langCode: string) => {
   gap: 12px;
   padding: 6px 14px 6px 6px;
   border-radius: 28px;
-  background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-lighter) 0%,
+    var(--el-fill-color-light) 100%
+  );
   border: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -96,22 +115,41 @@ const handleLanguageChange = (langCode: string) => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
     transition: left 0.5s ease;
   }
 
   &:hover {
-    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-light) 0%,
+      var(--el-fill-color) 100%
+    );
     border-color: rgba(var(--el-color-primary-rgb), 0.3);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.1),
+      0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
     transform: translateY(-1px);
 
-    &::before { left: 100%; }
+    &::before {
+      left: 100%;
+    }
 
     .dropdown-arrow-wrapper {
-      background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary-light-8) 0%,
+        var(--el-color-primary-light-9) 100%
+      );
       box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
-      .dropdown-arrow { color: var(--el-color-primary); }
+      .dropdown-arrow {
+        color: var(--el-color-primary);
+      }
     }
   }
 
@@ -122,11 +160,18 @@ const handleLanguageChange = (langCode: string) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
     border-radius: 50%;
     box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 
-    .lang-main-icon { font-size: 16px; color: #fff; }
+    .lang-main-icon {
+      font-size: 16px;
+      color: #fff;
+    }
   }
 
   .user-info {
@@ -155,7 +200,11 @@ const handleLanguageChange = (langCode: string) => {
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--el-fill-color) 0%, var(--el-fill-color-light) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color) 0%,
+      var(--el-fill-color-light) 100%
+    );
     margin-left: 4px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }

@@ -1,49 +1,49 @@
 ﻿<template>
   <div class="page-container system-container modern-bg">
     <div class="toolbar">
-      <el-input
+      <ScInput
         v-model="search.keyword"
         placeholder="服务器/类型/通道"
         clearable
         style="width: 260px"
       />
-      <el-select
+      <ScSelect
         v-model="search.type"
         placeholder="告警类型"
         clearable
         style="width: 180px; margin-left: 12px"
       >
-        <el-option
+        <ScOption
           v-for="item in types"
           :key="item.value"
           :label="item.label"
           :value="item.value"
         />
-      </el-select>
-      <el-select
+      </ScSelect>
+      <ScSelect
         v-model="search.channel"
         placeholder="通道"
         clearable
         style="width: 180px; margin-left: 12px"
       >
-        <el-option
+        <ScOption
           v-for="item in channels"
           :key="item.value"
           :label="item.label"
           :value="item.value"
         />
-      </el-select>
-      <el-switch
+      </ScSelect>
+      <ScSwitch
         v-model="search.enabled"
         active-text="启用"
         inactive-text="停用"
         style="margin-left: 12px"
       />
-      <el-button type="primary" style="margin-left: 12px" @click="handleSearch"
+      <ScButton type="primary" style="margin-left: 12px" @click="handleSearch"
         >查询</el-button
       >
-      <el-button @click="handleReset">重置</el-button>
-      <el-button type="success" @click="openEdit()">新增配置</el-button>
+      <ScButton @click="handleReset">重置</ScButton>
+      <ScButton type="success" @click="openEdit()">新增配置</ScButton>
     </div>
 
     <data-table
@@ -67,13 +67,13 @@
       "
     >
       <template #actions="{ row }">
-        <el-button type="primary" link @click="openEdit(row)">编辑</el-button>
-        <el-divider direction="vertical" />
-        <el-popconfirm title="确认删除该配置？" @confirm="handleDelete(row)">
+        <ScButton type="primary" link @click="openEdit(row)">编辑</ScButton>
+        <ScDivider direction="vertical" />
+        <ScPopconfirm title="确认删除该配置？" @confirm="handleDelete(row)">
           <template #reference>
-            <el-button type="danger" link>删除</el-button>
+            <ScButton type="danger" link>删除</ScButton>
           </template>
-        </el-popconfirm>
+        </ScPopconfirm>
       </template>
     </data-table>
 
@@ -84,122 +84,122 @@
       "
       width="780px"
     >
-      <el-form
+      <ScForm
         ref="formRef"
         :model="edit.form"
         :rules="rules"
         label-width="140px"
       >
-        <el-form-item label="服务器ID(可选全局)">
-          <el-input-number
+        <ScFormItem label="服务器ID(可选全局)">
+          <ScInputNumber
             v-model="edit.form.monitorSysGenServerId"
             :min="0"
             :step="1"
           />
-        </el-form-item>
-        <el-form-item label="告警类型" prop="monitorSysGenAlertPushConfigType">
-          <el-select
+        </ScFormItem>
+        <ScFormItem label="告警类型" prop="monitorSysGenAlertPushConfigType">
+          <ScSelect
             v-model="edit.form.monitorSysGenAlertPushConfigType"
             placeholder="请选择告警类型"
           >
-            <el-option
+            <ScOption
               v-for="item in types"
               :key="item.value"
               :label="item.label"
               :value="item.value"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="通道" prop="monitorSysGenAlertPushConfigChannel">
-          <el-select
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="通道" prop="monitorSysGenAlertPushConfigChannel">
+          <ScSelect
             v-model="edit.form.monitorSysGenAlertPushConfigChannel"
             placeholder="请选择通道"
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           >
-            <el-option
+            <ScOption
               v-for="item in channels"
               :key="item.value"
               :label="item.label"
               :value="item.value"
             />
-          </el-select>
-        </el-form-item>
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="使用模板">
-          <el-select
+        <ScFormItem label="使用模板">
+          <ScSelect
             v-model="edit.form.monitorSysGenAlertPushConfigTemplateId"
             placeholder="选择模板(优先)"
             clearable
             filterable
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="tpl in templateOptions"
               :key="tpl.monitorSysGenMessagePushTemplateId"
               :label="tpl.monitorSysGenMessagePushTemplateName"
               :value="tpl.monitorSysGenMessagePushTemplateId"
             />
-          </el-select>
-        </el-form-item>
+          </ScSelect>
+        </ScFormItem>
 
-        <el-divider content-position="left"
+        <ScDivider content-position="left"
           >不使用模板时可直接填写以下字段</el-divider
         >
-        <el-form-item label="是否启用">
-          <el-switch v-model="edit.form.monitorSysGenAlertPushConfigEnabled" />
-        </el-form-item>
-        <el-form-item label="Endpoint/Webhook">
-          <el-input
+        <ScFormItem label="是否启用">
+          <ScSwitch v-model="edit.form.monitorSysGenAlertPushConfigEnabled" />
+        </ScFormItem>
+        <ScFormItem label="Endpoint/Webhook">
+          <ScInput
             v-model="edit.form.monitorSysGenAlertPushConfigEndpoint"
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           />
-        </el-form-item>
-        <el-form-item label="主账号">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="主账号">
+          <ScInput
             v-model="edit.form.monitorSysGenAlertPushConfigMainAccount"
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           />
-        </el-form-item>
-        <el-form-item label="用户名">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="用户名">
+          <ScInput
             v-model="edit.form.monitorSysGenAlertPushConfigUsername"
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           />
-        </el-form-item>
-        <el-form-item label="密码">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="密码">
+          <ScInput
             v-model="edit.form.monitorSysGenAlertPushConfigPassword"
             type="password"
             show-password
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           />
-        </el-form-item>
-        <el-form-item label="Token/密钥">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="Token/密钥">
+          <ScInput
             v-model="edit.form.monitorSysGenAlertPushConfigToken"
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           />
-        </el-form-item>
-        <el-form-item label="扩展参数(JSON)">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="扩展参数(JSON)">
+          <ScInput
             v-model="edit.form.monitorSysGenAlertPushConfigExtra"
             type="textarea"
             :rows="3"
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="备注">
+          <ScInput
             v-model="edit.form.monitorSysGenAlertPushConfigRemark"
             type="textarea"
             :rows="2"
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="edit.visible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave">保存</el-button>
+        <ScButton @click="edit.visible = false">取消</ScButton>
+        <ScButton type="primary" @click="handleSave">保存</ScButton>
       </template>
     </sc-dialog>
   </div>

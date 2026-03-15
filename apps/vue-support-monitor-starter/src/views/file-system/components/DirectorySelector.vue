@@ -15,10 +15,10 @@
     >
       <template #default="{ node, data }">
         <div class="tree-node">
-          <el-icon class="node-icon">
+          <ScIcon class="node-icon">
             <Folder v-if="data.type === 'drive'" />
             <FolderOpened v-else />
-          </el-icon>
+          </ScIcon>
           <span class="node-label">{{ data.label }}</span>
           <span v-if="data.type === 'drive'" class="drive-info">
             ({{ formatBytes(data.freeSpace) }} 可用)

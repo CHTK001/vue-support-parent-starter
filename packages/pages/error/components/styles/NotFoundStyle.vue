@@ -138,7 +138,9 @@ const { t } = useI18n();
   height: 80px;
   background: #ffd700;
   border-radius: 50%;
-  box-shadow: 0 0 60px #ffd700, 0 0 100px rgba(255, 215, 0, 0.5);
+  box-shadow:
+    0 0 60px #ffd700,
+    0 0 100px rgba(255, 215, 0, 0.5);
   animation: pulse-sun 4s ease-in-out infinite;
 }
 
@@ -480,10 +482,14 @@ const { t } = useI18n();
 @keyframes pulse-sun {
   0%,
   100% {
-    box-shadow: 0 0 60px #ffd700, 0 0 100px rgba(255, 215, 0, 0.5);
+    box-shadow:
+      0 0 60px #ffd700,
+      0 0 100px rgba(255, 215, 0, 0.5);
   }
   50% {
-    box-shadow: 0 0 80px #ffd700, 0 0 120px rgba(255, 215, 0, 0.7);
+    box-shadow:
+      0 0 80px #ffd700,
+      0 0 120px rgba(255, 215, 0, 0.7);
   }
 }
 

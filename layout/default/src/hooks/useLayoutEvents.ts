@@ -27,7 +27,7 @@ export type LayoutEventType =
  * @description 注册单个事件监听器，组件卸载时自动注销
  * @param eventName 事件名称
  * @param handler 事件处理函数
- * 
+ *
  * @example
  * ```ts
  * // 监听面包屑变化
@@ -38,7 +38,7 @@ export type LayoutEventType =
  */
 export function useLayoutEvent<T = any>(
   eventName: LayoutEventType | string,
-  handler: (value: T) => void
+  handler: (value: T) => void,
 ) {
   // 注册事件
   emitter.on(eventName, handler);
@@ -58,7 +58,7 @@ export function useLayoutEvent<T = any>(
  * 多事件监听 Hook
  * @description 批量注册多个事件监听器，组件卸载时自动注销
  * @param events 事件配置数组
- * 
+ *
  * @example
  * ```ts
  * useLayoutEvents([
@@ -68,7 +68,10 @@ export function useLayoutEvent<T = any>(
  * ```
  */
 export function useLayoutEvents<T = any>(
-  events: Array<{ name: LayoutEventType | string; handler: (value: T) => void }>
+  events: Array<{
+    name: LayoutEventType | string;
+    handler: (value: T) => void;
+  }>,
 ) {
   const unsubscribeFns: Array<() => void> = [];
 
@@ -94,7 +97,7 @@ export function useLayoutEvents<T = any>(
  * @description 发射布局事件
  * @param eventName 事件名称
  * @param value 事件值
- * 
+ *
  * @example
  * ```ts
  * emitLayoutEvent('breadcrumbChange', true);
@@ -102,7 +105,7 @@ export function useLayoutEvents<T = any>(
  */
 export function emitLayoutEvent<T = any>(
   eventName: LayoutEventType | string,
-  value: T
+  value: T,
 ) {
   emitter.emit(eventName, value);
 }

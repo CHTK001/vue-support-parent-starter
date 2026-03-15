@@ -1,15 +1,43 @@
 /**
  * WASM 加密模块桥接层
- * 所有导出算法统一使用 WASM 实现，不再降级到 JS
+ * 支持三种模式：wasm（强制WASM）、js（强制JS）、auto（自动降级）
  * @author CH
- * @version 3.0.0
+ * @version 3.1.0
  */
+
+// ============ 加密模式枚举 ============
+export const CodecMode = {
+  WASM: 'wasm',    // 强制使用 WASM，失败时抛出错误
+  JS: 'js',        // 强制使用 JS 实现
+  AUTO: 'auto'     // 自动模式：优先 WASM，失败时降级到 JS
+};
 
 // ============ 模块状态 ============
 let wasmLoaded = false;
 let wasm = null; // wasm-bindgen 生成的绑定模块（包含导出的函数）
 let wasmInstance = null; // WASM 实例（用于内存访问，虽然使用 wasm-bindgen 时通常不需要）
 let wasmInitPromise = null;
+let currentMode = CodecMode.AUTO; // 默认自动模式
+
+/**
+ * 设置加密模式
+ * @param {string} mode - 'wasm' | 'js' | 'auto'
+ */
+export const setCodecMode = (mode) => {
+  if (!Object.values(CodecMode).includes(mode)) {
+    console.warn(`[codec-wasm] 无效的模式: ${mode}，使用默认模式 auto`);
+    currentMode = CodecMode.AUTO;
+    return;
+  }
+  currentMode = mode;
+  console.log(`[codec-wasm] 加密模式已设置为: ${mode}`);
+};
+
+/**
+ * 获取当前加密模式
+ * @returns {string}
+ */
+export const getCodecMode = () => currentMode;
 
 /** 调用 WASM 函数（WASM 执行错误时抛出错误，不降级） */
 const call = (fn, ...args) => {
@@ -29,26 +57,21 @@ const call = (fn, ...args) => {
 // ============ 初始化 ============
 
 /**
- * 检查是否启用 WASM（从配置读取）
+ * 检查是否应该尝试加载 WASM
  * @returns {boolean}
  */
-const checkWasmEnabled = () => {
-  try {
-    // 动态导入配置模块，避免循环依赖
-    if (typeof window !== "undefined" && window.__APP_CONFIG__) {
-      const config = window.__APP_CONFIG__;
-      return config?.wasmEnable !== false;
-    }
-    // 如果无法获取配置，默认启用 WASM
-    return true;
-  } catch {
-    return true;
+const shouldLoadWasm = () => {
+  // js 模式下不加载 WASM
+  if (currentMode === CodecMode.JS) {
+    return false;
   }
+  // wasm 和 auto 模式都尝试加载
+  return true;
 };
 
 /**
  * 初始化 WASM 模块
- * 直接加载 codec_wasm_bg.wasm 文件，加载失败时保持禁用状态
+ * 根据当前模式决定是否加载 WASM
  *
  * @returns {Promise<object|null>} WASM 模块对象，加载失败返回 null
  */
@@ -61,9 +84,9 @@ export const initializeWasmModule = async () => {
     return await wasmInitPromise;
   }
 
-  // 检查配置，如果禁用 WASM，直接返回 null
-  if (!checkWasmEnabled()) {
-    console.log("[codec-wasm][初始化] WASM 已禁用");
+  // 检查是否应该加载 WASM
+  if (!shouldLoadWasm()) {
+    console.log(`[codec-wasm][初始化] 当前模式为 ${currentMode}，跳过 WASM 加载`);
     wasmLoaded = false;
     wasm = null;
     return null;
@@ -78,7 +101,9 @@ export const initializeWasmModule = async () => {
       // 尝试导入 codec_wasm.js 来获取 init 函数
       // init 函数会直接加载 .wasm 文件并绑定所有函数
       try {
-        const codecWasmModule = await import("../build/codec_wasm.js");
+        // 使用动态路径避免 Vite 在构建时检查文件是否存在
+        const modulePath = "../build/" + "codec_wasm.js";
+        const codecWasmModule = await import(/* @vite-ignore */ modulePath);
         const codecWasmInit = codecWasmModule.default || codecWasmModule.init;
 
         if (codecWasmInit) {
@@ -96,19 +121,26 @@ export const initializeWasmModule = async () => {
         console.error(
           "[codec-wasm][初始化] 无法导入 codec_wasm.js:",
           importError,
-            );
+        );
         throw importError;
       }
 
       throw new Error("无法初始化 WASM 模块");
     } catch (error) {
-      // WASM 加载失败，降级到 JS，不抛出错误
-      console.warn(
-        `[codec-wasm][初始化] WASM 模块加载失败，降级到 JS 版本: ${error.message}`,
-      );
-      wasmLoaded = false;
-      wasm = null;
-      return null;
+      // 根据模式决定如何处理错误
+      if (currentMode === CodecMode.WASM) {
+        // wasm 模式：抛出错误，不降级
+        console.error(`[codec-wasm][初始化] WASM 模式下加载失败: ${error.message}`);
+        throw error;
+      } else {
+        // auto 模式：降级到 JS
+        console.warn(
+          `[codec-wasm][初始化] WASM 模块加载失败，降级到 JS 版本: ${error.message}`,
+        );
+        wasmLoaded = false;
+        wasm = null;
+        return null;
+      }
     } finally {
       // 允许失败后重试；成功时 wasmLoaded=true，后续会直接返回 wasm
       wasmInitPromise = null;
@@ -569,9 +601,14 @@ export const fontGetMaps = () => {
 
 if (typeof window !== "undefined") {
   window.codecWasm = {
+    // 模式控制
+    CodecMode,
+    setCodecMode,
+    getCodecMode,
+    // 初始化
     initializeWasmModule,
     isWasmLoaded,
-    // 统一接口（仅使用 WASM 实现）
+    // 统一接口（根据模式使用 WASM 或 JS 实现）
     sm3Hash,
     md5Hash,
     encryptAES,

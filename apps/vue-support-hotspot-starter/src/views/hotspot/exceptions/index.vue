@@ -115,9 +115,9 @@ onUnmounted(() => {
 <template>
   <div class="page-container">
     <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper danger">
               <IconifyIconOnline icon="ri:bug-line" class="stat-icon" />
@@ -127,10 +127,10 @@ onUnmounted(() => {
               <div class="stat-label">异常记录</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper warning">
               <IconifyIconOnline icon="ri:bar-chart-line" class="stat-icon" />
@@ -140,10 +140,10 @@ onUnmounted(() => {
               <div class="stat-label">异常类型</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div :class="['stat-icon-wrapper', wsConnected ? 'success' : 'danger']">
               <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
@@ -153,28 +153,28 @@ onUnmounted(() => {
               <div class="stat-label">WebSocket 状态</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper info">
               <IconifyIconOnline icon="ri:settings-3-line" class="stat-icon" />
             </div>
             <div class="stat-info">
               <div class="stat-actions">
-                <el-button type="primary" size="small" :loading="loading" @click="fetchData">刷新</el-button>
-                <el-button type="danger" size="small" @click="clearStats">清除</el-button>
+                <ScButton type="primary" size="small" :loading="loading" @click="fetchData">刷新</ScButton>
+                <ScButton type="danger" size="small" @click="clearStats">清除</ScButton>
               </div>
               <div class="stat-label">操作</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 内容卡片 -->
-    <el-card class="modern-card" shadow="hover">
+    <ScCard class="modern-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -184,73 +184,73 @@ onUnmounted(() => {
         </div>
       </template>
 
-      <el-tabs v-model="activeTab" class="modern-tabs">
-        <el-tab-pane label="异常列表" name="list">
-          <el-table v-loading="loading" :data="exceptions" stripe max-height="600">
-            <el-table-column prop="exceptionType" label="异常类型" width="250">
+      <ScTabs v-model="activeTab" class="modern-tabs">
+        <ScTabPane label="异常列表" name="list">
+          <ScTable v-loading="loading" :data="exceptions" stripe max-height="600">
+            <ScTableColumn prop="exceptionType" label="异常类型" width="250">
               <template #default="{ row }">
-                <el-tag type="danger">{{ row.exceptionType.split(".").pop() }}</el-tag>
+                <ScTag type="danger">{{ row.exceptionType.split(".").pop() }}</ScTag>
               </template>
-            </el-table-column>
-            <el-table-column prop="message" label="异常消息" min-width="300" show-overflow-tooltip />
-            <el-table-column prop="thread" label="线程" width="150" />
-            <el-table-column prop="location" label="位置" width="200" />
-            <el-table-column prop="timestamp" label="发生时间" width="180">
+            </ScTableColumn>
+            <ScTableColumn prop="message" label="异常消息" min-width="300" show-overflow-tooltip />
+            <ScTableColumn prop="thread" label="线程" width="150" />
+            <ScTableColumn prop="location" label="位置" width="200" />
+            <ScTableColumn prop="timestamp" label="发生时间" width="180">
               <template #default="{ row }">
                 {{ formatTime(row.timestamp) }}
               </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100">
+            </ScTableColumn>
+            <ScTableColumn label="操作" width="100">
               <template #default="{ row }">
-                <el-button type="text" size="small" @click="viewException(row)">详情</el-button>
+                <ScButton type="text" size="small" @click="viewException(row)">详情</ScButton>
               </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
+            </ScTableColumn>
+          </ScTable>
+        </ScTabPane>
 
-        <el-tab-pane label="异常统计" name="stats">
-          <el-table v-loading="loading" :data="stats" stripe>
-            <el-table-column prop="exceptionType" label="异常类型" width="300">
+        <ScTabPane label="异常统计" name="stats">
+          <ScTable v-loading="loading" :data="stats" stripe>
+            <ScTableColumn prop="exceptionType" label="异常类型" width="300">
               <template #default="{ row }">
-                <el-tag type="danger">{{ row.exceptionType }}</el-tag>
+                <ScTag type="danger">{{ row.exceptionType }}</ScTag>
               </template>
-            </el-table-column>
-            <el-table-column prop="count" label="发生次数" width="120" />
-            <el-table-column prop="firstOccurrence" label="首次发生" width="180">
+            </ScTableColumn>
+            <ScTableColumn prop="count" label="发生次数" width="120" />
+            <ScTableColumn prop="firstOccurrence" label="首次发生" width="180">
               <template #default="{ row }">
                 {{ formatTime(row.firstOccurrence) }}
               </template>
-            </el-table-column>
-            <el-table-column prop="lastOccurrence" label="最后发生" width="180">
+            </ScTableColumn>
+            <ScTableColumn prop="lastOccurrence" label="最后发生" width="180">
               <template #default="{ row }">
                 {{ formatTime(row.lastOccurrence) }}
               </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
-    </el-card>
+            </ScTableColumn>
+          </ScTable>
+        </ScTabPane>
+      </ScTabs>
+    </ScCard>
 
     <!-- 异常详情对话框 -->
     <sc-dialog v-model="dialogVisible" title="异常详情" width="80%" :close-on-click-modal="false">
       <div v-if="selectedEx" class="exception-detail">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="异常类型">
-            <el-tag type="danger">{{ selectedEx.exceptionType }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="发生时间">
+        <ScDescriptions :column="2" border>
+          <ScDescriptionsItem label="异常类型">
+            <ScTag type="danger">{{ selectedEx.exceptionType }}</ScTag>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="发生时间">
             {{ formatTime(selectedEx.timestamp) }}
-          </el-descriptions-item>
-          <el-descriptions-item label="线程">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="线程">
             {{ selectedEx.thread }}
-          </el-descriptions-item>
-          <el-descriptions-item label="位置">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="位置">
             {{ selectedEx.location }}
-          </el-descriptions-item>
-          <el-descriptions-item label="异常消息" :span="2">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="异常消息" :span="2">
             {{ selectedEx.message }}
-          </el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+        </ScDescriptions>
 
         <div class="stack-trace">
           <h4>堆栈跟踪：</h4>

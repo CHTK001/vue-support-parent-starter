@@ -8,7 +8,9 @@ defineOptions({
 });
 
 // 404 使用迷路风格（沙漠/路标/放大镜）
-const errorPageStyle = computed(() => globalSetting.ErrorPageStyle || "notfound");
+const errorPageStyle = computed(
+  () => globalSetting.ErrorPageStyle || "notfound",
+);
 </script>
 
 <template>

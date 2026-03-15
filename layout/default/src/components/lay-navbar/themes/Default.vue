@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseNavbar from './BaseNavbar.vue';
+import BaseNavbar from "./BaseNavbar.vue";
 </script>
 
 <template>
@@ -16,9 +16,9 @@ import BaseNavbar from './BaseNavbar.vue';
   --default-navbar-bg: var(--stitch-lay-bg-overlay, rgba(255, 255, 255, 0.8));
   --default-navbar-border: var(--stitch-lay-border, rgba(0, 0, 0, 0.05));
   --default-navbar-backdrop: blur(12px);
-  
+
   width: 100%;
-  
+
   :deep(.default-navbar) {
     background: var(--default-navbar-bg);
     color: var(--stitch-lay-text-main);

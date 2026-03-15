@@ -6,7 +6,7 @@
   >
     <!-- 左侧：搜索 + 树（参考 Redis 实现） -->
     <div class="left overflow-auto thin-scrollbar">
-      <el-input
+      <ScInput
         v-model="keyword"
         placeholder="搜索..."
         size="small"
@@ -16,8 +16,8 @@
         <template #append>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </el-input>
-      <el-tree
+      </ScInput>
+      <ScTree
         class="tree"
         :data="treeData"
         :props="treeProps"
@@ -33,7 +33,7 @@
             <span>{{ data.name }}</span>
           </span>
         </template>
-      </el-tree>
+      </ScTree>
     </div>
 
     <!-- 分割条 -->
@@ -51,14 +51,14 @@
           <span class="ellipsis">{{ path || "未选择" }}</span>
         </div>
         <div class="toolbar">
-          <el-button size="small" :disabled="!path" @click="refreshNode">
+          <ScButton size="small" :disabled="!path" @click="refreshNode">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
-          </el-button>
+          </ScButton>
         </div>
       </div>
       <div class="right-body">
         <template v-if="path">
-          <el-input
+          <ScInput
             v-model="content"
             type="textarea"
             :rows="40"
@@ -66,7 +66,7 @@
             readonly
           />
         </template>
-        <el-empty v-else description="请选择左侧节点" />
+        <ScEmpty v-else description="请选择左侧节点" />
       </div>
       <div class="right-status">
         <span v-if="statusText">{{ statusText }}</span>

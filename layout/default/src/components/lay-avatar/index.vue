@@ -21,8 +21,14 @@ const themeClass = computed(() => {
   <div class="lay-avatar" :class="themeClass">
     <img :src="src" :alt="alt" :style="style" class="lay-avatar-img" />
     <!-- 节日装饰层 -->
-    <div v-if="themeClass === 'halloween'" class="avatar-decoration halloween-decoration"></div>
-    <div v-else-if="themeClass === 'spring-festival'" class="avatar-decoration spring-decoration"></div>
+    <div
+      v-if="themeClass === 'halloween'"
+      class="avatar-decoration halloween-decoration"
+    ></div>
+    <div
+      v-else-if="themeClass === 'spring-festival'"
+      class="avatar-decoration spring-decoration"
+    ></div>
   </div>
 </template>
 
@@ -32,7 +38,7 @@ const themeClass = computed(() => {
   display: inline-block;
   width: 100%;
   height: 100%;
-  
+
   .lay-avatar-img {
     width: 100%;
     height: 100%;
@@ -64,7 +70,11 @@ const themeClass = computed(() => {
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

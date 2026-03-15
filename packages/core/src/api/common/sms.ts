@@ -5,7 +5,7 @@ import { http, type ReturnResult } from "@repo/utils";
  */
 export const fetchSmsSender = (params: any) => {
   return http.request<ReturnResult<boolean>>("put", "/v2/sms", {
-    data: params
+    data: params,
   });
 };
 
@@ -14,6 +14,6 @@ export const fetchSmsSender = (params: any) => {
  */
 export const fetchSmsSync = (params: any) => {
   return http.request<ReturnResult<boolean>>("post", "/v2/sms/syncTemplate", {
-    data: params
+    data: params,
   });
 };

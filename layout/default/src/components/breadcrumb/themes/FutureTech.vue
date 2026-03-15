@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseBreadcrumb from './BaseBreadcrumb.vue';
+import BaseBreadcrumb from "./BaseBreadcrumb.vue";
 </script>
 
 <template>
@@ -14,7 +14,11 @@ $ft-bg-darker: #0a1a3a;
 $ft-border: rgba(0, 255, 255, 0.4);
 
 .future-tech-breadcrumb {
-  background: linear-gradient(135deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9));
+  background: linear-gradient(
+    135deg,
+    rgba(5, 10, 31, 0.95),
+    rgba(10, 26, 58, 0.9)
+  );
   border-radius: 12px;
   padding: 0 12px;
   border: 2px solid $ft-border;
@@ -57,7 +61,11 @@ $ft-border: rgba(0, 255, 255, 0.4);
     }
 
     &.is-current {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(77, 253, 253, 0.2));
+      background: linear-gradient(
+        135deg,
+        rgba(0, 255, 255, 0.3),
+        rgba(77, 253, 253, 0.2)
+      );
       border: 2px solid $ft-cyan;
       box-shadow: 0 4px 16px rgba(0, 255, 255, 0.4);
 
@@ -88,7 +96,7 @@ $ft-border: rgba(0, 255, 255, 0.4);
 @media (max-width: 768px) {
   .future-tech-breadcrumb {
     padding: 0 8px;
-    
+
     .home-icon {
       width: 28px;
       height: 28px;
@@ -97,7 +105,7 @@ $ft-border: rgba(0, 255, 255, 0.4);
 
     .breadcrumb-link {
       padding: 4px 8px;
-      
+
       .breadcrumb-text {
         font-size: 11px;
         max-width: 70px;
@@ -110,4 +118,3 @@ $ft-border: rgba(0, 255, 255, 0.4);
   }
 }
 </style>
-

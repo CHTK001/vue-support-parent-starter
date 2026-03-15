@@ -16,24 +16,18 @@ import type { Model3DOptions } from "@repo/scLayer/composables/CesiumModelObject
  * @param centerLat 中心纬度（用于局部坐标系）
  * @returns Three.js 坐标 [x, y, z]
  */
-export function geoToThree(
-  longitude: number,
-  latitude: number,
-  height: number = 0,
-  centerLon: number = 0,
-  centerLat: number = 0
-): [number, number, number] {
+export function geoToThree(longitude: number, latitude: number, height: number = 0, centerLon: number = 0, centerLat: number = 0): [number, number, number] {
   // 简化的地理坐标转换（适用于小范围）
   // 1 度经度 ≈ 111320 * cos(latitude) 米
   // 1 度纬度 ≈ 111320 米
   const latRad = (latitude * Math.PI) / 180;
   const lonDiff = longitude - centerLon;
   const latDiff = latitude - centerLat;
-  
+
   const x = lonDiff * 111320 * Math.cos(latRad);
   const y = height;
   const z = -latDiff * 111320; // 注意：Three.js 中 z 轴向下
-  
+
   return [x, y, z];
 }
 
@@ -46,17 +40,11 @@ export function geoToThree(
  * @param centerLat 中心纬度
  * @returns 地理坐标 { longitude, latitude, height }
  */
-export function threeToGeo(
-  x: number,
-  y: number,
-  z: number,
-  centerLon: number = 0,
-  centerLat: number = 0
-): { longitude: number; latitude: number; height: number } {
+export function threeToGeo(x: number, y: number, z: number, centerLon: number = 0, centerLat: number = 0): { longitude: number; latitude: number; height: number } {
   const latRad = (centerLat * Math.PI) / 180;
   const lonDiff = x / (111320 * Math.cos(latRad));
   const latDiff = -z / 111320; // 注意：Three.js 中 z 轴向下
-  
+
   return {
     longitude: centerLon + lonDiff,
     latitude: centerLat + latDiff,
@@ -78,9 +66,7 @@ export function convertToCesiumModelOptions(
   scale: [number, number, number] | number = 1,
   rotation: [number, number, number] = [0, 0, 0]
 ): Model3DOptions {
-  const scaleObj = Array.isArray(scale)
-    ? { x: scale[0], y: scale[1], z: scale[2] }
-    : { x: scale, y: scale, z: scale };
+  const scaleObj = Array.isArray(scale) ? { x: scale[0], y: scale[1], z: scale[2] } : { x: scale, y: scale, z: scale };
 
   return {
     id: `model_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -119,13 +105,7 @@ export async function createGeoReferencedModel(
 ): Promise<THREE.Object3D | null> {
   try {
     // 将地理坐标转换为 Three.js 坐标
-    const threePos = geoToThree(
-      geoPosition[0],
-      geoPosition[1],
-      geoPosition[2] || 0,
-      centerGeo[0],
-      centerGeo[1]
-    );
+    const threePos = geoToThree(geoPosition[0], geoPosition[1], geoPosition[2] || 0, centerGeo[0], centerGeo[1]);
 
     // 这里需要根据模型格式加载，暂时返回 null
     // 实际使用时应该在 ScThree 组件中调用 loadModels
@@ -135,4 +115,3 @@ export async function createGeoReferencedModel(
     return null;
   }
 }
-

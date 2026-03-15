@@ -192,7 +192,9 @@ export function deleteHistoryMessage(historyId: number) {
  * @param data Socket 推送的消息数据
  * @returns MessageItem 格式的消息
  */
-export function convertSocketMessageToItem(data: SocketMessageData): MessageItem {
+export function convertSocketMessageToItem(
+  data: SocketMessageData,
+): MessageItem {
   return {
     sysMessageId: data.messageId,
     sysMessageTitle: data.title,

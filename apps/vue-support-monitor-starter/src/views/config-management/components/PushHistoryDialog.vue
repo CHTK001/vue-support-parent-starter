@@ -18,7 +18,7 @@
     <div class="content">
       <!-- 筛选工具栏 -->
       <div class="toolbar">
-        <el-input
+        <ScInput
           v-model="queryParams.keyword"
           placeholder="搜索配置键"
           class="search-input"
@@ -28,80 +28,80 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </el-input>
-        <el-select
+        </ScInput>
+        <ScSelect
           v-model="queryParams.pushSuccess"
           placeholder="推送状态"
           clearable
           class="filter-select"
           @change="loadHistory"
         >
-          <el-option label="成功" :value="1" />
-          <el-option label="失败" :value="0" />
-        </el-select>
-        <el-button type="primary" @click="loadHistory">
+          <ScOption label="成功" :value="1" />
+          <ScOption label="失败" :value="0" />
+        </ScSelect>
+        <ScButton type="primary" @click="loadHistory">
           <IconifyIconOnline icon="ri:search-2-line" class="mr-1" />
           搜索
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           :disabled="selectedHistories.length === 0"
           @click="handleBatchRepush"
         >
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           批量还原 ({{ selectedHistories.length }})
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="danger"
           :disabled="selectedHistories.length === 0"
           @click="handleBatchDelete"
         >
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           批量删除
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 历史列表 -->
-      <el-table
+      <ScTable
         ref="tableRef"
         v-loading="loading"
         :data="historyList"
         max-height="400"
         @selection-change="handleSelectionChange"
       >
-        <el-table-column type="selection" width="50" />
-        <el-table-column label="配置键" prop="configKey" min-width="180">
+        <ScTableColumn type="selection" width="50" />
+        <ScTableColumn label="配置键" prop="configKey" min-width="180">
           <template #default="{ row }">
             <span class="config-key">{{ row.configKey }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="配置值" prop="configValue" min-width="150">
+        </ScTableColumn>
+        <ScTableColumn label="配置值" prop="configValue" min-width="150">
           <template #default="{ row }">
-            <el-tooltip
+            <ScTooltip
               :content="row.configValue"
               placement="top"
               :disabled="!row.configValue"
             >
               <span class="config-value">{{ row.configValue || "—" }}</span>
-            </el-tooltip>
+            </ScTooltip>
           </template>
-        </el-table-column>
-        <el-table-column label="目标服务器" prop="serverName" width="120" />
-        <el-table-column label="状态" width="80" align="center">
+        </ScTableColumn>
+        <ScTableColumn label="目标服务器" prop="serverName" width="120" />
+        <ScTableColumn label="状态" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.success ? 'success' : 'danger'" size="small">
+            <ScTag :type="row.success ? 'success' : 'danger'" size="small">
               {{ row.success ? "成功" : "失败" }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="推送时间" width="160">
+        </ScTableColumn>
+        <ScTableColumn label="推送时间" width="160">
           <template #default="{ row }">
             {{ formatTime(row.pushTime) }}
           </template>
-        </el-table-column>
-        <el-table-column label="操作人" prop="operator" width="80" />
-        <el-table-column label="操作" width="140" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作人" prop="operator" width="80" />
+        <ScTableColumn label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button
+            <ScButton
               size="small"
               type="primary"
               plain
@@ -109,22 +109,22 @@
             >
               <IconifyIconOnline icon="ri:refresh-line" />
               还原
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               type="danger"
               plain
               @click="handleDelete(row)"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
 
       <!-- 分页 -->
       <div class="pagination">
-        <el-pagination
+        <ScPagination
           v-model:current-page="queryParams.pageNum"
           v-model:page-size="queryParams.pageSize"
           :total="total"
@@ -138,7 +138,7 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">关闭</el-button>
+        <ScButton @click="visibleProxy = false">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

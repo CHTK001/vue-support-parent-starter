@@ -1,5 +1,8 @@
 import { getConfig } from "@repo/config";
-import { generateNonce as generateNonceWasm, md5Hash as md5HashWasm } from "@repo/codec-wasm";
+import {
+  generateNonce as generateNonceWasm,
+  md5Hash as md5HashWasm,
+} from "@repo/codec-wasm";
 import type { PureHttpRequestConfig } from "../http/types";
 
 /** 生成随机 nonce（必须由 WASM 生成） */
@@ -11,7 +14,9 @@ export const generateNonce = (): string => {
 const EXCLUDED_PARAM_KEYS = new Set(["file", "files"]);
 
 /** 收集用于签名的请求参数 */
-export function collectParams(config: PureHttpRequestConfig): Record<string, string> {
+export function collectParams(
+  config: PureHttpRequestConfig,
+): Record<string, string> {
   const collected: Record<string, string[]> = {};
 
   const pushValue = (key: string, raw: unknown) => {
@@ -53,7 +58,7 @@ export function collectParams(config: PureHttpRequestConfig): Record<string, str
 
   const headers = config.headers ?? {};
   const contentType = String(
-    headers["Content-Type"] ?? headers["content-type"] ?? ""
+    headers["Content-Type"] ?? headers["content-type"] ?? "",
   ).toLowerCase();
   const isFormLike =
     contentType.includes("application/x-www-form-urlencoded") ||
@@ -64,7 +69,10 @@ export function collectParams(config: PureHttpRequestConfig): Record<string, str
     for (const [key, value] of (data as any).entries()) {
       add(key, value);
     }
-  } else if (typeof URLSearchParams !== "undefined" && data instanceof URLSearchParams) {
+  } else if (
+    typeof URLSearchParams !== "undefined" &&
+    data instanceof URLSearchParams
+  ) {
     const tmp: Record<string, string[]> = {};
     for (const [key, value] of data.entries()) {
       if (!tmp[key]) {
@@ -102,7 +110,7 @@ export const generateSign = (
   config: PureHttpRequestConfig,
   timestamp: number,
   nonce: string,
-  fingerprint: string
+  fingerprint: string,
 ): string => {
   const filteredParams = collectParams(config);
   const paramPairs = Object.keys(filteredParams)
@@ -114,5 +122,3 @@ export const generateSign = (
   const signInput = nonce + fingerprint + timestamp + paramsMd5 + secretKey;
   return md5HashWasm(signInput);
 };
-
-
