@@ -21,7 +21,14 @@ const ELEMENT_PLUS_COMPONENTS: Record<string, Component> = ElementPlusModule as 
  * 主题预加载状态
  */
 const themePreloadStatus = new Map<string, boolean>();
-const logger = getLogger("[useThemeComponent]");
+let _logger: ReturnType<typeof getLogger> | null = null;
+const getL = () => (_logger ??= getLogger("[useThemeComponent]"));
+const logger = {
+  warn: (msg: string, ...args: unknown[]) => getL().warn(msg, ...args),
+  error: (msg: string, ...args: unknown[]) => getL().error(msg, ...args),
+  info: (msg: string, ...args: unknown[]) => getL().info(msg, ...args),
+  debug: (msg: string, ...args: unknown[]) => getL().debug(msg, ...args),
+};
 
 /**
  * 预加载指定主题的所有组件
