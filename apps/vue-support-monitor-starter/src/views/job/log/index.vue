@@ -289,7 +289,7 @@ import {
   fetchJobLogClear,
 } from "@/api/monitor/job";
 import { useRenderIcon } from "@repo/components";
-import { scEcharts } from "@repo/components"
+import { ScEcharts } from "@repo/components"
 import { dateFormat, getDateRang, getRecentDays } from "@repo/utils";
 import { defineAsyncComponent, defineComponent } from "vue";
 
@@ -310,7 +310,7 @@ export default {
     ScStatusIndicator: defineAsyncComponent(
       () => import("@repo/components/ScMini/scStatusIndicator.vue"),
     ),
-    scEcharts,
+    ScEcharts,
     cat,
   },
   data() {
