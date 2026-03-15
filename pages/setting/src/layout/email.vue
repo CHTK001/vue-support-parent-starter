@@ -20,28 +20,28 @@
             ></ScTableSelect>
           </ScFormItem>
 
-          <ScFormItem 
+          <ScFormItem
             label="smtp主机"
             prop="sysProjectSmtpHost"
             placeholder="smtp.163.com"
           >
-            <ScInput 
+            <ScInput
               v-model="form.sysProjectSmtpHost"
               placeholder="请输入smtp主机"
             />
           </ScFormItem>
-          <ScFormItem 
+          <ScFormItem
             label="smtp端口"
             prop="sysProjectSmtpPort"
             placeholder="25"
           >
-            <ScInput 
+            <ScInput
               v-model="form.sysProjectSmtpPort"
               placeholder="请输入smtp端口"
             />
           </ScFormItem>
           <ScFormItem label="smtp密码" prop="sysProjectSmtpPassword">
-            <ScInput 
+            <ScInput
               v-model="form.sysProjectSmtpPassword"
               placeholder="请输入smtp密码"
               type="password"
@@ -49,7 +49,7 @@
             />
           </ScFormItem>
           <ScFormItem label="主体账号" prop="sysProjectSmtpFrom">
-            <ScAutocomplete 
+            <ScAutocomplete
               v-model="form.sysProjectSmtpFrom"
               :fetch-suggestions="queryEmail"
               :trigger-on-focus="false"
@@ -60,7 +60,7 @@
           </ScFormItem>
 
           <ScFormItem class="justify-start custom-button">
-            <ScButton 
+            <ScButton
               class="ml-1"
               :icon="useRenderIcon('ri:save-2-fill')"
               type="primary"
@@ -94,7 +94,7 @@ import {
   watch,
 } from "vue"; // 添加nextTick和watch
 const ScTableSelect = defineAsyncComponent(
-  () => import("@repo/components/ScTableSelect/index.vue")
+  () => import("@repo/components/ScTableSelect/index.vue"),
 );
 const form = reactive({});
 const hasAuth = shallowRef(true);
@@ -150,7 +150,7 @@ watch(
         }
       });
     }
-  }
+  },
 );
 
 const handleFailure = async (e) => {

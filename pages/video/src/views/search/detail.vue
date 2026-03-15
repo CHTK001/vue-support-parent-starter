@@ -2,7 +2,7 @@
   <div class="system-container modern-bg">
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-container">
-      <el-skeleton :rows="8" animated />
+      <ScSkeleton :rows="8" animated />
     </div>
 
     <!-- 视频详情内容 -->
@@ -54,15 +54,13 @@
           <div class="title-section">
             <h1 class="video-title">{{ videoDetail.title }}</h1>
             <div class="basic-info">
-              <ScTag type="primary" size="large">{{
-                videoDetail.type
-              }}</ScTag>
+              <ScTag type="primary" size="large">{{ videoDetail.type }}</ScTag>
               <ScTag size="large">{{ videoDetail.year }}</ScTag>
               <ScTag size="large">{{ videoDetail.region }}</ScTag>
               <ScTag size="large" v-if="videoDetail.language">{{
                 videoDetail.language
               }}</ScTag>
-              <ScTag 
+              <ScTag
                 size="large"
                 :type="videoDetail.status === '已完结' ? 'success' : 'warning'"
                 v-if="videoDetail.status"
@@ -74,35 +72,35 @@
 
           <!-- 详细信息表格 -->
           <div class="detail-info">
-            <el-descriptions :column="1" border>
-              <el-descriptions-item label="时长" v-if="videoDetail.duration">
+            <ScDescriptions :column="1" border>
+              <ScDescriptionsItem label="时长" v-if="videoDetail.duration">
                 {{ videoDetail.duration }}
-              </el-descriptions-item>
-              <el-descriptions-item label="导演" v-if="videoDetail.director">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="导演" v-if="videoDetail.director">
                 {{ videoDetail.director }}
-              </el-descriptions-item>
-              <el-descriptions-item
+              </ScDescriptionsItem>
+              <ScDescriptionsItem
                 label="主演"
                 v-if="videoDetail.cast && videoDetail.cast.length > 0"
               >
                 {{ videoDetail.cast.join("、") }}
-              </el-descriptions-item>
-              <el-descriptions-item label="类型">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="类型">
                 {{ videoDetail.type }}
-              </el-descriptions-item>
-              <el-descriptions-item label="地区">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="地区">
                 {{ videoDetail.region }}
-              </el-descriptions-item>
-              <el-descriptions-item label="年份">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="年份">
                 {{ videoDetail.year }}
-              </el-descriptions-item>
-              <el-descriptions-item label="语言" v-if="videoDetail.language">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="语言" v-if="videoDetail.language">
                 {{ videoDetail.language }}
-              </el-descriptions-item>
-              <el-descriptions-item label="状态" v-if="videoDetail.status">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="状态" v-if="videoDetail.status">
                 {{ videoDetail.status }}
-              </el-descriptions-item>
-            </el-descriptions>
+              </ScDescriptionsItem>
+            </ScDescriptions>
           </div>
 
           <!-- 剧情简介 -->
@@ -130,7 +128,7 @@
                   <span class="download-url">{{ download.url }}</span>
                 </div>
                 <div class="download-actions">
-                  <ScButton 
+                  <ScButton
                     type="primary"
                     size="small"
                     @click="copyDownloadUrl(download.url)"
@@ -138,7 +136,7 @@
                     <IconifyIconOnline icon="ep:copy-document" />
                     复制链接
                   </ScButton>
-                  <ScButton 
+                  <ScButton
                     type="success"
                     size="small"
                     @click="downloadVideo(download.url)"
@@ -153,7 +151,7 @@
 
           <!-- 操作按钮 -->
           <div class="action-section">
-            <ScButton 
+            <ScButton
               type="primary"
               size="large"
               @click="playVideo"
@@ -375,7 +373,11 @@ const formatViews = (views: number) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(64, 158, 255, 0.8) 0%, rgba(102, 126, 234, 0.8) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(64, 158, 255, 0.8) 0%,
+    rgba(102, 126, 234, 0.8) 100%
+  );
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -398,7 +400,8 @@ const formatViews = (views: number) => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -413,7 +416,11 @@ const formatViews = (views: number) => {
 }
 
 .rating-section {
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-color-primary-light-7) 100%
+  );
   padding: 24px;
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);

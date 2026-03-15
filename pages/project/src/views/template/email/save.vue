@@ -4,7 +4,10 @@ import ScEditor from "@repo/components/ScEditor/index.vue";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineComponent } from "vue";
-import { fetchSaveProjectForEmail, fetchUpdateProjectForEmail } from "../../../api/manage/project-email";
+import {
+  fetchSaveProjectForEmail,
+  fetchUpdateProjectForEmail,
+} from "../../../api/manage/project-email";
 
 export default defineComponent({
   components: { ScEditor },
@@ -50,11 +53,21 @@ export default defineComponent({
       rules: {
         sysEmailTemplateName: [
           { required: true, message: "请输入模板项名称", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+          {
+            min: 2,
+            max: 20,
+            message: "长度在 2 到 20 个字符",
+            trigger: "blur",
+          },
         ],
         sysEmailTemplateCode: [
           { required: true, message: "请输入模板项编码", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+          {
+            min: 2,
+            max: 20,
+            message: "长度在 2 到 20 个字符",
+            trigger: "blur",
+          },
         ],
       },
 
@@ -127,32 +140,71 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <sc-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
-      <ScForm ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
+    <sc-dialog
+      v-model="visible"
+      top="10px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :destroy-on-close="true"
+      draggable
+      :title="title"
+      @close="close"
+    >
+      <ScForm
+        ref="dialogForm"
+        :model="form"
+        :rules="rules"
+        :disabled="mode == 'show'"
+        label-width="100px"
+      >
         <ScRow>
           <ScCol :span="24">
             <ScFormItem label="模板项名称" prop="sysEmailTemplateName">
-              <ScInput v-model="form.sysEmailTemplateName" placeholder="请输入模板项名称" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
+              <ScInput
+                v-model="form.sysEmailTemplateName"
+                placeholder="请输入模板项名称"
+                :disabled="form.sysTemplateDisabled == 1"
+                :readonly="form.sysTemplateDisabled == 1"
+              />
             </ScFormItem>
           </ScCol>
 
           <ScCol :span="24">
             <ScFormItem label="模板项编码" prop="sysEmailTemplateCode">
-              <ScInput v-model="form.sysEmailTemplateCode" placeholder="请输入模板项编码" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
+              <ScInput
+                v-model="form.sysEmailTemplateCode"
+                placeholder="请输入模板项编码"
+                :disabled="form.sysTemplateDisabled == 1"
+                :readonly="form.sysTemplateDisabled == 1"
+              />
             </ScFormItem>
           </ScCol>
 
           <ScCol :span="24">
             <ScFormItem label="模板类型" prop="sysEmailTemplateCategory">
-              <ScSelect v-model="form.sysEmailTemplateCategory" placeholder="请选择模板类型" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
-                <ScOption v-for="item in dictItem2" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              <ScSelect
+                v-model="form.sysEmailTemplateCategory"
+                placeholder="请选择模板类型"
+                filterable
+                :disabled="form.sysTemplateDisabled == 1"
+                :readonly="form.sysTemplateDisabled == 1"
+              >
+                <ScOption
+                  v-for="item in dictItem2"
+                  :key="item.sysDictItemId"
+                  :label="item.sysDictItemName"
+                  :value="item.sysDictItemId"
+                />
               </ScSelect>
             </ScFormItem>
           </ScCol>
 
           <ScCol :span="24">
             <ScFormItem label="模板项优先级" prop="sysTemplateSort">
-              <ScInputNumber v-model="form.sysEmailTemplateSort" placeholder="请输入模板项优先级" />
+              <ScInputNumber
+                v-model="form.sysEmailTemplateSort"
+                placeholder="请输入模板项优先级"
+              />
             </ScFormItem>
           </ScCol>
 
@@ -164,13 +216,20 @@ export default defineComponent({
 
           <ScCol :span="24">
             <ScFormItem label="回调地址" prop="sysEmailTemplateCallbackUrl">
-              <ScInput type="textarea" autocomplete="on" v-model="form.sysEmailTemplateCallbackUrl" />
+              <ScInput
+                type="textarea"
+                autocomplete="on"
+                v-model="form.sysEmailTemplateCallbackUrl"
+              />
             </ScFormItem>
           </ScCol>
 
           <ScCol :span="24">
             <ScFormItem label="描述" prop="sysTemplateRemark">
-              <ScInput v-model="form.sysEmailTemplateRemark" placeholder="请输入描述" />
+              <ScInput
+                v-model="form.sysEmailTemplateRemark"
+                placeholder="请输入描述"
+              />
             </ScFormItem>
           </ScCol>
         </ScRow>
@@ -178,7 +237,13 @@ export default defineComponent({
 
       <template #footer>
         <ScButton @click="visible = false">取 消</ScButton>
-        <ScButton v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</ScButton>
+        <ScButton
+          v-if="mode != 'show'"
+          type="primary"
+          :loading="loading"
+          @click="submit()"
+          >保 存</ScButton
+        >
       </template>
     </sc-dialog>
   </div>

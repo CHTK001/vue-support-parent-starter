@@ -37,19 +37,19 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <el-button :loading="loading" @click="handleRefresh">
+        <ScButton :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="primary"
           :loading="syncLoading"
           @click="handleSyncStatus"
         >
           <IconifyIconOnline icon="ri:loop-left-line" class="mr-1" />
           同步状态
-        </el-button>
-        <el-input
+        </ScButton>
+        <ScInput
           v-model="searchParams.keyword"
           placeholder="搜索容器名称或镜像"
           class="search-input"
@@ -59,77 +59,77 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </el-input>
-        <el-select
+        </ScInput>
+        <ScSelect
           v-model="searchParams.status"
           placeholder="运行状态"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <el-option label="全部状态" value="" />
-          <el-option label="运行中" value="running">
+          <ScOption label="全部状态" value="" />
+          <ScOption label="运行中" value="running">
             <span class="status-option"
               ><span class="status-dot running" />运行中</span
             >
-          </el-option>
-          <el-option label="已停止" value="stopped">
+          </ScOption>
+          <ScOption label="已停止" value="stopped">
             <span class="status-option"
               ><span class="status-dot stopped" />已停止</span
             >
-          </el-option>
-          <el-option label="暂停" value="paused">
+          </ScOption>
+          <ScOption label="暂停" value="paused">
             <span class="status-option"
               ><span class="status-dot paused" />暂停</span
             >
-          </el-option>
-          <el-option label="重启中" value="restarting">
+          </ScOption>
+          <ScOption label="重启中" value="restarting">
             <span class="status-option"
               ><span class="status-dot restarting" />重启中</span
             >
-          </el-option>
-          <el-option label="错误" value="error">
+          </ScOption>
+          <ScOption label="错误" value="error">
             <span class="status-option"
               ><span class="status-dot error" />错误</span
             >
-          </el-option>
-        </el-select>
-        <el-select
+          </ScOption>
+        </ScSelect>
+        <ScSelect
           v-model="searchParams.serverId"
           placeholder="选择服务器"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <el-option label="全部服务器" value="" />
-          <el-option
+          <ScOption label="全部服务器" value="" />
+          <ScOption
             v-for="server in serverOptions"
             :key="server.id"
             :label="server.name"
             :value="server.id"
           />
-        </el-select>
+        </ScSelect>
       </div>
       <div class="toolbar-right">
         <el-button-group v-if="selectedIds.length > 0" class="batch-btn-group">
-          <el-button type="success" @click="handleBatchStart">
+          <ScButton type="success" @click="handleBatchStart">
             <IconifyIconOnline icon="ri:play-fill" class="mr-1" />
             启动 ({{ selectedIds.length }})
-          </el-button>
-          <el-button type="warning" @click="handleBatchStop">
+          </ScButton>
+          <ScButton type="warning" @click="handleBatchStop">
             <IconifyIconOnline icon="ri:stop-fill" class="mr-1" />
             停止
-          </el-button>
-          <el-button type="danger" @click="handleBatchDelete">
+          </ScButton>
+          <ScButton type="danger" @click="handleBatchDelete">
             <IconifyIconOnline icon="ri:delete-bin-fill" class="mr-1" />
             删除
-          </el-button>
+          </ScButton>
         </el-button-group>
       </div>
     </div>
 
     <!-- 容器表格 -->
-    <el-card class="container-table-card">
+    <ScCard class="container-table-card">
       <ScTable
         ref="tableRef"
         :url="containerApi.getContainerPageList"
@@ -141,9 +141,9 @@
         height="100%"
         @selection-change="handleSelectionChange"
       >
-        <el-table-column type="selection" width="55" />
+        <ScTableColumn type="selection" width="55" />
 
-        <el-table-column label="容器信息" min-width="250">
+        <ScTableColumn label="容器信息" min-width="250">
           <template #default="{ row }">
             <div class="container-info">
               <div class="container-details">
@@ -156,29 +156,29 @@
               </div>
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="镜像信息" min-width="200">
+        <ScTableColumn label="镜像信息" min-width="200">
           <template #default="{ row }">
             <div class="image-info">
               <div class="image-name">{{ row.systemSoftContainerImage }}</div>
               <div class="image-tag">{{ row.systemSoftContainerImageTag }}</div>
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="运行状态" width="120">
+        <ScTableColumn label="运行状态" width="120">
           <template #default="{ row }">
-            <el-tag
+            <ScTag
               :type="getStatusType(row.systemSoftContainerStatus)"
               size="small"
             >
               {{ getStatusText(row.systemSoftContainerStatus) }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="服务器" width="180">
+        <ScTableColumn label="服务器" width="180">
           <template #default="{ row }">
             <div class="server-info">
               <div class="server-name">
@@ -186,29 +186,29 @@
               </div>
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="端口映射" min-width="150">
+        <ScTableColumn label="端口映射" min-width="150">
           <template #default="{ row }">
             <div class="ports-container">
-              <el-tag
+              <ScTag
                 v-for="port in parsePortMappings(row.systemSoftContainerPorts)"
                 :key="port"
                 size="small"
                 class="port-tag"
               >
                 {{ port }}
-              </el-tag>
+              </ScTag>
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="资源使用" width="180">
+        <ScTableColumn label="资源使用" width="180">
           <template #default="{ row }">
             <div class="resource-usage">
               <div class="usage-item">
                 <span class="usage-label">CPU:</span>
-                <el-progress
+                <ScProgress
                   :percentage="
                     row.systemSoftContainerCpuPercent ||
                     row.systemSoftContainerCpuUsage ||
@@ -230,7 +230,7 @@
               </div>
               <div class="usage-item">
                 <span class="usage-label">内存:</span>
-                <el-progress
+                <ScProgress
                   :percentage="
                     row.systemSoftContainerMemoryPercent ||
                     row.systemSoftContainerMemoryUsage ||
@@ -252,18 +252,18 @@
               </div>
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="创建时间" width="160">
+        <ScTableColumn label="创建时间" width="160">
           <template #default="{ row }">
             {{ formatTime(row.systemSoftContainerCreatedTime) }}
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="操作" width="280" fixed="right">
+        <ScTableColumn label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button
+              <ScButton
                 size="small"
                 type="success"
                 :disabled="row.systemSoftContainerStatus === 'running'"
@@ -271,8 +271,8 @@
               >
                 <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                 启动
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 size="small"
                 type="warning"
                 :disabled="row.systemSoftContainerStatus !== 'running'"
@@ -280,49 +280,49 @@
               >
                 <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                 停止
-              </el-button>
-              <el-button size="small" @click="openExec(row)">
+              </ScButton>
+              <ScButton size="small" @click="openExec(row)">
                 <IconifyIconOnline icon="ri:terminal-box-line" class="mr-1" />
                 进入容器
-              </el-button>
-              <el-dropdown
+              </ScButton>
+              <ScDropdown
                 @command="(command) => handleMoreAction(command, row)"
               >
-                <el-button size="small">
+                <ScButton size="small">
                   <IconifyIconOnline icon="ri:more-line" />
-                </el-button>
+                </ScButton>
                 <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="restart">
+                  <ScDropdownMenu>
+                    <ScDropdownItem command="restart">
                       <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
                       重启
-                    </el-dropdown-item>
-                    <el-dropdown-item command="logs">
+                    </ScDropdownItem>
+                    <ScDropdownItem command="logs">
                       <IconifyIconOnline
                         icon="ri:file-text-line"
                         class="mr-1"
                       />
                       查看日志
-                    </el-dropdown-item>
-                    <el-dropdown-item command="detail">
+                    </ScDropdownItem>
+                    <ScDropdownItem command="detail">
                       <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                       详细信息
-                    </el-dropdown-item>
-                    <el-dropdown-item command="delete" divided>
+                    </ScDropdownItem>
+                    <ScDropdownItem command="delete" divided>
                       <IconifyIconOnline
                         icon="ri:delete-bin-line"
                         class="mr-1"
                       />
                       删除
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
+                    </ScDropdownItem>
+                  </ScDropdownMenu>
                 </template>
-              </el-dropdown>
+              </ScDropdown>
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
       </ScTable>
-    </el-card>
+    </ScCard>
 
     <!-- 容器详情对话框 -->
     <ContainerDetailDialog

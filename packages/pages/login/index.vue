@@ -50,7 +50,10 @@ console.debug("[Login] Theme config:", {
 });
 
 const currentTheme = getLoginThemeComponent(themeConfig, enableFestival);
-console.debug("[Login] Theme component loaded:", currentTheme.key || currentTheme.name);
+console.debug(
+  "[Login] Theme component loaded:",
+  currentTheme.key || currentTheme.name,
+);
 
 const ThemeComponent = defineAsyncComponent(currentTheme.component);
 
@@ -75,7 +78,8 @@ const languageConfigs = getAllLanguageConfigs();
 
 // 获取当前语言的配置
 const currentLanguageConfig = computed(() => {
-  const currentLocale = typeof locale.value === "string" ? locale.value : locale.value.value;
+  const currentLocale =
+    typeof locale.value === "string" ? locale.value : locale.value.value;
   return getLanguageConfig(currentLocale);
 });
 
@@ -211,85 +215,106 @@ const envBadgeClass = computed(() => {
   <component :is="ThemeComponent">
     <!-- 顶部工具栏 -->
     <template #toolbar>
-    <div class="modern-toolbar">
-      <div class="toolbar-content">
-        <!-- 环境标识 -->
-        <div v-if="showEnvBadge" class="env-badge" :class="envBadgeClass">
-          <IconifyIconOnline
-            :icon="isDevelopment ? 'ri:code-s-slash-line' : 'ri:test-tube-line'"
-          />
-          <span>{{ envBadgeText }}</span>
-        </div>
-
-        <div class="toolbar-spacer"></div>
-
-        <!-- 主题切换器 -->
-        <ThemeSwitcher v-if="enableThemeSwitcher" style="margin-right: 15px" />
-
-        <!-- 主题切换 -->
-        <div class="theme-switch-container">
-          <el-switch
-            v-model="dataTheme"
-            inline-prompt
-            :active-icon="dayIcon"
-            :inactive-icon="darkIcon"
-            @change="dataThemeChange"
-            class="modern-theme-switch"
-          />
-        </div>
-
-        <!-- 语言切换 -->
-        <el-dropdown
-          trigger="click"
-          popper-class="lang-dropdown-popper"
-        >
-          <div class="lang-trigger">
-            <div class="lang-icon-wrapper">
-              <IconifyIconOnline icon="ri:translate-2" class="lang-main-icon" />
-            </div>
-            <div class="lang-info">
-              <span class="lang-name">{{ currentLanguageConfig.nativeName }}</span>
-              <span class="lang-role">{{
-                locale === "zh-CN" ? "语言" : "Language"
-              }}</span>
-            </div>
-            <span class="dropdown-arrow-wrapper">
-              <IconifyIconOnline
-                icon="ri:arrow-down-s-line"
-                class="dropdown-arrow"
-              />
-            </span>
+      <div class="modern-toolbar">
+        <div class="toolbar-content">
+          <!-- 环境标识 -->
+          <div v-if="showEnvBadge" class="env-badge" :class="envBadgeClass">
+            <IconifyIconOnline
+              :icon="
+                isDevelopment ? 'ri:code-s-slash-line' : 'ri:test-tube-line'
+              "
+            />
+            <span>{{ envBadgeText }}</span>
           </div>
-          <template #dropdown>
-            <el-dropdown-menu class="lang-menu">
-              <div class="lang-header">
-                <IconifyIconOnline icon="ri:global-line" />
-                <span>选择语言</span>
-              </div>
-              <el-dropdown-item
-                v-for="langConfig in languageConfigs"
-                :key="langConfig.code"
-                :class="['lang-item', { active: (typeof locale === 'string' ? locale : locale.value) === langConfig.code }]"
-                @click="translation(langConfig.code)"
-              >
-                <div class="lang-item-content">
-                  <span class="lang-flag">{{ langConfig.flag }}</span>
-                  <div class="lang-item-info">
-                    <span class="lang-item-name">{{ langConfig.nativeName }}</span>
-                    <span class="lang-item-desc">{{ langConfig.description }}</span>
-                  </div>
-                </div>
+
+          <div class="toolbar-spacer"></div>
+
+          <!-- 主题切换器 -->
+          <ThemeSwitcher
+            v-if="enableThemeSwitcher"
+            style="margin-right: 15px"
+          />
+
+          <!-- 主题切换 -->
+          <div class="theme-switch-container">
+            <ScSwitch
+              v-model="dataTheme"
+              inline-prompt
+              :active-icon="dayIcon"
+              :inactive-icon="darkIcon"
+              @change="dataThemeChange"
+              class="modern-theme-switch"
+            />
+          </div>
+
+          <!-- 语言切换 -->
+          <ScDropdown trigger="click" popper-class="lang-dropdown-popper">
+            <div class="lang-trigger">
+              <div class="lang-icon-wrapper">
                 <IconifyIconOnline
-                  v-show="(typeof locale === 'string' ? locale : locale.value) === langConfig.code"
-                  class="lang-check"
-                  icon="ep:check"
+                  icon="ri:translate-2"
+                  class="lang-main-icon"
                 />
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+              </div>
+              <div class="lang-info">
+                <span class="lang-name">{{
+                  currentLanguageConfig.nativeName
+                }}</span>
+                <span class="lang-role">{{
+                  locale === "zh-CN" ? "语言" : "Language"
+                }}</span>
+              </div>
+              <span class="dropdown-arrow-wrapper">
+                <IconifyIconOnline
+                  icon="ri:arrow-down-s-line"
+                  class="dropdown-arrow"
+                />
+              </span>
+            </div>
+            <template #dropdown>
+              <ScDropdownMenu class="lang-menu">
+                <div class="lang-header">
+                  <IconifyIconOnline icon="ri:global-line" />
+                  <span>选择语言</span>
+                </div>
+                <ScDropdownItem
+                  v-for="langConfig in languageConfigs"
+                  :key="langConfig.code"
+                  :class="[
+                    'lang-item',
+                    {
+                      active:
+                        (typeof locale === 'string' ? locale : locale.value) ===
+                        langConfig.code,
+                    },
+                  ]"
+                  @click="translation(langConfig.code)"
+                >
+                  <div class="lang-item-content">
+                    <span class="lang-flag">{{ langConfig.flag }}</span>
+                    <div class="lang-item-info">
+                      <span class="lang-item-name">{{
+                        langConfig.nativeName
+                      }}</span>
+                      <span class="lang-item-desc">{{
+                        langConfig.description
+                      }}</span>
+                    </div>
+                  </div>
+                  <IconifyIconOnline
+                    v-show="
+                      (typeof locale === 'string' ? locale : locale.value) ===
+                      langConfig.code
+                    "
+                    class="lang-check"
+                    icon="ep:check"
+                  />
+                </ScDropdownItem>
+              </ScDropdownMenu>
+            </template>
+          </ScDropdown>
+        </div>
       </div>
-    </div>
     </template>
 
     <!-- 表单内容 -->
@@ -305,40 +330,40 @@ const envBadgeClass = computed(() => {
 
       <!-- 登录类型选择 -->
       <div v-if="openSwitchLoginType" class="login-type-selector">
-              <div class="selector-title">选择登录方式</div>
-              <div class="selector-options">
-                <div
-                  v-if="defaultSetting.OpenBaseLogin"
-                  class="option-card"
-                  :class="{ active: loginType == 1 }"
-                  @click="handleChangeLoginType(1)"
-                >
-                  <div class="option-icon-wrapper">
-                    <el-icon class="option-icon">
-                      <component :is="useRenderIcon('ep:user')" />
-                    </el-icon>
-                  </div>
-                  <div class="option-content">
-                    <div class="option-title">普通登录</div>
-                    <div class="option-desc">账号/手机号登录</div>
-                  </div>
-                </div>
+        <div class="selector-title">选择登录方式</div>
+        <div class="selector-options">
+          <div
+            v-if="defaultSetting.OpenBaseLogin"
+            class="option-card"
+            :class="{ active: loginType == 1 }"
+            @click="handleChangeLoginType(1)"
+          >
+            <div class="option-icon-wrapper">
+              <ScIcon class="option-icon">
+                <component :is="useRenderIcon('ep:user')" />
+              </ScIcon>
+            </div>
+            <div class="option-content">
+              <div class="option-title">普通登录</div>
+              <div class="option-desc">账号/手机号登录</div>
+            </div>
+          </div>
 
-                <div
-                  v-if="defaultSetting.OpenTenantLogin"
-                  class="option-card"
-                  :class="{ active: loginType == 2 }"
-                  @click="handleChangeLoginType(2)"
-                >
-                  <div class="option-icon-wrapper">
-                    <el-icon class="option-icon">
-                      <component :is="useRenderIcon('ep:office-building')" />
-                    </el-icon>
-                  </div>
-                  <div class="option-content">
-                    <div class="option-title">租户登录</div>
-                    <div class="option-desc">租户账号/手机号登录</div>
-                  </div>
+          <div
+            v-if="defaultSetting.OpenTenantLogin"
+            class="option-card"
+            :class="{ active: loginType == 2 }"
+            @click="handleChangeLoginType(2)"
+          >
+            <div class="option-icon-wrapper">
+              <ScIcon class="option-icon">
+                <component :is="useRenderIcon('ep:office-building')" />
+              </ScIcon>
+            </div>
+            <div class="option-content">
+              <div class="option-title">租户登录</div>
+              <div class="option-desc">租户账号/手机号登录</div>
+            </div>
           </div>
         </div>
       </div>

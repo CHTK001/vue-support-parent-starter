@@ -1,7 +1,7 @@
 <template>
   <div class="server-detail-layout h-full system-container modern-bg">
     <!-- 空状态展示 -->
-    <el-empty
+    <ScEmpty
       v-if="!localData.serverId"
       class="h-full"
       description="请选择服务器"
@@ -20,9 +20,9 @@
           <span class="server-header__name" :title="localData.serverName">{{
             localData.serverName
           }}</span>
-          <el-tag :type="getStatusType(localData.status)" size="small">
+          <ScTag :type="getStatusType(localData.status)" size="small">
             {{ getStatusText(localData.status) }}
-          </el-tag>
+          </ScTag>
         </div>
 
         <!-- 查询控制区域 -->
@@ -30,7 +30,7 @@
           <!-- 时间范围选择器 -->
           <div class="control-item">
             <label class="control-label">时间范围:</label>
-            <el-date-picker
+            <ScDatePicker
               v-model="queryTimeRange"
               type="datetimerange"
               range-separator="至"
@@ -48,19 +48,19 @@
           <!-- 自动刷新设置 -->
           <div class="control-item">
             <label class="control-label">自动刷新:</label>
-            <el-select
+            <ScSelect
               v-model="autoRefreshInterval"
               placeholder="选择刷新间隔"
               size="small"
               style="width: 80px"
               @change="handleRefreshIntervalChange"
             >
-              <el-option label="不刷新" :value="0" />
-              <el-option label="30秒" :value="30" />
-              <el-option label="1分钟" :value="60" />
-              <el-option label="5分钟" :value="300" />
-              <el-option label="10分钟" :value="600" />
-            </el-select>
+              <ScOption label="不刷新" :value="0" />
+              <ScOption label="30秒" :value="30" />
+              <ScOption label="1分钟" :value="60" />
+              <ScOption label="5分钟" :value="300" />
+              <ScOption label="10分钟" :value="600" />
+            </ScSelect>
           </div>
 
           <!-- 刷新倒计时 -->
@@ -90,8 +90,8 @@
 
         <!-- 操作按钮 -->
         <div class="server-header__actions">
-          <el-tooltip content="手动查询" placement="bottom">
-            <el-button
+          <ScTooltip content="手动查询" placement="bottom">
+            <ScButton
               size="small"
               type="primary"
               :loading="refreshing"
@@ -99,26 +99,26 @@
             >
               <IconifyIconOnline icon="ri:search-line" class="mr-1" />
               查询
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
 
-          <el-tooltip content="全屏显示" placement="bottom">
-            <el-button circle size="small" @click="handleFullscreen">
+          <ScTooltip content="全屏显示" placement="bottom">
+            <ScButton circle size="small" @click="handleFullscreen">
               <IconifyIconOnline icon="ri:fullscreen-line" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
 
-          <el-tooltip content="导出配置" placement="bottom">
-            <el-button circle size="small" @click="handleExport">
+          <ScTooltip content="导出配置" placement="bottom">
+            <ScButton circle size="small" @click="handleExport">
               <IconifyIconOnline icon="ri:download-line" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
 
-          <el-tooltip
+          <ScTooltip
             :content="editMode ? '预览模式' : '编辑模式'"
             placement="bottom"
           >
-            <el-button
+            <ScButton
               circle
               size="small"
               :type="editMode ? 'success' : 'default'"
@@ -127,14 +127,14 @@
               <IconifyIconOnline
                 :icon="editMode ? 'ri:eye-line' : 'ri:settings-line'"
               />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </div>
       </div>
 
       <!-- 数据内容区域 -->
       <div class="server-body">
-        <el-scrollbar class="server-scrollbar">
+        <ScScrollbar class="server-scrollbar">
           <div class="server-content-wrapper">
             <!-- 服务器组件布局视图 -->
             <ServerComponentLayout
@@ -145,7 +145,7 @@
               class="custom-layout"
             />
           </div>
-        </el-scrollbar>
+        </ScScrollbar>
       </div>
     </div>
   </div>

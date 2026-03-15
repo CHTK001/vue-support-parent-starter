@@ -8,46 +8,46 @@
   >
     <div v-if="isJdbc" class="section">
       <div class="section-title">JDBC 控制台</div>
-      <el-form label-width="140px">
-        <el-form-item label="查看表结构">
-          <el-switch v-model="form.jdbc.viewTableStructure" />
-        </el-form-item>
-        <el-form-item label="复制表名">
-          <el-switch v-model="form.jdbc.copyTableName" />
-        </el-form-item>
-        <el-form-item label="复制建表语句">
-          <el-switch v-model="form.jdbc.copyCreateTable" />
-        </el-form-item>
-        <el-form-item label="字段添加注释">
-          <el-switch v-model="form.jdbc.addFieldComment" />
-        </el-form-item>
-      </el-form>
+      <ScForm label-width="140px">
+        <ScFormItem label="查看表结构">
+          <ScSwitch v-model="form.jdbc.viewTableStructure" />
+        </ScFormItem>
+        <ScFormItem label="复制表名">
+          <ScSwitch v-model="form.jdbc.copyTableName" />
+        </ScFormItem>
+        <ScFormItem label="复制建表语句">
+          <ScSwitch v-model="form.jdbc.copyCreateTable" />
+        </ScFormItem>
+        <ScFormItem label="字段添加注释">
+          <ScSwitch v-model="form.jdbc.addFieldComment" />
+        </ScFormItem>
+      </ScForm>
     </div>
     <div v-if="isRedis" class="section">
       <div class="section-title">Redis 控制台</div>
-      <el-form label-width="140px">
-        <el-form-item label="复制键名">
-          <el-switch v-model="form.redis.copyKeyName" />
-        </el-form-item>
-        <el-form-item label="查看 TTL">
-          <el-switch v-model="form.redis.viewTtl" />
-        </el-form-item>
-      </el-form>
+      <ScForm label-width="140px">
+        <ScFormItem label="复制键名">
+          <ScSwitch v-model="form.redis.copyKeyName" />
+        </ScFormItem>
+        <ScFormItem label="查看 TTL">
+          <ScSwitch v-model="form.redis.viewTtl" />
+        </ScFormItem>
+      </ScForm>
     </div>
     <div v-if="isZk" class="section">
       <div class="section-title">ZK 控制台</div>
-      <el-form label-width="140px">
-        <el-form-item label="创建节点">
-          <el-switch v-model="form.zk.createNode" />
-        </el-form-item>
-        <el-form-item label="删除节点">
-          <el-switch v-model="form.zk.deleteNode" />
-        </el-form-item>
-      </el-form>
+      <ScForm label-width="140px">
+        <ScFormItem label="创建节点">
+          <ScSwitch v-model="form.zk.createNode" />
+        </ScFormItem>
+        <ScFormItem label="删除节点">
+          <ScSwitch v-model="form.zk.deleteNode" />
+        </ScFormItem>
+      </ScForm>
     </div>
     <template #footer>
-      <el-button @click="visibleLocal = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="handleSave"
+      <ScButton @click="visibleLocal = false">取消</ScButton>
+      <ScButton type="primary" :loading="saving" @click="handleSave"
         >保存</el-button
       >
     </template>

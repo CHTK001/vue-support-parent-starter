@@ -4,7 +4,7 @@
       <h3 class="section-title">邮箱</h3>
       <div class="folder-list">
         <div v-if="isLoading" class="loading-placeholder">
-          <el-skeleton :rows="3" animated />
+          <ScSkeleton :rows="3" animated />
         </div>
         <div
           v-for="folder in localFolders"
@@ -26,7 +26,7 @@
       <h3 class="section-title">标签</h3>
       <div class="tag-list">
         <div v-if="isLoading" class="loading-placeholder">
-          <el-skeleton :rows="2" animated />
+          <ScSkeleton :rows="2" animated />
         </div>
         <div
           v-for="tag in localTags"

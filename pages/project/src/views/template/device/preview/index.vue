@@ -32,7 +32,8 @@
             >
               <ScRow><b>布局方式</b></ScRow>
               <ScRow class="device-camera-select-layout">
-                <ScCol                   :span="3"
+                <ScCol
+                  :span="3"
                   class="device-camera-layout-item device-camera-item00"
                   :class="{ 'device-camera-active': env.layout == 1 }"
                   @click="setLayout(1)"
@@ -42,7 +43,8 @@
                     <ScCol :span="24"><span /></ScCol>
                   </ScRow>
                 </ScCol>
-                <ScCol                   :span="3"
+                <ScCol
+                  :span="3"
                   class="device-camera-layout-item device-camera-item03"
                   :class="{ 'device-camera-active': env.layout == 2 }"
                   @click="setLayout(2)"
@@ -55,7 +57,8 @@
                     <ScCol :span="12"><span /></ScCol>
                   </ScRow>
                 </ScCol>
-                <ScCol                   :span="3"
+                <ScCol
+                  :span="3"
                   class="device-camera-layout-item device-camera-item04"
                   :class="{ 'device-camera-active': env.layout == 3 }"
                   @click="setLayout(3)"
@@ -80,7 +83,8 @@
       </div>
       <div class="device-camera-toggle">
         <div></div>
-        <ScIcon           class="device-camera-toggle-btn"
+        <ScIcon
+          class="device-camera-toggle-btn"
           color="white"
           size="24"
           @click="() => (showSetting = !showSetting)"
@@ -91,7 +95,7 @@
         <div></div>
       </div>
     </div>
-    <el-container ref="videoAreaRef" class="device-camera-video-area">
+    <ScContainer ref="videoAreaRef" class="device-camera-video-area">
       <div class="device-camera-video-container">
         <template v-if="env.layout == 1">
           <ScRow class="device-camera-video-row device-camera-single">
@@ -108,7 +112,8 @@
           </ScRow>
         </template>
         <template v-else-if="env.layout == 2">
-          <ScRow             :gutter="2"
+          <ScRow
+            :gutter="2"
             class="device-camera-video-row device-camera-grid-2"
           >
             <ScCol :span="12" class="device-camera-video-item">
@@ -132,7 +137,8 @@
               />
             </ScCol>
           </ScRow>
-          <ScRow             :gutter="2"
+          <ScRow
+            :gutter="2"
             class="device-camera-video-row device-camera-grid-2"
           >
             <ScCol :span="12" class="device-camera-video-item">
@@ -158,7 +164,8 @@
           </ScRow>
         </template>
         <template v-else-if="env.layout == 3">
-          <ScRow             :gutter="2"
+          <ScRow
+            :gutter="2"
             class="device-camera-video-row device-camera-grid-3"
           >
             <ScCol :span="8" class="device-camera-video-item">
@@ -192,7 +199,8 @@
               />
             </ScCol>
           </ScRow>
-          <ScRow             :gutter="2"
+          <ScRow
+            :gutter="2"
             class="device-camera-video-row device-camera-grid-3"
           >
             <ScCol :span="8" class="device-camera-video-item">
@@ -226,7 +234,8 @@
               />
             </ScCol>
           </ScRow>
-          <ScRow             :gutter="2"
+          <ScRow
+            :gutter="2"
             class="device-camera-video-row device-camera-grid-3"
           >
             <ScCol :span="8" class="device-camera-video-item">
@@ -262,7 +271,7 @@
           </ScRow>
         </template>
       </div>
-    </el-container>
+    </ScContainer>
   </div>
 </template>
 
@@ -331,7 +340,7 @@ const handleTrigger = async () => {
   settingOpen.value = !settingOpen.value;
   window.aside?.style.setProperty(
     "--aside-width",
-    settingOpen.value ? "300px" : "55px"
+    settingOpen.value ? "300px" : "55px",
   );
 };
 

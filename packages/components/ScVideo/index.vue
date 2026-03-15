@@ -37,7 +37,7 @@ const props = withDefaults(defineProps<Props>(), {
   iconSize: 80,
   showCustomControls: true,
   title: "",
-  theme: "dark",
+  theme: "dark"
 });
 const veoRef = ref(); // 视频元素模板引用
 const containerRef = ref(); // 容器引用
@@ -227,7 +227,7 @@ function toggleMute() {
 // 切换全屏
 function toggleFullscreen() {
   if (!containerRef.value) return;
-  
+
   if (!isFullscreen.value) {
     if (containerRef.value.requestFullscreen) {
       containerRef.value.requestFullscreen();
@@ -322,16 +322,16 @@ defineExpose({
   play,
   pause,
   toggleFullscreen,
-  setPlaybackRate,
+  setPlaybackRate
 });
 </script>
 <template>
-  <div 
+  <div
     ref="containerRef"
-    class="sc-video" 
+    class="sc-video"
     :class="[
       `sc-video--${theme}`,
-      { 
+      {
         'is-playing': playing,
         'is-fullscreen': isFullscreen,
         'show-controls': showControls || !playing
@@ -372,14 +372,10 @@ defineExpose({
     </video>
 
     <!-- 中央播放按钮 -->
-    <div 
-      v-show="(originPlay || playIcon) && showPlayIcon" 
-      class="sc-video__play-btn"
-      @click="onClickPlay"
-    >
+    <div v-show="(originPlay || playIcon) && showPlayIcon" class="sc-video__play-btn" @click="onClickPlay">
       <svg class="play-icon" viewBox="0 0 48 48">
-        <circle cx="24" cy="24" r="23" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-        <path d="M18 14 L36 24 L18 34 Z" fill="white"/>
+        <circle cx="24" cy="24" r="23" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+        <path d="M18 14 L36 24 L18 34 Z" fill="white" />
       </svg>
     </div>
 
@@ -400,11 +396,11 @@ defineExpose({
           <!-- 播放/暂停 -->
           <button class="control-btn" @click="onClickPlay">
             <svg v-if="playing" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16" rx="1"/>
-              <rect x="14" y="4" width="4" height="16" rx="1"/>
+              <rect x="6" y="4" width="4" height="16" rx="1" />
+              <rect x="14" y="4" width="4" height="16" rx="1" />
             </svg>
             <svg v-else viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5.14v13.72a1 1 0 001.5.86l11-6.86a1 1 0 000-1.72l-11-6.86a1 1 0 00-1.5.86z"/>
+              <path d="M8 5.14v13.72a1 1 0 001.5.86l11-6.86a1 1 0 000-1.72l-11-6.86a1 1 0 00-1.5.86z" />
             </svg>
           </button>
 
@@ -412,64 +408,45 @@ defineExpose({
           <div class="volume-wrapper" @mouseenter="showVolumeSlider = true" @mouseleave="showVolumeSlider = false">
             <button class="control-btn" @click="toggleMute">
               <svg v-if="isMuted || volume === 0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a1 1 0 00-1.42 1.42 3 3 0 010 4.24 1 1 0 001.42 1.42 5 5 0 000-7.08z"/>
-                <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a1 1 0 00-1.42 1.42 3 3 0 010 4.24 1 1 0 001.42 1.42 5 5 0 000-7.08z" />
+                <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               </svg>
               <svg v-else-if="volume < 0.5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11 5L6 9H2v6h4l5 4V5z"/>
-                <path d="M15.54 8.46a1 1 0 00-1.42 1.42 3 3 0 010 4.24 1 1 0 001.42 1.42 5 5 0 000-7.08z"/>
+                <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                <path d="M15.54 8.46a1 1 0 00-1.42 1.42 3 3 0 010 4.24 1 1 0 001.42 1.42 5 5 0 000-7.08z" />
               </svg>
               <svg v-else viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11 5L6 9H2v6h4l5 4V5z"/>
-                <path d="M15.54 8.46a5 5 0 010 7.08 1 1 0 01-1.42-1.42 3 3 0 000-4.24 1 1 0 011.42-1.42z"/>
-                <path d="M19.07 4.93a10 10 0 010 14.14 1 1 0 01-1.42-1.42 8 8 0 000-11.3 1 1 0 011.42-1.42z"/>
+                <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                <path d="M15.54 8.46a5 5 0 010 7.08 1 1 0 01-1.42-1.42 3 3 0 000-4.24 1 1 0 011.42-1.42z" />
+                <path d="M19.07 4.93a10 10 0 010 14.14 1 1 0 01-1.42-1.42 8 8 0 000-11.3 1 1 0 011.42-1.42z" />
               </svg>
             </button>
             <div v-show="showVolumeSlider" class="volume-slider">
-              <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.1" 
-                :value="volume"
-                @input="onVolumeChange(Number(($event.target as HTMLInputElement).value))"
-              />
+              <input type="range" min="0" max="1" step="0.1" :value="volume" @input="onVolumeChange(Number(($event.target as HTMLInputElement).value))" />
             </div>
           </div>
 
           <!-- 时间显示 -->
-          <span class="time-display">
-            {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
-          </span>
+          <span class="time-display">{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
         </div>
 
         <!-- 右侧控制 -->
         <div class="bar-right">
           <!-- 播放速度 -->
           <div class="speed-wrapper">
-            <button class="control-btn speed-btn" @click="showSpeedMenu = !showSpeedMenu">
-              {{ playbackRate }}x
-            </button>
+            <button class="control-btn speed-btn" @click="showSpeedMenu = !showSpeedMenu">{{ playbackRate }}x</button>
             <div v-show="showSpeedMenu" class="speed-menu">
-              <div 
-                v-for="speed in speedOptions" 
-                :key="speed"
-                class="speed-option"
-                :class="{ active: playbackRate === speed }"
-                @click="setPlaybackRate(speed)"
-              >
-                {{ speed }}x
-              </div>
+              <div v-for="speed in speedOptions" :key="speed" class="speed-option" :class="{ active: playbackRate === speed }" @click="setPlaybackRate(speed)">{{ speed }}x</div>
             </div>
           </div>
 
           <!-- 全屏 -->
           <button class="control-btn" @click="toggleFullscreen">
             <svg v-if="isFullscreen" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+              <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
             </svg>
             <svg v-else viewBox="0 0 24 24" fill="currentColor">
-              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
             </svg>
           </button>
         </div>
@@ -500,7 +477,7 @@ defineExpose({
     left: 0;
     right: 0;
     padding: 16px 20px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
     color: #fff;
     font-size: 16px;
     font-weight: 500;
@@ -535,7 +512,7 @@ defineExpose({
     .play-icon {
       width: calc(80px * var(--video-icon-scale));
       height: calc(80px * var(--video-icon-scale));
-      filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
+      filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.5));
       transition: all 0.3s ease;
     }
 
@@ -550,7 +527,7 @@ defineExpose({
     bottom: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
     padding: 20px 16px 12px;
     opacity: 0;
     transform: translateY(10px);
@@ -567,7 +544,7 @@ defineExpose({
   &__progress {
     width: 100%;
     height: 4px;
-    background: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 2px;
     cursor: pointer;
     position: relative;
@@ -588,7 +565,7 @@ defineExpose({
       top: 0;
       left: 0;
       height: 100%;
-      background: rgba(255,255,255,0.3);
+      background: rgba(255, 255, 255, 0.3);
       border-radius: 2px;
     }
 
@@ -609,7 +586,7 @@ defineExpose({
       height: 14px;
       background: #fff;
       border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       transform: scale(0);
       opacity: 0;
       transition: all 0.2s ease;
@@ -651,7 +628,7 @@ defineExpose({
     }
 
     &:hover {
-      background: rgba(255,255,255,0.15);
+      background: rgba(255, 255, 255, 0.15);
     }
 
     &.speed-btn {
@@ -663,7 +640,7 @@ defineExpose({
   }
 
   .time-display {
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.9);
     font-size: 13px;
     font-family: "SF Mono", "Monaco", monospace;
     margin-left: 8px;
@@ -682,7 +659,7 @@ defineExpose({
     left: 50%;
     transform: translateX(-50%);
     padding: 12px 8px;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, 0.9);
     border-radius: 8px;
     margin-bottom: 8px;
 
@@ -692,7 +669,7 @@ defineExpose({
       width: 6px;
       height: 80px;
       appearance: none;
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.2);
       border-radius: 3px;
 
       &::-webkit-slider-thumb {
@@ -702,7 +679,7 @@ defineExpose({
         background: #fff;
         border-radius: 50%;
         cursor: pointer;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
       }
     }
   }
@@ -716,7 +693,7 @@ defineExpose({
     position: absolute;
     bottom: 100%;
     right: 0;
-    background: rgba(0,0,0,0.95);
+    background: rgba(0, 0, 0, 0.95);
     border-radius: 8px;
     padding: 8px 0;
     margin-bottom: 8px;
@@ -725,14 +702,14 @@ defineExpose({
 
     .speed-option {
       padding: 8px 16px;
-      color: rgba(255,255,255,0.8);
+      color: rgba(255, 255, 255, 0.8);
       font-size: 13px;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s;
 
       &:hover {
-        background: rgba(255,255,255,0.1);
+        background: rgba(255, 255, 255, 0.1);
         color: #fff;
       }
 

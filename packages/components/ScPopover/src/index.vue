@@ -123,8 +123,6 @@ const emit = defineEmits(["update:visible", "before-enter", "before-leave", "aft
 
 const { currentComponent } = useThemeComponent("ElPopover");
 
-
-
 const handleUpdateVisible = (visible: boolean) => {
   emit("update:visible", visible);
 };

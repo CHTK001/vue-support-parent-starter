@@ -16,23 +16,23 @@
       <div v-if="!disabled" class="sc-image-actions compare-actions">
         <ScTooltip :content="useScCompare ? '切换为滑动比较' : '切换为并排比较'" placement="left">
           <div class="action-btn" @click="toggleCompareMode">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon('ep:grid')" />
-            </el-icon>
+            </ScIcon>
           </div>
         </ScTooltip>
         <ScTooltip v-if="!useScCompare" content="切换比较方向" placement="left">
           <div class="action-btn" @click="toggleCompareDirection">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon(compareDirection === 'horizontal' ? 'ep:sort' : 'ep:menu')" />
-            </el-icon>
+            </ScIcon>
           </div>
         </ScTooltip>
         <ScTooltip content="退出比较" placement="left">
           <div class="action-btn" @click="exitCompareMode">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon('ep:close')" />
-            </el-icon>
+            </ScIcon>
           </div>
         </ScTooltip>
       </div>
@@ -70,9 +70,9 @@
         </template>
         <template v-else #placeholder>
           <div class="sc-image-placeholder">
-            <el-icon class="is-loading">
+            <ScIcon class="is-loading">
               <component :is="useRenderIcon('ep:loading')" />
-            </el-icon>
+            </ScIcon>
             <span>加载中...</span>
           </div>
         </template>
@@ -82,9 +82,9 @@
         </template>
         <template v-else #error>
           <div class="sc-image-error">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon('ep:picture')" />
-            </el-icon>
+            </ScIcon>
             <span>加载失败</span>
           </div>
         </template>
@@ -98,49 +98,49 @@
       <div v-if="!disabled && showActions" class="sc-image-actions">
         <ScTooltip content="查看" placement="left">
           <div class="action-btn" @click="handlePreview">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon('ep:zoom-in')" />
-            </el-icon>
+            </ScIcon>
           </div>
         </ScTooltip>
 
         <ScTooltip content="编辑" placement="left">
           <div class="action-btn" @click="handleEdit">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon('ep:edit')" />
-            </el-icon>
+            </ScIcon>
           </div>
         </ScTooltip>
 
         <ScTooltip v-if="enableCompare" content="图片比较" placement="left">
           <div class="action-btn" @click="handleStartCompare">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon('ep:picture')" />
-            </el-icon>
+            </ScIcon>
           </div>
         </ScTooltip>
 
         <ScTooltip v-if="enableBackgroundRemoval" content="去除背景" placement="left">
           <div class="action-btn" @click="handleRemoveBackground">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon('ep:magic-stick')" />
-            </el-icon>
+            </ScIcon>
           </div>
         </ScTooltip>
 
         <ScTooltip v-if="showDownload" content="下载" placement="left">
           <div class="action-btn" @click="handleDownload">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon('ep:download')" />
-            </el-icon>
+            </ScIcon>
           </div>
         </ScTooltip>
 
         <ScTooltip content="删除" placement="left">
           <div class="action-btn delete" @click="handleRemove">
-            <el-icon>
+            <ScIcon>
               <component :is="useRenderIcon('ep:delete')" />
-            </el-icon>
+            </ScIcon>
           </div>
         </ScTooltip>
       </div>
@@ -153,7 +153,7 @@
     </div>
 
     <!-- 上传区域 -->
-    <el-upload
+    <ScUpload
       v-show="!currentImage || showUploadWhenHasImage"
       ref="uploadRef"
       class="sc-image-uploader"
@@ -168,9 +168,9 @@
     >
       <slot name="upload">
         <div class="upload-content">
-          <el-icon class="upload-icon">
+          <ScIcon class="upload-icon">
             <component :is="useRenderIcon('ep:upload')" />
-          </el-icon>
+          </ScIcon>
           <div class="upload-text">
             <p>
               拖拽图片到此处或
@@ -180,23 +180,23 @@
           </div>
         </div>
       </slot>
-    </el-upload>
+    </ScUpload>
 
     <!-- 图片比较选择对话框 -->
     <sc-dialog v-model="compareDialogVisible" title="选择对比图片" width="600px" :append-to-body="true" destroy-on-close>
-      <el-upload ref="compareUploadRef" class="compare-upload" :show-file-list="false" :auto-upload="false" :accept="accept" :on-change="handleCompareImageChange" drag>
+      <ScUpload ref="compareUploadRef" class="compare-upload" :show-file-list="false" :auto-upload="false" :accept="accept" :on-change="handleCompareImageChange" drag>
         <div v-if="!tempCompareImage" class="upload-content">
-          <el-icon class="upload-icon">
+          <ScIcon class="upload-icon">
             <component :is="useRenderIcon('ep:upload')" />
-          </el-icon>
+          </ScIcon>
           <div class="upload-text">
             <p>上传要对比的图片</p>
           </div>
         </div>
         <div v-else class="compare-preview">
-          <el-image :src="tempCompareImage" fit="contain" style="width: 100%; height: 300px" />
+          <ScImage :src="tempCompareImage" fit="contain" style="width: 100%; height: 300px" />
         </div>
-      </el-upload>
+      </ScUpload>
       <template #footer>
         <ScButton @click="compareDialogVisible = false">取消</ScButton>
         <ScButton type="primary" :disabled="!tempCompareImage" @click="confirmCompare">开始比较</ScButton>

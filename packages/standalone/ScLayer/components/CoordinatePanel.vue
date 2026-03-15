@@ -1,35 +1,40 @@
-/**
- * 坐标面板组件
- * 用于显示鼠标在地图上的坐标信息
- */
+/** * 坐标面板组件 * 用于显示鼠标在地图上的坐标信息 */
 <template>
   <div class="coordinate-panel" :class="positionClass">
     <div class="coordinate-header">
-      <span class="coordinate-title">{{ $t('坐标信息') }}</span>
+      <span class="coordinate-title">{{ $t("坐标信息") }}</span>
       <div class="coordinate-close" @click="handleClose">
         <IconifyIconOnline icon="ep:close" />
       </div>
     </div>
     <div class="coordinate-content">
       <div class="coordinate-item">
-        <div class="coordinate-label">{{ $t('经度') }}:</div>
-        <div class="coordinate-value">{{ formatCoordinate(coordinateInfo.longitude) }}</div>
+        <div class="coordinate-label">{{ $t("经度") }}:</div>
+        <div class="coordinate-value">
+          {{ formatCoordinate(coordinateInfo.longitude) }}
+        </div>
       </div>
       <div class="coordinate-item">
-        <div class="coordinate-label">{{ $t('纬度') }}:</div>
-        <div class="coordinate-value">{{ formatCoordinate(coordinateInfo.latitude) }}</div>
+        <div class="coordinate-label">{{ $t("纬度") }}:</div>
+        <div class="coordinate-value">
+          {{ formatCoordinate(coordinateInfo.latitude) }}
+        </div>
       </div>
       <template v-if="showProjected">
         <div class="coordinate-item">
-          <div class="coordinate-label">{{ $t('投影X') }}:</div>
-          <div class="coordinate-value">{{ formatCoordinate(coordinateInfo.projectedX, 2) }}</div>
+          <div class="coordinate-label">{{ $t("投影X") }}:</div>
+          <div class="coordinate-value">
+            {{ formatCoordinate(coordinateInfo.projectedX, 2) }}
+          </div>
         </div>
         <div class="coordinate-item">
-          <div class="coordinate-label">{{ $t('投影Y') }}:</div>
-          <div class="coordinate-value">{{ formatCoordinate(coordinateInfo.projectedY, 2) }}</div>
+          <div class="coordinate-label">{{ $t("投影Y") }}:</div>
+          <div class="coordinate-value">
+            {{ formatCoordinate(coordinateInfo.projectedY, 2) }}
+          </div>
         </div>
         <div class="coordinate-item coordinate-projection">
-          <div class="coordinate-label">{{ $t('投影') }}:</div>
+          <div class="coordinate-label">{{ $t("投影") }}:</div>
           <div class="coordinate-value">{{ coordinateInfo.projection }}</div>
         </div>
       </template>
@@ -38,9 +43,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { CoordinateInfo } from '../composables/CoordinateObject';
+import { CoordinateInfo } from "../composables/CoordinateObject";
 
 // 定义组件属性
 const props = defineProps<{
@@ -51,23 +56,26 @@ const props = defineProps<{
 
 // 定义组件事件
 const emit = defineEmits<{
-  (e: 'close'): void;
+  (e: "close"): void;
 }>();
 
 // 计算坐标面板位置类
 const positionClass = computed(() => {
-  return `position-${props.coordinateInfo.position || 'bottom-right'}`;
+  return `position-${props.coordinateInfo.position || "bottom-right"}`;
 });
 
 // 格式化坐标值
-const formatCoordinate = (value: number, fractionDigits: number = 6): string => {
-  if (typeof value !== 'number') return '0';
+const formatCoordinate = (
+  value: number,
+  fractionDigits: number = 6,
+): string => {
+  if (typeof value !== "number") return "0";
   return value.toFixed(fractionDigits);
 };
 
 // 处理关闭按钮点击
 const handleClose = () => {
-  emit('close');
+  emit("close");
 };
 </script>
 
@@ -159,7 +167,7 @@ const handleClose = () => {
 }
 
 .coordinate-value {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   color: var(--el-color-primary);
   font-weight: 500;
 }
@@ -169,13 +177,13 @@ const handleClose = () => {
   font-size: var(--el-font-size-extra-small);
   color: var(--el-text-color-secondary);
 }
-</style> 
+</style>
 
 <script lang="ts">
 export default {
-  name: 'CoordinatePanel',
+  name: "CoordinatePanel",
   components: {
-    IconifyIconOnline
-  }
+    IconifyIconOnline,
+  },
 };
-</script> 
+</script>

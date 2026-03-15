@@ -312,10 +312,10 @@ export default defineComponent({
     inset: 0;
     pointer-events: none;
     z-index: 2;
-    
+
     // 四个角用 box-shadow 实现
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       inset: 0;
       // 左上角
@@ -332,25 +332,26 @@ export default defineComponent({
         inset -20px 0 0 -18px var(--panel-border-color),
         inset 0 -20px 0 -18px var(--panel-border-color);
     }
-    
+
     // 四条边用渐变边框实现
     &::after {
-      content: '';
+      content: "";
       position: absolute;
       inset: 0;
       border: 2px solid transparent;
       // 上下边框
       border-image: linear-gradient(
-        90deg,
-        transparent 0,
-        transparent 20px,
-        var(--panel-border-color) 40px,
-        var(--panel-border-color) calc(100% - 40px),
-        transparent calc(100% - 20px),
-        transparent 100%
-      ) 1;
+          90deg,
+          transparent 0,
+          transparent 20px,
+          var(--panel-border-color) 40px,
+          var(--panel-border-color) calc(100% - 40px),
+          transparent calc(100% - 20px),
+          transparent 100%
+        )
+        1;
       // 左右边框用 mask 实现渐变
-      mask-image: 
+      mask-image:
         linear-gradient(to bottom, transparent 0, transparent 20px, black 40px, black calc(100% - 40px), transparent calc(100% - 20px), transparent 100%),
         linear-gradient(to right, transparent 0, transparent 20px, black 40px, black calc(100% - 40px), transparent calc(100% - 20px), transparent 100%);
       mask-composite: intersect;

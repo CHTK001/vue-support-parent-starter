@@ -21,29 +21,29 @@
           <div class="header-title">
             <IconifyIconOnline icon="ri:terminal-box-line" class="mr-2" />
             调试控制台
-            <el-badge :value="logs.length" :hidden="logs.length === 0" type="primary" class="ml-2" />
+            <ScBadge :value="logs.length" :hidden="logs.length === 0" type="primary" class="ml-2" />
           </div>
           <div class="header-actions">
             <div class="log-filter-wrapper" @mousedown.stop>
-              <el-select
+              <ScSelect
                 v-model="filterType"
                 size="small"
                 class="log-filter-select"
                 placeholder="全部类型"
               >
-                <el-option label="全部" value="all" />
-                <el-option label="Info" value="info" />
-                <el-option label="Warn" value="warn" />
-                <el-option label="Error" value="error" />
-                <el-option label="Debug" value="debug" />
-              </el-select>
+                <ScOption label="全部" value="all" />
+                <ScOption label="Info" value="info" />
+                <ScOption label="Warn" value="warn" />
+                <ScOption label="Error" value="error" />
+                <ScOption label="Debug" value="debug" />
+              </ScSelect>
             </div>
-            <el-button size="small" circle @click.stop="handleClear" :disabled="logs.length === 0" title="清空日志" @mousedown.stop>
+            <ScButton size="small" circle @click.stop="handleClear" :disabled="logs.length === 0" title="清空日志" @mousedown.stop>
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
-            <el-button size="small" circle @click.stop="handleClose" title="关闭" @mousedown.stop>
+            </ScButton>
+            <ScButton size="small" circle @click.stop="handleClose" title="关闭" @mousedown.stop>
               <IconifyIconOnline icon="ri:close-line" />
-            </el-button>
+            </ScButton>
           </div>
         </div>
 

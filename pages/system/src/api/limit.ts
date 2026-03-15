@@ -70,8 +70,12 @@ export interface LimitConfigurationQueryParams {
  * @since 2025/9/28
  * @version 1.0.0
  */
-export const fetchLimitConfigurationList = (params?: LimitConfigurationQueryParams): Promise<ReturnResult<SysLimitConfiguration[]>> => {
-  return http.request<SysLimitConfiguration[]>("get", "/v2/limit/list", { params });
+export const fetchLimitConfigurationList = (
+  params?: LimitConfigurationQueryParams,
+): Promise<ReturnResult<SysLimitConfiguration[]>> => {
+  return http.request<SysLimitConfiguration[]>("get", "/v2/limit/list", {
+    params,
+  });
 };
 
 /**
@@ -82,8 +86,12 @@ export const fetchLimitConfigurationList = (params?: LimitConfigurationQueryPara
  * @since 2025/9/28
  * @version 1.0.0
  */
-export const fetchLimitConfigurationPage = (params?: LimitConfigurationQueryParams): Promise<ReturnResult<SysLimitConfiguration[]>> => {
-  return http.request<SysLimitConfiguration[]>("get", "/v2/limit/page", { params });
+export const fetchLimitConfigurationPage = (
+  params?: LimitConfigurationQueryParams,
+): Promise<ReturnResult<SysLimitConfiguration[]>> => {
+  return http.request<SysLimitConfiguration[]>("get", "/v2/limit/page", {
+    params,
+  });
 };
 
 /**
@@ -94,8 +102,12 @@ export const fetchLimitConfigurationPage = (params?: LimitConfigurationQueryPara
  * @since 2025/9/28
  * @version 1.0.0
  */
-export const saveLimitConfiguration = (data: SysLimitConfiguration): Promise<ReturnResult<SysLimitConfiguration>> => {
-  return http.request<SysLimitConfiguration>("post", "/v2/limit/save", { data });
+export const saveLimitConfiguration = (
+  data: SysLimitConfiguration,
+): Promise<ReturnResult<SysLimitConfiguration>> => {
+  return http.request<SysLimitConfiguration>("post", "/v2/limit/save", {
+    data,
+  });
 };
 
 /**
@@ -106,7 +118,9 @@ export const saveLimitConfiguration = (data: SysLimitConfiguration): Promise<Ret
  * @since 2025/9/28
  * @version 1.0.0
  */
-export const updateLimitConfiguration = (data: SysLimitConfiguration): Promise<ReturnResult<boolean>> => {
+export const updateLimitConfiguration = (
+  data: SysLimitConfiguration,
+): Promise<ReturnResult<boolean>> => {
   return http.request<boolean>("put", "/v2/limit/update", { data });
 };
 
@@ -118,7 +132,9 @@ export const updateLimitConfiguration = (data: SysLimitConfiguration): Promise<R
  * @since 2025/9/28
  * @version 1.0.0
  */
-export const updateBatchLimitConfiguration = (data: SysLimitConfiguration[]): Promise<ReturnResult<boolean>> => {
+export const updateBatchLimitConfiguration = (
+  data: SysLimitConfiguration[],
+): Promise<ReturnResult<boolean>> => {
   return http.request<boolean>("put", "/v2/limit/updateBatch", { data });
 };
 
@@ -130,7 +146,9 @@ export const updateBatchLimitConfiguration = (data: SysLimitConfiguration[]): Pr
  * @since 2025/9/28
  * @version 1.0.0
  */
-export const deleteLimitConfiguration = (sysLimitConfigurationId: number): Promise<ReturnResult<boolean>> => {
+export const deleteLimitConfiguration = (
+  sysLimitConfigurationId: number,
+): Promise<ReturnResult<boolean>> => {
   const params = { sysLimitConfigurationId };
   return http.request<boolean>("delete", "/v2/limit/delete", { params });
 };

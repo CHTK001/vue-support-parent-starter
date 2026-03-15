@@ -45,7 +45,10 @@
 
         <div class="preview-area">
           <div class="text-wrapper">
-            <ReText :lineClamp="config.lineClamp" :showTooltip="config.showTooltip">
+            <ReText
+              :lineClamp="config.lineClamp"
+              :showTooltip="config.showTooltip"
+            >
               {{ config.text }}
             </ReText>
           </div>
@@ -75,14 +78,14 @@ const lineClampOptions = [
   { label: "2", value: 2, icon: "ri:text" },
   { label: "3", value: 3, icon: "ri:text" },
   { label: "4", value: 4, icon: "ri:text" },
-  { label: "5", value: 5, icon: "ri:text" }
+  { label: "5", value: 5, icon: "ri:text" },
 ];
 
 // 配置项
 const config = reactive({
   lineClamp: 2,
   showTooltip: true,
-  text: "这是一段很长很长的文本，用于演示多行省略显示效果。鼠标悬停将通过 tippy 显示完整内容。这个组件非常适合用于列表项、卡片描述等需要限制文本行数的场景。"
+  text: "这是一段很长很长的文本，用于演示多行省略显示效果。鼠标悬停将通过 tippy 显示完整内容。这个组件非常适合用于列表项、卡片描述等需要限制文本行数的场景。",
 });
 
 // 生成示例代码

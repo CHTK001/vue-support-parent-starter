@@ -7,43 +7,43 @@
           <IconifyIconOnline icon="ri:history-line" class="mr-2" />
           配置变更历史
         </h3>
-        <el-tag v-if="serverInfo" type="info" size="small">
+        <ScTag v-if="serverInfo" type="info" size="small">
           {{ serverInfo.monitorSysGenServerName }}
-        </el-tag>
+        </ScTag>
       </div>
 
       <div class="header-right">
         <el-button-group>
-          <el-button size="small" :loading="loading" @click="handleRefresh">
+          <ScButton size="small" :loading="loading" @click="handleRefresh">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             :loading="exportLoading"
             @click="handleExport"
           >
             <IconifyIconOnline icon="ri:download-line" class="mr-1" />
             导出
-          </el-button>
+          </ScButton>
         </el-button-group>
       </div>
     </div>
 
     <!-- 统计信息卡片 -->
     <div v-if="statistics" class="statistics-cards">
-      <el-row :gutter="16">
-        <el-col :span="6">
-          <el-card class="stat-card">
+      <ScRow :gutter="16">
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-value">{{ statistics.totalCount || 0 }}</div>
               <div class="stat-label">总变更次数</div>
             </div>
             <IconifyIconOnline icon="ri:file-list-line" class="stat-icon" />
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-value">{{ statistics.createCount || 0 }}</div>
               <div class="stat-label">创建次数</div>
@@ -52,10 +52,10 @@
               icon="ri:add-circle-line"
               class="stat-icon create"
             />
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-value">{{ statistics.updateCount || 0 }}</div>
               <div class="stat-label">更新次数</div>
@@ -64,10 +64,10 @@
               icon="ri:edit-circle-line"
               class="stat-icon update"
             />
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-value">{{ statistics.deleteCount || 0 }}</div>
               <div class="stat-label">删除次数</div>
@@ -76,32 +76,32 @@
               icon="ri:delete-bin-line"
               class="stat-icon delete"
             />
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
 
     <!-- 筛选条件 -->
     <div class="filter-bar">
-      <el-form :model="filterForm" inline>
-        <el-form-item label="变更类型">
-          <el-select
+      <ScForm :model="filterForm" inline>
+        <ScFormItem label="变更类型">
+          <ScSelect
             v-model="filterForm.changeType"
             placeholder="全部类型"
             clearable
             @change="handleFilter"
           >
-            <el-option
+            <ScOption
               v-for="(name, type) in ChangeTypeNames"
               :key="type"
               :label="name"
               :value="type"
             />
-          </el-select>
-        </el-form-item>
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="时间范围">
-          <el-date-picker
+        <ScFormItem label="时间范围">
+          <ScDatePicker
             v-model="filterForm.timeRange"
             type="datetimerange"
             range-separator="至"
@@ -111,46 +111,46 @@
             value-format="YYYY-MM-DD HH:mm:ss"
             @change="handleFilter"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="变更用户">
-          <el-input
+        <ScFormItem label="变更用户">
+          <ScInput
             v-model="filterForm.changeUser"
             placeholder="请输入用户名"
             clearable
             @change="handleFilter"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
     </div>
 
     <!-- 历史记录列表 -->
     <div class="history-list">
-      <el-table
+      <ScTable
         v-loading="loading"
         :data="historyList"
         stripe
         style="cursor: pointer"
         @row-click="handleRowClick"
       >
-        <el-table-column prop="changeTime" label="变更时间" width="180">
+        <ScTableColumn prop="changeTime" label="变更时间" width="180">
           <template #default="{ row }">
             <div class="time-cell">
               <IconifyIconOnline icon="ri:time-line" class="mr-1" />
               {{ formatTime(row.changeTime) }}
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column prop="changeType" label="变更类型" width="100">
+        <ScTableColumn prop="changeType" label="变更类型" width="100">
           <template #default="{ row }">
-            <el-tag :type="ChangeTypeColors[row.changeType]" size="small">
+            <ScTag :type="ChangeTypeColors[row.changeType]" size="small">
               {{ ChangeTypeNames[row.changeType] }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column
+        <ScTableColumn
           prop="changeDescription"
           label="变更描述"
           min-width="200"
@@ -160,21 +160,21 @@
               {{ row.changeDescription }}
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column prop="changeUser" label="变更用户" width="120">
+        <ScTableColumn prop="changeUser" label="变更用户" width="120">
           <template #default="{ row }">
             <div class="user-cell">
               <IconifyIconOnline icon="ri:user-line" class="mr-1" />
               {{ row.changeUser || "系统" }}
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="操作" width="200" fixed="right">
+        <ScTableColumn label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button-group>
-              <el-button
+              <ScButton
                 type="primary"
                 text
                 size="small"
@@ -182,9 +182,9 @@
               >
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详情
-              </el-button>
+              </ScButton>
 
-              <el-button
+              <ScButton
                 v-if="row.settingSnapshot"
                 type="warning"
                 text
@@ -193,9 +193,9 @@
               >
                 <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
                 恢复
-              </el-button>
+              </ScButton>
 
-              <el-button
+              <ScButton
                 type="info"
                 text
                 size="small"
@@ -203,15 +203,15 @@
               >
                 <IconifyIconOnline icon="ri:git-compare-line" class="mr-1" />
                 对比
-              </el-button>
+              </ScButton>
             </el-button-group>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
 
       <!-- 分页 -->
       <div class="pagination-wrapper">
-        <el-pagination
+        <ScPagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
           :total="pagination.total"

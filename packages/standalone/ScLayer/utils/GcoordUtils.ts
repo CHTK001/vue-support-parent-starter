@@ -4,14 +4,14 @@
  * 支持WGS84、GCJ02、BD09等坐标系
  * 提供统一的坐标转换接口，确保所有点位都使用 EPSG:3857 坐标系
  */
-import logger from '../composables/LogObject';
-import { CoordSystem, MapType, type GeoPoint } from '../types';
-import { fromLonLat, toLonLat } from 'ol/proj';
-import type { Coordinate as OlCoordinate } from 'ol/coordinate';
-import gcoord from 'gcoord';
+import logger from "../composables/LogObject";
+import { CoordSystem, MapType, type GeoPoint } from "../types";
+import { fromLonLat, toLonLat } from "ol/proj";
+import type { Coordinate as OlCoordinate } from "ol/coordinate";
+import gcoord from "gcoord";
 
 // 扩展 gcoord 类型声明，添加缺失的方法和属性
-declare module 'gcoord' {
+declare module "gcoord" {
   export function distance(p1: [number, number], p2: [number, number]): number;
   export const EPSG4490: any;
 }
@@ -29,7 +29,7 @@ export class GcoordUtils {
     [CoordSystem.GCJ02]: gcoord.GCJ02,
     [CoordSystem.BD09]: gcoord.BD09,
     [CoordSystem.EPSG3857]: gcoord.EPSG3857,
-    [CoordSystem.EPSG4490]: (gcoord as any).EPSG4490
+    [CoordSystem.EPSG4490]: (gcoord as any).EPSG4490,
   };
 
   /**
@@ -39,7 +39,11 @@ export class GcoordUtils {
    * @param message 日志消息
    * @param data 附加数据
    */
-  private static logCoordinate(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: any): void {
+  private static logCoordinate(
+    level: "debug" | "info" | "warn" | "error",
+    message: string,
+    data?: any,
+  ): void {
     logger[level](`[GcoordUtils] ${message}`, data);
   }
 
@@ -77,7 +81,7 @@ export class GcoordUtils {
   public static transform(
     point: GeoPoint,
     from: CoordSystem,
-    to: CoordSystem
+    to: CoordSystem,
   ): GeoPoint {
     if (from === to) {
       return point; // 如果源坐标系和目标坐标系相同，直接返回
@@ -86,31 +90,31 @@ export class GcoordUtils {
     try {
       const isArray = Array.isArray(point);
       const pointArray = this.toArray(point);
-      
-      this.logCoordinate('debug', `转换坐标: ${from} -> ${to}`, {
+
+      this.logCoordinate("debug", `转换坐标: ${from} -> ${to}`, {
         from: from,
         to: to,
-        point: pointArray
+        point: pointArray,
       });
-      
+
       // 执行坐标转换
       const result = gcoord.transform(
         pointArray,
         this.coordSystemMap[from],
-        this.coordSystemMap[to]
+        this.coordSystemMap[to],
       );
 
-      this.logCoordinate('debug', `转换结果`, {
+      this.logCoordinate("debug", `转换结果`, {
         from: from,
         to: to,
         input: pointArray,
-        output: result
+        output: result,
       });
 
       // 返回原始格式的坐标
       return isArray ? result : this.toObject(result);
     } catch (error) {
-      this.logCoordinate('error', '坐标转换失败:', { error, point, from, to });
+      this.logCoordinate("error", "坐标转换失败:", { error, point, from, to });
       return point; // 转换失败返回原始坐标
     }
   }
@@ -193,7 +197,10 @@ export class GcoordUtils {
    * @param fromCoordSystem 源坐标系
    * @returns EPSG:3857坐标点
    */
-  public static toEpsg3857(point: GeoPoint, fromCoordSystem: CoordSystem): GeoPoint {
+  public static toEpsg3857(
+    point: GeoPoint,
+    fromCoordSystem: CoordSystem,
+  ): GeoPoint {
     if (fromCoordSystem === CoordSystem.EPSG3857) {
       return point;
     }
@@ -206,7 +213,10 @@ export class GcoordUtils {
    * @param toCoordSystem 目标坐标系
    * @returns 转换后的坐标点
    */
-  public static fromEpsg3857(point: GeoPoint, toCoordSystem: CoordSystem): GeoPoint {
+  public static fromEpsg3857(
+    point: GeoPoint,
+    toCoordSystem: CoordSystem,
+  ): GeoPoint {
     if (toCoordSystem === CoordSystem.EPSG3857) {
       return point;
     }
@@ -222,24 +232,24 @@ export class GcoordUtils {
    */
   public static wgs84ToMapCoord(point: GeoPoint, mapType: string): GeoPoint {
     const mapTypeUpper = mapType.toUpperCase();
-    
+
     // 根据地图类型选择目标坐标系
-    if (mapTypeUpper.includes('BAIDU') || mapTypeUpper === 'BD09') {
+    if (mapTypeUpper.includes("BAIDU") || mapTypeUpper === "BD09") {
       return this.wgs84ToBd09(point);
     } else if (
-      mapTypeUpper.includes('GAODE') || 
-      mapTypeUpper.includes('AMAP') || 
-      mapTypeUpper.includes('TENCENT') || 
-      mapTypeUpper === 'GCJ02'
+      mapTypeUpper.includes("GAODE") ||
+      mapTypeUpper.includes("AMAP") ||
+      mapTypeUpper.includes("TENCENT") ||
+      mapTypeUpper === "GCJ02"
     ) {
       return this.wgs84ToGcj02(point);
     } else if (
-      mapTypeUpper.includes('OSM') || 
-      mapTypeUpper.includes('EPSG3857')
+      mapTypeUpper.includes("OSM") ||
+      mapTypeUpper.includes("EPSG3857")
     ) {
       return point; // OSM使用WGS84，不需要转换
     }
-    
+
     // 默认返回原始坐标
     return point;
   }
@@ -252,18 +262,18 @@ export class GcoordUtils {
    */
   public static mapCoordToWgs84(point: GeoPoint, mapType: string): GeoPoint {
     const mapTypeUpper = mapType.toUpperCase();
-    
-    if (mapTypeUpper.includes('BAIDU') || mapTypeUpper === 'BD09') {
+
+    if (mapTypeUpper.includes("BAIDU") || mapTypeUpper === "BD09") {
       return this.bd09ToWgs84(point);
     } else if (
-      mapTypeUpper.includes('GAODE') || 
-      mapTypeUpper.includes('AMAP') || 
-      mapTypeUpper.includes('TENCENT') || 
-      mapTypeUpper === 'GCJ02'
+      mapTypeUpper.includes("GAODE") ||
+      mapTypeUpper.includes("AMAP") ||
+      mapTypeUpper.includes("TENCENT") ||
+      mapTypeUpper === "GCJ02"
     ) {
       return this.gcj02ToWgs84(point);
     }
-    
+
     // 默认返回原始坐标
     return point;
   }
@@ -302,23 +312,23 @@ export class GcoordUtils {
   public static isValidCoordinate(point: GeoPoint): boolean {
     try {
       let lng, lat;
-      
+
       if (Array.isArray(point)) {
         [lng, lat] = point;
       } else {
         lng = point.lng;
         lat = point.lat;
       }
-      
+
       // 检查经纬度是否为数字且在有效范围内
       return (
-        typeof lng === 'number' && 
-        typeof lat === 'number' &&
-        !isNaN(lng) && 
+        typeof lng === "number" &&
+        typeof lat === "number" &&
+        !isNaN(lng) &&
         !isNaN(lat) &&
-        lng >= -180 && 
+        lng >= -180 &&
         lng <= 180 &&
-        lat >= -90 && 
+        lat >= -90 &&
         lat <= 90
       );
     } catch (error) {
@@ -332,12 +342,15 @@ export class GcoordUtils {
    * @param lon 经度
    * @returns [x, y] EPSG:3857 坐标
    */
-  public static wgs84ToEpsg3857Precise(lat: number, lon: number): [number, number] {
+  public static wgs84ToEpsg3857Precise(
+    lat: number,
+    lon: number,
+  ): [number, number] {
     try {
-      const result = fromLonLat([lon, lat], 'EPSG:3857') as OlCoordinate;
+      const result = fromLonLat([lon, lat], "EPSG:3857") as OlCoordinate;
       return [result[0], result[1]];
     } catch (error) {
-      logger.error('坐标转换失败 (WGS84 -> EPSG:3857):', error);
+      logger.error("坐标转换失败 (WGS84 -> EPSG:3857):", error);
       return [0, 0];
     }
   }
@@ -350,10 +363,10 @@ export class GcoordUtils {
    */
   public static epsg3857ToWgs84Precise(x: number, y: number): [number, number] {
     try {
-      const lonLat = toLonLat([x, y], 'EPSG:3857') as OlCoordinate;
+      const lonLat = toLonLat([x, y], "EPSG:3857") as OlCoordinate;
       return [lonLat[1], lonLat[0]]; // 转换为 [lat, lon] 格式
     } catch (error) {
-      logger.error('坐标转换失败 (EPSG:3857 -> WGS84):', error);
+      logger.error("坐标转换失败 (EPSG:3857 -> WGS84):", error);
       return [0, 0];
     }
   }
@@ -364,7 +377,7 @@ export class GcoordUtils {
    * @returns EPSG:3857 坐标点数组
    */
   public static batchWgs84ToEpsg3857(points: GeoPoint[]): GeoPoint[] {
-    return points.map(point => this.wgs84ToEpsg3857(point));
+    return points.map((point) => this.wgs84ToEpsg3857(point));
   }
 
   /**
@@ -373,7 +386,10 @@ export class GcoordUtils {
    * @param fromCoordSystem 源坐标系
    * @returns EPSG:3857 坐标点
    */
-  public static anyToEpsg3857(point: GeoPoint, fromCoordSystem: CoordSystem): GeoPoint {
+  public static anyToEpsg3857(
+    point: GeoPoint,
+    fromCoordSystem: CoordSystem,
+  ): GeoPoint {
     return this.toEpsg3857(point, fromCoordSystem);
   }
 
@@ -387,15 +403,17 @@ export class GcoordUtils {
   public static distance(
     point1: GeoPoint,
     point2: GeoPoint,
-    coordSystem: CoordSystem = CoordSystem.WGS84
+    coordSystem: CoordSystem = CoordSystem.WGS84,
   ): number {
     // 如果不是WGS84坐标系，先转换为WGS84
-    const p1 = coordSystem !== CoordSystem.WGS84 
-      ? this.transform(point1, coordSystem, CoordSystem.WGS84) 
-      : point1;
-    const p2 = coordSystem !== CoordSystem.WGS84 
-      ? this.transform(point2, coordSystem, CoordSystem.WGS84) 
-      : point2;
+    const p1 =
+      coordSystem !== CoordSystem.WGS84
+        ? this.transform(point1, coordSystem, CoordSystem.WGS84)
+        : point1;
+    const p2 =
+      coordSystem !== CoordSystem.WGS84
+        ? this.transform(point2, coordSystem, CoordSystem.WGS84)
+        : point2;
 
     // 转换为数组格式
     const p1Arr = this.toArray(p1);
@@ -406,7 +424,7 @@ export class GcoordUtils {
   }
 
   /**
-   * 根据地图类型获取对应的坐标系统 
+   * 根据地图类型获取对应的坐标系统
    * @param mapType 地图类型
    * @returns 对应的坐标系统
    */
@@ -427,19 +445,21 @@ export class GcoordUtils {
    * @param coordSystem 坐标系统枚举
    * @returns 投影字符串
    */
-  public static convertCoordSystemToProjection(coordSystem: CoordSystem): string {
+  public static convertCoordSystemToProjection(
+    coordSystem: CoordSystem,
+  ): string {
     switch (coordSystem) {
       case CoordSystem.EPSG3857:
-        return 'EPSG:3857';
+        return "EPSG:3857";
       case CoordSystem.EPSG4326:
       case CoordSystem.WGS84:
-        return 'EPSG:4326';
+        return "EPSG:4326";
       case CoordSystem.GCJ02:
-        return 'GCJ02';
+        return "GCJ02";
       case CoordSystem.BD09:
-        return 'BD09';
+        return "BD09";
       default:
-        return 'EPSG:4326';
+        return "EPSG:4326";
     }
   }
 
@@ -450,7 +470,10 @@ export class GcoordUtils {
    * @returns GCJ02坐标
    * @deprecated 请使用 wgs84ToGcj02(point) 替代
    */
-  public static wgs84ToGcj02ByLngLat(lng: number, lat: number): [number, number] {
+  public static wgs84ToGcj02ByLngLat(
+    lng: number,
+    lat: number,
+  ): [number, number] {
     const point = this.wgs84ToGcj02([lng, lat]);
     if (Array.isArray(point)) {
       return point;
@@ -465,7 +488,10 @@ export class GcoordUtils {
    * @returns WGS84坐标
    * @deprecated 请使用 gcj02ToWgs84(point) 替代
    */
-  public static gcj02ToWgs84ByLngLat(lng: number, lat: number): [number, number] {
+  public static gcj02ToWgs84ByLngLat(
+    lng: number,
+    lat: number,
+  ): [number, number] {
     const point = this.gcj02ToWgs84([lng, lat]);
     if (Array.isArray(point)) {
       return point;
@@ -480,7 +506,10 @@ export class GcoordUtils {
    * @returns BD09坐标
    * @deprecated 请使用 wgs84ToBd09(point) 替代
    */
-  public static wgs84ToBd09ByLngLat(lng: number, lat: number): [number, number] {
+  public static wgs84ToBd09ByLngLat(
+    lng: number,
+    lat: number,
+  ): [number, number] {
     const point = this.wgs84ToBd09([lng, lat]);
     if (Array.isArray(point)) {
       return point;
@@ -495,7 +524,10 @@ export class GcoordUtils {
    * @returns WGS84坐标
    * @deprecated 请使用 bd09ToWgs84(point) 替代
    */
-  public static bd09ToWgs84ByLngLat(lng: number, lat: number): [number, number] {
+  public static bd09ToWgs84ByLngLat(
+    lng: number,
+    lat: number,
+  ): [number, number] {
     const point = this.bd09ToWgs84([lng, lat]);
     if (Array.isArray(point)) {
       return point;
@@ -510,7 +542,10 @@ export class GcoordUtils {
    * @returns BD09坐标
    * @deprecated 请使用 gcj02ToBd09(point) 替代
    */
-  public static gcj02ToBd09ByLngLat(lng: number, lat: number): [number, number] {
+  public static gcj02ToBd09ByLngLat(
+    lng: number,
+    lat: number,
+  ): [number, number] {
     const point = this.gcj02ToBd09([lng, lat]);
     if (Array.isArray(point)) {
       return point;
@@ -525,7 +560,10 @@ export class GcoordUtils {
    * @returns GCJ02坐标
    * @deprecated 请使用 bd09ToGcj02(point) 替代
    */
-  public static bd09ToGcj02ByLngLat(lng: number, lat: number): [number, number] {
+  public static bd09ToGcj02ByLngLat(
+    lng: number,
+    lat: number,
+  ): [number, number] {
     const point = this.bd09ToGcj02([lng, lat]);
     if (Array.isArray(point)) {
       return point;
@@ -539,7 +577,10 @@ export class GcoordUtils {
    * @param coordSystem 坐标系统
    * @returns EPSG:3857 坐标点
    */
-  public static convertToEpsg3857(point: GeoPoint, coordSystem?: CoordSystem): GeoPoint {
+  public static convertToEpsg3857(
+    point: GeoPoint,
+    coordSystem?: CoordSystem,
+  ): GeoPoint {
     // 如果没有提供坐标系，默认为WGS84
     if (!coordSystem) {
       coordSystem = CoordSystem.WGS84;
@@ -553,17 +594,19 @@ export class GcoordUtils {
     // 如果是WGS84，使用OpenLayers的fromLonLat函数直接转换
     if (coordSystem === CoordSystem.WGS84) {
       const pointArray = Array.isArray(point) ? point : [point.lng, point.lat];
-      this.logCoordinate('debug', `直接转换为EPSG:3857 (使用fromLonLat)`, {
+      this.logCoordinate("debug", `直接转换为EPSG:3857 (使用fromLonLat)`, {
         input: pointArray,
-        coordSystem: coordSystem || 'WGS84(默认)'
+        coordSystem: coordSystem || "WGS84(默认)",
       });
       const result = fromLonLat(pointArray);
-      this.logCoordinate('debug', `转换结果`, {
+      this.logCoordinate("debug", `转换结果`, {
         input: pointArray,
         output: result,
-        coordSystem: coordSystem || 'WGS84(默认)'
+        coordSystem: coordSystem || "WGS84(默认)",
       });
-      return Array.isArray(point) ? result as GeoPoint : { lng: result[0], lat: result[1] };
+      return Array.isArray(point)
+        ? (result as GeoPoint)
+        : { lng: result[0], lat: result[1] };
     }
 
     // 将坐标系统转换为 CoordSystem
@@ -581,23 +624,25 @@ export class GcoordUtils {
       default:
         fromCoordSystem = CoordSystem.WGS84;
     }
-    
-    this.logCoordinate('debug', `转换为EPSG:3857`, {
+
+    this.logCoordinate("debug", `转换为EPSG:3857`, {
       input: Array.isArray(point) ? point : [point.lng, point.lat],
       coordSystem: coordSystem,
-      fromCoordSystem: fromCoordSystem
+      fromCoordSystem: fromCoordSystem,
     });
-    
+
     // 使用 GcoordUtils 转换为 EPSG:3857
     const epsg3857Point = this.anyToEpsg3857(point, fromCoordSystem);
-    
-    this.logCoordinate('debug', `转换结果`, {
+
+    this.logCoordinate("debug", `转换结果`, {
       input: Array.isArray(point) ? point : [point.lng, point.lat],
-      output: Array.isArray(epsg3857Point) ? epsg3857Point : [epsg3857Point.lng, epsg3857Point.lat],
+      output: Array.isArray(epsg3857Point)
+        ? epsg3857Point
+        : [epsg3857Point.lng, epsg3857Point.lat],
       coordSystem: coordSystem,
-      fromCoordSystem: fromCoordSystem
+      fromCoordSystem: fromCoordSystem,
     });
-    
+
     return epsg3857Point;
   }
 
@@ -607,19 +652,24 @@ export class GcoordUtils {
    * @param coordSystem 坐标系统
    * @returns EPSG:3857 坐标点数组
    */
-  public static convertPointsToEpsg3857(points: GeoPoint[], coordSystem?: CoordSystem): GeoPoint[] {
-    this.logCoordinate('debug', `批量转换为EPSG:3857`, {
+  public static convertPointsToEpsg3857(
+    points: GeoPoint[],
+    coordSystem?: CoordSystem,
+  ): GeoPoint[] {
+    this.logCoordinate("debug", `批量转换为EPSG:3857`, {
       pointCount: points.length,
-      coordSystem: coordSystem || 'WGS84(默认)'
+      coordSystem: coordSystem || "WGS84(默认)",
     });
-    
-    const result = points.map(point => this.convertToEpsg3857(point, coordSystem));
-    
-    this.logCoordinate('debug', `批量转换结果`, {
+
+    const result = points.map((point) =>
+      this.convertToEpsg3857(point, coordSystem),
+    );
+
+    this.logCoordinate("debug", `批量转换结果`, {
       pointCount: points.length,
-      coordSystem: coordSystem || 'WGS84(默认)'
+      coordSystem: coordSystem || "WGS84(默认)",
     });
-    
+
     return result;
   }
 
@@ -629,12 +679,17 @@ export class GcoordUtils {
    * @param coordSystem 坐标系统
    * @returns OpenLayers 坐标格式 (number[])
    */
-  public static convertToOlCoordinate(point: GeoPoint, coordSystem: CoordSystem = CoordSystem.WGS84): number[] {
+  public static convertToOlCoordinate(
+    point: GeoPoint,
+    coordSystem: CoordSystem = CoordSystem.WGS84,
+  ): number[] {
     // 先转换为 EPSG:3857
     const epsg3857Point = this.convertToEpsg3857(point, coordSystem);
-    
+
     // 确保返回数组格式
-    return Array.isArray(epsg3857Point) ? epsg3857Point : [epsg3857Point.lng, epsg3857Point.lat];
+    return Array.isArray(epsg3857Point)
+      ? epsg3857Point
+      : [epsg3857Point.lng, epsg3857Point.lat];
   }
 
   /**
@@ -643,27 +698,41 @@ export class GcoordUtils {
    * @param coordSystem 坐标系统
    * @returns OpenLayers 坐标数组 (number[][])
    */
-  public static convertToOlCoordinates(points: Array<GeoPoint> | Array<[number, number]>, coordSystem: CoordSystem = CoordSystem.WGS84): number[][] {
+  public static convertToOlCoordinates(
+    points: Array<GeoPoint> | Array<[number, number]>,
+    coordSystem: CoordSystem = CoordSystem.WGS84,
+  ): number[][] {
     if (!Array.isArray(points)) {
       return [];
     }
-    
+
     // 遍历每个点并转换
-    return points.map(point => {
+    return points.map((point) => {
       if (Array.isArray(point) && point.length === 2) {
         // 如果已经是 [number, number] 格式
-        return this.convertToOlCoordinate(point as [number, number], coordSystem);
-      } else if (point && typeof point === 'object' && 'lng' in point && 'lat' in point) {
+        return this.convertToOlCoordinate(
+          point as [number, number],
+          coordSystem,
+        );
+      } else if (
+        point &&
+        typeof point === "object" &&
+        "lng" in point &&
+        "lat" in point
+      ) {
         // 如果是 {lng, lat} 格式
-        return this.convertToOlCoordinate(point as { lng: number; lat: number }, coordSystem);
+        return this.convertToOlCoordinate(
+          point as { lng: number; lat: number },
+          coordSystem,
+        );
       } else {
         // 无效格式
-        console.warn('Invalid coordinate format:', point);
+        console.warn("Invalid coordinate format:", point);
         return [0, 0]; // 默认值
       }
     });
   }
-} 
+}
 
 // 为了向后兼容，导出一些旧的函数名称
 export const wgs84ToGcj02 = GcoordUtils.wgs84ToGcj02ByLngLat.bind(GcoordUtils);
@@ -673,6 +742,9 @@ export const bd09ToWgs84 = GcoordUtils.bd09ToWgs84ByLngLat.bind(GcoordUtils);
 export const gcj02ToBd09 = GcoordUtils.gcj02ToBd09ByLngLat.bind(GcoordUtils);
 export const bd09ToGcj02 = GcoordUtils.bd09ToGcj02ByLngLat.bind(GcoordUtils);
 export const distance = GcoordUtils.distance.bind(GcoordUtils);
-export const isValidCoordinate = GcoordUtils.isValidCoordinate.bind(GcoordUtils);
-export const getCoordSystemByMapType = GcoordUtils.getCoordSystemByMapType.bind(GcoordUtils);
-export const convertCoordSystemToProjection = GcoordUtils.convertCoordSystemToProjection.bind(GcoordUtils); 
+export const isValidCoordinate =
+  GcoordUtils.isValidCoordinate.bind(GcoordUtils);
+export const getCoordSystemByMapType =
+  GcoordUtils.getCoordSystemByMapType.bind(GcoordUtils);
+export const convertCoordSystemToProjection =
+  GcoordUtils.convertCoordSystemToProjection.bind(GcoordUtils);

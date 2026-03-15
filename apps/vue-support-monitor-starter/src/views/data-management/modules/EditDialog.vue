@@ -30,7 +30,7 @@
     </template>
 
     <div class="dialog-content">
-      <el-form
+      <ScForm
         ref="formRef"
         :model="form"
         :rules="rules"
@@ -50,8 +50,8 @@
               </div>
             </div>
             <div class="section-body">
-              <el-form-item label="名称" prop="systemDataSettingName">
-                <el-input
+              <ScFormItem label="名称" prop="systemDataSettingName">
+                <ScInput
                   v-model="form.systemDataSettingName"
                   placeholder="请输入配置名称"
                 >
@@ -61,18 +61,18 @@
                       class="input-icon"
                     />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
-              <el-form-item label="模式" prop="systemDataSettingMode">
+              <ScFormItem label="模式" prop="systemDataSettingMode">
                 <ScSelect
                   v-model="form.systemDataSettingMode"
                   :options="modeOptions"
                   placeholder="请选择模式"
                 />
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item label="类型" prop="systemDataSettingType">
+              <ScFormItem label="类型" prop="systemDataSettingType">
                 <ScSelect
                   v-model="form.systemDataSettingType"
                   layout="select"
@@ -86,13 +86,13 @@
                   placeholder="请选择类型"
                   filterable
                 />
-              </el-form-item>
+              </ScFormItem>
 
               <!-- 远程模式必填字段 -->
               <template v-if="form.systemDataSettingMode === 'REMOTE'">
-                <el-form-item label="主机/端口" prop="systemDataSettingHost">
+                <ScFormItem label="主机/端口" prop="systemDataSettingHost">
                   <div class="dual-input">
-                    <el-input
+                    <ScInput
                       v-model="form.systemDataSettingHost"
                       placeholder="主机地址"
                       :disabled="!modeChosen"
@@ -103,8 +103,8 @@
                           class="input-icon"
                         />
                       </template>
-                    </el-input>
-                    <el-input-number
+                    </ScInput>
+                    <ScInputNumber
                       v-model="form.systemDataSettingPort"
                       class="port-input"
                       :min="0"
@@ -115,12 +115,12 @@
                       controls-position="right"
                     />
                   </div>
-                </el-form-item>
+                </ScFormItem>
               </template>
 
               <!-- JDBC类型必填字段 -->
               <template v-if="form.systemDataSettingType === 'JDBC'">
-                <el-form-item
+                <ScFormItem
                   label="JDBC驱动"
                   prop="systemDataSettingDriverClass"
                 >
@@ -132,11 +132,11 @@
                     :disabled="!modeChosen"
                     filterable
                   />
-                </el-form-item>
+                </ScFormItem>
               </template>
 
-              <el-form-item label="协议">
-                <el-select
+              <ScFormItem label="协议">
+                <ScSelect
                   v-model="form.systemDataSettingProtocol"
                   filterable
                   allow-create
@@ -147,14 +147,14 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:link" class="input-icon" />
                   </template>
-                  <el-option
+                  <ScOption
                     v-for="p in protocolOptions"
                     :key="p"
                     :label="p"
                     :value="p"
                   />
-                </el-select>
-              </el-form-item>
+                </ScSelect>
+              </ScFormItem>
             </div>
           </div>
 
@@ -170,8 +170,8 @@
               </div>
             </div>
             <div class="section-body">
-              <el-form-item label="连接地址">
-                <el-input
+              <ScFormItem label="连接地址">
+                <ScInput
                   v-model="form.systemDataSettingServer"
                   placeholder="优先填写完整连接串"
                   :disabled="!modeChosen"
@@ -182,11 +182,11 @@
                       class="input-icon"
                     />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
-              <el-form-item label="数据库名">
-                <el-input
+              <ScFormItem label="数据库名">
+                <ScInput
                   v-model="form.systemDataSettingDatabase"
                   placeholder="请填写数据库名称"
                 >
@@ -196,14 +196,14 @@
                       class="input-icon"
                     />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
               <!-- 非远程模式或作为备选的主机/端口 -->
               <template v-if="form.systemDataSettingMode !== 'REMOTE'">
-                <el-form-item label="主机/端口">
+                <ScFormItem label="主机/端口">
                   <div class="dual-input">
-                    <el-input
+                    <ScInput
                       v-model="form.systemDataSettingHost"
                       placeholder="主机地址"
                       :disabled="!modeChosen"
@@ -214,8 +214,8 @@
                           class="input-icon"
                         />
                       </template>
-                    </el-input>
-                    <el-input-number
+                    </ScInput>
+                    <ScInputNumber
                       v-model="form.systemDataSettingPort"
                       class="port-input"
                       :min="0"
@@ -225,10 +225,10 @@
                       controls-position="right"
                     />
                   </div>
-                </el-form-item>
+                </ScFormItem>
               </template>
 
-              <el-form-item
+              <ScFormItem
                 :label="
                   form.systemDataSettingType == 'EMAIL'
                     ? '账号/授权码'
@@ -236,7 +236,7 @@
                 "
               >
                 <div class="dual-input">
-                  <el-input
+                  <ScInput
                     v-model="form.systemDataSettingUsername"
                     placeholder="账号"
                     :disabled="!modeChosen"
@@ -247,8 +247,8 @@
                         class="input-icon"
                       />
                     </template>
-                  </el-input>
-                  <el-input
+                  </ScInput>
+                  <ScInput
                     v-model="form.systemDataSettingPassword"
                     type="password"
                     show-password
@@ -263,15 +263,15 @@
                         class="input-icon"
                       />
                     </template>
-                  </el-input>
+                  </ScInput>
                 </div>
-              </el-form-item>
+              </ScFormItem>
 
-              <el-form-item
+              <ScFormItem
                 v-if="form.systemDataSettingType == 'INFLUXDB'"
                 label="数据库策略"
               >
-                <el-input
+                <ScInput
                   v-model="form.systemDataSettingPolicy"
                   placeholder="请填写数据库策略"
                 >
@@ -281,14 +281,14 @@
                       class="input-icon"
                     />
                   </template>
-                </el-input>
-              </el-form-item>
+                </ScInput>
+              </ScFormItem>
 
               <!-- JDBC 驱动文件设置（仅当类型为 JDBC 时显示） -->
               <template v-if="form.systemDataSettingType === 'JDBC'">
-                <el-form-item label="驱动文件">
+                <ScFormItem label="驱动文件">
                   <div class="driver-upload">
-                    <el-input
+                    <ScInput
                       v-model="form.systemDataSettingDriverPath"
                       placeholder="本地路径或URL"
                       :disabled="!modeChosen"
@@ -299,20 +299,20 @@
                           class="input-icon"
                         />
                       </template>
-                    </el-input>
-                    <el-upload
+                    </ScInput>
+                    <ScUpload
                       :auto-upload="false"
                       :show-file-list="false"
                       :on-change="onDriverFileChange"
                       :disabled="!modeChosen"
                     >
-                      <el-button type="primary" :disabled="!modeChosen">
+                      <ScButton type="primary" :disabled="!modeChosen">
                         <IconifyIconOnline icon="ri:upload-2-line" />
                         上传
-                      </el-button>
-                    </el-upload>
+                      </ScButton>
+                    </ScUpload>
                   </div>
-                </el-form-item>
+                </ScFormItem>
               </template>
 
               <!-- 开关选项组 -->
@@ -325,7 +325,7 @@
                     />
                     <span class="switch-label">启用状态</span>
                   </div>
-                  <el-switch
+                  <ScSwitch
                     v-model="form.systemDataSettingEnabled"
                     :disabled="!modeChosen"
                     active-text=""
@@ -340,7 +340,7 @@
                     />
                     <span class="switch-label">支持IDLE</span>
                   </div>
-                  <el-switch
+                  <ScSwitch
                     v-model="form.systemDataSettingIdle"
                     active-text=""
                     inactive-text=""
@@ -354,7 +354,7 @@
                     />
                     <span class="switch-label">控制台</span>
                   </div>
-                  <el-switch
+                  <ScSwitch
                     v-model="consoleEnabled"
                     :disabled="!modeChosen"
                     active-text=""
@@ -365,16 +365,16 @@
             </div>
           </div>
         </div>
-      </el-form>
+      </ScForm>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button class="cancel-btn" @click="handleClose">
+        <ScButton class="cancel-btn" @click="handleClose">
           <IconifyIconOnline icon="ri:close-line" />
           取消
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="primary"
           :loading="loading"
           class="save-btn"
@@ -382,7 +382,7 @@
         >
           <IconifyIconOnline icon="ri:check-line" />
           保存配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

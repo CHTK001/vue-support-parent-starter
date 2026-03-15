@@ -7,7 +7,7 @@ import { emitter, getParentPaths, usePermissionStoreHook } from "@repo/core";
 import { localStorageProxy, useDefer } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+import { ReMenuNewBadge } from "@repo/components";
 import { getConfig } from "@repo/config";
 import { ScText } from "@repo/components";
 import { useNav } from "../../hooks/useNav";
@@ -262,12 +262,12 @@ const defer = useDefer(firstLevelMenus.value.length);
       ]"
     >
       <LaySidebarLogo v-if="showLogo" :collapse="isCollapse" />
-      <el-scrollbar
+      <ScScrollbar
         wrap-class="scrollbar-wrapper"
         :class="[device === 'mobile' ? 'mobile' : 'pc']"
       >
-        <el-menu mode="vertical" class="first-level-menu">
-          <el-menu-item
+        <ScMenu mode="vertical" class="first-level-menu">
+          <ScMenuItem
             v-for="menu in firstLevelMenus"
             :key="menu.path"
             :index="menu.path"
@@ -301,10 +301,14 @@ const defer = useDefer(firstLevelMenus.value.length);
                 class="absolute right-0 top-0 scale-75 origin-top-right"
               />
             </div>
-            <ScText v-if="!isCollapse" class="menu-label" :text="menu.meta?.title || menu.name || ''" />
-          </el-menu-item>
-        </el-menu>
-      </el-scrollbar>
+            <ScText
+              v-if="!isCollapse"
+              class="menu-label"
+              :text="menu.meta?.title || menu.name || ''"
+            />
+          </ScMenuItem>
+        </ScMenu>
+      </ScScrollbar>
       <!-- 折叠按钮 - 移入左栏内部 -->
       <LaySidebarLeftCollapse
         v-if="device !== 'mobile'"
@@ -322,12 +326,12 @@ const defer = useDefer(firstLevelMenus.value.length);
         { collapsed: isCollapse },
       ]"
     >
-      <el-scrollbar
+      <ScScrollbar
         wrap-class="scrollbar-wrapper"
         :class="[device === 'mobile' ? 'mobile' : 'pc']"
       >
         <!-- 自动展开模式：使用el-menu，但禁用折叠功能 -->
-        <el-menu
+        <ScMenu
           v-if="doubleNavConfig.expandMode === 'auto'"
           :key="selectedFirstLevelMenu?.path || 'default'"
           router
@@ -352,10 +356,10 @@ const defer = useDefer(firstLevelMenus.value.length);
               @favorite-toggle="handleFavoriteToggle"
             />
           </span>
-        </el-menu>
+        </ScMenu>
 
         <!-- 手动展开模式：使用el-menu，保留折叠功能 -->
-        <el-menu
+        <ScMenu
           v-else
           :key="selectedFirstLevelMenu?.path || 'default'"
           router
@@ -380,8 +384,8 @@ const defer = useDefer(firstLevelMenus.value.length);
               @favorite-toggle="handleFavoriteToggle"
             />
           </span>
-        </el-menu>
-      </el-scrollbar>
+        </ScMenu>
+      </ScScrollbar>
     </div>
   </div>
 </template>

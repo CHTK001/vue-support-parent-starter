@@ -1,5 +1,5 @@
 <template>
-  <el-autocomplete
+  <ScAutocomplete
     v-model="currentValue"
     class="sc-email-input"
     type="email"
@@ -20,7 +20,7 @@
     <template v-for="(_, name) in $slots" v-if="name !== 'prefix'" #[name]="slotData" :key="name">
       <slot :name="name" v-bind="slotData || {}" />
     </template>
-  </el-autocomplete>
+  </ScAutocomplete>
 </template>
 
 <script setup lang="ts">

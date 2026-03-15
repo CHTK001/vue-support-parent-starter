@@ -12,4 +12,3 @@ import BaseComponent from "../../base/LayoutModeSetting.vue";
 // 8-bit 主题专属布局模式样式占位
 // 例如：html[data-skin="8bit"] { }
 </style>
-

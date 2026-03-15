@@ -51,8 +51,6 @@ const emit = defineEmits(["click"]);
 
 const { currentComponent } = useThemeComponent("ElLink");
 
-
-
 const handleClick = (event: MouseEvent) => {
   emit("click", event);
 };

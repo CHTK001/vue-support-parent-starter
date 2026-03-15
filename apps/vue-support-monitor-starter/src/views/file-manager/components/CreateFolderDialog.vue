@@ -15,25 +15,25 @@
           <span>创建位置</span>
         </div>
         <div class="path-value">
-          <el-input :model-value="currentPath" readonly class="path-input">
+          <ScInput :model-value="currentPath" readonly class="path-input">
             <template #prepend>
               <IconifyIconOnline icon="ri:folder-open-line" />
             </template>
-          </el-input>
+          </ScInput>
         </div>
       </div>
 
       <!-- 文件夹名称输入 -->
       <div class="folder-name-section">
-        <el-form
+        <ScForm
           ref="formRef"
           :model="formData"
           :rules="formRules"
           label-width="100px"
           @submit.prevent="handleSubmit"
         >
-          <el-form-item label="文件夹名称" prop="folderName">
-            <el-input
+          <ScFormItem label="文件夹名称" prop="folderName">
+            <ScInput
               v-model="formData.folderName"
               placeholder="请输入文件夹名称"
               clearable
@@ -45,9 +45,9 @@
               <template #prepend>
                 <IconifyIconOnline icon="ri:folder-add-line" />
               </template>
-            </el-input>
-          </el-form-item>
-        </el-form>
+            </ScInput>
+          </ScFormItem>
+        </ScForm>
       </div>
 
       <!-- 预览信息 -->
@@ -72,16 +72,16 @@
 
       <!-- 高级选项 -->
       <div class="advanced-options">
-        <el-collapse v-model="activeCollapse">
-          <el-collapse-item title="高级选项" name="advanced">
+        <ScCollapse v-model="activeCollapse">
+          <ScCollapseItem title="高级选项" name="advanced">
             <div class="options-content">
-              <el-form-item label="权限设置">
-                <el-select
+              <ScFormItem label="权限设置">
+                <ScSelect
                   v-model="formData.permissions"
                   placeholder="选择文件夹权限"
                   class="permissions-select"
                 >
-                  <el-option label="读写权限 (755)" value="755">
+                  <ScOption label="读写权限 (755)" value="755">
                     <div class="permission-option">
                       <IconifyIconOnline
                         icon="ri:lock-unlock-line"
@@ -94,8 +94,8 @@
                         </div>
                       </div>
                     </div>
-                  </el-option>
-                  <el-option label="只读权限 (644)" value="644">
+                  </ScOption>
+                  <ScOption label="只读权限 (644)" value="644">
                     <div class="permission-option">
                       <IconifyIconOnline
                         icon="ri:lock-line"
@@ -108,8 +108,8 @@
                         </div>
                       </div>
                     </div>
-                  </el-option>
-                  <el-option label="完全权限 (777)" value="777">
+                  </ScOption>
+                  <ScOption label="完全权限 (777)" value="777">
                     <div class="permission-option">
                       <IconifyIconOnline
                         icon="ri:lock-unlock-fill"
@@ -120,39 +120,39 @@
                         <div class="option-desc">所有用户都有读写执行权限</div>
                       </div>
                     </div>
-                  </el-option>
-                </el-select>
-              </el-form-item>
+                  </ScOption>
+                </ScSelect>
+              </ScFormItem>
 
-              <el-form-item>
-                <el-checkbox v-model="formData.createParentDirs">
+              <ScFormItem>
+                <ScCheckbox v-model="formData.createParentDirs">
                   <IconifyIconOnline
                     icon="ri:folder-add-line"
                     class="checkbox-icon"
                   />
                   自动创建父级目录
-                </el-checkbox>
-              </el-form-item>
+                </ScCheckbox>
+              </ScFormItem>
 
-              <el-form-item>
-                <el-checkbox v-model="formData.addToFavorites">
+              <ScFormItem>
+                <ScCheckbox v-model="formData.addToFavorites">
                   <IconifyIconOnline
                     icon="ri:star-line"
                     class="checkbox-icon"
                   />
                   添加到收藏夹
-                </el-checkbox>
-              </el-form-item>
+                </ScCheckbox>
+              </ScFormItem>
             </div>
-          </el-collapse-item>
-        </el-collapse>
+          </ScCollapseItem>
+        </ScCollapse>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="isCreating"
           :disabled="!formData.folderName.trim()"
@@ -164,7 +164,7 @@
             class="btn-icon"
           />
           {{ isCreating ? "创建中..." : "创建文件夹" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

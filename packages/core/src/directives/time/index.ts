@@ -28,7 +28,10 @@ var Time = {
   //获取标准年月日
   getLastDate: function (time) {
     var date = new Date(time);
-    var month = date.getMonth() + 1 < 10 ? "0" + (date.getMonth() + 1) : date.getMonth() + 1;
+    var month =
+      date.getMonth() + 1 < 10
+        ? "0" + (date.getMonth() + 1)
+        : date.getMonth() + 1;
     var day = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
     return date.getFullYear() + "-" + month + "-" + day;
   },
@@ -55,7 +58,7 @@ var Time = {
       tip = this.getLastDate(timestamp);
     }
     return tip;
-  }
+  },
 };
 
 export default (el, binding) => {

@@ -15,47 +15,47 @@
 
     <!-- 搜索栏 -->
     <div class="toolbar">
-      <el-input v-model="filterName" placeholder="搜索类名..." clearable class="search-input" @keyup.enter="handleQuery">
+      <ScInput v-model="filterName" placeholder="搜索类名..." clearable class="search-input" @keyup.enter="handleQuery">
         <template #prefix>
           <IconifyIconOnline icon="ep:search" />
         </template>
-      </el-input>
-      <el-button type="primary" @click="handleQuery">
+      </ScInput>
+      <ScButton type="primary" @click="handleQuery">
         <IconifyIconOnline icon="ep:search" class="mr-1" />
         搜索
-      </el-button>
+      </ScButton>
     </div>
 
     <!-- 表格区域 -->
     <div class="flex-1 overflow-hidden">
       <ScTable ref="tableRef" :url="fetchData" fixed :filter="filter" :page-size="10" height="100%">
-        <el-table-column type="index" label="#" width="60" align="center" />
-        <el-table-column label="类名" prop="name" min-width="300">
+        <ScTableColumn type="index" label="#" width="60" align="center" />
+        <ScTableColumn label="类名" prop="name" min-width="300">
           <template #default="{ row }">
             <div class="flex items-center gap-2">
               <IconifyIconOnline icon="ri:code-box-line" class="text-primary" />
               <span class="font-mono text-sm" v-html="row.name" />
             </div>
           </template>
-        </el-table-column>
-        <el-table-column label="已加载数" prop="count" width="120" align="center">
+        </ScTableColumn>
+        <ScTableColumn label="已加载数" prop="count" width="120" align="center">
           <template #default="{ row }">
-            <el-tag type="info" size="small">{{ row.count }}</el-tag>
+            <ScTag type="info" size="small">{{ row.count }}</ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" align="center" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="120" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleView(row)">
+            <ScButton link type="primary" @click="handleView(row)">
               <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
               查看
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
+        </ScTableColumn>
       </ScTable>
     </div>
 
     <sc-dialog v-model="config.visibleCfrVisible" title="详情" draggable :close-on-click-modal="false" @close="handleClose">
-      <el-skeleton animated :loading="config.visibleCfrLoading" />
+      <ScSkeleton animated :loading="config.visibleCfrLoading" />
       <div v-if="!config.visibleCfrLoading">
         <pre ref="code" data-prismjs-copy="复制代码" data-prismjs-copy-success="复制成功" data-prismjs-copy-timeout="1000">
           <code class="language-java highlight-keywords show-language">

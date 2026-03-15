@@ -9,16 +9,16 @@ export enum LogLevel {
   INFO = 1,
   WARN = 2,
   ERROR = 3,
-  NONE = 4
+  NONE = 4,
 }
 
 // 日志颜色配置
 const LOG_COLORS = {
-  DEBUG: '#888888', // 灰色
-  INFO: '#0088ff',  // 蓝色
-  WARN: '#ff8800',  // 橙色
-  ERROR: '#ff0000', // 红色
-  GROUP: '#888888'  // 灰色
+  DEBUG: "#888888", // 灰色
+  INFO: "#0088ff", // 蓝色
+  WARN: "#ff8800", // 橙色
+  ERROR: "#ff0000", // 红色
+  GROUP: "#888888", // 灰色
 };
 
 // 日志配置接口
@@ -46,12 +46,12 @@ export class LogObject {
   private constructor(config?: Partial<LogConfig>) {
     this.config = {
       level: LogLevel.INFO,
-      prefix: 'ScLayer',
+      prefix: "ScLayer",
       enabled: true,
       showTime: true,
       showLevel: true,
       useColors: true,
-      ...config
+      ...config,
     };
   }
 
@@ -128,36 +128,39 @@ export class LogObject {
    * @param message 日志消息
    * @returns 格式化后的日志消息与样式
    */
-  private formatMessage(level: string, message: string): { text: string; style?: string } {
+  private formatMessage(
+    level: string,
+    message: string,
+  ): { text: string; style?: string } {
     const parts: string[] = [];
-    
+
     // 添加前缀
     parts.push(`[${this.config.prefix}]`);
-    
+
     // 添加时间
     if (this.config.showTime) {
       const now = new Date();
-      const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`;
+      const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}.${now.getMilliseconds().toString().padStart(3, "0")}`;
       parts.push(`[${time}]`);
     }
-    
+
     // 添加级别
     if (this.config.showLevel) {
       parts.push(`[${level}]`);
     }
-    
+
     // 组合消息
-    const formattedText = `${parts.join(' ')} ${message}`;
-    
+    const formattedText = `${parts.join(" ")} ${message}`;
+
     // 如果启用颜色，返回带样式的对象
     if (this.config.useColors) {
-      const color = LOG_COLORS[level as keyof typeof LOG_COLORS] || '#000000';
+      const color = LOG_COLORS[level as keyof typeof LOG_COLORS] || "#000000";
       return {
         text: formattedText,
-        style: `color: ${color}; font-weight: ${level === 'ERROR' ? 'bold' : 'normal'};`
+        style: `color: ${color}; font-weight: ${level === "ERROR" ? "bold" : "normal"};`,
       };
     }
-    
+
     // 否则仅返回文本
     return { text: formattedText };
   }
@@ -169,8 +172,8 @@ export class LogObject {
    */
   public debug(message: string, ...args: any[]): void {
     if (!this.config.enabled || this.config.level > LogLevel.DEBUG) return;
-    
-    const { text, style } = this.formatMessage('DEBUG', message);
+
+    const { text, style } = this.formatMessage("DEBUG", message);
     if (style) {
       console.log(`%c${text}`, style, ...args);
     } else {
@@ -185,8 +188,8 @@ export class LogObject {
    */
   public info(message: string, ...args: any[]): void {
     if (!this.config.enabled || this.config.level > LogLevel.INFO) return;
-    
-    const { text, style } = this.formatMessage('INFO', message);
+
+    const { text, style } = this.formatMessage("INFO", message);
     if (style) {
       console.info(`%c${text}`, style, ...args);
     } else {
@@ -201,8 +204,8 @@ export class LogObject {
    */
   public warn(message: string, ...args: any[]): void {
     if (!this.config.enabled || this.config.level > LogLevel.WARN) return;
-    
-    const { text, style } = this.formatMessage('WARN', message);
+
+    const { text, style } = this.formatMessage("WARN", message);
     if (style) {
       console.warn(`%c${text}`, style, ...args);
     } else {
@@ -217,8 +220,8 @@ export class LogObject {
    */
   public error(message: string, ...args: any[]): void {
     if (!this.config.enabled || this.config.level > LogLevel.ERROR) return;
-    
-    const { text, style } = this.formatMessage('ERROR', message);
+
+    const { text, style } = this.formatMessage("ERROR", message);
     if (style) {
       console.error(`%c${text}`, style, ...args);
     } else {
@@ -232,8 +235,8 @@ export class LogObject {
    */
   public group(label: string): void {
     if (!this.config.enabled) return;
-    
-    const { text, style } = this.formatMessage('GROUP', label);
+
+    const { text, style } = this.formatMessage("GROUP", label);
     if (style) {
       console.group(`%c${text}`, style);
     } else {
@@ -246,7 +249,7 @@ export class LogObject {
    */
   public groupEnd(): void {
     if (!this.config.enabled) return;
-    
+
     console.groupEnd();
   }
 
@@ -256,7 +259,7 @@ export class LogObject {
    */
   public time(label: string): void {
     if (!this.config.enabled) return;
-    
+
     console.time(label);
   }
 
@@ -266,7 +269,7 @@ export class LogObject {
    */
   public timeEnd(label: string): void {
     if (!this.config.enabled) return;
-    
+
     console.timeEnd(label);
   }
 
@@ -275,10 +278,10 @@ export class LogObject {
    */
   public clear(): void {
     if (!this.config.enabled) return;
-    
+
     console.clear();
   }
-  
+
   /**
    * 启用调试模式
    * 将日志级别设置为DEBUG，并启用详细日志
@@ -286,18 +289,18 @@ export class LogObject {
   public enableDebug(): void {
     this.config.level = LogLevel.DEBUG;
     this.config.enabled = true;
-    this.info('已启用调试模式，将显示所有日志');
+    this.info("已启用调试模式，将显示所有日志");
   }
-  
+
   /**
    * 禁用调试模式
    * 将日志级别设置为INFO，保留基本日志输出
    */
   public disableDebug(): void {
     this.config.level = LogLevel.INFO;
-    this.info('已禁用调试模式，仅显示INFO级别以上日志');
+    this.info("已禁用调试模式，仅显示INFO级别以上日志");
   }
-  
+
   /**
    * 是否处于调试模式
    * @returns 是否处于调试模式
@@ -313,16 +316,21 @@ export class LogObject {
    * @param message 日志消息
    * @param data 附加数据
    */
-  public log(level: 'debug' | 'info' | 'warn' | 'error', module: string, message: string, data?: any): void {
+  public log(
+    level: "debug" | "info" | "warn" | "error",
+    module: string,
+    message: string,
+    data?: any,
+  ): void {
     const formattedMessage = `[${module}] ${message}`;
-    
-    if (level === 'debug') {
+
+    if (level === "debug") {
       this.debug(formattedMessage, data);
-    } else if (level === 'info') {
+    } else if (level === "info") {
       this.info(formattedMessage, data);
-    } else if (level === 'warn') {
+    } else if (level === "warn") {
       this.warn(formattedMessage, data);
-    } else if (level === 'error') {
+    } else if (level === "error") {
       this.error(formattedMessage, data);
     }
   }

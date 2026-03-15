@@ -8,8 +8,8 @@
           文件管理器
         </h1>
         <div class="breadcrumb-container">
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item
+          <ScBreadcrumb separator="/">
+            <ScBreadcrumbItem
               v-for="(item, index) in breadcrumbItems"
               :key="index"
               :to="
@@ -21,63 +21,63 @@
             >
               <IconifyIconOnline :icon="item.icon" class="breadcrumb-icon" />
               {{ item.name }}
-            </el-breadcrumb-item>
-          </el-breadcrumb>
+            </ScBreadcrumbItem>
+          </ScBreadcrumb>
         </div>
       </div>
       <div class="header-right">
         <div class="view-controls">
-          <el-tooltip content="列表视图" placement="bottom">
-            <el-button
+          <ScTooltip content="列表视图" placement="bottom">
+            <ScButton
               :type="viewMode === 'list' ? 'primary' : 'default'"
               class="view-btn"
               @click="viewMode = 'list'"
             >
               <IconifyIconOnline icon="ri:list-unordered" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="网格视图" placement="bottom">
-            <el-button
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip content="网格视图" placement="bottom">
+            <ScButton
               :type="viewMode === 'grid' ? 'primary' : 'default'"
               class="view-btn"
               @click="viewMode = 'grid'"
             >
               <IconifyIconOnline icon="ri:grid-line" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </div>
-        <el-button class="action-btn" @click="refreshCurrentDirectory">
+        <ScButton class="action-btn" @click="refreshCurrentDirectory">
           <IconifyIconOnline icon="ri:refresh-line" class="btn-icon" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button
+        <ScButton
           type="primary"
           class="action-btn"
           @click="showUploadDialog = true"
         >
           <IconifyIconOnline icon="ri:upload-cloud-line" class="btn-icon" />
           上传文件
-        </el-button>
-        <el-button class="action-btn" @click="showCreateFolderDialog = true">
+        </ScButton>
+        <ScButton class="action-btn" @click="showCreateFolderDialog = true">
           <IconifyIconOnline icon="ri:folder-add-line" class="btn-icon" />
           新建文件夹
-        </el-button>
-        <el-divider direction="vertical" />
-        <el-button
+        </ScButton>
+        <ScDivider direction="vertical" />
+        <ScButton
           :disabled="selectedFiles.length === 0"
           class="action-btn"
           @click="downloadSelected"
         >
           <IconifyIconOnline icon="ri:download-line" class="btn-icon" />
           下载
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           :disabled="selectedFiles.length === 0"
           type="danger"
           class="action-btn"
@@ -85,11 +85,11 @@
         >
           <IconifyIconOnline icon="ri:delete-bin-line" class="btn-icon" />
           删除
-        </el-button>
+        </ScButton>
       </div>
       <div class="toolbar-right">
         <div class="search-container">
-          <el-input
+          <ScInput
             v-model="searchQuery"
             placeholder="搜索文件和文件夹..."
             clearable
@@ -99,46 +99,46 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
+          </ScInput>
         </div>
-        <el-dropdown class="sort-dropdown" @command="handleSortChange">
-          <el-button class="action-btn">
+        <ScDropdown class="sort-dropdown" @command="handleSortChange">
+          <ScButton class="action-btn">
             <IconifyIconOnline icon="ri:sort-desc" class="btn-icon" />
             排序
             <IconifyIconOnline
               icon="ri:arrow-down-s-line"
               class="dropdown-icon"
             />
-          </el-button>
+          </ScButton>
           <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="name-asc">
+            <ScDropdownMenu>
+              <ScDropdownItem command="name-asc">
                 <IconifyIconOnline icon="ri:sort-asc" class="menu-icon" />
                 名称 (A-Z)
-              </el-dropdown-item>
-              <el-dropdown-item command="name-desc">
+              </ScDropdownItem>
+              <ScDropdownItem command="name-desc">
                 <IconifyIconOnline icon="ri:sort-desc" class="menu-icon" />
                 名称 (Z-A)
-              </el-dropdown-item>
-              <el-dropdown-item command="size-asc">
+              </ScDropdownItem>
+              <ScDropdownItem command="size-asc">
                 <IconifyIconOnline icon="ri:sort-asc" class="menu-icon" />
                 大小 (小到大)
-              </el-dropdown-item>
-              <el-dropdown-item command="size-desc">
+              </ScDropdownItem>
+              <ScDropdownItem command="size-desc">
                 <IconifyIconOnline icon="ri:sort-desc" class="menu-icon" />
                 大小 (大到小)
-              </el-dropdown-item>
-              <el-dropdown-item command="date-asc">
+              </ScDropdownItem>
+              <ScDropdownItem command="date-asc">
                 <IconifyIconOnline icon="ri:sort-asc" class="menu-icon" />
                 修改时间 (旧到新)
-              </el-dropdown-item>
-              <el-dropdown-item command="date-desc">
+              </ScDropdownItem>
+              <ScDropdownItem command="date-desc">
                 <IconifyIconOnline icon="ri:sort-desc" class="menu-icon" />
                 修改时间 (新到旧)
-              </el-dropdown-item>
-            </el-dropdown-menu>
+              </ScDropdownItem>
+            </ScDropdownMenu>
           </template>
-        </el-dropdown>
+        </ScDropdown>
       </div>
     </div>
 
@@ -151,7 +151,7 @@
             <IconifyIconOnline icon="ri:folder-line" class="sidebar-icon" />
             目录结构
           </h3>
-          <el-button
+          <ScButton
             class="collapse-btn"
             size="small"
             @click="sidebarCollapsed = !sidebarCollapsed"
@@ -163,10 +163,10 @@
                   : 'ri:arrow-left-s-line'
               "
             />
-          </el-button>
+          </ScButton>
         </div>
         <div v-show="!sidebarCollapsed" class="directory-tree">
-          <el-tree
+          <ScTree
             ref="directoryTreeRef"
             :data="directoryTree"
             :props="treeProps"
@@ -187,7 +187,7 @@
                 <span class="node-label">{{ data.name }}</span>
               </div>
             </template>
-          </el-tree>
+          </ScTree>
         </div>
       </div>
 
@@ -204,14 +204,14 @@
             </span>
           </div>
           <div class="list-actions">
-            <el-button
+            <ScButton
               v-if="selectedFiles.length > 0"
               size="small"
               class="clear-btn"
               @click="clearSelection"
             >
               取消选择
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -219,7 +219,7 @@
         <div class="file-list" :class="`view-${viewMode}`">
           <!-- 列表视图 -->
           <div v-if="viewMode === 'list'" class="list-view">
-            <el-table
+            <ScTable
               ref="fileTableRef"
               :data="filteredFiles"
               class="file-table"
@@ -227,8 +227,8 @@
               @selection-change="handleSelectionChange"
               @row-dblclick="handleFileDoubleClick"
             >
-              <el-table-column type="selection" width="55" />
-              <el-table-column label="名称" min-width="300">
+              <ScTableColumn type="selection" width="55" />
+              <ScTableColumn label="名称" min-width="300">
                 <template #default="{ row }">
                   <div class="file-name-cell">
                     <IconifyIconOnline
@@ -237,36 +237,36 @@
                       :class="getFileIconClass(row)"
                     />
                     <span class="file-name">{{ row.name }}</span>
-                    <el-tag v-if="row.isDirectory" size="small" class="dir-tag">
+                    <ScTag v-if="row.isDirectory" size="small" class="dir-tag">
                       文件夹
-                    </el-tag>
+                    </ScTag>
                   </div>
                 </template>
-              </el-table-column>
-              <el-table-column label="大小" width="120" align="right">
+              </ScTableColumn>
+              <ScTableColumn label="大小" width="120" align="right">
                 <template #default="{ row }">
                   <span v-if="!row.isDirectory" class="file-size">
                     {{ formatFileSize(row.size) }}
                   </span>
                   <span v-else class="dir-indicator">--</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="类型" width="120">
+              </ScTableColumn>
+              <ScTableColumn label="类型" width="120">
                 <template #default="{ row }">
                   <span class="file-type">{{ getFileType(row) }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="修改时间" width="180">
+              </ScTableColumn>
+              <ScTableColumn label="修改时间" width="180">
                 <template #default="{ row }">
                   <span class="file-date">{{
                     formatDate(row.lastModified)
                   }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="操作" width="200" fixed="right">
+              </ScTableColumn>
+              <ScTableColumn label="操作" width="200" fixed="right">
                 <template #default="{ row }">
                   <div class="file-actions">
-                    <el-button
+                    <ScButton
                       v-if="!row.isDirectory"
                       size="small"
                       type="primary"
@@ -274,33 +274,33 @@
                       @click="previewFile(row)"
                     >
                       <IconifyIconOnline icon="ri:eye-line" />
-                    </el-button>
-                    <el-button
+                    </ScButton>
+                    <ScButton
                       size="small"
                       class="action-btn-small"
                       @click="downloadFile(row)"
                     >
                       <IconifyIconOnline icon="ri:download-line" />
-                    </el-button>
-                    <el-button
+                    </ScButton>
+                    <ScButton
                       size="small"
                       class="action-btn-small"
                       @click="renameFileValue(row)"
                     >
                       <IconifyIconOnline icon="ri:edit-line" />
-                    </el-button>
-                    <el-button
+                    </ScButton>
+                    <ScButton
                       size="small"
                       type="danger"
                       class="action-btn-small"
                       @click="deleteFile(row)"
                     >
                       <IconifyIconOnline icon="ri:delete-bin-line" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </template>
-              </el-table-column>
-            </el-table>
+              </ScTableColumn>
+            </ScTable>
           </div>
 
           <!-- 网格视图 -->
@@ -341,7 +341,7 @@
                   </div>
                 </div>
                 <div class="file-card-actions">
-                  <el-button
+                  <ScButton
                     v-if="!file.isDirectory"
                     size="small"
                     type="primary"
@@ -350,41 +350,41 @@
                     @click.stop="previewFile(file)"
                   >
                     <IconifyIconOnline icon="ri:eye-line" />
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton
                     size="small"
                     circle
                     class="card-action-btn"
                     @click.stop="downloadFile(file)"
                   >
                     <IconifyIconOnline icon="ri:download-line" />
-                  </el-button>
-                  <el-dropdown
+                  </ScButton>
+                  <ScDropdown
                     trigger="click"
                     @command="(command) => handleFileAction(command, file)"
                   >
-                    <el-button size="small" circle class="card-action-btn">
+                    <ScButton size="small" circle class="card-action-btn">
                       <IconifyIconOnline icon="ri:more-line" />
-                    </el-button>
+                    </ScButton>
                     <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item command="rename">
+                      <ScDropdownMenu>
+                        <ScDropdownItem command="rename">
                           <IconifyIconOnline
                             icon="ri:edit-line"
                             class="menu-icon"
                           />
                           重命名
-                        </el-dropdown-item>
-                        <el-dropdown-item command="delete" class="danger-item">
+                        </ScDropdownItem>
+                        <ScDropdownItem command="delete" class="danger-item">
                           <IconifyIconOnline
                             icon="ri:delete-bin-line"
                             class="menu-icon"
                           />
                           删除
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
+                        </ScDropdownItem>
+                      </ScDropdownMenu>
                     </template>
-                  </el-dropdown>
+                  </ScDropdown>
                 </div>
               </div>
             </div>

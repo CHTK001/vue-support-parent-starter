@@ -77,7 +77,7 @@ export interface SocketTemplate {
   on(
     event: string,
     callback: (data: unknown) => void,
-    options?: SocketTemplateListenOptions
+    options?: SocketTemplateListenOptions,
   ): void;
 
   /**
@@ -122,7 +122,7 @@ export const socketTemplateKeyMap = new Map<
  * @returns InjectionKey<SocketTemplate>
  */
 export function createSocketTemplateKey(
-  keyName: string
+  keyName: string,
 ): InjectionKey<SocketTemplate> {
   if (!socketTemplateKeyMap.has(keyName)) {
     socketTemplateKeyMap.set(keyName, Symbol(`SocketTemplate_${keyName}`));

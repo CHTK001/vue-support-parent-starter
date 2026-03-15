@@ -38,7 +38,9 @@ export interface HolidayQueryParams {
  * @since 2025/1/20
  * @version 1.0.0
  */
-export const fetchHolidayList = (params?: HolidayQueryParams): Promise<ReturnResult<SysHoliday[]>> => {
+export const fetchHolidayList = (
+  params?: HolidayQueryParams,
+): Promise<ReturnResult<SysHoliday[]>> => {
   return http.request<SysHoliday[]>("get", "/v2/holiday/get", { params });
 };
 

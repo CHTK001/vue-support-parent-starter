@@ -180,9 +180,7 @@
               裁剪
             </li>
             <li>
-              <ScIcon 
-                ><IconifyIconOnline icon="ri:rotate-lock-line"
-              /></ScIcon>
+              <ScIcon><IconifyIconOnline icon="ri:rotate-lock-line" /></ScIcon>
               旋转
             </li>
             <li>
@@ -190,7 +188,7 @@
               缩放
             </li>
             <li>
-              <ScIcon 
+              <ScIcon
                 ><IconifyIconOnline icon="ri:flip-horizontal-line"
               /></ScIcon>
               翻转
@@ -461,7 +459,7 @@ const customEditorImage3 = ref("");
 // 事件示例
 const eventImage = ref("");
 const eventLogs = ref<Array<{ time: string; type: string; message: string }>>(
-  []
+  [],
 );
 
 // 方法

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+import { ReMenuNewBadge } from "@repo/components";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import {
   resolvePath as configResolvePath,
@@ -38,30 +38,32 @@ const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
 // 主题感知
 const currentTheme = ref<string>(
   localStorageProxy().getItem<StorageConfigs>(
-    `${responsiveStorageNameSpace()}configure`
-  )?.systemTheme || 'default'
+    `${responsiveStorageNameSpace()}configure`,
+  )?.systemTheme || "default",
 );
 
 // 主题类名映射
 const themeClassMap: Record<string, string> = {
-  'christmas': 'theme-christmas',
-  'spring-festival': 'theme-spring-festival',
-  'mid-autumn': 'theme-mid-autumn',
-  'default': 'theme-default',
-  'default-light': 'theme-default',
-  'default-dark': 'theme-default',
+  christmas: "theme-christmas",
+  "spring-festival": "theme-spring-festival",
+  "mid-autumn": "theme-mid-autumn",
+  default: "theme-default",
+  "default-light": "theme-default",
+  "default-dark": "theme-default",
 };
 
-const themeClass = computed(() => themeClassMap[currentTheme.value] || 'theme-default');
+const themeClass = computed(
+  () => themeClassMap[currentTheme.value] || "theme-default",
+);
 
 onMounted(() => {
-  emitter.on('systemThemeChange', (themeKey: string) => {
+  emitter.on("systemThemeChange", (themeKey: string) => {
     currentTheme.value = themeKey;
   });
 });
 
 onBeforeUnmount(() => {
-  emitter.off('systemThemeChange');
+  emitter.off("systemThemeChange");
 });
 const route = useRoute();
 
@@ -82,8 +84,8 @@ const props = defineProps({
 // 计算当前菜单项是否激活
 const isMenuActive = computed(() => {
   const currentPath = route.path;
-  const itemPath = resolvePath(props.item?.path || '');
-  return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
+  const itemPath = resolvePath(props.item?.path || "");
+  return currentPath === itemPath || currentPath.startsWith(itemPath + "/");
 });
 
 const getNoDropdownStyle = computed((): CSSProperties => {
@@ -91,7 +93,10 @@ const getNoDropdownStyle = computed((): CSSProperties => {
     width: "100%",
     display: "flex",
     alignItems: "center",
-    justifyContent: isCollapse.value && layout.value !== "horizontal" ? "center" : "flex-start",
+    justifyContent:
+      isCollapse.value && layout.value !== "horizontal"
+        ? "center"
+        : "flex-start",
   };
 });
 
@@ -188,9 +193,16 @@ onBeforeUnmount(() => {
     "
     :to="onlyOneChild"
   >
-    <el-menu-item
+    <ScMenuItem
       :index="resolvePath(onlyOneChild.path)"
-      :class="['sidebar-menu-item', themeClass, { 'submenu-title-noDropdown': !isNest, 'menu-animation': menuAnimation }]"
+      :class="[
+        'sidebar-menu-item',
+        themeClass,
+        {
+          'submenu-title-noDropdown': !isNest,
+          'menu-animation': menuAnimation,
+        },
+      ]"
       :style="getNoDropdownStyle"
       v-bind="attrs"
     >
@@ -200,7 +212,7 @@ onBeforeUnmount(() => {
             useRenderIcon(
               toRaw(onlyOneChild?.meta?.icon) ||
                 (item?.meta && toRaw(item?.meta?.icon)) ||
-                'ep:menu'
+                'ep:menu',
             )
           "
         />
@@ -220,7 +232,7 @@ onBeforeUnmount(() => {
       >
         {{
           transformI18n(
-            onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
+            onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title,
           )
         }}
       </span>
@@ -230,7 +242,7 @@ onBeforeUnmount(() => {
           <span class="!w-full menu-text">
             {{
               transformI18n(
-                onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
+                onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title,
               )
             }}
             <ReMenuNewBadge
@@ -246,7 +258,11 @@ onBeforeUnmount(() => {
               :customText="
                 onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
               "
-              :forceShow="forceNewMenu || onlyOneChild?.meta?.permanentNew || item?.meta?.permanentNew"
+              :forceShow="
+                forceNewMenu ||
+                onlyOneChild?.meta?.permanentNew ||
+                item?.meta?.permanentNew
+              "
               :animation="newMenuAnimation"
             />
           </span>
@@ -255,14 +271,18 @@ onBeforeUnmount(() => {
       </template>
       <!-- 主题特色激活装饰 -->
       <ThemeMenuActiveIndicator :is-active="isMenuActive" />
-    </el-menu-item>
+    </ScMenuItem>
   </SidebarLinkItem>
   <el-sub-menu
     v-else
     ref="subMenu"
     teleported
     :index="resolvePath(item.path)"
-    :class="['sidebar-sub-menu', themeClass, { 'menu-animation': menuAnimation }]"
+    :class="[
+      'sidebar-sub-menu',
+      themeClass,
+      { 'menu-animation': menuAnimation },
+    ]"
     v-bind="expandCloseIcon"
   >
     <template #title>
@@ -333,9 +353,15 @@ onBeforeUnmount(() => {
 }
 
 @keyframes menu-bounce {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .sidebar-menu-item,

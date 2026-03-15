@@ -6,7 +6,7 @@
 
     <div class="sc-datetime-input-container">
       <!-- 时间选择器 -->
-      <el-time-picker
+      <ScTimePicker
         v-if="isTimePicker"
         ref="datePickerRef"
         v-model="currentValue"
@@ -27,7 +27,7 @@
         @visible-change="handleVisibleChange"
       />
       <!-- 日期选择器 -->
-      <el-date-picker
+      <ScDatePicker
         v-else
         ref="datePickerRef"
         v-model="currentValue"

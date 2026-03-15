@@ -4,18 +4,40 @@
  * 用 div 替代 el-menu，一级菜单无弹出层
  * 支持溢出菜单 "更多" 功能
  */
-import { computed, ref, provide, onMounted, onBeforeUnmount, nextTick, watch, type Component } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { getConfig, responsiveStorageNameSpace, transformI18n } from '@repo/config';
-import { usePermissionStoreHook, findRouteByPath, getParentPaths, emitter } from '@repo/core';
-import { isAllEmpty } from '@pureadmin/utils';
-import { localStorageProxy } from '@repo/utils';
-import { useRenderIcon } from '@repo/components/ReIcon/src/hooks';
-import type { StorageConfigs } from '@repo/config';
-import { useNav } from '../../../../hooks/useNav';
-import { CustomMenu, CustomMenuItem, CustomSubMenu } from '../../components/custom-menu';
-import LayTool from '../../../lay-tool/index.vue';
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+import {
+  computed,
+  ref,
+  provide,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  watch,
+  type Component,
+} from "vue";
+import { useRoute, useRouter } from "vue-router";
+import {
+  getConfig,
+  responsiveStorageNameSpace,
+  transformI18n,
+} from "@repo/config";
+import {
+  usePermissionStoreHook,
+  findRouteByPath,
+  getParentPaths,
+  emitter,
+} from "@repo/core";
+import { isAllEmpty } from "@pureadmin/utils";
+import { localStorageProxy } from "@repo/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import type { StorageConfigs } from "@repo/config";
+import { useNav } from "../../../../hooks/useNav";
+import {
+  CustomMenu,
+  CustomMenuItem,
+  CustomSubMenu,
+} from "../../components/custom-menu";
+import LayTool from "../../../lay-tool/index.vue";
+import { ReMenuNewBadge } from "@repo/components";
 
 const props = defineProps<{
   /** 主题类名 */
@@ -36,7 +58,7 @@ const permissionStore = usePermissionStoreHook();
 const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
 const forceNewMenu = ref(false);
 const menuAnimation = ref(getConfig().MenuAnimation ?? false);
-const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || "bounce");
 
 onMounted(() => {
   emitter.on("showNewMenuChange", (val) => {
@@ -58,8 +80,9 @@ const defaultActive = computed(() => {
   const wholeMenus = permissionStore.wholeMenus;
   const parentRoutes = getParentPaths(route.path, wholeMenus)[0];
   return !isAllEmpty(route.meta?.activePath)
-    ? route.meta.activePath as string
-    : findRouteByPath(parentRoutes, wholeMenus)?.children?.[0]?.path || route.path;
+    ? (route.meta.activePath as string)
+    : findRouteByPath(parentRoutes, wholeMenus)?.children?.[0]?.path ||
+        route.path;
 });
 
 // 菜单点击
@@ -96,7 +119,7 @@ const overflowMenus = computed(() => {
 // 获取菜单容器 DOM 元素
 function getMenuContainerEl(): HTMLElement | null {
   if (!menuContainerRef.value) return null;
-  if ('$el' in menuContainerRef.value) {
+  if ("$el" in menuContainerRef.value) {
     return (menuContainerRef.value as any).$el as HTMLElement;
   }
   return menuContainerRef.value as HTMLElement;
@@ -107,39 +130,41 @@ function calcVisibleCount() {
   if (!headerRef.value) {
     return;
   }
-  
+
   const totalMenus = allMenus.value.length;
   if (totalMenus === 0) {
     return;
   }
-  
+
   // 获取整个 header 的宽度
   const headerWidth = headerRef.value.clientWidth;
   if (headerWidth === 0) {
     return;
   }
-  
+
   // 获取右侧工具栏的实际宽度
   const rightToolbarWidth = rightToolbarRef.value?.offsetWidth || 300;
-  
+
   // 计算菜单区域的可用宽度
   const padding = 32;
   const menuMargin = 32;
   const availableWidth = headerWidth - rightToolbarWidth - padding - menuMargin;
-  
+
   if (availableWidth <= 0) {
     visibleCount.value = 1;
     return;
   }
-  
+
   // 获取菜单容器
   const menuContainerEl = getMenuContainerEl();
-  
+
   // 获取所有菜单项元素并计算宽度
   const itemWidths: number[] = [];
-  
+
   if (menuContainerEl) {
-    const menuItems = menuContainerEl.querySelectorAll(':scope > .custom-menu-item:not(.more-menu), :scope > .custom-sub-menu:not(.more-menu)');
+    const menuItems = menuContainerEl.querySelectorAll(
+      ":scope > .custom-menu-item:not(.more-menu), :scope > .custom-sub-menu:not(.more-menu)",
+    );
     menuItems.forEach((item) => {
       const el = item as HTMLElement;
       const rect = el.getBoundingClientRect();
@@ -149,28 +174,28 @@ function calcVisibleCount() {
       itemWidths.push(rect.width + marginLeft + marginRight);
     });
   }
-  
+
   // 如果没有测量到宽度，使用估算值
   const estimatedItemWidth = 100;
-  
-  if (itemWidths.length === 0 || itemWidths.every(w => w === 0)) {
+
+  if (itemWidths.length === 0 || itemWidths.every((w) => w === 0)) {
     const safeWidth = availableWidth - MORE_MENU_WIDTH - 20;
     const count = Math.floor(safeWidth / estimatedItemWidth);
     visibleCount.value = Math.max(1, Math.min(count, totalMenus));
     return;
   }
-  
+
   // 计算可以容纳的菜单数量
   let usedWidth = 0;
   let count = 0;
   const safetyMargin = 30;
-  
+
   for (let i = 0; i < totalMenus; i++) {
     const itemWidth = itemWidths[i] || estimatedItemWidth;
     const remainingMenus = totalMenus - i - 1;
     const needMoreMenu = remainingMenus > 0;
     const reservedWidth = needMoreMenu ? MORE_MENU_WIDTH + safetyMargin : 0;
-    
+
     if (usedWidth + itemWidth + reservedWidth <= availableWidth) {
       usedWidth += itemWidth;
       count++;
@@ -178,7 +203,7 @@ function calcVisibleCount() {
       break;
     }
   }
-  
+
   visibleCount.value = Math.max(1, count);
 }
 
@@ -203,13 +228,13 @@ function setupResizeObserver() {
     initTimer = setTimeout(() => setupResizeObserver(), 100);
     return;
   }
-  
+
   resizeObserver?.disconnect();
-  
+
   resizeObserver = new ResizeObserver(() => {
     debouncedCalcVisibleCount();
   });
-  
+
   resizeObserver.observe(headerRef.value);
 }
 
@@ -228,12 +253,16 @@ onBeforeUnmount(() => {
 });
 
 // 监听菜单数据变化
-watch(allMenus, () => {
-  nextTick(() => {
-    visibleCount.value = allMenus.value.length;
-    setTimeout(() => calcVisibleCount(), 100);
-  });
-}, { immediate: false });
+watch(
+  allMenus,
+  () => {
+    nextTick(() => {
+      visibleCount.value = allMenus.value.length;
+      setTimeout(() => calcVisibleCount(), 100);
+    });
+  },
+  { immediate: false },
+);
 
 // 监听 visibleCount 变化，重新计算
 watch(visibleCount, () => {
@@ -241,9 +270,11 @@ watch(visibleCount, () => {
   recalcTimer = setTimeout(() => {
     const menuContainerEl = getMenuContainerEl();
     if (menuContainerEl) {
-      const items = menuContainerEl.querySelectorAll(':scope > .custom-menu-item, :scope > .custom-sub-menu');
+      const items = menuContainerEl.querySelectorAll(
+        ":scope > .custom-menu-item, :scope > .custom-sub-menu",
+      );
       let totalWidth = 0;
-      items.forEach(item => {
+      items.forEach((item) => {
         totalWidth += (item as HTMLElement).offsetWidth;
       });
       if (totalWidth > menuContainerEl.clientWidth && visibleCount.value > 1) {
@@ -274,8 +305,16 @@ watch(visibleCount, () => {
         v-for="menuItem in visibleMenus"
         :key="menuItem.path"
         :index="resolvePath(menuItem) || menuItem.redirect || menuItem.path"
-        :class="['mix-menu-item', menuItemClass, { 'menu-animation': menuAnimation }]"
-        @click="handleMenuClick(resolvePath(menuItem) || menuItem.redirect || menuItem.path)"
+        :class="[
+          'mix-menu-item',
+          menuItemClass,
+          { 'menu-animation': menuAnimation },
+        ]"
+        @click="
+          handleMenuClick(
+            resolvePath(menuItem) || menuItem.redirect || menuItem.path,
+          )
+        "
       >
         <div class="menu-item-content">
           <span v-if="menuItem.meta?.icon" class="menu-icon">
@@ -294,7 +333,7 @@ watch(visibleCount, () => {
           />
         </div>
       </CustomMenuItem>
-      
+
       <!-- 更多菜单（溢出部分） -->
       <CustomSubMenu
         v-if="overflowMenus.length > 0"
@@ -308,21 +347,31 @@ watch(visibleCount, () => {
         <template #title>
           <span class="menu-title">...</span>
         </template>
-        
+
         <!-- 溢出的菜单项 -->
         <CustomMenuItem
           v-for="menuItem in overflowMenus"
           :key="menuItem.path"
           :index="resolvePath(menuItem) || menuItem.redirect || menuItem.path"
-          :class="['mix-menu-item', menuItemClass, { 'menu-animation': menuAnimation }]"
-          @click="handleMenuClick(resolvePath(menuItem) || menuItem.redirect || menuItem.path)"
+          :class="[
+            'mix-menu-item',
+            menuItemClass,
+            { 'menu-animation': menuAnimation },
+          ]"
+          @click="
+            handleMenuClick(
+              resolvePath(menuItem) || menuItem.redirect || menuItem.path,
+            )
+          "
         >
           <div class="menu-item-content">
             <span v-if="menuItem.meta?.icon" class="menu-icon">
               <component :is="useRenderIcon(menuItem.meta.icon)" />
             </span>
             <span class="menu-title">
-              {{ transformI18n(menuItem.meta?.i18nKey || menuItem.meta?.title) }}
+              {{
+                transformI18n(menuItem.meta?.i18nKey || menuItem.meta?.title)
+              }}
             </span>
             <ReMenuNewBadge
               v-if="showNewMenu"
@@ -336,7 +385,7 @@ watch(visibleCount, () => {
         </CustomMenuItem>
       </CustomSubMenu>
     </CustomMenu>
-    
+
     <!-- 右侧工具栏 -->
     <div ref="rightToolbarRef" class="horizontal-header-right">
       <LayTool />
@@ -371,7 +420,7 @@ watch(visibleCount, () => {
   height: 100%;
   margin: 0 16px;
   overflow: hidden;
-  
+
   // 确保菜单项不会被压缩
   :deep(.custom-menu-item),
   :deep(.custom-sub-menu) {
@@ -392,7 +441,7 @@ watch(visibleCount, () => {
 // "更多"菜单样式
 .more-menu {
   flex-shrink: 0;
-  
+
   .menu-title {
     font-size: 16px;
     font-weight: 600;
@@ -406,7 +455,7 @@ watch(visibleCount, () => {
     align-items: center;
     gap: 8px;
   }
-  
+
   .menu-icon {
     display: flex;
     align-items: center;
@@ -414,13 +463,13 @@ watch(visibleCount, () => {
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-    
+
     :deep(svg) {
       width: 18px;
       height: 18px;
     }
   }
-  
+
   .menu-title {
     font-size: 14px;
     white-space: nowrap;
@@ -437,8 +486,14 @@ watch(visibleCount, () => {
 }
 
 @keyframes menu-bounce {
-  0% { transform: scale(1); }
-  50% { transform: scale(0.95); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style>

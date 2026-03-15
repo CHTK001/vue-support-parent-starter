@@ -10,17 +10,27 @@ export type BigModel = {
  * 获取模型列表
  */
 export const fetchListModel = () => {
-  return http.request<ReturnResult<boolean>>("get", "/v2/api/language/models", {});
+  return http.request<ReturnResult<boolean>>(
+    "get",
+    "/v2/api/language/models",
+    {},
+  );
 };
 /**
  * 获取模型列表
  */
 export const fetchCall = (params) => {
-  return http.request<ReturnResult<boolean>>("get", "/v2/api/language/call", { params });
+  return http.request<ReturnResult<boolean>>("get", "/v2/api/language/call", {
+    params,
+  });
 };
 /**
  * 获取模型列表
  */
 export const fetchCallStream = (params) => {
-  return getConfig().BaseUrl + "/v2/api/language/stream?" + encodeSearchParams(params);
+  return (
+    getConfig().BaseUrl +
+    "/v2/api/language/stream?" +
+    encodeSearchParams(params)
+  );
 };

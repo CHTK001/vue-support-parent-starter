@@ -1,6 +1,6 @@
 <template>
   <div class="latency-statistics-panel system-container modern-bg">
-    <el-card class="statistics-card" shadow="hover">
+    <ScCard class="statistics-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <div class="header-left">
@@ -8,16 +8,16 @@
             <span class="header-title">延迟统计</span>
           </div>
           <div class="header-right">
-            <el-tooltip content="刷新统计数据" placement="top">
-              <el-button
+            <ScTooltip content="刷新统计数据" placement="top">
+              <ScButton
                 size="small"
                 circle
                 :loading="loading"
                 @click="refreshStatistics"
               >
                 <IconifyIconOnline icon="ep:refresh" />
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
           </div>
         </div>
       </template>
@@ -97,7 +97,7 @@
                 <span class="server-name">{{ alert.serverName }}</span>
                 <span class="latency-value">{{ alert.latency }}ms</span>
               </div>
-              <el-tag type="danger" size="small">异常</el-tag>
+              <ScTag type="danger" size="small">异常</ScTag>
             </div>
             <div v-if="alerts.length > 3" class="more-alerts">
               还有 {{ alerts.length - 3 }} 个服务器延迟异常
@@ -111,7 +111,7 @@
           <span class="update-value">{{ formatUpdateTime }}</span>
         </div>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

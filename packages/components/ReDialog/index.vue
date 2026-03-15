@@ -172,7 +172,7 @@ function handleClose(
       </template>
       <span v-else>
         <template v-for="(btn, key) in footerButtons(options)" :key="key">
-          <el-popconfirm
+          <ScPopconfirm
             v-if="btn.popconfirm"
             v-bind="btn.popconfirm"
             @confirm="
@@ -183,10 +183,10 @@ function handleClose(
             "
           >
             <template #reference>
-              <el-button v-bind="btn">{{ btn?.label }}</el-button>
+              <ScButton v-bind="btn">{{ btn?.label }}</ScButton>
             </template>
-          </el-popconfirm>
-          <el-button
+          </ScPopconfirm>
+          <ScButton
             v-else
             v-bind="btn"
             :loading="key === 1 && sureBtnMap[index]?.loading"
@@ -198,7 +198,7 @@ function handleClose(
             "
           >
             {{ btn?.label }}
-          </el-button>
+          </ScButton>
         </template>
       </span>
     </template>

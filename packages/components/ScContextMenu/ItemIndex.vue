@@ -1,22 +1,22 @@
 <template>
   <div ref="item" class="flex flex-1 justify-start">
     <span v-if="menu.children && menu.children.length > 0" class="flex flex-1 justify-start" @mouseenter="handleEnter" @mouseleave="handleLeave">
-      <el-icon class="top-[4px]">
+      <ScIcon class="top-[4px]">
         <component :is="useRenderIcon(menu.icon)" />
-      </el-icon>
+      </ScIcon>
       <span style="margin-left: 10px">
         {{ menu.name }}
       </span>
-      <el-icon class="top-[4px]">
+      <ScIcon class="top-[4px]">
         <component :is="useRenderIcon('ep:arrow-right')" />
-      </el-icon>
+      </ScIcon>
       <Itemlayout2 key="children2" v-model="visible" :data="data" :node="node" :menus="menu.children" :position="position" />
     </span>
 
     <span v-else class="flex flex-1 justify-start">
-      <el-icon class="top-[4px]">
+      <ScIcon class="top-[4px]">
         <component :is="useRenderIcon(menu.icon)" />
-      </el-icon>
+      </ScIcon>
       <span style="margin-left: 10px">
         {{ menu.name }}
       </span>
@@ -159,17 +159,17 @@ export default {
 }
 
 .right_item_light:hover {
-    background-color: var(--el-fill-color-light);
-    color: var(--el-color-primary);
-  }
-  .right_item_dark {
-    color: var(--el-text-color-regular);
-    font-size: 13px;
-  }
-  .right_item_dark:hover {
-    background-color: var(--el-fill-color);
-    color: var(--el-color-primary);
-  }
+  background-color: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+.right_item_dark {
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+}
+.right_item_dark:hover {
+  background-color: var(--el-fill-color);
+  color: var(--el-color-primary);
+}
 .right_item_enable_light {
   color: #b6b6b6;
 }

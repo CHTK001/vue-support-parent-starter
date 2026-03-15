@@ -62,7 +62,7 @@ onMounted(() => {
         <IconifyIconOnline icon="ri:refresh-line" />
       </div>
     </div>
-    
+
     <div class="ip-body">
       <div class="ip-value-box">
         <div class="ip-value">{{ env.currentIP }}</div>
@@ -72,7 +72,10 @@ onMounted(() => {
       </div>
       <div class="ip-location">
         <IconifyIconOnline icon="ri:map-pin-2-line" />
-        <span>{{ env.details.country }} · {{ env.details.region }} · {{ env.details.city }}</span>
+        <span
+          >{{ env.details.country }} · {{ env.details.region }} ·
+          {{ env.details.city }}</span
+        >
       </div>
       <div class="ip-isp">
         <IconifyIconOnline icon="ri:broadcast-line" />
@@ -95,7 +98,7 @@ onMounted(() => {
   cursor: pointer;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   transition: all 0.3s;
-  
+
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
@@ -107,12 +110,12 @@ onMounted(() => {
   align-items: center;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  
+
   .header-left {
     display: flex;
     align-items: center;
     gap: 4px;
-    
+
     .header-icon {
       font-size: 16px;
       color: var(--el-color-primary);
@@ -127,8 +130,12 @@ onMounted(() => {
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .ip-body {
@@ -143,29 +150,32 @@ onMounted(() => {
   padding: 8px 12px;
   border-radius: 8px;
   margin-bottom: 10px;
-  
+
   .ip-value {
     font-size: 18px;
     font-weight: bold;
     color: var(--el-text-color-primary);
     font-family: monospace;
   }
-  
+
   .copy-btn {
     color: var(--el-text-color-secondary);
     transition: color 0.2s;
-    &:hover { color: var(--el-color-primary); }
+    &:hover {
+      color: var(--el-color-primary);
+    }
   }
 }
 
-.ip-location, .ip-isp {
+.ip-location,
+.ip-isp {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
   color: var(--el-text-color-secondary);
   margin-top: 4px;
-  
+
   span {
     white-space: nowrap;
     overflow: hidden;

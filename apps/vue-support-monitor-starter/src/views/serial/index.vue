@@ -9,75 +9,75 @@
         <h3 class="text-lg font-medium">串口监控</h3>
       </div>
       <div class="flex items-center gap-2">
-        <el-button type="primary" @click="goToManage">
+        <ScButton type="primary" @click="goToManage">
           <IconifyIconOnline icon="ep:monitor" class="mr-1" />
           高级管理
-        </el-button>
-        <el-button type="primary" @click="openSerialSettings">
+        </ScButton>
+        <ScButton type="primary" @click="openSerialSettings">
           <IconifyIconOnline icon="ep:setting" class="mr-1" />
           配置
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="success"
           :disabled="isConnected"
           @click="handleConnect"
         >
           <IconifyIconOnline icon="ep:connection" class="mr-1" />
           连接
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="danger"
           :disabled="!isConnected"
           @click="handleDisconnect"
         >
           <IconifyIconOnline icon="ep:close-bold" class="mr-1" />
           断开
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
-    <el-card class="serial-content">
+    <ScCard class="serial-content">
       <div class="serial-monitor">
         <div ref="serialOutputRef" class="serial-output">
           <pre class="output-content">{{ serialOutput }}</pre>
         </div>
         <div class="serial-input mt-4">
           <div class="flex items-center">
-            <el-input
+            <ScInput
               v-model="serialInput"
               placeholder="输入发送内容"
               class="flex-1"
               @keyup.enter="handleSend"
             >
               <template #append>
-                <el-select v-model="sendMode" style="width: 120px">
-                  <el-option label="发送文本" value="text" />
-                  <el-option label="发送HEX" value="hex" />
-                </el-select>
+                <ScSelect v-model="sendMode" style="width: 120px">
+                  <ScOption label="发送文本" value="text" />
+                  <ScOption label="发送HEX" value="hex" />
+                </ScSelect>
               </template>
-            </el-input>
-            <el-button
+            </ScInput>
+            <ScButton
               type="primary"
               class="ml-2"
               :disabled="!isConnected"
               @click="handleSend"
             >
               发送
-            </el-button>
-            <el-button class="ml-2" @click="clearOutput"> 清空 </el-button>
+            </ScButton>
+            <ScButton class="ml-2" @click="clearOutput"> 清空 </ScButton>
           </div>
           <div class="send-options mt-2 flex items-center">
-            <el-checkbox v-model="autoScroll">自动滚动</el-checkbox>
-            <el-checkbox v-model="addTimestamp" class="ml-4"
+            <ScCheckbox v-model="autoScroll">自动滚动</ScCheckbox>
+            <ScCheckbox v-model="addTimestamp" class="ml-4"
               >添加时间戳</el-checkbox
             >
-            <el-checkbox v-model="addNewline" class="ml-4"
+            <ScCheckbox v-model="addNewline" class="ml-4"
               >发送后添加换行</el-checkbox
             >
           </div>
         </div>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 串口设置对话框 -->
     <sc-dialog
@@ -86,110 +86,110 @@
       width="500px"
       destroy-on-close
     >
-      <el-form :model="serialSettings" label-width="100px">
-        <el-form-item label="串口">
-          <el-select
+      <ScForm :model="serialSettings" label-width="100px">
+        <ScFormItem label="串口">
+          <ScSelect
             v-model="serialSettings.monitorSerialPort"
             placeholder="选择串口"
             class="w-full"
           >
-            <el-option
+            <ScOption
               v-for="port in availablePorts"
               :key="port.path"
               :label="`${port.path} (${port.manufacturer || '未知设备'})`"
               :value="port.path"
             />
-          </el-select>
+          </ScSelect>
           <div class="text-right mt-2">
-            <el-button size="small" @click="refreshPorts"
+            <ScButton size="small" @click="refreshPorts"
               >刷新串口列表</el-button
             >
           </div>
-        </el-form-item>
-        <el-form-item label="波特率">
-          <el-select
+        </ScFormItem>
+        <ScFormItem label="波特率">
+          <ScSelect
             v-model="serialSettings.monitorSerialBaudRate"
             placeholder="选择波特率"
             class="w-full"
           >
-            <el-option :value="110" label="110" />
-            <el-option :value="300" label="300" />
-            <el-option :value="1200" label="1200" />
-            <el-option :value="2400" label="2400" />
-            <el-option :value="4800" label="4800" />
-            <el-option :value="9600" label="9600" />
-            <el-option :value="14400" label="14400" />
-            <el-option :value="19200" label="19200" />
-            <el-option :value="38400" label="38400" />
-            <el-option :value="57600" label="57600" />
-            <el-option :value="115200" label="115200" />
-            <el-option :value="230400" label="230400" />
-            <el-option :value="460800" label="460800" />
-            <el-option :value="921600" label="921600" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="数据位">
-          <el-select
+            <ScOption :value="110" label="110" />
+            <ScOption :value="300" label="300" />
+            <ScOption :value="1200" label="1200" />
+            <ScOption :value="2400" label="2400" />
+            <ScOption :value="4800" label="4800" />
+            <ScOption :value="9600" label="9600" />
+            <ScOption :value="14400" label="14400" />
+            <ScOption :value="19200" label="19200" />
+            <ScOption :value="38400" label="38400" />
+            <ScOption :value="57600" label="57600" />
+            <ScOption :value="115200" label="115200" />
+            <ScOption :value="230400" label="230400" />
+            <ScOption :value="460800" label="460800" />
+            <ScOption :value="921600" label="921600" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="数据位">
+          <ScSelect
             v-model="serialSettings.monitorSerialDataBits"
             placeholder="选择数据位"
             class="w-full"
           >
-            <el-option :value="5" label="5" />
-            <el-option :value="6" label="6" />
-            <el-option :value="7" label="7" />
-            <el-option :value="8" label="8" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="停止位">
-          <el-select
+            <ScOption :value="5" label="5" />
+            <ScOption :value="6" label="6" />
+            <ScOption :value="7" label="7" />
+            <ScOption :value="8" label="8" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="停止位">
+          <ScSelect
             v-model="serialSettings.monitorSerialStopBits"
             placeholder="选择停止位"
             class="w-full"
           >
-            <el-option :value="1" label="1" />
-            <el-option :value="1.5" label="1.5" />
-            <el-option :value="2" label="2" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="校验位">
-          <el-select
+            <ScOption :value="1" label="1" />
+            <ScOption :value="1.5" label="1.5" />
+            <ScOption :value="2" label="2" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="校验位">
+          <ScSelect
             v-model="serialSettings.monitorSerialParity"
             placeholder="选择校验位"
             class="w-full"
           >
-            <el-option value="none" label="无校验" />
-            <el-option value="even" label="偶校验" />
-            <el-option value="odd" label="奇校验" />
-            <el-option value="mark" label="标记校验" />
-            <el-option value="space" label="空格校验" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="流控制">
-          <el-select
+            <ScOption value="none" label="无校验" />
+            <ScOption value="even" label="偶校验" />
+            <ScOption value="odd" label="奇校验" />
+            <ScOption value="mark" label="标记校验" />
+            <ScOption value="space" label="空格校验" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="流控制">
+          <ScSelect
             v-model="serialSettings.monitorSerialFlowControl"
             placeholder="选择流控制"
             class="w-full"
           >
-            <el-option value="none" label="无" />
-            <el-option value="hardware" label="硬件流控" />
-            <el-option value="software" label="软件流控" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="接收格式">
-          <el-select
+            <ScOption value="none" label="无" />
+            <ScOption value="hardware" label="硬件流控" />
+            <ScOption value="software" label="软件流控" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="接收格式">
+          <ScSelect
             v-model="serialSettings.monitorSerialReceiveFormat"
             placeholder="选择接收格式"
             class="w-full"
           >
-            <el-option value="text" label="文本" />
-            <el-option value="hex" label="HEX" />
-          </el-select>
-        </el-form-item>
-      </el-form>
+            <ScOption value="text" label="文本" />
+            <ScOption value="hex" label="HEX" />
+          </ScSelect>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="settingsVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveSettings">确定</el-button>
+          <ScButton @click="settingsVisible = false">取消</ScButton>
+          <ScButton type="primary" @click="saveSettings">确定</ScButton>
         </span>
       </template>
     </sc-dialog>

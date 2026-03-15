@@ -12,7 +12,7 @@
 import { defineAsyncComponent, defineExpose, watch } from "vue";
 
 const MerchantIndex = defineAsyncComponent(
-  () => import("./merchant/index.vue")
+  () => import("./merchant/index.vue"),
 );
 
 // defineExpose 和 watch 必须放在最后（遵循项目规则）
@@ -22,7 +22,7 @@ defineExpose({});
 watch(
   () => null,
   () => {},
-  { deep: true }
+  { deep: true },
 );
 </script>
 

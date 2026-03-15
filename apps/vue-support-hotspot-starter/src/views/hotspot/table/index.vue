@@ -21,38 +21,38 @@
 
     <!-- 表格区域 -->
     <div class="flex-1 overflow-hidden">
-      <el-card class="h-full" shadow="never">
-        <el-table :data="data" border stripe style="width: 100%" row-key="name" height="100%">
-          <el-table-column type="index" label="#" width="60" align="center" />
-          <el-table-column prop="name" label="表名" min-width="200">
+      <ScCard class="h-full" shadow="never">
+        <ScTable :data="data" border stripe style="width: 100%" row-key="name" height="100%">
+          <ScTableColumn type="index" label="#" width="60" align="center" />
+          <ScTableColumn prop="name" label="表名" min-width="200">
             <template #default="{ row }">
               <div class="flex items-center gap-2">
                 <IconifyIconOnline icon="ri:table-line" class="text-primary" />
                 <span class="font-medium">{{ row.name }}</span>
               </div>
             </template>
-          </el-table-column>
-          <el-table-column prop="comment" label="注释" min-width="250" show-overflow-tooltip />
-          <el-table-column prop="engine" label="引擎" width="120" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="comment" label="注释" min-width="250" show-overflow-tooltip />
+          <ScTableColumn prop="engine" label="引擎" width="120" align="center">
             <template #default="{ row }">
-              <el-tag size="small" type="info">{{ row.engine }}</el-tag>
+              <ScTag size="small" type="info">{{ row.engine }}</ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="rows" label="行数" width="120" align="right">
+          </ScTableColumn>
+          <ScTableColumn prop="rows" label="行数" width="120" align="right">
             <template #default="{ row }">
               <span class="font-mono">{{ row.rows?.toLocaleString() }}</span>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="120" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" @click="handleInfo(row)">
+              <ScButton link type="primary" @click="handleInfo(row)">
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详情
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+          </ScTableColumn>
+        </ScTable>
+      </ScCard>
     </div>
 
     <!-- 详情对话框 -->

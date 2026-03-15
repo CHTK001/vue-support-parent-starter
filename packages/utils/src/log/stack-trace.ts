@@ -95,13 +95,14 @@ let isInitialized = false;
 /**
  * 是否在浏览器环境
  */
-const isBrowser = typeof window !== 'undefined';
+const isBrowser = typeof window !== "undefined";
 
 /**
  * 原始 prepareStackTrace（如果存在）
  */
-let originalPrepareStackTrace: ((error: Error, stack: CallSite[]) => any) | undefined;
-
+let originalPrepareStackTrace:
+  | ((error: Error, stack: CallSite[]) => any)
+  | undefined;
 
 /**
  * 全局错误监听器（浏览器环境）
@@ -111,7 +112,9 @@ let globalErrorHandler: ((event: ErrorEvent) => void) | undefined;
 /**
  * Promise 未处理错误监听器（浏览器环境）
  */
-let unhandledRejectionHandler: ((event: PromiseRejectionEvent) => void) | undefined;
+let unhandledRejectionHandler:
+  | ((event: PromiseRejectionEvent) => void)
+  | undefined;
 
 /**
  * 正在处理的错误集合（防止递归）
@@ -144,7 +147,7 @@ function formatCallSite(callSite: CallSite, index: number): string | null {
     const typeName = callSite.getTypeName();
     const methodName = callSite.getMethodName();
 
-    let funcInfo = '';
+    let funcInfo = "";
     if (showTypeName && typeName) {
       funcInfo = typeName;
     }
@@ -157,7 +160,7 @@ function formatCallSite(callSite: CallSite, index: number): string | null {
     if (funcInfo) {
       parts.push(funcInfo);
     } else {
-      parts.push('<anonymous>');
+      parts.push("<anonymous>");
     }
   }
 
@@ -181,7 +184,7 @@ function formatCallSite(callSite: CallSite, index: number): string | null {
     parts.push(`(line ${lineNumber})`);
   }
 
-  return parts.length > 0 ? `    at ${parts.join(' ')}` : null;
+  return parts.length > 0 ? `    at ${parts.join(" ")}` : null;
 }
 
 /**
@@ -235,7 +238,7 @@ function shouldFilterBrowser(frame: StackFrame): boolean {
  */
 function parseBrowserStack(stack: string): StackFrame[] {
   const frames: StackFrame[] = [];
-  const lines = stack.split('\n');
+  const lines = stack.split("\n");
 
   // 跳过第一行（错误消息）
   for (let i = 1; i < lines.length; i++) {
@@ -246,7 +249,7 @@ function parseBrowserStack(stack: string): StackFrame[] {
 
     // 匹配格式：at functionName (fileName:line:column) 或 at fileName:line:column
     // 也匹配：functionName@fileName:line:column（Firefox）
-    
+
     // Chrome/Edge: at functionName (fileName:line:column)
     let match = line.match(/^\s*at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)$/);
     if (match) {
@@ -255,7 +258,7 @@ function parseBrowserStack(stack: string): StackFrame[] {
         fileName: match[2],
         lineNumber: parseInt(match[3], 10),
         columnNumber: parseInt(match[4], 10),
-        isNative: match[2] === '<anonymous>' || match[2].startsWith('native'),
+        isNative: match[2] === "<anonymous>" || match[2].startsWith("native"),
       };
       frames.push(frame);
       continue;
@@ -269,7 +272,7 @@ function parseBrowserStack(stack: string): StackFrame[] {
         fileName: match[2],
         lineNumber: parseInt(match[3], 10),
         columnNumber: parseInt(match[4], 10),
-        isNative: match[2] === '<anonymous>' || match[2].startsWith('native'),
+        isNative: match[2] === "<anonymous>" || match[2].startsWith("native"),
       };
       frames.push(frame);
       continue;
@@ -282,7 +285,7 @@ function parseBrowserStack(stack: string): StackFrame[] {
         fileName: match[1],
         lineNumber: parseInt(match[2], 10),
         columnNumber: parseInt(match[3], 10),
-        isNative: match[1] === '<anonymous>' || match[1].startsWith('native'),
+        isNative: match[1] === "<anonymous>" || match[1].startsWith("native"),
       };
       frames.push(frame);
       continue;
@@ -293,7 +296,7 @@ function parseBrowserStack(stack: string): StackFrame[] {
     if (match) {
       const frame: StackFrame = {
         functionName: match[1].trim(),
-        isNative: match[1].includes('native'),
+        isNative: match[1].includes("native"),
       };
       frames.push(frame);
     }
@@ -326,7 +329,7 @@ function formatBrowserFrame(frame: StackFrame, index: number): string | null {
     if (frame.functionName) {
       parts.push(frame.functionName);
     } else {
-      parts.push('<anonymous>');
+      parts.push("<anonymous>");
     }
   }
 
@@ -346,7 +349,7 @@ function formatBrowserFrame(frame: StackFrame, index: number): string | null {
     parts.push(`(line ${frame.lineNumber})`);
   }
 
-  return parts.length > 0 ? `    at ${parts.join(' ')}` : null;
+  return parts.length > 0 ? `    at ${parts.join(" ")}` : null;
 }
 
 /**
@@ -355,13 +358,13 @@ function formatBrowserFrame(frame: StackFrame, index: number): string | null {
  * @param originalStack 原始堆栈字符串（可选，避免递归访问 error.stack）
  */
 function formatBrowserStack(error: Error, originalStack?: string): string {
-  const errorName = error.name || 'Error';
-  const errorMessage = error.message || '';
+  const errorName = error.name || "Error";
+  const errorMessage = error.message || "";
   const header = errorMessage ? `${errorName}: ${errorMessage}` : errorName;
 
   // 使用提供的原始堆栈，绝不访问 error.stack（避免触发 getter 导致递归）
   const stackString = originalStack ?? (error as any).__originalStack;
-  
+
   if (!stackString) {
     return header;
   }
@@ -394,7 +397,7 @@ function formatBrowserStack(error: Error, originalStack?: string): string {
     return header;
   }
 
-  return stackLines.join('\n');
+  return stackLines.join("\n");
 }
 
 /**
@@ -402,17 +405,17 @@ function formatBrowserStack(error: Error, originalStack?: string): string {
  */
 function customPrepareStackTrace(
   error: Error,
-  structuredStackTrace: CallSite[]
+  structuredStackTrace: CallSite[],
 ): string {
   // 如果正在处理中，返回基本错误信息（防止递归）
   if (processingErrors.has(error)) {
-    const errorName = error.name || 'Error';
-    const errorMessage = error.message || '';
+    const errorName = error.name || "Error";
+    const errorMessage = error.message || "";
     return errorMessage ? `${errorName}: ${errorMessage}` : errorName;
   }
 
-  const errorName = error.name || 'Error';
-  const errorMessage = error.message || '';
+  const errorName = error.name || "Error";
+  const errorMessage = error.message || "";
   const header = errorMessage ? `${errorName}: ${errorMessage}` : errorName;
 
   const stackLines: string[] = [header];
@@ -421,7 +424,9 @@ function customPrepareStackTrace(
   for (const callSite of structuredStackTrace) {
     // 检查深度限制
     if (depth >= currentOptions.maxDepth) {
-      stackLines.push(`    ... (${structuredStackTrace.length - depth} more frames)`);
+      stackLines.push(
+        `    ... (${structuredStackTrace.length - depth} more frames)`,
+      );
       break;
     }
 
@@ -442,7 +447,7 @@ function customPrepareStackTrace(
     return header;
   }
 
-  return stackLines.join('\n');
+  return stackLines.join("\n");
 }
 
 /**
@@ -460,25 +465,31 @@ export function formatErrorStack(error: Error): string {
   }
 
   // Node.js 环境：使用 prepareStackTrace（如果已初始化）
-  if (typeof Error.prepareStackTrace !== 'undefined' && isInitialized) {
+  if (typeof Error.prepareStackTrace !== "undefined" && isInitialized) {
     try {
       // 标记为正在处理
       processingErrors.add(error);
-      
+
       try {
         // 优先使用已保存的原始堆栈（避免触发 getter）
         let originalStack: string | undefined = (error as any).__originalStack;
-        
+
         if (!originalStack) {
           // 安全地获取堆栈，避免触发循环
           try {
-            const stackDescriptor = Object.getOwnPropertyDescriptor(error, 'stack');
+            const stackDescriptor = Object.getOwnPropertyDescriptor(
+              error,
+              "stack",
+            );
             if (stackDescriptor && stackDescriptor.get) {
               // 如果有 getter，尝试调用但捕获可能的递归错误
               try {
                 originalStack = stackDescriptor.get.call(error) as string;
               } catch (e) {
-                if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+                if (
+                  e instanceof RangeError &&
+                  e.message.includes("Maximum call stack")
+                ) {
                   originalStack = `${error.name}: ${error.message}`;
                 } else {
                   throw e;
@@ -488,29 +499,34 @@ export function formatErrorStack(error: Error): string {
               // 没有 getter，直接访问
               originalStack = error.stack;
             }
-            
+
             if (originalStack) {
               (error as any).__originalStack = originalStack;
             }
           } catch (e) {
-            if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+            if (
+              e instanceof RangeError &&
+              e.message.includes("Maximum call stack")
+            ) {
               originalStack = `${error.name}: ${error.message}`;
             } else {
               // 其他错误，尝试直接读取
-              originalStack = (error as any).stack || `${error.name}: ${error.message}`;
+              originalStack =
+                (error as any).stack || `${error.name}: ${error.message}`;
             }
           }
         }
-        
+
         // 访问 error.stack 会触发 customPrepareStackTrace
         // 但如果已经有原始堆栈，customPrepareStackTrace 应该使用它
-        const result = error.stack || originalStack || `${error.name}: ${error.message}`;
-        
+        const result =
+          error.stack || originalStack || `${error.name}: ${error.message}`;
+
         // 缓存格式化结果
         if (result && result !== `${error.name}: ${error.message}`) {
           (error as any).__formattedStack = result;
         }
-        
+
         return result;
       } finally {
         processingErrors.delete(error);
@@ -518,10 +534,10 @@ export function formatErrorStack(error: Error): string {
     } catch (e) {
       processingErrors.delete(error);
       // 如果出现 RangeError，返回基本错误信息
-      if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+      if (e instanceof RangeError && e.message.includes("Maximum call stack")) {
         return `${error.name}: ${error.message}`;
       }
-      console.error('[堆栈格式化] 格式化过程中发生异常:', e);
+      console.error("[堆栈格式化] 格式化过程中发生异常:", e);
       return `${error.name}: ${error.message}`;
     }
   }
@@ -536,21 +552,27 @@ export function formatErrorStack(error: Error): string {
 
       // 优先使用已保存的原始堆栈
       let originalStack: string | undefined = (error as any).__originalStack;
-      
+
       // 如果没有保存的原始堆栈，安全地获取原始堆栈
       if (!originalStack) {
         // 标记为正在处理
         processingErrors.add(error);
-        
+
         try {
           // 使用更安全的方式获取堆栈
           try {
-            const stackDescriptor = Object.getOwnPropertyDescriptor(error, 'stack');
+            const stackDescriptor = Object.getOwnPropertyDescriptor(
+              error,
+              "stack",
+            );
             if (stackDescriptor && stackDescriptor.get) {
               try {
                 originalStack = stackDescriptor.get.call(error) as string;
               } catch (e) {
-                if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+                if (
+                  e instanceof RangeError &&
+                  e.message.includes("Maximum call stack")
+                ) {
                   originalStack = `${error.name}: ${error.message}`;
                 } else {
                   throw e;
@@ -560,13 +582,16 @@ export function formatErrorStack(error: Error): string {
               originalStack = error.stack;
             }
           } catch (e) {
-            if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+            if (
+              e instanceof RangeError &&
+              e.message.includes("Maximum call stack")
+            ) {
               originalStack = `${error.name}: ${error.message}`;
             } else {
               originalStack = (error as any).stack;
             }
           }
-          
+
           if (originalStack) {
             (error as any).__originalStack = originalStack;
           }
@@ -574,7 +599,7 @@ export function formatErrorStack(error: Error): string {
           processingErrors.delete(error);
         }
       }
-      
+
       if (originalStack) {
         const formatted = formatBrowserStack(error, originalStack);
         // 缓存格式化结果
@@ -583,10 +608,10 @@ export function formatErrorStack(error: Error): string {
       }
     } catch (e) {
       // 如果出现 RangeError，返回基本错误信息
-      if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+      if (e instanceof RangeError && e.message.includes("Maximum call stack")) {
         return `${error.name}: ${error.message}`;
       }
-      console.error('[堆栈格式化] 格式化过程中发生异常:', e);
+      console.error("[堆栈格式化] 格式化过程中发生异常:", e);
     }
   }
 
@@ -632,17 +657,23 @@ export function initStackTrace(options?: StackTraceOptions): boolean {
       try {
         // 使用更安全的方式获取堆栈，避免触发 getter 导致递归
         let originalStack: string | undefined;
-        
+
         try {
           // 尝试直接访问 stack 属性
-          const stackDescriptor = Object.getOwnPropertyDescriptor(error, 'stack');
+          const stackDescriptor = Object.getOwnPropertyDescriptor(
+            error,
+            "stack",
+          );
           if (stackDescriptor && stackDescriptor.get) {
             // 如果有 getter，尝试调用但捕获可能的递归错误
             try {
               originalStack = stackDescriptor.get.call(error) as string;
             } catch (e) {
               // 如果访问 stack 导致 RangeError，说明可能有递归
-              if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+              if (
+                e instanceof RangeError &&
+                e.message.includes("Maximum call stack")
+              ) {
                 // 从错误消息中提取信息
                 originalStack = `${error.name}: ${error.message}`;
               } else {
@@ -655,7 +686,10 @@ export function initStackTrace(options?: StackTraceOptions): boolean {
           }
         } catch (e) {
           // 如果访问 stack 导致 RangeError，说明可能有递归
-          if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+          if (
+            e instanceof RangeError &&
+            e.message.includes("Maximum call stack")
+          ) {
             originalStack = `${error.name}: ${error.message}`;
           } else {
             // 其他错误，尝试直接读取
@@ -675,7 +709,7 @@ export function initStackTrace(options?: StackTraceOptions): boolean {
         if (!(error as any).__originalStack) {
           (error as any).__originalStack = `${error.name}: ${error.message}`;
         }
-        console.error('[堆栈格式化] 格式化过程中发生异常:', e);
+        console.error("[堆栈格式化] 格式化过程中发生异常:", e);
       } finally {
         // 处理完成后移除标记
         processingErrors.delete(error);
@@ -705,17 +739,23 @@ export function initStackTrace(options?: StackTraceOptions): boolean {
       try {
         // 使用更安全的方式获取堆栈，避免触发 getter 导致递归
         let originalStack: string | undefined;
-        
+
         try {
           // 尝试直接访问 stack 属性
-          const stackDescriptor = Object.getOwnPropertyDescriptor(reason, 'stack');
+          const stackDescriptor = Object.getOwnPropertyDescriptor(
+            reason,
+            "stack",
+          );
           if (stackDescriptor && stackDescriptor.get) {
             // 如果有 getter，尝试调用但捕获可能的递归错误
             try {
               originalStack = stackDescriptor.get.call(reason) as string;
             } catch (e) {
               // 如果访问 stack 导致 RangeError，说明可能有递归
-              if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+              if (
+                e instanceof RangeError &&
+                e.message.includes("Maximum call stack")
+              ) {
                 // 从错误消息中提取信息
                 originalStack = `${reason.name}: ${reason.message}`;
               } else {
@@ -728,7 +768,10 @@ export function initStackTrace(options?: StackTraceOptions): boolean {
           }
         } catch (e) {
           // 如果访问 stack 导致 RangeError，说明可能有递归
-          if (e instanceof RangeError && e.message.includes('Maximum call stack')) {
+          if (
+            e instanceof RangeError &&
+            e.message.includes("Maximum call stack")
+          ) {
             originalStack = `${reason.name}: ${reason.message}`;
           } else {
             // 其他错误，尝试直接读取
@@ -748,24 +791,24 @@ export function initStackTrace(options?: StackTraceOptions): boolean {
         if (!(reason as any).__originalStack) {
           (reason as any).__originalStack = `${reason.name}: ${reason.message}`;
         }
-        console.error('[堆栈格式化] 格式化过程中发生异常:', e);
+        console.error("[堆栈格式化] 格式化过程中发生异常:", e);
       } finally {
         // 处理完成后移除标记
         processingErrors.delete(reason);
       }
     };
 
-    window.addEventListener('error', globalErrorHandler);
-    window.addEventListener('unhandledrejection', unhandledRejectionHandler);
+    window.addEventListener("error", globalErrorHandler);
+    window.addEventListener("unhandledrejection", unhandledRejectionHandler);
 
     isInitialized = true;
     return true;
   }
 
   // Node.js 环境：使用 Error.prepareStackTrace
-  if (typeof Error.prepareStackTrace !== 'undefined') {
+  if (typeof Error.prepareStackTrace !== "undefined") {
     // 保存原始函数（如果存在）
-    if (typeof Error.prepareStackTrace === 'function') {
+    if (typeof Error.prepareStackTrace === "function") {
       originalPrepareStackTrace = Error.prepareStackTrace;
     }
 
@@ -789,12 +832,15 @@ export function restoreStackTrace(): void {
 
   // 浏览器环境：移除全局错误监听器
   if (isBrowser) {
-    if (globalErrorHandler && typeof window !== 'undefined') {
-      window.removeEventListener('error', globalErrorHandler);
+    if (globalErrorHandler && typeof window !== "undefined") {
+      window.removeEventListener("error", globalErrorHandler);
       globalErrorHandler = undefined;
     }
-    if (unhandledRejectionHandler && typeof window !== 'undefined') {
-      window.removeEventListener('unhandledrejection', unhandledRejectionHandler);
+    if (unhandledRejectionHandler && typeof window !== "undefined") {
+      window.removeEventListener(
+        "unhandledrejection",
+        unhandledRejectionHandler,
+      );
       unhandledRejectionHandler = undefined;
     }
     isInitialized = false;
@@ -802,7 +848,7 @@ export function restoreStackTrace(): void {
   }
 
   // Node.js 环境：恢复原始的 prepareStackTrace
-  if (typeof Error.prepareStackTrace === 'undefined') {
+  if (typeof Error.prepareStackTrace === "undefined") {
     isInitialized = false;
     return;
   }
@@ -821,7 +867,9 @@ export function restoreStackTrace(): void {
  * 更新堆栈格式化配置
  * @param options 新的配置选项
  */
-export function updateStackTraceOptions(options: Partial<StackTraceOptions>): void {
+export function updateStackTraceOptions(
+  options: Partial<StackTraceOptions>,
+): void {
   currentOptions = { ...currentOptions, ...options };
 }
 
@@ -831,4 +879,3 @@ export function updateStackTraceOptions(options: Partial<StackTraceOptions>): vo
 export function getStackTraceOptions(): Readonly<Required<StackTraceOptions>> {
   return { ...currentOptions };
 }
-

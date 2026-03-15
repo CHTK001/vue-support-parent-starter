@@ -12,12 +12,11 @@
       <div class="demo-row">
         <div class="demo-item">
           <ScRate v-model="value4" show-text :texts="texts" />
-          <div class="value-display">当前：{{ texts[value4 - 1] || "未评分" }}</div>
+          <div class="value-display">
+            当前：{{ texts[value4 - 1] || "未评分" }}
+          </div>
         </div>
-        <ScRate
-          v-model="value5"
-          :colors="['#99A9BF', '#F7BA2A', '#FF9900']"
-        />
+        <ScRate v-model="value5" :colors="['#99A9BF', '#F7BA2A', '#FF9900']" />
       </div>
     </DemoBlock>
   </div>
@@ -71,5 +70,3 @@ const codes = {
   }
 }
 </style>
-
-

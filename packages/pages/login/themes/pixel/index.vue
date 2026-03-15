@@ -47,14 +47,14 @@ defineOptions({
 </script>
 
 <style lang="scss" scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
 .pixel-login-page {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
   background: #2c3e50;
-  font-family: 'Courier New', Courier, monospace; // Fallback
+  font-family: "Courier New", Courier, monospace; // Fallback
   // 尝试使用像素字体，实际项目中建议引入本地字体文件
 }
 
@@ -71,18 +71,25 @@ defineOptions({
     position: absolute;
     width: 200%;
     height: 200%;
-    background-image: 
+    background-image:
       linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
     background-size: 40px 40px;
-    transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+    transform: perspective(500px) rotateX(60deg) translateY(-100px)
+      translateZ(-200px);
     animation: grid-move 20s linear infinite;
   }
 }
 
 @keyframes grid-move {
-  0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
-  100% { transform: perspective(500px) rotateX(60deg) translateY(40px) translateZ(-200px); }
+  0% {
+    transform: perspective(500px) rotateX(60deg) translateY(0)
+      translateZ(-200px);
+  }
+  100% {
+    transform: perspective(500px) rotateX(60deg) translateY(40px)
+      translateZ(-200px);
+  }
 }
 
 .login-main-container {
@@ -113,11 +120,11 @@ defineOptions({
     border-right: 4px solid #000;
     position: relative;
     overflow: hidden;
-    
+
     .eight-bit-container {
       text-align: center;
       color: #fff;
-      
+
       .pixel-text {
         font-size: 24px;
         font-weight: bold;
@@ -125,13 +132,13 @@ defineOptions({
         margin-top: 20px;
         letter-spacing: 4px;
       }
-      
+
       .pixel-character {
         width: 100px;
         height: 100px;
         margin: 0 auto;
         position: relative;
-        
+
         .pixel-head {
           width: 60px;
           height: 60px;
@@ -140,20 +147,25 @@ defineOptions({
           position: absolute;
           top: 0;
           left: 20px;
-          box-shadow: inset -8px -8px 0 rgba(0,0,0,0.2);
-          
-          &::before, &::after {
-            content: '';
+          box-shadow: inset -8px -8px 0 rgba(0, 0, 0, 0.2);
+
+          &::before,
+          &::after {
+            content: "";
             position: absolute;
             width: 8px;
             height: 8px;
             background: #000;
             top: 20px;
           }
-          &::before { left: 12px; }
-          &::after { right: 12px; }
+          &::before {
+            left: 12px;
+          }
+          &::after {
+            right: 12px;
+          }
         }
-        
+
         .pixel-body {
           width: 40px;
           height: 30px;
@@ -183,7 +195,7 @@ defineOptions({
     .pixel-form-header {
       text-align: center;
       margin-bottom: 30px;
-      
+
       .pixel-title {
         font-size: 32px;
         font-weight: bold;
@@ -199,7 +211,7 @@ defineOptions({
   .pixel-content-box {
     flex-direction: column;
     width: 100%;
-    
+
     .illustration-section {
       display: none;
     }
@@ -212,9 +224,10 @@ defineOptions({
   box-shadow: none !important;
   background: #fff !important;
   transition: all 0.2s;
-  
-  &:hover, &.is-focus {
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.2) !important;
+
+  &:hover,
+  &.is-focus {
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2) !important;
     transform: translate(-2px, -2px);
   }
 }
@@ -225,7 +238,7 @@ defineOptions({
   box-shadow: 4px 4px 0 #000 !important;
   transition: all 0.1s !important;
   font-weight: bold;
-  
+
   &:active {
     transform: translate(4px, 4px) !important;
     box-shadow: none !important;

@@ -1,35 +1,35 @@
 ﻿<template>
   <sc-dialog v-model="visible" title="Arthas 配置" width="620px" @open="onOpen">
-    <el-form :model="form" label-width="150px">
-      <el-form-item label="Tunnel 地址">
-        <el-input v-model="form.address" placeholder="ws://host:port/ws" />
-      </el-form-item>
-      <el-form-item label="HTTP API 地址">
-        <el-input v-model="form.http" placeholder="http://host:port/api" />
-      </el-form-item>
-      <el-form-item label="HTTP超时时间(ms)">
-        <el-input-number
+    <ScForm :model="form" label-width="150px">
+      <ScFormItem label="Tunnel 地址">
+        <ScInput v-model="form.address" placeholder="ws://host:port/ws" />
+      </ScFormItem>
+      <ScFormItem label="HTTP API 地址">
+        <ScInput v-model="form.http" placeholder="http://host:port/api" />
+      </ScFormItem>
+      <ScFormItem label="HTTP超时时间(ms)">
+        <ScInputNumber
           v-model="httpTimeout"
           :min="1000"
           :step="1000"
           :max="120000"
         />
-      </el-form-item>
-      <el-form-item label="用户名">
-        <el-input v-model="form.username" placeholder="可选" />
-      </el-form-item>
-      <el-form-item label="密码">
-        <el-input
+      </ScFormItem>
+      <ScFormItem label="用户名">
+        <ScInput v-model="form.username" placeholder="可选" />
+      </ScFormItem>
+      <ScFormItem label="密码">
+        <ScInput
           v-model="form.password"
           type="password"
           show-password
           placeholder="可选"
         />
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+    </ScForm>
     <template #footer>
-      <el-button @click="close">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="save"
+      <ScButton @click="close">取消</ScButton>
+      <ScButton type="primary" :loading="loading" @click="save"
         >保存</el-button
       >
     </template>

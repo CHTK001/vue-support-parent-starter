@@ -1,5 +1,5 @@
 <template>
-  <el-input
+  <ScInput
     v-model="currentValue"
     class="sc-textarea-input"
     type="textarea"

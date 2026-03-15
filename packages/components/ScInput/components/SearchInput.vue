@@ -1,5 +1,5 @@
 <template>
-  <el-input
+  <ScInput
     v-model="currentValue"
     class="sc-search-input"
     type="search"
@@ -18,13 +18,13 @@
     <template v-for="(_, name) in $slots" v-if="name !== 'prefix'" #[name]="slotData" :key="name">
       <slot :name="name" v-bind="slotData || {}" />
     </template>
-  </el-input>
+  </ScInput>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { IconifyIconOnline } from '@repo/components/ReIcon';
-import { getDefaultIcon } from '../defaultIcons';
+import { computed } from "vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { getDefaultIcon } from "../defaultIcons";
 
 interface Props {
   /**
@@ -50,7 +50,7 @@ interface Props {
   /**
    * 输入框尺寸
    */
-  size?: 'large' | 'default' | 'small';
+  size?: "large" | "default" | "small";
   /**
    * 输入框前缀图标
    */
@@ -74,84 +74,76 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: '',
-  placeholder: '请输入搜索内容',
+  modelValue: "",
+  placeholder: "请输入搜索内容",
   disabled: false,
   maxlength: undefined,
   showWordLimit: false,
-  size: 'default',
-  prefixIcon: '',
+  size: "default",
+  prefixIcon: "",
   showPrefix: true,
-  suffixIcon: '',
+  suffixIcon: "",
   clearable: true,
   autofocus: false
 });
 
-const emit = defineEmits([
-  'update:modelValue',
-  'change',
-  'input',
-  'focus',
-  'blur',
-  'clear',
-  'search'
-]);
+const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur", "clear", "search"]);
 
 const currentValue = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
+  set: val => emit("update:modelValue", val)
 });
 
 // 默认前缀图标
-const defaultPrefixIcon = computed(() => getDefaultIcon('search'));
+const defaultPrefixIcon = computed(() => getDefaultIcon("search"));
 
 /**
  * 处理值更新事件
  */
 const handleUpdate = (value: string) => {
-  emit('update:modelValue', value);
+  emit("update:modelValue", value);
 };
 
 /**
  * 处理change事件
  */
 const handleChange = (value: string) => {
-  emit('change', value);
+  emit("change", value);
 };
 
 /**
  * 处理input事件
  */
 const handleInput = (value: string) => {
-  emit('input', value);
+  emit("input", value);
 };
 
 /**
  * 处理focus事件
  */
 const handleFocus = (event: FocusEvent) => {
-  emit('focus', event);
+  emit("focus", event);
 };
 
 /**
  * 处理blur事件
  */
 const handleBlur = (event: FocusEvent) => {
-  emit('blur', event);
+  emit("blur", event);
 };
 
 /**
  * 处理clear事件
  */
 const handleClear = () => {
-  emit('clear');
+  emit("clear");
 };
 
 /**
  * 处理search事件
  */
 const handleSearch = () => {
-  emit('search', currentValue.value);
+  emit("search", currentValue.value);
 };
 </script>
 
@@ -169,10 +161,10 @@ const handleSearch = () => {
     &:hover {
       box-shadow: 0 0 0 1px var(--el-border-color-hover) inset;
     }
-    
+
     &.is-focus .sc-search-input__prefix-icon {
       color: var(--el-color-primary);
     }
   }
 }
-</style> 
+</style>

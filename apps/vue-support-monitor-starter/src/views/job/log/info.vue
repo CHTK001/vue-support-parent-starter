@@ -60,9 +60,9 @@
           </div>
           <div class="info-item">
             <span class="info-label">执行环境</span>
-            <el-tag size="small" :type="getEnvType(form.jobLogProfile)">
+            <ScTag size="small" :type="getEnvType(form.jobLogProfile)">
               {{ form.jobLogProfile || "-" }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="info-item">
             <span class="info-label">执行服务器</span>

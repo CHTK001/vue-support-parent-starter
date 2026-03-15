@@ -6,7 +6,7 @@ import { message } from "@repo/utils";
 import { defineComponent, defineAsyncComponent } from "vue";
 
 const ScInput = defineAsyncComponent(
-  () => import("@repo/components/ScInput/index.vue")
+  () => import("@repo/components/ScInput/index.vue"),
 );
 const draggable = defineAsyncComponent(() => import("vuedraggable"));
 
@@ -87,7 +87,7 @@ export default defineComponent({
           .then((res) => {
             if (res && res.data) {
               const filteredData = res.data.filter(
-                (it) => it.sysSettingGroup === data.group
+                (it) => it.sysSettingGroup === data.group,
               );
               this.groupList.push(...filteredData);
 
@@ -200,7 +200,7 @@ export default defineComponent({
                 <ScCol class="w-2/3" :lg="16" ref="list">
                   <!-- 加载状态 -->
                   <div v-if="layoutLoading" class="loading-container">
-                    <el-skeleton :rows="5" animated />
+                    <ScSkeleton :rows="5" animated />
                   </div>
 
                   <!-- 空状态 -->
@@ -216,7 +216,7 @@ export default defineComponent({
                   <!-- 配置项列表 -->
                   <draggable v-else v-model="groupList" @end="handleChange">
                     <template #item="{ element }">
-                      <ScFormItem 
+                      <ScFormItem
                         :key="$index"
                         :label="
                           element.sysSettingRemark || element.sysSettingName
@@ -323,7 +323,7 @@ export default defineComponent({
                   </draggable>
                   <ScRow class="mt-24" />
                   <ScFormItem class="justify-start custom-button">
-                    <ScButton 
+                    <ScButton
                       class="ml-1"
                       :icon="useRenderIcon('ri:save-2-fill')"
                       type="primary"

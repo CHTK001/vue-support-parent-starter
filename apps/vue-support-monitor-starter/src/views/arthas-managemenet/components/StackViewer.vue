@@ -3,26 +3,26 @@
     <!-- 控制面板 -->
     <div class="control-panel">
       <div class="control-row">
-        <el-input
+        <ScInput
           v-model="classPattern"
           placeholder="类名/通配（如 com.example.UserService 或 com.example.*Service）"
           style="min-width: 260px"
           clearable
         />
-        <el-input
+        <ScInput
           v-model="methodPattern"
           placeholder="方法名/通配（默认 *）"
           style="width: 200px"
           clearable
         />
-        <el-input
+        <ScInput
           v-model="condition"
           placeholder="条件表达式（可选，如 #cost>10）"
           style="min-width: 220px"
           clearable
         />
-        <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
-        <el-input-number
+        <ScCheckbox v-model="useRegex">正则(-E)</ScCheckbox>
+        <ScInputNumber
           v-model="count"
           :min="1"
           :max="200"
@@ -31,7 +31,7 @@
           style="width: 140px"
         />
         <span class="label">-n 次数</span>
-        <el-input-number
+        <ScInputNumber
           v-model="collectMillis"
           :min="1000"
           :max="60000"
@@ -40,20 +40,20 @@
           style="width: 160px"
         />
         <span class="label">收集毫秒</span>
-        <el-button
+        <ScButton
           type="primary"
           :disabled="!nodeId || !classPatternTrim"
           :loading="loading"
           @click="run"
         >
           执行
-        </el-button>
-        <el-button @click="clearData">清空</el-button>
+        </ScButton>
+        <ScButton @click="clearData">清空</ScButton>
       </div>
     </div>
 
     <!-- 错误提示 -->
-    <el-alert
+    <ScAlert
       v-if="error"
       type="error"
       :title="error"
@@ -64,7 +64,7 @@
 
     <!-- 结果列表 -->
     <div v-if="stacks.length > 0" class="stacks">
-      <el-card
+      <ScCard
         v-for="(item, idx) in stacks"
         :key="idx"
         class="stack-card"
@@ -73,14 +73,14 @@
         <div class="stack-header">
           <div class="stack-info">
             <span class="stack-method">{{ item.methodDisplay }}</span>
-            <el-tag v-if="item.threadName" type="info" size="small">{{
+            <ScTag v-if="item.threadName" type="info" size="small">{{
               item.threadName
-            }}</el-tag>
-            <el-tag v-if="item.timestamp" type="success" size="small">{{
+            }}</ScTag>
+            <ScTag v-if="item.timestamp" type="success" size="small">{{
               formatTime(item.timestamp)
-            }}</el-tag>
+            }}</ScTag>
           </div>
-          <el-tag :type="getUsageType(item.depth)" size="small"
+          <ScTag :type="getUsageType(item.depth)" size="small"
             >深度: {{ item.depth }}</el-tag
           >
         </div>
@@ -100,12 +100,12 @@
             </span>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 空状态 -->
     <div v-if="!loading && !error && stacks.length === 0" class="empty-state">
-      <el-empty description="暂无调用路径数据，请配置类/方法并点击执行" />
+      <ScEmpty description="暂无调用路径数据，请配置类/方法并点击执行" />
     </div>
   </div>
 </template>

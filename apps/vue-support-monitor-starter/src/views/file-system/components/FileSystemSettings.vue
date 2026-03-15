@@ -7,7 +7,7 @@
     @close="handleClose"
   >
     <div class="settings-dialog">
-      <el-form
+      <ScForm
         ref="formRef"
         :model="formData"
         :rules="formRules"
@@ -15,7 +15,7 @@
         label-position="left"
       >
         <!-- 上传设置 -->
-        <el-card class="setting-card" shadow="never">
+        <ScCard class="setting-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:upload-2-line" class="mr-2" />
@@ -23,13 +23,13 @@
             </div>
           </template>
 
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item
+          <ScRow :gutter="16">
+            <ScCol :span="12">
+              <ScFormItem
                 label="分片大小(MB)"
                 prop="fileSystemSettingChunkSizeMb"
               >
-                <el-input-number
+                <ScInputNumber
                   v-model="formData.fileSystemSettingChunkSizeMb"
                   :min="1"
                   :max="100"
@@ -37,14 +37,14 @@
                   controls-position="right"
                   class="w-full"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem
                 label="最大并发数(个)"
                 prop="fileSystemSettingMergeTaskLimit"
               >
-                <el-input-number
+                <ScInputNumber
                   v-model="formData.fileSystemSettingMergeTaskLimit"
                   :min="1"
                   :max="20"
@@ -52,15 +52,15 @@
                   controls-position="right"
                   class="w-full"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
 
-          <el-row :gutter="16">
-            <el-col :span="12">
+          <ScRow :gutter="16">
+            <ScCol :span="12">
               <!-- 重试次数（后端未持久化，临时下线）
-              <el-form-item label="重试次数" prop="retryCount">
-                <el-input-number
+              <ScFormItem label="重试次数" prop="retryCount">
+                <ScInputNumber
                   v-model="formData.retryCount"
                   :min="0"
                   :max="10"
@@ -69,15 +69,15 @@
                   class="w-full"
                 />
                 <span class="form-item-suffix">次</span>
-              </el-form-item>
+              </ScFormItem>
               -->
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem
                 label="最大文件大小(MB)"
                 prop="fileSystemSettingMaxFileSizeMb"
               >
-                <el-input-number
+                <ScInputNumber
                   v-model="formData.fileSystemSettingMaxFileSizeMb"
                   :min="1"
                   :max="10240"
@@ -85,13 +85,13 @@
                   controls-position="right"
                   class="w-full"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-card>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
+        </ScCard>
 
         <!-- 文件管理设置 -->
-        <el-card class="setting-card" shadow="never">
+        <ScCard class="setting-card" shadow="never">
           <template #header>
             <div class="card-header">
               <IconifyIconOnline icon="ri:file-settings-line" class="mr-2" />
@@ -100,7 +100,7 @@
           </template>
 
           <!-- 文件存储根目录 -->
-          <el-form-item
+          <ScFormItem
             label="存储根目录"
             prop="fileSystemSettingStorageRootPath"
           >
@@ -110,77 +110,77 @@
             <div class="form-item-tip">
               设置文件存储的根目录路径，所有上传的文件将保存在此目录下
             </div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="手动合并">
-                <el-switch
+          <ScRow :gutter="16">
+            <ScCol :span="12">
+              <ScFormItem label="手动合并">
+                <ScSwitch
                   v-model="formData.fileSystemSettingManualMergeEnabled"
                   active-text="启用"
                   inactive-text="禁用"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="HTTP访问">
-                <el-switch
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="HTTP访问">
+                <ScSwitch
                   v-model="formData.fileSystemSettingHttpAccessEnabled"
                   active-text="启用"
                   inactive-text="禁用"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
 
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="文件下载">
-                <el-switch
+          <ScRow :gutter="16">
+            <ScCol :span="12">
+              <ScFormItem label="文件下载">
+                <ScSwitch
                   v-model="formData.fileSystemSettingDownloadEnabled"
                   active-text="启用"
                   inactive-text="禁用"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="文件预览">
-                <el-switch
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="文件预览">
+                <ScSwitch
                   v-model="formData.fileSystemSettingPreviewEnabled"
                   active-text="启用"
                   inactive-text="禁用"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
 
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="Webjar支持">
-                <el-switch
+          <ScRow :gutter="16">
+            <ScCol :span="12">
+              <ScFormItem label="Webjar支持">
+                <ScSwitch
                   v-model="formData.fileSystemSettingWebjarEnabled"
                   active-text="启用"
                   inactive-text="禁用"
                 />
                 <div class="form-item-tip">启用后支持 Webjar 资源访问</div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="远程文件">
-                <el-switch
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="远程文件">
+                <ScSwitch
                   v-model="formData.fileSystemSettingRemoteFileEnabled"
                   active-text="启用"
                   inactive-text="禁用"
                 />
                 <div class="form-item-tip">启用后支持远程文件访问</div>
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
 
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="视图预览">
-                <el-switch
+          <ScRow :gutter="16">
+            <ScCol :span="12">
+              <ScFormItem label="视图预览">
+                <ScSwitch
                   v-model="formData.fileSystemSettingViewEnabled"
                   active-text="启用"
                   inactive-text="禁用"
@@ -188,16 +188,16 @@
                 <div class="form-item-tip">
                   启用后支持 Office 文档等格式转换预览
                 </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12" />
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12" />
+          </ScRow>
 
-          <el-row :gutter="16">
-            <el-col :span="12">
+          <ScRow :gutter="16">
+            <ScCol :span="12">
               <!-- 存储配额（后端未持久化，临时下线）
-              <el-form-item label="存储配额" prop="storageQuota">
-                <el-input-number
+              <ScFormItem label="存储配额" prop="storageQuota">
+                <ScInputNumber
                   v-model="formData.storageQuota"
                   :min="1"
                   :max="10240"
@@ -206,19 +206,19 @@
                   class="w-full"
                 />
                 <span class="form-item-suffix">GB</span>
-              </el-form-item>
+              </ScFormItem>
               -->
-            </el-col>
-            <el-col :span="12">
+            </ScCol>
+            <ScCol :span="12">
               <!-- 占位列，保持布局对齐 -->
-            </el-col>
-          </el-row>
+            </ScCol>
+          </ScRow>
 
-          <el-form-item
+          <ScFormItem
             label="允许的文件类型"
             prop="fileSystemSettingAllowedFileTypes"
           >
-            <el-select
+            <ScSelect
               v-model="allowedTypesList"
               multiple
               filterable
@@ -226,28 +226,28 @@
               placeholder="选择或输入文件类型"
               class="w-full"
             >
-              <el-option
+              <ScOption
                 v-for="type in commonFileTypes"
                 :key="type"
                 :label="type"
                 :value="type"
               />
-            </el-select>
+            </ScSelect>
             <div class="form-item-tip">
               支持文件扩展名，如：.jpg, .png, .pdf 等。留空表示允许所有类型
             </div>
-          </el-form-item>
-        </el-card>
-      </el-form>
+          </ScFormItem>
+        </ScCard>
+      </ScForm>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button @click="handleReset">重置</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton @click="handleReset">重置</ScButton>
+        <ScButton type="primary" :loading="saving" @click="handleSave">
           保存设置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

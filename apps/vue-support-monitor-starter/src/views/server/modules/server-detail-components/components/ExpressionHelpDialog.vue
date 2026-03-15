@@ -23,26 +23,26 @@
           </span>
         </div>
         <div class="header-right">
-          <el-tag
+          <ScTag
             v-if="serverReportType === 'prometheus'"
             type="success"
             size="small"
           >
             <IconifyIconOnline icon="logos:prometheus" class="mr-1" />
             Prometheus
-          </el-tag>
-          <el-tag
+          </ScTag>
+          <ScTag
             v-else-if="serverReportType === 'api'"
             type="primary"
             size="small"
           >
             <IconifyIconOnline icon="ri:api-line" class="mr-1" />
             API 上报
-          </el-tag>
-          <el-tag v-else type="info" size="small">
+          </ScTag>
+          <ScTag v-else type="info" size="small">
             <IconifyIconOnline icon="ri:server-line" class="mr-1" />
             本地收集
-          </el-tag>
+          </ScTag>
         </div>
       </div>
     </template>
@@ -99,10 +99,10 @@ sum(rate(http_requests_total[5m]))</code></pre>
             >
               <div class="example-header">
                 <strong>CPU使用率</strong>
-                <el-button type="primary" text size="small">
+                <ScButton type="primary" text size="small">
                   <IconifyIconOnline icon="ri:add-line" />
                   选择
-                </el-button>
+                </ScButton>
               </div>
               <code
                 >100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) *
@@ -119,10 +119,10 @@ sum(rate(http_requests_total[5m]))</code></pre>
             >
               <div class="example-header">
                 <strong>内存使用率</strong>
-                <el-button type="primary" text size="small">
+                <ScButton type="primary" text size="small">
                   <IconifyIconOnline icon="ri:add-line" />
                   选择
-                </el-button>
+                </ScButton>
               </div>
               <code
                 >(1 - (node_memory_MemAvailable_bytes /
@@ -139,10 +139,10 @@ sum(rate(http_requests_total[5m]))</code></pre>
             >
               <div class="example-header">
                 <strong>磁盘使用率</strong>
-                <el-button type="primary" text size="small">
+                <ScButton type="primary" text size="small">
                   <IconifyIconOnline icon="ri:add-line" />
                   选择
-                </el-button>
+                </ScButton>
               </div>
               <code
                 >(1 - (node_filesystem_avail_bytes /
@@ -157,10 +157,10 @@ sum(rate(http_requests_total[5m]))</code></pre>
             >
               <div class="example-header">
                 <strong>网络接收流量</strong>
-                <el-button type="primary" text size="small">
+                <ScButton type="primary" text size="small">
                   <IconifyIconOnline icon="ri:add-line" />
                   选择
-                </el-button>
+                </ScButton>
               </div>
               <code>rate(node_network_receive_bytes_total[5m])</code>
             </div>
@@ -192,7 +192,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>CPU使用率</strong>
                     <span>监控CPU使用百分比</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
                 <div
                   class="component-item"
@@ -202,7 +202,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>内存使用率</strong>
                     <span>监控内存使用百分比</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
                 <div
                   class="component-item"
@@ -212,7 +212,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>系统负载</strong>
                     <span>监控系统平均负载</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
               </div>
             </div>
@@ -231,7 +231,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>磁盘使用率</strong>
                     <span>监控磁盘空间使用情况</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
                 <div
                   class="component-item"
@@ -241,14 +241,14 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>磁盘列表</strong>
                     <span>显示所有磁盘信息</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
                 <div class="component-item" @click="selectComponent('disk_io')">
                   <div class="component-info">
                     <strong>磁盘IO统计</strong>
                     <span>监控磁盘读写性能</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
               </div>
             </div>
@@ -267,7 +267,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>网络IO</strong>
                     <span>监控网络流量统计</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
               </div>
             </div>
@@ -286,7 +286,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>进程列表</strong>
                     <span>显示系统进程信息</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
                 <div
                   class="component-item"
@@ -296,7 +296,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>进程数量统计</strong>
                     <span>统计系统进程数量</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
                 <div
                   class="component-item"
@@ -306,7 +306,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>资源占用TOP进程</strong>
                     <span>显示资源占用最高的进程</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
               </div>
             </div>
@@ -325,14 +325,14 @@ sum(rate(http_requests_total[5m]))</code></pre>
                     <strong>系统基本信息</strong>
                     <span>显示系统基本配置信息</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
                 <div class="component-item" @click="selectComponent('uptime')">
                   <div class="component-info">
                     <strong>系统运行时间</strong>
                     <span>显示系统启动时间和运行时长</span>
                   </div>
-                  <el-button type="primary" text size="small">选择</el-button>
+                  <ScButton type="primary" text size="small">选择</ScButton>
                 </div>
               </div>
             </div>
@@ -343,7 +343,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
+        <ScButton @click="visible = false">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

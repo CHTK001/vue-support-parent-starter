@@ -1,6 +1,6 @@
 <template>
-  <component 
-    :is="buttonComponent" 
+  <component
+    :is="buttonComponent"
     v-bind="$attrs"
     :size="size"
     :disabled="disabled"
@@ -30,48 +30,51 @@ import { computed, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechButton",
-  inheritAttrs: false
+  inheritAttrs: false,
 });
 
 // 按钮变体类型
 type ButtonVariant = "A1" | "A2" | "A3" | "A4" | "A5";
 
-const props = withDefaults(defineProps<{
-  /** 按钮变体 A1-A5 */
-  variant?: ButtonVariant;
-  /** 外观变体 A/B/C */
-  appearance?: "A" | "B" | "C";
-  /** 尺寸 */
-  size?: "small" | "default" | "large";
-  /** 是否禁用 */
-  disabled?: boolean;
-  /** 是否显示发光效果 */
-  glow?: boolean;
-  /** 发光透明度 */
-  glowOpacity?: number;
-  /** 背景透明度 */
-  backgroundOpacity?: number;
-  /** 装饰颜色替换 */
-  decorationColorAlt?: boolean;
-  /** 缩放动作 */
-  scaleAction?: boolean;
-  /** 方向替换 */
-  directionAlt?: boolean;
-  /** 自定义类名 */
-  className?: string;
-}>(), {
-  variant: "A1",
-  appearance: "A",
-  size: "default",
-  disabled: false,
-  glow: true,
-  glowOpacity: 0.5,
-  backgroundOpacity: 0.5,
-  decorationColorAlt: false,
-  scaleAction: true,
-  directionAlt: false,
-  className: ""
-});
+const props = withDefaults(
+  defineProps<{
+    /** 按钮变体 A1-A5 */
+    variant?: ButtonVariant;
+    /** 外观变体 A/B/C */
+    appearance?: "A" | "B" | "C";
+    /** 尺寸 */
+    size?: "small" | "default" | "large";
+    /** 是否禁用 */
+    disabled?: boolean;
+    /** 是否显示发光效果 */
+    glow?: boolean;
+    /** 发光透明度 */
+    glowOpacity?: number;
+    /** 背景透明度 */
+    backgroundOpacity?: number;
+    /** 装饰颜色替换 */
+    decorationColorAlt?: boolean;
+    /** 缩放动作 */
+    scaleAction?: boolean;
+    /** 方向替换 */
+    directionAlt?: boolean;
+    /** 自定义类名 */
+    className?: string;
+  }>(),
+  {
+    variant: "A1",
+    appearance: "A",
+    size: "default",
+    disabled: false,
+    glow: true,
+    glowOpacity: 0.5,
+    backgroundOpacity: 0.5,
+    decorationColorAlt: false,
+    scaleAction: true,
+    directionAlt: false,
+    className: "",
+  },
+);
 
 const emit = defineEmits<{
   (e: "click", event: MouseEvent): void;

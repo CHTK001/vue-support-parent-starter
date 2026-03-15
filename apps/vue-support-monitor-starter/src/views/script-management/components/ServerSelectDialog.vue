@@ -23,7 +23,7 @@
       <!-- 执行方式选择 -->
       <div class="execute-method">
         <label class="section-label">执行方式</label>
-        <el-radio-group v-model="executeMethod" class="method-group">
+        <ScRadioGroup v-model="executeMethod" class="method-group">
           <el-radio-button value="SSH">
             <IconifyIconOnline icon="ri:terminal-line" />
             SSH 执行
@@ -32,7 +32,7 @@
             <IconifyIconOnline icon="ri:server-line" />
             NODE 代理
           </el-radio-button>
-        </el-radio-group>
+        </ScRadioGroup>
         <p class="method-hint">
           {{
             executeMethod === "SSH"
@@ -46,7 +46,7 @@
       <div class="server-list-section">
         <div class="section-header">
           <label class="section-label">选择服务器</label>
-          <el-input
+          <ScInput
             v-model="searchKeyword"
             placeholder="搜索服务器..."
             clearable
@@ -56,7 +56,7 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
+          </ScInput>
         </div>
 
         <div v-loading="loading" class="server-list">
@@ -83,7 +83,7 @@
               </div>
             </div>
             <div class="server-status">
-              <el-tag
+              <ScTag
                 :type="
                   server.monitorSysGenServerConnectionStatus === 1
                     ? 'success'
@@ -96,7 +96,7 @@
                     ? "在线"
                     : "离线"
                 }}
-              </el-tag>
+              </ScTag>
             </div>
             <div
               v-if="selectedServerId === server.monitorSysGenServerId"
@@ -106,7 +106,7 @@
             </div>
           </div>
 
-          <el-empty
+          <ScEmpty
             v-if="filteredServers.length === 0 && !loading"
             description="暂无可用服务器"
           />
@@ -116,8 +116,8 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton
           type="primary"
           :disabled="!selectedServerId"
           :loading="executing"
@@ -125,7 +125,7 @@
         >
           <IconifyIconOnline icon="ri:play-line" />
           执行脚本
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

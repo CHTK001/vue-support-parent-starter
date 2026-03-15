@@ -27,7 +27,7 @@
       >
         <template #empty>
           <div class="virtual-table-empty">
-            <el-empty :description="emptyText" :image-size="100" />
+            <ScEmpty :description="emptyText" :image-size="100" />
           </div>
         </template>
       </el-table-v2>
@@ -188,7 +188,7 @@ const _height = computed(() => {
   if (typeof props.height === "string" && props.height.endsWith("%")) {
     const percentage = parseInt(props.height) / 100;
     let pxHeight = 0;
-    
+
     // 尝试获取父元素高度
     if (tableContainer.value && tableContainer.value.parentElement) {
       const parentHeight = tableContainer.value.parentElement.clientHeight;
@@ -196,16 +196,16 @@ const _height = computed(() => {
         pxHeight = Math.floor(parentHeight * percentage);
       }
     }
-    
+
     // 降级方案：使用视窗高度
     if (pxHeight === 0) {
-       const viewportHeight = (window.innerHeight || document.documentElement.clientHeight);
-       pxHeight = Math.floor(viewportHeight * percentage);
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      pxHeight = Math.floor(viewportHeight * percentage);
     }
-    
+
     //@ts-ignore
     tableHeight.value = pxHeight;
-    return props.height; 
+    return props.height;
   }
 
   // 如果是字符串（如'500px'），直接使用
@@ -387,7 +387,7 @@ const handleWrapperContextMenu = event => {
 
   const tableEl = virtualTable.value.$el;
   if (!tableEl) return;
-  
+
   const rect = tableEl.getBoundingClientRect();
 
   // 计算鼠标相对于表格的位置

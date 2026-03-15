@@ -5,17 +5,20 @@
       <span class="label">CPU</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-bar-gauge">
-      <div class="gauge-fill" :style="{ width: `${cpuLoad}%`, backgroundColor: getCpuColor(cpuLoad) }"></div>
+      <div
+        class="gauge-fill"
+        :style="{ width: `${cpuLoad}%`, backgroundColor: getCpuColor(cpuLoad) }"
+      ></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 
 const props = defineProps({
   cpuLoad: { type: Number, required: true },
-  mode: { type: String, required: true }
+  mode: { type: String, required: true },
 });
 
 const formattedCpuLoad = computed(() => {
@@ -23,9 +26,9 @@ const formattedCpuLoad = computed(() => {
 });
 
 const getCpuColor = (val: number) => {
-  if (val < 50) return '#00ff00';
-  if (val < 80) return '#ffaa00';
-  return '#ff0000';
+  if (val < 50) return "#00ff00";
+  if (val < 80) return "#ffaa00";
+  return "#ff0000";
 };
 </script>
 
@@ -61,7 +64,7 @@ const getCpuColor = (val: number) => {
 
 .mini-bar-gauge {
   height: 3px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   margin-top: 4px;
   border-radius: 2px;
   overflow: hidden;

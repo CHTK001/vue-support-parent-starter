@@ -17,7 +17,9 @@
     "clean": "node ./scripts/clean.mjs",
     "rmdist": "turbo rm dist",
     "nw:dev": "node ./scripts/nw-run.mjs dev",
-    "nw:build": "node ./scripts/nw-run.mjs build"
+    "nw:build": "node ./scripts/nw-run.mjs build",
+    "install:safe": "node ./scripts/install-safe.js",
+    "postinstall": "echo '✅ 依赖安装完成！如遇到 sharp 或 ttf2woff2 错误可忽略，不影响使用。'"
   },
   "keywords": [],
   "author": "",
@@ -144,12 +146,31 @@
       "@babel/plugin-proposal-optional-chaining": "*",
       "@babel/plugin-proposal-dynamic-import": "*",
       "@babel/plugin-proposal-nullish-coalescing-operator": "*",
-      "puppeteer": "*"
+      "puppeteer": "*",
+      "@npmcli/move-file": "*",
+      "lodash.isequal": "*",
+      "multiline": "*",
+      "prebuild-install": "*",
+      "xmldom": "*",
+      "vue-i18n": "*"
     },
     "peerDependencyRules": {
       "allowedVersions": {
-        "eslint": "9"
-      }
-    }
+        "eslint": "9",
+        "vite": "7",
+        "stylelint": "16"
+      },
+      "ignoreMissing": [
+        "sharp",
+        "onnxruntime-web"
+      ]
+    },
+    "overrides": {
+      "onnxruntime-web": ">=1.21.0"
+    },
+    "patchedDependencies": {},
+    "onlyBuiltDependencies": [
+      "protobufjs"
+    ]
   }
 }

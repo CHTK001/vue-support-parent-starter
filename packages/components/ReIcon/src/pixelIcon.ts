@@ -32,20 +32,13 @@ export default defineComponent({
         const iconName = props.icon.replace(/^pixel-icon:/, "");
 
         // 尝试多种方式获取图标
-        let IconComponent =
-          pixelIconLib[iconName] ||
-          pixelIconLib.default?.[iconName] ||
-          (pixelIconLib.default && typeof pixelIconLib.default === "object" ? pixelIconLib.default[iconName] : null);
+        let IconComponent = pixelIconLib[iconName] || pixelIconLib.default?.[iconName] || (pixelIconLib.default && typeof pixelIconLib.default === "object" ? pixelIconLib.default[iconName] : null);
 
         // 如果图标不存在，尝试使用 kebab-case 或 camelCase 转换
         if (!IconComponent) {
           const camelCaseName = iconName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
           const kebabCaseName = iconName.replace(/([A-Z])/g, "-$1").toLowerCase();
-          IconComponent =
-            pixelIconLib[camelCaseName] ||
-            pixelIconLib[kebabCaseName] ||
-            pixelIconLib.default?.[camelCaseName] ||
-            pixelIconLib.default?.[kebabCaseName];
+          IconComponent = pixelIconLib[camelCaseName] || pixelIconLib[kebabCaseName] || pixelIconLib.default?.[camelCaseName] || pixelIconLib.default?.[kebabCaseName];
         }
 
         iconComponent.value = IconComponent;
@@ -149,4 +142,3 @@ export default defineComponent({
     };
   }
 });
-

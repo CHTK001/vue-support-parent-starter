@@ -10,7 +10,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   loadingText: "组件加载中...",
-  showProgress: true
+  showProgress: true,
 });
 
 const progress = ref(0);
@@ -22,7 +22,7 @@ const getParticleStyle = (index: number) => {
   return {
     "--angle": `${angle}deg`,
     "--radius": `${radius}px`,
-    "--delay": `${delay}s`
+    "--delay": `${delay}s`,
   };
 };
 
@@ -262,5 +262,3 @@ onMounted(() => {
   }
 }
 </style>
-
-

@@ -1,12 +1,5 @@
 <template>
-  <component
-    :is="currentComponent"
-    class="sc-menu-item"
-    :index="index"
-    :route="route"
-    :disabled="disabled"
-    v-bind="$attrs"
-  >
+  <component :is="currentComponent" class="sc-menu-item" :index="index" :route="route" :disabled="disabled" v-bind="$attrs">
     <slot />
   </component>
 </template>

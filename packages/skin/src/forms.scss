@@ -1,0 +1,333 @@
+/**
+ * 统一表单样式
+ * Unified Form Styles
+ * 
+ * 提供一致的表单组件样式
+ * Provides consistent form component styles
+ */
+
+// 表单变量 (Form variables)
+:root {
+  --form-border-color: #d1d5db;
+  --form-border-color-hover: #9ca3af;
+  --form-border-color-focus: var(--primary-color, #409eff);
+  --form-border-color-error: var(--color-error, #c41e3a);
+  --form-bg-color: #ffffff;
+  --form-bg-color-disabled: #f3f4f6;
+  --form-text-color: var(--text-primary);
+  --form-placeholder-color: #9ca3af;
+  --form-border-radius: 6px;
+  --form-transition: all 0.2s ease;
+}
+
+[data-theme='dark'] {
+  --form-border-color: #4b5563;
+  --form-border-color-hover: #6b7280;
+  --form-bg-color: #1f2937;
+  --form-bg-color-disabled: #111827;
+  --form-placeholder-color: #6b7280;
+}
+
+// 基础表单控件样式 (Base form control styles)
+.form-control {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--form-text-color);
+  background-color: var(--form-bg-color);
+  border: 2px solid var(--form-border-color);
+  border-radius: var(--form-border-radius);
+  transition: var(--form-transition);
+  outline: none;
+
+  &::placeholder {
+    color: var(--form-placeholder-color);
+  }
+
+  &:hover:not(:disabled):not(:focus) {
+    border-color: var(--form-border-color-hover);
+  }
+
+  &:focus {
+    border-color: var(--form-border-color-focus);
+    box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+  }
+
+  &:disabled {
+    background-color: var(--form-bg-color-disabled);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  &.is-error,
+  &[aria-invalid='true'] {
+    border-color: var(--form-border-color-error);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
+    }
+  }
+
+  &.is-success {
+    border-color: var(--color-success);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(15, 123, 15, 0.1);
+    }
+  }
+}
+
+// 输入框 (Input)
+.form-input {
+  @extend .form-control;
+
+  &--sm {
+    min-height: 36px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.875rem;
+  }
+
+  &--lg {
+    min-height: 52px;
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: 1.125rem;
+  }
+}
+
+// 文本域 (Textarea)
+.form-textarea {
+  @extend .form-control;
+  min-height: 120px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+// 选择框 (Select)
+.form-select {
+  @extend .form-control;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--spacing-md) center;
+  padding-right: calc(var(--spacing-md) * 3);
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+// 复选框和单选框 (Checkbox and Radio)
+.form-checkbox,
+.form-radio {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--form-border-color);
+  background-color: var(--form-bg-color);
+  cursor: pointer;
+  transition: var(--form-transition);
+  position: relative;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    border-color: var(--form-border-color-hover);
+  }
+
+  &:focus {
+    outline: 2px solid var(--form-border-color-focus);
+    outline-offset: 2px;
+  }
+
+  &:checked {
+    background-color: var(--form-border-color-focus);
+    border-color: var(--form-border-color-focus);
+
+    &::after {
+      content: '';
+      position: absolute;
+      display: block;
+    }
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.form-checkbox {
+  border-radius: 4px;
+
+  &:checked::after {
+    left: 5px;
+    top: 2px;
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+}
+
+.form-radio {
+  border-radius: 50%;
+
+  &:checked::after {
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: white;
+    transform: translate(-50%, -50%);
+  }
+}
+
+// 表单组 (Form group)
+.form-group {
+  margin-bottom: var(--spacing-lg);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// 表单标签 (Form label)
+.form-label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+
+  &.is-required::after {
+    content: ' *';
+    color: var(--color-error);
+  }
+}
+
+// 表单帮助文本 (Form help text)
+.form-help {
+  display: block;
+  margin-top: var(--spacing-xs);
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+}
+
+// 表单错误文本 (Form error text)
+.form-error {
+  display: block;
+  margin-top: var(--spacing-xs);
+  font-size: 0.875rem;
+  color: var(--color-error);
+}
+
+// 表单成功文本 (Form success text)
+.form-success {
+  display: block;
+  margin-top: var(--spacing-xs);
+  font-size: 0.875rem;
+  color: var(--color-success);
+}
+
+// 内联表单 (Inline form)
+.form-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+
+  .form-group {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 200px;
+  }
+}
+
+// 表单按钮组 (Form button group)
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--form-border-color);
+
+  &--right {
+    justify-content: flex-end;
+  }
+
+  &--center {
+    justify-content: center;
+  }
+
+  &--between {
+    justify-content: space-between;
+  }
+}
+
+// 输入框图标 (Input with icon)
+.form-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .form-input {
+    flex: 1;
+  }
+
+  &--prefix .form-input {
+    padding-left: calc(var(--spacing-md) * 3);
+  }
+
+  &--suffix .form-input {
+    padding-right: calc(var(--spacing-md) * 3);
+  }
+
+  .input-icon {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 100%;
+    color: var(--text-tertiary);
+    pointer-events: none;
+
+    &--prefix {
+      left: 0;
+    }
+
+    &--suffix {
+      right: 0;
+    }
+  }
+}
+
+// 响应式表单 (Responsive form)
+@media (max-width: 768px) {
+  .form-inline {
+    flex-direction: column;
+    align-items: stretch;
+
+    .form-group {
+      width: 100%;
+      min-width: auto;
+    }
+  }
+
+  .form-actions {
+    flex-direction: column;
+
+    &--right,
+    &--between {
+      justify-content: stretch;
+    }
+
+    button {
+      width: 100%;
+    }
+  }
+}

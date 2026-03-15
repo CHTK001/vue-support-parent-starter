@@ -116,7 +116,8 @@ export const wrapperEnv = (envConf: any): ViteEnv => {
 
   for (const envName of Object.keys(envConf)) {
     let realName = envConf[envName].replace(/\n/g, "\n");
-    realName = realName === "true" ? true : realName === "false" ? false : realName;
+    realName =
+      realName === "true" ? true : realName === "false" ? false : realName;
 
     if (envName === "VITE_PORT") {
       realName = Number(realName);
@@ -177,7 +178,10 @@ export const getDirSize = (dirPath: string): Promise<number> => {
  * @param options.folder 目录，相对项目根目录，默认 dist
  * @param options.callback 计算完成后的回调
  */
-export const getPackageSize = (options: { folder?: string; callback?: (size: string | number) => void }) => {
+export const getPackageSize = (options: {
+  folder?: string;
+  callback?: (size: string | number) => void;
+}) => {
   const { folder = "dist", callback } = options;
   const targetDir = resolve(root, folder);
 

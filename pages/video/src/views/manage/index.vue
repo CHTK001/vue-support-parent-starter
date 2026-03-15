@@ -10,7 +10,7 @@
         </div>
       </div>
       <div class="page-header-actions">
-        <ScInput 
+        <ScInput
           v-model="searchKeyword"
           placeholder="搜索视频..."
           clearable
@@ -69,7 +69,11 @@ const handleSearch = () => {
 <style scoped lang="scss">
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-3) 0%,
+    var(--el-color-primary) 100%
+  );
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;

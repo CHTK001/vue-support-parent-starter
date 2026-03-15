@@ -5,91 +5,91 @@
     width="600px"
     :before-close="handleClose"
   >
-    <el-form
+    <ScForm
       ref="formRef"
       :model="formData"
       :rules="formRules"
       label-width="100px"
     >
-      <el-form-item label="组件名称" prop="monitorSysGenServerComponentName">
-        <el-input
+      <ScFormItem label="组件名称" prop="monitorSysGenServerComponentName">
+        <ScInput
           v-model="formData.monitorSysGenServerComponentName"
           placeholder="请输入组件名称"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="组件类型" prop="monitorSysGenServerComponentType">
-        <el-select
+      <ScFormItem label="组件类型" prop="monitorSysGenServerComponentType">
+        <ScSelect
           v-model="formData.monitorSysGenServerComponentType"
           placeholder="请选择组件类型"
           style="width: 100%"
         >
-          <el-option label="卡片" value="card" />
-          <el-option label="仪表盘" value="gauge" />
-          <el-option label="折线图" value="line" />
-          <el-option label="柱状图" value="bar" />
-          <el-option label="饼图" value="pie" />
-        </el-select>
-      </el-form-item>
+          <ScOption label="卡片" value="card" />
+          <ScOption label="仪表盘" value="gauge" />
+          <ScOption label="折线图" value="line" />
+          <ScOption label="柱状图" value="bar" />
+          <ScOption label="饼图" value="pie" />
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         label="表达式类型"
         prop="monitorSysGenServerComponentExpressionType"
       >
-        <el-select
+        <ScSelect
           v-model="formData.monitorSysGenServerComponentExpressionType"
           placeholder="请选择表达式类型"
           style="width: 100%"
         >
-          <el-option label="Prometheus PromQL" value="PROMETHEUS" />
-          <el-option label="SQL查询" value="SQL" />
-          <el-option label="组件选择" value="COMPONENT" />
-        </el-select>
-      </el-form-item>
+          <ScOption label="Prometheus PromQL" value="PROMETHEUS" />
+          <ScOption label="SQL查询" value="SQL" />
+          <ScOption label="组件选择" value="COMPONENT" />
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         label="表达式"
         prop="monitorSysGenServerComponentExpression"
       >
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerComponentExpression"
           type="textarea"
           :rows="4"
           placeholder="请输入表达式"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="单位">
-        <el-input
+      <ScFormItem label="单位">
+        <ScInput
           v-model="formData.monitorSysGenServerComponentUnit"
           placeholder="请输入单位，如：%、MB、个等"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="描述">
-        <el-input
+      <ScFormItem label="描述">
+        <ScInput
           v-model="formData.monitorSysGenServerComponentDescription"
           type="textarea"
           :rows="2"
           placeholder="请输入组件描述"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="启用状态">
-        <el-switch
+      <ScFormItem label="启用状态">
+        <ScSwitch
           v-model="formData.monitorSysGenServerComponentEnabled"
           active-text="启用"
           inactive-text="禁用"
         />
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSubmit">
           {{ isEdit ? "更新" : "创建" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

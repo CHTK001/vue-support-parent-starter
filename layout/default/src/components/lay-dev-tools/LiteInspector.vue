@@ -15,9 +15,7 @@ const devHoverInspector = computed<boolean>(
   () => !!$storage?.configure?.devHoverInspector,
 );
 
-const enabled = computed<boolean>(
-  () => isDevEnv && devLiteTools.value,
-);
+const enabled = computed<boolean>(() => isDevEnv && devLiteTools.value);
 
 const hoverVisible = ref(false);
 const hoverX = ref(0);
@@ -118,17 +116,12 @@ onBeforeUnmount(() => {
 
 .lite-dev-ruler {
   position: absolute;
-  background-image: linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0.08) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.08) 1px,
-      transparent 1px
-    );
-  background-size: 10px 1px, 1px 10px;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size:
+    10px 1px,
+    1px 10px;
   background-color: rgba(15, 23, 42, 0.75);
   color: rgba(248, 250, 252, 0.8);
   font-size: 10px;
@@ -151,16 +144,9 @@ onBeforeUnmount(() => {
 .lite-dev-grid {
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(
-      to right,
-      rgba(56, 189, 248, 0.18) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      rgba(56, 189, 248, 0.18) 1px,
-      transparent 1px
-    );
+  background-image:
+    linear-gradient(to right, rgba(56, 189, 248, 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.18) 1px, transparent 1px);
   background-size: 40px 40px;
   mix-blend-mode: screen;
   opacity: 0.75;
@@ -195,5 +181,3 @@ onBeforeUnmount(() => {
   color: #94a3b8;
 }
 </style>
-
-

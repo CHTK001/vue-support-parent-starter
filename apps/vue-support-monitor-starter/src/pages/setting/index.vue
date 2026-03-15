@@ -38,7 +38,7 @@
           </div>
           <div class="nav-info">
             <div class="nav-name">
-              <el-radio :model-value="form.navMode" value="side"
+              <ScRadio :model-value="form.navMode" value="side"
                 >侧边导航</el-radio
               >
             </div>
@@ -62,7 +62,7 @@
           </div>
           <div class="nav-info">
             <div class="nav-name">
-              <el-radio :model-value="form.navMode" value="top"
+              <ScRadio :model-value="form.navMode" value="top"
                 >顶部导航</el-radio
               >
             </div>
@@ -89,7 +89,7 @@
           </div>
           <div class="nav-info">
             <div class="nav-name">
-              <el-radio :model-value="form.navMode" value="mix"
+              <ScRadio :model-value="form.navMode" value="mix"
                 >混合导航</el-radio
               >
             </div>
@@ -106,14 +106,14 @@
 
     <!-- 操作按钮 -->
     <div class="settings-actions">
-      <el-button type="primary" size="large" @click="save">
+      <ScButton type="primary" size="large" @click="save">
         <IconifyIconOnline icon="ri:save-line" class="mr-1" />
         保存设置
-      </el-button>
-      <el-button size="large" @click="reset">
+      </ScButton>
+      <ScButton size="large" @click="reset">
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         重置默认
-      </el-button>
+      </ScButton>
     </div>
 
     <div class="settings-tip">

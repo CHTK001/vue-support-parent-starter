@@ -30,7 +30,12 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["select-account", "select-folder", "select-label", "compose-email"]);
+const emit = defineEmits([
+  "select-account",
+  "select-folder",
+  "select-label",
+  "compose-email",
+]);
 
 const selectAccount = (accountId) => {
   emit("select-account", accountId);
@@ -53,13 +58,24 @@ const composeEmail = () => {
   <div class="email-sidebar">
     <!-- 账户选择器 -->
     <div class="email-sidebar__account">
-      <EmailAccountSelector :accounts="accounts" :selectedAccountId="selectedAccountId" @select-account="selectAccount" />
+      <EmailAccountSelector
+        :accounts="accounts"
+        :selectedAccountId="selectedAccountId"
+        @select-account="selectAccount"
+      />
     </div>
 
     <!-- 写邮件按钮 -->
     <div class="email-sidebar__compose">
-      <ScButton type="primary" @click="composeEmail" class="email-sidebar__compose-btn">
-        <IconifyIconOnline icon="ri:add-line" class="email-sidebar__compose-icon" />
+      <ScButton
+        type="primary"
+        @click="composeEmail"
+        class="email-sidebar__compose-btn"
+      >
+        <IconifyIconOnline
+          icon="ri:add-line"
+          class="email-sidebar__compose-icon"
+        />
         <span>写邮件</span>
       </ScButton>
     </div>
@@ -68,12 +84,23 @@ const composeEmail = () => {
     <div class="email-sidebar__section">
       <div class="email-sidebar__section-title">文件夹</div>
       <div class="email-sidebar__folders">
-        <div v-for="folder in folders" :key="folder.emailFolderId" class="email-sidebar__folder" :class="{ 'is-active': folder.emailFolderId === selectedFolderId }" @click="selectFolder(folder.emailFolderId)">
+        <div
+          v-for="folder in folders"
+          :key="folder.emailFolderId"
+          class="email-sidebar__folder"
+          :class="{ 'is-active': folder.emailFolderId === selectedFolderId }"
+          @click="selectFolder(folder.emailFolderId)"
+        >
           <div class="email-sidebar__folder-icon">
             <IconifyIconOnline :icon="folder.emailFolderIcon" />
           </div>
-          <div class="email-sidebar__folder-name">{{ folder.emailFolderName }}</div>
-          <div class="email-sidebar__folder-count" v-if="folder.emailFolderCount > 0">
+          <div class="email-sidebar__folder-name">
+            {{ folder.emailFolderName }}
+          </div>
+          <div
+            class="email-sidebar__folder-count"
+            v-if="folder.emailFolderCount > 0"
+          >
             {{ folder.emailFolderCount }}
           </div>
         </div>
@@ -84,10 +111,24 @@ const composeEmail = () => {
     <div class="email-sidebar__section">
       <div class="email-sidebar__section-title">标签</div>
       <div class="email-sidebar__labels">
-        <div v-for="label in labels" :key="label.emailLabelId" class="email-sidebar__label" :class="{ 'is-active': label.emailLabelId === selectedLabelId }" @click="selectLabel(label.emailLabelId)">
-          <div class="email-sidebar__label-color" :style="{ backgroundColor: label.emailLabelColor }"></div>
-          <div class="email-sidebar__label-name">{{ label.emailLabelName }}</div>
-          <div class="email-sidebar__label-count" v-if="label.emailLabelCount > 0">
+        <div
+          v-for="label in labels"
+          :key="label.emailLabelId"
+          class="email-sidebar__label"
+          :class="{ 'is-active': label.emailLabelId === selectedLabelId }"
+          @click="selectLabel(label.emailLabelId)"
+        >
+          <div
+            class="email-sidebar__label-color"
+            :style="{ backgroundColor: label.emailLabelColor }"
+          ></div>
+          <div class="email-sidebar__label-name">
+            {{ label.emailLabelName }}
+          </div>
+          <div
+            class="email-sidebar__label-count"
+            v-if="label.emailLabelCount > 0"
+          >
             {{ label.emailLabelCount }}
           </div>
         </div>

@@ -51,9 +51,9 @@ export function getThemeComponents(theme: string): ComponentMap {
   const themeMap: Record<string, string> = {
     "8bit": "8bit",
     "spring-festival": "spring-festival",
-    "halloween": "halloween",
+    halloween: "halloween",
     "mid-autumn": "mid-autumn",
-    "christmas": "christmas",
+    christmas: "christmas",
     "new-year": "new-year",
     "future-tech": "future-tech",
   };
@@ -62,21 +62,35 @@ export function getThemeComponents(theme: string): ComponentMap {
   if (themeMap[theme]) {
     const themePath = themeMap[theme];
     return {
-      OverallStyleSetting: () => import(`./themes/${themePath}/OverallStyleSetting.vue`),
-      ThemeColorSetting: () => import(`./themes/${themePath}/ThemeColorSetting.vue`),
-      ThemeAnimationSetting: () => import(`./themes/${themePath}/ThemeAnimationSetting.vue`),
-      ThemeSkinSetting: () => import(`./themes/${themePath}/ThemeSkinSetting.vue`),
-      AiChatSkinSetting: () => import(`./themes/${themePath}/AiChatSkinSetting.vue`),
-      AiChatFunctionSetting: () => import(`./themes/${themePath}/AiChatFunctionSetting.vue`),
-      LayoutModeSetting: () => import(`./themes/${themePath}/LayoutModeSetting.vue`),
-      MobileNavSetting: () => import(`./themes/${themePath}/MobileNavSetting.vue`),
-      DoubleNavSetting: () => import(`./themes/${themePath}/DoubleNavSetting.vue`),
-      PageStretchSetting: () => import(`./themes/${themePath}/PageStretchSetting.vue`),
-      LayoutParamsSetting: () => import(`./themes/${themePath}/LayoutParamsSetting.vue`),
-      TagsStyleSetting: () => import(`./themes/${themePath}/TagsStyleSetting.vue`),
-      InterfaceDisplaySetting: () => import(`./themes/${themePath}/InterfaceDisplaySetting.vue`),
+      OverallStyleSetting: () =>
+        import(`./themes/${themePath}/OverallStyleSetting.vue`),
+      ThemeColorSetting: () =>
+        import(`./themes/${themePath}/ThemeColorSetting.vue`),
+      ThemeAnimationSetting: () =>
+        import(`./themes/${themePath}/ThemeAnimationSetting.vue`),
+      ThemeSkinSetting: () =>
+        import(`./themes/${themePath}/ThemeSkinSetting.vue`),
+      AiChatSkinSetting: () =>
+        import(`./themes/${themePath}/AiChatSkinSetting.vue`),
+      AiChatFunctionSetting: () =>
+        import(`./themes/${themePath}/AiChatFunctionSetting.vue`),
+      LayoutModeSetting: () =>
+        import(`./themes/${themePath}/LayoutModeSetting.vue`),
+      MobileNavSetting: () =>
+        import(`./themes/${themePath}/MobileNavSetting.vue`),
+      DoubleNavSetting: () =>
+        import(`./themes/${themePath}/DoubleNavSetting.vue`),
+      PageStretchSetting: () =>
+        import(`./themes/${themePath}/PageStretchSetting.vue`),
+      LayoutParamsSetting: () =>
+        import(`./themes/${themePath}/LayoutParamsSetting.vue`),
+      TagsStyleSetting: () =>
+        import(`./themes/${themePath}/TagsStyleSetting.vue`),
+      InterfaceDisplaySetting: () =>
+        import(`./themes/${themePath}/InterfaceDisplaySetting.vue`),
       MenuSetting: () => import(`./themes/${themePath}/MenuSetting.vue`),
-      AdvancedSetting: () => import(`./themes/${themePath}/AdvancedSetting.vue`),
+      AdvancedSetting: () =>
+        import(`./themes/${themePath}/AdvancedSetting.vue`),
     };
   }
 

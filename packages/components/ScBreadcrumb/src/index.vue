@@ -28,6 +28,4 @@ defineProps({
 });
 
 const { currentComponent } = useThemeComponent("ElBreadcrumb");
-
-
 </script>

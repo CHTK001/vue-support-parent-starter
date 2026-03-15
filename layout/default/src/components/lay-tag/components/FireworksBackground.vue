@@ -3,7 +3,7 @@
  * 烟花粒子背景装饰组件
  * 用于新年/春节等节日主题
  */
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from "vue";
 
 interface Particle {
   id: number;
@@ -14,15 +14,18 @@ interface Particle {
   delay: number;
 }
 
-const props = withDefaults(defineProps<{
-  /** 粒子数量 */
-  count?: number;
-  /** 粒子颜色列表 */
-  colors?: string[];
-}>(), {
-  count: 20,
-  colors: () => ['#ff4d4f', '#ffd700', '#ff6b6b', '#ffa940', '#ff85c0'],
-});
+const props = withDefaults(
+  defineProps<{
+    /** 粒子数量 */
+    count?: number;
+    /** 粒子颜色列表 */
+    colors?: string[];
+  }>(),
+  {
+    count: 20,
+    colors: () => ["#ff4d4f", "#ffd700", "#ff6b6b", "#ffa940", "#ff85c0"],
+  },
+);
 
 const particles = ref<Particle[]>([]);
 
@@ -48,8 +51,8 @@ onMounted(() => {
 
 <template>
   <div class="fireworks-background">
-    <div 
-      v-for="particle in particles" 
+    <div
+      v-for="particle in particles"
       :key="particle.id"
       class="firework-particle"
       :style="{
@@ -80,7 +83,8 @@ onMounted(() => {
 }
 
 @keyframes firework-twinkle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0;
     transform: scale(0.5);
   }

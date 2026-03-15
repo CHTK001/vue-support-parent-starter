@@ -3,9 +3,9 @@
     <div class="marker-detail-arrow"></div>
     <div class="marker-detail-header">
       <div class="marker-detail-title">{{ title }}</div>
-      <el-button class="close-button" type="text" @click="handleClose">
+      <ScButton class="close-button" type="text" @click="handleClose">
         <IconifyIconOnline icon="ep:close" />
-      </el-button>
+      </ScButton>
     </div>
     <div class="marker-detail-content">
       <!-- 默认内容区域 -->

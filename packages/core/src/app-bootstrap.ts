@@ -410,15 +410,8 @@ export async function createStandardApp(
   const { Auth } = await import("@repo/components/ReAuth");
 
   // 导入需要全局注册的 Sc 组件
-  const {
-    ScButton,
-    ScSelect,
-    ScTable,
-    ScSwitch,
-    ScDrawer,
-    ScDialog,
-    ScText,
-  } = await import("@repo/components");
+  const { ScButton, ScSelect, ScTable, ScSwitch, ScDrawer, ScDialog, ScText } =
+    await import("@repo/components");
 
   // 3. 创建应用实例
   const app = createApp(AppRoot);
@@ -485,7 +478,8 @@ export async function createStandardApp(
   // 自动注册主题插件和初始化主题系统
   bootstrap.use(async () => {
     try {
-      const { autoRegisterThemePlugins, initThemeSystem } = await import("@repo/components");
+      const { autoRegisterThemePlugins, initThemeSystem } =
+        await import("@repo/components");
       // 根据主题配置自动注册需要的插件（例如 PixelUI）
       await autoRegisterThemePlugins(app);
       // 预加载当前主题（根据 data-skin / systemTheme）
@@ -497,7 +491,7 @@ export async function createStandardApp(
 
   // 自定义初始化
   if (setup) {
-        /**
+    /**
      * 兼容浏览器注入脚本（通常来自扩展）在 render 期间读取组件代理字段导致的告警：
      * Property "__proxyIdCheat__" was accessed during render but is not defined on instance.
      *
@@ -512,7 +506,9 @@ export async function createStandardApp(
         // 兼容浏览器注入脚本/扩展在渲染期探测组件代理字段导致的无意义告警
         if (
           msg.includes("__proxyIdCheat__") &&
-          msg.includes("was accessed during render but is not defined on instance")
+          msg.includes(
+            "was accessed during render but is not defined on instance",
+          )
         ) {
           return;
         }

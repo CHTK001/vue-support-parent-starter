@@ -28,7 +28,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.9) 0%,
+    rgba(118, 75, 162, 0.9) 100%
+  );
   backdrop-filter: blur(10px);
 }
 
@@ -121,7 +125,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
   pointer-events: none;
 }
 
@@ -654,11 +662,11 @@
   .detail-content {
     gap: 30px;
   }
-  
+
   .poster-section {
     width: 280px;
   }
-  
+
   .info-grid {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
@@ -787,9 +795,15 @@
   animation: fadeInUp 0.6s ease-out var(--delay, 0s) both;
 }
 
-.info-card:nth-child(1) { --delay: 0.1s; }
-.info-card:nth-child(2) { --delay: 0.2s; }
-.info-card:nth-child(3) { --delay: 0.3s; }
+.info-card:nth-child(1) {
+  --delay: 0.1s;
+}
+.info-card:nth-child(2) {
+  --delay: 0.2s;
+}
+.info-card:nth-child(3) {
+  --delay: 0.3s;
+}
 
 /* 滚动条美化 */
 ::-webkit-scrollbar {

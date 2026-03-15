@@ -7,67 +7,67 @@
     destroy-on-close
     class="component-edit-dialog"
   >
-    <el-form
+    <ScForm
       ref="formRef"
       :model="formData"
       :rules="rules"
       label-width="120px"
       class="component-form"
     >
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item
+      <ScRow :gutter="20">
+        <ScCol :span="12">
+          <ScFormItem
             label="组件名称"
             prop="monitorSysGenServerDetailComponentName"
           >
-            <el-input
+            <ScInput
               v-model="formData.monitorSysGenServerDetailComponentName"
               placeholder="请输入组件名称"
               clearable
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item
+          </ScFormItem>
+        </ScCol>
+        <ScCol :span="12">
+          <ScFormItem
             label="组件标题"
             prop="monitorSysGenServerDetailComponentTitle"
           >
-            <el-input
+            <ScInput
               v-model="formData.monitorSysGenServerDetailComponentTitle"
               placeholder="请输入组件标题"
               clearable
             />
-          </el-form-item>
-        </el-col>
-      </el-row>
+          </ScFormItem>
+        </ScCol>
+      </ScRow>
 
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item
+      <ScRow :gutter="20">
+        <ScCol :span="12">
+          <ScFormItem
             label="组件类型"
             prop="monitorSysGenServerDetailComponentType"
           >
-            <el-select
+            <ScSelect
               v-model="formData.monitorSysGenServerDetailComponentType"
               placeholder="选择组件类型"
               style="width: 100%"
               @change="handleComponentTypeChange"
             >
-              <el-option label="卡片" value="card" />
-              <el-option label="仪表盘" value="gauge" />
-              <el-option label="折线图" value="line" />
-              <el-option label="柱状图" value="bar" />
-              <el-option label="饼图" value="pie" />
-              <el-option label="表格" value="table" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item
+              <ScOption label="卡片" value="card" />
+              <ScOption label="仪表盘" value="gauge" />
+              <ScOption label="折线图" value="line" />
+              <ScOption label="柱状图" value="bar" />
+              <ScOption label="饼图" value="pie" />
+              <ScOption label="表格" value="table" />
+            </ScSelect>
+          </ScFormItem>
+        </ScCol>
+        <ScCol :span="12">
+          <ScFormItem
             label="表达式类型"
             prop="monitorSysGenServerDetailComponentExpressionType"
           >
-            <el-select
+            <ScSelect
               v-model="
                 formData.monitorSysGenServerDetailComponentExpressionType
               "
@@ -75,18 +75,18 @@
               style="width: 100%"
               @change="handleExpressionTypeChange"
             >
-              <el-option label="Prometheus" value="PROMETHEUS" />
-              <el-option label="SQL" value="SQL" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
+              <ScOption label="Prometheus" value="PROMETHEUS" />
+              <ScOption label="SQL" value="SQL" />
+            </ScSelect>
+          </ScFormItem>
+        </ScCol>
+      </ScRow>
 
-      <el-form-item
+      <ScFormItem
         label="查询表达式"
         prop="monitorSysGenServerDetailComponentExpression"
       >
-        <el-input
+        <ScInput
           v-model="formData.monitorSysGenServerDetailComponentExpression"
           type="textarea"
           :rows="4"
@@ -95,7 +95,7 @@
           maxlength="2000"
         />
         <div class="expression-help">
-          <el-button
+          <ScButton
             type="primary"
             text
             :loading="validating"
@@ -104,18 +104,18 @@
           >
             <IconifyIconOnline icon="ri:check-line" class="mr-1" />
             验证表达式
-          </el-button>
-          <el-button type="info" text size="small" @click="showExpressionHelp">
+          </ScButton>
+          <ScButton type="info" text size="small" @click="showExpressionHelp">
             <IconifyIconOnline icon="ri:question-line" class="mr-1" />
             语法帮助
-          </el-button>
+          </ScButton>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-row :gutter="20">
-        <el-col :span="8">
-          <el-form-item label="刷新间隔(秒)">
-            <el-input-number
+      <ScRow :gutter="20">
+        <ScCol :span="8">
+          <ScFormItem label="刷新间隔(秒)">
+            <ScInputNumber
               v-model="
                 formData.monitorSysGenServerDetailComponentRefreshInterval
               "
@@ -124,34 +124,34 @@
               placeholder="秒"
               style="width: 100%"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="宽度">
-            <el-input-number
+          </ScFormItem>
+        </ScCol>
+        <ScCol :span="8">
+          <ScFormItem label="宽度">
+            <ScInputNumber
               v-model="layoutConfig.w"
               :min="2"
               :max="24"
               placeholder="网格单位"
               style="width: 100%"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="高度">
-            <el-input-number
+          </ScFormItem>
+        </ScCol>
+        <ScCol :span="8">
+          <ScFormItem label="高度">
+            <ScInputNumber
               v-model="layoutConfig.h"
               :min="2"
               :max="20"
               placeholder="网格单位"
               style="width: 100%"
             />
-          </el-form-item>
-        </el-col>
-      </el-row>
+          </ScFormItem>
+        </ScCol>
+      </ScRow>
 
-      <el-form-item label="组件描述">
-        <el-input
+      <ScFormItem label="组件描述">
+        <ScInput
           v-model="formData.monitorSysGenServerDetailComponentDesc"
           type="textarea"
           :rows="2"
@@ -159,11 +159,11 @@
           maxlength="500"
           show-word-limit
         />
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 图表配置 -->
-      <el-form-item v-if="needChartConfig" label="图表配置">
-        <el-input
+      <ScFormItem v-if="needChartConfig" label="图表配置">
+        <ScInput
           v-model="chartConfigStr"
           type="textarea"
           :rows="6"
@@ -171,7 +171,7 @@
           @blur="handleChartConfigChange"
         />
         <div class="config-help">
-          <el-button
+          <ScButton
             type="primary"
             text
             size="small"
@@ -179,21 +179,21 @@
           >
             <IconifyIconOnline icon="ri:check-line" class="mr-1" />
             验证配置
-          </el-button>
-          <el-button type="info" text size="small" @click="showConfigTemplate">
+          </ScButton>
+          <ScButton type="info" text size="small" @click="showConfigTemplate">
             <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
             配置模板
-          </el-button>
+          </ScButton>
         </div>
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <ScButton @click="visible = false">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSubmit">
           {{ mode === "add" ? "添加" : "保存" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
 

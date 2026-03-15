@@ -157,7 +157,7 @@ const propsData = [
 ];
 
 const hasRunningOp = computed(() =>
-  operations.value.some((op) => op.status === "running")
+  operations.value.some((op) => op.status === "running"),
 );
 
 // 代码示例标签页
@@ -279,7 +279,7 @@ function clearOperations() {
 
 function handleClear() {
   operations.value = operations.value.filter(
-    (op) => op.status === "pending" || op.status === "running"
+    (op) => op.status === "pending" || op.status === "running",
   );
   message("已清除已完成的操作", { type: "success" });
 }

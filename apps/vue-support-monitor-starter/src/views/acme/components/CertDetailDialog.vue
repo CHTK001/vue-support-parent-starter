@@ -28,7 +28,7 @@
       </div>
     </template>
 
-    <el-skeleton :loading="loading" animated :rows="6">
+    <ScSkeleton :loading="loading" animated :rows="6">
       <template #default>
         <!-- 基本信息卡片 -->
         <div class="info-cards">
@@ -148,7 +148,7 @@
           v-if="detail?.certificate?.acmeCertLastError"
           class="error-section"
         >
-          <el-alert
+          <ScAlert
             :title="detail.certificate.acmeCertLastError"
             type="error"
             :closable="false"
@@ -167,9 +167,9 @@
           <div class="section-title">
             <IconifyIconOnline icon="mdi:shield-check" />
             <span>验证信息</span>
-            <el-tag type="warning" size="small">待完成</el-tag>
+            <ScTag type="warning" size="small">待完成</ScTag>
           </div>
-          <el-alert
+          <ScAlert
             title="请按以下信息完成域名验证，部署完成后点击重新验证"
             type="warning"
             :closable="false"
@@ -186,12 +186,12 @@
                   <IconifyIconOnline icon="mdi:web" />
                   <span>{{ info.domain }}</span>
                 </div>
-                <el-tag
+                <ScTag
                   size="small"
                   :type="info.type === 'HTTP-01' ? 'primary' : 'success'"
                 >
                   {{ info.type }}
-                </el-tag>
+                </ScTag>
               </div>
               <!-- HTTP-01 验证 -->
               <div v-if="info.type === 'HTTP-01'" class="validation-body">
@@ -203,7 +203,7 @@
                         info.token
                       }}</code
                     >
-                    <el-button
+                    <ScButton
                       size="small"
                       text
                       @click="
@@ -213,7 +213,7 @@
                       "
                     >
                       <IconifyIconOnline icon="mdi:content-copy" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
                 <div class="validation-row">
@@ -222,13 +222,13 @@
                     <code class="validation-code">{{
                       info.keyAuthorization
                     }}</code>
-                    <el-button
+                    <ScButton
                       size="small"
                       text
                       @click="copyToClipboard(info.keyAuthorization)"
                     >
                       <IconifyIconOnline icon="mdi:content-copy" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
                 <div class="validation-tip">
@@ -246,26 +246,26 @@
                   <span class="validation-label">TXT 记录名</span>
                   <div class="validation-value-box">
                     <code class="validation-code">{{ info.dnsName }}</code>
-                    <el-button
+                    <ScButton
                       size="small"
                       text
                       @click="copyToClipboard(info.dnsName)"
                     >
                       <IconifyIconOnline icon="mdi:content-copy" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
                 <div class="validation-row">
                   <span class="validation-label">TXT 记录值</span>
                   <div class="validation-value-box">
                     <code class="validation-code">{{ info.dnsValue }}</code>
-                    <el-button
+                    <ScButton
                       size="small"
                       text
                       @click="copyToClipboard(info.dnsValue)"
                     >
                       <IconifyIconOnline icon="mdi:content-copy" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
                 <div class="validation-tip">
@@ -309,7 +309,7 @@
             <div v-show="activeTab === 'chain'" class="code-block">
               <div class="code-header">
                 <span>certificate.pem</span>
-                <el-button
+                <ScButton
                   size="small"
                   text
                   @click="
@@ -318,7 +318,7 @@
                 >
                   <IconifyIconOnline icon="mdi:content-copy" />
                   复制
-                </el-button>
+                </ScButton>
               </div>
               <pre class="code-content">{{
                 detail?.certificate?.acmeCertChainPem || "暂无证书内容"
@@ -331,14 +331,14 @@
               </div>
               <div class="code-header">
                 <span>private.key</span>
-                <el-button
+                <ScButton
                   size="small"
                   text
                   @click="copyToClipboard(detail?.certificate?.acmeCertKeyPem)"
                 >
                   <IconifyIconOnline icon="mdi:content-copy" />
                   复制
-                </el-button>
+                </ScButton>
               </div>
               <pre class="code-content">{{
                 detail?.certificate?.acmeCertKeyPem || "暂无私钥内容"
@@ -478,11 +478,11 @@
           </div>
         </div>
       </template>
-    </el-skeleton>
+    </ScSkeleton>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="dialogVisible = false">关闭</el-button>
+        <ScButton @click="dialogVisible = false">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

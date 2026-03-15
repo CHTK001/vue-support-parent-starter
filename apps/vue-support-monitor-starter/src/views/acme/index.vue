@@ -60,14 +60,14 @@
           </div>
         </div>
         <div class="tabs-actions">
-          <el-button type="primary" @click="handleApplyCert">
+          <ScButton type="primary" @click="handleApplyCert">
             <IconifyIconOnline icon="mdi:certificate-outline" />
             申请证书
-          </el-button>
-          <el-button @click="handleAddAccount">
+          </ScButton>
+          <ScButton @click="handleAddAccount">
             <IconifyIconOnline icon="mdi:account-plus" />
             添加账户
-          </el-button>
+          </ScButton>
         </div>
       </div>
       <!-- 证书列表内容 -->

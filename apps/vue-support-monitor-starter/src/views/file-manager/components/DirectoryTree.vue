@@ -7,8 +7,8 @@
         <span>目录结构</span>
       </div>
       <div class="header-actions">
-        <el-tooltip content="刷新目录" placement="top">
-          <el-button
+        <ScTooltip content="刷新目录" placement="top">
+          <ScButton
             size="small"
             circle
             :loading="isLoading"
@@ -16,29 +16,29 @@
             @click="refreshTree"
           >
             <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="展开全部" placement="top">
-          <el-button size="small" circle class="action-btn" @click="expandAll">
+          </ScButton>
+        </ScTooltip>
+        <ScTooltip content="展开全部" placement="top">
+          <ScButton size="small" circle class="action-btn" @click="expandAll">
             <IconifyIconOnline icon="ri:add-box-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="收起全部" placement="top">
-          <el-button
+          </ScButton>
+        </ScTooltip>
+        <ScTooltip content="收起全部" placement="top">
+          <ScButton
             size="small"
             circle
             class="action-btn"
             @click="collapseAll"
           >
             <IconifyIconOnline icon="ri:subtract-line" />
-          </el-button>
-        </el-tooltip>
+          </ScButton>
+        </ScTooltip>
       </div>
     </div>
 
     <!-- 搜索框 -->
     <div class="tree-search">
-      <el-input
+      <ScInput
         v-model="searchText"
         placeholder="搜索目录..."
         clearable
@@ -48,7 +48,7 @@
         <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </el-input>
+      </ScInput>
     </div>
 
     <!-- 快捷路径 -->
@@ -73,7 +73,7 @@
 
     <!-- 目录树 -->
     <div class="tree-container">
-      <el-tree
+      <ScTree
         ref="treeRef"
         :data="filteredTreeData"
         :props="treeProps"
@@ -110,34 +110,34 @@
               </div>
             </div>
             <div v-if="showNodeActions" class="node-actions">
-              <el-tooltip content="新建文件夹" placement="top">
-                <el-button
+              <ScTooltip content="新建文件夹" placement="top">
+                <ScButton
                   size="small"
                   circle
                   class="node-action-btn"
                   @click.stop="createFolder(data)"
                 >
                   <IconifyIconOnline icon="ri:folder-add-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="刷新" placement="top">
-                <el-button
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="刷新" placement="top">
+                <ScButton
                   size="small"
                   circle
                   class="node-action-btn"
                   @click.stop="refreshNode(node, data)"
                 >
                   <IconifyIconOnline icon="ri:refresh-line" />
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </div>
           </div>
         </template>
-      </el-tree>
+      </ScTree>
     </div>
 
     <!-- 右键菜单 -->
-    <el-dropdown
+    <ScDropdown
       ref="contextMenuRef"
       trigger="contextmenu"
       :teleported="false"
@@ -145,30 +145,30 @@
     >
       <div />
       <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item @click="openInNewTab">
+        <ScDropdownMenu>
+          <ScDropdownItem @click="openInNewTab">
             <IconifyIconOnline icon="ri:external-link-line" class="menu-icon" />
             在新标签页打开
-          </el-dropdown-item>
-          <el-dropdown-item @click="createFolderInContext">
+          </ScDropdownItem>
+          <ScDropdownItem @click="createFolderInContext">
             <IconifyIconOnline icon="ri:folder-add-line" class="menu-icon" />
             新建文件夹
-          </el-dropdown-item>
-          <el-dropdown-item @click="refreshNodeInContext">
+          </ScDropdownItem>
+          <ScDropdownItem @click="refreshNodeInContext">
             <IconifyIconOnline icon="ri:refresh-line" class="menu-icon" />
             刷新
-          </el-dropdown-item>
-          <el-dropdown-item divided @click="copyPath">
+          </ScDropdownItem>
+          <ScDropdownItem divided @click="copyPath">
             <IconifyIconOnline icon="ri:file-copy-line" class="menu-icon" />
             复制路径
-          </el-dropdown-item>
-          <el-dropdown-item @click="showProperties">
+          </ScDropdownItem>
+          <ScDropdownItem @click="showProperties">
             <IconifyIconOnline icon="ri:information-line" class="menu-icon" />
             属性
-          </el-dropdown-item>
-        </el-dropdown-menu>
+          </ScDropdownItem>
+        </ScDropdownMenu>
       </template>
-    </el-dropdown>
+    </ScDropdown>
   </div>
 </template>
 

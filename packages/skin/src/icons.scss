@@ -1,0 +1,275 @@
+/**
+ * 图标系统
+ * Icon System
+ * 
+ * 统一图标大小、颜色和样式
+ * Unified icon sizes, colors, and styles
+ */
+
+// 图标尺寸 (Icon sizes)
+:root {
+  --icon-size-xs: 12px;
+  --icon-size-sm: 16px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+  --icon-size-xl: 32px;
+  --icon-size-2xl: 48px;
+  --icon-size-3xl: 64px;
+}
+
+// 图标颜色 (Icon colors)
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+  user-select: none;
+  line-height: 1;
+
+  // 尺寸变体 (Size variants)
+  &--xs {
+    width: var(--icon-size-xs);
+    height: var(--icon-size-xs);
+    font-size: var(--icon-size-xs);
+  }
+
+  &--sm {
+    width: var(--icon-size-sm);
+    height: var(--icon-size-sm);
+    font-size: var(--icon-size-sm);
+  }
+
+  &--md {
+    width: var(--icon-size-md);
+    height: var(--icon-size-md);
+    font-size: var(--icon-size-md);
+  }
+
+  &--lg {
+    width: var(--icon-size-lg);
+    height: var(--icon-size-lg);
+    font-size: var(--icon-size-lg);
+  }
+
+  &--xl {
+    width: var(--icon-size-xl);
+    height: var(--icon-size-xl);
+    font-size: var(--icon-size-xl);
+  }
+
+  &--2xl {
+    width: var(--icon-size-2xl);
+    height: var(--icon-size-2xl);
+    font-size: var(--icon-size-2xl);
+  }
+
+  &--3xl {
+    width: var(--icon-size-3xl);
+    height: var(--icon-size-3xl);
+    font-size: var(--icon-size-3xl);
+  }
+
+  // 颜色变体 (Color variants)
+  &--primary {
+    color: var(--primary-color, #409eff);
+  }
+
+  &--success {
+    color: var(--color-success, #0f7b0f);
+  }
+
+  &--warning {
+    color: var(--color-warning, #b35900);
+  }
+
+  &--error {
+    color: var(--color-error, #c41e3a);
+  }
+
+  &--info {
+    color: var(--color-info, #0066cc);
+  }
+
+  &--muted {
+    color: var(--text-tertiary);
+  }
+
+  // 交互状态 (Interactive states)
+  &--clickable {
+    cursor: pointer;
+    transition: color var(--animation-duration-fast) var(--animation-easing),
+                transform var(--animation-duration-fast) var(--animation-easing);
+
+    &:hover {
+      color: var(--primary-color, #409eff);
+      transform: scale(1.1);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  // 旋转动画 (Spin animation)
+  &--spin {
+    animation: icon-spin 1s linear infinite;
+  }
+
+  // 脉冲动画 (Pulse animation)
+  &--pulse {
+    animation: icon-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+// 图标按钮 (Icon button)
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xs);
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color var(--animation-duration-fast) var(--animation-easing),
+              transform var(--animation-duration-fast) var(--animation-easing);
+
+  &:hover:not(:disabled) {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  // 尺寸变体
+  &--sm {
+    padding: var(--spacing-xs);
+    
+    .icon {
+      width: var(--icon-size-sm);
+      height: var(--icon-size-sm);
+    }
+  }
+
+  &--md {
+    padding: var(--spacing-sm);
+    
+    .icon {
+      width: var(--icon-size-md);
+      height: var(--icon-size-md);
+    }
+  }
+
+  &--lg {
+    padding: var(--spacing-md);
+    
+    .icon {
+      width: var(--icon-size-lg);
+      height: var(--icon-size-lg);
+    }
+  }
+}
+
+// 图标与文本组合 (Icon with text)
+.icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  &--reverse {
+    flex-direction: row-reverse;
+  }
+
+  &--vertical {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+// 图标徽章 (Icon badge)
+.icon-badge {
+  position: relative;
+  display: inline-flex;
+
+  .badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+    background-color: var(--color-error, #c41e3a);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+
+  .dot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    background-color: var(--color-error, #c41e3a);
+    border: 2px solid white;
+    border-radius: 50%;
+  }
+}
+
+// 图标组 (Icon group)
+.icon-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  &--stacked {
+    position: relative;
+
+    .icon {
+      &:not(:first-child) {
+        margin-left: -8px;
+      }
+    }
+  }
+}
+
+// 动画 (Animations)
+@keyframes icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes icon-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// 暗黑模式 (Dark mode)
+[data-theme='dark'] {
+  .icon-btn:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .icon-badge .dot {
+    border-color: var(--bg-primary);
+  }
+}

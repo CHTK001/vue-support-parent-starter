@@ -5,9 +5,16 @@ const TITLE = getConfig("Title");
 </script>
 
 <template>
-  <footer class="layout-footer text-[rgba(0,0,0,0.6)] dark:text-[rgba(220,220,242,0.8)]">
+  <footer
+    class="layout-footer text-[rgba(0,0,0,0.6)] dark:text-[rgba(220,220,242,0.8)]"
+  >
     Copyright © 2020-present
-    <a class="hover:text-primary" href="https://github.com/pure-admin" target="_blank">&nbsp;{{ TITLE }}</a>
+    <a
+      class="hover:text-primary"
+      href="https://github.com/pure-admin"
+      target="_blank"
+      >&nbsp;{{ TITLE }}</a
+    >
   </footer>
 </template>
 
@@ -25,8 +32,6 @@ const TITLE = getConfig("Title");
     transition: color 0.3s ease;
   }
 }
-
-
 
 // 春节主题
 :global(html[data-skin="spring-festival"]),
@@ -84,5 +89,4 @@ const TITLE = getConfig("Title");
     }
   }
 }
-
 </style>

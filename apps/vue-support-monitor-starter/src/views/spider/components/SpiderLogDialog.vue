@@ -9,18 +9,18 @@
   >
     <div class="log-toolbar">
       <div class="toolbar-left">
-        <el-select
+        <ScSelect
           v-model="filterLevel"
           placeholder="日志级别"
           clearable
           style="width: 120px"
           @change="handleFilter"
         >
-          <el-option label="INFO" value="INFO" />
-          <el-option label="WARN" value="WARN" />
-          <el-option label="ERROR" value="ERROR" />
-        </el-select>
-        <el-input
+          <ScOption label="INFO" value="INFO" />
+          <ScOption label="WARN" value="WARN" />
+          <ScOption label="ERROR" value="ERROR" />
+        </ScSelect>
+        <ScInput
           v-model="keyword"
           placeholder="搜索关键字..."
           clearable
@@ -30,23 +30,23 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </el-input>
+        </ScInput>
       </div>
       <div class="toolbar-right">
-        <el-switch
+        <ScSwitch
           v-model="autoRefresh"
           active-text="自动刷新"
           inactive-text=""
           @change="handleAutoRefreshChange"
         />
-        <el-button size="small" @click="handleRefresh">
+        <ScButton size="small" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
-    <el-table
+    <ScTable
       v-loading="loading"
       :data="filteredLogs"
       border
@@ -54,46 +54,46 @@
       max-height="500"
       :row-class-name="getRowClassName"
     >
-      <el-table-column label="时间" width="180" prop="time">
+      <ScTableColumn label="时间" width="180" prop="time">
         <template #default="{ row }">
           <span>{{ formatTime(row.time) }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="级别" width="100" align="center">
+      </ScTableColumn>
+      <ScTableColumn label="级别" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="getLevelType(row.level)" size="small">{{
+          <ScTag :type="getLevelType(row.level)" size="small">{{
             row.level
-          }}</el-tag>
+          }}</ScTag>
         </template>
-      </el-table-column>
-      <el-table-column
+      </ScTableColumn>
+      <ScTableColumn
         label="消息"
         min-width="300"
         prop="message"
         show-overflow-tooltip
       />
-      <el-table-column
+      <ScTableColumn
         label="URL"
         min-width="200"
         prop="url"
         show-overflow-tooltip
       >
         <template #default="{ row }">
-          <el-link
+          <ScLink
             v-if="row.url"
             type="primary"
             :href="row.url"
             target="_blank"
           >
             {{ truncateText(row.url, 50) }}
-          </el-link>
+          </ScLink>
           <span v-else class="text-muted">-</span>
         </template>
-      </el-table-column>
-    </el-table>
+      </ScTableColumn>
+    </ScTable>
 
     <div class="pagination-container">
-      <el-pagination
+      <ScPagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.size"
         :page-sizes="[20, 50, 100, 200]"

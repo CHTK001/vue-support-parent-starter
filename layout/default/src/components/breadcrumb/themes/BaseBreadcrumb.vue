@@ -1,5 +1,4 @@
 ﻿<script setup lang="ts">
-
 import ScBreadcrumbItem from "@repo/components/ScBreadcrumb";
 import { isEqual, useGlobal } from "@pureadmin/utils";
 import { transformI18n } from "@repo/config";
@@ -29,7 +28,7 @@ const { $storage } = useGlobal<any>();
 
 // 面包屑显示模式: icon | icon-text（默认显示图标+文字）
 const breadcrumbMode = ref(
-  $storage?.configure?.breadcrumbIconOnly ? "icon" : "icon-text"
+  $storage?.configure?.breadcrumbIconOnly ? "icon" : "icon-text",
 );
 
 // 监听模式变更
@@ -65,7 +64,7 @@ const getBreadcrumb = (): void => {
   const parentRoutes = getParentPaths(
     router.currentRoute.value.name as string,
     routes,
-    "name"
+    "name",
   );
   // 存放组成面包屑的数组
   const matched = [];
@@ -89,7 +88,7 @@ const getBreadcrumb = (): void => {
   });
 
   levelList.value = matched.filter(
-    (item) => item?.meta && item?.meta.title !== false
+    (item) => item?.meta && item?.meta.title !== false,
   );
 };
 
@@ -133,7 +132,7 @@ watch(
   () => route.path,
   () => {
     getBreadcrumb();
-  }
+  },
 );
 </script>
 
@@ -152,12 +151,12 @@ watch(
     <!-- 面包屑导航 -->
     <ScBreadcrumb class="breadcrumb-container" separator="">
       <transition-group name="breadcrumb">
-        <ScBreadcrumbItem 
+        <ScBreadcrumbItem
           v-for="(item, index) in levelList"
           :key="item.path"
           class="breadcrumb-item"
         >
-          <ScTooltip 
+          <ScTooltip
             :content="transformI18n(item.meta.i18nKey || item.meta.title)"
             placement="bottom"
             :show-after="500"

@@ -232,7 +232,9 @@ const toggleSwitch = () => {
   &.is-active {
     background: var(--active-color);
     border-color: var(--active-border-color);
-    box-shadow: 0 8px 20px -4px rgba(var(--el-color-primary-rgb), 0.2), 0 4px 8px -2px rgba(var(--el-color-primary-rgb), 0.1);
+    box-shadow:
+      0 8px 20px -4px rgba(var(--el-color-primary-rgb), 0.2),
+      0 4px 8px -2px rgba(var(--el-color-primary-rgb), 0.1);
     transform: translateY(-2px);
 
     .sc-switch-visual-card__icon {

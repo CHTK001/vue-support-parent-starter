@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseTool from './BaseTool.vue';
+import BaseTool from "./BaseTool.vue";
 </script>
 
 <template>
@@ -21,7 +21,7 @@ $ft-border: rgba(0, 255, 255, 0.4);
       color: $ft-cyan !important;
       background: rgba(5, 10, 31, 0.8) !important;
       border: 2px solid rgba(0, 255, 255, 0.4) !important;
-      box-shadow: 
+      box-shadow:
         0 2px 8px rgba(0, 255, 255, 0.2),
         inset 0 1px 2px rgba(0, 255, 255, 0.1) !important;
 
@@ -35,7 +35,7 @@ $ft-border: rgba(0, 255, 255, 0.4);
         color: $ft-cyan-light !important;
         border-color: $ft-cyan !important;
         transform: translateY(-2px) !important;
-        box-shadow: 
+        box-shadow:
           0 4px 16px rgba(0, 255, 255, 0.4),
           inset 0 1px 2px rgba(0, 255, 255, 0.2) !important;
 
@@ -62,7 +62,9 @@ $ft-border: rgba(0, 255, 255, 0.4);
     .lang-style {
       .lang-icon-wrapper {
         background: rgba(5, 10, 31, 0.8) !important;
-        box-shadow: 0 2px 8px rgba(0, 255, 255, 0.2), 0 0 0 2px rgba(0, 255, 255, 0.2) !important;
+        box-shadow:
+          0 2px 8px rgba(0, 255, 255, 0.2),
+          0 0 0 2px rgba(0, 255, 255, 0.2) !important;
 
         .lang-main-icon {
           color: $ft-cyan !important;
@@ -95,7 +97,11 @@ $ft-border: rgba(0, 255, 255, 0.4);
       }
 
       .status-dot {
-        background: linear-gradient(135deg, $ft-cyan, $ft-cyan-light) !important;
+        background: linear-gradient(
+          135deg,
+          $ft-cyan,
+          $ft-cyan-light
+        ) !important;
         border-color: rgba(0, 255, 255, 0.9) !important;
       }
 
@@ -118,4 +124,3 @@ $ft-border: rgba(0, 255, 255, 0.4);
   }
 }
 </style>
-

@@ -50,5 +50,3 @@ export const reportErrorToServer = async (error: any, url: string) => {
     }
   }
 };
-
-

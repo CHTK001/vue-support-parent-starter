@@ -7,11 +7,11 @@
     @closed="handleClosed"
   >
     <div v-if="loading" class="loading-container">
-      <el-icon class="loading-icon"><Loading /></el-icon>
+      <ScIcon class="loading-icon"><Loading /></ScIcon>
       <span>加载参数配置...</span>
     </div>
 
-    <el-form
+    <ScForm
       v-else
       ref="formRef"
       :model="formData"
@@ -20,61 +20,61 @@
       class="node-config-form"
     >
       <!-- 基础信息 -->
-      <el-card shadow="never" class="config-section">
+      <ScCard shadow="never" class="config-section">
         <template #header>
           <div class="section-header">
-            <el-icon><InfoFilled /></el-icon>
+            <ScIcon><InfoFilled /></ScIcon>
             <span>基础信息</span>
           </div>
         </template>
-        <el-form-item label="节点名称" prop="syncNodeName">
-          <el-input
+        <ScFormItem label="节点名称" prop="syncNodeName">
+          <ScInput
             v-model="formData.syncNodeName"
             placeholder="请输入节点名称"
             maxlength="100"
             show-word-limit
           />
-        </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="节点类型">
-              <el-input :value="getNodeTypeText(node?.syncNodeType)" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="SPI类型">
-              <el-input :value="node?.syncNodeSpiName" disabled />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="节点描述" prop="syncNodeDescription">
-          <el-input
+        </ScFormItem>
+        <ScRow :gutter="16">
+          <ScCol :span="12">
+            <ScFormItem label="节点类型">
+              <ScInput :value="getNodeTypeText(node?.syncNodeType)" disabled />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="SPI类型">
+              <ScInput :value="node?.syncNodeSpiName" disabled />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScFormItem label="节点描述" prop="syncNodeDescription">
+          <ScInput
             v-model="formData.syncNodeDescription"
             type="textarea"
             :rows="2"
             placeholder="请输入节点描述（可选）"
             maxlength="500"
           />
-        </el-form-item>
-      </el-card>
+        </ScFormItem>
+      </ScCard>
 
       <!-- 参数配置 -->
-      <el-card
+      <ScCard
         v-if="parameters.length > 0"
         shadow="never"
         class="config-section"
       >
         <template #header>
           <div class="section-header">
-            <el-icon><Setting /></el-icon>
+            <ScIcon><Setting /></ScIcon>
             <span>参数配置</span>
-            <el-tag size="small" type="info"
+            <ScTag size="small" type="info"
               >{{ parameters.length }} 个参数</el-tag
             >
           </div>
         </template>
 
-        <el-form-item
+        <ScFormItem
           v-for="param in parameters"
           :key="param.name"
           :label="param.label || param.name"
@@ -84,14 +84,14 @@
           <template #label>
             <div class="param-label">
               <span>{{ param.label || param.name }}</span>
-              <el-tag v-if="param.required" size="small" type="danger"
+              <ScTag v-if="param.required" size="small" type="danger"
                 >必填</el-tag
               >
             </div>
           </template>
 
           <!-- 字符串输入 -->
-          <el-input
+          <ScInput
             v-if="param.type === 'string'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || param.description"
@@ -99,7 +99,7 @@
           />
 
           <!-- 密码输入 -->
-          <el-input
+          <ScInput
             v-else-if="param.type === 'password'"
             v-model="formData.config[param.name]"
             type="password"
@@ -109,7 +109,7 @@
           />
 
           <!-- 文本域 -->
-          <el-input
+          <ScInput
             v-else-if="param.type === 'textarea'"
             v-model="formData.config[param.name]"
             type="textarea"
@@ -119,23 +119,23 @@
 
           <!-- JSON编辑器 -->
           <div v-else-if="param.type === 'json'" class="json-editor">
-            <el-input
+            <ScInput
               v-model="formData.config[param.name]"
               type="textarea"
               :rows="5"
               :placeholder="param.placeholder || '请输入JSON格式数据'"
             />
-            <el-button
+            <ScButton
               size="small"
               class="format-btn"
               @click="formatJson(param.name)"
             >
               格式化JSON
-            </el-button>
+            </ScButton>
           </div>
 
           <!-- 数字输入 -->
-          <el-input-number
+          <ScInputNumber
             v-else-if="param.type === 'number'"
             v-model="formData.config[param.name]"
             :min="param.min"
@@ -147,7 +147,7 @@
           />
 
           <!-- 开关 -->
-          <el-switch
+          <ScSwitch
             v-else-if="param.type === 'boolean'"
             v-model="formData.config[param.name]"
             :active-text="param.activeText || '是'"
@@ -155,7 +155,7 @@
           />
 
           <!-- 下拉选择 -->
-          <el-select
+          <ScSelect
             v-else-if="param.type === 'select'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || '请选择'"
@@ -163,16 +163,16 @@
             filterable
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="opt in param.options"
               :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
-          </el-select>
+          </ScSelect>
 
           <!-- 多选 -->
-          <el-select
+          <ScSelect
             v-else-if="param.type === 'multiselect'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || '请选择'"
@@ -183,16 +183,16 @@
             collapse-tags-tooltip
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="opt in param.options"
               :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
-          </el-select>
+          </ScSelect>
 
           <!-- 日期选择 -->
-          <el-date-picker
+          <ScDatePicker
             v-else-if="param.type === 'date'"
             v-model="formData.config[param.name]"
             type="date"
@@ -201,7 +201,7 @@
           />
 
           <!-- 日期时间选择 -->
-          <el-date-picker
+          <ScDatePicker
             v-else-if="param.type === 'datetime'"
             v-model="formData.config[param.name]"
             type="datetime"
@@ -210,7 +210,7 @@
           />
 
           <!-- 颜色选择 -->
-          <el-color-picker
+          <ScColorPicker
             v-else-if="param.type === 'color'"
             v-model="formData.config[param.name]"
           />
@@ -232,17 +232,17 @@
               :key="index"
               class="keyvalue-item"
             >
-              <el-input
+              <ScInput
                 v-model="item.key"
                 placeholder="键"
                 @change="updateKeyValueConfig(param.name)"
               />
-              <el-input
+              <ScInput
                 v-model="item.value"
                 placeholder="值"
                 @change="updateKeyValueConfig(param.name)"
               />
-              <el-button
+              <ScButton
                 type="danger"
                 :icon="Delete"
                 circle
@@ -250,28 +250,28 @@
                 @click="removeKeyValueItem(param.name, index)"
               />
             </div>
-            <el-button
+            <ScButton
               type="primary"
               :icon="Plus"
               @click="addKeyValueItem(param.name)"
             >
               添加
-            </el-button>
+            </ScButton>
           </div>
 
           <!-- 文件路径选择 -->
-          <el-input
+          <ScInput
             v-else-if="param.type === 'filepath'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || '请输入文件路径'"
           >
             <template #append>
-              <el-button :icon="FolderOpened" />
+              <ScButton :icon="FolderOpened" />
             </template>
-          </el-input>
+          </ScInput>
 
           <!-- 默认为字符串输入 -->
-          <el-input
+          <ScInput
             v-else
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || param.description"
@@ -279,22 +279,22 @@
 
           <!-- 参数描述 -->
           <div v-if="param.description" class="param-description">
-            <el-icon><InfoFilled /></el-icon>
+            <ScIcon><InfoFilled /></ScIcon>
             {{ param.description }}
           </div>
-        </el-form-item>
-      </el-card>
+        </ScFormItem>
+      </ScCard>
 
       <!-- 无参数提示 -->
-      <el-empty v-else description="该节点类型无需配置参数" :image-size="100" />
+      <ScEmpty v-else description="该节点类型无需配置参数" :image-size="100" />
 
       <!-- 输出节点自动建表配置（仅数据库类型） -->
-      <el-card v-if="showColumnEditor" shadow="never" class="config-section">
+      <ScCard v-if="showColumnEditor" shadow="never" class="config-section">
         <template #header>
           <div class="section-header">
-            <el-icon><Grid /></el-icon>
+            <ScIcon><Grid /></ScIcon>
             <span>目标表列定义</span>
-            <el-tag size="small" type="info">自动建表</el-tag>
+            <ScTag size="small" type="info">自动建表</ScTag>
           </div>
         </template>
         <ColumnDefinitionEditor
@@ -305,25 +305,25 @@
           :showAutoCreateSwitch="true"
           @import="handleImportColumns"
         />
-      </el-card>
-    </el-form>
+      </ScCard>
+    </ScForm>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">取消</el-button>
-        <el-button
+        <ScButton @click="visible = false">取消</ScButton>
+        <ScButton
           v-if="canTest"
           type="info"
           :loading="testing"
           @click="handleTestConnection"
         >
-          <el-icon><Connection /></el-icon>
+          <ScIcon><Connection /></ScIcon>
           测试连接
-        </el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">
-          <el-icon><Check /></el-icon>
+        </ScButton>
+        <ScButton type="primary" :loading="saving" @click="handleSave">
+          <ScIcon><Check /></ScIcon>
           保存配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

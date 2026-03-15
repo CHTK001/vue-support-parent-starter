@@ -3,7 +3,7 @@ import { unref } from "vue";
 import { useRouter } from "vue-router";
 
 defineOptions({
-  name: "Redirect"
+  name: "Redirect",
 });
 
 const { currentRoute, replace } = useRouter();
@@ -15,7 +15,7 @@ const _path = Array.isArray(path) ? path.join("/") : path;
 
 replace({
   path: "/" + _path,
-  query
+  query,
 });
 </script>
 

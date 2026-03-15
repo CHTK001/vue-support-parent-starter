@@ -41,7 +41,7 @@
             </div>
 
             <div class="result-display mt-4">
-              <ScAlert 
+              <ScAlert
                 :title="`当前选择值: ${selectedValue}`"
                 type="success"
                 :closable="false"
@@ -125,7 +125,7 @@
           <h4>配置选项</h4>
           <ScForm label-position="top">
             <ScFormItem label="当前选项集">
-              <ScSelect 
+              <ScSelect
                 v-model="currentOptionSet"
                 placeholder="选择选项集"
                 class="w-100"

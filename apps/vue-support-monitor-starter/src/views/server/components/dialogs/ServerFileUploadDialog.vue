@@ -21,7 +21,7 @@
             </p>
           </div>
         </div>
-        <el-button
+        <ScButton
           class="close-btn"
           :icon="CloseIcon"
           circle
@@ -30,7 +30,7 @@
       </div>
     </template>
 
-    <el-form
+    <ScForm
       ref="formRef"
       :model="uploadForm"
       :rules="formRules"
@@ -44,21 +44,21 @@
           <span>基本信息</span>
         </div>
         <div class="section-content">
-          <el-row :gutter="24">
-            <el-col :span="12">
-              <el-form-item label="任务名称" prop="taskName">
-                <el-input
+          <ScRow :gutter="24">
+            <ScCol :span="12">
+              <ScFormItem label="任务名称" prop="taskName">
+                <ScInput
                   v-model="uploadForm.taskName"
                   placeholder="请输入任务名称"
                   maxlength="100"
                   show-word-limit
                   :prefix-icon="TaskIcon"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="目标服务器" prop="serverId">
-                <el-select
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="目标服务器" prop="serverId">
+                <ScSelect
                   v-model="uploadForm.serverId"
                   placeholder="请选择目标服务器"
                   style="width: 100%"
@@ -67,7 +67,7 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:server-line" :size="16" />
                   </template>
-                  <el-option
+                  <ScOption
                     v-for="server in sshServers"
                     :key="server.monitorSysGenServerId"
                     :label="`${server.monitorSysGenServerName} (${server.monitorSysGenServerHost})`"
@@ -82,26 +82,26 @@
                         server.monitorSysGenServerHost
                       }}</span>
                     </div>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
+                  </ScOption>
+                </ScSelect>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
 
-          <el-row :gutter="24">
-            <el-col :span="12">
-              <el-form-item label="目标路径" prop="targetPath">
-                <el-input
+          <ScRow :gutter="24">
+            <ScCol :span="12">
+              <ScFormItem label="目标路径" prop="targetPath">
+                <ScInput
                   v-model="uploadForm.targetPath"
                   placeholder="如：/home/user/uploads/"
                   maxlength="500"
                   :prefix-icon="FolderIcon"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="上传模式" prop="uploadMode">
-                <el-radio-group
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="上传模式" prop="uploadMode">
+                <ScRadioGroup
                   v-model="uploadForm.uploadMode"
                   class="mode-radio-group"
                 >
@@ -113,17 +113,17 @@
                     <IconifyIconOnline icon="ri:time-line" :size="14" />
                     <span>定时上传</span>
                   </el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
+                </ScRadioGroup>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
 
           <!-- 定时上传选项 -->
           <el-collapse-transition>
-            <el-row v-if="uploadForm.uploadMode === 'SCHEDULED'" :gutter="24">
-              <el-col :span="12">
-                <el-form-item label="定时时间" prop="scheduledTime">
-                  <el-date-picker
+            <ScRow v-if="uploadForm.uploadMode === 'SCHEDULED'" :gutter="24">
+              <ScCol :span="12">
+                <ScFormItem label="定时时间" prop="scheduledTime">
+                  <ScDatePicker
                     v-model="uploadForm.scheduledTime"
                     type="datetime"
                     placeholder="选择定时上传时间"
@@ -131,33 +131,33 @@
                     :disabled-date="disabledDate"
                     :prefix-icon="CalendarIcon"
                   />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="优先级" prop="priority">
-                  <el-select v-model="uploadForm.priority" style="width: 100%">
-                    <el-option label="低优先级" :value="1">
+                </ScFormItem>
+              </ScCol>
+              <ScCol :span="12">
+                <ScFormItem label="优先级" prop="priority">
+                  <ScSelect v-model="uploadForm.priority" style="width: 100%">
+                    <ScOption label="低优先级" :value="1">
                       <div class="priority-option">
                         <span class="priority-dot low" />
                         <span>低优先级</span>
                       </div>
-                    </el-option>
-                    <el-option label="普通" :value="5">
+                    </ScOption>
+                    <ScOption label="普通" :value="5">
                       <div class="priority-option">
                         <span class="priority-dot normal" />
                         <span>普通</span>
                       </div>
-                    </el-option>
-                    <el-option label="高优先级" :value="10">
+                    </ScOption>
+                    <ScOption label="高优先级" :value="10">
                       <div class="priority-option">
                         <span class="priority-dot high" />
                         <span>高优先级</span>
                       </div>
-                    </el-option>
-                  </el-select>
-                </el-form-item>
-              </el-col>
-            </el-row>
+                    </ScOption>
+                  </ScSelect>
+                </ScFormItem>
+              </ScCol>
+            </ScRow>
           </el-collapse-transition>
         </div>
       </div>
@@ -167,7 +167,7 @@
         <div class="section-header">
           <IconifyIconOnline icon="ri:settings-3-line" :size="18" />
           <span>高级选项</span>
-          <el-tag size="small" type="info" class="section-tag">可选</el-tag>
+          <ScTag size="small" type="info" class="section-tag">可选</ScTag>
         </div>
         <div class="section-content">
           <!-- 开关选项卡片 -->
@@ -180,7 +180,7 @@
                 <div class="switch-card-title">覆盖文件</div>
                 <div class="switch-card-desc">存在同名文件时自动覆盖</div>
               </div>
-              <el-switch v-model="uploadForm.overwrite" />
+              <ScSwitch v-model="uploadForm.overwrite" />
             </div>
 
             <div class="switch-card" :class="{ active: uploadForm.backup }">
@@ -191,7 +191,7 @@
                 <div class="switch-card-title">备份原文件</div>
                 <div class="switch-card-desc">覆盖前自动备份原文件</div>
               </div>
-              <el-switch v-model="uploadForm.backup" />
+              <ScSwitch v-model="uploadForm.backup" />
             </div>
 
             <div class="switch-card" :class="{ active: uploadForm.compress }">
@@ -202,7 +202,7 @@
                 <div class="switch-card-title">压缩传输</div>
                 <div class="switch-card-desc">启用压缩提升传输速度</div>
               </div>
-              <el-switch v-model="uploadForm.compress" />
+              <ScSwitch v-model="uploadForm.compress" />
             </div>
 
             <div class="switch-card" :class="{ active: uploadForm.verify }">
@@ -213,15 +213,15 @@
                 <div class="switch-card-title">文件校验</div>
                 <div class="switch-card-desc">MD5校验确保文件完整</div>
               </div>
-              <el-switch v-model="uploadForm.verify" />
+              <ScSwitch v-model="uploadForm.verify" />
             </div>
           </div>
 
           <!-- 数值配置 -->
-          <el-row :gutter="24" class="number-config">
-            <el-col :span="12">
-              <el-form-item label="超时时间">
-                <el-input-number
+          <ScRow :gutter="24" class="number-config">
+            <ScCol :span="12">
+              <ScFormItem label="超时时间">
+                <ScInputNumber
                   v-model="uploadForm.timeoutSeconds"
                   :min="30"
                   :max="3600"
@@ -229,23 +229,23 @@
                   :step="30"
                 />
                 <div class="form-item-tip">单位：秒，建议 300-600</div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="最大重试">
-                <el-input-number
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="最大重试">
+                <ScInputNumber
                   v-model="uploadForm.maxRetry"
                   :min="0"
                   :max="10"
                   style="width: 100%"
                 />
                 <div class="form-item-tip">失败后自动重试次数</div>
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
 
-          <el-form-item label="任务描述">
-            <el-input
+          <ScFormItem label="任务描述">
+            <ScInput
               v-model="uploadForm.description"
               type="textarea"
               :rows="2"
@@ -254,7 +254,7 @@
               show-word-limit
               resize="none"
             />
-          </el-form-item>
+          </ScFormItem>
         </div>
       </div>
 
@@ -263,18 +263,18 @@
         <div class="section-header">
           <IconifyIconOnline icon="ri:upload-2-line" :size="18" />
           <span>选择文件</span>
-          <el-tag
+          <ScTag
             v-if="fileList.length > 0"
             size="small"
             type="success"
             class="section-tag"
           >
             已选 {{ fileList.length }} 个文件
-          </el-tag>
+          </ScTag>
         </div>
         <div class="section-content">
-          <el-form-item prop="files" label-width="0">
-            <el-upload
+          <ScFormItem prop="files" label-width="0">
+            <ScUpload
               ref="uploadRef"
               :file-list="fileList"
               :auto-upload="false"
@@ -298,11 +298,11 @@
                   <span>支持多文件上传，单个文件大小不超过 100MB</span>
                 </div>
               </div>
-            </el-upload>
-          </el-form-item>
+            </ScUpload>
+          </ScFormItem>
         </div>
       </div>
-    </el-form>
+    </ScForm>
 
     <template #footer>
       <div class="dialog-footer">
@@ -311,8 +311,8 @@
           <span>任务创建后将自动开始执行</span>
         </div>
         <div class="footer-actions">
-          <el-button size="large" @click="handleClose">取消</el-button>
-          <el-button
+          <ScButton size="large" @click="handleClose">取消</ScButton>
+          <ScButton
             type="primary"
             :loading="submitting"
             size="large"
@@ -324,7 +324,7 @@
               :size="16"
             />
             <span>{{ submitting ? "创建中..." : "创建任务" }}</span>
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>

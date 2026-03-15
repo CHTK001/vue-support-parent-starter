@@ -12,81 +12,81 @@
   >
     <div class="dialog-content">
       <!-- 基本信息表单 -->
-      <el-form
+      <ScForm
         ref="formRef"
         :model="scriptForm"
         :rules="formRules"
         label-width="100px"
         class="script-form"
       >
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="脚本名称" prop="monitorSysGenScriptName">
-              <el-input
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="脚本名称" prop="monitorSysGenScriptName">
+              <ScInput
                 v-model="scriptForm.monitorSysGenScriptName"
                 placeholder="请输入脚本名称"
                 clearable
                 maxlength="50"
                 show-word-limit
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="脚本类型" prop="monitorSysGenScriptType">
-              <el-select
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="脚本类型" prop="monitorSysGenScriptType">
+              <ScSelect
                 v-model="scriptForm.monitorSysGenScriptType"
                 placeholder="请选择脚本类型"
                 style="width: 100%"
                 @change="handleTypeChange"
               >
-                <el-option label="Shell" value="SHELL">
+                <ScOption label="Shell" value="SHELL">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:terminal-line" />
                     <span>Shell</span>
                   </div>
-                </el-option>
-                <el-option label="Python" value="PYTHON">
+                </ScOption>
+                <ScOption label="Python" value="PYTHON">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:file-code-line" />
                     <span>Python</span>
                   </div>
-                </el-option>
-                <el-option label="PowerShell" value="POWERSHELL">
+                </ScOption>
+                <ScOption label="PowerShell" value="POWERSHELL">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:windows-line" />
                     <span>PowerShell</span>
                   </div>
-                </el-option>
-                <el-option label="Batch" value="BATCH">
+                </ScOption>
+                <ScOption label="Batch" value="BATCH">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:file-text-line" />
                     <span>Batch</span>
                   </div>
-                </el-option>
-                <el-option label="JavaScript" value="JAVASCRIPT">
+                </ScOption>
+                <ScOption label="JavaScript" value="JAVASCRIPT">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:javascript-line" />
                     <span>JavaScript</span>
                   </div>
-                </el-option>
-                <el-option label="SQL" value="SQL">
+                </ScOption>
+                <ScOption label="SQL" value="SQL">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:database-2-line" />
                     <span>SQL</span>
                   </div>
-                </el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
+                </ScOption>
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
 
-        <el-row>
-          <el-col :span="24">
-            <el-form-item
+        <ScRow>
+          <ScCol :span="24">
+            <ScFormItem
               label="脚本描述"
               prop="monitorSysGenScriptDescription"
             >
-              <el-input
+              <ScInput
                 v-model="scriptForm.monitorSysGenScriptDescription"
                 type="textarea"
                 :rows="2"
@@ -94,44 +94,44 @@
                 maxlength="200"
                 show-word-limit
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="脚本分类">
-              <el-input
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="脚本分类">
+              <ScInput
                 v-model="scriptForm.monitorSysGenScriptCategory"
                 placeholder="如: 系统管理、数据处理等"
                 clearable
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="脚本状态">
-              <el-radio-group v-model="scriptForm.monitorSysGenScriptStatus">
-                <el-radio value="ENABLED">启用</el-radio>
-                <el-radio value="DISABLED">禁用</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="脚本状态">
+              <ScRadioGroup v-model="scriptForm.monitorSysGenScriptStatus">
+                <ScRadio value="ENABLED">启用</ScRadio>
+                <ScRadio value="DISABLED">禁用</ScRadio>
+              </ScRadioGroup>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
 
       <!-- 代码编辑器 -->
       <div class="code-editor-section">
         <div class="section-header">
           <h4>脚本内容</h4>
           <div class="editor-actions">
-            <el-button size="small" @click="loadTemplate">
+            <ScButton size="small" @click="loadTemplate">
               <IconifyIconOnline icon="ri:file-add-line" />
               加载模板
-            </el-button>
-            <el-button size="small" @click="formatCode">
+            </ScButton>
+            <ScButton size="small" @click="formatCode">
               <IconifyIconOnline icon="ri:code-s-slash-line" />
               格式化
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -153,8 +153,8 @@
     <!-- 对话框底部按钮 -->
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="large" @click="handleClose">取消</el-button>
-        <el-button
+        <ScButton size="large" @click="handleClose">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="saving"
           size="large"
@@ -162,7 +162,7 @@
         >
           <IconifyIconOnline icon="ri:save-line" />
           保存脚本
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

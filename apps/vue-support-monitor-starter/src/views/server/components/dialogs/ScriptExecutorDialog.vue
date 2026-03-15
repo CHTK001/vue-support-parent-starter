@@ -7,60 +7,60 @@
     @close="handleClose"
   >
     <div class="script-executor">
-      <el-row :gutter="20">
+      <ScRow :gutter="20">
         <!-- 左侧脚本编辑区 -->
-        <el-col :span="12">
+        <ScCol :span="12">
           <div class="script-panel">
             <div class="panel-header">
               <h4>脚本编辑</h4>
               <div class="script-actions">
-                <el-dropdown @command="handleTemplateCommand">
-                  <el-button size="small" text>
+                <ScDropdown @command="handleTemplateCommand">
+                  <ScButton size="small" text>
                     模板
                     <IconifyIconOnline
                       icon="ri:arrow-down-s-line"
                       class="ml-1"
                     />
-                  </el-button>
+                  </ScButton>
                   <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="system_info"
+                    <ScDropdownMenu>
+                      <ScDropdownItem command="system_info"
                         >系统信息</el-dropdown-item
                       >
-                      <el-dropdown-item command="disk_usage"
+                      <ScDropdownItem command="disk_usage"
                         >磁盘使用</el-dropdown-item
                       >
-                      <el-dropdown-item command="memory_info"
+                      <ScDropdownItem command="memory_info"
                         >内存信息</el-dropdown-item
                       >
-                      <el-dropdown-item command="process_list"
+                      <ScDropdownItem command="process_list"
                         >进程列表</el-dropdown-item
                       >
-                      <el-dropdown-item command="network_info"
+                      <ScDropdownItem command="network_info"
                         >网络信息</el-dropdown-item
                       >
-                      <el-dropdown-item command="service_status"
+                      <ScDropdownItem command="service_status"
                         >服务状态</el-dropdown-item
                       >
-                    </el-dropdown-menu>
+                    </ScDropdownMenu>
                   </template>
-                </el-dropdown>
-                <el-button size="small" @click="clearScript">清空</el-button>
+                </ScDropdown>
+                <ScButton size="small" @click="clearScript">清空</ScButton>
               </div>
             </div>
 
-            <el-form :model="formData" label-width="80px" size="small">
-              <el-form-item label="脚本类型">
-                <el-select v-model="formData.scriptType" style="width: 100%">
-                  <el-option label="Shell脚本" value="shell" />
-                  <el-option label="PowerShell" value="powershell" />
-                  <el-option label="Python脚本" value="python" />
-                  <el-option label="批处理" value="batch" />
-                </el-select>
-              </el-form-item>
+            <ScForm :model="formData" label-width="80px" size="small">
+              <ScFormItem label="脚本类型">
+                <ScSelect v-model="formData.scriptType" style="width: 100%">
+                  <ScOption label="Shell脚本" value="shell" />
+                  <ScOption label="PowerShell" value="powershell" />
+                  <ScOption label="Python脚本" value="python" />
+                  <ScOption label="批处理" value="batch" />
+                </ScSelect>
+              </ScFormItem>
 
-              <el-form-item label="执行超时">
-                <el-input-number
+              <ScFormItem label="执行超时">
+                <ScInputNumber
                   v-model="formData.timeout"
                   :min="5"
                   :max="3600"
@@ -68,11 +68,11 @@
                   style="width: 100%"
                 />
                 <span class="timeout-unit">秒</span>
-              </el-form-item>
-            </el-form>
+              </ScFormItem>
+            </ScForm>
 
             <div class="script-editor">
-              <el-input
+              <ScInput
                 v-model="formData.script"
                 type="textarea"
                 :rows="15"
@@ -82,7 +82,7 @@
             </div>
 
             <div class="script-footer">
-              <el-button
+              <ScButton
                 type="primary"
                 :loading="executing"
                 :disabled="!formData.script.trim()"
@@ -90,25 +90,25 @@
               >
                 <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                 执行脚本
-              </el-button>
-              <el-button :disabled="!executing" @click="stopExecution">
+              </ScButton>
+              <ScButton :disabled="!executing" @click="stopExecution">
                 <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                 停止执行
-              </el-button>
+              </ScButton>
             </div>
           </div>
-        </el-col>
+        </ScCol>
 
         <!-- 右侧执行结果区 -->
-        <el-col :span="12">
+        <ScCol :span="12">
           <div class="result-panel">
             <div class="panel-header">
               <h4>执行结果</h4>
               <div class="result-actions">
-                <el-button size="small" @click="clearOutput"
+                <ScButton size="small" @click="clearOutput"
                   >清空输出</el-button
                 >
-                <el-button size="small" @click="downloadOutput"
+                <ScButton size="small" @click="downloadOutput"
                   >下载结果</el-button
                 >
               </div>
@@ -116,13 +116,13 @@
 
             <!-- 执行状态 -->
             <div v-if="executing || executionResult" class="execution-status">
-              <el-tag
+              <ScTag
                 :type="getStatusType(executionStatus)"
                 size="small"
                 class="status-tag"
               >
                 {{ getStatusText(executionStatus) }}
-              </el-tag>
+              </ScTag>
               <span v-if="executionTime" class="execution-time">
                 执行时间: {{ executionTime }}ms
               </span>
@@ -131,24 +131,24 @@
             <!-- 输出内容 -->
             <div class="output-container">
               <div class="output-tabs">
-                <el-tabs v-model="activeTab" size="small">
-                  <el-tab-pane label="标准输出" name="stdout">
+                <ScTabs v-model="activeTab" size="small">
+                  <ScTabPane label="标准输出" name="stdout">
                     <div ref="stdoutRef" class="output-content">
                       <pre v-if="outputData.stdout">{{
                         outputData.stdout
                       }}</pre>
                       <div v-else class="empty-output">暂无输出</div>
                     </div>
-                  </el-tab-pane>
-                  <el-tab-pane label="错误输出" name="stderr">
+                  </ScTabPane>
+                  <ScTabPane label="错误输出" name="stderr">
                     <div ref="stderrRef" class="output-content">
                       <pre v-if="outputData.stderr" class="error-output">{{
                         outputData.stderr
                       }}</pre>
                       <div v-else class="empty-output">暂无错误输出</div>
                     </div>
-                  </el-tab-pane>
-                  <el-tab-pane label="执行日志" name="logs">
+                  </ScTabPane>
+                  <ScTabPane label="执行日志" name="logs">
                     <div ref="logsRef" class="output-content">
                       <div
                         v-for="(log, index) in executionLogs"
@@ -166,40 +166,40 @@
                         暂无日志
                       </div>
                     </div>
-                  </el-tab-pane>
-                </el-tabs>
+                  </ScTabPane>
+                </ScTabs>
               </div>
             </div>
           </div>
-        </el-col>
-      </el-row>
+        </ScCol>
+      </ScRow>
 
       <!-- 目标服务器选择 -->
       <div v-if="!targetServer" class="server-selection">
-        <el-divider content-position="left">目标服务器</el-divider>
-        <el-checkbox-group v-model="selectedServers">
-          <el-checkbox
+        <ScDivider content-position="left">目标服务器</ScDivider>
+        <ScCheckboxGroup v-model="selectedServers">
+          <ScCheckbox
             v-for="server in availableServers"
             :key="server.id"
             :label="server.id"
             class="server-checkbox"
           >
             {{ server.name }} ({{ server.host }}:{{ server.port }})
-          </el-checkbox>
-        </el-checkbox-group>
+          </ScCheckbox>
+        </ScCheckboxGroup>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button
+        <ScButton @click="handleClose">关闭</ScButton>
+        <ScButton
           type="primary"
           :disabled="!formData.script.trim()"
           @click="saveScript"
         >
           保存脚本
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

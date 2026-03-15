@@ -1,7 +1,12 @@
 <template>
   <div class="video-content">
     <!-- 导航组件 -->
-    <VideoNavigation v-model="selectedCategory" @search="handleNavSearch" @category-change="handleCategoryChange" @home-click="handleHomeClick" />
+    <VideoNavigation
+      v-model="selectedCategory"
+      @search="handleNavSearch"
+      @category-change="handleCategoryChange"
+      @home-click="handleHomeClick"
+    />
 
     <!-- 分类内容区域 -->
     <div v-if="!showSearchResults" class="video-content__category-container">
@@ -13,18 +18,39 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, ref, shallowRef, watch } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  ref,
+  shallowRef,
+  watch,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { videoCategories } from "../../../data/categories";
 import VideoNavigation from "../components/VideoNavigation.vue";
 // 动态导入分类页面组件
-const MovieCategory = defineAsyncComponent(() => import("../categories/MovieCategory.vue"));
-const TVCategory = defineAsyncComponent(() => import("../categories/TVCategory.vue"));
-const AnimeCategory = defineAsyncComponent(() => import("../categories/AnimeCategory.vue"));
-const DocumentaryCategory = defineAsyncComponent(() => import("../categories/DocumentaryCategory.vue"));
-const MusicCategory = defineAsyncComponent(() => import("../categories/MusicCategory.vue"));
-const VIPCategory = defineAsyncComponent(() => import("../categories/VIPCategory.vue"));
-const DefaultCategory = defineAsyncComponent(() => import("../categories/DefaultCategory.vue"));
+const MovieCategory = defineAsyncComponent(
+  () => import("../categories/MovieCategory.vue"),
+);
+const TVCategory = defineAsyncComponent(
+  () => import("../categories/TVCategory.vue"),
+);
+const AnimeCategory = defineAsyncComponent(
+  () => import("../categories/AnimeCategory.vue"),
+);
+const DocumentaryCategory = defineAsyncComponent(
+  () => import("../categories/DocumentaryCategory.vue"),
+);
+const MusicCategory = defineAsyncComponent(
+  () => import("../categories/MusicCategory.vue"),
+);
+const VIPCategory = defineAsyncComponent(
+  () => import("../categories/VIPCategory.vue"),
+);
+const DefaultCategory = defineAsyncComponent(
+  () => import("../categories/DefaultCategory.vue"),
+);
 
 // 定义组件属性
 const props = defineProps<{
@@ -229,7 +255,9 @@ const initDefaultCategory = () => {
     if (firstCategory) {
       selectedCategory.value = firstCategory.value;
       //@ts-ignore
-      currentCategoryComponent.value = getCategoryComponent(firstCategory.value);
+      currentCategoryComponent.value = getCategoryComponent(
+        firstCategory.value,
+      );
     }
   }
 };
@@ -255,7 +283,7 @@ watch(
       showSearchResults.value = false;
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // 监听props变化
@@ -270,7 +298,7 @@ watch(
         tableRef.value.refresh();
       }
     }
-  }
+  },
 );
 
 watch(
@@ -282,7 +310,7 @@ watch(
       currentCategoryComponent.value = getCategoryComponent(newValue);
       showSearchResults.value = false;
     }
-  }
+  },
 );
 
 // 初始化

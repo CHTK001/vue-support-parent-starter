@@ -29,7 +29,7 @@
             />
           </ScFormItem>
 
-          <ScFormItem 
+          <ScFormItem
             label="label 标签文本"
             v-if="
               config.layout === 'compact-card' ||
@@ -40,14 +40,14 @@
           </ScFormItem>
 
           <ScFormItem label="activeText 开启文本">
-            <ScInput 
+            <ScInput
               v-model="config.activeText"
               placeholder="开启时显示的文本"
             />
           </ScFormItem>
 
           <ScFormItem label="inactiveText 关闭文本">
-            <ScInput 
+            <ScInput
               v-model="config.inactiveText"
               placeholder="关闭时显示的文本"
             />

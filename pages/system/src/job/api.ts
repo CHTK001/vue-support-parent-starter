@@ -120,15 +120,18 @@ export const fetchJobPageList = (params: JobPageParams) => {
   return http.request<ReturnResult<any>>("get", "/v1/job/page", {
     params,
     headers: {
-      "x-remote-animation": "false"
-    }
+      "x-remote-animation": "false",
+    },
   });
 };
 
 /**
  * 触发任务
  */
-export const fetchJobTrigger = (params: { jobId: number; executorParam?: string }) => {
+export const fetchJobTrigger = (params: {
+  jobId: number;
+  executorParam?: string;
+}) => {
   return http.request<ReturnResult<any>>("get", "/v1/job/trigger", { params });
 };
 
@@ -150,7 +153,9 @@ export const fetchJobStart = (params: { jobId: number }) => {
  * 删除任务
  */
 export const fetchJobDelete = (params: { jobId: number }) => {
-  return http.request<ReturnResult<any>>("delete", "/v1/job/delete", { params });
+  return http.request<ReturnResult<any>>("delete", "/v1/job/delete", {
+    params,
+  });
 };
 
 /**
@@ -170,8 +175,15 @@ export const fetchJobUpdate = (data: JobInfo) => {
 /**
  * 获取任务下次触发时间
  */
-export const fetchJobNextTriggerTime = (params: { scheduleType: string; scheduleConf: string }) => {
-  return http.request<ReturnResult<string[]>>("get", "/v1/job/nextTriggerTime", { params });
+export const fetchJobNextTriggerTime = (params: {
+  scheduleType: string;
+  scheduleConf: string;
+}) => {
+  return http.request<ReturnResult<string[]>>(
+    "get",
+    "/v1/job/nextTriggerTime",
+    { params },
+  );
 };
 
 /**
@@ -184,20 +196,30 @@ export const fetchJobLogPage = (params: JobLogPageParams) => {
 /**
  * 获取任务日志统计
  */
-export const fetchJobLogChart = (params: { startDate?: string; endDate?: string }) => {
+export const fetchJobLogChart = (params: {
+  startDate?: string;
+  endDate?: string;
+}) => {
   return http.request<ReturnResult<any>>("get", "/v1/job/time", { params });
 };
 
 /**
  * 清理日志
  */
-export const fetchJobLogClear = (params: { jobId?: number; jobGroup?: number; clearBeforeNum?: number }) => {
+export const fetchJobLogClear = (params: {
+  jobId?: number;
+  jobGroup?: number;
+  clearBeforeNum?: number;
+}) => {
   return http.request<ReturnResult<any>>("get", "/v1/job/clear", { params });
 };
 
 /**
  * 查看日志详情
  */
-export const fetchJobLogCat = (params: { logId: number; fromLineNum?: number }) => {
+export const fetchJobLogCat = (params: {
+  logId: number;
+  fromLineNum?: number;
+}) => {
   return http.request<ReturnResult<any>>("get", "/v1/job/logCat", { params });
 };

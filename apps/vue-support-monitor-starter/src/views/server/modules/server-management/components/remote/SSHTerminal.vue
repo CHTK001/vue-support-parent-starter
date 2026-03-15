@@ -5,28 +5,28 @@
       <div class="terminal-info">
         <IconifyIconOnline icon="ri:terminal-line" class="mr-2" />
         <span class="terminal-title">SSH终端 - {{ server?.name }}</span>
-        <el-tag
+        <ScTag
           :type="connectionStatus === 'connected' ? 'success' : 'danger'"
           size="small"
           class="ml-2"
         >
           {{ connectionStatusText }}
-        </el-tag>
+        </ScTag>
       </div>
       <div class="terminal-actions">
-        <el-button size="small" :disabled="connecting" @click="reconnect">
+        <ScButton size="small" :disabled="connecting" @click="reconnect">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           重连
-        </el-button>
-        <el-button size="small" @click="clearTerminal">
+        </ScButton>
+        <ScButton size="small" @click="clearTerminal">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           清屏
-        </el-button>
+        </ScButton>
 
-        <el-button size="small" @click="emit('close')">
+        <ScButton size="small" @click="emit('close')">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           关闭
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -46,10 +46,10 @@
             <IconifyIconOnline icon="ri:terminal-line" class="prompt-icon" />
             <h3>SSH终端连接</h3>
             <p>服务器: {{ server?.host }}:{{ server?.port }}</p>
-            <el-button type="primary" :loading="connecting" @click="connect">
+            <ScButton type="primary" :loading="connecting" @click="connect">
               <IconifyIconOnline icon="ri:play-line" class="mr-1" />
               连接
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -84,20 +84,20 @@
         </span>
       </div>
       <div class="terminal-settings">
-        <el-dropdown @command="handleSettingCommand">
-          <el-button size="small" text>
+        <ScDropdown @command="handleSettingCommand">
+          <ScButton size="small" text>
             <IconifyIconOnline icon="ri:settings-line" />
-          </el-button>
+          </ScButton>
           <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="copy">复制选中</el-dropdown-item>
-              <el-dropdown-item command="paste">粘贴</el-dropdown-item>
-              <el-dropdown-item command="cleanup" divided
+            <ScDropdownMenu>
+              <ScDropdownItem command="copy">复制选中</ScDropdownItem>
+              <ScDropdownItem command="paste">粘贴</ScDropdownItem>
+              <ScDropdownItem command="cleanup" divided
                 >清屏</el-dropdown-item
               >
-            </el-dropdown-menu>
+            </ScDropdownMenu>
           </template>
-        </el-dropdown>
+        </ScDropdown>
       </div>
     </div>
   </div>

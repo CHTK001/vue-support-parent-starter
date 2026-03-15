@@ -1,20 +1,20 @@
 <template>
   <div class="test-component-fields system-container modern-bg">
-    <el-card>
+    <ScCard>
       <template #header>
         <h3>组件字段映射测试</h3>
       </template>
 
       <el-space direction="vertical" size="large" style="width: 100%">
         <!-- 测试数据显示 -->
-        <el-card>
+        <ScCard>
           <template #header>
             <h4>测试数据</h4>
           </template>
 
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="前端字段 (enabled)">
-              <el-tag
+          <ScDescriptions :column="2" border>
+            <ScDescriptionsItem label="前端字段 (enabled)">
+              <ScTag
                 :type="
                   testFormData.monitorSysGenServerComponentEnabled
                     ? 'success'
@@ -26,10 +26,10 @@
                     ? "启用"
                     : "禁用"
                 }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="后端字段 (status)">
-              <el-tag
+              </ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="后端字段 (status)">
+              <ScTag
                 :type="
                   testApiData.monitorSysGenServerComponentStatus === 1
                     ? 'success'
@@ -41,13 +41,13 @@
                     ? "启用"
                     : "禁用"
                 }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="组件名称">
+              </ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="组件名称">
               {{ testFormData.monitorSysGenServerComponentName }}
-            </el-descriptions-item>
-            <el-descriptions-item label="组件类型">
-              <el-tag
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="组件类型">
+              <ScTag
                 :type="
                   getComponentTypeTagColor(
                     testFormData.monitorSysGenServerComponentType,
@@ -59,62 +59,62 @@
                     testFormData.monitorSysGenServerComponentType,
                   )
                 }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="表达式类型">
-              <el-tag type="info">
+              </ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="表达式类型">
+              <ScTag type="info">
                 {{
                   getExpressionTypeDisplayName(
                     testFormData.monitorSysGenServerComponentExpressionType,
                   )
                 }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="表达式">
+              </ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="表达式">
               {{
                 testFormData.monitorSysGenServerComponentExpression || "未设置"
               }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </el-card>
+            </ScDescriptionsItem>
+          </ScDescriptions>
+        </ScCard>
 
         <!-- 转换测试 -->
-        <el-card>
+        <ScCard>
           <template #header>
             <h4>字段转换测试</h4>
           </template>
 
           <el-space>
-            <el-button type="primary" @click="testFormToApi">
+            <ScButton type="primary" @click="testFormToApi">
               前端 → 后端转换
-            </el-button>
-            <el-button type="success" @click="testApiToForm">
+            </ScButton>
+            <ScButton type="success" @click="testApiToForm">
               后端 → 前端转换
-            </el-button>
-            <el-button @click="resetTestData"> 重置测试数据 </el-button>
+            </ScButton>
+            <ScButton @click="resetTestData"> 重置测试数据 </ScButton>
           </el-space>
 
-          <el-divider />
+          <ScDivider />
 
           <!-- 转换结果 -->
           <div v-if="conversionResult">
             <h5>转换结果:</h5>
             <pre>{{ JSON.stringify(conversionResult, null, 2) }}</pre>
           </div>
-        </el-card>
+        </ScCard>
 
         <!-- 验证测试 -->
-        <el-card>
+        <ScCard>
           <template #header>
             <h4>数据验证测试</h4>
           </template>
 
-          <el-button type="warning" @click="testValidation">
+          <ScButton type="warning" @click="testValidation">
             验证数据完整性
-          </el-button>
+          </ScButton>
 
           <div v-if="validationResult" style="margin-top: 16px">
-            <el-alert
+            <ScAlert
               :type="validationResult.isValid ? 'success' : 'error'"
               :title="validationResult.isValid ? '验证通过' : '验证失败'"
               :description="
@@ -125,9 +125,9 @@
               show-icon
             />
           </div>
-        </el-card>
+        </ScCard>
       </el-space>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 
