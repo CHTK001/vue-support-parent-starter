@@ -434,7 +434,7 @@ import {
   type ServerComponentLayout,
 } from "@/api/server";
 import { useServerMetrics } from "@/composables/useServerWebSocket";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { GridItem, GridLayout } from "grid-layout-plus";

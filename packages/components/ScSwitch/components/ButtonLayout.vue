@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 const props = defineProps({
   modelValue: {

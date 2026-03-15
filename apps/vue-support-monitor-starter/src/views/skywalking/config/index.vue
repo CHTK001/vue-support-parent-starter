@@ -289,7 +289,7 @@
 import { ref, reactive, computed } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
 import { Search, RefreshRight, Plus, Setting } from "@element-plus/icons-vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   getSkywalkingConfigPage,
   saveSkywalkingConfig,

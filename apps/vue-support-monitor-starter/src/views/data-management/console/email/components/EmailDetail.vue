@@ -89,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 
 // 定义接口
 interface Email {

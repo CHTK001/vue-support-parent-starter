@@ -6,7 +6,7 @@ import {
   usePermissionStoreHook,
 } from "@repo/core";
 import { isAllEmpty } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { getConfig, transformI18n } from "@repo/config";
 import { nextTick, onMounted, ref, toRaw, watch } from "vue";
 import { useTranslationLang } from "../../../../hooks/useTranslationLang";

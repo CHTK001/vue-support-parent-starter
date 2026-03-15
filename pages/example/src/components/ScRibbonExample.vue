@@ -116,9 +116,9 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import ScRibbon from "@repo/components/ScRibbon/index.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScRibbon from "@repo/components";
+import ScSelect from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 import { ScSlider } from "@repo/components";
 
 // 样式选项

@@ -86,7 +86,7 @@
 
 <!--脚本部分保持不变-->
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { message } from "@repo/utils";
 import Hls from "hls.js";
 import {

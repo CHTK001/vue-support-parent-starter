@@ -168,8 +168,8 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { IconifyIconOnline } from "@repo/components";
+import { useRenderIcon } from "@repo/components";
 import { deepClean, getTimeAgo } from "@repo/utils";
 import {
   defineAsyncComponent,
@@ -181,7 +181,7 @@ import {
 import { useRouter } from "vue-router";
 import { createDevice } from "../../template/device/hook/device";
 const ScIp = defineAsyncComponent(
-  () => import("@repo/components/ScIp/index.vue"),
+  () => import("@repo/components"),
 );
 const deviceInstance = createDevice();
 const cameraPreviewDialogRef = shallowRef();

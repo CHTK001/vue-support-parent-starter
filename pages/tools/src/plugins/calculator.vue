@@ -357,7 +357,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import { useClipboard } from "@vueuse/core";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScSwitch from "@repo/components";
 
 // 复制功能
 const { copyText } = useClipboard();

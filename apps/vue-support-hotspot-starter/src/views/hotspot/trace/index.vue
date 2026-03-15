@@ -1,6 +1,6 @@
-ï»¿<template>
+<template>
   <div class="page flex flex-col h-full">
-    <!-- ç»Ÿè®¡å¡ç‰‡ -->
+    <!-- Í³¼Æ¿¨Æ¬ -->
     <ScRow :gutter="20" class="stats-row">
       <ScCol :span="6">
         <ScCard class="stat-card" shadow="hover">
@@ -10,7 +10,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ dataList.length }}</div>
-              <div class="stat-label">è¿½è¸ªè®°å½•</div>
+              <div class="stat-label">×·×Ù¼ÇÂ¼</div>
             </div>
           </div>
         </ScCard>
@@ -22,8 +22,8 @@
               <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ wsConnected ? "å·²è¿æ¥" : "æœªè¿æ¥" }}</div>
-              <div class="stat-label">WebSocket çŠ¶æ€</div>
+              <div class="stat-value">{{ wsConnected ? "ÒÑÁ¬½Ó" : "Î´Á¬½Ó" }}</div>
+              <div class="stat-label">WebSocket ×´Ì¬</div>
             </div>
           </div>
         </ScCard>
@@ -35,8 +35,8 @@
               <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">å®æ—¶</div>
-              <div class="stat-label">æ•°æ®æ¨é€</div>
+              <div class="stat-value">ÊµÊ±</div>
+              <div class="stat-label">Êı¾İÍÆËÍ</div>
             </div>
           </div>
         </ScCard>
@@ -48,15 +48,15 @@
               <IconifyIconOnline icon="ri:delete-bin-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <ScButton type="danger" size="small" @click="clearData">æ¸…ç©ºæ•°æ®</ScButton>
-              <div class="stat-label">æ“ä½œ</div>
+              <ScButton type="danger" size="small" @click="clearData">Çå¿ÕÊı¾İ</ScButton>
+              <div class="stat-label">²Ù×÷</div>
             </div>
           </div>
         </ScCard>
       </ScCol>
     </ScRow>
 
-    <!-- å†…å®¹åŒºåŸŸ -->
+    <!-- ÄÚÈİÇøÓò -->
     <div class="flex-1 overflow-hidden">
       <ScCard shadow="never" class="h-full trace-card">
         <div ref="containerRef" class="h-full overflow-auto">
@@ -95,7 +95,7 @@
                         <span v-if="data?.timestamp" style="height: 26px">
                           {{ dateFormat(data?.timestamp * 1) }}
                         </span>
-                        è€—æ—¶:
+                        ºÄÊ±:
                         <span style="height: 26px">{{ data?.costTime }} ms</span>
                         <ScIcon class="z-[10]" @click="handleShowTrack(data)">
                           <component :is="useRenderIcon('ri:information-2-line')" />
@@ -111,7 +111,7 @@
       </ScCard>
     </div>
 
-    <!-- è¯¦æƒ…æŠ½å±‰ -->
+    <!-- ÏêÇé³éÌë -->
     <sc-drawer ref="drawerRef" v-model="config.dialogVisible" :append-to-body="true" size="60%" direction="rtl" class="trace-drawer" :destroy-on-close="true">
       <template #title>
         <span v-html="config.dialogDetailData.description" />
@@ -121,12 +121,12 @@
           <ScDescriptionsItem label="linkId">
             {{ config.dialogDetailData.linkId }}
           </ScDescriptionsItem>
-          <ScDescriptionsItem v-if="config.dialogDetailData.applicationName" label="åº”ç”¨åœ°å€">
+          <ScDescriptionsItem v-if="config.dialogDetailData.applicationName" label="Ó¦ÓÃµØÖ·">
             <ScTag>{{ config.dialogDetailData.applicationName }}</ScTag>
             {{ config.dialogDetailData.applicationHost }}:{{ config.dialogDetailData.applicationPort }}
           </ScDescriptionsItem>
-          <ScDescriptionsItem label="è¿›å…¥æ–¹æ³•æ—¶é—´">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="è€—æ—¶">{{ config.dialogDetailData.costTime }} ms</ScDescriptionsItem>
+          <ScDescriptionsItem label="½øÈë·½·¨Ê±¼ä">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="ºÄÊ±">{{ config.dialogDetailData.costTime }} ms</ScDescriptionsItem>
         </ScDescriptions>
         <div v-if="config.dialogDetailData.headers && config.dialogDetailData.headers.length > 0">
           <div>header</div>
@@ -145,7 +145,7 @@
 
         <div v-if="config.dialogDetailData.stackTrace && config.dialogDetailData.stackTrace.length > 0">
           <ScDivider />
-          <div>å †æ ˆ</div>
+          <div>¶ÑÕ»</div>
           <pre><code class="language-java">{{ config.dialogDetailData.stackTrace  instanceof Array ? config.dialogDetailData.stackTrace?.join('\r\n') : config.dialogDetailData.stackTrace}}</code></pre>
         </div>
       </div>
@@ -163,7 +163,7 @@ import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import { format } from "sql-formatter";
 import { dateFormat } from "@repo/utils";
 import { nextTick, onMounted, onUnmounted, reactive, ref, computed } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { wsService } from "@/utils/websocket";
 
 const config = reactive({
@@ -180,26 +180,26 @@ const defaultProps = {
 
 let unsubscribe = null;
 
-// WebSocket è¿æ¥çŠ¶æ€
+// WebSocket Á¬½Ó×´Ì¬
 const wsConnected = computed(() => wsService.connected.value);
 
-// æ¸…ç©ºæ•°æ®
+// Çå¿ÕÊı¾İ
 const clearData = () => {
   dataList.length = 0;
 };
 
-// å¤„ç† WebSocket æ¶ˆæ¯
+// ´¦Àí WebSocket ÏûÏ¢
 const handleWsMessage = message => {
   if (message.event === "AGENT_TRACE") {
     try {
       const traceData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
       dataList.unshift(traceData);
-      // é™åˆ¶æœ€å¤§è®°å½•æ•°
+      // ÏŞÖÆ×î´ó¼ÇÂ¼Êı
       while (dataList.length > 1000) {
         dataList.pop();
       }
     } catch (error) {
-      console.error("è§£æé“¾è·¯æ•°æ®å¤±è´¥:", error);
+      console.error("½âÎöÁ´Â·Êı¾İÊ§°Ü:", error);
     }
   }
 };
@@ -218,27 +218,27 @@ const handleShowTrack = async data => {
   }, 300);
 };
 
-// è·å–å†å²è¿½è¸ªè®°å½•
+// »ñÈ¡ÀúÊ·×·×Ù¼ÇÂ¼
 const fetchHistory = async () => {
   try {
     const response = await fetch("/agent/api/trace?action=list&limit=100");
     const data = await response.json();
     if (data.traces && Array.isArray(data.traces)) {
-      // æ¸…ç©ºå¹¶æ·»åŠ å†å²æ•°æ®
+      // Çå¿Õ²¢Ìí¼ÓÀúÊ·Êı¾İ
       dataList.length = 0;
       data.traces.forEach(trace => dataList.push(trace));
     }
   } catch (error) {
-    console.error("è·å–é“¾è·¯å†å²å¤±è´¥:", error);
+    console.error("»ñÈ¡Á´Â·ÀúÊ·Ê§°Ü:", error);
   }
 };
 
 onMounted(() => {
-  // è¿æ¥ WebSocket
+  // Á¬½Ó WebSocket
   wsService.connect();
-  // è®¢é˜…é“¾è·¯è¿½è¸ªæ¶ˆæ¯
+  // ¶©ÔÄÁ´Â·×·×ÙÏûÏ¢
   unsubscribe = wsService.subscribe("TRACE", "AGENT_TRACE", handleWsMessage);
-  // åŠ è½½å†å²æ•°æ®
+  // ¼ÓÔØÀúÊ·Êı¾İ
   fetchHistory();
 });
 

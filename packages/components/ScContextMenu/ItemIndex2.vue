@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 export default {
   name: "RightMenuItem",
   props: {

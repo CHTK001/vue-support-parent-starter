@@ -1,6 +1,6 @@
 <script setup>
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { message } from "@repo/utils";
 import { defineAsyncComponent, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";

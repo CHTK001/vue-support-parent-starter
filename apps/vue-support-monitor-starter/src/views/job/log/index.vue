@@ -288,8 +288,8 @@ import {
   fetchJobLogPage,
   fetchJobLogClear,
 } from "@/api/monitor/job";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import scEcharts from "@repo/components/ScEcharts/index.vue";
+import { useRenderIcon } from "@repo/components";
+import scEcharts from "@repo/components";
 import { dateFormat, getDateRang, getRecentDays } from "@repo/utils";
 import { defineAsyncComponent, defineComponent } from "vue";
 

@@ -1,7 +1,7 @@
 ﻿<script setup>
 import Error from "@repo/assets/images/error.png";
 import Wait from "@repo/assets/images/wait.apng";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { checkImage } from "@repo/utils";
 import { VideoPlayer } from "@videojs-player/vue";
 import { api as viewerApi } from "v-viewer";

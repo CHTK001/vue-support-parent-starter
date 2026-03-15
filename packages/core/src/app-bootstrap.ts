@@ -1,48 +1,23 @@
 /**
- * 应用启动器 - 统一的应用初始化注册器
- * 提供链式调用API，灵活注册各种核心功能
- *
- * @example
- * ```ts
- * import { createStandardApp } from "@repo/core";
- *
- * createStandardApp()
- *   .registerCustomComponents({ MyComponent })
- *   .mount("#app");
- * ```
+ * 应用启动器
+ * - AppBootstrap: 通用注册器，提供链式 API
+ * - createStandardApp: 预设工厂，自动注册项目所需的全部依赖
  */
+
+// 公共样式（所有标准应用共享）
+import "element-plus/dist/index.css";
+import "@repo/assets/fonts/iconfont.css";
+import "@layout/default/styles/layout/index.scss";
+import "@layout/default/styles/layout/reset.scss";
+import "@layout/default/styles/layout/tailwind.css";
+import "@layout/default/styles/font-encryption.scss";
+import "tippy.js/dist/tippy.css";
+import "tippy.js/themes/light.css";
 
 import type { App, Directive } from "vue";
 import type { Router } from "vue-router";
 
-export interface BootstrapOptions {
-  /** 应用实例 */
-  app: App;
-  /** 路由实例 */
-  router?: Router;
-  /** 配置对象 */
-  config?: any;
-}
-
-/**
- * 标准应用配置选项
- */
-export interface StandardAppOptions {
-  /** 是否注册 VueTippy */
-  enableTippy?: boolean;
-  /** 是否注册 ElementPlusX */
-  enableElementPlusX?: boolean;
-  /** 是否启用 WASM */
-  enableWasm?: boolean;
-  /** 自定义组件 */
-  components?: Record<string, any>;
-  /** 自定义指令 */
-  directives?: Record<string, Directive>;
-  /** 自定义插件 */
-  plugins?: any[];
-  /** 自定义初始化函数 */
-  setup?: (app: App, config?: any) => void | Promise<void>;
-}
+// ─── AppBootstrap ────────────────────────────────────────────────────────────
 
 export class AppBootstrap {
   private app: App;
@@ -54,323 +29,150 @@ export class AppBootstrap {
     this.app = app;
   }
 
-  /**
-   * 注册核心样式
-   * 包括：reset.scss, tailwind.css, element-plus, iconfont等
-   */
-  registerCoreStyles(): this {
-    // 样式通过 main.ts 中的 import 语句加载
-    // 这里只是占位，实际样式加载在 main.ts 顶部
-    return this;
-  }
-
-  /**
-   * 注册全局指令
-   * @param directives 指令对象集合
-   */
   registerDirectives(directives?: Record<string, Directive>): this {
-    if (!directives) {
-      return this;
-    }
-
+    if (!directives) return this;
     Object.keys(directives).forEach((key) => {
       this.app.directive(key, directives[key]);
     });
-
     return this;
   }
 
-  /**
-   * 注册单个指令
-   * @param name 指令名称
-   * @param directive 指令定义
-   */
   registerDirective(name: string, directive: Directive): this {
     const existing = this.app.directive(name);
-    if (existing && existing === directive) {
-      // 已注册且实现相同，避免重复注册告警
-      return this;
-    }
-
+    if (existing && existing === directive) return this;
     this.app.directive(name, directive);
     return this;
   }
 
-  /**
-   * 注册全局组件
-   * @param components 组件对象集合
-   */
   registerGlobalComponents(components?: Record<string, any>): this {
-    if (!components) {
-      return this;
-    }
-
+    if (!components) return this;
     Object.keys(components).forEach((key) => {
       const component = components[key];
       const existing = this.app.component(key);
-
-      if (existing && existing === component) {
-        // 已注册且实现相同，避免重复注册告警
-        return;
-      }
-
+      if (existing && existing === component) return;
       this.app.component(key, component);
     });
-
     return this;
   }
 
-  /**
-   * 注册单个全局组件
-   * @param name 组件名称
-   * @param component 组件定义
-   */
   registerComponent(name: string, component: any): this {
     const existing = this.app.component(name);
-    if (existing && existing === component) {
-      // 已注册且实现相同，避免重复注册告警
-      return this;
-    }
-
+    if (existing && existing === component) return this;
     this.app.component(name, component);
     return this;
   }
 
-  /**
-   * 注册加密字体
-   * 异步加载字体加密模块
-   */
   registerEncryptedFonts(): this {
     const promise = (async () => {
       try {
-        const { registerEncryptedFonts } =
-          await import("@repo/font-encryption");
+        const { registerEncryptedFonts } = await import("@repo/font-encryption");
         await registerEncryptedFonts();
       } catch (error) {
         console.warn("[AppBootstrap] 字体加密模块加载失败:", error);
       }
     })();
-
     this.initPromises.push(promise);
     return this;
   }
 
-  /**
-   * 注册路由
-   * @param router 路由实例
-   */
   registerRouter(router: Router): this {
     this.router = router;
     this.app.use(router);
-
-    const promise = router.isReady();
-    this.initPromises.push(promise);
-
+    this.initPromises.push(router.isReady());
     return this;
   }
 
-  /**
-   * 注册 Iconify 图标组件
-   * @param components Iconify 组件集合
-   */
-  registerIconify(components?: Record<string, any>): this {
-    if (!components) return this;
-
-    Object.keys(components).forEach((key) => {
-      this.app.component(key, components[key]);
-    });
-
-    return this;
-  }
-
-  /**
-   * 注册第三方插件
-   * 支持同步和异步插件
-   * @param plugins 插件数组或异步加载函数
-   */
   registerPlugins(plugins?: any[] | (() => Promise<any[]>)): this {
     if (!plugins) return this;
-
     const promise = (async () => {
       try {
-        const pluginList =
-          typeof plugins === "function" ? await plugins() : plugins;
-
+        const pluginList = typeof plugins === "function" ? await plugins() : plugins;
         for (const plugin of pluginList) {
-          if (plugin && typeof plugin.install === "function") {
-            this.app.use(plugin);
-          } else if (plugin) {
-            this.app.use(plugin);
-          }
+          if (plugin) this.app.use(plugin);
         }
       } catch (error) {
         console.error("[AppBootstrap] 插件注册失败:", error);
       }
     })();
-
     this.initPromises.push(promise);
     return this;
   }
 
-  /**
-   * 注册状态管理
-   * @param setupStore 状态管理设置函数
-   */
   registerStore(setupStore: (app: App) => void): this {
     setupStore(this.app);
     return this;
   }
 
-  /**
-   * 注册配置
-   * @param config 配置对象或异步加载函数
-   */
-  async registerConfig(config: any | (() => Promise<any>)): Promise<this> {
-    try {
-      this.config = typeof config === "function" ? await config() : config;
-    } catch (error) {
-      console.error("[AppBootstrap] 配置加载失败:", error);
-    }
-    return this;
-  }
-
-  /**
-   * 注册 WASM 模块
-   * @param initWasm WASM 初始化函数
-   */
-  async registerWasm(initWasm: () => Promise<void>): Promise<this> {
-    try {
-      await initWasm();
-    } catch (error) {
-      console.warn("[AppBootstrap] WASM 模块加载失败:", error);
-    }
-    return this;
-  }
-
-  /**
-   * 自定义初始化函数
-   * @param fn 初始化函数
-   */
   use(fn: (app: App, config?: any) => void | Promise<void>): this {
-    const promise = Promise.resolve(fn(this.app, this.config));
-    this.initPromises.push(promise);
+    this.initPromises.push(Promise.resolve(fn(this.app, this.config)));
     return this;
   }
 
-  /**
-   * 异步自定义初始化
-   * @param fn 异步初始化函数
-   */
   async useAsync(fn: (app: App, config?: any) => Promise<void>): Promise<this> {
     await fn(this.app, this.config);
     return this;
   }
 
-  /**
-   * 获取应用实例
-   */
   getApp(): App {
     return this.app;
   }
 
-  /**
-   * 获取路由实例
-   */
   getRouter(): Router | undefined {
     return this.router;
   }
 
-  /**
-   * 获取配置对象
-   */
   getConfig(): any {
     return this.config;
   }
 
-  /**
-   * 挂载应用
-   * 等待所有异步初始化完成后挂载
-   * @param selector 挂载选择器
-   */
   async mount(selector: string): Promise<void> {
     try {
-      // 等待所有初始化完成
       await Promise.all(this.initPromises);
-
-      // 挂载应用
       this.app.mount(selector);
-
       console.log("[AppBootstrap] 应用启动成功");
     } catch (error) {
       console.error("[AppBootstrap] 应用启动失败:", error);
-      // 即使出错也尝试挂载
       this.app.mount(selector);
     }
   }
 
-  /**
-   * 同步挂载（不等待异步初始化）
-   * @param selector 挂载选择器
-   */
   mountSync(selector: string): void {
     this.app.mount(selector);
   }
 }
 
-/**
- * 创建应用启动器
- * @param app Vue 应用实例
- */
-export function createAppBootstrap(app: App): AppBootstrap {
-  return new AppBootstrap(app);
+// ─── createStandardApp ───────────────────────────────────────────────────────
+
+export interface FontEncryptionOptions {
+  enabled: boolean;
+  applyGlobal?: boolean;
+  ocrNoise?: boolean | { level?: "low" | "medium" | "high" };
+  selectors?: string[];
 }
 
-/**
- * 快速启动助手 - 使用默认配置
- * @param app Vue 应用实例
- * @param options 启动选项
- */
-export async function quickBootstrap(
-  app: App,
-  options: {
-    router?: Router;
-    directives?: Record<string, Directive>;
-    components?: Record<string, any>;
-    plugins?: any[];
-    setupStore?: (app: App) => void;
-    config?: any;
-  },
-): Promise<void> {
-  const bootstrap = createAppBootstrap(app);
-
-  if (options.directives) {
-    bootstrap.registerDirectives(options.directives);
-  }
-
-  if (options.components) {
-    bootstrap.registerGlobalComponents(options.components);
-  }
-
-  if (options.setupStore) {
-    bootstrap.registerStore(options.setupStore);
-  }
-
-  if (options.router) {
-    bootstrap.registerRouter(options.router);
-  }
-
-  if (options.plugins) {
-    bootstrap.registerPlugins(options.plugins);
-  }
-
-  await bootstrap.mount("#app");
+export interface StandardAppOptions {
+  /** 是否注册 VueTippy */
+  enableTippy?: boolean;
+  /** 是否注册 ElementPlusX */
+  enableElementPlusX?: boolean;
+  /** 是否启用 WASM */
+  enableWasm?: boolean;
+  /** 字体加密配置，设置后自动初始化 */
+  fontEncryption?: FontEncryptionOptions;
+  /** 是否启用 fullScreen 路由自动连接 GlobalSocket（默认 false） */
+  enableFullscreenSocket?: boolean;
+  /** 自定义路由（不传则使用 @repo/core 默认路由） */
+  router?: Router;
+  /** 自定义组件 */
+  components?: Record<string, any>;
+  /** 自定义指令 */
+  directives?: Record<string, Directive>;
+  /** 自定义插件 */
+  plugins?: any[];
+  /** 自定义初始化函数 */
+  setup?: (app: App, config?: any) => void | Promise<void>;
 }
 
-/**
- * 创建标准应用 - 自动注册常用功能
- * 包括：样式、指令、组件、字体加密、路由、插件等
- * @param options 标准应用选项
- */
 export async function createStandardApp(
   options: StandardAppOptions = {},
 ): Promise<AppBootstrap> {
@@ -378,13 +180,16 @@ export async function createStandardApp(
     enableTippy = true,
     enableElementPlusX = false,
     enableWasm = true,
+    fontEncryption,
+    enableFullscreenSocket = false,
+    router: customRouter,
     components = {},
     directives = {},
     plugins = [],
     setup,
   } = options;
 
-  // 1. 首先初始化 WASM（必须第一个执行）
+  // 1. 初始化 WASM（必须第一个执行）
   if (enableWasm) {
     try {
       const { initializeWasmModule } = await import("@repo/codec-wasm");
@@ -394,134 +199,231 @@ export async function createStandardApp(
     }
   }
 
-  // 2. 导入必要的依赖
+  // 2. 导入依赖
   const { createApp } = await import("vue");
+  // @ts-ignore - @repo/app-root exists at runtime
   const AppRoot = (await import("@repo/app-root")).default;
-  const { getPlatformConfig, injectResponsiveStorage, useI18n } =
-    await import("@repo/config");
+  const { getPlatformConfig, injectResponsiveStorage, useI18n } = await import("@repo/config");
   const { router, setupStore, menu, Ripple } = await import("@repo/core");
   const { useElementPlus } = await import("@repo/plugins");
   const { MotionPlugin } = await import("@vueuse/motion");
   const Table = (await import("@pureadmin/table")).default;
-  const coreDirectives = await import("@repo/core");
+  const { auth, auths, authsAll, copy, longpress, optimize, admin, role, roles, fullscreen } = await import("@repo/core");
+  const coreDirectives: Record<string, any> = { auth, auths, authsAll, copy, longpress, optimize, admin, role, roles, fullscreen };
   const { vFontEncryption } = await import("@layout/default");
-  const { FontIcon, IconifyIconOffline, IconifyIconOnline } =
-    await import("@repo/components/ReIcon");
+  const { FontIcon, IconifyIconOffline, IconifyIconOnline } = await import("@repo/components/ReIcon");
   const { Auth } = await import("@repo/components/ReAuth");
-
-  // 导入需要全局注册的 Sc 组件
-  const { ScButton, ScSelect, ScTable, ScSwitch, ScDrawer, ScDialog, ScText } =
-    await import("@repo/components");
+  const {
+    ScTable, ScTableColumn, ScCard,
+    ScButton, ScSelect, ScSwitch, ScText,
+    ScDrawer, ScDialog, ScTooltip,
+    ScMenu, ScMenuItem, ScSubMenu,
+    ScScrollbar, ScBreadcrumb,
+    ScIcon, ScEmpty, ScPagination,
+    ScBacktop, ScAside, ScMain,
+    ScDropdown, ScDropdownMenu, ScDropdownItem,
+    ScTag, ScBadge, ScAlert, ScLink,
+    ScDivider, ScAvatar,
+    ScInput, ScInputNumber, ScRate, ScColorPicker,
+    ScRadio, ScRadioGroup,
+    ScCheckbox, ScCheckboxGroup,
+    ScTimePicker, ScDatePicker, ScCascader, ScAutocomplete,
+    ScPopover, ScPopconfirm,
+    ScForm, ScFormItem, ScRow, ScCol,
+    ScTabs, ScTabPane,
+    ScSteps, ScOption,
+    ScSlider, ScProgress, ScRibbon,
+    ScImage, ScNumber, ScDictSelect,
+    ScPanel, ScContainer, ScFilterBar,
+    ScMessageDialog, ScMessageComponent,
+    ScRouteLoading, ScAnimationFrame, ScDebugConsole,
+  } = await import("@repo/components");
 
   // 3. 创建应用实例
   const app = createApp(AppRoot);
 
-  // 4. 获取平台配置（异步）
+  // 4. 获取平台配置
   const config = await getPlatformConfig(app);
+
+  // 根据全局配置初始化加载动画样式
+  try {
+    const loaderStyleFromConfig = config?.LoadingPageStyle;
+    const _localStorage = typeof globalThis !== "undefined" && (globalThis as any).localStorage
+      ? (globalThis as any).localStorage : null;
+    if (loaderStyleFromConfig && _localStorage && !_localStorage.getItem("sys-loader-style")) {
+      const mapping: Record<string, string> = {
+        spinner: "simple", clock: "default", pixel: "dinoGame",
+        cube: "blocks", dots: "default", pulse: "pulse",
+        minimal: "simple", space: "rings", servererror: "book",
+      };
+      _localStorage.setItem("sys-loader-style", mapping[String(loaderStyleFromConfig)] || "default");
+    }
+  } catch (error) {
+    console.warn("[createStandardApp] 初始化加载动画样式失败:", error);
+  }
 
   // 5. 创建 bootstrap 并注册所有功能
   const bootstrap = new AppBootstrap(app);
 
-  // 注册核心指令
+  // 指令
   bootstrap
     .registerDirectives(coreDirectives)
     .registerDirective("menu", menu)
     .registerDirective("ripple", Ripple)
     .registerDirective("font-encryption", vFontEncryption);
 
-  // 注册自定义指令
   if (Object.keys(directives).length > 0) {
     bootstrap.registerDirectives(directives);
   }
 
-  // 注册核心组件
+  // 核心组件
   bootstrap
     .registerComponent("IconifyIconOffline", IconifyIconOffline)
     .registerComponent("IconifyIconOnline", IconifyIconOnline)
     .registerComponent("FontIcon", FontIcon)
     .registerComponent("Auth", Auth);
 
-  // 注册所有自定义 Sc 组件（这些组件在 existingScComponentNames 中，不会被 useElementPlus 自动注册）
+  // 所有 Sc 组件
   bootstrap
+    .registerComponent("ScTable", ScTable)
+    .registerComponent("ScTableColumn", ScTableColumn)
+    .registerComponent("ScCard", ScCard)
     .registerComponent("ScButton", ScButton)
     .registerComponent("ScSelect", ScSelect)
-    .registerComponent("ScTable", ScTable)
     .registerComponent("ScSwitch", ScSwitch)
     .registerComponent("ScDrawer", ScDrawer)
     .registerComponent("ScDialog", ScDialog)
-    .registerComponent("ScText", ScText);
+    .registerComponent("ScTooltip", ScTooltip)
+    .registerComponent("ScText", ScText)
+    .registerComponent("ScMenu", ScMenu)
+    .registerComponent("ScMenuItem", ScMenuItem)
+    .registerComponent("ScSubMenu", ScSubMenu)
+    .registerComponent("ScScrollbar", ScScrollbar)
+    .registerComponent("ScBreadcrumb", ScBreadcrumb)
+    .registerComponent("ScIcon", ScIcon)
+    .registerComponent("ScEmpty", ScEmpty)
+    .registerComponent("ScPagination", ScPagination)
+    .registerComponent("ScBacktop", ScBacktop)
+    .registerComponent("ScAside", ScAside)
+    .registerComponent("ScMain", ScMain)
+    .registerComponent("ScDropdown", ScDropdown)
+    .registerComponent("ScDropdownMenu", ScDropdownMenu)
+    .registerComponent("ScDropdownItem", ScDropdownItem)
+    .registerComponent("ScTag", ScTag)
+    .registerComponent("ScBadge", ScBadge)
+    .registerComponent("ScAlert", ScAlert)
+    .registerComponent("ScLink", ScLink)
+    .registerComponent("ScDivider", ScDivider)
+    .registerComponent("ScAvatar", ScAvatar)
+    .registerComponent("ScInput", ScInput)
+    .registerComponent("ScInputNumber", ScInputNumber)
+    .registerComponent("ScRate", ScRate)
+    .registerComponent("ScColorPicker", ScColorPicker)
+    .registerComponent("ScRadio", ScRadio)
+    .registerComponent("ScRadioGroup", ScRadioGroup)
+    .registerComponent("ScCheckbox", ScCheckbox)
+    .registerComponent("ScCheckboxGroup", ScCheckboxGroup)
+    .registerComponent("ScTimePicker", ScTimePicker)
+    .registerComponent("ScDatePicker", ScDatePicker)
+    .registerComponent("ScCascader", ScCascader)
+    .registerComponent("ScAutocomplete", ScAutocomplete)
+    .registerComponent("ScPopover", ScPopover)
+    .registerComponent("ScPopconfirm", ScPopconfirm)
+    .registerComponent("ScForm", ScForm)
+    .registerComponent("ScFormItem", ScFormItem)
+    .registerComponent("ScRow", ScRow)
+    .registerComponent("ScCol", ScCol)
+    .registerComponent("ScTabs", ScTabs)
+    .registerComponent("ScTabPane", ScTabPane)
+    .registerComponent("ScSteps", ScSteps)
+    .registerComponent("ScOption", ScOption)
+    .registerComponent("ScSlider", ScSlider)
+    .registerComponent("ScProgress", ScProgress)
+    .registerComponent("ScRibbon", ScRibbon)
+    .registerComponent("ScImage", ScImage)
+    .registerComponent("ScNumber", ScNumber)
+    .registerComponent("ScDictSelect", ScDictSelect)
+    .registerComponent("ScPanel", ScPanel)
+    .registerComponent("ScContainer", ScContainer)
+    .registerComponent("ScFilterBar", ScFilterBar)
+    .registerComponent("ScMessageDialog", ScMessageDialog)
+    .registerComponent("ScMessageComponent", ScMessageComponent)
+    .registerComponent("ScRouteLoading", ScRouteLoading)
+    .registerComponent("ScAnimationFrame", ScAnimationFrame)
+    .registerComponent("ScDebugConsole", ScDebugConsole);
 
-  // 注册自定义组件
+  // 自定义组件
   if (Object.keys(components).length > 0) {
     bootstrap.registerGlobalComponents(components);
   }
 
-  // 注册第三方插件
+  // 第三方插件
   if (enableTippy) {
     const VueTippy = (await import("vue-tippy")).default;
-    bootstrap.use(() => app.use(VueTippy));
+    bootstrap.use(() => { app.use(VueTippy); });
   }
-
   if (enableElementPlusX) {
     const ElementPlusX = (await import("vue-element-plus-x")).default;
-    bootstrap.use(() => app.use(ElementPlusX));
+    bootstrap.use(() => { app.use(ElementPlusX); });
   }
 
-  // 注册核心功能
+  // 核心功能
+  const activeRouter = customRouter ?? router;
   bootstrap
     .registerStore(setupStore)
-    .registerRouter(router)
+    .registerRouter(activeRouter)
     .use(() => injectResponsiveStorage(app, config))
     .registerPlugins([MotionPlugin, useI18n, useElementPlus, Table, ...plugins])
     .registerEncryptedFonts();
 
-  // 自动注册主题插件和初始化主题系统
+  // fullScreen socket
+  if (enableFullscreenSocket) {
+    bootstrap.use(async () => {
+      const { getGlobalSocket } = await import("./global-socket");
+      activeRouter.afterEach(async (to) => {
+        if (to?.meta && (to.meta as any).fullScreen) {
+          await getGlobalSocket().connect();
+        }
+      });
+    });
+  }
+
+  // 主题系统
   bootstrap.use(async () => {
     try {
-      const { autoRegisterThemePlugins, initThemeSystem } =
-        await import("@repo/components");
-      // 根据主题配置自动注册需要的插件（例如 PixelUI）
+      const { autoRegisterThemePlugins, initThemeSystem } = await import("@repo/components");
       await autoRegisterThemePlugins(app);
-      // 预加载当前主题（根据 data-skin / systemTheme）
       await initThemeSystem();
     } catch (error) {
       console.warn("[createStandardApp] 主题系统初始化失败:", error);
     }
   });
 
+  // 字体加密
+  if (fontEncryption?.enabled) {
+    bootstrap.use(async () => {
+      try {
+        const { initFontEncryption } = await import("@layout/default");
+        initFontEncryption({
+          enabled: true,
+          applyGlobal: fontEncryption.applyGlobal ?? true,
+          ocrNoise: fontEncryption.ocrNoise,
+          selectors: fontEncryption.selectors,
+        });
+      } catch (error) {
+        console.warn("[createStandardApp] 字体加密初始化失败:", error);
+      }
+    });
+  }
+
   // 自定义初始化
   if (setup) {
-    /**
-     * 兼容浏览器注入脚本（通常来自扩展）在 render 期间读取组件代理字段导致的告警：
-     * Property "__proxyIdCheat__" was accessed during render but is not defined on instance.
-     *
-     * 该字段不参与业务逻辑，仅用于避免无意义的控制台噪音。
-     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (app.config.globalProperties as any).__proxyIdCheat__ = 0;
-
-    // 过滤无害告警
-    app.config.warnHandler = (msg, instance, trace) => {
+    app.config.warnHandler = (msg, _instance, trace) => {
       if (typeof msg === "string") {
-        // 兼容浏览器注入脚本/扩展在渲染期探测组件代理字段导致的无意义告警
-        if (
-          msg.includes("__proxyIdCheat__") &&
-          msg.includes(
-            "was accessed during render but is not defined on instance",
-          )
-        ) {
-          return;
-        }
-        if (
-          msg.includes('Slot "default" invoked outside of the render function')
-        )
-          return;
-        if (
-          msg.includes(
-            "Runtime directive used on component with non-element root node",
-          )
-        )
-          return;
+        if (msg.includes("__proxyIdCheat__") && msg.includes("was accessed during render but is not defined on instance")) return;
+        if (msg.includes('Slot "default" invoked outside of the render function')) return;
+        if (msg.includes("Runtime directive used on component with non-element root node")) return;
       }
       console.warn(msg, trace);
     };

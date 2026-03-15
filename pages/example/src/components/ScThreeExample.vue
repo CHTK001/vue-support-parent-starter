@@ -165,7 +165,7 @@
 import { ref, computed } from "vue";
 import * as THREE from "three";
 import { ScThree } from "@repo/components";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import ScSelect from "@repo/components";
 import DemoBlock from "./DemoBlock.vue";
 
 /**

@@ -25,7 +25,7 @@
 </template>
 
 <script>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import Itemlayout2 from "./item2.vue";
 export default {
   name: "RightMenuItem",

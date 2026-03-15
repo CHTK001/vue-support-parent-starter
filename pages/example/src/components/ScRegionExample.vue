@@ -204,9 +204,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
-import ScRegion from "@repo/components/ScRegion/src/index.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScRegion from "@repo/components";
+import ScSelect from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 
 // 数据源选项
 const dataSourceOptions = [

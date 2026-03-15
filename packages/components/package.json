@@ -57,7 +57,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@repo/skin": "workspace:^",
     "@pixelium/web-vue": "^0.1.1",
     "@pureadmin/utils": "catalog:",
     "@vueuse/core": "catalog:",

@@ -655,7 +655,7 @@ import {
   type FileStorageConfig,
 } from "@/api/system-server-setting";
 import DirectorySelector from "@/views/file-system/components/DirectorySelector.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import ScSelect from "@repo/components";
 import { message } from "@repo/utils";
 import { ElMessageBox, type FormInstance, type FormRules } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";

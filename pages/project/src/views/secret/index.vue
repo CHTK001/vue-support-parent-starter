@@ -6,8 +6,8 @@ import Edit from "@iconify-icons/line-md/plus";
 import Download from "@iconify-icons/ri/cloud-line";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components";
-import ScTable from "@repo/components/ScTable/index.vue";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScTable from "@repo/components";
+import ScSwitch from "@repo/components";
 import { markRaw, nextTick, reactive, ref } from "vue";
 import {
   fetchDeleteSecret,
