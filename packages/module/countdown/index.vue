@@ -6,7 +6,7 @@
  * @version 1.0.1
  */
 import { reactive, onMounted, onUnmounted, ref, watch } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { ElNotification } from "element-plus";
 
 const presetEvents = [

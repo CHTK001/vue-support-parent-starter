@@ -407,7 +407,7 @@
 
 <script setup>
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { message, queryEmail, stringSplitToNumber } from "@repo/utils";
 import { defineExpose, reactive, ref, shallowRef } from "vue";
 import { fetchSaveProject, fetchUpdateProject } from "../../api/manage/project";

@@ -6,9 +6,9 @@
  * @version 1.0.1
  */
 import { reactive, onMounted, ref, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { message, dateFormat } from "@repo/utils";
-import ScDialog from "@repo/components/ScDialog/src/index.vue";
+import ScDialog from "@repo/components";
 
 const STORAGE_KEY = "sc_module_memory_notes";
 

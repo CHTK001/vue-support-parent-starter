@@ -8,14 +8,6 @@ export function setupStore(app: App<Element>) {
 
 export { store };
 
-// 应用启动器
-export {
-  createAppBootstrap,
-  quickBootstrap,
-  AppBootstrap,
-} from "./app-bootstrap";
-export type { BootstrapOptions } from "./app-bootstrap";
-
-// 标准应用启动器（依赖较多，建议按需引入）
-export { createStandardApp } from "./standard-app";
-export type { StandardAppOptions } from "./standard-app";
+// 应用启动器 & 标准应用工厂
+export { AppBootstrap, createStandardApp } from "./app-bootstrap";
+export type { StandardAppOptions, FontEncryptionOptions } from "./app-bootstrap";

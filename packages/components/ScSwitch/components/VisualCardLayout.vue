@@ -51,8 +51,8 @@
  * @date 2025-12-02
  * @version 1.0.0
  */
-import { IconifyIconOnline } from "@repo/components/ReIcon";
-import ScRibbon from "@repo/components/ScRibbon/index.vue";
+import { IconifyIconOnline } from "@repo/components";
+import ScRibbon from "@repo/components";
 import { computed, useSlots } from "vue";
 
 const props = defineProps({

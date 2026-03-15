@@ -3,7 +3,7 @@ import type { Props } from "../types";
 import { transformI18n } from "@repo/config";
 import { useResizeObserver } from "@pureadmin/utils";
 import { useEpThemeStoreHook } from "@repo/core";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { ref, computed, getCurrentInstance, onMounted } from "vue";
 import EnterOutlined from "@repo/assets/svg/enter_outlined.svg?component";
 

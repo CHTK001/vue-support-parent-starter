@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   clearObject,
   fileToBase64,
@@ -21,10 +21,10 @@ import {
 } from "../../../api/ai/image-resolution";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 const ScLoading = defineAsyncComponent(
-  () => import("@repo/components/ScLoading/index.vue"),
+  () => import("@repo/components"),
 );
 const ScCompare = defineAsyncComponent(
-  () => import("@repo/components/ScCompare/index.vue"),
+  () => import("@repo/components"),
 );
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
 const moduleDialogRef = shallowRef();

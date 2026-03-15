@@ -462,7 +462,7 @@ const ChannelDialog = defineAsyncComponent(
   () => import("../template/device/channel/index.vue"),
 );
 const ScIp = defineAsyncComponent(
-  () => import("@repo/components/ScIp/index.vue"),
+  () => import("@repo/components"),
 );
 const DeviceDetailDialog = defineAsyncComponent(
   () => import("./components/DeviceDetailDialog.vue"),

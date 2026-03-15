@@ -7,7 +7,7 @@
  */
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 
 const router = useRouter();
 

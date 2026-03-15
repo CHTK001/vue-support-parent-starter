@@ -1,8 +1,8 @@
 ﻿<script setup lang="ts">
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { useRenderIcon } from "@repo/components";
+import ScSwitch from "@repo/components";
 import {
   fetchDeleteDictItem,
   fetchPageDictItem,

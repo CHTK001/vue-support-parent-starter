@@ -1,11 +1,11 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { message, queryEmail, stringSplitToArray } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, watch } from "vue";
 import { fetctSenderProjectForEmail } from "../../../api/manage/project-email";
 
 const ScFormTable = defineAsyncComponent(
-  () => import("@repo/components/ScFormTable/index.vue"),
+  () => import("@repo/components"),
 );
 const visible = ref(false);
 const loading = reactive({

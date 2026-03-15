@@ -5,7 +5,7 @@ import { fetchUpdateUser, getMine } from "@repo/core";
 import type { FormInstance, FormRules } from "element-plus";
 import { deviceDetection } from "@pureadmin/utils";
 import uploadLine from "@iconify-icons/ri/upload-line";
-import ScCropper from "@repo/components/ScCropper/index.vue";
+import ScCropper from "@repo/components";
 import {
   ScAvatar,
   ScForm,

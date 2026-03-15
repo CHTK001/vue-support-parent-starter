@@ -63,7 +63,7 @@
 </template>
 
 <script>
-import scPasswordStrength from "@repo/components/ScPasswordStrength/index.vue";
+import scPasswordStrength from "@repo/components";
 import { Md5 } from "ts-md5";
 import { fetchUpdateUserOwner, useUserStore } from "@repo/core";
 import { transformI18n } from "@repo/config";

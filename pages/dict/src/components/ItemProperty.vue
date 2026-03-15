@@ -6,10 +6,10 @@ import { useI18n } from "vue-i18n";
 const { t } = useI18n();
 const emit = defineEmits(["close", "open"]);
 const ScInput = defineAsyncComponent(
-  () => import("@repo/components/ScInput/index.vue"),
+  () => import("@repo/components"),
 );
 const ScFormTable = defineAsyncComponent(
-  () => import("@repo/components/ScFormTable/index.vue"),
+  () => import("@repo/components"),
 );
 const env = reactive({
   groupCache: "dict_item_propery_group_cache",

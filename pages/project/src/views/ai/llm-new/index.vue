@@ -157,7 +157,7 @@
 </style>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { useUserStoreHook } from "@repo/core";
 import { getRandomInt, localStorageProxy } from "@repo/utils";
 import {

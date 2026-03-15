@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 defineProps({
   mode: { type: String, required: true },

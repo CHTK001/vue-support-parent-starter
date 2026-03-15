@@ -1,12 +1,12 @@
 ﻿<script>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { queryEmail, transformI18n } from "@repo/config";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineComponent, defineAsyncComponent } from "vue";
 
 const ScInput = defineAsyncComponent(
-  () => import("@repo/components/ScInput/index.vue"),
+  () => import("@repo/components"),
 );
 const draggable = defineAsyncComponent(() => import("vuedraggable"));
 

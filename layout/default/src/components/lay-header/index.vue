@@ -44,7 +44,7 @@ const set: setType = reactive({
 
 <script lang="ts">
 // 导入集中的主题皮肤样式
-import "@repo/skin";
+import "@layout/default/src/skin/index.scss";
 </script>
 
 <style lang="scss" scoped>

@@ -22,7 +22,7 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import { message } from "@repo/utils";
-import scWorkflow from "@repo/components/ScWorkflow/index.vue";
+import scWorkflow from "@repo/components";
 import CodePreview from "./CodePreview.vue";
 
 // 代码示例标签页
@@ -42,7 +42,7 @@ const codeTabs = [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { reactive } from "vue";
-import scWorkflow from "@repo/components/ScWorkflow/index.vue";
+import scWorkflow from "@repo/components";
 
 const data = reactive({
   name: "请假审批",

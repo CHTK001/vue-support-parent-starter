@@ -179,9 +179,9 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
-import ScInput from "@repo/components/ScInput/index.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScInput from "@repo/components";
+import ScSelect from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 import { ScSlider } from "@repo/components";
 
 // 类型选项

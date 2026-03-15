@@ -8,10 +8,10 @@ import {
 } from "vue";
 import { fetchSettingPage } from "../api";
 import { $t } from "@repo/config";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 const ItemSave = defineAsyncComponent(() => import("./save.vue"));
 const ScTable = defineAsyncComponent(
-  () => import("@repo/components/ScTable/index.vue"),
+  () => import("@repo/components"),
 );
 const config = reactive({
   visible: false,

@@ -378,7 +378,22 @@
 // 自动暗黑模式 (Auto dark mode)
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    @extend [data-theme='dark'];
+    --text-primary: #e5e5e5;
+    --text-secondary: #b5b5b5;
+    --text-tertiary: #8a8a8a;
+    --text-disabled: #6a6a6a;
+    --text-inverse: #1a1a1a;
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2a2a2a;
+    --bg-tertiary: #3a3a3a;
+    --bg-inverse: #ffffff;
+    --link-color: #4d9fff;
+    --link-hover: #6bb0ff;
+    --link-visited: #b794f6;
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-error: #f87171;
+    --color-info: #60a5fa;
   }
 }
 
