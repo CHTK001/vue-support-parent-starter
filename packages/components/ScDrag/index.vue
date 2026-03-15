@@ -24,18 +24,23 @@ export default defineComponent({
       type: Object,
       default: () => {
         return {
-          backgroundColor: $c.bll9,
-          borderColor: $c.bll7,
-          decorationColor: [$c.bll3, $c.cyl5]
+          backgroundColor: "#0d1b2a",
+          borderColor: "#1a3a5c",
+          decorationColor: ["#0e4d8a", "#00b4d8"]
         };
       }
     },
     techTitle: {
-      scale: 1.3,
-      position: "left",
-      decorationColor: "#fff",
-      fontWeight: "bold",
-      color: $c.yel5
+      type: Object,
+      default: () => {
+        return {
+          scale: 1.3,
+          position: "left",
+          decorationColor: "#fff",
+          fontWeight: "bold",
+          color: "#f5c518"
+        };
+      }
     },
     height: {
       type: String,
