@@ -760,7 +760,7 @@ import {
 } from "@/api/server";
 import { useGlobalServerLatency } from "@/composables/useServerLatency";
 import { useServerMetricsStore } from "@/stores/serverMetrics";
-import ScProgress from "@repo/components";
+import { ScProgress } from "@repo/components"
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import {

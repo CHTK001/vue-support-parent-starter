@@ -69,7 +69,7 @@
 <script setup lang="ts">
 import { reactive, computed } from "vue";
 import ReText from "@repo/components/ReText/src/index.vue";
-import ScSelect from "@repo/components";
+import { ScSelect } from "@repo/components"
 import { IconifyIconOnline } from "@repo/components";
 
 // 行数选项

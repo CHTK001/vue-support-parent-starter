@@ -18,7 +18,7 @@ import { transformI18n } from "@repo/config";
 // 引入计算时间差的工具函数
 import { getTimeAgo } from "@repo/utils";
 // 引入ScIp组件
-import ScIp from "@repo/components";
+import { ScIp } from "@repo/components"
 // 引入刷新图标
 import Refresh from "@iconify-icons/line-md/backup-restore";
 // 引入防抖函数

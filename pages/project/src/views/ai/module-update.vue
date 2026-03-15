@@ -121,7 +121,7 @@
 </template>
 <script setup>
 import { debounce } from "@pureadmin/utils";
-import ScSelect from "@repo/components";
+import { ScSelect } from "@repo/components"
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, ref, shallowRef } from "vue";

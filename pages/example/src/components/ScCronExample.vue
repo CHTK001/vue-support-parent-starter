@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import ScCron from "@repo/components";
+import { ScCron } from "@repo/components"
 import { IconifyIconOnline } from "@repo/components";
 
 const shortcuts = [

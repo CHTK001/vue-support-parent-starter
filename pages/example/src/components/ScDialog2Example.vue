@@ -338,7 +338,7 @@
  * @since 2025-12-04
  */
 import { ref, reactive, computed } from "vue";
-import ScDialog from "@repo/components";
+import { ScDialog } from "@repo/components"
 import ScDialogTaskbar from "@repo/components/ScDialog/src/ScDialogTaskbar.vue";
 import CodePreview from "./CodePreview.vue";
 

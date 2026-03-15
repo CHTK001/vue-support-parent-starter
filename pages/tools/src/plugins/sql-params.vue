@@ -1,7 +1,7 @@
 ﻿<script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
-import ScSwitch from "@repo/components";
+import { ScSwitch } from "@repo/components"
 import Prism from "prismjs";
 import "prismjs/components/prism-sql.min.js";
 import "prismjs/themes/prism-tomorrow.min.css";

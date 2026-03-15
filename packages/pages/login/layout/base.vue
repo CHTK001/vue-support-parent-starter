@@ -2,7 +2,7 @@
 import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layout/default";
 import { useRenderIcon } from "@repo/components";
 import TypeIt from "@repo/components/ReTypeit";
-import ScCode from "@repo/components";
+import { ScCode } from "@repo/components"
 import { $t, getConfig, transformI18n } from "@repo/config";
 import { fetchVerifyCode, getTopMenu, initRouter, useUserStoreHook } from "@repo/core";
 

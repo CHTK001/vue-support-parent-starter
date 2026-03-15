@@ -289,7 +289,7 @@
 </template>
 <script>
 import { fetchJobSave, fetchJobUpdate } from "@/api/monitor/job";
-import scCron from "@repo/components";
+import { scCron } from "@repo/components"
 import { useUserStore } from "@repo/core";
 export default {
   name: "Save",

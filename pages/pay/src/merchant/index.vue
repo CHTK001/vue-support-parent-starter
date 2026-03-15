@@ -129,8 +129,7 @@ import {
   fetchDeleteMerchant,
   fetchUpdateMerchant,
 } from "../api/merchant";
-import ScSwitch from "@repo/components";
-
+import { ScSwitch } from "@repo/components"
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const SettingDialog = defineAsyncComponent(() => import("./setting.vue"));
 

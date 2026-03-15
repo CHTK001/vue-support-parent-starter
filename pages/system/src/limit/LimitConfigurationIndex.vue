@@ -317,7 +317,7 @@
 import { ref, reactive, onMounted, nextTick } from "vue";
 import { message, ScMessageBox, type FormInstance } from "@repo/utils";
 import { useRenderIcon } from "@repo/components";
-import ScSwitch from "@repo/components";
+import { ScSwitch } from "@repo/components"
 import {
   fetchLimitConfigurationPage,
   fetchLimitConfigurationList,

@@ -222,7 +222,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { ElMessageBox } from "element-plus";
 import { message } from "@repo/utils";
-import ScTable from "@repo/components";
+import { ScTable } from "@repo/components"
 import { ScCard } from "@repo/components";
 import {
   getConfigPageList,

@@ -123,8 +123,7 @@
 import { reactive, ref, defineExpose, watch } from "vue";
 import { fetchUpdateMerchant } from "../api/merchant";
 import { fetchSaveOrUpdateWechatConfig } from "../api/wechat";
-import ScSwitch from "@repo/components";
-
+import { ScSwitch } from "@repo/components"
 const visible = ref(false);
 const merchant = ref<any>(null);
 

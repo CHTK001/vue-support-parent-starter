@@ -19,11 +19,11 @@ import { debounce, isNumber, storageLocal, useGlobal } from "@pureadmin/utils";
 import Segmented, {
   type OptionsType,
 } from "@repo/components/ReSegmented/index";
-import ScSelect from "@repo/components";
+import { ScSelect } from "@repo/components"
 import AiChatAppearanceSetting from "./components/AiChatAppearanceSetting.vue";
 import { AI_APPEARANCE_OPTIONS } from "../../lay-ai/appearance";
-import ScSlider from "@repo/components";
-import ScSwitch from "@repo/components";
+import { ScSlider } from "@repo/components"
+import { ScSwitch } from "@repo/components"
 import {
   ScButton,
   ScInput,

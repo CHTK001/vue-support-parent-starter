@@ -1,6 +1,6 @@
 ﻿<script>
 // @ts-nocheck
-import ScEditor from "@repo/components";
+import { ScEditor } from "@repo/components"
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineComponent } from "vue";

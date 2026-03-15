@@ -9,7 +9,7 @@ import { clearObject } from "@repo/config";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
 import { useRenderIcon } from "@repo/components";
-import ScFormTable from "@repo/components";
+import { ScFormTable } from "@repo/components"
 const ScCodeEditor = defineAsyncComponent(() => import("@repo/scCodeEditor"));
 import CodeLayout from "./code.vue";
 export default {

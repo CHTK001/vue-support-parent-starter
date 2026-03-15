@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import type { SysHoliday } from "../api/holiday";
-import ScRibbon from "@repo/components";
+import { ScRibbon } from "@repo/components"
 // @ts-ignore
 import lunisolar from "lunisolar";
 import { dayjs } from "element-plus";

@@ -78,8 +78,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import ScSwitch from "@repo/components";
-
+import { ScSwitch } from "@repo/components"
 /**
  * 组件属性定义
  */

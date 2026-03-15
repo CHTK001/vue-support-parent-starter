@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import ScCard from "@repo/components";
+import { ScCard } from "@repo/components"
 import { debounce } from "lodash-es";
 import { computed, nextTick, onMounted, onUnmounted, ref, useSlots, watch } from "vue";
 import Sortable from "sortablejs";

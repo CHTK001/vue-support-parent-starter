@@ -470,8 +470,7 @@ import UploadQueueStatusComponent from "./components/UploadQueueStatus.vue";
 import FileSystemSettings from "./components/FileSystemSettings.vue";
 import MD5TestDialog from "./components/MD5TestDialog.vue";
 import FileSystemGroupDialog from "./components/FileSystemGroupDialog.vue";
-import ScCard from "@repo/components";
-
+import { ScCard } from "@repo/components"
 // SSE连接
 const {
   state: sseState,

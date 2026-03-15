@@ -385,7 +385,7 @@ import {
   message,
 } from "@repo/utils";
 
-import ScSelect from "@repo/components";
+import { ScSelect } from "@repo/components"
 import {
   computed,
   defineAsyncComponent,

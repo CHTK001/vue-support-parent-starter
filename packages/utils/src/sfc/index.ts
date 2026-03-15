@@ -1,6 +1,6 @@
 import { isNumber } from "@pureadmin/utils";
-import EchartsLayoutVue from "@repo/components";
-import LoadingComponent from "@repo/components";
+import EchartsLayoutVue from "@repo/components/ScEcharts/index.vue";
+import LoadingComponent from "@repo/components/ScLoadCompent/index.vue";
 import * as Config from "@repo/config";
 import { getConfig } from "@repo/config";
 import * as echarts from "echarts";

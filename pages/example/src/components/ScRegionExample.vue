@@ -204,8 +204,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
-import ScRegion from "@repo/components";
-import ScSelect from "@repo/components";
+import { ScRegion } from "@repo/components"
+import { ScSelect } from "@repo/components"
 import { IconifyIconOnline } from "@repo/components";
 
 // 数据源选项
