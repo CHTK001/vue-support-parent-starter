@@ -3,7 +3,7 @@
  * 自定义横向导航菜单项
  * 使用 CustomMenuItem 和 CustomSubMenu 替代 el-menu-item 和 el-sub-menu
  */
-import { computed, toRaw, inject, type Component, ref, onMounted } from "vue";
+import { computed, toRaw, inject, isRef, type Ref, type Component, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useRenderIcon } from "@repo/components";
 import {
@@ -47,7 +47,10 @@ onMounted(() => {
 });
 
 // 注入主题化组件（用于递归）
-const ThemeSidebarItem = inject<Component>("themeSidebarItem");
+const _injectedSidebarItem = inject<Component | Ref<Component>>("themeSidebarItem");
+const ThemeSidebarItem = computed(() =>
+  isRef(_injectedSidebarItem) ? _injectedSidebarItem.value : _injectedSidebarItem
+);
 
 // 解析路径
 function resolvePath(routePath: string) {

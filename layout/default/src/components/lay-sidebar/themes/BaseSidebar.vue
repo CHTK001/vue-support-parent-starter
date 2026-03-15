@@ -37,7 +37,7 @@ const ThemeSidebarItem = computed(
   () => props.sidebarItemComponent || DefaultSidebarItem,
 );
 
-// 提供给子组件（用于递归渲染）
+// 提供给子组件（用于递归渲染）- 传 computed ref，inject 端用 .value 解包
 provide("themeSidebarItem", ThemeSidebarItem);
 
 const route = useRoute();
