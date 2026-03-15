@@ -70,7 +70,7 @@ import { ScTree } from "./ScTree";
 import { ScTip } from "./ScTip";
 import { ScDeco } from "./ScDeco";
 import { ScHeader } from "./ScHeader";
-import ScRegion from "./ScRegion/index.vue";
+import ScRegion from "./ScRegion";
 import ScSelectFilter from "./ScSelectFilter/index.vue";
 import ScTableSelect from "./ScTableSelect/index.vue";
 import ScPasswordStrength from "./ScPasswordStrength/index.vue";
