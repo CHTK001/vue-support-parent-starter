@@ -508,9 +508,9 @@
 
 <script setup>
 import { ref, reactive, computed } from "vue";
-import ScDialog from "@repo/components";
+import { ScDialog } from "@repo/components"
 import ScDialogTaskbar from "@repo/components/ScDialog/src/ScDialogTaskbar.vue";
-import ScSelect from "@repo/components";
+import { ScSelect } from "@repo/components"
 import { message } from "@repo/utils";
 import CodePreview from "./CodePreview.vue";
 

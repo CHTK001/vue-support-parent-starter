@@ -56,7 +56,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { IconifyIconOnline } from "@repo/components";
-import ScRibbon from "@repo/components";
+import { ScRibbon } from "@repo/components"
 import {
   getThemesByGroup,
   switchTheme as switchThemeUtil,

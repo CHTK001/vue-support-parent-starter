@@ -131,7 +131,7 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed, watch } from "vue";
-import ScSelect from "@repo/components";
+import { ScSelect } from "@repo/components"
 import { IconifyIconOnline } from "@repo/components";
 import { message } from "@repo/utils";
 import { ScSlider } from "@repo/components";

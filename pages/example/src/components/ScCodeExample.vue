@@ -167,7 +167,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import ScCode from "@repo/components";
+import { ScCode } from "@repo/components"
 import CodePreview from "./CodePreview.vue";
 
 /**

@@ -422,7 +422,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import ScImage from "@repo/components";
+import { ScImage } from "@repo/components"
 import CodePreview from "./CodePreview.vue";
 import { IconifyIconOnline } from "@repo/components";
 import { message } from "@repo/utils";

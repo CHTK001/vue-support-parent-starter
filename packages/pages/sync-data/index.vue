@@ -370,7 +370,7 @@ import {
   WarningFilled,
 } from "@element-plus/icons-vue";
 import { IconifyIconOnline } from "@repo/components";
-import ScDialog from "@repo/components";
+import { ScDialog } from "@repo/components"
 import {
   fetchSyncTaskList,
   fetchCreateSyncTask,

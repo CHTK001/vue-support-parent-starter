@@ -62,7 +62,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import ScCompare from "@repo/components";
+import { ScCompare } from "@repo/components"
 import { IconifyIconOnline } from "@repo/components";
 
 const defaultLeft =

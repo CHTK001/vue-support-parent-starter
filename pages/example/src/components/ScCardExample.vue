@@ -173,8 +173,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import ScCard from "@repo/components";
-import ScSelect from "@repo/components";
+import { ScCard } from "@repo/components"
+import { ScSelect } from "@repo/components"
 import { IconifyIconOnline } from "@repo/components";
 
 // 布局选项

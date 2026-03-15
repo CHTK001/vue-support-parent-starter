@@ -349,7 +349,7 @@ import {
   getServerList,
   type SystemSoftContainer,
 } from "@/api/docker";
-import ScTable from "@repo/components";
+import { ScTable } from "@repo/components"
 import { ScCard } from "@repo/components";
 import { message, messageBox } from "@repo/utils";
 import { computed, onMounted, reactive, ref } from "vue";

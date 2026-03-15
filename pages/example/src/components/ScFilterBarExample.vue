@@ -213,7 +213,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import ScFilterBar from "@repo/components";
+import { ScFilterBar } from "@repo/components"
 import { IconifyIconOnline } from "@repo/components";
 import DemoBlock from "./DemoBlock.vue";
 import { message } from "@repo/utils";

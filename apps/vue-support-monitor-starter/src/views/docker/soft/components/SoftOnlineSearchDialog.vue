@@ -119,7 +119,7 @@
 
 <script setup lang="ts">
 import { softwareApi } from "@/api/docker";
-import ScTable from "@repo/components";
+import { ScTable } from "@repo/components"
 import { message } from "@repo/utils";
 import { computed, reactive, ref } from "vue";
 
