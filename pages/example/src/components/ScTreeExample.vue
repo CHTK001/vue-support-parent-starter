@@ -188,7 +188,7 @@
 </template>
 
 <script setup lang="ts">
-import ScTree from "@repo/components";
+import { ScTree } from "@repo/components"
 import CodePreview from "./CodePreview.vue";
 import type {
   TreeNode,

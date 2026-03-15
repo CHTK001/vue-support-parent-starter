@@ -116,8 +116,8 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import ScRibbon from "@repo/components";
-import ScSelect from "@repo/components";
+import { ScRibbon } from "@repo/components"
+import { ScSelect } from "@repo/components"
 import { IconifyIconOnline } from "@repo/components";
 import { ScSlider } from "@repo/components";
 

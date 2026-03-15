@@ -214,7 +214,7 @@
 <script setup>
 import { IconifyIconOnline } from "@repo/components";
 import CodePreview from "./CodePreview.vue";
-import ScLoading from "@repo/components";
+import { ScLoading } from "@repo/components"
 import { computed, onUnmounted, ref } from "vue";
 import { ScSlider } from "@repo/components";
 
@@ -374,8 +374,7 @@ const codeExample = computed(() => {
 
 <script setup>
 import { ref } from 'vue';
-import ScLoading from "@repo/components";
-
+import { ScLoading } from "@repo/components"
 const loadingRef = ref(null);
 const loadingVisible = ref(false);
 

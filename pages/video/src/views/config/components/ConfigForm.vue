@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import ScSelect from "@repo/components";
+import { ScSelect } from "@repo/components"
 import { message } from "@repo/utils";
 import { reactive, ref, watch } from "vue";
 import { addSyncConfig, updateSyncConfig } from "../../../api/config";

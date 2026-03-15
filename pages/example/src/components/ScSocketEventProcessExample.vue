@@ -476,7 +476,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import ScSocketEventProcess from "@repo/components";
+import { ScSocketEventProcess } from "@repo/components"
 import CodePreview from "./CodePreview.vue";
 import { IconifyIconOnline } from "@repo/components";
 

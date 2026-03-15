@@ -458,8 +458,8 @@ import PullImageDialog from "./components/PullImageDialog.vue";
 import InstallContainerDialog from "./components/InstallContainerDialog.vue";
 import ImageSyncDialog from "./components/ImageSyncDialog.vue";
 import ImageImportDialog from "./components/ImageImportDialog.vue";
-import ScSocketMessageDialog from "@repo/components";
-import ScTable from "@repo/components";
+import { ScSocketMessageDialog } from "@repo/components"
+import { ScTable } from "@repo/components"
 import { ScCard } from "@repo/components";
 
 /**

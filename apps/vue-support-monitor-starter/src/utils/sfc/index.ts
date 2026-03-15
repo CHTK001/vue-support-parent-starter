@@ -7,7 +7,7 @@ import { http, date } from "@repo/utils";
 import * as Config from "@repo/config";
 import * as sass from "sass";
 import * as echarts from "echarts";
-import EchartsLayoutVue from "@repo/components";
+import EchartsLayoutVue from "@repo/components/ScEcharts/index.vue";
 import { timestamp } from "@vueuse/core";
 
 const getOptions = (name, sysSfcId) => {

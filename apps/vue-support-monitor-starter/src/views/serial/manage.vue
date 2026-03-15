@@ -158,7 +158,7 @@
 <script setup>
 import { useGlobal } from "@pureadmin/utils";
 import splitpane from "@repo/components/ReSplitPane";
-import ScLazy from "@repo/components";
+import { ScLazy } from "@repo/components"
 import { useConfigStore } from "@repo/core";
 import { message } from "@repo/utils";
 import {
