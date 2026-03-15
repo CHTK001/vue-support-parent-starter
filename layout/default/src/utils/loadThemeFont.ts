@@ -18,7 +18,9 @@ export function loadPixeliumFont(): void {
   }
 
   // 检查是否已存在相同的样式链接
-  const existingLink = document.getElementById("pixelium-font-style") as HTMLLinkElement;
+  const existingLink = document.getElementById(
+    "pixelium-font-style",
+  ) as HTMLLinkElement;
   if (existingLink) {
     pixeliumFontLink = existingLink;
     return;
@@ -28,7 +30,10 @@ export function loadPixeliumFont(): void {
     // 动态导入 CSS 文件获取 URL
     import("@pixelium/web-vue/dist/font.css?url")
       .then((cssModule: any) => {
-        const cssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
+        const cssUrl =
+          typeof cssModule === "string"
+            ? cssModule
+            : cssModule.default || cssModule;
 
         // 创建 link 标签
         const styleLink = document.createElement("link");
@@ -81,4 +86,3 @@ export function loadThemeFont(themeKey: string): void {
     removePixeliumFont();
   }
 }
-

@@ -1,9 +1,9 @@
 ﻿<template>
   <div class="page flex flex-col h-full">
     <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper primary">
               <IconifyIconOnline icon="ri:cpu-line" class="stat-icon" />
@@ -13,10 +13,10 @@
               <div class="stat-label">总线程数</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper success">
               <IconifyIconOnline icon="ri:play-circle-line" class="stat-icon" />
@@ -26,10 +26,10 @@
               <div class="stat-label">RUNNABLE</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper warning">
               <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
@@ -39,10 +39,10 @@
               <div class="stat-label">WAITING</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper danger">
               <IconifyIconOnline icon="ri:error-warning-line" class="stat-icon" />
@@ -52,17 +52,17 @@
               <div class="stat-label">BLOCKED</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <div class="flex-1 overflow-hidden">
-      <el-card class="h-full" shadow="never">
-        <el-table :data="data" border stripe style="width: 100%" row-key="id" max-height="calc(100vh - 280px)">
-          <el-table-column type="index" label="#" width="60" align="center" />
-          <el-table-column prop="id" label="线程ID" width="100" align="center">
+      <ScCard class="h-full" shadow="never">
+        <ScTable :data="data" border stripe style="width: 100%" row-key="id" max-height="calc(100vh - 280px)">
+          <ScTableColumn type="index" label="#" width="60" align="center" />
+          <ScTableColumn prop="id" label="线程ID" width="100" align="center">
             <template #default="{ row }">
-              <el-tooltip placement="top">
+              <ScTooltip placement="top">
                 <template #content>
                   <div style="max-width: 300px">
                     <div>
@@ -79,13 +79,13 @@
                     </div>
                   </div>
                 </template>
-                <el-tag size="small">{{ row.id }}</el-tag>
-              </el-tooltip>
+                <ScTag size="small">{{ row.id }}</ScTag>
+              </ScTooltip>
             </template>
-          </el-table-column>
-          <el-table-column prop="name" label="线程名称" min-width="250">
+          </ScTableColumn>
+          <ScTableColumn prop="name" label="线程名称" min-width="250">
             <template #default="{ row }">
-              <el-tooltip placement="top">
+              <ScTooltip placement="top">
                 <template #content>
                   <div style="max-width: 400px">
                     <div>
@@ -114,17 +114,17 @@
                   <IconifyIconOnline icon="ri:thread-line" class="text-primary" />
                   <span class="font-medium">{{ row.name }}</span>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
             </template>
-          </el-table-column>
-          <el-table-column prop="state" label="状态" width="120" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="state" label="状态" width="120" align="center">
             <template #default="{ row }">
-              <el-tag :type="getStateType(row.state)" size="small">{{ row.state }}</el-tag>
+              <ScTag :type="getStateType(row.state)" size="small">{{ row.state }}</ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="cpu" label="CPU使用率" width="120" align="center">
+          </ScTableColumn>
+          <ScTableColumn prop="cpu" label="CPU使用率" width="120" align="center">
             <template #default="{ row }">
-              <el-tooltip placement="top">
+              <ScTooltip placement="top">
                 <template #content>
                   <div style="max-width: 300px">
                     <div>
@@ -150,19 +150,19 @@
                   </div>
                 </template>
                 <span class="font-mono font-semibold">{{ row.cpu }}%</span>
-              </el-tooltip>
+              </ScTooltip>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="120" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" @click="handleInfo(row)">
+              <ScButton link type="primary" @click="handleInfo(row)">
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详情
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+          </ScTableColumn>
+        </ScTable>
+      </ScCard>
     </div>
 
     <sc-dialog v-model="infoVisible" title="线程详情" width="60%" destroy-on-close>

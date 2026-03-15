@@ -60,7 +60,7 @@ import ScRibbon from "@repo/components/ScRibbon/index.vue";
 import {
   getThemesByGroup,
   switchTheme as switchThemeUtil,
-} from "@repo/components/hooks";
+} from "@repo/components";
 import { useThemeStore } from "../../stores/themeStore";
 import { useGlobal } from "@pureadmin/utils";
 import { message } from "@repo/utils";

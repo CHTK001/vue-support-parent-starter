@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { provide } from 'vue';
+import { provide } from "vue";
 import type { MenuType } from "@repo/core";
 import type { PropType } from "vue";
-import BaseSidebarItem from '../BaseSidebarItem.vue';
+import BaseSidebarItem from "../BaseSidebarItem.vue";
 
 const props = defineProps({
   item: {
@@ -18,17 +18,13 @@ const props = defineProps({
   },
 });
 
-import HalloweenSidebarItem from './HalloweenSidebarItem.vue';
-provide('themeSidebarItem', HalloweenSidebarItem);
+import HalloweenSidebarItem from "./HalloweenSidebarItem.vue";
+provide("themeSidebarItem", HalloweenSidebarItem);
 </script>
 
 <template>
   <div class="hw-sidebar-item-wrapper">
-    <BaseSidebarItem
-      :item="item"
-      :is-nest="isNest"
-      :base-path="basePath"
-    />
+    <BaseSidebarItem :item="item" :is-nest="isNest" :base-path="basePath" />
   </div>
 </template>
 
@@ -41,7 +37,7 @@ provide('themeSidebarItem', HalloweenSidebarItem);
   --hw-green: #76ff03;
   --hw-text: #b39ddb;
 
-  :deep(.sidebar-menu-item), 
+  :deep(.sidebar-menu-item),
   :deep(.el-sub-menu__title) {
     margin: 4px 8px;
     border-radius: 6px;
@@ -54,14 +50,16 @@ provide('themeSidebarItem', HalloweenSidebarItem);
       color: #fff;
       border-color: rgba(255, 117, 24, 0.3);
       box-shadow: 0 0 8px rgba(44, 0, 62, 0.5);
-      
-      .el-icon, .sub-menu-icon svg {
+
+      .el-icon,
+      .sub-menu-icon svg {
         color: #fff;
         transform: scale(1.1) rotate(5deg);
       }
     }
 
-    .el-icon, .sub-menu-icon svg {
+    .el-icon,
+    .sub-menu-icon svg {
       transition: transform 0.3s;
       color: var(--hover-nav-menu-color);
     }
@@ -69,19 +67,24 @@ provide('themeSidebarItem', HalloweenSidebarItem);
 
   // 激活状态
   :deep(.sidebar-menu-item.is-active) {
-    background: linear-gradient(90deg, rgba(255, 117, 24, 0.2), rgba(44, 0, 62, 0.5));
+    background: linear-gradient(
+      90deg,
+      rgba(255, 117, 24, 0.2),
+      rgba(44, 0, 62, 0.5)
+    );
     color: #fff;
     font-weight: 600;
     border: 1px solid var(--hw-pumpkin);
     box-shadow: 0 0 15px rgba(255, 117, 24, 0.2);
-    
-    .el-icon, .sub-menu-icon svg {
+
+    .el-icon,
+    .sub-menu-icon svg {
       color: #fff;
     }
-    
+
     // 南瓜装饰
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       top: 50%;
@@ -98,8 +101,9 @@ provide('themeSidebarItem', HalloweenSidebarItem);
     color: #fff;
     font-weight: 600;
     text-shadow: 0 0 5px rgba(255, 117, 24, 0.3);
-    
-    .el-icon, .sub-menu-icon svg {
+
+    .el-icon,
+    .sub-menu-icon svg {
       color: var(--hw-pumpkin);
     }
   }
@@ -111,15 +115,15 @@ provide('themeSidebarItem', HalloweenSidebarItem);
     background: linear-gradient(135deg, #2c003e 0%, #1a0026 100%) !important;
     border: 1px solid #4a148c !important;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.8) !important;
-    
+
     .el-menu-item {
       color: #b39ddb !important;
-      
+
       &:hover {
         background: rgba(255, 117, 24, 0.15) !important;
         color: #ff7518 !important;
       }
-      
+
       &.is-active {
         background: rgba(255, 117, 24, 0.2) !important;
         color: #ff7518 !important;

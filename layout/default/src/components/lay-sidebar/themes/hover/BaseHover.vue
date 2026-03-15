@@ -3,7 +3,7 @@
  * Hover 导航基础组件
  * @description 提供主题类名注入能力
  */
-import HoverNavigation from '../../components/HoverNavigation.vue';
+import HoverNavigation from "../../components/HoverNavigation.vue";
 
 defineProps<{
   /** 主题类名 */

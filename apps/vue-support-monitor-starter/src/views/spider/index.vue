@@ -2,9 +2,9 @@
   <div class="spider-task-list system-container modern-bg">
     <!-- 统计概览 -->
     <div class="statistics-overview">
-      <el-row :gutter="16">
-        <el-col :span="6">
-          <el-card class="stat-card">
+      <ScRow :gutter="16">
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-icon total">
                 <IconifyIconOnline icon="ri:spider-line" />
@@ -14,10 +14,10 @@
                 <div class="stat-label">总任务数</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-icon running">
                 <IconifyIconOnline icon="ri:play-circle-line" />
@@ -27,10 +27,10 @@
                 <div class="stat-label">运行中</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-icon success">
                 <IconifyIconOnline icon="ri:checkbox-circle-line" />
@@ -40,10 +40,10 @@
                 <div class="stat-label">今日数据</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
+          </ScCard>
+        </ScCol>
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-icon fail">
                 <IconifyIconOnline icon="ri:close-circle-line" />
@@ -53,36 +53,36 @@
                 <div class="stat-label">总数据量</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
 
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button type="primary" @click="handleCreate">
+        <ScButton type="primary" @click="handleCreate">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           创建任务
-        </el-button>
-        <el-button @click="handleRefresh">
+        </ScButton>
+        <ScButton @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
       <div class="toolbar-right">
-        <el-select
+        <ScSelect
           v-model="filterStatus"
           placeholder="任务状态"
           clearable
           style="width: 120px"
           @change="handleFilter"
         >
-          <el-option label="停用" :value="0" />
-          <el-option label="启用" :value="1" />
-          <el-option label="运行中" :value="2" />
-        </el-select>
-        <el-input
+          <ScOption label="停用" :value="0" />
+          <ScOption label="启用" :value="1" />
+          <ScOption label="运行中" :value="2" />
+        </ScSelect>
+        <ScInput
           v-model="searchKeyword"
           placeholder="搜索任务名称..."
           clearable
@@ -92,15 +92,15 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
-        </el-input>
+        </ScInput>
       </div>
     </div>
 
     <!-- 任务列表 -->
-    <el-table v-loading="loading" :data="taskList" stripe>
-      <el-table-column type="selection" width="55" />
+    <ScTable v-loading="loading" :data="taskList" stripe>
+      <ScTableColumn type="selection" width="55" />
 
-      <el-table-column label="任务名称" min-width="200">
+      <ScTableColumn label="任务名称" min-width="200">
         <template #default="{ row }">
           <div class="task-name">
             <IconifyIconOnline icon="ri:spider-line" class="task-icon" />
@@ -108,25 +108,25 @@
           </div>
           <div class="task-url">{{ row.spiderTaskUrl }}</div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="状态" width="100" align="center">
+      <ScTableColumn label="状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="getStatusType(row.spiderTaskStatus)" size="small">
+          <ScTag :type="getStatusType(row.spiderTaskStatus)" size="small">
             {{ getStatusText(row.spiderTaskStatus) }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="调度类型" width="100" align="center">
+      <ScTableColumn label="调度类型" width="100" align="center">
         <template #default="{ row }">
           <span>{{
             row.spiderTaskScheduleType === "CRON" ? "定时" : "一次性"
           }}</span>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="爬取统计" width="150" align="center">
+      <ScTableColumn label="爬取统计" width="150" align="center">
         <template #default="{ row }">
           <div class="stat-mini">
             <span class="success">{{ row.spiderTaskTotalSuccess || 0 }}</span>
@@ -134,32 +134,32 @@
             <span class="fail">{{ row.spiderTaskTotalFail || 0 }}</span>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="运行状态" width="100" align="center">
+      <ScTableColumn label="运行状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag
+          <ScTag
             :type="getRunStatusType(row.spiderTaskRunStatus)"
             size="small"
           >
             {{ row.spiderTaskRunStatus || "IDLE" }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="最后执行" width="160" align="center">
+      <ScTableColumn label="最后执行" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.spiderTaskLastRunTime">{{
             formatDateTime(row.spiderTaskLastRunTime)
           }}</span>
           <span v-else class="text-muted">从未执行</span>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="操作" width="400" align="center" fixed="right">
+      <ScTableColumn label="操作" width="400" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
-            <el-button
+            <ScButton
               v-if="row.spiderTaskRunStatus !== 'RUNNING'"
               size="small"
               type="primary"
@@ -168,8 +168,8 @@
             >
               <IconifyIconOnline icon="ri:play-line" />
               运行
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               v-else
               size="small"
               type="warning"
@@ -177,31 +177,31 @@
             >
               <IconifyIconOnline icon="ri:stop-line" />
               停止
-            </el-button>
-            <el-button size="small" type="success" @click="handleDesign(row)">
+            </ScButton>
+            <ScButton size="small" type="success" @click="handleDesign(row)">
               <IconifyIconOnline icon="ri:flow-chart" />
               设计
-            </el-button>
-            <el-button size="small" @click="handleEdit(row)">
+            </ScButton>
+            <ScButton size="small" @click="handleEdit(row)">
               <IconifyIconOnline icon="ri:edit-line" />
-            </el-button>
-            <el-button size="small" @click="handleViewData(row)">
+            </ScButton>
+            <ScButton size="small" @click="handleViewData(row)">
               <IconifyIconOnline icon="ri:database-2-line" />
-            </el-button>
-            <el-button size="small" @click="handleViewLogs(row)">
+            </ScButton>
+            <ScButton size="small" @click="handleViewLogs(row)">
               <IconifyIconOnline icon="ri:file-list-line" />
-            </el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">
+            </ScButton>
+            <ScButton size="small" type="danger" @click="handleDelete(row)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
+            </ScButton>
           </el-button-group>
         </template>
-      </el-table-column>
-    </el-table>
+      </ScTableColumn>
+    </ScTable>
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
-      <el-pagination
+      <ScPagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
         :total="pagination.total"

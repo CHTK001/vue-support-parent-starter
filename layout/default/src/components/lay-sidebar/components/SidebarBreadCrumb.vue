@@ -22,7 +22,7 @@ const { $storage } = useGlobal<any>();
 
 // 面包屑显示模式: icon | icon-text（默认显示图标+文字）
 const breadcrumbMode = ref(
-  $storage?.configure?.breadcrumbIconOnly ? "icon" : "icon-text"
+  $storage?.configure?.breadcrumbIconOnly ? "icon" : "icon-text",
 );
 
 // 监听模式变更
@@ -58,7 +58,7 @@ const getBreadcrumb = (): void => {
   const parentRoutes = getParentPaths(
     router.currentRoute.value.name as string,
     routes,
-    "name"
+    "name",
   );
   // 存放组成面包屑的数组
   const matched = [];
@@ -82,7 +82,7 @@ const getBreadcrumb = (): void => {
   });
 
   levelList.value = matched.filter(
-    (item) => item?.meta && item?.meta.title !== false
+    (item) => item?.meta && item?.meta.title !== false,
   );
 };
 
@@ -126,7 +126,7 @@ watch(
   () => route.path,
   () => {
     getBreadcrumb();
-  }
+  },
 );
 </script>
 
@@ -143,14 +143,14 @@ watch(
     </div>
 
     <!-- 面包屑导航 -->
-    <el-breadcrumb class="breadcrumb-container" separator="">
+    <ScBreadcrumb class="breadcrumb-container" separator="">
       <transition-group name="breadcrumb">
-        <el-breadcrumb-item
+        <ScBreadcrumbItem
           v-for="(item, index) in levelList"
           :key="item.path"
           class="breadcrumb-item"
         >
-          <el-tooltip
+          <ScTooltip
             :content="transformI18n(item.meta.i18nKey || item.meta.title)"
             placement="bottom"
             :show-after="500"
@@ -162,9 +162,9 @@ watch(
                 { 'is-current': index === levelList.length - 1 },
               ]"
             >
-              <el-icon v-if="item.meta.icon" class="breadcrumb-icon">
+              <ScIcon v-if="item.meta.icon" class="breadcrumb-icon">
                 <component :is="useRenderIcon(item.meta.icon)" />
-              </el-icon>
+              </ScIcon>
               <span
                 v-if="breadcrumbMode === 'icon-text'"
                 class="breadcrumb-text"
@@ -172,7 +172,7 @@ watch(
                 {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
               </span>
             </a>
-          </el-tooltip>
+          </ScTooltip>
           <!-- 自定义分隔符 -->
           <span
             v-if="index < levelList.length - 1"
@@ -180,9 +180,9 @@ watch(
           >
             <IconifyIconOnline icon="ri:arrow-right-s-line" />
           </span>
-        </el-breadcrumb-item>
+        </ScBreadcrumbItem>
       </transition-group>
-    </el-breadcrumb>
+    </ScBreadcrumb>
   </div>
 </template>
 
@@ -362,22 +362,34 @@ watch(
 // 春节主题适配
 html[data-skin="spring-festival"] {
   .breadcrumb-wrapper {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 240, 0.9));
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.95),
+      rgba(255, 250, 240, 0.9)
+    );
     border-radius: 19px;
     padding: 0 12px;
-    box-shadow: 
+    box-shadow:
       0 2px 8px rgba(220, 20, 60, 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
 
   .home-icon {
-    background: linear-gradient(135deg, rgba(220, 20, 60, 0.1), rgba(255, 215, 0, 0.1));
-    color: #DC143C;
+    background: linear-gradient(
+      135deg,
+      rgba(220, 20, 60, 0.1),
+      rgba(255, 215, 0, 0.1)
+    );
+    color: #dc143c;
     border: 1px solid rgba(255, 215, 0, 0.3);
 
     &:hover {
-      background: linear-gradient(135deg, rgba(220, 20, 60, 0.2), rgba(255, 215, 0, 0.2));
-      color: #B22222;
+      background: linear-gradient(
+        135deg,
+        rgba(220, 20, 60, 0.2),
+        rgba(255, 215, 0, 0.2)
+      );
+      color: #b22222;
       border-color: rgba(255, 215, 0, 0.5);
       box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
     }
@@ -388,39 +400,47 @@ html[data-skin="spring-festival"] {
   }
 
   .breadcrumb-link {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 250, 240, 0.85));
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 250, 240, 0.85)
+    );
     border-color: rgba(255, 215, 0, 0.3);
-    color: #8B0000;
-    font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
+    color: #8b0000;
+    font-family: "STKaiti", "KaiTi", "SimKai", serif;
 
     &:hover {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 250, 240, 0.95));
+      background: linear-gradient(
+        135deg,
+        rgba(255, 215, 0, 0.15),
+        rgba(255, 250, 240, 0.95)
+      );
       border-color: rgba(255, 215, 0, 0.5);
       box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
 
       .breadcrumb-text {
-        color: #DC143C;
+        color: #dc143c;
       }
 
       .breadcrumb-icon {
-        color: #DC143C;
+        color: #dc143c;
       }
     }
 
     &.is-current {
-      background: linear-gradient(135deg, #FFD700, #FFA500);
+      background: linear-gradient(135deg, #ffd700, #ffa500);
       border-color: rgba(220, 20, 60, 0.4);
-      box-shadow: 
+      box-shadow:
         0 4px 16px rgba(255, 215, 0, 0.4),
         inset 0 2px 4px rgba(255, 255, 255, 0.5);
 
       .breadcrumb-text {
-        color: #8B0000;
+        color: #8b0000;
         font-weight: 700;
       }
 
       .breadcrumb-icon {
-        color: #8B0000;
+        color: #8b0000;
       }
     }
   }
@@ -431,7 +451,7 @@ html[data-skin="spring-festival"] {
   }
 
   .breadcrumb-text {
-    color: #8B0000;
+    color: #8b0000;
   }
 
   .breadcrumb-icon {
@@ -468,8 +488,6 @@ html.dark {
   }
 }
 
-
-
 // 中秋主题适配
 html[data-skin="mid-autumn"] {
   $mid-blue: #1a237e;
@@ -479,7 +497,11 @@ html[data-skin="mid-autumn"] {
   $mid-border: rgba(255, 213, 79, 0.3);
 
   .breadcrumb-wrapper {
-    background: linear-gradient(135deg, rgba($mid-blue, 0.95), rgba($mid-blue-light, 0.9));
+    background: linear-gradient(
+      135deg,
+      rgba($mid-blue, 0.95),
+      rgba($mid-blue-light, 0.9)
+    );
     border-radius: 12px;
     padding: 0 12px;
     border: 1px solid $mid-border;
@@ -561,7 +583,11 @@ html[data-skin="christmas"] {
   $xmas-border: rgba(255, 215, 0, 0.4);
 
   .breadcrumb-wrapper {
-    background: linear-gradient(135deg, rgba($xmas-green, 0.95), rgba($xmas-green-light, 0.9));
+    background: linear-gradient(
+      135deg,
+      rgba($xmas-green, 0.95),
+      rgba($xmas-green-light, 0.9)
+    );
     border-radius: 12px;
     padding: 0 12px;
     border: 2px solid $xmas-border;
@@ -635,17 +661,21 @@ html[data-skin="christmas"] {
 
 // 元旦主题适配
 html[data-skin="new-year"] {
-  $ice-lightest: #F5FBFF;
-  $ice-light: #B8E0F2;
-  $ice-medium: #7CC2E8;
-  $ice-primary: #4EA8DE;
-  $ice-deep: #2A7AB8;
-  $ice-darker: #1E5F8C;
-  $frost-purple: #E0E7F5;
+  $ice-lightest: #f5fbff;
+  $ice-light: #b8e0f2;
+  $ice-medium: #7cc2e8;
+  $ice-primary: #4ea8de;
+  $ice-deep: #2a7ab8;
+  $ice-darker: #1e5f8c;
+  $frost-purple: #e0e7f5;
   $ice-border: rgba(78, 168, 222, 0.3);
 
   .breadcrumb-wrapper {
-    background: linear-gradient(135deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.95));
+    background: linear-gradient(
+      135deg,
+      rgba($ice-lightest, 0.98),
+      rgba($frost-purple, 0.95)
+    );
     border-radius: 12px;
     padding: 0 12px;
     border: 1px solid $ice-border;
@@ -717,7 +747,6 @@ html[data-skin="new-year"] {
     color: $ice-primary;
   }
 }
-
 
 // 响应式
 @media (max-width: 768px) {

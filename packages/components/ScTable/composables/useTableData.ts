@@ -2,11 +2,11 @@
  * ScTable 数据管理 Composable
  * 处理数据获取、排序、筛选、统计等
  */
-import { ref, computed, shallowRef, watch, onUnmounted, type Ref, type ShallowRef } from 'vue';
+import { ref, computed, shallowRef, watch, onUnmounted, type Ref, type ShallowRef } from "vue";
 
 export interface SortState {
   prop: string;
-  order: 'ascending' | 'descending' | null;
+  order: "ascending" | "descending" | null;
 }
 
 export interface FilterState {
@@ -44,63 +44,55 @@ export interface FetchParams {
 }
 
 export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
-  const {
-    initialData = [],
-    fetchData,
-    autoLoad = false,
-    rowKey = 'id',
-    defaultSort,
-    onDataChange,
-    fetchStatistic,
-  } = options;
-  
+  const { initialData = [], fetchData, autoLoad = false, rowKey = "id", defaultSort, onDataChange, fetchStatistic } = options;
+
   // 数据状态（使用 shallowRef 提升大数据量性能）
   const tableData: ShallowRef<T[]> = shallowRef([...initialData]);
   const total = ref(0);
   const loading = ref(false);
   const error = ref<Error | null>(null);
-  
+
   // 排序状态
   const sortState = ref<SortState | null>(defaultSort || null);
-  
+
   // 筛选状态
   const filterState = ref<FilterState>({});
-  
+
   // 搜索关键词
-  const searchKeyword = ref('');
-  
+  const searchKeyword = ref("");
+
   // 统计数据
   const statisticData = ref<StatisticData>({});
-  
+
   // 加载次数（用于判断是否首次加载）
   const loadCount = ref(0);
-  
+
   // 是否有数据
   const hasData = computed(() => tableData.value.length > 0);
-  
+
   // 是否为空（加载完成后无数据）
   const isEmpty = computed(() => !loading.value && loadCount.value > 0 && !hasData.value);
-  
+
   // 获取行唯一键
   const getRowKey = (row: T): string => {
-    if (typeof rowKey === 'function') {
+    if (typeof rowKey === "function") {
       return rowKey(row);
     }
     return (row as any)[rowKey];
   };
-  
+
   /**
    * 获取数据
    */
   const getData = async (params: Partial<FetchParams> = {}) => {
     if (!fetchData) {
-      console.warn('未配置 fetchData 函数');
+      console.warn("未配置 fetchData 函数");
       return;
     }
-    
+
     loading.value = true;
     error.value = null;
-    
+
     try {
       const fetchParams: FetchParams = {
         page: params.page ?? 1,
@@ -108,30 +100,30 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
         sort: sortState.value || undefined,
         filters: Object.keys(filterState.value).length ? filterState.value : undefined,
         searchKeyword: searchKeyword.value || undefined,
-        ...params,
+        ...params
       };
-      
+
       const result = await fetchData(fetchParams);
-      
+
       tableData.value = result.data;
       total.value = result.total;
       loadCount.value++;
-      
+
       onDataChange?.(result.data);
     } catch (e) {
       error.value = e as Error;
-      console.error('获取表格数据失败:', e);
+      console.error("获取表格数据失败:", e);
     } finally {
       loading.value = false;
     }
   };
-  
+
   /**
    * 获取统计数据
    */
   const getStatistic = async (params: Partial<FetchParams> = {}) => {
     if (!fetchStatistic) return;
-    
+
     try {
       const fetchParams: FetchParams = {
         page: 1,
@@ -139,22 +131,22 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
         sort: sortState.value || undefined,
         filters: Object.keys(filterState.value).length ? filterState.value : undefined,
         searchKeyword: searchKeyword.value || undefined,
-        ...params,
+        ...params
       };
-      
+
       statisticData.value = await fetchStatistic(fetchParams);
     } catch (e) {
-      console.error('获取统计数据失败:', e);
+      console.error("获取统计数据失败:", e);
     }
   };
-  
+
   /**
    * 刷新数据（保持当前参数）
    */
   const refresh = async (params: Partial<FetchParams> = {}) => {
     await getData(params);
   };
-  
+
   /**
    * 设置本地数据
    */
@@ -163,7 +155,7 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
     total.value = data.length;
     onDataChange?.(data);
   };
-  
+
   /**
    * 追加数据（滚动加载）
    */
@@ -171,7 +163,7 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
     tableData.value = [...tableData.value, ...data];
     onDataChange?.(tableData.value);
   };
-  
+
   /**
    * 更新单行数据
    */
@@ -184,7 +176,7 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
       onDataChange?.(tableData.value);
     }
   };
-  
+
   /**
    * 删除单行数据
    */
@@ -198,7 +190,7 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
       onDataChange?.(tableData.value);
     }
   };
-  
+
   /**
    * 批量删除数据
    */
@@ -209,7 +201,7 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
     total.value -= keys.length;
     onDataChange?.(tableData.value);
   };
-  
+
   /**
    * 插入单行数据
    */
@@ -224,25 +216,25 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
     total.value++;
     onDataChange?.(tableData.value);
   };
-  
+
   /**
    * 设置排序
    */
   const setSort = (sort: SortState | null) => {
     sortState.value = sort;
   };
-  
+
   /**
    * 处理排序变化
    */
-  const handleSortChange = ({ prop, order }: { prop: string; order: 'ascending' | 'descending' | null }) => {
+  const handleSortChange = ({ prop, order }: { prop: string; order: "ascending" | "descending" | null }) => {
     if (order) {
       sortState.value = { prop, order };
     } else {
       sortState.value = null;
     }
   };
-  
+
   /**
    * 设置筛选
    */
@@ -255,31 +247,31 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
       filterState.value = newFilters;
     }
   };
-  
+
   /**
    * 清除所有筛选
    */
   const clearFilters = () => {
     filterState.value = {};
   };
-  
+
   /**
    * 设置搜索关键词
    */
   const setSearchKeyword = (keyword: string) => {
     searchKeyword.value = keyword;
   };
-  
+
   /**
    * 本地排序（前端排序）
    */
   const sortLocal = (data: T[], sort: SortState): T[] => {
     if (!sort.prop || !sort.order) return data;
-    
+
     return [...data].sort((a, b) => {
       const aVal = (a as any)[sort.prop];
       const bVal = (b as any)[sort.prop];
-      
+
       let result = 0;
       if (aVal === bVal) {
         result = 0;
@@ -287,22 +279,22 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
         result = 1;
       } else if (bVal === null || bVal === undefined) {
         result = -1;
-      } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+      } else if (typeof aVal === "number" && typeof bVal === "number") {
         result = aVal - bVal;
       } else {
         result = String(aVal).localeCompare(String(bVal));
       }
-      
-      return sort.order === 'ascending' ? result : -result;
+
+      return sort.order === "ascending" ? result : -result;
     });
   };
-  
+
   /**
    * 本地筛选（前端筛选）
    */
   const filterLocal = (data: T[], filters: FilterState): T[] => {
     if (!Object.keys(filters).length) return data;
-    
+
     return data.filter(row => {
       return Object.entries(filters).every(([prop, values]) => {
         if (!values.length) return true;
@@ -311,15 +303,15 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
       });
     });
   };
-  
+
   /**
    * 本地搜索（前端搜索）
    */
   const searchLocal = (data: T[], keyword: string, searchProps?: string[]): T[] => {
     if (!keyword) return data;
-    
+
     const lowerKeyword = keyword.toLowerCase();
-    
+
     return data.filter(row => {
       const props = searchProps || Object.keys(row as any);
       return props.some(prop => {
@@ -329,29 +321,29 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
       });
     });
   };
-  
+
   /**
    * 获取处理后的数据（本地排序+筛选+搜索）
    */
   const getProcessedData = (searchProps?: string[]): T[] => {
     let result = tableData.value;
-    
+
     // 应用筛选
     result = filterLocal(result, filterState.value);
-    
+
     // 应用搜索
     if (searchKeyword.value) {
       result = searchLocal(result, searchKeyword.value, searchProps);
     }
-    
+
     // 应用排序
     if (sortState.value) {
       result = sortLocal(result, sortState.value);
     }
-    
+
     return result;
   };
-  
+
   /**
    * 清空数据
    */
@@ -360,7 +352,7 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
     total.value = 0;
     error.value = null;
   };
-  
+
   /**
    * 重置状态
    */
@@ -368,10 +360,10 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
     clearData();
     sortState.value = defaultSort || null;
     filterState.value = {};
-    searchKeyword.value = '';
+    searchKeyword.value = "";
     loadCount.value = 0;
   };
-  
+
   return {
     // 状态
     tableData,
@@ -407,6 +399,6 @@ export function useTableData<T = any>(options: UseTableDataOptions<T> = {}) {
     searchLocal,
     getProcessedData,
     clearData,
-    reset,
+    reset
   };
 }

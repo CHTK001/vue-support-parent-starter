@@ -52,7 +52,13 @@
           </ScButton>
           <ScButton size="small" @click="toggleFullscreen">
             <ScTooltip content="全屏" placement="bottom">
-              <IconifyIconOnline :icon="isFullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
+              <IconifyIconOnline
+                :icon="
+                  isFullscreen
+                    ? 'ri:fullscreen-exit-line'
+                    : 'ri:fullscreen-line'
+                "
+              />
             </ScTooltip>
           </ScButton>
         </slot>
@@ -67,8 +73,18 @@
           <span>节点</span>
         </div>
         <div class="panel-content">
-          <div v-for="item in nodeMenuItems" :key="item.type" class="node-item" draggable="true" @dragstart="e => handleDragStart(e, item)" @click="handleAddNode(item.type)">
-            <div class="node-item-icon" :style="{ background: getNodeColor(item.type) }">
+          <div
+            v-for="item in nodeMenuItems"
+            :key="item.type"
+            class="node-item"
+            draggable="true"
+            @dragstart="(e) => handleDragStart(e, item)"
+            @click="handleAddNode(item.type)"
+          >
+            <div
+              class="node-item-icon"
+              :style="{ background: getNodeColor(item.type) }"
+            >
               <IconifyIconOnline :icon="item.icon || 'ri:box-3-line'" />
             </div>
             <span class="node-item-label">{{ item.label }}</span>
@@ -81,7 +97,7 @@
         class="editor-canvas"
         :class="{
           [`bg-${background}`]: true,
-          'is-readonly': readonly
+          'is-readonly': readonly,
         }"
         ref="containerRef"
         @drop="handleDrop"
@@ -108,7 +124,10 @@
                 <ScInput :model-value="selectedNode.id" disabled />
               </ScFormItem>
               <ScFormItem label="节点名称">
-                <ScInput v-model="selectedNode.label" @change="handleNodeLabelChange" />
+                <ScInput
+                  v-model="selectedNode.label"
+                  @change="handleNodeLabelChange"
+                />
               </ScFormItem>
               <ScFormItem label="节点类型">
                 <ScInput :model-value="selectedNode.nodeType" disabled />
@@ -137,7 +156,9 @@
         </span>
       </div>
       <div class="statusbar-right">
-        <span class="status-item" v-if="selectedNode">选中: {{ selectedNode.label }}</span>
+        <span class="status-item" v-if="selectedNode"
+          >选中: {{ selectedNode.label }}</span
+        >
       </div>
     </div>
   </div>
@@ -171,7 +192,7 @@ import {
  * 可用方法: getData, loadData, clear, addNode, removeNode, arrange, zoomToFit, setZoom
  */
 defineOptions({
-  name: "ScReteEditor"
+  name: "ScReteEditor",
 });
 
 // Props 定义
@@ -197,7 +218,7 @@ const props = defineProps({
    */
   modelValue: {
     type: Object as PropType<EditorData>,
-    default: () => ({ nodes: [], connections: [] })
+    default: () => ({ nodes: [], connections: [] }),
   },
   /**
    * 是否只读模式
@@ -207,7 +228,7 @@ const props = defineProps({
    */
   readonly: {
     type: Boolean,
-    default: false
+    default: false,
   },
   /**
    * 是否显示顶部工具栏
@@ -217,7 +238,7 @@ const props = defineProps({
    */
   showToolbar: {
     type: Boolean,
-    default: true
+    default: true,
   },
   /**
    * 是否显示左侧节点面板
@@ -227,7 +248,7 @@ const props = defineProps({
    */
   showNodePanel: {
     type: Boolean,
-    default: true
+    default: true,
   },
   /**
    * 是否显示右侧属性面板
@@ -237,7 +258,7 @@ const props = defineProps({
    */
   showPropertyPanel: {
     type: Boolean,
-    default: true
+    default: true,
   },
   /**
    * 是否显示底部状态栏
@@ -247,7 +268,7 @@ const props = defineProps({
    */
   showStatusbar: {
     type: Boolean,
-    default: true
+    default: true,
   },
   /**
    * 是否显示小地图
@@ -257,7 +278,7 @@ const props = defineProps({
    */
   minimap: {
     type: Boolean,
-    default: false
+    default: false,
   },
   /**
    * 是否启用右键菜单
@@ -267,7 +288,7 @@ const props = defineProps({
    */
   contextMenu: {
     type: Boolean,
-    default: true
+    default: true,
   },
   /**
    * 是否启用自动排列功能
@@ -277,7 +298,7 @@ const props = defineProps({
    */
   autoArrange: {
     type: Boolean,
-    default: true
+    default: true,
   },
   /**
    * 背景类型
@@ -289,7 +310,7 @@ const props = defineProps({
    */
   background: {
     type: String as PropType<"dots" | "lines" | "none">,
-    default: "dots"
+    default: "dots",
   },
   /**
    * 缩放范围限制
@@ -299,7 +320,7 @@ const props = defineProps({
    */
   zoom: {
     type: Object as PropType<{ min: number; max: number }>,
-    default: () => ({ min: 0.2, max: 2 })
+    default: () => ({ min: 0.2, max: 2 }),
   },
   /**
    * 节点菜单项配置
@@ -318,16 +339,18 @@ const props = defineProps({
    * @default 预定义 6 种节点类型
    */
   nodeMenuItems: {
-    type: Array as PropType<Array<{ label: string; type: NodeTypeName; icon?: string }>>,
+    type: Array as PropType<
+      Array<{ label: string; type: NodeTypeName; icon?: string }>
+    >,
     default: () => [
       { label: "输入", type: "input", icon: "ri:login-box-line" },
       { label: "输出", type: "output", icon: "ri:logout-box-line" },
       { label: "处理", type: "process", icon: "ri:settings-3-line" },
       { label: "条件", type: "condition", icon: "ri:git-branch-line" },
       { label: "合并", type: "merge", icon: "ri:git-merge-line" },
-      { label: "延迟", type: "delay", icon: "ri:time-line" }
-    ]
-  }
+      { label: "延迟", type: "delay", icon: "ri:time-line" },
+    ],
+  },
 });
 
 // Emits
@@ -348,22 +371,40 @@ const canUndo = ref(false);
 const canRedo = ref(false);
 
 // 使用 composable
-const { containerRef, editorInstance, initialized, loading, selectedNode, zoomLevel, init, destroy, addNode, removeNode, getData, loadData, clear, arrange, zoomToFit, setZoom, undo, redo } =
-  useReteEditor({
-    readonly: props.readonly,
-    minimap: props.minimap,
-    contextMenu: props.contextMenu,
-    autoArrange: props.autoArrange,
-    zoom: props.zoom,
-    initialData: props.modelValue,
-    onDataChange: data => {
-      emit("update:modelValue", data);
-      emit("data-changed", data);
-    },
-    onNodeSelect: node => {
-      emit("node-selected", node);
-    }
-  });
+const {
+  containerRef,
+  editorInstance,
+  initialized,
+  loading,
+  selectedNode,
+  zoomLevel,
+  init,
+  destroy,
+  addNode,
+  removeNode,
+  getData,
+  loadData,
+  clear,
+  arrange,
+  zoomToFit,
+  setZoom,
+  undo,
+  redo,
+} = useReteEditor({
+  readonly: props.readonly,
+  minimap: props.minimap,
+  contextMenu: props.contextMenu,
+  autoArrange: props.autoArrange,
+  zoom: props.zoom,
+  initialData: props.modelValue,
+  onDataChange: (data) => {
+    emit("update:modelValue", data);
+    emit("data-changed", data);
+  },
+  onNodeSelect: (node) => {
+    emit("node-selected", node);
+  },
+});
 
 // 计算属性
 const nodeCount = computed(() => {
@@ -382,7 +423,7 @@ function getNodeColor(type: NodeTypeName): string {
     process: "#6366f1",
     condition: "#8b5cf6",
     merge: "#ec4899",
-    delay: "#14b8a6"
+    delay: "#14b8a6",
   };
   return colors[type] || "#6366f1";
 }
@@ -414,9 +455,13 @@ async function handleArrange() {
 
 async function handleClear() {
   try {
-    await ElMessageBox.confirm("确定要清空画布吗？此操作不可撤销。", "清空确认", {
-      type: "warning"
-    });
+    await ElMessageBox.confirm(
+      "确定要清空画布吗？此操作不可撤销。",
+      "清空确认",
+      {
+        type: "warning",
+      },
+    );
     await clear();
   } catch {
     // 取消
@@ -487,7 +532,7 @@ watch(
         isInternalUpdate = false;
       }
     }
-  }
+  },
 );
 
 // 生命周期
@@ -518,7 +563,7 @@ defineExpose({
   /** 重做 */
   redo,
   /** 编辑器实例 */
-  editorInstance
+  editorInstance,
 });
 </script>
 
@@ -646,12 +691,22 @@ defineExpose({
   overflow: hidden;
 
   &.bg-dots {
-    background-image: radial-gradient(circle, var(--el-border-color-lighter) 1px, transparent 1px);
+    background-image: radial-gradient(
+      circle,
+      var(--el-border-color-lighter) 1px,
+      transparent 1px
+    );
     background-size: 20px 20px;
   }
 
   &.bg-lines {
-    background-image: linear-gradient(var(--el-border-color-lighter) 1px, transparent 1px), linear-gradient(90deg, var(--el-border-color-lighter) 1px, transparent 1px);
+    background-image:
+      linear-gradient(var(--el-border-color-lighter) 1px, transparent 1px),
+      linear-gradient(
+        90deg,
+        var(--el-border-color-lighter) 1px,
+        transparent 1px
+      );
     background-size: 20px 20px;
   }
 

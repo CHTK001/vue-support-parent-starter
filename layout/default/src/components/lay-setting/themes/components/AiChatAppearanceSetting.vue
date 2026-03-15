@@ -77,5 +77,3 @@ const currentAppearanceComponent = computed(() =>
   color: var(--el-text-color-secondary);
 }
 </style>
-
-

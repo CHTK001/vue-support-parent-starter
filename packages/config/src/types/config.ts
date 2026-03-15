@@ -232,7 +232,13 @@ export interface PlatformConfigs {
   // 错误页面配置
   // ===========================================
   /** 错误页面风格: pixel(像素恐龙) | space(太空风) | minimal(极简风) | forbidden(禁止) | notfound(迷路) | servererror(故障) */
-  ErrorPageStyle?: 'pixel' | 'space' | 'minimal' | 'forbidden' | 'notfound' | 'servererror';
+  ErrorPageStyle?:
+    | "pixel"
+    | "space"
+    | "minimal"
+    | "forbidden"
+    | "notfound"
+    | "servererror";
   /** 账户类型（如 tenant） */
   AccountType?: string;
 

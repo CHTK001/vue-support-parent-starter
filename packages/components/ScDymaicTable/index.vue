@@ -1,7 +1,7 @@
 <template>
   <div ref="scTableMain" v-loading="loading" class="scTable" :style="{ height: _height }">
     <div class="scTable-table" :style="{ height: _table_height }">
-      <el-table
+      <ScTable
         v-bind="$attrs"
         :key="toggleIndex"
         ref="scTable"
@@ -16,9 +16,9 @@
         @sort-change="sortChange"
         @filter-change="filterChange"
       >
-        <el-table-column type="index" fixed />
+        <ScTableColumn type="index" fixed />
         <template v-for="(item, index) in userColumn" :key="index">
-          <el-table-column
+          <ScTableColumn
             v-if="!item.hide"
             :column-key="item.prop"
             :label="item.label"
@@ -54,10 +54,10 @@
                 </span>
               </slot>
             </template>
-          </el-table-column>
+          </ScTableColumn>
         </template>
         <template v-for="it in fields">
-          <el-table-column v-if="isShow(it) && !userColumn" :key="it" :min-width="180" :prop="it" :label="it" show-overflow-tooltip>
+          <ScTableColumn v-if="isShow(it) && !userColumn" :key="it" :min-width="180" :prop="it" :label="it" show-overflow-tooltip>
             <template #header>
               <span v-if="!remark[it] || remarkTitle == 'NONE'">{{ it }}</span>
               <span v-else class="clampSize">
@@ -65,13 +65,13 @@
                 <span v-if="remarkTitle == 'INNER'" class="el-form-item-msg" style="margin-left: 2px">({{ remark[it] }})</span>
               </span>
             </template>
-          </el-table-column>
+          </ScTableColumn>
         </template>
-      </el-table>
+      </ScTable>
     </div>
     <div v-if="!hidePagination || !hideDo" class="scTable-page">
       <div class="scTable-pagination">
-        <el-pagination
+        <ScPagination
           v-if="!hidePagination"
           v-model:currentPage="currentPage"
           background
@@ -85,31 +85,31 @@
         />
       </div>
       <div v-if="!hideDo" class="scTable-do">
-        <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
+        <ScButton v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
+        <ScPopover v-if="column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
-            <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
+            <ScButton :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
           <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChange" @save="columnSettingSave" @back="columnSettingBack" />
-        </el-popover>
-        <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
+        </ScPopover>
+        <ScPopover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
-            <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
+            <ScButton :icon="icon('ep:setting')" circle style="margin-left: 15px" />
           </template>
-          <el-form label-width="80px" label-position="left">
-            <el-form-item label="表格尺寸">
-              <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
+          <ScForm label-width="80px" label-position="left">
+            <ScFormItem label="表格尺寸">
+              <ScRadioGroup v-model="config.size" size="small" @change="configSizeChange">
                 <el-radio-button label="large">大</el-radio-button>
                 <el-radio-button label="default">正常</el-radio-button>
                 <el-radio-button label="small">小</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="样式">
-              <el-checkbox v-model="config.border" label="纵向边框" />
-              <el-checkbox v-model="config.stripe" label="斑马纹" />
-            </el-form-item>
-          </el-form>
-        </el-popover>
+              </ScRadioGroup>
+            </ScFormItem>
+            <ScFormItem label="样式">
+              <ScCheckbox v-model="config.border" label="纵向边框" />
+              <ScCheckbox v-model="config.stripe" label="斑马纹" />
+            </ScFormItem>
+          </ScForm>
+        </ScPopover>
       </div>
     </div>
   </div>

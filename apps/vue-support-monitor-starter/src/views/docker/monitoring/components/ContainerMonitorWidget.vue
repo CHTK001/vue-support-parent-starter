@@ -6,14 +6,14 @@
         <span class="header-title">容器监控</span>
       </div>
       <div class="header-right">
-        <el-button
+        <ScButton
           :loading="loading"
           size="small"
           circle
           @click="handleRefresh"
         >
           <IconifyIconOnline icon="ri:refresh-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 

@@ -144,7 +144,7 @@ function changeChartType(type: "line" | "bar") {
 function refreshData() {
   config.data = Array.from(
     { length: 7 },
-    () => Math.floor(Math.random() * 300) + 50
+    () => Math.floor(Math.random() * 300) + 50,
   );
 }
 </script>

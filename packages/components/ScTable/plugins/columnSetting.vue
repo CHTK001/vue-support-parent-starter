@@ -130,40 +130,40 @@ export default defineComponent({
       <ul>
         <li v-for="item in usercolumn" :key="item.prop" class="column-item">
           <span class="move_b">
-            <el-tag class="move" size="small" type="info" effect="plain">
-              <el-icon style="width: 1em; height: 1em">
+            <ScTag class="move" size="small" type="info" effect="plain">
+              <ScIcon style="width: 1em; height: 1em">
                 <component :is="icon.Caret" />
-              </el-icon>
-            </el-tag>
+              </ScIcon>
+            </ScTag>
           </span>
           <span class="show_b">
-            <el-switch v-model="item.hide" :active-value="false" :inactive-value="true"
+            <ScSwitch v-model="item.hide" :active-value="false" :inactive-value="true"
               @change="() => handleVisibilityChange(item)" class="visibility-switch" />
           </span>
           <span class="name_b" :title="item.label">{{ item.label }}</span>
           <span class="width_b" v-if="layout === 'table'">
-            <el-input-number v-model="item.width" :min="50" :max="1000" :step="10" controls-position="right"
+            <ScInputNumber v-model="item.width" :min="50" :max="1000" :step="10" controls-position="right"
               size="small" class="width-control" @change="() => handleWidthChange(item)" />
           </span>
           <span class="sortable_b" v-if="layout === 'table'">
-            <el-switch v-model="item.sortable" @change="() => handleSortableChange(item)" class="feature-switch" />
+            <ScSwitch v-model="item.sortable" @change="() => handleSortableChange(item)" class="feature-switch" />
           </span>
           <span class="fixed_b" v-if="layout === 'table'">
-            <el-switch v-model="item.fixed" @change="() => handleFixedChange(item)" class="feature-switch" />
+            <ScSwitch v-model="item.fixed" @change="() => handleFixedChange(item)" class="feature-switch" />
           </span>
         </li>
       </ul>
     </div>
 
     <div class="setting-column__bottom">
-      <el-button :disabled="isSave" @click="backDefaul" size="small">
-        <el-icon><i class="el-icon-refresh-right"></i></el-icon>
+      <ScButton :disabled="isSave" @click="backDefaul" size="small">
+        <ScIcon><i class="el-icon-refresh-right"></i></ScIcon>
         重置
-      </el-button>
-      <el-button type="primary" @click="save" size="small">
-        <el-icon><i class="el-icon-check"></i></el-icon>
+      </ScButton>
+      <ScButton type="primary" @click="save" size="small">
+        <ScIcon><i class="el-icon-check"></i></ScIcon>
         保存
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

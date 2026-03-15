@@ -3,31 +3,31 @@
     <div class="designer-toolbar">
       <div class="toolbar-left">
         <el-button-group>
-          <el-button size="small" @click="handleZoomIn">
-            <el-icon><ZoomIn /></el-icon>
-          </el-button>
-          <el-button size="small" @click="handleZoomOut">
-            <el-icon><ZoomOut /></el-icon>
-          </el-button>
-          <el-button size="small" @click="handleResetZoom">
-            <el-icon><FullScreen /></el-icon>
-          </el-button>
+          <ScButton size="small" @click="handleZoomIn">
+            <ScIcon><ZoomIn /></ScIcon>
+          </ScButton>
+          <ScButton size="small" @click="handleZoomOut">
+            <ScIcon><ZoomOut /></ScIcon>
+          </ScButton>
+          <ScButton size="small" @click="handleResetZoom">
+            <ScIcon><FullScreen /></ScIcon>
+          </ScButton>
         </el-button-group>
-        <el-divider direction="vertical" />
-        <el-button size="small" @click="handleClear">
-          <el-icon><Delete /></el-icon>
+        <ScDivider direction="vertical" />
+        <ScButton size="small" @click="handleClear">
+          <ScIcon><Delete /></ScIcon>
           清空
-        </el-button>
-        <el-button size="small" @click="handleValidate">
-          <el-icon><CircleCheck /></el-icon>
+        </ScButton>
+        <ScButton size="small" @click="handleValidate">
+          <ScIcon><CircleCheck /></ScIcon>
           验证
-        </el-button>
+        </ScButton>
       </div>
       <div class="toolbar-right">
-        <el-button size="small" @click="handleCancel">取消</el-button>
-        <el-button type="primary" size="small" :loading="saving" @click="handleSave">
+        <ScButton size="small" @click="handleCancel">取消</ScButton>
+        <ScButton type="primary" size="small" :loading="saving" @click="handleSave">
           保存
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -43,9 +43,9 @@
             draggable="true"
             @dragstart="handleDragStart($event, nodeType)"
           >
-            <el-icon :class="nodeType.icon">
+            <ScIcon :class="nodeType.icon">
               <component :is="nodeType.iconComponent" />
-            </el-icon>
+            </ScIcon>
             <span>{{ nodeType.label }}</span>
           </div>
         </div>
@@ -74,18 +74,18 @@
           @click.stop="handleNodeClick(node)"
         >
           <div class="node-header">
-            <el-icon class="node-icon">
+            <ScIcon class="node-icon">
               <component :is="getNodeIcon(node.syncNodeType)" />
-            </el-icon>
+            </ScIcon>
             <span class="node-title">{{ node.syncNodeName || node.syncNodeType }}</span>
-            <el-button
+            <ScButton
               text
               size="small"
               class="node-delete"
               @click.stop="handleDeleteNode(node)"
             >
-              <el-icon><Close /></el-icon>
-            </el-button>
+              <ScIcon><Close /></ScIcon>
+            </ScButton>
           </div>
           <div class="node-body">
             <div class="node-info">{{ node.syncNodeSpiName }}</div>
@@ -135,56 +135,56 @@
     </div>
 
     <!-- 节点配置面板 -->
-    <el-drawer
+    <ScDrawer
       v-model="configDrawerVisible"
       title="节点配置"
       :size="400"
       :before-close="handleConfigClose"
     >
-      <el-form
+      <ScForm
         v-if="selectedNode"
         ref="configFormRef"
         :model="nodeConfig"
         label-width="100px"
       >
-        <el-form-item label="节点名称">
-          <el-input v-model="nodeConfig.syncNodeName" placeholder="请输入节点名称" />
-        </el-form-item>
-        <el-form-item label="节点类型">
-          <el-input v-model="nodeConfig.syncNodeType" disabled />
-        </el-form-item>
-        <el-form-item label="SPI名称">
-          <el-input v-model="nodeConfig.syncNodeSpiName" placeholder="如: jdbc/csv/local" />
-        </el-form-item>
-        <el-form-item label="节点描述">
-          <el-input
+        <ScFormItem label="节点名称">
+          <ScInput v-model="nodeConfig.syncNodeName" placeholder="请输入节点名称" />
+        </ScFormItem>
+        <ScFormItem label="节点类型">
+          <ScInput v-model="nodeConfig.syncNodeType" disabled />
+        </ScFormItem>
+        <ScFormItem label="SPI名称">
+          <ScInput v-model="nodeConfig.syncNodeSpiName" placeholder="如: jdbc/csv/local" />
+        </ScFormItem>
+        <ScFormItem label="节点描述">
+          <ScInput
             v-model="nodeConfig.syncNodeDesc"
             type="textarea"
             :rows="3"
             placeholder="请输入节点描述"
           />
-        </el-form-item>
-        <el-form-item label="配置参数">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="配置参数">
+          <ScInput
             v-model="nodeConfig.syncNodeConfig"
             type="textarea"
             :rows="6"
             placeholder='请输入JSON配置，如: {"url":"jdbc:mysql://...","username":"root"}'
           />
-        </el-form-item>
-        <el-form-item label="是否启用">
-          <el-switch
+        </ScFormItem>
+        <ScFormItem label="是否启用">
+          <ScSwitch
             v-model="nodeConfig.syncNodeEnabled"
             :active-value="1"
             :inactive-value="0"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="configDrawerVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleConfigSave">保存</el-button>
+        <ScButton @click="configDrawerVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="handleConfigSave">保存</ScButton>
       </template>
-    </el-drawer>
+    </ScDrawer>
   </div>
 </template>
 

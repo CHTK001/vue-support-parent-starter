@@ -16,7 +16,11 @@ class IndexedDBStorage {
   private readyResolve: () => void;
   private readyReject: (error: Error) => void;
 
-  constructor(dbName: string = "appDatabase", storeName: string = "appStore", version: number = 1) {
+  constructor(
+    dbName: string = "appDatabase",
+    storeName: string = "appStore",
+    version: number = 1,
+  ) {
     this.dbName = getConfig().SystemCode + dbName;
     this.storeName = storeName;
     this.version = version;
@@ -83,7 +87,9 @@ class IndexedDBStorage {
 
       if (!key) return null;
 
-      const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+      const newKey = key.startsWith(responsiveStorageNameSpace())
+        ? key
+        : getConfig().SystemCode + key;
 
       return new Promise<T | null>((resolve, reject) => {
         if (!this.db) {
@@ -109,9 +115,14 @@ class IndexedDBStorage {
           let value = result.value;
 
           // 解密处理
-          if (config.StorageEncode && !newKey.startsWith(responsiveStorageNameSpace())) {
+          if (
+            config.StorageEncode &&
+            !newKey.startsWith(responsiveStorageNameSpace())
+          ) {
             try {
-              value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.StorageKey));
+              value = JSON.parse(
+                CryptoJs.default.AES.decrypt(value, config.StorageKey),
+              );
             } catch (error) {
               console.error("解密失败:", error);
             }
@@ -138,13 +149,21 @@ class IndexedDBStorage {
 
       if (!key) return;
 
-      const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+      const newKey = key.startsWith(responsiveStorageNameSpace())
+        ? key
+        : getConfig().SystemCode + key;
 
       let valueToStore = value;
 
       // 加密处理
-      if (config.StorageEncode && !newKey.startsWith(responsiveStorageNameSpace())) {
-        valueToStore = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.StorageKey) as any;
+      if (
+        config.StorageEncode &&
+        !newKey.startsWith(responsiveStorageNameSpace())
+      ) {
+        valueToStore = CryptoJs.default.AES.encrypt(
+          JSON.stringify(value),
+          config.StorageKey,
+        ) as any;
       }
 
       return new Promise<void>((resolve, reject) => {
@@ -181,7 +200,9 @@ class IndexedDBStorage {
 
       if (!key) return;
 
-      const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+      const newKey = key.startsWith(responsiveStorageNameSpace())
+        ? key
+        : getConfig().SystemCode + key;
 
       return new Promise<void>((resolve, reject) => {
         if (!this.db) {
@@ -266,9 +287,14 @@ class IndexedDBStorage {
             let value = item.value;
 
             // 解密处理
-            if (config.StorageEncode && !item.key.startsWith(responsiveStorageNameSpace())) {
+            if (
+              config.StorageEncode &&
+              !item.key.startsWith(responsiveStorageNameSpace())
+            ) {
               try {
-                value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.StorageKey));
+                value = JSON.parse(
+                  CryptoJs.default.AES.decrypt(value, config.StorageKey),
+                );
               } catch (error) {
                 console.error("解密失败:", error);
               }
@@ -328,7 +354,9 @@ class IndexedDBStorageProxy implements ProxyStorage {
   getItem<T>(key: string): T {
     if (!key) return null as T;
 
-    const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+    const newKey = key.startsWith(responsiveStorageNameSpace())
+      ? key
+      : getConfig().SystemCode + key;
 
     // 从缓存中获取
     const cachedValue = IndexedDBStorageProxy.cache.get(newKey);
@@ -364,7 +392,9 @@ class IndexedDBStorageProxy implements ProxyStorage {
   setItem<T>(key: string, value: T) {
     if (!key) return;
 
-    const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+    const newKey = key.startsWith(responsiveStorageNameSpace())
+      ? key
+      : getConfig().SystemCode + key;
 
     // 更新缓存
     IndexedDBStorageProxy.cache.set(newKey, value);
@@ -381,7 +411,9 @@ class IndexedDBStorageProxy implements ProxyStorage {
   removeItem(key: string) {
     if (!key) return;
 
-    const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+    const newKey = key.startsWith(responsiveStorageNameSpace())
+      ? key
+      : getConfig().SystemCode + key;
 
     // 从缓存中删除
     IndexedDBStorageProxy.cache.delete(newKey);
@@ -443,7 +475,9 @@ class IndexedDBStorageProxy implements ProxyStorage {
   getItemSync<T>(key: string): T {
     if (!key) return null as T;
 
-    const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+    const newKey = key.startsWith(responsiveStorageNameSpace())
+      ? key
+      : getConfig().SystemCode + key;
 
     // 如果已经初始化，直接从缓存获取
     if (this.initialized) {
@@ -452,7 +486,9 @@ class IndexedDBStorageProxy implements ProxyStorage {
 
     // 如果未初始化，这里只能返回null
     // 建议使用getItemAsync方法来确保获取到数据
-    console.warn(`getItemSync: 初始化未完成，建议使用getItemAsync方法获取键"${key}"`);
+    console.warn(
+      `getItemSync: 初始化未完成，建议使用getItemAsync方法获取键"${key}"`,
+    );
     return null as T;
   }
 }

@@ -127,8 +127,17 @@ function handleSend(): void {
   display: flex;
   flex-direction: column;
   border-radius: 18px;
-  background: radial-gradient(circle at top left, rgba(116, 127, 255, 0.14), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.16), transparent 50%),
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(116, 127, 255, 0.14),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(56, 189, 248, 0.16),
+      transparent 50%
+    ),
     rgba(17, 24, 39, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.35);
   box-shadow:
@@ -269,7 +278,11 @@ function handleSend(): void {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  background: linear-gradient(to top, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
+  background: linear-gradient(
+    to top,
+    rgba(15, 23, 42, 0.96),
+    rgba(15, 23, 42, 0.9)
+  );
 
   input {
     flex: 1;

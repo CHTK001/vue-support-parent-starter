@@ -6,18 +6,28 @@
  * @since 2025-12-06
 -->
 <template>
-  <div class="demo-block" :class="{ 'demo-block--dark': dark, 'demo-block--gradient': gradient }">
+  <div
+    class="demo-block"
+    :class="{ 'demo-block--dark': dark, 'demo-block--gradient': gradient }"
+  >
     <div class="demo-block__header">
       <h4 class="demo-block__title">{{ title }}</h4>
       <div class="demo-block__actions">
-        <ScTooltip :content="showCode ? '收起代码' : '查看代码'" placement="top">
+        <ScTooltip
+          :content="showCode ? '收起代码' : '查看代码'"
+          placement="top"
+        >
           <div class="action-btn" @click="toggleCode">
-            <IconifyIconOnline :icon="showCode ? 'ri:arrow-up-s-line' : 'ri:code-s-slash-line'" />
+            <IconifyIconOnline
+              :icon="showCode ? 'ri:arrow-up-s-line' : 'ri:code-s-slash-line'"
+            />
           </div>
         </ScTooltip>
         <ScTooltip content="复制代码" placement="top">
           <div class="action-btn" @click="copyCode">
-            <IconifyIconOnline :icon="copied ? 'ri:check-line' : 'ri:file-copy-line'" />
+            <IconifyIconOnline
+              :icon="copied ? 'ri:check-line' : 'ri:file-copy-line'"
+            />
           </div>
         </ScTooltip>
       </div>

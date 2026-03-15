@@ -170,7 +170,7 @@ export function createRSocketService(config: RSocketConfig): RSocketService {
   const on = (
     event: string,
     callback: (data: unknown) => void,
-    options?: SocketTemplateListenOptions
+    options?: SocketTemplateListenOptions,
   ) => {
     if (!localEventListeners.has(event)) {
       localEventListeners.set(event, new Set());
@@ -207,7 +207,7 @@ export function createRSocketService(config: RSocketConfig): RSocketService {
           event,
           data,
           timestamp: new Date().toISOString(),
-        })
+        }),
       );
     } else {
       console.warn("[RSocket] 未连接，无法发送消息");
@@ -259,7 +259,7 @@ export function useGlobalRSocket(): RSocketService | null {
   const rsocketService = inject(RSocketKey);
   if (!rsocketService) {
     console.warn(
-      "[RSocket] 服务未提供，请确保在父组件中调用了 provideGlobalRSocket()"
+      "[RSocket] 服务未提供，请确保在父组件中调用了 provideGlobalRSocket()",
     );
     return null;
   }
@@ -273,7 +273,7 @@ export function useGlobalRSocket(): RSocketService | null {
  * @returns InjectionKey<RSocketService>
  */
 export function createRSocketKey(
-  keyName: string
+  keyName: string,
 ): InjectionKey<RSocketService> {
   if (!rsocketKeyMap.has(keyName)) {
     rsocketKeyMap.set(keyName, Symbol(`RSocket_${keyName}`));
@@ -290,7 +290,7 @@ export function createRSocketKey(
  */
 export function provideRSocket(
   keyName: string,
-  config: RSocketConfig
+  config: RSocketConfig,
 ): RSocketService {
   const rsocketKey = createRSocketKey(keyName);
   const rsocketService = createRSocketService(config);
@@ -318,7 +318,7 @@ export function useRSocket(keyName?: string): RSocketService | null {
 
   if (!rsocketService) {
     console.warn(
-      `[RSocket] 服务"${keyName}"未提供，请确保在父组件中调用了 provideRSocket("${keyName}", ...)`
+      `[RSocket] 服务"${keyName}"未提供，请确保在父组件中调用了 provideRSocket("${keyName}", ...)`,
     );
     return null;
   }

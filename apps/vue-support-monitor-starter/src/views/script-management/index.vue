@@ -35,7 +35,7 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <el-input
+        <ScInput
           v-model="queryParams.scriptName"
           placeholder="搜索脚本名称..."
           class="search-input"
@@ -45,95 +45,95 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </el-input>
-        <el-select
+        </ScInput>
+        <ScSelect
           v-model="queryParams.scriptType"
           placeholder="脚本类型"
           clearable
           class="filter-select"
           @change="handleFilter"
         >
-          <el-option label="Shell" value="SHELL">
+          <ScOption label="Shell" value="SHELL">
             <span class="type-option"
               ><IconifyIconOnline
                 icon="ri:terminal-line"
                 class="mr-2"
               />Shell</span
             >
-          </el-option>
-          <el-option label="Python" value="PYTHON">
+          </ScOption>
+          <ScOption label="Python" value="PYTHON">
             <span class="type-option"
               ><IconifyIconOnline
                 icon="ri:file-code-line"
                 class="mr-2"
               />Python</span
             >
-          </el-option>
-          <el-option label="PowerShell" value="POWERSHELL">
+          </ScOption>
+          <ScOption label="PowerShell" value="POWERSHELL">
             <span class="type-option"
               ><IconifyIconOnline
                 icon="ri:windows-line"
                 class="mr-2"
               />PowerShell</span
             >
-          </el-option>
-          <el-option label="Batch" value="BATCH">
+          </ScOption>
+          <ScOption label="Batch" value="BATCH">
             <span class="type-option"
               ><IconifyIconOnline
                 icon="ri:file-text-line"
                 class="mr-2"
               />Batch</span
             >
-          </el-option>
-          <el-option label="JavaScript" value="JAVASCRIPT">
+          </ScOption>
+          <ScOption label="JavaScript" value="JAVASCRIPT">
             <span class="type-option"
               ><IconifyIconOnline
                 icon="ri:javascript-line"
                 class="mr-2"
               />JavaScript</span
             >
-          </el-option>
-          <el-option label="SQL" value="SQL">
+          </ScOption>
+          <ScOption label="SQL" value="SQL">
             <span class="type-option"
               ><IconifyIconOnline
                 icon="ri:database-2-line"
                 class="mr-2"
               />SQL</span
             >
-          </el-option>
-        </el-select>
-        <el-select
+          </ScOption>
+        </ScSelect>
+        <ScSelect
           v-model="queryParams.scriptStatus"
           placeholder="状态"
           clearable
           class="filter-select"
           @change="handleFilter"
         >
-          <el-option label="启用" :value="1">
+          <ScOption label="启用" :value="1">
             <span class="status-option"
               ><span class="status-dot enabled" />启用</span
             >
-          </el-option>
-          <el-option label="禁用" :value="0">
+          </ScOption>
+          <ScOption label="禁用" :value="0">
             <span class="status-option"
               ><span class="status-dot disabled" />禁用</span
             >
-          </el-option>
-        </el-select>
+          </ScOption>
+        </ScSelect>
       </div>
       <div class="toolbar-right">
-        <el-button @click="tableRef?.refresh()">
+        <ScButton @click="tableRef?.refresh()">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
-        <el-button @click="handleViewAllRecords">
+        </ScButton>
+        <ScButton @click="handleViewAllRecords">
           <IconifyIconOnline icon="ri:history-line" class="mr-1" />
           执行记录
-        </el-button>
-        <el-button type="primary" @click="handleCreate">
+        </ScButton>
+        <ScButton type="primary" @click="handleCreate">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           新建脚本
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -184,12 +184,12 @@
                 <IconifyIconOnline icon="ri:code-box-line" />
                 类型
               </span>
-              <el-tag
+              <ScTag
                 size="small"
                 :type="getTypeTagType(row.monitorSysGenScriptType)"
               >
                 {{ row.monitorSysGenScriptType }}
-              </el-tag>
+              </ScTag>
             </div>
             <div class="info-row">
               <span class="info-label">
@@ -211,38 +211,38 @@
 
           <!-- 卡片底部 -->
           <div class="card-footer" @click.stop>
-            <el-switch
+            <ScSwitch
               v-model="row.monitorSysGenScriptStatus"
               active-value="ENABLED"
               inactive-value="DISABLED"
               @change="handleStatusChange(row)"
             />
             <div class="action-buttons">
-              <el-tooltip content="运行" placement="top">
-                <el-button text circle type="success" @click="handleRun(row)">
+              <ScTooltip content="运行" placement="top">
+                <ScButton text circle type="success" @click="handleRun(row)">
                   <IconifyIconOnline icon="ri:play-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="历史记录" placement="top">
-                <el-button text circle @click="handleViewRecords(row)">
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="历史记录" placement="top">
+                <ScButton text circle @click="handleViewRecords(row)">
                   <IconifyIconOnline icon="ri:history-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="编辑" placement="top">
-                <el-button text circle @click="handleEdit(row)">
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="编辑" placement="top">
+                <ScButton text circle @click="handleEdit(row)">
                   <IconifyIconOnline icon="ri:edit-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="复制" placement="top">
-                <el-button text circle @click="handleCopy(row)">
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="复制" placement="top">
+                <ScButton text circle @click="handleCopy(row)">
                   <IconifyIconOnline icon="ri:file-copy-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="删除" placement="top">
-                <el-button text circle type="danger" @click="handleDelete(row)">
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="删除" placement="top">
+                <ScButton text circle type="danger" @click="handleDelete(row)">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </div>
           </div>
         </div>
@@ -254,10 +254,10 @@
           <IconifyIconOnline icon="ri:file-code-line" class="empty-icon" />
           <p class="empty-title">暂无脚本</p>
           <p class="empty-desc">点击"新建脚本"创建第一个脚本</p>
-          <el-button type="primary" @click="handleCreate">
+          <ScButton type="primary" @click="handleCreate">
             <IconifyIconOnline icon="ri:add-line" />
             新建脚本
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </ScTable>

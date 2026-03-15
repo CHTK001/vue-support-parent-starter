@@ -1,20 +1,20 @@
 ﻿<template>
   <div class="sc-filterBar">
     <slot :filterLength="filterObjLength" :openFilter="openFilter">
-      <el-badge :value="filterObjLength" type="danger" :hidden="filterObjLength <= 0">
-        <el-button icon="el-icon-filter" @click="openFilter" />
-      </el-badge>
+      <ScBadge :value="filterObjLength" type="danger" :hidden="filterObjLength <= 0">
+        <ScButton icon="el-icon-filter" @click="openFilter" />
+      </ScBadge>
     </slot>
 
     <sc-drawer v-model="drawer" title="过滤器" :size="650" append-to-body>
-      <el-container v-loading="saveLoading">
-        <el-main style="padding: 0">
-          <el-tabs class="root">
-            <el-tab-pane lazy>
+      <ScContainer v-loading="saveLoading">
+        <ScMain style="padding: 0">
+          <ScTabs class="root">
+            <ScTabPane lazy>
               <template #label>
                 <div class="tabs-label">过滤项</div>
               </template>
-              <el-scrollbar>
+              <ScScrollbar>
                 <div class="sc-filter-main">
                   <h2>设置过滤条件</h2>
                   <div v-if="filter.length <= 0" class="nodata">没有默认过滤条件，请点击增加过滤项</div>
@@ -28,24 +28,24 @@
                     </colgroup>
                     <tr v-for="(item, index) in filter" :key="index">
                       <td>
-                        <el-tag :disable-transitions="true">{{ index + 1 }}</el-tag>
+                        <ScTag :disable-transitions="true">{{ index + 1 }}</ScTag>
                       </td>
                       <td>
-                        <el-select v-model="item.field" placeholder="请选择过滤字段" filterable @change="() => fieldChange(item)">
-                          <el-option v-for="f in fieldsNormalized" :key="f.value" :label="f.label" :value="f.value" />
-                        </el-select>
+                        <ScSelect v-model="item.field" placeholder="请选择过滤字段" filterable @change="() => fieldChange(item)">
+                          <ScOption v-for="f in fieldsNormalized" :key="f.value" :label="f.label" :value="f.value" />
+                        </ScSelect>
                       </td>
                       <td v-if="showOperator">
-                        <el-select v-model="item.operator" placeholder="运算符">
-                          <el-option v-for="ope in getFieldByValue(item.field)?.operators || effectiveOperators" :key="ope.value" :label="ope.label" :value="ope.value" />
-                        </el-select>
+                        <ScSelect v-model="item.operator" placeholder="运算符">
+                          <ScOption v-for="ope in getFieldByValue(item.field)?.operators || effectiveOperators" :key="ope.value" :label="ope.label" :value="ope.value" />
+                        </ScSelect>
                       </td>
                       <td>
                         <template v-if="!getFieldByValue(item.field)">
-                          <el-input v-model="item.value" placeholder="请选择过滤字段" disabled />
+                          <ScInput v-model="item.value" placeholder="请选择过滤字段" disabled />
                         </template>
-                        <el-input v-else-if="getFieldByValue(item.field)?.type == 'text'" v-model="item.value" :placeholder="getFieldByValue(item.field)?.placeholder || '请输入'" />
-                        <el-select
+                        <ScInput v-else-if="getFieldByValue(item.field)?.type == 'text'" v-model="item.value" :placeholder="getFieldByValue(item.field)?.placeholder || '请输入'" />
+                        <ScSelect
                           v-else-if="getFieldByValue(item.field)?.type == 'select'"
                           v-model="item.value"
                           :placeholder="getFieldByValue(item.field)?.placeholder || '请选择'"
@@ -60,9 +60,9 @@
                           "
                           @visible-change="visibleChange($event, item)"
                         >
-                          <el-option v-for="opt in getFieldByValue(item.field)?.extend?.data || []" :key="opt.value" :label="opt.label" :value="opt.value" />
-                        </el-select>
-                        <el-date-picker
+                          <ScOption v-for="opt in getFieldByValue(item.field)?.extend?.data || []" :key="opt.value" :label="opt.label" :value="opt.value" />
+                        </ScSelect>
+                        <ScDatePicker
                           v-else-if="getFieldByValue(item.field)?.type == 'date'"
                           v-model="item.value"
                           type="date"
@@ -70,7 +70,7 @@
                           :placeholder="getFieldByValue(item.field)?.placeholder || '请选择日期'"
                           style="width: 100%"
                         />
-                        <el-date-picker
+                        <ScDatePicker
                           v-else-if="getFieldByValue(item.field)?.type == 'daterange'"
                           v-model="item.value"
                           type="daterange"
@@ -79,7 +79,7 @@
                           end-placeholder="结束日期"
                           style="width: 100%"
                         />
-                        <el-date-picker
+                        <ScDatePicker
                           v-else-if="getFieldByValue(item.field)?.type == 'datetime'"
                           v-model="item.value"
                           type="datetime"
@@ -87,7 +87,7 @@
                           :placeholder="getFieldByValue(item.field)?.placeholder || '请选择日期'"
                           style="width: 100%"
                         />
-                        <el-date-picker
+                        <ScDatePicker
                           v-else-if="getFieldByValue(item.field)?.type == 'datetimerange'"
                           v-model="item.value"
                           type="datetimerange"
@@ -96,7 +96,7 @@
                           end-placeholder="结束日期"
                           style="width: 100%"
                         />
-                        <el-date-picker
+                        <ScDatePicker
                           v-else-if="getFieldByValue(item.field)?.type == 'customDate'"
                           v-model="item.value"
                           :type="getFieldByValue(item.field)?.extend?.dateType || 'date'"
@@ -106,8 +106,8 @@
                           end-placeholder="结束日期"
                           style="width: 100%"
                         />
-                        <el-switch v-else-if="getFieldByValue(item.field)?.type == 'switch'" v-model="item.value" active-value="1" inactive-value="0" />
-                        <el-select
+                        <ScSwitch v-else-if="getFieldByValue(item.field)?.type == 'switch'" v-model="item.value" active-value="1" inactive-value="0" />
+                        <ScSelect
                           v-else-if="getFieldByValue(item.field)?.type == 'tags'"
                           v-model="item.value"
                           multiple
@@ -119,30 +119,30 @@
                         />
                       </td>
                       <td>
-                        <el-icon class="del" @click="delFilter(index)"><el-icon-delete /></el-icon>
+                        <ScIcon class="del" @click="delFilter(index)"><el-icon-delete /></ScIcon>
                       </td>
                     </tr>
                   </table>
-                  <el-button type="primary" text icon="el-icon-plus" @click="addFilter">增加过滤项</el-button>
+                  <ScButton type="primary" text icon="el-icon-plus" @click="addFilter">增加过滤项</ScButton>
                 </div>
-              </el-scrollbar>
-            </el-tab-pane>
-            <el-tab-pane lazy>
+              </ScScrollbar>
+            </ScTabPane>
+            <ScTabPane lazy>
               <template #label>
                 <div class="tabs-label">常用</div>
               </template>
-              <el-scrollbar>
+              <ScScrollbar>
                 <my ref="my" :data="myFilter" :filterName="filterName" @selectMyfilter="selectMyfilter" />
-              </el-scrollbar>
-            </el-tab-pane>
-          </el-tabs>
-        </el-main>
-        <el-footer>
-          <el-button type="primary" :disabled="filter.length <= 0" @click="ok">立即过滤</el-button>
-          <el-button type="primary" plain :disabled="filter.length <= 0" @click="saveMy">另存为常用</el-button>
-          <el-button @click="clear">清空过滤</el-button>
-        </el-footer>
-      </el-container>
+              </ScScrollbar>
+            </ScTabPane>
+          </ScTabs>
+        </ScMain>
+        <ScFooter>
+          <ScButton type="primary" :disabled="filter.length <= 0" @click="ok">立即过滤</ScButton>
+          <ScButton type="primary" plain :disabled="filter.length <= 0" @click="saveMy">另存为常用</ScButton>
+          <ScButton @click="clear">清空过滤</ScButton>
+        </ScFooter>
+      </ScContainer>
     </sc-drawer>
   </div>
 </template>

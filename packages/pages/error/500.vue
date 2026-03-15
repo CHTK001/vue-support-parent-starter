@@ -8,7 +8,9 @@ defineOptions({
 });
 
 // 500 使用服务器错误风格（服务器/故障/代码雨）
-const errorPageStyle = computed(() => globalSetting.ErrorPageStyle || "servererror");
+const errorPageStyle = computed(
+  () => globalSetting.ErrorPageStyle || "servererror",
+);
 </script>
 
 <template>

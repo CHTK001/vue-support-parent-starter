@@ -44,7 +44,7 @@ watch(
   () => {
     renderChart();
   },
-  { deep: true }
+  { deep: true },
 );
 </script>
 

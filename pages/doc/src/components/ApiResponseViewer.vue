@@ -29,7 +29,7 @@
             </span>
           </h4>
           <div class="header-actions">
-            <ScButton 
+            <ScButton
               size="small"
               text
               @click.stop="copyHeaders"
@@ -38,7 +38,7 @@
               <i class="ri-file-copy-line"></i>
               复制
             </ScButton>
-            <ScButton 
+            <ScButton
               size="small"
               text
               @click.stop="toggleHeadersCollapse"
@@ -85,11 +85,21 @@
             </span>
           </h4>
           <div class="body-actions">
-            <ScButton size="small" text @click="copyResponseBody" v-if="response.data">
+            <ScButton
+              size="small"
+              text
+              @click="copyResponseBody"
+              v-if="response.data"
+            >
               <i class="ri-file-copy-line"></i>
               复制
             </ScButton>
-            <ScButton size="small" text @click="downloadResponse" v-if="response.data">
+            <ScButton
+              size="small"
+              text
+              @click="downloadResponse"
+              v-if="response.data"
+            >
               <i class="ri-download-line"></i>
               下载
             </ScButton>
@@ -177,7 +187,7 @@ const props = withDefaults(
   }>(),
   {
     editorHeight: "400px",
-  }
+  },
 );
 
 const emit = defineEmits<{

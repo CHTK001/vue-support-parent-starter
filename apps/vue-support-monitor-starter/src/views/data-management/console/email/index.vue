@@ -1,6 +1,6 @@
 <template>
   <div class="page system-container modern-bg">
-    <el-empty description="邮件控制台功能开发中" />
+    <ScEmpty description="邮件控制台功能开发中" />
   </div>
 </template>
 <script setup lang="ts">

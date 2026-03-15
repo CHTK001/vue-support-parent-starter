@@ -6,42 +6,42 @@
         <span class="header-title">容器性能排行榜</span>
       </div>
       <div class="header-right">
-        <el-select
+        <ScSelect
           v-model="rankingType"
           size="small"
           @change="handleRankingTypeChange"
         >
-          <el-option label="CPU使用率" value="cpu" />
-          <el-option label="内存使用率" value="memory" />
-          <el-option label="网络IO" value="network" />
-          <el-option label="磁盘IO" value="disk" />
-        </el-select>
+          <ScOption label="CPU使用率" value="cpu" />
+          <ScOption label="内存使用率" value="memory" />
+          <ScOption label="网络IO" value="network" />
+          <ScOption label="磁盘IO" value="disk" />
+        </ScSelect>
       </div>
     </div>
 
     <div class="ranking-content">
-      <el-table :data="rankingData" style="width: 100%" :show-header="false">
-        <el-table-column prop="rank" width="40">
+      <ScTable :data="rankingData" style="width: 100%" :show-header="false">
+        <ScTableColumn prop="rank" width="40">
           <template #default="{ row }">
             <div class="rank-number" :class="getRankClass(row.rank)">
               {{ row.rank }}
             </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="containerName">
+        </ScTableColumn>
+        <ScTableColumn prop="containerName">
           <template #default="{ row }">
             <div class="container-info">
               <div class="container-name">{{ row.containerName }}</div>
               <div class="container-image">{{ row.imageName }}</div>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="value" width="80" align="right">
+        </ScTableColumn>
+        <ScTableColumn prop="value" width="80" align="right">
           <template #default="{ row }">
             <div class="value-text">{{ formatValue(row.value, row.unit) }}</div>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
     </div>
   </div>
 </template>

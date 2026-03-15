@@ -3,53 +3,53 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button @click="handleRefresh">
+        <ScButton @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
 
-        <el-button @click="handleExportLogs">
+        <ScButton @click="handleExportLogs">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           导出日志
-        </el-button>
+        </ScButton>
 
-        <el-button type="danger" @click="handleCleanupLogs">
+        <ScButton type="danger" @click="handleCleanupLogs">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           清理日志
-        </el-button>
+        </ScButton>
       </div>
 
       <div class="toolbar-right">
-        <el-select
+        <ScSelect
           v-model="filterServerId"
           placeholder="选择服务器"
           clearable
           style="width: 150px"
           @change="handleFilter"
         >
-          <el-option
+          <ScOption
             v-for="server in serverList"
             :key="server.id"
             :label="server.name"
             :value="server.id"
           />
-        </el-select>
+        </ScSelect>
 
-        <el-select
+        <ScSelect
           v-model="filterLevel"
           placeholder="日志级别"
           clearable
           style="width: 120px; margin-left: 12px"
           @change="handleFilter"
         >
-          <el-option label="DEBUG" value="DEBUG" />
-          <el-option label="INFO" value="INFO" />
-          <el-option label="WARN" value="WARN" />
-          <el-option label="ERROR" value="ERROR" />
-          <el-option label="FATAL" value="FATAL" />
-        </el-select>
+          <ScOption label="DEBUG" value="DEBUG" />
+          <ScOption label="INFO" value="INFO" />
+          <ScOption label="WARN" value="WARN" />
+          <ScOption label="ERROR" value="ERROR" />
+          <ScOption label="FATAL" value="FATAL" />
+        </ScSelect>
 
-        <el-date-picker
+        <ScDatePicker
           v-model="dateRange"
           type="datetimerange"
           range-separator="至"
@@ -59,7 +59,7 @@
           @change="handleFilter"
         />
 
-        <el-input
+        <ScInput
           v-model="searchKeyword"
           placeholder="搜索日志内容..."
           clearable
@@ -69,57 +69,57 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
-        </el-input>
+        </ScInput>
       </div>
     </div>
 
     <!-- 日志表格 -->
-    <el-table
+    <ScTable
       v-loading="loading"
       :data="logList"
       stripe
       :row-class-name="getRowClassName"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column type="selection" width="55" />
+      <ScTableColumn type="selection" width="55" />
 
-      <el-table-column label="时间" width="160" align="center">
+      <ScTableColumn label="时间" width="160" align="center">
         <template #default="{ row }">
           {{ formatDateTime(row.monitorSysGenServerLogTimestamp) }}
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="服务器" width="120" align="center">
+      <ScTableColumn label="服务器" width="120" align="center">
         <template #default="{ row }">
           <span>{{ getServerName(row.monitorSysGenServerId) }}</span>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="级别" width="80" align="center">
+      <ScTableColumn label="级别" width="80" align="center">
         <template #default="{ row }">
-          <el-tag
+          <ScTag
             :type="getLogLevelColor(row.monitorSysGenServerLogLevel)"
             size="small"
             effect="light"
           >
             {{ row.monitorSysGenServerLogLevel }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="来源" width="120" align="center">
+      <ScTableColumn label="来源" width="120" align="center">
         <template #default="{ row }">
           <span>{{ row.monitorSysGenServerLogSource || "-" }}</span>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="日志内容" min-width="400">
+      <ScTableColumn label="日志内容" min-width="400">
         <template #default="{ row }">
           <div class="log-content">
             <span class="log-text">{{
               row.monitorSysGenServerLogContent
             }}</span>
-            <el-button
+            <ScButton
               v-if="row.monitorSysGenServerLogContent.length > 100"
               type="text"
               size="small"
@@ -128,38 +128,38 @@
             >
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="操作" width="120" align="center" fixed="right">
+      <ScTableColumn label="操作" width="120" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
-            <el-button size="small" @click="handleViewFullLog(row)">
+            <ScButton size="small" @click="handleViewFullLog(row)">
               <IconifyIconOnline icon="ri:eye-line" />
               查看
-            </el-button>
+            </ScButton>
 
-            <el-dropdown @command="(cmd) => handleAction(cmd, row)">
-              <el-button size="small">
+            <ScDropdown @command="(cmd) => handleAction(cmd, row)">
+              <ScButton size="small">
                 <IconifyIconOnline icon="ri:more-line" />
-              </el-button>
+              </ScButton>
               <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="copy">复制内容</el-dropdown-item>
-                  <el-dropdown-item command="context">上下文</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided
+                <ScDropdownMenu>
+                  <ScDropdownItem command="copy">复制内容</ScDropdownItem>
+                  <ScDropdownItem command="context">上下文</ScDropdownItem>
+                  <ScDropdownItem command="delete" divided
                     >删除</el-dropdown-item
                   >
-                </el-dropdown-menu>
+                </ScDropdownMenu>
               </template>
-            </el-dropdown>
+            </ScDropdown>
           </el-button-group>
         </template>
-      </el-table-column>
-    </el-table>
+      </ScTableColumn>
+    </ScTable>
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
-      <el-pagination
+      <ScPagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
         :total="pagination.total"
@@ -178,34 +178,34 @@
       destroy-on-close
     >
       <div v-if="selectedLog" class="log-detail">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="时间">
+        <ScDescriptions :column="2" border>
+          <ScDescriptionsItem label="时间">
             {{ formatDateTime(selectedLog.monitorSysGenServerLogTimestamp) }}
-          </el-descriptions-item>
-          <el-descriptions-item label="服务器">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="服务器">
             {{ getServerName(selectedLog.monitorSysGenServerId) }}
-          </el-descriptions-item>
-          <el-descriptions-item label="级别">
-            <el-tag
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="级别">
+            <ScTag
               :type="getLogLevelColor(selectedLog.monitorSysGenServerLogLevel)"
             >
               {{ selectedLog.monitorSysGenServerLogLevel }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="来源">
+            </ScTag>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="来源">
             {{ selectedLog.monitorSysGenServerLogSource || "-" }}
-          </el-descriptions-item>
-          <el-descriptions-item label="内容" span="2">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="内容" span="2">
             <div class="log-content-detail">
               <pre>{{ selectedLog.monitorSysGenServerLogContent }}</pre>
             </div>
-          </el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+        </ScDescriptions>
       </div>
 
       <template #footer>
-        <el-button @click="logDetailVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleCopyLogContent"
+        <ScButton @click="logDetailVisible = false">关闭</ScButton>
+        <ScButton type="primary" @click="handleCopyLogContent"
           >复制内容</el-button
         >
       </template>
@@ -219,30 +219,30 @@
       destroy-on-close
     >
       <div class="cleanup-form">
-        <el-form :model="cleanupForm" label-width="100px">
-          <el-form-item label="保留天数">
-            <el-input-number
+        <ScForm :model="cleanupForm" label-width="100px">
+          <ScFormItem label="保留天数">
+            <ScInputNumber
               v-model="cleanupForm.days"
               :min="1"
               :max="365"
               placeholder="保留天数"
               style="width: 100%"
             />
-          </el-form-item>
-          <el-form-item>
-            <el-alert
+          </ScFormItem>
+          <ScFormItem>
+            <ScAlert
               title="注意"
               :description="`将删除 ${cleanupForm.days} 天前的所有日志记录，此操作不可恢复！`"
               type="warning"
               :closable="false"
             />
-          </el-form-item>
-        </el-form>
+          </ScFormItem>
+        </ScForm>
       </div>
 
       <template #footer>
-        <el-button @click="cleanupDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="handleConfirmCleanup"
+        <ScButton @click="cleanupDialogVisible = false">取消</ScButton>
+        <ScButton type="danger" @click="handleConfirmCleanup"
           >确定清理</el-button
         >
       </template>

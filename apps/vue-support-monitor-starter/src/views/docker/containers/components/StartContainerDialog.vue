@@ -6,21 +6,21 @@
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
+    <ScForm ref="formRef" :model="form" :rules="rules" label-width="120px">
       <div class="form-section">
         <div class="section-title">基本信息</div>
 
-        <el-form-item label="容器名称" prop="containerName">
-          <el-input
+        <ScFormItem label="容器名称" prop="containerName">
+          <ScInput
             v-model="form.containerName"
             placeholder="容器名称（可选）"
             clearable
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="镜像信息">
-          <el-input :value="imageDisplayName" readonly disabled />
-        </el-form-item>
+        <ScFormItem label="镜像信息">
+          <ScInput :value="imageDisplayName" readonly disabled />
+        </ScFormItem>
       </div>
 
       <div class="form-section">
@@ -32,33 +32,33 @@
             :key="index"
             class="port-mapping-item"
           >
-            <el-input
+            <ScInput
               v-model="port.hostPort"
               placeholder="主机端口"
               style="width: 120px"
             />
             <span class="port-separator">:</span>
-            <el-input
+            <ScInput
               v-model="port.containerPort"
               placeholder="容器端口"
               style="width: 120px"
             />
-            <el-select v-model="port.protocol" style="width: 80px">
-              <el-option label="TCP" value="tcp" />
-              <el-option label="UDP" value="udp" />
-            </el-select>
-            <el-button
+            <ScSelect v-model="port.protocol" style="width: 80px">
+              <ScOption label="TCP" value="tcp" />
+              <ScOption label="UDP" value="udp" />
+            </ScSelect>
+            <ScButton
               type="danger"
               size="small"
               :disabled="form.portMappings.length <= 1"
               @click="removePortMapping(index)"
             >
               删除
-            </el-button>
+            </ScButton>
           </div>
-          <el-button type="primary" size="small" @click="addPortMapping">
+          <ScButton type="primary" size="small" @click="addPortMapping">
             添加端口映射
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -71,28 +71,28 @@
             :key="index"
             class="env-variable-item"
           >
-            <el-input
+            <ScInput
               v-model="env.key"
               placeholder="变量名"
               style="width: 200px"
             />
             <span class="env-separator">=</span>
-            <el-input
+            <ScInput
               v-model="env.value"
               placeholder="变量值"
               style="width: 200px"
             />
-            <el-button
+            <ScButton
               type="danger"
               size="small"
               @click="removeEnvVariable(index)"
             >
               删除
-            </el-button>
+            </ScButton>
           </div>
-          <el-button type="primary" size="small" @click="addEnvVariable">
+          <ScButton type="primary" size="small" @click="addEnvVariable">
             添加环境变量
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -105,85 +105,85 @@
             :key="index"
             class="volume-mount-item"
           >
-            <el-input
+            <ScInput
               v-model="volume.hostPath"
               placeholder="主机路径"
               style="width: 250px"
             />
             <span class="volume-separator">:</span>
-            <el-input
+            <ScInput
               v-model="volume.containerPath"
               placeholder="容器路径"
               style="width: 250px"
             />
-            <el-button
+            <ScButton
               type="danger"
               size="small"
               @click="removeVolumeMount(index)"
             >
               删除
-            </el-button>
+            </ScButton>
           </div>
-          <el-button type="primary" size="small" @click="addVolumeMount">
+          <ScButton type="primary" size="small" @click="addVolumeMount">
             添加挂载
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
       <div class="form-section">
         <div class="section-title">高级配置</div>
 
-        <el-form-item label="重启策略">
-          <el-select v-model="form.restartPolicy" style="width: 200px">
-            <el-option label="不重启" value="no" />
-            <el-option label="总是重启" value="always" />
-            <el-option label="异常时重启" value="on-failure" />
-            <el-option label="除非手动停止" value="unless-stopped" />
-          </el-select>
-        </el-form-item>
+        <ScFormItem label="重启策略">
+          <ScSelect v-model="form.restartPolicy" style="width: 200px">
+            <ScOption label="不重启" value="no" />
+            <ScOption label="总是重启" value="always" />
+            <ScOption label="异常时重启" value="on-failure" />
+            <ScOption label="除非手动停止" value="unless-stopped" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="内存限制">
-          <el-input
+        <ScFormItem label="内存限制">
+          <ScInput
             v-model="form.memoryLimit"
             placeholder="例如: 512m, 1g"
             style="width: 200px"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="CPU限制">
-          <el-input
+        <ScFormItem label="CPU限制">
+          <ScInput
             v-model="form.cpuLimit"
             placeholder="例如: 0.5, 2"
             style="width: 200px"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="网络模式">
-          <el-select v-model="form.networkMode" style="width: 200px">
-            <el-option label="桥接" value="bridge" />
-            <el-option label="主机" value="host" />
-            <el-option label="无网络" value="none" />
-            <el-option label="容器网络" value="container" />
-          </el-select>
-        </el-form-item>
+        <ScFormItem label="网络模式">
+          <ScSelect v-model="form.networkMode" style="width: 200px">
+            <ScOption label="桥接" value="bridge" />
+            <ScOption label="主机" value="host" />
+            <ScOption label="无网络" value="none" />
+            <ScOption label="容器网络" value="container" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="后台运行">
-          <el-switch v-model="form.detached" />
-        </el-form-item>
+        <ScFormItem label="后台运行">
+          <ScSwitch v-model="form.detached" />
+        </ScFormItem>
 
-        <el-form-item label="自动删除">
-          <el-switch v-model="form.autoRemove" />
+        <ScFormItem label="自动删除">
+          <ScSwitch v-model="form.autoRemove" />
           <div class="form-tip">容器停止后自动删除</div>
-        </el-form-item>
+        </ScFormItem>
       </div>
-    </el-form>
+    </ScForm>
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSubmit">
           启动容器
-        </el-button>
+        </ScButton>
       </span>
     </template>
   </sc-dialog>

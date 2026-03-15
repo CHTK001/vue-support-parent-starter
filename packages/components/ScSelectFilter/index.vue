@@ -16,9 +16,9 @@
             }"
             @click="select(option, item)"
           >
-            <el-icon v-if="option.icon">
+            <ScIcon v-if="option.icon">
               <component :is="option.icon" />
-            </el-icon>
+            </ScIcon>
             <span>{{ option.label }}</span>
           </li>
         </ul>

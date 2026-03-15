@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="source-form thin-scroller">
-    <ScForm 
+    <ScForm
       ref="formRef"
       :model="formData"
       :rules="formRules"
@@ -15,7 +15,7 @@
         </h4>
 
         <ScFormItem label="数据源名称" prop="videoSourceName">
-          <ScInput 
+          <ScInput
             v-model="formData.videoSourceName"
             placeholder="请输入数据源名称，如：观影AC、PanSou等"
             maxlength="50"
@@ -28,7 +28,7 @@
         </ScFormItem>
 
         <ScFormItem label="平台名称" prop="videoSourcePlatform">
-          <ScInput 
+          <ScInput
             v-model="formData.videoSourcePlatform"
             placeholder="请输入视频源平台名称，如：观影AC、PanSou等"
             maxlength="50"
@@ -45,7 +45,7 @@
         </ScFormItem>
 
         <ScFormItem label="视频源URL" prop="videoSourceUrl">
-          <ScInput 
+          <ScInput
             v-model="formData.videoSourceUrl"
             placeholder="请输入视频源的API地址或网站URL"
             type="url"
@@ -75,7 +75,7 @@
         </h4>
 
         <ScFormItem label="最大查询数" prop="videoSourceMaxResource">
-          <ScInputNumber 
+          <ScInputNumber
             v-model="formData.videoSourceMaxResource"
             :min="0"
             :max="10000"
@@ -90,7 +90,7 @@
         </ScFormItem>
 
         <ScFormItem label="最大查询时间" prop="videoSourceConnectTimeout">
-          <ScInputNumber 
+          <ScInputNumber
             v-model="formData.videoSourceConnectTimeout"
             type="number"
             placeholder="最大查询时间"
@@ -100,7 +100,7 @@
         </ScFormItem>
 
         <ScFormItem label="访问Token" prop="videoSourceToken">
-          <ScInput 
+          <ScInput
             v-model="formData.videoSourceToken"
             placeholder="如果API需要认证，请输入访问Token"
             type="password"
@@ -114,12 +114,12 @@
         </ScFormItem>
 
         <ScFormItem label="支持类型" prop="videoSourceType">
-          <ScSelect 
+          <ScSelect
             v-model="formData.videoSourceType"
             multiple
             placeholder="请输入支持的视频类型，如：movie、tv等"
           >
-            <ScOption 
+            <ScOption
               v-for="item in allCategories"
               :key="item.value"
               :label="item.label"
@@ -151,7 +151,7 @@
         </ScFormItem>
 
         <ScFormItem label="User Agent" prop="videoSourceUserAgent">
-          <ScInput 
+          <ScInput
             class="w-[80%]"
             v-model="formData.videoSourceUserAgent"
             placeholder="请输入User Agent，或点击生成按钮自动生成"
@@ -173,7 +173,7 @@
         </ScFormItem>
 
         <ScFormItem label="最小年份" prop="videoSourceMinYear">
-          <ScInputNumber 
+          <ScInputNumber
             v-model="formData.videoSourceMinYear"
             :min="1900"
             :max="2024"
@@ -469,7 +469,7 @@ watch(
       });
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 暴露方法
@@ -508,7 +508,11 @@ defineExpose({
   font-weight: 600;
   color: var(--el-text-color-primary);
   padding: 12px 16px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-color-primary-light-7) 100%
+  );
   border-radius: 8px;
   border-left: 4px solid var(--el-color-primary);
 }
@@ -551,7 +555,11 @@ defineExpose({
 
 .template-card.active {
   border-color: var(--el-color-primary);
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-color-primary-light-7) 100%
+  );
   box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.2);
 }
 

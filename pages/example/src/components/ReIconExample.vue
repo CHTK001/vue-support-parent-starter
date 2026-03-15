@@ -14,7 +14,17 @@
           </div>
         </div>
       </div>
-      <CodePreview :tabs="[{ key: 'online', label: '在线图标', icon: 'ri:code-s-slash-line', language: 'html', code: codeOnline }]" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'online',
+            label: '在线图标',
+            icon: 'ri:code-s-slash-line',
+            language: 'html',
+            code: codeOnline,
+          },
+        ]"
+      />
     </div>
 
     <div class="example-section">
@@ -43,7 +53,17 @@
           </div>
         </div>
       </div>
-      <CodePreview :tabs="[{ key: 'size', label: '图标尺寸', icon: 'ri:code-s-slash-line', language: 'html', code: codeSize }]" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'size',
+            label: '图标尺寸',
+            icon: 'ri:code-s-slash-line',
+            language: 'html',
+            code: codeSize,
+          },
+        ]"
+      />
     </div>
 
     <div class="example-section">
@@ -87,7 +107,17 @@
           </div>
         </div>
       </div>
-      <CodePreview :tabs="[{ key: 'color', label: '图标颜色', icon: 'ri:code-s-slash-line', language: 'html', code: codeColor }]" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'color',
+            label: '图标颜色',
+            icon: 'ri:code-s-slash-line',
+            language: 'html',
+            code: codeColor,
+          },
+        ]"
+      />
     </div>
 
     <div class="example-section">
@@ -104,7 +134,17 @@
           </div>
         </div>
       </div>
-      <CodePreview :tabs="[{ key: 'pixel', label: 'Pixel Icon', icon: 'ri:code-s-slash-line', language: 'html', code: codePixel }]" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'pixel',
+            label: 'Pixel Icon',
+            icon: 'ri:code-s-slash-line',
+            language: 'html',
+            code: codePixel,
+          },
+        ]"
+      />
     </div>
 
     <div class="example-section">
@@ -141,7 +181,16 @@
           </div>
         </div>
       </div>
-      <CodePreview :tabs="[{ key: 'http', label: 'HTTP图标', icon: 'ri:code-s-slash-line', language: 'html', code: httpIconCode }]"
+      <CodePreview
+        :tabs="[
+          {
+            key: 'http',
+            label: 'HTTP图标',
+            icon: 'ri:code-s-slash-line',
+            language: 'html',
+            code: httpIconCode,
+          },
+        ]"
       />
     </div>
 
@@ -182,7 +231,16 @@
           </div>
         </div>
       </div>
-      <CodePreview :tabs="[{ key: 'selector', label: '图标选择器', icon: 'ri:code-s-slash-line', language: 'html', code: selectorCode }]"
+      <CodePreview
+        :tabs="[
+          {
+            key: 'selector',
+            label: '图标选择器',
+            icon: 'ri:code-s-slash-line',
+            language: 'html',
+            code: selectorCode,
+          },
+        ]"
       />
     </div>
   </div>
@@ -192,7 +250,11 @@
 import { ref, computed } from "vue";
 import { message } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOffline, IconifyIconOnline, PixelIcon } from "@repo/components/ReIcon";
+import {
+  IconifyIconOffline,
+  IconifyIconOnline,
+  PixelIcon,
+} from "@repo/components/ReIcon";
 import CodePreview from "./CodePreview.vue";
 
 // HTTP图标URL
@@ -281,7 +343,7 @@ const pixelIcons = [
   "pixel-icon:heart",
   "pixel-icon:star",
   "pixel-icon:download",
-  "pixel-icon:upload"
+  "pixel-icon:upload",
 ];
 
 // 合并所有图标

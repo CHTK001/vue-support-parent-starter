@@ -2,21 +2,32 @@
   <div class="sc-upload-example">
     <!-- 基础用法 -->
     <DemoBlock title="基础用法" :code="codes.basic">
-      <p class="demo-tip">点击上传图片，支持预览和删除。v-model 返回上传后的图片URL</p>
+      <p class="demo-tip">
+        点击上传图片，支持预览和删除。v-model 返回上传后的图片URL
+      </p>
       <div class="demo-row">
         <ScUpload v-model="url1" />
       </div>
-      <div class="demo-result">v-model: {{ url1 || '(未上传)' }}</div>
+      <div class="demo-result">v-model: {{ url1 || "(未上传)" }}</div>
     </DemoBlock>
 
     <!-- 不自动上传 -->
     <DemoBlock title="不自动上传" :code="codes.noAutoUpload">
-      <p class="demo-tip">设置 :auto-upload="false"，选择文件后不会自动上传，需手动调用 submit()</p>
+      <p class="demo-tip">
+        设置 :auto-upload="false"，选择文件后不会自动上传，需手动调用 submit()
+      </p>
       <div class="demo-row">
-        <ScUpload ref="manualUploadRef" v-model="url2" :auto-upload="false" @handleFile="handleFileSelect" />
+        <ScUpload
+          ref="manualUploadRef"
+          v-model="url2"
+          :auto-upload="false"
+          @handleFile="handleFileSelect"
+        />
         <ScButton type="primary" @click="handleManualUpload">手动上传</ScButton>
       </div>
-      <div class="demo-result">选择的文件: {{ selectedFile?.name || '(未选择)' }}</div>
+      <div class="demo-result">
+        选择的文件: {{ selectedFile?.name || "(未选择)" }}
+      </div>
     </DemoBlock>
 
     <!-- 自定义尺寸 -->
@@ -37,10 +48,17 @@
 
     <!-- 图片裁剪 -->
     <DemoBlock title="图片裁剪" :code="codes.cropper">
-      <p class="demo-tip">启用 cropper 属性，上传前可裁剪图片。可设置 aspectRatio 固定裁剪比例</p>
+      <p class="demo-tip">
+        启用 cropper 属性，上传前可裁剪图片。可设置 aspectRatio 固定裁剪比例
+      </p>
       <div class="demo-row">
         <ScUpload v-model="url6" cropper :aspect-ratio="1" title="1:1裁剪" />
-        <ScUpload v-model="url7" cropper :aspect-ratio="16/9" title="16:9裁剪" />
+        <ScUpload
+          v-model="url7"
+          cropper
+          :aspect-ratio="16 / 9"
+          title="16:9裁剪"
+        />
         <ScUpload v-model="url8" cropper title="自由裁剪" />
       </div>
     </DemoBlock>
@@ -58,8 +76,16 @@
       <p class="demo-tip">通过 accept 属性限制可上传的文件类型</p>
       <div class="demo-row">
         <ScUpload v-model="url10" accept="image/png" title="仅PNG" />
-        <ScUpload v-model="url11" accept="image/jpeg, image/jpg" title="仅JPG" />
-        <ScUpload v-model="url12" accept="image/gif, image/webp" title="GIF/WebP" />
+        <ScUpload
+          v-model="url11"
+          accept="image/jpeg, image/jpg"
+          title="仅JPG"
+        />
+        <ScUpload
+          v-model="url12"
+          accept="image/gif, image/webp"
+          title="GIF/WebP"
+        />
       </div>
     </DemoBlock>
 
@@ -90,10 +116,12 @@
 
     <!-- 事件监听 -->
     <DemoBlock title="事件监听" :code="codes.events">
-      <p class="demo-tip">支持 @handleSuccess、@handleRemove、@handleFile 等事件</p>
+      <p class="demo-tip">
+        支持 @handleSuccess、@handleRemove、@handleFile 等事件
+      </p>
       <div class="demo-row">
-        <ScUpload 
-          v-model="url19" 
+        <ScUpload
+          v-model="url19"
           @handleSuccess="onSuccess"
           @handleRemove="onRemove"
           @handleFile="onFileChange"
@@ -163,7 +191,7 @@ const onRemove = () => {
 };
 
 const onFileChange = (file: any) => {
-  eventLog.value = `选择文件: ${file?.name || 'unknown'}`;
+  eventLog.value = `选择文件: ${file?.name || "unknown"}`;
 };
 
 // 代码模板
@@ -242,7 +270,7 @@ const handleFileSelect = (file) => {
 const onSuccess = (res) => console.log('上传成功', res);
 const onRemove = () => console.log('图片已删除');
 const onFileChange = (file) => console.log('选择文件', file);
-<\/script>`
+<\/script>`,
 };
 </script>
 

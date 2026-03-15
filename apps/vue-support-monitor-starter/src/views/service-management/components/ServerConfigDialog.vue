@@ -21,23 +21,23 @@
             </div>
           </div>
           <div class="panel-actions">
-            <el-tag type="info" size="small" effect="plain" round>
+            <ScTag type="info" size="small" effect="plain" round>
               {{ availableFilters.length }} 个可用
-            </el-tag>
-            <el-tooltip content="刷新列表" placement="top">
-              <el-button
+            </ScTag>
+            <ScTooltip content="刷新列表" placement="top">
+              <ScButton
                 type="primary"
                 size="small"
                 circle
                 @click="refreshAvailableFilters"
               >
                 <IconifyIconOnline icon="ri:refresh-line" />
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
           </div>
         </div>
 
-        <el-scrollbar v-loading="availableLoading" class="panel-content">
+        <ScScrollbar v-loading="availableLoading" class="panel-content">
           <div class="filter-list">
             <div
               v-for="(filter, index) in availableFilters"
@@ -59,7 +59,7 @@
                 </div>
               </div>
               <div class="card-action">
-                <el-button
+                <ScButton
                   type="primary"
                   size="small"
                   :loading="installLoading[filter.type]"
@@ -67,17 +67,17 @@
                 >
                   <IconifyIconOnline icon="ri:add-line" />
                   安装
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>
 
-          <el-empty
+          <ScEmpty
             v-if="!availableLoading && availableFilters.length === 0"
             description="暂无可用的组件"
             :image-size="80"
           />
-        </el-scrollbar>
+        </ScScrollbar>
       </div>
 
       <!-- 右侧：已安装的 Filter -->
@@ -93,15 +93,15 @@
             </div>
           </div>
           <div class="panel-actions">
-            <el-tag type="success" size="small" effect="plain" round>
+            <ScTag type="success" size="small" effect="plain" round>
               {{ installedFilters.length }} 个已装
-            </el-tag>
-            <el-tooltip content="刷新列表" placement="top">
-              <el-button size="small" circle @click="refreshInstalledFilters">
+            </ScTag>
+            <ScTooltip content="刷新列表" placement="top">
+              <ScButton size="small" circle @click="refreshInstalledFilters">
                 <IconifyIconOnline icon="ri:refresh-line" />
-              </el-button>
-            </el-tooltip>
-            <el-button
+              </ScButton>
+            </ScTooltip>
+            <ScButton
               type="success"
               size="small"
               :loading="saveLoading"
@@ -109,11 +109,11 @@
             >
               <IconifyIconOnline icon="ri:save-line" />
               保存排序
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
-        <el-scrollbar v-loading="installedLoading" class="panel-content">
+        <ScScrollbar v-loading="installedLoading" class="panel-content">
           <draggable
             v-model="installedFilters"
             item-key="systemServerSettingId"
@@ -146,7 +146,7 @@
                     >
                       {{ filter.systemServerSettingName }}
                     </span>
-                    <el-tag
+                    <ScTag
                       :type="
                         filter.systemServerSettingEnabled ? 'success' : 'info'
                       "
@@ -156,7 +156,7 @@
                       {{
                         filter.systemServerSettingEnabled ? "已启用" : "已禁用"
                       }}
-                    </el-tag>
+                    </ScTag>
                   </div>
                   <div class="card-meta">
                     <span class="meta-type">{{
@@ -171,13 +171,13 @@
                   </div>
                 </div>
                 <div class="card-actions">
-                  <el-tooltip
+                  <ScTooltip
                     :content="
                       filter.systemServerSettingEnabled ? '禁用' : '启用'
                     "
                     placement="top"
                   >
-                    <el-button
+                    <ScButton
                       :type="
                         filter.systemServerSettingEnabled
                           ? 'warning'
@@ -195,19 +195,19 @@
                             : 'ri:play-fill'
                         "
                       />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip content="配置" placement="top">
-                    <el-button
+                    </ScButton>
+                  </ScTooltip>
+                  <ScTooltip content="配置" placement="top">
+                    <ScButton
                       size="small"
                       circle
                       @click="openConfigDialog(filter)"
                     >
                       <IconifyIconOnline icon="ri:settings-3-line" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip content="卸载" placement="top">
-                    <el-button
+                    </ScButton>
+                  </ScTooltip>
+                  <ScTooltip content="卸载" placement="top">
+                    <ScButton
                       type="danger"
                       size="small"
                       circle
@@ -215,28 +215,28 @@
                       @click="uninstallFilter(filter)"
                     >
                       <IconifyIconOnline icon="ri:delete-bin-line" />
-                    </el-button>
-                  </el-tooltip>
+                    </ScButton>
+                  </ScTooltip>
                 </div>
               </div>
             </template>
           </draggable>
 
-          <el-empty
+          <ScEmpty
             v-if="!installedLoading && installedFilters.length === 0"
             description="暂无已安装的组件"
             :image-size="80"
           >
-            <el-button
+            <ScButton
               type="primary"
               size="small"
               @click="refreshAvailableFilters"
             >
               <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
               从左侧选择安装
-            </el-button>
-          </el-empty>
-        </el-scrollbar>
+            </ScButton>
+          </ScEmpty>
+        </ScScrollbar>
       </div>
     </div>
 
@@ -253,10 +253,10 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">
+        <ScButton @click="handleClose">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           关闭
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

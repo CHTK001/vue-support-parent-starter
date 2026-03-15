@@ -3,7 +3,7 @@ import {
   applyHit,
   calcDistance,
   resolveBeaverState,
-  resolveCrackLevel
+  resolveCrackLevel,
 } from "../game/beaverClamLogic";
 
 describe("beaverClamLogic", () => {
@@ -29,7 +29,7 @@ describe("beaverClamLogic", () => {
     const res1 = applyHit(100, 10, 1);
     expect(res1.nextHp).toBeLessThan(100);
     expect(res1.crackLevel === "intact" || res1.crackLevel === "medium").toBe(
-      true
+      true,
     );
 
     const res2 = applyHit(20, 50, 2);
@@ -38,5 +38,3 @@ describe("beaverClamLogic", () => {
     expect(res2.crackLevel).toBe("broken");
   });
 });
-
-

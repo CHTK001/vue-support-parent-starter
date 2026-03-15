@@ -25,4 +25,4 @@ const toolsRoutes: RouteRecordRaw[] = [
   },
 ];
 
-export default toolsRoutes; 
+export default toolsRoutes;

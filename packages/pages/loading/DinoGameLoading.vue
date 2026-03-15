@@ -8,7 +8,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   loadingText: "正在唤醒恐龙小游戏...",
-  showProgress: false
+  showProgress: false,
 });
 
 const emit = defineEmits<{
@@ -80,7 +80,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="cool-loading dino-intro-loading">
-    <iframe ref="iframeRef" class="dino-iframe" title="dino-game" src="/dino-game/index.html" />
+    <iframe
+      ref="iframeRef"
+      class="dino-iframe"
+      title="dino-game"
+      src="/dino-game/index.html"
+    />
 
     <div v-if="gameOver" class="dino-result-overlay">
       <div class="dino-result-card">

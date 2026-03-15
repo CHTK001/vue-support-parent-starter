@@ -23,11 +23,11 @@ export const config: Config = {
   paginationLayout: "total, sizes, prev, pager, next",
   request: {
     page: "page",
-    pageSize: "pageSize"
-  }
+    pageSize: "pageSize",
+  },
 };
 
-export const parseData = res => {
+export const parseData = (res) => {
   return {
     //分析无分页的数据字段结构
     data: res.data?.data || res.data?.rows,
@@ -35,7 +35,7 @@ export const parseData = res => {
     total: res.data?.total ?? res?.data?.recordsTotal ?? 0, //分析总数字段结构
     summary: res.summary, //分析合计行字段结构
     msg: res.msg || res.message, //分析描述字段结构
-    code: res.code //分析状态字段结构
+    code: res.code, //分析状态字段结构
   };
 };
 
@@ -45,7 +45,7 @@ export const parseData = res => {
  * @column 用户配置好的列
  */
 export const columnSettingSave = (tableName, column) => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     setTimeout(() => {
       //这里为了演示使用了session和setTimeout演示，开发时应用数据请求
       storageSession().setItem(tableName, column);
@@ -59,7 +59,7 @@ export const columnSettingSave = (tableName, column) => {
  * @column 组件接受到的props->column
  */
 export const columnSettingGet = (tableName, column) => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     //这里为了演示使用了session和setTimeout演示，开发时应用数据请求
     const userColumn = storageSession().getItem(tableName);
     if (userColumn) {
@@ -75,7 +75,7 @@ export const columnSettingGet = (tableName, column) => {
  * @column 组件接受到的props->column
  */
 export const columnSettingReset = (tableName, column) => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     //这里为了演示使用了session和setTimeout演示，开发时应用数据请求
     setTimeout(() => {
       storageSession().removeItem(tableName);

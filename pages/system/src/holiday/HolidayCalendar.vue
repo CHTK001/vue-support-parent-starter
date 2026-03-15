@@ -158,9 +158,9 @@ watch(
     selectedDate.value = new Date(
       newYear,
       selectedDate.value.getMonth(),
-      selectedDate.value.getDate()
+      selectedDate.value.getDate(),
     );
-  }
+  },
 );
 
 /**
@@ -171,7 +171,7 @@ watch(
   (newData) => {
     calendarData.value = newData;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 /**
@@ -394,14 +394,14 @@ const getNextHoliday = () => {
     .sort(
       (a, b) =>
         new Date(a.sysHolidayDate).getTime() -
-        new Date(b.sysHolidayDate).getTime()
+        new Date(b.sysHolidayDate).getTime(),
     );
 
   if (futureHolidays.length > 0) {
     const nextHoliday = futureHolidays[0];
     const holidayDate = new Date(nextHoliday.sysHolidayDate);
     const days = Math.ceil(
-      (holidayDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      (holidayDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
     );
     return {
       name: nextHoliday.sysHolidayName,
@@ -501,7 +501,7 @@ const getNextRealHoliday = computed(() => {
     .sort(
       (a, b) =>
         new Date(a.sysHolidayDate).getTime() -
-        new Date(b.sysHolidayDate).getTime()
+        new Date(b.sysHolidayDate).getTime(),
     );
 
   if (futureHolidays.length === 0) return null;
@@ -548,14 +548,16 @@ const getTodayWorkEnd = (): Date => {
   const hour = Number.parseInt(hourStr || "18", 10);
   const minute = Number.parseInt(minuteStr || "0", 10);
   const safeHour = Number.isNaN(hour) ? 18 : Math.min(Math.max(hour, 0), 23);
-  const safeMinute = Number.isNaN(minute) ? 0 : Math.min(Math.max(minute, 0), 59);
+  const safeMinute = Number.isNaN(minute)
+    ? 0
+    : Math.min(Math.max(minute, 0), 59);
   return new Date(
     now.getFullYear(),
     now.getMonth(),
     now.getDate(),
     safeHour,
     safeMinute,
-    0
+    0,
   );
 };
 
@@ -603,7 +605,7 @@ const updateHolidayCountdown = () => {
       .sort(
         (a, b) =>
           new Date(a.sysHolidayDate).getTime() -
-          new Date(b.sysHolidayDate).getTime()
+          new Date(b.sysHolidayDate).getTime(),
       );
 
     if (futureHolidays.length > 0) {
@@ -662,7 +664,7 @@ watch(
       stopPosterTimers();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 下班时间变更时，刷新一次显示
@@ -672,7 +674,7 @@ watch(
     if (workTimer) {
       updateWorkCountdown();
     }
-  }
+  },
 );
 
 onUnmounted(() => {
@@ -691,7 +693,7 @@ defineExpose({
     :class="{ 'poster-mode': posterMode }"
   >
     <!-- Element Plus 日历组件 -->
-    <el-calendar
+    <ScCalendar
       v-model="selectedDate"
       @input="handleDateChange"
       :first-day-of-week="1"
@@ -718,7 +720,7 @@ defineExpose({
             },
             customDateCell(data.date).lunarInfo?.isSolarTerm
               ? getSolarTermAnimation(
-                  customDateCell(data.date).lunarInfo?.solarTerm
+                  customDateCell(data.date).lunarInfo?.solarTerm,
                 )
               : '',
           ]"
@@ -860,10 +862,10 @@ defineExpose({
                 class="progress-fill"
                 :style="{
                   width: getProgressWidth(
-                    customDateCell(data.date).daysFromToday
+                    customDateCell(data.date).daysFromToday,
                   ),
                   background: getProgressColor(
-                    customDateCell(data.date).daysFromToday
+                    customDateCell(data.date).daysFromToday,
                   ),
                 }"
               ></div>
@@ -898,7 +900,7 @@ defineExpose({
                 :style="{
                   width: getProgressWidth(
                     customDateCell(data.date).daysFromToday,
-                    20
+                    20,
                   ),
                   background: '#67c23a',
                 }"
@@ -976,7 +978,7 @@ defineExpose({
           </div>
         </div>
       </template>
-    </el-calendar>
+    </ScCalendar>
 
     <!-- 图例 -->
     <div class="calendar-legend">

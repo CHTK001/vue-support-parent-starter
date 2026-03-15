@@ -69,7 +69,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button class="close-btn" @click="dialogVisible = false"
+        <ScButton class="close-btn" @click="dialogVisible = false"
           >关闭</el-button
         >
       </div>

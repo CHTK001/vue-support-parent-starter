@@ -34,31 +34,28 @@ export const LOADER_STYLES: Record<string, LoaderStyleDefinition> = {
       '<div style="width:8px;height:8px;border-radius:50%;background:#406eeb"></div>' +
       '<div style="width:8px;height:8px;border-radius:50%;background:#406eeb"></div>' +
       "</div>",
-    css: "",
+    css: ""
   },
   rings: {
     key: "rings",
     name: "彩色圆环",
     description: "多层旋转圆环效果，科技感更强",
-    html:
-      '<div style="width:30px;height:30px;border:2px solid #ff6b6b;border-radius:50%;border-right-color:transparent"></div>',
-    css: "",
+    html: '<div style="width:30px;height:30px;border:2px solid #ff6b6b;border-radius:50%;border-right-color:transparent"></div>',
+    css: ""
   },
   simple: {
     key: "simple",
     name: "简约圆环",
     description: "单一旋转圆环，干净利落",
-    html:
-      '<div style="width:30px;height:30px;border:3px solid rgba(64,110,235,0.2);border-top-color:#406eeb;border-radius:50%"></div>',
-    css: "",
+    html: '<div style="width:30px;height:30px;border:3px solid rgba(64,110,235,0.2);border-top-color:#406eeb;border-radius:50%"></div>',
+    css: ""
   },
   pulse: {
     key: "pulse",
     name: "脉冲圆点",
     description: "单个圆点的呼吸脉冲效果",
-    html:
-      '<div style="width:16px;height:16px;background:#406eeb;border-radius:50%"></div>',
-    css: "",
+    html: '<div style="width:16px;height:16px;background:#406eeb;border-radius:50%"></div>',
+    css: ""
   },
   blocks: {
     key: "blocks",
@@ -70,7 +67,7 @@ export const LOADER_STYLES: Record<string, LoaderStyleDefinition> = {
       '<div style="width:8px;height:12px;background:#406eeb;border-radius:2px"></div>' +
       '<div style="width:8px;height:16px;background:#406eeb;border-radius:2px"></div>' +
       "</div>",
-    css: "",
+    css: ""
   },
   book: {
     key: "book",
@@ -80,7 +77,7 @@ export const LOADER_STYLES: Record<string, LoaderStyleDefinition> = {
       '<div style="width:24px;height:20px;border-radius:2px;border:1px solid #e5e7eb;background:linear-gradient(90deg,#f3f4f6 0%,#ffffff 50%,#f3f4f6 100%);position:relative;overflow:hidden">' +
       '<div style="position:absolute;inset:2px 4px;border-radius:2px;border-left:1px solid #d1d5db"></div>' +
       "</div>",
-    css: "",
+    css: ""
   },
   writing: {
     key: "writing",
@@ -92,16 +89,13 @@ export const LOADER_STYLES: Record<string, LoaderStyleDefinition> = {
       '<div style="width:80%;height:2px;background:#e5e7eb;border-radius:999px"></div>' +
       '<div style="width:50%;height:2px;background:#e5e7eb;border-radius:999px"></div>' +
       "</div>",
-    css: "",
+    css: ""
   },
   dinoGame: {
     key: "dinoGame",
     name: "像素恐龙",
     description: "类似浏览器离线小游戏的像素恐龙动画",
-    html:
-      '<div style="font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">🦖</div>',
-    css: "",
-  },
+    html: '<div style="font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">🦖</div>',
+    css: ""
+  }
 };
-
-

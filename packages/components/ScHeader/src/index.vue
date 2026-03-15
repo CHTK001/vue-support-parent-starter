@@ -17,9 +17,9 @@
   </scifi-header>
 
   <!-- 默认模式：使用 el-header -->
-  <el-header v-else :height="height">
+  <ScHeader v-else :height="height">
     <slot />
-  </el-header>
+  </ScHeader>
 </template>
 
 <script setup lang="ts">

@@ -241,11 +241,11 @@ onMounted(() => {
 
 <template>
   <div class="h-full holiday-container system-container modern-bg">
-    <el-container>
-      <el-main class="nopadding">
-        <el-container>
+    <ScContainer>
+      <ScMain class="nopadding">
+        <ScContainer>
           <!-- 头部搜索区域 -->
-          <el-header class="h-[70px]">
+          <ScHeader class="h-[70px]">
             <div class="flex justify-between items-center h-full">
               <!-- 操作按钮区域 -->
               <div class="flex items-center gap-2 ml-4">
@@ -302,7 +302,7 @@ onMounted(() => {
                     </div>
                     <div class="setting-item">
                       <span>下班时间</span>
-                      <el-time-picker
+                      <ScTimePicker
                         v-model="workEndTime"
                         size="small"
                         format="HH:mm"
@@ -336,10 +336,10 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-          </el-header>
+          </ScHeader>
 
           <!-- 主内容区域 -->
-          <el-main class="thin-scroller">
+          <ScMain class="thin-scroller">
             <!-- 表格视图 -->
             <div
               v-if="viewMode === 'table'"
@@ -451,10 +451,10 @@ onMounted(() => {
                 "
               />
             </div>
-          </el-main>
-        </el-container>
-      </el-main>
-    </el-container>
+          </ScMain>
+        </ScContainer>
+      </ScMain>
+    </ScContainer>
   </div>
 </template>
 

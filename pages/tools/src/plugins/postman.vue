@@ -1,5 +1,4 @@
 ﻿<script setup>
-
 import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed, watch } from "vue";
 import { message } from "@repo/utils";
@@ -98,11 +97,46 @@ const env = reactive({
   ],
   // 常用请求示例
   examples: [
-    { name: "获取用户列表", method: "GET", url: "https://jsonplaceholder.typicode.com/users" },
-    { name: "获取单个用户", method: "GET", url: "https://jsonplaceholder.typicode.com/users/1" },
-    { name: "创建用户", method: "POST", url: "https://jsonplaceholder.typicode.com/users", body: { type: "raw", raw: { type: "json", content: '{\n  "name": "John Doe",\n  "email": "john@example.com"\n}' } } },
-    { name: "更新用户", method: "PUT", url: "https://jsonplaceholder.typicode.com/users/1", body: { type: "raw", raw: { type: "json", content: '{\n  "name": "John Smith",\n  "email": "john.smith@example.com"\n}' } } },
-    { name: "删除用户", method: "DELETE", url: "https://jsonplaceholder.typicode.com/users/1" },
+    {
+      name: "获取用户列表",
+      method: "GET",
+      url: "https://jsonplaceholder.typicode.com/users",
+    },
+    {
+      name: "获取单个用户",
+      method: "GET",
+      url: "https://jsonplaceholder.typicode.com/users/1",
+    },
+    {
+      name: "创建用户",
+      method: "POST",
+      url: "https://jsonplaceholder.typicode.com/users",
+      body: {
+        type: "raw",
+        raw: {
+          type: "json",
+          content: '{\n  "name": "John Doe",\n  "email": "john@example.com"\n}',
+        },
+      },
+    },
+    {
+      name: "更新用户",
+      method: "PUT",
+      url: "https://jsonplaceholder.typicode.com/users/1",
+      body: {
+        type: "raw",
+        raw: {
+          type: "json",
+          content:
+            '{\n  "name": "John Smith",\n  "email": "john.smith@example.com"\n}',
+        },
+      },
+    },
+    {
+      name: "删除用户",
+      method: "DELETE",
+      url: "https://jsonplaceholder.typicode.com/users/1",
+    },
   ],
 });
 
@@ -184,7 +218,12 @@ const removeFormData = (index) => {
 
 // 添加URL编码数据
 const addUrlEncoded = () => {
-  env.body.urlencoded.push({ key: "", value: "", description: "", enabled: true });
+  env.body.urlencoded.push({
+    key: "",
+    value: "",
+    description: "",
+    enabled: true,
+  });
 };
 
 // 删除URL编码数据
@@ -199,7 +238,10 @@ const setBodyType = (type) => {
   // 初始化对应类型的数据
   if (type === "form-data" && env.body.formData.length === 0) {
     addFormData();
-  } else if (type === "x-www-form-urlencoded" && env.body.urlencoded.length === 0) {
+  } else if (
+    type === "x-www-form-urlencoded" &&
+    env.body.urlencoded.length === 0
+  ) {
     addUrlEncoded();
   } else if (type === "raw" && !env.body.raw.content) {
     env.body.raw.content = "";
@@ -214,7 +256,8 @@ const setRawType = (type) => {
   if (type === "json" && !env.body.raw.content) {
     env.body.raw.content = '{\n  "key": "value"\n}';
   } else if (type === "xml" && !env.body.raw.content) {
-    env.body.raw.content = '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <element>value</element>\n</root>';
+    env.body.raw.content =
+      '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <element>value</element>\n</root>';
   }
 };
 
@@ -306,7 +349,9 @@ const buildRequestConfig = () => {
       config.headers["Content-Type"] = "application/json";
       config.data = {
         query: env.body.graphql.query,
-        variables: env.body.graphql.variables ? JSON.parse(env.body.graphql.variables) : {},
+        variables: env.body.graphql.variables
+          ? JSON.parse(env.body.graphql.variables)
+          : {},
       };
     }
   }
@@ -337,13 +382,17 @@ const sendRequest = async () => {
   try {
     const config = buildRequestConfig();
     // 使用 http.ts 替代 axios
-    const response = await http.request(config.method.toLowerCase(), config.url, {
-      params: config.params,
-      headers: config.headers,
-      data: config.data,
-      timeout: config.timeout,
-      responseType: config.responseType
-    });
+    const response = await http.request(
+      config.method.toLowerCase(),
+      config.url,
+      {
+        params: config.params,
+        headers: config.headers,
+        data: config.data,
+        timeout: config.timeout,
+        responseType: config.responseType,
+      },
+    );
 
     const endTime = Date.now();
     const responseTime = endTime - startTime;
@@ -355,7 +404,10 @@ const sendRequest = async () => {
       responseType = "json";
     } else if (contentType.includes("text/html")) {
       responseType = "html";
-    } else if (contentType.includes("application/xml") || contentType.includes("text/xml")) {
+    } else if (
+      contentType.includes("application/xml") ||
+      contentType.includes("text/xml")
+    ) {
       responseType = "xml";
     } else if (contentType.includes("text/plain")) {
       responseType = "text";
@@ -419,7 +471,10 @@ const sendRequest = async () => {
       };
     }
 
-    message(t("message.requestError") || "请求失败: " + (error.message || "未知错误"), { type: "error" });
+    message(
+      t("message.requestError") || "请求失败: " + (error.message || "未知错误"),
+      { type: "error" },
+    );
   } finally {
     env.loading = false;
   }
@@ -481,7 +536,9 @@ const loadFromHistory = (item) => {
   env.headers = [...item.headers];
   env.body = JSON.parse(JSON.stringify(item.body));
 
-  message(t("message.loadedFromHistory") || "已从历史记录加载请求", { type: "success" });
+  message(t("message.loadedFromHistory") || "已从历史记录加载请求", {
+    type: "success",
+  });
 };
 
 // 复制到剪贴板
@@ -500,7 +557,9 @@ const copyToClipboard = (text, successMessage = "已复制到剪贴板") => {
 // 下载响应内容
 const downloadResponse = () => {
   if (!env.response.data) {
-    message(t("message.noResponseToDownload") || "没有可下载的响应内容", { type: "warning" });
+    message(t("message.noResponseToDownload") || "没有可下载的响应内容", {
+      type: "warning",
+    });
     return;
   }
 
@@ -524,7 +583,9 @@ const downloadResponse = () => {
     message(t("message.downloadSuccess") || "下载成功", { type: "success" });
   } catch (error) {
     console.error("下载错误:", error);
-    message(t("message.downloadError") || "下载失败: " + error.message, { type: "error" });
+    message(t("message.downloadError") || "下载失败: " + error.message, {
+      type: "error",
+    });
   }
 };
 
@@ -589,7 +650,9 @@ const applyExample = (example) => {
 // 创建新集合
 const createCollection = () => {
   if (!env.newCollection.name) {
-    message(t("message.collectionNameRequired") || "请输入集合名称", { type: "warning" });
+    message(t("message.collectionNameRequired") || "请输入集合名称", {
+      type: "warning",
+    });
     return;
   }
 
@@ -604,13 +667,17 @@ const createCollection = () => {
   env.showCollectionModal = false;
   env.newCollection = { name: "", description: "" };
 
-  message(t("message.collectionCreated") || "集合创建成功", { type: "success" });
+  message(t("message.collectionCreated") || "集合创建成功", {
+    type: "success",
+  });
 };
 
 // 创建新环境
 const createEnvironment = () => {
   if (!env.newEnvironment.name) {
-    message(t("message.environmentNameRequired") || "请输入环境名称", { type: "warning" });
+    message(t("message.environmentNameRequired") || "请输入环境名称", {
+      type: "warning",
+    });
     return;
   }
 
@@ -623,9 +690,14 @@ const createEnvironment = () => {
 
   env.environments.push(environment);
   env.showEnvironmentModal = false;
-  env.newEnvironment = { name: "", variables: [{ key: "", value: "", enabled: true }] };
+  env.newEnvironment = {
+    name: "",
+    variables: [{ key: "", value: "", enabled: true }],
+  };
 
-  message(t("message.environmentCreated") || "环境创建成功", { type: "success" });
+  message(t("message.environmentCreated") || "环境创建成功", {
+    type: "success",
+  });
 };
 
 // 切换环境
@@ -670,7 +742,12 @@ onMounted(() => {
 
   // 初始化请求头
   if (env.headers.length === 0) {
-    env.headers.push({ key: "Content-Type", value: "application/json", description: "", enabled: true });
+    env.headers.push({
+      key: "Content-Type",
+      value: "application/json",
+      description: "",
+      enabled: true,
+    });
   }
 });
 </script>
@@ -683,7 +760,9 @@ onMounted(() => {
         <div class="postman-tool__header">
           <div class="postman-tool__header-inner">
             <h1 class="postman-tool__header-title">Postman 工具</h1>
-            <p class="postman-tool__header-subtitle">一个简单易用的 API 测试工具</p>
+            <p class="postman-tool__header-subtitle">
+              一个简单易用的 API 测试工具
+            </p>
           </div>
           <div class="postman-tool__header-timestamp">
             <ScIcon><IconifyIconOnline icon="ri:time-line" /></ScIcon>
@@ -696,20 +775,54 @@ onMounted(() => {
       <ScCard class="postman-tool__url-card">
         <div class="postman-tool__url-container">
           <ScSelect v-model="env.method" class="postman-tool__method-select">
-            <ScOption v-for="method in env.methods" :key="method.value" :label="method.label" :value="method.value" :class="`postman-tool__method-option--${method.value.toLowerCase()}`" />
+            <ScOption
+              v-for="method in env.methods"
+              :key="method.value"
+              :label="method.label"
+              :value="method.value"
+              :class="`postman-tool__method-option--${method.value.toLowerCase()}`"
+            />
           </ScSelect>
-          <ScInput v-model="env.url" placeholder="输入请求 URL" class="postman-tool__url-input" clearable @keyup.enter="sendRequest">
+          <ScInput
+            v-model="env.url"
+            placeholder="输入请求 URL"
+            class="postman-tool__url-input"
+            clearable
+            @keyup.enter="sendRequest"
+          >
             <template #append>
-              <ScButton type="primary" @click="sendRequest" :loading="env.loading"> 发送 </ScButton>
+              <ScButton
+                type="primary"
+                @click="sendRequest"
+                :loading="env.loading"
+              >
+                发送
+              </ScButton>
             </template>
           </ScInput>
         </div>
 
         <div class="postman-tool__environment-selector">
-          <ScSelect v-model="env.environments.find((e) => e.isActive).name" placeholder="选择环境" style="width: 200px">
-            <ScOption v-for="environment in env.environments" :key="environment.name" :label="environment.name" :value="environment.name" @click="switchEnvironment(environment.id)" />
+          <ScSelect
+            v-model="env.environments.find((e) => e.isActive).name"
+            placeholder="选择环境"
+            style="width: 200px"
+          >
+            <ScOption
+              v-for="environment in env.environments"
+              :key="environment.name"
+              :label="environment.name"
+              :value="environment.name"
+              @click="switchEnvironment(environment.id)"
+            />
           </ScSelect>
-          <ScButton type="primary" plain @click="env.showEnvironmentModal = true"> 管理环境 </ScButton>
+          <ScButton
+            type="primary"
+            plain
+            @click="env.showEnvironmentModal = true"
+          >
+            管理环境
+          </ScButton>
         </div>
       </ScCard>
 
@@ -722,18 +835,53 @@ onMounted(() => {
                 <div class="postman-tool__params-container">
                   <div class="postman-tool__params-header">
                     <h3 class="postman-tool__params-title">查询参数</h3>
-                    <ScButton type="primary" plain size="small" @click="addParam"> 添加参数 </ScButton>
+                    <ScButton
+                      type="primary"
+                      plain
+                      size="small"
+                      @click="addParam"
+                    >
+                      添加参数
+                    </ScButton>
                   </div>
-                  <div v-if="env.params.length === 0" class="postman-tool__empty">
+                  <div
+                    v-if="env.params.length === 0"
+                    class="postman-tool__empty"
+                  >
                     <ScEmpty description="暂无查询参数" />
                   </div>
                   <div v-else>
-                    <div v-for="(param, index) in env.params" :key="index" class="postman-tool__param-item">
-                      <ScCheckbox v-model="param.enabled" class="postman-tool__param-checkbox" />
-                      <ScInput v-model="param.key" placeholder="参数名" class="postman-tool__param-key" />
-                      <ScInput v-model="param.value" placeholder="参数值" class="postman-tool__param-value" />
-                      <ScInput v-model="param.description" placeholder="描述" class="postman-tool__param-description" />
-                      <ScButton type="danger" plain circle @click="removeParam(index)" :icon="useRenderIcon('ri:delete-bin-line')" />
+                    <div
+                      v-for="(param, index) in env.params"
+                      :key="index"
+                      class="postman-tool__param-item"
+                    >
+                      <ScCheckbox
+                        v-model="param.enabled"
+                        class="postman-tool__param-checkbox"
+                      />
+                      <ScInput
+                        v-model="param.key"
+                        placeholder="参数名"
+                        class="postman-tool__param-key"
+                      />
+                      <ScInput
+                        v-model="param.value"
+                        placeholder="参数值"
+                        class="postman-tool__param-value"
+                      />
+                      <ScInput
+                        v-model="param.description"
+                        placeholder="描述"
+                        class="postman-tool__param-description"
+                      />
+                      <ScButton
+                        type="danger"
+                        plain
+                        circle
+                        @click="removeParam(index)"
+                        :icon="useRenderIcon('ri:delete-bin-line')"
+                      />
                     </div>
                   </div>
                 </div>
@@ -743,18 +891,53 @@ onMounted(() => {
                 <div class="postman-tool__headers-container">
                   <div class="postman-tool__headers-header">
                     <h3 class="postman-tool__headers-title">请求头</h3>
-                    <ScButton type="primary" plain size="small" @click="addHeader"> 添加请求头 </ScButton>
+                    <ScButton
+                      type="primary"
+                      plain
+                      size="small"
+                      @click="addHeader"
+                    >
+                      添加请求头
+                    </ScButton>
                   </div>
-                  <div v-if="env.headers.length === 0" class="postman-tool__empty">
+                  <div
+                    v-if="env.headers.length === 0"
+                    class="postman-tool__empty"
+                  >
                     <ScEmpty description="暂无请求头" />
                   </div>
                   <div v-else>
-                    <div v-for="(header, index) in env.headers" :key="index" class="postman-tool__header-item">
-                      <ScCheckbox v-model="header.enabled" class="postman-tool__header-checkbox" />
-                      <ScInput v-model="header.key" placeholder="请求头名" class="postman-tool__header-key" />
-                      <ScInput v-model="header.value" placeholder="请求头值" class="postman-tool__header-value" />
-                      <ScInput v-model="header.description" placeholder="描述" class="postman-tool__header-description" />
-                      <ScButton type="danger" plain circle @click="removeHeader(index)" :icon="useRenderIcon('ri:delete-bin-line')" />
+                    <div
+                      v-for="(header, index) in env.headers"
+                      :key="index"
+                      class="postman-tool__header-item"
+                    >
+                      <ScCheckbox
+                        v-model="header.enabled"
+                        class="postman-tool__header-checkbox"
+                      />
+                      <ScInput
+                        v-model="header.key"
+                        placeholder="请求头名"
+                        class="postman-tool__header-key"
+                      />
+                      <ScInput
+                        v-model="header.value"
+                        placeholder="请求头值"
+                        class="postman-tool__header-value"
+                      />
+                      <ScInput
+                        v-model="header.description"
+                        placeholder="描述"
+                        class="postman-tool__header-description"
+                      />
+                      <ScButton
+                        type="danger"
+                        plain
+                        circle
+                        @click="removeHeader(index)"
+                        :icon="useRenderIcon('ri:delete-bin-line')"
+                      />
                     </div>
                   </div>
                 </div>
@@ -765,10 +948,16 @@ onMounted(() => {
                   <div class="postman-tool__body-type-selector">
                     <ScRadioGroup v-model="env.body.type" @change="setBodyType">
                       <el-radio-button label="none">无</el-radio-button>
-                      <el-radio-button label="form-data">表单数据</el-radio-button>
-                      <el-radio-button label="x-www-form-urlencoded">URL 编码</el-radio-button>
+                      <el-radio-button label="form-data"
+                        >表单数据</el-radio-button
+                      >
+                      <el-radio-button label="x-www-form-urlencoded"
+                        >URL 编码</el-radio-button
+                      >
                       <el-radio-button label="raw">原始数据</el-radio-button>
-                      <el-radio-button label="binary">二进制文件</el-radio-button>
+                      <el-radio-button label="binary"
+                        >二进制文件</el-radio-button
+                      >
                       <el-radio-button label="graphql">GraphQL</el-radio-button>
                     </ScRadioGroup>
                   </div>
@@ -777,25 +966,67 @@ onMounted(() => {
                   <div v-if="env.body.type === 'form-data'">
                     <div class="postman-tool__form-data-header">
                       <h3 class="postman-tool__form-data-title">表单数据</h3>
-                      <ScButton type="primary" plain size="small" @click="addFormData"> 添加表单项 </ScButton>
+                      <ScButton
+                        type="primary"
+                        plain
+                        size="small"
+                        @click="addFormData"
+                      >
+                        添加表单项
+                      </ScButton>
                     </div>
-                    <div v-if="env.body.formData.length === 0" class="postman-tool__empty">
+                    <div
+                      v-if="env.body.formData.length === 0"
+                      class="postman-tool__empty"
+                    >
                       <ScEmpty description="暂无表单数据" />
                     </div>
                     <div v-else>
-                      <div v-for="(item, index) in env.body.formData" :key="index" class="postman-tool__form-data-item">
-                        <ScCheckbox v-model="item.enabled" class="postman-tool__form-data-checkbox" />
-                        <ScInput v-model="item.key" placeholder="键名" class="postman-tool__form-data-key" />
-                        <ScSelect v-model="item.type" class="postman-tool__form-data-type">
+                      <div
+                        v-for="(item, index) in env.body.formData"
+                        :key="index"
+                        class="postman-tool__form-data-item"
+                      >
+                        <ScCheckbox
+                          v-model="item.enabled"
+                          class="postman-tool__form-data-checkbox"
+                        />
+                        <ScInput
+                          v-model="item.key"
+                          placeholder="键名"
+                          class="postman-tool__form-data-key"
+                        />
+                        <ScSelect
+                          v-model="item.type"
+                          class="postman-tool__form-data-type"
+                        >
                           <ScOption label="文本" value="text" />
                           <ScOption label="文件" value="file" />
                         </ScSelect>
-                        <ScInput v-if="item.type === 'text'" v-model="item.value" placeholder="值" class="postman-tool__form-data-value" />
-                        <ScUpload v-else action="" :auto-upload="false" :show-file-list="false" class="postman-tool__form-data-value" @change="(e) => (item.file = e.raw)">
+                        <ScInput
+                          v-if="item.type === 'text'"
+                          v-model="item.value"
+                          placeholder="值"
+                          class="postman-tool__form-data-value"
+                        />
+                        <ScUpload
+                          v-else
+                          action=""
+                          :auto-upload="false"
+                          :show-file-list="false"
+                          class="postman-tool__form-data-value"
+                          @change="(e) => (item.file = e.raw)"
+                        >
                           <ScButton type="primary" plain>选择文件</ScButton>
                           <span v-if="item.file">{{ item.file.name }}</span>
                         </ScUpload>
-                        <ScButton type="danger" plain circle @click="removeFormData(index)" :icon="useRenderIcon('ri:delete-bin-line')" />
+                        <ScButton
+                          type="danger"
+                          plain
+                          circle
+                          @click="removeFormData(index)"
+                          :icon="useRenderIcon('ri:delete-bin-line')"
+                        />
                       </div>
                     </div>
                   </div>
@@ -803,19 +1034,56 @@ onMounted(() => {
                   <!-- URL 编码 -->
                   <div v-if="env.body.type === 'x-www-form-urlencoded'">
                     <div class="postman-tool__urlencoded-header">
-                      <h3 class="postman-tool__urlencoded-title">URL 编码数据</h3>
-                      <ScButton type="primary" plain size="small" @click="addUrlEncoded"> 添加数据项 </ScButton>
+                      <h3 class="postman-tool__urlencoded-title">
+                        URL 编码数据
+                      </h3>
+                      <ScButton
+                        type="primary"
+                        plain
+                        size="small"
+                        @click="addUrlEncoded"
+                      >
+                        添加数据项
+                      </ScButton>
                     </div>
-                    <div v-if="env.body.urlencoded.length === 0" class="postman-tool__empty">
+                    <div
+                      v-if="env.body.urlencoded.length === 0"
+                      class="postman-tool__empty"
+                    >
                       <ScEmpty description="暂无 URL 编码数据" />
                     </div>
                     <div v-else>
-                      <div v-for="(item, index) in env.body.urlencoded" :key="index" class="postman-tool__urlencoded-item">
-                        <ScCheckbox v-model="item.enabled" class="postman-tool__urlencoded-checkbox" />
-                        <ScInput v-model="item.key" placeholder="键名" class="postman-tool__urlencoded-key" />
-                        <ScInput v-model="item.value" placeholder="值" class="postman-tool__urlencoded-value" />
-                        <ScInput v-model="item.description" placeholder="描述" class="postman-tool__urlencoded-description" />
-                        <ScButton type="danger" plain circle @click="removeUrlEncoded(index)" :icon="useRenderIcon('ri:delete-bin-line')" />
+                      <div
+                        v-for="(item, index) in env.body.urlencoded"
+                        :key="index"
+                        class="postman-tool__urlencoded-item"
+                      >
+                        <ScCheckbox
+                          v-model="item.enabled"
+                          class="postman-tool__urlencoded-checkbox"
+                        />
+                        <ScInput
+                          v-model="item.key"
+                          placeholder="键名"
+                          class="postman-tool__urlencoded-key"
+                        />
+                        <ScInput
+                          v-model="item.value"
+                          placeholder="值"
+                          class="postman-tool__urlencoded-value"
+                        />
+                        <ScInput
+                          v-model="item.description"
+                          placeholder="描述"
+                          class="postman-tool__urlencoded-description"
+                        />
+                        <ScButton
+                          type="danger"
+                          plain
+                          circle
+                          @click="removeUrlEncoded(index)"
+                          :icon="useRenderIcon('ri:delete-bin-line')"
+                        />
                       </div>
                     </div>
                   </div>
@@ -824,7 +1092,11 @@ onMounted(() => {
                   <div v-if="env.body.type === 'raw'">
                     <div class="postman-tool__raw-header">
                       <h3 class="postman-tool__raw-title">原始数据</h3>
-                      <ScSelect v-model="env.body.raw.type" class="postman-tool__raw-type-select" @change="setRawType">
+                      <ScSelect
+                        v-model="env.body.raw.type"
+                        class="postman-tool__raw-type-select"
+                        @change="setRawType"
+                      >
                         <ScOption label="JSON" value="json" />
                         <ScOption label="文本" value="text" />
                         <ScOption label="XML" value="xml" />
@@ -832,7 +1104,13 @@ onMounted(() => {
                         <ScOption label="JavaScript" value="javascript" />
                       </ScSelect>
                     </div>
-                    <ScInput v-model="env.body.raw.content" type="textarea" :rows="10" class="postman-tool__raw-editor" placeholder="输入原始数据内容" />
+                    <ScInput
+                      v-model="env.body.raw.content"
+                      type="textarea"
+                      :rows="10"
+                      class="postman-tool__raw-editor"
+                      placeholder="输入原始数据内容"
+                    />
                   </div>
 
                   <!-- 二进制文件 -->
@@ -840,16 +1118,39 @@ onMounted(() => {
                     <div class="postman-tool__binary-header">
                       <h3 class="postman-tool__binary-title">二进制文件</h3>
                     </div>
-                    <ScUpload action="" :auto-upload="false" :show-file-list="false" drag @change="uploadBinaryFile">
-                      <ScIcon><IconifyIconOnline icon="ri:upload-cloud-line" /></ScIcon>
-                      <div class="el-upload__text">拖拽文件到此处或 <em>点击上传</em></div>
+                    <ScUpload
+                      action=""
+                      :auto-upload="false"
+                      :show-file-list="false"
+                      drag
+                      @change="uploadBinaryFile"
+                    >
+                      <ScIcon
+                        ><IconifyIconOnline icon="ri:upload-cloud-line"
+                      /></ScIcon>
+                      <div class="el-upload__text">
+                        拖拽文件到此处或 <em>点击上传</em>
+                      </div>
                     </ScUpload>
-                    <div v-if="env.body.binary" class="postman-tool__binary-info">
+                    <div
+                      v-if="env.body.binary"
+                      class="postman-tool__binary-info"
+                    >
                       <p>已选择文件: {{ env.body.binary.name }}</p>
                       <p>文件大小: {{ formatSize(env.body.binary.size) }}</p>
-                      <ScButton type="danger" plain size="small" @click="removeBinaryFile"> 移除文件 </ScButton>
+                      <ScButton
+                        type="danger"
+                        plain
+                        size="small"
+                        @click="removeBinaryFile"
+                      >
+                        移除文件
+                      </ScButton>
                     </div>
-                    <p class="postman-tool__binary-tip">注意: 二进制文件将直接作为请求体发送，不会进行任何编码处理。</p>
+                    <p class="postman-tool__binary-tip">
+                      注意:
+                      二进制文件将直接作为请求体发送，不会进行任何编码处理。
+                    </p>
                   </div>
 
                   <!-- GraphQL -->
@@ -859,11 +1160,21 @@ onMounted(() => {
                     </div>
                     <div class="postman-tool__graphql-query">
                       <div class="postman-tool__graphql-label">查询</div>
-                      <ScInput v-model="env.body.graphql.query" type="textarea" :rows="6" placeholder="输入 GraphQL 查询" />
+                      <ScInput
+                        v-model="env.body.graphql.query"
+                        type="textarea"
+                        :rows="6"
+                        placeholder="输入 GraphQL 查询"
+                      />
                     </div>
                     <div class="postman-tool__graphql-variables">
                       <div class="postman-tool__graphql-label">变量</div>
-                      <ScInput v-model="env.body.graphql.variables" type="textarea" :rows="4" placeholder="输入 JSON 格式的变量" />
+                      <ScInput
+                        v-model="env.body.graphql.variables"
+                        type="textarea"
+                        :rows="4"
+                        placeholder="输入 JSON 格式的变量"
+                      />
                     </div>
                   </div>
                 </div>
@@ -880,34 +1191,68 @@ onMounted(() => {
             <div v-else>
               <div class="postman-tool__response-header">
                 <div class="postman-tool__response-status">
-                  <ScTag :type="getStatusColor(env.response.status)" size="large"> {{ env.response.status }} {{ env.response.statusText }} </ScTag>
+                  <ScTag
+                    :type="getStatusColor(env.response.status)"
+                    size="large"
+                  >
+                    {{ env.response.status }} {{ env.response.statusText }}
+                  </ScTag>
                   <span class="postman-tool__response-time">
                     <ScIcon><IconifyIconOnline icon="ri:time-line" /></ScIcon>
                     {{ env.response.time }} ms
                   </span>
                   <span class="postman-tool__response-size">
-                    <ScIcon><IconifyIconOnline icon="ri:file-size-line" /></ScIcon>
+                    <ScIcon
+                      ><IconifyIconOnline icon="ri:file-size-line"
+                    /></ScIcon>
                     {{ formatSize(env.response.size) }}
                   </span>
                 </div>
                 <div class="postman-tool__response-actions">
-                  <ScButton type="primary" plain size="small" @click="copyToClipboard(formattedResponse)"> 复制响应 </ScButton>
-                  <ScButton type="success" plain size="small" @click="downloadResponse"> 下载响应 </ScButton>
+                  <ScButton
+                    type="primary"
+                    plain
+                    size="small"
+                    @click="copyToClipboard(formattedResponse)"
+                  >
+                    复制响应
+                  </ScButton>
+                  <ScButton
+                    type="success"
+                    plain
+                    size="small"
+                    @click="downloadResponse"
+                  >
+                    下载响应
+                  </ScButton>
                 </div>
               </div>
 
               <ScTabs v-model="env.responseTab">
                 <ScTabPane label="响应体" name="body">
-                  <pre class="postman-tool__response-content">{{ formattedResponse }}</pre>
+                  <pre class="postman-tool__response-content">{{
+                    formattedResponse
+                  }}</pre>
                 </ScTabPane>
                 <ScTabPane label="响应头" name="headers">
-                  <div v-if="Object.keys(env.response.headers).length === 0" class="postman-tool__empty">
+                  <div
+                    v-if="Object.keys(env.response.headers).length === 0"
+                    class="postman-tool__empty"
+                  >
                     <ScEmpty description="暂无响应头" />
                   </div>
                   <div v-else>
-                    <div v-for="(value, key) in env.response.headers" :key="key" class="postman-tool__response-header-item">
-                      <div class="postman-tool__response-header-key">{{ key }}</div>
-                      <div class="postman-tool__response-header-value">{{ value }}</div>
+                    <div
+                      v-for="(value, key) in env.response.headers"
+                      :key="key"
+                      class="postman-tool__response-header-item"
+                    >
+                      <div class="postman-tool__response-header-key">
+                        {{ key }}
+                      </div>
+                      <div class="postman-tool__response-header-value">
+                        {{ value }}
+                      </div>
                     </div>
                   </div>
                 </ScTabPane>
@@ -922,17 +1267,29 @@ onMounted(() => {
               <ScEmpty description="暂无历史记录" />
             </div>
             <div v-else>
-              <div v-for="item in env.history" :key="item.id" class="postman-tool__history-item" @click="loadFromHistory(item)">
-                <div :class="`postman-tool__history-method postman-tool__history-method--${item.method.toLowerCase()}`">
+              <div
+                v-for="item in env.history"
+                :key="item.id"
+                class="postman-tool__history-item"
+                @click="loadFromHistory(item)"
+              >
+                <div
+                  :class="`postman-tool__history-method postman-tool__history-method--${item.method.toLowerCase()}`"
+                >
                   {{ item.method }}
                 </div>
                 <div class="postman-tool__history-url">{{ item.url }}</div>
                 <div class="postman-tool__history-status">
-                  <ScTag :type="getStatusColor(item.response.status)" size="small">
+                  <ScTag
+                    :type="getStatusColor(item.response.status)"
+                    size="small"
+                  >
                     {{ item.response.status }}
                   </ScTag>
                 </div>
-                <div class="postman-tool__history-time">{{ item.timestamp }}</div>
+                <div class="postman-tool__history-time">
+                  {{ item.timestamp }}
+                </div>
               </div>
             </div>
           </ScCard>
@@ -941,11 +1298,20 @@ onMounted(() => {
         <ScTabPane label="示例" name="examples">
           <ScCard>
             <div class="postman-tool__examples">
-              <div v-for="(example, index) in env.examples" :key="index" class="postman-tool__example-item" @click="applyExample(example)">
+              <div
+                v-for="(example, index) in env.examples"
+                :key="index"
+                class="postman-tool__example-item"
+                @click="applyExample(example)"
+              >
                 <h4 class="postman-tool__example-name">{{ example.name }}</h4>
                 <div class="postman-tool__example-details">
-                  <span class="postman-tool__example-method">{{ example.method }}</span>
-                  <span class="postman-tool__example-url">{{ example.url }}</span>
+                  <span class="postman-tool__example-method">{{
+                    example.method
+                  }}</span>
+                  <span class="postman-tool__example-url">{{
+                    example.url
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -955,33 +1321,102 @@ onMounted(() => {
     </div>
 
     <!-- 环境变量管理对话框 -->
-    <sc-dialog v-model="env.showEnvironmentModal" title="管理环境变量" width="600px">
+    <sc-dialog
+      v-model="env.showEnvironmentModal"
+      title="管理环境变量"
+      width="600px"
+    >
       <ScTabs type="border-card">
-        <ScTabPane v-for="environment in env.environments" :key="environment.name" :label="environment.name">
-          <div v-for="(variable, index) in environment.variables" :key="index" class="postman-tool__environment-variable">
-            <ScInput v-model="variable.key" placeholder="变量名" class="postman-tool__environment-variable-key" />
-            <ScInput v-model="variable.value" placeholder="变量值" class="postman-tool__environment-variable-value" />
-            <ScCheckbox v-model="variable.enabled" label="启用" class="postman-tool__environment-variable-enabled" />
-            <ScButton type="danger" plain circle :icon="useRenderIcon('ri:delete-bin-line')" @click="environment.variables.splice(index, 1)" />
+        <ScTabPane
+          v-for="environment in env.environments"
+          :key="environment.name"
+          :label="environment.name"
+        >
+          <div
+            v-for="(variable, index) in environment.variables"
+            :key="index"
+            class="postman-tool__environment-variable"
+          >
+            <ScInput
+              v-model="variable.key"
+              placeholder="变量名"
+              class="postman-tool__environment-variable-key"
+            />
+            <ScInput
+              v-model="variable.value"
+              placeholder="变量值"
+              class="postman-tool__environment-variable-value"
+            />
+            <ScCheckbox
+              v-model="variable.enabled"
+              label="启用"
+              class="postman-tool__environment-variable-enabled"
+            />
+            <ScButton
+              type="danger"
+              plain
+              circle
+              :icon="useRenderIcon('ri:delete-bin-line')"
+              @click="environment.variables.splice(index, 1)"
+            />
           </div>
           <div class="postman-tool__environment-actions">
-            <ScButton type="primary" plain @click="environment.variables.push({ key: '', value: '', enabled: true })"> 添加变量 </ScButton>
+            <ScButton
+              type="primary"
+              plain
+              @click="
+                environment.variables.push({
+                  key: '',
+                  value: '',
+                  enabled: true,
+                })
+              "
+            >
+              添加变量
+            </ScButton>
           </div>
         </ScTabPane>
         <ScTabPane label="+ 新环境">
           <ScForm>
             <ScFormItem label="环境名称">
-              <ScInput v-model="env.newEnvironment.name" placeholder="输入环境名称" />
+              <ScInput
+                v-model="env.newEnvironment.name"
+                placeholder="输入环境名称"
+              />
             </ScFormItem>
             <ScFormItem label="环境变量">
-              <div v-for="(variable, index) in env.newEnvironment.variables" :key="index" class="postman-tool__environment-variable">
-                <ScInput v-model="variable.key" placeholder="变量名" class="postman-tool__environment-variable-key" />
-                <ScInput v-model="variable.value" placeholder="变量值" class="postman-tool__environment-variable-value" />
-                <ScCheckbox v-model="variable.enabled" label="启用" class="postman-tool__environment-variable-enabled" />
-                <ScButton type="danger" plain circle :icon="useRenderIcon('ri:delete-bin-line')" @click="removeEnvironmentVariable(index)" />
+              <div
+                v-for="(variable, index) in env.newEnvironment.variables"
+                :key="index"
+                class="postman-tool__environment-variable"
+              >
+                <ScInput
+                  v-model="variable.key"
+                  placeholder="变量名"
+                  class="postman-tool__environment-variable-key"
+                />
+                <ScInput
+                  v-model="variable.value"
+                  placeholder="变量值"
+                  class="postman-tool__environment-variable-value"
+                />
+                <ScCheckbox
+                  v-model="variable.enabled"
+                  label="启用"
+                  class="postman-tool__environment-variable-enabled"
+                />
+                <ScButton
+                  type="danger"
+                  plain
+                  circle
+                  :icon="useRenderIcon('ri:delete-bin-line')"
+                  @click="removeEnvironmentVariable(index)"
+                />
               </div>
               <div class="postman-tool__environment-actions">
-                <ScButton type="primary" plain @click="addEnvironmentVariable"> 添加变量 </ScButton>
+                <ScButton type="primary" plain @click="addEnvironmentVariable">
+                  添加变量
+                </ScButton>
               </div>
             </ScFormItem>
           </ScForm>
@@ -1019,19 +1454,23 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.05) 0%, rgba(var(--el-color-primary-rgb), 0.02) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.05) 0%,
+        rgba(var(--el-color-primary-rgb), 0.02) 100%
+      );
       z-index: 1;
       pointer-events: none;
     }
-    
+
     &:hover {
       box-shadow: var(--el-box-shadow);
       transform: translateY(-2px);
@@ -1669,4 +2108,6 @@ onMounted(() => {
   :deep(.el-radio-button__inner) {
     padding: 8px 15px;
   }
+}
+</style>
 }

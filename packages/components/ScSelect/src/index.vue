@@ -81,7 +81,7 @@
  * ScSelect 选择器组件
  * 封装 Element Plus Select 与 PixelUI PxSelect
  * 在 data-skin 为 8bit 时自动切换为像素风选择器
- * 
+ *
  * 作者：[CH]
  * 创建时间：2026-02-26
  * 版本：1.0.0
@@ -370,15 +370,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits([
-  "update:modelValue",
-  "change",
-  "visible-change",
-  "remove-tag",
-  "clear",
-  "blur",
-  "focus"
-]);
+const emit = defineEmits(["update:modelValue", "change", "visible-change", "remove-tag", "clear", "blur", "focus"]);
 
 /**
  * 当前绑定值，支持 v-model
@@ -402,7 +394,6 @@ const { currentComponent } = useThemeComponent("ElSelect");
  * 当前实际渲染的组件
  * 像素主题下使用 PxSelect，否则使用 ElSelect
  */
-
 
 /**
  * 选中值发生变化时触发

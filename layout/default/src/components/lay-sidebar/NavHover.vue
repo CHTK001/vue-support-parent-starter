@@ -7,11 +7,15 @@ import DefaultHover from "./themes/hover/Default.vue";
 const themeComponents = {
   default: DefaultHover,
   // 仅保留实际存在的未来科技主题，其余已删除的节日主题不再懒加载
-  "future-tech": defineAsyncComponent(() => import("./themes/hover/FutureTech.vue")),
-  
+  "future-tech": defineAsyncComponent(
+    () => import("./themes/hover/FutureTech.vue"),
+  ),
 };
 
-const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultHover);
+const { CurrentComponent, currentTheme } = useThemeComponent(
+  themeComponents,
+  DefaultHover,
+);
 </script>
 
 <template>

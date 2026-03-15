@@ -26,7 +26,8 @@ Object.entries(extConfig).map(([key, value]: any) => {
 
 /** 版本升级 */
 const upgrade = async (version) => {
-  localStorage.getItem("version") !== version && localStorage.setItem("version", version);
+  localStorage.getItem("version") !== version &&
+    localStorage.setItem("version", version);
 };
 
 /** 获取配置组 */

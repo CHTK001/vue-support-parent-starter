@@ -2,7 +2,7 @@
  * useTableColumnSearch - 列搜索 composable
  * 支持表头列搜索功能
  */
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { ref, computed, type Ref, type ComputedRef } from "vue";
 
 /** 列搜索选项 */
 export interface ColumnSearchOptions {
@@ -46,12 +46,7 @@ export interface ColumnSearchReturn {
  * 列搜索 composable
  */
 export function useTableColumnSearch(options: ColumnSearchOptions = {}): ColumnSearchReturn {
-  const {
-    enabled = false,
-    searchableColumns = [],
-    debounce = 300,
-    caseSensitive = false,
-  } = options;
+  const { enabled = false, searchableColumns = [], debounce = 300, caseSensitive = false } = options;
 
   const isEnabled = ref(enabled);
   const searchValues = ref<Map<string, string>>(new Map());
@@ -108,7 +103,7 @@ export function useTableColumnSearch(options: ColumnSearchOptions = {}): ColumnS
    * 获取列搜索值
    */
   const getSearchValue = (columnKey: string): string => {
-    return searchValues.value.get(columnKey) || '';
+    return searchValues.value.get(columnKey) || "";
   };
 
   /**
@@ -163,7 +158,7 @@ export function useTableColumnSearch(options: ColumnSearchOptions = {}): ColumnS
     getSearchValue,
     isColumnSearchable,
     filterData,
-    getSearchParams,
+    getSearchParams
   };
 }
 

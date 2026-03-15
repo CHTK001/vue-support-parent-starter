@@ -1,5 +1,5 @@
-import { BoundaryLevel } from '../types/boundary';
-import { CoordSystem } from '../types/coordinate';
+import { BoundaryLevel } from "../types/boundary";
+import { CoordSystem } from "../types/coordinate";
 
 /**
  * 坐标点接口
@@ -22,7 +22,7 @@ export interface BoundaryDataFormat {
   citycode: string;
   adcode: string;
   name: string;
-  polyline: CoordinatePoint[][];  // 修改为二维数组，每个子数组表示一个闭合环
+  polyline: CoordinatePoint[][]; // 修改为二维数组，每个子数组表示一个闭合环
   center: string;
   level: string | BoundaryLevel;
   districts?: BoundaryDataFormat[];
@@ -41,14 +41,18 @@ export interface BoundaryDataProvider {
    * @param url 自定义API地址（可选）
    * @returns 区划数据
    */
-  fetchBoundaryData(adcode: string, apiKey: string, url?: string): Promise<BoundaryDataFormat>;
-  
+  fetchBoundaryData(
+    adcode: string,
+    apiKey: string,
+    url?: string,
+  ): Promise<BoundaryDataFormat>;
+
   /**
    * 获取提供者名称
    * @returns 提供者名称
    */
   getProviderName(): string;
-  
+
   /**
    * 将区划数据转换为统一格式（高德格式）
    * @param data 原始区划数据
@@ -64,7 +68,7 @@ export interface BoundaryDataProvider {
  */
 export class BoundaryDataProviderFactory {
   private static providers: Map<string, BoundaryDataProvider> = new Map();
-  
+
   /**
    * 注册区划数据提供者
    * @param provider 提供者名称
@@ -73,7 +77,7 @@ export class BoundaryDataProviderFactory {
   static register(provider: string, dataProvider: BoundaryDataProvider): void {
     this.providers.set(provider.toLowerCase(), dataProvider);
   }
-  
+
   /**
    * 获取区划数据提供者
    * @param provider 提供者名称
@@ -86,4 +90,4 @@ export class BoundaryDataProviderFactory {
     }
     return dataProvider;
   }
-} 
+}

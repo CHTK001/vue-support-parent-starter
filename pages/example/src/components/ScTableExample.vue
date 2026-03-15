@@ -14,11 +14,11 @@
             <ScSwitch v-model="config.showPagination" />
           </ScFormItem>
           <ScFormItem label="每页条数">
-            <ScSelect 
+            <ScSelect
               v-model="config.pageSize"
               :disabled="!config.showPagination"
             >
-              <ScOption 
+              <ScOption
                 v-for="size in [5, 10, 20, 50, 1000, 10000, 100000]"
                 :key="size"
                 :label="size"
@@ -27,7 +27,7 @@
             </ScSelect>
           </ScFormItem>
           <ScFormItem label="分页类型">
-            <ScSelect 
+            <ScSelect
               v-model="config.paginationType"
               :disabled="!config.showPagination"
             >
@@ -36,13 +36,13 @@
             </ScSelect>
           </ScFormItem>
           <ScFormItem label="自动加载" v-if="config.showPagination">
-            <ScSwitch 
+            <ScSwitch
               v-model="config.autoLoad"
               :disabled="config.paginationType !== 'scroll'"
             />
           </ScFormItem>
           <ScFormItem label="加载距离(px)" v-if="config.showPagination">
-            <ScInputNumber 
+            <ScInputNumber
               v-model="config.loadDistance"
               :min="0"
               :max="400"
@@ -90,7 +90,7 @@
           </ScFormItem>
           <ScFormItem label="数据数量">
             <div class="data-count-control">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.dataCount"
                 :min="1"
                 :max="10000"
@@ -133,7 +133,12 @@
             overflow-x="auto"
           >
             <ScTableColumn type="selection" width="55"></ScTableColumn>
-            <ScTableColumn prop="id" label="ID" width="80" sortable></ScTableColumn>
+            <ScTableColumn
+              prop="id"
+              label="ID"
+              width="80"
+              sortable
+            ></ScTableColumn>
             <ScTableColumn prop="name" label="名称" width="150"></ScTableColumn>
             <ScTableColumn prop="status" label="状态" width="100">
               <template #default="{ row }">
@@ -142,27 +147,73 @@
                 </ScTag>
               </template>
             </ScTableColumn>
-            <ScTableColumn prop="description" label="描述" width="200"></ScTableColumn>
-            <ScTableColumn 
+            <ScTableColumn
+              prop="description"
+              label="描述"
+              width="200"
+            ></ScTableColumn>
+            <ScTableColumn
               prop="createTime"
               label="创建时间"
               width="180"
               sortable
             ></ScTableColumn>
-            <ScTableColumn prop="author" label="作者" width="120"></ScTableColumn>
-            <ScTableColumn prop="category" label="分类" width="100"></ScTableColumn>
+            <ScTableColumn
+              prop="author"
+              label="作者"
+              width="120"
+            ></ScTableColumn>
+            <ScTableColumn
+              prop="category"
+              label="分类"
+              width="100"
+            ></ScTableColumn>
             <ScTableColumn prop="priority" label="优先级" width="100" sortable>
               <template #default="{ row }">
-                <ScTag :type="row.priority === 'high' ? 'danger' : row.priority === 'medium' ? 'warning' : 'info'">
-                  {{ row.priority === 'high' ? '高' : row.priority === 'medium' ? '中' : '低' }}
+                <ScTag
+                  :type="
+                    row.priority === 'high'
+                      ? 'danger'
+                      : row.priority === 'medium'
+                        ? 'warning'
+                        : 'info'
+                  "
+                >
+                  {{
+                    row.priority === "high"
+                      ? "高"
+                      : row.priority === "medium"
+                        ? "中"
+                        : "低"
+                  }}
                 </ScTag>
               </template>
             </ScTableColumn>
-            <ScTableColumn prop="department" label="部门" width="150"></ScTableColumn>
-            <ScTableColumn prop="location" label="位置" width="150"></ScTableColumn>
-            <ScTableColumn prop="phone" label="联系电话" width="150"></ScTableColumn>
-            <ScTableColumn prop="email" label="邮箱" width="200"></ScTableColumn>
-            <ScTableColumn prop="remark" label="备注" width="250"></ScTableColumn>
+            <ScTableColumn
+              prop="department"
+              label="部门"
+              width="150"
+            ></ScTableColumn>
+            <ScTableColumn
+              prop="location"
+              label="位置"
+              width="150"
+            ></ScTableColumn>
+            <ScTableColumn
+              prop="phone"
+              label="联系电话"
+              width="150"
+            ></ScTableColumn>
+            <ScTableColumn
+              prop="email"
+              label="邮箱"
+              width="200"
+            ></ScTableColumn>
+            <ScTableColumn
+              prop="remark"
+              label="备注"
+              width="250"
+            ></ScTableColumn>
             <ScTableColumn label="操作" width="150" fixed="right">
               <template #default="{ row }">
                 <ScButton type="primary" size="small" @click="handleEdit(row)">
@@ -200,7 +251,7 @@
               <div class="custom-card">
                 <div class="card-header">
                   <span class="card-title">{{ row.name }}</span>
-                  <ScTag 
+                  <ScTag
                     :type="row.status === 'active' ? 'success' : 'info'"
                     size="small"
                   >
@@ -222,14 +273,14 @@
                   </div>
                 </div>
                 <div class="card-actions">
-                  <ScButton 
+                  <ScButton
                     type="primary"
                     size="small"
                     @click="handleEdit(row)"
                   >
                     编辑
                   </ScButton>
-                  <ScButton 
+                  <ScButton
                     type="danger"
                     size="small"
                     @click="handleDelete(row)"
@@ -270,7 +321,7 @@
               >
                 <div class="waterfall-card-header">
                   <span class="waterfall-card-title">{{ row.name }}</span>
-                  <ScTag 
+                  <ScTag
                     :type="row.status === 'active' ? 'success' : 'info'"
                     size="small"
                   >
@@ -291,7 +342,7 @@
                   </div>
                 </div>
                 <div class="waterfall-card-footer">
-                  <ScButton 
+                  <ScButton
                     type="primary"
                     size="small"
                     text
@@ -300,7 +351,7 @@
                     <IconifyIconOnline icon="ep:edit" />
                     编辑
                   </ScButton>
-                  <ScButton 
+                  <ScButton
                     type="danger"
                     size="small"
                     text
@@ -391,7 +442,7 @@
                   <p>{{ row.description }}</p>
                 </div>
                 <div class="list-item-meta">
-                  <ScTag 
+                  <ScTag
                     :type="row.status === 'active' ? 'success' : 'info'"
                     size="small"
                   >
@@ -400,13 +451,10 @@
                   <span class="list-time">{{ row.createTime }}</span>
                 </div>
                 <div class="list-item-actions">
-                  <ScButton 
-                    type="primary"
-                    size="small"
-                    @click="handleEdit(row)"
+                  <ScButton type="primary" size="small" @click="handleEdit(row)"
                     >编辑</ScButton
                   >
-                  <ScButton 
+                  <ScButton
                     type="danger"
                     size="small"
                     @click="handleDelete(row)"
@@ -561,7 +609,7 @@ watch(
       });
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 引用
@@ -706,12 +754,30 @@ const tableData = ref([
 const generateData = () => {
   const count = config.dataCount;
   const data = [];
-  const authors = ["张三", "李四", "王五", "赵六", "孙七", "周八", "吴九", "郑十"];
+  const authors = [
+    "张三",
+    "李四",
+    "王五",
+    "赵六",
+    "孙七",
+    "周八",
+    "吴九",
+    "郑十",
+  ];
   const categories = ["开发", "测试", "运维", "设计", "产品"];
   const priorities = ["high", "medium", "low"];
   const departments = ["技术部", "质量部", "运维部", "设计部", "产品部"];
-  const locations = ["北京", "上海", "广州", "深圳", "杭州", "成都", "武汉", "西安"];
-  
+  const locations = [
+    "北京",
+    "上海",
+    "广州",
+    "深圳",
+    "杭州",
+    "成都",
+    "武汉",
+    "西安",
+  ];
+
   for (let i = 0; i < count; i++) {
     data.push({
       id: i + 1,
@@ -724,7 +790,7 @@ const generateData = () => {
       priority: priorities[i % priorities.length],
       department: departments[i % departments.length],
       location: locations[i % locations.length],
-      phone: `138${String(i + 1).padStart(8, '0')}`,
+      phone: `138${String(i + 1).padStart(8, "0")}`,
       email: `user${i + 1}@example.com`,
       remark: `这是项目${i + 1}的备注信息，用于测试横向滚动功能`,
     });
@@ -737,7 +803,7 @@ const getRandomDate = () => {
   const start = new Date(2023, 0, 1);
   const end = new Date();
   const date = new Date(
-    start.getTime() + Math.random() * (end.getTime() - start.getTime())
+    start.getTime() + Math.random() * (end.getTime() - start.getTime()),
   );
 
   const year = date.getFullYear();
@@ -777,8 +843,9 @@ const mockDragSortUrl = async (sortData) => {
 const handleDragSortChange = (sortInfo) => {
   console.log("拖拽排序变化:", sortInfo);
   message(
-    `将第 ${sortInfo.oldIndex + 1} 行移动到第 ${sortInfo.newIndex + 1} 行`
-  , { type: "info" });
+    `将第 ${sortInfo.oldIndex + 1} 行移动到第 ${sortInfo.newIndex + 1} 行`,
+    { type: "info" },
+  );
 };
 
 // 拖拽排序保存成功处理

@@ -2,16 +2,31 @@
   <div class="add-download-link-container">
     <ScForm ref="formRef" :model="form" :rules="rules" label-width="100px">
       <ScFormItem label="下载名称" prop="videoDownloadName">
-        <ScInput v-model="form.videoDownloadName" placeholder="请输入下载名称" />
+        <ScInput
+          v-model="form.videoDownloadName"
+          placeholder="请输入下载名称"
+        />
       </ScFormItem>
       <ScFormItem label="下载链接" prop="videoDownloadUrl">
-        <ScInput v-model="form.videoDownloadUrl" placeholder="请输入下载链接" type="textarea" :rows="3" />
+        <ScInput
+          v-model="form.videoDownloadUrl"
+          placeholder="请输入下载链接"
+          type="textarea"
+          :rows="3"
+        />
       </ScFormItem>
       <ScFormItem label="链接类型" prop="videoDownloadType">
-        <CardSelector v-model="form.videoDownloadType" :options="resourceTypes" />
+        <CardSelector
+          v-model="form.videoDownloadType"
+          :options="resourceTypes"
+        />
       </ScFormItem>
       <ScFormItem label="视频质量" prop="videoDownloadQuality">
-        <ScSelect v-model="form.videoDownloadQuality" placeholder="请选择视频质量" class="w-full">
+        <ScSelect
+          v-model="form.videoDownloadQuality"
+          placeholder="请选择视频质量"
+          class="w-full"
+        >
           <ScOption label="标清" value="标清" />
           <ScOption label="高清" value="高清" />
           <ScOption label="超清" value="超清" />
@@ -21,10 +36,18 @@
         </ScSelect>
       </ScFormItem>
       <ScFormItem label="文件大小" prop="videoDownloadSize">
-        <ScInputNumber v-model="form.videoDownloadSize" placeholder="请输入文件大小(KB)" />
+        <ScInputNumber
+          v-model="form.videoDownloadSize"
+          placeholder="请输入文件大小(KB)"
+        />
       </ScFormItem>
       <ScFormItem label="磁力链接" prop="videoDownloadMagnetic">
-        <ScInput v-model="form.videoDownloadMagnetic" placeholder="请输入磁力链接" type="textarea" :rows="2" />
+        <ScInput
+          v-model="form.videoDownloadMagnetic"
+          placeholder="请输入磁力链接"
+          type="textarea"
+          :rows="2"
+        />
       </ScFormItem>
       <ScFormItem label="状态" prop="videoDownloadStatus">
         <ScRadioGroup v-model="form.videoDownloadStatus">
@@ -32,13 +55,32 @@
           <ScRadio :label="1">不可用</ScRadio>
         </ScRadioGroup>
       </ScFormItem>
-      <ScFormItem v-if="showVideoIdSelect" label="关联视频" prop="videoDownloadVideoId">
-        <ScSelect v-model="form.videoDownloadVideoId" placeholder="请选择关联视频" class="w-full" filterable remote :remote-method="searchVideos" :loading="videoLoading">
-          <ScOption v-for="item in videoOptions" :key="item.videoId" :label="item.videoName" :value="item.videoId" />
+      <ScFormItem
+        v-if="showVideoIdSelect"
+        label="关联视频"
+        prop="videoDownloadVideoId"
+      >
+        <ScSelect
+          v-model="form.videoDownloadVideoId"
+          placeholder="请选择关联视频"
+          class="w-full"
+          filterable
+          remote
+          :remote-method="searchVideos"
+          :loading="videoLoading"
+        >
+          <ScOption
+            v-for="item in videoOptions"
+            :key="item.videoId"
+            :label="item.videoName"
+            :value="item.videoId"
+          />
         </ScSelect>
       </ScFormItem>
       <ScFormItem class="flex justify-end gap-2 submit-btn">
-        <ScButton type="primary" @click="submitForm" :loading="submitLoading">保存</ScButton>
+        <ScButton type="primary" @click="submitForm" :loading="submitLoading"
+          >保存</ScButton
+        >
         <ScButton @click="resetForm">重置</ScButton>
       </ScFormItem>
     </ScForm>
@@ -53,7 +95,9 @@ import { createDownload, updateDownload } from "../../../api/download";
 import { getVideoList } from "../../../api/video";
 import type { DownloadItem } from "../../../types/upload";
 import type { VideoItem } from "../../../types/video";
-const CardSelector = defineAsyncComponent(() => import("@repo/components/ScSelect/index.vue"));
+const CardSelector = defineAsyncComponent(
+  () => import("@repo/components/ScSelect/index.vue"),
+);
 
 // 资源类型定义
 const resourceTypes = [
@@ -117,10 +161,22 @@ const rules = reactive<FormRules>({
     { required: true, message: "请输入下载名称", trigger: "blur" },
     { min: 2, max: 100, message: "长度在2到100个字符之间", trigger: "blur" },
   ],
-  videoDownloadUrl: [{ required: true, message: "请输入下载链接", trigger: "blur" }],
-  videoDownloadType: [{ required: true, message: "请选择链接类型", trigger: "change" }],
-  videoDownloadStatus: [{ required: true, message: "请选择状态", trigger: "change" }],
-  videoDownloadVideoId: [{ required: props.showVideoIdSelect, message: "请选择关联视频", trigger: "change" }],
+  videoDownloadUrl: [
+    { required: true, message: "请输入下载链接", trigger: "blur" },
+  ],
+  videoDownloadType: [
+    { required: true, message: "请选择链接类型", trigger: "change" },
+  ],
+  videoDownloadStatus: [
+    { required: true, message: "请选择状态", trigger: "change" },
+  ],
+  videoDownloadVideoId: [
+    {
+      required: props.showVideoIdSelect,
+      message: "请选择关联视频",
+      trigger: "change",
+    },
+  ],
 });
 
 // 搜索视频
@@ -158,7 +214,9 @@ const submitForm = async () => {
     const api = props.mode === "add" ? createDownload : updateDownload;
     api(form)
       .then((res) => {
-        message(props.mode === "add" ? "新增成功" : "更新成功", { type: "success" });
+        message(props.mode === "add" ? "新增成功" : "更新成功", {
+          type: "success",
+        });
         emit("success", form);
         if (props.mode === "add") {
           resetForm();

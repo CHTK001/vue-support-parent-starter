@@ -2,133 +2,133 @@
   <div class="room-management system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
-      <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/webrtc' }"
+      <ScBreadcrumb separator="/">
+        <ScBreadcrumbItem :to="{ path: '/webrtc' }"
           >WebRTC管理</el-breadcrumb-item
         >
-        <el-breadcrumb-item>房间管理</el-breadcrumb-item>
-      </el-breadcrumb>
+        <ScBreadcrumbItem>房间管理</ScBreadcrumbItem>
+      </ScBreadcrumb>
       <div class="header-actions">
-        <el-button type="primary" @click="showCreateDialog = true">
-          <el-icon><Plus /></el-icon>
+        <ScButton type="primary" @click="showCreateDialog = true">
+          <ScIcon><Plus /></ScIcon>
           创建房间
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 搜索筛选 -->
-    <el-card class="search-card" shadow="never">
-      <el-form :model="searchForm" inline>
-        <el-form-item label="房间名称">
-          <el-input
+    <ScCard class="search-card" shadow="never">
+      <ScForm :model="searchForm" inline>
+        <ScFormItem label="房间名称">
+          <ScInput
             v-model="searchForm.roomName"
             placeholder="请输入房间名称"
             clearable
             style="width: 200px"
           />
-        </el-form-item>
-        <el-form-item label="房间类型">
-          <el-select
+        </ScFormItem>
+        <ScFormItem label="房间类型">
+          <ScSelect
             v-model="searchForm.roomType"
             placeholder="请选择房间类型"
             clearable
             style="width: 150px"
           >
-            <el-option label="视频通话" value="video_call" />
-            <el-option label="视频会议" value="video_conference" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="房间状态">
-          <el-select
+            <ScOption label="视频通话" value="video_call" />
+            <ScOption label="视频会议" value="video_conference" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="房间状态">
+          <ScSelect
             v-model="searchForm.status"
             placeholder="请选择状态"
             clearable
             style="width: 120px"
           >
-            <el-option label="活跃" value="active" />
-            <el-option label="非活跃" value="inactive" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>
+            <ScOption label="活跃" value="active" />
+            <ScOption label="非活跃" value="inactive" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem>
+          <ScButton type="primary" @click="handleSearch">
+            <ScIcon><Search /></ScIcon>
             搜索
-          </el-button>
-          <el-button @click="handleReset">
-            <el-icon><Refresh /></el-icon>
+          </ScButton>
+          <ScButton @click="handleReset">
+            <ScIcon><Refresh /></ScIcon>
             重置
-          </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+          </ScButton>
+        </ScFormItem>
+      </ScForm>
+    </ScCard>
 
     <!-- 房间列表 -->
-    <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="roomList" stripe style="width: 100%">
-        <el-table-column prop="roomId" label="房间ID" width="120" />
-        <el-table-column prop="roomName" label="房间名称" min-width="150" />
-        <el-table-column prop="roomType" label="房间类型" width="120">
+    <ScCard class="table-card" shadow="never">
+      <ScTable v-loading="loading" :data="roomList" stripe style="width: 100%">
+        <ScTableColumn prop="roomId" label="房间ID" width="120" />
+        <ScTableColumn prop="roomName" label="房间名称" min-width="150" />
+        <ScTableColumn prop="roomType" label="房间类型" width="120">
           <template #default="{ row }">
-            <el-tag
+            <ScTag
               :type="row.roomType === 'video_call' ? 'primary' : 'success'"
             >
               {{ row.roomType === "video_call" ? "视频通话" : "视频会议" }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
+        </ScTableColumn>
+        <ScTableColumn prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'active' ? 'success' : 'info'">
+            <ScTag :type="row.status === 'active' ? 'success' : 'info'">
               {{ row.status === "active" ? "活跃" : "非活跃" }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="用户数" width="120">
+        </ScTableColumn>
+        <ScTableColumn label="用户数" width="120">
           <template #default="{ row }">
             <span>{{ row.currentUsers }}/{{ row.maxUsers }}</span>
           </template>
-        </el-table-column>
-        <el-table-column prop="creatorName" label="创建者" width="120" />
-        <el-table-column prop="createTime" label="创建时间" width="180">
+        </ScTableColumn>
+        <ScTableColumn prop="creatorName" label="创建者" width="120" />
+        <ScTableColumn prop="createTime" label="创建时间" width="180">
           <template #default="{ row }">
             {{ formatTime(row.createTime) }}
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn
           prop="description"
           label="描述"
           min-width="150"
           show-overflow-tooltip
         />
-        <el-table-column label="操作" width="200" fixed="right">
+        <ScTableColumn label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="joinRoom(row)">
+            <ScButton type="primary" size="small" @click="joinRoom(row)">
               加入
-            </el-button>
-            <el-button type="info" size="small" @click="viewRoomDetail(row)">
+            </ScButton>
+            <ScButton type="info" size="small" @click="viewRoomDetail(row)">
               详情
-            </el-button>
-            <el-dropdown @command="(command) => handleCommand(command, row)">
-              <el-button type="primary" size="small">
-                更多<el-icon class="el-icon--right"><arrow-down /></el-icon>
-              </el-button>
+            </ScButton>
+            <ScDropdown @command="(command) => handleCommand(command, row)">
+              <ScButton type="primary" size="small">
+                更多<ScIcon class="el-icon--right"><arrow-down /></ScIcon>
+              </ScButton>
               <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                  <el-dropdown-item command="users">用户列表</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided
+                <ScDropdownMenu>
+                  <ScDropdownItem command="edit">编辑</ScDropdownItem>
+                  <ScDropdownItem command="users">用户列表</ScDropdownItem>
+                  <ScDropdownItem command="delete" divided
                     >删除</el-dropdown-item
                   >
-                </el-dropdown-menu>
+                </ScDropdownMenu>
               </template>
-            </el-dropdown>
+            </ScDropdown>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
 
       <!-- 分页 -->
       <div class="pagination-container">
-        <el-pagination
+        <ScPagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.size"
           :total="pagination.total"
@@ -138,7 +138,7 @@
           @current-change="handleCurrentChange"
         />
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 创建房间对话框 -->
     <sc-dialog
@@ -147,85 +147,85 @@
       width="500px"
       :before-close="handleCloseCreateDialog"
     >
-      <el-form
+      <ScForm
         ref="createFormRef"
         :model="createForm"
         :rules="createRules"
         label-width="100px"
       >
-        <el-form-item label="房间名称" prop="roomName">
-          <el-input
+        <ScFormItem label="房间名称" prop="roomName">
+          <ScInput
             v-model="createForm.roomName"
             placeholder="请输入房间名称"
           />
-        </el-form-item>
-        <el-form-item label="房间类型" prop="roomType">
-          <el-radio-group v-model="createForm.roomType">
-            <el-radio value="video_call">视频通话</el-radio>
-            <el-radio value="video_conference">视频会议</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="最大用户数" prop="maxUsers">
-          <el-input-number
+        </ScFormItem>
+        <ScFormItem label="房间类型" prop="roomType">
+          <ScRadioGroup v-model="createForm.roomType">
+            <ScRadio value="video_call">视频通话</ScRadio>
+            <ScRadio value="video_conference">视频会议</ScRadio>
+          </ScRadioGroup>
+        </ScFormItem>
+        <ScFormItem label="最大用户数" prop="maxUsers">
+          <ScInputNumber
             v-model="createForm.maxUsers"
             :min="2"
             :max="50"
             style="width: 100%"
           />
-        </el-form-item>
-        <el-form-item label="房间描述">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="房间描述">
+          <ScInput
             v-model="createForm.description"
             type="textarea"
             :rows="3"
             placeholder="请输入房间描述"
           />
-        </el-form-item>
-        <el-form-item label="房间密码">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="房间密码">
+          <ScInput
             v-model="createForm.password"
             type="password"
             placeholder="可选，设置房间密码"
             show-password
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button
+        <ScButton @click="showCreateDialog = false">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="createLoading"
           @click="handleCreateRoom"
         >
           创建
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
     <!-- 加入房间对话框 -->
     <sc-dialog v-model="showJoinDialog" title="加入房间" width="400px">
-      <el-form :model="joinForm" label-width="80px">
-        <el-form-item label="房间名称">
-          <el-input v-model="selectedRoom.roomName" readonly />
-        </el-form-item>
-        <el-form-item v-if="selectedRoom.requirePassword" label="房间密码">
-          <el-input
+      <ScForm :model="joinForm" label-width="80px">
+        <ScFormItem label="房间名称">
+          <ScInput v-model="selectedRoom.roomName" readonly />
+        </ScFormItem>
+        <ScFormItem v-if="selectedRoom.requirePassword" label="房间密码">
+          <ScInput
             v-model="joinForm.password"
             type="password"
             placeholder="请输入房间密码"
             show-password
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="showJoinDialog = false">取消</el-button>
-        <el-button
+        <ScButton @click="showJoinDialog = false">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="joinLoading"
           @click="handleJoinRoom"
         >
           加入
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>

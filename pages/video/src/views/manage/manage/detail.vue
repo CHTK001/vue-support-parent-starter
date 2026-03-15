@@ -5,8 +5,12 @@
       <div class="header-background"></div>
       <div class="header-content">
         <div class="header-title">
-          <h1 class="detail-title">{{ videoData.videoTitle || videoData.videoName }}</h1>
-          <div class="title-subtitle" v-if="videoData.videoYear">{{ videoData.videoYear }}年</div>
+          <h1 class="detail-title">
+            {{ videoData.videoTitle || videoData.videoName }}
+          </h1>
+          <div class="title-subtitle" v-if="videoData.videoYear">
+            {{ videoData.videoYear }}年
+          </div>
         </div>
       </div>
     </div>
@@ -16,19 +20,39 @@
       <div class="poster-section">
         <div class="poster-wrapper">
           <div class="poster-container">
-            <ScImage v-if="videoData.videoCover" referrerpolicy="no-referrer" :src="videoData.videoCover?.split(',')?.[0]" :preview-src-list="videoData.videoCover?.split(',')" fit="cover" class="poster-image">
+            <ScImage
+              v-if="videoData.videoCover"
+              referrerpolicy="no-referrer"
+              :src="videoData.videoCover?.split(',')?.[0]"
+              :preview-src-list="videoData.videoCover?.split(',')"
+              fit="cover"
+              class="poster-image"
+            >
               <template #error>
-                <ScImage 
+                <ScImage
                   v-if="videoData.videoCover"
                   referrerpolicy="no-referrer"
-                  :src="createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)"
-                  :preview-src-list="[createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)]"
+                  :src="
+                    createCompatibleImageUrl(
+                      videoData.videoCover?.split(',')?.[1],
+                      videoData.videoPlatform,
+                    )
+                  "
+                  :preview-src-list="[
+                    createCompatibleImageUrl(
+                      videoData.videoCover?.split(',')?.[1],
+                      videoData.videoPlatform,
+                    ),
+                  ]"
                   fit="cover"
                   class="poster-image"
                 >
                   <template #error>
                     <div class="no-poster">
-                      <IconifyIconOnline icon="ep:picture" class="no-poster-icon" />
+                      <IconifyIconOnline
+                        icon="ep:picture"
+                        class="no-poster-icon"
+                      />
                       <span>暂无海报</span>
                     </div>
                   </template>
@@ -52,7 +76,9 @@
             </div>
           </div>
           <div class="plot-summary">
-            <p v-if="videoData.videoDescription" class="plot-text">{{ videoData.videoDescription }}</p>
+            <p v-if="videoData.videoDescription" class="plot-text">
+              {{ videoData.videoDescription }}
+            </p>
             <div v-else class="no-data">
               <IconifyIconOnline icon="ep:warning" />
               <span>暂无简介</span>
@@ -61,11 +87,20 @@
         </div>
 
         <div class="action-buttons">
-          <ScButton type="primary" @click="handleEdit" class="action-btn primary-btn">
+          <ScButton
+            type="primary"
+            @click="handleEdit"
+            class="action-btn primary-btn"
+          >
             <IconifyIconOnline icon="ep:edit" />
             <span>编辑视频</span>
           </ScButton>
-          <ScButton type="success" @click="handlePlay" class="action-btn play-btn" v-if="videoData.videoUrl">
+          <ScButton
+            type="success"
+            @click="handlePlay"
+            class="action-btn play-btn"
+            v-if="videoData.videoUrl"
+          >
             <IconifyIconOnline icon="ep:video-play" />
             <span>播放视频</span>
           </ScButton>
@@ -90,18 +125,38 @@
               </div>
 
               <!-- 豆瓣和IMDb评分 -->
-              <div class="external-ratings" v-if="videoData.videoMarkList && videoData.videoMarkList.length > 0">
-                <div v-for="(mark, index) in videoData.videoMarkList" :key="index" class="rating-item" :class="{ douban: mark.videoMarkType === '豆瓣', imdb: mark.videoMarkType === 'IMDb' }" @click="openRatingLink(mark)">
+              <div
+                class="external-ratings"
+                v-if="
+                  videoData.videoMarkList && videoData.videoMarkList.length > 0
+                "
+              >
+                <div
+                  v-for="(mark, index) in videoData.videoMarkList"
+                  :key="index"
+                  class="rating-item"
+                  :class="{
+                    douban: mark.videoMarkType === '豆瓣',
+                    imdb: mark.videoMarkType === 'IMDb',
+                  }"
+                  @click="openRatingLink(mark)"
+                >
                   <span class="rating-name">{{ mark.videoMarkType }}</span>
                   <span class="rating-score">{{ mark.videoMarkScore }}</span>
-                  <span class="rating-count" v-if="mark.videoMarkPeople">{{ mark.videoMarkPeople }}人评价</span>
+                  <span class="rating-count" v-if="mark.videoMarkPeople"
+                    >{{ mark.videoMarkPeople }}人评价</span
+                  >
                 </div>
               </div>
             </div>
           </div>
 
           <div class="info-grid">
-            <div class="info-item" v-for="(item, index) in infoItems" :key="index">
+            <div
+              class="info-item"
+              v-for="(item, index) in infoItems"
+              :key="index"
+            >
               <div class="item-label">
                 <IconifyIconOnline :icon="item.icon" class="item-icon" />
                 <span>{{ item.label }}</span>
@@ -122,7 +177,12 @@
               <IconifyIconOnline icon="ep:download" class="title-icon" />
               <h3>下载信息</h3>
             </div>
-            <ScButton type="primary" size="small" @click="showAddLinkDialog" class="add-link-btn">
+            <ScButton
+              type="primary"
+              size="small"
+              @click="showAddLinkDialog"
+              class="add-link-btn"
+            >
               <IconifyIconOnline icon="ep:plus" />
               <span>新增链接</span>
             </ScButton>
@@ -135,37 +195,87 @@
                 <!-- 过滤器 -->
                 <div class="filter-container">
                   <div class="filter-row">
-                    <el-segmented v-model="downloadQualityFilter" :options="qualityFilterOptions"> </el-segmented>
+                    <el-segmented
+                      v-model="downloadQualityFilter"
+                      :options="qualityFilterOptions"
+                    >
+                    </el-segmented>
                   </div>
                 </div>
 
-                <div class="download-list compact" v-if="videoData.downloadList && videoData.downloadList.length > 0">
-                  <div v-for="(download, index) in filteredDownloadLinks" :key="'download-' + index" class="download-item">
+                <div
+                  class="download-list compact"
+                  v-if="
+                    videoData.downloadList && videoData.downloadList.length > 0
+                  "
+                >
+                  <div
+                    v-for="(download, index) in filteredDownloadLinks"
+                    :key="'download-' + index"
+                    class="download-item"
+                  >
                     <div class="download-info">
                       <div class="download-name">
-                        <IconifyIconOnline :icon="getDownloadIcon(getDownloadField(download, 'type'))" class="download-icon" />
-                        <span class="min-w-[200px] max-w-[100%] mr-6 text-ellipsis overflow-hidden">{{ getDownloadField(download, "name") }}</span>
+                        <IconifyIconOnline
+                          :icon="
+                            getDownloadIcon(getDownloadField(download, 'type'))
+                          "
+                          class="download-icon"
+                        />
+                        <span
+                          class="min-w-[200px] max-w-[100%] mr-6 text-ellipsis overflow-hidden"
+                          >{{ getDownloadField(download, "name") }}</span
+                        >
                         <span class="inline-tags"
-                          ><span v-if="getDownloadField(download, 'quality')" class="inline-quality">{{ getDownloadField(download, "quality") }}</span
-                          ><span v-if="getDownloadField(download, 'type')" class="inline-platform">{{ getDownloadField(download, "type") }}</span></span
+                          ><span
+                            v-if="getDownloadField(download, 'quality')"
+                            class="inline-quality"
+                            >{{ getDownloadField(download, "quality") }}</span
+                          ><span
+                            v-if="getDownloadField(download, 'type')"
+                            class="inline-platform"
+                            >{{ getDownloadField(download, "type") }}</span
+                          ></span
                         >
                       </div>
                       <div class="download-meta">
-                        <span v-if="getDownloadField(download, 'size')" class="download-size">{{ getDownloadField(download, "size") }}</span>
-                        <span class="download-date">{{ formatDateTime(download.createTime) }}</span>
-                        <span class="download-count">下载次数: {{ getDownloadField(download, "count") }}</span>
+                        <span
+                          v-if="getDownloadField(download, 'size')"
+                          class="download-size"
+                          >{{ getDownloadField(download, "size") }}</span
+                        >
+                        <span class="download-date">{{
+                          formatDateTime(download.createTime)
+                        }}</span>
+                        <span class="download-count"
+                          >下载次数:
+                          {{ getDownloadField(download, "count") }}</span
+                        >
                       </div>
                     </div>
                     <div class="download-actions">
-                      <ScButton type="primary" size="small" @click="copyDownloadLink(download)">
+                      <ScButton
+                        type="primary"
+                        size="small"
+                        @click="copyDownloadLink(download)"
+                      >
                         <IconifyIconOnline icon="ep:copy-document" />
                         复制
                       </ScButton>
-                      <ScButton type="success" size="small" @click="handleDownload(download)">
+                      <ScButton
+                        type="success"
+                        size="small"
+                        @click="handleDownload(download)"
+                      >
                         <IconifyIconOnline icon="ep:download" />
                         下载
                       </ScButton>
-                      <ScButton v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(download)">
+                      <ScButton
+                        v-if="isFromIndexPage"
+                        type="danger"
+                        size="small"
+                        @click="handleDeleteDownload(download)"
+                      >
                         <IconifyIconOnline icon="ep:delete" />
                         删除
                       </ScButton>
@@ -179,38 +289,84 @@
               <ScTabPane label="磁力资源">
                 <!-- 高清度和磁力类型过滤 -->
                 <div class="filter-container flex flex-row">
-                  <el-segmented v-model="qualityFilter" :options="qualityFilterOptions" @change="debounceFilter(() => {})"> </el-segmented>
-                  <el-segmented v-model="magnetTypeFilter" :options="magnetTypeOptions" @change="debounceFilter(() => {})"> </el-segmented>
+                  <el-segmented
+                    v-model="qualityFilter"
+                    :options="qualityFilterOptions"
+                    @change="debounceFilter(() => {})"
+                  >
+                  </el-segmented>
+                  <el-segmented
+                    v-model="magnetTypeFilter"
+                    :options="magnetTypeOptions"
+                    @change="debounceFilter(() => {})"
+                  >
+                  </el-segmented>
                 </div>
 
                 <div class="download-list-container">
                   <!-- 过滤加载状态 -->
                   <div v-if="isFiltering" class="filter-loading">
-                    <el-skeleton :rows="3" animated />
+                    <ScSkeleton :rows="3" animated />
                   </div>
                   <div v-else class="download-list compact">
                     <template v-if="videoData.downloadList">
-                      <transition-group name="download-item" tag="div" class="download-items-wrapper">
-                        <div v-for="(magnet, index) in filteredMagnetLinks" :key="'magnet-' + magnet.videoDownloadUrl + magnet.videoDownloadName" class="download-item">
+                      <transition-group
+                        name="download-item"
+                        tag="div"
+                        class="download-items-wrapper"
+                      >
+                        <div
+                          v-for="(magnet, index) in filteredMagnetLinks"
+                          :key="
+                            'magnet-' +
+                            magnet.videoDownloadUrl +
+                            magnet.videoDownloadName
+                          "
+                          class="download-item"
+                        >
                           <div class="download-info">
                             <div class="download-name">
-                              <IconifyIconOnline icon="ep:magnet" class="download-icon magnet-icon" />
+                              <IconifyIconOnline
+                                icon="ep:magnet"
+                                class="download-icon magnet-icon"
+                              />
                               <span>{{ magnet.videoDownloadName }}</span>
                               <span class="inline-tags"
-                                ><span v-if="magnet.videoDownloadQuality" class="inline-quality">{{ magnet.videoDownloadQuality }}</span></span
+                                ><span
+                                  v-if="magnet.videoDownloadQuality"
+                                  class="inline-quality"
+                                  >{{ magnet.videoDownloadQuality }}</span
+                                ></span
                               >
                             </div>
                             <div class="download-meta">
-                              <span v-if="magnet.videoDownloadSize" class="download-size">{{ magnet.videoDownloadSize }}</span>
-                              <span v-if="magnet.createTime" class="download-date">{{ formatDateTime(magnet.createTime) }}</span>
+                              <span
+                                v-if="magnet.videoDownloadSize"
+                                class="download-size"
+                                >{{ magnet.videoDownloadSize }}</span
+                              >
+                              <span
+                                v-if="magnet.createTime"
+                                class="download-date"
+                                >{{ formatDateTime(magnet.createTime) }}</span
+                              >
                             </div>
                           </div>
                           <div class="download-actions">
-                            <ScButton type="primary" size="small" @click="copyMagnetLink(magnet.videoDownloadUrl)">
+                            <ScButton
+                              type="primary"
+                              size="small"
+                              @click="copyMagnetLink(magnet.videoDownloadUrl)"
+                            >
                               <IconifyIconOnline icon="ep:copy-document" />
                               复制
                             </ScButton>
-                            <ScButton v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(magnet)">
+                            <ScButton
+                              v-if="isFromIndexPage"
+                              type="danger"
+                              size="small"
+                              @click="handleDeleteDownload(magnet)"
+                            >
                               <IconifyIconOnline icon="ep:delete" />
                               删除
                             </ScButton>
@@ -218,7 +374,9 @@
                         </div>
                       </transition-group>
                     </template>
-                    <div v-if="!filteredMagnetLinks.length" class="no-data">暂无磁力资源</div>
+                    <div v-if="!filteredMagnetLinks.length" class="no-data">
+                      暂无磁力资源
+                    </div>
                   </div>
                 </div>
               </ScTabPane>
@@ -228,8 +386,26 @@
                 <!-- 添加网盘类型过滤 -->
                 <div class="filter-container">
                   <div class="pan-type-tags">
-                    <ScTag :effect="panTypeFilter === '' ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === '' }" @click="debounceFilter(() => (panTypeFilter = ''))"> 全部 </ScTag>
-                    <ScTag v-for="type in panTypes" :key="type.value" :effect="panTypeFilter === type.value ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === type.value }" @click="debounceFilter(() => (panTypeFilter = type.value))">
+                    <ScTag
+                      :effect="panTypeFilter === '' ? 'dark' : 'plain'"
+                      class="pan-type-tag"
+                      :class="{ 'pan-type-selected': panTypeFilter === '' }"
+                      @click="debounceFilter(() => (panTypeFilter = ''))"
+                    >
+                      全部
+                    </ScTag>
+                    <ScTag
+                      v-for="type in panTypes"
+                      :key="type.value"
+                      :effect="panTypeFilter === type.value ? 'dark' : 'plain'"
+                      class="pan-type-tag"
+                      :class="{
+                        'pan-type-selected': panTypeFilter === type.value,
+                      }"
+                      @click="
+                        debounceFilter(() => (panTypeFilter = type.value))
+                      "
+                    >
                       {{ type.label }}
                     </ScTag>
                   </div>
@@ -238,31 +414,63 @@
                 <div class="download-list-container">
                   <!-- 过滤加载状态 -->
                   <div v-if="isFiltering" class="filter-loading">
-                    <el-skeleton :rows="3" animated />
+                    <ScSkeleton :rows="3" animated />
                   </div>
                   <div v-else class="download-list compact">
                     <template v-if="videoData.downloadList">
-                      <transition-group name="download-item" tag="div" class="download-items-wrapper">
-                        <div v-for="(pan, index) in filteredPanLinks" :key="'pan-' + pan.videoDownloadUrl + pan.videoDownloadName" class="download-item">
+                      <transition-group
+                        name="download-item"
+                        tag="div"
+                        class="download-items-wrapper"
+                      >
+                        <div
+                          v-for="(pan, index) in filteredPanLinks"
+                          :key="
+                            'pan-' +
+                            pan.videoDownloadUrl +
+                            pan.videoDownloadName
+                          "
+                          class="download-item"
+                        >
                           <div class="download-info">
                             <div class="download-name">
-                              <IconifyIconOnline :icon="getPanIcon(pan.type)" class="download-icon pan-icon" />
+                              <IconifyIconOnline
+                                :icon="getPanIcon(pan.type)"
+                                class="download-icon pan-icon"
+                              />
                               <span>{{ pan.videoDownloadName }}</span>
                               <span class="inline-tags"
-                                ><span v-if="pan.videoDownloadQuality" class="inline-quality">{{ pan.videoDownloadQuality }}</span></span
+                                ><span
+                                  v-if="pan.videoDownloadQuality"
+                                  class="inline-quality"
+                                  >{{ pan.videoDownloadQuality }}</span
+                                ></span
                               >
                             </div>
                           </div>
                           <div class="download-actions">
-                            <ScButton type="primary" size="small" @click="copyPanLink(pan.videoDownloadUrl)">
+                            <ScButton
+                              type="primary"
+                              size="small"
+                              @click="copyPanLink(pan.videoDownloadUrl)"
+                            >
                               <IconifyIconOnline icon="ep:copy-document" />
                               复制
                             </ScButton>
-                            <ScButton type="success" size="small" @click="openPanLink(pan.videoDownloadUrl)">
+                            <ScButton
+                              type="success"
+                              size="small"
+                              @click="openPanLink(pan.videoDownloadUrl)"
+                            >
                               <IconifyIconOnline icon="ep:link" />
                               打开
                             </ScButton>
-                            <ScButton v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(pan)">
+                            <ScButton
+                              v-if="isFromIndexPage"
+                              type="danger"
+                              size="small"
+                              @click="handleDeleteDownload(pan)"
+                            >
                               <IconifyIconOnline icon="ep:delete" />
                               删除
                             </ScButton>
@@ -270,7 +478,9 @@
                         </div>
                       </transition-group>
                     </template>
-                    <div v-if="!filteredPanLinks.length" class="no-data">暂无网盘资源</div>
+                    <div v-if="!filteredPanLinks.length" class="no-data">
+                      暂无网盘资源
+                    </div>
                   </div>
                 </div>
               </ScTabPane>
@@ -278,33 +488,68 @@
               <!-- 在线播放选项卡 - 更紧凑的布局 -->
               <ScTabPane label="在线播放">
                 <div class="download-list compact" v-if="playAddressList">
-                  <div v-for="(online, index) in playAddressList" :key="'online-' + index" class="download-item">
+                  <div
+                    v-for="(online, index) in playAddressList"
+                    :key="'online-' + index"
+                    class="download-item"
+                  >
                     <div class="download-info">
                       <div class="download-name">
-                        <IconifyIconOnline icon="ep:video-play" class="download-icon online-icon" />
-                        <span>{{ online.videoPlayAddressName || `在线资源 ${index + 1}` }}</span>
+                        <IconifyIconOnline
+                          icon="ep:video-play"
+                          class="download-icon online-icon"
+                        />
+                        <span>{{
+                          online.videoPlayAddressName || `在线资源 ${index + 1}`
+                        }}</span>
                         <span class="inline-tags"
-                          ><span v-if="online.quality" class="inline-quality">{{ online.quality }}</span
-                          ><span v-if="online.platform" class="inline-platform">{{ online.platform }}</span></span
+                          ><span v-if="online.quality" class="inline-quality">{{
+                            online.quality
+                          }}</span
+                          ><span
+                            v-if="online.platform"
+                            class="inline-platform"
+                            >{{ online.platform }}</span
+                          ></span
                         >
                       </div>
                       <div>
-                        <template v-for="channel in online.videoPlayAddressChannels" :key="channel">
-                          <ScButton class="inline-channel" @click="openOnlineLink(channel.videoPlayAddressUrl)">
+                        <template
+                          v-for="channel in online.videoPlayAddressChannels"
+                          :key="channel"
+                        >
+                          <ScButton
+                            class="inline-channel"
+                            @click="openOnlineLink(channel.videoPlayAddressUrl)"
+                          >
                             <IconifyIconOnline icon="ep:video-play" />
                             {{ channel.videoPlayAddressChannelName }}
                           </ScButton>
                         </template>
                       </div>
                     </div>
-                    <div class="download-actions" v-if="online.videoPlayAddressChannels.length == 1">
-                      <ScButton type="success" size="small" @click="openOnlineLink(online.videoPlayAddressChannels[0].videoPlayAddressUrl)">
+                    <div
+                      class="download-actions"
+                      v-if="online.videoPlayAddressChannels.length == 1"
+                    >
+                      <ScButton
+                        type="success"
+                        size="small"
+                        @click="
+                          openOnlineLink(
+                            online.videoPlayAddressChannels[0]
+                              .videoPlayAddressUrl,
+                          )
+                        "
+                      >
                         <IconifyIconOnline icon="ep:video-play" />
                         播放
                       </ScButton>
                     </div>
                   </div>
-                  <div v-if="!playAddressList" class="no-data">暂无在线资源</div>
+                  <div v-if="!playAddressList" class="no-data">
+                    暂无在线资源
+                  </div>
                 </div>
               </ScTabPane>
             </ScTabs>
@@ -314,24 +559,47 @@
         <div class="tags-section" v-if="videoData.videoTags">
           <h3 class="section-title">标签</h3>
           <div class="tags-list">
-            <ScTag v-for="(tag, index) in videoData.videoTags?.split(',').filter((t) => t)" :key="index" class="tag-item" effect="plain">
+            <ScTag
+              v-for="(tag, index) in videoData.videoTags
+                ?.split(',')
+                .filter((t) => t)"
+              :key="index"
+              class="tag-item"
+              effect="plain"
+            >
               {{ tag }}
             </ScTag>
-            <span v-if="!videoData.videoTags || videoData.videoTags.split(',').filter((t) => t).length === 0" class="no-data"> 暂无标签 </span>
+            <span
+              v-if="
+                !videoData.videoTags ||
+                videoData.videoTags.split(',').filter((t) => t).length === 0
+              "
+              class="no-data"
+            >
+              暂无标签
+            </span>
           </div>
         </div>
       </div>
     </div>
     <!-- 添加链接对话框 -->
-    <add-download-link-dialog ref="addLinkDialogRef" :video-id="videoData.videoId" @success="handleAddLinkSuccess" />
+    <add-download-link-dialog
+      ref="addLinkDialogRef"
+      :video-id="videoData.videoId"
+      @success="handleAddLinkSuccess"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-
 import ScTabPane from "@repo/components/ScTabs";
 import { getConfig } from "@repo/config";
-import { formatDateTime, getRandomString, message , ScMessageBox} from "@repo/utils";
+import {
+  formatDateTime,
+  getRandomString,
+  message,
+  ScMessageBox,
+} from "@repo/utils";
 
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -339,7 +607,13 @@ import { deleteDownload, getDownloadsByVideoId } from "../../../api/download";
 import { findPlayAddress } from "../../../api/play";
 import { getVideoDetail } from "../../../api/video";
 import { panTypes } from "../../../data/panTypes";
-import { getDownloadField, getDownloadIcon, magnetTypeOptions, parseMagnetLinks, qualityFilterOptions } from "../../../data/videoFilters";
+import {
+  getDownloadField,
+  getDownloadIcon,
+  magnetTypeOptions,
+  parseMagnetLinks,
+  qualityFilterOptions,
+} from "../../../data/videoFilters";
 import AddDownloadLinkDialog from "./components/AddDownloadLinkDialog.vue";
 
 const config = getConfig();
@@ -352,7 +626,10 @@ const addLinkDialogRef = ref<InstanceType<typeof AddDownloadLinkDialog>>();
 
 // 判断是否从index页面打开
 const isFromIndexPage = computed(() => {
-  return route.query.from === "index" || document.referrer.includes("/video/manage/index");
+  return (
+    route.query.from === "index" ||
+    document.referrer.includes("/video/manage/index")
+  );
 });
 
 // 过滤器
@@ -444,7 +721,9 @@ const infoItems = computed(() => [
   {
     label: "时长",
     icon: "ep:timer",
-    value: videoData.value.videoDuration ? `${videoData.value.videoDuration}分钟` : "未知",
+    value: videoData.value.videoDuration
+      ? `${videoData.value.videoDuration}分钟`
+      : "未知",
     component: "span",
     class: "",
     props: {},
@@ -486,14 +765,20 @@ const filteredMagnetLinks = computed(() => {
   let filteredLinks = magnetLinks;
   if (qualityFilter.value) {
     filteredLinks = filteredLinks.filter((item) => {
-      return item.videoDownloadQuality && item.videoDownloadQuality.includes(qualityFilter.value);
+      return (
+        item.videoDownloadQuality &&
+        item.videoDownloadQuality.includes(qualityFilter.value)
+      );
     });
   }
 
   // 再按磁力类型过滤
   if (magnetTypeFilter.value) {
     filteredLinks = filteredLinks.filter((item) => {
-      return item.videoDownloadName && item.videoDownloadName.includes(magnetTypeFilter.value);
+      return (
+        item.videoDownloadName &&
+        item.videoDownloadName.includes(magnetTypeFilter.value)
+      );
     });
   }
 
@@ -506,7 +791,10 @@ const filteredDownloadLinks = computed(() => {
     return videoData.value.downloadList || [];
   }
   return videoData.value.downloadList.filter((item) => {
-    return item.videoDownloadQuality && item.videoDownloadQuality.includes(downloadQualityFilter.value);
+    return (
+      item.videoDownloadQuality &&
+      item.videoDownloadQuality.includes(downloadQualityFilter.value)
+    );
   });
 });
 
@@ -524,7 +812,11 @@ const filteredPanLinks = computed(() => {
 // 处理播放地址索引
 const getIndex = (channel) => {
   const rs = [];
-  for (let i = channel.videoPlayAddressStartIndex; i <= channel.videoPlayAddressEndIndex; i++) {
+  for (
+    let i = channel.videoPlayAddressStartIndex;
+    i <= channel.videoPlayAddressEndIndex;
+    i++
+  ) {
     rs.push(i);
   }
   return rs;
@@ -548,7 +840,10 @@ const createCompatibleImageUrl = (videoCover, videoPlatform) => {
   if (!videoCover) {
     return null;
   }
-  return ossAddress + `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`;
+  return (
+    ossAddress +
+    `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`
+  );
 };
 
 const fetchVideoDonwload = async () => {
@@ -605,7 +900,10 @@ const handlePlay = () => {
 
 // 处理下载
 const handleDownload = (download) => {
-  if (download.videoDownloadType === "磁力资源" && download.videoDownloadMagnetic) {
+  if (
+    download.videoDownloadType === "磁力资源" &&
+    download.videoDownloadMagnetic
+  ) {
     openMagnetLink(`magnet:?xt=urn:btih:${download.videoDownloadMagnetic}`);
   } else if (download.videoDownloadUrl) {
     window.open(download.videoDownloadUrl, "_blank");
@@ -618,7 +916,10 @@ const handleDownload = (download) => {
 const copyDownloadLink = (download) => {
   let linkText = "";
 
-  if (download.videoDownloadType === "磁力资源" && download.videoDownloadMagnetic) {
+  if (
+    download.videoDownloadType === "磁力资源" &&
+    download.videoDownloadMagnetic
+  ) {
     linkText = `magnet:?xt=urn:btih:${download.videoDownloadMagnetic}`;
   } else if (download.videoDownloadUrl) {
     linkText = download.videoDownloadUrl;
@@ -640,7 +941,11 @@ const copyDownloadLink = (download) => {
 // 解析网盘链接
 const parsePanLinks = (downloadList) => {
   if (!downloadList || !Array.isArray(downloadList)) return [];
-  return downloadList.filter((it) => ["网盘资源", "百度网盘", "阿里云盘", "天翼网盘"].includes(it.videoDownloadType));
+  return downloadList.filter((it) =>
+    ["网盘资源", "百度网盘", "阿里云盘", "天翼网盘"].includes(
+      it.videoDownloadType,
+    ),
+  );
 };
 
 // 获取网盘图标
@@ -903,7 +1208,11 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-3) 0%,
+    var(--el-color-primary) 100%
+  );
   backdrop-filter: blur(10px);
 }
 
@@ -998,7 +1307,11 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
   pointer-events: none;
 }
 

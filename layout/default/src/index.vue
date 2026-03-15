@@ -485,19 +485,19 @@ const LayHeader = defineComponent({
                 <LayContent :fixed-header="set.fixedHeader" />
               </div>
             </div>
-            <el-scrollbar v-else style="flex: 1">
-              <el-backtop
+            <ScScrollbar v-else style="flex: 1">
+              <ScBacktop
                 :title="t('buttons.pureBackTop')"
                 target=".main-container .el-scrollbar__wrap"
               >
                 <BackTopIcon />
-              </el-backtop>
+              </ScBacktop>
               <LayHeader />
               <!-- 主体内容 -->
               <div style="flex: 1">
                 <LayContent :fixed-header="set.fixedHeader" />
               </div>
-            </el-scrollbar>
+            </ScScrollbar>
           </div>
         </div>
       </template>
@@ -532,19 +532,19 @@ const LayHeader = defineComponent({
               <LayContent :fixed-header="set.fixedHeader" />
             </div>
           </div>
-          <el-scrollbar v-else style="flex: 1">
-            <el-backtop
+          <ScScrollbar v-else style="flex: 1">
+            <ScBacktop
               :title="t('buttons.pureBackTop')"
               target=".main-container .el-scrollbar__wrap"
             >
               <BackTopIcon />
-            </el-backtop>
+            </ScBacktop>
             <LayHeader />
             <!-- 主体内容 -->
             <div style="flex: 1">
               <LayContent :fixed-header="set.fixedHeader" />
             </div>
-          </el-scrollbar>
+          </ScScrollbar>
         </div>
       </template>
 

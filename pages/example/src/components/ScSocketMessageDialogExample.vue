@@ -62,7 +62,7 @@
         <ScRow :gutter="20">
           <ScCol :span="8">
             <ScFormItem label="高度">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.height"
                 :min="100"
                 :max="400"
@@ -72,7 +72,7 @@
           </ScCol>
           <ScCol :span="8">
             <ScFormItem label="宽度">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.width"
                 :min="300"
                 :max="600"

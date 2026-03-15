@@ -1,27 +1,27 @@
 /**
  * ScReteEditor 类型定义
- * 
+ *
  * 本模块提供 Rete.js 可视化节点编辑器的类型定义，包括：
  * - Socket（连接点）定义
  * - Node（节点）基类和预定义节点
  * - Connection（连接）定义
  * - 编辑器配置和数据格式
- * 
+ *
  * @example 基础使用示例
  * ```typescript
- * import { 
- *   InputNode, 
- *   OutputNode, 
+ * import {
+ *   InputNode,
+ *   OutputNode,
  *   ProcessNode,
  *   type EditorData,
- *   type NodeTypeName 
+ *   type NodeTypeName
  * } from '@repo/scReteEditor';
- * 
+ *
  * // 创建节点实例
  * const input = new InputNode('数据输入');
  * const process = new ProcessNode('数据处理');
  * const output = new OutputNode('数据输出');
- * 
+ *
  * // 定义编辑器数据
  * const data: EditorData = {
  *   nodes: [
@@ -33,7 +33,7 @@
  *   ]
  * };
  * ```
- * 
+ *
  * @author CH
  * @since 2025-12-24
  */
@@ -48,15 +48,15 @@ import type { Component, DefineComponent } from "vue";
 
 /**
  * 基础 Socket（连接点）定义
- * 
+ *
  * Socket 是节点之间连接的端点，用于定义节点的输入/输出类型。
  * 只有相同类型的 Socket 才能相互连接。
- * 
+ *
  * @example
  * ```typescript
  * // 创建自定义 Socket
  * const mySocket = new BaseSocket('自定义类型');
- * 
+ *
  * // 在节点中使用
  * class MyNode extends BaseNode {
  *   constructor() {
@@ -75,17 +75,17 @@ export class BaseSocket extends ClassicPreset.Socket {
 
 /**
  * 预定义的 Socket 类型
- * 
+ *
  * 提供常用的数据类型 Socket，可直接在节点定义中使用。
- * 
+ *
  * @example
  * ```typescript
  * import { Sockets } from '@repo/scReteEditor';
- * 
+ *
  * // 使用预定义 Socket
  * this.addInput('data', new ClassicPreset.Input(Sockets.data, '数据输入'));
  * this.addOutput('result', new ClassicPreset.Output(Sockets.any, '结果输出'));
- * 
+ *
  * // 可用的 Socket 类型：
  * // - Sockets.any      任意类型，可与所有类型连接
  * // - Sockets.string   字符串类型
@@ -124,15 +124,15 @@ export type SocketType = keyof typeof Sockets;
 
 /**
  * 基础节点类
- * 
+ *
  * 所有自定义节点的基类，提供节点的基本属性和方法。
- * 
+ *
  * @property {number} width - 节点宽度（像素），默认 200
  * @property {number} height - 节点高度（像素），默认 140
  * @property {string} nodeType - 节点类型标识
  * @property {string} nodeIcon - 节点图标（Iconify 格式）
  * @property {string} nodeColor - 节点主题色（HEX 格式）
- * 
+ *
  * @example 创建自定义节点
  * ```typescript
  * class MyCustomNode extends BaseNode {
@@ -141,7 +141,7 @@ export type SocketType = keyof typeof Sockets;
  *   nodeColor = '#ff6b6b';
  *   width = 220;
  *   height = 160;
- *   
+ *
  *   constructor(label: string = '自定义节点') {
  *     super(label);
  *     // 添加输入端口
@@ -165,7 +165,7 @@ export class BaseNode extends ClassicPreset.Node {
   nodeIcon?: string;
   /** 节点主题色（HEX 格式，如 '#10b981'） */
   nodeColor?: string;
-  
+
   constructor(label: string) {
     super(label);
   }
@@ -173,12 +173,12 @@ export class BaseNode extends ClassicPreset.Node {
 
 /**
  * 输入节点 - 数据流的起点
- * 
+ *
  * 特点：
  * - 只有输出端口，无输入端口
  * - 包含一个文本输入控件
  * - 绿色主题（#10b981）
- * 
+ *
  * @example
  * ```typescript
  * const inputNode = new InputNode('MySQL 数据源');
@@ -189,25 +189,25 @@ export class InputNode extends BaseNode {
   nodeType = "input";
   nodeIcon = "ri:login-box-line";
   nodeColor = "#10b981";
-  
+
   constructor(label: string = "输入") {
     super(label);
     this.addOutput("output", new ClassicPreset.Output(Sockets.any, "输出"));
     this.addControl(
       "value",
-      new ClassicPreset.InputControl("text", { initial: "" })
+      new ClassicPreset.InputControl("text", { initial: "" }),
     );
   }
 }
 
 /**
  * 输出节点 - 数据流的终点
- * 
+ *
  * 特点：
  * - 只有输入端口，无输出端口
  * - 输入端口支持多连接（可接收多个数据源）
  * - 橙色主题（#f59e0b）
- * 
+ *
  * @example
  * ```typescript
  * const outputNode = new OutputNode('Redis 缓存');
@@ -219,7 +219,7 @@ export class OutputNode extends BaseNode {
   nodeType = "output";
   nodeIcon = "ri:logout-box-line";
   nodeColor = "#f59e0b";
-  
+
   constructor(label: string = "输出") {
     super(label);
     // 启用多连接，允许多个数据源输出到同一个节点
@@ -229,12 +229,12 @@ export class OutputNode extends BaseNode {
 
 /**
  * 处理节点 - 数据转换/处理
- * 
+ *
  * 特点：
  * - 同时拥有输入和输出端口
  * - 输入端口支持多连接（可接收多个数据源）
  * - 紫色主题（#6366f1）
- * 
+ *
  * @example
  * ```typescript
  * const processNode = new ProcessNode('数据过滤');
@@ -246,7 +246,7 @@ export class ProcessNode extends BaseNode {
   nodeType = "process";
   nodeIcon = "ri:settings-3-line";
   nodeColor = "#6366f1";
-  
+
   constructor(label: string = "处理") {
     super(label);
     // 启用多连接，允许多个数据源连接到同一个处理节点
@@ -257,12 +257,12 @@ export class ProcessNode extends BaseNode {
 
 /**
  * 条件节点 - 分支逻辑控制
- * 
+ *
  * 特点：
  * - 一个输入端口（支持多连接），两个输出端口（真/假）
  * - 包含条件表达式输入控件
  * - 深紫色主题（#8b5cf6）
- * 
+ *
  * @example
  * ```typescript
  * const conditionNode = new ConditionNode('数据校验');
@@ -274,7 +274,7 @@ export class ConditionNode extends BaseNode {
   nodeIcon = "ri:git-branch-line";
   nodeColor = "#8b5cf6";
   height = 180;
-  
+
   constructor(label: string = "条件") {
     super(label);
     // 启用多连接，允许多个数据源连接到条件节点
@@ -283,18 +283,18 @@ export class ConditionNode extends BaseNode {
     this.addOutput("false", new ClassicPreset.Output(Sockets.any, "假"));
     this.addControl(
       "condition",
-      new ClassicPreset.InputControl("text", { initial: "" })
+      new ClassicPreset.InputControl("text", { initial: "" }),
     );
   }
 }
 
 /**
  * 合并节点 - 多路数据合并
- * 
+ *
  * 特点：
  * - 两个输入端口，一个输出端口
  * - 粉色主题（#ec4899）
- * 
+ *
  * @example
  * ```typescript
  * const mergeNode = new MergeNode('数据合并');
@@ -306,7 +306,7 @@ export class MergeNode extends BaseNode {
   nodeIcon = "ri:git-merge-line";
   nodeColor = "#ec4899";
   height = 160;
-  
+
   constructor(label: string = "合并") {
     super(label);
     this.addInput("input1", new ClassicPreset.Input(Sockets.any, "输入1"));
@@ -317,13 +317,13 @@ export class MergeNode extends BaseNode {
 
 /**
  * 延迟节点 - 延时处理
- * 
+ *
  * 特点：
  * - 同时拥有输入和输出端口
  * - 输入端口支持多连接
  * - 包含延迟时间输入控件（毫秒）
  * - 青色主题（#14b8a6）
- * 
+ *
  * @example
  * ```typescript
  * const delayNode = new DelayNode('延时 5 秒');
@@ -334,7 +334,7 @@ export class DelayNode extends BaseNode {
   nodeType = "delay";
   nodeIcon = "ri:time-line";
   nodeColor = "#14b8a6";
-  
+
   constructor(label: string = "延迟") {
     super(label);
     // 启用多连接
@@ -342,19 +342,19 @@ export class DelayNode extends BaseNode {
     this.addOutput("output", new ClassicPreset.Output(Sockets.any, "输出"));
     this.addControl(
       "delay",
-      new ClassicPreset.InputControl("number", { initial: 1000 })
+      new ClassicPreset.InputControl("number", { initial: 1000 }),
     );
   }
 }
 
 /**
  * 节点连接类
- * 
+ *
  * 表示两个节点之间的连接关系。
- * 
+ *
  * @template A - 源节点类型
  * @template B - 目标节点类型
- * 
+ *
  * @example
  * ```typescript
  * const conn = new Connection(sourceNode, 'output', targetNode, 'input');
@@ -363,7 +363,7 @@ export class DelayNode extends BaseNode {
  */
 export class Connection<
   A extends BaseNode,
-  B extends BaseNode
+  B extends BaseNode,
 > extends ClassicPreset.Connection<A, B> {}
 
 /**
@@ -380,13 +380,13 @@ export type AreaExtra = VueArea2D<Schemes>;
 
 /**
  * 预定义节点类型映射
- * 
+ *
  * 将节点类型名称映射到对应的节点类。
- * 
+ *
  * @example
  * ```typescript
  * import { NodeTypes, type NodeTypeName } from '@repo/scReteEditor';
- * 
+ *
  * // 根据类型名创建节点
  * const typeName: NodeTypeName = 'process';
  * const NodeClass = NodeTypes[typeName];
@@ -416,9 +416,9 @@ export type NodeTypeName = keyof typeof NodeTypes;
 
 /**
  * 节点配置对象
- * 
+ *
  * 用于创建或配置节点时的参数对象。
- * 
+ *
  * @example
  * ```typescript
  * const nodeConfig: NodeConfig = {
@@ -442,9 +442,9 @@ export interface NodeConfig {
 
 /**
  * 连接配置对象
- * 
+ *
  * 用于定义两个节点之间的连接关系。
- * 
+ *
  * @example
  * ```typescript
  * const connectionConfig: ConnectionConfig = {
@@ -468,10 +468,10 @@ export interface ConnectionConfig {
 
 /**
  * 编辑器数据格式
- * 
+ *
  * 用于保存/加载编辑器状态的数据结构。
  * 可通过 v-model 或 getData()/loadData() 方法使用。
- * 
+ *
  * @example 完整的编辑器数据示例
  * ```typescript
  * const editorData: EditorData = {
@@ -485,7 +485,7 @@ export interface ConnectionConfig {
  *       controls: { value: 'SELECT * FROM users' }
  *     },
  *     {
- *       id: 'node_2', 
+ *       id: 'node_2',
  *       type: 'process',
  *       label: '数据过滤',
  *       position: { x: 350, y: 100 },
@@ -509,7 +509,7 @@ export interface ConnectionConfig {
  *     },
  *     {
  *       sourceId: 'node_2',
- *       sourceOutput: 'output', 
+ *       sourceOutput: 'output',
  *       targetId: 'node_3',
  *       targetInput: 'input'
  *     }
@@ -518,9 +518,9 @@ export interface ConnectionConfig {
  * ```
  */
 export interface EditorData {
-  /** 
+  /**
    * 节点列表
-   * 
+   *
    * 每个节点包含：
    * - id: 唯一标识
    * - type: 节点类型
@@ -540,9 +540,9 @@ export interface EditorData {
     /** 节点控件的值，key 为控件名称 */
     controls?: Record<string, any>;
   }>;
-  /** 
+  /**
    * 连接列表
-   * 
+   *
    * 定义节点之间的连接关系
    */
   connections: ConnectionConfig[];
@@ -550,9 +550,9 @@ export interface EditorData {
 
 /**
  * 编辑器配置选项
- * 
+ *
  * 用于配置编辑器的行为和外观。
- * 
+ *
  * @example 基础配置示例
  * ```typescript
  * const config: EditorConfig = {
@@ -564,14 +564,14 @@ export interface EditorData {
  *   zoom: { min: 0.2, max: 2 } // 缩放范围 20%-200%
  * };
  * ```
- * 
+ *
  * @example 自定义节点类型示例
  * ```typescript
  * class MyNode extends BaseNode {
  *   nodeType = 'custom';
  *   // ...
  * }
- * 
+ *
  * const config: EditorConfig = {
  *   customNodeTypes: {
  *     custom: MyNode
@@ -584,73 +584,73 @@ export interface EditorData {
  * ```
  */
 export interface EditorConfig {
-  /** 
+  /**
    * 是否只读模式
-   * 
+   *
    * 启用后禁止拖拽、连接、删除等操作
    * @default false
    */
   readonly?: boolean;
-  /** 
+  /**
    * 是否显示小地图
-   * 
+   *
    * 小地图显示在右下角，方便概览和导航
    * @default false
    */
   minimap?: boolean;
-  /** 
+  /**
    * 是否启用右键菜单
-   * 
+   *
    * 启用后可通过右键添加节点
    * @default true
    */
   contextMenu?: boolean;
-  /** 
+  /**
    * 是否启用自动排列功能
-   * 
+   *
    * 启用后可使用 arrange() 方法自动布局节点
    * @default true
    */
   autoArrange?: boolean;
-  /** 
+  /**
    * 是否启用连接线重路由
-   * 
+   *
    * 启用后可在连接线上添加转点
    * @default false
    */
   reroute?: boolean;
-  /** 
+  /**
    * 背景类型
-   * 
+   *
    * - 'dots': 点阵背景（默认）
    * - 'lines': 网格线背景
    * - 'none': 无背景
    * @default 'dots'
    */
   background?: "dots" | "lines" | "none";
-  /** 
+  /**
    * 缩放范围限制
-   * 
+   *
    * @example { min: 0.2, max: 2 } 表示 20%-200%
    * @default { min: 0.2, max: 2 }
    */
   zoom?: { min: number; max: number };
-  /** 
+  /**
    * 自定义节点渲染组件
-   * 
+   *
    * 用于完全自定义节点的外观
    */
   customNodeComponent?: Component | DefineComponent;
-  /** 
+  /**
    * 自定义节点类型映射
-   * 
+   *
    * 扩展预定义的节点类型
    * @example { myType: MyNodeClass }
    */
   customNodeTypes?: Record<string, typeof BaseNode>;
-  /** 
+  /**
    * 节点菜单项配置
-   * 
+   *
    * 配置左侧节点面板和右键菜单中显示的节点类型
    * @example
    * ```typescript
@@ -672,16 +672,16 @@ export interface EditorConfig {
 
 /**
  * 编辑器实例对象
- * 
+ *
  * 包含编辑器核心和各插件实例，用于高级操作。
  * 可通过组件的 editorInstance 属性获取。
- * 
+ *
  * @example
  * ```typescript
  * // 获取编辑器实例
  * const editorRef = ref<InstanceType<typeof ScReteEditor>>();
  * const instance = editorRef.value?.editorInstance;
- * 
+ *
  * // 访问底层 API
  * if (instance) {
  *   const nodes = instance.editor.getNodes();
@@ -708,9 +708,9 @@ export interface EditorInstance {
 
 /**
  * 编辑器事件类型定义
- * 
+ *
  * 定义组件触发的事件及其回调参数。
- * 
+ *
  * @example
  * ```vue
  * <ScReteEditor

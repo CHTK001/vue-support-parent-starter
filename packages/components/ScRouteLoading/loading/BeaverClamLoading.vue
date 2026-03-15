@@ -83,19 +83,19 @@ const performHit = () => {
   if (isHitting.value || clamHp.value <= 0) {
     return;
   }
-  
+
   isHitting.value = true;
   clamShake.value = true;
-  
+
   // 减少血量
   const damage = 8 + Math.random() * 4;
   clamHp.value = Math.max(0, clamHp.value - damage);
   hitCount.value++;
-  
+
   // 生成粒子
   const currentLevel = resolveCrackLevel(clamHp.value);
   spawnParticles(clamX.value, clamY.value, currentLevel);
-  
+
   // 如果血量归零，打开蛤蜊
   if (clamHp.value <= 0) {
     setTimeout(() => {
@@ -106,13 +106,13 @@ const performHit = () => {
       }, 1500);
     }, 300);
   }
-  
+
   // 停止抖动
   const shakeDuration = currentLevel === "heavy" || currentLevel === "broken" ? 260 : 180;
   setTimeout(() => {
     clamShake.value = false;
   }, shakeDuration);
-  
+
   // 收回手臂
   setTimeout(() => {
     isHitting.value = false;
@@ -139,12 +139,12 @@ onMounted(() => {
       performHit();
     }
   }, 1200);
-  
+
   // 粒子更新循环
   particleInterval = setInterval(() => {
     updateParticles();
   }, 16);
-  
+
   // 进度条更新
   if (props.showProgress) {
     progressInterval = setInterval(() => {
@@ -173,24 +173,16 @@ onUnmounted(() => {
     <div class="game-area">
       <!-- 地面 -->
       <div class="ground"></div>
-      
+
       <!-- 蛤蜊 -->
-      <div
-        class="clam"
-        :class="[{ shake: clamShake, open: clamOpen }, clamCrackClass]"
-        :style="{ transform: `translate(${clamX}px, ${clamY}px)` }"
-      >
+      <div class="clam" :class="[{ shake: clamShake, open: clamOpen }, clamCrackClass]" :style="{ transform: `translate(${clamX}px, ${clamY}px)` }">
         <div class="clam-shell-bottom"></div>
         <div class="clam-pearl" v-if="clamOpen"></div>
         <div class="clam-shell-top"></div>
       </div>
-      
+
       <!-- 河狸 -->
-      <div 
-        class="beaver" 
-        :class="{ hit: isHitting }"
-        :style="{ transform: `translate(${beaverX}px, ${beaverY}px) scaleX(${beaverDirection})` }"
-      >
+      <div class="beaver" :class="{ hit: isHitting }" :style="{ transform: `translate(${beaverX}px, ${beaverY}px) scaleX(${beaverDirection})` }">
         <div class="beaver-tail"></div>
         <div class="beaver-body"></div>
         <div class="beaver-head">
@@ -203,18 +195,18 @@ onUnmounted(() => {
         </div>
         <div class="beaver-leg"></div>
       </div>
-      
+
       <!-- 粒子效果 -->
-      <div 
-        v-for="(p, i) in particles" 
-        :key="i" 
+      <div
+        v-for="(p, i) in particles"
+        :key="i"
         class="particle"
-        :style="{ 
-          transform: `translate(${p.x}px, ${p.y}px)`, 
-          backgroundColor: p.color 
+        :style="{
+          transform: `translate(${p.x}px, ${p.y}px)`,
+          backgroundColor: p.color
         }"
       ></div>
-      
+
       <!-- HUD -->
       <div class="hud">
         <div class="score">敲击次数: {{ hitCount }}</div>
@@ -222,12 +214,12 @@ onUnmounted(() => {
           <div class="hp-fill" :style="{ width: clamHp + '%' }"></div>
         </div>
       </div>
-      
+
       <!-- 加载文本 -->
       <div class="loading-text">
         <span class="text-content">{{ loadingText }}</span>
       </div>
-      
+
       <!-- 进度条 -->
       <div v-if="showProgress" class="progress-bar">
         <div class="progress-fill" :style="{ width: progress + '%' }">
@@ -254,11 +246,11 @@ onUnmounted(() => {
   position: relative;
   width: 800px;
   height: 600px;
-  background: #87CEEB; /* Sky/Water */
+  background: #87ceeb; /* Sky/Water */
   border: 4px solid #333;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
 .ground {
@@ -274,7 +266,7 @@ onUnmounted(() => {
   top: 20px;
   left: 20px;
   z-index: 10;
-  background: rgba(255,255,255,0.8);
+  background: rgba(255, 255, 255, 0.8);
   padding: 10px;
   border-radius: 8px;
   font-weight: bold;
@@ -288,7 +280,7 @@ onUnmounted(() => {
   margin-top: 5px;
   border-radius: 4px;
   overflow: hidden;
-  
+
   .hp-fill {
     height: 100%;
     background: #ff4757;
@@ -307,11 +299,11 @@ onUnmounted(() => {
   transition: transform 0.1s;
   left: 0;
   top: 0;
-  
+
   &.shake {
     animation: shake 0.1s infinite;
   }
-  
+
   .clam-shell-bottom {
     position: absolute;
     bottom: 0;
@@ -321,7 +313,7 @@ onUnmounted(() => {
     border-radius: 0 0 30px 30px;
     border: 2px solid #333;
   }
-  
+
   .clam-shell-top {
     position: absolute;
     bottom: 28px; /* Overlap */
@@ -364,11 +356,11 @@ onUnmounted(() => {
   &.crack-broken .clam-shell-top {
     box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
   }
-  
+
   &.open .clam-shell-top {
     transform: rotate(-60deg);
   }
-  
+
   .clam-pearl {
     position: absolute;
     bottom: 15px;
@@ -392,26 +384,26 @@ onUnmounted(() => {
   transition: transform 0.1s;
   left: 0;
   top: 0;
-  
+
   .beaver-body {
     position: absolute;
     bottom: 0;
     width: 60px;
     height: 70px;
-    background: #8B4513;
+    background: #8b4513;
     border-radius: 30px 30px 10px 10px;
     left: 10px;
   }
-  
+
   .beaver-head {
     position: absolute;
     top: -10px;
     left: 15px;
     width: 50px;
     height: 50px;
-    background: #8B4513;
+    background: #8b4513;
     border-radius: 50%;
-    
+
     .beaver-eye {
       position: absolute;
       top: 15px;
@@ -421,7 +413,7 @@ onUnmounted(() => {
       background: #000;
       border-radius: 50%;
     }
-    
+
     .beaver-ear {
       position: absolute;
       top: 0;
@@ -431,7 +423,7 @@ onUnmounted(() => {
       background: #654321;
       border-radius: 50%;
     }
-    
+
     .beaver-tooth {
       position: absolute;
       bottom: 5px;
@@ -442,7 +434,7 @@ onUnmounted(() => {
       border: 1px solid #ccc;
     }
   }
-  
+
   .beaver-tail {
     position: absolute;
     bottom: 5px;
@@ -453,18 +445,18 @@ onUnmounted(() => {
     border-radius: 20px;
     transform: rotate(-20deg);
   }
-  
+
   .beaver-arm {
     position: absolute;
     top: 30px;
     right: 5px;
     width: 20px;
     height: 30px;
-    background: #8B4513;
+    background: #8b4513;
     border-radius: 10px;
     transform-origin: top center;
     transform: rotate(20deg);
-    
+
     .stone {
       position: absolute;
       bottom: -5px;
@@ -475,7 +467,7 @@ onUnmounted(() => {
       border-radius: 50%;
     }
   }
-  
+
   /* Animations */
   &.hit {
     .beaver-arm {
@@ -485,18 +477,36 @@ onUnmounted(() => {
 }
 
 @keyframes smash {
-  0% { transform: rotate(20deg); }
-  40% { transform: rotate(-60deg); } /* Lift */
-  60% { transform: rotate(80deg); }  /* Hit */
-  100% { transform: rotate(20deg); }
+  0% {
+    transform: rotate(20deg);
+  }
+  40% {
+    transform: rotate(-60deg);
+  } /* Lift */
+  60% {
+    transform: rotate(80deg);
+  } /* Hit */
+  100% {
+    transform: rotate(20deg);
+  }
 }
 
 @keyframes shake {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(2px, 2px); }
-  50% { transform: translate(-2px, -2px); }
-  75% { transform: translate(2px, -2px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(2px, 2px);
+  }
+  50% {
+    transform: translate(-2px, -2px);
+  }
+  75% {
+    transform: translate(2px, -2px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 .particle {
@@ -545,7 +555,7 @@ onUnmounted(() => {
   transition: width 0.3s ease;
   position: relative;
   overflow: hidden;
-  
+
   .progress-shine {
     position: absolute;
     top: 0;
@@ -573,24 +583,23 @@ onUnmounted(() => {
     max-width: 600px;
     height: 450px;
   }
-  
+
   .beaver {
     transform: scale(0.8);
   }
-  
+
   .clam {
     transform: scale(0.8);
   }
-  
+
   .loading-text {
     font-size: 16px;
     bottom: 100px;
   }
-  
+
   .progress-bar {
     width: 250px;
     bottom: 50px;
   }
 }
 </style>
-

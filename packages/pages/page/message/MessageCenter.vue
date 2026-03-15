@@ -293,7 +293,7 @@ const formatTime = (time: string) => {
           <p class="header-subtitle" v-else>暂无未读消息</p>
         </div>
         <div class="header-actions">
-          <el-button 
+          <ScButton 
             v-if="unreadCount > 0" 
             type="primary" 
             :icon="Check"
@@ -301,7 +301,7 @@ const formatTime = (time: string) => {
             size="default"
           >
             全部已读
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
@@ -329,9 +329,9 @@ const formatTime = (time: string) => {
     <div class="message-content">
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-wrapper">
-        <el-icon class="is-loading loading-icon">
+        <ScIcon class="is-loading loading-icon">
           <IconifyIconOnline icon="ri:loader-4-line" />
-        </el-icon>
+        </ScIcon>
         <p class="loading-text">加载中...</p>
       </div>
 
@@ -354,7 +354,7 @@ const formatTime = (time: string) => {
           >
             <!-- 头像区域 -->
             <div class="item-avatar">
-              <el-avatar v-if="msg.avatar" :size="44" :src="msg.avatar" />
+              <ScAvatar v-if="msg.avatar" :size="44" :src="msg.avatar" />
               <div v-else class="default-avatar" :class="getAvatarTypeClass(msg.type)">
                 <IconifyIconOnline :icon="getMessageIcon(msg.type)" />
               </div>
@@ -370,16 +370,16 @@ const formatTime = (time: string) => {
                 <p class="item-desc">{{ msg.content }}</p>
               </div>
               <div class="item-footer">
-                <el-tag 
+                <ScTag 
                   size="small" 
                   :type="getTagType(msg.type)"
                   effect="plain"
                   class="type-tag"
                 >
                   {{ getTypeLabel(msg.type) }}
-                </el-tag>
+                </ScTag>
                 <div class="item-actions">
-                  <el-button
+                  <ScButton
                     type="danger"
                     :icon="Delete"
                     link
@@ -387,7 +387,7 @@ const formatTime = (time: string) => {
                     @click.stop="deleteMessage(msg)"
                   >
                     删除
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>

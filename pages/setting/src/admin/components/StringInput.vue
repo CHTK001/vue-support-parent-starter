@@ -1,5 +1,11 @@
 ﻿<template>
-  <ScInput v-model="innerValue" :disabled="disabled" :placeholder="placeholder" clearable class="sc-string-input">
+  <ScInput
+    v-model="innerValue"
+    :disabled="disabled"
+    :placeholder="placeholder"
+    clearable
+    class="sc-string-input"
+  >
     <template #prefix>
       <IconifyIconOnline icon="ep:document" />
     </template>

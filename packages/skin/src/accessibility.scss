@@ -1,0 +1,202 @@
+/**
+ * 可访问性和颜色对比度优化
+ * Accessibility and Color Contrast Optimization
+ * 
+ * 确保符合 WCAG AA 标准
+ * Ensures WCAG AA compliance
+ */
+
+// WCAG AA 标准颜色对比度 (WCAG AA compliant color contrasts)
+:root {
+  // 高对比度文本颜色 (High contrast text colors)
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --text-tertiary: #6a6a6a;
+  --text-disabled: #9a9a9a;
+  --text-inverse: #ffffff;
+
+  // 背景颜色 (Background colors)
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e5e5e5;
+  --bg-inverse: #1a1a1a;
+
+  // 链接颜色 (Link colors) - 确保 4.5:1 对比度
+  --link-color: #0066cc;
+  --link-hover: #0052a3;
+  --link-visited: #551a8b;
+
+  // 状态颜色 (State colors) - WCAG AA 兼容
+  --color-success: #0f7b0f;
+  --color-warning: #b35900;
+  --color-error: #c41e3a;
+  --color-info: #0066cc;
+
+  // 焦点指示器 (Focus indicators)
+  --focus-ring-color: #0066cc;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+}
+
+// 暗黑模式颜色 (Dark mode colors)
+[data-theme='dark'] {
+  --text-primary: #e5e5e5;
+  --text-secondary: #b5b5b5;
+  --text-tertiary: #8a8a8a;
+  --text-disabled: #6a6a6a;
+  --text-inverse: #1a1a1a;
+
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2a2a2a;
+  --bg-tertiary: #3a3a3a;
+  --bg-inverse: #ffffff;
+
+  --link-color: #4d9fff;
+  --link-hover: #6bb0ff;
+  --link-visited: #b794f6;
+
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
+}
+
+// 焦点样式 (Focus styles)
+@mixin focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: 2px;
+}
+
+// 应用焦点样式到交互元素 (Apply focus styles to interactive elements)
+a, button, input, select, textarea, [tabindex]:not([tabindex="-1"]) {
+  &:focus-visible {
+    @include focus-visible;
+  }
+}
+
+// 跳过导航链接 (Skip navigation link)
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-decoration: none;
+  z-index: 10000;
+  border: 2px solid var(--focus-ring-color);
+
+  &:focus {
+    top: 0;
+  }
+}
+
+// 屏幕阅读器专用文本 (Screen reader only text)
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// 高对比度文本工具类 (High contrast text utilities)
+.text-contrast {
+  &-high {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  &-medium {
+    color: var(--text-secondary);
+  }
+
+  &-low {
+    color: var(--text-tertiary);
+  }
+}
+
+// 可访问的按钮样式 (Accessible button styles)
+.btn-accessible {
+  min-height: 44px; // 触摸目标最小尺寸
+  min-width: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 1rem;
+  line-height: 1.5;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// 可访问的表单控件 (Accessible form controls)
+.form-control-accessible {
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 1rem;
+  line-height: 1.5;
+  border: 2px solid var(--text-tertiary);
+  border-radius: 4px;
+  transition: border-color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--text-secondary);
+  }
+
+  &:focus {
+    border-color: var(--focus-ring-color);
+    outline: none;
+  }
+
+  &[aria-invalid='true'] {
+    border-color: var(--color-error);
+  }
+}
+
+// 错误消息样式 (Error message styles)
+.error-message {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin-top: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  &::before {
+    content: '⚠';
+    font-size: 1rem;
+  }
+}
+
+// 成功消息样式 (Success message styles)
+.success-message {
+  color: var(--color-success);
+  font-size: 0.875rem;
+  margin-top: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  &::before {
+    content: '✓';
+    font-size: 1rem;
+  }
+}

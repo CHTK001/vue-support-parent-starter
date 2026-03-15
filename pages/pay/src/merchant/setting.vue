@@ -6,7 +6,7 @@
     :with-header="true"
   >
     <div class="dialog-header">
-      <h3>支付配置 - {{ merchant?.payMerchantName || '' }}</h3>
+      <h3>支付配置 - {{ merchant?.payMerchantName || "" }}</h3>
     </div>
     <div class="grid grid-cols-4 gap-4">
       <ScCard v-for="item in configList" :key="item.type" shadow="hover">
@@ -28,7 +28,7 @@
 
         <div class="flex items-center justify-end gap-2">
           <template v-if="item.type === 'timeout'">
-            <ScInputNumber 
+            <ScInputNumber
               v-model="merchant.payMerchantOpenTimeoutTime"
               :min="1"
               :max="1440"
@@ -44,7 +44,7 @@
             />
             <ScTag effect="plain">min</ScTag>
           </template>
-          <ScButton 
+          <ScButton
             v-else
             size="small"
             type="primary"
@@ -65,7 +65,7 @@
       append-to-body
     >
       <div class="dialog-header">
-        <h3>配置 - {{ config.current?.title || '' }}</h3>
+        <h3>配置 - {{ config.current?.title || "" }}</h3>
       </div>
       <ScForm :model="config.form" label-width="140px" class="modern-form">
         <template v-if="config.current?.type !== 'wallet'">
@@ -76,9 +76,7 @@
             <ScInput v-model="config.form.payMerchantConfigWechatMchId" />
           </ScFormItem>
           <ScFormItem label="证书序列号">
-            <ScInput 
-              v-model="config.form.payMerchantConfigWechatMchSerialNo"
-            />
+            <ScInput v-model="config.form.payMerchantConfigWechatMchSerialNo" />
           </ScFormItem>
           <ScFormItem label="AppSecret">
             <ScInput v-model="config.form.payMerchantConfigWechatAppSecret" />
@@ -87,17 +85,17 @@
             <ScInput v-model="config.form.payMerchantConfigWechatApiKeyV3" />
           </ScFormItem>
           <ScFormItem label="私钥路径">
-            <ScInput 
+            <ScInput
               v-model="config.form.payMerchantConfigWechatPrivateKeyPath"
             />
           </ScFormItem>
           <ScFormItem label="支付回调URL">
-            <ScInput 
+            <ScInput
               v-model="config.form.payMerchantConfigWechatPayNotifyUrl"
             />
           </ScFormItem>
           <ScFormItem label="退款回调URL">
-            <ScInput 
+            <ScInput
               v-model="config.form.payMerchantConfigWechatRefundNotifyUrl"
             />
           </ScFormItem>

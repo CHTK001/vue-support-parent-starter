@@ -3,19 +3,33 @@
     <div class="video-default__container">
       <div class="video-default__header">
         <h2 class="video-default__title">热门推荐</h2>
-        <ScButton type="primary" plain size="small" @click="navigateToAll">查看全部</ScButton>
+        <ScButton type="primary" plain size="small" @click="navigateToAll"
+          >查看全部</ScButton
+        >
       </div>
 
       <!-- 热门推荐视频卡片 -->
       <div class="video-default__grid">
-        <div v-for="video in recommendedVideos" :key="video.videoId" class="video-default__card" @click="handleVideoClick(video)">
+        <div
+          v-for="video in recommendedVideos"
+          :key="video.videoId"
+          class="video-default__card"
+          @click="handleVideoClick(video)"
+        >
           <div class="video-default__cover">
-            <img :src="video.videoCover || placeholderImage" :alt="video.videoName" />
-            <div class="video-default__rating" v-if="video.rating">{{ video.rating }}</div>
+            <img
+              :src="video.videoCover || placeholderImage"
+              :alt="video.videoName"
+            />
+            <div class="video-default__rating" v-if="video.rating">
+              {{ video.rating }}
+            </div>
           </div>
           <div class="video-default__info">
             <div class="video-default__name">{{ video.videoName }}</div>
-            <div class="video-default__meta">{{ video.year }} · {{ video.district }}</div>
+            <div class="video-default__meta">
+              {{ video.year }} · {{ video.district }}
+            </div>
           </div>
         </div>
       </div>
@@ -24,18 +38,32 @@
       <div class="video-default__section">
         <div class="video-default__header">
           <h2 class="video-default__title">最新上线</h2>
-          <ScButton type="primary" plain size="small" @click="navigateToNew">查看全部</ScButton>
+          <ScButton type="primary" plain size="small" @click="navigateToNew"
+            >查看全部</ScButton
+          >
         </div>
 
         <div class="video-default__grid">
-          <div v-for="video in newVideos" :key="video.videoId" class="video-default__card" @click="handleVideoClick(video)">
+          <div
+            v-for="video in newVideos"
+            :key="video.videoId"
+            class="video-default__card"
+            @click="handleVideoClick(video)"
+          >
             <div class="video-default__cover">
-              <img :src="video.videoCover || placeholderImage" :alt="video.videoName" />
-              <div class="video-default__rating" v-if="video.rating">{{ video.rating }}</div>
+              <img
+                :src="video.videoCover || placeholderImage"
+                :alt="video.videoName"
+              />
+              <div class="video-default__rating" v-if="video.rating">
+                {{ video.rating }}
+              </div>
             </div>
             <div class="video-default__info">
               <div class="video-default__name">{{ video.videoName }}</div>
-              <div class="video-default__meta">{{ video.year }} · {{ video.district }}</div>
+              <div class="video-default__meta">
+                {{ video.year }} · {{ video.district }}
+              </div>
             </div>
           </div>
         </div>

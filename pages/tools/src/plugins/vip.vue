@@ -334,10 +334,11 @@ onMounted(() => {
               <ScFormItem label="解析接口">
                 <ScSelect v-model="env.selectedApi" class="vip-tool__select">
                   <el-option-group label="通用接口">
-                    <ScOption 
+                    <ScOption
                       v-for="item in env.apis.filter(
                         (api) =>
-                          (api.value <= 15 && api.value <= 7) || api.value >= 13
+                          (api.value <= 15 && api.value <= 7) ||
+                          api.value >= 13,
                       )"
                       :key="item.value"
                       :label="item.label"
@@ -346,9 +347,9 @@ onMounted(() => {
                   </el-option-group>
                   <el-option-group label="专用接口">
                     <el-option-group label="主流视频">
-                      <ScOption 
+                      <ScOption
                         v-for="item in env.apis.filter(
-                          (api) => api.value > 7 && api.value <= 12
+                          (api) => api.value > 7 && api.value <= 12,
                         )"
                         :key="item.value"
                         :label="item.label"
@@ -356,9 +357,9 @@ onMounted(() => {
                       />
                     </el-option-group>
                     <el-option-group label="B站专用">
-                      <ScOption 
+                      <ScOption
                         v-for="item in env.apis.filter(
-                          (api) => api.value >= 16 && api.value <= 18
+                          (api) => api.value >= 16 && api.value <= 18,
                         )"
                         :key="item.value"
                         :label="item.label"
@@ -366,9 +367,9 @@ onMounted(() => {
                       />
                     </el-option-group>
                     <el-option-group label="其他平台">
-                      <ScOption 
+                      <ScOption
                         v-for="item in env.apis.filter(
-                          (api) => api.value >= 19 && api.value <= 21
+                          (api) => api.value >= 19 && api.value <= 21,
                         )"
                         :key="item.value"
                         :label="item.label"
@@ -380,7 +381,7 @@ onMounted(() => {
               </ScFormItem>
 
               <ScFormItem label="视频链接">
-                <ScInput 
+                <ScInput
                   v-model="env.inputValue"
                   placeholder="请输入需要解析的视频链接，如：https://v.qq.com/x/cover/xxx.html"
                   clearable
@@ -394,7 +395,7 @@ onMounted(() => {
               </ScFormItem>
 
               <div class="vip-tool__actions">
-                <ScButton 
+                <ScButton
                   type="primary"
                   :loading="env.loading"
                   class="vip-tool__parse-btn"
@@ -409,7 +410,7 @@ onMounted(() => {
                   <span>重置</span>
                 </ScButton>
 
-                <ScButton 
+                <ScButton
                   v-if="env.currentUrl"
                   type="success"
                   class="vip-tool__fullscreen-btn"
@@ -434,7 +435,7 @@ onMounted(() => {
             >
               <span class="vip-tool__history-label">历史记录:</span>
               <div class="vip-tool__history-items">
-                <ScTag 
+                <ScTag
                   v-for="(url, index) in env.history"
                   :key="index"
                   class="vip-tool__history-item"
@@ -450,7 +451,7 @@ onMounted(() => {
             <div class="vip-tool__popular-sites">
               <span class="vip-tool__popular-sites-label">热门视频网站:</span>
               <div class="vip-tool__popular-sites-items">
-                <ScButton 
+                <ScButton
                   v-for="site in env.popularSites"
                   :key="site.name"
                   class="vip-tool__popular-site-btn"
@@ -505,11 +506,7 @@ onMounted(() => {
       </ScRow>
 
       <!-- 使用说明 -->
-      <ScCard 
-        class="vip-tool__tips-card"
-        shadow="hover"
-        v-if="!env.currentUrl"
-      >
+      <ScCard class="vip-tool__tips-card" shadow="hover" v-if="!env.currentUrl">
         <template #header>
           <div class="vip-tool__card-header">
             <IconifyIconOnline

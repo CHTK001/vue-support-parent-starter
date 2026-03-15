@@ -60,7 +60,9 @@
 
     <template #footer>
       <ScButton @click="visible = false">取消</ScButton>
-      <ScButton type="primary" :loading="processing" @click="handleCrop">确定裁剪</ScButton>
+      <ScButton type="primary" :loading="processing" @click="handleCrop"
+        >确定裁剪</ScButton
+      >
     </template>
   </sc-dialog>
 </template>
@@ -190,7 +192,7 @@ const handleCrop = () => {
       }
     },
     "image/png",
-    1
+    1,
   );
 };
 

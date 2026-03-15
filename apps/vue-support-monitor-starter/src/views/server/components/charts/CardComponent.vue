@@ -6,12 +6,12 @@
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
       <div v-if="editMode" class="card-actions">
-        <el-button type="primary" text size="small" @click="handleEdit">
+        <ScButton type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
-        </el-button>
-        <el-button type="danger" text size="small" @click="handleDelete">
+        </ScButton>
+        <ScButton type="danger" text size="small" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -23,7 +23,7 @@
 
       <!-- 进度条显示（仅对百分比类型的指标显示） -->
       <div v-if="showProgressBar" class="metric-progress">
-        <el-progress
+        <ScProgress
           :percentage="progressPercentage"
           :color="getProgressColor(progressPercentage, metricType)"
           :show-text="false"
@@ -41,7 +41,7 @@
     </div>
 
     <div v-if="!editMode" class="card-footer">
-      <el-button
+      <ScButton
         type="primary"
         text
         size="small"
@@ -50,7 +50,7 @@
       >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

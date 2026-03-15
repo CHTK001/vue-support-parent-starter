@@ -1,16 +1,41 @@
 ﻿<template>
-  <sc-dialog :model-value="visible" @update:model-value="handleClose" :title="editing ? '编辑配置' : '新增配置'" width="600px" @close="handleClose">
-    <ScForm ref="formRef" :model="formData" :rules="formRules" label-width="100px" class="modern-form">
+  <sc-dialog
+    :model-value="visible"
+    @update:model-value="handleClose"
+    :title="editing ? '编辑配置' : '新增配置'"
+    width="600px"
+    @close="handleClose"
+  >
+    <ScForm
+      ref="formRef"
+      :model="formData"
+      :rules="formRules"
+      label-width="100px"
+      class="modern-form"
+    >
       <ScFormItem label="配置名称" prop="videoSyncConfigName">
-        <ScInput v-model="formData.videoSyncConfigName" placeholder="请输入配置名称" />
+        <ScInput
+          v-model="formData.videoSyncConfigName"
+          placeholder="请输入配置名称"
+        />
       </ScFormItem>
 
       <ScFormItem label="同步源" prop="videoSourceId">
-        <ScSelect v-model="formData.videoSourceId" :props="selectProps" :url="getSourceList" :is-remote="true" layout="card" style="width: 100%" />
+        <ScSelect
+          v-model="formData.videoSourceId"
+          :props="selectProps"
+          :url="getSourceList"
+          :is-remote="true"
+          layout="card"
+          style="width: 100%"
+        />
       </ScFormItem>
 
       <ScFormItem label="同步间隔">
-        <ScSelect v-model="formData.videoSyncInterval" placeholder="选择同步间隔">
+        <ScSelect
+          v-model="formData.videoSyncInterval"
+          placeholder="选择同步间隔"
+        >
           <ScOption label="手动同步" :value="0" />
           <ScOption label="每5分钟" :value="5" />
           <ScOption label="每15分钟" :value="15" />
@@ -22,11 +47,21 @@
       </ScFormItem>
 
       <ScFormItem label="请求头">
-        <ScInput v-model="formData.videoConfigHeaders" type="textarea" :rows="3" placeholder="JSON格式的请求头" />
+        <ScInput
+          v-model="formData.videoConfigHeaders"
+          type="textarea"
+          :rows="3"
+          placeholder="JSON格式的请求头"
+        />
       </ScFormItem>
 
       <ScFormItem label="配置说明">
-        <ScInput v-model="formData.videoConfigRemark" type="textarea" :rows="2" placeholder="请输入配置说明" />
+        <ScInput
+          v-model="formData.videoConfigRemark"
+          type="textarea"
+          :rows="2"
+          placeholder="请输入配置说明"
+        />
       </ScFormItem>
 
       <ScFormItem label="当前索引">
@@ -118,9 +153,15 @@ const selectProps = {
 
 // 表单验证规则
 const formRules = {
-  videoSyncConfigName: [{ required: true, message: "请输入配置名称", trigger: "blur" }],
-  videoSyncConfigSource: [{ required: true, message: "请选择同步源", trigger: "change" }],
-  videoSyncInterval: [{ required: true, message: "请选择同步间隔", trigger: "change" }],
+  videoSyncConfigName: [
+    { required: true, message: "请输入配置名称", trigger: "blur" },
+  ],
+  videoSyncConfigSource: [
+    { required: true, message: "请选择同步源", trigger: "change" },
+  ],
+  videoSyncInterval: [
+    { required: true, message: "请选择同步间隔", trigger: "change" },
+  ],
 };
 
 /**
@@ -157,11 +198,19 @@ const handleSave = () => {
       saving.value = true;
 
       // 根据编辑状态调用不同的API
-      const apiCall = props.editing && props.config?.videoSyncConfigId ? updateSyncConfig({ ...formData, videoSyncConfigId: props.config.videoSyncConfigId } as VideoSyncConfig) : addSyncConfig(formData as VideoSyncConfig);
+      const apiCall =
+        props.editing && props.config?.videoSyncConfigId
+          ? updateSyncConfig({
+              ...formData,
+              videoSyncConfigId: props.config.videoSyncConfigId,
+            } as VideoSyncConfig)
+          : addSyncConfig(formData as VideoSyncConfig);
 
       apiCall
         .then((result) => {
-          message(props.editing ? "配置更新成功" : "配置添加成功", { type: "success" });
+          message(props.editing ? "配置更新成功" : "配置添加成功", {
+            type: "success",
+          });
           emit("success");
           handleClose();
         })
@@ -199,7 +248,7 @@ watch(
       resetForm();
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // 暴露给父组件的方法

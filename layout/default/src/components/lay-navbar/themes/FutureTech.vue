@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseNavbar from './BaseNavbar.vue';
+import BaseNavbar from "./BaseNavbar.vue";
 </script>
 
 <template>
@@ -21,22 +21,28 @@ $ft-border: rgba(0, 255, 255, 0.4);
   overflow: hidden;
 
   :deep(.future-tech-navbar) {
-    background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+    background: linear-gradient(
+      180deg,
+      rgba(5, 10, 31, 0.95),
+      rgba(10, 26, 58, 0.9)
+    ) !important;
     border-bottom: 1px solid $ft-border !important;
     box-shadow: 0 2px 20px rgba(0, 255, 255, 0.15) !important;
     backdrop-filter: blur(10px);
     position: relative;
     z-index: 10;
-    
-    .el-button, .el-dropdown, .breadcrumb-item {
+
+    .el-button,
+    .el-dropdown,
+    .breadcrumb-item {
       color: rgba(0, 255, 255, 0.8) !important;
     }
-    
+
     .search-wrapper {
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(0, 255, 255, 0.3);
       color: $ft-cyan;
-      
+
       &::placeholder {
         color: rgba(0, 255, 255, 0.5);
       }
@@ -44,4 +50,3 @@ $ft-border: rgba(0, 255, 255, 0.4);
   }
 }
 </style>
-

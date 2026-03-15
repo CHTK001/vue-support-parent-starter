@@ -2,7 +2,7 @@
   <div class="connection-status-container system-container modern-bg">
     <!-- 连接状态指示器 -->
     <div class="status-indicator">
-      <el-tag
+      <ScTag
         :type="getStatusType(connectionStatus)"
         :effect="isConnecting ? 'plain' : 'light'"
         size="small"
@@ -15,7 +15,7 @@
         />
         <IconifyIconOnline v-else :icon="getStatusIcon(connectionStatus)" />
         {{ getStatusText(connectionStatus) }}
-      </el-tag>
+      </ScTag>
 
       <!-- 最后连接时间 -->
       <span v-if="lastConnectTime" class="last-connect-time"
@@ -25,7 +25,7 @@
 
     <!-- 连接操作按钮 -->
     <div class="connection-actions">
-      <el-button
+      <ScButton
         size="small"
         type="primary"
         :loading="isConnecting"
@@ -34,9 +34,9 @@
       >
         <IconifyIconOnline icon="ep:connection" />
         {{ isConnecting ? "测试中..." : "测试连接" }}
-      </el-button>
+      </ScButton>
 
-      <el-button
+      <ScButton
         v-if="connectionStatus === CONNECTION_STATUS.FAILED"
         size="small"
         type="warning"
@@ -44,7 +44,7 @@
       >
         <IconifyIconOnline icon="ep:warning" />
         查看错误
-      </el-button>
+      </ScButton>
     </div>
 
     <!-- 错误详情对话框 -->
@@ -55,7 +55,7 @@
       :close-on-click-modal="false"
     >
       <div class="error-details">
-        <el-alert
+        <ScAlert
           :title="errorMessage || '连接失败'"
           type="error"
           :closable="false"
@@ -80,8 +80,8 @@
       </div>
 
       <template #footer>
-        <el-button @click="showErrorDialog = false">关闭</el-button>
-        <el-button type="primary" @click="testConnection">重新测试</el-button>
+        <ScButton @click="showErrorDialog = false">关闭</ScButton>
+        <ScButton type="primary" @click="testConnection">重新测试</ScButton>
       </template>
     </sc-dialog>
   </div>

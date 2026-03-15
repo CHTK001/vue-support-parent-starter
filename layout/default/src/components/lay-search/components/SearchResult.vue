@@ -24,8 +24,7 @@ const epThemeStore = useEpThemeStoreHook();
 const itemStyle = computed(() => {
   return (item) => {
     return {
-      background:
-        item?.path === active.value ? epThemeStore.epThemeColor : "",
+      background: item?.path === active.value ? epThemeStore.epThemeColor : "",
       color: item.path === active.value ? "#fff" : "",
       fontSize: item.path === active.value ? "16px" : "14px",
     };

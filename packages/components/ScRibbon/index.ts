@@ -1,1 +1,1 @@
-export { default as ScRibbon } from './index.vue';
+export { default as ScRibbon } from "./index.vue";

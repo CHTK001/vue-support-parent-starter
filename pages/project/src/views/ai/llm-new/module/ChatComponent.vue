@@ -12,10 +12,10 @@
           </div>
           <span class="conversation-title">会话管理</span>
         </div>
-        <ScButton 
+        <ScButton
           :icon="
             useRenderIcon(
-              isConversationCollapsed ? 'ep:d-arrow-right' : 'ep:d-arrow-left'
+              isConversationCollapsed ? 'ep:d-arrow-right' : 'ep:d-arrow-left',
             )
           "
           size="small"
@@ -139,19 +139,19 @@
           <template #footer="{ item }" v-if="!isLoading">
             <div class="footer-container">
               <ScTooltip content="复制内容" placement="top">
-                <ScButton 
+                <ScButton
                   :icon="useRenderIcon('ep:copy-document')"
                   size="small"
                   circle
                   @click="handleCopyMessage(item)"
                 />
               </ScTooltip>
-              <ScTooltip 
+              <ScTooltip
                 content="重新发送"
                 placement="top"
                 v-if="item.type === 'sent'"
               >
-                <ScButton 
+                <ScButton
                   :icon="useRenderIcon('ep:refresh')"
                   size="small"
                   circle
@@ -197,7 +197,7 @@
           <template #prefix>
             <div class="input-prefix">
               <ScTooltip content="上传文件" placement="top">
-                <ScUpload 
+                <ScUpload
                   :show-file-list="false"
                   :before-upload="handleFileUpload"
                   accept="image/*,.pdf,.doc,.docx,.txt,.md"
@@ -243,7 +243,7 @@
                 @close="showModelConfig = false"
               >
                 <template #reference>
-                  <ScButton 
+                  <ScButton
                     circle
                     @click="toggleModelConfig"
                     class="config-btn"
@@ -266,7 +266,7 @@
                 />
               </ScContainer>
 
-              <ScButton 
+              <ScButton
                 v-if="isLoading"
                 circle
                 @click="stopGeneration"
@@ -274,7 +274,7 @@
               >
                 <IconifyIconOnline icon="ri:stop-circle-line" />
               </ScButton>
-              <ScButton 
+              <ScButton
                 v-else
                 circle
                 @click="handleSendMessage"
@@ -305,7 +305,7 @@
                       >({{ formatFileSize(file.size) }})</span
                     >
                   </div>
-                  <ScButton 
+                  <ScButton
                     size="small"
                     text
                     @click="removeFile(index)"
@@ -328,7 +328,7 @@ import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ScContainer } from "@repo/components/ScContainer";
 import { fetchCallStream } from "@repo/core";
-import { message , ScMessageBox} from "@repo/utils";
+import { message, ScMessageBox } from "@repo/utils";
 
 import { computed, nextTick, ref, watch } from "vue";
 import {
@@ -515,7 +515,7 @@ const handleSendMessage = async () => {
         await loadConversationList();
         // 然后选中新创建的会话，确保会话状态正确
         const createdConversation = conversationList.value.find(
-          (c) => c.sysAiGroupId === newConversation.sysAiGroupId
+          (c) => c.sysAiGroupId === newConversation.sysAiGroupId,
         );
         if (createdConversation) {
           await handleConversationSelect(createdConversation);
@@ -637,7 +637,7 @@ const sendToAI = async (prompt, files) => {
           if (data.done) {
             isLoading.value = false;
             const aiMessage = messages.value.find(
-              (msg) => msg.id === aiMessageId
+              (msg) => msg.id === aiMessageId,
             );
             if (aiMessage) {
               aiMessage.streaming = false;
@@ -656,7 +656,7 @@ const sendToAI = async (prompt, files) => {
           // 更新 AI 消息内容
           if (data.output) {
             const aiMessage = messages.value.find(
-              (msg) => msg.id === aiMessageId
+              (msg) => msg.id === aiMessageId,
             );
             if (aiMessage) {
               aiMessage.content += data.output;
@@ -694,7 +694,7 @@ const sendToAI = async (prompt, files) => {
 
             // 移除失败的消息
             const index = messages.value.findIndex(
-              (msg) => msg.id === aiMessageId
+              (msg) => msg.id === aiMessageId,
             );
             if (index > -1) {
               messages.value.splice(index, 1);
@@ -728,7 +728,7 @@ const sendToAI = async (prompt, files) => {
 
           // 移除失败的消息
           const index = messages.value.findIndex(
-            (msg) => msg.id === aiMessageId
+            (msg) => msg.id === aiMessageId,
           );
           if (index > -1) {
             messages.value.splice(index, 1);
@@ -895,7 +895,7 @@ const openPromptTemplateDialog = () => {
       <div style="font-weight: 600; color: #374151; margin-bottom: 4px;">${template.label}</div>
       <div style="color: #6b7280; font-size: 12px; margin-bottom: 6px;">${template.description}</div>
       <div style="color: #4f46e5; font-size: 14px; font-family: monospace;">${template.value}</div>
-    </div>`
+    </div>`,
     )
     .join("");
 
@@ -909,7 +909,7 @@ const openPromptTemplateDialog = () => {
     beforeClose: (action, instance, done) => {
       if (action === "confirm") {
         const selectedElement = instance.$el.querySelector(
-          '.template-option[data-selected="true"]'
+          '.template-option[data-selected="true"]',
         );
         if (selectedElement) {
           const index = parseInt(selectedElement.getAttribute("data-index"));
@@ -1066,7 +1066,7 @@ const handleConversationSelect = async (conversation) => {
       const { data: pageResult } = await getConversationMessages(
         conversation.sysAiGroupId,
         1,
-        100
+        100,
       );
 
       if (pageResult && pageResult.records && pageResult.records.length > 0) {
@@ -1081,13 +1081,13 @@ const handleConversationSelect = async (conversation) => {
         }));
 
         console.log(
-          `加载了 ${pageResult.records.length} 条历史消息，总共 ${pageResult.total} 条`
+          `加载了 ${pageResult.records.length} 条历史消息，总共 ${pageResult.total} 条`,
         );
 
         // 如果消息很多，可以考虑实现滚动加载更多
         if (pageResult.total > pageResult.records.length) {
           console.log(
-            `还有 ${pageResult.total - pageResult.records.length} 条消息未加载`
+            `还有 ${pageResult.total - pageResult.records.length} 条消息未加载`,
           );
         }
       } else {
@@ -1112,7 +1112,7 @@ function handleMenuCommand(command, item) {
   console.log("内置菜单点击事件：", command, item);
   // 直接修改 item 是否生效
   const index = conversationList.value.findIndex(
-    (itemSlef) => itemSlef.key === item.key
+    (itemSlef) => itemSlef.key === item.key,
   );
   if (command === "delete") {
     if (index !== -1) {
@@ -1228,7 +1228,7 @@ const loadConversationList = async () => {
   try {
     conversationLoading.value = true;
     const { data: conversations } = await getConversationList(
-      props.form.sysProjectId
+      props.form.sysProjectId,
     );
     conversationList.value = (conversations || []).map((conv) => {
       const updateTime = conv.updateTime
@@ -1274,7 +1274,7 @@ watch(
     if (messages.value.length > 0) {
       handleClearMessages();
     }
-  }
+  },
 );
 
 // 监听项目变化，重新加载会话列表
@@ -1285,7 +1285,7 @@ watch(
     if (newProjectId && newProjectId != oldProjectId) {
       loadConversationList();
     }
-  }
+  },
 );
 
 // 暴露方法给父组件

@@ -6,20 +6,20 @@
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <el-form ref="formRef" :model="form" label-width="100px" :rules="rules">
-      <el-form-item label="上传对象" prop="type">
-        <el-radio-group v-model="form.type" size="small">
+    <ScForm ref="formRef" :model="form" label-width="100px" :rules="rules">
+      <ScFormItem label="上传对象" prop="type">
+        <ScRadioGroup v-model="form.type" size="small">
           <el-radio-button label="SERVER">服务器</el-radio-button>
           <el-radio-button label="NODE">节点</el-radio-button>
-        </el-radio-group>
-      </el-form-item>
+        </ScRadioGroup>
+      </ScFormItem>
 
-      <el-form-item
+      <ScFormItem
         v-if="form.type === 'SERVER'"
         label="服务器"
         prop="serverIds"
       >
-        <el-select
+        <ScSelect
           v-model="form.serverIds"
           multiple
           filterable
@@ -27,17 +27,17 @@
           placeholder="请选择服务器"
           style="width: 100%"
         >
-          <el-option
+          <ScOption
             v-for="opt in serverOptions"
             :key="opt.value"
             :label="opt.label"
             :value="opt.value"
           />
-        </el-select>
-      </el-form-item>
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item v-else label="节点" prop="nodeIds">
-        <el-select
+      <ScFormItem v-else label="节点" prop="nodeIds">
+        <ScSelect
           v-model="form.nodeIds"
           multiple
           filterable
@@ -45,25 +45,25 @@
           placeholder="请选择节点"
           style="width: 100%"
         >
-          <el-option
+          <ScOption
             v-for="opt in nodeOptions"
             :key="opt.value"
             :label="opt.label"
             :value="opt.value"
           />
-        </el-select>
-      </el-form-item>
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="目标目录" prop="dirPath">
-        <el-input v-model="form.dirPath" placeholder="例如 /opt/data" />
-      </el-form-item>
+      <ScFormItem label="目标目录" prop="dirPath">
+        <ScInput v-model="form.dirPath" placeholder="例如 /opt/data" />
+      </ScFormItem>
 
-      <el-form-item label="是否覆盖">
-        <el-switch v-model="form.overwrite" />
-      </el-form-item>
+      <ScFormItem label="是否覆盖">
+        <ScSwitch v-model="form.overwrite" />
+      </ScFormItem>
 
-      <el-form-item label="选择文件" prop="files">
-        <el-upload
+      <ScFormItem label="选择文件" prop="files">
+        <ScUpload
           drag
           :auto-upload="false"
           :on-change="handleUploadChange"
@@ -79,13 +79,13 @@
             将文件拖到此处，或
             <em>点击上传</em>
           </div>
-        </el-upload>
-      </el-form-item>
-    </el-form>
+        </ScUpload>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
-      <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleConfirm"
+      <ScButton @click="handleClose">取消</ScButton>
+      <ScButton type="primary" :loading="submitting" @click="handleConfirm"
         >开始上传</el-button
       >
     </template>

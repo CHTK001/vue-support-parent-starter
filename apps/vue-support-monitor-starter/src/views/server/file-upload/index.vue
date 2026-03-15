@@ -10,22 +10,22 @@
       </div>
 
       <div class="header-actions">
-        <el-button type="primary" @click="handleCreateTask">
+        <ScButton type="primary" @click="handleCreateTask">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
           新建上传任务
-        </el-button>
-        <el-button @click="handleRefreshStats">
+        </ScButton>
+        <ScButton @click="handleRefreshStats">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新统计
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 统计卡片 -->
     <div class="stats-cards">
-      <el-row :gutter="16">
-        <el-col :span="6">
-          <el-card class="stat-card">
+      <ScRow :gutter="16">
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-icon pending">
                 <IconifyIconOnline icon="ep:clock" />
@@ -35,11 +35,11 @@
                 <div class="stat-label">待处理任务</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
-        <el-col :span="6">
-          <el-card class="stat-card">
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-icon processing">
                 <IconifyIconOnline icon="ep:loading" />
@@ -51,11 +51,11 @@
                 <div class="stat-label">处理中任务</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
-        <el-col :span="6">
-          <el-card class="stat-card">
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-icon completed">
                 <IconifyIconOnline icon="ep:check" />
@@ -67,11 +67,11 @@
                 <div class="stat-label">已完成任务</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
+          </ScCard>
+        </ScCol>
 
-        <el-col :span="6">
-          <el-card class="stat-card">
+        <ScCol :span="6">
+          <ScCard class="stat-card">
             <div class="stat-content">
               <div class="stat-icon failed">
                 <IconifyIconOnline icon="ep:close" />
@@ -81,9 +81,9 @@
                 <div class="stat-label">失败任务</div>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </ScCard>
+        </ScCol>
+      </ScRow>
     </div>
 
     <!-- 实时进度监控 -->
@@ -96,18 +96,18 @@
 
     <!-- 任务管理 -->
     <div class="task-management">
-      <el-card>
+      <ScCard>
         <template #header>
           <div class="card-header">
             <span>任务管理</span>
             <div class="header-tabs">
-              <el-radio-group v-model="activeTab" @change="handleTabChange">
+              <ScRadioGroup v-model="activeTab" @change="handleTabChange">
                 <el-radio-button value="all">全部任务</el-radio-button>
                 <el-radio-button value="pending">待处理</el-radio-button>
                 <el-radio-button value="processing">处理中</el-radio-button>
                 <el-radio-button value="completed">已完成</el-radio-button>
                 <el-radio-button value="failed">失败</el-radio-button>
-              </el-radio-group>
+              </ScRadioGroup>
             </div>
           </div>
         </template>
@@ -117,7 +117,7 @@
           :ssh-servers="sshServers"
           @task-updated="handleTaskUpdated"
         />
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 上传对话框 -->

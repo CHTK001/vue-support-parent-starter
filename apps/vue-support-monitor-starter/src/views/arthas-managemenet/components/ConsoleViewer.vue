@@ -1,6 +1,6 @@
 <template>
   <div class="console-viewer system-container modern-bg">
-    <el-alert
+    <ScAlert
       type="info"
       :closable="false"
       show-icon

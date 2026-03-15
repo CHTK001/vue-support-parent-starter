@@ -21,7 +21,7 @@ export interface LayoutTheme {
   /** 主题颜色（用于显示） */
   color?: string;
   /** 基础风格：light-浅色, dark-深色 */
-  baseStyle?: 'light' | 'dark';
+  baseStyle?: "light" | "dark";
 }
 
 /**
@@ -85,7 +85,7 @@ export const getLayoutTheme = (themeKey: ThemeKey): LayoutTheme | undefined => {
 };
 
 // 动态导入主题样式
-const themeModules = import.meta.glob('./*.{scss,css}');
+const themeModules = import.meta.glob("./*.{scss,css}");
 
 /**
  * 动态加载主题样式表
@@ -97,11 +97,13 @@ export const loadThemeStylesheet = (themeKey: ThemeKey) => {
 
   const path = `./${theme.stylesheet}`;
   if (themeModules[path]) {
-    themeModules[path]().then(() => {
-      console.debug(`Theme stylesheet loaded: ${path}`);
-    }).catch((e) => {
-      console.error(`Failed to load theme stylesheet: ${path}`, e);
-    });
+    themeModules[path]()
+      .then(() => {
+        console.debug(`Theme stylesheet loaded: ${path}`);
+      })
+      .catch((e) => {
+        console.error(`Failed to load theme stylesheet: ${path}`, e);
+      });
   } else {
     console.warn(`Theme stylesheet not found: ${path}`);
   }

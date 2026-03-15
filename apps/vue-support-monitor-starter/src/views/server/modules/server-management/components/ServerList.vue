@@ -3,7 +3,7 @@
     <!-- 搜索和筛选工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-input
+        <ScInput
           v-model="searchKeyword"
           placeholder="搜索服务器名称、地址..."
           clearable
@@ -13,69 +13,69 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
-        </el-input>
+        </ScInput>
 
-        <el-select
+        <ScSelect
           v-model="filterProtocol"
           placeholder="协议类型"
           clearable
           style="width: 120px; margin-left: 12px"
           @change="handleFilter"
         >
-          <el-option label="SSH" value="SSH" />
-          <el-option label="RDP" value="RDP" />
-          <el-option label="VNC" value="VNC" />
-        </el-select>
+          <ScOption label="SSH" value="SSH" />
+          <ScOption label="RDP" value="RDP" />
+          <ScOption label="VNC" value="VNC" />
+        </ScSelect>
 
-        <el-select
+        <ScSelect
           v-model="filterStatus"
           placeholder="连接状态"
           clearable
           style="width: 120px; margin-left: 12px"
           @change="handleFilter"
         >
-          <el-option label="在线" :value="1" />
-          <el-option label="离线" :value="0" />
-          <el-option label="连接中" :value="2" />
-          <el-option label="异常" :value="3" />
-        </el-select>
+          <ScOption label="在线" :value="1" />
+          <ScOption label="离线" :value="0" />
+          <ScOption label="连接中" :value="2" />
+          <ScOption label="异常" :value="3" />
+        </ScSelect>
       </div>
 
       <div class="toolbar-right">
-        <el-button @click="handleRefresh">
+        <ScButton @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
 
-        <el-dropdown @command="handleBatchAction">
-          <el-button>
+        <ScDropdown @command="handleBatchAction">
+          <ScButton>
             批量操作
             <IconifyIconOnline icon="ep:arrow-down" class="ml-1" />
-          </el-button>
+          </ScButton>
           <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="test">批量测试连接</el-dropdown-item>
-              <el-dropdown-item command="enable">批量启用</el-dropdown-item>
-              <el-dropdown-item command="disable">批量禁用</el-dropdown-item>
-              <el-dropdown-item command="delete" divided
+            <ScDropdownMenu>
+              <ScDropdownItem command="test">批量测试连接</ScDropdownItem>
+              <ScDropdownItem command="enable">批量启用</ScDropdownItem>
+              <ScDropdownItem command="disable">批量禁用</ScDropdownItem>
+              <ScDropdownItem command="delete" divided
                 >批量删除</el-dropdown-item
               >
-            </el-dropdown-menu>
+            </ScDropdownMenu>
           </template>
-        </el-dropdown>
+        </ScDropdown>
       </div>
     </div>
 
     <!-- 服务器表格 -->
-    <el-table
+    <ScTable
       v-loading="loading"
       :data="serverList"
       stripe
       @selection-change="handleSelectionChange"
     >
-      <el-table-column type="selection" width="55" />
+      <ScTableColumn type="selection" width="55" />
 
-      <el-table-column label="服务器信息" min-width="200">
+      <ScTableColumn label="服务器信息" min-width="200">
         <template #default="{ row }">
           <div class="server-info">
             <div class="server-name">
@@ -91,7 +91,7 @@
               }}
             </div>
             <div v-if="row.monitorSysGenServerTags" class="server-tags">
-              <el-tag
+              <ScTag
                 v-for="tag in getTagList(row.monitorSysGenServerTags)"
                 :key="tag"
                 size="small"
@@ -99,26 +99,26 @@
                 effect="plain"
               >
                 {{ tag }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="协议" width="80" align="center">
+      <ScTableColumn label="协议" width="80" align="center">
         <template #default="{ row }">
-          <el-tag
+          <ScTag
             :type="getProtocolType(row.monitorSysGenServerProtocol)"
             size="small"
           >
             {{ row.monitorSysGenServerProtocol }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="连接状态" width="100" align="center">
+      <ScTableColumn label="连接状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag
+          <ScTag
             :type="
               getConnectionStatusType(row.monitorSysGenServerConnectionStatus)
             "
@@ -128,22 +128,22 @@
             {{
               getConnectionStatusText(row.monitorSysGenServerConnectionStatus)
             }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="服务器状态" width="100" align="center">
+      <ScTableColumn label="服务器状态" width="100" align="center">
         <template #default="{ row }">
-          <el-switch
+          <ScSwitch
             v-model="row.monitorSysGenServerStatus"
             :active-value="1"
             :inactive-value="0"
             @change="handleStatusChange(row)"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="监控设置" width="120" align="center">
+      <ScTableColumn label="监控设置" width="120" align="center">
         <template #default="{ row }">
           <ServerQuickSetting
             :server-id="row.monitorSysGenServerId"
@@ -152,72 +152,72 @@
             @setting-changed="handleSettingChanged"
           />
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="最后连接时间" width="160" align="center">
+      <ScTableColumn label="最后连接时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerLastConnectTime">
             {{ formatDateTime(row.monitorSysGenServerLastConnectTime) }}
           </span>
           <span v-else class="text-muted">从未连接</span>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="操作" width="300" align="center" fixed="right">
+      <ScTableColumn label="操作" width="300" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
-            <el-button
+            <ScButton
               size="small"
               type="primary"
               @click="$emit('connect', row)"
             >
               <IconifyIconOnline icon="ri:play-line" />
-            </el-button>
+            </ScButton>
 
-            <el-button size="small" @click="$emit('monitor', row)">
+            <ScButton size="small" @click="$emit('monitor', row)">
               <IconifyIconOnline icon="ri:dashboard-line" />
-            </el-button>
+            </ScButton>
 
-            <el-button size="small" @click="$emit('files', row)">
+            <ScButton size="small" @click="$emit('files', row)">
               <IconifyIconOnline icon="ri:folder-line" />
-            </el-button>
+            </ScButton>
 
-            <el-button size="small" @click="$emit('script', row)">
+            <ScButton size="small" @click="$emit('script', row)">
               <IconifyIconOnline icon="ri:terminal-line" />
-            </el-button>
+            </ScButton>
 
-            <el-button size="small" @click="$emit('upload', row)">
+            <ScButton size="small" @click="$emit('upload', row)">
               <IconifyIconOnline icon="ri:upload-line" />
-            </el-button>
+            </ScButton>
 
-            <el-dropdown @command="(cmd) => handleAction(cmd, row)">
-              <el-button size="small">
+            <ScDropdown @command="(cmd) => handleAction(cmd, row)">
+              <ScButton size="small">
                 <IconifyIconOnline icon="ri:more-line" />
-              </el-button>
+              </ScButton>
               <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                  <el-dropdown-item command="config">配置管理</el-dropdown-item>
-                  <el-dropdown-item command="setting"
+                <ScDropdownMenu>
+                  <ScDropdownItem command="edit">编辑</ScDropdownItem>
+                  <ScDropdownItem command="config">配置管理</ScDropdownItem>
+                  <ScDropdownItem command="setting"
                     >服务器设置</el-dropdown-item
                   >
-                  <el-dropdown-item command="test">测试连接</el-dropdown-item>
-                  <el-dropdown-item command="logs">查看日志</el-dropdown-item>
-                  <el-dropdown-item command="clone">克隆配置</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided
+                  <ScDropdownItem command="test">测试连接</ScDropdownItem>
+                  <ScDropdownItem command="logs">查看日志</ScDropdownItem>
+                  <ScDropdownItem command="clone">克隆配置</ScDropdownItem>
+                  <ScDropdownItem command="delete" divided
                     >删除</el-dropdown-item
                   >
-                </el-dropdown-menu>
+                </ScDropdownMenu>
               </template>
-            </el-dropdown>
+            </ScDropdown>
           </el-button-group>
         </template>
-      </el-table-column>
-    </el-table>
+      </ScTableColumn>
+    </ScTable>
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
-      <el-pagination
+      <ScPagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
         :total="pagination.total"

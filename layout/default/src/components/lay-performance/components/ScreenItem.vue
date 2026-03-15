@@ -5,19 +5,22 @@
       <span class="label">SCR</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-bar-gauge">
-       <div class="gauge-fill" style="width: 100%; background-color: #9c27b0"></div>
+      <div
+        class="gauge-fill"
+        style="width: 100%; background-color: #9c27b0"
+      ></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from "vue";
 
 defineProps({
-  mode: { type: String, required: true }
+  mode: { type: String, required: true },
 });
 
-const resolution = ref('');
+const resolution = ref("");
 
 const updateResolution = () => {
   resolution.value = `${window.screen.width}x${window.screen.height}`;
@@ -25,11 +28,11 @@ const updateResolution = () => {
 
 onMounted(() => {
   updateResolution();
-  window.addEventListener('resize', updateResolution);
+  window.addEventListener("resize", updateResolution);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateResolution);
+  window.removeEventListener("resize", updateResolution);
 });
 </script>
 
@@ -65,7 +68,7 @@ onBeforeUnmount(() => {
 
 .mini-bar-gauge {
   height: 3px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   margin-top: 4px;
   border-radius: 2px;
   overflow: hidden;

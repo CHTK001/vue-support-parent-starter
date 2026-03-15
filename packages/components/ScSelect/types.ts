@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-import type { TreeKey, TreeNodeData } from '../ScTree/types';
+import type { TreeKey, TreeNodeData } from "../ScTree/types";
 
 /**
  * 基础选项接口
@@ -144,27 +144,27 @@ export interface TreeProps {
 /**
  * 布局类型
  */
-export type LayoutType = 'card' | 'select' | 'pill' | 'dropdown' | 'filter' | 'table' | 'tree';
+export type LayoutType = "card" | "select" | "pill" | "dropdown" | "filter" | "table" | "tree";
 
 /**
  * 输出格式类型
  */
-export type OutputFormat = 'default' | 'tree' | 'flat';
+export type OutputFormat = "default" | "tree" | "flat";
 
 /**
  * 过滤器输出格式类型
  */
-export type FilterOutputFormat = 'sql' | 'object' | 'array';
+export type FilterOutputFormat = "sql" | "object" | "array";
 
 /**
  * 过滤器操作符类型
  */
-export type FilterOperator = 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in' | 'not_in';
+export type FilterOperator = "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "like" | "in" | "not_in";
 
 /**
  * 图标位置类型
  */
-export type IconPosition = 'left' | 'right' | 'top' | 'bottom';
+export type IconPosition = "left" | "right" | "top" | "bottom";
 
 /**
  * ScSelect 组件 Props 接口
@@ -228,7 +228,7 @@ export interface ScSelectProps {
   tablePageSize?: number;
   /** 表格远程搜索 */
   tableRemoteSearch?: boolean;
-  
+
   // 树形布局相关属性
   /** 树节点配置 */
   treeProps?: TreeProps;
@@ -259,13 +259,13 @@ export interface ScSelectProps {
  */
 export interface ScSelectEmits {
   /** 更新v-model值 */
-  'update:modelValue': [value: string | number | Array<string | number>];
+  "update:modelValue": [value: string | number | Array<string | number>];
   /** 值变化事件 */
-  'change': [value: string | number | Array<string | number>, option?: any];
+  change: [value: string | number | Array<string | number>, option?: any];
   /** 节点点击事件（树形布局） */
-  'node-click': [data: TreeNodeData, node: any];
+  "node-click": [data: TreeNodeData, node: any];
   /** 复选框变化事件（树形布局） */
-  'check': [data: TreeNodeData, checked: boolean, indeterminate: boolean];
+  check: [data: TreeNodeData, checked: boolean, indeterminate: boolean];
   /** 当前选中节点变化事件（树形布局） */
-  'current-change': [data: TreeNodeData, node: any];
+  "current-change": [data: TreeNodeData, node: any];
 }

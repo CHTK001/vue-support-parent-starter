@@ -7,7 +7,7 @@
     @close="handleClose"
   >
     <div v-if="sourceServer" class="clone-info">
-      <el-alert
+      <ScAlert
         :title="`正在克隆服务器: ${sourceServer.systemServerName}`"
         type="info"
         :closable="false"
@@ -15,7 +15,7 @@
       />
     </div>
 
-    <el-form
+    <ScForm
       ref="formRef"
       :model="formData"
       :rules="formRules"
@@ -23,40 +23,40 @@
       label-position="right"
       style="margin-top: 20px"
     >
-      <el-form-item label="新服务器名称" prop="newName">
-        <el-input
+      <ScFormItem label="新服务器名称" prop="newName">
+        <ScInput
           v-model="formData.newName"
           placeholder="请输入新服务器名称"
           clearable
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="新服务器端口" prop="newPort">
-        <el-input-number
+      <ScFormItem label="新服务器端口" prop="newPort">
+        <ScInputNumber
           v-model="formData.newPort"
           :min="1"
           :max="65535"
           placeholder="请输入新端口号"
           style="width: 100%"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="克隆说明">
-        <el-alert
+      <ScFormItem label="克隆说明">
+        <ScAlert
           title="克隆将复制源服务器的所有配置，包括ServletFilter设置"
           type="warning"
           :closable="false"
           show-icon
         />
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSubmit">
           克隆
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

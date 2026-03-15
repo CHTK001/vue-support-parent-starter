@@ -14,9 +14,9 @@
       @node-click="handleNodeClick"
     >
       <template #default="{ data: { fileName, fileType } }">
-        <el-icon :color="handleColor(fileName, fileType)">
+        <ScIcon :color="handleColor(fileName, fileType)">
           <component :is="useRenderIcon(handleIcon(fileName, fileType))" />
-        </el-icon>
+        </ScIcon>
         {{ fileName }}
       </template>
     </el-tree-select>

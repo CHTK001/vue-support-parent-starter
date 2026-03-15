@@ -28,33 +28,33 @@
     />
 
     <!-- 统计概览 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="24">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="24">
         <ContainerStatusStats :stats="containerStats" />
-      </el-col>
-    </el-row>
+      </ScCol>
+    </ScRow>
 
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="24">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="24">
         <MonitoringOverview
           :avg-cpu-usage="overviewStats.avgCpuUsage"
           :avg-memory-usage="overviewStats.avgMemoryUsage"
           :total-containers="overviewStats.totalContainers"
           :running-containers="overviewStats.runningContainers"
         />
-      </el-col>
-    </el-row>
+      </ScCol>
+    </ScRow>
 
     <!-- 容器列表 -->
-    <el-card class="container-list-card">
+    <ScCard class="container-list-card">
       <template #header>
         <div class="card-header">
           <span>容器列表</span>
           <div class="card-actions">
-            <el-button size="small" :loading="loading" @click="handleRefresh">
+            <ScButton size="small" :loading="loading" @click="handleRefresh">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               刷新
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </template>
@@ -68,7 +68,7 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 容器详情对话框 -->
     <ContainerDetailDialog

@@ -1,10 +1,7 @@
 <template>
-  <div
-    class="header-container"
-    :class="{ 'fixed-header': set.fixedHeader }"
-  >
+  <div class="header-container" :class="{ 'fixed-header': set.fixedHeader }">
     <LayNav />
-    
+
     <!-- 标签页：在非移动模式下显示，且未隐藏标签页 -->
     <div v-if="layout !== 'mobile' && !set.hideTabs" class="header-tags">
       <LayTag v-if="defer(2)" />
@@ -47,7 +44,7 @@ const set: setType = reactive({
 
 <script lang="ts">
 // 导入集中的主题皮肤样式
-import '@repo/skin';
+import "@repo/skin";
 </script>
 
 <style lang="scss" scoped>
@@ -65,4 +62,3 @@ import '@repo/skin';
   background: transparent;
 }
 </style>
-

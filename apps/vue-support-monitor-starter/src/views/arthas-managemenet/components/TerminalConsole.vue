@@ -1,25 +1,25 @@
 <template>
   <div class="terminal-console system-container modern-bg">
     <div class="toolbar">
-      <el-input
+      <ScInput
         v-model="command"
         placeholder="输入 Arthas 命令，例如: thread | jvm | heap | logger | profiler"
         clearable
         @keyup.enter.native="sendCommand"
       />
-      <el-button type="primary" :disabled="!connected" @click="sendCommand"
+      <ScButton type="primary" :disabled="!connected" @click="sendCommand"
         >执行</el-button
       >
-      <el-button @click="clearOutput">清屏</el-button>
-      <el-button :disabled="connecting" @click="reconnect">重连</el-button>
+      <ScButton @click="clearOutput">清屏</ScButton>
+      <ScButton :disabled="connecting" @click="reconnect">重连</ScButton>
     </div>
     <div class="quick-cmds">
-      <el-button size="small" @click="quick('help')">help</el-button>
-      <el-button size="small" @click="quick('thread')">thread</el-button>
-      <el-button size="small" @click="quick('jvm')">jvm</el-button>
-      <el-button size="small" @click="quick('heap')">heap</el-button>
-      <el-button size="small" @click="quick('logger')">logger</el-button>
-      <el-button
+      <ScButton size="small" @click="quick('help')">help</ScButton>
+      <ScButton size="small" @click="quick('thread')">thread</ScButton>
+      <ScButton size="small" @click="quick('jvm')">jvm</ScButton>
+      <ScButton size="small" @click="quick('heap')">heap</ScButton>
+      <ScButton size="small" @click="quick('logger')">logger</ScButton>
+      <ScButton
         size="small"
         @click="quick('profiler start; sleep 10; profiler stop')"
         >profiler</el-button

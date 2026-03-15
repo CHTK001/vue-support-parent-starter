@@ -87,7 +87,8 @@ defineOptions({
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: radial-gradient(
+    background-image:
+      radial-gradient(
         circle at 20% 80%,
         var(--el-color-primary-light-9) 0%,
         transparent 50%

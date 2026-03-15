@@ -8,7 +8,9 @@ defineOptions({
 });
 
 // 403 使用禁止访问风格（锁/禁止标志）
-const errorPageStyle = computed(() => globalSetting.ErrorPageStyle || "forbidden");
+const errorPageStyle = computed(
+  () => globalSetting.ErrorPageStyle || "forbidden",
+);
 </script>
 
 <template>

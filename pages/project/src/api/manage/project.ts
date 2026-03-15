@@ -32,9 +32,13 @@ export const fetchUpdateProject = (params) => {
  * 更新项目默认值
  */
 export const fetchUpdateProjectDefault = (params) => {
-  return http.request<ReturnResult<boolean>>("put", "/v2/project/updateDefault", {
-    data: params,
-  });
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "/v2/project/updateDefault",
+    {
+      data: params,
+    },
+  );
 };
 
 /**

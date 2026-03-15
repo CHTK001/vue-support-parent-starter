@@ -13,20 +13,20 @@
           <span class="container-name">{{
             containerData?.systemSoftContainerName
           }}</span>
-          <el-tag
+          <ScTag
             size="small"
             :type="getStatusType(containerData?.systemSoftContainerStatus)"
           >
             {{ getStatusText(containerData?.systemSoftContainerStatus) }}
-          </el-tag>
+          </ScTag>
         </div>
         <div class="logs-controls">
-          <el-switch
+          <ScSwitch
             v-model="autoRefresh"
             active-text="自动刷新"
             @change="handleAutoRefreshChange"
           />
-          <el-input-number
+          <ScInputNumber
             v-model="logLines"
             :min="50"
             :max="2000"
@@ -36,39 +36,39 @@
             @change="loadLogs"
           />
           <span class="control-label">行</span>
-          <el-select
+          <ScSelect
             v-model="logLevel"
             size="small"
             style="width: 100px"
             @change="loadLogs"
           >
-            <el-option label="全部" value="" />
-            <el-option label="ERROR" value="error" />
-            <el-option label="WARN" value="warn" />
-            <el-option label="INFO" value="info" />
-            <el-option label="DEBUG" value="debug" />
-          </el-select>
+            <ScOption label="全部" value="" />
+            <ScOption label="ERROR" value="error" />
+            <ScOption label="WARN" value="warn" />
+            <ScOption label="INFO" value="info" />
+            <ScOption label="DEBUG" value="debug" />
+          </ScSelect>
         </div>
         <div class="logs-actions">
-          <el-button size="small" :loading="loading" @click="loadLogs">
+          <ScButton size="small" :loading="loading" @click="loadLogs">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
-          </el-button>
-          <el-button size="small" @click="downloadLogs">
+          </ScButton>
+          <ScButton size="small" @click="downloadLogs">
             <IconifyIconOnline icon="ri:download-line" class="mr-1" />
             下载
-          </el-button>
-          <el-button size="small" @click="clearLogs">
+          </ScButton>
+          <ScButton size="small" @click="clearLogs">
             <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
             清空显示
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
       <!-- 日志内容 -->
       <div ref="logsContentRef" class="logs-content">
         <div v-if="loading && !logs" class="logs-loading">
-          <el-skeleton :rows="10" animated />
+          <ScSkeleton :rows="10" animated />
         </div>
         <div v-else-if="logs" class="logs-wrapper">
           <pre class="logs-text">{{ logs }}</pre>
@@ -76,9 +76,9 @@
         <div v-else class="logs-empty">
           <IconifyIconOnline icon="ri:file-text-line" class="empty-icon" />
           <span>暂无日志信息</span>
-          <el-button size="small" type="primary" @click="loadLogs">
+          <ScButton size="small" type="primary" @click="loadLogs">
             重新加载
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -103,25 +103,25 @@
           </span>
         </div>
         <div class="logs-scroll">
-          <el-button size="small" @click="scrollToTop">
+          <ScButton size="small" @click="scrollToTop">
             <IconifyIconOnline icon="ri:arrow-up-line" />
             顶部
-          </el-button>
-          <el-button size="small" @click="scrollToBottom">
+          </ScButton>
+          <ScButton size="small" @click="scrollToBottom">
             <IconifyIconOnline icon="ri:arrow-down-line" />
             底部
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" @click="openInNewWindow">
+        <ScButton @click="handleClose">关闭</ScButton>
+        <ScButton type="primary" @click="openInNewWindow">
           <IconifyIconOnline icon="ri:external-link-line" class="mr-1" />
           新窗口打开
-        </el-button>
+        </ScButton>
       </span>
     </template>
   </sc-dialog>

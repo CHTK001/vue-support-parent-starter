@@ -19,13 +19,13 @@
             <div class="info-address">
               <IconifyIconOnline icon="ri:global-line" />
               <span>{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
-              <el-tag
+              <ScTag
                 :type="getStatusType(nodeInfo.status)"
                 size="small"
                 class="ml-2"
               >
                 {{ getStatusText(nodeInfo.status) }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
         </div>
@@ -55,7 +55,7 @@
     </div>
 
     <template #footer>
-      <el-button @click="handleClose">关闭</el-button>
+      <ScButton @click="handleClose">关闭</ScButton>
     </template>
   </ScDialog>
 </template>

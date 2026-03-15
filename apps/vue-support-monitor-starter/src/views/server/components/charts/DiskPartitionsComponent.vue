@@ -8,18 +8,18 @@
         }}</span>
       </div>
       <div v-if="editMode" class="card-actions">
-        <el-button type="primary" text size="small" @click="handleEdit">
+        <ScButton type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
-        </el-button>
-        <el-button type="danger" text size="small" @click="handleDelete">
+        </ScButton>
+        <ScButton type="danger" text size="small" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <div v-loading="loading" class="card-content">
       <div v-if="partitions.length === 0" class="no-data">
-        <el-empty description="暂无磁盘分区数据" :image-size="60" />
+        <ScEmpty description="暂无磁盘分区数据" :image-size="60" />
       </div>
 
       <div v-else class="partitions-list">
@@ -32,9 +32,9 @@
             <div class="partition-name">
               <IconifyIconOnline icon="ri:folder-line" class="partition-icon" />
               <span class="name">{{ partition.name || partition.mount }}</span>
-              <el-tag size="small" type="info" class="partition-type">
+              <ScTag size="small" type="info" class="partition-type">
                 {{ partition.type }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
 
@@ -65,7 +65,7 @@
     </div>
 
     <div v-if="!editMode" class="card-footer">
-      <el-button
+      <ScButton
         type="primary"
         text
         size="small"
@@ -74,7 +74,7 @@
       >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

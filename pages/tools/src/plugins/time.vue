@@ -22,7 +22,10 @@ const debounceParseTime = (value) => {
   // 设置新的定时器，延迟500ms执行
   debounceTimer = setTimeout(() => {
     // 只有时间戳模式下且有值时才自动解析
-    if ((env.inputType === "timestamp-s" || env.inputType === "timestamp-ms") && env.inputValue) {
+    if (
+      (env.inputType === "timestamp-s" || env.inputType === "timestamp-ms") &&
+      env.inputValue
+    ) {
       parseTime();
     }
   }, 500);
@@ -36,7 +39,8 @@ const debounceParseTime = (value) => {
 const getResultIcon = (label) => {
   if (label.includes("标准日期时间")) return "ri:calendar-event-fill";
   if (label.includes("日期")) return "ri:calendar-line";
-  if (label.includes("时间") && !label.includes("时间戳")) return "ri:time-line";
+  if (label.includes("时间") && !label.includes("时间戳"))
+    return "ri:time-line";
   if (label.includes("中文")) return "ri:file-text-line";
   if (label.includes("ISO")) return "ri:global-line";
   if (label.includes("时间戳")) return "ri:timer-line";
@@ -50,20 +54,43 @@ const env = reactive({
   loading: false,
   currentTime: new Date(),
   formats: [
-    { label: "标准日期时间", value: "yyyy-MM-dd hh:mm:ss", example: "2023-01-01 12:30:45" },
+    {
+      label: "标准日期时间",
+      value: "yyyy-MM-dd hh:mm:ss",
+      example: "2023-01-01 12:30:45",
+    },
     { label: "日期", value: "yyyy-MM-dd", example: "2023-01-01" },
     { label: "时间", value: "hh:mm:ss", example: "12:30:45" },
-    { label: "中文日期时间", value: "yyyy年MM月dd日 hh时mm分ss秒", example: "2023年01月01日 12时30分45秒" },
-    { label: "ISO 8601", value: "yyyy-MM-ddThh:mm:ss.SSSZ", example: "2023-01-01T12:30:45.000Z" },
+    {
+      label: "中文日期时间",
+      value: "yyyy年MM月dd日 hh时mm分ss秒",
+      example: "2023年01月01日 12时30分45秒",
+    },
+    {
+      label: "ISO 8601",
+      value: "yyyy-MM-ddThh:mm:ss.SSSZ",
+      example: "2023-01-01T12:30:45.000Z",
+    },
     { label: "Unix 时间戳(秒)", value: "timestamp-s", example: "1672571445" },
-    { label: "Unix 时间戳(毫秒)", value: "timestamp-ms", example: "1672571445000" },
+    {
+      label: "Unix 时间戳(毫秒)",
+      value: "timestamp-ms",
+      example: "1672571445000",
+    },
   ],
   customFormat: "yyyy-MM-dd hh:mm:ss",
   inputType: "datetime",
   inputValue: "",
   outputResults: [],
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  timezones: ["Asia/Shanghai", "America/New_York", "Europe/London", "Asia/Tokyo", "Australia/Sydney", "UTC"],
+  timezones: [
+    "Asia/Shanghai",
+    "America/New_York",
+    "Europe/London",
+    "Asia/Tokyo",
+    "Australia/Sydney",
+    "UTC",
+  ],
 });
 
 // 时钟定时器
@@ -160,7 +187,10 @@ const parseTime = () => {
         };
 
         const formatter = new Intl.DateTimeFormat("zh-CN", options);
-        const timeInZone = formatter.format(parsedDate).replace(/\//g, "-").replace(",", "");
+        const timeInZone = formatter
+          .format(parsedDate)
+          .replace(/\//g, "-")
+          .replace(",", "");
 
         env.outputResults.push({
           label: `${timezone} 时区`,
@@ -235,12 +265,40 @@ onBeforeUnmount(() => {
       <div class="time-tool__clock-container">
         <div class="time-tool__clock">
           <div class="time-tool__clock-inner">
-            <div class="time-tool__clock-time">{{ dateFormat(env.currentTime, "hh:mm:ss") }}</div>
-            <div class="time-tool__clock-date">{{ dateFormat(env.currentTime, "yyyy年MM月dd日") }}</div>
-            <div class="time-tool__clock-weekday">{{ ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][env.currentTime.getDay()] }}</div>
+            <div class="time-tool__clock-time">
+              {{ dateFormat(env.currentTime, "hh:mm:ss") }}
+            </div>
+            <div class="time-tool__clock-date">
+              {{ dateFormat(env.currentTime, "yyyy年MM月dd日") }}
+            </div>
+            <div class="time-tool__clock-weekday">
+              {{
+                [
+                  "星期日",
+                  "星期一",
+                  "星期二",
+                  "星期三",
+                  "星期四",
+                  "星期五",
+                  "星期六",
+                ][env.currentTime.getDay()]
+              }}
+            </div>
             <div class="time-tool__clock-timestamp">
-              <span>当前时间戳: {{ Math.floor(env.currentTime.getTime() / 1000) }}</span>
-              <ScButton type="primary" link size="small" @click="copyToClipboard(Math.floor(env.currentTime.getTime() / 1000).toString())">
+              <span
+                >当前时间戳:
+                {{ Math.floor(env.currentTime.getTime() / 1000) }}</span
+              >
+              <ScButton
+                type="primary"
+                link
+                size="small"
+                @click="
+                  copyToClipboard(
+                    Math.floor(env.currentTime.getTime() / 1000).toString(),
+                  )
+                "
+              >
                 <IconifyIconOnline icon="ri:file-copy-line" />
               </ScButton>
             </div>
@@ -259,14 +317,20 @@ onBeforeUnmount(() => {
           <ScCard class="time-tool__input-card" shadow="hover">
             <template #header>
               <div class="time-tool__card-header">
-                <IconifyIconOnline icon="ri:input-method-line" class="time-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:input-method-line"
+                  class="time-tool__card-icon"
+                />
                 <span>输入时间</span>
               </div>
             </template>
 
             <ScForm label-position="top">
               <ScFormItem label="输入类型">
-                <ScRadioGroup v-model="env.inputType" class="time-tool__radio-group">
+                <ScRadioGroup
+                  v-model="env.inputType"
+                  class="time-tool__radio-group"
+                >
                   <ScRadio label="datetime">
                     <div class="time-tool__radio-content">
                       <IconifyIconOnline icon="ri:calendar-event-fill" />
@@ -289,13 +353,28 @@ onBeforeUnmount(() => {
               </ScFormItem>
 
               <ScFormItem label="输入值">
-                <ScInput @input="parseTime" v-if="env.inputType === 'datetime'" v-model="env.inputValue" placeholder="请输入日期时间，如：2023-01-01 12:30:45" clearable class="time-tool__input">
+                <ScInput
+                  @input="parseTime"
+                  v-if="env.inputType === 'datetime'"
+                  v-model="env.inputValue"
+                  placeholder="请输入日期时间，如：2023-01-01 12:30:45"
+                  clearable
+                  class="time-tool__input"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="ri:calendar-line" />
                   </template>
                 </ScInput>
 
-                <ScInput v-else v-model="env.inputValue" placeholder="请输入时间戳，如：1672571445" clearable type="number" @input="debounceParseTime" class="time-tool__input">
+                <ScInput
+                  v-else
+                  v-model="env.inputValue"
+                  placeholder="请输入时间戳，如：1672571445"
+                  clearable
+                  type="number"
+                  @input="debounceParseTime"
+                  class="time-tool__input"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="ri:timer-line" />
                   </template>
@@ -303,18 +382,38 @@ onBeforeUnmount(() => {
               </ScFormItem>
 
               <ScFormItem label="自定义输出格式">
-                <ScSelect v-model="env.customFormat" placeholder="选择或输入自定义格式" filterable allow-create class="time-tool__select">
-                  <ScOption v-for="item in env.formats" :key="item.value" :label="`${item.label} (${item.example})`" :value="item.value" />
+                <ScSelect
+                  v-model="env.customFormat"
+                  placeholder="选择或输入自定义格式"
+                  filterable
+                  allow-create
+                  class="time-tool__select"
+                >
+                  <ScOption
+                    v-for="item in env.formats"
+                    :key="item.value"
+                    :label="`${item.label} (${item.example})`"
+                    :value="item.value"
+                  />
                 </ScSelect>
               </ScFormItem>
 
               <div class="time-tool__actions">
-                <ScButton type="primary" :loading="env.loading" class="time-tool__parse-btn" @click="parseTime">
+                <ScButton
+                  type="primary"
+                  :loading="env.loading"
+                  class="time-tool__parse-btn"
+                  @click="parseTime"
+                >
                   <IconifyIconOnline icon="ri:time-line" />
                   <span>解析时间</span>
                 </ScButton>
 
-                <ScButton type="success" class="time-tool__now-btn" @click="getCurrentTimestamp">
+                <ScButton
+                  type="success"
+                  class="time-tool__now-btn"
+                  @click="getCurrentTimestamp"
+                >
                   <IconifyIconOnline icon="ri:time-fill" />
                   <span>当前时间</span>
                 </ScButton>
@@ -333,26 +432,50 @@ onBeforeUnmount(() => {
           <ScCard class="time-tool__result-card" shadow="hover">
             <template #header>
               <div class="time-tool__card-header">
-                <IconifyIconOnline icon="ri:file-list-line" class="time-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:file-list-line"
+                  class="time-tool__card-icon"
+                />
                 <span>解析结果</span>
               </div>
             </template>
 
-            <ScEmpty v-if="!env.outputResults.length" description="请先输入并解析时间" class="time-tool__empty">
+            <ScEmpty
+              v-if="!env.outputResults.length"
+              description="请先输入并解析时间"
+              class="time-tool__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:time-line" class="time-tool__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:time-line"
+                  class="time-tool__empty-icon"
+                />
               </template>
             </ScEmpty>
 
             <div v-else class="time-tool__results">
-              <div v-for="(result, index) in env.outputResults" :key="index" class="time-tool__result-item" :class="{ 'time-tool__result-item--highlight': index < 3 }">
+              <div
+                v-for="(result, index) in env.outputResults"
+                :key="index"
+                class="time-tool__result-item"
+                :class="{ 'time-tool__result-item--highlight': index < 3 }"
+              >
                 <div class="time-tool__result-label">
-                  <IconifyIconOnline :icon="getResultIcon(result.label)" class="time-tool__result-icon" />
+                  <IconifyIconOnline
+                    :icon="getResultIcon(result.label)"
+                    class="time-tool__result-icon"
+                  />
                   <span>{{ result.label }}</span>
                 </div>
                 <div class="time-tool__result-value">
                   <span>{{ result.value }}</span>
-                  <ScButton type="primary" link size="small" class="time-tool__copy-btn" @click="copyToClipboard(result.value)">
+                  <ScButton
+                    type="primary"
+                    link
+                    size="small"
+                    class="time-tool__copy-btn"
+                    @click="copyToClipboard(result.value)"
+                  >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
                 </div>
@@ -374,13 +497,17 @@ onBeforeUnmount(() => {
     margin-bottom: 30px;
     text-align: center;
     position: relative;
-    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-3) 0%,
+      var(--el-color-primary) 100%
+    );
     border-radius: 12px;
     padding: 30px;
     color: #fff;
     box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     &:hover {
       box-shadow: 0 6px 24px rgba(var(--el-color-primary-rgb), 0.4);
       transform: translateY(-2px);
@@ -432,7 +559,11 @@ onBeforeUnmount(() => {
 
   /* 时钟样式 - 美化版 */
   &__clock {
-    background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-dark-2),
+      var(--el-color-primary)
+    );
     border-radius: 12px;
     padding: 30px;
     text-align: center;

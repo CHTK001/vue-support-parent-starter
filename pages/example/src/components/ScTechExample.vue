@@ -274,7 +274,7 @@
           </div>
           <div class="config-item">
             <label class="config-label">超时时间</label>
-            <ScInput 
+            <ScInput
               v-model="config.timeout"
               placeholder="请输入超时时间(秒)"
             />

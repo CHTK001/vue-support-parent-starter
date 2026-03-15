@@ -106,8 +106,6 @@ const formRef = ref();
 
 const { currentComponent } = useThemeComponent("ElForm");
 
-
-
 const handleValidate = (prop: string, isValid: boolean, message: string) => {
   emit("validate", prop, isValid, message);
 };

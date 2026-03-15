@@ -136,24 +136,24 @@ onUnmounted(() => {
         </div>
       </div>
       <div class="header-right">
-        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
+        <ScTag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
           {{ wsConnected ? "WS已连接" : "WS未连接" }}
-        </el-tag>
-        <el-button type="info" :loading="loading" @click="fetchData">
+        </ScTag>
+        <ScButton type="info" :loading="loading" @click="fetchData">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
-        <el-button type="danger" @click="clearStats">
+        </ScButton>
+        <ScButton type="danger" @click="clearStats">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           清除
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 统计卡片 -->
-    <el-row :gutter="16" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <ScRow :gutter="16" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper primary">
               <IconifyIconOnline icon="ri:send-plane-line" class="stat-icon" />
@@ -163,10 +163,10 @@ onUnmounted(() => {
               <div class="stat-label">总请求数</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper danger">
               <IconifyIconOnline icon="ri:error-warning-line" class="stat-icon" />
@@ -176,10 +176,10 @@ onUnmounted(() => {
               <div class="stat-label">总错误数</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper warning">
               <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
@@ -189,10 +189,10 @@ onUnmounted(() => {
               <div class="stat-label">平均耗时(ms)</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper" :class="(summary.errorRate || 0) > 5 ? 'danger' : 'success'">
               <IconifyIconOnline icon="ri:percent-line" class="stat-icon" />
@@ -202,101 +202,101 @@ onUnmounted(() => {
               <div class="stat-label">错误率</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- Top接口 -->
-    <el-card class="modern-card" shadow="hover">
+    <ScCard class="modern-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
             <IconifyIconOnline icon="ri:bar-chart-line" class="card-icon" />
             Top 接口
           </span>
-          <el-tag type="info" effect="plain">{{ topEndpoints.length }} 条</el-tag>
+          <ScTag type="info" effect="plain">{{ topEndpoints.length }} 条</ScTag>
         </div>
       </template>
-      <el-table v-loading="loading" :data="topEndpoints" stripe max-height="300">
-        <el-table-column prop="method" label="方法" width="80" />
-        <el-table-column prop="url" label="URL" min-width="200" />
-        <el-table-column prop="totalRequests" label="请求数" width="100" />
-        <el-table-column prop="avgDuration" label="平均耗时(ms)" width="120">
+      <ScTable v-loading="loading" :data="topEndpoints" stripe max-height="300">
+        <ScTableColumn prop="method" label="方法" width="80" />
+        <ScTableColumn prop="url" label="URL" min-width="200" />
+        <ScTableColumn prop="totalRequests" label="请求数" width="100" />
+        <ScTableColumn prop="avgDuration" label="平均耗时(ms)" width="120">
           <template #default="{ row }">
             {{ row.avgDuration?.toFixed(2) || 0 }}
           </template>
-        </el-table-column>
-        <el-table-column prop="p50" label="P50" width="80" />
-        <el-table-column prop="p90" label="P90" width="80" />
-        <el-table-column prop="p99" label="P99" width="80" />
-        <el-table-column prop="errorRate" label="错误率(%)" width="100">
+        </ScTableColumn>
+        <ScTableColumn prop="p50" label="P50" width="80" />
+        <ScTableColumn prop="p90" label="P90" width="80" />
+        <ScTableColumn prop="p99" label="P99" width="80" />
+        <ScTableColumn prop="errorRate" label="错误率(%)" width="100">
           <template #default="{ row }">
             <span :class="{ error: row.errorRate > 0 }">
               {{ row.errorRate?.toFixed(2) || 0 }}
             </span>
           </template>
-        </el-table-column>
-      </el-table>
-      <el-empty v-if="topEndpoints.length === 0" description="暂无数据" :image-size="60" />
-    </el-card>
+        </ScTableColumn>
+      </ScTable>
+      <ScEmpty v-if="topEndpoints.length === 0" description="暂无数据" :image-size="60" />
+    </ScCard>
 
     <!-- 慢接口 + 错误接口 -->
-    <el-row :gutter="16">
-      <el-col :span="12">
-        <el-card class="modern-card" shadow="hover">
+    <ScRow :gutter="16">
+      <ScCol :span="12">
+        <ScCard class="modern-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span class="card-title">
                 <IconifyIconOnline icon="ri:time-line" class="card-icon warning" />
                 慢接口
               </span>
-              <el-tag type="warning" effect="plain">{{ slowEndpoints.length }} 条</el-tag>
+              <ScTag type="warning" effect="plain">{{ slowEndpoints.length }} 条</ScTag>
             </div>
           </template>
-          <el-table v-loading="loading" :data="slowEndpoints" stripe max-height="280">
-            <el-table-column prop="method" label="方法" width="70" />
-            <el-table-column prop="url" label="URL" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="avgDuration" label="平均(ms)" width="90">
+          <ScTable v-loading="loading" :data="slowEndpoints" stripe max-height="280">
+            <ScTableColumn prop="method" label="方法" width="70" />
+            <ScTableColumn prop="url" label="URL" min-width="150" show-overflow-tooltip />
+            <ScTableColumn prop="avgDuration" label="平均(ms)" width="90">
               <template #default="{ row }">
                 <span class="slow">{{ row.avgDuration?.toFixed(0) || 0 }}</span>
               </template>
-            </el-table-column>
-            <el-table-column prop="maxDuration" label="最大(ms)" width="90" />
-            <el-table-column prop="totalRequests" label="请求数" width="80" />
-          </el-table>
-          <el-empty v-if="slowEndpoints.length === 0" description="暂无慢接口" :image-size="60" />
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card class="modern-card" shadow="hover">
+            </ScTableColumn>
+            <ScTableColumn prop="maxDuration" label="最大(ms)" width="90" />
+            <ScTableColumn prop="totalRequests" label="请求数" width="80" />
+          </ScTable>
+          <ScEmpty v-if="slowEndpoints.length === 0" description="暂无慢接口" :image-size="60" />
+        </ScCard>
+      </ScCol>
+      <ScCol :span="12">
+        <ScCard class="modern-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span class="card-title">
                 <IconifyIconOnline icon="ri:error-warning-line" class="card-icon danger" />
                 错误接口
               </span>
-              <el-tag type="danger" effect="plain">{{ errorEndpoints.length }} 条</el-tag>
+              <ScTag type="danger" effect="plain">{{ errorEndpoints.length }} 条</ScTag>
             </div>
           </template>
-          <el-table v-loading="loading" :data="errorEndpoints" stripe max-height="280">
-            <el-table-column prop="method" label="方法" width="70" />
-            <el-table-column prop="url" label="URL" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="errorCount" label="错误数" width="80">
+          <ScTable v-loading="loading" :data="errorEndpoints" stripe max-height="280">
+            <ScTableColumn prop="method" label="方法" width="70" />
+            <ScTableColumn prop="url" label="URL" min-width="150" show-overflow-tooltip />
+            <ScTableColumn prop="errorCount" label="错误数" width="80">
               <template #default="{ row }">
                 <span class="error">{{ row.errorCount }}</span>
               </template>
-            </el-table-column>
-            <el-table-column prop="errorRate" label="错误率(%)" width="90">
+            </ScTableColumn>
+            <ScTableColumn prop="errorRate" label="错误率(%)" width="90">
               <template #default="{ row }">
                 <span class="error">{{ row.errorRate?.toFixed(2) || 0 }}</span>
               </template>
-            </el-table-column>
-            <el-table-column prop="totalRequests" label="请求数" width="80" />
-          </el-table>
-          <el-empty v-if="errorEndpoints.length === 0" description="暂无错误接口" :image-size="60" />
-        </el-card>
-      </el-col>
-    </el-row>
+            </ScTableColumn>
+            <ScTableColumn prop="totalRequests" label="请求数" width="80" />
+          </ScTable>
+          <ScEmpty v-if="errorEndpoints.length === 0" description="暂无错误接口" :image-size="60" />
+        </ScCard>
+      </ScCol>
+    </ScRow>
   </div>
 </template>
 

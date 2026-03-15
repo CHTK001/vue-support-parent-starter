@@ -1,39 +1,39 @@
 <template>
   <div class="page-container">
     <!-- 内容区域 -->
-    <el-card shadow="hover" class="log-card">
+    <ScCard shadow="hover" class="log-card">
       <div class="log-container">
         <!-- 控制面板 -->
         <div class="control-panel">
           <div class="filter-group">
-            <el-radio-group v-model="filterLevel" size="small">
+            <ScRadioGroup v-model="filterLevel" size="small">
               <el-radio-button value="">全部</el-radio-button>
               <el-radio-button value="ERROR">ERROR</el-radio-button>
               <el-radio-button value="WARN">WARN</el-radio-button>
               <el-radio-button value="INFO">INFO</el-radio-button>
               <el-radio-button value="DEBUG">DEBUG</el-radio-button>
-            </el-radio-group>
+            </ScRadioGroup>
           </div>
-          <el-input v-model="form.message" placeholder="筛选关键字..." clearable class="search-input" size="small">
+          <ScInput v-model="form.message" placeholder="筛选关键字..." clearable class="search-input" size="small">
             <template #prefix>
               <IconifyIconOnline icon="ep:search" />
             </template>
-          </el-input>
+          </ScInput>
           <div class="font-size-control">
             <span class="font-label">字号</span>
             <ScSlider v-model="config.fontSize" :min="10" :max="20" :step="1" :show-tooltip="true" style="width: 80px" />
           </div>
           <div class="control-buttons">
-            <el-tooltip :content="config.lock ? '已开启自动滚动' : '已停止自动滚动'" placement="top">
-              <el-button v-if="config.lock" type="primary" circle size="small" :icon="useRenderIcon('ep:lock')" @click="config.lock = false" />
-              <el-button v-else type="info" circle size="small" :icon="useRenderIcon('ep:unlock')" @click="config.lock = true" />
-            </el-tooltip>
-            <el-tooltip content="滚动到底部" placement="top">
-              <el-button circle type="success" size="small" :icon="useRenderIcon('ep:bottom')" @click="scrollToBottom" />
-            </el-tooltip>
-            <el-tooltip content="清空日志" placement="top">
-              <el-button circle type="danger" size="small" :icon="useRenderIcon('ep:delete-filled')" @click="clearLogs" />
-            </el-tooltip>
+            <ScTooltip :content="config.lock ? '已开启自动滚动' : '已停止自动滚动'" placement="top">
+              <ScButton v-if="config.lock" type="primary" circle size="small" :icon="useRenderIcon('ep:lock')" @click="config.lock = false" />
+              <ScButton v-else type="info" circle size="small" :icon="useRenderIcon('ep:unlock')" @click="config.lock = true" />
+            </ScTooltip>
+            <ScTooltip content="滚动到底部" placement="top">
+              <ScButton circle type="success" size="small" :icon="useRenderIcon('ep:bottom')" @click="scrollToBottom" />
+            </ScTooltip>
+            <ScTooltip content="清空日志" placement="top">
+              <ScButton circle type="danger" size="small" :icon="useRenderIcon('ep:delete-filled')" @click="clearLogs" />
+            </ScTooltip>
           </div>
         </div>
         <!-- 日志列表 -->
@@ -44,10 +44,10 @@
               <span class="log-content" v-html="ansiToHtml(item?.data?.message)" />
             </li>
           </ul>
-          <el-empty v-if="!dataList || dataList.length == 0" description="暂无日志记录" />
+          <ScEmpty v-if="!dataList || dataList.length == 0" description="暂无日志记录" />
         </div>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 <script setup>

@@ -1,83 +1,83 @@
 <template>
   <div class="order-list">
-    <el-card>
+    <ScCard>
       <template #header>
         <div class="card-header">
           <span>订单管理</span>
-          <el-button type="primary" @click="showCreateDialog">创建订单</el-button>
+          <ScButton type="primary" @click="showCreateDialog">创建订单</ScButton>
         </div>
       </template>
 
       <!-- 搜索表单 -->
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="用户ID">
-          <el-input v-model="searchForm.userId" placeholder="请输入用户ID" clearable />
-        </el-form-item>
-        <el-form-item label="订单状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option
+      <ScForm :inline="true" :model="searchForm" class="search-form">
+        <ScFormItem label="用户ID">
+          <ScInput v-model="searchForm.userId" placeholder="请输入用户ID" clearable />
+        </ScFormItem>
+        <ScFormItem label="订单状态">
+          <ScSelect v-model="searchForm.status" placeholder="请选择状态" clearable>
+            <ScOption
               v-for="(label, value) in OrderStatusMap"
               :key="value"
               :label="label"
               :value="Number(value)"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem>
+          <ScButton type="primary" @click="handleSearch">查询</ScButton>
+          <ScButton @click="handleReset">重置</ScButton>
+        </ScFormItem>
+      </ScForm>
 
       <!-- 统计信息 -->
-      <el-row :gutter="20" class="statistics">
-        <el-col :span="8">
+      <ScRow :gutter="20" class="statistics">
+        <ScCol :span="8">
           <el-statistic title="订单总数" :value="statistics.totalCount" />
-        </el-col>
-        <el-col :span="8">
+        </ScCol>
+        <ScCol :span="8">
           <el-statistic title="已支付订单" :value="statistics.paidCount" />
-        </el-col>
-        <el-col :span="8">
+        </ScCol>
+        <ScCol :span="8">
           <el-statistic title="订单总金额" :value="statistics.totalAmount / 100" :precision="2" prefix="¥" />
-        </el-col>
-      </el-row>
+        </ScCol>
+      </ScRow>
 
       <!-- 订单列表 -->
-      <el-table :data="orderList" border stripe v-loading="loading">
-        <el-table-column prop="orderNo" label="订单号" width="200" />
-        <el-table-column prop="userId" label="用户ID" width="150" />
-        <el-table-column prop="subject" label="订单标题" />
-        <el-table-column prop="amount" label="订单金额" width="120">
+      <ScTable :data="orderList" border stripe v-loading="loading">
+        <ScTableColumn prop="orderNo" label="订单号" width="200" />
+        <ScTableColumn prop="userId" label="用户ID" width="150" />
+        <ScTableColumn prop="subject" label="订单标题" />
+        <ScTableColumn prop="amount" label="订单金额" width="120">
           <template #default="{ row }">
             ¥{{ (row.amount / 100).toFixed(2) }}
           </template>
-        </el-table-column>
-        <el-table-column prop="status" label="订单状态" width="120">
+        </ScTableColumn>
+        <ScTableColumn prop="status" label="订单状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
+            <ScTag :type="getStatusType(row.status)">
               {{ OrderStatusMap[row.status] }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="300" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn prop="createTime" label="创建时间" width="180" />
+        <ScTableColumn label="操作" width="300" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="handleView(row)">查看</el-button>
-            <el-button size="small" type="primary" @click="handlePay(row)" v-if="canPay(row.status)">
+            <ScButton size="small" @click="handleView(row)">查看</ScButton>
+            <ScButton size="small" type="primary" @click="handlePay(row)" v-if="canPay(row.status)">
               支付
-            </el-button>
-            <el-button size="small" type="warning" @click="handleRefund(row)" v-if="canRefund(row.status)">
+            </ScButton>
+            <ScButton size="small" type="warning" @click="handleRefund(row)" v-if="canRefund(row.status)">
               退款
-            </el-button>
-            <el-button size="small" type="danger" @click="handleCancel(row)" v-if="canCancel(row.status)">
+            </ScButton>
+            <ScButton size="small" type="danger" @click="handleCancel(row)" v-if="canCancel(row.status)">
               取消
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
 
       <!-- 分页 -->
-      <el-pagination
+      <ScPagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
         :total="pagination.total"
@@ -87,75 +87,75 @@
         @current-change="handleCurrentChange"
         class="pagination"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 创建订单对话框 -->
-    <el-dialog v-model="createDialogVisible" title="创建订单" width="600px">
-      <el-form :model="createForm" :rules="createRules" ref="createFormRef" label-width="100px">
-        <el-form-item label="用户ID" prop="userId">
-          <el-input v-model="createForm.userId" placeholder="请输入用户ID" />
-        </el-form-item>
-        <el-form-item label="订单标题" prop="subject">
-          <el-input v-model="createForm.subject" placeholder="请输入订单标题" />
-        </el-form-item>
-        <el-form-item label="订单金额" prop="amount">
-          <el-input-number v-model="createForm.amount" :min="0.01" :step="0.01" :precision="2" />
+    <ScDialog v-model="createDialogVisible" title="创建订单" width="600px">
+      <ScForm :model="createForm" :rules="createRules" ref="createFormRef" label-width="100px">
+        <ScFormItem label="用户ID" prop="userId">
+          <ScInput v-model="createForm.userId" placeholder="请输入用户ID" />
+        </ScFormItem>
+        <ScFormItem label="订单标题" prop="subject">
+          <ScInput v-model="createForm.subject" placeholder="请输入订单标题" />
+        </ScFormItem>
+        <ScFormItem label="订单金额" prop="amount">
+          <ScInputNumber v-model="createForm.amount" :min="0.01" :step="0.01" :precision="2" />
           <span class="ml-2">元</span>
-        </el-form-item>
-        <el-form-item label="支付方式" prop="tradeType">
-          <el-select v-model="createForm.tradeType" placeholder="请选择支付方式">
-            <el-option label="扫码支付" value="NATIVE" />
-            <el-option label="公众号支付" value="JSAPI" />
-            <el-option label="APP支付" value="APP" />
-            <el-option label="H5支付" value="H5" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="OpenID" prop="openid" v-if="createForm.tradeType === 'JSAPI'">
-          <el-input v-model="createForm.openid" placeholder="请输入OpenID（JSAPI支付必填）" />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+        <ScFormItem label="支付方式" prop="tradeType">
+          <ScSelect v-model="createForm.tradeType" placeholder="请选择支付方式">
+            <ScOption label="扫码支付" value="NATIVE" />
+            <ScOption label="公众号支付" value="JSAPI" />
+            <ScOption label="APP支付" value="APP" />
+            <ScOption label="H5支付" value="H5" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="OpenID" prop="openid" v-if="createForm.tradeType === 'JSAPI'">
+          <ScInput v-model="createForm.openid" placeholder="请输入OpenID（JSAPI支付必填）" />
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleCreate" :loading="creating">创建并支付</el-button>
+        <ScButton @click="createDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="handleCreate" :loading="creating">创建并支付</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
     <!-- 订单详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="订单详情" width="800px">
-      <el-descriptions :column="2" border v-if="currentOrder">
-        <el-descriptions-item label="订单号">{{ currentOrder.orderNo }}</el-descriptions-item>
-        <el-descriptions-item label="用户ID">{{ currentOrder.userId }}</el-descriptions-item>
-        <el-descriptions-item label="订单标题">{{ currentOrder.subject }}</el-descriptions-item>
-        <el-descriptions-item label="订单金额">
+    <ScDialog v-model="detailDialogVisible" title="订单详情" width="800px">
+      <ScDescriptions :column="2" border v-if="currentOrder">
+        <ScDescriptionsItem label="订单号">{{ currentOrder.orderNo }}</ScDescriptionsItem>
+        <ScDescriptionsItem label="用户ID">{{ currentOrder.userId }}</ScDescriptionsItem>
+        <ScDescriptionsItem label="订单标题">{{ currentOrder.subject }}</ScDescriptionsItem>
+        <ScDescriptionsItem label="订单金额">
           ¥{{ (currentOrder.amount / 100).toFixed(2) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="实付金额">
+        </ScDescriptionsItem>
+        <ScDescriptionsItem label="实付金额">
           ¥{{ ((currentOrder.paidAmount || 0) / 100).toFixed(2) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="退款金额">
+        </ScDescriptionsItem>
+        <ScDescriptionsItem label="退款金额">
           ¥{{ ((currentOrder.refundAmount || 0) / 100).toFixed(2) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="订单状态">
-          <el-tag :type="getStatusType(currentOrder.status)">
+        </ScDescriptionsItem>
+        <ScDescriptionsItem label="订单状态">
+          <ScTag :type="getStatusType(currentOrder.status)">
             {{ OrderStatusMap[currentOrder.status] }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="第三方订单号">
+          </ScTag>
+        </ScDescriptionsItem>
+        <ScDescriptionsItem label="第三方订单号">
           {{ currentOrder.thirdOrderNo || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ currentOrder.createTime }}</el-descriptions-item>
-        <el-descriptions-item label="支付时间">{{ currentOrder.payTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="退款时间">{{ currentOrder.refundTime || '-' }}</el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
+        </ScDescriptionsItem>
+        <ScDescriptionsItem label="创建时间">{{ currentOrder.createTime }}</ScDescriptionsItem>
+        <ScDescriptionsItem label="支付时间">{{ currentOrder.payTime || '-' }}</ScDescriptionsItem>
+        <ScDescriptionsItem label="退款时间">{{ currentOrder.refundTime || '-' }}</ScDescriptionsItem>
+      </ScDescriptions>
+    </ScDialog>
 
     <!-- 支付二维码对话框 -->
-    <el-dialog v-model="qrcodeDialogVisible" title="扫码支付" width="400px" align-center>
+    <ScDialog v-model="qrcodeDialogVisible" title="扫码支付" width="400px" align-center>
       <div class="qrcode-container">
         <div id="qrcode" ref="qrcodeRef"></div>
         <p class="qrcode-tip">请使用微信/支付宝扫码支付</p>
       </div>
-    </el-dialog>
+    </ScDialog>
   </div>
 </template>
 

@@ -165,8 +165,6 @@ const currentValue = computed({
 
 const { currentComponent } = useThemeComponent("ElDatePicker");
 
-
-
 const handleChange = (val: DateValue | [DateValue, DateValue]) => {
   emit("change", val);
 };
