@@ -73,6 +73,16 @@ type Events = {
   themeAnimationModeChange: string;
   /** 强制启用新菜单变化事件 */
   forceNewMenuChange: boolean;
+  /** drawer 布局汉堡按钮切换事件（true=打开，false=关闭） */
+  drawerHamburgerToggle: boolean;
+  /** drawer 菜单关闭事件（点击外部或菜单项后触发） */
+  drawerMenuClosed: void;
+  /** 设置重置为默认值事件 */
+  settingResetToDefault: void;
+  /** 设置导出配置事件 */
+  settingExportConfig: void;
+  /** 设置导入配置事件 */
+  settingImportConfig: void;
 };
 
 export const emitter: Emitter<Events> = mitt<Events>();

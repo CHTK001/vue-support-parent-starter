@@ -23,7 +23,7 @@ export function useResponsiveLayout(
    */
   function setTheme(layoutModel: string) {
     const fallbackLayout = "vertical";
-    const validLayouts = ["vertical", "horizontal", "mix", "hover", "double", "mobile"];
+    const validLayouts = ["vertical", "horizontal", "mix", "hover", "double", "drawer", "mobile"];
 
     const targetLayout =
       (layoutModel as string | undefined) && validLayouts.includes(layoutModel)

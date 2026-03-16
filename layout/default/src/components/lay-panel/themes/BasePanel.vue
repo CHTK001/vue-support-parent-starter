@@ -90,6 +90,47 @@ onBeforeUnmount(() => {
         </el-scrollbar>
 
         <div class="flex justify-end p-3 border-t-[1px] border-solid border-[var(--pure-border-color)]">
+          <ScButton
+            v-tippy="{
+              content: t('panel.restoreDefault'),
+              placement: 'top',
+              zIndex: 41000,
+            }"
+            type="warning"
+            text
+            bg
+            @click="emitter.emit('settingResetToDefault')"
+          >
+            {{ t("panel.restoreDefault") }}
+          </ScButton>
+          <ScButton
+            v-tippy="{
+              content: t('panel.exportConfig'),
+              placement: 'top',
+              zIndex: 41000,
+            }"
+            type="info"
+            text
+            bg
+            class="ml-2"
+            @click="emitter.emit('settingExportConfig')"
+          >
+            {{ t("panel.exportConfig") }}
+          </ScButton>
+          <ScButton
+            v-tippy="{
+              content: t('panel.importConfig'),
+              placement: 'top',
+              zIndex: 41000,
+            }"
+            type="success"
+            text
+            bg
+            class="ml-2"
+            @click="emitter.emit('settingImportConfig')"
+          >
+            {{ t("panel.importConfig") }}
+          </ScButton>
           <ScButton 
             v-tippy="{
               content: t('panel.pureClearCacheAndToLogin'),
@@ -99,6 +140,7 @@ onBeforeUnmount(() => {
             type="danger"
             text
             bg
+            class="ml-2"
             @click="onReset"
           >
             {{ t("panel.pureClearCache") }}

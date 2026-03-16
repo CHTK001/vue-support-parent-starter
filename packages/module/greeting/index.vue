@@ -98,7 +98,7 @@ const fetchOnlineGreeting = async () => {
 onMounted(() => {
   try {
     const userStore = useUserStoreHook();
-    env.username = userStore?.username || userStore?.nickname || "用户";
+    env.username = userStore?.nickname || userStore?.username || "用户";
   } catch (e) {
     env.username = "用户";
   }

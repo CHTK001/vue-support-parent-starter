@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import BaseDrawer from "./BaseDrawer.vue";
+import BasePopover from "./BasePopover.vue";
 </script>
 
 <template>
-  <BaseDrawer theme-class="default-drawer" />
+  <BasePopover theme-class="default-drawer" />
 </template>
