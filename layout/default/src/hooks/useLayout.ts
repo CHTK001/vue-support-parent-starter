@@ -6,7 +6,7 @@ import { useMultiTagsStore } from "@repo/core";
 import type { StorageLayout } from "../types/theme";
 
 /** 布局类型 */
-type LayoutType = "vertical" | "horizontal" | "mix" | "hover" | "double" | "mobile";
+type LayoutType = "vertical" | "horizontal" | "mix" | "hover" | "double" | "drawer" | "mobile";
 
 export function useLayout() {
   const { $storage, $config } = useGlobal<GlobalPropertiesApi>();

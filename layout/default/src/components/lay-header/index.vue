@@ -13,7 +13,7 @@
 </template>
 <script setup lang="ts">
 import LayTag from "../lay-tag/index.vue";
-import LayNav from "../lay-nav/index.vue";
+import LayNav from "../lay-navbar/index.vue";
 import { useAppStoreHook, useSettingStoreHook } from "@repo/core";
 import { useGlobal } from "@pureadmin/utils";
 import { computed, reactive } from "vue";

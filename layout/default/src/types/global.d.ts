@@ -93,7 +93,7 @@ declare global {
    * 布局配置类型
    */
   interface LayoutConfig {
-    layout: "vertical" | "horizontal" | "mix" | "hover" | "double" | "mobile";
+    layout: "vertical" | "horizontal" | "mix" | "hover" | "double" | "drawer" | "mobile";
     theme: string;
     darkMode: boolean;
     sidebarStatus: boolean;
