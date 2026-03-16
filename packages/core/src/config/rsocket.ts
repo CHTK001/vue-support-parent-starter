@@ -14,6 +14,7 @@ import {
   type ProtocolType,
   type SocketTemplateListenOptions,
   type SocketTemplate,
+  type WsMessage,
   SocketTemplateKey,
 } from "./socketTemplate";
 import { parseSocketMessage } from "./socket";
@@ -222,6 +223,15 @@ export function createRSocketService(config: RSocketConfig): RSocketService {
     localEventListeners.clear();
   };
 
+  const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
+
+  const subscribe = (module: string, event: string, handler: (msg: WsMessage) => void): () => void => {
+    const key = `${module}_${event}`;
+    if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
+    subscribeHandlers.get(key)!.add(handler);
+    return () => subscribeHandlers.get(key)?.delete(handler);
+  };
+
   return {
     protocol: "rsocket" as const,
     get socket() {
@@ -230,12 +240,16 @@ export function createRSocketService(config: RSocketConfig): RSocketService {
     get isConnected() {
       return isConnected.value;
     },
+    get connected() {
+      return isConnected;
+    },
     connect,
     disconnect,
     on,
     off,
     emit,
     close,
+    subscribe,
   };
 }
 

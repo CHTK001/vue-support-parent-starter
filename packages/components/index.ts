@@ -1,4 +1,3 @@
-import "@repo/skin";
 import { ReMenuNewBadge } from "./MenuNewBadge";
 import { useRenderIcon } from "./ReIcon/src/hooks";
 import ReSplitPane from "./ReSplitPane/index.vue";

@@ -9,7 +9,7 @@
 import { ref } from "vue";
 import { io, type Socket } from "socket.io-client";
 import { getToken } from "../utils/auth";
-import type { SocketTemplate, SocketTemplateListenOptions } from "./socketTemplate";
+import type { SocketTemplate, SocketTemplateListenOptions, WsMessage } from "./socketTemplate";
 import { parseSocketMessage } from "./socketUtils";
 
 /**
@@ -68,6 +68,16 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     socketInstance.on("connect_error", (error) => {
       console.error("[Socket.IO] 连接错误:", error);
     });
+
+    // message 事件分发（必须在 socketInstance 创建后注册）
+    socketInstance.on("message", (raw: unknown) => {
+      try {
+        const msg = (typeof raw === "string" ? JSON.parse(raw) : raw) as WsMessage;
+        if (!msg?.module || !msg?.event) return;
+        const key = `${msg.module}_${msg.event}`;
+        subscribeHandlers.get(key)?.forEach(h => { try { h(msg); } catch {} });
+      } catch {}
+    });
   };
 
   const disconnect = () => {
@@ -124,19 +134,26 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     eventListeners.clear();
   };
 
+  const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
+
+  const subscribe = (module: string, event: string, handler: (msg: WsMessage) => void): () => void => {
+    const key = `${module}_${event}`;
+    if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
+    subscribeHandlers.get(key)!.add(handler);
+    return () => subscribeHandlers.get(key)?.delete(handler);
+  };
+
   return {
     protocol: "socketio",
-    get socket() {
-      return socketInstance;
-    },
-    get isConnected() {
-      return isConnected.value;
-    },
+    get socket() { return socketInstance; },
+    get isConnected() { return isConnected.value; },
+    get connected() { return isConnected; },
     connect,
     disconnect,
     on,
     off,
     emit,
     close,
+    subscribe,
   };
 }
