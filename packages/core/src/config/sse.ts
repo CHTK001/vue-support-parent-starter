@@ -10,7 +10,7 @@
 import { ref, type InjectionKey } from "vue";
 import { fetchEventSource, EventStreamContentType } from "@microsoft/fetch-event-source";
 import { getToken } from "../utils/auth";
-import type { SocketTemplate, SocketTemplateListenOptions } from "./socketTemplate";
+import type { SocketTemplate, SocketTemplateListenOptions, WsMessage } from "./socketTemplate";
 import { parseSocketMessage, buildAuthUrl } from "./socketUtils";
 
 /**
@@ -272,6 +272,15 @@ export function createSseService(config: SseConfig): SseService {
     listeners.clear();
   };
 
+  const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
+
+  const subscribe = (module: string, event: string, handler: (msg: WsMessage) => void): () => void => {
+    const key = `${module}_${event}`;
+    if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
+    subscribeHandlers.get(key)!.add(handler);
+    return () => subscribeHandlers.get(key)?.delete(handler);
+  };
+
   return {
     protocol: "sse" as const,
     get socket() {
@@ -283,12 +292,16 @@ export function createSseService(config: SseConfig): SseService {
     get isConnected() {
       return isConnected.value;
     },
+    get connected() {
+      return isConnected;
+    },
     connect,
     disconnect,
     on,
     off,
     emit,
     close,
+    subscribe,
   };
 }
 

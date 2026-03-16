@@ -8,6 +8,18 @@
  */
 
 import type { InjectionKey, Ref } from "vue";
+import type { ProtocolType } from "./socketService";
+
+/**
+ * subscribe 消息结构（module + event 分发模式）
+ */
+export interface WsMessage {
+  module: string;
+  event: string;
+  data: unknown;
+  timestamp?: number | string;
+  [key: string]: unknown;
+}
 
 /**
  * Socket 监听选项（统一接口）
@@ -33,11 +45,6 @@ export interface SocketMessage {
 }
 
 /**
- * 协议类型
- */
-export type ProtocolType = "socketio" | "rsocket" | "websocket" | "sse";
-
-/**
  * Socket 模板接口
  * 统一 Socket.IO 和 RSocket 的操作接口
  */
@@ -53,9 +60,14 @@ export interface SocketTemplate {
   readonly socket: unknown;
 
   /**
-   * 是否已连接
+   * 是否已连接（boolean，用于非响应式场景）
    */
   readonly isConnected: boolean;
+
+  /**
+   * 响应式连接状态（Ref<boolean>，用于 Vue 模板/computed）
+   */
+  readonly connected: Ref<boolean>;
 
   /**
    * 连接
@@ -68,7 +80,7 @@ export interface SocketTemplate {
   disconnect(): void;
 
   /**
-   * 监听事件
+   * 监听事件（底层 API）
    *
    * @param event 事件名称
    * @param callback 回调函数
@@ -99,6 +111,17 @@ export interface SocketTemplate {
    * 关闭连接
    */
   close(): void;
+
+  /**
+   * 按 module + event 订阅消息（业务层 API）
+   * 服务端消息格式需包含 module、event 字段
+   *
+   * @param module 模块名（如 "JVM"、"SQL"）
+   * @param event 事件名（如 "JVM_INFO"、"SQL_RECORD"）
+   * @param handler 消息处理函数
+   * @returns unsubscribe 函数
+   */
+  subscribe(module: string, event: string, handler: (msg: WsMessage) => void): () => void;
 }
 
 /**
