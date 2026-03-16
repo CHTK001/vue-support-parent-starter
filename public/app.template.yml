@@ -288,3 +288,16 @@
 # EnableThemeManagement: true  # 是否启用后台主题管理
 # EnableLoginThemeSwitcher: true # 是否启用登录页主题切换器
 
+
+# ===========================================
+# 用户热度（Heatmap）配置
+# ===========================================
+# Heatmap:
+#   enable: false            # 是否启用用户行为采集（默认: false）
+#   sampleRate: 1.0          # 采样率 0.0-1.0（默认: 1，全量采集）
+#   reportUrl: ""            # 数据上报地址（空则仅本地存储）
+#   maxLocalEntries: 1000    # 本地最大存储条数（默认: 1000）
+#   flushInterval: 5000      # 批量上报间隔（毫秒，默认: 5000）
+#   trackClick: true         # 采集点击事件（默认: true）
+#   trackMouseMove: false    # 采集鼠标移动（默认: false，数据量大）
+#   trackScroll: true        # 采集滚动事件（默认: true）

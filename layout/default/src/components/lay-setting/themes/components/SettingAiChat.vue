@@ -56,7 +56,7 @@
               layout="dropdown"
               :options="aiChatModelOptions"
               dropdown-title="选择推理模型"
-              dropdown-placeholder="请选择 Hugging Face 模型"
+              dropdown-placeholder="请选择 WebLLM MLC 模型"
               width="420px"
               height="260px"
               @change="aiChatModelChange"
@@ -156,16 +156,17 @@ const aiChatSkinOptions = computed(() => AI_APPEARANCE_OPTIONS);
 
 /** AI 厂商选项 */
 const aiChatVendorOptions = computed<Array<AiDropdownOption>>(() => [
-  { label: "Hugging Face", value: "hf", description: "使用 Hugging Face / hf-mirror 的开源模型", image: AI_IMG },
+  { label: "WebLLM（本地）", value: "hf", description: "使用 @mlc-ai/web-llm 在浏览器端本地运行大模型，无需服务器", image: AI_IMG },
   { label: "Chrome", value: "chrome", description: "使用 Chrome 浏览器内置 AI 能力（实验性）", image: AI_IMG },
   { label: "其它厂商", value: "other", description: "自定义第三方厂商，需要手动配置 API 信息", image: AI_IMG },
 ]);
 
-/** Hugging Face 小参数模型选项 */
+/** WebLLM MLC 模型选项（浏览器端本地推理） */
 const aiChatModelOptions = computed<Array<AiDropdownOption>>(() => [
-  { label: "Qwen2.5-1.5B-Instruct", value: "Qwen/Qwen2.5-1.5B-Instruct", description: "阿里 Qwen 1.5B 指令模型，体积小、加载快", image: AI_IMG },
-  { label: "Qwen2.5-3B-Instruct", value: "Qwen/Qwen2.5-3B-Instruct", description: "阿里 Qwen 3B 指令模型，能力更强", image: AI_IMG },
-  { label: "Llama-3.2-1B-Instruct", value: "meta-llama/Llama-3.2-1B-Instruct", description: "Meta Llama 3.2 1B 指令模型，轻量场景适用", image: AI_IMG },
+  { label: "Qwen2.5-1.5B-Instruct（推荐）", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", description: "阿里 Qwen 1.5B MLC 量化版，体积小、加载快，适合入门", image: AI_IMG },
+  { label: "Qwen2.5-3B-Instruct", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", description: "阿里 Qwen 3B MLC 量化版，能力更强，需要更多内存", image: AI_IMG },
+  { label: "Llama-3.2-1B-Instruct", value: "Llama-3.2-1B-Instruct-q4f16_1-MLC", description: "Meta Llama 3.2 1B MLC 量化版，轻量场景适用", image: AI_IMG },
+  { label: "Llama-3.2-3B-Instruct", value: "Llama-3.2-3B-Instruct-q4f16_1-MLC", description: "Meta Llama 3.2 3B MLC 量化版，综合能力较强", image: AI_IMG },
 ]);
 
 interface Props {
