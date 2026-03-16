@@ -50,6 +50,14 @@ export interface MenuMeta {
   roles?: string[];
   /** 按钮权限 */
   auths?: string[];
+  /** 新菜单创建时间（ISO 字符串，用于 ReMenuNewBadge） */
+  createTime?: string;
+  /** 新菜单标识类型（primary/success/warning/danger） */
+  badgeType?: string;
+  /** 新菜单标识自定义文本 */
+  badgeText?: string;
+  /** 是否永久显示新菜单标识 */
+  permanentNew?: boolean;
 }
 
 /**

@@ -204,4 +204,6 @@ export interface StorageConfig {
   /** DevTools 悬停检查开关 */
   devHoverInspector?: boolean;
   /** 开发模式下 AI 设置展示控制 */
+  /** drawer 布局汉堡按钮位置 */
+  drawerHamburgerPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
 }
