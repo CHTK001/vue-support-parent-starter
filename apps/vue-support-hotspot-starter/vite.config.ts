@@ -1,17 +1,7 @@
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  root as projectRoot,
-  wrapperEnv,
-  pathResolve,
-  createAlias,
-  createAppInfo,
-  getPluginsList,
-  include,
-  exclude,
-  getSharedPublicConfig
-} from "@repo/build-config";
+import { root as projectRoot, wrapperEnv, pathResolve, createAlias, createAppInfo, getPluginsList, include, exclude, getSharedPublicConfig } from "@repo/build-config";
 import pkg from "./package.json";
 
 // 当前应用的根目录（vite.config.ts 所在目录）
@@ -59,8 +49,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         scss: {
           api: "modern-compiler",
           additionalData: `
-            @use "@repo/assets/style/layout/default/variables.scss" as *;
-            @use "@repo/assets/style/layout/default/mixin.scss";
+            @use "@repo/assets/styles/layout/default/variables.scss" as *;
+            @use "@repo/assets/styles/layout/default/mixin.scss";
           `,
           silenceDeprecations: ["color-functions", "global-builtin", "import"]
         }
