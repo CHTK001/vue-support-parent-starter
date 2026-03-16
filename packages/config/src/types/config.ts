@@ -281,6 +281,12 @@ export interface PlatformConfigs {
   wasmEnable?: boolean;
 
   // ===========================================
+  // 热力图配置
+  // ===========================================
+  /** 用户行为热力图配置 */
+  Heatmap?: HeatmapConfig;
+
+  // ===========================================
   // 兼容旧配置（已废弃/待移除）
   // ===========================================
   /** @deprecated 使用 RouterModule 替代 */
@@ -390,3 +396,25 @@ export interface PerformanceConfig {
 }
 
 export type Effect = "light" | "dark";
+
+/**
+ * 用户行为热力图配置
+ */
+export interface HeatmapConfig {
+  /** 是否启用热力图追踪（默认: false） */
+  enable?: boolean;
+  /** 采样率（0-1），1 表示全量采集（默认: 1） */
+  sampleRate?: number;
+  /** 上报接口地址，为空则仅本地存储 */
+  reportUrl?: string;
+  /** 本地最大存储条数（默认: 1000） */
+  maxLocalEntries?: number;
+  /** 批量上报间隔（毫秒，默认: 5000） */
+  flushInterval?: number;
+  /** 是否追踪点击事件（默认: true） */
+  trackClick?: boolean;
+  /** 是否追踪鼠标移动（默认: false，数据量大） */
+  trackMouseMove?: boolean;
+  /** 是否追踪滚动事件（默认: true） */
+  trackScroll?: boolean;
+}

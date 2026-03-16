@@ -1,0 +1,23 @@
+{
+  "name": "@repo/sc-web-llm",
+  "version": "1.0.0",
+  "description": "WebLLM 浏览器端本地推理模块，基于 @mlc-ai/web-llm",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    }
+  },
+  "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.79",
+    "vue": "catalog:"
+  },
+  "license": "ISC"
+}

@@ -1325,38 +1325,6 @@ onUnmounted(() => {
           :theme-animation-direction-change="themeAnimationDirectionChange"
         />
 
-        <!-- AI 设置区域 -->
-        <SettingAiChat
-          :settings="settings"
-          :show-ai-chat="getConfig().ShowAiChat !== false"
-          :ai-chat-enabled-change="aiChatEnabledChange"
-          :ai-chat-api-key-change="aiChatApiKeyChange"
-          :ai-chat-api-url-change="aiChatApiUrlChange"
-          :ai-chat-vendor-change="aiChatVendorChange"
-          :ai-chat-model-change="aiChatModelChange"
-          :ai-chat-skin-change="aiChatSkinChange"
-        />
-
-        <!-- 顶部工具栏配置区域 -->
-        <SettingToolbar
-          :settings="settings"
-          :show-search-change="showSearchChange"
-          :show-fullscreen-change="showFullscreenChange"
-          :show-header-clock-change="showHeaderClockChange"
-          :header-clock-second-enabled-change="headerClockSecondEnabledChange"
-          :header-clock-second-timezone-change="headerClockSecondTimezoneChange"
-        />
-
-        <!-- 消息配置区域 -->
-        <SettingMessage
-          :settings="settings"
-          :is-development="isDevelopment"
-          :is-test="isTest"
-          :show-message-change="showMessageChange"
-          :message-dropdown-position-change="messageDropdownPositionChange"
-          :send-dev-default-message="sendDevDefaultMessage"
-        />
-
         <!-- 布局模式设置区域 -->
         <SettingLayout
           :settings="settings"
@@ -1392,7 +1360,15 @@ onUnmounted(() => {
           :multi-tags-cache-change="multiTagsCacheChange"
         />
 
-        <!-- 过渡动画设置区域已删除 -->
+        <!-- 顶部工具栏配置区域 -->
+        <SettingToolbar
+          :settings="settings"
+          :show-search-change="showSearchChange"
+          :show-fullscreen-change="showFullscreenChange"
+          :show-header-clock-change="showHeaderClockChange"
+          :header-clock-second-enabled-change="headerClockSecondEnabledChange"
+          :header-clock-second-timezone-change="headerClockSecondTimezoneChange"
+        />
 
         <!-- 界面显示设置区域 -->
         <SettingDisplay
@@ -1446,6 +1422,28 @@ onUnmounted(() => {
           :new-menu-text-change="newMenuTextChange"
           :new-menu-time-limit-change="newMenuTimeLimitChange"
           :new-menu-animation-change="newMenuAnimationChange"
+        />
+
+        <!-- 消息配置区域 -->
+        <SettingMessage
+          :settings="settings"
+          :is-development="isDevelopment"
+          :is-test="isTest"
+          :show-message-change="showMessageChange"
+          :message-dropdown-position-change="messageDropdownPositionChange"
+          :send-dev-default-message="sendDevDefaultMessage"
+        />
+
+        <!-- AI 设置区域 -->
+        <SettingAiChat
+          :settings="settings"
+          :show-ai-chat="getConfig().ShowAiChat !== false"
+          :ai-chat-enabled-change="aiChatEnabledChange"
+          :ai-chat-api-key-change="aiChatApiKeyChange"
+          :ai-chat-api-url-change="aiChatApiUrlChange"
+          :ai-chat-vendor-change="aiChatVendorChange"
+          :ai-chat-model-change="aiChatModelChange"
+          :ai-chat-skin-change="aiChatSkinChange"
         />
 
         <!-- 高级设置区域 -->

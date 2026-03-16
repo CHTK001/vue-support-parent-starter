@@ -4,7 +4,7 @@
  */
 
 import type { AiChatRequest, ChatMessage } from "../types";
-import { generateByTransformersJs } from "./hfTransformersClient";
+import { generateByWebLlm } from "./webLlmClient";
 
 const DEFAULT_HF_MODEL = "Qwen/Qwen2.5-1.5B-Instruct";
 const HISTORY_LIMIT = 10;
@@ -127,14 +127,14 @@ export async function requestAiReply(req: AiChatRequest): Promise<string> {
 
   if (req.vendor === "hf") {
     try {
-      return await generateByTransformersJs(
+      return await generateByWebLlm(
         req.history,
         req.userMessage,
         req.model,
       );
     } catch (error) {
       console.error(
-        "[AI][浏览器模型] transformers.js 推理失败，回退到 HTTP 接口",
+        "[AI][WebLLM] 本地推理失败，回退到 HTTP 接口",
         error,
       );
       return await requestByHuggingFace(req);
