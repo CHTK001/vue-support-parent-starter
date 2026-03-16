@@ -5,29 +5,24 @@
 
 html[data-skin]:not([data-skin=""]):not([data-skin="default"]) {
   // ==================== 侧边栏菜单激活背景重置 ====================
-  // 使用高优先级选择器覆盖 sidebar.scss 中的样式
   
-  // 覆盖 sidebar.scss 第240-249行: .el-menu-item.is-active.nest-menu::before
+  // 覆盖 sidebar.scss: .el-menu-item.is-active.nest-menu::before
   .sidebar-container .el-menu-item.is-active.nest-menu::before {
     background: transparent !important;
     box-shadow: none !important;
   }
   
-  // 覆盖 sidebar.scss 第285-294行: .is-active.submenu-title-noDropdown.outer-most::before
+  // 覆盖 sidebar.scss: .is-active.submenu-title-noDropdown.outer-most::before
   .sidebar-container .is-active.submenu-title-noDropdown.outer-most::before {
     background: transparent !important;
     box-shadow: none !important;
   }
   
-  // 覆盖 sidebar.scss 第259-277行: 折叠菜单的左侧竖条
+  // 覆盖 sidebar.scss: 折叠菜单的左侧竖条
   .sidebar-container .el-menu--collapse .is-active.outer-most.el-sub-menu > .el-sub-menu__title::before {
     background: transparent !important;
   }
-  
-  // ==================== 弹出菜单样式 ====================
-  // 注意：弹出菜单的样式完全由各主题SCSS文件单独定义
-  // 不在这里重置弹出菜单的激活状态，确保主题样式能正确应用
-  
+
   // ==================== 双栏导航重置 ====================
   .double-nav-left .first-level-menu .el-menu-item {
     background: transparent !important;
@@ -56,7 +51,6 @@ html[data-skin]:not([data-skin=""]):not([data-skin="default"]) {
   }
 
   // ==================== 标签页基础重置 ====================
-  // 注意：不重置 .tags-view 的 box-shadow，让各主题自己定义
   .tags-view {
     background: transparent !important;
     backdrop-filter: none !important;
