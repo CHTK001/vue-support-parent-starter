@@ -3,7 +3,7 @@
  * 集中导入所有主题样式
  */
 
-// 基础重置样式
+// 基础重置样式（非默认主题时重置默认样式）
 @use './base-override.scss';
 
 // 默认主题
@@ -13,8 +13,8 @@
 // 注意：Sass 命名空间不能以数字开头，这里显式命名为 theme8bit
 @use './8bit.scss' as theme8bit;
 
-// 节日主题（如需启用，请先创建对应 scss 文件再恢复下面的引入）
-// @use './spring-festival.scss';
-// @use './christmas.scss';
-// @use './mid-autumn.scss';
-// @use './new-year.scss';
+// 未来科技主题
+@use './future-tech.scss' as futureTech;
+
+// Stitch Layout Tokens
+@use './stitch-layout-tokens.scss';

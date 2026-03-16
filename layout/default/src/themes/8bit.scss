@@ -1,25 +1,63 @@
 /**
- * 8-bit 主题
- * @description 8-bit 风格主题，复古游戏体验
+ * 8bit 像素风格主题样式
+ *
+ * 字体来源：Fusion Pixel Font (缝合像素字体)
+ * 项目地址：https://github.com/TakWolf/fusion-pixel-font
+ * 字体通过 @pixelium/web-vue/dist/font.css 引入
  */
+
+// 同时支持 data-skin 和 data-theme 两种属性选择器
+html[data-skin="8bit"],
 html[data-theme='8bit'] {
+  // 8bit 模式下所有文本标签使用 Fusion Pixel Font 像素字体
+  * {
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+  }
+
+  // 覆盖 Pixelium 默认的 body font-size: 21px，保持与全局基础字体大小一致
+  body {
+    font-size: var(--el-font-size-base) !important;
+  }
+
+  span,
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  div,
+  label,
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  option {
+    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+  }
+
   --el-color-primary: #ff00ff;
   --el-border-radius-base: 0px;
   --el-border-radius-small: 0px;
   --el-border-radius-round: 0px;
   --el-border-radius-circle: 0px;
 
-  /* 字体设置 - 优先使用像素字体，没有则使用等宽字体 */
-  font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
-
   /* 强制无圆角 */
   * {
     border-radius: 0 !important;
   }
-  
+
   /* 简单的像素边框效果 */
   .el-button, .el-card, .el-input__wrapper {
     box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.2) !important;
     border: 2px solid #000 !important;
+  }
+
+  // Pixelium 图标工具类样式
+  .px-icon-h {
+    height: 1em;
+    width: auto;
   }
 }

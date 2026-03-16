@@ -33,6 +33,7 @@ export const layoutThemes: LayoutTheme[] = [
     name: "默认",
     key: "default",
     description: "系统默认主题皮肤",
+    stylesheet: "default.scss",
     icon: "ri:settings-3-line",
     type: "regular",
     color: "#409EFF",
