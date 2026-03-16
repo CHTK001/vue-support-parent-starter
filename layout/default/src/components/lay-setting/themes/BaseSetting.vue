@@ -43,6 +43,7 @@ import LoaderStyleSetting from "./LoaderStyleSetting.vue";
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
 import DayIcon from "@repo/assets/svg/day.svg?component";
 import DoubleIcon from "@repo/assets/svg/double.svg?component";
+import DrawerIcon from "@repo/assets/svg/drawer.svg?component";
 import HorizontalIcon from "@repo/assets/svg/horizontal.svg?component";
 import HoverIcon from "@repo/assets/svg/hover.svg?component";
 import MixIcon from "@repo/assets/svg/mix.svg?component";
@@ -217,6 +218,8 @@ const settings = reactive({
   // 双栏导航设置相关
   doubleNavExpandMode: $storage.configure.doubleNavExpandMode ?? "auto",
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
+  // 抽屉导航设置相关
+  drawerHamburgerPosition: $storage.configure.drawerHamburgerPosition ?? "left",
   // 顶部工具栏（Header）
   showSearch:
     $storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true,
@@ -920,6 +923,10 @@ watch($storage, ({ layout }) => {
       toggleClass(true, "is-select", unref(doubleRef));
       debounce(setFalse([verticalRef, horizontalRef, mixRef, hoverRef]), 50);
       break;
+    case "drawer":
+      toggleClass(true, "is-select", unref(drawerRef));
+      debounce(setFalse([verticalRef, horizontalRef, mixRef, hoverRef, doubleRef]), 50);
+      break;
   }
 });
 
@@ -1015,6 +1022,7 @@ const horizontalRef = ref();
 const hoverRef = ref();
 const mobileRef = ref();
 const doubleRef = ref();
+const drawerRef = ref();
 
 /** 重置到默认设置 */
 function resetToDefault() {
@@ -1138,6 +1146,10 @@ function doubleNavAutoExpandAllChange() {
     "doubleNavAutoExpandAll",
     settings.doubleNavAutoExpandAll,
   );
+}
+
+function drawerHamburgerPositionChange() {
+  storageConfigureChange("drawerHamburgerPosition", settings.drawerHamburgerPosition);
 }
 
 /**
@@ -2464,6 +2476,38 @@ onUnmounted(() => {
                   </div>
                 </div>
               </ScTooltip>
+
+              <ScTooltip
+                :content="t('panel.layoutDrawerTip')"
+                placement="top"
+                :append-to-body="true"
+                :z-index="41000"
+              >
+                <div
+                  ref="drawerRef"
+                  class="layout-mode-item"
+                  :class="{ 'is-active': layoutTheme.layout === 'drawer' }"
+                  @click="setLayoutModel('drawer')"
+                >
+                  <div class="layout-mode-preview">
+                    <DrawerIcon />
+                  </div>
+                  <div class="layout-mode-info">
+                    <span class="layout-mode-name">{{
+                      t("panel.layoutDrawer")
+                    }}</span>
+                    <span class="layout-mode-desc">{{
+                      t("panel.layoutDrawerDesc")
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="layoutTheme.layout === 'drawer'"
+                    class="layout-mode-badge"
+                  >
+                    <IconifyIconOnline icon="ri:check-line" />
+                  </div>
+                </div>
+              </ScTooltip>
             </div>
           </div>
         </div>
@@ -2507,6 +2551,34 @@ onUnmounted(() => {
                 ribbon-color="var(--el-color-primary)"
                 @change="doubleNavAutoExpandAllChange"
               />
+            </div>
+          </div>
+        </div>
+
+        <!-- 抽屉导航配置区域 -->
+        <div v-if="layoutTheme.layout === 'drawer'" class="setting-section">
+          <div class="section-header">
+            <IconifyIconOnline
+              icon="ri:menu-2-line"
+              class="section-icon"
+            />
+            <h3 class="section-title">{{ t("panel.drawerNavConfig") }}</h3>
+            <div class="section-description">
+              {{ t("panel.drawerNavConfigDesc") }}
+            </div>
+          </div>
+          <div class="setting-content">
+            <div class="switch-item">
+              <label class="switch-label">{{ t("panel.hamburgerPosition") }}</label>
+              <div class="radio-group">
+                <ScRadioGroup
+                  v-model="settings.drawerHamburgerPosition"
+                  @change="drawerHamburgerPositionChange"
+                >
+                  <ScRadio value="left">{{ t("panel.hamburgerLeft") }}</ScRadio>
+                  <ScRadio value="right">{{ t("panel.hamburgerRight") }}</ScRadio>
+                </ScRadioGroup>
+              </div>
             </div>
           </div>
         </div>
@@ -7554,7 +7626,6 @@ html.dark {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-</style>
 
 /* 三个圆点预览 */ .preview-loader-default { display: flex; gap: 6px; }
 .preview-loader-default .dot { width: 10px; height: 10px; background: #406eeb;
@@ -7645,3 +7716,4 @@ write-line-preview 2s ease-in-out infinite; } .preview-loader-writing
 .line-preview:nth-child(1) { animation-delay: 0s; } .preview-loader-writing
 .line-preview:nth-child(2) { animation-delay: 0.3s; } @keyframes
 write-line-preview { 0%, 100% { width: 0; } 50% { width: 100%; } }
+</style>

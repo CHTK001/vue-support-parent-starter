@@ -196,6 +196,14 @@ panel:
   layoutMobileDesc: 触控优化
   layoutDouble: 双栏导航
   layoutDoubleDesc: 双层菜单
+  layoutDrawerTip: 抽屉导航，点击汉堡按钮展开侧边菜单
+  layoutDrawer: 抽屉导航
+  layoutDrawerDesc: 汉堡菜单
+  drawerNavConfig: 抽屉导航配置
+  drawerNavConfigDesc: 配置抽屉导航的汉堡按钮位置
+  hamburgerPosition: 汉堡按钮位置
+  hamburgerLeft: 左侧
+  hamburgerRight: 右侧
   mobileNavConfig: 移动导航配置
   mobileNavConfigDesc: 为触控设备优化的导航体验
   gestureSupport: 支持手势滑动操作

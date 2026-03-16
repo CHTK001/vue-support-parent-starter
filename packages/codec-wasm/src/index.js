@@ -29,17 +29,21 @@ const call = (fn, ...args) => {
 // ============ 初始化 ============
 
 /**
- * 检查是否启用 WASM（从配置读取）
+ * 检查是否启用 WASM（从配置读取，支持枚举模式）
+ * - 'WASM' | true：启用
+ * - 'JS' | false：禁用
+ * - 'AUTO'：自动检测浏览器支持
  * @returns {boolean}
  */
 const checkWasmEnabled = () => {
   try {
-    // 动态导入配置模块，避免循环依赖
     if (typeof window !== "undefined" && window.__APP_CONFIG__) {
-      const config = window.__APP_CONFIG__;
-      return config?.wasmEnable !== false;
+      const val = window.__APP_CONFIG__?.wasmEnable;
+      if (val === 'JS' || val === false) return false;
+      if (val === 'AUTO') return typeof WebAssembly !== 'undefined';
+      // 'WASM' | true | undefined（默认启用）
+      return true;
     }
-    // 如果无法获取配置，默认启用 WASM
     return true;
   } catch {
     return true;

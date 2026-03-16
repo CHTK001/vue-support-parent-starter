@@ -8,17 +8,19 @@ export function setupStore(app: App<Element>) {
 
 export { store };
 
-// 应用启动器
+// 应用启动器（含 createStandardApp，原 standard-app.ts 已合并至此）
 export {
   createAppBootstrap,
   quickBootstrap,
   AppBootstrap,
+  createStandardApp,
 } from "./app-bootstrap";
-export type { BootstrapOptions } from "./app-bootstrap";
-
-// 标准应用启动器（依赖较多，建议按需引入）
-export { createStandardApp } from "./standard-app";
-export type { StandardAppOptions, FontEncryptionOptions } from "./standard-app";
+export type {
+  BootstrapOptions,
+  StandardAppOptions,
+  FontEncryptionOptions,
+  WasmMode,
+} from "./app-bootstrap";
 
 // Socket 服务
 export {

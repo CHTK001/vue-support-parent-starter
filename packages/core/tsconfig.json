@@ -1,6 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@repo/tsconfig/web.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@repo/font-encryption": ["../font-encryption/src/index.ts"]
+    }
+  },
   "include": ["src/types/*.d.ts", "types/*.d.ts", "mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts", "src/store/modules/LayoutStore.ts"],
   "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
 }
