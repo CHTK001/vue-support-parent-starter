@@ -50,6 +50,7 @@ import LaySetting from "./components/lay-setting/index.vue";
 import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
+import NavDrawerLayout from "./components/lay-sidebar/NavDrawer.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import NavMobileLayout from "./components/lay-sidebar/NavMobile.vue";
 import LayTag from "./components/lay-tag/index.vue";
@@ -85,6 +86,7 @@ const LayContent = createLayoutAsyncComponent(
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
 const NavHover = markRaw(NavHoverLayout);
+const NavDrawer = markRaw(NavDrawerLayout);
 const NavDouble = markRaw(NavDoubleLayout);
 const NavMobile = markRaw(NavMobileLayout);
 
@@ -416,6 +418,7 @@ const LayHeader = defineComponent({
           (layout.value === "vertical" ||
             layout.value === "mix" ||
             layout.value === "hover" ||
+            layout.value === "drawer" ||
             layout.value === "double" ||
             layout.value === "mobile")
             ? h(LayNavbar)
@@ -516,6 +519,7 @@ const LayHeader = defineComponent({
           "
         />
         <NavHover v-show="!pureSetting.hiddenSideBar && layout === 'hover'" />
+        <NavDrawer v-show="!pureSetting.hiddenSideBar && layout === 'drawer'" />
         <div
           :class="[
             'main-container',
