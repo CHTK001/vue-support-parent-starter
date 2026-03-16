@@ -77,7 +77,7 @@ const device = computed(() => {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
   const layout = computed(() => {
     const fallbackLayout = "vertical";
-    const validLayouts = ["vertical", "horizontal", "mix", "hover", "double", "mobile"];
+    const validLayouts = ["vertical", "horizontal", "mix", "hover", "double", "drawer", "mobile"];
     const rawLayout = $storage?.layout?.layout as string | undefined;
 
     if (rawLayout && validLayouts.includes(rawLayout)) {

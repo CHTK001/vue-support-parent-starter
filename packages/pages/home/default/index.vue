@@ -267,7 +267,7 @@ onUnmounted(() => {
             <div class="greeting-text">
               <span class="greeting-hello">{{ greeting }}，</span>
               <span class="greeting-name">{{
-                userStore?.username || "用户"
+                userStore?.nickname || userStore?.username || "用户"
               }}</span>
             </div>
             <div class="greeting-subtitle">
