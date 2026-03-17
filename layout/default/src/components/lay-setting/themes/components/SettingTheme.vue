@@ -12,12 +12,12 @@ import LoaderStyleSetting from "../LoaderStyleSetting.vue";
 const { t } = useI18n();
 
 // ---- Props 定义 ----
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** reactive 设置对象引用，子组件可直接修改 */
   settings: Record<string, any>;
-  isDark: boolean;
-  dataTheme: boolean;
-  overallStyle: string;
+  isDark?: boolean;
+  dataTheme?: boolean;
+  overallStyle?: string;
   layoutTheme: { layout: string; theme: string };
   themeColors: Array<{ themeColor: string; color: string; description?: string }>;
   isNonDefaultTheme: boolean;
@@ -29,7 +29,11 @@ const props = defineProps<{
   handleSetLayoutThemeColor: (color: string, event: MouseEvent) => void;
   themeAnimationModeChange: (val: { option: OptionsType }) => void;
   themeAnimationDirectionChange: (value: string) => void;
-}>();
+}>(), {
+  isDark: false,
+  dataTheme: false,
+  overallStyle: "light",
+});
 </script>
 
 <template>
@@ -43,7 +47,7 @@ const props = defineProps<{
       <Segmented
         resize
         class="select-none modern-segmented"
-        :modelValue="overallStyle === 'system' ? 2 : dataTheme ? 1 : 0"
+        :modelValue="(overallStyle ?? 'light') === 'system' ? 2 : dataTheme ? 1 : 0"
         :options="themeOptions"
         @change="handleOverallStyleChange"
       />

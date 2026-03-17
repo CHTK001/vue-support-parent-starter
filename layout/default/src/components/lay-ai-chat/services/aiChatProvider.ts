@@ -64,7 +64,9 @@ async function requestByHuggingFace(req: AiChatRequest): Promise<string> {
     method: "POST",
     headers,
     body: JSON.stringify({
-      inputs: req.userMessage,
+      inputs: req.systemPrompt
+        ? `[系统提示]\n${req.systemPrompt}\n\n${req.userMessage}`
+        : req.userMessage,
       parameters: {
         max_new_tokens: 512,
         temperature: 0.7,
@@ -109,9 +111,12 @@ async function requestByChrome(req: AiChatRequest): Promise<string> {
     );
   }
 
+  var resolvedSystemPrompt =
+    req.systemPrompt?.trim() ||
+    "你是内嵌在管理后台中的中文 AI 助手，需要用简体中文回答问题。";
+
   var session = await chromeAi.languageModel.create({
-    systemPrompt:
-      "你是内嵌在管理后台中的中文 AI 助手，需要用简体中文回答问题。",
+    systemPrompt: resolvedSystemPrompt,
   });
 
   var historyText = buildHistoryText(req.history);
@@ -131,6 +136,7 @@ export async function requestAiReply(req: AiChatRequest): Promise<string> {
         req.history,
         req.userMessage,
         req.model,
+        req.systemPrompt,
       );
     } catch (error) {
       console.error(

@@ -30,6 +30,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useDraggable } from "@vueuse/core";
 import { useGlobal } from "@pureadmin/utils";
+import { useRoute } from "vue-router";
 import { emitter } from "@repo/core";
 import RobotChat from "./components/RobotChat.vue";
 import {
@@ -59,6 +60,23 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+const route = useRoute();
+
+/** 构建动态 system prompt，注入当前路由上下文 */
+function buildSystemPrompt(): string {
+  var base = "你是内嵌在管理后台中的中文 AI 助手，需要用简体中文回答问题。";
+  var routeName = String(route.name ?? "");
+  var routePath = route.path ?? "";
+  var routeTitle = String((route.meta as any)?.title ?? "");
+  var parts: string[] = [base];
+  if (routeName || routePath || routeTitle) {
+    parts.push("\n\n当前用户所在页面信息：");
+    if (routeTitle) parts.push(`- 页面标题：${routeTitle}`);
+    if (routeName) parts.push(`- 路由名称：${routeName}`);
+    if (routePath) parts.push(`- 路由路径：${routePath}`);
+  }
+  return parts.join("\n");
+}
 
 const enabled = computed(() => props.visible);
 const position = computed(
@@ -91,7 +109,19 @@ function syncConfigFromStorage(): void {
   var config = $storage?.configure;
   apiKey.value = config?.aiChatApiKey ?? "";
   apiUrl.value = config?.aiChatApiUrl ?? "";
-  vendor.value = (config?.aiChatVendor as AiChatVendor) ?? "chrome";
+  // 优先读取新的 aiChatMode 字段，兼容旧的 aiChatVendor
+  var mode = config?.aiChatMode;
+  if (mode === "webllm") {
+    vendor.value = "hf";
+  } else if (mode === "chrome") {
+    vendor.value = "chrome";
+  } else if (mode === "vendor") {
+    // vendor 模式下使用 aiChatVendor 的具体厂商值
+    vendor.value = (config?.aiChatVendor as AiChatVendor) ?? "other";
+  } else {
+    // 无 aiChatMode 时回退到旧字段（向后兼容）
+    vendor.value = (config?.aiChatVendor as AiChatVendor) ?? "chrome";
+  }
   model.value = config?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct";
   appearanceKey.value = normalizeAiAppearanceKey(config?.aiChatSkin);
 
@@ -193,6 +223,12 @@ async function sendMessage(payload: string): Promise<void> {
     return;
   }
 
+  // messages 数组超过上限时截断，保留第一条欢迎语 + 最近 HISTORY_LIMIT*2 条
+  var MAX_MESSAGES = HISTORY_LIMIT * 2;
+  if (messages.value.length > MAX_MESSAGES + 1) {
+    messages.value = [messages.value[0], ...messages.value.slice(-MAX_MESSAGES)];
+  }
+
   var history = messages.value.slice(-HISTORY_LIMIT);
   messages.value.push({ role: "user", content });
   inputMessage.value = "";
@@ -211,6 +247,7 @@ async function sendMessage(payload: string): Promise<void> {
       model: model.value,
       userMessage: content,
       history,
+      systemPrompt: buildSystemPrompt(),
     });
 
     messages.value.push({ role: "assistant", content: assistant });

@@ -207,7 +207,7 @@ const settings = reactive({
   doubleNavExpandMode: $storage.configure.doubleNavExpandMode ?? "auto",
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
   // 抽屉导航设置相关
-  drawerHamburgerPosition: $storage.configure.drawerHamburgerPosition ?? "left",
+  drawerHamburgerPosition: $storage.configure.drawerHamburgerPosition ?? "top-left",
   // 顶部工具栏（Header）
   showSearch:
     $storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true,
@@ -240,6 +240,16 @@ const settings = reactive({
   aiChatApiUrl: $storage.configure?.aiChatApiUrl ?? "",
   aiChatVendor: $storage.configure?.aiChatVendor ?? "chrome",
   aiChatModel: $storage.configure?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct",
+  // 模式字段：webllm / chrome / vendor，旧数据迁移在下方处理
+  aiChatMode: (() => {
+    const saved = $storage.configure?.aiChatMode;
+    if (saved === "webllm" || saved === "chrome" || saved === "vendor") return saved;
+    // 旧数据迁移：根据 aiChatVendor 推断
+    const v = $storage.configure?.aiChatVendor ?? "chrome";
+    if (v === "hf") return "webllm";
+    if (v === "chrome") return "chrome";
+    return "vendor";
+  })(),
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 false）
   enableFestivalTheme:
     $storage.configure?.enableFestivalTheme ??
@@ -479,17 +489,18 @@ function onChange({ option }: { option: OptionsType }) {
 }
 
 /** 侧边栏Logo */
-function logoChange() {
-  unref(logoVal)
-    ? storageConfigureChange("showLogo", true)
-    : storageConfigureChange("showLogo", false);
-  emitter.emit("logoChange", unref(logoVal));
+function logoChange(val?: boolean) {
+  // ScSwitch @change 传入新值，优先使用；否则回退到 ref 当前值
+  const newVal = val !== undefined ? val : unref(logoVal);
+  logoVal.value = newVal;
+  storageConfigureChange("showLogo", newVal);
+  emitter.emit("logoChange", newVal);
 }
 /** 卡片Body */
-function cardBodyChange() {
-  unref(cardBodyVal)
-    ? storageConfigureChange("cardBody", true)
-    : storageConfigureChange("cardBody", false);
+function cardBodyChange(val?: boolean) {
+  const newVal = val !== undefined ? val : unref(cardBodyVal);
+  cardBodyVal.value = newVal;
+  storageConfigureChange("cardBody", newVal);
 }
 
 /** 卡片颜色模式变更 */
@@ -838,6 +849,8 @@ function doubleNavAutoExpandAllChange() {
 
 function drawerHamburgerPositionChange() {
   storageConfigureChange("drawerHamburgerPosition", settings.drawerHamburgerPosition);
+  // 实时通知抽屉导航组件更新汉堡按钮位置
+  emitter.emit("drawerHamburgerPositionChange", settings.drawerHamburgerPosition);
 }
 
 /**
@@ -865,6 +878,15 @@ function aiChatApiKeyChange(value: string) {
 function aiChatApiUrlChange(value: string) {
   settings.aiChatApiUrl = value;
   storageConfigureChange("aiChatApiUrl", value);
+}
+
+/**
+ * AI 模式变更（webllm / chrome / vendor）
+ */
+function aiChatModeChange(value: string | number | boolean) {
+  const mode = String(value) as "webllm" | "chrome" | "vendor";
+  settings.aiChatMode = mode;
+  storageConfigureChange("aiChatMode", mode);
 }
 
 /**
@@ -1053,6 +1075,15 @@ function sessionTimeoutMinutesChange(value: number): void {
 function screenReaderModeChange(enabled: boolean) {
   settings.screenReaderMode = enabled;
   storageConfigureChange("screenReaderMode", enabled);
+  // 调用 Web Speech API 朗读状态提示
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+    if (enabled) {
+      const utter = new SpeechSynthesisUtterance("读屏优化模式已开启");
+      utter.lang = "zh-CN";
+      window.speechSynthesis.speak(utter);
+    }
+  }
 }
 
 /**
@@ -1218,6 +1249,74 @@ function themeAnimationDirectionChange(value: string) {
 }
 
 /** 导入设置 */
+
+/** 清空本地缓存并刷新 */
+function clearLocalCache() {
+  try {
+    storageLocal().clear();
+    message.success("缓存已清空，即将刷新页面");
+    setTimeout(() => location.reload(), 800);
+  } catch (e) {
+    message.error("清空缓存失败");
+  }
+}
+
+/** 导出配置为 JSON 文件 */
+function exportConfig() {
+  try {
+    const config = JSON.stringify($storage.configure || {}, null, 2);
+    const blob = new Blob([config], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `app-config-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    message.success("配置已导出");
+  } catch (e) {
+    message.error("导出配置失败");
+  }
+}
+
+/** 导入配置文件 */
+function importConfig() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
+  input.onchange = (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target?.result as string);
+        const current = $storage.configure || {};
+        Object.assign(current, imported);
+        $storage.configure = current;
+        storageLocal().setItem("responsive-configure", current);
+        message.success("配置已导入，即将刷新页面");
+        setTimeout(() => location.reload(), 800);
+      } catch {
+        message.error("配置文件格式错误");
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+/** 重置所有配置为默认值 */
+function resetConfig() {
+  try {
+    $storage.configure = {};
+    storageLocal().removeItem("responsive-configure");
+    message.success("配置已重置，即将刷新页面");
+    setTimeout(() => location.reload(), 800);
+  } catch (e) {
+    message.error("重置配置失败");
+  }
+}
+
 /** 是否显示云同步功能 */
 const showCloudSync = computed(() => {
   const enabled = getConfig().ShowCloudSync ?? false;
@@ -1305,7 +1404,27 @@ onUnmounted(() => {
 <template>
   <div>
     <LayPanel>
-      <div class="modern-setting-container">
+      <template #footer>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <el-button plain @click="clearLocalCache">
+            <IconifyIconOnline icon="ri:delete-bin-line" />
+            清空缓存
+          </el-button>
+          <el-button plain @click="importConfig">
+            <IconifyIconOnline icon="ri:upload-2-line" />
+            导入配置
+          </el-button>
+          <el-button plain @click="exportConfig">
+            <IconifyIconOnline icon="ri:download-2-line" />
+            导出配置
+          </el-button>
+          <el-button type="danger" plain @click="resetConfig">
+            <IconifyIconOnline icon="ri:refresh-line" />
+            重置配置
+          </el-button>
+        </div>
+      </template>
+      <div class="lay-setting modern-setting-container">
         <!-- 主题设置（风格/主题色/动画/皮肤/加载动画） -->
         <SettingTheme
           :settings="settings"
@@ -1373,23 +1492,10 @@ onUnmounted(() => {
         <!-- 界面显示设置区域 -->
         <SettingDisplay
           :settings="settings"
-          :is-dark="isDark"
           :logo-val="logoVal"
           :card-body-val="cardBodyVal"
           :card-color-mode="cardColorMode"
           :card-color-options="cardColorOptions"
-          :is-performance-monitor-visible="isPerformanceMonitorVisible"
-          :fps-monitor-enabled="fpsMonitorEnabled"
-          :memory-monitor-enabled="memoryMonitorEnabled"
-          :cpu-monitor-enabled="cpuMonitorEnabled"
-          :bandwidth-monitor-enabled="bandwidthMonitorEnabled"
-          :battery-monitor-enabled="batteryMonitorEnabled"
-          :bluetooth-monitor-enabled="bluetoothMonitorEnabled"
-          :screen-monitor-enabled="screenMonitorEnabled"
-          :performance-monitor-position="performanceMonitorPosition"
-          :performance-monitor-mode="performanceMonitorMode"
-          :performance-monitor-layout="performanceMonitorLayout"
-          :performance-monitor-direction="performanceMonitorDirection"
           :logo-change="logoChange"
           :card-body-change="cardBodyChange"
           :on-card-color-mode-change="onCardColorModeChange"
@@ -1404,12 +1510,6 @@ onUnmounted(() => {
           :keep-alive-change="keepAliveChange"
           :tags-change="tagsChange"
           :multi-tags-cache-change="multiTagsCacheChange"
-          :theme-store="themeStore"
-          :font-encryption-enabled-change="fontEncryptionEnabledChange"
-          :font-encryption-numbers-change="fontEncryptionNumbersChange"
-          :font-encryption-chinese-change="fontEncryptionChineseChange"
-          :font-encryption-global-change="fontEncryptionGlobalChange"
-          :font-encryption-ocr-noise-change="fontEncryptionOcrNoiseChange"
         />
 
         <!-- 菜单设置区域 -->
@@ -1441,6 +1541,7 @@ onUnmounted(() => {
           :ai-chat-enabled-change="aiChatEnabledChange"
           :ai-chat-api-key-change="aiChatApiKeyChange"
           :ai-chat-api-url-change="aiChatApiUrlChange"
+          :ai-chat-mode-change="aiChatModeChange"
           :ai-chat-vendor-change="aiChatVendorChange"
           :ai-chat-model-change="aiChatModelChange"
           :ai-chat-skin-change="aiChatSkinChange"
@@ -1470,6 +1571,10 @@ onUnmounted(() => {
           :dev-hover-inspector-change="devHoverInspectorChange"
           :sync-to-cloud="syncToCloud"
           :sync-from-cloud="syncFromCloud"
+          :clear-local-cache="clearLocalCache"
+          :export-config="exportConfig"
+          :import-config="importConfig"
+          :reset-config="resetConfig"
         />
       </div>
     </LayPanel>

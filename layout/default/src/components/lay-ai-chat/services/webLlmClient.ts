@@ -4,6 +4,7 @@
  */
 
 import type { ChatMessage } from "../types";
+import { updateWebLlmProgress, resetWebLlmDownloadState } from "./webLlmDownloadState";
 
 /** 默认 MLC 模型（轻量，适合浏览器） */
 const DEFAULT_WEB_LLM_MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
@@ -44,16 +45,18 @@ export async function ensureWebLlmLoaded(model?: string): Promise<void> {
   loadingPromise = (async () => {
     try {
       // 动态导入，避免打包时强制依赖
-      const { CreateMLCEngine } = await import("@mlc-ai/web-llm");
+      const { CreateMLCEngine } = await import(/* @vite-ignore */ "@mlc-ai/web-llm");
       engine = await CreateMLCEngine(modelId, {
         initProgressCallback: (progress: any) => {
           console.log(
             `[AI][WebLLM] 模型加载进度: ${progress.text ?? ""}`,
             progress.progress ?? "",
           );
+          updateWebLlmProgress(progress);
         },
       });
       loadedModelId = modelId;
+      resetWebLlmDownloadState();
     } finally {
       loadingPromise = null;
     }
@@ -62,16 +65,21 @@ export async function ensureWebLlmLoaded(model?: string): Promise<void> {
   return loadingPromise;
 }
 
+/** 历史消息截断上限 */
+const HISTORY_LIMIT = 10;
+
 /**
  * 使用 WebLLM 生成回复
  * @param history 历史消息
  * @param message 当前用户消息
  * @param model 模型 ID（可选）
+ * @param systemPrompt 动态 system prompt（可选，默认使用内置提示词）
  */
 export async function generateByWebLlm(
   history: ChatMessage[],
   message: string,
   model?: string,
+  systemPrompt?: string,
 ): Promise<string> {
   await ensureWebLlmLoaded(model);
 
@@ -79,13 +87,14 @@ export async function generateByWebLlm(
     throw new Error("WebLLM 引擎初始化失败");
   }
 
-  // 构建 OpenAI 格式的消息列表
+  const resolvedSystemPrompt =
+    systemPrompt?.trim() ||
+    "你是内嵌在管理后台中的中文 AI 助手，需要用简体中文回答问题。";
+
+  // 构建 OpenAI 格式的消息列表，history 截断防止 token 过多
   const messages: Array<{ role: string; content: string }> = [
-    {
-      role: "system",
-      content: "你是内嵌在管理后台中的中文 AI 助手，需要用简体中文回答问题。",
-    },
-    ...history.map((item) => ({
+    { role: "system", content: resolvedSystemPrompt },
+    ...history.slice(-HISTORY_LIMIT).map((item) => ({
       role: item.role === "user" ? "user" : "assistant",
       content: item.content,
     })),
