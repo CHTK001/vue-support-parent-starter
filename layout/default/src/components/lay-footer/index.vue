@@ -16,6 +16,7 @@ const TITLE = getConfig("Title");
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0; // 禁止页脚被压缩，确保在 flex 容器中始终占据固定高度
   width: 100%;
   padding: 0 0 8px;
   font-size: 14px;

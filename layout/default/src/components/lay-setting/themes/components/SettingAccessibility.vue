@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onBeforeUnmount, watch } from "vue";
 import { ScSwitch } from "@repo/components";
 
 interface Props {
@@ -8,9 +9,59 @@ interface Props {
   screenReaderModeChange: (enabled: boolean) => void;
   /** 高对比度模式变更 */
   highContrastModeChange: (enabled: boolean) => void;
+  /** 语音朗读开关变更 */
+  voiceReadEnabledChange: (enabled: boolean) => void;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+/** 检测浏览器是否支持语音朗读 */
+const speechSupported = "speechSynthesis" in window;
+
+/** focus 事件处理器引用，用于挂载/卸载 */
+let focusHandler: ((e: FocusEvent) => void) | null = null;
+
+/** 获取元素的朗读文本 */
+function getReadText(el: HTMLElement): string {
+  return (
+    el.getAttribute("aria-label") ||
+    el.getAttribute("title") ||
+    el.textContent?.trim().slice(0, 100) ||
+    ""
+  );
+}
+
+/** 挂载 focus 监听，开始语音朗读 */
+function attachVoiceRead() {
+  if (focusHandler) return;
+  focusHandler = (e: FocusEvent) => {
+    const text = getReadText(e.target as HTMLElement);
+    if (!text) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "zh-CN";
+    window.speechSynthesis.speak(utter);
+  };
+  window.addEventListener("focus", focusHandler, { capture: true });
+}
+
+/** 卸载 focus 监听，停止语音朗读 */
+function detachVoiceRead() {
+  if (focusHandler) {
+    window.removeEventListener("focus", focusHandler, { capture: true });
+    focusHandler = null;
+  }
+  window.speechSynthesis?.cancel();
+}
+
+/** 监听语音朗读开关，控制监听挂载/卸载 */
+watch(
+  () => props.settings.voiceReadEnabled,
+  (active) => (active ? attachVoiceRead() : detachVoiceRead()),
+  { immediate: true },
+);
+
+onBeforeUnmount(() => detachVoiceRead());
 </script>
 
 <template>
@@ -40,6 +91,17 @@ defineProps<Props>();
         active-icon="mdi:contrast-circle"
         ribbon-color="var(--el-color-primary)"
         @change="highContrastModeChange"
+      />
+      <ScSwitch
+        v-model="settings.voiceReadEnabled"
+        layout="visual-card"
+        size="small"
+        label="语音朗读"
+        :description="speechSupported ? '焦点移入元素时自动朗读内容' : '当前浏览器不支持语音朗读'"
+        :disabled="!speechSupported"
+        active-icon="ri:volume-up-line"
+        ribbon-color="var(--el-color-warning)"
+        @change="voiceReadEnabledChange"
       />
     </div>
   </div>

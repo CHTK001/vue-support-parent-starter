@@ -15,6 +15,7 @@
         :is="currentChatComponent"
         :appearance-component="currentAppearanceComponent"
         :user-icon="UserIcon"
+        :user-avatar="userAvatar"
         :messages="messages"
         :input="inputMessage"
         :is-loading="isLoading"
@@ -40,10 +41,14 @@ import {
 } from "../lay-ai/appearance";
 import type { AiChatVendor, ChatMessage } from "./types";
 import { requestAiReply } from "./services/aiChatProvider";
+import { useUserStoreHook } from "@repo/core";
 
 const HISTORY_LIMIT = 10;
 
 const UserIcon = { template: '<div class="skin-user">👤</div>' };
+
+// 从 userStore 读取真实头像 URL
+const userAvatar = computed(() => useUserStoreHook()?.avatar || "");
 
 interface Props {
   visible?: boolean;
@@ -62,19 +67,55 @@ const props = withDefaults(defineProps<Props>(), {
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const route = useRoute();
 
-/** 构建动态 system prompt，注入当前路由上下文 */
+/** 从 UA 提取简要浏览器名称 */
+function parseBrowserName(): string {
+  var ua = navigator.userAgent;
+  if (ua.includes("Edg/")) return "Edge";
+  if (ua.includes("Chrome/")) return "Chrome";
+  if (ua.includes("Firefox/")) return "Firefox";
+  if (ua.includes("Safari/") && !ua.includes("Chrome")) return "Safari";
+  return "Unknown";
+}
+
+/** 构建动态 system prompt，注入当前路由上下文及基本环境信息 */
 function buildSystemPrompt(): string {
   var base = "你是内嵌在管理后台中的中文 AI 助手，需要用简体中文回答问题。";
+  var parts: string[] = [base];
+
+  // 当前时间
+  parts.push(`\n\n当前时间：${new Date().toLocaleString("zh-CN")}`);
+
+  // 用户信息
+  var userStore = useUserStoreHook();
+  var displayName = userStore?.nickname || userStore?.username || "";
+  if (displayName) {
+    parts.push(`当前用户：${displayName}`);
+  }
+  var roles = userStore?.roles;
+  if (Array.isArray(roles) && roles.length > 0) {
+    parts.push(`用户角色：${roles.join(", ")}`);
+  }
+
+  // 系统版本
+  var appVersion = (import.meta.env as any).VITE_APP_VERSION;
+  if (appVersion) {
+    parts.push(`系统版本：${appVersion}`);
+  }
+
+  // 浏览器信息
+  parts.push(`浏览器：${parseBrowserName()}`);
+
+  // 当前路由
   var routeName = String(route.name ?? "");
   var routePath = route.path ?? "";
   var routeTitle = String((route.meta as any)?.title ?? "");
-  var parts: string[] = [base];
   if (routeName || routePath || routeTitle) {
-    parts.push("\n\n当前用户所在页面信息：");
+    parts.push("\n当前用户所在页面：");
     if (routeTitle) parts.push(`- 页面标题：${routeTitle}`);
     if (routeName) parts.push(`- 路由名称：${routeName}`);
     if (routePath) parts.push(`- 路由路径：${routePath}`);
   }
+
   return parts.join("\n");
 }
 
@@ -237,53 +278,120 @@ async function sendMessage(payload: string): Promise<void> {
     return;
   }
 
-  isLoading.value = true;
+  // vendor 模式下使用流式回调，其他模式保持原逻辑
+  var isVendorMode = vendor.value !== "chrome" && vendor.value !== "hf";
 
-  try {
-    var assistant = await requestAiReply({
-      vendor: vendor.value,
-      apiKey: apiKey.value,
-      apiUrl: apiUrl.value,
-      model: model.value,
-      userMessage: content,
-      history,
-      systemPrompt: buildSystemPrompt(),
-    });
+  if (isVendorMode) {
+    // 先 push 占位消息（content 为空表示 loading 中），不设 isLoading 避免双气泡
+    messages.value.push({ role: "assistant", content: "" });
+    var assistantIndex = messages.value.length - 1;
 
-    messages.value.push({ role: "assistant", content: assistant });
-  } catch (error) {
-    console.error("[AI][聊天] 请求失败", error);
+    try {
+      await requestAiReply(
+        {
+          vendor: vendor.value,
+          apiKey: apiKey.value,
+          apiUrl: apiUrl.value,
+          model: model.value,
+          userMessage: content,
+          history,
+          systemPrompt: buildSystemPrompt(),
+        },
+        (chunk: string) => {
+          // 流式回调：实时追加到占位消息
+          messages.value[assistantIndex] = {
+            role: "assistant",
+            content: messages.value[assistantIndex].content + chunk,
+          };
+          // 第一个 chunk 到达时清除 loading
+          if (isLoading.value) {
+            isLoading.value = false;
+          }
+        },
+      );
 
-    var errorMessage = "抱歉，发生了错误。";
-    if (error instanceof Error) {
-      errorMessage = error.message;
+      // 流结束后若内容为空（流式未触发），补充兜底文案
+      if (messages.value[assistantIndex].content.trim().length === 0) {
+        messages.value[assistantIndex] = {
+          role: "assistant",
+          content: "抱歉，我无法生成回复。",
+        };
+      }
+    } catch (error) {
+      console.error("[AI][聊天] 请求失败", error);
+
+      var errorMessage = "抱歉，发生了错误。";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      if (
+        errorMessage.includes("Failed to fetch") ||
+        errorMessage.includes("NetworkError")
+      ) {
+        errorMessage = "网络连接失败，请检查您的网络设置。";
+      }
+
+      // 替换占位消息为错误提示
+      messages.value[assistantIndex] = {
+        role: "assistant",
+        content:
+          `❌ ${errorMessage}\n\n` +
+          "💡 提示：\n" +
+          "- 需要在系统设置中配置 API URL / API Key\n" +
+          "- 建议先用简单问题确认连通性\n" +
+          "- 当前使用第三方厂商配置\n",
+      };
+    } finally {
+      isLoading.value = false;
     }
+  } else {
+    // chrome / hf 模式：保持原有非流式逻辑，用 isLoading 显示 loading 气泡
+    isLoading.value = true;
+    try {
+      var assistant = await requestAiReply({
+        vendor: vendor.value,
+        apiKey: apiKey.value,
+        apiUrl: apiUrl.value,
+        model: model.value,
+        userMessage: content,
+        history,
+        systemPrompt: buildSystemPrompt(),
+      });
 
-    if (
-      errorMessage.includes("Failed to fetch") ||
-      errorMessage.includes("NetworkError")
-    ) {
-      errorMessage = "网络连接失败，请检查您的网络设置。";
-    }
+      messages.value.push({ role: "assistant", content: assistant });
+    } catch (error) {
+      console.error("[AI][聊天] 请求失败", error);
 
-    messages.value.push({
-      role: "assistant",
-      content:
-        `❌ ${errorMessage}\n\n` +
-        "💡 提示：\n" +
-        (vendor.value === "chrome"
-          ? "- Chrome 模式需要浏览器支持内置 AI 能力（实验性）\n" +
-            "- Chrome 模式无需配置 API 信息\n"
-          : "- 首次使用时模型可能需要加载（约 20 秒）\n" +
-            "- 可以在系统设置中配置自定义 API URL\n") +
-        (vendor.value === "hf"
-          ? "- 当前使用 Hugging Face 推理能力\n"
-          : vendor.value === "other"
-            ? "- 当前使用第三方厂商配置\n"
+      var errMsg = "抱歉，发生了错误。";
+      if (error instanceof Error) {
+        errMsg = error.message;
+      }
+
+      if (
+        errMsg.includes("Failed to fetch") ||
+        errMsg.includes("NetworkError")
+      ) {
+        errMsg = "网络连接失败，请检查您的网络设置。";
+      }
+
+      messages.value.push({
+        role: "assistant",
+        content:
+          `❌ ${errMsg}\n\n` +
+          "💡 提示：\n" +
+          (vendor.value === "chrome"
+            ? "- Chrome 模式需要浏览器支持内置 AI 能力（实验性）\n" +
+              "- Chrome 模式无需配置 API 信息\n"
+            : "- 首次使用时模型可能需要加载（约 20 秒）\n" +
+              "- 可以在系统设置中配置自定义 API URL\n") +
+          (vendor.value === "hf"
+            ? "- 当前使用 Hugging Face 推理能力\n"
             : "- 当前使用 Chrome 浏览器内置能力\n"),
-    });
-  } finally {
-    isLoading.value = false;
+      });
+    } finally {
+      isLoading.value = false;
+    }
   }
 }
 

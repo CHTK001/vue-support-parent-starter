@@ -58,6 +58,7 @@ import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 import FpsMonitor from "./components/lay-performance/FpsMonitor.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
 import LiteInspector from "./components/lay-dev-tools/LiteInspector.vue";
+import HeatmapOverlay from "./components/lay-dev-tools/HeatmapOverlay.vue";
 
 // 导入主题皮肤样式（节日主题仅保留已实现的圣诞皮肤）
 import "./themes/8bit.scss";
@@ -563,6 +564,8 @@ const LayHeader = defineComponent({
 
       <!-- DevTools 轻量调试工具（仅开发环境生效，由配置控制） -->
       <LiteInspector />
+      <!-- 热点工具热力图覆盖层（仅开发/测试环境生效，由配置控制） -->
+      <HeatmapOverlay />
     </div>
   </ThemeSkinProvider>
 </template>

@@ -97,7 +97,6 @@ onBeforeUnmount(() => {
               zIndex: 41000,
             }"
             type="warning"
-            text
             bg
             @click="emitter.emit('settingResetToDefault')"
           >
@@ -110,7 +109,6 @@ onBeforeUnmount(() => {
               zIndex: 41000,
             }"
             type="info"
-            text
             bg
             class="ml-2"
             @click="emitter.emit('settingExportConfig')"
@@ -124,7 +122,6 @@ onBeforeUnmount(() => {
               zIndex: 41000,
             }"
             type="success"
-            text
             bg
             class="ml-2"
             @click="emitter.emit('settingImportConfig')"
@@ -138,7 +135,6 @@ onBeforeUnmount(() => {
               zIndex: 41000,
             }"
             type="danger"
-            text
             bg
             class="ml-2"
             @click="onReset"

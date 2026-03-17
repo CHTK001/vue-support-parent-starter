@@ -1418,7 +1418,7 @@ importers:
         version: 4.3.0(vue@3.5.28(typescript@5.9.3))
       '@intlify/unplugin-vue-i18n':
         specifier: 'catalog:'
-        version: 6.0.8(@vue/compiler-dom@3.5.29)(eslint@9.39.3(jiti@1.21.7))(rollup@4.58.0)(typescript@5.9.3)(vue-i18n@11.2.8(vue@3.5.28(typescript@5.9.3)))(vue@3.5.28(typescript@5.9.3))
+        version: 6.0.8(@vue/compiler-dom@3.5.29)(eslint@9.39.3(jiti@2.6.1))(rollup@4.58.0)(typescript@5.9.3)(vue-i18n@11.2.8(vue@3.5.28(typescript@5.9.3)))(vue@3.5.28(typescript@5.9.3))
       '@originjs/vite-plugin-commonjs':
         specifier: 'catalog:'
         version: 1.0.3
@@ -1454,16 +1454,16 @@ importers:
         version: 1.15.9
       '@typescript-eslint/eslint-plugin':
         specifier: 'catalog:'
-        version: 8.56.0(@typescript-eslint/parser@8.56.0(eslint@9.39.3(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.3(jiti@1.21.7))(typescript@5.9.3)
+        version: 8.56.0(@typescript-eslint/parser@8.56.0(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3)
       '@typescript-eslint/parser':
         specifier: 'catalog:'
-        version: 8.56.0(eslint@9.39.3(jiti@1.21.7))(typescript@5.9.3)
+        version: 8.56.0(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3)
       '@vitejs/plugin-vue':
         specifier: 'catalog:'
-        version: 5.2.4(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.28(typescript@5.9.3))
+        version: 5.2.4(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.28(typescript@5.9.3))
       '@vitejs/plugin-vue-jsx':
         specifier: 'catalog:'
-        version: 4.2.0(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.28(typescript@5.9.3))
+        version: 4.2.0(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.28(typescript@5.9.3))
       autoprefixer:
         specifier: 'catalog:'
         version: 10.4.24(postcss@8.5.6)
@@ -1481,16 +1481,16 @@ importers:
         version: 2.0.25
       eslint:
         specifier: 'catalog:'
-        version: 9.39.3(jiti@1.21.7)
+        version: 9.39.3(jiti@2.6.1)
       eslint-config-prettier:
         specifier: 'catalog:'
-        version: 9.1.2(eslint@9.39.3(jiti@1.21.7))
+        version: 9.1.2(eslint@9.39.3(jiti@2.6.1))
       eslint-plugin-prettier:
         specifier: 'catalog:'
-        version: 5.5.5(@types/eslint@9.6.1)(eslint-config-prettier@9.1.2(eslint@9.39.3(jiti@1.21.7)))(eslint@9.39.3(jiti@1.21.7))(prettier@3.8.1)
+        version: 5.5.5(@types/eslint@9.6.1)(eslint-config-prettier@9.1.2(eslint@9.39.3(jiti@2.6.1)))(eslint@9.39.3(jiti@2.6.1))(prettier@3.8.1)
       eslint-plugin-vue:
         specifier: 'catalog:'
-        version: 9.33.0(eslint@9.39.3(jiti@1.21.7))
+        version: 9.33.0(eslint@9.39.3(jiti@2.6.1))
       gradient-string:
         specifier: 'catalog:'
         version: 3.0.0
@@ -1550,16 +1550,16 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
+        version: 6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
       vite-plugin-cdn-import:
         specifier: 'catalog:'
-        version: 1.0.1(rollup@4.58.0)(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: 1.0.1(rollup@4.58.0)(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       vite-plugin-checker:
         specifier: 'catalog:'
-        version: 0.7.2(eslint@9.39.3(jiti@1.21.7))(optionator@0.9.4)(stylelint@16.26.1(typescript@5.9.3))(typescript@5.9.3)(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue-tsc@2.2.12(typescript@5.9.3))
+        version: 0.7.2(eslint@9.39.3(jiti@2.6.1))(optionator@0.9.4)(stylelint@16.26.1(typescript@5.9.3))(typescript@5.9.3)(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue-tsc@2.2.12(typescript@5.9.3))
       vite-plugin-compression:
         specifier: 'catalog:'
-        version: 0.5.1(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: 0.5.1(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       vite-plugin-fake-server:
         specifier: 'catalog:'
         version: 2.2.2
@@ -1574,13 +1574,13 @@ importers:
         version: 1.0.0
       vite-plugin-vue-inspector:
         specifier: 'catalog:'
-        version: 5.3.2(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: 5.3.2(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       vite-svg-loader:
         specifier: 'catalog:'
         version: 5.1.0(vue@3.5.28(typescript@5.9.3))
       vue-eslint-parser:
         specifier: 'catalog:'
-        version: 9.4.3(eslint@9.39.3(jiti@1.21.7))
+        version: 9.4.3(eslint@9.39.3(jiti@2.6.1))
       vue-tsc:
         specifier: 'catalog:'
         version: 2.2.12(typescript@5.9.3)
@@ -3192,6 +3192,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: 'catalog:'
         version: 2.3.2(vue@3.5.28(typescript@5.9.3))
+      '@mmt817/pixel-ui':
+        specifier: ^1.6.0
+        version: 1.6.0(vue@3.5.28(typescript@5.9.3))
       '@pixelium/web-vue':
         specifier: ^0.1.1
         version: 0.1.1(vue-router@4.6.4(vue@3.5.28(typescript@5.9.3)))(vue@3.5.28(typescript@5.9.3))
@@ -3306,7 +3309,7 @@ importers:
         version: 4.3.0(vue@3.5.28(typescript@5.9.3))
       '@intlify/unplugin-vue-i18n':
         specifier: 'catalog:'
-        version: 6.0.8(@vue/compiler-dom@3.5.29)(eslint@9.39.3(jiti@2.6.1))(rollup@4.58.0)(typescript@5.9.3)(vue-i18n@11.2.8(vue@3.5.28(typescript@5.9.3)))(vue@3.5.28(typescript@5.9.3))
+        version: 6.0.8(@vue/compiler-dom@3.5.29)(eslint@9.39.3(jiti@1.21.7))(rollup@4.58.0)(typescript@5.9.3)(vue-i18n@11.2.8(vue@3.5.28(typescript@5.9.3)))(vue@3.5.28(typescript@5.9.3))
       '@pureadmin/theme':
         specifier: 'catalog:'
         version: 3.3.0
@@ -3336,16 +3339,16 @@ importers:
         version: 0.169.0
       '@typescript-eslint/eslint-plugin':
         specifier: 'catalog:'
-        version: 8.56.0(@typescript-eslint/parser@8.56.0(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3)
+        version: 8.56.0(@typescript-eslint/parser@8.56.0(eslint@9.39.3(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.3(jiti@1.21.7))(typescript@5.9.3)
       '@typescript-eslint/parser':
         specifier: 'catalog:'
-        version: 8.56.0(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3)
+        version: 8.56.0(eslint@9.39.3(jiti@1.21.7))(typescript@5.9.3)
       '@vitejs/plugin-vue':
         specifier: 'catalog:'
-        version: 5.2.4(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.28(typescript@5.9.3))
+        version: 5.2.4(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.28(typescript@5.9.3))
       '@vitejs/plugin-vue-jsx':
         specifier: 'catalog:'
-        version: 4.2.0(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.28(typescript@5.9.3))
+        version: 4.2.0(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.28(typescript@5.9.3))
       autoprefixer:
         specifier: 'catalog:'
         version: 10.4.24(postcss@8.5.6)
@@ -3357,16 +3360,16 @@ importers:
         version: 7.1.2(postcss@8.5.6)
       eslint:
         specifier: 'catalog:'
-        version: 9.39.3(jiti@2.6.1)
+        version: 9.39.3(jiti@1.21.7)
       eslint-config-prettier:
         specifier: 'catalog:'
-        version: 9.1.2(eslint@9.39.3(jiti@2.6.1))
+        version: 9.1.2(eslint@9.39.3(jiti@1.21.7))
       eslint-plugin-prettier:
         specifier: 'catalog:'
-        version: 5.5.5(@types/eslint@9.6.1)(eslint-config-prettier@9.1.2(eslint@9.39.3(jiti@2.6.1)))(eslint@9.39.3(jiti@2.6.1))(prettier@3.8.1)
+        version: 5.5.5(@types/eslint@9.6.1)(eslint-config-prettier@9.1.2(eslint@9.39.3(jiti@1.21.7)))(eslint@9.39.3(jiti@1.21.7))(prettier@3.8.1)
       eslint-plugin-vue:
         specifier: 'catalog:'
-        version: 9.33.0(eslint@9.39.3(jiti@2.6.1))
+        version: 9.33.0(eslint@9.39.3(jiti@1.21.7))
       gradient-string:
         specifier: 'catalog:'
         version: 3.0.0
@@ -3426,16 +3429,16 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
+        version: 6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
       vite-plugin-cdn-import:
         specifier: 'catalog:'
-        version: 1.0.1(rollup@4.58.0)(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: 1.0.1(rollup@4.58.0)(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       vite-plugin-checker:
         specifier: 'catalog:'
-        version: 0.7.2(eslint@9.39.3(jiti@2.6.1))(optionator@0.9.4)(stylelint@16.26.1(typescript@5.9.3))(typescript@5.9.3)(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue-tsc@2.2.12(typescript@5.9.3))
+        version: 0.7.2(eslint@9.39.3(jiti@1.21.7))(optionator@0.9.4)(stylelint@16.26.1(typescript@5.9.3))(typescript@5.9.3)(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue-tsc@2.2.12(typescript@5.9.3))
       vite-plugin-compression:
         specifier: 'catalog:'
-        version: 0.5.1(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: 0.5.1(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       vite-plugin-fake-server:
         specifier: 'catalog:'
         version: 2.2.2
@@ -3450,13 +3453,13 @@ importers:
         version: 1.0.0
       vite-plugin-vue-inspector:
         specifier: 'catalog:'
-        version: 5.3.2(vite@6.1.0(@types/node@20.19.33)(jiti@2.6.1)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: 5.3.2(vite@6.1.0(@types/node@20.19.33)(jiti@1.21.7)(less@4.5.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       vite-svg-loader:
         specifier: 'catalog:'
         version: 5.1.0(vue@3.5.28(typescript@5.9.3))
       vue-eslint-parser:
         specifier: 'catalog:'
-        version: 9.4.3(eslint@9.39.3(jiti@2.6.1))
+        version: 9.4.3(eslint@9.39.3(jiti@1.21.7))
       vue-tsc:
         specifier: 'catalog:'
         version: 2.2.12(typescript@5.9.3)
@@ -9009,6 +9012,9 @@ packages:
   '@gar/promisify@1.1.3':
     resolution: {integrity: sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==}
 
+  '@hackernoon/pixel-icon-library@1.0.6':
+    resolution: {integrity: sha512-WCkDFAJq6Xyp2rdVV7qcmx/vlixoScikEv2DpWUNtzWchDOyeTFrU3GTvd0jD/DGYJomLy2tKwkl13wycaO3Ng==}
+
   '@highlightjs/vue-plugin@2.1.0':
     resolution: {integrity: sha512-E+bmk4ncca+hBEYRV2a+1aIzIV0VSY/e5ArjpuSN9IO7wBJrzUE2u4ESCwrbQD7sAy+jWQjkV5qCCWgc+pu7CQ==}
     peerDependencies:
@@ -9364,6 +9370,11 @@ packages:
 
   '@mlc-ai/web-llm@0.2.82':
     resolution: {integrity: sha512-ONhW+28PPVSUI1m0RkJcm7suwc47b65i5b/rTEIADq5I22p1+9uf/CBbDPRkkjj1WJB9s8oFp0ywAW0NY1G6fg==}
+
+  '@mmt817/pixel-ui@1.6.0':
+    resolution: {integrity: sha512-rrkws2ApH5RFXP85pH+i0ooiakOLzuAleu/9BfW51e31D0p8l2QyzIPNAv/hnWv/TKfRiLwYP0EYSK1vCpkl3A==}
+    peerDependencies:
+      vue: ^3.4.19
 
   '@naoak/workerize-transferable@0.1.0':
     resolution: {integrity: sha512-fDLfuP71IPNP5+zSfxFb52OHgtjZvauRJWbVnpzQ7G7BjcbLjTny0OW1d3ZO806XKpLWNKmeeW3MhE0sy8iwYQ==}
@@ -21070,6 +21081,8 @@ snapshots:
 
   '@gar/promisify@1.1.3': {}
 
+  '@hackernoon/pixel-icon-library@1.0.6': {}
+
   '@highlightjs/vue-plugin@2.1.0(highlight.js@11.11.1)(vue@3.5.28(typescript@5.9.3))':
     dependencies:
       highlight.js: 11.11.1
@@ -21629,6 +21642,13 @@ snapshots:
   '@mlc-ai/web-llm@0.2.82':
     dependencies:
       loglevel: 1.9.2
+
+  '@mmt817/pixel-ui@1.6.0(vue@3.5.28(typescript@5.9.3))':
+    dependencies:
+      '@hackernoon/pixel-icon-library': 1.0.6
+      '@popperjs/core': 2.11.8
+      async-validator: 4.2.5
+      vue: 3.5.28(typescript@5.9.3)
 
   '@naoak/workerize-transferable@0.1.0(workerize-loader@2.0.2(webpack@5.105.2))':
     dependencies:

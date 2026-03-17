@@ -3,6 +3,7 @@ import { useI18n } from "vue-i18n";
 import SettingAdvancedCore from "./SettingAdvancedCore.vue";
 import SettingAccessibility from "./SettingAccessibility.vue";
 import SettingDevTools from "./SettingDevTools.vue";
+import SettingHeatmap from "./SettingHeatmap.vue";
 import SettingCloudSync from "./SettingCloudSync.vue";
 
 const { t } = useI18n();
@@ -48,6 +49,10 @@ interface Props {
   devGridChange: (enabled: boolean) => void;
   /** DevTools 悬停检查开关 */
   devHoverInspectorChange: (enabled: boolean) => void;
+  /** 语音朗读开关变更 */
+  voiceReadEnabledChange: (enabled: boolean) => void;
+  /** 热点工具（热力图）开关变更 */
+  devHeatmapChange: (enabled: boolean) => void;
   /** 上传配置到云端 */
   syncToCloud: () => void;
   /** 从云端下载配置 */
@@ -81,6 +86,7 @@ defineProps<Props>();
         :screen-reader-mode-change="screenReaderModeChange"
         :high-contrast-mode-change="highContrastModeChange"
         :ui-scale-change="uiScaleChange"
+        :voice-read-enabled-change="voiceReadEnabledChange"
       />
 
       <!-- DevTools 精简版子组件 -->
@@ -92,6 +98,14 @@ defineProps<Props>();
         :dev-ruler-change="devRulerChange"
         :dev-grid-change="devGridChange"
         :dev-hover-inspector-change="devHoverInspectorChange"
+      />
+
+      <!-- 热点工具子组件（独立分组） -->
+      <SettingHeatmap
+        :settings="settings"
+        :is-development="isDevelopment"
+        :is-test="isTest"
+        :dev-heatmap-change="devHeatmapChange"
       />
 
       <!-- 云同步子组件 -->

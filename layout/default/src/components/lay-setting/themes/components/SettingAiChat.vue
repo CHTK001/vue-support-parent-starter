@@ -27,108 +27,135 @@
       <!-- 其余 AI 配置：仅在显示开启时展示 -->
       <template v-if="settings.aiChatEnabled">
         <!-- 模式选择 -->
-        <div class="setting-item setting-item--row">
-          <div class="setting-item-label">
-            <span class="setting-item-desc">模式</span>
-          </div>
-          <div class="setting-item-control">
-            <ScSelect
-              v-model="settings.aiChatMode"
-              layout="dropdown"
-              :options="aiChatModeOptions"
-              width="260px"
-              height="200px"
-              dropdown-title="选择运行模式"
-              dropdown-placeholder="请选择模式"
-              @change="handleModeChange"
-            />
-          </div>
+        <div class="setting-item ai-field-item">
+          <div class="ai-field-label">模式</div>
+          <ScSelect
+            v-model="settings.aiChatMode"
+            layout="dropdown"
+            :options="aiChatModeOptions"
+            width="100%"
+            height="200px"
+            dropdown-title="选择运行模式"
+            dropdown-placeholder="请选择模式"
+            @change="handleModeChange"
+          />
         </div>
 
-        <!-- 厂家选择（仅 vendor 模式） -->
-        <div v-if="settings.aiChatMode === 'vendor'" class="setting-item setting-item--row">
-          <div class="setting-item-label">
-            <span class="setting-item-desc">服务厂商</span>
-          </div>
-          <div class="setting-item-control">
+        <!-- webllm 模式：模型选择 -->
+        <div v-if="settings.aiChatMode === 'webllm'" class="setting-item ai-field-item">
+          <div class="ai-field-label">模型</div>
+          <ScSelect
+            v-model="settings.aiChatModel"
+            layout="dropdown"
+            :options="aiChatModelOptions"
+            dropdown-title="选择推理模型"
+            dropdown-placeholder="请选择 WebLLM MLC 模型"
+            width="100%"
+            height="260px"
+            @change="aiChatModelChange"
+          />
+        </div>
+
+        <!-- vendor 模式：厂商 + 模型 + APIKey + URL 分组卡片 -->
+        <div v-if="settings.aiChatMode === 'vendor'" class="ai-vendor-card">
+          <!-- 厂商选择 -->
+          <div class="ai-field-item">
+            <div class="ai-field-label">服务厂商</div>
             <ScSelect
               v-model="settings.aiChatVendor"
               layout="dropdown"
               :options="aiChatVendorOptions"
-              width="260px"
+              width="100%"
               height="300px"
               dropdown-title="选择服务厂商"
               dropdown-placeholder="请选择厂商"
               @change="handleVendorChange"
             />
           </div>
-        </div>
 
-        <!-- 模型选择（仅 webllm 模式） -->
-        <div v-if="settings.aiChatMode === 'webllm'" class="setting-item setting-item--row">
-          <div class="setting-item-label">
-            <span class="setting-item-desc">模型</span>
-          </div>
-          <div class="setting-item-control">
+          <!-- 模型选择（非 custom：带价格信息） -->
+          <div v-if="!isCustomVendor && currentVendorModels.length > 0" class="ai-field-item">
+            <div class="ai-field-label">模型</div>
             <ScSelect
               v-model="settings.aiChatModel"
               layout="dropdown"
-              :options="aiChatModelOptions"
-              dropdown-title="选择推理模型"
-              dropdown-placeholder="请选择 WebLLM MLC 模型"
-              width="260px"
-              height="260px"
+              :options="currentVendorModels"
+              dropdown-title="选择模型"
+              dropdown-placeholder="请选择模型"
+              width="100%"
+              height="320px"
               @change="aiChatModelChange"
+            >
+              <!-- 自定义选项：模型名 + 价格，tooltip 显示上下文和描述 -->
+              <template #content="{ option }">
+                <ScTooltip
+                  :content="`上下文：${formatContext(option.contextLength)} token｜${option.description}`"
+                  placement="left"
+                  effect="light"
+                  :z-index="41000"
+                >
+                  <div class="vendor-model-option">
+                    <span class="vendor-model-name">{{ option.label }}</span>
+                    <span class="vendor-model-price">
+                      输入 {{ formatPrice(option.inputPrice) }} · 输出 {{ formatPrice(option.outputPrice) }}
+                    </span>
+                  </div>
+                </ScTooltip>
+              </template>
+            </ScSelect>
+          </div>
+
+          <!-- 模型 ID 输入（custom 模式） -->
+          <div v-if="isCustomVendor" class="ai-field-item">
+            <div class="ai-field-label">
+              模型 ID
+              <span class="ai-field-hint">填写模型标识符，如 gpt-4o</span>
+            </div>
+            <ScInput
+              v-model="settings.aiChatModel"
+              placeholder="如 gpt-4o / deepseek-chat"
+              @change="aiChatModelChange"
+              style="width: 100%"
             />
           </div>
-        </div>
 
-        <!-- API Key（仅 vendor 模式） -->
-        <div v-if="settings.aiChatMode === 'vendor'" class="setting-item setting-item--row">
-          <div class="setting-item-label">
-            <span>API Key</span>
-          </div>
-          <div class="setting-item-control">
+          <!-- API Key -->
+          <div class="ai-field-item">
+            <div class="ai-field-label">API Key</div>
             <ScInput
               v-model="settings.aiChatApiKey"
               type="password"
               show-password
+              passwd-strong="none"
               placeholder="请输入 API Key"
               @change="aiChatApiKeyChange"
-              style="width: 260px"
+              style="width: 100%"
             />
           </div>
-        </div>
 
-        <!-- API URL（仅 vendor 模式） -->
-        <div v-if="settings.aiChatMode === 'vendor'" class="setting-item setting-item--row">
-          <div class="setting-item-label">
-            <span>API URL</span>
-          </div>
-          <div class="setting-item-control">
+          <!-- API URL（仅 custom 模式） -->
+          <div v-if="isCustomVendor" class="ai-field-item">
+            <div class="ai-field-label">API URL</div>
             <ScInput
               v-model="settings.aiChatApiUrl"
-              :placeholder="isCustomVendor ? '填入自定义 API 地址' : '已自动填入厂商默认地址'"
-              :readonly="!isCustomVendor"
+              placeholder="填入自定义 API 地址"
               @change="aiChatApiUrlChange"
-              style="width: 260px"
+              style="width: 100%"
             />
           </div>
         </div>
 
         <!-- 外观样式 -->
-        <div class="setting-item setting-item--row">
-          <div class="setting-item-label">
-            <span>外观</span>
-            <span class="setting-item-desc">外观样式</span>
+        <div class="setting-item ai-field-item">
+          <div class="ai-field-label">
+            外观
+            <span class="ai-field-hint">聊天窗口外观样式</span>
           </div>
-          <div class="setting-item-control">
-            <AiChatAppearanceSetting
-              v-model="settings.aiChatSkin"
-              :options="aiChatSkinOptions"
-              @change="aiChatSkinChange"
-            />
-          </div>
+          <AiChatAppearanceSetting
+            v-model="settings.aiChatSkin"
+            :options="aiChatSkinOptions"
+            @change="aiChatSkinChange"
+          />
         </div>
       </template>
     </div>
@@ -139,6 +166,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { ScSwitch, ScInput } from "@repo/components";
+import { ScTooltip } from "@repo/components";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import AiChatAppearanceSetting from "./AiChatAppearanceSetting.vue";
 import { AI_APPEARANCE_OPTIONS } from "../../../lay-ai/appearance";
@@ -158,6 +186,20 @@ interface AiDropdownOption {
   description?: string;
 }
 
+/** 厂商模型条目 */
+interface VendorModelOption {
+  label: string;
+  value: string;
+  /** 输入价格，单位：元/百万 token */
+  inputPrice: number;
+  /** 输出价格，单位：元/百万 token */
+  outputPrice: number;
+  /** 上下文长度（token） */
+  contextLength: number;
+  description: string;
+  image: { width: string; height: string };
+}
+
 const AI_IMG = { width: "24px", height: "24px" } as const;
 
 const aiChatSkinOptions = computed(() => AI_APPEARANCE_OPTIONS);
@@ -172,6 +214,72 @@ const VENDOR_DEFAULT_URLS: Record<string, string> = {
   moonshot: "https://api.moonshot.cn/v1/chat/completions",
   custom: "",
 };
+
+/** 各厂商模型数据表（输入/输出价格单位：元/百万 token，$1 ≈ ¥7.2，免费模型排前面） */
+const VENDOR_MODELS: Record<string, VendorModelOption[]> = {
+  openai: [
+    // 按价格从低到高排列
+    { label: "GPT-4.1 Nano", value: "gpt-4.1-nano", inputPrice: 0.72, outputPrice: 2.88, contextLength: 128000, description: "最轻量最便宜，适合高频简单任务", image: AI_IMG },
+    { label: "GPT-4.1 Mini", value: "gpt-4.1-mini", inputPrice: 2.88, outputPrice: 11.52, contextLength: 128000, description: "均衡性价比，能力与速度兼顾", image: AI_IMG },
+    { label: "GPT-4o Mini", value: "gpt-4o-mini", inputPrice: 1.08, outputPrice: 4.32, contextLength: 128000, description: "轻量版 GPT-4o，日常任务首选", image: AI_IMG },
+    { label: "GPT-4o", value: "gpt-4o", inputPrice: 18, outputPrice: 72, contextLength: 128000, description: "旗舰多模态模型，支持图文理解", image: AI_IMG },
+    { label: "GPT-5", value: "gpt-5", inputPrice: 9, outputPrice: 72, contextLength: 128000, description: "最新旗舰模型，综合能力最强", image: AI_IMG },
+    { label: "o4-mini", value: "o4-mini", inputPrice: 7.92, outputPrice: 31.68, contextLength: 128000, description: "推理增强模型，适合复杂逻辑和数学", image: AI_IMG },
+  ],
+  deepseek: [
+    // DeepSeek-V3.2 官方价格：输入 $0.28/M，输出 $0.42/M（cache miss）
+    { label: "DeepSeek-V3.2（Chat）", value: "deepseek-chat", inputPrice: 2.02, outputPrice: 3.02, contextLength: 128000, description: "DeepSeek 最新旗舰 V3.2，综合能力强，国内访问友好", image: AI_IMG },
+    { label: "DeepSeek-V3.2（Reasoner）", value: "deepseek-reasoner", inputPrice: 2.02, outputPrice: 3.02, contextLength: 128000, description: "V3.2 深度思考模式，擅长数学、代码、逻辑推理", image: AI_IMG },
+  ],
+  qwen: [
+    // 通义千问：每天 2000 次免费调用，超出后按量计费
+    { label: "Qwen-Turbo（每日免费）", value: "qwen-turbo", inputPrice: 0.3, outputPrice: 0.6, contextLength: 131072, description: "轻量快速版，每日 2000 次免费，适合简单任务", image: AI_IMG },
+    { label: "Qwen-Plus", value: "qwen-plus", inputPrice: 0.8, outputPrice: 2, contextLength: 131072, description: "均衡性价比，长上下文支持，适合大多数场景", image: AI_IMG },
+    { label: "Qwen-Max", value: "qwen-max", inputPrice: 2.4, outputPrice: 9.6, contextLength: 32000, description: "通义千问旗舰模型，综合能力最强", image: AI_IMG },
+    { label: "Qwen3-235B-A22B", value: "qwen3-235b-a22b", inputPrice: 3.6, outputPrice: 14.4, contextLength: 131072, description: "Qwen3 最强 MoE 旗舰，235B 参数 22B 激活", image: AI_IMG },
+  ],
+  siliconflow: [
+    // 硅基流动：小参数量开源模型免费，大模型按量计费
+    { label: "Qwen2.5-7B-Instruct（免费）", value: "Qwen/Qwen2.5-7B-Instruct", inputPrice: 0, outputPrice: 0, contextLength: 131072, description: "阿里 Qwen2.5 7B，硅基流动免费托管", image: AI_IMG },
+    { label: "GLM-4-9B-Chat（免费）", value: "THUDM/glm-4-9b-chat", inputPrice: 0, outputPrice: 0, contextLength: 128000, description: "智谱 GLM-4 9B，硅基流动免费托管", image: AI_IMG },
+    { label: "DeepSeek-V3.2", value: "deepseek-ai/DeepSeek-V3", inputPrice: 2.09, outputPrice: 8.28, contextLength: 64000, description: "DeepSeek V3.2，硅基流动托管", image: AI_IMG },
+    { label: "DeepSeek-R1", value: "deepseek-ai/DeepSeek-R1", inputPrice: 4.32, outputPrice: 21.6, contextLength: 64000, description: "DeepSeek R1 推理模型，硅基流动托管", image: AI_IMG },
+    { label: "Qwen3-235B-A22B", value: "Qwen/Qwen3-235B-A22B", inputPrice: 3.6, outputPrice: 14.4, contextLength: 131072, description: "Qwen3 最强 MoE 旗舰，硅基流动托管", image: AI_IMG },
+  ],
+  zhipu: [
+    // 免费模型排前面（Z.AI 官方定价，2026/03）
+    { label: "GLM-4.7-Flash（免费）", value: "glm-4.7-flash", inputPrice: 0, outputPrice: 0, contextLength: 128000, description: "完全免费，最新 Flash 极速版，适合日常问答", image: AI_IMG },
+    { label: "GLM-4.5-Flash（免费）", value: "glm-4.5-flash", inputPrice: 0, outputPrice: 0, contextLength: 128000, description: "完全免费，高性价比 Flash 版", image: AI_IMG },
+    { label: "GLM-4.5-Air", value: "glm-4.5-air", inputPrice: 1.44, outputPrice: 7.92, contextLength: 128000, description: "轻量高效版，性价比高", image: AI_IMG },
+    { label: "GLM-4.7", value: "glm-4.7", inputPrice: 4.32, outputPrice: 15.84, contextLength: 128000, description: "新一代旗舰，综合能力强", image: AI_IMG },
+    { label: "GLM-4.5", value: "glm-4.5", inputPrice: 4.32, outputPrice: 15.84, contextLength: 128000, description: "均衡旗舰，长上下文支持", image: AI_IMG },
+    { label: "GLM-5", value: "glm-5", inputPrice: 7.2, outputPrice: 23.04, contextLength: 128000, description: "最新超级旗舰，综合能力最强", image: AI_IMG },
+  ],
+  moonshot: [
+    // Kimi 最新模型排前面（2026/03）
+    { label: "Kimi-K2.5（旗舰）", value: "kimi-k2.5", inputPrice: 4.32, outputPrice: 21.6, contextLength: 256000, description: "Kimi 最新旗舰，256k 超长上下文，综合能力最强", image: AI_IMG },
+    { label: "Kimi-K2-Thinking", value: "kimi-k2-thinking", inputPrice: 4.32, outputPrice: 18, contextLength: 128000, description: "Kimi 推理增强版，深度思考模式", image: AI_IMG },
+    { label: "moonshot-v1-8k", value: "moonshot-v1-8k", inputPrice: 0.86, outputPrice: 0.86, contextLength: 8000, description: "Kimi 标准版，8k 上下文，适合短文本任务", image: AI_IMG },
+    { label: "moonshot-v1-32k", value: "moonshot-v1-32k", inputPrice: 1.73, outputPrice: 1.73, contextLength: 32000, description: "Kimi 长文版，32k 上下文，适合长文档处理", image: AI_IMG },
+    { label: "moonshot-v1-128k", value: "moonshot-v1-128k", inputPrice: 4.32, outputPrice: 4.32, contextLength: 128000, description: "Kimi 超长版，128k 上下文，支持超长文档", image: AI_IMG },
+  ],
+};
+
+/** 根据当前厂商返回对应模型列表 */
+const currentVendorModels = computed<VendorModelOption[]>(() => {
+  const vendor = props.settings.aiChatVendor as string;
+  return VENDOR_MODELS[vendor] ?? [];
+});
+
+/** 格式化价格显示（0 显示"免费"） */
+function formatPrice(price: number): string {
+  return price === 0 ? "免费" : `¥${price}`;
+}
+
+/** 格式化上下文长度 */
+function formatContext(len: number): string {
+  return len >= 1000 ? `${(len / 1000).toFixed(0)}k` : `${len}`;
+}
 
 /** 模式选项 */
 const aiChatModeOptions = computed<Array<AiDropdownOption>>(() => [
@@ -246,10 +354,87 @@ const isCustomVendor = computed(() => props.settings.aiChatVendor === "custom");
 </script>
 
 <style scoped lang="scss">
-.lay-setting .setting-item--row,
-.setting-item--row {
+// vendor 配置分组卡片：圆角背景包裹厂商/模型/APIKey/URL
+.ai-vendor-card {
+  margin: 4px 0 6px;
+  padding: 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-extra-light);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  .dark & {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--el-border-color);
+  }
+}
+
+// 字段行：label 在上，控件在下（全宽自适应）
+.ai-field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+  transition: background 0.2s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--el-color-primary-light-9);
+  }
+
+  .dark & {
+    background: rgba(0, 0, 0, 0.15);
+
+    &:hover {
+      background: var(--el-color-primary-light-8);
+    }
+  }
+}
+
+// 字段标签行
+.ai-field-label {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 1.4;
+}
+
+// 字段辅助说明
+.ai-field-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--el-text-color-placeholder);
+}
+
+// 厂商模型下拉选项：名称 + 价格两行布局
+.vendor-model-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+
+  .vendor-model-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    line-height: 1.4;
+  }
+
+  .vendor-model-price {
+    font-size: 11px;
+    color: var(--el-text-color-placeholder);
+    line-height: 1.3;
+  }
 }
 </style>

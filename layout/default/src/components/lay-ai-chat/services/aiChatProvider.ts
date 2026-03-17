@@ -102,6 +102,143 @@ async function requestByHuggingFace(req: AiChatRequest): Promise<string> {
   return message.length > 0 ? message : "抱歉，我无法生成回复。";
 }
 
+/**
+ * 各厂商默认模型映射
+ */
+const VENDOR_DEFAULT_MODELS: Record<string, string> = {
+  openai: "gpt-3.5-turbo",
+  deepseek: "deepseek-chat",
+  qwen: "qwen-turbo",
+  siliconflow: "Qwen/Qwen2.5-7B-Instruct",
+  zhipu: "glm-4-flash",
+  moonshot: "moonshot-v1-8k",
+  custom: "gpt-3.5-turbo",
+  other: "gpt-3.5-turbo",
+};
+
+/**
+ * 调用 OpenAI 兼容接口（适用于 openai/deepseek/qwen/siliconflow/zhipu/moonshot 等厂商）
+ * @param onChunk 流式回调，每次收到 delta 内容时触发；不传则退化为非流式
+ */
+async function requestByOpenAICompat(
+  req: AiChatRequest,
+  onChunk?: (chunk: string) => void,
+): Promise<string> {
+  var url = (req.apiUrl || "").trim();
+  if (!url) {
+    throw new Error("未配置 API URL，请在设置中填写厂商 API 地址");
+  }
+
+  // 如果 model 是 WebLLM 格式（含 -MLC），替换为厂商默认模型
+  var rawModel = (req.model || "").trim();
+  var resolvedModel = rawModel.includes("-MLC") || rawModel.length === 0
+    ? (VENDOR_DEFAULT_MODELS[req.vendor] ?? "gpt-3.5-turbo")
+    : rawModel;
+
+  var headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (req.apiKey && req.apiKey.trim().length > 0) {
+    headers.Authorization = `Bearer ${req.apiKey.trim()}`;
+  }
+
+  // 构建 messages 数组
+  var messages: Array<{ role: string; content: string }> = [];
+
+  if (req.systemPrompt?.trim()) {
+    messages.push({ role: "system", content: req.systemPrompt.trim() });
+  }
+
+  // 注入历史消息
+  for (var item of req.history.slice(-HISTORY_LIMIT)) {
+    messages.push({ role: item.role, content: item.content });
+  }
+
+  messages.push({ role: "user", content: req.userMessage });
+
+  // 有 onChunk 回调时启用流式模式
+  var useStream = typeof onChunk === "function";
+
+  var response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      model: resolvedModel,
+      messages,
+      max_tokens: 1024,
+      temperature: 0.7,
+      stream: useStream,
+    }),
+  });
+
+  if (!response.ok) {
+    var errorData: any = {};
+    try {
+      errorData = await response.json();
+    } catch {
+      // ignore
+    }
+
+    if (response.status === 401) {
+      throw new Error("API Key 无效或已过期");
+    }
+    if (response.status === 429) {
+      throw new Error("请求过于频繁，请稍后再试");
+    }
+    if (response.status === 402) {
+      throw new Error("账户余额不足，请充值后重试");
+    }
+
+    throw new Error(errorData?.error?.message || errorData?.message || errorData?.error || `请求失败: ${response.status}`);
+  }
+
+  // 流式模式：逐行解析 SSE
+  if (useStream && response.body) {
+    var reader = response.body.getReader();
+    var decoder = new TextDecoder("utf-8");
+    var fullContent = "";
+    var buffer = "";
+
+    while (true) {
+      var { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      var lines = buffer.split("\n");
+      // 最后一行可能不完整，留到下次拼接
+      buffer = lines.pop() ?? "";
+
+      for (var line of lines) {
+        var trimmed = line.trim();
+        if (!trimmed || trimmed === "data: [DONE]") continue;
+        if (!trimmed.startsWith("data:")) continue;
+
+        try {
+          var json = JSON.parse(trimmed.slice(5).trim());
+          var delta = json?.choices?.[0]?.delta?.content;
+          if (typeof delta === "string" && delta.length > 0) {
+            fullContent += delta;
+            onChunk!(delta);
+          }
+        } catch {
+          // 忽略解析失败的行
+        }
+      }
+    }
+
+    return fullContent.trim() || "抱歉，我无法生成回复。";
+  }
+
+  // 非流式模式
+  var data = await response.json() as any;
+  var content = data?.choices?.[0]?.message?.content;
+  if (typeof content === "string" && content.trim().length > 0) {
+    return content.trim();
+  }
+  return "抱歉，我无法生成回复。";
+}
+
 async function requestByChrome(req: AiChatRequest): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   var chromeAi = (window as any).ai;
@@ -125,7 +262,10 @@ async function requestByChrome(req: AiChatRequest): Promise<string> {
   return String(result).trim();
 }
 
-export async function requestAiReply(req: AiChatRequest): Promise<string> {
+export async function requestAiReply(
+  req: AiChatRequest,
+  onChunk?: (chunk: string) => void,
+): Promise<string> {
   if (req.vendor === "chrome") {
     return await requestByChrome(req);
   }
@@ -147,5 +287,6 @@ export async function requestAiReply(req: AiChatRequest): Promise<string> {
     }
   }
 
-  return await requestByHuggingFace(req);
+  // vendor 模式：使用 OpenAI 兼容接口（支持流式）
+  return await requestByOpenAICompat(req, onChunk);
 }

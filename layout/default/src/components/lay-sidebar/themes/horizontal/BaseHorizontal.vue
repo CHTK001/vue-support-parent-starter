@@ -52,6 +52,23 @@ const defaultActive = computed(() =>
   !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
 );
 
+// 控制 logo 显示，从本地存储读取初始值
+const showLogo = ref(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.showLogo ?? true
+);
+
+onMounted(() => {
+  emitter.on("logoChange", (val: boolean) => {
+    showLogo.value = val;
+  });
+});
+
+onBeforeUnmount(() => {
+  emitter.off("logoChange");
+});
+
 nextTick(() => {
   menuRef.value?.handleResize();
 });
@@ -62,7 +79,7 @@ nextTick(() => {
     v-loading="usePermissionStoreHook().wholeMenus.length === 0"
     :class="['horizontal-header', themeClass]"
   >
-    <div class="horizontal-header-left" @click="backTopMenu">
+    <div v-if="showLogo" class="horizontal-header-left" @click="backTopMenu">
       <img :src="getLogo()" alt="logo" />
       <span>{{ getConfig().Title }}</span>
     </div>

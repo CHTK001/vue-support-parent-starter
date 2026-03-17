@@ -20,6 +20,7 @@
     :persistent="persistent"
     :aria-label="ariaLabel"
     :effect="effect"
+    :z-index="zIndex"
     v-bind="filteredAttrs"
     v-on="filteredListeners || {}"
   >
@@ -124,6 +125,11 @@ defineProps({
   effect: {
     type: String as PropType<"dark" | "light">,
     default: "dark"
+  },
+  /** tooltip 层级，默认不设置（由 ElTooltip 自动管理），在高层级容器内使用时需手动传入 */
+  zIndex: {
+    type: Number,
+    default: undefined
   }
 });
 
