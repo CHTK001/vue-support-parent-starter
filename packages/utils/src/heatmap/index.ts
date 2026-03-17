@@ -7,6 +7,7 @@
  */
 
 import type { HeatmapConfig } from "@repo/config";
+import localforage from "localforage";
 
 /** 热力图事件类型 */
 export type HeatmapEventType = "click" | "mousemove" | "scroll";
@@ -25,8 +26,14 @@ export interface HeatmapEntry {
   ts: number;
 }
 
-/** 本地存储 key */
+/** IndexedDB 存储 key */
 const STORAGE_KEY = "__heatmap_entries__";
+
+/** 独立的 localForage 实例，避免与全局 store 冲突 */
+const heatmapStore = localforage.createInstance({
+  name: "heatmap-store",
+  storeName: "entries",
+});
 
 /** 默认配置 */
 const DEFAULTS: Required<HeatmapConfig> = {
@@ -38,6 +45,9 @@ const DEFAULTS: Required<HeatmapConfig> = {
   trackClick: true,
   trackMouseMove: false,
   trackScroll: true,
+  show: false,
+  aiAnalysis: false,
+  aiAnalysisUrl: "",
 };
 
 /** 内存缓冲区 */
@@ -70,23 +80,23 @@ function push(entry: HeatmapEntry): void {
 }
 
 /**
- * 将缓冲区持久化到 localStorage
+ * 将缓冲区持久化到 IndexedDB
  */
-function persist(): void {
+async function persist(): Promise<void> {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(buffer));
+    await heatmapStore.setItem(STORAGE_KEY, buffer);
   } catch {
-    // 存储空间不足时静默忽略
+    // 存储失败时静默忽略
   }
 }
 
 /**
- * 从 localStorage 恢复历史数据
+ * 从 IndexedDB 恢复历史数据
  */
-function restore(): void {
+async function restore(): Promise<void> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) buffer = JSON.parse(raw) as HeatmapEntry[];
+    const saved = await heatmapStore.getItem<HeatmapEntry[]>(STORAGE_KEY);
+    if (saved) buffer = saved;
   } catch {
     buffer = [];
   }
@@ -97,7 +107,7 @@ function restore(): void {
  */
 async function flush(): Promise<void> {
   if (!buffer.length) return;
-  persist();
+  await persist();
   if (!cfg.reportUrl) return;
 
   const payload = [...buffer];
@@ -108,9 +118,9 @@ async function flush(): Promise<void> {
       body: JSON.stringify(payload),
       keepalive: true,
     });
-    // 上报成功后清空
+    // 上报成功后清空本地存储
     buffer = [];
-    localStorage.removeItem(STORAGE_KEY);
+    await heatmapStore.removeItem(STORAGE_KEY);
   } catch {
     // 上报失败保留本地数据，下次重试
   }
@@ -128,11 +138,11 @@ function addListener(type: string, fn: EventListener, options?: AddEventListener
  * 初始化热力图追踪器
  * @param config 热力图配置（来自 PlatformConfigs.Heatmap）
  */
-export function initHeatmap(config: HeatmapConfig = {}): void {
+export async function initHeatmap(config: HeatmapConfig = {}): Promise<void> {
   cfg = { ...DEFAULTS, ...config };
   if (!cfg.enable) return;
 
-  restore();
+  await restore();
 
   // 点击追踪
   if (cfg.trackClick) {
@@ -180,14 +190,20 @@ export function initHeatmap(config: HeatmapConfig = {}): void {
 /**
  * 销毁热力图追踪器，移除所有监听器
  */
-export function destroyHeatmap(): void {
+export async function destroyHeatmap(): Promise<void> {
   listeners.forEach(({ type, fn }) => window.removeEventListener(type, fn));
   listeners.length = 0;
   if (flushTimer) {
     clearInterval(flushTimer);
     flushTimer = null;
   }
-  persist();
+  // 销毁时清除本地持久化数据（隐私保护）
+  try {
+    await heatmapStore.removeItem(STORAGE_KEY);
+  } catch {
+    // 静默忽略
+  }
+  buffer = [];
 }
 
 /**

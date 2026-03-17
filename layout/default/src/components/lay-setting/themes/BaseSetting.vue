@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { getConfig } from "@repo/config";
 import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
+import { aesEncrypt, aesDecrypt } from "@repo/utils";
 import {
   computed,
   nextTick,
@@ -235,8 +236,8 @@ const settings = reactive({
     $storage.configure?.aiChatEnabled ?? getConfig().ShowAiChat ?? false,
   aiChatPosition: $storage.configure?.aiChatPosition ?? "bottom-right",
   aiChatSkin: $storage.configure?.aiChatSkin ?? "robot",
-  aiChatApiKey: $storage.configure?.aiChatApiKey ?? "",
-  aiChatApiUrl: $storage.configure?.aiChatApiUrl ?? "",
+  aiChatApiKey: decryptSensitive($storage.configure?.aiChatApiKey ?? ""),
+  aiChatApiUrl: decryptSensitive($storage.configure?.aiChatApiUrl ?? ""),
   aiChatVendor: $storage.configure?.aiChatVendor ?? "chrome",
   aiChatModel: $storage.configure?.aiChatModel ?? "Qwen/Qwen2.5-1.5B-Instruct",
   // 模式字段：webllm / chrome / vendor，旧数据迁移在下方处理
@@ -356,9 +357,24 @@ const showThemeColors = computed(() => {
   };
 });
 
+/** 敏感字段列表，写入 localStorage 时加密 */
+const SENSITIVE_KEYS = ["aiChatApiKey", "aiChatApiUrl"];
+
+function encryptSensitive(val: string): string {
+  return aesEncrypt(val, getConfig().StorageKey);
+}
+
+function decryptSensitive(val: string): string {
+  return aesDecrypt(val, getConfig().StorageKey);
+}
+
 function storageConfigureChange<T>(key: string, val: T): void {
   const storageConfigure = $storage.configure || {};
-  storageConfigure[key] = val;
+  // 敏感字段写入前加密
+  const storeVal = SENSITIVE_KEYS.includes(key) && typeof val === "string"
+    ? encryptSensitive(val) as unknown as T
+    : val;
+  storageConfigure[key] = storeVal;
   $storage.configure = storageConfigure;
 
   // 同步写入本地存储，保证刷新后 useThemeAnimation 等能读取到最新配置

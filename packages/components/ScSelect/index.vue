@@ -99,7 +99,7 @@
     </div>
 
     <!-- 位置选择器布局 -->
-    <PositionLayout v-else-if="layout === 'position'" v-model="selectValue" :disabled="disabled" @change="handleChange" />
+    <PositionLayout v-else-if="layout === 'position'" v-model="selectValue" :disabled="disabled" :mode="mode" @change="handleChange" />
 
     <!-- 下拉选择器布局 -->
     <DropdownLayout
@@ -290,6 +290,11 @@ const props = defineProps({
     validator: (value: string) => {
       return ["card", "select", "pill", "dropdown", "filter", "table", "tree", "position"].includes(value);
     }
+  },
+  // 位置选择器模式：9=3x3九格，4=2x2四角（仅 layout="position" 时生效）
+  mode: {
+    type: String as () => "4" | "9",
+    default: "9"
   },
   // 是否多选
   multiple: {

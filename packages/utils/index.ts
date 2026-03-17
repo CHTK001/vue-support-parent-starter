@@ -39,3 +39,14 @@ export * from "./src/performance";
 export * from "./src/composables/usePage";
 export { withInstall } from "@pureadmin/utils";
 export { NProgress, Cookies, CryptoJS, date };
+
+/** 使用 AES-ECB-Pkcs7 加密字符串（StorageKey 作密钥） */
+export function aesEncrypt(data: string, key: string): string {
+  try { return CryptoJS.default.AES.encrypt(data, key); } catch { return data; }
+}
+
+/** 使用 AES-ECB-Pkcs7 解密字符串（StorageKey 作密钥），失败返回原值 */
+export function aesDecrypt(cipher: string, key: string): string {
+  if (!cipher) return cipher;
+  try { return CryptoJS.default.AES.decrypt(cipher, key) || cipher; } catch { return cipher; }
+}

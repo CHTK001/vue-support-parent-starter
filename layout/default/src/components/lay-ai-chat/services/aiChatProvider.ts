@@ -279,11 +279,20 @@ export async function requestAiReply(
         req.systemPrompt,
       );
     } catch (error) {
-      console.error(
-        "[AI][WebLLM] 本地推理失败，回退到 HTTP 接口",
-        error,
-      );
-      return await requestByHuggingFace(req);
+      var errMsg = error instanceof Error ? error.message : String(error);
+      // GPU 不支持 WebGPU 计算限制（maxComputeWorkgroupStorageSize 超限等）
+      var isGpuLimit =
+        errMsg.includes("maxComputeWorkgroupStorageSize") ||
+        errMsg.includes("maxComputeWorkgroupsPerDimension") ||
+        errMsg.includes("WebGPU") ||
+        errMsg.includes("GPUDevice") ||
+        errMsg.includes("not supported");
+      if (isGpuLimit) {
+        throw new Error(
+          "当前 GPU 不支持 WebLLM 本地推理，请在设置中切换到厂商模式（如 OpenAI / DeepSeek 等）",
+        );
+      }
+      throw new Error(`WebLLM 本地推理失败：${errMsg}，请切换到厂商模式`);
     }
   }
 

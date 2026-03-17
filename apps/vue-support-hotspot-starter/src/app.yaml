@@ -292,3 +292,19 @@ EnableThemeManagement: true
 # 功能：下拉选择主题，保存到浏览器本地存储
 # 注意：用户手动选择的主题优先级最高，会覆盖节日自动切换
 EnableLoginThemeSwitcher: true
+
+# ===========================================
+# 热力图配置（默认不启用，一般开发不需要开启）
+# ===========================================
+# Heatmap:
+#   enable: false              # 是否启用热力图追踪（默认: false）
+#   show: false                # 是否显示热力图覆盖层（开发调试用，默认: false）
+#   sampleRate: 1              # 采样率（0-1），1 表示全量采集（默认: 1）
+#   reportUrl: ""              # 上报接口地址，为空则仅本地存储（默认: 空）
+#   flushInterval: 5000        # 推送周期（毫秒，默认: 5000）
+#   maxLocalEntries: 1000      # 本地 IndexedDB 最大存储条数（默认: 1000）
+#   trackClick: true           # 是否追踪点击事件（默认: true）
+#   trackMouseMove: false      # 是否追踪鼠标移动（数据量大，默认: false）
+#   trackScroll: true          # 是否追踪滚动事件（默认: true）
+#   aiAnalysis: false          # 是否启用 AI 分析（默认: false）
+#   aiAnalysisUrl: ""          # AI 分析接口地址（aiAnalysis=true 时生效）

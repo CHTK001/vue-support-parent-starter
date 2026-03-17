@@ -65,18 +65,19 @@ function formatWithZone(date: Date, timeZone: string) {
   };
 }
 
-let headerClockTimer: ReturnType<typeof setInterval> | null = null;
+/** Web Worker 计时器，避免主线程繁忙时漂移 */
+let clockWorker: Worker | null = null;
 
-function updateClock(): void {
-  const now = new Date();
-  const primary = formatWithZone(now, primaryTimezone);
+function updateClock(now: number): void {
+  const date = new Date(now);
+  const primary = formatWithZone(date, primaryTimezone);
   primaryTime.value = primary.time;
   primaryWeekday.value = primary.weekday;
   primaryFull.value = primary.full;
 
   if (secondEnabled.value && secondTimezone.value) {
     try {
-      const secondary = formatWithZone(now, secondTimezone.value);
+      const secondary = formatWithZone(date, secondTimezone.value);
       secondaryTime.value = secondary.time;
       secondaryWeekday.value = secondary.weekday;
       secondaryFull.value = secondary.full;
@@ -93,11 +94,14 @@ function updateClock(): void {
 }
 
 function startClock(): void {
-  if (headerClockTimer) {
-    return;
-  }
-  updateClock();
-  headerClockTimer = setInterval(updateClock, 1000);
+  if (clockWorker) return;
+  clockWorker = new Worker(
+    new URL("./clock.worker.ts", import.meta.url),
+    { type: "module" },
+  );
+  clockWorker.onmessage = (e: MessageEvent<{ now: number }>) => {
+    updateClock(e.data.now);
+  };
 }
 
 const secondTimezoneLabel = computed<string>(() => {
@@ -124,12 +128,12 @@ const tooltipContent = computed<string>(() => {
 
 emitter.on("headerClockSecondEnabledChange", (val: boolean) => {
   secondEnabled.value = val;
-  updateClock();
+  updateClock(Date.now());
 });
 
 emitter.on("headerClockSecondTimezoneChange", (val: string) => {
   secondTimezone.value = val;
-  updateClock();
+  updateClock(Date.now());
 });
 
 onMounted(() => {
@@ -140,9 +144,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   emitter.off("headerClockSecondEnabledChange");
   emitter.off("headerClockSecondTimezoneChange");
-  if (headerClockTimer) {
-    clearInterval(headerClockTimer);
-    headerClockTimer = null;
+  if (clockWorker) {
+    clockWorker.terminate();
+    clockWorker = null;
   }
 });
 </script>
