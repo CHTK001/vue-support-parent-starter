@@ -167,6 +167,8 @@ export interface StorageConfig {
   aiChatVendor?: "hf" | "chrome" | "other";
   /** AI 助手模型名称（如 Hugging Face 模型 ID） */
   aiChatModel?: string;
+  /** AI 运行模式：webllm / chrome / vendor */
+  aiChatMode?: string;
   /** 显示新菜单标识 */
   forceNewMenu?: boolean;
   /** 菜单动画开关 */
