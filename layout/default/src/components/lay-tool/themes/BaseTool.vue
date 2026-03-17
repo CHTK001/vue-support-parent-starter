@@ -11,7 +11,20 @@ import { getConfig } from "@repo/config";
 import { emitter } from "@repo/core";
 import { ref, computed } from "vue";
 import { useGlobal } from "@pureadmin/utils";
+import { useDraggable } from "@vueuse/core";
 import HeaderClock from "../HeaderClock.vue";
+import { webLlmDownloadState } from "../../lay-ai-chat/services/webLlmDownloadState";
+
+// webLLM 进度浮层收缩状态
+const webllmCollapsed = ref(false);
+
+// webLLM 浮层拖拽
+const webllmEl = ref<HTMLElement | null>(null);
+const webllmHandle = ref<HTMLElement | null>(null);
+const { style: webllmStyle } = useDraggable(webllmEl, {
+  initialValue: { x: window.innerWidth - 276, y: 16 },
+  handle: webllmHandle,
+});
 
 // 接收主题类名
 const props = defineProps<{
@@ -97,6 +110,39 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
     >
       <HeaderClock />
     </div>
+
+    <!-- webLLM 下载进度（fixed 右上角浮层，下载中时显示） -->
+    <Teleport to="body">
+      <div
+        v-if="webLlmDownloadState.downloading"
+        ref="webllmEl"
+        class="webllm-float"
+        :class="{ 'webllm-float--collapsed': webllmCollapsed }"
+        :style="webllmStyle"
+      >
+        <!-- 标题栏：拖拽区域 + 点击收缩/展开 -->
+        <div ref="webllmHandle" class="webllm-float-header" @click="webllmCollapsed = !webllmCollapsed">
+          <IconifyIconOnline icon="ri:download-cloud-line" class="webllm-float-icon" />
+          <span class="webllm-float-title">AI 模型下载中</span>
+          <span class="webllm-float-progress-text">{{ webLlmDownloadState.progress }}%</span>
+          <IconifyIconOnline
+            :icon="webllmCollapsed ? 'ri:arrow-down-s-line' : 'ri:arrow-up-s-line'"
+            class="webllm-float-toggle"
+          />
+        </div>
+        <!-- 展开内容 -->
+        <div v-show="!webllmCollapsed" class="webllm-float-body">
+          <div class="webllm-float-filename">{{ webLlmDownloadState.fileName || 'AI模型' }}</div>
+          <div class="webllm-float-bar-wrap">
+            <div class="webllm-float-bar" :style="{ width: webLlmDownloadState.progress + '%' }" />
+          </div>
+          <div class="webllm-float-meta">
+            {{ webLlmDownloadState.text }}
+            <template v-if="webLlmDownloadState.speed"> · {{ webLlmDownloadState.speed }}</template>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- 系统设置 -->
     <span
@@ -296,8 +342,110 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
   }
 }
 
-// 语言切换触发器
-.lang-style {
+// webLLM 下载进度浮层（fixed，位置由 useDraggable 控制）
+.webllm-float {
+  position: fixed;
+  z-index: 9999;
+  width: 260px;
+  background: var(--el-bg-color);
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.25);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  transition: width 0.2s ease;
+
+  &--collapsed {
+    width: 180px;
+  }
+}
+
+.webllm-float-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+  background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08), rgba(var(--el-color-primary-rgb), 0.04));
+  user-select: none;
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.14), rgba(var(--el-color-primary-rgb), 0.08));
+  }
+}
+
+.webllm-float-icon {
+  font-size: 15px;
+  color: var(--el-color-primary);
+  flex-shrink: 0;
+  animation: webllm-pulse 1.5s ease-in-out infinite;
+}
+
+.webllm-float-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.webllm-float-progress-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-color-primary);
+  flex-shrink: 0;
+}
+
+.webllm-float-toggle {
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+
+.webllm-float-body {
+  padding: 8px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.webllm-float-filename {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.webllm-float-bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: var(--el-fill-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.webllm-float-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.webllm-float-meta {
+  font-size: 10px;
+  color: var(--el-text-color-placeholder);
+}
+
+@keyframes webllm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+// 语言切换触发器.lang-style {
   .lang-icon-wrapper {
     position: relative;
     width: 32px;
@@ -319,7 +467,6 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
       color: #fff;
     }
   }
-}
 
 // 用户下拉触发器
 .user-dropdown {

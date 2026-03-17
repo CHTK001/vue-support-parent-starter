@@ -58,15 +58,8 @@ defineProps<Props>();
 </script>
 
 <template>
-  <!-- 高级设置区域（聚合组件，透传 props 到各子组件） -->
+  <!-- 高级设置区域（聚合组件，各子组件自带 group-title，无需外层 section-header） -->
   <div class="setting-section">
-    <div class="section-header">
-      <IconifyIconOnline icon="ri:tools-line" class="section-icon" />
-      <h3 class="section-title">{{ t("panel.advancedSettings") }}</h3>
-      <div class="section-description">
-        {{ t("panel.advancedSettingsDesc") }}
-      </div>
-    </div>
     <div class="setting-content">
       <!-- 高级功能开关子组件 -->
       <SettingAdvancedCore

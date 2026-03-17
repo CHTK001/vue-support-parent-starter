@@ -232,11 +232,16 @@ onMounted(() => {
   emitter.on("forceNewMenuChange", (v) => { forceNewMenu.value = v; });
   emitter.on("menuAnimationChange", (v) => { menuAnimation.value = v; });
   emitter.on("newMenuAnimationChange", (v) => { newMenuAnimation.value = v; });
+  // 监听汉堡按钮位置变更事件，实时更新
+  emitter.on("drawerHamburgerPositionChange", (v) => {
+    hamburgerPosition.value = v as HamburgerPosition;
+  });
 });
 
 onBeforeUnmount(() => {
   clearTimers();
   document.removeEventListener("click", handleOutsideClick);
+  emitter.off("drawerHamburgerPositionChange");
 });
 </script>
 

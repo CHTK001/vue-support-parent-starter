@@ -77,6 +77,8 @@ type Events = {
   drawerHamburgerToggle: boolean;
   /** drawer 菜单关闭事件（点击外部或菜单项后触发） */
   drawerMenuClosed: void;
+  /** drawer 汉堡按钮位置变更事件 */
+  drawerHamburgerPositionChange: string;
   /** 设置重置为默认值事件 */
   settingResetToDefault: void;
   /** 设置导出配置事件 */

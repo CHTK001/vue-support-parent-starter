@@ -52,7 +52,6 @@ import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
 import NavDrawerLayout from "./components/lay-sidebar/NavDrawer.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
-import NavMobileLayout from "./components/lay-sidebar/NavMobile.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import LayAiChat from "./components/lay-ai-chat/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
@@ -88,7 +87,6 @@ const NavHorizontal = markRaw(NavHorizontalLayout);
 const NavHover = markRaw(NavHoverLayout);
 const NavDrawer = markRaw(NavDrawerLayout);
 const NavDouble = markRaw(NavDoubleLayout);
-const NavMobile = markRaw(NavMobileLayout);
 
 const { t } = useI18n();
 const appWrapperRef = ref<HTMLElement>();
@@ -419,15 +417,13 @@ const LayHeader = defineComponent({
             layout.value === "mix" ||
             layout.value === "hover" ||
             layout.value === "drawer" ||
-            layout.value === "double" ||
-            layout.value === "mobile")
+            layout.value === "double")
             ? h(LayNavbar)
             : null,
           !pureSetting.hiddenSideBar && layout.value === "horizontal"
             ? h(NavHorizontal)
             : null,
-          // 移动导航模式下不显示标签页
-          layout.value !== "mobile" ? h(markRaw(LayTag)) : null,
+          h(markRaw(LayTag)),
         ],
       },
     );
@@ -452,25 +448,15 @@ const LayHeader = defineComponent({
     <div v-else ref="appWrapperRef" :class="['app-wrapper', set.classes]">
       <!-- 防删除水印容器 -->
       <div ref="watermarkContainerRef" class="watermark-container"></div>
-      <!-- 移动导航模式：底部导航栏设计 -->
-      <template v-if="layout === 'mobile'">
-        <NavMobile>
-          <div class="mobile-main-container">
-            <LayHeader />
-            <LayContent :fixed-header="true" />
-          </div>
-        </NavMobile>
-      </template>
-
       <!-- 双栏导航模式：特殊布局 -->
-      <template v-else-if="layout === 'double'">
+      <template v-if="layout === 'double'">
         <div
-          v-show="set.device === 'mobile' && set.sidebar.opened"
+          v-if="set.device === 'mobile' && set.sidebar.opened"
           class="app-mask"
           @click="useAppStoreHook().toggleSideBar()"
         />
         <div class="double-layout-container">
-          <NavDouble v-show="!pureSetting.hiddenSideBar" />
+          <NavDouble v-if="!pureSetting.hiddenSideBar" />
           <div
             :class="[
               'main-container',
@@ -508,18 +494,20 @@ const LayHeader = defineComponent({
       <!-- 其他导航模式：原有逻辑 -->
       <template v-else>
         <div
-          v-show="set.device === 'mobile' && set.sidebar.opened"
+          v-if="set.device === 'mobile' && set.sidebar.opened"
           class="app-mask"
           @click="useAppStoreHook().toggleSideBar()"
         />
         <NavVertical
-          v-show="
+          v-if="
             !pureSetting.hiddenSideBar &&
             (layout === 'vertical' || layout === 'mix')
           "
         />
-        <NavHover v-show="!pureSetting.hiddenSideBar && layout === 'hover'" />
-        <NavDrawer v-show="!pureSetting.hiddenSideBar && layout === 'drawer'" />
+        <NavHover v-if="!pureSetting.hiddenSideBar && layout === 'hover'" />
+        <NavDrawer v-if="!pureSetting.hiddenSideBar && layout === 'drawer'" />
+        <!-- 卡片导航模式 -->
+        <CardNavigation v-if="!pureSetting.hiddenSideBar && layout === 'card'" />
         <div
           :class="[
             'main-container',

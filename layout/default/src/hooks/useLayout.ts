@@ -47,7 +47,7 @@ export function useLayout() {
         layoutRadius: $config.layoutRadius ?? 10,
         layoutBlur: $config.layoutBlur ?? 10,
         hideTabs: $config?.HideTabs ?? false,
-        hideFooter: $config.HideFooter ?? true,
+        hideFooter: $config.HideFooter ?? false,
         showLogo: $config?.ShowLogo ?? true,
         showModel: $config?.ShowModel ?? "smart",
         multiTagsCache: $config?.MultiTagsCache ?? true,
@@ -59,7 +59,7 @@ export function useLayout() {
   /** 清空缓存后从Platform-config.json读取默认配置并赋值到storage中 */
   const layout = computed<LayoutType>(() => {
     const fallbackLayout: LayoutType = "vertical";
-    const validLayouts: LayoutType[] = ["vertical", "horizontal", "mix", "hover", "double", "mobile"];
+    const validLayouts: LayoutType[] = ["vertical", "horizontal", "mix", "hover", "double", "drawer", "mobile"];
 
     const rawLayout = ($storage?.layout?.layout || $config?.Layout) as string | undefined;
     if (rawLayout && (validLayouts as string[]).includes(rawLayout)) {

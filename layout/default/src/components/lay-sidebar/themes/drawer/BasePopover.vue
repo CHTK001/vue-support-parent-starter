@@ -5,6 +5,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ScText, ReMenuNewBadge } from "@repo/components";
 import { useNav } from "../../../../hooks/useNav";
+import { useGlobal } from "@pureadmin/utils";
 import type { MenuItem } from "../../../../types/menu";
 
 interface Props {
@@ -16,6 +17,25 @@ const route = useRoute();
 const router = useRouter();
 const { menuSelect } = useNav();
 const permissionStore = usePermissionStoreHook();
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+
+// ===== 汉堡按钮位置 =====
+type HamburgerPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+const hamburgerPosition = ref<HamburgerPosition>(
+  ($storage?.configure?.drawerHamburgerPosition as HamburgerPosition) ?? "top-left"
+);
+
+// ===== 菜单面板样式（跟随汉堡按钮左/右位置） =====
+const panelStyle = computed(() => {
+  const pos = hamburgerPosition.value;
+  const isBottom = pos === "bottom-left" || pos === "bottom-right";
+  const isRight = pos === "top-right" || pos === "bottom-right";
+  const base: Record<string, string> = { position: "fixed", zIndex: "1000" };
+  if (isBottom) {
+    return { ...base, bottom: "60px", ...(isRight ? { right: "0" } : { left: "0" }) };
+  }
+  return { ...base, top: "60px", ...(isRight ? { right: "0" } : { left: "0" }) };
+});
 
 // ===== 菜单面板状态 =====
 const menuVisible = ref(false);
@@ -164,6 +184,9 @@ onMounted(() => {
       hoveredMenu.value = null;
     }
   });
+  emitter.on("drawerHamburgerPositionChange", (v: string) => {
+    hamburgerPosition.value = v as HamburgerPosition;
+  });
   emitter.on("showNewMenuChange", (v) => { showNewMenu.value = v; });
   emitter.on("forceNewMenuChange", (v) => { forceNewMenu.value = v; });
   emitter.on("menuAnimationChange", (v) => { menuAnimation.value = v; });
@@ -174,6 +197,7 @@ onBeforeUnmount(() => {
   clearTimers();
   document.removeEventListener("click", handleOutsideClick);
   emitter.off("drawerHamburgerToggle");
+  emitter.off("drawerHamburgerPositionChange");
 });
 </script>
 
@@ -185,6 +209,7 @@ onBeforeUnmount(() => {
         v-if="menuVisible"
         class="popover-menu-panel"
         :class="[props.themeClass]"
+        :style="panelStyle"
         @click.stop
       >
         <div class="popover-panel-inner">
@@ -302,11 +327,8 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
-/* 菜单面板：从左上角 navbar 下方弹出 */
+/* 菜单面板：位置由 panelStyle 动态控制，跟随汉堡按钮位置 */
 .popover-menu-panel {
-  position: fixed;
-  top: 60px; /* navbar 高度 */
-  left: 0;
   width: 220px;
   max-height: calc(100vh - 80px);
   z-index: 1000;

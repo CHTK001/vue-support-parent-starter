@@ -53,17 +53,6 @@ defineProps<Props>();
       />
 
       <ScSwitch
-        v-model="settings.stretch"
-        layout="visual-card"
-        size="small"
-        :label="t('panel.pageStretch')"
-        :description="t('panel.pageStretchDesc')"
-        active-icon="ri:fullscreen-line"
-        ribbon-color="var(--el-color-success)"
-        @change="stretchSwitchChange"
-      />
-
-      <ScSwitch
         v-if="isDevelopment || isTest"
         v-model="settings.debugMode"
         layout="visual-card"

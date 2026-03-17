@@ -161,19 +161,21 @@ onBeforeUnmount(() => {
         </el-scrollbar>
 
         <div class="panel-footer">
-          <ScButton 
-            v-tippy="{
-              content: t('panel.pureClearCacheAndToLogin'),
-              placement: 'left-start',
-              zIndex: 41000,
-            }"
-            type="danger"
-            text
-            bg
-            @click="onReset"
-          >
-            {{ t("panel.pureClearCache") }}
-          </ScButton>
+          <slot name="footer">
+            <ScButton 
+              v-tippy="{
+                content: t('panel.pureClearCacheAndToLogin'),
+                placement: 'left-start',
+                zIndex: 41000,
+              }"
+              type="danger"
+              text
+              bg
+              @click="onReset"
+            >
+              {{ t("panel.pureClearCache") }}
+            </ScButton>
+          </slot>
         </div>
       </div>
     </div>
@@ -182,7 +184,9 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 :deep(.el-scrollbar) {
-  height: calc(100% - 110px);
+  flex: 1;
+  height: 0; /* flex 子项，由 flex:1 撑满，不能用 calc */
+  min-height: 0;
 }
 
 // 遮罩层 - 覆盖整个视口
@@ -209,6 +213,8 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 520px;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
   // box-shadow: -4px 0 20px rgb(0 0 0 / 10%); // Moved to stitch-glass-panel
   transition: transform 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
   transform: translateX(100%);

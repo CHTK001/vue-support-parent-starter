@@ -26,8 +26,27 @@
 
       <!-- 其余 AI 配置：仅在显示开启时展示 -->
       <template v-if="settings.aiChatEnabled">
-        <!-- 厂商设置 -->
-        <div class="setting-item">
+        <!-- 模式选择 -->
+        <div class="setting-item setting-item--row">
+          <div class="setting-item-label">
+            <span class="setting-item-desc">模式</span>
+          </div>
+          <div class="setting-item-control">
+            <ScSelect
+              v-model="settings.aiChatMode"
+              layout="dropdown"
+              :options="aiChatModeOptions"
+              width="260px"
+              height="200px"
+              dropdown-title="选择运行模式"
+              dropdown-placeholder="请选择模式"
+              @change="handleModeChange"
+            />
+          </div>
+        </div>
+
+        <!-- 厂家选择（仅 vendor 模式） -->
+        <div v-if="settings.aiChatMode === 'vendor'" class="setting-item setting-item--row">
           <div class="setting-item-label">
             <span class="setting-item-desc">服务厂商</span>
           </div>
@@ -37,16 +56,16 @@
               layout="dropdown"
               :options="aiChatVendorOptions"
               width="260px"
-              height="220px"
+              height="300px"
               dropdown-title="选择服务厂商"
               dropdown-placeholder="请选择厂商"
-              @change="aiChatVendorChange"
+              @change="handleVendorChange"
             />
           </div>
         </div>
 
-        <!-- 模型选择（仅 HF / hf-mirror 时显示） -->
-        <div v-if="settings.aiChatVendor === 'hf'" class="setting-item">
+        <!-- 模型选择（仅 webllm 模式） -->
+        <div v-if="settings.aiChatMode === 'webllm'" class="setting-item setting-item--row">
           <div class="setting-item-label">
             <span class="setting-item-desc">模型</span>
           </div>
@@ -57,18 +76,15 @@
               :options="aiChatModelOptions"
               dropdown-title="选择推理模型"
               dropdown-placeholder="请选择 WebLLM MLC 模型"
-              width="420px"
+              width="260px"
               height="260px"
               @change="aiChatModelChange"
             />
           </div>
         </div>
 
-        <!-- API Key 设置 -->
-        <div
-          v-if="settings.aiChatVendor !== 'chrome'"
-          class="setting-item"
-        >
+        <!-- API Key（仅 vendor 模式） -->
+        <div v-if="settings.aiChatMode === 'vendor'" class="setting-item setting-item--row">
           <div class="setting-item-label">
             <span>API Key</span>
           </div>
@@ -79,35 +95,29 @@
               show-password
               placeholder="请输入 API Key"
               @change="aiChatApiKeyChange"
-              style="max-width: 260px"
+              style="width: 260px"
             />
           </div>
         </div>
 
-        <!-- API URL 设置（Chrome 模式下不需要） -->
-        <div
-          v-if="settings.aiChatVendor !== 'chrome'"
-          class="setting-item"
-        >
+        <!-- API URL（仅 vendor 模式） -->
+        <div v-if="settings.aiChatMode === 'vendor'" class="setting-item setting-item--row">
           <div class="setting-item-label">
             <span>API URL</span>
           </div>
           <div class="setting-item-control">
             <ScInput
               v-model="settings.aiChatApiUrl"
-              :placeholder="
-                settings.aiChatVendor === 'hf'
-                  ? '留空使用模型默认地址'
-                  : '填模型提供的地址'
-              "
+              :placeholder="isCustomVendor ? '填入自定义 API 地址' : '已自动填入厂商默认地址'"
+              :readonly="!isCustomVendor"
               @change="aiChatApiUrlChange"
-              style="max-width: 260px"
+              style="width: 260px"
             />
           </div>
         </div>
 
-        <!-- 机器人外观样式设置（含实时预览） -->
-        <div class="setting-item">
+        <!-- 外观样式 -->
+        <div class="setting-item setting-item--row">
           <div class="setting-item-label">
             <span>外观</span>
             <span class="setting-item-desc">外观样式</span>
@@ -135,7 +145,6 @@ import { AI_APPEARANCE_OPTIONS } from "../../../lay-ai/appearance";
 
 const { t } = useI18n();
 
-/** AiChatAppearanceSetting 的 change 事件可能传入完整选项对象 */
 interface SkinOptionsType {
   label: string;
   value: string | number | boolean;
@@ -151,17 +160,38 @@ interface AiDropdownOption {
 
 const AI_IMG = { width: "24px", height: "24px" } as const;
 
-/** AI 皮肤选项 */
 const aiChatSkinOptions = computed(() => AI_APPEARANCE_OPTIONS);
 
-/** AI 厂商选项 */
-const aiChatVendorOptions = computed<Array<AiDropdownOption>>(() => [
-  { label: "WebLLM（本地）", value: "hf", description: "使用 @mlc-ai/web-llm 在浏览器端本地运行大模型，无需服务器", image: AI_IMG },
-  { label: "Chrome", value: "chrome", description: "使用 Chrome 浏览器内置 AI 能力（实验性）", image: AI_IMG },
-  { label: "其它厂商", value: "other", description: "自定义第三方厂商，需要手动配置 API 信息", image: AI_IMG },
+/** 厂商预设 URL */
+const VENDOR_DEFAULT_URLS: Record<string, string> = {
+  openai: "https://api.openai.com/v1/chat/completions",
+  deepseek: "https://api.deepseek.com/v1/chat/completions",
+  qwen: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+  siliconflow: "https://api.siliconflow.cn/v1/chat/completions",
+  zhipu: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+  moonshot: "https://api.moonshot.cn/v1/chat/completions",
+  custom: "",
+};
+
+/** 模式选项 */
+const aiChatModeOptions = computed<Array<AiDropdownOption>>(() => [
+  { label: "WebLLM（本地）", value: "webllm", description: "使用 @mlc-ai/web-llm 在浏览器端本地运行大模型，无需服务器", image: AI_IMG },
+  { label: "Chrome AI", value: "chrome", description: "使用 Chrome 浏览器内置 AI 能力（实验性）", image: AI_IMG },
+  { label: "厂家 API", value: "vendor", description: "调用第三方 AI 厂商 API，需要 API Key", image: AI_IMG },
 ]);
 
-/** WebLLM MLC 模型选项（浏览器端本地推理） */
+/** 厂商选项（仅 vendor 模式使用） */
+const aiChatVendorOptions = computed<Array<AiDropdownOption>>(() => [
+  { label: "OpenAI", value: "openai", description: "OpenAI GPT 系列，需要 API Key", image: AI_IMG },
+  { label: "DeepSeek", value: "deepseek", description: "DeepSeek 大模型，国内访问友好", image: AI_IMG },
+  { label: "通义千问", value: "qwen", description: "阿里云通义千问，兼容 OpenAI 接口", image: AI_IMG },
+  { label: "硅基流动", value: "siliconflow", description: "硅基流动，支持多种开源模型", image: AI_IMG },
+  { label: "智谱 AI", value: "zhipu", description: "智谱 GLM 系列模型", image: AI_IMG },
+  { label: "Moonshot（Kimi）", value: "moonshot", description: "月之暗面 Kimi 大模型", image: AI_IMG },
+  { label: "自定义", value: "custom", description: "手动填写 API URL 和 Key", image: AI_IMG },
+]);
+
+/** WebLLM 模型选项 */
 const aiChatModelOptions = computed<Array<AiDropdownOption>>(() => [
   { label: "Qwen2.5-1.5B-Instruct（推荐）", value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", description: "阿里 Qwen 1.5B MLC 量化版，体积小、加载快，适合入门", image: AI_IMG },
   { label: "Qwen2.5-3B-Instruct", value: "Qwen2.5-3B-Instruct-q4f16_1-MLC", description: "阿里 Qwen 3B MLC 量化版，能力更强，需要更多内存", image: AI_IMG },
@@ -170,23 +200,56 @@ const aiChatModelOptions = computed<Array<AiDropdownOption>>(() => [
 ]);
 
 interface Props {
-  /** 全局 settings reactive 对象 */
   settings: Record<string, any>;
-  /** 是否显示 AI 设置区域（来自 getConfig().ShowAiChat） */
   showAiChat?: boolean;
-  /** AI 启用状态变更 */
   aiChatEnabledChange: (value: boolean) => void;
-  /** AI API Key 变更 */
   aiChatApiKeyChange: (value: string) => void;
-  /** AI API URL 变更 */
   aiChatApiUrlChange: (value: string) => void;
-  /** AI 厂商变更 */
+  aiChatModeChange: (value: string | number | boolean) => void;
   aiChatVendorChange: (value: string | number | boolean) => void;
-  /** AI 模型变更 */
   aiChatModelChange: (value: string | number | boolean) => void;
-  /** AI 皮肤变更 */
   aiChatSkinChange: (value: string | number | boolean | SkinOptionsType) => void;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+/** 模式变更：切换到 vendor 时确保 aiChatVendor 有合法值 */
+function handleModeChange(value: string | number | boolean) {
+  const mode = String(value) as "webllm" | "chrome" | "vendor";
+  // 切换到 vendor 且当前 vendor 是旧的 hf/chrome，重置为 openai
+  if (mode === "vendor") {
+    const v = props.settings.aiChatVendor;
+    if (!v || v === "hf" || v === "chrome") {
+      props.settings.aiChatVendor = "openai";
+      const defaultUrl = VENDOR_DEFAULT_URLS["openai"];
+      props.settings.aiChatApiUrl = defaultUrl;
+      props.aiChatApiUrlChange(defaultUrl);
+      props.aiChatVendorChange("openai");
+    }
+  }
+  props.aiChatModeChange(value);
+}
+
+/** 厂商变更时自动填充预设 URL */
+function handleVendorChange(value: string | number | boolean) {
+  const vendor = String(value);
+  if (vendor in VENDOR_DEFAULT_URLS) {
+    const defaultUrl = VENDOR_DEFAULT_URLS[vendor];
+    props.settings.aiChatApiUrl = defaultUrl;
+    props.aiChatApiUrlChange(defaultUrl);
+  }
+  props.aiChatVendorChange(value);
+}
+
+/** 当前厂商是否为自定义 */
+const isCustomVendor = computed(() => props.settings.aiChatVendor === "custom");
 </script>
+
+<style scoped lang="scss">
+.lay-setting .setting-item--row,
+.setting-item--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+</style>

@@ -45,19 +45,19 @@
 
 // 响应式设计优化
 @media (max-width: 768px) {
-  .modern-setting-container {
+  .lay-setting .modern-setting-container {
     padding: 16px;
     width: 100%;
     border-radius: 16px;
   }
 
-  .setting-section {
+  .lay-setting .setting-section {
     padding: 20px;
     margin-bottom: 20px;
     border-radius: 14px;
   }
 
-  .section-header {
+  .lay-setting .section-header {
     margin-bottom: 16px;
     padding-bottom: 12px;
 
@@ -115,11 +115,11 @@
 }
 
 @media (max-width: 480px) {
-  .modern-setting-container {
+  .lay-setting .modern-setting-container {
     padding: 12px;
   }
 
-  .setting-section {
+  .lay-setting .setting-section {
     padding: 16px;
   }
 
@@ -754,3 +754,738 @@ write-line-preview 2s ease-in-out infinite; } .preview-loader-writing
 .line-preview:nth-child(1) { animation-delay: 0s; } .preview-loader-writing
 .line-preview:nth-child(2) { animation-delay: 0.3s; } @keyframes
 write-line-preview { 0%, 100% { width: 0; } 50% { width: 100%; } }
+
+
+// ==================== lay-setting namespace ====================
+// 设置面板公共样式，用 .lay-setting 包裹防止全局污染
+// 子组件（SettingLayout/SettingTheme 等）因 Vue scoped 穿透问题无法命中父组件 scoped 样式，
+// 故将公共样式迁移至此处，通过 namespace 限定作用域
+.lay-setting {
+  // 设置区域 - 现代化玻璃态卡片设计
+  .setting-section {
+    margin-bottom: 24px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.12),
+      0 8px 20px rgba(0, 0, 0, 0.08),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+    border: 1px solid var(--el-border-color-light);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--el-color-primary-light-5) 20%,
+        var(--el-color-primary) 50%,
+        var(--el-color-primary-light-5) 80%,
+        transparent 100%
+      );
+      border-radius: 16px 16px 0 0;
+      opacity: 0.6;
+      transition: opacity 0.3s ease;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      pointer-events: none;
+    }
+
+    &:hover {
+      background: var(--el-bg-color-overlay);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.15),
+        0 12px 30px rgba(0, 0, 0, 0.12),
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+      border-color: var(--el-color-primary-light-8);
+      transform: translateY(-4px) scale(1.02);
+
+      &::before {
+        opacity: 1;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          var(--el-color-primary-light-3) 20%,
+          var(--el-color-primary) 50%,
+          var(--el-color-primary-light-3) 80%,
+          transparent 100%
+        );
+      }
+
+      &::after {
+        opacity: 1;
+      }
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .dark & {
+      background: rgba(0, 0, 0, 0.4);
+      border-color: var(--el-border-color);
+      box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.4),
+        0 8px 20px rgba(0, 0, 0, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.1) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.2) inset;
+
+      &:hover {
+        background: var(--el-bg-color-overlay);
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.5),
+          0 12px 30px rgba(0, 0, 0, 0.4),
+          0 1px 0 rgba(255, 255, 255, 0.15) inset,
+          0 -1px 0 rgba(0, 0, 0, 0.2) inset;
+        border-color: var(--el-color-primary-light-6);
+      }
+    }
+
+    @media (max-width: 768px) {
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.1),
+        0 4px 15px rgba(0, 0, 0, 0.06),
+        0 1px 0 rgba(255, 255, 255, 0.8) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+
+      &:hover {
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.15),
+          0 8px 25px rgba(0, 0, 0, 0.1),
+          0 1px 0 rgba(255, 255, 255, 0.9) inset,
+          0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+      }
+
+      .dark & {
+        box-shadow:
+          0 8px 30px rgba(0, 0, 0, 0.35),
+          0 4px 15px rgba(0, 0, 0, 0.25),
+          0 1px 0 rgba(255, 255, 255, 0.1) inset,
+          0 -1px 0 rgba(0, 0, 0, 0.2) inset;
+
+        &:hover {
+          box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.45),
+            0 8px 25px rgba(0, 0, 0, 0.35),
+            0 1px 0 rgba(255, 255, 255, 0.15) inset,
+            0 -1px 0 rgba(0, 0, 0, 0.2) inset;
+        }
+      }
+    }
+  }
+
+  // 区域标题
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--el-border-color-light);
+    position: relative;
+    flex-wrap: wrap;
+
+    .section-description {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      margin-left: auto;
+      opacity: 0.8;
+      flex-shrink: 0;
+
+      @media (max-width: 768px) {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 4px;
+        text-align: left;
+      }
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 50%,
+        var(--el-color-success-light-5) 100%
+      );
+      border-radius: 2px;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+
+    &:hover::after {
+      width: 100px;
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-2) 30%,
+        var(--el-color-success) 70%,
+        var(--el-color-warning) 100%
+      );
+      box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.4);
+    }
+
+    .section-icon {
+      font-size: 20px;
+      color: var(--el-color-primary);
+      margin-right: 14px;
+      background: var(--el-fill-color-light);
+      padding: 10px;
+      border-radius: 12px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
+        0 1px 0 rgba(255, 255, 255, 0.8) inset;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+      overflow: hidden;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      &:hover {
+        transform: translateY(-2px) scale(1.08);
+        box-shadow:
+          0 8px 20px rgba(var(--el-color-primary-rgb), 0.25),
+          0 1px 0 rgba(255, 255, 255, 0.9) inset;
+        background: var(--el-color-primary-light-9);
+
+        &::before {
+          opacity: 1;
+        }
+      }
+
+      .dark & {
+        background: var(--el-fill-color-dark);
+
+        &:hover {
+          background: var(--el-color-primary-light-8);
+        }
+      }
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+      margin: 0;
+      flex: 1;
+      letter-spacing: 0.5px;
+      text-align: left;
+      writing-mode: horizontal-tb;
+      transition: all 0.3s ease;
+
+      &:hover {
+        color: var(--el-color-primary);
+      }
+
+      .dark & {
+        &:hover {
+          color: var(--el-color-primary-light-5);
+        }
+      }
+    }
+  }
+
+  // 设置内容区域
+  .setting-content {
+    .modern-segmented {
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  // 布局模式选择器 - 现代化卡片网格设计
+  .layout-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 8px 0;
+
+    @media (max-width: 640px) {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+  }
+
+  .layout-mode-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.6) 0%, rgba(248, 250, 252, 0.6) 100%);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.04),
+      0 1px 3px rgba(0, 0, 0, 0.02),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 1;
+      border-radius: 20px 20px 0 0;
+    }
+
+    &:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: rgba(var(--el-color-primary-rgb), 0.3);
+      box-shadow:
+        0 20px 40px rgba(var(--el-color-primary-rgb), 0.15),
+        0 8px 20px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+      .layout-mode-preview {
+        background: linear-gradient(
+          135deg,
+          rgba(var(--el-color-primary-rgb), 0.08) 0%,
+          rgba(var(--el-color-primary-rgb), 0.04) 100%
+        );
+
+        svg {
+          transform: scale(1.1) rotate(-3deg);
+          color: var(--el-color-primary);
+          filter: drop-shadow(0 4px 8px rgba(var(--el-color-primary-rgb), 0.3));
+        }
+      }
+
+      .layout-mode-name {
+        color: var(--el-color-primary);
+      }
+
+      .layout-mode-desc {
+        color: var(--el-color-primary-light-3);
+      }
+    }
+
+    &.is-active {
+      background: linear-gradient(
+        145deg,
+        rgba(var(--el-color-primary-rgb), 0.1) 0%,
+        rgba(var(--el-color-primary-rgb), 0.05) 100%
+      );
+      border-color: var(--el-color-primary);
+      box-shadow:
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.15),
+        0 12px 32px rgba(var(--el-color-primary-rgb), 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+      .layout-mode-preview {
+        background: linear-gradient(
+          135deg,
+          rgba(var(--el-color-primary-rgb), 0.12) 0%,
+          rgba(var(--el-color-primary-rgb), 0.06) 100%
+        );
+
+        svg {
+          color: var(--el-color-primary);
+          filter: drop-shadow(0 2px 6px rgba(var(--el-color-primary-rgb), 0.25));
+        }
+      }
+
+      .layout-mode-name {
+        color: var(--el-color-primary);
+        font-weight: 600;
+      }
+
+      .layout-mode-desc {
+        color: var(--el-color-primary-light-3);
+      }
+    }
+  }
+
+  .layout-mode-preview {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 85px;
+    padding: 14px;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    svg {
+      width: 100%;
+      height: 100%;
+      max-width: 120px;
+      max-height: 60px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      color: var(--el-text-color-regular);
+      border-radius: 8px;
+    }
+  }
+
+  .layout-mode-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 10px;
+    gap: 4px;
+    background: transparent;
+  }
+
+  .layout-mode-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    transition: all 0.3s ease;
+  }
+
+  .layout-mode-desc {
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
+    transition: all 0.3s ease;
+  }
+
+  .layout-mode-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--el-color-primary);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.4);
+    animation: lay-setting-badge-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+}
+
+@keyframes lay-setting-badge-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// ==================== 子组件公共样式（scoped 无法穿透，迁移至此） ====================
+
+// 设置组样式（SettingDisplay/SettingMenu/SettingAdvancedCore 使用）
+.lay-setting {
+  .setting-group {
+    margin-bottom: 24px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .group-title {
+      display: flex;
+      align-items: center;
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      .group-icon {
+        margin-right: 8px;
+        font-size: 16px;
+        color: var(--el-color-primary);
+      }
+    }
+  }
+
+  // 布局参数数字输入框（SettingLayout 使用）
+  .layout-params-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .param-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--el-fill-color-light);
+    border-radius: 12px;
+    border: 1px solid var(--el-border-color-light);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.08),
+      0 2px 6px rgba(0, 0, 0, 0.06),
+      0 1px 0 rgba(255, 255, 255, 0.7) inset;
+
+    &:hover {
+      background: var(--el-color-primary-light-9);
+      border-color: var(--el-color-primary-light-8);
+      transform: translateY(-3px);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.12),
+        0 4px 12px rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    }
+
+    .param-label {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--el-text-color-regular);
+      margin: 0;
+      flex: 1;
+      text-align: left;
+      writing-mode: horizontal-tb;
+      white-space: nowrap;
+    }
+  }
+
+  .custom-number-input {
+    display: flex;
+    align-items: center;
+    background: var(--el-bg-color-overlay);
+    border-radius: 10px;
+    border: 1px solid var(--el-border-color-light);
+    overflow: hidden;
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.1),
+      0 2px 6px rgba(0, 0, 0, 0.08),
+      0 1px 0 rgba(255, 255, 255, 0.7) inset;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-7);
+    }
+
+    &:focus-within {
+      border-color: var(--el-color-primary);
+      box-shadow:
+        0 0 0 4px rgba(var(--el-color-primary-rgb), 0.3),
+        0 8px 24px rgba(0, 0, 0, 0.18),
+        0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    }
+
+    .number-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: var(--el-fill-color-light);
+      color: var(--el-text-color-regular);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 16px;
+      font-weight: 600;
+
+      &:hover:not(:disabled) {
+        background: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
+        transform: scale(1.1);
+      }
+
+      &:active:not(:disabled) {
+        background: var(--el-color-primary-light-8);
+        transform: scale(0.95);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: var(--el-fill-color-lighter);
+      }
+    }
+
+    .number-display {
+      display: flex;
+      align-items: center;
+      background: var(--el-bg-color-overlay);
+      padding: 0 12px;
+      min-width: 90px;
+      justify-content: center;
+
+      .number-input {
+        border: none;
+        background: transparent;
+        color: var(--el-text-color-primary);
+        font-size: 16px;
+        font-weight: 700;
+        text-align: center;
+        width: 50px;
+        outline: none;
+        padding: 0;
+
+        &::-webkit-outer-spin-button,
+        &::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        &[type="number"] {
+          appearance: textfield;
+          -moz-appearance: textfield;
+        }
+
+        &:focus {
+          color: var(--el-color-primary);
+        }
+      }
+
+      .number-unit {
+        font-size: 13px;
+        color: var(--el-text-color-placeholder);
+        margin-left: 6px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // AI 设置表单行布局（SettingAiChat 使用）
+  // .setting-item 已在 scoped.scss 中定义，此处补充 label/control 子元素
+  .setting-item-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+
+    span {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-regular);
+      white-space: nowrap;
+    }
+
+    .setting-item-desc {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      font-weight: 400;
+    }
+  }
+
+  .setting-item-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+}
+
+// 深色模式下的布局模式卡片
+html.dark .lay-setting {
+  .layout-mode-item {
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+    &::before {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+    }
+
+    &:hover {
+      background: linear-gradient(145deg, #334155 0%, #1e293b 100%);
+      border-color: rgba(var(--el-color-primary-rgb), 0.5);
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.4),
+        0 8px 20px rgba(var(--el-color-primary-rgb), 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    &.is-active {
+      background: linear-gradient(
+        145deg,
+        rgba(var(--el-color-primary-rgb), 0.2) 0%,
+        rgba(var(--el-color-primary-rgb), 0.1) 100%
+      );
+      border-color: var(--el-color-primary);
+      box-shadow:
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.2),
+        0 12px 32px rgba(var(--el-color-primary-rgb), 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+      .layout-mode-preview svg {
+        color: var(--el-color-primary-light-3);
+      }
+
+      .layout-mode-name {
+        color: var(--el-color-primary-light-3);
+      }
+    }
+  }
+
+  .layout-mode-preview {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-color: rgba(255, 255, 255, 0.05);
+
+    svg {
+      color: var(--el-text-color-regular);
+    }
+  }
+
+  .layout-mode-badge {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.5),
+      0 0 0 2px rgba(var(--el-color-primary-rgb), 0.3);
+  }
+}
