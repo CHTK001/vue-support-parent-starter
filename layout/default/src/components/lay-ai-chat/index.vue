@@ -33,6 +33,8 @@ import { useDraggable } from "@vueuse/core";
 import { useGlobal } from "@pureadmin/utils";
 import { useRoute } from "vue-router";
 import { emitter } from "@repo/core";
+import { getConfig } from "@repo/config";
+import { aesDecrypt } from "@repo/utils";
 import RobotChat from "./components/RobotChat.vue";
 import {
   normalizeAiAppearanceKey,
@@ -116,6 +118,13 @@ function buildSystemPrompt(): string {
     if (routePath) parts.push(`- 路由路径：${routePath}`);
   }
 
+  // 当前页面内容摘要（最多2000字符，帮助 AI 理解页面上下文）
+  const pageText = (document.body?.innerText ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 2000);
+  if (pageText) parts.push(`\n当前页面内容摘要：\n${pageText}`);
+
   return parts.join("\n");
 }
 
@@ -148,8 +157,9 @@ const botTriggerRef = ref<HTMLElement | null>(null);
 
 function syncConfigFromStorage(): void {
   var config = $storage?.configure;
-  apiKey.value = config?.aiChatApiKey ?? "";
-  apiUrl.value = config?.aiChatApiUrl ?? "";
+  // 读取时解密敏感字段
+  apiKey.value = aesDecrypt(config?.aiChatApiKey ?? "", getConfig().StorageKey);
+  apiUrl.value = aesDecrypt(config?.aiChatApiUrl ?? "", getConfig().StorageKey);
   // 优先读取新的 aiChatMode 字段，兼容旧的 aiChatVendor
   var mode = config?.aiChatMode;
   if (mode === "webllm") {

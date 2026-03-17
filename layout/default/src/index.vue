@@ -31,6 +31,7 @@ import {
   onBeforeMount,
   onMounted,
   onUnmounted,
+  provide,
   reactive,
   ref,
   watch,
@@ -39,6 +40,7 @@ import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
+import { aesDecrypt } from "@repo/utils";
 import {
   initSession,
   localStorageProxy,
@@ -127,14 +129,20 @@ const aiChatPosition = computed(
   () => $storage?.configure?.aiChatPosition || "bottom-right",
 );
 const aiChatHeaders = computed(() => {
-  const apiKey = $storage?.configure?.aiChatApiKey;
-  if (!apiKey) {
-    return {};
-  }
-  return {
-    Authorization: `Bearer ${apiKey}`,
-  };
+  const raw = $storage?.configure?.aiChatApiKey;
+  if (!raw) return {};
+  const apiKey = aesDecrypt(raw, getConfig().StorageKey);
+  return { Authorization: `Bearer ${apiKey}` };
 });
+
+// 向子组件注入 AI 配置（HeatmapOverlay 等通过 inject 获取）
+provide("heatmapAiConfig", computed(() => ({
+  mode: $storage?.configure?.aiChatMode,
+  vendor: $storage?.configure?.aiChatVendor,
+  apiKey: aesDecrypt($storage?.configure?.aiChatApiKey ?? "", getConfig().StorageKey),
+  apiUrl: aesDecrypt($storage?.configure?.aiChatApiUrl ?? "", getConfig().StorageKey),
+  model: $storage?.configure?.aiChatModel,
+})));
 
 const { initStorage } = useLayout();
 const { applyOverallStyle } = useTheme();

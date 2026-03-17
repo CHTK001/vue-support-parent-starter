@@ -291,6 +291,7 @@ const props = defineProps<{
         <ScSelect
           v-model="settings.drawerHamburgerPosition"
           layout="position"
+          mode="4"
           @change="drawerHamburgerPositionChange"
         />
       </div>

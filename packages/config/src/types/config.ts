@@ -417,4 +417,10 @@ export interface HeatmapConfig {
   trackMouseMove?: boolean;
   /** 是否追踪滚动事件（默认: true） */
   trackScroll?: boolean;
+  /** 是否显示热力图覆盖层（开发调试用，默认: false，生产环境不建议开启） */
+  show?: boolean;
+  /** 是否启用 AI 分析（默认: false） */
+  aiAnalysis?: boolean;
+  /** AI 分析接口地址（aiAnalysis=true 时生效） */
+  aiAnalysisUrl?: string;
 }
