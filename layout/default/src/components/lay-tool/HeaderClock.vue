@@ -155,6 +155,7 @@ onBeforeUnmount(() => {
     :show-after="300"
     :hide-after="150"
     effect="dark"
+    popper-class="header-clock-tooltip"
   >
     <div class="header-clock-inner">
       <span class="header-clock-icon" aria-hidden="true">🕒</span>
@@ -234,6 +235,13 @@ onBeforeUnmount(() => {
 .header-clock-separator {
   font-size: 12px;
   color: var(--el-text-color-disabled);
+}
+</style>
+
+<!-- 全局样式：确保 tooltip 层级高于 lay-tag -->
+<style lang="scss">
+.header-clock-tooltip {
+  z-index: 9999 !important;
 }
 </style>
 

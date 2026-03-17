@@ -49,6 +49,19 @@ html[data-theme='8bit'] {
     border-radius: 0 !important;
   }
 
+  /* ScCard 系列组件保留圆角，用具体值覆盖回来 */
+  .sc-card-default { border-radius: var(--stitch-lay-radius-md) !important; }
+  .sc-card-compact { border-radius: var(--stitch-lay-radius-lg) !important; }
+  .sc-card-compact__icon { border-radius: 12px !important; }
+  .sc-card-stats { border-radius: 16px !important; }
+  .sc-card-stats.size--small { border-radius: 14px !important; }
+  .sc-card-stats.size--large { border-radius: 20px !important; }
+  .sc-card-stats__icon { border-radius: 14px !important; }
+  .sc-card-stats-simple { border-radius: var(--stitch-lay-radius-md) !important; }
+  .sc-card-stats-simple__icon { border-radius: 10px !important; }
+  .sc-card-media { border-radius: var(--stitch-lay-radius-md) !important; }
+  .sc-card-header-content { border-radius: var(--stitch-lay-radius-md) !important; }
+
   /* 简单的像素边框效果 */
   .el-button, .el-card, .el-input__wrapper {
     box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.2) !important;

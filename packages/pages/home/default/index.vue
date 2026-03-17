@@ -1,5 +1,6 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { ScButton } from "@repo/components";
 import { getConfig } from "@repo/config";
 import { useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
 import {
@@ -237,21 +238,21 @@ onUnmounted(() => {
           <div class="toolbar-title">{{ $t("buttons.board") }}</div>
         </div>
         <div class="toolbar-right">
-          <el-button
+          <ScButton
             v-if="customizing.customizing"
             type="primary"
             :icon="useRenderIcon('ep:check')"
             round
             @click="handleUpdate"
-            >{{ $t("buttons.finish") }}</el-button
+            >{{ $t("buttons.finish") }}</ScButton
           >
-          <el-button
+          <ScButton
             v-else
             type="primary"
             :icon="useRenderIcon('ep:edit')"
             round
             @click="handeCustom"
-            >{{ $t("buttons.custom") }}</el-button
+            >{{ $t("buttons.custom") }}</ScButton
           >
         </div>
       </div>
@@ -304,21 +305,21 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="header-actions" v-if="customizing.hasLayout">
-            <el-button
+            <ScButton
               v-if="customizing.customizing"
               type="primary"
               :icon="useRenderIcon('ep:check')"
               round
               @click="handleUpdate"
-              >{{ $t("buttons.finish") }}</el-button
+              >{{ $t("buttons.finish") }}</ScButton
             >
-            <el-button
+            <ScButton
               v-else
               type="primary"
               :icon="useRenderIcon('ep:edit')"
               round
               @click="handeCustom"
-              >{{ $t("buttons.custom") }}</el-button
+              >{{ $t("buttons.custom") }}</ScButton
             >
           </div>
         </div>
@@ -348,7 +349,7 @@ onUnmounted(() => {
               </div>
               <div class="empty-title">开始自定义您的仪表板</div>
               <div class="empty-desc">点击右上角「自定义」按钮添加部件</div>
-              <el-button
+              <ScButton
                 type="primary"
                 round
                 @click="handeCustom"
@@ -358,7 +359,7 @@ onUnmounted(() => {
                   <component :is="useRenderIcon('ep:plus')" />
                 </el-icon>
                 添加部件
-              </el-button>
+              </ScButton>
             </div>
             <CustomLayout
               v-else
@@ -452,9 +453,9 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="widget-card-action">
-            <el-button type="primary" circle size="small">
+            <ScButton type="primary" circle size="small">
               <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -471,12 +472,12 @@ onUnmounted(() => {
             显示头部信息
           </el-checkbox>
         </div>
-        <el-button size="small" @click="backDefault()">
+        <ScButton size="small" @click="backDefault()">
           <el-icon class="mr-1"
             ><component :is="useRenderIcon('ep:refresh')"
           /></el-icon>
           {{ $t("buttons.default") }}
-        </el-button>
+        </ScButton>
       </div>
     </div>
   </div>

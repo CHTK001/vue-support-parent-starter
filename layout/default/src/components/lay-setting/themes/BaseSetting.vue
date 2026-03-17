@@ -75,11 +75,10 @@ const {
 
 // 预览数据
 
-// 判断当前是否为非默认主题（节日主题优先级高于页签风格和整体风格）
-// 这里直接依据当前布局主题的 theme 字段，避免依赖存储中的历史值
+// 判断当前是否为非默认皮肤（节日主题优先级高于页签风格和整体风格）
+// 使用 themeStore.currentTheme（系统皮肤，如 default/8bit）而非 layoutTheme.theme（主题色，如 light/saucePurple）
 const isNonDefaultTheme = computed(() => {
-  const currentTheme = layoutTheme.value?.theme || "default";
-  return currentTheme !== "default";
+  return themeStore.currentTheme !== "default";
 });
 
 const handleOverallStyleChange = (theme: any) => {
@@ -291,6 +290,10 @@ const settings = reactive({
     false,
   // 加载动画样式
   loaderStyle: localStorage.getItem("sys-loader-style") || "default",
+  // 语音朗读（无障碍）
+  voiceReadEnabled: $storage.configure?.voiceReadEnabled ?? false,
+  // 热点工具（热力图）
+  devHeatmap: $storage.configure?.devHeatmap ?? false,
 });
 
 /** 主题动画模式选项 */
@@ -1135,6 +1138,23 @@ function devHoverInspectorChange(enabled: boolean) {
 }
 
 /**
+ * 语音朗读开关
+ */
+function voiceReadEnabledChange(enabled: boolean) {
+  settings.voiceReadEnabled = enabled;
+  storageConfigureChange("voiceReadEnabled", enabled);
+  emitter.emit("voiceReadEnabledChange", enabled);
+}
+
+/**
+ * 热点工具（热力图）开关
+ */
+function devHeatmapChange(enabled: boolean) {
+  settings.devHeatmap = enabled;
+  storageConfigureChange("devHeatmap", enabled);
+}
+
+/**
  * 字体加密相关函数
  */
 function fontEncryptionEnabledChange(enabled: boolean) {
@@ -1569,6 +1589,8 @@ onUnmounted(() => {
           :dev-ruler-change="devRulerChange"
           :dev-grid-change="devGridChange"
           :dev-hover-inspector-change="devHoverInspectorChange"
+          :voice-read-enabled-change="voiceReadEnabledChange"
+          :dev-heatmap-change="devHeatmapChange"
           :sync-to-cloud="syncToCloud"
           :sync-from-cloud="syncFromCloud"
           :clear-local-cache="clearLocalCache"

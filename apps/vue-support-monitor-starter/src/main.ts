@@ -1,3 +1,11 @@
+// 拦截 @mmt817/pixel-ui 的 banner 打印，避免控制台噪音
+const _consoleInfo = console.info;
+console.info = (...args: any[]) => {
+  const first = args[0];
+  if (typeof first === "string" && (first.includes("MMT") || first.includes("mmt817") || first.includes("pixel-ui"))) return;
+  _consoleInfo(...args);
+};
+
 import { createStandardApp } from "@repo/core";
 import { setupDirectives } from "./directives";
 import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
