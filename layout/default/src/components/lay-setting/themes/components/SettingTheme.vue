@@ -166,3 +166,223 @@ const props = withDefaults(defineProps<{
     v-model="settings.loaderStyle"
   />
 </template>
+
+<style scoped lang="scss">
+// 现代化主题色选择器 - 玻璃态设计
+.theme-color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 16px;
+  border: 1px solid var(--el-border-color-light);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    0 3px 8px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+.theme-color-item {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 2px solid var(--el-border-color-light);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+
+  // 基础光泽效果
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  // 悬停效果
+  &:hover {
+    transform: translateY(-8px) scale(1.15);
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.25),
+      0 6px 16px rgba(0, 0, 0, 0.18),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    border-color: var(--el-color-primary-light-7);
+
+    .shine-effect {
+      opacity: 1;
+      transform: translateX(100%);
+    }
+
+    .selection-indicator {
+      transform: scale(1.2);
+    }
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  // 点击效果
+  &:active {
+    transform: translateY(-4px) scale(1.1);
+  }
+
+  // 选中状态
+  &.is-selected {
+    border-color: #409eff;
+    box-shadow:
+      0 0 0 4px rgba(64, 158, 255, 0.4),
+      0 12px 32px rgba(64, 158, 255, 0.35),
+      0 6px 16px rgba(64, 158, 255, 0.25),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    transform: translateY(-4px) scale(1.1);
+
+    .selection-indicator {
+      opacity: 1;
+      transform: scale(1.15);
+
+      .check-ring {
+        background: var(--el-color-white);
+        border-color: #409eff;
+        transform: scale(1.15);
+
+        .check-icon {
+          opacity: 1;
+          transform: scale(1.15);
+          color: #409eff;
+        }
+      }
+    }
+
+    // 选中状态的脉冲动画
+    &::after {
+      content: "";
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      border-radius: 10px;
+      border: 2px solid #409eff;
+      opacity: 0;
+      animation: pulse-ring 1.5s infinite;
+      pointer-events: none;
+      z-index: 10;
+    }
+  }
+
+  // 暗色主题适配
+  .dark & {
+    border-color: var(--el-border-color);
+    box-shadow:
+      0 6px 16px rgba(0, 0, 0, 0.5),
+      0 3px 8px rgba(0, 0, 0, 0.4),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-4);
+      box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.6),
+        0 6px 16px rgba(0, 0, 0, 0.5),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    }
+
+    &.is-selected {
+      box-shadow:
+        0 0 0 4px rgba(64, 158, 255, 0.4),
+        0 12px 32px rgba(64, 158, 255, 0.5),
+        0 6px 16px rgba(64, 158, 255, 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    }
+  }
+}
+
+// 选中状态指示器
+.selection-indicator {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 5;
+
+  .check-ring {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: scale(0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+
+    .check-icon {
+      font-size: 7px;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+// 光泽效果
+.shine-effect {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: all 0.6s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+// 脉冲动画
+@keyframes pulse-ring {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+</style>

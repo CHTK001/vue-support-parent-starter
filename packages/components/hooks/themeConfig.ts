@@ -159,85 +159,59 @@ export const THEME_CONFIGS: Record<string, ThemeConfig> = {
   "8bit": {
     name: "8bit",
     displayName: "8bit 像素风格",
-    // 使用 @pixelium/web-vue 作为像素主题组件库
-    packageName: "@pixelium/web-vue",
-    // 样式入口对齐官方文档：dist/pixelium-vue.css
-    // 其他可选样式（normalize.css）建议在应用入口按需全局引入
-    cssPath: "dist/pixelium-vue.css",
-    // 默认由配置系统自动判断是否可用
+    // 使用 @mmt817/pixel-ui 作为像素主题组件库
+    packageName: "@mmt817/pixel-ui",
+    // CSS 入口：dist/index.css
+    cssPath: "dist/index.css",
     enabled: true,
-    // 自动尝试按需注册像素主题插件
     autoInstallPlugin: true,
-    pluginPackageName: "@pixelium/web-vue",
+    pluginPackageName: "@mmt817/pixel-ui",
     group: "beta",
     description: "像素风格，复古游戏风",
     componentMap: {
       // 表单输入组件
       ElButton: "PxButton",
-      ElSelect: "PxSelect",
-      ElCheckbox: "PxCheckbox",
-      ElRadio: "PxRadio",
-      ElSlider: "PxSlider",
-      // 以下组件在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
-      // ElRate: "PxRate",
-      // ElColorPicker: "PxColorPicker",
-      // ElTimePicker: "PxTimePicker",
-      // ElDatePicker: "PxDatePicker",
-      // ElCascader: "PxCascader",
-      ElAutocomplete: "PxAutocomplete",
-      ElSwitch: "PxSwitch",
+      ElInput: "PxInput",
+      // 以下组件在 @mmt817/pixel-ui 中不存在，回退 Element Plus
+      // ElSelect: "PxSelect",
+      // ElCheckbox: "PxCheckbox",
+      // ElRadio: "PxRadio",
+      // ElSlider: "PxSlider",
+      // ElAutocomplete: "PxAutocomplete",
+      // ElSwitch: "PxSwitch",
 
       // 基础组件
       ElTag: "PxTag",
       ElBadge: "PxBadge",
       ElAlert: "PxAlert",
-      ElLink: "PxLink",
-      ElDivider: "PxDivider",
-      ElAvatar: "PxAvatar",
       ElProgress: "PxProgress",
-      // ElText 在 @pixelium/web-vue 中没有对应的 PxText 组件，使用 ElText
-      // ElText: "PxText",
+      ElText: "PxText",
+      ElImage: "PxImage",
+      ElIcon: "PxIcon",
+      // 以下组件在 @mmt817/pixel-ui 中不存在，回退 Element Plus
+      // ElLink: "PxLink",
+      // ElDivider: "PxDivider",
+      // ElAvatar: "PxAvatar",
 
       // 弹出层组件
       ElTooltip: "PxTooltip",
-      ElPopover: "PxPopover",
       ElPopconfirm: "PxPopconfirm",
-
-      // 表单容器
-      ElForm: "PxForm",
-      ElFormItem: "PxFormItem",
-
-      // 布局组件
-      ElRow: "PxRow",
-      // ElCol、ElTabs 在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
-      // ElCol: "PxCol",
-      // ElTabs: "PxTabs",
-
-      // 导航组件
-      ElMenu: "PxMenu",
-      ElBreadcrumb: "PxBreadcrumb",
-      // ElSteps 在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
-      // ElSteps: "PxSteps",
-
-      // 对话框组件
-      // ElDialog 和 ElDrawer 在 @pixelium/web-vue 中没有对应的组件，使用 Element Plus 原生组件
-      // ElDialog: "PxDialog",
-      ElDrawer: "ElDrawer",
+      // ElPopover 在 @mmt817/pixel-ui 中不存在，回退 Element Plus
+      // ElPopover: "PxPopover",
 
       // 高级组件
-      // ElCard 在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
-      // ElCard: "PxCard",
-      ElTable: "ElTable", // 8bit 主题下 Table 仍使用 Element Plus 的 ElTable
+      ElCard: "PxCard",
+      ElTable: "ElTable",       // Table 仍使用 Element Plus
+      ElTableColumn: "ElTableColumn",
 
-      // 其他组件
-      // ElUpload、ElTree 在 @pixelium/web-vue 中不存在，使用 Element Plus 原生组件
-      // ElUpload: "PxUpload",
-      ElImage: "PxImage",
-      // ElTree: "PxTree",
-      ElIcon: "PxIcon",
-      //ElEmpty: "PxEmpty",
-      ElTableColumn: "ElTableColumn", // TableColumn 也使用 Element Plus
-      ElOption: "PxOption"
+      // 以下组件在 @mmt817/pixel-ui 中不存在，回退 Element Plus
+      // ElForm: "PxForm",
+      // ElFormItem: "PxFormItem",
+      // ElRow: "PxRow",
+      // ElMenu: "PxMenu",
+      // ElBreadcrumb: "PxBreadcrumb",
+      // ElDrawer: "ElDrawer",
+      // ElOption: "PxOption",
     }
   }
 
@@ -348,7 +322,7 @@ export function hasTheme(skinValue: string): boolean {
  * 使用映射而非动态字符串，以便 Vite 能够静态分析并预构建这些依赖
  */
 const PLUGIN_IMPORTERS: Record<string, () => Promise<any>> = {
-  "@pixelium/web-vue": () => import("@pixelium/web-vue"),
+  "@mmt817/pixel-ui": () => import("@mmt817/pixel-ui"),
 };
 
 /**

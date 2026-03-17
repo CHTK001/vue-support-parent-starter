@@ -30,6 +30,13 @@ const { getLogo, backTopMenu } = useNav();
 // 提取 store 到顶层避免重复调用
 const permissionStore = usePermissionStoreHook();
 
+// 控制 logo 显示，从本地存储读取初始值
+const showLogo = ref(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.showLogo ?? true
+);
+
 // 提供主题化组件给子组件递归使用
 const ThemeSidebarItem = computed(() => props.sidebarItemComponent || CustomSidebarItem);
 provide('themeSidebarItem', ThemeSidebarItem.value);
@@ -193,6 +200,9 @@ onMounted(() => {
     // 初始计算延迟执行，等待 DOM 完全渲染
     setTimeout(() => calcVisibleCount(), 200);
   });
+  emitter.on("logoChange", (val: boolean) => {
+    showLogo.value = val;
+  });
 });
 
 onBeforeUnmount(() => {
@@ -206,6 +216,7 @@ onBeforeUnmount(() => {
   if (debounceTimer) {
     clearTimeout(debounceTimer);
   }
+  emitter.off("logoChange");
 });
 
 // 监听菜单数据变化
@@ -245,7 +256,7 @@ watch(visibleCount, () => {
     :class="['horizontal-header', 'horizontal-custom-menu', themeClass]"
   >
     <!-- Logo 区域 -->
-    <div class="horizontal-header-left" @click="backTopMenu">
+    <div v-if="showLogo" class="horizontal-header-left" @click="backTopMenu">
       <img :src="getLogo()" alt="logo" />
       <span>{{ getConfig().Title }}</span>
     </div>

@@ -203,6 +203,10 @@ export interface StorageConfig {
   devGrid?: boolean;
   /** DevTools 悬停检查开关 */
   devHoverInspector?: boolean;
+  /** 热点工具（热力图覆盖层）开关 */
+  devHeatmap?: boolean;
+  /** 语音朗读开关 */
+  voiceReadEnabled?: boolean;
   /** 开发模式下 AI 设置展示控制 */
   /** drawer 布局汉堡按钮位置 */
   drawerHamburgerPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";

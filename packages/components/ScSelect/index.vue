@@ -127,7 +127,12 @@
       @selectAll="selectAll"
       @invertSelection="invertSelection"
       @clearSelection="clearSelection"
-    />
+    >
+      <!-- 透传 content 插槽，用于自定义选项内容（如价格信息） -->
+      <template v-if="$slots.content" #content="{ option, isSelected: slotIsSelected }">
+        <slot name="content" :option="option" :isSelected="slotIsSelected" />
+      </template>
+    </DropdownLayout>
 
     <!-- 过滤器布局 -->
     <FilterLayout
@@ -518,6 +523,14 @@ watch(
   () => props.modelValue,
   newValue => {
     selectValue.value = newValue;
+  }
+);
+
+// 监听options变化，切换厂商时同步更新下拉数据
+watch(
+  () => props.options,
+  newVal => {
+    selectOptions.value = newVal;
   }
 );
 const fetchOptions = async () => {

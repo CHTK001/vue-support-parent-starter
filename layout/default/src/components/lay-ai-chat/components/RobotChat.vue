@@ -1,10 +1,14 @@
 <template>
-  <div class="ai-chat-window">
+  <div class="ai-chat-window" :class="{ fullscreen: isFullscreen }">
     <div class="ai-chat-header">
       <div class="ai-chat-title">
         <span>AI 助手</span>
       </div>
       <div class="ai-chat-actions">
+        <!-- 全屏/还原按钮 -->
+        <button class="action-btn" :title="isFullscreen ? '还原' : '全屏'" @click="toggleFullscreen">
+          <IconifyIconOnline :icon="isFullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
+        </button>
         <button class="action-btn" @click="$emit('toggle')">
           <IconifyIconOnline icon="ri:subtract-line" />
         </button>
@@ -14,20 +18,25 @@
     <div class="ai-chat-messages" ref="messagesContainerRef">
       <div
         v-for="(message, index) in messages"
+        v-show="!(message.role === 'assistant' && message.content === '')"
         :key="index"
         class="message"
         :class="message.role"
       >
         <div class="message-avatar">
-          <component
-            :is="message.role === 'user' ? userIcon : appearanceComponent"
-          />
+          <!-- 用户消息：优先显示真实头像，无头像时降级为 emoji 组件 -->
+          <template v-if="message.role === 'user'">
+            <img v-if="userAvatar" :src="userAvatar" class="avatar-img" alt="用户头像" />
+            <component v-else :is="userIcon" />
+          </template>
+          <component v-else :is="appearanceComponent" />
         </div>
         <div class="message-content">
           {{ message.content }}
         </div>
       </div>
-      <div v-if="isLoading" class="message assistant">
+      <!-- isLoading 用于 chrome/hf 非流式模式；vendor 流式模式用空占位消息表示 loading -->
+      <div v-if="isLoading || (messages.at(-1)?.role === 'assistant' && messages.at(-1)?.content === '')" class="message assistant">
         <div class="message-avatar">
           <component :is="appearanceComponent" />
         </div>
@@ -68,8 +77,10 @@ interface Message {
 const props = defineProps<{
   /** 当前外观组件 */
   appearanceComponent: any;
-  /** 用户头像组件 */
+  /** 用户头像组件（降级用） */
   userIcon: any;
+  /** 用户头像 URL（优先显示） */
+  userAvatar?: string;
   /** 消息列表 */
   messages: Array<Message>;
   /** 输入框内容 */
@@ -86,6 +97,8 @@ const emit = defineEmits<{
 
 const innerInput = ref(props.input);
 const messagesContainerRef = ref<HTMLElement>();
+/** 全屏状态 */
+const isFullscreen = ref(false);
 
 watch(
   () => props.input,
@@ -115,6 +128,10 @@ function handleSend(): void {
   innerInput.value = "";
   emit("send", value);
 }
+
+function toggleFullscreen(): void {
+  isFullscreen.value = !isFullscreen.value;
+}
 </script>
 
 <style scoped lang="scss">
@@ -136,6 +153,17 @@ function handleSend(): void {
     0 0 0 1px rgba(15, 23, 42, 0.9);
   backdrop-filter: blur(18px);
   overflow: hidden;
+
+  &.fullscreen {
+    position: fixed;
+    inset: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    z-index: 10000;
+  }
 }
 
 .ai-chat-header {
@@ -224,6 +252,14 @@ function handleSend(): void {
   font-size: 18px;
   flex-shrink: 0;
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.75);
+  overflow: hidden;
+
+  .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 999px;
+  }
 }
 
 .message-content {

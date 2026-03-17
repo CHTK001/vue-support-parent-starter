@@ -320,7 +320,7 @@ onBeforeUnmount(() => {
                 :style="{
                   'max-width': getMainWidth,
                   margin: '0 auto',
-                  height: `calc(100vh - ${headerHeight}px)`,
+                  height: `calc(100vh - ${headerHeight}px - ${hideFooter ? 0 : 30}px)`,
                   padding: `${contentMargin}px`,
                   boxSizing: 'border-box',
                 }"
@@ -558,6 +558,8 @@ onBeforeUnmount(() => {
 
 .app-main {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   overflow: hidden; // 禁止外层滚动，让内部 el-scrollbar 独自处理滚动

@@ -205,6 +205,11 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 端口号
       port: VITE_PORT,
       host: "0.0.0.0",
+      headers: {
+        // 允许 CSS Houdini Paint Worklet 使用 data: URL（@mmt817/pixel-ui 需要）
+        // 允许 data: 字体 URL（加密字体 FontFace.load() 需要）
+        "Content-Security-Policy": "worker-src data: blob: 'self'; font-src data: blob: 'self' *",
+      },
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
         "/monitor/api": {

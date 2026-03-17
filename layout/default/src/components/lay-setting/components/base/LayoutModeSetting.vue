@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { useGlobal } from "@pureadmin/utils";
+import { storageLocal, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import { useAppStoreHook } from "@repo/core";
+import { emitter, useAppStoreHook } from "@repo/core";
 import { useDataThemeChange } from "../../../../hooks/useDataThemeChange";
 
 const { t } = useI18n();
@@ -61,7 +61,16 @@ const hamburgerPosition = computed<HamburgerPosition>({
   get: () => ($storage?.configure?.drawerHamburgerPosition as HamburgerPosition) ?? "top-left",
   set: (val) => {
     if ($storage?.configure) {
-      $storage.configure = { ...$storage.configure, drawerHamburgerPosition: val };
+      const storageConfigure = { ...$storage.configure, drawerHamburgerPosition: val };
+      $storage.configure = storageConfigure;
+      // 持久化到本地存储，与 BaseSetting.vue 的 storageConfigureChange 保持一致
+      try {
+        storageLocal().setItem("responsive-configure", storageConfigure);
+      } catch (e) {
+        console.warn("[LayoutModeSetting] 写入本地配置失败:", e);
+      }
+      // 实时通知 BasePopover.vue 更新汉堡按钮弹出位置
+      emitter.emit("drawerHamburgerPositionChange", val);
     }
   },
 });
