@@ -10,7 +10,7 @@ const primaryWeekday = ref<string>("");
 const primaryFull = ref<string>("");
 
 const secondEnabled = ref<boolean>(false);
-const secondTimezone = ref<string>("UTC");
+const secondTimezone = ref<string>("Europe/London");
 const secondaryTime = ref<string>("");
 const secondaryWeekday = ref<string>("");
 const secondaryFull = ref<string>("");
@@ -28,7 +28,7 @@ function initSecondConfig(): void {
   secondTimezone.value =
     $storage.configure?.headerClockSecondTimezone ??
     pageBehavior.headerClockSecondTimezone ??
-    "UTC";
+    "Europe/London";
 }
 
 function formatWithZone(date: Date, timeZone: string) {
@@ -119,7 +119,7 @@ const tooltipContent = computed<string>(() => {
   if (!secondEnabled.value || !secondaryFull.value) {
     return `本地时间：${primaryFull.value}`;
   }
-  return `本地时间：${primaryFull.value}\n${secondTimezoneLabel.value}：${secondaryFull.value}`;
+  return `本地时间：${primaryFull.value}<br/>${secondTimezoneLabel.value}：${secondaryFull.value}`;
 });
 
 emitter.on("headerClockSecondEnabledChange", (val: boolean) => {
@@ -149,6 +149,7 @@ onBeforeUnmount(() => {
 
 <template>
   <ScTooltip
+    :raw-content="true"
     :content="tooltipContent"
     placement="bottom"
     :show-after="300"
@@ -158,8 +159,16 @@ onBeforeUnmount(() => {
     <div class="header-clock-inner">
       <span class="header-clock-icon" aria-hidden="true">🕒</span>
       <div class="header-clock-content">
-        <ScText class="header-clock-time">{{ primaryTime }}</ScText>
-        <ScText class="header-clock-weekday">{{ primaryWeekday }}</ScText>
+        <!-- 主时间 -->
+        <div class="header-clock-row">
+          <ScText class="header-clock-time">{{ primaryTime }}</ScText>
+          <ScText class="header-clock-weekday">{{ primaryWeekday }}</ScText>
+        </div>
+        <!-- 第二时间：启用时渲染，默认隐藏，hover 时展开 -->
+        <div v-if="secondEnabled && secondaryTime" class="header-clock-row header-clock-secondary">
+          <ScText class="header-clock-time header-clock-time--secondary">{{ secondaryTime }}</ScText>
+          <ScText class="header-clock-weekday header-clock-weekday--secondary">{{ secondaryWeekday }}</ScText>
+        </div>
       </div>
     </div>
   </ScTooltip>
@@ -178,8 +187,37 @@ onBeforeUnmount(() => {
 
 .header-clock-content {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 每行：时间 + 星期横向排列 */
+.header-clock-row {
+  display: flex;
   align-items: baseline;
   gap: 6px;
+}
+
+/* 第二时间行：字号略小，颜色更淡，默认隐藏，hover 时展开 */
+.header-clock-secondary {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+
+.header-clock-inner:hover .header-clock-secondary {
+  opacity: 0.75;
+  max-height: 24px;
+}
+
+.header-clock-time--secondary {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.header-clock-weekday--secondary {
+  font-size: 11px;
 }
 
 .header-clock-time {

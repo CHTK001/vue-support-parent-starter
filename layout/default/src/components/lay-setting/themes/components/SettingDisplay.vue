@@ -1,36 +1,42 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
+import { storeToRefs } from "pinia";
 import Segmented, {
   type OptionsType,
 } from "@repo/components/ReSegmented/index";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { ScSwitch, ScTooltip } from "@repo/components";
+import { useThemeStore } from "../../../../stores/themeStore";
 
 const { t } = useI18n();
+
+// 直接使用 themeStore，避免通过 prop 传入 boolean 导致响应性断链
+const themeStore = useThemeStore();
+const {
+  fpsMonitorEnabled,
+  memoryMonitorEnabled,
+  cpuMonitorEnabled,
+  bandwidthMonitorEnabled,
+  batteryMonitorEnabled,
+  bluetoothMonitorEnabled,
+  screenMonitorEnabled,
+  performanceMonitorPosition,
+  performanceMonitorMode,
+  performanceMonitorLayout,
+  performanceMonitorDirection,
+  isPerformanceMonitorVisible,
+} = storeToRefs(themeStore);
 
 // ---- Props 定义 ----
 const props = defineProps<{
   /** reactive 设置对象引用，子组件可直接修改 */
   settings: Record<string, any>;
-  isDark: boolean;
   logoVal: boolean;
   cardBodyVal: boolean;
   cardColorMode: string;
   cardColorOptions: Array<OptionsType>;
-  isPerformanceMonitorVisible: boolean;
-  fpsMonitorEnabled: boolean;
-  memoryMonitorEnabled: boolean;
-  cpuMonitorEnabled: boolean;
-  bandwidthMonitorEnabled: boolean;
-  batteryMonitorEnabled: boolean;
-  bluetoothMonitorEnabled: boolean;
-  screenMonitorEnabled: boolean;
-  performanceMonitorPosition: string;
-  performanceMonitorMode: string;
-  performanceMonitorLayout: string;
-  performanceMonitorDirection: string;
-  logoChange: () => void;
-  cardBodyChange: () => void;
+  logoChange: (val?: boolean) => void;
+  cardBodyChange: (val?: boolean) => void;
   onCardColorModeChange: (val: { option: OptionsType }) => void;
   greyChange: (value: boolean) => void;
   weekChange: (value: boolean) => void;
@@ -43,17 +49,6 @@ const props = defineProps<{
   keepAliveChange: () => void;
   tagsChange: () => void;
   multiTagsCacheChange: () => void;
-  themeStore: any;
-  /** 字体加密总开关变更 */
-  fontEncryptionEnabledChange: (value: boolean) => void;
-  /** 字体加密数字开关变更 */
-  fontEncryptionNumbersChange: (value: boolean) => void;
-  /** 字体加密中文开关变更 */
-  fontEncryptionChineseChange: (value: boolean) => void;
-  /** 字体加密全局模式变更 */
-  fontEncryptionGlobalChange: (value: boolean) => void;
-  /** 字体加密 OCR 噪点变更 */
-  fontEncryptionOcrNoiseChange: (value: boolean) => void;
 }>();
 </script>
 
@@ -120,7 +115,7 @@ const props = defineProps<{
         </h4>
         <div class="switch-card-grid">
           <ScSwitch
-            v-model="logoVal"
+            :model-value="logoVal"
             layout="visual-card"
             size="small"
             label="显示Logo"
@@ -166,7 +161,7 @@ const props = defineProps<{
             @change="hideFooterChange"
           />
           <ScSwitch
-            v-model="cardBodyVal"
+            :model-value="cardBodyVal"
             layout="visual-card"
             size="small"
             label="内容卡片"
@@ -235,7 +230,7 @@ const props = defineProps<{
                 :z-index="3000"
               >
                 <ScSwitch
-                  v-model="fpsMonitorEnabled"
+                  :model-value="fpsMonitorEnabled"
                   layout="visual-card"
                   size="small"
                   :label="t('search.performanceMonitor')"
@@ -254,7 +249,7 @@ const props = defineProps<{
                 :z-index="3000"
               >
                 <ScSwitch
-                  v-model="memoryMonitorEnabled"
+                  :model-value="memoryMonitorEnabled"
                   layout="visual-card"
                   size="small"
                   :label="t('search.showMemory')"
@@ -273,7 +268,7 @@ const props = defineProps<{
                 :z-index="3000"
               >
                 <ScSwitch
-                  v-model="cpuMonitorEnabled"
+                  :model-value="cpuMonitorEnabled"
                   layout="visual-card"
                   size="small"
                   label="CPU 监控"
@@ -292,7 +287,7 @@ const props = defineProps<{
                 :z-index="3000"
               >
                 <ScSwitch
-                  v-model="bandwidthMonitorEnabled"
+                  :model-value="bandwidthMonitorEnabled"
                   layout="visual-card"
                   size="small"
                   label="带宽监控"
@@ -311,7 +306,7 @@ const props = defineProps<{
                 :z-index="3000"
               >
                 <ScSwitch
-                  v-model="batteryMonitorEnabled"
+                  :model-value="batteryMonitorEnabled"
                   layout="visual-card"
                   size="small"
                   label="电池监控"
@@ -330,7 +325,7 @@ const props = defineProps<{
                 :z-index="3000"
               >
                 <ScSwitch
-                  v-model="bluetoothMonitorEnabled"
+                  :model-value="bluetoothMonitorEnabled"
                   layout="visual-card"
                   size="small"
                   label="蓝牙监控"
@@ -349,7 +344,7 @@ const props = defineProps<{
                 :z-index="3000"
               >
                 <ScSwitch
-                  v-model="screenMonitorEnabled"
+                  :model-value="screenMonitorEnabled"
                   layout="visual-card"
                   size="small"
                   label="屏幕监控"
@@ -372,7 +367,7 @@ const props = defineProps<{
               <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
                 <span style="font-size: 12px; color: var(--el-text-color-secondary);">布局模式</span>
                 <Segmented
-                  v-model="performanceMonitorLayout"
+                  :model-value="performanceMonitorLayout"
                   :options="[{ label: '合并', value: 'merged' }, { label: '分离', value: 'split' }]"
                   size="small"
                   @change="(val) => themeStore.setPerformanceMonitorLayout(val.option.value)"
@@ -382,7 +377,7 @@ const props = defineProps<{
               <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
                 <span style="font-size: 12px; color: var(--el-text-color-secondary);">布局方向</span>
                 <Segmented
-                  v-model="performanceMonitorDirection"
+                  :model-value="performanceMonitorDirection"
                   :options="[{ label: '自动', value: 'auto' }, { label: '垂直', value: 'vertical' }, { label: '水平', value: 'horizontal' }]"
                   size="small"
                   @change="(val) => themeStore.setPerformanceMonitorDirection(val.option.value)"
@@ -392,7 +387,7 @@ const props = defineProps<{
               <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
                 <span style="font-size: 12px; color: var(--el-text-color-secondary);">内容展示</span>
                 <Segmented
-                  v-model="performanceMonitorMode"
+                  :model-value="performanceMonitorMode"
                   :options="[{ label: '详细', value: 'detailed' }, { label: '简洁', value: 'simple' }, { label: '极简', value: 'minimal' }]"
                   size="small"
                   @change="(val) => themeStore.setPerformanceMonitorMode(val.option.value)"
@@ -402,7 +397,7 @@ const props = defineProps<{
               <div class="position-selector-container">
                 <span style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 8px; display: block;">显示位置</span>
                 <ScSelect
-                  v-model="performanceMonitorPosition"
+                  :model-value="performanceMonitorPosition"
                   layout="position"
                   @change="(val) => themeStore.setPerformanceMonitorPosition(val)"
                 />
@@ -412,69 +407,6 @@ const props = defineProps<{
         </div>
       </div>
 
-      <!-- 字体加密设置 -->
-      <div class="setting-group">
-        <h4 class="group-title">
-          <IconifyIconOnline icon="ri:lock-password-line" class="group-icon" />
-          字体加密
-        </h4>
-        <div class="switch-card-grid">
-          <ScSwitch
-            v-model="settings.fontEncryptionEnabled"
-            layout="visual-card"
-            size="small"
-            label="启用字体加密"
-            description="对页面文字进行字体级防截图保护"
-            active-icon="ri:shield-keyhole-line"
-            ribbon-color="var(--el-color-danger)"
-            @change="fontEncryptionEnabledChange"
-          />
-          <ScSwitch
-            v-if="settings.fontEncryptionEnabled"
-            v-model="settings.fontEncryptionNumbers"
-            layout="visual-card"
-            size="small"
-            label="加密数字"
-            description="对数字字符进行字体替换"
-            active-icon="ri:hashtag"
-            ribbon-color="var(--el-color-warning)"
-            @change="fontEncryptionNumbersChange"
-          />
-          <ScSwitch
-            v-if="settings.fontEncryptionEnabled"
-            v-model="settings.fontEncryptionChinese"
-            layout="visual-card"
-            size="small"
-            label="加密中文"
-            description="对中文字符进行字体替换"
-            active-icon="ri:translate-2"
-            ribbon-color="var(--el-color-warning)"
-            @change="fontEncryptionChineseChange"
-          />
-          <ScSwitch
-            v-if="settings.fontEncryptionEnabled"
-            v-model="settings.fontEncryptionGlobal"
-            layout="visual-card"
-            size="small"
-            label="全局模式"
-            description="对整个页面而非仅内容区域生效"
-            active-icon="ri:global-line"
-            ribbon-color="var(--el-color-primary)"
-            @change="fontEncryptionGlobalChange"
-          />
-          <ScSwitch
-            v-if="settings.fontEncryptionEnabled"
-            v-model="settings.fontEncryptionOcrNoise"
-            layout="visual-card"
-            size="small"
-            label="OCR 噪点"
-            description="添加干扰字符防止 OCR 识别"
-            active-icon="ri:eye-off-line"
-            ribbon-color="var(--el-color-info)"
-            @change="fontEncryptionOcrNoiseChange"
-          />
-        </div>
-      </div>
     </div>
   </div>
 </template>

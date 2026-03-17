@@ -9,6 +9,7 @@ import {
   ScRadioGroup,
   ScTooltip,
 } from "@repo/components";
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import { useAppStoreHook } from "@repo/core";
 import { isNumber } from "@pureadmin/utils";
 
@@ -287,15 +288,11 @@ const props = defineProps<{
     <div class="setting-content">
       <div class="switch-item">
         <label class="switch-label">{{ t("panel.hamburgerPosition") }}</label>
-        <div class="radio-group">
-          <ScRadioGroup
-            v-model="settings.drawerHamburgerPosition"
-            @change="drawerHamburgerPositionChange"
-          >
-            <ScRadio value="left">{{ t("panel.hamburgerLeft") }}</ScRadio>
-            <ScRadio value="right">{{ t("panel.hamburgerRight") }}</ScRadio>
-          </ScRadioGroup>
-        </div>
+        <ScSelect
+          v-model="settings.drawerHamburgerPosition"
+          layout="position"
+          @change="drawerHamburgerPositionChange"
+        />
       </div>
     </div>
   </div>
@@ -325,27 +322,6 @@ const props = defineProps<{
         controls-position="right"
         @change="(value: number) => setStretch(value)"
       />
-      <button
-        v-else
-        v-ripple="{ class: 'text-gray-300' }"
-        class="stretch-button"
-        @click="setStretch(!settings.stretch)"
-      >
-        <div
-          class="stretch-indicator"
-          :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']"
-        >
-          <IconifyIconOnline
-            :icon="settings.stretch ? 'ri:arrow-right-s-line' : 'ri:arrow-left-s-line'"
-            height="20"
-          />
-          <div class="stretch-line" />
-          <IconifyIconOnline
-            :icon="settings.stretch ? 'ri:arrow-left-s-line' : 'ri:arrow-right-s-line'"
-            height="20"
-          />
-        </div>
-      </button>
     </div>
   </div>
 
