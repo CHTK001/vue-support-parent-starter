@@ -162,3 +162,64 @@ export const attachmentApi = {
   deleteAttachment: (attachmentId: string) =>
     http.delete(`/api/attachment/${attachmentId}`),
 };
+
+// 草稿相关API
+export const draftApi = {
+  // 保存草稿
+  saveDraft: (data: any) => http.post("/api/draft/save", data),
+
+  // 获取草稿列表
+  getDraftList: (accountId?: string) =>
+    http.get("/api/draft/list", { accountId }),
+
+  // 获取草稿详情
+  getDraft: (id: string) => http.get(`/api/draft/${id}`),
+
+  // 删除草稿
+  deleteDraft: (id: string) => http.delete(`/api/draft/${id}`),
+
+  // 批量删除草稿
+  deleteDrafts: (ids: string[]) => http.post("/api/draft/delete-batch", ids),
+};
+
+// 模板相关API
+export const templateApi = {
+  // 保存模板
+  saveTemplate: (data: any) => http.post("/api/template/save", data),
+
+  // 获取模板列表
+  getTemplateList: () => http.get("/api/template/list"),
+
+  // 获取模板详情
+  getTemplate: (id: string) => http.get(`/api/template/${id}`),
+
+  // 删除模板
+  deleteTemplate: (id: string) => http.delete(`/api/template/${id}`),
+
+  // 渲染模板
+  renderTemplate: (templateId: string, variables: Record<string, string>) =>
+    http.post("/api/template/render", { templateId, variables }),
+
+  // 提取模板变量
+  extractVariables: (content: string) =>
+    http.post("/api/template/extract-variables", { content }),
+};
+
+// 邮件操作API（新增）
+export const emailOperationApi = {
+  // 移动邮件
+  moveEmail: (messageId: string, targetFolder: string) =>
+    http.post("/api/email/move", { messageId, targetFolder }),
+
+  // 标记星标
+  starEmail: (messageId: string, starred: boolean) =>
+    http.post("/api/email/star", { messageId, starred }),
+
+  // 标记已读/未读
+  markAsRead: (messageId: string, read: boolean) =>
+    http.post("/api/email/mark-read", { messageId, read }),
+
+  // 过滤邮件
+  filterEmails: (messages: EmailMessage[], filters: Record<string, any>) =>
+    http.post("/api/email/filter", { messages, filters }),
+};
