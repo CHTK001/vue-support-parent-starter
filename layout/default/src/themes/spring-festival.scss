@@ -1,0 +1,166 @@
+// 春节主题样式
+// 中国红 #E74C3C + 金黄 #F39C12
+
+:root[data-skin="spring-festival"] {
+  // 主色调：中国红
+  --el-color-primary: #e74c3c;
+  --el-color-primary-light-3: #eb6d5f;
+  --el-color-primary-light-5: #ef8e82;
+  --el-color-primary-light-7: #f3afa5;
+  --el-color-primary-light-8: #f7cfc8;
+  --el-color-primary-light-9: #fbefeb;
+  --el-color-primary-dark-2: #d44333;
+
+  // 辅助色：金黄
+  --el-color-success: #f39c12;
+  --el-color-warning: #f1c40f;
+  --el-color-danger: #e74c3c;
+  --el-color-info: #e67e22;
+
+  // 背景色：深红调
+  --el-bg-color: #1f0d0d;
+  --el-bg-color-page: #150808;
+  --el-bg-color-overlay: #2f1a1a;
+
+  // 文字颜色
+  --el-text-color-primary: #f5f5f5;
+  --el-text-color-regular: #d0d0d0;
+  --el-text-color-secondary: #a0a0a0;
+  --el-text-color-placeholder: #707070;
+
+  // 边框颜色
+  --el-border-color: #3f2a2a;
+  --el-border-color-light: #2f1a1a;
+  --el-border-color-lighter: #1f0f0f;
+  --el-border-color-extra-light: #1f0d0d;
+
+  // 填充色
+  --el-fill-color: #2f1a1a;
+  --el-fill-color-light: #3f2a2a;
+  --el-fill-color-lighter: #4f3a3a;
+  --el-fill-color-extra-light: #5f4a4a;
+  --el-fill-color-dark: #1f0d0d;
+  --el-fill-color-darker: #150808;
+  --el-fill-color-blank: #1f0d0d;
+
+  // 遮罩层
+  --el-overlay-color: rgba(31, 13, 13, 0.7);
+  --el-overlay-color-light: rgba(31, 13, 13, 0.5);
+  --el-overlay-color-lighter: rgba(31, 13, 13, 0.3);
+
+  // 阴影
+  --el-box-shadow: 0 2px 12px 0 rgba(243, 156, 18, 0.2);
+  --el-box-shadow-light: 0 2px 8px 0 rgba(243, 156, 18, 0.15);
+  --el-box-shadow-lighter: 0 2px 4px 0 rgba(243, 156, 18, 0.1);
+  --el-box-shadow-dark: 0 4px 16px 0 rgba(243, 156, 18, 0.3);
+}
+
+// 春节特效样式
+html[data-skin="spring-festival"] {
+  // 页面背景渐变
+  body {
+    background: linear-gradient(135deg, #150808 0%, #1f0d0d 50%, #2f1a1a 100%);
+  }
+
+  // 导航栏春节风格
+  .lay-navbar {
+    background: rgba(31, 13, 13, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(243, 156, 18, 0.3);
+  }
+
+  // 侧边栏春节风格
+  .lay-sidebar {
+    background: rgba(31, 13, 13, 0.9);
+    border-right: 1px solid rgba(243, 156, 18, 0.3);
+  }
+
+  // 卡片春节风格
+  .el-card {
+    background: rgba(47, 26, 26, 0.8);
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    box-shadow: 0 4px 16px rgba(243, 156, 18, 0.2);
+  }
+
+  // 按钮春节风格
+  .el-button--primary {
+    background: linear-gradient(135deg, #e74c3c 0%, #eb6d5f 100%);
+    border-color: #e74c3c;
+
+    &:hover {
+      background: linear-gradient(135deg, #eb6d5f 0%, #ef8e82 100%);
+    }
+  }
+
+  // 成功按钮：金黄色
+  .el-button--success {
+    background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%);
+    border-color: #f39c12;
+    color: #1f0d0d;
+
+    &:hover {
+      background: linear-gradient(135deg, #f1c40f 0%, #f9e79f 100%);
+    }
+  }
+
+  // 标签春节风格
+  .el-tag {
+    background: rgba(243, 156, 18, 0.2);
+    border-color: rgba(243, 156, 18, 0.4);
+    color: #f39c12;
+  }
+
+  // 输入框春节风格
+  .el-input__wrapper {
+    background: rgba(47, 26, 26, 0.6);
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    box-shadow: 0 0 0 1px rgba(243, 156, 18, 0.1) inset;
+
+    &:hover {
+      border-color: rgba(243, 156, 18, 0.5);
+    }
+
+    &.is-focus {
+      border-color: #e74c3c;
+      box-shadow: 0 0 0 1px #e74c3c inset;
+    }
+  }
+
+  // 春节装饰：金色光晕
+  &::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    background-image: radial-gradient(
+        circle at 20% 30%,
+        rgba(243, 156, 18, 0.1),
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(231, 76, 60, 0.1),
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(243, 156, 18, 0.05),
+        transparent 50%
+      );
+    animation: glow 8s ease-in-out infinite;
+    z-index: 0;
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}

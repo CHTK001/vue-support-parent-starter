@@ -139,20 +139,29 @@ function toggleFullscreen(): void {
   position: absolute;
   right: 0;
   bottom: 88px;
-  width: 380px;
-  max-height: 540px;
+  width: 400px;
+  max-height: 580px;
   display: flex;
   flex-direction: column;
-  border-radius: 18px;
-  background: radial-gradient(circle at top left, rgba(116, 127, 255, 0.14), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.16), transparent 50%),
-    rgba(17, 24, 39, 0.86);
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: var(--stitch-radius-xl, 20px);
+  background: radial-gradient(circle at top left, rgba(116, 127, 255, 0.12), transparent 60%),
+    radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.14), transparent 55%),
+    rgba(17, 24, 39, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.3);
   box-shadow:
-    0 18px 60px rgba(15, 23, 42, 0.65),
-    0 0 0 1px rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(18px);
+    0 20px 70px rgba(15, 23, 42, 0.7),
+    0 8px 32px rgba(15, 23, 42, 0.5),
+    0 0 0 1px rgba(99, 102, 241, 0.1);
+  backdrop-filter: blur(24px);
   overflow: hidden;
+  transition: all var(--stitch-transition-base, 0.3s) ease;
+
+  &:hover {
+    box-shadow:
+      0 24px 80px rgba(15, 23, 42, 0.8),
+      0 12px 40px rgba(15, 23, 42, 0.6),
+      0 0 0 1px rgba(99, 102, 241, 0.2);
+  }
 
   &.fullscreen {
     position: fixed;
@@ -220,71 +229,173 @@ function toggleFullscreen(): void {
 .message {
   display: flex;
   gap: 10px;
+  animation: messageSlideIn 0.3s ease-out;
 
   &.user {
     flex-direction: row-reverse;
 
     .message-content {
-      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%);
       color: white;
-      box-shadow: 0 8px 20px rgba(79, 70, 229, 0.45);
+      box-shadow: 
+        0 8px 20px rgba(79, 70, 229, 0.35),
+        0 2px 8px rgba(79, 70, 229, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      &:hover {
+        box-shadow: 
+          0 12px 28px rgba(79, 70, 229, 0.45),
+          0 4px 12px rgba(79, 70, 229, 0.3);
+        transform: translateY(-1px);
+      }
     }
   }
 
   &.assistant {
     .message-content {
-      background: rgba(15, 23, 42, 0.9);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
       border: 1px solid rgba(148, 163, 184, 0.35);
       color: #e5e7eb;
+      box-shadow: 
+        0 4px 12px rgba(15, 23, 42, 0.4),
+        0 2px 6px rgba(15, 23, 42, 0.2);
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.9) 100%);
+        border-color: rgba(148, 163, 184, 0.45);
+        transform: translateY(-1px);
+      }
     }
   }
 }
 
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .message-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 2px solid rgba(148, 163, 184, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
   flex-shrink: 0;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.75);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.6);
   overflow: hidden;
+  transition: all var(--stitch-transition-base, 0.3s) ease;
+  position: relative;
+
+  // 用户头像样式增强
+  .message.user & {
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 
+      0 6px 18px rgba(79, 70, 229, 0.4),
+      0 0 0 3px rgba(99, 102, 241, 0.1);
+
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 
+        0 8px 24px rgba(79, 70, 229, 0.5),
+        0 0 0 4px rgba(99, 102, 241, 0.15);
+    }
+  }
+
+  // AI 头像样式增强
+  .message.assistant & {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 
+      0 6px 18px rgba(15, 23, 42, 0.6),
+      0 0 0 3px rgba(99, 102, 241, 0.05);
+
+    &:hover {
+      transform: scale(1.05) rotate(5deg);
+      box-shadow: 
+        0 8px 24px rgba(99, 102, 241, 0.4),
+        0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+  }
 
   .avatar-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 999px;
+    border-radius: 50%;
   }
 }
 
 .message-content {
   max-width: 76%;
-  padding: 10px 14px;
-  border-radius: 14px;
+  padding: 12px 16px;
+  border-radius: var(--stitch-radius-lg, 16px);
   font-size: 13px;
   line-height: 1.6;
   word-wrap: break-word;
   white-space: pre-wrap;
+  position: relative;
+  transition: all var(--stitch-transition-base, 0.3s) ease;
+
+  // 用户消息气泡尾巴（右侧）
+  .message.user & {
+    border-top-right-radius: var(--stitch-radius-sm, 4px);
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: -6px;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 0 0 12px 12px;
+      border-color: transparent transparent transparent #4f46e5;
+    }
+  }
+
+  // AI 消息气泡尾巴（左侧）
+  .message.assistant & {
+    border-top-left-radius: var(--stitch-radius-sm, 4px);
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -6px;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 0 12px 12px 0;
+      border-color: transparent rgba(15, 23, 42, 0.9) transparent transparent;
+    }
+  }
 
   &.loading {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     background: rgba(15, 23, 42, 0.95);
     border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: var(--stitch-radius-lg, 16px);
 
     .dot {
       width: 6px;
       height: 6px;
-      border-radius: 999px;
-      background: #9ca3af;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #a5b4fc);
       animation: bounce 1.2s ease-in-out infinite;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 
       &:nth-child(1) {
         animation-delay: 0s;

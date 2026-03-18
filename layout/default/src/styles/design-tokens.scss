@@ -1,0 +1,133 @@
+/**
+ * Design Tokens — Linear / Vercel / Notion 风格
+ * 统一定义间距、圆角、阴影、毛玻璃、动效变量
+ * 供全局组件通过 var(--dt-xxx) 引用
+ */
+
+:root {
+  // ==================== 间距系统（4px 基准） ====================
+  --dt-space-1: 4px;
+  --dt-space-2: 8px;
+  --dt-space-3: 12px;
+  --dt-space-4: 16px;
+  --dt-space-5: 20px;
+  --dt-space-6: 24px;
+  --dt-space-8: 32px;
+  --dt-space-10: 40px;
+  --dt-space-12: 48px;
+  --dt-space-16: 64px;
+
+  // ==================== 圆角系统 ====================
+  --dt-radius-sm: 4px;    // 小元素：badge、tag
+  --dt-radius-md: 6px;    // 中等：button、input
+  --dt-radius-lg: 8px;    // 卡片、面板
+  --dt-radius-xl: 12px;   // 大卡片、modal
+  --dt-radius-2xl: 16px;  // 特大容器
+  --dt-radius-full: 9999px; // 圆形/胶囊
+
+  // ==================== 阴影系统 ====================
+  // 极轻阴影（hover 状态）
+  --dt-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  // 轻阴影（卡片默认）
+  --dt-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  // 中阴影（浮层、下拉）
+  --dt-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  // 重阴影（modal、抽屉）
+  --dt-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  // 超重阴影（全屏遮罩内容）
+  --dt-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+  // 彩色主题阴影（primary 色）
+  --dt-shadow-primary: 0 4px 14px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+
+  // ==================== 毛玻璃系统 ====================
+  // 轻毛玻璃（navbar、tag bar）
+  --dt-glass-bg-light: rgba(255, 255, 255, 0.72);
+  --dt-glass-blur-light: blur(12px);
+  --dt-glass-border-light: rgba(255, 255, 255, 0.5);
+  // 中毛玻璃（侧边栏、面板）
+  --dt-glass-bg-medium: rgba(255, 255, 255, 0.85);
+  --dt-glass-blur-medium: blur(20px);
+  --dt-glass-border-medium: rgba(255, 255, 255, 0.6);
+  // 深色模式毛玻璃
+  --dt-glass-bg-dark: rgba(20, 20, 30, 0.75);
+  --dt-glass-blur-dark: blur(16px);
+  --dt-glass-border-dark: rgba(255, 255, 255, 0.08);
+
+  // ==================== 动效系统 ====================
+  --dt-ease-out: cubic-bezier(0.0, 0, 0.2, 1);       // 减速（进入）
+  --dt-ease-in: cubic-bezier(0.4, 0, 1, 1);           // 加速（离开）
+  --dt-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);     // 标准
+  --dt-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); // 弹性（强调）
+
+  --dt-duration-fast: 120ms;    // 微交互（hover、focus）
+  --dt-duration-normal: 200ms;  // 常规过渡
+  --dt-duration-slow: 300ms;    // 面板展开、路由切换
+  --dt-duration-slower: 500ms;  // 大动画（主题切换）
+
+  // 常用组合
+  --dt-transition-fast: var(--dt-duration-fast) var(--dt-ease-in-out);
+  --dt-transition-normal: var(--dt-duration-normal) var(--dt-ease-in-out);
+  --dt-transition-slow: var(--dt-duration-slow) var(--dt-ease-out);
+  --dt-transition-spring: var(--dt-duration-slow) var(--dt-ease-spring);
+
+  // ==================== 字体系统 ====================
+  --dt-font-size-xs: 11px;
+  --dt-font-size-sm: 12px;
+  --dt-font-size-md: 13px;
+  --dt-font-size-base: 14px;
+  --dt-font-size-lg: 16px;
+  --dt-font-size-xl: 18px;
+  --dt-font-size-2xl: 20px;
+  --dt-font-size-3xl: 24px;
+
+  --dt-font-weight-normal: 400;
+  --dt-font-weight-medium: 500;
+  --dt-font-weight-semibold: 600;
+  --dt-font-weight-bold: 700;
+
+  --dt-line-height-tight: 1.25;
+  --dt-line-height-normal: 1.5;
+  --dt-line-height-relaxed: 1.75;
+
+  // ==================== 边框系统 ====================
+  --dt-border-width: 1px;
+  --dt-border-color: var(--el-border-color-lighter);
+  --dt-border-color-strong: var(--el-border-color);
+  --dt-border: var(--dt-border-width) solid var(--dt-border-color);
+
+  // ==================== 布局尺寸 ====================
+  --dt-navbar-height: 56px;
+  --dt-tag-height: 36px;
+  --dt-sidebar-width: 220px;
+  --dt-sidebar-collapsed-width: 54px;
+  --dt-footer-height: 48px;
+  --dt-panel-width: 360px;
+
+  // ==================== 交互状态色 ====================
+  --dt-hover-bg: rgba(0, 0, 0, 0.04);
+  --dt-active-bg: rgba(0, 0, 0, 0.06);
+  --dt-focus-ring: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+}
+
+// ==================== 深色模式覆盖 ====================
+html.dark {
+  // 阴影在深色模式下加深
+  --dt-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --dt-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --dt-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.15);
+  --dt-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.35), 0 4px 6px rgba(0, 0, 0, 0.2);
+  --dt-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.4), 0 10px 10px rgba(0, 0, 0, 0.2);
+
+  // 深色模式毛玻璃激活
+  --dt-glass-bg-light: var(--dt-glass-bg-dark);
+  --dt-glass-blur-light: var(--dt-glass-blur-dark);
+  --dt-glass-border-light: var(--dt-glass-border-dark);
+  --dt-glass-bg-medium: rgba(25, 25, 35, 0.88);
+  --dt-glass-border-medium: rgba(255, 255, 255, 0.06);
+
+  // 交互状态色
+  --dt-hover-bg: rgba(255, 255, 255, 0.06);
+  --dt-active-bg: rgba(255, 255, 255, 0.09);
+  --dt-border-color: rgba(255, 255, 255, 0.08);
+  --dt-border-color-strong: rgba(255, 255, 255, 0.12);
+}

@@ -60,6 +60,37 @@ export const layoutThemes: LayoutTheme[] = [
     color: "#00ffff",
     baseStyle: "dark",
   },
+  // === 节日主题 ===
+  {
+    name: "万圣节",
+    key: "halloween",
+    description: "万圣节主题，南瓜橙 + 幽灵紫",
+    stylesheet: "halloween.scss",
+    icon: "ri:ghost-smile-line",
+    type: "festival",
+    color: "#FF6B35",
+    baseStyle: "dark",
+  },
+  {
+    name: "圣诞节",
+    key: "christmas",
+    description: "圣诞节主题，圣诞红 + 松绿 + 金色",
+    stylesheet: "christmas.scss",
+    icon: "ri:gift-line",
+    type: "festival",
+    color: "#C41E3A",
+    baseStyle: "dark",
+  },
+  {
+    name: "春节",
+    key: "spring-festival",
+    description: "春节主题，中国红 + 金黄",
+    stylesheet: "spring-festival.scss",
+    icon: "ri:fire-line",
+    type: "festival",
+    color: "#E74C3C",
+    baseStyle: "dark",
+  },
 ];
 
 /**

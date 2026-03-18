@@ -1,0 +1,117 @@
+// 万圣节主题样式
+// 南瓜橙 #FF6B35 + 幽灵紫 #9B59B6 + 深紫黑背景
+
+:root[data-skin="halloween"] {
+  // 主色调：南瓜橙
+  --el-color-primary: #ff6b35;
+  --el-color-primary-light-3: #ff8555;
+  --el-color-primary-light-5: #ff9f75;
+  --el-color-primary-light-7: #ffb995;
+  --el-color-primary-light-8: #ffc9a5;
+  --el-color-primary-light-9: #ffd9b5;
+  --el-color-primary-dark-2: #e65f2f;
+
+  // 辅助色：幽灵紫
+  --el-color-success: #9b59b6;
+  --el-color-warning: #f39c12;
+  --el-color-danger: #e74c3c;
+  --el-color-info: #8e44ad;
+
+  // 背景色：深紫黑
+  --el-bg-color: #1a0f1f;
+  --el-bg-color-page: #120a18;
+  --el-bg-color-overlay: #2a1f35;
+
+  // 文字颜色
+  --el-text-color-primary: #f5f5f5;
+  --el-text-color-regular: #d0d0d0;
+  --el-text-color-secondary: #a0a0a0;
+  --el-text-color-placeholder: #707070;
+
+  // 边框颜色
+  --el-border-color: #3a2f45;
+  --el-border-color-light: #2a1f35;
+  --el-border-color-lighter: #1f1428;
+  --el-border-color-extra-light: #1a0f1f;
+
+  // 填充色
+  --el-fill-color: #2a1f35;
+  --el-fill-color-light: #3a2f45;
+  --el-fill-color-lighter: #4a3f55;
+  --el-fill-color-extra-light: #5a4f65;
+  --el-fill-color-dark: #1a0f1f;
+  --el-fill-color-darker: #120a18;
+  --el-fill-color-blank: #1a0f1f;
+
+  // 遮罩层
+  --el-overlay-color: rgba(26, 15, 31, 0.7);
+  --el-overlay-color-light: rgba(26, 15, 31, 0.5);
+  --el-overlay-color-lighter: rgba(26, 15, 31, 0.3);
+
+  // 阴影
+  --el-box-shadow: 0 2px 12px 0 rgba(155, 89, 182, 0.2);
+  --el-box-shadow-light: 0 2px 8px 0 rgba(155, 89, 182, 0.15);
+  --el-box-shadow-lighter: 0 2px 4px 0 rgba(155, 89, 182, 0.1);
+  --el-box-shadow-dark: 0 4px 16px 0 rgba(155, 89, 182, 0.3);
+}
+
+// 万圣节特效样式
+html[data-skin="halloween"] {
+  // 页面背景渐变
+  body {
+    background: linear-gradient(135deg, #120a18 0%, #1a0f1f 50%, #2a1f35 100%);
+  }
+
+  // 导航栏万圣节风格
+  .lay-navbar {
+    background: rgba(26, 15, 31, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(155, 89, 182, 0.3);
+  }
+
+  // 侧边栏万圣节风格
+  .lay-sidebar {
+    background: rgba(26, 15, 31, 0.9);
+    border-right: 1px solid rgba(155, 89, 182, 0.3);
+  }
+
+  // 卡片万圣节风格
+  .el-card {
+    background: rgba(42, 31, 53, 0.8);
+    border: 1px solid rgba(155, 89, 182, 0.3);
+    box-shadow: 0 4px 16px rgba(155, 89, 182, 0.2);
+  }
+
+  // 按钮万圣节风格
+  .el-button--primary {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff8555 100%);
+    border-color: #ff6b35;
+
+    &:hover {
+      background: linear-gradient(135deg, #ff8555 0%, #ff9f75 100%);
+    }
+  }
+
+  // 标签万圣节风格
+  .el-tag {
+    background: rgba(155, 89, 182, 0.2);
+    border-color: rgba(155, 89, 182, 0.4);
+    color: #9b59b6;
+  }
+
+  // 输入框万圣节风格
+  .el-input__wrapper {
+    background: rgba(42, 31, 53, 0.6);
+    border: 1px solid rgba(155, 89, 182, 0.3);
+    box-shadow: 0 0 0 1px rgba(155, 89, 182, 0.1) inset;
+
+    &:hover {
+      border-color: rgba(155, 89, 182, 0.5);
+    }
+
+    &.is-focus {
+      border-color: #ff6b35;
+      box-shadow: 0 0 0 1px #ff6b35 inset;
+    }
+  }
+}

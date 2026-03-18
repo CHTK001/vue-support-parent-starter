@@ -211,7 +211,7 @@ onBeforeUnmount(() => {
   right: 0;
   z-index: 40000;
   width: 100%;
-  max-width: 520px;
+  max-width: 360px;
   height: 100vh;
   display: flex;
   flex-direction: column;
