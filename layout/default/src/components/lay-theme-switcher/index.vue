@@ -12,17 +12,17 @@
       <div class="theme-grid">
         <div
           v-for="theme in themes"
-          :key="theme.name"
+          :key="theme.key"
           class="theme-card"
           :class="{
-            'is-active': currentTheme === theme.name,
+            'is-active': currentTheme === theme.key,
             'is-switching': switching,
           }"
-          @click="handleSwitchTheme(theme.name)"
+          @click="handleSwitchTheme(theme.key)"
         >
           <!-- 内测主题绸带 -->
           <ScRibbon
-            v-if="theme.group === 'beta'"
+            v-if="theme.type === 'beta'"
             text="内测"
             variant="corner"
             position="rt"
@@ -33,25 +33,23 @@
           <div class="theme-preview">
             <div class="theme-icon">
               <IconifyIconOnline
-                :icon="getThemeIcon(theme.name)"
+                :icon="getThemeIcon(theme.key)"
                 :style="{ fontSize: '32px' }"
               />
             </div>
           </div>
           <div class="theme-info">
-            <span class="theme-name">{{ theme.displayName }}</span>
-            <span class="theme-desc">{{
-              theme.description || getThemeDescription(theme.name)
-            }}</span>
+            <span class="theme-name">{{ theme.name }}</span>
+            <span class="theme-desc">{{ theme.description }}</span>
             <!-- 节日主题倒计时 -->
             <span
-              v-if="theme.group === 'festival' && getDaysUntilFestival(theme.name)"
+              v-if="theme.type === 'festival' && getDaysUntilFestival(theme.key)"
               class="theme-countdown"
             >
-              距离节日还有 {{ getDaysUntilFestival(theme.name) }} 天
+              距离节日还有 {{ getDaysUntilFestival(theme.key) }} 天
             </span>
           </div>
-          <div v-if="currentTheme === theme.name" class="theme-check">
+          <div v-if="currentTheme === theme.key" class="theme-check">
             <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
@@ -64,10 +62,8 @@
 import { computed, ref } from "vue";
 import { IconifyIconOnline } from "@repo/components";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
-import {
-  getThemesByGroup,
-  switchTheme as switchThemeUtil,
-} from "@repo/components/hooks";
+import { switchTheme as switchThemeUtil } from "@repo/components/hooks";
+import { getAvailableThemes, type LayoutTheme } from "../../themes/index";
 import { useThemeStore } from "../../stores/themeStore";
 import { useGlobal } from "@pureadmin/utils";
 import { message } from "@repo/utils";
@@ -107,8 +103,25 @@ const getDaysUntilFestival = (themeName: string): number | null => {
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeStore = useThemeStore();
 
-// 按分组获取所有可用主题
-const themesByGroup = computed(() => getThemesByGroup());
+// 按分组获取所有可用主题（从布局主题系统）
+const themesByGroup = computed(() => {
+  const themes = getAvailableThemes();
+  const grouped: Record<string, LayoutTheme[]> = {
+    regular: [],
+    beta: [],
+    festival: [],
+  };
+
+  themes.forEach((theme) => {
+    const type = theme.type || "regular";
+    if (!grouped[type]) {
+      grouped[type] = [];
+    }
+    grouped[type].push(theme);
+  });
+
+  return grouped;
+});
 
 // 当前主题
 const currentTheme = computed(() => {
@@ -118,30 +131,16 @@ const currentTheme = computed(() => {
 // 主题切换中状态
 const switching = ref(false);
 
-// 获取主题图标
+// 获取主题图标（从主题配置中读取，或使用默认值）
 const getThemeIcon = (themeName: string): string => {
-  const icons: Record<string, string> = {
-    default: "ri:palette-line",
-    "8bit": "ri:gamepad-line",
-    "future-tech": "ri:rocket-line",
-    halloween: "ri:ghost-smile-line",
-    christmas: "ri:gift-line",
-    "spring-festival": "ri:fire-line",
-  };
-  return icons[themeName] || "ri:brush-line";
+  const theme = getAvailableThemes().find((t) => t.key === themeName);
+  return theme?.icon || "ri:brush-line";
 };
 
-// 获取主题描述
+// 获取主题描述（从主题配置中读取）
 const getThemeDescription = (themeName: string): string => {
-  const descriptions: Record<string, string> = {
-    default: "使用 Element Plus 原生组件",
-    "8bit": "像素风格，复古游戏风",
-    "future-tech": "未来科技风格",
-    halloween: "万圣节主题，南瓜橙 + 幽灵紫",
-    christmas: "圣诞节主题，圣诞红 + 松绿",
-    "spring-festival": "春节主题，中国红 + 金黄",
-  };
-  return descriptions[themeName] || "自定义主题";
+  const theme = getAvailableThemes().find((t) => t.key === themeName);
+  return theme?.description || "自定义主题";
 };
 
 // 获取分组标题
