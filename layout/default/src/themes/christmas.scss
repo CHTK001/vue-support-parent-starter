@@ -102,11 +102,20 @@ html[data-skin="christmas"] {
     }
   }
 
-  // 标签圣诞风格
-  .el-tag {
-    background: rgba(255, 215, 0, 0.2);
+  // 标签圣诞风格 - 适配 lay-tag
+  .el-tag,
+  .lay-tag .scroll-item {
+    background: rgba(255, 215, 0, 0.15);
     border-color: rgba(255, 215, 0, 0.4);
     color: #ffd700;
+    
+    &.active,
+    &.is-active {
+      background: linear-gradient(135deg, rgba(196, 30, 58, 0.3) 0%, rgba(15, 139, 141, 0.2) 100%);
+      border-color: #c41e3a;
+      color: #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    }
   }
 
   // 输入框圣诞风格
@@ -146,6 +155,23 @@ html[data-skin="christmas"] {
     animation: snowfall 20s linear infinite;
     z-index: 0;
   }
+
+  // 头像装饰：圣诞帽
+  .lay-avatar,
+  .el-avatar {
+    position: relative;
+    
+    &::before {
+      content: "🎅";
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      font-size: 24px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+      z-index: 1;
+      animation: santa-bounce 2s ease-in-out infinite;
+    }
+  }
 }
 
 @keyframes snowfall {
@@ -154,5 +180,14 @@ html[data-skin="christmas"] {
   }
   100% {
     background-position: 0% 100%, 0% 100%, 0% 100%, 0% 100%;
+  }
+}
+
+@keyframes santa-bounce {
+  0%, 100% {
+    transform: translateY(0) rotate(-10deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-10deg);
   }
 }
