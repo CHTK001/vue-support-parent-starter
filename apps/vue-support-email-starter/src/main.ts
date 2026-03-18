@@ -1,20 +1,14 @@
-import { createApp } from "vue";
-import { createPinia } from "pinia";
-import ElementPlus from "element-plus";
-import "element-plus/dist/index.css";
-import * as ElementPlusIconsVue from "@element-plus/icons-vue";
-import App from "./App.vue";
-import router from "./router";
+/**
+ * Email 邮箱管理系统入口文件
+ * @author CH
+ * @version 1.0.0
+ * @since 2026-03-18
+ */
+import { createStandardApp } from "@repo/core";
 
-const app = createApp(App);
+// 应用专属样式
+import "@repo/assets/fonts/iconfont.js";
+import "@repo/assets/style/modern-page.scss";
+import "./styles/index.scss";
 
-// 注册所有图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component);
-}
-
-app.use(createPinia());
-app.use(router);
-app.use(ElementPlus);
-
-app.mount("#app");
+createStandardApp().then(async (bootstrap) => bootstrap.mount("#app"));
