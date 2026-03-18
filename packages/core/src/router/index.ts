@@ -66,7 +66,7 @@ const ensureRouteIcon = (route: any): void => {
 const loadRemainingRoutes = (): void => {
   // @ts-ignore
   const noInModules: Record<string, any> = import.meta.glob(
-    ["./modules/**/remaining*.ts", "@/router/**/remaining*.ts"],
+    ["./modules/**/remaining*.ts"],
     { eager: true },
   );
 
@@ -211,13 +211,7 @@ const _createAutoRouter = () => {
 const _createNormalRouter = () => {
   // @ts-ignore
   const modules: Record<string, any> = import.meta.glob(
-    [
-      "./modules/**/*.ts",
-      "!./modules/**/remaining*.ts",
-      "@/router/**/*.ts",
-      "@/router/*.ts",
-      "!@/router/**/remaining*.ts",
-    ],
+    ["./modules/**/*.ts", "!./modules/**/remaining*.ts"],
     { eager: true },
   );
 
