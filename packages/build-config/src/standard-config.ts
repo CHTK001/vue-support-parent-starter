@@ -17,7 +17,16 @@ export interface StandardViteConfigOptions {
   /** 应用端口，默认从环境变量读取 */
   port?: number;
   /** API 代理配置 */
-  proxy?: Record<string, { target: string; changeOrigin?: boolean }>;
+  proxy?: Record<
+    string,
+    {
+      target: string;
+      changeOrigin?: boolean;
+      ws?: boolean;
+      timeout?: number;
+      proxyTimeout?: number;
+    }
+  >;
   /** 额外的依赖优化包 */
   extraInclude?: string[];
   /** 额外的排除包 */
@@ -34,6 +43,21 @@ export interface StandardViteConfigOptions {
   target?: string;
   /** chunk 大小警告限制，默认 4000 */
   chunkSizeWarningLimit?: number;
+  /** 自定义 CSS 预处理器配置 */
+  cssPreprocessorOptions?: {
+    scss?: any;
+    less?: any;
+  };
+  /** 自定义 define 配置 */
+  customDefine?: Record<string, any>;
+  /** 额外的 Vite 插件 */
+  extraPlugins?: any[];
+  /** 自定义 logger */
+  customLogger?: any;
+  /** 自定义 terser 配置 */
+  customTerserOptions?: any;
+  /** 自定义 rollup 配置 */
+  customRollupOptions?: any;
 }
 
 /**
@@ -84,6 +108,62 @@ export function createStandardViteConfig(
     const optimizeDepsInclude = [...include, ...(options.extraInclude || [])];
     const optimizeDepsExclude = [...exclude, ...(options.extraExclude || [])];
 
+    // 合并 CSS 预处理器配置
+    const cssPreprocessorOptions = {
+      scss: {
+        additionalData: `
+          @use "@layout/default/styles/layout/variables.scss" as *;
+          @use "@layout/default/styles/layout/mixin.scss";
+        `,
+        ...options.cssPreprocessorOptions?.scss,
+      },
+      ...options.cssPreprocessorOptions,
+    };
+
+    // 合并 define 配置
+    const defineConfig = {
+      __INTLIFY_PROD_DEVTOOLS__: false,
+      __APP_CONFIG__: JSON.stringify(env),
+      __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
+      __APP_ENV__: JSON.stringify(mode),
+      ...options.customDefine,
+    };
+
+    // 合并插件
+    const plugins = [
+      ...getPluginsList({
+        VITE_CDN,
+        VITE_COMPRESSION,
+        i18nPaths: [
+          pathResolve("../locales/**", metaUrl),
+          pathResolve("@repo/config/locales/**", metaUrl),
+        ],
+        mockPath: options.mockPath,
+      }),
+      ...(options.extraPlugins || []),
+    ];
+
+    // 合并 terser 配置
+    const terserOptions = options.customTerserOptions || {
+      compress: {
+        drop_console: true,
+      },
+    };
+
+    // 合并 rollup 配置
+    const rollupOptions = {
+      input: {
+        index: pathResolve("./index.html", metaUrl),
+      },
+      external: ["@element-plus/icons-vue"],
+      output: {
+        chunkFileNames: "static/js/[name]-[hash].js",
+        entryFileNames: "static/js/[name]-[hash].js",
+        assetFileNames: "static/[ext]/[name]-[hash].[ext]",
+      },
+      ...options.customRollupOptions,
+    };
+
     return {
       base: VITE_PUBLIC_PATH,
       root: appRoot,
@@ -101,25 +181,11 @@ export function createStandardViteConfig(
           clientFiles: ["./index.html", "./src/{views,components}/*"],
         },
       },
+      ...(options.customLogger ? { customLogger: options.customLogger } : {}),
       css: {
-        preprocessorOptions: {
-          scss: {
-            additionalData: `
-              @use "@layout/default/styles/layout/variables.scss" as *;
-              @use "@layout/default/styles/layout/mixin.scss";
-            `,
-          },
-        },
+        preprocessorOptions: cssPreprocessorOptions,
       },
-      plugins: getPluginsList({
-        VITE_CDN,
-        VITE_COMPRESSION,
-        i18nPaths: [
-          pathResolve("../locales/**", metaUrl),
-          pathResolve("@repo/config/locales/**", metaUrl),
-        ],
-        mockPath: options.mockPath,
-      }),
+      plugins,
       optimizeDeps: {
         include: optimizeDepsInclude,
         exclude: optimizeDepsExclude,
@@ -128,29 +194,10 @@ export function createStandardViteConfig(
         target: options.target || "es2020",
         sourcemap: options.sourcemap || false,
         chunkSizeWarningLimit: options.chunkSizeWarningLimit || 4000,
-        terserOptions: {
-          compress: {
-            drop_console: true,
-          },
-        },
-        rollupOptions: {
-          input: {
-            index: pathResolve("./index.html", metaUrl),
-          },
-          external: ["@element-plus/icons-vue"],
-          output: {
-            chunkFileNames: "static/js/[name]-[hash].js",
-            entryFileNames: "static/js/[name]-[hash].js",
-            assetFileNames: "static/[ext]/[name]-[hash].[ext]",
-          },
-        },
+        terserOptions,
+        rollupOptions,
       },
-      define: {
-        __INTLIFY_PROD_DEVTOOLS__: false,
-        __APP_CONFIG__: JSON.stringify(env),
-        __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
-        __APP_ENV__: JSON.stringify(mode),
-      },
+      define: defineConfig,
     };
   };
 }
@@ -253,6 +300,68 @@ export function createViteConfig(metaUrl: string, pkg: any) {
      */
     target(target: string) {
       options.target = target;
+      return builder;
+    },
+
+    /**
+     * 添加额外的 Vite 插件
+     */
+    plugins(...plugins: any[]) {
+      options.extraPlugins = [...(options.extraPlugins || []), ...plugins];
+      return builder;
+    },
+
+    /**
+     * 设置自定义 logger
+     */
+    logger(logger: any) {
+      options.customLogger = logger;
+      return builder;
+    },
+
+    /**
+     * 添加自定义 define 配置
+     */
+    define(key: string, value: any) {
+      if (!options.customDefine) {
+        options.customDefine = {};
+      }
+      options.customDefine[key] = value;
+      return builder;
+    },
+
+    /**
+     * 批量添加自定义 define 配置
+     */
+    defines(defines: Record<string, any>) {
+      options.customDefine = { ...options.customDefine, ...defines };
+      return builder;
+    },
+
+    /**
+     * 设置 CSS 预处理器配置
+     */
+    cssPreprocessor(type: "scss" | "less", config: any) {
+      if (!options.cssPreprocessorOptions) {
+        options.cssPreprocessorOptions = {};
+      }
+      options.cssPreprocessorOptions[type] = config;
+      return builder;
+    },
+
+    /**
+     * 设置自定义 terser 配置
+     */
+    terser(terserOptions: any) {
+      options.customTerserOptions = terserOptions;
+      return builder;
+    },
+
+    /**
+     * 设置自定义 rollup 配置
+     */
+    rollup(rollupOptions: any) {
+      options.customRollupOptions = rollupOptions;
       return builder;
     },
 
