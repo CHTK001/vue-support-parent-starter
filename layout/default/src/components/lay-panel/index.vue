@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
 import { onClickOutside, useStorage } from "@vueuse/core";
@@ -204,18 +204,17 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(4px);
 }
 
-// 设置面板 - 从右侧滑入
+// 设置面板 - 从右侧滑入，固定宽度 520px 与系统设置一致
 .right-panel {
   position: fixed;
   top: 0;
   right: 0;
   z-index: 40000;
-  width: 100%;
-  max-width: 520px;
+  width: 520px; /* 固定宽度，与系统设置保持一致 */
+  max-width: 100%; /* 移动端响应式 */
   height: 100vh;
   display: flex;
   flex-direction: column;
-  // box-shadow: -4px 0 20px rgb(0 0 0 / 10%); // Moved to stitch-glass-panel
   transition: transform 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
   transform: translateX(100%);
   border-left: 1px solid var(--stitch-glass-border);
