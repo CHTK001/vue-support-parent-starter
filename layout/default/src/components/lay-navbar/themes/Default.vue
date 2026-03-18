@@ -16,6 +16,12 @@ import BaseNavbar from './BaseNavbar.vue';
   --default-navbar-bg: var(--stitch-lay-bg-overlay, rgba(255, 255, 255, 0.8));
   --default-navbar-border: var(--stitch-lay-border, rgba(0, 0, 0, 0.05));
   --default-navbar-backdrop: blur(12px);
+
+  // 深色模式覆盖：html.dark 时 navbar 背景切换为深色半透明
+  html.dark & {
+    --default-navbar-bg: var(--stitch-lay-bg-overlay, rgba(30, 30, 30, 0.85));
+    --default-navbar-border: var(--stitch-lay-border, rgba(255, 255, 255, 0.08));
+  }
   
   width: 100%;
   
