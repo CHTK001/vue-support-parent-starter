@@ -25,4 +25,35 @@ export default createViteConfig(import.meta.url, pkg)
     "three",
   )
   .mock(["mock"])
+  .terser({
+    compress: {
+      drop_console: true,
+      drop_debugger: true,
+      pure_funcs: [
+        "console.log",
+        "console.info",
+        "console.debug",
+        "console.warn",
+        "console.error",
+      ],
+      passes: 3,
+      dead_code: true,
+      unused: true,
+      collapse_vars: true,
+      reduce_vars: true,
+      reduce_funcs: true,
+      inline: 2,
+      keep_fargs: false,
+      keep_fnames: false,
+    },
+    mangle: {
+      properties: {
+        regex: /^_/,
+      },
+      toplevel: true,
+    },
+    format: {
+      comments: false,
+    },
+  })
   .build();
