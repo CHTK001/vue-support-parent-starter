@@ -14,6 +14,7 @@ import { useGlobal } from "@pureadmin/utils";
 import { useDraggable } from "@vueuse/core";
 import HeaderClock from "../HeaderClock.vue";
 import { webLlmDownloadState } from "../../lay-ai-chat/services/webLlmDownloadState";
+import ToolItem from "../components/ToolItem.vue";
 
 // webLLM 进度浮层收缩状态
 const webllmCollapsed = ref(false);
@@ -145,17 +146,17 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
     </Teleport>
 
     <!-- 系统设置 -->
-    <span
+    <ToolItem
       v-if="getConfig().ShowBarSetting"
-      :class="['tool-item', 'setting-btn', { 'fu-setting': isSpringFestival(), 'mooncake-setting': isMidAutumn(), 'pumpkin-setting': isHalloween() }]"
-      :title="t('buttons.pureOpenSystemSet')"
+      :tooltip="t('buttons.pureOpenSystemSet')"
+      :class="['setting-btn', { 'fu-setting': isSpringFestival(), 'mooncake-setting': isMidAutumn(), 'pumpkin-setting': isHalloween() }]"
       @click="onPanel"
     >
       <ScText v-if="isSpringFestival()">福</ScText>
       <ScText v-else-if="isMidAutumn()">🥮</ScText>
       <ScText v-else-if="isHalloween()">🎃</ScText>
       <IconifyIconOffline v-else :icon="Setting" />
-    </span>
+    </ToolItem>
   </div>
 </template>
 
@@ -164,9 +165,9 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 .tool-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;  // 使用 4px，ToolItem 自身有 padding，视觉间距约 8px
   height: 48px;
-  padding: 0 16px;
+  padding: 0 8px;
 }
 
 .tool-item {

@@ -1,13 +1,10 @@
 <script lang="ts" setup>
-import { getConfig } from "@repo/config";
-
-const TITLE = getConfig("Title");
+import FooterContent from "./components/FooterContent.vue";
 </script>
 
 <template>
-  <footer class="layout-footer text-[rgba(0,0,0,0.6)] dark:text-[rgba(220,220,242,0.8)]">
-    Copyright © 2020-present
-    <a class="hover:text-primary" href="https://github.com/pure-admin" target="_blank">&nbsp;{{ TITLE }}</a>
+  <footer class="layout-footer">
+    <FooterContent />
   </footer>
 </template>
 
@@ -16,74 +13,46 @@ const TITLE = getConfig("Title");
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0; // 禁止页脚被压缩，确保在 flex 容器中始终占据固定高度
+  flex-shrink: 0;
   width: 100%;
-  padding: 0 0 8px;
-  font-size: 14px;
-  transition: color 0.3s ease;
+  height: 48px;
+  font-size: 13px;
+  // 毛玻璃背景
+  background: var(--glass-bg, rgba(255, 255, 255, 0.7));
+  backdrop-filter: blur(12px) saturate(1.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  border-top: 1px solid var(--dt-border-color, rgba(0, 0, 0, 0.06));
+  transition: background var(--dt-transition-normal, 0.3s ease),
+    color var(--dt-transition-normal, 0.3s ease),
+    border-color var(--dt-transition-normal, 0.3s ease);
 
-  a {
-    transition: color 0.3s ease;
+  // 深色模式
+  html.dark & {
+    background: var(--glass-bg, rgba(20, 20, 30, 0.7));
+    border-top-color: rgba(255, 255, 255, 0.06);
   }
 }
 
-
-
-// 春节主题
+// 春节 / 新年主题
 :global(html[data-skin="spring-festival"]),
 :global(html[data-skin="new-year"]) {
   .layout-footer {
     color: rgba(198, 40, 40, 0.7) !important;
-
-    a {
-      color: #e53935 !important;
-
-      &:hover {
-        color: #c62828 !important;
-      }
-    }
   }
 }
 
 // 中秋主题
 :global(html[data-skin="mid-autumn"]) .layout-footer {
   color: rgba(255, 193, 7, 0.7) !important;
-
-  a {
-    color: #ffc107 !important;
-
-    &:hover {
-      color: #ff9800 !important;
-    }
-  }
 }
 
 // 圣诞主题
 :global(html[data-skin="christmas"]) .layout-footer {
   color: rgba(34, 139, 34, 0.7) !important;
-
-  a {
-    color: #c41e3a !important;
-
-    &:hover {
-      color: #228b22 !important;
-    }
-  }
 }
 
 // 万圣节主题
 :global(html[data-skin="halloween"]) .layout-footer {
   color: rgba(255, 117, 24, 0.7) !important;
-
-  a {
-    color: #ff7518 !important;
-    text-shadow: 0 0 5px rgba(255, 117, 24, 0.3);
-
-    &:hover {
-      color: #76ff03 !important;
-      text-shadow: 0 0 5px rgba(118, 255, 3, 0.5);
-    }
-  }
 }
-
 </style>
