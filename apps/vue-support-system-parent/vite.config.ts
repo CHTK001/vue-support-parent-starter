@@ -27,12 +27,6 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   const currentFileDir = dirname(fileURLToPath(import.meta.url));
   const alias = createAlias(import.meta.url);
 
-  // Explicitly set aliases for local packages to avoid resolution issues
-  // Order matters: more specific aliases first (though object keys order is not guaranteed, usually it works)
-  // Use root variable for consistent path resolution
-  alias["@layout/default"] = resolve(root, "layout/default/src");
-  alias["@repo/core"] = resolve(root, "packages/core/src");
-
   // 构建 mock 路径（相对于 vite.config.ts 文件）
   const mockPath = resolve(currentFileDir, "./mock");
 

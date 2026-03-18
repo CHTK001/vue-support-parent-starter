@@ -12,11 +12,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   const env = loadEnv(newMode, appRoot);
   console.log("当前启动模式:" + newMode);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(loadEnv(mode, appRoot));
-
   const alias = createAlias(import.meta.url);
-  // 明确指定本地包别名，避免解析问题
-  alias["@layout/default"] = resolve(projectRoot, "layout/default/src");
-  alias["@repo/core"] = resolve(projectRoot, "packages/core/src");
 
   return {
     base: VITE_PUBLIC_PATH,

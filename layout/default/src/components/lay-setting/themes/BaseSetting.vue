@@ -84,21 +84,16 @@ const isNonDefaultTheme = computed(() => {
 
 const handleOverallStyleChange = (theme: any) => {
   useThemeAnimation(() => {
-    theme.index === 1 && theme.index !== 2
-      ? (dataTheme.value = true)
-      : (dataTheme.value = false);
-
-    // 默认主题：不修改整体风格，保持用户当前整体风格不变
-    if (theme.option.theme === "default") {
-      applyOverallStyle(overallStyle.value);
-      return;
+    // 直接从 option.theme 读取整体风格值（light / dark / system）
+    const style = theme.option.theme as "light" | "dark" | "system";
+    overallStyle.value = style;
+    if (style === "system") {
+      // 跟随系统：监听 prefers-color-scheme 变化
+      watchSystemThemeChange();
+    } else {
+      dataTheme.value = style === "dark";
+      applyOverallStyle(style);
     }
-
-    // 其他主题：统一使用浅色整体风格
-    overallStyle.value = "light";
-    applyOverallStyle("light");
-
-    theme.index === 2 && watchSystemThemeChange();
   });
 };
 
