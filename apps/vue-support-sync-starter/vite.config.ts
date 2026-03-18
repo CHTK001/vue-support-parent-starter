@@ -8,7 +8,6 @@ import pkg from "./package.json";
  * 注意：本应用不依赖 @repo/font-encryption，已在 rollupOptions.external 中排除
  */
 export default createViteConfig(import.meta.url, pkg)
-  .port(3000)
   .proxy("/api", "http://127.0.0.1:8080")
   .target("es2015")
   .build();
