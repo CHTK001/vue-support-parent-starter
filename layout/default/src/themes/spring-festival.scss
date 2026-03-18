@@ -1,20 +1,20 @@
 // 春节主题样式
-// 正宗中国红 #DC143C + 金黄 #FFD700
+// 正宗中国红 #C8102E (中国红标准色) + 金黄 #FFD700
 
 :root[data-skin="spring-festival"] {
-  // 主色调：正宗中国红
-  --el-color-primary: #dc143c;
-  --el-color-primary-light-3: #e54363;
-  --el-color-primary-light-5: #ed728a;
-  --el-color-primary-light-7: #f5a1b1;
-  --el-color-primary-light-8: #f9c0c8;
-  --el-color-primary-light-9: #fde0e4;
-  --el-color-primary-dark-2: #c41236;
+  // 主色调：正宗中国红 (中国红标准色 #C8102E)
+  --el-color-primary: #c8102e;
+  --el-color-primary-light-3: #d33a4f;
+  --el-color-primary-light-5: #de6470;
+  --el-color-primary-light-7: #e98e91;
+  --el-color-primary-light-8: #f1b8b2;
+  --el-color-primary-light-9: #f8e2d3;
+  --el-color-primary-dark-2: #b00e29;
 
   // 辅助色：金黄
   --el-color-success: #ffd700;
   --el-color-warning: #ffed4e;
-  --el-color-danger: #dc143c;
+  --el-color-danger: #c8102e;
   --el-color-info: #ff8c00;
 
   // 背景色：深红调
@@ -36,7 +36,7 @@
 
   // 填充色
   --el-fill-color: #2f1a1a;
-  --el-fill-color-light: #3f2a2a;
+  --el-fill-color-light: #3f2a3a;
   --el-fill-color-lighter: #4f3a3a;
   --el-fill-color-extra-light: #5f4a4a;
   --el-fill-color-dark: #1f0d0d;
@@ -84,13 +84,13 @@ html[data-skin="spring-festival"] {
 
   // 按钮春节风格
   .el-button--primary {
-    background: linear-gradient(135deg, #dc143c 0%, #e54363 100%);
-    border-color: #dc143c;
-    box-shadow: 0 4px 12px rgba(220, 20, 60, 0.3);
+    background: linear-gradient(135deg, #c8102e 0%, #d33a4f 100%);
+    border-color: #c8102e;
+    box-shadow: 0 4px 12px rgba(200, 16, 46, 0.3);
 
     &:hover {
-      background: linear-gradient(135deg, #e54363 0%, #ed728a 100%);
-      box-shadow: 0 6px 16px rgba(220, 20, 60, 0.4);
+      background: linear-gradient(135deg, #d33a4f 0%, #de6470 100%);
+      box-shadow: 0 6px 16px rgba(200, 16, 46, 0.4);
     }
   }
 
@@ -107,11 +107,20 @@ html[data-skin="spring-festival"] {
     }
   }
 
-  // 标签春节风格
-  .el-tag {
-    background: rgba(255, 215, 0, 0.2);
+  // 标签春节风格 - 适配 lay-tag
+  .el-tag,
+  .lay-tag .scroll-item {
+    background: rgba(255, 215, 0, 0.15);
     border-color: rgba(255, 215, 0, 0.4);
     color: #ffd700;
+    
+    &.active,
+    &.is-active {
+      background: linear-gradient(135deg, rgba(200, 16, 46, 0.3) 0%, rgba(255, 215, 0, 0.2) 100%);
+      border-color: #c8102e;
+      color: #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    }
   }
 
   // 输入框春节风格
@@ -125,8 +134,8 @@ html[data-skin="spring-festival"] {
     }
 
     &.is-focus {
-      border-color: #dc143c;
-      box-shadow: 0 0 0 1px #dc143c inset;
+      border-color: #c8102e;
+      box-shadow: 0 0 0 1px #c8102e inset;
     }
   }
 
@@ -146,7 +155,7 @@ html[data-skin="spring-festival"] {
       ),
       radial-gradient(
         circle at 80% 70%,
-        rgba(220, 20, 60, 0.12),
+        rgba(200, 16, 46, 0.12),
         transparent 50%
       ),
       radial-gradient(
@@ -156,6 +165,34 @@ html[data-skin="spring-festival"] {
       );
     animation: glow 8s ease-in-out infinite;
     z-index: 0;
+  }
+
+  // 头像装饰：春节红包边框
+  .lay-avatar,
+  .el-avatar {
+    position: relative;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    
+    &::before {
+      content: "福";
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #c8102e 0%, #d33a4f 100%);
+      border: 1px solid #ffd700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: #ffd700;
+      box-shadow: 0 2px 8px rgba(200, 16, 46, 0.4);
+      z-index: 1;
+    }
   }
 }
 
