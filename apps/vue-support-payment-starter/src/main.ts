@@ -1,18 +1,10 @@
-import { createApp } from 'vue';
-import ElementPlus from 'element-plus';
-import 'element-plus/dist/index.css';
-import * as ElementPlusIconsVue from '@element-plus/icons-vue';
-import App from './App.vue';
-import router from './router';
+import { createStandardApp } from "@repo/core";
+import "@repo/assets/fonts/iconfont.js";
+import "@repo/assets/style/modern-page.scss";
+import "./styles/index.scss";
 
-const app = createApp(App);
-
-// 注册所有图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component);
-}
-
-app.use(ElementPlus);
-app.use(router);
-
-app.mount('#app');
+/**
+ * 支付系统应用入口
+ * 使用标准应用初始化
+ */
+createStandardApp().then(async (bootstrap) => bootstrap.mount("#app"));
