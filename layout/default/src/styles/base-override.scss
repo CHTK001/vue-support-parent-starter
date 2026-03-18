@@ -1,0 +1,219 @@
+/**
+ * Element Plus 基础样式覆盖
+ * 统一使用 design-tokens 中的圆角/间距/阴影变量
+ * 目标风格：Linear / Vercel / Notion
+ */
+
+// ==================== 圆角统一覆盖 ====================
+:root {
+  // 覆盖 Element Plus 内置圆角变量
+  --el-border-radius-base: var(--dt-radius-md);       // 6px，button/input
+  --el-border-radius-small: var(--dt-radius-sm);      // 4px，tag/badge
+  --el-border-radius-round: var(--dt-radius-full);    // 胶囊
+  --el-border-radius-circle: 50%;
+}
+
+// ==================== 按钮 ====================
+.el-button {
+  border-radius: var(--dt-radius-md) !important;
+  font-weight: var(--dt-font-weight-medium);
+  transition: all var(--dt-transition-fast);
+
+  &:not(.is-disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: var(--dt-shadow-sm);
+  }
+
+  &:not(.is-disabled):active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+
+  // 主色按钮阴影
+  &.el-button--primary:not(.is-disabled):hover {
+    box-shadow: var(--dt-shadow-primary);
+  }
+}
+
+// ==================== 输入框 ====================
+.el-input__wrapper,
+.el-textarea__inner {
+  border-radius: var(--dt-radius-md) !important;
+  transition: box-shadow var(--dt-transition-fast), border-color var(--dt-transition-fast);
+
+  &:hover {
+    box-shadow: 0 0 0 1px var(--el-border-color) inset !important;
+  }
+
+  &.is-focus {
+    box-shadow: var(--dt-focus-ring), 0 0 0 1px var(--el-color-primary) inset !important;
+  }
+}
+
+// ==================== 卡片 ====================
+.el-card {
+  border-radius: var(--dt-radius-lg) !important;
+  box-shadow: var(--dt-shadow-sm) !important;
+  border: var(--dt-border) !important;
+  transition: box-shadow var(--dt-transition-normal), transform var(--dt-transition-normal);
+
+  &:hover {
+    box-shadow: var(--dt-shadow-md) !important;
+  }
+}
+
+// ==================== 下拉菜单 ====================
+.el-dropdown-menu,
+.el-select-dropdown,
+.el-autocomplete-suggestion {
+  border-radius: var(--dt-radius-lg) !important;
+  box-shadow: var(--dt-shadow-lg) !important;
+  border: var(--dt-border) !important;
+  overflow: hidden;
+}
+
+.el-dropdown-menu__item {
+  border-radius: var(--dt-radius-sm);
+  margin: 2px 4px;
+  transition: background-color var(--dt-transition-fast);
+}
+
+// ==================== 弹窗 ====================
+.el-dialog {
+  border-radius: var(--dt-radius-xl) !important;
+  box-shadow: var(--dt-shadow-xl) !important;
+  overflow: hidden;
+
+  .el-dialog__header {
+    padding: var(--dt-space-5) var(--dt-space-6);
+    border-bottom: var(--dt-border);
+  }
+
+  .el-dialog__body {
+    padding: var(--dt-space-6);
+  }
+
+  .el-dialog__footer {
+    padding: var(--dt-space-4) var(--dt-space-6);
+    border-top: var(--dt-border);
+  }
+}
+
+// ==================== 抽屉 ====================
+.el-drawer {
+  box-shadow: var(--dt-shadow-xl) !important;
+
+  .el-drawer__header {
+    padding: var(--dt-space-5) var(--dt-space-6);
+    border-bottom: var(--dt-border);
+    margin-bottom: 0;
+  }
+
+  .el-drawer__body {
+    padding: var(--dt-space-6);
+  }
+}
+
+// ==================== 标签 ====================
+.el-tag {
+  border-radius: var(--dt-radius-sm) !important;
+  font-weight: var(--dt-font-weight-medium);
+  font-size: var(--dt-font-size-sm);
+}
+
+// ==================== 表格 ====================
+.el-table {
+  border-radius: var(--dt-radius-lg);
+  overflow: hidden;
+
+  th.el-table__cell {
+    font-weight: var(--dt-font-weight-semibold);
+    font-size: var(--dt-font-size-sm);
+    color: var(--el-text-color-secondary);
+  }
+}
+
+// ==================== 分页 ====================
+.el-pagination {
+  .el-pager li,
+  .btn-prev,
+  .btn-next {
+    border-radius: var(--dt-radius-md) !important;
+    transition: all var(--dt-transition-fast);
+  }
+}
+
+// ==================== 消息提示 ====================
+.el-message {
+  border-radius: var(--dt-radius-lg) !important;
+  box-shadow: var(--dt-shadow-lg) !important;
+  border: var(--dt-border) !important;
+  padding: var(--dt-space-3) var(--dt-space-4);
+}
+
+.el-message-box {
+  border-radius: var(--dt-radius-xl) !important;
+  box-shadow: var(--dt-shadow-xl) !important;
+  overflow: hidden;
+}
+
+// ==================== 通知 ====================
+.el-notification {
+  border-radius: var(--dt-radius-lg) !important;
+  box-shadow: var(--dt-shadow-lg) !important;
+  border: var(--dt-border) !important;
+}
+
+// ==================== 气泡提示 ====================
+.el-tooltip__popper,
+.el-popover {
+  border-radius: var(--dt-radius-md) !important;
+  box-shadow: var(--dt-shadow-md) !important;
+  border: var(--dt-border) !important;
+  font-size: var(--dt-font-size-sm);
+}
+
+// ==================== 菜单 ====================
+.el-menu {
+  border-right: none !important;
+
+  .el-menu-item,
+  .el-sub-menu__title {
+    border-radius: var(--dt-radius-md);
+    margin: 2px var(--dt-space-2);
+    height: 40px;
+    line-height: 40px;
+    transition: background-color var(--dt-transition-fast), color var(--dt-transition-fast);
+  }
+}
+
+// ==================== 滚动条美化 ====================
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--el-border-color);
+  border-radius: var(--dt-radius-full);
+  transition: background var(--dt-transition-fast);
+
+  &:hover {
+    background: var(--el-border-color-darker);
+  }
+}
+
+// 深色模式滚动条
+html.dark {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+}

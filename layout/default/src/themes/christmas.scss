@@ -1,0 +1,158 @@
+// 圣诞节主题样式
+// 圣诞红 #C41E3A + 松绿 #0F8B8D + 金色 #FFD700
+
+:root[data-skin="christmas"] {
+  // 主色调：圣诞红
+  --el-color-primary: #c41e3a;
+  --el-color-primary-light-3: #d03e54;
+  --el-color-primary-light-5: #dc5e6e;
+  --el-color-primary-light-7: #e87e88;
+  --el-color-primary-light-8: #f09ea2;
+  --el-color-primary-light-9: #f8bebc;
+  --el-color-primary-dark-2: #b01a34;
+
+  // 辅助色：松绿 + 金色
+  --el-color-success: #0f8b8d;
+  --el-color-warning: #ffd700;
+  --el-color-danger: #c41e3a;
+  --el-color-info: #2c7a7b;
+
+  // 背景色：深绿调
+  --el-bg-color: #0d1f1f;
+  --el-bg-color-page: #081515;
+  --el-bg-color-overlay: #1a2f2f;
+
+  // 文字颜色
+  --el-text-color-primary: #f5f5f5;
+  --el-text-color-regular: #d0d0d0;
+  --el-text-color-secondary: #a0a0a0;
+  --el-text-color-placeholder: #707070;
+
+  // 边框颜色
+  --el-border-color: #2a3f3f;
+  --el-border-color-light: #1a2f2f;
+  --el-border-color-lighter: #0f1f1f;
+  --el-border-color-extra-light: #0d1f1f;
+
+  // 填充色
+  --el-fill-color: #1a2f2f;
+  --el-fill-color-light: #2a3f3f;
+  --el-fill-color-lighter: #3a4f4f;
+  --el-fill-color-extra-light: #4a5f5f;
+  --el-fill-color-dark: #0d1f1f;
+  --el-fill-color-darker: #081515;
+  --el-fill-color-blank: #0d1f1f;
+
+  // 遮罩层
+  --el-overlay-color: rgba(13, 31, 31, 0.7);
+  --el-overlay-color-light: rgba(13, 31, 31, 0.5);
+  --el-overlay-color-lighter: rgba(13, 31, 31, 0.3);
+
+  // 阴影
+  --el-box-shadow: 0 2px 12px 0 rgba(255, 215, 0, 0.2);
+  --el-box-shadow-light: 0 2px 8px 0 rgba(255, 215, 0, 0.15);
+  --el-box-shadow-lighter: 0 2px 4px 0 rgba(255, 215, 0, 0.1);
+  --el-box-shadow-dark: 0 4px 16px 0 rgba(255, 215, 0, 0.3);
+}
+
+// 圣诞节特效样式
+html[data-skin="christmas"] {
+  // 页面背景渐变
+  body {
+    background: linear-gradient(135deg, #081515 0%, #0d1f1f 50%, #1a2f2f 100%);
+  }
+
+  // 导航栏圣诞风格
+  .lay-navbar {
+    background: rgba(13, 31, 31, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+  }
+
+  // 侧边栏圣诞风格
+  .lay-sidebar {
+    background: rgba(13, 31, 31, 0.9);
+    border-right: 1px solid rgba(255, 215, 0, 0.3);
+  }
+
+  // 卡片圣诞风格
+  .el-card {
+    background: rgba(26, 47, 47, 0.8);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.2);
+  }
+
+  // 按钮圣诞风格
+  .el-button--primary {
+    background: linear-gradient(135deg, #c41e3a 0%, #d03e54 100%);
+    border-color: #c41e3a;
+
+    &:hover {
+      background: linear-gradient(135deg, #d03e54 0%, #dc5e6e 100%);
+    }
+  }
+
+  // 成功按钮：松绿色
+  .el-button--success {
+    background: linear-gradient(135deg, #0f8b8d 0%, #2c7a7b 100%);
+    border-color: #0f8b8d;
+
+    &:hover {
+      background: linear-gradient(135deg, #2c7a7b 0%, #3a9a9c 100%);
+    }
+  }
+
+  // 标签圣诞风格
+  .el-tag {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.4);
+    color: #ffd700;
+  }
+
+  // 输入框圣诞风格
+  .el-input__wrapper {
+    background: rgba(26, 47, 47, 0.6);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.1) inset;
+
+    &:hover {
+      border-color: rgba(255, 215, 0, 0.5);
+    }
+
+    &.is-focus {
+      border-color: #c41e3a;
+      box-shadow: 0 0 0 1px #c41e3a inset;
+    }
+  }
+
+  // 圣诞装饰：雪花效果
+  &::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    background-image: radial-gradient(
+        2px 2px at 20% 30%,
+        rgba(255, 255, 255, 0.3),
+        transparent
+      ),
+      radial-gradient(2px 2px at 60% 70%, rgba(255, 255, 255, 0.3), transparent),
+      radial-gradient(1px 1px at 50% 50%, rgba(255, 255, 255, 0.3), transparent),
+      radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.3), transparent);
+    background-size: 200% 200%;
+    animation: snowfall 20s linear infinite;
+    z-index: 0;
+  }
+}
+
+@keyframes snowfall {
+  0% {
+    background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+  }
+  100% {
+    background-position: 0% 100%, 0% 100%, 0% 100%, 0% 100%;
+  }
+}

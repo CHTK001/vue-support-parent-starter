@@ -19,8 +19,8 @@
   --layout-sidebar-active-bg: var(--el-color-primary-light-9);
   --layout-sidebar-active-text: var(--el-color-primary);
   
-  // 导航栏
-  --layout-navbar-height: 48px;
+  // 导航栏（与 design-tokens --dt-navbar-height 保持一致）
+  --layout-navbar-height: 56px;
   --layout-navbar-bg: var(--el-bg-color);
   --layout-navbar-text: var(--el-text-color-primary);
   --layout-navbar-border: var(--el-border-color-lighter);

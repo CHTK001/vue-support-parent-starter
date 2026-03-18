@@ -61,10 +61,17 @@ import FpsMonitor from "./components/lay-performance/FpsMonitor.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
 import LiteInspector from "./components/lay-dev-tools/LiteInspector.vue";
 import HeatmapOverlay from "./components/lay-dev-tools/HeatmapOverlay.vue";
+import FestivalLayer from "./components/lay-festival/index.vue";
 
-// 导入主题皮肤样式（节日主题仅保留已实现的圣诞皮肤）
+// 导入设计 token 覆盖（Element Plus 圆角/间距/阴影统一）
+import "./styles/base-override.scss";
+// 导入主题皮肤样式
 import "./themes/8bit.scss";
 import "./themes/future-tech.scss";
+// 导入节日主题样式
+import "./themes/halloween.scss";
+import "./themes/christmas.scss";
+import "./themes/spring-festival.scss";
 import "./components/lay-sidebar/styles/hover-navigation-themes.scss";
 // 导入移动端独立样式
 import "./styles/mobile.scss";
@@ -575,5 +582,8 @@ const LayHeader = defineComponent({
       <!-- 热点工具热力图覆盖层（仅开发/测试环境生效，由配置控制） -->
       <HeatmapOverlay />
     </div>
+
+    <!-- 节日特效层（根据主题动态渲染） -->
+    <FestivalLayer :theme="$storage?.configure?.systemTheme || 'default'" />
   </ThemeSkinProvider>
 </template>

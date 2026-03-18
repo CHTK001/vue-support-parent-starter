@@ -90,11 +90,10 @@ const props = defineProps({
         top: 50%;
         transform: translateY(-50%);
         width: 3px;
-        height: 24px;
-        background-color: var(--el-color-primary);
-        border-radius: 0 4px 4px 0;
-        opacity: 0; 
-        // 默认主题使用背景色区分，这里隐藏左侧条，如果需要可以改为1
+        height: 20px;
+        background-color: #fff;
+        border-radius: 0 3px 3px 0;
+        opacity: 0.6;
       }
     }
   }
@@ -211,6 +210,13 @@ html.dark {
   .default-sidebar-item-wrapper {
     --item-hover-bg: rgba(255, 255, 255, 0.05);
     --item-active-bg: rgba(var(--el-color-primary-rgb), 0.15);
+
+    // 暗色模式激活色条改用主题色
+    :deep(.sidebar-menu-item.is-active::before),
+    :deep(.el-menu-item.is-active::before) {
+      background-color: var(--el-color-primary);
+      opacity: 1;
+    }
   }
 }
 </style>
