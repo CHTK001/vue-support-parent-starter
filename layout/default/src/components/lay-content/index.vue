@@ -447,6 +447,7 @@ onBeforeUnmount(() => {
   height: 100%;
   width: 100%;
   max-width: 100%; /* 限制最大宽度 */
+  min-width: 1200px; /* 防止内容区域过窄 */
   overflow: hidden;
   display: flex;
   flex-direction: column;

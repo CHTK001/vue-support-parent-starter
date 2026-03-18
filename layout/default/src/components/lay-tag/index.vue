@@ -17,8 +17,8 @@ const themeComponents = {
   'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumnTag.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/ChristmasTag.vue")),
   'new-year': defineAsyncComponent(() => import("./themes/NewYearTag.vue")),
-  // future-tech 主题暂时复用默认标签组件，避免因未实现主题导致标签区域不显示
-  'future-tech': DefaultTag,
+  // future-tech 主题使用专属霓虹光效标签
+  'future-tech': defineAsyncComponent(() => import("./themes/FutureTechTag.vue")),
   '8bit': DefaultTag, // 8-bit 主题使用默认标签组件
 };
 

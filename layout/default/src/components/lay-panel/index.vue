@@ -211,7 +211,7 @@ onBeforeUnmount(() => {
   right: 0;
   z-index: 40000;
   width: 100%;
-  max-width: 360px;
+  max-width: 520px;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -265,7 +265,7 @@ onBeforeUnmount(() => {
 
 .panel-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   padding: 16px 20px;
   border-top: 1px solid var(--stitch-glass-border);
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.02), transparent);

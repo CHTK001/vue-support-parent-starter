@@ -1425,6 +1425,47 @@ write-line-preview { 0%, 100% { width: 0; } 50% { width: 100%; } }
     display: flex;
     align-items: center;
   }
+
+  // ==================== 表单控件宽度适配（lay-panel 520px 宽度） ====================
+  // 统一设置面板内所有表单控件宽度，避免逐个修改每个 Setting 组件
+  .el-input,
+  .el-select,
+  .el-input-number,
+  .el-textarea,
+  .el-autocomplete {
+    width: 100%;
+  }
+
+  // 确保 el-input__wrapper 也自适应
+  .el-input__wrapper {
+    width: 100%;
+  }
+
+  // 确保 el-select 下拉框自适应
+  .el-select .el-input {
+    width: 100%;
+  }
+
+  // 确保 el-input-number 自适应
+  .el-input-number {
+    width: 100%;
+
+    .el-input__wrapper {
+      width: 100%;
+    }
+  }
+
+  // 确保 setting-item-control 内的控件自适应
+  .setting-item-control {
+    .el-input,
+    .el-select,
+    .el-input-number,
+    .el-textarea,
+    .el-autocomplete {
+      width: 100%;
+      min-width: 200px; // 最小宽度保证可用性
+    }
+  }
 }
 
 // 深色模式下的布局模式卡片
