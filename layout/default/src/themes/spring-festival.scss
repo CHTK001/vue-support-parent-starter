@@ -1,21 +1,21 @@
 // 春节主题样式
-// 中国红 #E74C3C + 金黄 #F39C12
+// 正宗中国红 #DC143C + 金黄 #FFD700
 
 :root[data-skin="spring-festival"] {
-  // 主色调：中国红
-  --el-color-primary: #e74c3c;
-  --el-color-primary-light-3: #eb6d5f;
-  --el-color-primary-light-5: #ef8e82;
-  --el-color-primary-light-7: #f3afa5;
-  --el-color-primary-light-8: #f7cfc8;
-  --el-color-primary-light-9: #fbefeb;
-  --el-color-primary-dark-2: #d44333;
+  // 主色调：正宗中国红
+  --el-color-primary: #dc143c;
+  --el-color-primary-light-3: #e54363;
+  --el-color-primary-light-5: #ed728a;
+  --el-color-primary-light-7: #f5a1b1;
+  --el-color-primary-light-8: #f9c0c8;
+  --el-color-primary-light-9: #fde0e4;
+  --el-color-primary-dark-2: #c41236;
 
   // 辅助色：金黄
-  --el-color-success: #f39c12;
-  --el-color-warning: #f1c40f;
-  --el-color-danger: #e74c3c;
-  --el-color-info: #e67e22;
+  --el-color-success: #ffd700;
+  --el-color-warning: #ffed4e;
+  --el-color-danger: #dc143c;
+  --el-color-info: #ff8c00;
 
   // 背景色：深红调
   --el-bg-color: #1f0d0d;
@@ -66,63 +66,67 @@ html[data-skin="spring-festival"] {
   .lay-navbar {
     background: rgba(31, 13, 13, 0.8);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(243, 156, 18, 0.3);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
   }
 
   // 侧边栏春节风格
   .lay-sidebar {
     background: rgba(31, 13, 13, 0.9);
-    border-right: 1px solid rgba(243, 156, 18, 0.3);
+    border-right: 1px solid rgba(255, 215, 0, 0.3);
   }
 
   // 卡片春节风格
   .el-card {
     background: rgba(47, 26, 26, 0.8);
-    border: 1px solid rgba(243, 156, 18, 0.3);
-    box-shadow: 0 4px 16px rgba(243, 156, 18, 0.2);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.2);
   }
 
   // 按钮春节风格
   .el-button--primary {
-    background: linear-gradient(135deg, #e74c3c 0%, #eb6d5f 100%);
-    border-color: #e74c3c;
+    background: linear-gradient(135deg, #dc143c 0%, #e54363 100%);
+    border-color: #dc143c;
+    box-shadow: 0 4px 12px rgba(220, 20, 60, 0.3);
 
     &:hover {
-      background: linear-gradient(135deg, #eb6d5f 0%, #ef8e82 100%);
+      background: linear-gradient(135deg, #e54363 0%, #ed728a 100%);
+      box-shadow: 0 6px 16px rgba(220, 20, 60, 0.4);
     }
   }
 
   // 成功按钮：金黄色
   .el-button--success {
-    background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%);
-    border-color: #f39c12;
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    border-color: #ffd700;
     color: #1f0d0d;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
 
     &:hover {
-      background: linear-gradient(135deg, #f1c40f 0%, #f9e79f 100%);
+      background: linear-gradient(135deg, #ffed4e 0%, #fff9a3 100%);
+      box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
     }
   }
 
   // 标签春节风格
   .el-tag {
-    background: rgba(243, 156, 18, 0.2);
-    border-color: rgba(243, 156, 18, 0.4);
-    color: #f39c12;
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.4);
+    color: #ffd700;
   }
 
   // 输入框春节风格
   .el-input__wrapper {
     background: rgba(47, 26, 26, 0.6);
-    border: 1px solid rgba(243, 156, 18, 0.3);
-    box-shadow: 0 0 0 1px rgba(243, 156, 18, 0.1) inset;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.1) inset;
 
     &:hover {
-      border-color: rgba(243, 156, 18, 0.5);
+      border-color: rgba(255, 215, 0, 0.5);
     }
 
     &.is-focus {
-      border-color: #e74c3c;
-      box-shadow: 0 0 0 1px #e74c3c inset;
+      border-color: #dc143c;
+      box-shadow: 0 0 0 1px #dc143c inset;
     }
   }
 
@@ -137,17 +141,17 @@ html[data-skin="spring-festival"] {
     pointer-events: none;
     background-image: radial-gradient(
         circle at 20% 30%,
-        rgba(243, 156, 18, 0.1),
+        rgba(255, 215, 0, 0.12),
         transparent 50%
       ),
       radial-gradient(
         circle at 80% 70%,
-        rgba(231, 76, 60, 0.1),
+        rgba(220, 20, 60, 0.12),
         transparent 50%
       ),
       radial-gradient(
         circle at 50% 50%,
-        rgba(243, 156, 18, 0.05),
+        rgba(255, 215, 0, 0.08),
         transparent 50%
       );
     animation: glow 8s ease-in-out infinite;

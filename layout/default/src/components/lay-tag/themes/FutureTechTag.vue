@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * 未来科技主题标签组件
- * 基于通用 BaseTag，主要通过主题类名和样式实现科幻视觉效果
+ * 未来科技主题专属标签组件
+ * 霓虹光效风格
  */
-import BaseTag from "./BaseTag.vue";
+import BaseTag from './BaseTag.vue';
 </script>
 
 <template>
@@ -11,136 +11,81 @@ import BaseTag from "./BaseTag.vue";
 </template>
 
 <style lang="scss">
-html[data-skin="future-tech"],
-html.theme-future-tech {
-  .tags-view.future-tech-tag {
-    background: linear-gradient(
-      135deg,
-      rgba(5, 10, 31, 0.98),
-      rgba(10, 26, 58, 0.95)
-    ) !important;
-    border-bottom: 1px solid rgba(0, 255, 255, 0.45) !important;
-    box-shadow:
-      0 0 20px rgba(0, 255, 255, 0.3),
-      0 10px 40px rgba(0, 0, 0, 0.85) !important;
-    backdrop-filter: blur(18px);
+@use './default.scss';
+
+// 未来科技主题标签样式
+.future-tech-tag {
+  .scroll-item {
     position: relative;
-    overflow: hidden;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    box-shadow: 
+      0 0 10px rgba(0, 255, 255, 0.2),
+      inset 0 0 10px rgba(138, 43, 226, 0.1);
+    transition: all 0.3s ease;
 
-    // 网格背景
     &::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
-      background-size: 14px 14px;
-      opacity: 0.35;
-      pointer-events: none;
-    }
-
-    // 顶部扫描线
-    &::after {
-      content: "";
+      content: '';
       position: absolute;
       top: 0;
-      left: -40%;
-      width: 40%;
-      height: 2px;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(0, 255, 255, 0.9),
-        transparent
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(0, 255, 255, 0.3) 50%, 
+        transparent 100%
       );
-      animation: ft-tag-scan 3s linear infinite;
-    }
-  }
-
-  .tags-view.future-tech-tag .scroll-item {
-    position: relative;
-    background: linear-gradient(
-      135deg,
-      rgba(0, 255, 255, 0.05),
-      rgba(5, 10, 31, 0.9)
-    ) !important;
-    border-radius: 10px !important;
-    border: 1px solid rgba(0, 255, 255, 0.35) !important;
-    color: #e5ffff !important;
-    text-shadow: 0 0 6px rgba(0, 255, 255, 0.6);
-    box-shadow:
-      0 0 12px rgba(0, 255, 255, 0.3),
-      inset 0 0 8px rgba(0, 255, 255, 0.08) !important;
-    overflow: hidden;
-    backdrop-filter: blur(8px);
-
-    &::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(0, 255, 255, 0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 255, 255, 0.06) 1px, transparent 1px);
-      background-size: 10px 10px;
-      opacity: 0.25;
+      transform: translateX(-100%);
+      animation: neon-scan 3s ease-in-out infinite;
       pointer-events: none;
     }
-  }
 
-  .tags-view.future-tech-tag .scroll-item.is-active,
-  .tags-view.future-tech-tag .scroll-item.active {
-    background: linear-gradient(135deg, #00ffff, #4dfdfd) !important;
-    color: #050a1f !important;
-    border-color: rgba(0, 255, 255, 0.9) !important;
-    text-shadow: none;
-    box-shadow:
-      0 0 24px rgba(0, 255, 255, 0.6),
-      0 0 40px rgba(0, 255, 255, 0.35) !important;
-  }
+    &:hover {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(138, 43, 226, 0.2) 100%);
+      border-color: rgba(0, 255, 255, 0.6);
+      box-shadow: 
+        0 0 20px rgba(0, 255, 255, 0.4),
+        inset 0 0 15px rgba(138, 43, 226, 0.2);
+      transform: translateY(-2px);
+    }
 
-  .tags-view.future-tech-tag .tag-title {
-    position: relative;
-    z-index: 1;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
+    &.active {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.25) 0%, rgba(138, 43, 226, 0.25) 100%);
+      border-color: #00ffff;
+      box-shadow: 
+        0 0 25px rgba(0, 255, 255, 0.6),
+        inset 0 0 20px rgba(138, 43, 226, 0.3);
 
-  .tags-view.future-tech-tag .tag-icon {
-    color: inherit !important;
-    filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.8));
-  }
+      .tag-title {
+        color: #00ffff;
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+      }
+    }
 
-  .tags-view.future-tech-tag .el-icon-close,
-  .tags-view.future-tech-tag .chrome-close-btn {
-    color: inherit !important;
-    opacity: 0.85;
-    transition: all 0.2s ease;
-  }
+    .tag-title {
+      color: rgba(0, 255, 255, 0.9);
+      font-weight: 500;
+      text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+    }
 
-  .tags-view.future-tech-tag .el-icon-close:hover,
-  .tags-view.future-tech-tag .chrome-close-btn:hover {
-    transform: scale(1.1);
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.9);
-  }
-
-  .tags-view.future-tech-tag .arrow-left,
-  .tags-view.future-tech-tag .arrow-right {
-    background: rgba(5, 10, 31, 0.8) !important;
-    border: 1px solid rgba(0, 255, 255, 0.45) !important;
-    color: #00ffff !important;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+    .el-icon-close {
+      color: rgba(0, 255, 255, 0.7);
+      
+      &:hover {
+        color: #00ffff;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+      }
+    }
   }
 }
 
-@keyframes ft-tag-scan {
-  0% {
-    left: -40%;
+@keyframes neon-scan {
+  0%, 100% {
+    transform: translateX(-100%);
   }
-  100% {
-    left: 140%;
+  50% {
+    transform: translateX(100%);
   }
 }
 </style>
-
-
