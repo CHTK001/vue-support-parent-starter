@@ -555,7 +555,7 @@ watch(
 </script>
 
 <style lang="scss">
-@use "@/styles/mixins.scss" as *;
+// @use "@/styles/mixins.scss" as *;
 
 .sc-dialog {
   &.has-float-icon {
