@@ -26,3 +26,10 @@ export { viteBuildInfo } from "./info";
 
 // 共享 public 目录配置
 export { getSharedPublicConfig } from "./shared-public";
+
+// 标准配置创建器
+export {
+  createStandardViteConfig,
+  createViteConfig,
+  type StandardViteConfigOptions,
+} from "./standard-config";

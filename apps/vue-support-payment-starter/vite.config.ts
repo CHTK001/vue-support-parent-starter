@@ -1,32 +1,11 @@
-import { defineConfig } from 'vite';
-import vue from '@vitejs/plugin-vue';
-import { resolve } from 'path';
+import { createViteConfig } from "@repo/build-config";
+import pkg from "./package.json";
 
-export default defineConfig({
-  plugins: [vue()],
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-    },
-  },
-  server: {
-    port: 5174,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-    },
-  },
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'element-plus': ['element-plus'],
-        },
-      },
-    },
-  },
-});
+/**
+ * Vite 配置 - 支付系统
+ * 使用链式 API 简化配置
+ */
+export default createViteConfig(import.meta.url, pkg)
+  .port(5174)
+  .proxy("/api", "http://localhost:8080")
+  .build();
