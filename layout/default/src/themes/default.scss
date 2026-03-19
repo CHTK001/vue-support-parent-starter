@@ -441,8 +441,8 @@ html[data-skin="default"] {
   }
 }
 
-// 暗色模式
-html[data-skin="default"].dark {
+// 深色模式
+html.dark[data-skin="default"] {
   // 导航阴影 - 暗色模式
   .fixed-header {
     box-shadow: 

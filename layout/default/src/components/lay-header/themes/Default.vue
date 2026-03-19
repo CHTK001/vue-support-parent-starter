@@ -46,6 +46,17 @@ const set: setType = reactive({
 <style lang="scss" scoped>
 .header-container {
   position: relative;
-  background: var(--el-bg-color);
+  background: var(--dt-glass-bg-light);
+  backdrop-filter: var(--dt-glass-blur-light);
+  -webkit-backdrop-filter: var(--dt-glass-blur-light);
+  border-bottom: 1px solid var(--dt-glass-border-light);
+  transition: background var(--dt-transition-slow), border-color var(--dt-transition-slow);
+
+  html.dark & {
+    background: var(--dt-glass-bg-dark);
+    backdrop-filter: var(--dt-glass-blur-dark);
+    -webkit-backdrop-filter: var(--dt-glass-blur-dark);
+    border-bottom-color: var(--dt-glass-border-dark);
+  }
 }
 </style>

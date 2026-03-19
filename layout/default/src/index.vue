@@ -63,6 +63,8 @@ import LiteInspector from "./components/lay-dev-tools/LiteInspector.vue";
 import HeatmapOverlay from "./components/lay-dev-tools/HeatmapOverlay.vue";
 import FestivalLayer from "./components/lay-festival/index.vue";
 
+// 导入设计 token（全局 CSS 变量 --dt-xxxx，必须在 script 中引入才能全局生效）
+import "./styles/design-tokens.scss";
 // 导入设计 token 覆盖（Element Plus 圆角/间距/阴影统一）
 import "./styles/base-override.scss";
 // 导入主题皮肤样式

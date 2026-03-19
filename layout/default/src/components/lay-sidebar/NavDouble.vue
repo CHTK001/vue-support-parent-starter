@@ -301,7 +301,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                 class="absolute right-0 top-0 scale-75 origin-top-right"
               />
             </div>
-            <ScText v-if="!isCollapse" class="menu-label" :text="menu.meta?.title || menu.name || ''" />
+
           </el-menu-item>
         </el-menu>
       </el-scrollbar>
