@@ -10,10 +10,6 @@ const sectionComponent = BaseSection as any;
   <ThemeSectionShell
     theme="default"
     section="SettingToolbar"
-    kicker="Toolbar"
-    title="默认顶部工具栏"
-    description="时间、设置按钮和常用入口保持现代轻量风格，便于做统一回退。"
-    icon="ri:time-line"
   >
     <component :is="sectionComponent" v-bind="$attrs" />
   </ThemeSectionShell>

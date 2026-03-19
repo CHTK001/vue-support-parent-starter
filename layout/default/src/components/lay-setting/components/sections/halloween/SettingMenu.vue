@@ -10,11 +10,6 @@ const sectionComponent = BaseSection as any;
   <ThemeSectionShell
     theme="halloween"
     section="SettingMenu"
-    kicker="Spooky Menu"
-    title="万圣菜单状态"
-    description="菜单文本、hover 和激活态统一切到南瓜橙加暗紫底，避免出现文字浮不出来的情况。"
-    icon="ri:menu-fold-line"
-    motion="glitch"
   >
     <component :is="sectionComponent" v-bind="$attrs" />
   </ThemeSectionShell>

@@ -10,10 +10,6 @@ const sectionComponent = BaseSection as any;
   <ThemeSectionShell
     theme="8bit"
     section="SettingMenu"
-    kicker="Pixel Menu"
-    title="像素菜单状态"
-    description="菜单激活、徽标与动效统一收敛到复古像素块，避免出现半现代半像素的断层。"
-    icon="ri:menu-4-line"
   >
     <component :is="sectionComponent" v-bind="$attrs" />
   </ThemeSectionShell>
