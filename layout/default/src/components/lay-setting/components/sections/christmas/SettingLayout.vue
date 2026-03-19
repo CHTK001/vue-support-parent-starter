@@ -10,11 +10,6 @@ const sectionComponent = BaseSection as any;
   <ThemeSectionShell
     theme="christmas"
     section="SettingLayout"
-    kicker="Holiday Layout"
-    title="圣诞布局舞台"
-    description="导航背景、标题文字和激活状态统一拉开圣诞红绿对比，避免菜单层级发闷。"
-    icon="ri:layout-row-line"
-    motion="frost"
   >
     <component :is="sectionComponent" v-bind="$attrs" />
   </ThemeSectionShell>

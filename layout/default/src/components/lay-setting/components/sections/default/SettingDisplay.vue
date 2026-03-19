@@ -10,10 +10,6 @@ const sectionComponent = BaseSection as any;
   <ThemeSectionShell
     theme="default"
     section="SettingDisplay"
-    kicker="Base Display"
-    title="默认显示层设置"
-    description="页面显隐、面包屑、页脚和动画等展示项集中在标准显示层，方便所有主题共用同一组基础行为。"
-    icon="ri:focus-3-line"
   >
     <component :is="sectionComponent" v-bind="$attrs" />
   </ThemeSectionShell>
