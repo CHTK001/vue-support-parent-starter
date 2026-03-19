@@ -11,6 +11,10 @@ import DefaultNavbar from "./themes/Default.vue";
 // 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultNavbar,
+  '8bit': DefaultNavbar,
+  'spring-festival': DefaultNavbar,
+  'halloween': DefaultNavbar,
+  'christmas': DefaultNavbar,
   'future-tech': defineAsyncComponent(() => import("./themes/FutureTech.vue")),
 };
 

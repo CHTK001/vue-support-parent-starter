@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { monitorApi } from '../api/monitor';
+import { isApiSuccess } from '../api/sync';
 
 export const useMonitorStore = defineStore('monitor', () => {
   const realtimeData = ref<any>(null);
@@ -10,28 +11,28 @@ export const useMonitorStore = defineStore('monitor', () => {
 
   const fetchRealtimeData = async (taskId: number) => {
     const res = await monitorApi.getRealtimeData(taskId);
-    if (res.code === 200) {
+    if (isApiSuccess(res.code)) {
       realtimeData.value = res.data;
     }
   };
 
   const fetchMetrics = async (taskId: number, startTime: string, endTime: string) => {
     const res = await monitorApi.getMetrics(taskId, startTime, endTime);
-    if (res.code === 200) {
+    if (isApiSuccess(res.code)) {
       metrics.value = res.data;
     }
   };
 
   const fetchAlerts = async (taskId?: number, level?: string, resolved?: boolean) => {
     const res = await monitorApi.listAlerts(taskId, level, resolved);
-    if (res.code === 200) {
+    if (isApiSuccess(res.code)) {
       alerts.value = res.data || [];
     }
   };
 
   const resolveAlert = async (alertId: number) => {
     const res = await monitorApi.resolveAlert(alertId);
-    if (res.code === 200) {
+    if (isApiSuccess(res.code)) {
       alerts.value = alerts.value.map(a => 
         a.alertId === alertId ? { ...a, isResolved: 1 } : a
       );

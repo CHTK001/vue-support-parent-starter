@@ -1,27 +1,31 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import OrderList from '../views/OrderList.vue';
-import MerchantList from '../views/MerchantList.vue';
+import { createRouter, createWebHistory } from "vue-router";
+import MerchantList from "../views/MerchantList.vue";
+import OrderList from "../views/OrderList.vue";
+import TransactionList from "../views/TransactionList.vue";
 
 const routes = [
   {
-    path: '/',
-    redirect: '/orders',
+    path: "/",
+    redirect: "/merchants",
   },
   {
-    path: '/orders',
-    name: 'OrderList',
+    path: "/merchants",
+    name: "MerchantList",
+    component: MerchantList,
+  },
+  {
+    path: "/orders",
+    name: "OrderList",
     component: OrderList,
   },
   {
-    path: '/merchants',
-    name: 'MerchantList',
-    component: MerchantList,
+    path: "/transactions",
+    name: "TransactionList",
+    component: TransactionList,
   },
 ];
 
-const router = createRouter({
+export default createRouter({
   history: createWebHistory(),
   routes,
 });
-
-export default router;

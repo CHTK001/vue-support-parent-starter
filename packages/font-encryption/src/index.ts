@@ -79,7 +79,6 @@ export async function registerEncryptedFonts(): Promise<void> {
 
     // URL 有效性检查：Vite import 在某些环境下可能返回 undefined 或空字符串
     if (!first.url || !second.url) {
-      console.debug("[font-encryption] 字体 URL 无效，跳过注册");
       return;
     }
 
@@ -115,17 +114,17 @@ export async function registerEncryptedFonts(): Promise<void> {
     if (results[0].status === "fulfilled") {
       document.fonts.add(primaryFace);
     } else {
-      console.debug("[font-encryption] 主字体加载失败:", results[0].reason);
+      // ignore optional encrypted font failures
     }
 
     if (results[1].status === "fulfilled") {
       document.fonts.add(secondaryFace);
     } else {
-      console.debug("[font-encryption] 备用字体加载失败:", results[1].reason);
+      // ignore optional encrypted font failures
     }
   } catch (error) {
     // 字体注册失败时仅记录 debug 日志，不阻断应用
-    console.debug("[font-encryption] 注册加密字体失败:", error);
+    void error;
   }
 }
 

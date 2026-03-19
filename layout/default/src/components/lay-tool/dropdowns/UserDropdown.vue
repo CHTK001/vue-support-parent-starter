@@ -21,6 +21,34 @@ const gotoAccountSetting = () => {
     trigger="click"
     class="user-dropdown"
     popper-class="user-dropdown-popper"
+    placement="bottom-end"
+    :popper-options="{
+      strategy: 'fixed',
+      modifiers: [
+        {
+          name: 'preventOverflow',
+          options: {
+            boundary: 'viewport',
+            padding: 16,
+            altAxis: true,
+            tether: false
+          }
+        },
+        {
+          name: 'flip',
+          options: {
+            fallbackPlacements: ['bottom-start', 'top-end', 'top-start'],
+            padding: 16
+          }
+        },
+        {
+          name: 'offset',
+          options: {
+            offset: [0, 8]
+          }
+        }
+      ]
+    }"
   >
     <div class="user-trigger">
       <div class="avatar-container">

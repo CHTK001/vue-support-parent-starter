@@ -1,5 +1,11 @@
 <script setup lang="ts">
 // 工具栏统一 tooltip + icon 封装组件
+import { useAttrs } from "vue";
+
+defineOptions({
+  inheritAttrs: false,
+});
+
 defineProps<{
   tooltip?: string;       // tooltip 文字
   tooltipPlacement?: string; // tooltip 位置，默认 bottom
@@ -11,6 +17,8 @@ defineProps<{
 defineEmits<{
   click: [event: MouseEvent];
 }>();
+
+const attrs = useAttrs();
 </script>
 
 <template>
@@ -22,6 +30,7 @@ defineEmits<{
     :hide-after="0"
   >
     <span
+      v-bind="attrs"
       :class="['tool-item', { 'tool-item--active': active, 'tool-item--disabled': disabled }]"
       :aria-label="ariaLabel || tooltip"
       :aria-disabled="disabled"
@@ -36,6 +45,7 @@ defineEmits<{
   </el-tooltip>
   <span
     v-else
+    v-bind="attrs"
     :class="['tool-item', { 'tool-item--active': active, 'tool-item--disabled': disabled }]"
     :aria-label="ariaLabel"
     :aria-disabled="disabled"

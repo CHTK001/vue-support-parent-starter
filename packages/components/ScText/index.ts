@@ -9,4 +9,10 @@ import ScText from "./src/index.vue";
 
 export default ScText;
 export { ScText };
-export type { ScTextProps, ScTextType, ScTextSize, ScTextEffect } from "./src/types";
+export type {
+  ScTextProps,
+  ScTextType,
+  ScTextSize,
+  ScTextEffect,
+  ScTextThemeMotion,
+} from "./src/types";

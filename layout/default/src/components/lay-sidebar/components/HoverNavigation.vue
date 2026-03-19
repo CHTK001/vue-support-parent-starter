@@ -1865,7 +1865,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 @use "sass:color";
 
 // ==================== 春节主题样式 ====================
-html[data-skin="spring-festival"] {
+html[data-skin="spring-festival"],
+html.theme-spring-festival {
   $spring-red: #dc143c;
   $spring-red-dark: #b22222;
   $spring-gold: #ffd700;
@@ -2036,6 +2037,207 @@ html[data-skin="spring-festival"] {
         p {
           color: $spring-gold !important;
         }
+      }
+    }
+  }
+}
+
+// ==================== 万圣节主题样式 ====================
+html[data-skin="halloween"],
+html.theme-halloween {
+  $hall-bg: #2a012f;
+  $hall-bg-deep: #18001d;
+  $hall-orange: #ff9c42;
+  $hall-orange-strong: #ff7518;
+  $hall-lime: #a8ff60;
+  $hall-border: rgba(255, 117, 24, 0.35);
+
+  .sidebar-hover-container {
+    background: linear-gradient(180deg, rgba($hall-bg, 0.98), rgba($hall-bg-deep, 0.98)) !important;
+    border-right: 2px solid $hall-border !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32) !important;
+
+    .sidebar-logo-container {
+      background: linear-gradient(180deg, rgba(53, 0, 62, 0.95), rgba(28, 0, 36, 0.92)) !important;
+      border-bottom: 1px solid rgba($hall-orange, 0.22) !important;
+
+      .sidebar-title {
+        color: $hall-orange !important;
+        font-family: "Creepster", "Nosifer", "Segoe UI", sans-serif;
+      }
+    }
+
+    .first-level-menu-item {
+      color: $hall-orange !important;
+      border: 1px solid rgba($hall-orange, 0.2) !important;
+      background: linear-gradient(135deg, rgba(58, 5, 69, 0.72), rgba(31, 0, 36, 0.7)) !important;
+
+      .menu-icon,
+      .menu-title {
+        color: $hall-orange !important;
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(255, 117, 24, 0.2), rgba(60, 0, 74, 0.52)) !important;
+        border-color: rgba($hall-orange-strong, 0.42) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: $hall-lime !important;
+        }
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, rgba(255, 117, 24, 0.96), rgba(255, 171, 64, 0.9)) !important;
+        border: 1px solid rgba(42, 1, 47, 0.22) !important;
+        box-shadow: 0 8px 18px -12px rgba(255, 117, 24, 0.58) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: #240014 !important;
+        }
+      }
+    }
+
+    .hover-collapse-btn,
+    .sidebar-collapse-btn {
+      background: linear-gradient(180deg, rgba(53, 0, 62, 0.95), rgba(28, 0, 36, 0.92)) !important;
+      border-top: 1px solid rgba($hall-orange, 0.22) !important;
+
+      .collapse-icon,
+      .sidebar-collapse-icon,
+      .collapse-text {
+        color: $hall-orange !important;
+      }
+    }
+  }
+
+  .sub-menu-popup .sub-menu-container {
+    background: linear-gradient(180deg, rgba($hall-bg, 0.98), rgba($hall-bg-deep, 0.98)) !important;
+    border: 2px solid rgba($hall-orange, 0.32) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.42) !important;
+
+    .column-title {
+      color: $hall-orange !important;
+      border-bottom: 1px solid rgba($hall-orange, 0.22) !important;
+    }
+
+    .menu-item,
+    .favorite-menu-item {
+      background: linear-gradient(135deg, rgba(58, 5, 69, 0.72), rgba(31, 0, 36, 0.7)) !important;
+      border: 1px solid rgba($hall-orange, 0.18) !important;
+      color: $hall-orange !important;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(255, 117, 24, 0.2), rgba(60, 0, 74, 0.52)) !important;
+        border-color: rgba($hall-orange-strong, 0.42) !important;
+        color: $hall-lime !important;
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, rgba(255, 117, 24, 0.96), rgba(255, 171, 64, 0.9)) !important;
+        color: #240014 !important;
+      }
+    }
+  }
+}
+
+// ==================== 未来科技主题样式 ====================
+html[data-skin="future-tech"],
+html.theme-future-tech {
+  $ft-panel: #102818;
+  $ft-panel-deep: #07180f;
+  $ft-gold: #f2d07a;
+  $ft-gold-strong: #ffefb5;
+  $ft-green: #6aa576;
+  $ft-border: rgba(106, 165, 118, 0.28);
+
+  .sidebar-hover-container {
+    background: linear-gradient(180deg, rgba($ft-panel, 0.98), rgba($ft-panel-deep, 0.98)) !important;
+    border-right: 2px solid $ft-border !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.36) !important;
+
+    .sidebar-logo-container {
+      background: linear-gradient(180deg, rgba(17, 42, 27, 0.95), rgba(8, 23, 14, 0.92)) !important;
+      border-bottom: 1px solid rgba($ft-green, 0.2) !important;
+
+      .sidebar-title {
+        color: $ft-gold !important;
+        font-family: "Rajdhani", "Orbitron", "Consolas", sans-serif;
+        letter-spacing: 0.06em;
+      }
+    }
+
+    .first-level-menu-item {
+      color: $ft-gold !important;
+      border: 1px solid rgba($ft-green, 0.18) !important;
+      background: linear-gradient(135deg, rgba(18, 47, 29, 0.78), rgba(8, 23, 14, 0.74)) !important;
+
+      .menu-icon,
+      .menu-title {
+        color: $ft-gold !important;
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(31, 78, 47, 0.82), rgba(11, 29, 18, 0.78)) !important;
+        border-color: rgba($ft-gold, 0.24) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: $ft-gold-strong !important;
+        }
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, rgba(242, 208, 122, 0.98), rgba(208, 175, 92, 0.88)) !important;
+        border: 1px solid rgba(16, 40, 24, 0.18) !important;
+        box-shadow: 0 10px 20px -14px rgba(242, 208, 122, 0.5) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: #102818 !important;
+        }
+      }
+    }
+
+    .hover-collapse-btn,
+    .sidebar-collapse-btn {
+      background: linear-gradient(180deg, rgba(17, 42, 27, 0.95), rgba(8, 23, 14, 0.92)) !important;
+      border-top: 1px solid rgba($ft-green, 0.2) !important;
+
+      .collapse-icon,
+      .sidebar-collapse-icon,
+      .collapse-text {
+        color: $ft-gold !important;
+      }
+    }
+  }
+
+  .sub-menu-popup .sub-menu-container {
+    background: linear-gradient(180deg, rgba($ft-panel, 0.98), rgba($ft-panel-deep, 0.98)) !important;
+    border: 2px solid rgba($ft-green, 0.3) !important;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.46) !important;
+
+    .column-title {
+      color: $ft-gold !important;
+      border-bottom: 1px solid rgba($ft-green, 0.18) !important;
+    }
+
+    .menu-item,
+    .favorite-menu-item {
+      background: linear-gradient(135deg, rgba(18, 47, 29, 0.78), rgba(8, 23, 14, 0.74)) !important;
+      border: 1px solid rgba($ft-green, 0.18) !important;
+      color: $ft-gold !important;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(31, 78, 47, 0.82), rgba(11, 29, 18, 0.78)) !important;
+        border-color: rgba($ft-gold, 0.24) !important;
+        color: $ft-gold-strong !important;
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, rgba(242, 208, 122, 0.98), rgba(208, 175, 92, 0.88)) !important;
+        color: #102818 !important;
       }
     }
   }

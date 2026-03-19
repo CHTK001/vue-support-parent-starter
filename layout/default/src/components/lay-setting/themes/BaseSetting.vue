@@ -24,15 +24,7 @@ import { http, message, type ReturnResult } from "@repo/utils";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useTheme } from "../../../hooks/useThemeComponent";
 import { useThemeStore } from "../../../stores/themeStore";
-import SettingTheme from "./components/SettingTheme.vue";
-import SettingLayout from "./components/SettingLayout.vue";
-import SettingDisplay from "./components/SettingDisplay.vue";
-import SettingMenu from "./components/SettingMenu.vue";
-import SettingTabs from "./components/SettingTabs.vue";
-import SettingToolbar from "./components/SettingToolbar.vue";
-import SettingMessage from "./components/SettingMessage.vue";
-import SettingAiChat from "./components/SettingAiChat.vue";
-import SettingAdvanced from "./components/SettingAdvanced.vue";
+import { getThemeComponents } from "../components";
 
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
 import DayIcon from "@repo/assets/svg/day.svg?component";
@@ -73,6 +65,10 @@ const {
   performanceMonitorDirection,
   isPerformanceMonitorVisible,
 } = useTheme();
+
+const themeSectionComponents = computed(() =>
+  getThemeComponents(themeStore.currentTheme),
+);
 
 // 预览数据
 
@@ -1457,7 +1453,8 @@ onUnmounted(() => {
       </template>
       <div class="lay-setting modern-setting-container">
         <!-- 主题设置（风格/主题色/动画/皮肤/加载动画） -->
-        <SettingTheme
+        <component
+          :is="themeSectionComponents.SettingTheme"
           :settings="settings"
           :is-dark="isDark"
           :data-theme="dataTheme"
@@ -1476,7 +1473,8 @@ onUnmounted(() => {
         />
 
         <!-- 布局模式设置区域 -->
-        <SettingLayout
+        <component
+          :is="themeSectionComponents.SettingLayout"
           :settings="settings"
           :layout-theme="layoutTheme"
           :device="device"
@@ -1500,7 +1498,8 @@ onUnmounted(() => {
         />
 
         <!-- 标签页样式设置区域 - 非默认主题下隐藏（节日主题优先级大于页签风格） -->
-        <SettingTabs
+        <component
+          :is="themeSectionComponents.SettingTabs"
           :settings="settings"
           :is-non-default-theme="isNonDefaultTheme"
           :mark-value="markValue"
@@ -1511,7 +1510,8 @@ onUnmounted(() => {
         />
 
         <!-- 顶部工具栏配置区域 -->
-        <SettingToolbar
+        <component
+          :is="themeSectionComponents.SettingToolbar"
           :settings="settings"
           :show-search-change="showSearchChange"
           :show-fullscreen-change="showFullscreenChange"
@@ -1521,7 +1521,8 @@ onUnmounted(() => {
         />
 
         <!-- 界面显示设置区域 -->
-        <SettingDisplay
+        <component
+          :is="themeSectionComponents.SettingDisplay"
           :settings="settings"
           :logo-val="logoVal"
           :card-body-val="cardBodyVal"
@@ -1544,7 +1545,8 @@ onUnmounted(() => {
         />
 
         <!-- 菜单设置区域 -->
-        <SettingMenu
+        <component
+          :is="themeSectionComponents.SettingMenu"
           :settings="settings"
           :transition-type-options="transitionTypeOptions"
           :menu-animation-change="menuAnimationChange"
@@ -1556,7 +1558,8 @@ onUnmounted(() => {
         />
 
         <!-- 消息配置区域 -->
-        <SettingMessage
+        <component
+          :is="themeSectionComponents.SettingMessage"
           :settings="settings"
           :is-development="isDevelopment"
           :is-test="isTest"
@@ -1566,7 +1569,8 @@ onUnmounted(() => {
         />
 
         <!-- AI 设置区域 -->
-        <SettingAiChat
+        <component
+          :is="themeSectionComponents.SettingAiChat"
           :settings="settings"
           :show-ai-chat="getConfig().ShowAiChat !== false"
           :ai-chat-enabled-change="aiChatEnabledChange"
@@ -1579,7 +1583,8 @@ onUnmounted(() => {
         />
 
         <!-- 高级设置区域 -->
-        <SettingAdvanced
+        <component
+          :is="themeSectionComponents.SettingAdvanced"
           :settings="settings"
           :is-development="isDevelopment"
           :is-test="isTest"

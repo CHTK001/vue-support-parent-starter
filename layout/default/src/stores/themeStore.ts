@@ -194,6 +194,8 @@ export const useThemeStore = defineStore("theme", () => {
     const htmlEl = document.documentElement;
 
     // 更新 data-skin，用于组件主题系统
+    htmlEl.setAttribute("data-skin", normalizedThemeKey);
+
     if (normalizedThemeKey === "default") {
       // 切回默认主题时，移除 8bit / PixelUI 相关标记与样式，避免残留
       htmlEl.removeAttribute("data-skin");
@@ -210,7 +212,6 @@ export const useThemeStore = defineStore("theme", () => {
           linkEl.remove();
         }
       });
-    } else {
       htmlEl.setAttribute("data-skin", normalizedThemeKey);
     }
 
@@ -298,6 +299,7 @@ export const useThemeStore = defineStore("theme", () => {
 
     // 移除所有主题类
     const themeClasses = [
+      "theme-default",
       "theme-christmas",
       "theme-spring-festival",
       "theme-valentines-day",
@@ -312,9 +314,7 @@ export const useThemeStore = defineStore("theme", () => {
     themeClasses.forEach((cls) => htmlEl.classList.remove(cls));
 
     // 添加新主题类
-    if (themeKey !== "default") {
-      htmlEl.classList.add(`theme-${themeKey}`);
-    }
+    htmlEl.classList.add(`theme-${themeKey}`);
   }
 
   /**
@@ -336,6 +336,11 @@ export const useThemeStore = defineStore("theme", () => {
     if (normalizedDomTheme && normalizedDomTheme !== currentTheme.value) {
       currentTheme.value = normalizedDomTheme;
     }
+
+    const htmlEl = document.documentElement;
+    htmlEl.setAttribute("data-skin", currentTheme.value);
+    updateThemeClass(currentTheme.value);
+    loadThemeStylesheet(currentTheme.value);
 
     // 初始化时加载当前主题的字体 CSS
     loadThemeFont(currentTheme.value);

@@ -16,18 +16,19 @@
   },
   "dependencies": {
     "@layout/default": "workspace:^",
+    "@pureadmin/utils": "catalog:",
     "@repo/app-root": "workspace:^",
     "@repo/assets": "workspace:^",
     "@repo/core": "workspace:^",
     "@repo/plugins": "workspace:^",
-    "@pureadmin/utils": "catalog:",
     "axios": "catalog:",
+    "element-plus": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
-    "vue-router": "catalog:",
-    "element-plus": "catalog:"
+    "vue-router": "catalog:"
   },
   "devDependencies": {
+    "@playwright/test": "catalog:",
     "@repo/build-config": "workspace:^",
     "@types/node": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
@@ -50,4 +51,3 @@
     "pnpm": ">=9"
   }
 }
-

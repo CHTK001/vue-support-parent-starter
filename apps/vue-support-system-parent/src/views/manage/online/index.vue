@@ -387,29 +387,37 @@ const getOsIcon = (os: string) => {
 const getLoginTypeTag = (
   type: string,
 ): "primary" | "success" | "warning" | "info" | "danger" => {
+  const normalized = (type || "").toLowerCase();
   const types: Record<
     string,
     "primary" | "success" | "warning" | "info" | "danger"
   > = {
+    web: "primary",
     password: "primary",
     sms: "success",
+    tenant: "warning",
+    static: "warning",
     wechat: "warning",
     third: "info",
   };
-  return types[type] || "info";
+  return types[normalized] || "info";
 };
 
 /**
  * 获取登录方式标签
  */
 const getLoginTypeLabel = (type: string) => {
+  const normalized = (type || "").toLowerCase();
   const labels: Record<string, string> = {
+    web: "密码",
     password: "密码",
     sms: "短信",
+    tenant: "租户",
+    static: "静态",
     wechat: "微信",
     third: "第三方",
   };
-  return labels[type] || type || "未知";
+  return labels[normalized] || type || "未知";
 };
 
 // 组件挂载时加载数据

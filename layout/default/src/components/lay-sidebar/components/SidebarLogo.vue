@@ -137,6 +137,7 @@ const envBadgeClass = computed(() => {
   width: 100%;
   height: 48px;
   overflow: hidden;
+  background: transparent; // 默认透明，继承父容器背景
 
   .sidebar-logo-link {
     display: flex;
@@ -254,18 +255,100 @@ const envBadgeClass = computed(() => {
   }
 }
 
-// 万圣节主题适配
+// 万圣节主题适配 - 使用更高优先级
 :global(html[data-skin="halloween"]) {
-  .sidebar-logo-container {
+  .sidebar-logo-container.sidebar-logo-container {
+    background: linear-gradient(135deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.9)) !important;
+
+    .sidebar-logo-link {
+      background: linear-gradient(135deg, rgba(44, 0, 62, 0.22), rgba(26, 0, 38, 0.08)) !important;
+      border-bottom: 1px solid rgba(255, 117, 24, 0.18) !important;
+    }
+
+    img {
+      filter: drop-shadow(0 4px 12px rgba(255, 117, 24, 0.32)) !important;
+    }
+
     .sidebar-title {
       color: #ff7518 !important; // 南瓜橙
       font-family: 'Creepster', 'cursive', sans-serif;
       text-shadow: 0 0 5px rgba(255, 117, 24, 0.3);
     }
-    
+
     // 暗黑模式下微调
     &:global(.dark) .sidebar-title {
       color: #d86b15 !important; // 暗一点的橙色
+      text-shadow: none;
+    }
+  }
+}
+
+// 确保万圣节主题下 Logo 容器有背景
+:global(html[data-skin="halloween"] .sidebar-logo-container) {
+  background: linear-gradient(135deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.9)) !important;
+}
+
+:global(html[data-skin="spring-festival"]),
+:global(html.theme-spring-festival) {
+  .sidebar-logo-container {
+    background: linear-gradient(135deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+
+    .sidebar-logo-link {
+      background: linear-gradient(135deg, rgba(124, 0, 20, 0.22), rgba(74, 0, 12, 0.08));
+      border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    img {
+      filter: drop-shadow(0 4px 12px rgba(255, 215, 0, 0.28));
+    }
+
+    .sidebar-title {
+      color: #f5d57a !important;
+      font-family: "STZhongsong", "STKaiti", "KaiTi", serif;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.16);
+    }
+  }
+}
+
+:global(html[data-skin="christmas"]),
+:global(html.theme-christmas) {
+  .sidebar-logo-container {
+    background: linear-gradient(135deg, rgba(27, 94, 32, 0.95), rgba(13, 61, 18, 0.9)) !important;
+
+    .sidebar-logo-link {
+      background: linear-gradient(135deg, rgba(14, 67, 34, 0.22), rgba(8, 34, 18, 0.08));
+      border-bottom: 1px solid rgba(255, 215, 0, 0.18);
+    }
+
+    img {
+      filter: drop-shadow(0 4px 12px rgba(255, 215, 0, 0.24));
+    }
+
+    .sidebar-title {
+      color: #f7de9a !important;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.14);
+    }
+  }
+}
+
+:global(html[data-skin="future-tech"]),
+:global(html.theme-future-tech) {
+  .sidebar-logo-container {
+    background: linear-gradient(135deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
+
+    .sidebar-logo-link {
+      background: linear-gradient(135deg, rgba(15, 37, 24, 0.22), rgba(7, 18, 12, 0.08));
+      border-bottom: 1px solid rgba(105, 164, 117, 0.18);
+    }
+
+    img {
+      filter: drop-shadow(0 4px 12px rgba(242, 208, 122, 0.22));
+    }
+
+    .sidebar-title {
+      color: #f2d07a !important;
+      font-family: "Rajdhani", "Orbitron", "Consolas", sans-serif;
+      letter-spacing: 0.06em;
       text-shadow: none;
     }
   }

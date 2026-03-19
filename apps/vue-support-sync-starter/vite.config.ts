@@ -50,6 +50,8 @@ const wrapperEnv = (envConf: Record<string, string>): any => {
     VITE_COMPRESSION: "none",
     VITE_API_PREFIX: "",
     VITE_API_URL: "",
+    VITE_PROXY_TARGET: "http://127.0.0.1:8080",
+    VITE_PROXY_REWRITE: "",
   };
 
   for (const envName of Object.keys(envConf)) {
@@ -99,7 +101,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
   const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
-  const { VITE_PORT, VITE_PUBLIC_PATH } = wrapperEnv(env);
+  const { VITE_PORT, VITE_PUBLIC_PATH, VITE_PROXY_TARGET, VITE_PROXY_REWRITE } =
+    wrapperEnv(env);
 
   return {
     base: VITE_PUBLIC_PATH || "/",
@@ -115,8 +118,12 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       host: "0.0.0.0",
       proxy: {
         "/api": {
-          target: "http://127.0.0.1:8080",
+          target: VITE_PROXY_TARGET,
           changeOrigin: true,
+          cookiePathRewrite: "/",
+          rewrite: VITE_PROXY_REWRITE
+            ? path => path.replace(/^\/api/, VITE_PROXY_REWRITE)
+            : undefined,
         },
       },
     },

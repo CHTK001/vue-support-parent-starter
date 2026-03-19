@@ -44,15 +44,20 @@ const currentTheme = ref<string>(
 
 // 主题类名映射
 const themeClassMap: Record<string, string> = {
-  'christmas': 'theme-christmas',
-  'spring-festival': 'theme-spring-festival',
-  'mid-autumn': 'theme-mid-autumn',
-  'default': 'theme-default',
-  'default-light': 'theme-default',
-  'default-dark': 'theme-default',
+  christmas: "theme-christmas",
+  "spring-festival": "theme-spring-festival",
+  halloween: "theme-halloween",
+  "future-tech": "theme-future-tech",
+  "8bit": "theme-8bit",
+  "mid-autumn": "theme-mid-autumn",
+  default: "theme-default",
+  "default-light": "theme-default",
+  "default-dark": "theme-default",
 };
 
-const themeClass = computed(() => themeClassMap[currentTheme.value] || 'theme-default');
+const themeClass = computed(
+  () => themeClassMap[currentTheme.value] || "theme-default",
+);
 
 onMounted(() => {
   emitter.on('systemThemeChange', (themeKey: string) => {
@@ -356,23 +361,143 @@ onBeforeUnmount(() => {
 }
 
 // ==================== 圣诞主题 ====================
-.theme-christmas {
+.sidebar-menu-item.theme-christmas {
+  color: rgba(255, 248, 232, 0.92) !important;
+
+  .menu-text {
+    color: inherit !important;
+    font-weight: 600;
+  }
+
+  &:hover {
+    color: #ffe18a !important;
+    background: linear-gradient(135deg, rgba(196, 30, 58, 0.36), rgba(17, 70, 28, 0.2)) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 215, 0, 0.22);
+  }
+
   &.is-active {
-    // 圣诞树装饰在 ThemeMenuActiveIndicator 中实现
+    color: #fffdf6 !important;
+    background: linear-gradient(135deg, rgba(196, 30, 58, 0.92), rgba(145, 22, 44, 0.84)) !important;
+    box-shadow:
+      0 10px 24px -18px rgba(196, 30, 58, 0.72),
+      inset 0 0 0 1px rgba(255, 225, 138, 0.5);
+
+    .menu-text {
+      color: #fffdf6 !important;
+    }
+  }
+}
+
+.sidebar-sub-menu.theme-christmas {
+  :deep(.el-sub-menu__title) {
+    color: rgba(255, 248, 232, 0.92) !important;
+    font-weight: 600;
+  }
+
+  :deep(.el-sub-menu__title:hover) {
+    color: #ffe18a !important;
+    background: linear-gradient(135deg, rgba(196, 30, 58, 0.34), rgba(17, 70, 28, 0.18)) !important;
+  }
+
+  &.is-active :deep(.el-sub-menu__title) {
+    color: #fffdf6 !important;
+    background: linear-gradient(135deg, rgba(196, 30, 58, 0.88), rgba(145, 22, 44, 0.8)) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 225, 138, 0.45);
   }
 }
 
 // ==================== 春节主题 ====================
-.theme-spring-festival {
+.sidebar-menu-item.theme-spring-festival {
+  color: rgba(255, 223, 122, 0.96) !important;
+
+  .menu-text {
+    color: inherit !important;
+    font-weight: 700;
+    font-family: "STZhongsong", "STKaiti", "KaiTi", serif;
+  }
+
+  &:hover {
+    color: #fff4d0 !important;
+    background: linear-gradient(135deg, rgba(200, 16, 46, 0.4), rgba(122, 0, 22, 0.28)) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 215, 0, 0.22);
+  }
+
   &.is-active {
-    // 灯笼装饰在 ThemeMenuActiveIndicator 中实现
+    color: #7a0016 !important;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.98), rgba(240, 176, 0, 0.88)) !important;
+    box-shadow:
+      0 10px 24px -18px rgba(255, 215, 0, 0.9),
+      inset 0 0 0 1px rgba(140, 0, 0, 0.18);
+
+    .menu-text {
+      color: #7a0016 !important;
+    }
   }
 }
 
-// ==================== 中秋主题 ====================
-.theme-mid-autumn {
+.sidebar-sub-menu.theme-spring-festival {
+  :deep(.el-sub-menu__title) {
+    color: rgba(255, 223, 122, 0.96) !important;
+    font-weight: 700;
+    font-family: "STZhongsong", "STKaiti", "KaiTi", serif;
+  }
+
+  :deep(.el-sub-menu__title:hover) {
+    color: #fff4d0 !important;
+    background: linear-gradient(135deg, rgba(200, 16, 46, 0.38), rgba(122, 0, 22, 0.24)) !important;
+  }
+
+  &.is-active :deep(.el-sub-menu__title) {
+    color: #7a0016 !important;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.98), rgba(240, 176, 0, 0.88)) !important;
+    box-shadow: inset 0 0 0 1px rgba(140, 0, 0, 0.18);
+  }
+}
+
+// ==================== 万圣主题 ====================
+.sidebar-menu-item.theme-halloween {
+  color: rgba(255, 181, 102, 0.96) !important;
+
+  .menu-text {
+    color: inherit !important;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  &:hover {
+    color: #fff3de !important;
+    background: linear-gradient(135deg, rgba(255, 117, 24, 0.22), rgba(44, 0, 62, 0.46)) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 117, 24, 0.26);
+  }
+
   &.is-active {
-    // 月亮装饰在 ThemeMenuActiveIndicator 中实现
+    color: #1a001f !important;
+    background: linear-gradient(135deg, rgba(255, 117, 24, 0.98), rgba(255, 171, 64, 0.9)) !important;
+    box-shadow:
+      0 10px 24px -18px rgba(255, 117, 24, 0.86),
+      inset 0 0 0 1px rgba(26, 0, 38, 0.16);
+
+    .menu-text {
+      color: #1a001f !important;
+    }
+  }
+}
+
+.sidebar-sub-menu.theme-halloween {
+  :deep(.el-sub-menu__title) {
+    color: rgba(255, 181, 102, 0.96) !important;
+    font-weight: 600;
+  }
+
+  :deep(.el-sub-menu__title:hover) {
+    color: #fff3de !important;
+    background: linear-gradient(135deg, rgba(255, 117, 24, 0.2), rgba(44, 0, 62, 0.44)) !important;
+  }
+
+  &.is-active :deep(.el-sub-menu__title) {
+    color: #1a001f !important;
+    background: linear-gradient(135deg, rgba(255, 117, 24, 0.98), rgba(255, 171, 64, 0.9)) !important;
+    box-shadow: inset 0 0 0 1px rgba(26, 0, 38, 0.16);
   }
 }
 </style>

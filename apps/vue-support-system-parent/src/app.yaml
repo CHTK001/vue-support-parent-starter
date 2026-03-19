@@ -38,8 +38,23 @@ OpenAuth: true
 OpenTenantLogin: false
 # 是否开启基础登录（默认: true）
 OpenBaseLogin: true
+# 是否开启短信登录（默认: false）
+OpenSmsLogin: true
 # 是否开启刷新token（默认: false）
 OpenShowRefreshToken: true
+# 是否显示开发态静态登录入口（仅 development/test 生效）
+ShowStaticLoginEntry: true
+# 开发态静态登录默认跳转路由
+StaticLoginPath: /home
+# 开发态静态登录默认用户名
+StaticLoginUsername: sso
+# 开发态静态登录默认昵称
+StaticLoginNickname: 开发测试账号
+# 开发态静态登录默认角色
+StaticLoginRoles:
+  - ADMIN
+# 开发态静态登录默认 accessToken
+StaticLoginAccessToken: eyJhbGciOiJIUzUxMiJ9.admin
 # 配置加载失败时是否保持加载页面（默认: false，失败后继续进入应用）
 # BlockOnConfigLoadFail: false
 # 是否显示错误页面风格切换按钮（默认: false）
@@ -270,7 +285,7 @@ wasmEnable: true
 # 登录页面主题配置
 # ===========================================
 # 默认登录主题
-# 可选值: modern(现代简约), tech(科技未来), business(商务专业), random(随机)
+# 可选值: modern(现代简约), tech(科技未来), pixel(像素风), random(随机)
 # 节日主题: new-year(元旦), spring-festival(春节), valentines-day(情人节),
 #           mid-autumn(中秋), national-day(国庆), christmas(圣诞)
 LoginTheme: modern

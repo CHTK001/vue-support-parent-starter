@@ -5,8 +5,15 @@ import yaml from "js-yaml";
 
 let config: Record<string, any> = {};
 let configGroup: Record<string, any> = {};
-const setConfig = (cfg?: unknown) => {
-  config = Object.assign(config, cfg);
+const setConfig = (cfg?: unknown, value?: unknown) => {
+  if (typeof cfg === "string") {
+    config[cfg] = value;
+    return;
+  }
+
+  if (cfg && typeof cfg === "object") {
+    config = Object.assign(config, cfg);
+  }
 };
 
 const putConfig = (key: string, value: any) => {
@@ -36,11 +43,11 @@ const getConfigGroup = (groupName?: string): PlatformConfigs | any => {
 
 /** 设置配置组 */
 const setConfigGroup = (groupName: string, key: string, value: object) => {
-  if (!configGroup[key]) {
-    configGroup[key] = {};
+  if (!configGroup[groupName]) {
+    configGroup[groupName] = {};
   }
   configGroup[groupName][key] = value;
-  setConfig({ key: value });
+  setConfig({ [key]: value });
 };
 
 /** 获取配置 */

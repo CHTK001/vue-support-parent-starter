@@ -11,6 +11,7 @@ import DefaultHeader from "./themes/Default.vue";
 // 主题组件映射 - 默认主题静态导入，节日主题懒加载
 const themeComponents = {
   'default': DefaultHeader,
+  '8bit': DefaultHeader,
   'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestivalHeader.vue")),
   'halloween': defineAsyncComponent(() => import("./themes/HalloweenHeader.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/ChristmasHeader.vue")),

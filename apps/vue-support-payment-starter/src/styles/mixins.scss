@@ -1,0 +1,58 @@
+@use "./variables.scss" as *;
+@forward "./variables";
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-align-center {
+  display: flex;
+  align-items: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-ellipsis-multiline($lines: 2) {
+  display: -webkit-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+}
+
+@mixin card-base {
+  border: 1px solid $border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  transition: all $duration-normal $ease-standard;
+}
+
+@mixin card-hover {
+  &:hover {
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+  }
+}
+
+@mixin card-style {
+  @include card-base;
+  @include card-hover;
+}

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { authApi, type LoginRequest, type UserInfo } from '../api/auth';
+import { isApiSuccess } from '../api/sync';
 
 export const useAuthStore = defineStore('auth', () => {
   const userInfo = ref<UserInfo | null>(null);
@@ -8,7 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (data: LoginRequest) => {
     const res = await authApi.login(data);
-    if (res.code === 200) {
+    if (isApiSuccess(res.code)) {
       sessionStorage.setItem('authenticated', 'true');
       if (data.rememberMe) {
         localStorage.setItem('rememberMe', 'true');

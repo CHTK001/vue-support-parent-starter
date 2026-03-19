@@ -64,12 +64,29 @@ input:
   keywordSearch: Enter a keyword to filter
 
 login:
+  pureAccountLogin: Account Login
+  pureAccountLoginDesc: Username or phone login
   pureLogin: Login
+  pureLoginMethod: Login Methods
   pureLoginSuccess: Login success
   purePassWordReg: Please enter password
   purePassWordRuleReg: The password format should be any combination of 8-18 digits
   purePassword: Password
   purePasswordReg: Please enter password
+  purePhone: Phone
+  purePhoneReg: Please enter a valid phone number
+  pureSendSmsCode: Send Code
+  pureSmsCode: SMS Code
+  pureSmsCodeReg: Please enter a 4 to 6 digit code
+  pureSmsLogin: SMS Login
+  pureSmsLoginDesc: Phone verification code login
+  pureSmsSendSuccess: Verification code sent
+  pureSmsServiceHint: Configure the SMS channel in system settings first
+  pureStaticLogin: Static Login
+  pureStaticLoginDesc: Direct static SSO in dev/test
+  pureStaticLoginHint: No OAuth startup needed
+  pureTenantLogin: Tenant Login
+  pureTenantLoginDesc: Tenant username or phone login
   pureThirdLogin: Third party login
   pureThirdLoginBinded: Third party account already bound
   pureTenantCode: Please enter tenant code
@@ -103,6 +120,7 @@ menus:
   pureFourZeroFour: "404"
   pureFourZeroOne: "403"
   pureHome: Home
+  pureLogin: Login
 
 message:
   bindEmail: Email already bound

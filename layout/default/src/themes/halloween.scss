@@ -4,7 +4,8 @@
 // 节日主题动画开关（默认关闭）
 $halloween-animation-enabled: false !default;
 
-:root[data-skin="halloween"] {
+:root[data-skin="halloween"],
+html.theme-halloween {
   // 主色调：南瓜橙
   --el-color-primary: #ff6b35;
   --el-color-primary-light-3: #ff8555;
@@ -59,7 +60,8 @@ $halloween-animation-enabled: false !default;
 }
 
 // 万圣节特效样式
-html[data-skin="halloween"] {
+html[data-skin="halloween"],
+html.theme-halloween {
   // 页面背景渐变
   body {
     background: linear-gradient(135deg, #120a18 0%, #1a0f1f 50%, #2a1f35 100%);
@@ -128,6 +130,19 @@ html[data-skin="halloween"] {
   }
 
   // 按钮万圣节风格
+  .el-button {
+    background: linear-gradient(135deg, rgba(58, 5, 69, 0.92), rgba(31, 0, 36, 0.9)) !important;
+    border-color: rgba(255, 117, 24, 0.28) !important;
+    color: #ffb36a !important;
+    box-shadow: 0 10px 24px -20px rgba(10, 0, 18, 0.72) !important;
+
+    &:hover:not(.is-disabled) {
+      background: linear-gradient(135deg, rgba(255, 117, 24, 0.2), rgba(60, 0, 74, 0.52)) !important;
+      border-color: rgba(255, 117, 24, 0.42) !important;
+      color: #fff1df !important;
+    }
+  }
+
   .el-button--primary {
     background: linear-gradient(135deg, #ff6b35 0%, #ff8555 100%);
     border-color: #ff6b35;
@@ -238,13 +253,38 @@ html[data-skin="halloween"] {
   // ====================
   // 所有导航组件主题适配
   // ====================
-  
-  // 1. 垂直导航 (NavVertical)
+
+  // Logo 区域背景适配
+  .sidebar-logo-container {
+    background: linear-gradient(135deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.9)) !important;
+
+    .sidebar-logo-link {
+      background: linear-gradient(135deg, rgba(44, 0, 62, 0.22), rgba(26, 0, 38, 0.08)) !important;
+      border-bottom: 1px solid rgba(255, 117, 24, 0.18) !important;
+    }
+
+    img {
+      filter: drop-shadow(0 4px 12px rgba(255, 117, 24, 0.32)) !important;
+    }
+
+    .sidebar-title {
+      color: #ff7518 !important;
+      font-family: 'Creepster', 'cursive', sans-serif;
+      text-shadow: 0 0 5px rgba(255, 117, 24, 0.3);
+    }
+  }
+
+  // 1. 垂直导航 (NavVertical) - 使用更高优先级
+  .sidebar-container.sidebar-container,
+  .sidebar-container,
+  .base-sidebar,
   .default-sidebar,
+  .halloween-sidebar,
   .future-tech-sidebar {
     background: linear-gradient(180deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.9)) !important;
     border-right: 2px solid rgba(255, 117, 24, 0.4) !important;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(12px) !important;
 
     // 深色模式适配
     html.dark & {
@@ -255,12 +295,12 @@ html[data-skin="halloween"] {
 
     .el-menu-item {
       color: rgba(255, 117, 24, 0.85) !important;
-      
+
       &:hover {
         background: rgba(255, 117, 24, 0.15) !important;
         color: #76ff03 !important;
       }
-      
+
       &.is-active {
         background: rgba(255, 117, 24, 0.2) !important;
         color: #ff7518 !important;
@@ -270,7 +310,7 @@ html[data-skin="halloween"] {
 
     .el-sub-menu__title {
       color: rgba(255, 117, 24, 0.85) !important;
-      
+
       &:hover {
         background: rgba(255, 117, 24, 0.15) !important;
         color: #76ff03 !important;
@@ -341,7 +381,8 @@ html[data-skin="halloween"] {
   }
 
   // 4. 混合导航 (NavMix)
-  .mix-sidebar {
+  .default-mix,
+  .future-tech-mix {
     background: linear-gradient(180deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.9)) !important;
     border-bottom: 2px solid rgba(255, 117, 24, 0.4) !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
@@ -369,7 +410,8 @@ html[data-skin="halloween"] {
   }
 
   // 5. 水平导航 (NavHorizontal)
-  .horizontal-sidebar {
+  .default-horizontal,
+  .future-tech-horizontal {
     background: linear-gradient(90deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.9)) !important;
     border-bottom: 2px solid rgba(255, 117, 24, 0.4) !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
@@ -397,7 +439,7 @@ html[data-skin="halloween"] {
   }
 
   // 6. 抽屉导航 (NavDrawer)
-  .drawer-sidebar {
+  .default-drawer {
     background: linear-gradient(180deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.9)) !important;
     border-right: 2px solid rgba(255, 117, 24, 0.4) !important;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5) !important;
@@ -425,20 +467,53 @@ html[data-skin="halloween"] {
   }
 
   // 7. 移动端导航 (NavMobile)
-  .mobile-sidebar {
-    background: linear-gradient(180deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.9)) !important;
-    border-right: 2px solid rgba(255, 117, 24, 0.4) !important;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5) !important;
+  .mobile-layout {
+    background: linear-gradient(180deg, rgba(18, 10, 24, 0.98), rgba(26, 15, 31, 0.96)) !important;
 
-    // 深色模式适配
-    html.dark & {
-      background: linear-gradient(180deg, rgba(44, 0, 62, 0.98), rgba(26, 0, 38, 0.95)) !important;
-      border-right: 2px solid rgba(255, 117, 24, 0.5) !important;
-      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.7) !important;
+    .mobile-header,
+    .drawer-container,
+    .mobile-nav-drawer .el-drawer__body {
+      background: linear-gradient(180deg, rgba(44, 0, 62, 0.95), rgba(26, 0, 38, 0.9)) !important;
+      border-color: rgba(255, 117, 24, 0.4) !important;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5) !important;
     }
 
-    .el-menu-item {
+    .mobile-header {
+      border-bottom: 2px solid rgba(255, 117, 24, 0.4) !important;
+    }
+
+    .drawer-container,
+    .mobile-nav-drawer .el-drawer__body {
+      border-right: 2px solid rgba(255, 117, 24, 0.4) !important;
+    }
+
+    .app-title,
+    .drawer-title {
+      color: #ff7518 !important;
+    }
+
+    .menu-trigger,
+    .setting-trigger {
+      border: 1px solid rgba(255, 117, 24, 0.25);
+      border-radius: 12px;
+      background: rgba(255, 117, 24, 0.08);
+
+      .trigger-icon {
+        color: #ff7518 !important;
+      }
+    }
+
+    .mobile-menu,
+    .mobile-menu.el-menu {
+      background: transparent !important;
+      border-right: none !important;
+    }
+
+    .mobile-menu .el-menu-item,
+    .mobile-menu .el-sub-menu__title {
       color: rgba(255, 117, 24, 0.85) !important;
+      margin: 4px 10px;
+      border-radius: 12px;
       
       &:hover {
         background: rgba(255, 117, 24, 0.15) !important;
@@ -532,7 +607,8 @@ html[data-skin="halloween"] {
 }
 
 // 深色模式下的万圣节主题适配
-html.dark[data-skin="halloween"] {
+html.dark[data-skin="halloween"],
+html.dark.theme-halloween {
   // lay-navbar 和 lay-header 深色模式适配
   .lay-navbar,
   .default-navbar,
@@ -540,5 +616,75 @@ html.dark[data-skin="halloween"] {
     background: linear-gradient(135deg, rgba(44, 0, 62, 0.98), rgba(26, 0, 38, 0.95)) !important;
     border-bottom: 2px solid rgba(255, 117, 24, 0.5) !important;
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.7) !important;
+  }
+}
+
+html[data-skin="halloween"],
+html.theme-halloween {
+  --sc-theme-surface: rgba(36, 0, 52, 0.96);
+  --sc-theme-surface-hover: rgba(52, 6, 72, 0.98);
+  --sc-theme-surface-active: rgba(72, 14, 96, 0.98);
+  --sc-theme-text: #ffb36a;
+  --sc-theme-text-strong: #ffe3bf;
+  --sc-theme-text-muted: rgba(255, 179, 106, 0.72);
+  --sc-theme-border: rgba(255, 117, 24, 0.24);
+  --sc-theme-accent: rgba(255, 117, 24, 0.18);
+  --sc-theme-shadow: 0 18px 40px -30px rgba(10, 0, 18, 0.88);
+  --sc-theme-font-accent: "Creepster", "Nosifer", "Segoe UI", sans-serif;
+  --sc-theme-button-bg: linear-gradient(135deg, #4a1030, #240014);
+  --sc-theme-button-bg-hover: linear-gradient(135deg, #5c153a, #30001b);
+  --sc-theme-button-bg-active: linear-gradient(135deg, #390b24, #1d0010);
+  --sc-theme-button-text: #ffb36a;
+  --sc-theme-button-text-strong: #fff1df;
+  --sc-theme-button-border: rgba(255, 117, 24, 0.28);
+  --sc-theme-button-shadow: 0 16px 28px -24px rgba(10, 0, 18, 0.82);
+  --sc-theme-button-shadow-hover: 0 20px 34px -24px rgba(10, 0, 18, 0.9);
+  --sc-theme-button-glow: rgba(255, 117, 24, 0.1);
+  --sc-theme-card-surface: linear-gradient(135deg, rgba(34, 0, 46, 0.96), rgba(18, 0, 28, 0.94));
+  --sc-theme-card-border: rgba(255, 117, 24, 0.22);
+  --sc-theme-card-text: #ffd2a8;
+  --sc-theme-card-text-muted: rgba(255, 210, 168, 0.72);
+  --sc-theme-card-shadow: 0 20px 42px -30px rgba(10, 0, 18, 0.9);
+
+  .default-sidebar,
+  .halloween-sidebar,
+  .default-hover .hover-nav-theme-wrapper,
+  .hover-nav-theme-wrapper.default-hover,
+  .hover-nav-theme-wrapper.halloween-hover,
+  .double-nav-container .double-nav-left,
+  .double-nav-container .double-nav-right,
+  .default-mix,
+  .halloween-mix,
+  .default-horizontal,
+  .halloween-horizontal,
+  .default-drawer,
+  .halloween-drawer,
+  .horizontal-custom-menu,
+  .custom-sub-menu__popper {
+    background: linear-gradient(180deg, rgba(36, 0, 52, 0.98), rgba(18, 0, 28, 0.96)) !important;
+    border-color: rgba(255, 117, 24, 0.34) !important;
+  }
+
+  .horizontal-custom-menu .custom-menu-item,
+  .horizontal-custom-menu .custom-sub-menu__title,
+  .custom-sub-menu__popper .custom-menu-item,
+  .custom-sub-menu__popper .custom-sub-menu__title {
+    color: rgba(255, 181, 102, 0.96) !important;
+    font-weight: 600;
+    border-radius: 12px;
+
+    &:hover {
+      color: #fff3de !important;
+      background: linear-gradient(135deg, rgba(255, 117, 24, 0.22), rgba(44, 0, 62, 0.46)) !important;
+    }
+
+    &.is-active,
+    &.active {
+      color: #1a001f !important;
+      background: linear-gradient(135deg, rgba(255, 117, 24, 0.98), rgba(255, 171, 64, 0.9)) !important;
+      box-shadow:
+        0 10px 24px -18px rgba(255, 117, 24, 0.82),
+        inset 0 0 0 1px rgba(18, 0, 28, 0.16) !important;
+    }
   }
 }
