@@ -14,6 +14,7 @@ const themeComponents = {
   'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestivalHeader.vue")),
   'halloween': defineAsyncComponent(() => import("./themes/HalloweenHeader.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/ChristmasHeader.vue")),
+  'future-tech': defineAsyncComponent(() => import("./themes/FutureTechHeader.vue")),
 };
 
 // 使用统一的主题切换 Hook

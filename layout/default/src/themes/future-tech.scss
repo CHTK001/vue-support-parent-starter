@@ -15,6 +15,15 @@ html[data-theme='future-tech'] {
   --el-bg-color: #050a1f;
   --el-bg-color-overlay: rgba(5, 10, 31, 0.9);
   
+  /* 导航栏未来科技风格 - lay-header 适配 */
+  .lay-navbar,
+  .lay-header {
+    background: rgba(5, 10, 31, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 255, 255, 0.2);
+  }
+  
   /* 玻璃拟态 */
   .el-card, .el-dialog, .el-drawer {
     background: rgba(5, 10, 31, 0.7) !important;
@@ -47,13 +56,14 @@ html[data-theme='future-tech'] {
     }
   }
 
-  /* 头像装饰：未来科技光环 */
+  /* 头像装饰：未来科技光环 - 优化性能，移除动画 */
   .lay-avatar,
   .el-avatar {
     position: relative;
     border: 2px solid #00ffff;
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
     
+    /* 移除旋转动画，使用静态光效 */
     &::before {
       content: "";
       position: absolute;
@@ -61,23 +71,10 @@ html[data-theme='future-tech'] {
       left: -4px;
       right: -4px;
       bottom: -4px;
-      border: 2px solid transparent;
+      border: 2px solid #00ffff;
       border-radius: 50%;
-      background: linear-gradient(45deg, #00ffff, #8a2be2, #00ffff) border-box;
-      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      animation: tech-rotate 3s linear infinite;
+      opacity: 0.5;
       z-index: -1;
     }
-  }
-}
-
-@keyframes tech-rotate {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
   }
 }
