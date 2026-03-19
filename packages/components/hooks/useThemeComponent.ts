@@ -4,8 +4,8 @@
  * 支持多主题扩展，新增主题只需修改 themeConfig.ts
  */
 
-import { computed, watch, onBeforeUnmount, onMounted, shallowRef, ref, getCurrentInstance, type Component } from "vue";
-import { getThemeConfig, getThemeComponentName, THEME_CONFIGS, ensureThemePluginForCurrentSkin } from "./themeConfig";
+import { computed, watch, onBeforeUnmount, onMounted, shallowRef, ref, getCurrentInstance, type Component, type Ref } from "vue";
+import { getThemeConfig, getThemeComponentName, getThemeLocalComponentConfig, THEME_CONFIGS, ensureThemePluginForCurrentSkin } from "./themeConfig";
 import * as ElementPlusModule from "element-plus";
 import { storageLocal } from "@pureadmin/utils";
 import { getLogger } from "@repo/utils";
@@ -39,8 +39,8 @@ export async function preloadTheme(themeName: string): Promise<void> {
     return;
   }
 
-  // default 主题不需要预加载（已经静态导入）
-  if (themeName === "default") {
+  // Element Plus 系主题不需要额外预加载（已经静态导入）
+  if (themeName === "default" || config.packageName === "element-plus") {
     themePreloadStatus.set(themeName, true);
     return;
   }
@@ -252,6 +252,37 @@ const getThemeCache = (themeName: string): Map<string, Component> => {
   return themeComponentCache.get(themeName)!;
 };
 
+const resolveLocalThemeComponent = async (
+  themeName: string,
+  elementComponentName: string,
+): Promise<Component | null> => {
+  const localComponentConfig = getThemeLocalComponentConfig(
+    themeName,
+    elementComponentName,
+  );
+
+  if (!localComponentConfig) {
+    return null;
+  }
+
+  const cache = getThemeCache(themeName);
+  if (cache.has(elementComponentName)) {
+    return cache.get(elementComponentName)!;
+  }
+
+  const module = await localComponentConfig.loader();
+  const resolved = localComponentConfig.exportName
+    ? module?.[localComponentConfig.exportName]
+    : module?.default ?? module;
+
+  if (!resolved) {
+    return null;
+  }
+
+  cache.set(elementComponentName, resolved as Component);
+  return resolved as Component;
+};
+
 /**
  * 动态加载主题组件
  * @param themeName 主题名称
@@ -292,6 +323,18 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
       const component = ELEMENT_PLUS_COMPONENTS[themeComponentName];
       cache.set(themeComponentName, component);
       return component;
+    }
+
+    // Element Plus 系主题：直接复用原生组件
+    if (config.packageName === "element-plus") {
+      const component = ELEMENT_PLUS_COMPONENTS[themeComponentName];
+      if (component) {
+        cache.set(themeComponentName, component);
+        return component;
+      }
+
+      logger.warn(`[useThemeComponent] 在 element-plus 中找不到组件 ${themeComponentName}`);
+      return null;
     }
 
     // 其他主题：按包名做静态导入映射，避免裸模块在浏览器环境直接解析
@@ -552,6 +595,30 @@ const cleanupGlobalSkinObserver = () => {
   globalThemeState.pendingSkin = null;
 };
 
+const acquireThemeSkinSubscription = () => {
+  globalThemeState.refCount++;
+  initGlobalSkinObserver();
+};
+
+const releaseThemeSkinSubscription = () => {
+  globalThemeState.refCount--;
+  cleanupGlobalSkinObserver();
+};
+
+export function useCurrentThemeSkin(): Ref<string> {
+  const currentSkin = globalThemeState.currentSkin;
+
+  onMounted(() => {
+    acquireThemeSkinSubscription();
+  });
+
+  onBeforeUnmount(() => {
+    releaseThemeSkinSubscription();
+  });
+
+  return currentSkin;
+}
+
 /**
  * 使用主题组件
  * 自动根据 data-skin 加载对应主题的组件
@@ -579,13 +646,7 @@ export function useThemeComponent(elementComponentName: string) {
   /**
    * 使用全局共享的 currentSkin ref
    */
-  const currentSkin = globalThemeState.currentSkin;
-
-  // 组件挂载时增加引用计数并初始化观察器（如果还没有）
-  onMounted(() => {
-    globalThemeState.refCount++;
-    initGlobalSkinObserver();
-  });
+  const currentSkin = useCurrentThemeSkin();
 
   /**
    * 当前主题配置
@@ -609,9 +670,12 @@ export function useThemeComponent(elementComponentName: string) {
   const initThemeComponent = (): Component | null => {
     const skin = currentSkin.value;
     if (skin === "default") return null;
+    const cache = getThemeCache(skin);
+    if (cache.has(elementComponentName)) {
+      return cache.get(elementComponentName) ?? null;
+    }
     const componentName = getThemeComponentName(skin, elementComponentName);
     if (!componentName) return null;
-    const cache = getThemeCache(skin);
     return cache.get(componentName) ?? null;
   };
 
@@ -626,6 +690,10 @@ export function useThemeComponent(elementComponentName: string) {
   const currentComponent = computed(() => {
     const skin = currentSkin.value;
     const componentName = themeComponentName.value;
+    const localComponentConfig = getThemeLocalComponentConfig(
+      skin,
+      elementComponentName,
+    );
 
     // 8bit 主题特殊处理：ElTable、ElTableColumn 和 ElDrawer 始终使用 Element Plus 组件
     if (skin === "8bit" && (elementComponentName === "ElTable" || elementComponentName === "ElTableColumn" || elementComponentName === "ElDrawer")) {
@@ -635,6 +703,10 @@ export function useThemeComponent(elementComponentName: string) {
       }
     }
 
+    if (localComponentConfig) {
+      return themeComponent.value;
+    }
+
     // default 主题：直接同步返回 Element Plus 组件
     if (skin === "default" && componentName) {
       const component = ELEMENT_PLUS_COMPONENTS[componentName];
@@ -642,6 +714,12 @@ export function useThemeComponent(elementComponentName: string) {
       if (!component && isDev) {
         logger.warn(`[useThemeComponent] 在 Element Plus 中找不到组件: ${componentName}`);
       }
+      return component || null;
+    }
+
+    // 非 default 但仍基于 Element Plus 的主题，保持同步组件返回，避免首次渲染闪烁
+    if (themeConfig.value?.packageName === "element-plus" && componentName) {
+      const component = ELEMENT_PLUS_COMPONENTS[componentName];
       return component || null;
     }
 
@@ -665,11 +743,26 @@ export function useThemeComponent(elementComponentName: string) {
     }
 
     if (!skin || !componentName) {
-      themeComponent.value = null;
+      const localComponent = skin
+        ? await resolveLocalThemeComponent(skin, elementComponentName)
+        : null;
+      themeComponent.value = localComponent;
+      if (!localComponent) {
+        themeComponent.value = null;
+      }
       return;
     }
 
     try {
+      const localComponent = await resolveLocalThemeComponent(
+        skin,
+        elementComponentName,
+      );
+      if (localComponent) {
+        themeComponent.value = localComponent;
+        return;
+      }
+
       const component = await loadThemeComponent(skin, componentName, instance);
       themeComponent.value = component;
     } catch (error) {
@@ -709,20 +802,6 @@ export function useThemeComponent(elementComponentName: string) {
     },
     { immediate: true }
   );
-
-  /**
-   * 组件卸载时清理
-   */
-  onBeforeUnmount(() => {
-    // 减少引用计数
-    globalThemeState.refCount--;
-
-    // 当所有组件实例都卸载时才清理观察器
-    cleanupGlobalSkinObserver();
-
-    // 清理主题 CSS（注意：这里不清理，因为其他组件可能还在使用）
-    // 主题 CSS 的清理由 watch 中的逻辑处理
-  });
 
   return {
     /**

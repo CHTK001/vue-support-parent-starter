@@ -2,6 +2,14 @@ import axios from 'axios';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1/sync';
 
+export const isApiSuccess = (code: number | string | undefined) => {
+  return code === 200 || code === 0 || code === '200' || code === '0' || code === '00000';
+};
+
+export const getApiMessage = (payload: { message?: string; msg?: string } | undefined) => {
+  return payload?.message || payload?.msg || '请求失败';
+};
+
 const api = axios.create({
   baseURL,
   timeout: 30000,
@@ -22,8 +30,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     const { data } = response;
-    if (data.code !== 200 && data.code !== 0) {
-      return Promise.reject(new Error(data.message || '请求失败'));
+    if (!isApiSuccess(data.code)) {
+      return Promise.reject(new Error(getApiMessage(data)));
     }
     return data;
   },

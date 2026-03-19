@@ -24,10 +24,18 @@ export function useTags() {
   const currentSelect = ref({});
   const isScrolling = ref(false);
 
+  const configure =
+    localStorageProxy().getItem<StorageConfigs>(
+      `${responsiveStorageNameSpace()}configure`,
+    ) || ({} as StorageConfigs);
+
   /** 显示模式，默认灵动模式 */
-  const showModel = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.showModel || "smart");
+  const showModel = ref(configure?.showModel || "smart");
   /** 是否隐藏标签页，默认显示 */
-  const showTags = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`).hideTabs) ?? ref("false");
+  const hideTabsValue = configure?.hideTabs;
+  const showTags = ref(
+    hideTabsValue === true || hideTabsValue === "true",
+  );
   const multiTags: any = computed(() => {
     return multiTagsStore.multiTags || [];
   });
@@ -135,7 +143,11 @@ export function useTags() {
   });
 
   const getContextMenuStyle = computed((): CSSProperties => {
-    return { left: buttonLeft.value + "px", top: buttonTop.value + "px" };
+    return {
+      position: "fixed",
+      left: `${buttonLeft.value}px`,
+      top: `${buttonTop.value}px`,
+    };
   });
 
   const closeMenu = () => {
@@ -160,9 +172,15 @@ export function useTags() {
 
   onMounted(() => {
     if (!showModel.value) {
-      const configure = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`);
-      configure.showModel = "chrome";
-      localStorageProxy().setItem(`${responsiveStorageNameSpace()}configure`, configure);
+      const latestConfigure =
+        localStorageProxy().getItem<StorageConfigs>(
+          `${responsiveStorageNameSpace()}configure`,
+        ) || ({} as StorageConfigs);
+      latestConfigure.showModel = "chrome";
+      localStorageProxy().setItem(
+        `${responsiveStorageNameSpace()}configure`,
+        latestConfigure,
+      );
     }
   });
 

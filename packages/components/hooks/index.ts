@@ -10,10 +10,18 @@ export { useThemeComponent, preloadTheme, preloadAllThemes, switchTheme, initThe
 export {
   getThemeConfig,
   getThemeComponentName,
+  getThemeLocalComponentConfig,
   getEnabledThemes,
   getThemesByGroup,
   hasTheme,
   THEME_CONFIGS,
+  ACTIVE_THEME_KEYS,
   autoRegisterThemePlugins,
 } from "./themeConfig";
-export type { ThemeConfig, ThemeComponentMap } from "./themeConfig";
+export type {
+  ThemeConfig,
+  ThemeComponentMap,
+  ThemeLocalComponentConfig,
+  ThemeLocalComponentMap,
+  SupportedThemeKey,
+} from "./themeConfig";

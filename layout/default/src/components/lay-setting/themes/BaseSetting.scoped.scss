@@ -82,6 +82,10 @@
 
 // 现代化设置容器 - 全新设计语言
 .modern-setting-container {
+  .theme-setting-section {
+    display: contents;
+  }
+
   padding: 20px;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 20px;

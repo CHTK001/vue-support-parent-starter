@@ -37,22 +37,37 @@ import FooterContent from "./components/FooterContent.vue";
 :global(html[data-skin="spring-festival"]),
 :global(html[data-skin="new-year"]) {
   .layout-footer {
-    color: rgba(198, 40, 40, 0.7) !important;
+    background: linear-gradient(180deg, rgba(107, 0, 0, 0.85), rgba(76, 0, 0, 0.9)) !important;
+    border-top: 1px solid rgba(255, 215, 0, 0.3) !important;
+    color: rgba(255, 215, 0, 0.8) !important;
   }
 }
 
 // 中秋主题
 :global(html[data-skin="mid-autumn"]) .layout-footer {
-  color: rgba(255, 193, 7, 0.7) !important;
+  background: linear-gradient(180deg, rgba(26, 35, 126, 0.85), rgba(13, 16, 82, 0.9)) !important;
+  border-top: 1px solid rgba(255, 213, 79, 0.3) !important;
+  color: rgba(255, 213, 79, 0.8) !important;
 }
 
 // 圣诞主题
 :global(html[data-skin="christmas"]) .layout-footer {
-  color: rgba(34, 139, 34, 0.7) !important;
+  background: linear-gradient(180deg, rgba(17, 70, 28, 0.85), rgba(10, 45, 18, 0.9)) !important;
+  border-top: 1px solid rgba(255, 215, 0, 0.25) !important;
+  color: rgba(255, 215, 0, 0.8) !important;
 }
 
 // 万圣节主题
 :global(html[data-skin="halloween"]) .layout-footer {
-  color: rgba(255, 117, 24, 0.7) !important;
+  background: linear-gradient(180deg, rgba(44, 0, 62, 0.85), rgba(26, 0, 38, 0.9)) !important;
+  border-top: 1px solid rgba(255, 117, 24, 0.3) !important;
+  color: rgba(255, 117, 24, 0.8) !important;
+}
+
+// 未来科技主题
+:global(html[data-skin="future-tech"]) .layout-footer {
+  background: linear-gradient(180deg, rgba(5, 10, 31, 0.85), rgba(10, 26, 58, 0.9)) !important;
+  border-top: 1px solid rgba(0, 255, 255, 0.3) !important;
+  color: rgba(0, 255, 255, 0.7) !important;
 }
 </style>

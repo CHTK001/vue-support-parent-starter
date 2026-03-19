@@ -64,12 +64,29 @@ input:
   keywordSearch: 输入关键字进行过滤
 
 login:
+  pureAccountLogin: 账号登录
+  pureAccountLoginDesc: 账号/手机号登录
   pureLogin: 登录
+  pureLoginMethod: 选择登录方式
   pureLoginSuccess: 登录成功
   purePassWordReg: 请输入密码
   purePassWordRuleReg: 密码格式应为8-18位数字、字母、符号的任意两种组合
   purePassword: 密码
   purePasswordReg: 请输入密码
+  purePhone: 手机号
+  purePhoneReg: 请输入正确的手机号
+  pureSendSmsCode: 发送验证码
+  pureSmsCode: 短信验证码
+  pureSmsCodeReg: 请输入4到6位短信验证码
+  pureSmsLogin: 短信登录
+  pureSmsLoginDesc: 手机号验证码登录
+  pureSmsSendSuccess: 验证码已发送
+  pureSmsServiceHint: 需先在系统设置中配置短信通道
+  pureStaticLogin: 静态登录测试
+  pureStaticLoginDesc: 开发/测试环境下直接走静态 SSO
+  pureStaticLoginHint: 免启动 OAuth 服务
+  pureTenantLogin: 租户登录
+  pureTenantLoginDesc: 租户账号/手机号登录
   pureThirdLogin: 第三方登录
   pureThirdLoginBinded: 三方已绑定信息
   pureTenantCode: 请输入租户编码
@@ -103,6 +120,7 @@ menus:
   pureFourZeroFour: "404"
   pureFourZeroOne: "403"
   pureHome: 首页
+  pureLogin: 登录
 
 message:
   bindEmail: 已绑定邮箱

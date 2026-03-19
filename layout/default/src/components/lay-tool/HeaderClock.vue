@@ -18,6 +18,18 @@ const secondaryFull = ref<string>("");
 const primaryTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+const currentTheme = ref<string>($storage.configure?.systemTheme || "default");
+
+const textMotion = computed(() => {
+  switch (currentTheme.value) {
+    case "spring-festival":
+      return "gold-foil";
+    case "christmas":
+      return "gold-foil";
+    default:
+      return "none";
+  }
+});
 
 function initSecondConfig(): void {
   const pageBehavior = getConfig().PageBehavior ?? {};
@@ -136,6 +148,10 @@ emitter.on("headerClockSecondTimezoneChange", (val: string) => {
   updateClock(Date.now());
 });
 
+emitter.on("systemThemeChange", (themeKey: string) => {
+  currentTheme.value = themeKey || "default";
+});
+
 onMounted(() => {
   initSecondConfig();
   startClock();
@@ -144,6 +160,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   emitter.off("headerClockSecondEnabledChange");
   emitter.off("headerClockSecondTimezoneChange");
+  emitter.off("systemThemeChange");
   if (clockWorker) {
     clockWorker.terminate();
     clockWorker = null;
@@ -166,13 +183,13 @@ onBeforeUnmount(() => {
       <div class="header-clock-content">
         <!-- 主时间 -->
         <div class="header-clock-row">
-          <ScText class="header-clock-time">{{ primaryTime }}</ScText>
-          <ScText class="header-clock-weekday">{{ primaryWeekday }}</ScText>
+          <ScText :theme-motion="textMotion" class="header-clock-time">{{ primaryTime }}</ScText>
+          <ScText :theme-motion="textMotion" class="header-clock-weekday">{{ primaryWeekday }}</ScText>
         </div>
         <!-- 第二时间：启用时渲染，默认隐藏，hover 时展开 -->
         <div v-if="secondEnabled && secondaryTime" class="header-clock-row header-clock-secondary">
-          <ScText class="header-clock-time header-clock-time--secondary">{{ secondaryTime }}</ScText>
-          <ScText class="header-clock-weekday header-clock-weekday--secondary">{{ secondaryWeekday }}</ScText>
+          <ScText :theme-motion="textMotion" class="header-clock-time header-clock-time--secondary">{{ secondaryTime }}</ScText>
+          <ScText :theme-motion="textMotion" class="header-clock-weekday header-clock-weekday--secondary">{{ secondaryWeekday }}</ScText>
         </div>
       </div>
     </div>

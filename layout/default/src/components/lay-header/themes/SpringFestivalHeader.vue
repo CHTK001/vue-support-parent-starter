@@ -62,6 +62,11 @@ const set: setType = reactive({
 }
 
 .spring-festival-header {
+  > :not(.festival-decoration) {
+    position: relative;
+    z-index: 20;
+  }
+
   .festival-decoration {
     position: absolute;
     top: 0;

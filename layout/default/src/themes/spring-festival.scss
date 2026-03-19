@@ -4,7 +4,8 @@
 // 节日主题动画开关（默认关闭）
 $spring-festival-animation-enabled: false !default;
 
-:root[data-skin="spring-festival"] {
+:root[data-skin="spring-festival"],
+html.theme-spring-festival {
   // 主色调：正宗中国红 (中国红标准色 #C8102E)
   --el-color-primary: #c8102e;
   --el-color-primary-light-3: #d33a4f;
@@ -59,7 +60,8 @@ $spring-festival-animation-enabled: false !default;
 }
 
 // 春节特效样式
-html[data-skin="spring-festival"] {
+html[data-skin="spring-festival"],
+html.theme-spring-festival {
   // 页面背景渐变
   body {
     background: linear-gradient(135deg, #150808 0%, #1f0d0d 50%, #2f1a1a 100%);
@@ -355,7 +357,8 @@ html[data-skin="spring-festival"] {
   }
 
   // 4. 混合导航 (NavMix)
-  .mix-sidebar {
+  .default-mix,
+  .future-tech-mix {
     background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
     border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
@@ -383,7 +386,8 @@ html[data-skin="spring-festival"] {
   }
 
   // 5. 水平导航 (NavHorizontal)
-  .horizontal-sidebar {
+  .default-horizontal,
+  .future-tech-horizontal {
     background: linear-gradient(90deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
     border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
@@ -411,7 +415,7 @@ html[data-skin="spring-festival"] {
   }
 
   // 6. 抽屉导航 (NavDrawer)
-  .drawer-sidebar {
+  .default-drawer {
     background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
     border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
@@ -439,20 +443,53 @@ html[data-skin="spring-festival"] {
   }
 
   // 7. 移动端导航 (NavMobile)
-  .mobile-sidebar {
-    background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
-    border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+  .mobile-layout {
+    background: linear-gradient(180deg, rgba(31, 13, 13, 0.98), rgba(21, 8, 8, 0.96)) !important;
 
-    // 深色模式适配
-    html.dark & {
-      background: linear-gradient(180deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
-      border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
-      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+    .mobile-header,
+    .drawer-container,
+    .mobile-nav-drawer .el-drawer__body {
+      background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+      border-color: rgba(255, 215, 0, 0.4) !important;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
     }
 
-    .el-menu-item {
+    .mobile-header {
+      border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+    }
+
+    .drawer-container,
+    .mobile-nav-drawer .el-drawer__body {
+      border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+    }
+
+    .app-title,
+    .drawer-title {
+      color: #ffd700 !important;
+    }
+
+    .menu-trigger,
+    .setting-trigger {
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      border-radius: 12px;
+      background: rgba(255, 215, 0, 0.08);
+
+      .trigger-icon {
+        color: rgba(255, 215, 0, 0.9) !important;
+      }
+    }
+
+    .mobile-menu,
+    .mobile-menu.el-menu {
+      background: transparent !important;
+      border-right: none !important;
+    }
+
+    .mobile-menu .el-menu-item,
+    .mobile-menu .el-sub-menu__title {
       color: rgba(255, 215, 0, 0.85) !important;
+      margin: 4px 10px;
+      border-radius: 12px;
       
       &:hover {
         background: rgba(255, 215, 0, 0.15) !important;
@@ -467,7 +504,8 @@ html[data-skin="spring-festival"] {
   }
 
   // lay-tag 主题适配
-  .tags-view,
+  .tags-view.new-year-tag,
+  .new-year-tag,
   .spring-festival-tag {
     background: rgba(107, 0, 0, 0.8) !important;
     border-bottom: 1px solid rgba(255, 215, 0, 0.4) !important;
@@ -526,6 +564,143 @@ html[data-skin="spring-festival"] {
   }
 }
 
+html[data-skin="spring-festival"],
+html.theme-spring-festival {
+  --sc-theme-surface: rgba(98, 7, 19, 0.96);
+  --sc-theme-surface-hover: rgba(126, 10, 25, 0.98);
+  --sc-theme-surface-active: rgba(154, 16, 33, 0.98);
+  --sc-theme-text: #f5d57a;
+  --sc-theme-text-strong: #fff2be;
+  --sc-theme-text-muted: rgba(245, 213, 122, 0.74);
+  --sc-theme-border: rgba(245, 213, 122, 0.26);
+  --sc-theme-accent: rgba(245, 213, 122, 0.18);
+  --sc-theme-shadow: 0 18px 42px -30px rgba(67, 0, 10, 0.78);
+  --sc-theme-font-accent: "STZhongsong", "STKaiti", "KaiTi", serif;
+  --sc-theme-button-bg: linear-gradient(135deg, #8f0a1d, #6f0414);
+  --sc-theme-button-bg-hover: linear-gradient(135deg, #a10f23, #7d0718);
+  --sc-theme-button-bg-active: linear-gradient(135deg, #7a0819, #5c0411);
+  --sc-theme-button-text: #f5d57a;
+  --sc-theme-button-text-strong: #fff6d5;
+  --sc-theme-button-border: rgba(245, 213, 122, 0.24);
+  --sc-theme-button-shadow: 0 16px 28px -24px rgba(72, 0, 8, 0.74);
+  --sc-theme-button-shadow-hover: 0 20px 34px -24px rgba(72, 0, 8, 0.82);
+  --sc-theme-button-glow: rgba(245, 213, 122, 0.12);
+  --sc-theme-card-surface: linear-gradient(135deg, rgba(78, 4, 15, 0.96), rgba(46, 2, 10, 0.94));
+  --sc-theme-card-border: rgba(245, 213, 122, 0.22);
+  --sc-theme-card-text: #f7e4a5;
+  --sc-theme-card-text-muted: rgba(247, 228, 165, 0.74);
+  --sc-theme-card-shadow: 0 20px 42px -30px rgba(63, 0, 8, 0.82);
+
+  :is(
+    .default-sidebar,
+    .future-tech-sidebar,
+    .spring-festival-sidebar,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .spring-festival-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .spring-festival-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .hover-nav-theme-wrapper.default-hover,
+    .hover-nav-theme-wrapper.spring-festival-hover,
+    .default-drawer,
+    .spring-festival-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) {
+    background: linear-gradient(180deg, rgba(95, 6, 18, 0.98), rgba(66, 2, 12, 0.96)) !important;
+    border-color: rgba(245, 213, 122, 0.24) !important;
+    box-shadow: 0 18px 36px -30px rgba(44, 0, 8, 0.78) !important;
+  }
+
+  :is(
+    .default-sidebar,
+    .future-tech-sidebar,
+    .spring-festival-sidebar,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .spring-festival-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .spring-festival-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .hover-nav-theme-wrapper.default-hover,
+    .hover-nav-theme-wrapper.spring-festival-hover,
+    .default-drawer,
+    .spring-festival-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) :is(.el-menu-item, .el-sub-menu__title, .custom-menu-item, .custom-sub-menu__title) {
+    color: #f5d57a !important;
+    font-weight: 700;
+    border-radius: 12px;
+  }
+
+  :is(
+    .default-sidebar,
+    .future-tech-sidebar,
+    .spring-festival-sidebar,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .spring-festival-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .spring-festival-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .hover-nav-theme-wrapper.default-hover,
+    .hover-nav-theme-wrapper.spring-festival-hover,
+    .default-drawer,
+    .spring-festival-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) :is(.el-menu-item, .el-sub-menu__title, .custom-menu-item, .custom-sub-menu__title):hover {
+    color: #fff4d0 !important;
+    background: linear-gradient(135deg, rgba(173, 20, 46, 0.42), rgba(92, 4, 17, 0.22)) !important;
+  }
+
+  :is(
+    .default-sidebar,
+    .future-tech-sidebar,
+    .spring-festival-sidebar,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .spring-festival-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .spring-festival-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .hover-nav-theme-wrapper.default-hover,
+    .hover-nav-theme-wrapper.spring-festival-hover,
+    .default-drawer,
+    .spring-festival-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) :is(.el-menu-item, .el-sub-menu__title, .custom-menu-item, .custom-sub-menu__title).is-active,
+  :is(
+    .default-sidebar,
+    .future-tech-sidebar,
+    .spring-festival-sidebar,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .spring-festival-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .spring-festival-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .hover-nav-theme-wrapper.default-hover,
+    .hover-nav-theme-wrapper.spring-festival-hover,
+    .default-drawer,
+    .spring-festival-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) :is(.custom-menu-item, .custom-sub-menu__title).active {
+    color: #7a0016 !important;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.98), rgba(242, 177, 29, 0.88)) !important;
+    box-shadow: 0 12px 28px -24px rgba(255, 215, 0, 0.82) !important;
+  }
+}
+
 @keyframes glow {
   0%,
   100% {
@@ -537,7 +712,8 @@ html[data-skin="spring-festival"] {
 }
 
 // 深色模式下的春节主题适配
-html.dark[data-skin="spring-festival"] {
+html.dark[data-skin="spring-festival"],
+html.dark.theme-spring-festival {
   // lay-navbar 和 lay-header 深色模式适配
   .lay-navbar,
   .default-navbar,
@@ -545,5 +721,47 @@ html.dark[data-skin="spring-festival"] {
     background: linear-gradient(135deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
     border-bottom: 2px solid rgba(255, 215, 0, 0.5) !important;
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5) !important;
+  }
+}
+
+html[data-skin="spring-festival"],
+html.theme-spring-festival {
+  .default-sidebar,
+  .default-hover .hover-nav-theme-wrapper,
+  .hover-nav-theme-wrapper.default-hover,
+  .hover-nav-theme-wrapper.spring-festival-hover,
+  .double-nav-container .double-nav-left,
+  .double-nav-container .double-nav-right,
+  .default-mix,
+  .default-horizontal,
+  .default-drawer,
+  .horizontal-custom-menu,
+  .custom-sub-menu__popper {
+    background: linear-gradient(180deg, rgba(116, 0, 18, 0.98), rgba(74, 0, 12, 0.95)) !important;
+    border-color: rgba(255, 215, 0, 0.34) !important;
+  }
+
+  .horizontal-custom-menu .custom-menu-item,
+  .horizontal-custom-menu .custom-sub-menu__title,
+  .custom-sub-menu__popper .custom-menu-item,
+  .custom-sub-menu__popper .custom-sub-menu__title {
+    color: rgba(255, 223, 122, 0.96) !important;
+    font-weight: 700;
+    font-family: "STZhongsong", "STKaiti", "KaiTi", serif;
+    border-radius: 12px;
+
+    &:hover {
+      color: #fff4d0 !important;
+      background: linear-gradient(135deg, rgba(200, 16, 46, 0.42), rgba(122, 0, 22, 0.24)) !important;
+    }
+
+    &.is-active,
+    &.active {
+      color: #7a0016 !important;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.98), rgba(240, 176, 0, 0.88)) !important;
+      box-shadow:
+        0 10px 24px -18px rgba(255, 215, 0, 0.88),
+        inset 0 0 0 1px rgba(122, 0, 22, 0.14) !important;
+    }
   }
 }

@@ -61,6 +61,11 @@ const set: setType = reactive({
 }
 
 .halloween-header {
+  > :not(.festival-decoration) {
+    position: relative;
+    z-index: 20;
+  }
+
   .festival-decoration {
     position: absolute;
     top: 0;
