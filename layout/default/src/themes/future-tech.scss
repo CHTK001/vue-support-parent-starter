@@ -1,8 +1,62 @@
 /**
  * 未来科技主题
- * @description 未来科技主题，科幻感十足
+ * @description 统一命中 data-skin / theme-class，并覆盖真实导航容器类名
  */
-html[data-theme='future-tech'] {
+$ft-cyan: #00ffff;
+$ft-cyan-light: #4dfdfd;
+$ft-cyan-soft: rgba(0, 255, 255, 0.82);
+$ft-purple: #8a2be2;
+$ft-bg: #050a1f;
+$ft-bg-alt: #0a1a3a;
+$ft-bg-glass: rgba(5, 10, 31, 0.86);
+$ft-border: rgba(0, 255, 255, 0.32);
+$ft-border-strong: rgba(0, 255, 255, 0.55);
+$ft-glow: rgba(0, 255, 255, 0.28);
+
+@mixin future-panel($direction: 180deg) {
+  background: linear-gradient(
+    $direction,
+    rgba(5, 10, 31, 0.96),
+    rgba(10, 26, 58, 0.92)
+  ) !important;
+  border: 1px solid $ft-border !important;
+  box-shadow:
+    0 0 18px rgba(0, 255, 255, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(16px);
+}
+
+@mixin future-menu-item {
+  color: rgba(220, 248, 255, 0.86) !important;
+
+  &:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(0, 255, 255, 0.16),
+      rgba(138, 43, 226, 0.14)
+    ) !important;
+    color: $ft-cyan !important;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.55);
+  }
+
+  &.is-active,
+  &.layui-this {
+    background: linear-gradient(
+      135deg,
+      rgba(0, 255, 255, 0.22),
+      rgba(138, 43, 226, 0.2)
+    ) !important;
+    border-color: $ft-border-strong !important;
+    box-shadow:
+      0 0 18px rgba(0, 255, 255, 0.38),
+      inset 0 0 10px rgba(138, 43, 226, 0.18) !important;
+    color: $ft-cyan !important;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.75);
+  }
+}
+
+:root[data-skin="future-tech"],
+html.theme-future-tech {
   --el-color-primary: #00ffff;
   --el-color-primary-light-3: #4dfdfd;
   --el-color-primary-light-5: #7fffff;
@@ -10,71 +64,417 @@ html[data-theme='future-tech'] {
   --el-color-primary-light-8: #ccffff;
   --el-color-primary-light-9: #e5ffff;
   --el-color-primary-dark-2: #00cccc;
-  
-  /* 深色背景 */
+
   --el-bg-color: #050a1f;
-  --el-bg-color-overlay: rgba(5, 10, 31, 0.9);
-  
-  /* 导航栏未来科技风格 - lay-header 适配 */
-  .lay-navbar,
-  .lay-header {
-    background: rgba(5, 10, 31, 0.8);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
-    box-shadow: 0 2px 8px rgba(0, 255, 255, 0.2);
-  }
-  
-  /* 玻璃拟态 */
-  .el-card, .el-dialog, .el-drawer {
-    background: rgba(5, 10, 31, 0.7) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
-  }
-  
-  /* 发光文本 */
-  .el-menu-item.is-active, .el-button--primary {
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+  --el-bg-color-page: #030614;
+  --el-bg-color-overlay: rgba(5, 10, 31, 0.92);
+  --el-text-color-primary: #e6f9ff;
+  --el-text-color-regular: rgba(220, 248, 255, 0.82);
+  --el-text-color-secondary: rgba(151, 238, 255, 0.68);
+  --el-border-color: rgba(0, 255, 255, 0.24);
+  --el-border-color-light: rgba(0, 255, 255, 0.18);
+  --el-fill-color: rgba(10, 26, 58, 0.88);
+  --el-fill-color-light: rgba(14, 36, 82, 0.86);
+  --el-fill-color-lighter: rgba(18, 46, 104, 0.78);
+}
+
+html[data-skin="future-tech"],
+html.theme-future-tech {
+  body {
+    background:
+      radial-gradient(circle at top, rgba(0, 255, 255, 0.1), transparent 35%),
+      radial-gradient(circle at 75% 20%, rgba(138, 43, 226, 0.16), transparent 28%),
+      linear-gradient(135deg, #030614 0%, #050a1f 45%, #0a1a3a 100%);
   }
 
-  /* 标签未来科技风格 - 适配 lay-tag */
-  .el-tag,
-  .lay-tag .scroll-item {
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    color: rgba(0, 255, 255, 0.9);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
-    
-    &.active,
-    &.is-active {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.25) 0%, rgba(138, 43, 226, 0.25) 100%);
-      border-color: #00ffff;
-      color: #00ffff;
-      box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
-      text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+  .lay-navbar,
+  .default-navbar,
+  .lay-header {
+    background: rgba(5, 10, 31, 0.8) !important;
+    border-bottom: 1px solid $ft-border !important;
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.4),
+      0 0 18px rgba(0, 255, 255, 0.16) !important;
+    backdrop-filter: blur(16px);
+  }
+
+  .el-card,
+  .el-dialog,
+  .el-drawer {
+    background: rgba(5, 10, 31, 0.72) !important;
+    border: 1px solid $ft-border !important;
+    box-shadow:
+      0 0 18px rgba(0, 255, 255, 0.16),
+      0 18px 48px rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(16px);
+  }
+
+  .el-button--primary {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.24), rgba(138, 43, 226, 0.42)) !important;
+    border-color: $ft-border-strong !important;
+    color: $ft-cyan !important;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.65);
+    box-shadow: 0 0 14px rgba(0, 255, 255, 0.28) !important;
+  }
+
+  .default-sidebar,
+  .future-tech-sidebar {
+    @include future-panel();
+    border-right-color: $ft-border-strong !important;
+
+    .el-menu-item,
+    .el-sub-menu__title {
+      @include future-menu-item();
     }
   }
 
-  /* 头像装饰：未来科技光环 - 优化性能，移除动画 */
+  .default-hover,
+  .future-tech-hover {
+    .hover-nav-theme-wrapper {
+      @include future-panel();
+      border-right-color: $ft-border-strong !important;
+    }
+
+    .el-menu-item,
+    .el-sub-menu__title {
+      @include future-menu-item();
+    }
+  }
+
+  .default-horizontal,
+  .future-tech-horizontal,
+  .default-mix,
+  .future-tech-mix {
+    @include future-panel(90deg);
+    border-bottom-color: $ft-border-strong !important;
+
+    .el-menu-item,
+    .el-sub-menu__title {
+      @include future-menu-item();
+    }
+  }
+
+  .default-drawer {
+    @include future-panel();
+    border-right-color: $ft-border-strong !important;
+
+    .el-menu-item,
+    .el-sub-menu__title {
+      @include future-menu-item();
+    }
+  }
+
+  .mobile-layout {
+    background:
+      radial-gradient(circle at top, rgba(0, 255, 255, 0.08), transparent 36%),
+      linear-gradient(180deg, rgba(5, 10, 31, 0.98), rgba(10, 26, 58, 0.96));
+
+    .mobile-header,
+    .drawer-container,
+    .mobile-nav-drawer .el-drawer__body {
+      @include future-panel();
+    }
+
+    .mobile-header {
+      border-bottom-color: $ft-border-strong !important;
+    }
+
+    .drawer-container,
+    .mobile-nav-drawer .el-drawer__body {
+      border-right-color: $ft-border-strong !important;
+    }
+
+    .app-title,
+    .drawer-title {
+      color: $ft-cyan !important;
+      text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+    }
+
+    .menu-trigger,
+    .setting-trigger {
+      border: 1px solid rgba(0, 255, 255, 0.24);
+      border-radius: 12px;
+      background: rgba(0, 255, 255, 0.06);
+
+      .trigger-icon {
+        color: $ft-cyan !important;
+      }
+    }
+
+    .mobile-menu,
+    .mobile-menu.el-menu {
+      background: transparent !important;
+      border-right: none !important;
+    }
+
+    .mobile-menu .el-menu-item,
+    .mobile-menu .el-sub-menu__title {
+      @include future-menu-item();
+      margin: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+    }
+  }
+
+  .tags-view,
+  .future-tech-tag {
+    position: relative;
+    z-index: 20;
+    background: linear-gradient(
+      90deg,
+      rgba(5, 10, 31, 0.88),
+      rgba(10, 26, 58, 0.86)
+    ) !important;
+    border-bottom: 1px solid $ft-border !important;
+    box-shadow:
+      0 6px 18px rgba(0, 0, 0, 0.28),
+      0 0 18px rgba(0, 255, 255, 0.12) !important;
+
+    .scroll-item {
+      position: relative;
+      background: linear-gradient(
+        135deg,
+        rgba(0, 255, 255, 0.1),
+        rgba(138, 43, 226, 0.12)
+      ) !important;
+      border: 1px solid $ft-border !important;
+      color: $ft-cyan-soft !important;
+      box-shadow:
+        0 0 10px rgba(0, 255, 255, 0.18),
+        inset 0 0 10px rgba(138, 43, 226, 0.08) !important;
+
+      &:hover {
+        background: linear-gradient(
+          135deg,
+          rgba(0, 255, 255, 0.2),
+          rgba(138, 43, 226, 0.18)
+        ) !important;
+        border-color: $ft-border-strong !important;
+        color: $ft-cyan !important;
+      }
+
+      &.active,
+      &.is-active {
+        background: linear-gradient(
+          135deg,
+          rgba(0, 255, 255, 0.26),
+          rgba(138, 43, 226, 0.24)
+        ) !important;
+        border-color: $ft-cyan !important;
+        box-shadow:
+          0 0 24px rgba(0, 255, 255, 0.42),
+          inset 0 0 16px rgba(138, 43, 226, 0.22) !important;
+        color: $ft-cyan !important;
+      }
+
+      .tag-title {
+        color: inherit !important;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.56);
+      }
+
+      .el-icon-close {
+        color: rgba(0, 255, 255, 0.72) !important;
+
+        &:hover {
+          color: $ft-cyan !important;
+          text-shadow: 0 0 8px rgba(0, 255, 255, 0.78);
+        }
+      }
+    }
+  }
+
+  .lay-setting,
+  .modern-setting-container {
+    background: linear-gradient(
+      180deg,
+      rgba(5, 10, 31, 0.96),
+      rgba(10, 26, 58, 0.92)
+    ) !important;
+    border-left: 1px solid $ft-border-strong !important;
+    box-shadow:
+      -10px 0 28px rgba(0, 0, 0, 0.4),
+      0 0 18px rgba(0, 255, 255, 0.12) inset !important;
+
+    .setting-section {
+      background: rgba(10, 26, 58, 0.74) !important;
+      border: 1px solid $ft-border !important;
+      box-shadow: 0 0 14px rgba(0, 255, 255, 0.1) !important;
+
+      .section-title {
+        color: $ft-cyan !important;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.48);
+      }
+    }
+  }
+
+  .setting-btn,
+  .header-clock {
+    background: linear-gradient(
+      135deg,
+      rgba(0, 255, 255, 0.1),
+      rgba(138, 43, 226, 0.12)
+    ) !important;
+    border-color: $ft-border !important;
+    box-shadow: 0 0 14px rgba(0, 255, 255, 0.16) !important;
+  }
+
+  .header-clock-time,
+  .header-clock-weekday {
+    color: $ft-cyan !important;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.7) !important;
+  }
+
+  .header-clock-weekday {
+    color: rgba(77, 253, 253, 0.82) !important;
+  }
+
   .lay-avatar,
   .el-avatar {
     position: relative;
-    border: 2px solid #00ffff;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
-    
-    /* 移除旋转动画，使用静态光效 */
+    border: 2px solid $ft-cyan;
+    box-shadow: 0 0 18px rgba(0, 255, 255, 0.48);
+
     &::before {
       content: "";
       position: absolute;
-      top: -4px;
-      left: -4px;
-      right: -4px;
-      bottom: -4px;
-      border: 2px solid #00ffff;
+      inset: -4px;
+      border: 1px solid rgba(0, 255, 255, 0.5);
       border-radius: 50%;
-      opacity: 0.5;
-      z-index: -1;
+      opacity: 0.65;
+      pointer-events: none;
     }
+  }
+}
+
+html[data-skin="future-tech"],
+html.theme-future-tech {
+  --sc-theme-surface: rgba(11, 28, 18, 0.96);
+  --sc-theme-surface-hover: rgba(15, 41, 26, 0.98);
+  --sc-theme-surface-active: rgba(22, 56, 36, 0.98);
+  --sc-theme-text: #f2d07a;
+  --sc-theme-text-strong: #ffefb5;
+  --sc-theme-text-muted: rgba(242, 208, 122, 0.72);
+  --sc-theme-border: rgba(105, 164, 117, 0.24);
+  --sc-theme-accent: rgba(105, 164, 117, 0.18);
+  --sc-theme-shadow: 0 20px 42px -30px rgba(2, 10, 6, 0.9);
+  --sc-theme-font-accent: "Rajdhani", "Orbitron", "Consolas", sans-serif;
+  --sc-theme-button-bg: linear-gradient(135deg, #122f1d, #0a1c11);
+  --sc-theme-button-bg-hover: linear-gradient(135deg, #184126, #0d2617);
+  --sc-theme-button-bg-active: linear-gradient(135deg, #0f2819, #08170f);
+  --sc-theme-button-text: #f2d07a;
+  --sc-theme-button-text-strong: #ffefb5;
+  --sc-theme-button-border: rgba(105, 164, 117, 0.24);
+  --sc-theme-button-shadow: 0 16px 28px -24px rgba(0, 0, 0, 0.76);
+  --sc-theme-button-shadow-hover: 0 20px 34px -24px rgba(0, 0, 0, 0.84);
+  --sc-theme-button-glow: rgba(242, 208, 122, 0.08);
+  --sc-theme-card-surface: linear-gradient(135deg, rgba(10, 27, 17, 0.96), rgba(5, 16, 10, 0.94));
+  --sc-theme-card-border: rgba(105, 164, 117, 0.2);
+  --sc-theme-card-text: #f4dda1;
+  --sc-theme-card-text-muted: rgba(244, 221, 161, 0.72);
+  --sc-theme-card-shadow: 0 20px 42px -30px rgba(0, 0, 0, 0.88);
+
+  body {
+    background:
+      radial-gradient(circle at top, rgba(77, 123, 89, 0.12), transparent 35%),
+      linear-gradient(135deg, #050d08 0%, #0a1b11 48%, #102818 100%);
+  }
+
+  :is(
+    .lay-navbar,
+    .default-navbar,
+    .lay-header,
+    .default-sidebar,
+    .future-tech-sidebar,
+    .future-tech-horizontal,
+    .future-tech-mix,
+    .hover-nav-theme-wrapper.future-tech-hover,
+    .hover-nav-theme-wrapper.default-hover,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .default-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) {
+    backdrop-filter: none !important;
+    background:
+      linear-gradient(135deg, rgba(11, 28, 18, 0.98), rgba(7, 18, 12, 0.96)) !important;
+    border-color: rgba(105, 164, 117, 0.22) !important;
+    box-shadow: 0 18px 36px -30px rgba(0, 0, 0, 0.84) !important;
+  }
+
+  :is(
+    .default-sidebar,
+    .future-tech-sidebar,
+    .hover-nav-theme-wrapper.future-tech-hover,
+    .hover-nav-theme-wrapper.default-hover,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .default-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) :is(.el-menu-item, .el-sub-menu__title, .custom-menu-item, .custom-sub-menu__title) {
+    color: #f2d07a !important;
+    font-weight: 700;
+    text-shadow: none !important;
+    border-radius: 12px;
+  }
+
+  :is(
+    .default-sidebar,
+    .future-tech-sidebar,
+    .hover-nav-theme-wrapper.future-tech-hover,
+    .hover-nav-theme-wrapper.default-hover,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .default-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) :is(.el-menu-item, .el-sub-menu__title, .custom-menu-item, .custom-sub-menu__title):hover {
+    color: #ffefb5 !important;
+    background: linear-gradient(135deg, rgba(22, 56, 36, 0.52), rgba(11, 28, 18, 0.24)) !important;
+    box-shadow: none !important;
+  }
+
+  :is(
+    .default-sidebar,
+    .future-tech-sidebar,
+    .hover-nav-theme-wrapper.future-tech-hover,
+    .hover-nav-theme-wrapper.default-hover,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .default-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) :is(.el-menu-item, .el-sub-menu__title, .custom-menu-item, .custom-sub-menu__title).is-active,
+  :is(
+    .default-sidebar,
+    .future-tech-sidebar,
+    .hover-nav-theme-wrapper.future-tech-hover,
+    .hover-nav-theme-wrapper.default-hover,
+    .default-horizontal,
+    .future-tech-horizontal,
+    .default-mix,
+    .future-tech-mix,
+    .default-hover .hover-nav-theme-wrapper,
+    .default-drawer,
+    .horizontal-custom-menu,
+    .custom-sub-menu__popper
+  ) :is(.custom-menu-item, .custom-sub-menu__title).active {
+    color: #102818 !important;
+    background: linear-gradient(135deg, rgba(242, 208, 122, 0.98), rgba(208, 175, 92, 0.88)) !important;
+    box-shadow: 0 12px 28px -24px rgba(242, 208, 122, 0.7) !important;
+    text-shadow: none !important;
   }
 }

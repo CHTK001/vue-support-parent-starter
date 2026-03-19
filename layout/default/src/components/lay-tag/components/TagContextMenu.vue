@@ -22,12 +22,21 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <ul v-show="visible" class="tag-contextmenu" :style="style">
+  <ul
+    v-show="visible"
+    class="tag-contextmenu"
+    :style="style"
+    @mousedown.stop
+  >
     <li
       v-for="(item, key) in items.slice(0, 6)"
       :key="key"
       v-show="item.show"
-      :class="{ 'is-disabled': item.disabled }"
+      :class="{
+        'is-disabled': item.disabled,
+        'is-divided': item.divided,
+        'is-danger': key === 1 || key === 5,
+      }"
       @click="!item.disabled && emit('select', key, item)"
     >
       <IconifyIconOffline :icon="item.icon" />
@@ -38,38 +47,62 @@ const emit = defineEmits<{
 
 <style lang="scss" scoped>
 .tag-contextmenu {
-  position: absolute;
-  z-index: 3000;
+  position: fixed;
+  z-index: 4000;
   margin: 0;
-  padding: 4px 0;
+  padding: 6px 0;
   list-style: none;
-  min-width: 140px;
-  border-radius: var(--dt-radius-md, 8px);
-  background: var(--el-bg-color-overlay);
-  box-shadow: var(--dt-shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.12));
-  border: 1px solid var(--dt-border-color, rgba(0, 0, 0, 0.06));
+  min-width: 180px;
+  border-radius: var(--dt-radius-md, 12px);
+  background: var(--sc-theme-surface, var(--el-bg-color-overlay));
+  box-shadow: var(--sc-theme-shadow, var(--dt-shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.12)));
+  border: 1px solid var(--sc-theme-border, var(--dt-border-color, rgba(0, 0, 0, 0.06)));
   font-size: 13px;
-  color: var(--el-text-color-regular);
+  color: var(--sc-theme-text, var(--el-text-color-regular));
+  transform-origin: top left;
 
   li {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 7px 14px;
+    padding: 8px 14px;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 8px;
     margin: 2px 4px;
     transition: background var(--dt-transition-fast, 0.15s ease),
       color var(--dt-transition-fast, 0.15s ease);
 
     &:hover:not(.is-disabled) {
-      background: var(--el-fill-color-light);
-      color: var(--el-color-primary);
+      background: var(--sc-theme-surface-hover, var(--el-fill-color-light));
+      color: var(--sc-theme-text-strong, var(--el-color-primary));
     }
 
     &.is-disabled {
       opacity: 0.4;
       cursor: not-allowed;
+    }
+
+    &.is-divided {
+      margin-top: 8px;
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: -5px;
+        height: 1px;
+        background: color-mix(
+          in srgb,
+          var(--sc-theme-border, var(--dt-border-color, rgba(0, 0, 0, 0.08))) 82%,
+          transparent
+        );
+      }
+    }
+
+    &.is-danger:hover:not(.is-disabled) {
+      color: var(--el-color-danger);
     }
 
     :deep(svg) {

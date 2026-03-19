@@ -44,8 +44,24 @@ export interface PlatformConfigs {
   OpenTenantLogin?: boolean;
   /** 是否开启基础登录 */
   OpenBaseLogin?: boolean;
+  /** 是否开启短信登录 */
+  OpenSmsLogin?: boolean;
   /** 是否开启刷新token */
   OpenShowRefreshToken?: boolean;
+  /** 是否显示开发态静态登录入口 */
+  ShowStaticLoginEntry?: boolean;
+  /** 开发态静态登录目标路由 */
+  StaticLoginPath?: string;
+  /** 开发态静态登录用户名 */
+  StaticLoginUsername?: string;
+  /** 开发态静态登录昵称 */
+  StaticLoginNickname?: string;
+  /** 开发态静态登录角色 */
+  StaticLoginRoles?: string[] | string;
+  /** 开发态静态登录权限 */
+  StaticLoginPerms?: string[] | string;
+  /** 开发态静态登录 accessToken */
+  StaticLoginAccessToken?: string;
   /** 配置加载失败时是否保持加载页面（默认false，失败后继续进入应用） */
   BlockOnConfigLoadFail?: boolean;
   /** 是否显示错误页面风格切换按钮（默认false） */
@@ -232,7 +248,13 @@ export interface PlatformConfigs {
   // 错误页面配置
   // ===========================================
   /** 错误页面风格: pixel(像素恐龙) | space(太空风) | minimal(极简风) | forbidden(禁止) | notfound(迷路) | servererror(故障) */
-  ErrorPageStyle?: 'pixel' | 'space' | 'minimal' | 'forbidden' | 'notfound' | 'servererror';
+  ErrorPageStyle?:
+    | "pixel"
+    | "space"
+    | "minimal"
+    | "forbidden"
+    | "notfound"
+    | "servererror";
   /** 账户类型（如 tenant） */
   AccountType?: string;
 

@@ -13,79 +13,81 @@ import BaseTag from './BaseTag.vue';
 <style lang="scss">
 @use './default.scss';
 
-// 未来科技主题标签样式
 .future-tech-tag {
+  background:
+    linear-gradient(180deg, rgba(8, 24, 16, 0.98), rgba(10, 28, 18, 0.94)) !important;
+  border-bottom: 1px solid rgba(91, 151, 108, 0.42) !important;
+  box-shadow: 0 10px 24px -20px rgba(0, 0, 0, 0.58) !important;
+
   .scroll-item {
     position: relative;
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    box-shadow: 
-      0 0 10px rgba(0, 255, 255, 0.2),
-      inset 0 0 10px rgba(138, 43, 226, 0.1);
-    transition: all 0.3s ease;
+    background:
+      linear-gradient(135deg, rgba(13, 34, 24, 0.92), rgba(8, 20, 14, 0.88));
+    border: 1px solid rgba(91, 151, 108, 0.28);
+    box-shadow:
+      0 10px 22px -18px rgba(0, 0, 0, 0.58),
+      inset 0 0 0 1px rgba(243, 210, 122, 0.05);
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.18s ease;
 
     &::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(0, 255, 255, 0.3) 50%, 
-        transparent 100%
+      inset: 1px;
+      border-radius: inherit;
+      background: linear-gradient(
+        135deg,
+        rgba(243, 210, 122, 0.08),
+        transparent 52%
       );
-      transform: translateX(-100%);
-      animation: neon-scan 3s ease-in-out infinite;
       pointer-events: none;
+      opacity: 0.85;
     }
 
     &:hover {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(138, 43, 226, 0.2) 100%);
-      border-color: rgba(0, 255, 255, 0.6);
-      box-shadow: 
-        0 0 20px rgba(0, 255, 255, 0.4),
-        inset 0 0 15px rgba(138, 43, 226, 0.2);
-      transform: translateY(-2px);
+      background:
+        linear-gradient(135deg, rgba(19, 50, 33, 0.96), rgba(10, 25, 17, 0.94));
+      border-color: rgba(243, 210, 122, 0.24);
+      box-shadow:
+        0 14px 30px -24px rgba(0, 0, 0, 0.66),
+        inset 0 0 0 1px rgba(243, 210, 122, 0.08);
+      transform: translateY(-1px);
     }
 
-    &.active {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.25) 0%, rgba(138, 43, 226, 0.25) 100%);
-      border-color: #00ffff;
-      box-shadow: 
-        0 0 25px rgba(0, 255, 255, 0.6),
-        inset 0 0 20px rgba(138, 43, 226, 0.3);
+    &.active,
+    &.is-active {
+      background:
+        linear-gradient(135deg, rgba(26, 64, 42, 0.98), rgba(13, 34, 24, 0.94));
+      border-color: rgba(243, 210, 122, 0.46);
+      box-shadow:
+        0 16px 34px -24px rgba(0, 0, 0, 0.72),
+        inset 0 0 0 1px rgba(243, 210, 122, 0.12);
 
       .tag-title {
-        color: #00ffff;
-        text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        color: #f3d27a;
+        text-shadow: none;
       }
     }
 
     .tag-title {
-      color: rgba(0, 255, 255, 0.9);
-      font-weight: 500;
-      text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+      color: rgba(243, 210, 122, 0.92);
+      font-family: "Rajdhani", "Orbitron", "Consolas", sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-shadow: none;
     }
 
     .el-icon-close {
-      color: rgba(0, 255, 255, 0.7);
+      color: rgba(243, 210, 122, 0.74);
       
       &:hover {
-        color: #00ffff;
-        text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+        color: #ffe7a4;
+        text-shadow: none;
       }
     }
-  }
-}
-
-@keyframes neon-scan {
-  0%, 100% {
-    transform: translateX(-100%);
-  }
-  50% {
-    transform: translateX(100%);
   }
 }
 </style>

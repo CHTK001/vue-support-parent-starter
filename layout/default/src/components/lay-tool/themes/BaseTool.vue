@@ -22,9 +22,9 @@ const webllmCollapsed = ref(false);
 // webLLM 浮层拖拽
 const webllmEl = ref<HTMLElement | null>(null);
 const webllmHandle = ref<HTMLElement | null>(null);
-const { style: webllmStyle } = useDraggable(webllmEl, {
+const { style: webllmStyle } = useDraggable(webllmEl as any, {
   initialValue: { x: window.innerWidth - 276, y: 16 },
-  handle: webllmHandle,
+  handle: webllmHandle as any,
 });
 
 // 接收主题类名
@@ -52,6 +52,24 @@ emitter.on("systemThemeChange", handleThemeChange);
 const isSpringFestival = () => currentTheme.value === "spring-festival";
 const isMidAutumn = () => currentTheme.value === "mid-autumn";
 const isHalloween = () => currentTheme.value === "halloween";
+const isChristmas = () => currentTheme.value === "christmas";
+const isFutureTech = () => currentTheme.value === "future-tech";
+
+const settingTextMotion = computed(() => {
+  if (isSpringFestival()) return "gold-foil";
+  if (isHalloween()) return "glitch";
+  if (isChristmas()) return "gold-foil";
+  if (isFutureTech()) return "none";
+  return "none";
+});
+
+const settingThemeClass = computed(() => ({
+  "fu-setting": isSpringFestival(),
+  "mooncake-setting": isMidAutumn(),
+  "pumpkin-setting": isHalloween(),
+  "christmas-setting": isChristmas(),
+  "future-setting": isFutureTech(),
+}));
 
 // 界面元素显示状态 - 从存储中读取初始值
 const showSearch = ref(
@@ -119,7 +137,7 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
         ref="webllmEl"
         class="webllm-float"
         :class="{ 'webllm-float--collapsed': webllmCollapsed }"
-        :style="webllmStyle"
+        :style="webllmStyle as any"
       >
         <!-- 标题栏：拖拽区域 + 点击收缩/展开 -->
         <div ref="webllmHandle" class="webllm-float-header" @click="webllmCollapsed = !webllmCollapsed">
@@ -149,13 +167,17 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
     <ToolItem
       v-if="getConfig().ShowBarSetting"
       :tooltip="t('buttons.pureOpenSystemSet')"
-      :class="['setting-btn', { 'fu-setting': isSpringFestival(), 'mooncake-setting': isMidAutumn(), 'pumpkin-setting': isHalloween() }]"
+      :class="['setting-btn', settingThemeClass]"
       @click="onPanel"
     >
-      <ScText v-if="isSpringFestival()">福</ScText>
-      <ScText v-else-if="isMidAutumn()">🥮</ScText>
-      <ScText v-else-if="isHalloween()">🎃</ScText>
-      <IconifyIconOffline v-else :icon="Setting" />
+      <span class="setting-content">
+        <IconifyIconOffline :icon="Setting" class="setting-icon" />
+        <ScText v-if="isSpringFestival()" class="setting-symbol setting-symbol--festival" :theme-motion="settingTextMotion">🧧</ScText>
+        <ScText v-else-if="isMidAutumn()">🥮</ScText>
+        <ScText v-else-if="isHalloween()" class="setting-symbol setting-symbol--halloween" :theme-motion="settingTextMotion">🎃</ScText>
+        <ScText v-else-if="isChristmas()" class="setting-symbol setting-symbol--christmas" :theme-motion="settingTextMotion">🎄</ScText>
+        <ScText v-else-if="isFutureTech()" class="setting-symbol setting-symbol--future" :theme-motion="settingTextMotion">⚡</ScText>
+      </span>
     </ToolItem>
   </div>
 </template>
@@ -227,6 +249,8 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 
 .setting-btn {
   font-size: 20px;
+  overflow: visible;
+  min-width: 42px;
 
   &:hover {
     background: linear-gradient(
@@ -238,6 +262,38 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
     :deep(svg) {
       animation: spin 3s linear infinite;
     }
+  }
+}
+
+.setting-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.setting-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.setting-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+
+  &--festival,
+  &--christmas,
+  &--halloween {
+    font-size: 18px;
+  }
+
+  &--future {
+    font-size: 16px;
   }
 }
 
@@ -278,6 +334,36 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
   font-size: 20px;
   background: rgba(255, 117, 24, 0.15);
   border: 1px solid rgba(255, 117, 24, 0.3);
+  overflow: visible;
+  
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  &::before {
+    inset: -10px;
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, transparent 48%, rgba(255, 214, 176, 0.42) 49%, transparent 51%) top right / 18px 18px no-repeat,
+      linear-gradient(90deg, transparent 50%, rgba(255, 214, 176, 0.32) 50%, transparent 52%) top right / 32px 1px no-repeat,
+      linear-gradient(180deg, transparent 50%, rgba(255, 214, 176, 0.32) 50%, transparent 52%) top right / 1px 32px no-repeat;
+    filter: drop-shadow(0 0 8px rgba(255, 117, 24, 0.32));
+    transform: scale(0.92);
+  }
+
+  &::after {
+    content: "🕷";
+    top: -12px;
+    right: -4px;
+    font-size: 13px;
+    text-shadow: 0 0 8px rgba(255, 117, 24, 0.6);
+    transform: translateY(-6px);
+  }
   
   &:hover {
     background: rgba(255, 117, 24, 0.25);
@@ -290,12 +376,64 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
     :deep(svg) {
        filter: brightness(1.2);
     }
+
+    &::before,
+    &::after {
+      opacity: 1;
+    }
+
+    &::before {
+      transform: scale(1);
+    }
+
+    &::after {
+      animation: spider-crawl 1.8s ease-in-out infinite;
+    }
+  }
+}
+
+.future-setting {
+  letter-spacing: 0.08em;
+
+  &:hover {
+    box-shadow:
+      0 0 18px rgba(0, 255, 255, 0.28),
+      inset 0 0 10px rgba(0, 255, 255, 0.18);
+  }
+}
+
+.christmas-setting {
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border-radius: 999px;
+    border: 1px dashed rgba(255, 225, 138, 0.32);
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    transform: scale(0.85);
+  }
+
+  &:hover::before {
+    opacity: 1;
+    transform: scale(1.05);
   }
 }
 
 @keyframes pumpkin-bounce {
   0%, 100% { transform: translateY(-2px) scale(1.1); }
   50% { transform: translateY(-5px) scale(1.1); }
+}
+
+@keyframes spider-crawl {
+  0%,
+  100% {
+    transform: translateY(-6px) translateX(0);
+  }
+  50% {
+    transform: translateY(2px) translateX(-2px);
+  }
 }
 
 // 中秋主题 - 月饼设置按钮

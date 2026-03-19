@@ -64,6 +64,11 @@ const set: setType = reactive({
 }
 
 .future-tech-header {
+  > :not(.festival-decoration) {
+    position: relative;
+    z-index: 20;
+  }
+
   .festival-decoration {
     position: absolute;
     top: 0;

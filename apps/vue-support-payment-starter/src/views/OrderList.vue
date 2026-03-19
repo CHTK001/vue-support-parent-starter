@@ -1,480 +1,658 @@
 <template>
-  <div class="order-list">
-    <el-card>
+  <section class="view">
+    <div class="hero-grid">
+      <article class="hero-card">
+        <p>订单总数</p>
+        <strong>{{ pagination.total }}</strong>
+        <span>管理创建、支付、完成、退款和删除全链路状态。</span>
+      </article>
+      <article class="hero-card">
+        <p>待处理订单</p>
+        <strong>{{ pendingCount }}</strong>
+        <span>包括待支付、支付中、退款中的订单。</span>
+      </article>
+      <article class="hero-card">
+        <p>成功支付金额</p>
+        <strong>{{ formatCurrency(successPaidAmount) }}</strong>
+        <span>基于当前页订单估算，用于快速巡检支付状态。</span>
+      </article>
+    </div>
+
+    <el-card class="panel">
       <template #header>
-        <div class="card-header">
-          <span>订单管理</span>
-          <el-button type="primary" @click="showCreateDialog">创建订单</el-button>
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Order State Machine</p>
+            <h3>订单管理</h3>
+          </div>
+          <el-button type="primary" @click="openCreateDialog">创建订单</el-button>
         </div>
       </template>
 
-      <!-- 搜索表单 -->
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="用户ID">
-          <el-input v-model="searchForm.userId" placeholder="请输入用户ID" clearable />
+      <el-form :inline="true" :model="searchForm" class="toolbar">
+        <el-form-item label="商户">
+          <el-select v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+            <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="订单状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option
-              v-for="(label, value) in OrderStatusMap"
-              :key="value"
-              :label="label"
-              :value="Number(value)"
-            />
+        <el-form-item label="订单号">
+          <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
+            <el-option v-for="(label, value) in OrderStatusMap" :key="value" :label="label" :value="value" />
           </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button @click="handleResetSearch">重置</el-button>
         </el-form-item>
       </el-form>
 
-      <!-- 统计信息 -->
-      <el-row :gutter="20" class="statistics">
-        <el-col :span="8">
-          <el-statistic title="订单总数" :value="statistics.totalCount" />
-        </el-col>
-        <el-col :span="8">
-          <el-statistic title="已支付订单" :value="statistics.paidCount" />
-        </el-col>
-        <el-col :span="8">
-          <el-statistic title="订单总金额" :value="statistics.totalAmount / 100" :precision="2" prefix="¥" />
-        </el-col>
-      </el-row>
-
-      <!-- 订单列表 -->
-      <el-table :data="orderList" border stripe v-loading="loading">
-        <el-table-column prop="orderNo" label="订单号" width="200" />
-        <el-table-column prop="userId" label="用户ID" width="150" />
-        <el-table-column prop="subject" label="订单标题" />
-        <el-table-column prop="amount" label="订单金额" width="120">
+      <el-table :data="orderList" v-loading="loading" border class="table">
+        <el-table-column prop="orderNo" label="平台订单号" min-width="220" />
+        <el-table-column prop="businessOrderNo" label="业务订单号" min-width="180" />
+        <el-table-column prop="merchantName" label="商户" width="160" />
+        <el-table-column prop="channelName" label="支付方式" width="180" />
+        <el-table-column label="金额" width="140">
           <template #default="{ row }">
-            ¥{{ (row.amount / 100).toFixed(2) }}
+            <strong>{{ formatCurrency(row.orderAmount) }}</strong>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="订单状态" width="120">
+        <el-table-column label="状态" width="130">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
-              {{ OrderStatusMap[row.status] }}
-            </el-tag>
+            <el-tag :type="statusTag(row.status)">{{ row.statusDesc || OrderStatusMap[row.status] }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="300" fixed="right">
+        <el-table-column label="支付/退款" width="180">
           <template #default="{ row }">
-            <el-button size="small" @click="handleView(row)">查看</el-button>
-            <el-button size="small" type="primary" @click="handlePay(row)" v-if="canPay(row.status)">
-              支付
-            </el-button>
-            <el-button size="small" type="warning" @click="handleRefund(row)" v-if="canRefund(row.status)">
-              退款
-            </el-button>
-            <el-button size="small" type="danger" @click="handleCancel(row)" v-if="canCancel(row.status)">
-              取消
-            </el-button>
+            <div class="cell-stack">
+              <span>已付：{{ formatCurrency(row.paidAmount) }}</span>
+              <span>已退：{{ formatCurrency(row.refundAmount) }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="创建时间" width="180" />
+        <el-table-column label="操作" width="420" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="openLogDrawer(row)">流转日志</el-button>
+            <el-button v-if="canRealPay(row.status)" link type="success" @click="handleRealPay(row)">真实支付</el-button>
+            <el-button v-if="canSync(row.status)" link type="warning" @click="handleSync(row)">同步状态</el-button>
+            <el-button v-if="canStartPay(row.status)" link type="primary" @click="handleStartPay(row)">发起支付</el-button>
+            <el-button v-if="canMarkPaid(row.status)" link type="success" @click="handleMarkPaid(row)">支付成功</el-button>
+            <el-button v-if="canMarkPaid(row.status)" link type="danger" @click="handleMarkPayFail(row)">支付失败</el-button>
+            <el-button v-if="canComplete(row.status)" link type="warning" @click="handleComplete(row)">完成</el-button>
+            <el-button v-if="canCancel(row.status)" link @click="handleCancel(row)">取消</el-button>
+            <el-button v-if="canRefund(row.status)" link type="warning" @click="handleRefund(row)">申请退款</el-button>
+            <el-button v-if="canRefundConfirm(row.status)" link type="success" @click="handleRefundSuccess(row)">退款成功</el-button>
+            <el-button v-if="canRefundConfirm(row.status)" link type="danger" @click="handleRefundFail(row)">退款失败</el-button>
+            <el-button v-if="canDelete(row.status)" link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
       <el-pagination
         v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
+        v-model:page-size="pagination.size"
         :total="pagination.total"
-        :page-sizes="[10, 20, 50, 100]"
+        :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        class="pagination"
+        class="pager"
+        @current-change="loadOrders"
+        @size-change="loadOrders"
       />
     </el-card>
 
-    <!-- 创建订单对话框 -->
-    <el-dialog v-model="createDialogVisible" title="创建订单" width="600px">
-      <el-form :model="createForm" :rules="createRules" ref="createFormRef" label-width="100px">
-        <el-form-item label="用户ID" prop="userId">
-          <el-input v-model="createForm.userId" placeholder="请输入用户ID" />
-        </el-form-item>
-        <el-form-item label="订单标题" prop="subject">
-          <el-input v-model="createForm.subject" placeholder="请输入订单标题" />
-        </el-form-item>
-        <el-form-item label="订单金额" prop="amount">
-          <el-input-number v-model="createForm.amount" :min="0.01" :step="0.01" :precision="2" />
-          <span class="ml-2">元</span>
-        </el-form-item>
-        <el-form-item label="支付方式" prop="tradeType">
-          <el-select v-model="createForm.tradeType" placeholder="请选择支付方式">
-            <el-option label="扫码支付" value="NATIVE" />
-            <el-option label="公众号支付" value="JSAPI" />
-            <el-option label="APP支付" value="APP" />
-            <el-option label="H5支付" value="H5" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="OpenID" prop="openid" v-if="createForm.tradeType === 'JSAPI'">
-          <el-input v-model="createForm.openid" placeholder="请输入OpenID（JSAPI支付必填）" />
-        </el-form-item>
+    <el-dialog v-model="createDialogVisible" title="创建订单" width="760px">
+      <el-form :model="createForm" label-width="110px">
+        <div class="form-grid">
+          <el-form-item label="商户" required>
+            <el-select v-model="createForm.merchantId" placeholder="请选择商户" @change="handleMerchantChange">
+              <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="支付方式" required>
+            <el-select v-model="createForm.channelId" placeholder="请选择支付方式">
+              <el-option
+                v-for="item in createChannelOptions"
+                :key="item.id"
+                :label="`${item.channelName} (${item.channelSubType})`"
+                :value="item.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="业务订单号">
+            <el-input v-model="createForm.businessOrderNo" placeholder="可选，不填则系统自动生成" />
+          </el-form-item>
+          <el-form-item label="用户ID">
+            <el-input-number v-model="createForm.userId" :min="1" :precision="0" />
+          </el-form-item>
+          <el-form-item label="订单金额" required>
+            <el-input-number v-model="createForm.orderAmount" :min="0.01" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="优惠金额">
+            <el-input-number v-model="createForm.discountAmount" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="订单标题">
+            <el-input v-model="createForm.subject" placeholder="例如：会员充值" />
+          </el-form-item>
+          <el-form-item label="币种">
+            <el-input v-model="createForm.currency" placeholder="默认 CNY" />
+          </el-form-item>
+          <el-form-item label="订单描述" class="span-2">
+            <el-input v-model="createForm.body" type="textarea" :rows="3" placeholder="补充订单描述" />
+          </el-form-item>
+          <el-form-item label="支付回调地址" class="span-2">
+            <el-input v-model="createForm.notifyUrl" placeholder="可覆盖商户/渠道默认回调地址" />
+          </el-form-item>
+          <el-form-item label="返回地址" class="span-2">
+            <el-input v-model="createForm.returnUrl" placeholder="可覆盖商户/渠道默认返回地址" />
+          </el-form-item>
+          <el-form-item label="过期分钟">
+            <el-input-number v-model="createForm.expireMinutes" :min="1" :max="1440" />
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input v-model="createForm.remark" placeholder="例如：后台补单" />
+          </el-form-item>
+        </div>
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleCreate" :loading="creating">创建并支付</el-button>
+        <el-button type="primary" :loading="creating" @click="submitCreate">创建</el-button>
       </template>
     </el-dialog>
 
-    <!-- 订单详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="订单详情" width="800px">
-      <el-descriptions :column="2" border v-if="currentOrder">
-        <el-descriptions-item label="订单号">{{ currentOrder.orderNo }}</el-descriptions-item>
-        <el-descriptions-item label="用户ID">{{ currentOrder.userId }}</el-descriptions-item>
-        <el-descriptions-item label="订单标题">{{ currentOrder.subject }}</el-descriptions-item>
-        <el-descriptions-item label="订单金额">
-          ¥{{ (currentOrder.amount / 100).toFixed(2) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="实付金额">
-          ¥{{ ((currentOrder.paidAmount || 0) / 100).toFixed(2) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="退款金额">
-          ¥{{ ((currentOrder.refundAmount || 0) / 100).toFixed(2) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="订单状态">
-          <el-tag :type="getStatusType(currentOrder.status)">
-            {{ OrderStatusMap[currentOrder.status] }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="第三方订单号">
-          {{ currentOrder.thirdOrderNo || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ currentOrder.createTime }}</el-descriptions-item>
-        <el-descriptions-item label="支付时间">{{ currentOrder.payTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="退款时间">{{ currentOrder.refundTime || '-' }}</el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
-
-    <!-- 支付二维码对话框 -->
-    <el-dialog v-model="qrcodeDialogVisible" title="扫码支付" width="400px" align-center>
-      <div class="qrcode-container">
-        <div id="qrcode" ref="qrcodeRef"></div>
-        <p class="qrcode-tip">请使用微信/支付宝扫码支付</p>
-      </div>
-    </el-dialog>
-  </div>
+    <el-drawer v-model="logDrawerVisible" size="520px" :title="currentOrder ? `${currentOrder.orderNo} - 流转日志` : '流转日志'">
+      <el-timeline v-if="orderLogs.length">
+        <el-timeline-item
+          v-for="item in orderLogs"
+          :key="item.id"
+          :timestamp="item.createdAt"
+          placement="top"
+        >
+          <div class="log-card">
+            <strong>{{ item.event }}</strong>
+            <p>{{ item.fromState || "INIT" }} -> {{ item.toState }}</p>
+            <span>操作人：{{ item.operator || "-" }}</span>
+            <span>备注：{{ item.remark || "-" }}</span>
+          </div>
+        </el-timeline-item>
+      </el-timeline>
+      <el-empty v-else description="暂无状态流转记录" />
+    </el-drawer>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
-import { getOrderList, createOrderAndPay, cancelOrder, refundOrder, countOrders, sumOrderAmount } from '../api/payment';
-import { OrderStatus, OrderStatusMap, type Order } from '../types/payment';
-import QRCode from 'qrcodejs2';
+import { computed, onMounted, reactive, ref } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import {
+  applyRefund,
+  cancelOrder,
+  completeOrder,
+  createOrder,
+  deleteOrder,
+  getMerchantChannels,
+  getMerchantList,
+  getOrderList,
+  getOrderLogs,
+  markOrderPaid,
+  markOrderPayFail,
+  markRefundFail,
+  markRefundSuccess,
+  payOrder,
+  syncOrder,
+  startOrderPay,
+} from "../api/payment";
+import type {
+  Merchant,
+  MerchantChannel,
+  OrderForm,
+  PaymentLaunchResult,
+  OrderStateLog,
+  PaymentOrder,
+} from "../types/payment";
+import { OrderStatusMap } from "../types/payment";
 
-// 搜索表单
-const searchForm = reactive({
-  userId: '',
-  status: undefined as number | undefined,
-});
+const loading = ref(false);
+const creating = ref(false);
 
-// 分页
+const merchantOptions = ref<Merchant[]>([]);
+const createChannelOptions = ref<MerchantChannel[]>([]);
+const orderList = ref<PaymentOrder[]>([]);
+const orderLogs = ref<OrderStateLog[]>([]);
+const currentOrder = ref<PaymentOrder | null>(null);
+
 const pagination = reactive({
   page: 1,
-  pageSize: 10,
+  size: 10,
   total: 0,
 });
 
-// 订单列表
-const orderList = ref<Order[]>([]);
-const loading = ref(false);
-
-// 统计信息
-const statistics = reactive({
-  totalCount: 0,
-  paidCount: 0,
-  totalAmount: 0,
+const searchForm = reactive({
+  merchantId: undefined as number | undefined,
+  orderNo: "",
+  status: "",
 });
 
-// 创建订单对话框
 const createDialogVisible = ref(false);
-const creating = ref(false);
-const createFormRef = ref<FormInstance>();
-const createForm = reactive({
-  userId: '',
-  subject: '',
-  amount: 0,
-  tradeType: 'NATIVE',
-  openid: '',
-});
+const logDrawerVisible = ref(false);
 
-const createRules: FormRules = {
-  userId: [{ required: true, message: '请输入用户ID', trigger: 'blur' }],
-  subject: [{ required: true, message: '请输入订单标题', trigger: 'blur' }],
-  amount: [{ required: true, message: '请输入订单金额', trigger: 'blur' }],
-  tradeType: [{ required: true, message: '请选择支付方式', trigger: 'change' }],
-};
+const createForm = reactive<OrderForm>(createDefaultOrderForm());
 
-// 订单详情对话框
-const detailDialogVisible = ref(false);
-const currentOrder = ref<Order | null>(null);
+const pendingCount = computed(() =>
+  orderList.value.filter((item) => ["PENDING", "PAYING", "REFUNDING"].includes(item.status)).length
+);
+const successPaidAmount = computed(() =>
+  orderList.value
+    .filter((item) => item.status === "PAID" || item.status === "COMPLETED" || item.status === "REFUNDING" || item.status === "REFUNDED")
+    .reduce((sum, item) => sum + Number(item.paidAmount || 0), 0)
+);
 
-// 二维码对话框
-const qrcodeDialogVisible = ref(false);
-const qrcodeRef = ref<HTMLElement>();
+async function loadMerchants() {
+  const res = await getMerchantList({ page: 1, size: 200 });
+  merchantOptions.value = res.data.records;
+}
 
-// 加载订单列表
-const loadOrderList = async () => {
+async function loadOrders() {
   loading.value = true;
   try {
     const res = await getOrderList({
       page: pagination.page,
-      pageSize: pagination.pageSize,
-      ...searchForm,
+      size: pagination.size,
+      merchantId: searchForm.merchantId,
+      orderNo: searchForm.orderNo || undefined,
+      status: searchForm.status || undefined,
     });
-    orderList.value = res.data.list;
+    orderList.value = res.data.records;
     pagination.total = res.data.total;
-  } catch (error) {
-    ElMessage.error('加载订单列表失败');
   } finally {
     loading.value = false;
   }
-};
+}
 
-// 加载统计信息
-const loadStatistics = async () => {
-  try {
-    const [totalRes, paidRes, amountRes] = await Promise.all([
-      countOrders({}),
-      countOrders({ status: OrderStatus.PAID }),
-      sumOrderAmount({ status: OrderStatus.PAID }),
-    ]);
-    statistics.totalCount = totalRes.data;
-    statistics.paidCount = paidRes.data;
-    statistics.totalAmount = amountRes.data;
-  } catch (error) {
-    console.error('加载统计信息失败', error);
-  }
-};
-
-// 搜索
-const handleSearch = () => {
+function handleSearch() {
   pagination.page = 1;
-  loadOrderList();
-};
+  loadOrders();
+}
 
-// 重置
-const handleReset = () => {
-  searchForm.userId = '';
-  searchForm.status = undefined;
+function handleResetSearch() {
+  searchForm.merchantId = undefined;
+  searchForm.orderNo = "";
+  searchForm.status = "";
   handleSearch();
-};
+}
 
-// 分页变化
-const handleSizeChange = () => {
-  loadOrderList();
-};
-
-const handleCurrentChange = () => {
-  loadOrderList();
-};
-
-// 显示创建对话框
-const showCreateDialog = () => {
+function openCreateDialog() {
+  Object.assign(createForm, createDefaultOrderForm());
+  createChannelOptions.value = [];
   createDialogVisible.value = true;
-};
+}
 
-// 创建订单
-const handleCreate = async () => {
-  if (!createFormRef.value) return;
-  
-  await createFormRef.value.validate(async (valid) => {
-    if (!valid) return;
-    
-    creating.value = true;
-    try {
-      const res = await createOrderAndPay(
-        {
-          userId: createForm.userId,
-          subject: createForm.subject,
-          amount: Math.round(createForm.amount * 100),
-        },
-        {
-          outTradeNo: '',
-          tradeType: createForm.tradeType,
-          subject: createForm.subject,
-          totalAmount: Math.round(createForm.amount * 100),
-          expireMinutes: 30,
-          openid: createForm.openid || undefined,
-        }
-      );
-      
-      if (res.data.success) {
-        ElMessage.success('订单创建成功');
-        createDialogVisible.value = false;
-        
-        // 如果是扫码支付，显示二维码
-        if (res.data.codeUrl) {
-          showQRCode(res.data.codeUrl);
-        }
-        
-        loadOrderList();
-        loadStatistics();
-      } else {
-        ElMessage.error(res.data.errorMsg || '订单创建失败');
-      }
-    } catch (error) {
-      ElMessage.error('订单创建失败');
-    } finally {
-      creating.value = false;
-    }
-  });
-};
-
-// 显示二维码
-const showQRCode = (codeUrl: string) => {
-  qrcodeDialogVisible.value = true;
-  setTimeout(() => {
-    if (qrcodeRef.value) {
-      qrcodeRef.value.innerHTML = '';
-      new QRCode(qrcodeRef.value, {
-        text: codeUrl,
-        width: 256,
-        height: 256,
-      });
-    }
-  }, 100);
-};
-
-// 查看订单
-const handleView = (order: Order) => {
-  currentOrder.value = order;
-  detailDialogVisible.value = true;
-};
-
-// 支付订单
-const handlePay = (order: Order) => {
-  ElMessage.info('请使用创建订单功能重新发起支付');
-};
-
-// 取消订单
-const handleCancel = async (order: Order) => {
-  try {
-    await ElMessageBox.confirm('确定要取消该订单吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    });
-    
-    const res = await cancelOrder(order.orderNo);
-    if (res.data) {
-      ElMessage.success('订单取消成功');
-      loadOrderList();
-    } else {
-      ElMessage.error('订单取消失败');
-    }
-  } catch (error) {
-    // 用户取消操作
+async function handleMerchantChange(merchantId: number) {
+  const res = await getMerchantChannels(merchantId, { status: 1 });
+  createChannelOptions.value = res.data;
+  if (!createChannelOptions.value.find((item) => item.id === createForm.channelId)) {
+    createForm.channelId = createChannelOptions.value[0]?.id || 0;
   }
-};
+}
 
-// 退款订单
-const handleRefund = async (order: Order) => {
+async function submitCreate() {
+  if (!createForm.merchantId || !createForm.channelId || !createForm.orderAmount) {
+    ElMessage.error("商户、支付方式和订单金额不能为空");
+    return;
+  }
+  creating.value = true;
   try {
-    const { value } = await ElMessageBox.prompt('请输入退款金额（元）', '退款', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      inputPattern: /^\d+(\.\d{1,2})?$/,
-      inputErrorMessage: '请输入正确的金额',
+    await createOrder(createForm);
+    ElMessage.success("订单创建成功");
+    createDialogVisible.value = false;
+    await loadOrders();
+  } finally {
+    creating.value = false;
+  }
+}
+
+async function openLogDrawer(order: PaymentOrder) {
+  currentOrder.value = order;
+  const res = await getOrderLogs(order.id);
+  orderLogs.value = res.data;
+  logDrawerVisible.value = true;
+}
+
+async function handleRealPay(order: PaymentOrder) {
+  const payload: Record<string, unknown> = {
+    operator: "payment-console",
+    clientIp: "127.0.0.1",
+    userAgent: navigator.userAgent,
+  };
+  if (order.channelType === "WECHAT" && order.channelSubType === "JSAPI") {
+    const { value } = await ElMessageBox.prompt("请输入 payerOpenId", "微信 JSAPI 支付", {
+      inputPlaceholder: "例如：oUpF8uMuAJO_M2pxb1Q9zNjWeS6o",
     });
-    
-    const refundAmount = Math.round(parseFloat(value) * 100);
-    if (refundAmount > order.amount) {
-      ElMessage.error('退款金额不能超过订单金额');
+    payload.payerOpenId = value;
+  }
+  const res = await payOrder(order.id, payload);
+  await presentPayLaunch(order, res.data);
+  await loadOrders();
+}
+
+async function handleSync(order: PaymentOrder) {
+  const res = await syncOrder(order.id);
+  ElMessage.success(`订单已同步为 ${res.data.statusDesc || OrderStatusMap[res.data.status] || res.data.status}`);
+  await loadOrders();
+}
+
+async function handleStartPay(order: PaymentOrder) {
+  await startOrderPay(order.id, { operator: "payment-console" });
+  ElMessage.success("订单已进入支付中");
+  await loadOrders();
+}
+
+async function handleMarkPaid(order: PaymentOrder) {
+  await markOrderPaid(order.id, {
+    operator: "payment-console",
+    paidAmount: order.orderAmount,
+    thirdPartyOrderNo: order.thirdPartyOrderNo || `TP${Date.now()}`,
+  });
+  ElMessage.success("订单已标记支付成功");
+  await loadOrders();
+}
+
+async function handleMarkPayFail(order: PaymentOrder) {
+  const { value } = await ElMessageBox.prompt("请输入失败原因", "支付失败", {
+    inputPlaceholder: "例如：第三方返回签名错误",
+  });
+  await markOrderPayFail(order.id, { operator: "payment-console", remark: value });
+  ElMessage.success("订单已标记支付失败");
+  await loadOrders();
+}
+
+async function handleComplete(order: PaymentOrder) {
+  await completeOrder(order.id, { operator: "payment-console" });
+  ElMessage.success("订单已完成");
+  await loadOrders();
+}
+
+async function handleCancel(order: PaymentOrder) {
+  const { value } = await ElMessageBox.prompt("请输入取消原因", "取消订单", {
+    inputPlaceholder: "例如：用户主动取消",
+  });
+  await cancelOrder(order.id, { operator: "payment-console", remark: value });
+  ElMessage.success("订单已取消");
+  await loadOrders();
+}
+
+async function handleRefund(order: PaymentOrder) {
+  const { value } = await ElMessageBox.prompt("请输入退款金额", "申请退款", {
+    inputPlaceholder: "例如：88.00",
+    inputPattern: /^\d+(\.\d{1,2})?$/,
+    inputErrorMessage: "请输入正确的金额",
+  });
+  await applyRefund(order.id, {
+    refundAmount: Number(value),
+    refundReason: "管理台发起退款",
+    operator: "payment-console",
+  });
+  ElMessage.success("退款申请已提交");
+  await loadOrders();
+}
+
+async function handleRefundSuccess(order: PaymentOrder) {
+  await markRefundSuccess(order.id, {
+    operator: "payment-console",
+    refundAmount: Number(order.paidAmount || order.orderAmount),
+  });
+  ElMessage.success("订单已标记退款成功");
+  await loadOrders();
+}
+
+async function handleRefundFail(order: PaymentOrder) {
+  const { value } = await ElMessageBox.prompt("请输入退款失败原因", "退款失败", {
+    inputPlaceholder: "例如：原交易已关闭",
+  });
+  await markRefundFail(order.id, {
+    operator: "payment-console",
+    remark: value,
+  });
+  ElMessage.success("订单已标记退款失败");
+  await loadOrders();
+}
+
+async function handleDelete(order: PaymentOrder) {
+  await ElMessageBox.confirm(`确认删除订单 ${order.orderNo} 吗？`, "删除确认", { type: "warning" });
+  await deleteOrder(order.id);
+  ElMessage.success("订单已删除");
+  await loadOrders();
+}
+
+function statusTag(status: string) {
+  if (["PAID", "COMPLETED", "REFUNDED"].includes(status)) {
+    return "success";
+  }
+  if (["PAYING", "REFUNDING"].includes(status)) {
+    return "warning";
+  }
+  if (["CANCELLED"].includes(status)) {
+    return "info";
+  }
+  if (["FAILED"].includes(status)) {
+    return "danger";
+  }
+  return "";
+}
+
+function canStartPay(status: string) {
+  return status === "PENDING";
+}
+
+function canRealPay(status: string) {
+  return status === "PENDING" || status === "PAYING";
+}
+
+function canSync(status: string) {
+  return status === "PENDING" || status === "PAYING" || status === "REFUNDING";
+}
+
+function canMarkPaid(status: string) {
+  return status === "PENDING" || status === "PAYING";
+}
+
+function canComplete(status: string) {
+  return status === "PAID";
+}
+
+function canCancel(status: string) {
+  return status === "PENDING";
+}
+
+function canRefund(status: string) {
+  return status === "PAID" || status === "COMPLETED";
+}
+
+function canRefundConfirm(status: string) {
+  return status === "REFUNDING";
+}
+
+function canDelete(status: string) {
+  return ["PENDING", "CANCELLED", "FAILED", "REFUNDED"].includes(status);
+}
+
+async function presentPayLaunch(order: PaymentOrder, launch: PaymentLaunchResult) {
+  if (launch.launchType === "HTML_FORM" && launch.formHtml) {
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    if (win) {
+      win.document.write(launch.formHtml);
+      win.document.close();
+      ElMessage.success("支付表单已在新窗口打开");
       return;
     }
-    
-    const res = await refundOrder(order.orderNo, {
-      outTradeNo: order.orderNo,
-      outRefundNo: `REFUND_${Date.now()}`,
-      totalAmount: order.amount,
-      refundAmount,
-      refundReason: '用户申请退款',
-    });
-    
-    if (res.data.success) {
-      ElMessage.success('退款申请成功');
-      loadOrderList();
-    } else {
-      ElMessage.error(res.data.errorMsg || '退款申请失败');
-    }
-  } catch (error) {
-    // 用户取消操作
   }
-};
+  if (launch.launchType === "REDIRECT_URL" && launch.payUrl) {
+    window.open(launch.payUrl, "_blank", "noopener,noreferrer");
+    ElMessage.success("支付链接已在新窗口打开");
+    return;
+  }
+  if (launch.launchType === "JSAPI" && launch.sdkParams) {
+    await ElMessageBox.alert(JSON.stringify(launch.sdkParams, null, 2), `${order.orderNo} - JSAPI 参数`, {
+      confirmButtonText: "关闭",
+    });
+    return;
+  }
+  await ElMessageBox.alert(launch.message || "支付请求已提交", `${order.orderNo} - 支付结果`, {
+    confirmButtonText: "关闭",
+  });
+}
 
-// 获取状态类型
-const getStatusType = (status: OrderStatus) => {
-  if (status === OrderStatus.PAID) return 'success';
-  if (status === OrderStatus.PAYING) return 'warning';
-  if (status === OrderStatus.CANCELED || status === OrderStatus.CLOSED) return 'info';
-  if (status === OrderStatus.PAY_FAILED || status === OrderStatus.REFUND_FAILED) return 'danger';
-  return '';
-};
+function formatCurrency(value?: number) {
+  return `¥${Number(value || 0).toFixed(2)}`;
+}
 
-// 判断是否可以支付
-const canPay = (status: OrderStatus) => {
-  return status === OrderStatus.CREATED || status === OrderStatus.PAY_FAILED;
-};
+function createDefaultOrderForm(): OrderForm {
+  return {
+    merchantId: 0,
+    channelId: 0,
+    userId: undefined,
+    businessOrderNo: "",
+    orderAmount: 0,
+    discountAmount: 0,
+    currency: "CNY",
+    subject: "",
+    body: "",
+    notifyUrl: "",
+    returnUrl: "",
+    expireMinutes: 30,
+    remark: "",
+  };
+}
 
-// 判断是否可以取消
-const canCancel = (status: OrderStatus) => {
-  return status === OrderStatus.CREATED || status === OrderStatus.PAYING || status === OrderStatus.PAY_FAILED;
-};
-
-// 判断是否可以退款
-const canRefund = (status: OrderStatus) => {
-  return status === OrderStatus.PAID || status === OrderStatus.PARTIAL_REFUNDED;
-};
-
-onMounted(() => {
-  loadOrderList();
-  loadStatistics();
+onMounted(async () => {
+  await Promise.all([loadMerchants(), loadOrders()]);
 });
 </script>
 
 <style scoped>
-.order-list {
-  padding: 20px;
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.card-header {
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.hero-card,
+.panel {
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 18px 60px rgba(54, 37, 23, 0.08);
+}
+
+.hero-card {
+  padding: 20px 22px;
+  background: linear-gradient(160deg, rgba(255, 246, 234, 0.9) 0%, rgba(255, 255, 255, 0.88) 100%);
+}
+
+.hero-card p,
+.hero-card span {
+  margin: 0;
+}
+
+.hero-card p {
+  color: #8e6945;
+}
+
+.hero-card strong {
+  display: block;
+  margin: 10px 0 12px;
+  font-size: 34px;
+  color: #291b12;
+}
+
+.hero-card span {
+  line-height: 1.7;
+  color: #705847;
+}
+
+.panel__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
 }
 
-.search-form {
-  margin-bottom: 20px;
+.panel__eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #bf8445;
 }
 
-.statistics {
-  margin-bottom: 20px;
+.panel__header h3 {
+  margin: 0;
+  font-size: 24px;
+  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
 }
 
-.pagination {
+.toolbar {
+  margin-bottom: 18px;
+}
+
+.table {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.pager {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
 }
 
-.qrcode-container {
+.cell-stack {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 20px;
+  gap: 6px;
 }
 
-.qrcode-tip {
-  margin-top: 20px;
-  color: #666;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 18px;
 }
 
-.ml-2 {
-  margin-left: 8px;
+.span-2 {
+  grid-column: 1 / -1;
+}
+
+.log-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.log-card p,
+.log-card span {
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: auto;
+  }
 }
 </style>

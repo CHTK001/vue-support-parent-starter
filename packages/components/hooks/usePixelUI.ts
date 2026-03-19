@@ -1,5 +1,5 @@
 /**
- * 像素主题（@pixelium/web-vue）条件导入管理
+ * 像素主题（@mmt817/pixel-ui）条件导入管理
  * 提供统一的像素组件和 CSS 条件加载能力
  * 只在 8bit 主题下加载，其他主题不加载以优化性能
  */
@@ -16,124 +16,51 @@ let pixelUiStyleLink: HTMLLinkElement | null = null;
  * 像素主题 CSS URL 缓存
  */
 let pixelUiCssUrl: string | null = null;
+const pixeliumModuleSpecifier = "@mmt817/pixel-ui";
+const pixeliumThemeCssSpecifier = "@mmt817/pixel-ui/dist/index.css?url";
+const pixelUiStyleId = "pixel-ui-theme-style";
+const pixelUiGlobalAttr = "data-pixel-ui-global";
+const runtimeImport = new Function(
+  "specifier",
+  "return import(specifier);",
+) as (specifier: string) => Promise<any>;
 
 /**
  * 像素主题 CSS 引用计数（用于多组件实例管理）
  */
 let pixelUiCssRefCount = 0;
 
-/**
- * Pixelium 可选 CSS 样式链接引用（normalize.css）
- */
-const pixeliumOptionalStyleLinks = new Map<string, HTMLLinkElement>();
-
-/**
- * Pixelium 可选 CSS URL 缓存
- */
-const pixeliumOptionalCssUrls = new Map<string, string>();
-
-/**
- * Pixelium 可选 CSS 引用计数
- */
-const pixeliumOptionalCssRefCounts = new Map<string, number>();
-
-/**
- * 加载 Pixelium 可选 CSS（normalize.css）
- * @param cssFileName CSS 文件名（normalize.css）
- */
-const loadPixeliumOptionalCss = async (cssFileName: string): Promise<void> => {
-  const linkId = `pixelium-${cssFileName.replace(".css", "")}-style`;
-  const existingLink = document.getElementById(linkId) as HTMLLinkElement;
-
-  if (existingLink) {
-    pixeliumOptionalStyleLinks.set(cssFileName, existingLink);
-    pixeliumOptionalCssRefCounts.set(cssFileName, (pixeliumOptionalCssRefCounts.get(cssFileName) || 0) + 1);
-    return;
-  }
-
-  if (pixeliumOptionalStyleLinks.has(cssFileName)) {
-    pixeliumOptionalCssRefCounts.set(cssFileName, (pixeliumOptionalCssRefCounts.get(cssFileName) || 0) + 1);
-    return;
-  }
-
+async function importOptionalPixeliumModule(specifier: string): Promise<any | null> {
   try {
-    // 动态导入 CSS 文件获取 URL（使用静态路径，Vite 需要静态分析）
-    if (!pixeliumOptionalCssUrls.has(cssFileName)) {
-      try {
-        let cssModule: any;
-        // 使用静态导入路径，Vite 需要静态分析才能正确处理 ?url 后缀
-        if (cssFileName === "normalize.css") {
-          // @ts-ignore - Vite 支持 ?url 后缀，但 TypeScript 可能不识别
-          cssModule = await import("@pixelium/web-vue/dist/normalize.css?url");
-        } else {
-          console.warn(`[usePixelUI] 不支持的 Pixelium CSS 文件: ${cssFileName}`);
-          return;
-        }
-        const cssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
-        pixeliumOptionalCssUrls.set(cssFileName, cssUrl);
-      } catch (error) {
-        // 可选样式加载失败不影响主题使用，静默跳过
-        return;
-      }
-    }
-
-    // 创建 link 标签
-    const styleLink = document.createElement("link");
-    styleLink.rel = "stylesheet";
-    styleLink.href = pixeliumOptionalCssUrls.get(cssFileName)!;
-    styleLink.id = linkId;
-    document.head.appendChild(styleLink);
-
-    pixeliumOptionalStyleLinks.set(cssFileName, styleLink);
-    pixeliumOptionalCssRefCounts.set(cssFileName, 1);
+    return await runtimeImport(specifier);
   } catch (error) {
-    // 可选样式加载失败不影响主题使用，静默跳过
+    return null;
   }
-};
-
-/**
- * 移除 Pixelium 可选 CSS（引用计数管理）
- * @param cssFileName CSS 文件名
- */
-const removePixeliumOptionalCss = (cssFileName: string): void => {
-  const refCount = pixeliumOptionalCssRefCounts.get(cssFileName) || 0;
-  const newRefCount = refCount - 1;
-
-  pixeliumOptionalCssRefCounts.set(cssFileName, newRefCount);
-
-  if (newRefCount <= 0) {
-    const styleLink = pixeliumOptionalStyleLinks.get(cssFileName);
-    if (styleLink) {
-      styleLink.remove();
-      pixeliumOptionalStyleLinks.delete(cssFileName);
-      pixeliumOptionalCssRefCounts.delete(cssFileName);
-      pixeliumOptionalCssUrls.delete(cssFileName);
-    }
-  }
-};
+}
 
 /**
  * 加载像素主题 CSS
  */
 const loadPixelUiCss = async (): Promise<void> => {
   // 检查是否已存在相同的样式链接
-  const existingLink = document.getElementById("pixel-theme-style") as HTMLLinkElement;
+  const existingLink = document.getElementById(pixelUiStyleId) as HTMLLinkElement;
   if (existingLink) {
     pixelUiStyleLink = existingLink;
     pixelUiCssRefCount++;
     return;
   }
 
-  if (pixelUiStyleLink) {
+  if (pixelUiStyleLink && document.head.contains(pixelUiStyleLink)) {
     pixelUiCssRefCount++;
     return; // 已加载则跳过
   }
 
   try {
-    // 动态导入 CSS 文件获取 URL（使用 ?url 后缀）
     if (!pixelUiCssUrl) {
-      // @ts-ignore - Vite 支持 ?url 后缀，但 TypeScript 可能不识别
-      const cssModule = await import("@pixelium/web-vue/dist/pixelium-vue.css?url");
+      const cssModule = await importOptionalPixeliumModule(pixeliumThemeCssSpecifier);
+      if (!cssModule) {
+        return;
+      }
       pixelUiCssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
     }
 
@@ -141,12 +68,9 @@ const loadPixelUiCss = async (): Promise<void> => {
     pixelUiStyleLink = document.createElement("link");
     pixelUiStyleLink.rel = "stylesheet";
     pixelUiStyleLink.href = pixelUiCssUrl;
-    pixelUiStyleLink.id = "pixel-theme-style";
+    pixelUiStyleLink.id = pixelUiStyleId;
     document.head.appendChild(pixelUiStyleLink);
     pixelUiCssRefCount = 1;
-
-    // 同时加载可选 CSS（normalize.css）
-    await loadPixeliumOptionalCss("normalize.css");
   } catch (error) {
     console.error("[usePixelUI] 加载像素主题 CSS 失败:", error);
   }
@@ -156,14 +80,17 @@ const loadPixelUiCss = async (): Promise<void> => {
  * 移除像素主题 CSS（引用计数管理）
  */
 const removePixelUiCss = (): void => {
-  pixelUiCssRefCount--;
+  if (pixelUiCssRefCount > 0) {
+    pixelUiCssRefCount--;
+  }
+
   if (pixelUiCssRefCount <= 0 && pixelUiStyleLink) {
-    pixelUiStyleLink.remove();
+    const isGlobalStyle = pixelUiStyleLink.getAttribute(pixelUiGlobalAttr) === "true";
+    if (!isGlobalStyle) {
+      pixelUiStyleLink.remove();
+    }
     pixelUiStyleLink = null;
     pixelUiCssRefCount = 0;
-
-    // 同时移除可选 CSS
-    removePixeliumOptionalCss("normalize.css");
   }
 };
 
@@ -202,7 +129,12 @@ const usePixelUIComponent = (componentName: string) => {
 
     try {
       // 动态导入像素主题组件
-      const pixelUIModule = await import("@pixelium/web-vue");
+      const pixelUIModule = await importOptionalPixeliumModule(pixeliumModuleSpecifier);
+      if (!pixelUIModule) {
+        console.warn("[usePixelUI] 像素主题依赖未安装，跳过组件加载");
+        component.value = null;
+        return null;
+      }
       const comp = (pixelUIModule as any)[componentName];
 
       if (!comp) {
@@ -271,9 +203,7 @@ export function usePixelUI(componentName?: string) {
    * 组件卸载时清理 CSS 引用
    */
   onBeforeUnmount(() => {
-    if (!isPixelTheme.value) {
-      removePixelUiCss();
-    }
+    removePixelUiCss();
   });
 
   return {

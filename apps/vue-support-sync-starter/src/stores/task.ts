@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { taskApi, type SyncTask, type TaskQuery } from '../api/task';
+import { getApiMessage, isApiSuccess } from '../api/sync';
 
 export const useTaskStore = defineStore('task', () => {
   const tasks = ref<SyncTask[]>([]);
@@ -12,7 +13,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     try {
       const res = await taskApi.list(query);
-      if (res.code === 200) {
+      if (isApiSuccess(res.code)) {
         tasks.value = res.data.records || [];
         total.value = res.data.total || 0;
       }
@@ -23,37 +24,37 @@ export const useTaskStore = defineStore('task', () => {
 
   const createTask = async (task: SyncTask) => {
     const res = await taskApi.create(task);
-    if (res.code === 200) {
+    if (isApiSuccess(res.code)) {
       return res.data;
     }
-    throw new Error(res.message);
+    throw new Error(getApiMessage(res));
   };
 
   const updateTask = async (task: SyncTask) => {
     const res = await taskApi.update(task);
-    if (res.code === 200) {
+    if (isApiSuccess(res.code)) {
       return true;
     }
-    throw new Error(res.message);
+    throw new Error(getApiMessage(res));
   };
 
   const deleteTask = async (taskId: number) => {
     const res = await taskApi.delete(taskId);
-    if (res.code === 200) {
+    if (isApiSuccess(res.code)) {
       tasks.value = tasks.value.filter(t => t.syncTaskId !== taskId);
       return true;
     }
-    throw new Error(res.message);
+    throw new Error(getApiMessage(res));
   };
 
   const startTask = async (taskId: number) => {
     const res = await taskApi.start(taskId);
-    return res.code === 200;
+    return isApiSuccess(res.code);
   };
 
   const stopTask = async (taskId: number) => {
     const res = await taskApi.stop(taskId);
-    return res.code === 200;
+    return isApiSuccess(res.code);
   };
 
   return {

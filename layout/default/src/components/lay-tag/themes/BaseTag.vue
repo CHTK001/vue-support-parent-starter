@@ -5,13 +5,12 @@ import {
   getTopMenu,
   handleAliveRoute,
   useMultiTagsStoreHook,
-  useSettingStoreHook,
 } from "@repo/core";
 import { RouteConfigs } from "../../../types";
 import { useTags } from "../../../hooks/useTag";
 import { routerArrays } from "../../../types";
-import { onClickOutside } from "@vueuse/core";
 import TagChrome from "../components/TagChrome.vue";
+import TagContextMenu from "../components/TagContextMenu.vue";
 import { usePermissionStoreHook } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, ref, toRaw, unref, watch } from "vue";
 import {
@@ -33,7 +32,6 @@ const props = defineProps<{
 }>();
 
 const {
-  Close,
   route,
   router,
   visible,
@@ -66,11 +64,16 @@ const {
 const tabDom = ref();
 const containerDom = ref();
 const scrollbarDom = ref();
-const contextmenuRef = ref();
 const isShowArrow = ref(false);
 const topPath = getTopMenu()?.path;
 const { VITE_HIDE_HOME } = import.meta.env;
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+const CONTEXT_MENU_WIDTH = 180;
+const CONTEXT_MENU_ITEM_HEIGHT = 36;
+const CONTEXT_MENU_EDGE_PADDING = 8;
+const contextMenuStyle = computed(
+  () => getContextMenuStyle.value as Record<string, string>,
+);
 
 // 标签页是否显示图标
 const showTagIcon = ref($storage.configure?.showTagIcon ?? false);
@@ -460,19 +463,20 @@ function openMenu(tag, e) {
   }
 
   currentSelect.value = tag;
-  const menuMinWidth = 140;
-  const offsetLeft = unref(containerDom).getBoundingClientRect().left;
-  const offsetWidth = unref(containerDom).offsetWidth;
-  const maxLeft = offsetWidth - menuMinWidth;
-  const left = e.clientX - offsetLeft + 5;
-  if (left > maxLeft) {
-    buttonLeft.value = maxLeft;
-  } else {
-    buttonLeft.value = left;
-  }
-  useSettingStoreHook().hiddenSideBar
-    ? (buttonTop.value = e.clientY)
-    : (buttonTop.value = e.clientY - 40);
+  const visibleMenuCount =
+    tagsViews.slice(0, 6).filter(item => item.show).length || 1;
+  const estimatedMenuHeight = visibleMenuCount * CONTEXT_MENU_ITEM_HEIGHT + 12;
+  const maxLeft = window.innerWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_EDGE_PADDING;
+  const maxTop = window.innerHeight - estimatedMenuHeight - CONTEXT_MENU_EDGE_PADDING;
+
+  buttonLeft.value = Math.min(
+    Math.max(CONTEXT_MENU_EDGE_PADDING, e.clientX + 8),
+    Math.max(CONTEXT_MENU_EDGE_PADDING, maxLeft),
+  );
+  buttonTop.value = Math.min(
+    Math.max(CONTEXT_MENU_EDGE_PADDING, e.clientY + 8),
+    Math.max(CONTEXT_MENU_EDGE_PADDING, maxTop),
+  );
   nextTick(() => {
     visible.value = true;
   });
@@ -501,9 +505,15 @@ function tagOnClick(item) {
   }
 }
 
-onClickOutside(contextmenuRef, closeMenu, {
-  detectIframe: true,
-});
+const handleDocumentPointerDown = () => {
+  closeMenu();
+};
+
+const handleViewportContextChange = () => {
+  if (visible.value) {
+    closeMenu();
+  }
+};
 
 watch(route, () => {
   // 忽略 redirect 路径，避免刷新时闪烁
@@ -538,12 +548,18 @@ onMounted(() => {
     });
   });
 
+  document.addEventListener("mousedown", handleDocumentPointerDown);
+  window.addEventListener("resize", handleViewportContextChange);
+  window.addEventListener("scroll", handleViewportContextChange, true);
   useResizeObserver(scrollbarDom, dynamicTagView);
   delay().then(() => dynamicTagView());
 });
 
 onBeforeUnmount(() => {
   emitter.off("showTagIconChange");
+  document.removeEventListener("mousedown", handleDocumentPointerDown);
+  window.removeEventListener("resize", handleViewportContextChange);
+  window.removeEventListener("scroll", handleViewportContextChange, true);
 });
 
 const deferTag = useDefer(tagsViews?.length);
@@ -652,24 +668,15 @@ const deferTag = useDefer(tagsViews?.length);
       <IconifyIconOnline icon="ri:arrow-right-s-line" />
     </span>
     
-    <!-- 右键菜单 -->
-    <ul
-      v-show="visible"
-      ref="contextmenuRef"
-      :key="Math.random()"
-      :style="getContextMenuStyle"
-      class="contextmenu"
-    >
-      <li 
-        v-for="(item, key) in tagsViews.slice(0, 6)"
-        :key="key"
-        v-show="item.show"
-        @click="selectTag(key, item)"
-      >
-        <IconifyIconOffline :icon="item.icon" />
-        {{ transformI18n(item.text) }}
-      </li>
-    </ul>
+    <Teleport to="body">
+      <TagContextMenu
+        :visible="visible"
+        :style="contextMenuStyle"
+        :items="tagsViews"
+        :transform-i18n="transformI18n"
+        @select="selectTag"
+      />
+    </Teleport>
 
     <!-- 右侧功能按钮 -->
     <el-dropdown
@@ -865,40 +872,6 @@ const deferTag = useDefer(tagsViews?.length);
   }
   .tag-title {
     color: #fff !important;
-  }
-}
-
-.contextmenu {
-  position: absolute;
-  margin: 0;
-  padding: 5px 0;
-  background: var(--el-bg-color-overlay);
-  z-index: 3000;
-  list-style-type: none;
-  border-radius: 4px;
-  box-shadow: var(--el-box-shadow-light);
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--el-text-color-regular);
-  min-width: 100px;
-
-  li {
-    display: flex;
-    align-items: center;
-    margin: 0;
-    padding: 7px 16px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
-
-    &:hover {
-      background-color: var(--el-fill-color-light);
-      color: var(--el-color-primary);
-    }
-
-    :deep(svg) {
-      margin-right: 8px;
-      font-size: 14px;
-    }
   }
 }
 

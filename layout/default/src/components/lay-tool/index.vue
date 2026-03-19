@@ -11,7 +11,10 @@ import DefaultTool from "./themes/Default.vue";
 // 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultTool,
-  
+  '8bit': DefaultTool,
+  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
+  'halloween': defineAsyncComponent(() => import("./themes/Halloween.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
   'future-tech': defineAsyncComponent(() => import("./themes/FutureTech.vue")),
 };
 
