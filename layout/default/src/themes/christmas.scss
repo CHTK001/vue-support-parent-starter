@@ -1,6 +1,9 @@
 // 圣诞节主题样式
 // 圣诞红 #C41E3A + 松绿 #0F8B8D + 金色 #FFD700
 
+// 节日主题动画开关（默认关闭）
+$christmas-animation-enabled: false !default;
+
 :root[data-skin="christmas"] {
   // 主色调：圣诞红
   --el-color-primary: #c41e3a;
@@ -62,11 +65,60 @@ html[data-skin="christmas"] {
     background: linear-gradient(135deg, #081515 0%, #0d1f1f 50%, #1a2f2f 100%);
   }
 
-  // 导航栏圣诞风格
-  .lay-navbar {
-    background: rgba(13, 31, 31, 0.8);
+  // 导航栏圣诞风格 - lay-navbar 和 lay-header 适配
+  .lay-navbar,
+  .default-navbar,
+  .lay-header {
+    background: linear-gradient(135deg, rgba(27, 94, 32, 0.95), rgba(21, 71, 24, 0.9)) !important;
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+    border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+    position: relative;
+    overflow: hidden;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(135deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+      border-bottom: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    // 汉堡按钮样式
+    .hamburger-line {
+      background: #ffd700 !important;
+    }
+
+    .drawer-hamburger {
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+      }
+
+      &.is-active {
+        background: rgba(255, 215, 0, 0.3) !important;
+      }
+    }
+
+    // 面包屑样式
+    .breadcrumb-container {
+      :deep(.el-breadcrumb__item) {
+        .el-breadcrumb__inner {
+          color: rgba(255, 255, 255, 0.8) !important;
+          
+          &:hover {
+            color: #ffd700 !important;
+          }
+        }
+        
+        &:last-child .el-breadcrumb__inner {
+          color: #ffffff !important;
+          font-weight: 600;
+        }
+      }
+      
+      :deep(.el-breadcrumb__separator) {
+        color: rgba(255, 215, 0, 0.6) !important;
+      }
+    }
   }
 
   // 侧边栏圣诞风格
@@ -135,25 +187,27 @@ html[data-skin="christmas"] {
   }
 
   // 圣诞装饰：雪花效果
-  &::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-    background-image: radial-gradient(
-        2px 2px at 20% 30%,
-        rgba(255, 255, 255, 0.3),
-        transparent
-      ),
-      radial-gradient(2px 2px at 60% 70%, rgba(255, 255, 255, 0.3), transparent),
-      radial-gradient(1px 1px at 50% 50%, rgba(255, 255, 255, 0.3), transparent),
-      radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.3), transparent);
-    background-size: 200% 200%;
-    animation: snowfall 20s linear infinite;
-    z-index: 0;
+  @if $christmas-animation-enabled {
+    &::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      background-image: radial-gradient(
+          2px 2px at 20% 30%,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        ),
+        radial-gradient(2px 2px at 60% 70%, rgba(255, 255, 255, 0.3), transparent),
+        radial-gradient(1px 1px at 50% 50%, rgba(255, 255, 255, 0.3), transparent),
+        radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.3), transparent);
+      background-size: 200% 200%;
+      animation: snowfall 20s linear infinite;
+      z-index: 0;
+    }
   }
 
   // 头像装饰：圣诞帽
@@ -169,7 +223,286 @@ html[data-skin="christmas"] {
       font-size: 24px;
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
       z-index: 1;
-      animation: santa-bounce 2s ease-in-out infinite;
+      
+      @if $christmas-animation-enabled {
+        animation: santa-bounce 2s ease-in-out infinite;
+      }
+    }
+  }
+
+  // ====================
+  // 所有导航组件主题适配
+  // ====================
+  
+  // 1. 垂直导航 (NavVertical)
+  .default-sidebar,
+  .future-tech-sidebar {
+    background: linear-gradient(180deg, rgba(27, 94, 32, 0.95), rgba(21, 71, 24, 0.9)) !important;
+    border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(180deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 255, 255, 0.85) !important;
+      
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(198, 40, 40, 0.8), rgba(229, 57, 53, 0.7)) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 215, 0, 0.5) !important;
+      }
+    }
+
+    .el-sub-menu__title {
+      color: rgba(255, 255, 255, 0.85) !important;
+      
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ffd700 !important;
+      }
+    }
+  }
+
+  // 2. 悬停导航 (NavHover)
+  .default-hover,
+  .future-tech-hover {
+    .hover-nav-theme-wrapper {
+      background: linear-gradient(180deg, rgba(27, 94, 32, 0.95), rgba(21, 71, 24, 0.9)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+      // 深色模式适配
+      html.dark & {
+        background: linear-gradient(180deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+        border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+      }
+    }
+
+    .el-menu-item {
+      color: rgba(255, 255, 255, 0.85) !important;
+      
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(198, 40, 40, 0.8), rgba(229, 57, 53, 0.7)) !important;
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  // 3. 双栏导航 (NavDouble)
+  .double-nav-container {
+    .double-nav-left,
+    .double-nav-right {
+      background: linear-gradient(180deg, rgba(27, 94, 32, 0.95), rgba(21, 71, 24, 0.9)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+      // 深色模式适配
+      html.dark & {
+        background: linear-gradient(180deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+        border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+      }
+    }
+
+    .el-menu-item {
+      color: rgba(255, 255, 255, 0.85) !important;
+      
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(198, 40, 40, 0.8), rgba(229, 57, 53, 0.7)) !important;
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  // 4. 混合导航 (NavMix)
+  .mix-sidebar {
+    background: linear-gradient(180deg, rgba(27, 94, 32, 0.95), rgba(21, 71, 24, 0.9)) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(180deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+      border-bottom: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 255, 255, 0.85) !important;
+      
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(198, 40, 40, 0.8), rgba(229, 57, 53, 0.7)) !important;
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  // 5. 水平导航 (NavHorizontal)
+  .horizontal-sidebar {
+    background: linear-gradient(90deg, rgba(27, 94, 32, 0.95), rgba(21, 71, 24, 0.9)) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(90deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+      border-bottom: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 255, 255, 0.85) !important;
+      
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(198, 40, 40, 0.8), rgba(229, 57, 53, 0.7)) !important;
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  // 6. 抽屉导航 (NavDrawer)
+  .drawer-sidebar {
+    background: linear-gradient(180deg, rgba(27, 94, 32, 0.95), rgba(21, 71, 24, 0.9)) !important;
+    border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(180deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 255, 255, 0.85) !important;
+      
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(198, 40, 40, 0.8), rgba(229, 57, 53, 0.7)) !important;
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  // 7. 移动端导航 (NavMobile)
+  .mobile-sidebar {
+    background: linear-gradient(180deg, rgba(27, 94, 32, 0.95), rgba(21, 71, 24, 0.9)) !important;
+    border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(180deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 255, 255, 0.85) !important;
+      
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(198, 40, 40, 0.8), rgba(229, 57, 53, 0.7)) !important;
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  // lay-tag 主题适配
+  .tags-view,
+  .christmas-tag {
+    background: rgba(21, 71, 24, 0.8) !important;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.4) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: rgba(21, 71, 24, 0.95) !important;
+      border-bottom: 1px solid rgba(255, 215, 0, 0.5) !important;
+    }
+
+    .scroll-item {
+      background: rgba(27, 94, 32, 0.6) !important;
+      border: 1px solid rgba(255, 215, 0, 0.3) !important;
+      color: rgba(255, 255, 255, 0.9) !important;
+      
+      &:hover {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ffd700 !important;
+      }
+      
+      &.is-active,
+      &.active {
+        background: linear-gradient(135deg, rgba(198, 40, 40, 0.8), rgba(229, 57, 53, 0.7)) !important;
+        border-color: #ffd700 !important;
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  // lay-setting 主题适配
+  .lay-setting,
+  .modern-setting-container {
+    background: linear-gradient(135deg, rgba(27, 94, 32, 0.95), rgba(21, 71, 24, 0.9)) !important;
+    border-left: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(135deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+      border-left: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: -2px 0 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .setting-section {
+      background: rgba(26, 47, 47, 0.6) !important;
+      border: 1px solid rgba(255, 215, 0, 0.3) !important;
+      
+      .section-title {
+        color: #ffd700 !important;
+      }
+    }
+
+    .el-switch.is-checked .el-switch__core {
+      background-color: #c62828 !important;
     }
   }
 }
@@ -189,5 +522,17 @@ html[data-skin="christmas"] {
   }
   50% {
     transform: translateY(-3px) rotate(-10deg);
+  }
+}
+
+// 深色模式下的圣诞节主题适配
+html.dark[data-skin="christmas"] {
+  // lay-navbar 和 lay-header 深色模式适配
+  .lay-navbar,
+  .default-navbar,
+  .lay-header {
+    background: linear-gradient(135deg, rgba(27, 94, 32, 0.98), rgba(21, 71, 24, 0.95)) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.5) !important;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5) !important;
   }
 }

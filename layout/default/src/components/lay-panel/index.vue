@@ -185,8 +185,17 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 :deep(.el-scrollbar) {
   flex: 1;
+  width: 100%;
   height: 0; /* flex 子项，由 flex:1 撑满，不能用 calc */
   min-height: 0;
+}
+
+:deep(.el-scrollbar__wrap) {
+  width: 100%;
+}
+
+:deep(.el-scrollbar__view) {
+  width: 100%;
 }
 
 // 遮罩层 - 覆盖整个视口

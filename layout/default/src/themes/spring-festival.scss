@@ -1,6 +1,9 @@
 // 春节主题样式
 // 正宗中国红 #C8102E (中国红标准色) + 金黄 #FFD700
 
+// 节日主题动画开关（默认关闭）
+$spring-festival-animation-enabled: false !default;
+
 :root[data-skin="spring-festival"] {
   // 主色调：正宗中国红 (中国红标准色 #C8102E)
   --el-color-primary: #c8102e;
@@ -62,11 +65,60 @@ html[data-skin="spring-festival"] {
     background: linear-gradient(135deg, #150808 0%, #1f0d0d 50%, #2f1a1a 100%);
   }
 
-  // 导航栏春节风格
-  .lay-navbar {
-    background: rgba(31, 13, 13, 0.8);
+  // 导航栏春节风格 - lay-navbar 和 lay-header 适配
+  .lay-navbar,
+  .default-navbar,
+  .lay-header {
+    background: linear-gradient(135deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+    border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+    position: relative;
+    overflow: hidden;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+      border-bottom: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    // 汉堡按钮样式
+    .hamburger-line {
+      background: rgba(255, 215, 0, 0.85) !important;
+    }
+
+    .drawer-hamburger {
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+      }
+
+      &.is-active {
+        background: rgba(255, 215, 0, 0.2) !important;
+      }
+    }
+
+    // 面包屑样式
+    .breadcrumb-container {
+      :deep(.el-breadcrumb__item) {
+        .el-breadcrumb__inner {
+          color: rgba(255, 215, 0, 0.85) !important;
+          
+          &:hover {
+            color: #ffffff !important;
+          }
+        }
+        
+        &:last-child .el-breadcrumb__inner {
+          color: #ffd700 !important;
+          font-weight: 600;
+        }
+      }
+      
+      :deep(.el-breadcrumb__separator) {
+        color: rgba(255, 215, 0, 0.5) !important;
+      }
+    }
   }
 
   // 侧边栏春节风格
@@ -140,31 +192,33 @@ html[data-skin="spring-festival"] {
   }
 
   // 春节装饰：金色光晕
-  &::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-    background-image: radial-gradient(
-        circle at 20% 30%,
-        rgba(255, 215, 0, 0.12),
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 80% 70%,
-        rgba(200, 16, 46, 0.12),
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 50% 50%,
-        rgba(255, 215, 0, 0.08),
-        transparent 50%
-      );
-    animation: glow 8s ease-in-out infinite;
-    z-index: 0;
+  @if $spring-festival-animation-enabled {
+    &::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      background-image: radial-gradient(
+          circle at 20% 30%,
+          rgba(255, 215, 0, 0.12),
+          transparent 50%
+        ),
+        radial-gradient(
+          circle at 80% 70%,
+          rgba(200, 16, 46, 0.12),
+          transparent 50%
+        ),
+        radial-gradient(
+          circle at 50% 50%,
+          rgba(255, 215, 0, 0.08),
+          transparent 50%
+        );
+      animation: glow 8s ease-in-out infinite;
+      z-index: 0;
+    }
   }
 
   // 头像装饰：春节红包边框
@@ -194,6 +248,282 @@ html[data-skin="spring-festival"] {
       z-index: 1;
     }
   }
+
+  // ====================
+  // 所有导航组件主题适配
+  // ====================
+  
+  // 1. 垂直导航 (NavVertical)
+  .default-sidebar,
+  .future-tech-sidebar {
+    background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+    border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(180deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 215, 0, 0.85) !important;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #ffffff !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8)) !important;
+        color: #8b0000 !important;
+        border: 1px solid rgba(255, 215, 0, 0.5) !important;
+      }
+    }
+
+    .el-sub-menu__title {
+      color: rgba(255, 215, 0, 0.85) !important;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  // 2. 悬停导航 (NavHover)
+  .default-hover,
+  .future-tech-hover {
+    .hover-nav-theme-wrapper {
+      background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+      // 深色模式适配
+      html.dark & {
+        background: linear-gradient(180deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+        border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+      }
+    }
+
+    .el-menu-item {
+      color: rgba(255, 215, 0, 0.85) !important;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #ffffff !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8)) !important;
+        color: #8b0000 !important;
+      }
+    }
+  }
+
+  // 3. 双栏导航 (NavDouble)
+  .double-nav-container {
+    .double-nav-left,
+    .double-nav-right {
+      background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+      // 深色模式适配
+      html.dark & {
+        background: linear-gradient(180deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+        border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+      }
+    }
+
+    .el-menu-item {
+      color: rgba(255, 215, 0, 0.85) !important;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #ffffff !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8)) !important;
+        color: #8b0000 !important;
+      }
+    }
+  }
+
+  // 4. 混合导航 (NavMix)
+  .mix-sidebar {
+    background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(180deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+      border-bottom: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 215, 0, 0.85) !important;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #ffffff !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8)) !important;
+        color: #8b0000 !important;
+      }
+    }
+  }
+
+  // 5. 水平导航 (NavHorizontal)
+  .horizontal-sidebar {
+    background: linear-gradient(90deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(90deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+      border-bottom: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 215, 0, 0.85) !important;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #ffffff !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8)) !important;
+        color: #8b0000 !important;
+      }
+    }
+  }
+
+  // 6. 抽屉导航 (NavDrawer)
+  .drawer-sidebar {
+    background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+    border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(180deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 215, 0, 0.85) !important;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #ffffff !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8)) !important;
+        color: #8b0000 !important;
+      }
+    }
+  }
+
+  // 7. 移动端导航 (NavMobile)
+  .mobile-sidebar {
+    background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+    border-right: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(180deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .el-menu-item {
+      color: rgba(255, 215, 0, 0.85) !important;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #ffffff !important;
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8)) !important;
+        color: #8b0000 !important;
+      }
+    }
+  }
+
+  // lay-tag 主题适配
+  .tags-view,
+  .spring-festival-tag {
+    background: rgba(107, 0, 0, 0.8) !important;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.4) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: rgba(107, 0, 0, 0.95) !important;
+      border-bottom: 1px solid rgba(255, 215, 0, 0.5) !important;
+    }
+
+    .scroll-item {
+      background: rgba(139, 0, 0, 0.6) !important;
+      border: 1px solid rgba(255, 215, 0, 0.3) !important;
+      color: rgba(255, 215, 0, 0.9) !important;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #ffffff !important;
+      }
+      
+      &.is-active,
+      &.active {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8)) !important;
+        border-color: #ffd700 !important;
+        color: #8b0000 !important;
+      }
+    }
+  }
+
+  // lay-setting 主题适配
+  .lay-setting,
+  .modern-setting-container {
+    background: linear-gradient(135deg, rgba(139, 0, 0, 0.95), rgba(107, 0, 0, 0.9)) !important;
+    border-left: 2px solid rgba(255, 215, 0, 0.4) !important;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3) !important;
+
+    // 深色模式适配
+    html.dark & {
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+      border-left: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: -2px 0 15px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .setting-section {
+      background: rgba(47, 26, 26, 0.6) !important;
+      border: 1px solid rgba(255, 215, 0, 0.3) !important;
+      
+      .section-title {
+        color: #ffd700 !important;
+      }
+    }
+
+    .el-switch.is-checked .el-switch__core {
+      background-color: #c8102e !important;
+    }
+  }
 }
 
 @keyframes glow {
@@ -203,5 +533,17 @@ html[data-skin="spring-festival"] {
   }
   50% {
     opacity: 1;
+  }
+}
+
+// 深色模式下的春节主题适配
+html.dark[data-skin="spring-festival"] {
+  // lay-navbar 和 lay-header 深色模式适配
+  .lay-navbar,
+  .default-navbar,
+  .lay-header {
+    background: linear-gradient(135deg, rgba(139, 0, 0, 0.98), rgba(107, 0, 0, 0.95)) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.5) !important;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5) !important;
   }
 }
