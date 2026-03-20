@@ -201,17 +201,22 @@ const loadPixeliumOptionalCss = async (cssFileName: string): Promise<void> => {
     // 动态导入 CSS 文件获取 URL（使用静态路径，Vite 需要静态分析）
     if (!pixeliumOptionalCssUrls.has(cssFileName)) {
       try {
-        let cssModule: any;
-        // 使用静态导入路径，Vite 需要静态分析才能正确处理 ?url 后缀
-        if (cssFileName === "normalize.css") {
-          // @ts-ignore - Vite 支持 ?url 后缀，但 TypeScript 可能不识别
-          cssModule = await import("@pixelium/web-vue/dist/normalize.css?url");
-        } else {
-          logger.warn(`[useThemeComponent] 不支持的 Pixelium CSS 文件: ${cssFileName}`);
-          return;
-        }
-        const cssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
-        pixeliumOptionalCssUrls.set(cssFileName, cssUrl);
+        // FIXME: @pixelium/web-vue 包未安装，暂时跳过加载
+        // 可选样式加载失败不影响主题使用，静默跳过
+        logger.debug(`[useThemeComponent] Pixelium CSS 文件 ${cssFileName} 跳过加载（包未安装）`);
+        return;
+
+        // let cssModule: any;
+        // // 使用静态导入路径，Vite 需要静态分析才能正确处理 ?url 后缀
+        // if (cssFileName === "normalize.css") {
+        //   // @ts-ignore - Vite 支持 ?url 后缀，但 TypeScript 可能不识别
+        //   cssModule = await import("@pixelium/web-vue/dist/normalize.css?url");
+        // } else {
+        //   logger.warn(`[useThemeComponent] 不支持的 Pixelium CSS 文件: ${cssFileName}`);
+        //   return;
+        // }
+        // const cssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
+        // pixeliumOptionalCssUrls.set(cssFileName, cssUrl);
       } catch (error) {
         // 可选样式加载失败不影响主题使用，静默跳过
         return;
