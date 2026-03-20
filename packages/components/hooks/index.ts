@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * 组件 Hooks 导出
  */
@@ -25,3 +26,10 @@ export type {
   ThemeLocalComponentMap,
   SupportedThemeKey,
 } from "./themeConfig";
+=======
+export * from "./themeConfig";
+export * from "./useThemeComponent";
+export * from "./usePixelTheme";
+export * from "./usePixelUI";
+export * from "./useInteractDrag";
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126

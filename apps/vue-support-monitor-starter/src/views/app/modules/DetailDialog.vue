@@ -75,20 +75,20 @@
             </div>
           </div>
           <div class="device-actions">
-            <el-tooltip content="访问服务" placement="top">
-              <el-button size="small" circle @click="handleVisitDevice(device)">
+            <ScTooltip content="访问服务" placement="top">
+              <ScButton size="small" circle @click="handleVisitDevice(device)">
                 <IconifyIconOnline icon="ri:external-link-line" />
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
           </div>
         </div>
       </div>
 
-      <el-empty v-else description="暂无在线设备" />
+      <ScEmpty v-else description="暂无在线设备" />
     </div>
 
     <template #footer>
-      <el-button @click="handleClose">关闭</el-button>
+      <ScButton @click="handleClose">关闭</ScButton>
     </template>
   </sc-dialog>
 </template>

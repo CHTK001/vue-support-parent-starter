@@ -16,7 +16,8 @@ export default [
   {
     path: "/remaining-component/:componentPath",
     name: "RemainingComponent",
-    component: () => import("@repo/pages/page/remaining/RemainingComponentPage.vue"),
+    component: () =>
+      import("@repo/pages/page/remaining/RemainingComponentPage.vue"),
     meta: {
       title: "组件页面",
       showLink: false,

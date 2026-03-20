@@ -6,25 +6,25 @@
         <div class="detail-subject">{{ email.subject }}</div>
         <div class="detail-actions">
           <!--
-          <el-button
+          <ScButton
             size="small"
             :icon="useRenderIcon('ri:reply-line')"
             @click="handleReply"
             >回复</el-button
           >
-          <el-button
+          <ScButton
             size="small"
             :icon="useRenderIcon('ri:reply-all-line')"
             @click="handleReplyAll"
             >全部回复</el-button
           >
-          <el-button
+          <ScButton
             size="small"
             :icon="useRenderIcon('ri:share-forward-line')"
             @click="handleForward"
             >转发</el-button
           >
-          <el-button
+          <ScButton
             size="small"
             :icon="useRenderIcon('ri:delete-bin-line')"
             @click="handleDelete"
@@ -55,7 +55,7 @@
             <IconifyIconOnline icon="ri:file-line" />
             <span class="attachment-name">附件文件.pdf</span>
             <span class="attachment-size">(2.3MB)</span>
-            <el-button
+            <ScButton
               size="small"
               type="primary"
               link
@@ -89,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 
 // 定义接口
 interface Email {

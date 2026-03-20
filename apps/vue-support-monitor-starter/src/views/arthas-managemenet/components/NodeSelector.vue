@@ -1,22 +1,22 @@
 <template>
-  <el-form :inline="true">
-    <el-form-item :label="label" class="!mb-0">
-      <el-select
+  <ScForm :inline="true">
+    <ScFormItem :label="label" class="!mb-0">
+      <ScSelect
         v-model="value"
         filterable
         :placeholder="placeholder"
         style="min-width: 320px"
         @change="$emit('change', value)"
       >
-        <el-option
+        <ScOption
           v-for="node in nodes"
           :key="node.nodeId"
           :label="formatNodeLabel(node)"
           :value="node.nodeId"
         />
-      </el-select>
-    </el-form-item>
-  </el-form>
+      </ScSelect>
+    </ScFormItem>
+  </ScForm>
 </template>
 
 <script setup lang="ts">

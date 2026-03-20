@@ -75,12 +75,12 @@ export interface LimitConfigurationQueryParams {
  * @returns 限流配置列表
  */
 export const fetchLimitConfigurationListForStrategy = (
-  params?: LimitConfigurationQueryParams
+  params?: LimitConfigurationQueryParams,
 ): Promise<ReturnResult<SysLimitConfiguration[]>> => {
   return http.request<SysLimitConfiguration[]>(
     "get",
     "/v2/strategy/limit/list",
-    { params }
+    { params },
   );
 };
 
@@ -91,7 +91,7 @@ export const fetchLimitConfigurationListForStrategy = (
  * @returns 限流配置分页列表
  */
 export const fetchLimitConfigurationPageForStrategy = (
-  params?: LimitConfigurationQueryParams
+  params?: LimitConfigurationQueryParams,
 ): Promise<
   ReturnResult<{ records: SysLimitConfiguration[]; total: number }>
 > => {
@@ -108,7 +108,7 @@ export const fetchEnabledLimitConfigurationsForStrategy = (): Promise<
 > => {
   return http.request<SysLimitConfiguration[]>(
     "get",
-    "/v2/strategy/limit/enabled"
+    "/v2/strategy/limit/enabled",
   );
 };
 
@@ -119,12 +119,12 @@ export const fetchEnabledLimitConfigurationsForStrategy = (): Promise<
  * @returns 保存结果
  */
 export const saveLimitConfigurationForStrategy = (
-  data: SysLimitConfiguration
+  data: SysLimitConfiguration,
 ): Promise<ReturnResult<SysLimitConfiguration>> => {
   return http.request<SysLimitConfiguration>(
     "post",
     "/v2/strategy/limit/save",
-    { data }
+    { data },
   );
 };
 
@@ -135,7 +135,7 @@ export const saveLimitConfigurationForStrategy = (
  * @returns 更新结果
  */
 export const updateLimitConfigurationForStrategy = (
-  data: SysLimitConfiguration
+  data: SysLimitConfiguration,
 ): Promise<ReturnResult<boolean>> => {
   return http.request<boolean>("put", "/v2/strategy/limit/update", { data });
 };
@@ -147,7 +147,7 @@ export const updateLimitConfigurationForStrategy = (
  * @returns 删除结果
  */
 export const deleteLimitConfigurationForStrategy = (
-  id: number
+  id: number,
 ): Promise<ReturnResult<boolean>> => {
   return http.request<boolean>("delete", "/v2/strategy/limit/delete", {
     params: { id },

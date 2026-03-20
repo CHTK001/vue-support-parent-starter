@@ -1,4 +1,4 @@
-import { MapType } from './map';
+import { MapType } from "./map";
 
 /**
  * API URL 接口
@@ -6,13 +6,13 @@ import { MapType } from './map';
  */
 export interface ApiUrls {
   // 搜索相关 API
-  search?: string;       // 搜索 API
-  detail?: string;       // 详情 API
-  navigation?: string;   // 导航 API
-  
+  search?: string; // 搜索 API
+  detail?: string; // 详情 API
+  navigation?: string; // 导航 API
+
   // 区划边界相关 API
-  boundary?: string;     // 边界数据 API
-  district?: string;     // 行政区划树 API
+  boundary?: string; // 边界数据 API
+  district?: string; // 行政区划树 API
 }
 
 export const DEFAULT_API_URLS: Record<MapType, ApiUrls>;
@@ -23,11 +23,14 @@ export const DEFAULT_API_URLS: Record<MapType, ApiUrls>;
  * @param customUrls 自定义 URL
  * @returns 合并后的 URL 对象
  */
-export function mergeApiUrls(mapType: MapType, customUrls?: Partial<ApiUrls>): ApiUrls;
+export function mergeApiUrls(
+  mapType: MapType,
+  customUrls?: Partial<ApiUrls>,
+): ApiUrls;
 
 declare const _default: {
   DEFAULT_API_URLS: Record<MapType, ApiUrls>;
   mergeApiUrls: typeof mergeApiUrls;
 };
 
-export default _default; 
+export default _default;

@@ -5,14 +5,22 @@ import { http, type ReturnResult } from "@repo/utils";
  */
 export const fetchSaveTaskForVincent = (params) => {
   if (params.sysAiModuleType == "VINCENT") {
-    return http.request<ReturnResult<object[]>>("post", "/v2/ai/image/generations/task", {
-      data: params,
-    });
+    return http.request<ReturnResult<object[]>>(
+      "post",
+      "/v2/ai/image/generations/task",
+      {
+        data: params,
+      },
+    );
   }
   if (params.sysAiModuleType == "VIDEO") {
-    return http.request<ReturnResult<object[]>>("post", "/v2/ai/video/generations/task", {
-      data: params,
-    });
+    return http.request<ReturnResult<object[]>>(
+      "post",
+      "/v2/ai/video/generations/task",
+      {
+        data: params,
+      },
+    );
   }
 };
 /**
@@ -20,21 +28,29 @@ export const fetchSaveTaskForVincent = (params) => {
  */
 export const fetchGetTaskForVincent = (params) => {
   if (params.sysAiModuleType == "VINCENT") {
-    return http.request<ReturnResult<object[]>>("get", "/v2/ai/image/generations/task", {
-      params,
-      headers: {
-        "x-remote-animation": "false",
+    return http.request<ReturnResult<object[]>>(
+      "get",
+      "/v2/ai/image/generations/task",
+      {
+        params,
+        headers: {
+          "x-remote-animation": "false",
+        },
       },
-    });
+    );
   }
 
   if (params.sysAiModuleType == "VIDEO") {
-    return http.request<ReturnResult<object[]>>("get", "/v2/ai/video/generations/task", {
-      params,
-      headers: {
-        "x-remote-animation": "false",
+    return http.request<ReturnResult<object[]>>(
+      "get",
+      "/v2/ai/video/generations/task",
+      {
+        params,
+        headers: {
+          "x-remote-animation": "false",
+        },
       },
-    });
+    );
   }
 };
 
@@ -42,7 +58,11 @@ export const fetchGetTaskForVincent = (params) => {
  * 文生图查询历史任务
  */
 export const fetchHistoryTaskForVincent = (params) => {
-  return http.request<ReturnResult<object[]>>("get", "/v2/ai/image/generations/history", {
-    params,
-  });
+  return http.request<ReturnResult<object[]>>(
+    "get",
+    "/v2/ai/image/generations/history",
+    {
+      params,
+    },
+  );
 };

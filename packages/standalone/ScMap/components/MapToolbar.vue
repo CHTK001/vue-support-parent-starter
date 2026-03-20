@@ -1,38 +1,97 @@
-/** * 地图工具栏 * 支持功能： * 1. 支持水平和垂直两种方向布局 * 2. 支持四个角落位置摆放 * 3. 支持收缩和展开 * 4. 支持子菜单和工具提示 * @author CH * @date 2025-05-12 */
+/** * 地图工具栏 * 支持功能： * 1. 支持水平和垂直两种方向布局 * 2.
+支持四个角落位置摆放 * 3. 支持收缩和展开 * 4. 支持子菜单和工具提示 * @author CH
+* @date 2025-05-12 */
 <template>
-  <div v-if="visible" :key="forceUpdateKey" :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle"
-    @dblclick.stop.prevent @click.stop>
-    <div v-for="tool in visibleTools" :key="tool.id" class="toolbar-item"
-      :class="[{ active: isToolActive(tool.id) }, { 'has-submenu': (tool.type === 'menu' || tool.type === 'button') && tool.children?.length }, tool?.className || '']"
-      :data-tool-id="tool.id" @click.stop="e => handleToolClick(tool, e)" @dblclick.stop.prevent
-      @mouseenter="e => handleToolHover(tool, e, true)" @mouseleave="e => handleToolHover(tool, e, false)">
-      <span v-if="typeof (isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon) === 'string'"
-        class="svg-icon" v-html="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon" />
-      <component :is="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon" v-else />
+  <div
+    v-if="visible"
+    :key="forceUpdateKey"
+    :class="[toolbarClass, `size-${config.size}`]"
+    :style="toolbarStyle"
+    @dblclick.stop.prevent
+    @click.stop
+  >
+    <div
+      v-for="tool in visibleTools"
+      :key="tool.id"
+      class="toolbar-item"
+      :class="[
+        { active: isToolActive(tool.id) },
+        {
+          'has-submenu':
+            (tool.type === 'menu' || tool.type === 'button') &&
+            tool.children?.length,
+        },
+        tool?.className || '',
+      ]"
+      :data-tool-id="tool.id"
+      @click.stop="(e) => handleToolClick(tool, e)"
+      @dblclick.stop.prevent
+      @mouseenter="(e) => handleToolHover(tool, e, true)"
+      @mouseleave="(e) => handleToolHover(tool, e, false)"
+    >
+      <span
+        v-if="
+          typeof (isToolActive(tool.id) && tool.activeIcon
+            ? tool.activeIcon
+            : tool.icon) === 'string'
+        "
+        class="svg-icon"
+        v-html="
+          isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon
+        "
+      />
+      <component
+        :is="
+          isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon
+        "
+        v-else
+      />
     </div>
-    <div class="toolbar-collapse" :title="isCollapsed ? '展开' : '收缩'" @click.stop="toggleCollapse">
+    <div
+      class="toolbar-collapse"
+      :title="isCollapsed ? '展开' : '收缩'"
+      @click.stop="toggleCollapse"
+    >
       <!-- 水平方向工具栏 -->
       <template v-if="config.direction === 'horizontal'">
         <!-- 左侧工具栏 -->
         <div v-if="config.position.endsWith('left')" class="collapse-icon">
-          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M842.67 512L640 309.33V402.67H384V402.67H213.33V621.33H384V621.33H640V714.67L842.67 512Z"
-              fill="currentColor" />
+          <svg
+            v-if="isCollapsed"
+            viewBox="0 0 1024 1024"
+            width="16"
+            height="16"
+          >
+            <path
+              d="M842.67 512L640 309.33V402.67H384V402.67H213.33V621.33H384V621.33H640V714.67L842.67 512Z"
+              fill="currentColor"
+            />
           </svg>
           <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M181.33 512L384 714.67V621.33H640V621.33H810.67V402.67H640V402.67H384V309.33L181.33 512Z"
-              fill="currentColor" />
+            <path
+              d="M181.33 512L384 714.67V621.33H640V621.33H810.67V402.67H640V402.67H384V309.33L181.33 512Z"
+              fill="currentColor"
+            />
           </svg>
         </div>
         <!-- 右侧工具栏 -->
         <div v-else class="collapse-icon">
-          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M181.33 512L384 309.33V402.67H640V402.67H810.67V621.33H640V621.33H384V714.67L181.33 512Z"
-              fill="currentColor" />
+          <svg
+            v-if="isCollapsed"
+            viewBox="0 0 1024 1024"
+            width="16"
+            height="16"
+          >
+            <path
+              d="M181.33 512L384 309.33V402.67H640V402.67H810.67V621.33H640V621.33H384V714.67L181.33 512Z"
+              fill="currentColor"
+            />
           </svg>
           <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M842.67 512L640 714.67V621.33H384V621.33H213.33V402.67H384V402.67H640V309.33L842.67 512Z"
-              fill="currentColor" />
+            <path
+              d="M842.67 512L640 714.67V621.33H384V621.33H213.33V402.67H384V402.67H640V309.33L842.67 512Z"
+              fill="currentColor"
+            />
           </svg>
         </div>
       </template>
@@ -40,24 +99,42 @@
       <template v-else>
         <!-- 顶部工具栏 -->
         <div v-if="config.position.startsWith('top')" class="collapse-icon">
-          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z"
-              fill="currentColor" />
+          <svg
+            v-if="isCollapsed"
+            viewBox="0 0 1024 1024"
+            width="16"
+            height="16"
+          >
+            <path
+              d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z"
+              fill="currentColor"
+            />
           </svg>
           <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z"
-              fill="currentColor" />
+            <path
+              d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z"
+              fill="currentColor"
+            />
           </svg>
         </div>
         <!-- 底部工具栏 -->
         <div v-else class="collapse-icon">
-          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z"
-              fill="currentColor" />
+          <svg
+            v-if="isCollapsed"
+            viewBox="0 0 1024 1024"
+            width="16"
+            height="16"
+          >
+            <path
+              d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z"
+              fill="currentColor"
+            />
           </svg>
           <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z"
-              fill="currentColor" />
+            <path
+              d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z"
+              fill="currentColor"
+            />
           </svg>
         </div>
       </template>
@@ -65,44 +142,86 @@
   </div>
 
   <!-- 使用固定定位的子菜单 -->
-  <div v-if="submenuState.visible" class="toolbar-submenu submenu-active submenu-positioned"
-    :class="`direction-${config.direction}`" :style="{
+  <div
+    v-if="submenuState.visible"
+    class="toolbar-submenu submenu-active submenu-positioned"
+    :class="`direction-${config.direction}`"
+    :style="{
       position: 'fixed',
       top: `${submenuState.top}px`,
       left: `${submenuState.left}px`,
-      zIndex: 999999
-    }" @click.stop>
-    <div v-for="subTool in submenuState.items" :key="subTool.id" class="submenu-item toolbar-item"
-      :class="[{ active: isToolActive(subTool.id) }, subTool.className]" :data-tool-id="subTool.id"
-      @click.stop.prevent="e => handleSubmenuItemClick(submenuState.parentTool!, subTool, e)"
-      @mouseenter="e => handleToolHover(subTool, e, true)" @mouseleave="e => handleToolHover(subTool, e, false)">
+      zIndex: 999999,
+    }"
+    @click.stop
+  >
+    <div
+      v-for="subTool in submenuState.items"
+      :key="subTool.id"
+      class="submenu-item toolbar-item"
+      :class="[{ active: isToolActive(subTool.id) }, subTool.className]"
+      :data-tool-id="subTool.id"
+      @click.stop.prevent="
+        (e) => handleSubmenuItemClick(submenuState.parentTool!, subTool, e)
+      "
+      @mouseenter="(e) => handleToolHover(subTool, e, true)"
+      @mouseleave="(e) => handleToolHover(subTool, e, false)"
+    >
       <span
-        v-if="typeof (isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon) === 'string'"
-        class="svg-icon" v-html="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon" />
-      <component :is="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon"
-        v-else-if="subTool.icon || (isToolActive(subTool.id) && subTool.activeIcon)" />
+        v-if="
+          typeof (isToolActive(subTool.id) && subTool.activeIcon
+            ? subTool.activeIcon
+            : subTool.icon) === 'string'
+        "
+        class="svg-icon"
+        v-html="
+          isToolActive(subTool.id) && subTool.activeIcon
+            ? subTool.activeIcon
+            : subTool.icon
+        "
+      />
+      <component
+        :is="
+          isToolActive(subTool.id) && subTool.activeIcon
+            ? subTool.activeIcon
+            : subTool.icon
+        "
+        v-else-if="
+          subTool.icon || (isToolActive(subTool.id) && subTool.activeIcon)
+        "
+      />
     </div>
   </div>
 
   <!-- 使用固定定位的工具提示 -->
-  <div v-if="tooltipState.visible" class="toolbar-tooltip tooltip-positioned" :style="{
-    position: 'fixed',
-    top: `${tooltipState.top}px`,
-    left: `${tooltipState.left}px`,
-    zIndex: 999999
-  }">
+  <div
+    v-if="tooltipState.visible"
+    class="toolbar-tooltip tooltip-positioned"
+    :style="{
+      position: 'fixed',
+      top: `${tooltipState.top}px`,
+      left: `${tooltipState.left}px`,
+      zIndex: 999999,
+    }"
+  >
     {{ tooltipState.text }}
   </div>
 </template>
 
 <script lang="ts">
 export default {
-  name: "MapToolbar"
+  name: "MapToolbar",
 };
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { GridType } from "../composables/GridManager";
 import type { ToolbarObject } from "../composables/ToolbarObject";
 import type { ToolItem, ToolbarConfig } from "../types";
@@ -119,8 +238,8 @@ const props = withDefaults(defineProps<Props>(), {
       direction: "horizontal",
       itemsPerLine: 8,
       size: 36,
-      items: []
-    }) as ToolbarConfig
+      items: [],
+    }) as ToolbarConfig,
 });
 
 const configConfig = ref<ToolbarConfig>(props.toolbarConfig);
@@ -130,7 +249,7 @@ const config = computed(() => ({
   direction: configConfig.value.direction || "horizontal",
   itemsPerLine: configConfig.value.itemsPerLine || 8,
   size: configConfig.value.size || 36,
-  items: configConfig.value.items || []
+  items: configConfig.value.items || [],
 }));
 
 let toolbarObj: ToolbarObject | null = null;
@@ -138,7 +257,9 @@ let toolbarObj: ToolbarObject | null = null;
 // 这样可以保持与ToolbarObject的一致性
 const visibleTools = computed<ToolItem[]>(() => {
   const items = props.toolbarConfig.items || [];
-  return Array.isArray(items) ? items.filter(tool => tool.show !== false) : [];
+  return Array.isArray(items)
+    ? items.filter((tool) => tool.show !== false)
+    : [];
 });
 
 // 修改isToolActive方法，增强对子菜单项激活状态的判断
@@ -245,7 +366,7 @@ const updateActiveTools = () => {
 
   // 递归收集工具和子菜单中激活的工具
   const collectActiveTools = (toolItems: ToolItem[]) => {
-    toolItems.forEach(tool => {
+    toolItems.forEach((tool) => {
       // 检查工具激活状态
       if (tool.active) {
         activeToolsObj[tool.id] = true;
@@ -271,11 +392,13 @@ const updateActiveTools = () => {
 
   // 特殊处理子菜单项激活状态
   // 确保网格工具的子菜单项状态被正确捕获
-  const gridTool = tools.find(t => t.id === "grid");
+  const gridTool = tools.find((t) => t.id === "grid");
   if (gridTool && gridTool.children) {
-    gridTool.children.forEach(subTool => {
+    gridTool.children.forEach((subTool) => {
       if (subTool.active) {
-        console.debug(`子菜单项 ${subTool.id} 处于激活状态，设置父菜单 grid 也为激活状态`);
+        console.debug(
+          `子菜单项 ${subTool.id} 处于激活状态，设置父菜单 grid 也为激活状态`,
+        );
         activeToolsObj[subTool.id] = true;
         activeToolsObj["grid"] = true; // 如果子菜单项激活，父菜单也应该显示为激活
       }
@@ -321,11 +444,14 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
   emit("tool-click", {
     toolId: tool.id,
     tool,
-    event
+    event,
   });
 
   // 处理有子菜单的工具
-  if ((tool.type === "menu" || tool.type === "button") && tool.children?.length) {
+  if (
+    (tool.type === "menu" || tool.type === "button") &&
+    tool.children?.length
+  ) {
     const toolId = tool.id;
     const menuIndex = openSubMenus.value.indexOf(toolId);
 
@@ -342,7 +468,8 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
       const totalRows = Math.ceil(tool.children.length / itemsPerRow);
 
       // 计算子菜单的宽度和高度
-      const menuWidth = Math.min(tool.children.length, itemsPerRow) * (config.value.size + 8); // 按钮宽度+间距
+      const menuWidth =
+        Math.min(tool.children.length, itemsPerRow) * (config.value.size + 8); // 按钮宽度+间距
       const menuHeight = totalRows * (config.value.size + 8); // 按钮高度+间距
 
       // 检查右侧空间，防止菜单超出窗口
@@ -370,20 +497,26 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
         left: left,
         items: tool.children,
         parentTool: tool,
-        parentId: tool.id
+        parentId: tool.id,
       };
 
       // 添加全局点击事件，点击空白处关闭子菜单
       if (!globalClickListener) {
         globalClickListener = (e: MouseEvent) => {
           const target = e.target as HTMLElement;
-          if (!target.closest(".toolbar-submenu") && !target.closest(`[data-tool-id="${toolId}"]`)) {
+          if (
+            !target.closest(".toolbar-submenu") &&
+            !target.closest(`[data-tool-id="${toolId}"]`)
+          ) {
             closeAllSubMenus();
           }
         };
 
         nextTick(() => {
-          document.addEventListener("click", globalClickListener as EventListener);
+          document.addEventListener(
+            "click",
+            globalClickListener as EventListener,
+          );
         });
       }
     } else {
@@ -393,7 +526,9 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
   }
 
   // 所有工具类型都通过toolbarObj处理激活状态
-  console.debug(`点击工具 ${tool.id} (${tool.type}) 前状态: ${isToolActive(tool.id) ? "激活" : "未激活"}`);
+  console.debug(
+    `点击工具 ${tool.id} (${tool.type}) 前状态: ${isToolActive(tool.id) ? "激活" : "未激活"}`,
+  );
 
   if (toolbarObj) {
     try {
@@ -406,7 +541,9 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
 
         // 获取最新状态
         const isActive = isToolActive(tool.id);
-        console.debug(`点击工具 ${tool.id} 后状态: ${isActive ? "激活" : "未激活"}`);
+        console.debug(
+          `点击工具 ${tool.id} 后状态: ${isActive ? "激活" : "未激活"}`,
+        );
 
         // 发送相应事件
         if (isActive) {
@@ -448,7 +585,7 @@ const closeAllSubMenus = () => {
   openSubMenus.value = [];
 
   // 对每个子菜单发送关闭事件
-  submenusToClose.forEach(toolId => {
+  submenusToClose.forEach((toolId) => {
     emit("submenu-close", toolId);
   });
 
@@ -471,7 +608,10 @@ const toggleCollapse = () => {
 
   // 保存状态到localStorage
   try {
-    localStorage.setItem("map-toolbar-collapsed", JSON.stringify(isCollapsed.value));
+    localStorage.setItem(
+      "map-toolbar-collapsed",
+      JSON.stringify(isCollapsed.value),
+    );
   } catch (e) {
     console.error("保存工具栏状态失败:", e);
   }
@@ -493,7 +633,14 @@ onBeforeUnmount(() => {
 
 // 保持原有的样式计算属性
 const toolbarClass = computed(() => {
-  return ["map-toolbar", `position-${config.value.position}`, `direction-${config.value.direction}`, config.value.position.startsWith("top") ? "top-positioned" : "bottom-positioned"];
+  return [
+    "map-toolbar",
+    `position-${config.value.position}`,
+    `direction-${config.value.direction}`,
+    config.value.position.startsWith("top")
+      ? "top-positioned"
+      : "bottom-positioned",
+  ];
 });
 
 // 按钮尺寸
@@ -525,7 +672,7 @@ const toolbarStyle = computed(() => {
     "--buttonSize": config.value.size + "px",
     transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
     display: "flex",
-    gap: `${buttonMargin.value}px`
+    gap: `${buttonMargin.value}px`,
   };
 
   // 根据方向设置flex布局属性
@@ -565,9 +712,13 @@ const toolbarStyle = computed(() => {
   // 添加收缩状态样式
   if (isCollapsed.value) {
     if (config.value.direction === "horizontal") {
-      style.transform = config.value.position.endsWith("left") ? "translateX(-100%)" : "translateX(100%)";
+      style.transform = config.value.position.endsWith("left")
+        ? "translateX(-100%)"
+        : "translateX(100%)";
     } else {
-      style.transform = config.value.position.startsWith("top") ? "translateY(-100%)" : "translateY(100%)";
+      style.transform = config.value.position.startsWith("top")
+        ? "translateY(-100%)"
+        : "translateY(100%)";
     }
     style.opacity = "0.4"; // 完全隐藏工具栏
     // 注意：不设置 pointerEvents = "none"，以确保收缩按钮仍然可以点击
@@ -594,7 +745,7 @@ watch(
       }
     }
   },
-  { immediate: false }
+  { immediate: false },
 );
 
 // 添加一个直接刷新状态的方法
@@ -635,11 +786,15 @@ const submenuState = ref({
   left: 0,
   items: [] as ToolItem[],
   parentTool: null as ToolItem | null,
-  parentId: ""
+  parentId: "",
 });
 
 // 添加handleSubmenuItemClick函数的定义
-const handleSubmenuItemClick = (parentTool: ToolItem, subTool: ToolItem, event: MouseEvent) => {
+const handleSubmenuItemClick = (
+  parentTool: ToolItem,
+  subTool: ToolItem,
+  event: MouseEvent,
+) => {
   event.stopPropagation();
 
   // 发送点击事件
@@ -648,7 +803,7 @@ const handleSubmenuItemClick = (parentTool: ToolItem, subTool: ToolItem, event: 
     toolId: subTool.id,
     parentTool,
     tool: subTool,
-    event
+    event,
   });
 
   // 处理工具点击
@@ -692,7 +847,15 @@ const handleSubmenuItemClick = (parentTool: ToolItem, subTool: ToolItem, event: 
 };
 
 // 重新声明emit
-const emit = defineEmits(["tool-click", "tool-activated", "tool-deactivated", "collapse-change", "submenu-open", "submenu-close", "submenu-item-click"]);
+const emit = defineEmits([
+  "tool-click",
+  "tool-activated",
+  "tool-deactivated",
+  "collapse-change",
+  "submenu-open",
+  "submenu-close",
+  "submenu-item-click",
+]);
 
 // 重新声明globalClickListener
 let globalClickListener: ((e: MouseEvent) => void) | null = null;
@@ -702,14 +865,22 @@ const tooltipState = ref({
   visible: false,
   top: 0,
   left: 0,
-  text: ""
+  text: "",
 });
 
 // 处理工具悬停
-const handleToolHover = (tool: ToolItem, event: MouseEvent, isEnter: boolean) => {
+const handleToolHover = (
+  tool: ToolItem,
+  event: MouseEvent,
+  isEnter: boolean,
+) => {
   if (isEnter) {
     // 如果工具有子菜单并且已经激活，不显示工具提示
-    if ((tool.type === "menu" || tool.type === "button") && tool.children?.length && isToolActive(tool.id)) {
+    if (
+      (tool.type === "menu" || tool.type === "button") &&
+      tool.children?.length &&
+      isToolActive(tool.id)
+    ) {
       tooltipState.value.visible = false;
       return;
     }
@@ -750,13 +921,17 @@ const handleToolHover = (tool: ToolItem, event: MouseEvent, isEnter: boolean) =>
     let mustAdjust = false;
 
     // 检查是否有其他按钮可能会遮挡提示框
-    allToolbarItems.forEach(item => {
+    allToolbarItems.forEach((item) => {
       if (item !== event.currentTarget) {
         const itemRect = item.getBoundingClientRect();
         // 如果水平工具栏
         if (config.value.direction === "horizontal") {
           // 检查提示框是否被下方的按钮遮挡
-          if (Math.abs(itemRect.left - rect.left) < rect.width && itemRect.top > rect.bottom && itemRect.top < tooltipTop + 30) {
+          if (
+            Math.abs(itemRect.left - rect.left) < rect.width &&
+            itemRect.top > rect.bottom &&
+            itemRect.top < tooltipTop + 30
+          ) {
             mustAdjust = true;
           }
         } else {
@@ -810,7 +985,7 @@ const handleToolHover = (tool: ToolItem, event: MouseEvent, isEnter: boolean) =>
       visible: true,
       top: tooltipTop,
       left: tooltipLeft,
-      text: tool.tooltip || tool.name || ""
+      text: tool.tooltip || tool.name || "",
     };
   } else {
     // 鼠标离开，隐藏提示
@@ -827,7 +1002,7 @@ defineExpose({
   getToolbarObj: () => toolbarObj,
   setToolbarObj: (obj: ToolbarObject) => {
     toolbarObj = obj;
-  }
+  },
 });
 </script>
 
@@ -967,13 +1142,15 @@ defineExpose({
 }
 
 .direction-horizontal.position-top-left[style*="translateX"] .toolbar-collapse,
-.direction-horizontal.position-bottom-left[style*="translateX"] .toolbar-collapse {
+.direction-horizontal.position-bottom-left[style*="translateX"]
+  .toolbar-collapse {
   right: -28px;
   left: auto;
 }
 
 .direction-horizontal.position-top-right[style*="translateX"] .toolbar-collapse,
-.direction-horizontal.position-bottom-right[style*="translateX"] .toolbar-collapse {
+.direction-horizontal.position-bottom-right[style*="translateX"]
+  .toolbar-collapse {
   left: -28px;
   right: auto;
 }
@@ -991,7 +1168,8 @@ defineExpose({
 }
 
 .direction-vertical.position-bottom-left[style*="translateY"] .toolbar-collapse,
-.direction-vertical.position-bottom-right[style*="translateY"] .toolbar-collapse {
+.direction-vertical.position-bottom-right[style*="translateY"]
+  .toolbar-collapse {
   top: -40px;
   bottom: auto;
   left: 50%;
@@ -1188,7 +1366,12 @@ defineExpose({
 }
 
 /* 修复：子菜单项SVG图标颜色控制 */
-.toolbar-item.active .toolbar-submenu .submenu-item:not(.active) .svg-icon svg * {
+.toolbar-item.active
+  .toolbar-submenu
+  .submenu-item:not(.active)
+  .svg-icon
+  svg
+  * {
   fill: #666666 !important;
   stroke: #666666 !important;
   transition: all 0.3s ease;

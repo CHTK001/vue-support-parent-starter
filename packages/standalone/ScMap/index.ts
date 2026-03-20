@@ -4,5 +4,3 @@ export { ScMap };
 export default ScMap;
 
 export * from "./types";
-
-

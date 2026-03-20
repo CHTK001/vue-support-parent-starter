@@ -29,33 +29,33 @@
       <div class="rule-list thin-scrollbar">
         <div v-for="(r, idx) in rules" :key="idx" class="rule-row">
           <div class="col-type">
-            <el-select v-model="r.ipRateLimitType" placeholder="类型">
-              <el-option label="限流" value="RATE_LIMIT">
+            <ScSelect v-model="r.ipRateLimitType" placeholder="类型">
+              <ScOption label="限流" value="RATE_LIMIT">
                 <span class="option-item"
                   ><IconifyIconOnline icon="ri:speed-line" /> 限流</span
                 >
-              </el-option>
-              <el-option label="白名单" value="WHITELIST">
+              </ScOption>
+              <ScOption label="白名单" value="WHITELIST">
                 <span class="option-item"
                   ><IconifyIconOnline icon="ri:shield-check-line" />
                   白名单</span
                 >
-              </el-option>
-              <el-option label="黑名单" value="BLACKLIST">
+              </ScOption>
+              <ScOption label="黑名单" value="BLACKLIST">
                 <span class="option-item"
                   ><IconifyIconOnline icon="ri:spam-line" /> 黑名单</span
                 >
-              </el-option>
-            </el-select>
+              </ScOption>
+            </ScSelect>
           </div>
           <div class="col-ip">
-            <el-input
+            <ScInput
               v-model="r.ipRateLimitIp"
               placeholder="例如: 192.168.1.1 或 10.0.0.0/24"
             />
           </div>
           <div class="col-qps">
-            <el-input-number
+            <ScInputNumber
               v-model="r.ipRateLimitQps"
               :min="1"
               :max="100000"
@@ -64,21 +64,21 @@
             />
           </div>
           <div class="col-status">
-            <el-switch
+            <ScSwitch
               v-model="r.ipRateLimitEnabled"
               active-text="启用"
               inactive-text="禁用"
             />
           </div>
           <div class="col-action">
-            <el-button
+            <ScButton
               type="danger"
               size="small"
               circle
               @click="rules.splice(idx, 1)"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -91,17 +91,17 @@
 
       <!-- 添加按钮 -->
       <div class="add-rule-btn">
-        <el-button type="primary" @click="addRule">
+        <ScButton type="primary" @click="addRule">
           <IconifyIconOnline icon="ri:add-line" />
           新增规则
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave"
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave"
           >保存配置</el-button
         >
       </div>

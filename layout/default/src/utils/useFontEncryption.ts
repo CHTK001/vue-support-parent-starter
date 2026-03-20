@@ -4,7 +4,7 @@
  * @author CH
  * @date 2025-12-16
  */
-import { watch, onMounted, onUnmounted } from 'vue';
+import { watch, onMounted, onUnmounted } from "vue";
 
 /**
  * 字体加密配置
@@ -52,7 +52,7 @@ class FontEncryptionManager {
    */
   enable(): void {
     // 确保字体已加载后再应用加密，防止闪烁
-    const font = '1em AppTextPrimary';
+    const font = "1em AppTextPrimary";
     document.fonts
       .load(font)
       .then(() => {
@@ -62,7 +62,7 @@ class FontEncryptionManager {
 
         // 添加全局样式类
         if (this.config.applyGlobal) {
-          document.body.classList.add('font-encryption-global');
+          document.body.classList.add("font-encryption-global");
         }
 
         // 应用加密到现有元素
@@ -71,7 +71,14 @@ class FontEncryptionManager {
         // 监听 DOM 变化
         this.startObserving();
       })
+<<<<<<< HEAD
       .catch(() => {});
+=======
+      .catch((err) => {
+        // 字体加载失败时，仅记录日志，不中断应用
+        console.warn("FontEncryption font failed to load:", err);
+      });
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   }
 
   /**
@@ -79,7 +86,7 @@ class FontEncryptionManager {
    */
   disable(): void {
     // 移除全局样式类
-    document.body.classList.remove('font-encryption-global');
+    document.body.classList.remove("font-encryption-global");
 
     // 恢复所有加密元素
     this.restoreEncryption();
@@ -101,7 +108,7 @@ class FontEncryptionManager {
       return;
     }
 
-    htmlElement.classList.add('font-encryption-enabled');
+    htmlElement.classList.add("font-encryption-enabled");
     this.applyOcrNoise(element);
     this.encryptedElements.add(element);
   }
@@ -115,7 +122,7 @@ class FontEncryptionManager {
     }
 
     const htmlElement = element as HTMLElement;
-    htmlElement.classList.remove('font-encryption-enabled');
+    htmlElement.classList.remove("font-encryption-enabled");
     this.removeOcrNoise(element);
     this.encryptedElements.delete(element);
   }
@@ -129,13 +136,19 @@ class FontEncryptionManager {
         try {
           const elements = document.querySelectorAll(selector);
           elements.forEach((el) => this.applyEncryptionToElement(el));
+<<<<<<< HEAD
         } catch {
           // ignore invalid selectors
+=======
+        } catch (error) {
+          // 非法选择器直接跳过
+          console.warn("[字体加密] 选择器无效:", selector, error);
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
         }
       });
     } else if (this.config.applyGlobal) {
       // 全局模式：为所有元素添加字体加密样式
-      const elements = document.body.querySelectorAll('*');
+      const elements = document.body.querySelectorAll("*");
       elements.forEach((el) => this.applyEncryptionToElement(el));
     }
   }
@@ -160,7 +173,7 @@ class FontEncryptionManager {
 
     this.observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
+        if (mutation.type === "childList") {
           mutation.addedNodes.forEach((node) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as Element;
@@ -173,21 +186,25 @@ class FontEncryptionManager {
                 this.config.selectors.forEach((selector) => {
                   try {
                     const children = element.querySelectorAll(selector);
-                    children.forEach((child) => this.applyEncryptionToElement(child));
+                    children.forEach((child) =>
+                      this.applyEncryptionToElement(child),
+                    );
                   } catch {
                     // ignore
                   }
                 });
               } else if (this.config.applyGlobal) {
-                const children = element.querySelectorAll('*');
-                children.forEach((child) => this.applyEncryptionToElement(child));
+                const children = element.querySelectorAll("*");
+                children.forEach((child) =>
+                  this.applyEncryptionToElement(child),
+                );
               }
             }
           });
           return;
         }
 
-        if (mutation.type === 'characterData') {
+        if (mutation.type === "characterData") {
           const parent = mutation.target.parentElement;
           if (!parent) {
             return;
@@ -242,33 +259,33 @@ class FontEncryptionManager {
 
     const htmlElement = element as HTMLElement;
     const level =
-      typeof this.config.ocrNoise === 'boolean'
-        ? 'low'
-        : this.config.ocrNoise.level || 'low';
+      typeof this.config.ocrNoise === "boolean"
+        ? "low"
+        : this.config.ocrNoise.level || "low";
 
-    htmlElement.classList.add('font-encryption-ocr-noise');
+    htmlElement.classList.add("font-encryption-ocr-noise");
 
     // 用 CSS 变量做一点"伪随机"，避免每个元素噪点完全一致
     const r = () => Math.floor(Math.random() * 80) + 10;
-    htmlElement.style.setProperty('--fe-ocr-noise-x1', `${r()}%`);
-    htmlElement.style.setProperty('--fe-ocr-noise-y1', `${r()}%`);
-    htmlElement.style.setProperty('--fe-ocr-noise-x2', `${r()}%`);
-    htmlElement.style.setProperty('--fe-ocr-noise-y2', `${r()}%`);
-    htmlElement.style.setProperty('--fe-ocr-noise-x3', `${r()}%`);
-    htmlElement.style.setProperty('--fe-ocr-noise-y3', `${r()}%`);
+    htmlElement.style.setProperty("--fe-ocr-noise-x1", `${r()}%`);
+    htmlElement.style.setProperty("--fe-ocr-noise-y1", `${r()}%`);
+    htmlElement.style.setProperty("--fe-ocr-noise-x2", `${r()}%`);
+    htmlElement.style.setProperty("--fe-ocr-noise-y2", `${r()}%`);
+    htmlElement.style.setProperty("--fe-ocr-noise-x3", `${r()}%`);
+    htmlElement.style.setProperty("--fe-ocr-noise-y3", `${r()}%`);
 
-    if (level === 'high') {
-      htmlElement.style.setProperty('--fe-ocr-noise-opacity', '0.045');
-      htmlElement.style.setProperty('--fe-ocr-noise-size', '2.5px');
+    if (level === "high") {
+      htmlElement.style.setProperty("--fe-ocr-noise-opacity", "0.045");
+      htmlElement.style.setProperty("--fe-ocr-noise-size", "2.5px");
       return;
     }
-    if (level === 'medium') {
-      htmlElement.style.setProperty('--fe-ocr-noise-opacity', '0.035');
-      htmlElement.style.setProperty('--fe-ocr-noise-size', '3px');
+    if (level === "medium") {
+      htmlElement.style.setProperty("--fe-ocr-noise-opacity", "0.035");
+      htmlElement.style.setProperty("--fe-ocr-noise-size", "3px");
       return;
     }
-    htmlElement.style.setProperty('--fe-ocr-noise-opacity', '0.025');
-    htmlElement.style.setProperty('--fe-ocr-noise-size', '3px');
+    htmlElement.style.setProperty("--fe-ocr-noise-opacity", "0.025");
+    htmlElement.style.setProperty("--fe-ocr-noise-size", "3px");
   }
 
   /**
@@ -276,15 +293,15 @@ class FontEncryptionManager {
    */
   private removeOcrNoise(element: Element): void {
     const htmlElement = element as HTMLElement;
-    htmlElement.classList.remove('font-encryption-ocr-noise');
-    htmlElement.style.removeProperty('--fe-ocr-noise-opacity');
-    htmlElement.style.removeProperty('--fe-ocr-noise-size');
-    htmlElement.style.removeProperty('--fe-ocr-noise-x1');
-    htmlElement.style.removeProperty('--fe-ocr-noise-y1');
-    htmlElement.style.removeProperty('--fe-ocr-noise-x2');
-    htmlElement.style.removeProperty('--fe-ocr-noise-y2');
-    htmlElement.style.removeProperty('--fe-ocr-noise-x3');
-    htmlElement.style.removeProperty('--fe-ocr-noise-y3');
+    htmlElement.classList.remove("font-encryption-ocr-noise");
+    htmlElement.style.removeProperty("--fe-ocr-noise-opacity");
+    htmlElement.style.removeProperty("--fe-ocr-noise-size");
+    htmlElement.style.removeProperty("--fe-ocr-noise-x1");
+    htmlElement.style.removeProperty("--fe-ocr-noise-y1");
+    htmlElement.style.removeProperty("--fe-ocr-noise-x2");
+    htmlElement.style.removeProperty("--fe-ocr-noise-y2");
+    htmlElement.style.removeProperty("--fe-ocr-noise-x3");
+    htmlElement.style.removeProperty("--fe-ocr-noise-y3");
   }
 
   /**
@@ -338,6 +355,13 @@ function getManager(): FontEncryptionManager {
 }
 
 /**
+ * 在组件外部（如 main.ts）直接初始化字体加密，不依赖 Vue 生命周期
+ */
+export function initFontEncryption(config: FontEncryptionConfig): void {
+  getManager().init(config);
+}
+
+/**
  * 字体加密 Hook
  * @param config 字体加密配置（可以是响应式对象）
  */
@@ -347,7 +371,7 @@ export function useFontEncryption(
   const manager = getManager();
 
   const getConfig = () => {
-    return typeof config === 'function' ? config() : config;
+    return typeof config === "function" ? config() : config;
   };
 
   onMounted(() => {
@@ -358,7 +382,7 @@ export function useFontEncryption(
     manager.updateConfig({ enabled: false });
   });
 
-  if (typeof config === 'function') {
+  if (typeof config === "function") {
     watch(
       () => getConfig().enabled,
       (enabled) => {

@@ -1,6 +1,13 @@
 ﻿<template>
   <div class="sc-password-input">
-    <ScInput v-model="innerValue" :type="showPassword ? 'text' : 'password'" :disabled="disabled" :placeholder="placeholder" :show-password="!showPassword" class="password-field">
+    <ScInput
+      v-model="innerValue"
+      :type="showPassword ? 'text' : 'password'"
+      :disabled="disabled"
+      :placeholder="placeholder"
+      :show-password="!showPassword"
+      class="password-field"
+    >
       <template #prefix>
         <IconifyIconOnline icon="ep:lock" />
       </template>
@@ -14,7 +21,11 @@
     <div class="password-strength" v-if="showStrength && !disabled">
       <div class="strength-label">密码强度:</div>
       <div class="strength-meter">
-        <div class="strength-bar" :style="{ width: `${strengthPercentage}%` }" :class="strengthClass"></div>
+        <div
+          class="strength-bar"
+          :style="{ width: `${strengthPercentage}%` }"
+          :class="strengthClass"
+        ></div>
       </div>
       <div class="strength-text" :class="strengthClass">{{ strengthText }}</div>
     </div>

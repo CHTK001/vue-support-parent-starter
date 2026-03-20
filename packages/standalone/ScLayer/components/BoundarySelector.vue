@@ -1,6 +1,10 @@
 <!-- 区划边界选择组件 -->
 <template>
-  <div class="boundary-selector" :class="{ active: active }" :style="positionStyle">
+  <div
+    class="boundary-selector"
+    :class="{ active: active }"
+    :style="positionStyle"
+  >
     <div class="boundary-selector-header">
       <div class="title">
         <IconifyIconOnline icon="ep:map-location" class="boundary-icon" />
@@ -18,12 +22,17 @@
 
     <div class="boundary-selector-content">
       <div class="search-container">
-        <input type="text" v-model="searchText" placeholder="搜索行政区划..." class="search-input" />
+        <input
+          type="text"
+          v-model="searchText"
+          placeholder="搜索行政区划..."
+          class="search-input"
+        />
         <IconifyIconOnline icon="ep:search" class="search-icon" />
       </div>
 
       <div class="tree-container">
-        <el-tree
+        <ScTree
           v-if="treeData.length > 0"
           :data="filteredTreeData"
           :expand-on-click-node="false"
@@ -41,18 +50,25 @@
           ref="treeRef"
         >
           <template #default="{ node, data }">
-            <span :class="{ 'selected-node': node.isCurrent }">{{ node.label }}</span>
+            <span :class="{ 'selected-node': node.isCurrent }">{{
+              node.label
+            }}</span>
           </template>
-        </el-tree>
+        </ScTree>
         <div v-else class="loading-state">
           <div v-if="isLoading" class="loading-spinner">
             <div class="spinner"></div>
             <span>加载中...</span>
           </div>
           <div v-else class="error-state">
-            <IconifyIconOnline icon="ep:circle-close-filled" class="error-icon" />
+            <IconifyIconOnline
+              icon="ep:circle-close-filled"
+              class="error-icon"
+            />
             <p>加载失败</p>
-            <button class="btn btn-primary" @click="loadDistrictTree">重试</button>
+            <button class="btn btn-primary" @click="loadDistrictTree">
+              重试
+            </button>
           </div>
         </div>
       </div>
@@ -65,14 +81,24 @@
               已选区划 ({{ selectedBoundaries.length }})
             </span>
             <div class="actions">
-              <button class="btn btn-primary" @click="applyBoundaries">应用</button>
+              <button class="btn btn-primary" @click="applyBoundaries">
+                应用
+              </button>
               <button class="btn" @click="clearBoundaries">清空</button>
             </div>
           </div>
           <div class="selected-list">
-            <div v-for="item in selectedBoundaries" :key="item.code" class="selected-item">
+            <div
+              v-for="item in selectedBoundaries"
+              :key="item.code"
+              class="selected-item"
+            >
               <span class="item-name">{{ item.name }}</span>
-              <button class="btn-icon remove-btn" @click="removeBoundary(item.code)" title="移除">
+              <button
+                class="btn-icon remove-btn"
+                @click="removeBoundary(item.code)"
+                title="移除"
+              >
                 <IconifyIconOnline icon="ep:delete" class="delete-icon" />
               </button>
             </div>
@@ -92,42 +118,57 @@
       <div class="settings-content">
         <div class="setting-item">
           <label>填充区域</label>
-          <el-switch v-model="options.fillBoundary" />
+          <ScSwitch v-model="options.fillBoundary" />
         </div>
 
         <div class="setting-item">
           <label>边框颜色</label>
-          <el-color-picker v-model="options.strokeColor" />
+          <ScColorPicker v-model="options.strokeColor" />
         </div>
 
         <div class="setting-item">
           <label>边框宽度</label>
-          <ScSlider v-model="options.strokeWidth" :min="1" :max="5" :step="0.5" />
+          <ScSlider
+            v-model="options.strokeWidth"
+            :min="1"
+            :max="5"
+            :step="0.5"
+          />
         </div>
 
         <div class="setting-item">
           <label>填充颜色</label>
-          <el-color-picker v-model="options.fillColor" />
+          <ScColorPicker v-model="options.fillColor" />
         </div>
 
         <div class="setting-item">
           <label>填充透明度</label>
-          <ScSlider v-model="options.fillOpacity" :min="0" :max="1" :step="0.05" />
+          <ScSlider
+            v-model="options.fillOpacity"
+            :min="0"
+            :max="1"
+            :step="0.05"
+          />
         </div>
 
         <div class="setting-item">
           <label>显示标签</label>
-          <el-switch v-model="options.showLabel" />
+          <ScSwitch v-model="options.showLabel" />
         </div>
 
         <div class="setting-item" v-if="options.showLabel">
           <label>标签大小</label>
-          <ScSlider v-model="options.labelOptions.fontSize" :min="10" :max="24" :step="1" />
+          <ScSlider
+            v-model="options.labelOptions.fontSize"
+            :min="10"
+            :max="24"
+            :step="1"
+          />
         </div>
 
         <div class="setting-item" v-if="options.showLabel">
           <label>标签颜色</label>
-          <el-color-picker v-model="options.labelOptions.fontColor" />
+          <ScColorPicker v-model="options.labelOptions.fontColor" />
         </div>
       </div>
 
@@ -141,14 +182,18 @@
 
 <script lang="ts">
 export default {
-  name: "BoundarySelector"
+  name: "BoundarySelector",
 };
 </script>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { BoundaryLevel, BoundaryData, BoundaryOptions } from "../types/boundary";
+import {
+  BoundaryLevel,
+  BoundaryData,
+  BoundaryOptions,
+} from "../types/boundary";
 import { DEFAULT_BOUNDARY_OPTIONS } from "../types/default";
 import { MapType } from "../types/map";
 import { ApiUrls } from "../types/api";
@@ -160,39 +205,40 @@ import { ScSlider } from "@repo/components";
 const props = defineProps({
   active: {
     type: Boolean,
-    default: false
+    default: false,
   },
   position: {
     type: String,
     default: "top-right",
-    validator: (value: string) => ["top-left", "top-right", "bottom-left", "bottom-right"].includes(value)
+    validator: (value: string) =>
+      ["top-left", "top-right", "bottom-left", "bottom-right"].includes(value),
   },
   boundaryObj: {
     type: Object,
-    required: true
+    required: true,
   },
   defaultOptions: {
     type: Object,
-    default: () => DEFAULT_BOUNDARY_OPTIONS
+    default: () => DEFAULT_BOUNDARY_OPTIONS,
   },
   mapKey: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   // 添加 apiUrls 属性
   apiUrls: {
     type: Object as () => ApiUrls,
-    default: () => ({})
+    default: () => ({}),
   },
   // 保留旧属性以保持向后兼容性
   boundaryUrl: {
     type: String,
-    default: ""
+    default: "",
   },
   districtUrl: {
     type: String,
-    default: ""
-  }
+    default: "",
+  },
 });
 
 // 定义组件事件
@@ -207,7 +253,10 @@ const selectedKeys = ref<string[]>([]);
 const selectedBoundaries = ref<BoundaryData[]>([]);
 const showSettings = ref(false);
 const isLoading = ref(false);
-const options = ref<BoundaryOptions>({ ...DEFAULT_BOUNDARY_OPTIONS, ...props.defaultOptions });
+const options = ref<BoundaryOptions>({
+  ...DEFAULT_BOUNDARY_OPTIONS,
+  ...props.defaultOptions,
+});
 const treeRef = ref(null);
 
 // 位置样式
@@ -242,7 +291,12 @@ const filteredTreeData = computed(() => {
   const treeDataCopy = JSON.parse(JSON.stringify(treeData.value));
 
   // 如果直接匹配省名称（如浙江省），尝试直接查找
-  const directMatch = treeDataCopy.find(province => province.label.toLowerCase().includes(searchValue) || (province.fullname && province.fullname.toLowerCase().includes(searchValue)));
+  const directMatch = treeDataCopy.find(
+    (province) =>
+      province.label.toLowerCase().includes(searchValue) ||
+      (province.fullname &&
+        province.fullname.toLowerCase().includes(searchValue)),
+  );
 
   if (directMatch) {
     logger.info(`直接匹配到省份: ${directMatch.label}`);
@@ -254,11 +308,14 @@ const filteredTreeData = computed(() => {
     if (!node) return false;
 
     // 匹配标签名称
-    const titleMatch = node.label && node.label.toLowerCase().includes(searchValue);
+    const titleMatch =
+      node.label && node.label.toLowerCase().includes(searchValue);
     // 匹配完整名称（如果存在）
-    const fullnameMatch = node.fullname && node.fullname.toLowerCase().includes(searchValue);
+    const fullnameMatch =
+      node.fullname && node.fullname.toLowerCase().includes(searchValue);
     // 匹配拼音字段（如果存在）
-    const pinyinMatch = node.pinyin && node.pinyin.toLowerCase().includes(searchValue);
+    const pinyinMatch =
+      node.pinyin && node.pinyin.toLowerCase().includes(searchValue);
 
     return titleMatch || fullnameMatch || pinyinMatch;
   };
@@ -274,7 +331,9 @@ const filteredTreeData = computed(() => {
       const selfMatch = isNodeMatch(node);
 
       // 递归处理子节点
-      const filteredChildren = node.children ? filterTreeNodes(node.children) : [];
+      const filteredChildren = node.children
+        ? filterTreeNodes(node.children)
+        : [];
 
       // 如果节点自身匹配或有匹配的子节点，则保留
       if (selfMatch || filteredChildren.length > 0) {
@@ -303,7 +362,7 @@ const filteredTreeData = computed(() => {
   if (filteredResult.length === 0) {
     logger.info("尝试宽松搜索...");
     // 在原始数据中模糊搜索
-    const fuzzyMatches = treeDataCopy.filter(node => {
+    const fuzzyMatches = treeDataCopy.filter((node) => {
       // 检查所有节点及其子节点是否有任何包含搜索词的文本
       const hasMatch = JSON.stringify(node).toLowerCase().includes(searchValue);
       if (hasMatch) {
@@ -332,7 +391,7 @@ onMounted(async () => {
 // 监听active状态变化，当变为true时加载数据
 watch(
   () => props.active,
-  async newValue => {
+  async (newValue) => {
     if (newValue && treeData.value.length === 0) {
       try {
         await loadDistrictTree();
@@ -340,7 +399,7 @@ watch(
         logger.error("加载区划树失败:", error);
       }
     }
-  }
+  },
 );
 
 // 加载区划树
@@ -350,10 +409,14 @@ async function loadDistrictTree() {
   isLoading.value = true;
   try {
     // 优先使用 apiUrls，然后是旧的 districtUrl 属性
-    const districtUrl = props.apiUrls?.district || props.districtUrl || undefined;
+    const districtUrl =
+      props.apiUrls?.district || props.districtUrl || undefined;
 
     // 获取区划树数据
-    const districtTree = await props.boundaryObj.loadDistrictTree(props.mapKey, districtUrl);
+    const districtTree = await props.boundaryObj.loadDistrictTree(
+      props.mapKey,
+      districtUrl,
+    );
 
     if (!districtTree || districtTree.length === 0) {
       throw new Error("获取区划树数据为空");
@@ -362,17 +425,24 @@ async function loadDistrictTree() {
     rawTreeData.value = districtTree;
 
     // 打印原始区划树数据的部分内容，帮助调试
-    logger.info("原始区划树数据示例:", JSON.stringify(districtTree.slice(0, 1)));
+    logger.info(
+      "原始区划树数据示例:",
+      JSON.stringify(districtTree.slice(0, 1)),
+    );
 
     // 检查数据中是否包含浙江省
-    const hasZhejiang = districtTree.some((item: any) => (item.name && item.name.includes("浙江")) || (item.fullname && item.fullname.includes("浙江")));
+    const hasZhejiang = districtTree.some(
+      (item: any) =>
+        (item.name && item.name.includes("浙江")) ||
+        (item.fullname && item.fullname.includes("浙江")),
+    );
     logger.info("数据中包含浙江省:", hasZhejiang);
 
     // 转换为树形结构
     treeData.value = formatTreeData(districtTree);
 
     // 默认展开所有一级节点
-    expandedKeys.value = treeData.value.map(item => item.key);
+    expandedKeys.value = treeData.value.map((item) => item.key);
 
     // 已选边界回显
     updateSelectedBoundaries();
@@ -391,7 +461,7 @@ function updateSelectedBoundaries() {
   if (boundaries && boundaries.length > 0) {
     // 避免重复，使用Map来存储唯一的边界
     const uniqueBoundaries = new Map();
-    boundaries.forEach(b => {
+    boundaries.forEach((b) => {
       if (!uniqueBoundaries.has(b.code)) {
         uniqueBoundaries.set(b.code, b);
       }
@@ -403,7 +473,7 @@ function updateSelectedBoundaries() {
     // 设置选中状态
     nextTick(() => {
       if (treeRef.value) {
-        selectedKeys.value.forEach(key => {
+        selectedKeys.value.forEach((key) => {
           treeRef.value.setChecked(key, true, false);
         });
       }
@@ -416,7 +486,7 @@ function formatTreeData(data: any[]): any[] {
   if (!data || data.length === 0) return [];
 
   return data
-    .map(item => {
+    .map((item) => {
       if (!item) return null;
 
       const children = item.children || item.districts || [];
@@ -437,7 +507,7 @@ function formatTreeData(data: any[]): any[] {
         children: children.length > 0 ? formatTreeData(children) : [],
         isLeaf: !children || children.length === 0,
         // 保留原始数据，以便调试
-        rawData: { ...item }
+        rawData: { ...item },
       };
 
       return node;
@@ -456,7 +526,7 @@ async function onCheckChange(data: any, checked: boolean) {
 
   if (checked) {
     // 如果已经选择了该节点，则不重复添加
-    if (selectedBoundaries.value.some(item => item.code === key)) {
+    if (selectedBoundaries.value.some((item) => item.code === key)) {
       return;
     }
 
@@ -476,32 +546,36 @@ async function onCheckChange(data: any, checked: boolean) {
 function onCheck(data: any, checkInfo: any) {
   // 处理批量选中/取消选中的情况
   const { checkedKeys } = checkInfo;
-  const currentSelected = selectedBoundaries.value.map(b => b.code);
+  const currentSelected = selectedBoundaries.value.map((b) => b.code);
 
   // 找出新增的keys
-  const newKeys = checkedKeys.filter((key: string) => !currentSelected.includes(key));
+  const newKeys = checkedKeys.filter(
+    (key: string) => !currentSelected.includes(key),
+  );
 
   // 找出移除的keys
-  const removedKeys = currentSelected.filter(key => !checkedKeys.includes(key));
+  const removedKeys = currentSelected.filter(
+    (key) => !checkedKeys.includes(key),
+  );
 
   // 批量添加新选中的边界（避免重复添加）
   if (newKeys.length > 0) {
     Promise.all(
-      newKeys.map(key => {
+      newKeys.map((key) => {
         // 避免重复添加已经存在的边界
-        if (!selectedBoundaries.value.some(b => b.code === key)) {
+        if (!selectedBoundaries.value.some((b) => b.code === key)) {
           return addBoundaryByKey(key);
         }
         return Promise.resolve(true);
-      })
-    ).catch(error => {
+      }),
+    ).catch((error) => {
       logger.error("批量添加边界失败:", error);
       message("部分边界添加失败", { type: "warning" });
     });
   }
 
   // 批量移除取消选中的边界
-  removedKeys.forEach(key => {
+  removedKeys.forEach((key) => {
     removeBoundary(key);
   });
 }
@@ -509,7 +583,7 @@ function onCheck(data: any, checkInfo: any) {
 // 通过key添加边界
 async function addBoundaryByKey(key: string) {
   // 检查是否已经存在此边界
-  if (selectedBoundaries.value.some(b => b.code === key)) {
+  if (selectedBoundaries.value.some((b) => b.code === key)) {
     return true; // 已存在，直接返回成功
   }
 
@@ -522,18 +596,18 @@ async function addBoundaryByKey(key: string) {
     mapKey: props.mapKey,
     // 使用 apiUrls 对象传递 API URL
     apiUrls: {
-      boundary: boundaryUrl
-    }
+      boundary: boundaryUrl,
+    },
   });
 
   if (added) {
     // 获取添加的边界数据
     const boundaries = props.boundaryObj.getSelectedBoundaries();
-    const boundary = boundaries.find(b => b.code === key);
+    const boundary = boundaries.find((b) => b.code === key);
 
     if (boundary) {
       // 确保不重复添加
-      if (!selectedBoundaries.value.some(b => b.code === key)) {
+      if (!selectedBoundaries.value.some((b) => b.code === key)) {
         selectedBoundaries.value.push(boundary);
       }
     }
@@ -548,7 +622,7 @@ function onExpand(data: any, node: any) {
   if (expanded) {
     expandedKeys.value.push(data.key);
   } else {
-    expandedKeys.value = expandedKeys.value.filter(key => key !== data.key);
+    expandedKeys.value = expandedKeys.value.filter((key) => key !== data.key);
   }
 }
 
@@ -572,7 +646,9 @@ function clearBoundaries() {
 
 // 移除边界
 function removeBoundary(code: string) {
-  selectedBoundaries.value = selectedBoundaries.value.filter(item => item.code !== code);
+  selectedBoundaries.value = selectedBoundaries.value.filter(
+    (item) => item.code !== code,
+  );
   props.boundaryObj.removeBoundary(code);
 
   // 更新树选中状态
@@ -587,14 +663,14 @@ function removeBoundary(code: string) {
 function locateCurrent() {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      position => {
+      (position) => {
         const { latitude, longitude } = position.coords;
         props.boundaryObj.locateToPosition([longitude, latitude]);
       },
-      error => {
+      (error) => {
         logger.error("获取当前位置失败:", error);
         message("获取当前位置失败", { type: "error" });
-      }
+      },
     );
   } else {
     message("您的浏览器不支持地理定位", { type: "error" });
@@ -619,18 +695,17 @@ function resetSettings() {
 }
 
 // 监听选项变化 - 使用版本号避免深度监听
-const defaultOptionsVersion = computed(() => JSON.stringify(props.defaultOptions));
-watch(
-  defaultOptionsVersion,
-  () => {
-    options.value = { ...DEFAULT_BOUNDARY_OPTIONS, ...props.defaultOptions };
-  }
+const defaultOptionsVersion = computed(() =>
+  JSON.stringify(props.defaultOptions),
 );
+watch(defaultOptionsVersion, () => {
+  options.value = { ...DEFAULT_BOUNDARY_OPTIONS, ...props.defaultOptions };
+});
 
 // 监听搜索文本变化
 watch(
   () => searchText.value,
-  newValue => {
+  (newValue) => {
     // 记录搜索内容
     if (newValue) {
       logger.info(`执行搜索: "${newValue}"`);
@@ -657,9 +732,9 @@ watch(
       });
     } else {
       // 搜索内容为空时，只展开一级节点
-      expandedKeys.value = treeData.value.map(item => item.key);
+      expandedKeys.value = treeData.value.map((item) => item.key);
     }
-  }
+  },
 );
 
 // 在原始数据中查找省份
@@ -674,7 +749,11 @@ function findProvinceInRawData(provinceName: string) {
     if (!data || data.length === 0) return null;
 
     // 先在顶层查找
-    const found = data.find(item => (item.name && item.name.includes(name)) || (item.fullname && item.fullname.includes(name)));
+    const found = data.find(
+      (item) =>
+        (item.name && item.name.includes(name)) ||
+        (item.fullname && item.fullname.includes(name)),
+    );
 
     if (found) {
       return found;
@@ -716,7 +795,10 @@ function findProvinceInRawData(provinceName: string) {
     logger.info(`在原始数据中未找到${provinceName}`);
 
     // 进一步检查数据结构
-    logger.info("原始数据结构:", Object.keys(rawTreeData.value[0] || {}).join(", "));
+    logger.info(
+      "原始数据结构:",
+      Object.keys(rawTreeData.value[0] || {}).join(", "),
+    );
     logger.info("原始数据示例:", JSON.stringify(rawTreeData.value.slice(0, 1)));
 
     // 尝试查找包含该省份名称的任何字符串
@@ -726,10 +808,15 @@ function findProvinceInRawData(provinceName: string) {
 
     if (includesProvince) {
       // 查找包含该省份的原始数据项
-      const index = rawTreeData.value.findIndex(item => JSON.stringify(item).includes(provinceName));
+      const index = rawTreeData.value.findIndex((item) =>
+        JSON.stringify(item).includes(provinceName),
+      );
 
       if (index >= 0) {
-        logger.info(`在第${index}项中找到包含${provinceName}的数据:`, JSON.stringify(rawTreeData.value[index]));
+        logger.info(
+          `在第${index}项中找到包含${provinceName}的数据:`,
+          JSON.stringify(rawTreeData.value[index]),
+        );
       }
     }
   }
@@ -741,7 +828,7 @@ function getAllKeys(nodes: any[]): string[] {
 
   let keys: string[] = [];
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     if (node.key) {
       keys.push(node.key);
     }
@@ -789,7 +876,7 @@ function handleCommonProvinceSearch(searchValue: string): any[] | null {
     青海: ["青海", "qinghai", "青"],
     香港: ["香港", "hongkong", "港"],
     澳门: ["澳门", "macao", "澳"],
-    台湾: ["台湾", "taiwan", "台"]
+    台湾: ["台湾", "taiwan", "台"],
   };
 
   // 查找匹配的省份
@@ -797,7 +884,7 @@ function handleCommonProvinceSearch(searchValue: string): any[] | null {
 
   // 遍历所有省份别名
   for (const [province, aliases] of Object.entries(provinceMap)) {
-    if (aliases.some(alias => searchValue.includes(alias.toLowerCase()))) {
+    if (aliases.some((alias) => searchValue.includes(alias.toLowerCase()))) {
       matchedProvince = province;
       break;
     }
@@ -808,19 +895,31 @@ function handleCommonProvinceSearch(searchValue: string): any[] | null {
   logger.info(`特殊处理省份搜索: ${matchedProvince}`);
 
   // 在树数据中查找匹配的省份
-  const provincesInTree = treeData.value.filter(node => node.label.includes(matchedProvince!) || (node.fullname && node.fullname.includes(matchedProvince!)));
+  const provincesInTree = treeData.value.filter(
+    (node) =>
+      node.label.includes(matchedProvince!) ||
+      (node.fullname && node.fullname.includes(matchedProvince!)),
+  );
 
   if (provincesInTree.length > 0) {
-    logger.info(`找到省份 ${matchedProvince}: ${provincesInTree.map(p => p.label).join(", ")}`);
+    logger.info(
+      `找到省份 ${matchedProvince}: ${provincesInTree.map((p) => p.label).join(", ")}`,
+    );
     return provincesInTree;
   }
 
   // 如果在一级节点中没找到，尝试在所有节点中搜索
   const allNodes = getAllNodes(treeData.value);
-  const matchedNodes = allNodes.filter(node => node.label.includes(matchedProvince!) || (node.fullname && node.fullname.includes(matchedProvince!)));
+  const matchedNodes = allNodes.filter(
+    (node) =>
+      node.label.includes(matchedProvince!) ||
+      (node.fullname && node.fullname.includes(matchedProvince!)),
+  );
 
   if (matchedNodes.length > 0) {
-    logger.info(`在所有节点中找到省份 ${matchedProvince}: ${matchedNodes.map(n => n.label).join(", ")}`);
+    logger.info(
+      `在所有节点中找到省份 ${matchedProvince}: ${matchedNodes.map((n) => n.label).join(", ")}`,
+    );
 
     // 构建返回一个包含这些节点的树
     // 这里我们简单地返回找到的节点列表，UI会自动展示
@@ -884,7 +983,9 @@ $transition-time: 0.3s;
     transform $transition-time ease;
   transform: translateY(-10px);
   overflow: hidden;
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+  font-family:
+    "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", Arial, sans-serif;
 
   &.active {
     opacity: 1;
@@ -900,7 +1001,7 @@ $transition-time: 0.3s;
     padding: 12px 16px;
     border-bottom: 1px solid $border-color;
     background-color: var(--el-fill-color-light);
-    
+
     .title {
       font-weight: 600;
       color: $text-primary;

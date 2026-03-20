@@ -195,9 +195,9 @@ function getTagClass(tagType?: string) {
 
             <!-- 卡片底部 -->
             <div v-if="card.buttonText" class="card-footer">
-              <el-button :type="card.buttonType || 'primary'" class="card-button" @click="handleButtonClick(card, $event)">
+              <ScButton :type="card.buttonType || 'primary'" class="card-button" @click="handleButtonClick(card, $event)">
                 {{ card.buttonText }}
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>

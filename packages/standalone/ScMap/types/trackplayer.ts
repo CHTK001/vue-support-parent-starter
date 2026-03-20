@@ -89,4 +89,4 @@ export interface TrackPlayerCallbacks {
   onTrackSelect?: (trackId: string) => void;
   // 初始化完成回调
   onInit?: (message: string) => void;
-} 
+}

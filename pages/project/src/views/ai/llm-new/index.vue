@@ -9,7 +9,7 @@
       ref="moduleDialogRef"
       @success="handleRefreshEnvironment"
     ></ModuleDialog>
-    <ScButton 
+    <ScButton
       @click="handleOpenModuleManager"
       class="settings-btn"
       circle
@@ -157,7 +157,7 @@
 </style>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { useUserStoreHook } from "@repo/core";
 import { getRandomInt, localStorageProxy } from "@repo/utils";
 import {
@@ -172,10 +172,10 @@ import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-modu
 
 // 导入新的ChatComponent组件
 const ChatComponent = defineAsyncComponent(
-  () => import("./module/ChatComponent.vue")
+  () => import("./module/ChatComponent.vue"),
 );
 const ModuleUpdateDialog = defineAsyncComponent(
-  () => import("../module-update.vue")
+  () => import("../module-update.vue"),
 );
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
 

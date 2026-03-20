@@ -16,6 +16,7 @@ export const fetchSmsSender = (params: any) => {
 export const fetchSmsSync = (params: any) => {
   return http.request<ReturnResult<boolean>>("post", "/v2/sms/syncTemplate", {
     data: params,
+<<<<<<< HEAD
   });
 };
 
@@ -38,5 +39,7 @@ export const fetchSendSmsCode = (data: SmsCodeRequest) => {
 export const fetchSmsLogin = (data: SmsLoginRequest) => {
   return http.request<ReturnResult<UserResult>>("post", "/v2/sms/login", {
     data,
+=======
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   });
 };

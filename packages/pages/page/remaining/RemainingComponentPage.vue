@@ -1,10 +1,17 @@
 <template>
   <div class="remaining-component-page">
     <!-- 加载中状态 -->
-    <CoolLoading v-if="isLoading" loading-text="页面加载中..." :show-progress="true" />
+    <CoolLoading
+      v-if="isLoading"
+      loading-text="页面加载中..."
+      :show-progress="true"
+    />
 
     <!-- 组件加载成功 -->
-    <component :is="dynamicComponent" v-else-if="dynamicComponent && !isLoading" />
+    <component
+      :is="dynamicComponent"
+      v-else-if="dynamicComponent && !isLoading"
+    />
 
     <!-- 组件加载失败 - 404页面 -->
     <div v-else-if="!isLoading && loadError" class="error-404">

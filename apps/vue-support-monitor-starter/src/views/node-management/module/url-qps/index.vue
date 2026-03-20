@@ -54,12 +54,12 @@
 
     <div class="url-qps-content">
       <!-- 标签页 -->
-      <el-tabs v-model="activeTab" class="tabs-wrapper">
-        <el-tab-pane label="QPS 统计" name="qps">
+      <ScTabs v-model="activeTab" class="tabs-wrapper">
+        <ScTabPane label="QPS 统计" name="qps">
           <!-- 工具栏 -->
           <div class="toolbar">
             <div class="toolbar-left">
-              <el-input
+              <ScInput
                 v-model="searchText"
                 placeholder="搜索 URL..."
                 clearable
@@ -68,14 +68,14 @@
                 <template #prefix>
                   <IconifyIconOnline icon="ri:search-line" />
                 </template>
-              </el-input>
+              </ScInput>
               <span v-if="searchText" class="search-result">
                 找到 <strong>{{ filteredQpsData.length }}</strong> 个
               </span>
             </div>
             <div class="toolbar-right">
-              <el-tooltip content="清除统计数据" placement="top">
-                <el-button
+              <ScTooltip content="清除统计数据" placement="top">
+                <ScButton
                   type="danger"
                   :loading="clearing"
                   plain
@@ -86,17 +86,17 @@
                     icon="ri:delete-bin-line"
                   />
                   清除
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="刷新数据" placement="top">
-                <el-button
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="刷新数据" placement="top">
+                <ScButton
                   type="primary"
                   :loading="loading"
                   @click="handleRefresh"
                 >
                   <IconifyIconOnline v-if="!loading" icon="ri:refresh-line" />
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </div>
           </div>
 
@@ -112,44 +112,44 @@
               :loading="loading"
               @refresh="handleRefresh"
             >
-              <el-table-column label="URL" min-width="280">
+              <ScTableColumn label="URL" min-width="280">
                 <template #default="{ row }">
                   <div class="url-cell">
-                    <el-tag
+                    <ScTag
                       :type="getMethodTagType(row.method)"
                       size="small"
                       class="method-tag"
                     >
                       {{ row.method || "ALL" }}
-                    </el-tag>
+                    </ScTag>
                     <span class="url-path" :title="row.url">{{ row.url }}</span>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="QPS" width="90" align="center">
+              <ScTableColumn label="QPS" width="90" align="center">
                 <template #default="{ row }">
                   <span class="qps-value">{{ (row.qps || 0).toFixed(2) }}</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="总请求" width="100" align="center">
+              <ScTableColumn label="总请求" width="100" align="center">
                 <template #default="{ row }">
                   <span class="count-value">{{
                     formatNumber(row.historyTotalCount)
                   }}</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="成功" width="90" align="center">
+              <ScTableColumn label="成功" width="90" align="center">
                 <template #default="{ row }">
                   <span class="success-count">{{
                     formatNumber(row.historySuccessCount)
                   }}</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="失败" width="90" align="center">
+              <ScTableColumn label="失败" width="90" align="center">
                 <template #default="{ row }">
                   <span
                     class="fail-count"
@@ -158,42 +158,42 @@
                     {{ formatNumber(row.historyFailCount) }}
                   </span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="平均耗时" width="100" align="center">
+              <ScTableColumn label="平均耗时" width="100" align="center">
                 <template #default="{ row }">
                   <span class="duration-value"
                     >{{ row.avgDuration || 0 }}ms</span
                   >
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="最小/最大" width="120" align="center">
+              <ScTableColumn label="最小/最大" width="120" align="center">
                 <template #default="{ row }">
                   <span class="duration-range">
                     {{ row.minDuration || 0 }}/{{ row.maxDuration || 0 }}ms
                   </span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="成功率" width="100" align="center">
+              <ScTableColumn label="成功率" width="100" align="center">
                 <template #default="{ row }">
-                  <el-progress
+                  <ScProgress
                     :percentage="calculateSuccessRate(row)"
                     :stroke-width="6"
                     :color="getSuccessRateColor(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
             </ScTable>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane label="URL 映射" name="mappings">
+        <ScTabPane label="URL 映射" name="mappings">
           <!-- 工具栏 -->
           <div class="toolbar">
             <div class="toolbar-left">
-              <el-input
+              <ScInput
                 v-model="mappingSearchText"
                 placeholder="搜索 URL..."
                 clearable
@@ -202,14 +202,14 @@
                 <template #prefix>
                   <IconifyIconOnline icon="ri:search-line" />
                 </template>
-              </el-input>
+              </ScInput>
               <span v-if="mappingSearchText" class="search-result">
                 找到 <strong>{{ filteredMappings.length }}</strong> 个
               </span>
             </div>
             <div class="toolbar-right">
-              <el-tooltip content="刷新映射" placement="top">
-                <el-button
+              <ScTooltip content="刷新映射" placement="top">
+                <ScButton
                   type="primary"
                   :loading="loadingMappings"
                   @click="loadMappings"
@@ -218,8 +218,8 @@
                     v-if="!loadingMappings"
                     icon="ri:refresh-line"
                   />
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </div>
           </div>
 
@@ -235,14 +235,14 @@
               :loading="loadingMappings"
               @refresh="loadMappings"
             >
-              <el-table-column label="URL 模式" min-width="280">
+              <ScTableColumn label="URL 模式" min-width="280">
                 <template #default="{ row }">
                   <div class="url-cell">
                     <div
                       v-if="row.methods && row.methods.length > 0"
                       class="methods-wrapper"
                     >
-                      <el-tag
+                      <ScTag
                         v-for="method in row.methods"
                         :key="method"
                         :type="getMethodTagType(method)"
@@ -250,9 +250,9 @@
                         class="method-tag"
                       >
                         {{ method }}
-                      </el-tag>
+                      </ScTag>
                     </div>
-                    <el-tag v-else type="info" size="small" class="method-tag"
+                    <ScTag v-else type="info" size="small" class="method-tag"
                       >ALL</el-tag
                     >
                     <span class="url-path" :title="row.pattern">{{
@@ -260,32 +260,32 @@
                     }}</span>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="处理器" min-width="300">
+              <ScTableColumn label="处理器" min-width="300">
                 <template #default="{ row }">
                   <span class="handler-text" :title="row.handler">
                     {{ row.handler || "-" }}
                   </span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
 
-              <el-table-column label="Controller" min-width="200">
+              <ScTableColumn label="Controller" min-width="200">
                 <template #default="{ row }">
                   <span class="controller-text" :title="row.controller">
                     {{ getSimpleClassName(row.controller) }}
                   </span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
             </ScTable>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
+        <ScButton @click="handleClose">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

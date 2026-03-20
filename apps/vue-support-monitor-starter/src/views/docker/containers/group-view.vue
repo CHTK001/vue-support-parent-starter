@@ -14,24 +14,24 @@
         </div>
       </div>
       <div class="header-right">
-        <el-radio-group
+        <ScRadioGroup
           v-model="groupMode"
           size="default"
           @change="handleGroupModeChange"
         >
           <el-radio-button label="server">按服务器分组</el-radio-button>
           <el-radio-button label="software">按软件分组</el-radio-button>
-        </el-radio-group>
-        <el-button :loading="loading" @click="handleRefresh">
+        </ScRadioGroup>
+        <ScButton :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 搜索栏 -->
     <div class="search-bar">
-      <el-input
+      <ScInput
         v-model="searchParams.keyword"
         placeholder="搜索容器名称或镜像..."
         class="search-input"
@@ -41,44 +41,44 @@
         <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </el-input>
-      <el-select
+      </ScInput>
+      <ScSelect
         v-model="searchParams.status"
         placeholder="状态筛选"
         clearable
         @change="handleSearch"
       >
-        <el-option label="全部" value="" />
-        <el-option label="运行中" value="running" />
-        <el-option label="已停止" value="stopped" />
-        <el-option label="暂停" value="paused" />
-      </el-select>
-      <el-select
+        <ScOption label="全部" value="" />
+        <ScOption label="运行中" value="running" />
+        <ScOption label="已停止" value="stopped" />
+        <ScOption label="暂停" value="paused" />
+      </ScSelect>
+      <ScSelect
         v-model="searchParams.serverId"
         placeholder="选择服务器"
         clearable
         @change="handleSearch"
       >
-        <el-option label="全部服务器" value="" />
-        <el-option
+        <ScOption label="全部服务器" value="" />
+        <ScOption
           v-for="server in serverOptions"
           :key="server.id"
           :label="server.name"
           :value="server.id"
         />
-      </el-select>
-      <el-button :loading="syncLoading" @click="handleSyncStatus">
+      </ScSelect>
+      <ScButton :loading="syncLoading" @click="handleSyncStatus">
         <IconifyIconOnline icon="ri:loop-left-line" class="mr-1" />
         同步状态
-      </el-button>
+      </ScButton>
     </div>
 
     <!-- 分组展示区域 -->
     <div class="groups-container">
       <!-- 按服务器分组 -->
       <div v-if="groupMode === 'server'" class="server-groups">
-        <el-collapse v-model="activeGroups" accordion>
-          <el-collapse-item
+        <ScCollapse v-model="activeGroups" accordion>
+          <ScCollapseItem
             v-for="group in serverGroups"
             :key="group.serverId"
             :name="group.serverId"
@@ -90,12 +90,12 @@
                   <span class="group-name">{{
                     group.serverName || `服务器 #${group.serverId}`
                   }}</span>
-                  <el-tag size="small" class="group-count"
+                  <ScTag size="small" class="group-count"
                     >{{ group.containers.length }} 个容器</el-tag
                   >
                 </div>
                 <div class="group-actions" @click.stop>
-                  <el-button
+                  <ScButton
                     size="small"
                     type="primary"
                     :disabled="!hasStoppedContainers(group.containers)"
@@ -103,8 +103,8 @@
                   >
                     <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                     启动全部
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton
                     size="small"
                     type="warning"
                     :disabled="!hasRunningContainers(group.containers)"
@@ -112,7 +112,7 @@
                   >
                     <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                     停止全部
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </template>
@@ -130,15 +130,15 @@
                 @exec="handleExec"
               />
             </div>
-          </el-collapse-item>
-        </el-collapse>
-        <el-empty v-if="serverGroups.length === 0" description="暂无容器数据" />
+          </ScCollapseItem>
+        </ScCollapse>
+        <ScEmpty v-if="serverGroups.length === 0" description="暂无容器数据" />
       </div>
 
       <!-- 按软件分组 -->
       <div v-else class="software-groups">
-        <el-collapse v-model="activeGroups" accordion>
-          <el-collapse-item
+        <ScCollapse v-model="activeGroups" accordion>
+          <ScCollapseItem
             v-for="group in softwareGroups"
             :key="group.softId"
             :name="group.softId"
@@ -150,25 +150,25 @@
                   <span class="group-name">{{
                     group.softName || `软件 #${group.softId}`
                   }}</span>
-                  <el-tag size="small" class="group-count"
+                  <ScTag size="small" class="group-count"
                     >{{ group.containers.length }} 个容器</el-tag
                   >
                 </div>
                 <div class="group-stats">
-                  <el-tag
+                  <ScTag
                     v-if="getRunningCount(group.containers) > 0"
                     type="success"
                     size="small"
                   >
                     {{ getRunningCount(group.containers) }} 运行中
-                  </el-tag>
-                  <el-tag
+                  </ScTag>
+                  <ScTag
                     v-if="getStoppedCount(group.containers) > 0"
                     type="info"
                     size="small"
                   >
                     {{ getStoppedCount(group.containers) }} 已停止
-                  </el-tag>
+                  </ScTag>
                 </div>
               </div>
             </template>
@@ -186,9 +186,9 @@
                 @exec="handleExec"
               />
             </div>
-          </el-collapse-item>
-        </el-collapse>
-        <el-empty
+          </ScCollapseItem>
+        </ScCollapse>
+        <ScEmpty
           v-if="softwareGroups.length === 0"
           description="暂无容器数据"
         />

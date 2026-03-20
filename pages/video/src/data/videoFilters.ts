@@ -3,24 +3,24 @@
  */
 export const qualityFilterOptions = [
   {
-    label: '全部',
-    value: '',
+    label: "全部",
+    value: "",
   },
   {
-    label: '4K',
-    value: '4K',
+    label: "4K",
+    value: "4K",
   },
   {
-    label: '1080P',
-    value: '1080P',
+    label: "1080P",
+    value: "1080P",
   },
   {
-    label: '720P',
-    value: '720P',
+    label: "720P",
+    value: "720P",
   },
   {
-    label: '标清',
-    value: '标清',
+    label: "标清",
+    value: "标清",
   },
 ];
 
@@ -29,24 +29,24 @@ export const qualityFilterOptions = [
  */
 export const magnetTypeOptions = [
   {
-    label: '全部',
-    value: '',
+    label: "全部",
+    value: "",
   },
   {
-    label: 'BT种子',
-    value: 'BT种子',
+    label: "BT种子",
+    value: "BT种子",
   },
   {
-    label: '迅雷链接',
-    value: '迅雷链接',
+    label: "迅雷链接",
+    value: "迅雷链接",
   },
   {
-    label: '磁力链接',
-    value: '磁力链接',
+    label: "磁力链接",
+    value: "磁力链接",
   },
   {
-    label: 'ED2K链接',
-    value: 'ED2K链接',
+    label: "ED2K链接",
+    value: "ED2K链接",
   },
 ];
 
@@ -54,16 +54,16 @@ export const magnetTypeOptions = [
  * 视频下载类型映射
  */
 export const downloadTypeIconMap = {
-  磁力资源: 'ep:magnet',
-  网盘资源: 'ep:folder',
-  在线资源: 'ep:video-play',
-  百度网盘: 'ep:folder',
-  阿里云盘: 'ep:folder',
-  天翼网盘: 'ep:folder',
-  微云: 'ep:folder',
-  '115网盘': 'ep:folder',
-  迅雷网盘: 'ep:folder',
-  夸克网盘: 'ep:folder',
+  磁力资源: "ep:magnet",
+  网盘资源: "ep:folder",
+  在线资源: "ep:video-play",
+  百度网盘: "ep:folder",
+  阿里云盘: "ep:folder",
+  天翼网盘: "ep:folder",
+  微云: "ep:folder",
+  "115网盘": "ep:folder",
+  迅雷网盘: "ep:folder",
+  夸克网盘: "ep:folder",
 };
 
 /**
@@ -72,21 +72,21 @@ export const downloadTypeIconMap = {
  * @returns 图标名称
  */
 export const getDownloadIcon = (type: string): string => {
-  return downloadTypeIconMap[type] || 'ep:download';
+  return downloadTypeIconMap[type] || "ep:download";
 };
 
 /**
  * 下载字段映射
  */
 export const downloadFieldMap = {
-  name: 'videoDownloadName',
-  url: 'videoDownloadUrl',
-  type: 'videoDownloadType',
-  quality: 'videoDownloadQuality',
-  size: 'videoDownloadSize',
-  count: 'videoDownloadCount',
-  magnetic: 'videoDownloadMagnetic',
-  status: 'videoDownloadStatus',
+  name: "videoDownloadName",
+  url: "videoDownloadUrl",
+  type: "videoDownloadType",
+  quality: "videoDownloadQuality",
+  size: "videoDownloadSize",
+  count: "videoDownloadCount",
+  magnetic: "videoDownloadMagnetic",
+  status: "videoDownloadStatus",
 };
 
 /**
@@ -107,7 +107,7 @@ export const getDownloadField = (download: any, field: string): any => {
  */
 export const parseMagnetLinks = (downloadList: any[]): any[] => {
   if (!downloadList || !Array.isArray(downloadList)) return [];
-  return downloadList.filter((it) => it.videoDownloadType === '磁力资源');
+  return downloadList.filter((it) => it.videoDownloadType === "磁力资源");
 };
 
 /**
@@ -117,5 +117,5 @@ export const parseMagnetLinks = (downloadList: any[]): any[] => {
  */
 export const parseOnlineLinks = (downloadList: any[]): any[] => {
   if (!downloadList || !Array.isArray(downloadList)) return [];
-  return downloadList.filter((it) => it.videoDownloadType === '在线资源');
-}; 
+  return downloadList.filter((it) => it.videoDownloadType === "在线资源");
+};

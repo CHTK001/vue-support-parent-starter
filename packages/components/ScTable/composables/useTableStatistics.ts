@@ -2,10 +2,10 @@
  * useTableStatistics - 数据统计 composable
  * 支持列统计功能（求和/平均/最大/最小/计数）
  */
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { ref, computed, type Ref, type ComputedRef } from "vue";
 
 /** 统计类型 */
-export type StatType = 'sum' | 'avg' | 'max' | 'min' | 'count';
+export type StatType = "sum" | "avg" | "max" | "min" | "count";
 
 /** 列统计配置 */
 export interface ColumnStatConfig {
@@ -63,11 +63,7 @@ export interface StatisticsReturn {
  * 数据统计 composable
  */
 export function useTableStatistics(options: StatisticsOptions = {}): StatisticsReturn {
-  const {
-    enabled = false,
-    columns = [],
-    defaultPrecision = 2,
-  } = options;
+  const { enabled = false, columns = [], defaultPrecision = 2 } = options;
 
   const isEnabled = ref(enabled);
   const columnConfigs = ref<ColumnStatConfig[]>([...columns]);
@@ -77,7 +73,7 @@ export function useTableStatistics(options: StatisticsOptions = {}): StatisticsR
    * 格式化数值
    */
   const formatValue = (value: number, precision: number): string => {
-    if (isNaN(value) || !isFinite(value)) return '-';
+    if (isNaN(value) || !isFinite(value)) return "-";
     return value.toFixed(precision);
   };
 
@@ -97,32 +93,30 @@ export function useTableStatistics(options: StatisticsOptions = {}): StatisticsR
       let value = 0;
 
       switch (type) {
-        case 'sum':
+        case "sum":
           value = values.reduce((acc, v) => acc + v, 0);
           break;
-        case 'avg':
+        case "avg":
           value = values.length > 0 ? values.reduce((acc, v) => acc + v, 0) / values.length : 0;
           break;
-        case 'max':
+        case "max":
           value = values.length > 0 ? Math.max(...values) : 0;
           break;
-        case 'min':
+        case "min":
           value = values.length > 0 ? Math.min(...values) : 0;
           break;
-        case 'count':
+        case "count":
           value = values.length;
           break;
       }
 
-      const formatted = config.formatter
-        ? config.formatter(value, type)
-        : formatValue(value, type === 'count' ? 0 : precision);
+      const formatted = config.formatter ? config.formatter(value, type) : formatValue(value, type === "count" ? 0 : precision);
 
       statResults.push({
         column: config.column,
         type,
         value,
-        formatted,
+        formatted
       });
     });
 
@@ -134,7 +128,7 @@ export function useTableStatistics(options: StatisticsOptions = {}): StatisticsR
    */
   const calculate = (data: any[]): void => {
     if (!isEnabled.value) return;
-    
+
     results.value.clear();
 
     columnConfigs.value.forEach(config => {
@@ -156,7 +150,7 @@ export function useTableStatistics(options: StatisticsOptions = {}): StatisticsR
   const getStatValue = (column: string, type: StatType): number | null => {
     const columnStats = results.value.get(column);
     if (!columnStats) return null;
-    
+
     const stat = columnStats.find(s => s.type === type);
     return stat?.value ?? null;
   };
@@ -201,7 +195,7 @@ export function useTableStatistics(options: StatisticsOptions = {}): StatisticsR
     getStatValue,
     addColumnConfig,
     removeColumnConfig,
-    clearResults,
+    clearResults
   };
 }
 

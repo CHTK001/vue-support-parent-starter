@@ -6,16 +6,16 @@
         <span class="header-title">资源使用趋势</span>
       </div>
       <div class="header-right">
-        <el-select
+        <ScSelect
           v-model="timeRange"
           size="small"
           @change="handleTimeRangeChange"
         >
-          <el-option label="最近1小时" value="1h" />
-          <el-option label="最近6小时" value="6h" />
-          <el-option label="最近12小时" value="12h" />
-          <el-option label="最近24小时" value="24h" />
-        </el-select>
+          <ScOption label="最近1小时" value="1h" />
+          <ScOption label="最近6小时" value="6h" />
+          <ScOption label="最近12小时" value="12h" />
+          <ScOption label="最近24小时" value="24h" />
+        </ScSelect>
       </div>
     </div>
 

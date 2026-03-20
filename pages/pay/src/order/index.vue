@@ -8,13 +8,13 @@
       <div class="right">
         <ScForm :inline="true" :model="form" class="search-form">
           <ScFormItem label="状态">
-            <ScSelect 
+            <ScSelect
               v-model="form.payMerchantOrderStatus"
               placeholder="全部"
               clearable
               class="!w-[160px]"
             >
-              <ScOption 
+              <ScOption
                 v-for="opt in statusOptions"
                 :key="opt.value"
                 :label="opt.label"
@@ -23,14 +23,14 @@
             </ScSelect>
           </ScFormItem>
           <ScFormItem label="商户">
-            <ScSelect 
+            <ScSelect
               v-model="form.payMerchantId"
               filterable
               clearable
               placeholder="选择商户"
               class="!w-[200px]"
             >
-              <ScOption 
+              <ScOption
                 v-for="m in merchants"
                 :key="m.payMerchantId"
                 :label="m.payMerchantName"
@@ -39,7 +39,7 @@
             </ScSelect>
           </ScFormItem>
           <ScFormItem label="支付时间">
-            <ScDatePicker 
+            <ScDatePicker
               v-model="payTime"
               type="datetimerange"
               range-separator="至"
@@ -49,7 +49,7 @@
             />
           </ScFormItem>
           <ScFormItem label="完成时间">
-            <ScDatePicker 
+            <ScDatePicker
               v-model="finishTime"
               type="datetimerange"
               range-separator="至"
@@ -75,7 +75,7 @@
       @data-loaded="onLoaded"
       :rowClick="handleRowClick"
     >
-      <ScTableColumn 
+      <ScTableColumn
         label="订单号"
         prop="payMerchantOrderCode"
         min-width="220"
@@ -101,12 +101,12 @@
           }}</ScTag>
         </template>
       </ScTableColumn>
-      <ScTableColumn 
+      <ScTableColumn
         label="支付时间"
         prop="payMerchantOrderPayTime"
         min-width="170"
       />
-      <ScTableColumn 
+      <ScTableColumn
         label="完成时间"
         prop="payMerchantOrderFinishedTime"
         min-width="170"
@@ -142,7 +142,7 @@
 
       <ScTableColumn label="操作" width="240" fixed="right">
         <template #default="{ row }">
-          <ScButton 
+          <ScButton
             text
             size="small"
             :disabled="!canRefund(row)"
@@ -150,7 +150,7 @@
           >
             <iconifyIconOnline icon="ri:refund-2-line" />退款
           </ScButton>
-          <ScButton 
+          <ScButton
             text
             size="small"
             :disabled="!canClose(row)"
@@ -169,13 +169,13 @@
     size="60%"
   >
     <div class="dialog-header">
-      <h3>订单详情 - {{ detail.row?.payMerchantOrderCode || '' }}</h3>
+      <h3>订单详情 - {{ detail.row?.payMerchantOrderCode || "" }}</h3>
     </div>
     <div class="grid grid-cols-5 gap-4">
       <div class="col-span-3">
         <h4>订单流水</h4>
-        <el-timeline>
-          <el-timeline-item
+        <ScTimeline>
+          <ScTimelineItem
             v-for="(it, idx) in detail.water"
             :key="idx"
             :timestamp="it.createTime"
@@ -183,17 +183,17 @@
           >
             <span>状态：{{ statusLabel(it.payMerchantOrderStatus) }}</span>
             <span class="ml-2">流水号：{{ it.payMerchantOrderWaterCode }}</span>
-          </el-timeline-item>
-        </el-timeline>
+          </ScTimelineItem>
+        </ScTimeline>
       </div>
       <div class="col-span-2">
         <h4>失败记录</h4>
-        <ScEmpty 
+        <ScEmpty
           v-if="!(detail.failure?.length > 0)"
           description="暂无失败记录"
         />
-        <el-scrollbar v-else height="400px">
-          <ScCard 
+        <ScScrollbar v-else height="400px">
+          <ScCard
             v-for="(fr, i) in detail.failure"
             :key="i"
             class="mb-2"
@@ -203,7 +203,7 @@
             <div><b>原因</b>：{{ fr.payMerchantFailureReason || "-" }}</div>
             <div><b>时间</b>：{{ fr.createTime || "-" }}</div>
           </ScCard>
-        </el-scrollbar>
+        </ScScrollbar>
       </div>
     </div>
   </sc-drawer>
@@ -227,7 +227,7 @@ import {
 } from "../api/order";
 import { fetchPageMerchant } from "../api/merchant";
 
-import { message , ScMessageBox} from "@repo/utils";
+import { message, ScMessageBox } from "@repo/utils";
 
 const tableRef = ref();
 const form = reactive<any>({});
@@ -278,13 +278,13 @@ const statusLabel = (s: string) =>
 const canRefund = (row: any) => row.payMerchantOrderStatus === "PAY_SUCCESS";
 const canClose = (row: any) =>
   !["PAY_WAITING", "PAY_CREATE", "PAY_REFUND_WAITING"].includes(
-    row.payMerchantOrderStatus
+    row.payMerchantOrderStatus,
   );
 
 const onClose = async (row: any) => {
   await ScMessageBox.confirm(
     `确认关闭订单 ${row.payMerchantOrderCode} ?`,
-    "提示"
+    "提示",
   );
   await fetchCloseOrder(row.payMerchantOrderCode);
   message("关闭成功", { type: "success" });

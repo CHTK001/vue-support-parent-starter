@@ -45,16 +45,32 @@
 
     <DemoBlock title="触发方式" :code="codes.trigger">
       <div class="demo-row">
-        <ScPopover title="点击触发" content="点击按钮显示弹出框" trigger="click">
+        <ScPopover
+          title="点击触发"
+          content="点击按钮显示弹出框"
+          trigger="click"
+        >
           <ScButton>点击触发</ScButton>
         </ScPopover>
-        <ScPopover title="悬停触发" content="鼠标悬停显示弹出框" trigger="hover">
+        <ScPopover
+          title="悬停触发"
+          content="鼠标悬停显示弹出框"
+          trigger="hover"
+        >
           <ScButton>悬停触发</ScButton>
         </ScPopover>
-        <ScPopover title="聚焦触发" content="聚焦输入框显示弹出框" trigger="focus">
+        <ScPopover
+          title="聚焦触发"
+          content="聚焦输入框显示弹出框"
+          trigger="focus"
+        >
           <ScInput placeholder="聚焦触发" />
         </ScPopover>
-        <ScPopover title="右键触发" content="右键点击显示弹出框" trigger="contextmenu">
+        <ScPopover
+          title="右键触发"
+          content="右键点击显示弹出框"
+          trigger="contextmenu"
+        >
           <ScButton>右键触发</ScButton>
         </ScPopover>
       </div>
@@ -65,8 +81,8 @@
         <ScPopover title="自定义内容" width="300">
           <template #content>
             <div class="custom-content">
-              <p style="margin: 0 0 8px 0;">这是一个自定义内容的弹出框</p>
-              <ul style="margin: 0; padding-left: 20px;">
+              <p style="margin: 0 0 8px 0">这是一个自定义内容的弹出框</p>
+              <ul style="margin: 0; padding-left: 20px">
                 <li>支持 HTML 内容</li>
                 <li>支持插槽自定义</li>
                 <li>可以包含复杂结构</li>
@@ -78,11 +94,23 @@
         <ScPopover width="250">
           <template #content>
             <div class="custom-content">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                <IconifyIconOnline icon="ri:information-line" style="font-size: 18px; color: #409eff;" />
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-bottom: 8px;
+                "
+              >
+                <IconifyIconOnline
+                  icon="ri:information-line"
+                  style="font-size: 18px; color: #409eff"
+                />
                 <strong>提示信息</strong>
               </div>
-              <p style="margin: 0; font-size: 14px; color: #606266;">这是一个带图标的自定义弹出框</p>
+              <p style="margin: 0; font-size: 14px; color: #606266">
+                这是一个带图标的自定义弹出框
+              </p>
             </div>
           </template>
           <ScButton>带图标内容</ScButton>
@@ -90,10 +118,12 @@
         <ScPopover title="操作按钮" width="200">
           <template #content>
             <div class="custom-content">
-              <p style="margin: 0 0 12px 0;">确认要执行此操作吗？</p>
-              <div style="display: flex; gap: 8px; justify-content: flex-end;">
+              <p style="margin: 0 0 12px 0">确认要执行此操作吗？</p>
+              <div style="display: flex; gap: 8px; justify-content: flex-end">
                 <ScButton size="small" @click="handleCancel">取消</ScButton>
-                <ScButton type="primary" size="small" @click="handleConfirm">确认</ScButton>
+                <ScButton type="primary" size="small" @click="handleConfirm"
+                  >确认</ScButton
+                >
               </div>
             </div>
           </template>
@@ -128,10 +158,18 @@
 
     <DemoBlock title="样式配置" :code="codes.style">
       <div class="demo-row">
-        <ScPopover title="自定义宽度" content="这个弹出框宽度为 300px" :width="300">
+        <ScPopover
+          title="自定义宽度"
+          content="这个弹出框宽度为 300px"
+          :width="300"
+        >
           <ScButton>宽度 300px</ScButton>
         </ScPopover>
-        <ScPopover title="无箭头" content="这个弹出框没有箭头" :show-arrow="false">
+        <ScPopover
+          title="无箭头"
+          content="这个弹出框没有箭头"
+          :show-arrow="false"
+        >
           <ScButton>无箭头</ScButton>
         </ScPopover>
         <ScPopover
@@ -164,11 +202,7 @@
         >
           <ScButton>延迟隐藏</ScButton>
         </ScPopover>
-        <ScPopover
-          title="自动关闭"
-          content="3 秒后自动关闭"
-          :auto-close="3000"
-        >
+        <ScPopover title="自动关闭" content="3 秒后自动关闭" :auto-close="3000">
           <ScButton>自动关闭</ScButton>
         </ScPopover>
       </div>
@@ -186,7 +220,11 @@
           <IconifyIconOnline icon="ri:question-line" class="demo-icon" />
         </ScPopover>
         <ScPopover title="图片" content="图片上的弹出框">
-          <img src="https://via.placeholder.com/60" alt="示例" class="demo-image" />
+          <img
+            src="https://via.placeholder.com/60"
+            alt="示例"
+            class="demo-image"
+          />
         </ScPopover>
       </div>
     </DemoBlock>
@@ -196,7 +234,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { ScPopover, ScButton, ScInput } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import DemoBlock from "./DemoBlock.vue";
 
 const visible1 = ref(false);
@@ -300,7 +338,7 @@ const codes = {
 </ScPopover>
 <ScPopover title="图片" content="图片上的弹出框">
   <img src="https://via.placeholder.com/60" alt="示例" />
-</ScPopover>`
+</ScPopover>`,
 };
 
 const handleCancel = () => {
@@ -362,4 +400,3 @@ const handleConfirm = () => {
   }
 }
 </style>
-

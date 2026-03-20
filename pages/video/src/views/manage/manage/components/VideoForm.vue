@@ -1,16 +1,31 @@
 ﻿<template>
   <div class="modern-form video-form-container">
-    <ScForm ref="formRef" :model="formData" :rules="rules" label-width="100px" label-position="right" :disabled="loading">
+    <ScForm
+      ref="formRef"
+      :model="formData"
+      :rules="rules"
+      label-width="100px"
+      label-position="right"
+      :disabled="loading"
+    >
       <ScFormItem label="视频名称" prop="videoName">
         <ScInput v-model="formData.videoName" placeholder="请输入视频名称" />
       </ScFormItem>
 
       <ScFormItem label="视频描述" prop="videoDescription">
-        <ScInput v-model="formData.videoDescription" type="textarea" :rows="3" placeholder="请输入视频描述" />
+        <ScInput
+          v-model="formData.videoDescription"
+          type="textarea"
+          :rows="3"
+          placeholder="请输入视频描述"
+        />
       </ScFormItem>
 
       <ScFormItem label="视频封面" prop="videoCover">
-        <ScInput v-model="formData.videoCover" placeholder="请输入视频封面URL" />
+        <ScInput
+          v-model="formData.videoCover"
+          placeholder="请输入视频封面URL"
+        />
         <div class="preview-container" v-if="formData.videoCover">
           <ScImage :src="formData.videoCover" class="cover-image" fit="cover" />
         </div>
@@ -25,11 +40,31 @@
       </ScFormItem>
 
       <ScFormItem label="视频标签" prop="videoTags">
-        <ScTag v-for="tag in tags" :key="tag" class="mx-1" closable :disable-transitions="false" @close="handleRemoveTag(tag)">
+        <ScTag
+          v-for="tag in tags"
+          :key="tag"
+          class="mx-1"
+          closable
+          :disable-transitions="false"
+          @close="handleRemoveTag(tag)"
+        >
           {{ tag }}
         </ScTag>
-        <ScInput v-if="inputTagVisible" ref="tagInputRef" v-model="inputTagValue" class="tag-input" size="small" @keyup.enter="handleAddTag" @blur="handleAddTag" />
-        <ScButton v-else class="button-new-tag" size="small" @click="showTagInput">
+        <ScInput
+          v-if="inputTagVisible"
+          ref="tagInputRef"
+          v-model="inputTagValue"
+          class="tag-input"
+          size="small"
+          @keyup.enter="handleAddTag"
+          @blur="handleAddTag"
+        />
+        <ScButton
+          v-else
+          class="button-new-tag"
+          size="small"
+          @click="showTagInput"
+        >
           <IconifyIconOnline icon="ep:plus" />
           添加标签
         </ScButton>
@@ -46,11 +81,23 @@
       </ScFormItem>
 
       <ScFormItem label="视频大小" prop="videoSize">
-        <ScInputNumber v-model="formData.videoSize" :min="0" :precision="0" :step="1024" placeholder="视频大小（字节）" />
+        <ScInputNumber
+          v-model="formData.videoSize"
+          :min="0"
+          :precision="0"
+          :step="1024"
+          placeholder="视频大小（字节）"
+        />
       </ScFormItem>
 
       <ScFormItem label="视频时长" prop="videoDuration">
-        <ScInputNumber v-model="formData.videoDuration" :min="0" :precision="0" :step="1" placeholder="视频时长（秒）" />
+        <ScInputNumber
+          v-model="formData.videoDuration"
+          :min="0"
+          :precision="0"
+          :step="1"
+          placeholder="视频时长（秒）"
+        />
       </ScFormItem>
 
       <ScFormItem label="视频状态" prop="videoStatus">
@@ -71,10 +118,21 @@
 </template>
 
 <script setup lang="ts">
-import { defineExpose, ref, reactive, computed, nextTick, onMounted } from "vue";
+import {
+  defineExpose,
+  ref,
+  reactive,
+  computed,
+  nextTick,
+  onMounted,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/utils";
-import { getVideoDetail, createVideo, updateVideo } from "../../../../api/video";
+import {
+  getVideoDetail,
+  createVideo,
+  updateVideo,
+} from "../../../../api/video";
 import type { VideoItem } from "../../../../types/video";
 
 const route = useRoute();

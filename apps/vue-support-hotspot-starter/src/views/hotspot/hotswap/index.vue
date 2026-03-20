@@ -152,9 +152,9 @@ onUnmounted(() => {
 <template>
   <div class="page-container">
     <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper primary">
               <IconifyIconOnline icon="ri:stack-line" class="stat-icon" />
@@ -164,10 +164,10 @@ onUnmounted(() => {
               <div class="stat-label">已加载类</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div :class="['stat-icon-wrapper', status.enabled ? 'success' : 'danger']">
               <IconifyIconOnline icon="ri:refresh-line" class="stat-icon" />
@@ -177,10 +177,10 @@ onUnmounted(() => {
               <div class="stat-label">热重载状态</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div :class="['stat-icon-wrapper', status.instrumentation ? 'success' : 'info']">
               <IconifyIconOnline icon="ri:tools-line" class="stat-icon" />
@@ -190,28 +190,28 @@ onUnmounted(() => {
               <div class="stat-label">Instrumentation</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper warning">
               <IconifyIconOnline icon="ri:upload-2-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <el-button type="primary" size="small" @click="reloadClass">
+              <ScButton type="primary" size="small" @click="reloadClass">
                 <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
                 手动重载
-              </el-button>
+              </ScButton>
               <div class="stat-label">操作</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 类列表卡片 -->
-    <el-card class="modern-card class-list-card" shadow="hover">
+    <ScCard class="modern-card class-list-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -219,55 +219,55 @@ onUnmounted(() => {
             已加载类列表
           </span>
           <div class="header-actions">
-            <el-input v-model="searchKeyword" placeholder="搜索类名..." clearable class="search-input" @keyup.enter="searchClasses">
+            <ScInput v-model="searchKeyword" placeholder="搜索类名..." clearable class="search-input" @keyup.enter="searchClasses">
               <template #prefix>
                 <IconifyIconOnline icon="ep:search" />
               </template>
-            </el-input>
-            <el-button type="primary" @click="searchClasses">搜索</el-button>
-            <el-button @click="reloadFromFile">
+            </ScInput>
+            <ScButton type="primary" @click="searchClasses">搜索</ScButton>
+            <ScButton @click="reloadFromFile">
               <IconifyIconOnline icon="ri:file-upload-line" class="mr-1" />
               从文件重载
-            </el-button>
-            <el-button type="info" :loading="loading" @click="refreshAll">
+            </ScButton>
+            <ScButton type="info" :loading="loading" @click="refreshAll">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               刷新
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </template>
-      <el-table v-loading="loading" :data="filteredClassList" stripe class="modern-table" max-height="500">
-        <el-table-column type="index" label="#" width="60" align="center" />
-        <el-table-column prop="className" label="类名" min-width="400">
+      <ScTable v-loading="loading" :data="filteredClassList" stripe class="modern-table" max-height="500">
+        <ScTableColumn type="index" label="#" width="60" align="center" />
+        <ScTableColumn prop="className" label="类名" min-width="400">
           <template #default="{ row }">
             <div class="class-name-cell">
               <IconifyIconOnline icon="ri:code-box-line" class="class-icon" />
               <span class="class-name">{{ row.className || row }}</span>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="classLoader" label="类加载器" min-width="200">
+        </ScTableColumn>
+        <ScTableColumn prop="classLoader" label="类加载器" min-width="200">
           <template #default="{ row }">
-            <el-tag v-if="row.classLoader" type="info" effect="plain" size="small">
+            <ScTag v-if="row.classLoader" type="info" effect="plain" size="small">
               {{ row.classLoader }}
-            </el-tag>
+            </ScTag>
             <span v-else class="text-placeholder">-</span>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" align="center" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="120" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link @click="reloadSingleClass(row.className || row)">
+            <ScButton type="primary" link @click="reloadSingleClass(row.className || row)">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               重载
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
-      <el-empty v-if="filteredClassList.length === 0" description="暂无数据" />
-    </el-card>
+        </ScTableColumn>
+      </ScTable>
+      <ScEmpty v-if="filteredClassList.length === 0" description="暂无数据" />
+    </ScCard>
 
     <!-- 使用说明 -->
-    <el-card class="modern-card info-card" shadow="hover">
+    <ScCard class="modern-card info-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -276,7 +276,7 @@ onUnmounted(() => {
           </span>
         </div>
       </template>
-      <el-alert type="info" :closable="false" show-icon>
+      <ScAlert type="info" :closable="false" show-icon>
         <template #title>
           <span class="alert-title">热重载功能说明</span>
         </template>
@@ -288,8 +288,8 @@ onUnmounted(() => {
             <p>• 建议在开发环境使用，生产环境谨慎操作</p>
           </div>
         </template>
-      </el-alert>
-    </el-card>
+      </ScAlert>
+    </ScCard>
   </div>
 </template>
 

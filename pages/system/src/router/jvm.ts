@@ -17,7 +17,7 @@ const routes = [
     meta: {
       title: "JVM 监控",
       icon: "ri:cpu-line",
-      rank: 10
+      rank: 10,
     },
   },
 ] satisfies Array<RouteConfigsTable>;

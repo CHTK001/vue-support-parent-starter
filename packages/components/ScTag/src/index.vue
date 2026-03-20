@@ -69,8 +69,6 @@ const emit = defineEmits(["close", "click"]);
 
 const { currentComponent } = useThemeComponent("ElTag");
 
-
-
 const handleClose = (event: MouseEvent) => {
   emit("close", event);
 };

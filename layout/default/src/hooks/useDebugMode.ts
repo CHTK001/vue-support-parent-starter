@@ -8,17 +8,22 @@ import { useGlobal } from "@pureadmin/utils";
 
 export function useDebugMode() {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
-  
+
   // 调试模式状态
   const debugMode = ref($storage?.configure?.debugMode ?? false);
-  
+
   // 调试控制台引用（由外部组件传入）
-  let debugConsoleRef: Ref<{ show: () => void; handleClose: () => void } | null> | null = null;
+  let debugConsoleRef: Ref<{
+    show: () => void;
+    handleClose: () => void;
+  } | null> | null = null;
 
   /**
    * 设置调试控制台引用
    */
-  function setDebugConsoleRef(ref: Ref<{ show: () => void; handleClose: () => void } | null>) {
+  function setDebugConsoleRef(
+    ref: Ref<{ show: () => void; handleClose: () => void } | null>,
+  ) {
     debugConsoleRef = ref;
   }
 

@@ -10,7 +10,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   loadingText: "数据加载中...",
-  showProgress: true
+  showProgress: true,
 });
 
 const progress = ref(0);
@@ -42,10 +42,15 @@ onUnmounted(() => {
     <div class="neon-wrapper">
       <div class="neon-title">
         {{ loadingText }}
-        <span v-if="showProgress" class="percent">{{ Math.floor(progress) }}%</span>
+        <span v-if="showProgress" class="percent"
+          >{{ Math.floor(progress) }}%</span
+        >
       </div>
       <div class="neon-track">
-        <div class="neon-bar" :style="{ width: showProgress ? progress + '%' : '40%' }" />
+        <div
+          class="neon-bar"
+          :style="{ width: showProgress ? progress + '%' : '40%' }"
+        />
       </div>
       <div class="neon-lines">
         <span v-for="i in 5" :key="i" class="neon-line" />
@@ -59,7 +64,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top, #1f2937 0%, #020617 55%, #000 100%);
+  background: radial-gradient(
+    circle at top,
+    #1f2937 0%,
+    #020617 55%,
+    #000 100%
+  );
   color: #e5e7eb;
 }
 
@@ -68,8 +78,13 @@ onUnmounted(() => {
   max-width: 340px;
   padding: 24px 28px;
   border-radius: 16px;
-  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent),
-    radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.16), transparent),
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent),
+    radial-gradient(
+      circle at bottom right,
+      rgba(129, 140, 248, 0.16),
+      transparent
+    ),
     rgba(15, 23, 42, 0.96);
   box-shadow:
     0 0 0 1px rgba(148, 163, 184, 0.3),
@@ -99,7 +114,11 @@ onUnmounted(() => {
   height: 6px;
   border-radius: 999px;
   overflow: hidden;
-  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 1));
+  background: radial-gradient(
+    circle at top,
+    rgba(15, 23, 42, 0.4),
+    rgba(15, 23, 42, 1)
+  );
 }
 
 .neon-bar {
@@ -137,7 +156,12 @@ onUnmounted(() => {
   flex: 1;
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.9), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(125, 211, 252, 0.9),
+    transparent
+  );
   opacity: 0.2;
   animation: scan 1.1s linear infinite;
 }
@@ -199,5 +223,3 @@ onUnmounted(() => {
   }
 }
 </style>
-
-

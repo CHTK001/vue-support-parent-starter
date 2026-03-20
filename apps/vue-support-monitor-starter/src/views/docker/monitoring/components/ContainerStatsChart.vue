@@ -3,18 +3,18 @@
     <div class="chart-header">
       <div class="chart-title">{{ title }}</div>
       <div class="time-range-selector">
-        <el-select
+        <ScSelect
           v-model="timeRange"
           size="small"
           style="width: 120px"
           @change="onTimeRangeChange"
         >
-          <el-option label="最近1小时" value="1h" />
-          <el-option label="最近6小时" value="6h" />
-          <el-option label="最近12小时" value="12h" />
-          <el-option label="最近24小时" value="24h" />
-          <el-option label="最近7天" value="7d" />
-        </el-select>
+          <ScOption label="最近1小时" value="1h" />
+          <ScOption label="最近6小时" value="6h" />
+          <ScOption label="最近12小时" value="12h" />
+          <ScOption label="最近24小时" value="24h" />
+          <ScOption label="最近7天" value="7d" />
+        </ScSelect>
       </div>
     </div>
 

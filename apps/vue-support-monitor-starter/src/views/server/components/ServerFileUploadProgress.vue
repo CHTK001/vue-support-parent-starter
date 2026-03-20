@@ -2,7 +2,7 @@
   <div class="server-file-upload-progress system-container modern-bg">
     <!-- Socket.IO连接状态 -->
     <div class="connection-status">
-      <el-card class="status-card" shadow="hover">
+      <ScCard class="status-card" shadow="hover">
         <div class="status-content">
           <div class="status-indicator">
             <div class="status-icon-wrapper" :class="connectionStatusClass">
@@ -56,7 +56,7 @@
           </div>
 
           <div class="connection-actions">
-            <el-button
+            <ScButton
               v-if="!isConnected"
               type="primary"
               size="default"
@@ -66,8 +66,8 @@
             >
               <IconifyIconOnline icon="ep:connection" />
               连接
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               v-else
               type="danger"
               size="default"
@@ -76,8 +76,8 @@
             >
               <IconifyIconOnline icon="ep:close-connection" />
               断开
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               type="info"
               size="default"
               :disabled="connectionStatus !== 'CONNECTED'"
@@ -86,15 +86,15 @@
             >
               <IconifyIconOnline icon="ep:refresh" />
               刷新统计
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 队列状态 -->
     <div class="queue-status">
-      <el-card class="queue-card" shadow="hover">
+      <ScCard class="queue-card" shadow="hover">
         <template #header>
           <div class="section-header">
             <div class="header-icon">
@@ -102,7 +102,7 @@
             </div>
             <span class="header-title">队列状态</span>
             <div class="header-badge">
-              <el-badge
+              <ScBadge
                 :value="queueStatus.pendingTasks"
                 :max="99"
                 type="primary"
@@ -164,7 +164,7 @@
               }}</span
             >
           </div>
-          <el-progress
+          <ScProgress
             :percentage="
               Math.round(
                 (queueStatus.currentConcurrent / queueStatus.maxConcurrent) *
@@ -176,12 +176,12 @@
             class="concurrency-progress"
           />
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 活跃任务进度 -->
     <div class="active-tasks">
-      <el-card class="tasks-card" shadow="hover">
+      <ScCard class="tasks-card" shadow="hover">
         <template #header>
           <div class="section-header">
             <div class="header-icon">
@@ -189,13 +189,13 @@
             </div>
             <span class="header-title">活跃任务进度</span>
             <div class="header-actions">
-              <el-badge
+              <ScBadge
                 :value="activeTaskProgresses.length"
                 :max="99"
                 type="success"
                 class="task-count-badge"
               />
-              <el-button
+              <ScButton
                 type="primary"
                 text
                 class="refresh-button"
@@ -203,7 +203,7 @@
               >
                 <IconifyIconOnline icon="ep:refresh" />
                 刷新
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </template>
@@ -233,13 +233,13 @@
                   <span class="task-id">任务 #{{ task.taskId }}</span>
                   <span class="task-filename">{{ task.fileName }}</span>
                 </div>
-                <el-tag
+                <ScTag
                   :type="getStatusType(task.status)"
                   size="small"
                   class="task-status-tag"
                 >
                   {{ getStatusText(task.status) }}
-                </el-tag>
+                </ScTag>
               </div>
             </div>
 
@@ -252,7 +252,7 @@
                   }}</span
                 >
               </div>
-              <el-progress
+              <ScProgress
                 :percentage="task.progress"
                 :status="getProgressStatus(task.status)"
                 :stroke-width="12"
@@ -286,7 +286,7 @@
             </div>
 
             <div class="task-actions">
-              <el-button
+              <ScButton
                 size="small"
                 type="danger"
                 plain
@@ -295,8 +295,8 @@
               >
                 <IconifyIconOnline icon="ep:close" />
                 取消
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 size="small"
                 type="primary"
                 plain
@@ -305,16 +305,16 @@
               >
                 <IconifyIconOnline icon="ep:view" />
                 详情
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 统计信息 -->
     <div class="statistics">
-      <el-card class="stats-card" shadow="hover">
+      <ScCard class="stats-card" shadow="hover">
         <template #header>
           <div class="section-header">
             <div class="header-icon">
@@ -322,7 +322,7 @@
             </div>
             <span class="header-title">统计信息</span>
             <div class="header-actions">
-              <el-tag type="info" size="small"
+              <ScTag type="info" size="small"
                 >成功率: {{ statistics.successRate.toFixed(1) }}%</el-tag
               >
             </div>
@@ -394,7 +394,7 @@
             </div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
   </div>
 </template>

@@ -6,7 +6,7 @@
  * @version 1.0.1
  */
 import { reactive, onMounted, onUnmounted, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 const battery = reactive({
   level: 100,
@@ -41,8 +41,12 @@ onMounted(async () => {
     try {
       batteryRef = await navigator.getBattery();
       updateBatteryInfo(batteryRef);
-      batteryRef.addEventListener("chargingchange", () => updateBatteryInfo(batteryRef));
-      batteryRef.addEventListener("levelchange", () => updateBatteryInfo(batteryRef));
+      batteryRef.addEventListener("chargingchange", () =>
+        updateBatteryInfo(batteryRef),
+      );
+      batteryRef.addEventListener("levelchange", () =>
+        updateBatteryInfo(batteryRef),
+      );
     } catch (error) {
       battery.supported = false;
     }
@@ -53,8 +57,12 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (batteryRef) {
-    batteryRef.removeEventListener("chargingchange", () => updateBatteryInfo(batteryRef));
-    batteryRef.removeEventListener("levelchange", () => updateBatteryInfo(batteryRef));
+    batteryRef.removeEventListener("chargingchange", () =>
+      updateBatteryInfo(batteryRef),
+    );
+    batteryRef.removeEventListener("levelchange", () =>
+      updateBatteryInfo(batteryRef),
+    );
   }
 });
 </script>
@@ -69,11 +77,16 @@ onUnmounted(() => {
         </div>
         <div class="info-container">
           <div class="level-text">{{ battery.level }}%</div>
-          <div class="status-text">{{ battery.charging ? '正在充电' : '使用电池' }}</div>
+          <div class="status-text">
+            {{ battery.charging ? "正在充电" : "使用电池" }}
+          </div>
         </div>
       </div>
       <div class="battery-progress">
-        <div class="progress-bar" :style="{ width: battery.level + '%', backgroundColor: batteryColor }"></div>
+        <div
+          class="progress-bar"
+          :style="{ width: battery.level + '%', backgroundColor: batteryColor }"
+        ></div>
       </div>
     </template>
     <div v-else class="not-supported">
@@ -95,7 +108,7 @@ onUnmounted(() => {
   justify-content: center;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s;
-  
+
   &:hover {
     transform: translateY(-2px);
   }
@@ -117,7 +130,7 @@ onUnmounted(() => {
   justify-content: center;
   background: var(--el-fill-color-light);
   border-radius: 10px;
-  
+
   .battery-icon {
     font-size: 28px;
   }
@@ -135,9 +148,18 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.5; }
-  50% { transform: scale(1.1); opacity: 0; }
-  100% { transform: scale(0.95); opacity: 0.5; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
 }
 
 .info-container {
@@ -147,7 +169,7 @@ onUnmounted(() => {
     color: var(--el-text-color-primary);
     line-height: 1.2;
   }
-  
+
   .status-text {
     font-size: 12px;
     color: var(--el-text-color-secondary);
@@ -160,10 +182,12 @@ onUnmounted(() => {
   background: var(--el-fill-color-darker);
   border-radius: 3px;
   overflow: hidden;
-  
+
   .progress-bar {
     height: 100%;
-    transition: width 0.5s ease, background-color 0.5s ease;
+    transition:
+      width 0.5s ease,
+      background-color 0.5s ease;
   }
 }
 
@@ -174,7 +198,7 @@ onUnmounted(() => {
   gap: 8px;
   color: var(--el-text-color-secondary);
   font-size: 12px;
-  
+
   .not-supported-icon {
     font-size: 32px;
     opacity: 0.5;

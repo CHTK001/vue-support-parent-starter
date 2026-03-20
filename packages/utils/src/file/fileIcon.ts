@@ -224,14 +224,14 @@ export function getFileExt(item: FileItem | null | undefined): string {
  * @returns 文件分类
  */
 export function getFileCategory(
-  item: FileItem | null | undefined
+  item: FileItem | null | undefined,
 ): FileCategory {
   if (!item) return "unknown";
   if (item.directory) return "folder";
 
   const ext = getFileExt(item);
   for (const [category, extensions] of Object.entries(
-    FILE_CATEGORY_EXTENSIONS
+    FILE_CATEGORY_EXTENSIONS,
   )) {
     if ((extensions as readonly string[]).includes(ext)) {
       return category as FileCategory;
@@ -293,7 +293,7 @@ export function isImageFile(item: FileItem | null | undefined): boolean {
  */
 export function createFileIconManager(
   iconModules: Record<string, string>,
-  fallbackIcon?: string
+  fallbackIcon?: string,
 ): FileIconManager {
   return new FileIconManager(iconModules, fallbackIcon);
 }

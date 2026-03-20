@@ -1,183 +1,183 @@
 ﻿<template>
   <div class="sync-management system-container modern-bg">
     <!-- 页面切换 -->
-    <el-tabs v-model="activeTab" class="main-tabs">
-      <el-tab-pane label="任务列表" name="list">
+    <ScTabs v-model="activeTab" class="main-tabs">
+      <ScTabPane label="任务列表" name="list">
         <!-- 统计卡片 -->
-        <el-row :gutter="16" class="stats-row">
-          <el-col :span="6">
-            <el-card class="stat-card" shadow="hover">
+        <ScRow :gutter="16" class="stats-row">
+          <ScCol :span="6">
+            <ScCard class="stat-card" shadow="hover">
               <div class="stat-content">
                 <div class="stat-icon total">
-                  <el-icon><List /></el-icon>
+                  <ScIcon><List /></ScIcon>
                 </div>
                 <div class="stat-info">
                   <div class="stat-value">{{ stats.total }}</div>
                   <div class="stat-label">任务总数</div>
                 </div>
               </div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card class="stat-card" shadow="hover">
+            </ScCard>
+          </ScCol>
+          <ScCol :span="6">
+            <ScCard class="stat-card" shadow="hover">
               <div class="stat-content">
                 <div class="stat-icon running">
-                  <el-icon><VideoPlay /></el-icon>
+                  <ScIcon><VideoPlay /></ScIcon>
                 </div>
                 <div class="stat-info">
                   <div class="stat-value">{{ stats.running }}</div>
                   <div class="stat-label">运行中</div>
                 </div>
               </div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card class="stat-card" shadow="hover">
+            </ScCard>
+          </ScCol>
+          <ScCol :span="6">
+            <ScCard class="stat-card" shadow="hover">
               <div class="stat-content">
                 <div class="stat-icon success">
-                  <el-icon><CircleCheck /></el-icon>
+                  <ScIcon><CircleCheck /></ScIcon>
                 </div>
                 <div class="stat-info">
                   <div class="stat-value">{{ stats.successRate }}%</div>
                   <div class="stat-label">成功率</div>
                 </div>
               </div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card class="stat-card" shadow="hover">
+            </ScCard>
+          </ScCol>
+          <ScCol :span="6">
+            <ScCard class="stat-card" shadow="hover">
               <div class="stat-content">
                 <div class="stat-icon error">
-                  <el-icon><WarningFilled /></el-icon>
+                  <ScIcon><WarningFilled /></ScIcon>
                 </div>
                 <div class="stat-info">
                   <div class="stat-value">{{ stats.error }}</div>
                   <div class="stat-label">异常任务</div>
                 </div>
               </div>
-            </el-card>
-          </el-col>
-        </el-row>
+            </ScCard>
+          </ScCol>
+        </ScRow>
 
-        <el-card class="filter-card">
-          <el-form :inline="true" :model="queryParams" class="filter-form">
-            <el-form-item label="任务名称">
-              <el-input
+        <ScCard class="filter-card">
+          <ScForm :inline="true" :model="queryParams" class="filter-form">
+            <ScFormItem label="任务名称">
+              <ScInput
                 v-model="queryParams.taskName"
                 placeholder="请输入任务名称"
                 clearable
                 style="width: 200px"
                 @keyup.enter="handleSearch"
               />
-            </el-form-item>
-            <el-form-item label="状态">
-              <el-select
+            </ScFormItem>
+            <ScFormItem label="状态">
+              <ScSelect
                 v-model="queryParams.taskStatus"
                 placeholder="全部"
                 clearable
                 style="width: 120px"
               >
-                <el-option label="已停止" value="STOPPED" />
-                <el-option label="运行中" value="RUNNING" />
-                <el-option label="异常" value="ERROR" />
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="handleSearch">
-                <el-icon><Search /></el-icon>
+                <ScOption label="已停止" value="STOPPED" />
+                <ScOption label="运行中" value="RUNNING" />
+                <ScOption label="异常" value="ERROR" />
+              </ScSelect>
+            </ScFormItem>
+            <ScFormItem>
+              <ScButton type="primary" @click="handleSearch">
+                <ScIcon><Search /></ScIcon>
                 查询
-              </el-button>
-              <el-button @click="handleReset">
-                <el-icon><RefreshRight /></el-icon>
+              </ScButton>
+              <ScButton @click="handleReset">
+                <ScIcon><RefreshRight /></ScIcon>
                 重置
-              </el-button>
-              <el-button :loading="refreshing" @click="handleRefresh">
-                <el-icon><Refresh /></el-icon>
+              </ScButton>
+              <ScButton :loading="refreshing" @click="handleRefresh">
+                <ScIcon><Refresh /></ScIcon>
                 刷新
-              </el-button>
-            </el-form-item>
-            <el-form-item style="margin-left: auto">
-              <el-switch
+              </ScButton>
+            </ScFormItem>
+            <ScFormItem style="margin-left: auto">
+              <ScSwitch
                 v-model="autoRefresh"
                 active-text="自动刷新"
                 inactive-text=""
                 @change="handleAutoRefreshChange"
               />
-            </el-form-item>
-          </el-form>
-        </el-card>
+            </ScFormItem>
+          </ScForm>
+        </ScCard>
 
-        <el-card class="table-card">
+        <ScCard class="table-card">
           <template #header>
             <div class="card-header">
               <div class="header-left">
                 <span>同步任务列表</span>
-                <el-tag
+                <ScTag
                   v-if="selectedRows.length > 0"
                   type="info"
                   class="selection-tag"
                 >
                   已选择 {{ selectedRows.length }} 项
-                </el-tag>
+                </ScTag>
               </div>
               <div class="header-right">
                 <el-button-group
                   v-if="selectedRows.length > 0"
                   class="batch-actions"
                 >
-                  <el-button size="small" @click="handleBatchStart">
-                    <el-icon><VideoPlay /></el-icon>
+                  <ScButton size="small" @click="handleBatchStart">
+                    <ScIcon><VideoPlay /></ScIcon>
                     批量启动
-                  </el-button>
-                  <el-button size="small" @click="handleBatchStop">
-                    <el-icon><VideoPause /></el-icon>
+                  </ScButton>
+                  <ScButton size="small" @click="handleBatchStop">
+                    <ScIcon><VideoPause /></ScIcon>
                     批量停止
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton
                     size="small"
                     type="danger"
                     @click="handleBatchDelete"
                   >
-                    <el-icon><Delete /></el-icon>
+                    <ScIcon><Delete /></ScIcon>
                     批量删除
-                  </el-button>
+                  </ScButton>
                 </el-button-group>
-                <el-dropdown trigger="click" @command="handleExportCommand">
-                  <el-button>
-                    <el-icon><Download /></el-icon>
+                <ScDropdown trigger="click" @command="handleExportCommand">
+                  <ScButton>
+                    <ScIcon><Download /></ScIcon>
                     导出
-                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                  </el-button>
+                    <ScIcon class="el-icon--right"><ArrowDown /></ScIcon>
+                  </ScButton>
                   <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="json"
+                    <ScDropdownMenu>
+                      <ScDropdownItem command="json"
                         >导出 JSON</el-dropdown-item
                       >
-                      <el-dropdown-item command="excel"
+                      <ScDropdownItem command="excel"
                         >导出 Excel</el-dropdown-item
                       >
-                    </el-dropdown-menu>
+                    </ScDropdownMenu>
                   </template>
-                </el-dropdown>
-                <el-upload
+                </ScDropdown>
+                <ScUpload
                   :show-file-list="false"
                   accept=".json"
                   :before-upload="handleImport"
                 >
-                  <el-button>
-                    <el-icon><Upload /></el-icon>
+                  <ScButton>
+                    <ScIcon><Upload /></ScIcon>
                     导入
-                  </el-button>
-                </el-upload>
-                <el-button type="primary" @click="handleCreate">
-                  <el-icon><Plus /></el-icon>
+                  </ScButton>
+                </ScUpload>
+                <ScButton type="primary" @click="handleCreate">
+                  <ScIcon><Plus /></ScIcon>
                   新建任务
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </template>
 
-          <el-table
+          <ScTable
             ref="tableRef"
             v-loading="loading"
             :data="taskList"
@@ -185,27 +185,27 @@
             stripe
             @selection-change="handleSelectionChange"
           >
-            <el-table-column type="selection" width="55" />
-            <el-table-column prop="syncTaskId" label="ID" width="80" sortable />
-            <el-table-column
+            <ScTableColumn type="selection" width="55" />
+            <ScTableColumn prop="syncTaskId" label="ID" width="80" sortable />
+            <ScTableColumn
               prop="syncTaskName"
               label="任务名称"
               min-width="150"
             />
-            <el-table-column
+            <ScTableColumn
               prop="syncTaskDesc"
               label="描述"
               min-width="200"
               show-overflow-tooltip
             />
-            <el-table-column prop="syncTaskStatus" label="状态" width="100">
+            <ScTableColumn prop="syncTaskStatus" label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="getStatusType(row.syncTaskStatus)">
+                <ScTag :type="getStatusType(row.syncTaskStatus)">
                   {{ getStatusText(row.syncTaskStatus) }}
-                </el-tag>
+                </ScTag>
               </template>
-            </el-table-column>
-            <el-table-column label="执行统计" width="180">
+            </ScTableColumn>
+            <ScTableColumn label="执行统计" width="180">
               <template #default="{ row }">
                 <span class="stat-item">
                   总: {{ row.syncTaskRunCount || 0 }}
@@ -217,50 +217,50 @@
                   失败: {{ row.syncTaskFailCount || 0 }}
                 </span>
               </template>
-            </el-table-column>
-            <el-table-column
+            </ScTableColumn>
+            <ScTableColumn
               prop="syncTaskLastRunTime"
               label="最后执行时间"
               width="180"
             />
-            <el-table-column
+            <ScTableColumn
               prop="syncTaskCreateTime"
               label="创建时间"
               width="180"
             />
-            <el-table-column label="操作" width="280" fixed="right">
+            <ScTableColumn label="操作" width="280" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" @click="handleDesign(row)">
+                <ScButton link type="primary" @click="handleDesign(row)">
                   设计
-                </el-button>
-                <el-button link type="primary" @click="handleEdit(row)">
+                </ScButton>
+                <ScButton link type="primary" @click="handleEdit(row)">
                   编辑
-                </el-button>
-                <el-button
+                </ScButton>
+                <ScButton
                   v-if="row.syncTaskStatus !== 'RUNNING'"
                   link
                   type="success"
                   @click="handleStart(row)"
                 >
                   启动
-                </el-button>
-                <el-button v-else link type="warning" @click="handleStop(row)">
+                </ScButton>
+                <ScButton v-else link type="warning" @click="handleStop(row)">
                   停止
-                </el-button>
-                <el-button link type="info" @click="handleExecuteOnce(row)">
+                </ScButton>
+                <ScButton link type="info" @click="handleExecuteOnce(row)">
                   执行
-                </el-button>
-                <el-button link type="primary" @click="handleLogs(row)">
+                </ScButton>
+                <ScButton link type="primary" @click="handleLogs(row)">
                   日志
-                </el-button>
-                <el-button link type="danger" @click="handleDelete(row)">
+                </ScButton>
+                <ScButton link type="danger" @click="handleDelete(row)">
                   删除
-                </el-button>
+                </ScButton>
               </template>
-            </el-table-column>
-          </el-table>
+            </ScTableColumn>
+          </ScTable>
 
-          <el-pagination
+          <ScPagination
             v-model:current-page="queryParams.page"
             v-model:page-size="queryParams.size"
             :page-sizes="[10, 20, 50, 100]"
@@ -270,7 +270,7 @@
             @size-change="handleSizeChange"
             @current-change="handleCurrentChange"
           />
-        </el-card>
+        </ScCard>
 
         <!-- 新建/编辑任务对话框 -->
         <sc-dialog
@@ -279,92 +279,92 @@
           width="600px"
           destroy-on-close
         >
-          <el-form
+          <ScForm
             ref="formRef"
             :model="formData"
             :rules="formRules"
             label-width="120px"
           >
-            <el-form-item label="任务名称" prop="syncTaskName">
-              <el-input
+            <ScFormItem label="任务名称" prop="syncTaskName">
+              <ScInput
                 v-model="formData.syncTaskName"
                 placeholder="请输入任务名称"
               />
-            </el-form-item>
-            <el-form-item label="任务描述" prop="syncTaskDesc">
-              <el-input
+            </ScFormItem>
+            <ScFormItem label="任务描述" prop="syncTaskDesc">
+              <ScInput
                 v-model="formData.syncTaskDesc"
                 type="textarea"
                 :rows="3"
                 placeholder="请输入任务描述"
               />
-            </el-form-item>
-            <el-form-item label="批次大小" prop="syncTaskBatchSize">
-              <el-input-number
+            </ScFormItem>
+            <ScFormItem label="批次大小" prop="syncTaskBatchSize">
+              <ScInputNumber
                 v-model="formData.syncTaskBatchSize"
                 :min="1"
                 :max="100000"
               />
-            </el-form-item>
-            <el-form-item label="重试次数" prop="syncTaskRetryCount">
-              <el-input-number
+            </ScFormItem>
+            <ScFormItem label="重试次数" prop="syncTaskRetryCount">
+              <ScInputNumber
                 v-model="formData.syncTaskRetryCount"
                 :min="0"
                 :max="100"
               />
-            </el-form-item>
-            <el-form-item label="重试间隔(ms)" prop="syncTaskRetryInterval">
-              <el-input-number
+            </ScFormItem>
+            <ScFormItem label="重试间隔(ms)" prop="syncTaskRetryInterval">
+              <ScInputNumber
                 v-model="formData.syncTaskRetryInterval"
                 :min="0"
                 :step="1000"
               />
-            </el-form-item>
-            <el-form-item label="同步间隔(ms)" prop="syncTaskSyncInterval">
-              <el-input-number
+            </ScFormItem>
+            <ScFormItem label="同步间隔(ms)" prop="syncTaskSyncInterval">
+              <ScInputNumber
                 v-model="formData.syncTaskSyncInterval"
                 :min="0"
                 :step="1000"
               />
-            </el-form-item>
-            <el-form-item label="CRON表达式" prop="syncTaskCron">
-              <el-input
+            </ScFormItem>
+            <ScFormItem label="CRON表达式" prop="syncTaskCron">
+              <ScInput
                 v-model="formData.syncTaskCron"
                 placeholder="如: 0 0 * * * ?"
               />
-            </el-form-item>
-            <el-form-item label="启用ACK" prop="syncTaskAckEnabled">
-              <el-switch
+            </ScFormItem>
+            <ScFormItem label="启用ACK" prop="syncTaskAckEnabled">
+              <ScSwitch
                 v-model="formData.syncTaskAckEnabled"
                 :active-value="1"
                 :inactive-value="0"
               />
-            </el-form-item>
-            <el-form-item label="启用事务" prop="syncTaskTransactionEnabled">
-              <el-switch
+            </ScFormItem>
+            <ScFormItem label="启用事务" prop="syncTaskTransactionEnabled">
+              <ScSwitch
                 v-model="formData.syncTaskTransactionEnabled"
                 :active-value="1"
                 :inactive-value="0"
               />
-            </el-form-item>
-          </el-form>
+            </ScFormItem>
+          </ScForm>
           <template #footer>
-            <el-button @click="dialogVisible = false">取消</el-button>
-            <el-button
+            <ScButton @click="dialogVisible = false">取消</ScButton>
+            <ScButton
               type="primary"
               :loading="submitLoading"
               @click="handleSubmit"
             >
               确定
-            </el-button>
+            </ScButton>
           </template>
         </sc-dialog>
-      </el-tab-pane>
+      </ScTabPane>
 
-      <el-tab-pane label="执行统计" name="statistics">
+      <ScTabPane label="执行统计" name="statistics">
         <StatisticsCharts v-if="activeTab === 'statistics'" />
-      </el-tab-pane>
-    </el-tabs>
+      </ScTabPane>
+    </ScTabs>
 
     <!-- 执行监控对话框 -->
     <ExecutionMonitor
@@ -380,36 +380,36 @@
       width="900px"
       destroy-on-close
     >
-      <el-table v-loading="logsLoading" :data="logsList" border>
-        <el-table-column prop="syncLogId" label="ID" width="80" />
-        <el-table-column prop="syncLogStatus" label="状态" width="100">
+      <ScTable v-loading="logsLoading" :data="logsList" border>
+        <ScTableColumn prop="syncLogId" label="ID" width="80" />
+        <ScTableColumn prop="syncLogStatus" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="getLogStatusType(row.syncLogStatus)">
+            <ScTag :type="getLogStatusType(row.syncLogStatus)">
               {{ row.syncLogStatus }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn
           prop="syncLogTriggerType"
           label="触发类型"
           width="100"
         />
-        <el-table-column label="数据统计" width="200">
+        <ScTableColumn label="数据统计" width="200">
           <template #default="{ row }">
             <div>读取: {{ row.syncLogReadCount || 0 }}</div>
             <div>写入: {{ row.syncLogWriteCount || 0 }}</div>
             <div>成功: {{ row.syncLogSuccessCount || 0 }}</div>
           </template>
-        </el-table-column>
-        <el-table-column prop="syncLogCost" label="耗时(ms)" width="100" />
-        <el-table-column prop="syncLogStartTime" label="开始时间" width="180" />
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn prop="syncLogCost" label="耗时(ms)" width="100" />
+        <ScTableColumn prop="syncLogStartTime" label="开始时间" width="180" />
+        <ScTableColumn
           prop="syncLogMessage"
           label="消息"
           show-overflow-tooltip
         />
-      </el-table>
-      <el-pagination
+      </ScTable>
+      <ScPagination
         v-model:current-page="logsPage"
         v-model:page-size="logsSize"
         :total="logsTotal"

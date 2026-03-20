@@ -5,7 +5,7 @@
  * @version 1.0.0
  * @since 2025-12-29
  */
-import { ref, type Ref } from 'vue';
+import { ref, type Ref } from "vue";
 
 /** 对话框实例信息 */
 export interface DialogInstance {
@@ -60,7 +60,7 @@ let dialogIdCounter = 0;
  */
 export function useDialogZIndex(options: ZIndexManagerOptions = {}): ZIndexManagerReturn {
   const { initialZIndex = 2050 } = options;
-  
+
   // 初始化全局 z-index
   if (globalZIndex < initialZIndex) {
     globalZIndex = initialZIndex;
@@ -104,7 +104,7 @@ export function useDialogZIndex(options: ZIndexManagerOptions = {}): ZIndexManag
       zIndex: getNextZIndex(),
       rect: element?.getBoundingClientRect() || null,
       element,
-      isMinimized: false,
+      isMinimized: false
     });
     currentZIndex.value = globalZIndex;
   };
@@ -175,7 +175,7 @@ export function useDialogZIndex(options: ZIndexManagerOptions = {}): ZIndexManag
     getOtherDialogsRects,
     setDialogMinimized,
     getDialogInstance,
-    getDialogCount,
+    getDialogCount
   };
 }
 

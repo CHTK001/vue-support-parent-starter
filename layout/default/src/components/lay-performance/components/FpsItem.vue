@@ -5,35 +5,38 @@
       <span class="label">FPS</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-chart">
-      <div 
-        v-for="(bar, index) in history" 
-        :key="index" 
+      <div
+        v-for="(bar, index) in history"
+        :key="index"
         class="chart-bar"
-        :style="{ height: `${Math.min(bar, 60) / 60 * 100}%`, backgroundColor: getBarColor(bar) }"
+        :style="{
+          height: `${(Math.min(bar, 60) / 60) * 100}%`,
+          backgroundColor: getBarColor(bar),
+        }"
       ></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { PropType } from 'vue';
+import { PropType } from "vue";
 
 defineProps({
   fps: { type: Number, required: true },
   history: { type: Array as PropType<number[]>, required: true },
-  mode: { type: String, required: true }
+  mode: { type: String, required: true },
 });
 
 const getBarColor = (val: number) => {
-  if (val >= 50) return '#00ffff'; 
-  if (val >= 30) return '#ffaa00'; 
-  return '#ff00ff'; 
+  if (val >= 50) return "#00ffff";
+  if (val >= 30) return "#ffaa00";
+  return "#ff00ff";
 };
 
 const getFpsClass = (val: number) => {
-  if (val >= 50) return 'high-fps';
-  if (val >= 30) return 'med-fps';
-  return 'low-fps';
+  if (val >= 50) return "high-fps";
+  if (val >= 30) return "med-fps";
+  return "low-fps";
 };
 </script>
 
@@ -67,9 +70,15 @@ const getFpsClass = (val: number) => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-.high-fps .value { color: #00ffff; }
-.med-fps .value { color: #ffaa00; }
-.low-fps .value { color: #ff00ff; }
+.high-fps .value {
+  color: #00ffff;
+}
+.med-fps .value {
+  color: #ffaa00;
+}
+.low-fps .value {
+  color: #ff00ff;
+}
 
 .mini-chart {
   display: flex;

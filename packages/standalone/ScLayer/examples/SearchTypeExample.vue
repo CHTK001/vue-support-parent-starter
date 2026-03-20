@@ -3,7 +3,7 @@
     <h2>搜索类型示例</h2>
     <div class="map-container">
       <div id="map" ref="mapRef" class="map"></div>
-      
+
       <!-- 使用 ScLayer 组件 -->
       <ScLayer
         ref="scLayerRef"
@@ -15,7 +15,7 @@
         @ready="handleMapReady"
       />
     </div>
-    
+
     <div class="control-panel">
       <h3>搜索类型控制</h3>
       <div class="control-row">
@@ -23,13 +23,13 @@
         <button @click="setSearchType(SearchType.NEARBY)">附近搜索</button>
         <button @click="setSearchType(SearchType.DISTRICT)">行政区搜索</button>
       </div>
-      
+
       <h3>自定义搜索类型</h3>
       <div class="control-row">
         <button @click="addCustomSearchType">添加自定义搜索类型</button>
         <button @click="removeCustomSearchType">移除自定义搜索类型</button>
       </div>
-      
+
       <h3>当前搜索类型: {{ currentSearchType }}</h3>
       <div class="search-results">
         <h4>搜索结果 ({{ searchResults.length }})</h4>
@@ -44,29 +44,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue';
-import ScLayer from '../index.vue';
-import { MapType } from '../types/map';
-import { SearchType, SearchResult, SearchBoxConfig } from '../types/search';
-import { ApiUrls } from '../types/api';
-import { BoundaryOptions } from '../types/boundary';
-import { DEFAULT_SEARCH_BOX_CONFIG } from '../types/default';
+import { ref, onMounted, reactive } from "vue";
+import ScLayer from "../index.vue";
+import { MapType } from "../types/map";
+import { SearchType, SearchResult, SearchBoxConfig } from "../types/search";
+import { ApiUrls } from "../types/api";
+import { BoundaryOptions } from "../types/boundary";
+import { DEFAULT_SEARCH_BOX_CONFIG } from "../types/default";
 
 // 地图配置
 const mapType = ref<MapType>(MapType.GAODE);
 const mapKey = reactive({
-  [MapType.GAODE]: 'your-amap-key',
-  [MapType.BAIDU]: 'your-baidu-key',
-  [MapType.TENCENT]: 'your-tencent-key'
+  [MapType.GAODE]: "your-amap-key",
+  [MapType.BAIDU]: "your-baidu-key",
+  [MapType.TENCENT]: "your-tencent-key",
 });
 
 // API URLs
 const apiUrls: ApiUrls = reactive({
-  search: 'https://restapi.amap.com/v3/place/text',
-  detail: 'https://restapi.amap.com/v3/place/detail',
-  navigation: 'https://restapi.amap.com/v3/direction/driving',
-  boundary: 'https://restapi.amap.com/v3/config/district',
-  district: 'https://restapi.amap.com/v3/config/district'
+  search: "https://restapi.amap.com/v3/place/text",
+  detail: "https://restapi.amap.com/v3/place/detail",
+  navigation: "https://restapi.amap.com/v3/direction/driving",
+  boundary: "https://restapi.amap.com/v3/config/district",
+  district: "https://restapi.amap.com/v3/config/district",
 });
 
 // 搜索框配置
@@ -77,46 +77,46 @@ const searchBoxConfig = reactive<SearchBoxConfig>({
   searchTypes: [
     {
       type: SearchType.KEYWORD,
-      label: '关键词',
-      placeholder: '请输入搜索关键词'
+      label: "关键词",
+      placeholder: "请输入搜索关键词",
     },
     {
       type: SearchType.NEARBY,
-      label: '附近',
-      placeholder: '请输入附近搜索关键词'
+      label: "附近",
+      placeholder: "请输入附近搜索关键词",
     },
     {
       type: SearchType.DISTRICT,
-      label: '行政区',
-      placeholder: '请输入行政区名称'
-    }
+      label: "行政区",
+      placeholder: "请输入行政区名称",
+    },
   ],
   // 自定义搜索处理函数
   customSearchHandler: async (type, keyword, options) => {
     console.log(`自定义搜索处理: 类型=${type}, 关键词=${keyword}`);
-    
+
     // 如果是自定义搜索类型，返回模拟数据
     if (type === SearchType.CUSTOM) {
       return [
         {
-          id: 'custom-1',
+          id: "custom-1",
           name: `自定义结果: ${keyword}`,
-          address: '自定义地址示例',
+          address: "自定义地址示例",
           location: { lng: 116.397428, lat: 39.90923 },
-          type: 'custom'
-        }
+          type: "custom",
+        },
       ] as SearchResult[];
     }
-    
+
     // 其他类型返回空结果，让默认处理器处理
     return null;
-  }
+  },
 });
 
 // 边界选择器配置
 const boundaryOptions = reactive<BoundaryOptions>({
-  position: 'top-left',
-  apiUrls: apiUrls
+  position: "top-left",
+  apiUrls: apiUrls,
 });
 
 // 组件引用
@@ -129,20 +129,20 @@ const searchResults = ref<SearchResult[]>([]);
 
 // 地图就绪事件处理
 const handleMapReady = () => {
-  console.log('地图已就绪');
-  
+  console.log("地图已就绪");
+
   // 获取搜索框组件
   const searchBox = scLayerRef.value?.getSearchBox();
-  
+
   // 设置搜索结果监听
   searchBox?.onSearch((results) => {
-    console.log('搜索结果:', results);
+    console.log("搜索结果:", results);
     searchResults.value = results;
   });
-  
+
   // 设置搜索类型变化监听
-  searchBox?.on('type-change', (type) => {
-    console.log('搜索类型变化:', type);
+  searchBox?.on("type-change", (type) => {
+    console.log("搜索类型变化:", type);
     currentSearchType.value = type;
   });
 };
@@ -159,28 +159,30 @@ const setSearchType = (type: SearchType) => {
 // 添加自定义搜索类型
 const addCustomSearchType = () => {
   // 检查是否已存在自定义类型
-  if (searchBoxConfig.searchTypes.find(t => t.type === SearchType.CUSTOM)) {
-    console.log('自定义搜索类型已存在');
+  if (searchBoxConfig.searchTypes.find((t) => t.type === SearchType.CUSTOM)) {
+    console.log("自定义搜索类型已存在");
     return;
   }
-  
+
   // 添加自定义搜索类型
   searchBoxConfig.searchTypes.push({
     type: SearchType.CUSTOM,
-    label: '自定义',
-    placeholder: '请输入自定义搜索内容'
+    label: "自定义",
+    placeholder: "请输入自定义搜索内容",
   });
-  
-  console.log('已添加自定义搜索类型');
+
+  console.log("已添加自定义搜索类型");
 };
 
 // 移除自定义搜索类型
 const removeCustomSearchType = () => {
-  const index = searchBoxConfig.searchTypes.findIndex(t => t.type === SearchType.CUSTOM);
+  const index = searchBoxConfig.searchTypes.findIndex(
+    (t) => t.type === SearchType.CUSTOM,
+  );
   if (index >= 0) {
     searchBoxConfig.searchTypes.splice(index, 1);
-    console.log('已移除自定义搜索类型');
-    
+    console.log("已移除自定义搜索类型");
+
     // 如果当前选中的是自定义类型，切换回关键词搜索
     if (currentSearchType.value === SearchType.CUSTOM) {
       setSearchType(SearchType.KEYWORD);
@@ -190,7 +192,7 @@ const removeCustomSearchType = () => {
 
 // 组件挂载时初始化
 onMounted(() => {
-  console.log('组件已挂载');
+  console.log("组件已挂载");
 });
 </script>
 
@@ -220,7 +222,9 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-h2, h3, h4 {
+h2,
+h3,
+h4 {
   margin-top: 0;
   margin-bottom: 16px;
 }
@@ -262,4 +266,4 @@ ul {
 li {
   margin-bottom: 8px;
 }
-</style> 
+</style>

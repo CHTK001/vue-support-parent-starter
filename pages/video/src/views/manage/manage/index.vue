@@ -13,16 +13,20 @@
 
     <!-- 条件筛选：类型/年代/地区/语言，与目标布局一致 -->
     <div class="filter-section">
-      <VideoFilter v-model="filters" :autoSearch="true" @filter-change="applyFilters" />
+      <VideoFilter
+        v-model="filters"
+        :autoSearch="true"
+        @filter-change="applyFilters"
+      />
     </div>
 
     <!-- 顶部工具栏：关键词搜索 -->
     <div class="toolbar">
-      <ScInput 
-        v-model="keyword" 
-        placeholder="请输入关键词搜索视频..." 
-        class="toolbar__search" 
-        clearable 
+      <ScInput
+        v-model="keyword"
+        placeholder="请输入关键词搜索视频..."
+        class="toolbar__search"
+        clearable
         @keyup.enter="applyFilters"
         size="large"
       >
@@ -39,7 +43,14 @@
     </div>
 
     <!-- 结果区：海报网格卡片，内置排序切换，与目标截图交互一致 -->
-    <VideoResults ref="resultsRef" :url="getVideoList" :params="requestParams" :sort-by="sortBy" @sort-change="onSortChange" @video-click="onVideoClick" />
+    <VideoResults
+      ref="resultsRef"
+      :url="getVideoList"
+      :params="requestParams"
+      :sort-by="sortBy"
+      @sort-change="onSortChange"
+      @video-click="onVideoClick"
+    />
   </div>
 </template>
 
@@ -101,7 +112,11 @@ const onVideoClick = (video: any) => {
 <style scoped lang="scss">
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-3) 0%,
+    var(--el-color-primary) 100%
+  );
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;

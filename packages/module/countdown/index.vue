@@ -6,16 +6,40 @@
  * @version 1.0.1
  */
 import { reactive, onMounted, onUnmounted, ref, watch } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { ElNotification } from "element-plus";
 
 const presetEvents = [
-  { name: "元旦", getDate: (year) => new Date(year + 1, 0, 1), icon: "ri:calendar-event-line" },
-  { name: "春节", getDate: (year) => new Date(2025, 0, 29), icon: "ri:fire-fill" }, // 2025年春节
-  { name: "情人节", getDate: (year) => new Date(year, 1, 14), icon: "ri:heart-fill" },
-  { name: "劳动节", getDate: (year) => new Date(year, 4, 1), icon: "ri:hammer-fill" },
-  { name: "国庆节", getDate: (year) => new Date(year, 9, 1), icon: "ri:flag-fill" },
-  { name: "下班", getDate: () => getTodayWorkEnd(), icon: "ri:briefcase-4-fill" },
+  {
+    name: "元旦",
+    getDate: (year) => new Date(year + 1, 0, 1),
+    icon: "ri:calendar-event-line",
+  },
+  {
+    name: "春节",
+    getDate: (year) => new Date(2025, 0, 29),
+    icon: "ri:fire-fill",
+  }, // 2025年春节
+  {
+    name: "情人节",
+    getDate: (year) => new Date(year, 1, 14),
+    icon: "ri:heart-fill",
+  },
+  {
+    name: "劳动节",
+    getDate: (year) => new Date(year, 4, 1),
+    icon: "ri:hammer-fill",
+  },
+  {
+    name: "国庆节",
+    getDate: (year) => new Date(year, 9, 1),
+    icon: "ri:flag-fill",
+  },
+  {
+    name: "下班",
+    getDate: () => getTodayWorkEnd(),
+    icon: "ri:briefcase-4-fill",
+  },
 ];
 
 const env = reactive({
@@ -39,7 +63,9 @@ const getTodayWorkEnd = () => {
   const hour = parseInt(hourStr || "17", 10);
   const minute = parseInt(minuteStr || "30", 10);
   const safeHour = Number.isNaN(hour) ? 17 : Math.min(Math.max(hour, 0), 23);
-  const safeMinute = Number.isNaN(minute) ? 30 : Math.min(Math.max(minute, 0), 59);
+  const safeMinute = Number.isNaN(minute)
+    ? 30
+    : Math.min(Math.max(minute, 0), 59);
   return new Date(
     now.getFullYear(),
     now.getMonth(),
@@ -75,7 +101,9 @@ const calculateCountdown = () => {
   }
 
   env.countdown.days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  env.countdown.hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  env.countdown.hours = Math.floor(
+    (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+  );
   env.countdown.minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   env.countdown.seconds = Math.floor((diff % (1000 * 60)) / 1000);
 };
@@ -128,32 +156,42 @@ onUnmounted(() => {
           </div>
           <div class="title-block">
             <div class="title-row">
-              <span class="target-name">{{ env.targetName || "目标时间" }}</span>
+              <span class="target-name">{{
+                env.targetName || "目标时间"
+              }}</span>
               <span class="badge-mini">倒计时</span>
             </div>
             <div class="subtitle">
               还有一点点，就可以
-              <span v-if="presetEvents[env.selectedPreset].name === '下班'">下班啦</span>
+              <span v-if="presetEvents[env.selectedPreset].name === '下班'"
+                >下班啦</span
+              >
               <span v-else>迎来它</span>
             </div>
           </div>
         </div>
       </div>
       <div class="header-right">
-        <el-dropdown trigger="click" @command="selectEvent">
+        <ScDropdown trigger="click" @command="selectEvent">
           <div class="mode-switch">
             <span class="mode-label">模式</span>
-            <span class="mode-name">{{ presetEvents[env.selectedPreset].name }}</span>
+            <span class="mode-name">{{
+              presetEvents[env.selectedPreset].name
+            }}</span>
             <IconifyIconOnline icon="ri:arrow-down-s-line" class="mode-arrow" />
           </div>
           <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item v-for="(event, index) in presetEvents" :key="index" :command="index">
+            <ScDropdownMenu>
+              <ScDropdownItem
+                v-for="(event, index) in presetEvents"
+                :key="index"
+                :command="index"
+              >
                 {{ event.name }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
+              </ScDropdownItem>
+            </ScDropdownMenu>
           </template>
-        </el-dropdown>
+        </ScDropdown>
       </div>
     </div>
 
@@ -165,17 +203,23 @@ onUnmounted(() => {
         </div>
         <div class="time-separator">:</div>
         <div class="time-unit">
-          <span class="value">{{ String(env.countdown.hours).padStart(2, "0") }}</span>
+          <span class="value">{{
+            String(env.countdown.hours).padStart(2, "0")
+          }}</span>
           <span class="label">时</span>
         </div>
         <div class="time-separator">:</div>
         <div class="time-unit">
-          <span class="value">{{ String(env.countdown.minutes).padStart(2, "0") }}</span>
+          <span class="value">{{
+            String(env.countdown.minutes).padStart(2, "0")
+          }}</span>
           <span class="label">分</span>
         </div>
         <div class="time-separator">:</div>
         <div class="time-unit">
-          <span class="value">{{ String(env.countdown.seconds).padStart(2, "0") }}</span>
+          <span class="value">{{
+            String(env.countdown.seconds).padStart(2, "0")
+          }}</span>
           <span class="label">秒</span>
         </div>
       </div>
@@ -186,7 +230,7 @@ onUnmounted(() => {
         class="worktime-config"
       >
         <div class="worktime-label">下班时间</div>
-        <el-time-picker
+        <ScTimePicker
           v-model="env.workEndTime"
           size="small"
           format="HH:mm"
@@ -214,7 +258,12 @@ onUnmounted(() => {
 .countdown-card {
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at top left, #6b8cff 0%, #7c4dff 35%, #282c4a 100%);
+  background: radial-gradient(
+    circle at top left,
+    #6b8cff 0%,
+    #7c4dff 35%,
+    #282c4a 100%
+  );
   border-radius: 16px;
   padding: 16px 18px;
   color: #ffffff;
@@ -259,7 +308,11 @@ onUnmounted(() => {
     width: 30px;
     height: 30px;
     border-radius: 999px;
-    background: radial-gradient(circle at 30% 0, #ffffff, rgba(251, 191, 36, 0.3));
+    background: radial-gradient(
+      circle at 30% 0,
+      #ffffff,
+      rgba(251, 191, 36, 0.3)
+    );
     display: flex;
     align-items: center;
     justify-content: center;
@@ -361,7 +414,7 @@ onUnmounted(() => {
   gap: 6px;
   z-index: 1;
   margin: 6px 0 10px;
-  
+
   .time-unit {
     display: flex;
     flex-direction: column;
@@ -369,11 +422,15 @@ onUnmounted(() => {
     padding: 6px 8px;
     min-width: 52px;
     border-radius: 12px;
-    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.32), rgba(148, 163, 184, 0.1));
+    background: radial-gradient(
+      circle at top,
+      rgba(255, 255, 255, 0.32),
+      rgba(148, 163, 184, 0.1)
+    );
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.45);
     border: 1px solid rgba(248, 250, 252, 0.55);
     backdrop-filter: blur(10px);
-    
+
     .value {
       font-size: 26px;
       font-weight: 700;
@@ -381,14 +438,14 @@ onUnmounted(() => {
       font-family: monospace;
       text-shadow: 0 0 18px rgba(15, 23, 42, 0.7);
     }
-    
+
     .label {
       font-size: 10px;
       opacity: 0.9;
       margin-top: 4px;
     }
   }
-  
+
   .time-separator {
     font-size: 18px;
     font-weight: 600;

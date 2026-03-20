@@ -10,21 +10,21 @@
     <div class="manage-content">
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-button type="primary" @click="handleAddComponent">
+          <ScButton type="primary" @click="handleAddComponent">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加组件
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             type="success"
             :loading="initLoading"
             @click="handleInitDefault"
           >
             <IconifyIconOnline icon="ri:magic-line" class="mr-1" />
             初始化默认组件
-          </el-button>
+          </ScButton>
         </div>
         <div class="toolbar-right">
-          <el-input
+          <ScInput
             v-model="searchText"
             placeholder="搜索组件..."
             clearable
@@ -33,34 +33,34 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
+          </ScInput>
         </div>
       </div>
 
       <div v-loading="loading" class="component-list">
-        <el-table
+        <ScTable
           :data="filteredComponents"
           style="width: 100%"
           @selection-change="handleSelectionChange"
         >
-          <el-table-column type="selection" width="55" />
-          <el-table-column
+          <ScTableColumn type="selection" width="55" />
+          <ScTableColumn
             prop="monitorSysGenServerDetailComponentName"
             label="组件名称"
             width="150"
           />
-          <el-table-column
+          <ScTableColumn
             prop="monitorSysGenServerDetailComponentTitle"
             label="组件标题"
             width="150"
           />
-          <el-table-column
+          <ScTableColumn
             prop="monitorSysGenServerDetailComponentType"
             label="类型"
             width="100"
           >
             <template #default="{ row }">
-              <el-tag
+              <ScTag
                 :type="
                   getComponentTypeColor(
                     row.monitorSysGenServerDetailComponentType,
@@ -73,16 +73,16 @@
                     row.monitorSysGenServerDetailComponentType,
                   )
                 }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn
             prop="monitorSysGenServerDetailComponentExpressionType"
             label="表达式类型"
             width="120"
           >
             <template #default="{ row }">
-              <el-tag
+              <ScTag
                 :type="
                   row.monitorSysGenServerDetailComponentExpressionType ===
                   'PROMETHEUS'
@@ -92,10 +92,10 @@
                 size="small"
               >
                 {{ row.monitorSysGenServerDetailComponentExpressionType }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn
             prop="monitorSysGenServerDetailComponentRefreshInterval"
             label="刷新间隔"
             width="100"
@@ -103,24 +103,24 @@
             <template #default="{ row }">
               {{ row.monitorSysGenServerDetailComponentRefreshInterval }}秒
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn
             prop="monitorSysGenServerDetailComponentEnabled"
             label="状态"
             width="80"
           >
             <template #default="{ row }">
-              <el-switch
+              <ScSwitch
                 v-model="row.monitorSysGenServerDetailComponentEnabled"
                 :active-value="1"
                 :inactive-value="0"
                 @change="handleToggleEnabled(row)"
               />
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="200" fixed="right">
             <template #default="{ row }">
-              <el-button
+              <ScButton
                 type="primary"
                 text
                 size="small"
@@ -128,8 +128,8 @@
               >
                 <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
                 编辑
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 type="success"
                 text
                 size="small"
@@ -137,8 +137,8 @@
               >
                 <IconifyIconOnline icon="ri:file-copy-line" class="mr-1" />
                 克隆
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 type="danger"
                 text
                 size="small"
@@ -146,10 +146,10 @@
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
                 删除
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
       </div>
 
       <div v-if="selectedComponents.length > 0" class="batch-actions">
@@ -157,25 +157,25 @@
           已选择 {{ selectedComponents.length }} 个组件
         </div>
         <div class="actions">
-          <el-button type="success" size="small" @click="handleBatchEnable">
+          <ScButton type="success" size="small" @click="handleBatchEnable">
             <IconifyIconOnline icon="ri:check-line" class="mr-1" />
             批量启用
-          </el-button>
-          <el-button type="warning" size="small" @click="handleBatchDisable">
+          </ScButton>
+          <ScButton type="warning" size="small" @click="handleBatchDisable">
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
             批量禁用
-          </el-button>
-          <el-button type="danger" size="small" @click="handleBatchDelete">
+          </ScButton>
+          <ScButton type="danger" size="small" @click="handleBatchDelete">
             <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
             批量删除
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
+        <ScButton @click="visible = false">关闭</ScButton>
       </div>
     </template>
 

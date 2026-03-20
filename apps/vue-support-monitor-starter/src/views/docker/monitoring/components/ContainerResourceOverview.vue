@@ -3,10 +3,10 @@
     <div class="overview-header">
       <div class="header-title">资源使用概览</div>
       <div class="header-actions">
-        <el-button size="small" :loading="loading" @click="refreshData">
+        <ScButton size="small" :loading="loading" @click="refreshData">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -19,7 +19,7 @@
             <div class="card-title">CPU使用率</div>
           </div>
           <div class="card-content">
-            <el-progress
+            <ScProgress
               type="circle"
               :percentage="cpuUsage"
               :color="getUsageColor(cpuUsage)"
@@ -36,7 +36,7 @@
             <div class="card-title">内存使用率</div>
           </div>
           <div class="card-content">
-            <el-progress
+            <ScProgress
               type="circle"
               :percentage="memoryUsage"
               :color="getUsageColor(memoryUsage)"
@@ -92,17 +92,17 @@
         <div class="chart-header">
           <div class="chart-title">资源使用趋势</div>
           <div class="time-selector">
-            <el-select
+            <ScSelect
               v-model="timeRange"
               size="small"
               style="width: 120px"
               @change="onTimeRangeChange"
             >
-              <el-option label="最近1小时" value="1h" />
-              <el-option label="最近6小时" value="6h" />
-              <el-option label="最近12小时" value="12h" />
-              <el-option label="最近24小时" value="24h" />
-            </el-select>
+              <ScOption label="最近1小时" value="1h" />
+              <ScOption label="最近6小时" value="6h" />
+              <ScOption label="最近12小时" value="12h" />
+              <ScOption label="最近24小时" value="24h" />
+            </ScSelect>
           </div>
         </div>
         <div ref="trendChartContainerRef" class="chart-container" />

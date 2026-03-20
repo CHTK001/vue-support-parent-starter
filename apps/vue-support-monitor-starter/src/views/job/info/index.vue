@@ -2,10 +2,10 @@
   <div class="job-management-container system-container modern-bg">
     <!-- 搜索和筛选 -->
     <div class="search-section">
-      <el-card class="search-card" shadow="never">
+      <ScCard class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
-            <el-input
+            <ScInput
               v-model="form.jobDesc"
               placeholder="搜索任务名称或描述"
               class="search-input"
@@ -15,41 +15,41 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:search-line" />
               </template>
-            </el-input>
-            <el-select
+            </ScInput>
+            <ScSelect
               v-model="form.jobGroup"
               placeholder="选择任务组"
               class="app-filter"
               clearable
               @change="handleGroupFilter"
             >
-              <el-option :value="0" label="全部任务组" />
-              <el-option
+              <ScOption :value="0" label="全部任务组" />
+              <ScOption
                 v-for="item in executorData"
                 :key="item.monitorId"
                 :label="item.monitorName"
                 :value="item.monitorId"
               />
-            </el-select>
-            <el-select
+            </ScSelect>
+            <ScSelect
               v-model="form.jobTriggerStatus"
               placeholder="任务状态"
               class="status-filter"
               clearable
               @change="handleStatusFilter"
             >
-              <el-option label="运行中" :value="1" />
-              <el-option label="已停止" :value="0" />
-            </el-select>
+              <ScOption label="运行中" :value="1" />
+              <ScOption label="已停止" :value="0" />
+            </ScSelect>
           </div>
           <div class="search-right">
-            <el-button type="primary" @click="add">
+            <ScButton type="primary" @click="add">
               <IconifyIconOnline icon="ri:add-line" />
               新建任务
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 任务列表 -->
@@ -106,24 +106,24 @@
                   </div>
                 </div>
               </div>
-              <el-dropdown
+              <ScDropdown
                 trigger="click"
                 class="more-dropdown"
                 popper-class="job-dropdown-popper"
                 @command="(cmd) => handleCommand(cmd, row)"
               >
-                <el-button class="more-btn" @click.stop>
+                <ScButton class="more-btn" @click.stop>
                   <IconifyIconOnline icon="ri:more-2-fill" />
-                </el-button>
+                </ScButton>
                 <template #dropdown>
-                  <el-dropdown-menu class="job-dropdown-menu">
+                  <ScDropdownMenu class="job-dropdown-menu">
                     <div class="dropdown-header">
                       <div class="header-icon">
                         <IconifyIconOnline icon="ri:settings-3-line" />
                       </div>
                       <span>操作菜单</span>
                     </div>
-                    <el-dropdown-item command="edit">
+                    <ScDropdownItem command="edit">
                       <div class="dropdown-item-content">
                         <div class="dropdown-item-icon edit">
                           <IconifyIconOnline icon="ri:edit-line" />
@@ -136,8 +136,8 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="copy">
+                    </ScDropdownItem>
+                    <ScDropdownItem command="copy">
                       <div class="dropdown-item-content">
                         <div class="dropdown-item-icon copy">
                           <IconifyIconOnline icon="ri:file-copy-line" />
@@ -150,8 +150,8 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="nextTriggerTime">
+                    </ScDropdownItem>
+                    <ScDropdownItem command="nextTriggerTime">
                       <div class="dropdown-item-content">
                         <div class="dropdown-item-icon schedule">
                           <IconifyIconOnline icon="ri:calendar-schedule-line" />
@@ -164,8 +164,8 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="log">
+                    </ScDropdownItem>
+                    <ScDropdownItem command="log">
                       <div class="dropdown-item-content">
                         <div class="dropdown-item-icon log">
                           <IconifyIconOnline icon="ri:file-list-3-line" />
@@ -178,9 +178,9 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </el-dropdown-item>
+                    </ScDropdownItem>
                     <div class="dropdown-divider" />
-                    <el-dropdown-item command="delete">
+                    <ScDropdownItem command="delete">
                       <div class="dropdown-item-content danger">
                         <div class="dropdown-item-icon delete">
                           <IconifyIconOnline icon="ri:delete-bin-line" />
@@ -193,10 +193,10 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
+                    </ScDropdownItem>
+                  </ScDropdownMenu>
                 </template>
-              </el-dropdown>
+              </ScDropdown>
             </div>
 
             <!-- 卡片内容 -->
@@ -217,9 +217,9 @@
                 <div class="detail-item">
                   <span class="detail-label">任务类型</span>
                   <span class="detail-value">
-                    <el-tag size="small" effect="plain">{{
+                    <ScTag size="small" effect="plain">{{
                       row.jobGlueType || "BEAN"
-                    }}</el-tag>
+                    }}</ScTag>
                   </span>
                 </div>
                 <div class="detail-item">
@@ -233,20 +233,20 @@
 
             <!-- 卡片底部操作 -->
             <div class="card-footer">
-              <el-tooltip content="执行一次" placement="top">
-                <el-button
+              <ScTooltip content="执行一次" placement="top">
+                <ScButton
                   class="action-btn trigger"
                   @click.stop="trigger(row)"
                 >
                   <IconifyIconOnline icon="ri:flashlight-line" />
                   <span>执行</span>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip
                 :content="row.jobTriggerStatus === 1 ? '停止任务' : '启动任务'"
                 placement="top"
               >
-                <el-button
+                <ScButton
                   class="action-btn power"
                   :class="row.jobTriggerStatus === 1 ? 'stop' : 'start'"
                   @click.stop="
@@ -263,8 +263,8 @@
                   <span>{{
                     row.jobTriggerStatus === 1 ? "停止" : "启动"
                   }}</span>
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </div>
           </div>
         </template>
@@ -279,20 +279,20 @@
       class="job-dialog"
       width="500px"
     >
-      <el-form :model="form" label-width="120px">
-        <el-form-item label="任务参数">
-          <el-input v-model="executorParam" type="textarea" :rows="6" />
-        </el-form-item>
-        <el-form-item label="机器地址">
-          <el-input v-model="addressList" type="textarea" :rows="6" />
-        </el-form-item>
-      </el-form>
+      <ScForm :model="form" label-width="120px">
+        <ScFormItem label="任务参数">
+          <ScInput v-model="executorParam" type="textarea" :rows="6" />
+        </ScFormItem>
+        <ScFormItem label="机器地址">
+          <ScInput v-model="addressList" type="textarea" :rows="6" />
+        </ScFormItem>
+      </ScForm>
       <template #footer>
         <span class="job-dialog-footer">
-          <el-button :loading="triggerLoadding" @click="triggerShow = false"
+          <ScButton :loading="triggerLoadding" @click="triggerShow = false"
             >取消</el-button
           >
-          <el-button
+          <ScButton
             :loading="triggerLoadding"
             type="primary"
             @click="triggerExecute"
@@ -340,10 +340,10 @@
       width="400px"
       class="job-dialog"
     >
-      <el-empty v-if="jobgroupByIdData.length == 0" />
+      <ScEmpty v-if="jobgroupByIdData.length == 0" />
       <div v-else class="job-node-list">
         <div v-for="item in jobgroupByIdData" :key="item" class="job-node-item">
-          <el-tag effect="light">{{ item?.host }}:{{ item?.port }}</el-tag>
+          <ScTag effect="light">{{ item?.host }}:{{ item?.port }}</ScTag>
         </div>
       </div>
     </sc-dialog>

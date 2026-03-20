@@ -8,7 +8,7 @@
     class="layout-config-dialog"
   >
     <div class="layout-content">
-      <el-alert
+      <ScAlert
         title="布局配置功能开发中"
         type="info"
         description="此功能正在开发中，敬请期待..."
@@ -17,14 +17,14 @@
       />
 
       <div class="layout-placeholder">
-        <el-empty description="布局配置功能开发中..." />
+        <ScEmpty description="布局配置功能开发中..." />
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
-        <el-button type="primary" disabled> 应用布局 </el-button>
+        <ScButton @click="visible = false">关闭</ScButton>
+        <ScButton type="primary" disabled> 应用布局 </ScButton>
       </div>
     </template>
   </sc-dialog>

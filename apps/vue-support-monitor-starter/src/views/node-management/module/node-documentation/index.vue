@@ -3,26 +3,26 @@
     <!-- 顶部导航栏 -->
     <div class="doc-header">
       <div class="header-left">
-        <el-button size="small" type="primary" plain @click="goBack">
+        <ScButton size="small" type="primary" plain @click="goBack">
           <i class="ri-arrow-left-line" />
           返回
-        </el-button>
+        </ScButton>
         <div class="node-info">
           <i class="ri-server-line" />
           <span class="node-name">{{ nodeInfo.nodeName }}</span>
-          <el-tag
+          <ScTag
             size="small"
             :type="nodeInfo.status === 'ONLINE' ? 'success' : 'danger'"
           >
             {{ nodeInfo.status === "ONLINE" ? "在线" : "离线" }}
-          </el-tag>
+          </ScTag>
         </div>
       </div>
       <div class="header-right">
-        <el-button :loading="loading" size="small" @click="refreshDocs">
+        <ScButton :loading="loading" size="small" @click="refreshDocs">
           <i class="ri-refresh-line" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -39,13 +39,13 @@
           <!-- 节点地址切换 -->
           <div v-if="sameNameNodes.length > 1" class="node-selector">
             <label class="selector-label">节点地址:</label>
-            <el-select
+            <ScSelect
               v-model="currentNodeAddress"
               size="small"
               style="width: 100%"
               @change="switchNode"
             >
-              <el-option
+              <ScOption
                 v-for="node in sameNameNodes"
                 :key="node.address"
                 :label="`${node.address} (${node.status})`"
@@ -53,22 +53,22 @@
               >
                 <div class="node-option">
                   <span class="node-address">{{ node.address }}</span>
-                  <el-tag
+                  <ScTag
                     :type="node.status === 'ONLINE' ? 'success' : 'danger'"
                     size="small"
                   >
                     {{ node.status === "ONLINE" ? "在线" : "离线" }}
-                  </el-tag>
+                  </ScTag>
                 </div>
-              </el-option>
-            </el-select>
+              </ScOption>
+            </ScSelect>
           </div>
 
           <!-- 全局请求头设置 -->
           <div class="global-headers">
             <div class="headers-title">
               <label class="selector-label">全局请求头:</label>
-              <el-button
+              <ScButton
                 size="small"
                 type="primary"
                 plain
@@ -76,7 +76,7 @@
               >
                 <i class="ri-settings-3-line" />
                 设置
-              </el-button>
+              </ScButton>
             </div>
             <div
               v-if="Object.keys(globalHeaders).length > 0"
@@ -97,7 +97,7 @@
           </div>
 
           <!-- 搜索框 -->
-          <el-input
+          <ScInput
             v-model="searchKeyword"
             placeholder="搜索接口..."
             size="small"
@@ -106,15 +106,15 @@
             <template #prefix>
               <i class="ri-search-line" />
             </template>
-          </el-input>
+          </ScInput>
         </div>
 
         <div class="api-tree">
           <div v-if="loading" class="loading-container">
-            <el-skeleton :rows="5" animated />
+            <ScSkeleton :rows="5" animated />
           </div>
           <div v-else-if="!apiGroups.length" class="empty-container">
-            <el-empty description="暂无API文档" :image-size="80" />
+            <ScEmpty description="暂无API文档" :image-size="80" />
           </div>
           <div v-else class="api-groups">
             <div
@@ -178,7 +178,7 @@
       <!-- 中间参数面板 -->
       <div class="doc-params" :style="{ width: paramsWidth + 'px' }">
         <div v-if="!selectedApi" class="no-selection">
-          <el-empty description="请选择一个API接口" :image-size="120" />
+          <ScEmpty description="请选择一个API接口" :image-size="120" />
         </div>
         <div v-else class="api-details">
           <!-- API基本信息 -->
@@ -197,26 +197,26 @@
             <!-- 参数控制按钮 -->
             <div class="param-controls">
               <el-button-group size="small">
-                <el-button
+                <ScButton
                   :type="showOnlyRequired ? 'primary' : ''"
                   @click="showOnlyRequired = !showOnlyRequired"
                 >
                   <i class="ri-star-line" />
                   {{ showOnlyRequired ? "显示全部" : "仅必填" }}
-                </el-button>
-                <el-button @click="clearAllParams">
+                </ScButton>
+                <ScButton @click="clearAllParams">
                   <i class="ri-delete-bin-line" />
                   清空参数
-                </el-button>
+                </ScButton>
               </el-button-group>
             </div>
           </div>
 
           <!-- 参数表单 -->
           <div class="params-section">
-            <el-tabs v-model="activeParamTab" class="params-tabs">
+            <ScTabs v-model="activeParamTab" class="params-tabs">
               <!-- 路径参数 -->
-              <el-tab-pane
+              <ScTabPane
                 v-if="filteredPathParams.length"
                 label="路径参数"
                 name="path"
@@ -230,16 +230,16 @@
                     <label class="param-label">
                       {{ param.name }}
                       <span v-if="param.required" class="required">*</span>
-                      <el-tag
+                      <ScTag
                         v-if="param.required"
                         type="danger"
                         size="small"
                         class="required-tag"
                       >
                         必填
-                      </el-tag>
+                      </ScTag>
                     </label>
-                    <el-input
+                    <ScInput
                       v-model="paramValues.path[param.name]"
                       :placeholder="param.description || `请输入${param.name}`"
                       size="small"
@@ -247,10 +247,10 @@
                     <div class="param-desc">{{ param.description }}</div>
                   </div>
                 </div>
-              </el-tab-pane>
+              </ScTabPane>
 
               <!-- 查询参数 -->
-              <el-tab-pane
+              <ScTabPane
                 v-if="filteredQueryParams.length"
                 label="查询参数"
                 name="query"
@@ -264,16 +264,16 @@
                     <label class="param-label">
                       {{ param.name }}
                       <span v-if="param.required" class="required">*</span>
-                      <el-tag
+                      <ScTag
                         v-if="param.required"
                         type="danger"
                         size="small"
                         class="required-tag"
                       >
                         必填
-                      </el-tag>
+                      </ScTag>
                     </label>
-                    <el-input
+                    <ScInput
                       v-model="paramValues.query[param.name]"
                       :placeholder="param.description || `请输入${param.name}`"
                       size="small"
@@ -281,10 +281,10 @@
                     <div class="param-desc">{{ param.description }}</div>
                   </div>
                 </div>
-              </el-tab-pane>
+              </ScTabPane>
 
               <!-- 请求体 -->
-              <el-tab-pane v-if="hasRequestBody" label="请求体" name="body">
+              <ScTabPane v-if="hasRequestBody" label="请求体" name="body">
                 <div class="body-editor">
                   <codemirror-editor-vue3
                     v-model:value="requestBody"
@@ -293,12 +293,12 @@
                     placeholder="请输入JSON格式的请求体"
                   />
                 </div>
-              </el-tab-pane>
-            </el-tabs>
+              </ScTabPane>
+            </ScTabs>
 
             <!-- 执行按钮 -->
             <div class="execute-section">
-              <el-button
+              <ScButton
                 type="primary"
                 :loading="executing"
                 size="large"
@@ -306,7 +306,7 @@
               >
                 <i class="ri-play-line" />
                 执行请求
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -321,45 +321,45 @@
       <!-- 右侧结果面板 -->
       <div class="doc-result">
         <div class="result-header">
-          <el-tabs v-model="activeResultTab" class="result-tabs">
-            <el-tab-pane label="执行结果" name="result">
+          <ScTabs v-model="activeResultTab" class="result-tabs">
+            <ScTabPane label="执行结果" name="result">
               <template #label>
                 <span class="tab-label">
                   <i class="ri-play-circle-line" />
                   执行结果
                 </span>
               </template>
-            </el-tab-pane>
-            <el-tab-pane label="代码示例" name="examples">
+            </ScTabPane>
+            <ScTabPane label="代码示例" name="examples">
               <template #label>
                 <span class="tab-label">
                   <i class="ri-code-s-slash-line" />
                   代码示例
                 </span>
               </template>
-            </el-tab-pane>
-          </el-tabs>
+            </ScTabPane>
+          </ScTabs>
           <div class="result-actions">
-            <el-button
+            <ScButton
               v-if="activeResultTab === 'result' && lastResponse"
               size="small"
               @click="copyResponse"
             >
               <i class="ri-file-copy-line" />
               复制结果
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               v-if="activeResultTab === 'examples'"
               size="small"
               @click="copyCodeExample"
             >
               <i class="ri-file-copy-line" />
               复制代码
-            </el-button>
-            <el-button v-if="lastResponse" size="small" @click="clearResponse">
+            </ScButton>
+            <ScButton v-if="lastResponse" size="small" @click="clearResponse">
               <i class="ri-delete-bin-line" />
               清空
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -367,7 +367,7 @@
           <!-- 执行结果标签页 -->
           <div v-if="activeResultTab === 'result'">
             <div v-if="!lastResponse" class="no-result">
-              <el-empty description="暂无执行结果" :image-size="100" />
+              <ScEmpty description="暂无执行结果" :image-size="100" />
             </div>
             <div v-else class="response-container">
               <!-- 响应状态 -->
@@ -406,7 +406,7 @@
                     </span>
                   </h4>
                   <div class="header-actions">
-                    <el-button
+                    <ScButton
                       v-if="
                         lastResponse.headers &&
                         Object.keys(lastResponse.headers).length > 0
@@ -417,8 +417,8 @@
                     >
                       <i class="ri-file-copy-line" />
                       复制
-                    </el-button>
-                    <el-button
+                    </ScButton>
+                    <ScButton
                       size="small"
                       text
                       class="collapse-btn"
@@ -431,7 +431,7 @@
                             : 'ri-arrow-up-s-line'
                         "
                       />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
                 <el-collapse-transition>
@@ -471,7 +471,7 @@
                     </span>
                   </h4>
                   <div class="body-actions">
-                    <el-button
+                    <ScButton
                       v-if="lastResponse.data"
                       size="small"
                       text
@@ -479,8 +479,8 @@
                     >
                       <IconifyIconOnline icon="ri:file-copy-line" />
                       复制
-                    </el-button>
-                    <el-button
+                    </ScButton>
+                    <ScButton
                       v-if="lastResponse.data"
                       size="small"
                       text
@@ -488,7 +488,7 @@
                     >
                       <IconifyIconOnline icon="ri:download-line" />
                       下载
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
                 <div class="body-content">
@@ -548,11 +548,11 @@
           <!-- 代码示例标签页 -->
           <div v-if="activeResultTab === 'examples'" class="code-examples">
             <div v-if="!selectedApi" class="no-selection">
-              <el-empty description="请选择一个API接口" :image-size="100" />
+              <ScEmpty description="请选择一个API接口" :image-size="100" />
             </div>
             <div v-else class="examples-container">
-              <el-tabs v-model="activeLanguageTab" class="language-tabs">
-                <el-tab-pane label="Java" name="java">
+              <ScTabs v-model="activeLanguageTab" class="language-tabs">
+                <ScTabPane label="Java" name="java">
                   <div class="code-block">
                     <codemirror-editor-vue3
                       v-if="javaCode"
@@ -562,7 +562,7 @@
                       :read-only="true"
                     />
                     <div v-else class="empty-code">
-                      <el-empty
+                      <ScEmpty
                         :description="
                           selectedApi
                             ? '正在生成Java代码...'
@@ -572,8 +572,8 @@
                       />
                     </div>
                   </div>
-                </el-tab-pane>
-                <el-tab-pane label="JavaScript" name="javascript">
+                </ScTabPane>
+                <ScTabPane label="JavaScript" name="javascript">
                   <div class="code-block">
                     <codemirror-editor-vue3
                       v-if="selectedApi && javascriptCode"
@@ -583,7 +583,7 @@
                       :read-only="true"
                     />
                     <div v-else class="empty-code">
-                      <el-empty
+                      <ScEmpty
                         :description="
                           selectedApi
                             ? '正在生成JavaScript代码...'
@@ -593,8 +593,8 @@
                       />
                     </div>
                   </div>
-                </el-tab-pane>
-                <el-tab-pane label="Python" name="python">
+                </ScTabPane>
+                <ScTabPane label="Python" name="python">
                   <div class="code-block">
                     <codemirror-editor-vue3
                       v-if="selectedApi && pythonCode"
@@ -604,7 +604,7 @@
                       :read-only="true"
                     />
                     <div v-else class="empty-code">
-                      <el-empty
+                      <ScEmpty
                         :description="
                           selectedApi
                             ? '正在生成Python代码...'
@@ -614,8 +614,8 @@
                       />
                     </div>
                   </div>
-                </el-tab-pane>
-                <el-tab-pane label="cURL" name="curl">
+                </ScTabPane>
+                <ScTabPane label="cURL" name="curl">
                   <div class="code-block">
                     <codemirror-editor-vue3
                       v-if="selectedApi && curlCode"
@@ -625,7 +625,7 @@
                       :read-only="true"
                     />
                     <div v-else class="empty-code">
-                      <el-empty
+                      <ScEmpty
                         :description="
                           selectedApi
                             ? '正在生成cURL代码...'
@@ -635,8 +635,8 @@
                       />
                     </div>
                   </div>
-                </el-tab-pane>
-              </el-tabs>
+                </ScTabPane>
+              </ScTabs>
             </div>
           </div>
         </div>
@@ -661,19 +661,19 @@
             :key="index"
             class="header-row"
           >
-            <el-input
+            <ScInput
               v-model="header.key"
               placeholder="请求头名称"
               size="small"
               style="flex: 1"
             />
-            <el-input
+            <ScInput
               v-model="header.value"
               placeholder="请求头值"
               size="small"
               style="flex: 2; margin-left: 8px"
             />
-            <el-button
+            <ScButton
               size="small"
               type="danger"
               plain
@@ -681,16 +681,16 @@
               @click="removeHeader(index)"
             >
               <i class="ri-delete-bin-line" />
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
         <div class="header-actions">
-          <el-button size="small" type="primary" plain @click="addHeader">
+          <ScButton size="small" type="primary" plain @click="addHeader">
             <i class="ri-add-line" />
             添加请求头
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             type="success"
             plain
@@ -698,12 +698,12 @@
           >
             <i class="ri-magic-line" />
             添加常用请求头
-          </el-button>
+          </ScButton>
         </div>
 
         <div class="common-headers-tips">
-          <el-collapse>
-            <el-collapse-item title="常用请求头示例" name="examples">
+          <ScCollapse>
+            <ScCollapseItem title="常用请求头示例" name="examples">
               <div class="examples-list">
                 <div class="example-item">
                   <strong>Authorization:</strong> Bearer your-token-here
@@ -721,24 +721,24 @@
                   <strong>User-Agent:</strong> NodeDocumentation/1.0
                 </div>
               </div>
-            </el-collapse-item>
-          </el-collapse>
+            </ScCollapseItem>
+          </ScCollapse>
         </div>
       </div>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="small" @click="resetHeaders">
+          <ScButton size="small" @click="resetHeaders">
             <i class="ri-refresh-line" />
             重置
-          </el-button>
-          <el-button size="small" @click="showHeaderDialog = false">
+          </ScButton>
+          <ScButton size="small" @click="showHeaderDialog = false">
             取消
-          </el-button>
-          <el-button type="primary" size="small" @click="saveHeaders">
+          </ScButton>
+          <ScButton type="primary" size="small" @click="saveHeaders">
             <i class="ri-save-line" />
             保存
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

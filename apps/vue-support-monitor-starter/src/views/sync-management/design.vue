@@ -3,26 +3,26 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button @click="handleBack">
-          <el-icon><ArrowLeft /></el-icon>
+        <ScButton @click="handleBack">
+          <ScIcon><ArrowLeft /></ScIcon>
           返回
-        </el-button>
+        </ScButton>
         <span class="task-name">{{
           taskData?.syncTaskName || "加载中..."
         }}</span>
-        <el-tag v-if="taskData" :type="getStatusType(taskData.syncTaskStatus)">
+        <ScTag v-if="taskData" :type="getStatusType(taskData.syncTaskStatus)">
           {{ getStatusText(taskData.syncTaskStatus) }}
-        </el-tag>
+        </ScTag>
       </div>
       <div class="toolbar-right">
-        <el-button type="primary" :loading="saving" @click="handleSave">
-          <el-icon><DocumentChecked /></el-icon>
+        <ScButton type="primary" :loading="saving" @click="handleSave">
+          <ScIcon><DocumentChecked /></ScIcon>
           保存
-        </el-button>
-        <el-button @click="handleValidate">
-          <el-icon><CircleCheck /></el-icon>
+        </ScButton>
+        <ScButton @click="handleValidate">
+          <ScIcon><CircleCheck /></ScIcon>
           验证
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -30,8 +30,8 @@
     <div class="editor-wrapper">
       <!-- 左侧节点面板 -->
       <div class="node-panel">
-        <el-collapse v-model="activeCollapse">
-          <el-collapse-item title="输入节点" name="INPUT">
+        <ScCollapse v-model="activeCollapse">
+          <ScCollapseItem title="输入节点" name="INPUT">
             <div class="node-list">
               <div
                 v-for="spi in spiMap.INPUT"
@@ -40,12 +40,12 @@
                 draggable="true"
                 @dragstart="handleDragStart($event, 'INPUT', spi)"
               >
-                <el-icon><Download /></el-icon>
+                <ScIcon><Download /></ScIcon>
                 <span>{{ spi.displayName }}</span>
               </div>
             </div>
-          </el-collapse-item>
-          <el-collapse-item title="输出节点" name="OUTPUT">
+          </ScCollapseItem>
+          <ScCollapseItem title="输出节点" name="OUTPUT">
             <div class="node-list">
               <div
                 v-for="spi in spiMap.OUTPUT"
@@ -54,12 +54,12 @@
                 draggable="true"
                 @dragstart="handleDragStart($event, 'OUTPUT', spi)"
               >
-                <el-icon><Upload /></el-icon>
+                <ScIcon><Upload /></ScIcon>
                 <span>{{ spi.displayName }}</span>
               </div>
             </div>
-          </el-collapse-item>
-          <el-collapse-item title="数据中心" name="DATA_CENTER">
+          </ScCollapseItem>
+          <ScCollapseItem title="数据中心" name="DATA_CENTER">
             <div class="node-list">
               <div
                 v-for="spi in spiMap.DATA_CENTER"
@@ -68,12 +68,12 @@
                 draggable="true"
                 @dragstart="handleDragStart($event, 'DATA_CENTER', spi)"
               >
-                <el-icon><Connection /></el-icon>
+                <ScIcon><Connection /></ScIcon>
                 <span>{{ spi.displayName }}</span>
               </div>
             </div>
-          </el-collapse-item>
-          <el-collapse-item title="过滤器" name="FILTER">
+          </ScCollapseItem>
+          <ScCollapseItem title="过滤器" name="FILTER">
             <div class="node-list">
               <div
                 v-for="spi in spiMap.FILTER"
@@ -82,12 +82,12 @@
                 draggable="true"
                 @dragstart="handleDragStart($event, 'FILTER', spi)"
               >
-                <el-icon><Filter /></el-icon>
+                <ScIcon><Filter /></ScIcon>
                 <span>{{ spi.displayName }}</span>
               </div>
             </div>
-          </el-collapse-item>
-        </el-collapse>
+          </ScCollapseItem>
+        </ScCollapse>
       </div>
 
       <!-- ScReteEditor 组件 -->
@@ -123,85 +123,85 @@
         <template v-if="selectedSyncNode">
           <div class="panel-header">
             <span>节点配置</span>
-            <el-button text size="small" @click="selectedSyncNode = null">
-              <el-icon><Close /></el-icon>
-            </el-button>
+            <ScButton text size="small" @click="selectedSyncNode = null">
+              <ScIcon><Close /></ScIcon>
+            </ScButton>
           </div>
           <div class="panel-content">
-            <el-form label-position="top" size="small">
-              <el-form-item label="节点名称">
-                <el-input
+            <ScForm label-position="top" size="small">
+              <ScFormItem label="节点名称">
+                <ScInput
                   v-model="selectedSyncNode.syncNodeName"
                   placeholder="请输入节点名称"
                 />
-              </el-form-item>
-              <el-form-item label="节点类型">
-                <el-input
+              </ScFormItem>
+              <ScFormItem label="节点类型">
+                <ScInput
                   :value="getNodeTypeText(selectedSyncNode.syncNodeType)"
                   disabled
                 />
-              </el-form-item>
-              <el-form-item label="SPI类型">
-                <el-input :value="selectedSyncNode.syncNodeSpiName" disabled />
-              </el-form-item>
+              </ScFormItem>
+              <ScFormItem label="SPI类型">
+                <ScInput :value="selectedSyncNode.syncNodeSpiName" disabled />
+              </ScFormItem>
 
               <!-- 动态参数配置 -->
               <template v-if="selectedNodeParams.length > 0">
-                <el-divider>参数配置</el-divider>
-                <el-form-item
+                <ScDivider>参数配置</ScDivider>
+                <ScFormItem
                   v-for="param in selectedNodeParams"
                   :key="param.name"
                   :label="param.label"
                 >
-                  <el-input
+                  <ScInput
                     v-if="param.type === 'string'"
                     v-model="nodeConfig[param.name]"
                     :placeholder="param.placeholder || param.description"
                   />
-                  <el-input
+                  <ScInput
                     v-else-if="param.type === 'password'"
                     v-model="nodeConfig[param.name]"
                     type="password"
                     show-password
                     :placeholder="param.placeholder || param.description"
                   />
-                  <el-input
+                  <ScInput
                     v-else-if="param.type === 'textarea'"
                     v-model="nodeConfig[param.name]"
                     type="textarea"
                     :rows="3"
                     :placeholder="param.placeholder || param.description"
                   />
-                  <el-input-number
+                  <ScInputNumber
                     v-else-if="param.type === 'number'"
                     v-model="nodeConfig[param.name]"
                     :min="param.min"
                     :max="param.max"
                   />
-                  <el-switch
+                  <ScSwitch
                     v-else-if="param.type === 'boolean'"
                     v-model="nodeConfig[param.name]"
                   />
-                  <el-select
+                  <ScSelect
                     v-else-if="param.type === 'select'"
                     v-model="nodeConfig[param.name]"
                     :placeholder="param.placeholder"
                   >
-                    <el-option
+                    <ScOption
                       v-for="opt in param.options"
                       :key="opt.value"
                       :label="opt.label"
                       :value="opt.value"
                     />
-                  </el-select>
-                </el-form-item>
+                  </ScSelect>
+                </ScFormItem>
               </template>
 
-              <el-form-item>
-                <el-button type="primary" @click="handleSaveNodeConfig">
+              <ScFormItem>
+                <ScButton type="primary" @click="handleSaveNodeConfig">
                   保存配置
-                </el-button>
-                <el-button
+                </ScButton>
+                <ScButton
                   v-if="
                     selectedSyncNode.syncNodeType === 'INPUT' ||
                     selectedSyncNode.syncNodeType === 'OUTPUT'
@@ -209,12 +209,12 @@
                   @click="handleTestConnection"
                 >
                   测试连接
-                </el-button>
-              </el-form-item>
-            </el-form>
+                </ScButton>
+              </ScFormItem>
+            </ScForm>
           </div>
         </template>
-        <el-empty v-else description="请选择节点" />
+        <ScEmpty v-else description="请选择节点" />
       </div>
     </div>
   </div>

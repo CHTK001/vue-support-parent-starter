@@ -136,9 +136,9 @@ const findComponent = () => {
 
 <template>
   <div class="account-page">
-    <el-container class="account-container">
+    <ScContainer class="account-container">
       <!-- 侧边导航 -->
-      <el-aside
+      <ScAside
         v-if="isOpen"
         class="account-sidebar"
         :width="deviceDetection() ? '200px' : '280px'"
@@ -158,8 +158,8 @@ const findComponent = () => {
             <span class="online-badge"></span>
           </div>
           <div class="user-details">
-            <h3 class="user-nickname">{{ userInfo?.sysUserNickname }}</h3>
-            <p class="user-username">@{{ userInfo?.sysUserUsername }}</p>
+            <h3 class="user-nickname fe-sensitive">{{ userInfo?.sysUserNickname }}</h3>
+            <p class="user-username fe-sensitive">@{{ userInfo?.sysUserUsername }}</p>
           </div>
         </div>
 
@@ -194,10 +194,10 @@ const findComponent = () => {
             </ul>
           </div>
         </nav>
-      </el-aside>
+      </ScAside>
 
       <!-- 主内容区 -->
-      <el-main class="account-main">
+      <ScMain class="account-main">
         <LaySidebarTopCollapse
           v-if="deviceDetection()"
           class="mobile-toggle"
@@ -212,8 +212,8 @@ const findComponent = () => {
             @updated:user="onUpdated"
           />
         </div>
-      </el-main>
-    </el-container>
+      </ScMain>
+    </ScContainer>
   </div>
 </template>
 

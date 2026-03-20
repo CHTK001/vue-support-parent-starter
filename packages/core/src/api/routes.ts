@@ -6,6 +6,7 @@ type Result = {
   data: Array<any>;
 };
 
+<<<<<<< HEAD
 /**
  * 获取本地路由配置
  * 从 /src/router/modules 目录动态导入所有路由模块
@@ -40,9 +41,14 @@ export const getAsyncRoutes = async () => {
   // 模式1: 不使用远程菜单，返回空（由路由系统自动加载本地路由）
   if (!config.RemoteMenu) {
     return new Promise<ReturnResult<Result>>(resolve => {
+=======
+export const getAsyncRoutes = () => {
+  if (!getConfig().RemoteMenu) {
+    return new Promise<ReturnResult<Result>>((resolve) => {
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       resolve({
         data: [],
-        success: true
+        success: true,
       } as any);
     });
   }

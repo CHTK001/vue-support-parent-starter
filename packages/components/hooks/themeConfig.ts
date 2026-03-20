@@ -259,7 +259,11 @@ export function hasTheme(skinValue: string): boolean {
 }
 
 const PLUGIN_IMPORTERS: Record<string, () => Promise<any>> = {
+<<<<<<< HEAD
   "@mmt817/pixel-ui": () => import("@mmt817/pixel-ui"),
+=======
+  "@pixelium/web-vue": () => import("@pixelium/web-vue")
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 };
 
 const REGISTERED_THEME_PLUGINS_BY_APP = new WeakMap<App, Set<string>>();
@@ -341,9 +345,7 @@ async function registerThemePluginForSkin(app: App, skinValue: string): Promise<
       const importer = PLUGIN_IMPORTERS[packageName];
       if (!importer) {
         // eslint-disable-next-line no-console
-        console.warn(
-          `[ThemePlugin] 主题 ${theme.name} 的插件包 ${packageName} 未在 PLUGIN_IMPORTERS 中注册`,
-        );
+        console.warn(`[ThemePlugin] 主题 ${theme.name} 的插件包 ${packageName} 未在 PLUGIN_IMPORTERS 中注册`);
         theme.enabled = false;
         return;
       }
@@ -359,23 +361,42 @@ async function registerThemePluginForSkin(app: App, skinValue: string): Promise<
       const context = (app as any)._context;
       const plugins = context?.plugins;
 
+<<<<<<< HEAD
+=======
+      // 检查是否已注册：通过比较插件对象引用或 install 方法
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       let alreadyRegisteredInApp = false;
       if (Array.isArray(plugins) && plugins.length > 0) {
         const pluginInstall = typeof plugin === "function" ? plugin : plugin.install;
 
+<<<<<<< HEAD
+=======
+        // 检查已注册的插件中是否有相同的插件对象或 install 方法
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
         alreadyRegisteredInApp = plugins.some((registeredPlugin: any) => {
           if (registeredPlugin === plugin) {
             return true;
           }
 
+<<<<<<< HEAD
           const registeredInstall = typeof registeredPlugin === "function"
             ? registeredPlugin
             : registeredPlugin?.install;
 
+=======
+          // 再检查 install 方法是否相同
+          const registeredInstall = typeof registeredPlugin === "function" ? registeredPlugin : registeredPlugin?.install;
+
+          // 如果两个插件都有 install 方法，比较 install 方法的引用
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
           if (pluginInstall && registeredInstall && pluginInstall === registeredInstall) {
             return true;
           }
 
+<<<<<<< HEAD
+=======
+          // 如果插件有名称，通过名称比较（作为最后的检查手段）
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
           const pluginName = pluginInstall?.name || plugin.name;
           const registeredName = registeredInstall?.name || registeredPlugin?.name;
           if (pluginName && registeredName && pluginName === registeredName && pluginName !== "") {
@@ -392,6 +413,10 @@ async function registerThemePluginForSkin(app: App, skinValue: string): Promise<
       }
 
       registeredPlugins.add(packageName);
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       app.use(plugin);
       // eslint-disable-next-line no-console
       console.log(`[ThemePlugin] 已注册主题 ${theme.name} 的插件 ${packageName}`);
@@ -401,6 +426,10 @@ async function registerThemePluginForSkin(app: App, skinValue: string): Promise<
         registeredPlugins.delete(packageName);
       }
 
+<<<<<<< HEAD
+=======
+      // 插件未安装或加载失败时，禁用该主题，避免在设置中展示不可用的选项
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       // eslint-disable-next-line no-console
       console.warn(`[ThemePlugin] 主题 ${theme.name} 插件加载失败，已禁用该主题:`, error);
       theme.enabled = false;
@@ -428,11 +457,19 @@ export async function ensureThemePluginForCurrentSkin(): Promise<void> {
     return;
   }
 
+<<<<<<< HEAD
+=======
+  // 如果有正在进行的调用，直接返回该 Promise，避免重复执行
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   if (ensuringPromise) {
     await ensuringPromise;
     return;
   }
 
+<<<<<<< HEAD
+=======
+  // 创建新的调用 Promise
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   ensuringPromise = (async () => {
     try {
       const currentThemeName = getCurrentThemeName();

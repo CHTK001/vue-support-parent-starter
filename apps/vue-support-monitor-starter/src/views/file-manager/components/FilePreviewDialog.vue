@@ -30,14 +30,14 @@
           </div>
         </div>
         <div class="file-actions">
-          <el-button type="primary" @click="downloadFile">
+          <ScButton type="primary" @click="downloadFile">
             <IconifyIconOnline icon="ri:download-line" class="btn-icon" />
             下载
-          </el-button>
-          <el-button @click="copyPath">
+          </ScButton>
+          <ScButton @click="copyPath">
             <IconifyIconOnline icon="ri:file-copy-line" class="btn-icon" />
             复制路径
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -45,7 +45,7 @@
       <div class="preview-content">
         <!-- 图片预览 -->
         <div v-if="isImage" class="image-preview">
-          <el-image
+          <ScImage
             :src="previewUrl"
             :alt="file?.name"
             fit="contain"
@@ -60,33 +60,33 @@
                 <p>图片加载失败</p>
               </div>
             </template>
-          </el-image>
+          </ScImage>
         </div>
 
         <!-- 文本预览 -->
         <div v-else-if="isText" class="text-preview">
           <div class="text-toolbar">
             <el-button-group>
-              <el-button
+              <ScButton
                 :type="textWrap ? 'primary' : 'default'"
                 size="small"
                 @click="textWrap = !textWrap"
               >
                 <IconifyIconOnline icon="ri:text-wrap" />
                 自动换行
-              </el-button>
-              <el-button size="small" @click="copyTextContent">
+              </ScButton>
+              <ScButton size="small" @click="copyTextContent">
                 <IconifyIconOnline icon="ri:file-copy-line" />
                 复制内容
-              </el-button>
+              </ScButton>
             </el-button-group>
           </div>
           <div class="text-content" :class="{ 'text-wrap': textWrap }">
             <pre v-if="textContent" class="text-pre">{{ textContent }}</pre>
             <div v-else-if="textLoading" class="text-loading">
-              <el-icon class="is-loading">
+              <ScIcon class="is-loading">
                 <Loading />
-              </el-icon>
+              </ScIcon>
               <span>加载中...</span>
             </div>
             <div v-else class="text-error">
@@ -100,10 +100,10 @@
         <div v-else-if="isPdf" class="pdf-preview">
           <div class="pdf-toolbar">
             <span class="pdf-info">PDF文档预览</span>
-            <el-button type="primary" size="small" @click="openInNewTab">
+            <ScButton type="primary" size="small" @click="openInNewTab">
               <IconifyIconOnline icon="ri:external-link-line" />
               在新标签页中打开
-            </el-button>
+            </ScButton>
           </div>
           <iframe :src="previewUrl" class="pdf-iframe" frameborder="0" />
         </div>
@@ -129,10 +129,10 @@
         <div v-else-if="isCode" class="code-preview">
           <div class="code-toolbar">
             <span class="code-language">{{ getCodeLanguage() }}</span>
-            <el-button size="small" @click="copyTextContent">
+            <ScButton size="small" @click="copyTextContent">
               <IconifyIconOnline icon="ri:file-copy-line" />
               复制代码
-            </el-button>
+            </ScButton>
           </div>
           <div class="code-content">
             <pre
@@ -140,9 +140,9 @@
               class="code-pre"
             ><code>{{ textContent }}</code></pre>
             <div v-else-if="textLoading" class="code-loading">
-              <el-icon class="is-loading">
+              <ScIcon class="is-loading">
                 <Loading />
-              </el-icon>
+              </ScIcon>
               <span>加载中...</span>
             </div>
             <div v-else class="code-error">
@@ -161,10 +161,10 @@
             />
             <h3>无法预览此文件类型</h3>
             <p>{{ file?.name }} ({{ getFileType(file) }})</p>
-            <el-button type="primary" size="large" @click="downloadFile">
+            <ScButton type="primary" size="large" @click="downloadFile">
               <IconifyIconOnline icon="ri:download-line" class="btn-icon" />
               下载文件
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -172,11 +172,11 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" @click="downloadFile">
+        <ScButton @click="handleClose">关闭</ScButton>
+        <ScButton type="primary" @click="downloadFile">
           <IconifyIconOnline icon="ri:download-line" class="btn-icon" />
           下载
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

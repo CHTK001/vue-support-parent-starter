@@ -10,34 +10,34 @@
         </div>
       </div>
       <div class="header-right">
-        <el-tag type="info" effect="light" size="large" round>
+        <ScTag type="info" effect="light" size="large" round>
           <IconifyIconOnline icon="ri:database-2-line" class="mr-1" />
           共 {{ data.length }} 个 Bean
-        </el-tag>
+        </ScTag>
       </div>
     </div>
 
     <!-- 数据卡片 -->
-    <el-card class="modern-card" shadow="hover">
+    <ScCard class="modern-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
             <IconifyIconOnline icon="ri:list-check-2" class="card-icon" />
             Bean 列表
           </span>
-          <el-input v-model="searchKeyword" placeholder="搜索 Bean 名称或类名..." clearable class="search-input">
+          <ScInput v-model="searchKeyword" placeholder="搜索 Bean 名称或类名..." clearable class="search-input">
             <template #prefix>
               <IconifyIconOnline icon="ep:search" />
             </template>
-          </el-input>
+          </ScInput>
         </div>
       </template>
 
-      <el-table :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table" max-height="600">
-        <el-table-column prop="id" label="ID" width="100" />
-        <el-table-column prop="name" label="Bean 名称" min-width="200">
+      <ScTable :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table" max-height="600">
+        <ScTableColumn prop="id" label="ID" width="100" />
+        <ScTableColumn prop="name" label="Bean 名称" min-width="200">
           <template #default="{ row }">
-            <el-tooltip placement="top">
+            <ScTooltip placement="top">
               <template #content>
                 <div style="max-width: 400px">
                   <div>
@@ -58,39 +58,39 @@
                 <IconifyIconOnline icon="ri:code-box-line" class="bean-icon" />
                 <span>{{ row.name }}</span>
               </div>
-            </el-tooltip>
+            </ScTooltip>
           </template>
-        </el-table-column>
-        <el-table-column prop="className" label="类名" min-width="300">
+        </ScTableColumn>
+        <ScTableColumn prop="className" label="类名" min-width="300">
           <template #default="{ row }">
-            <el-tooltip placement="top" :show-after="300">
+            <ScTooltip placement="top" :show-after="300">
               <template #content>
                 <div style="max-width: 500px; word-break: break-all">
                   {{ row.className }}
                 </div>
               </template>
               <span class="class-name">{{ row.className }}</span>
-            </el-tooltip>
+            </ScTooltip>
           </template>
-        </el-table-column>
-        <el-table-column prop="resource" label="资源" min-width="200">
+        </ScTableColumn>
+        <ScTableColumn prop="resource" label="资源" min-width="200">
           <template #default="{ row }">
-            <el-tag v-if="row.resource" type="info" effect="plain" size="small">
+            <ScTag v-if="row.resource" type="info" effect="plain" size="small">
               {{ row.resource }}
-            </el-tag>
+            </ScTag>
             <span v-else class="text-placeholder">-</span>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link @click="handleInfo(row)">
+            <ScButton type="primary" link @click="handleInfo(row)">
               <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
               详情
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+        </ScTableColumn>
+      </ScTable>
+    </ScCard>
 
     <!-- 详情对话框 -->
     <sc-dialog v-model="infoVisible" title="Bean 详情" width="60%" destroy-on-close class="modern-dialog">

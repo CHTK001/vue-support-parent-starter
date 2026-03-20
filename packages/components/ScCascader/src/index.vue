@@ -137,8 +137,6 @@ const currentValue = computed({
 
 const { currentComponent } = useThemeComponent("ElCascader");
 
-
-
 const cascaderProps = computed(() => props.props);
 
 const handleChange = (val: CascaderValue) => {

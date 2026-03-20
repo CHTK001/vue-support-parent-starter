@@ -35,7 +35,9 @@ function kebabToCamelCase(str: string): string {
   return str
     .split("-")
     .filter(Boolean)
-    .map((word, index) => (index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)))
+    .map((word, index) =>
+      index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
+    )
     .join("");
 }
 
@@ -59,7 +61,10 @@ export const isValidOrDefault = <T>(value: T, defaultValue: T): T => {
  * @param callback - 计算属性的回调函数，接收参数对象并返回计算结果。
  * @returns 计算属性的计算结果。
  */
-export const withComputed = <T extends Record<string, unknown>, R>(params: T, callback: (params: T) => R) => {
+export const withComputed = <T extends Record<string, unknown>, R>(
+  params: T,
+  callback: (params: T) => R,
+) => {
   const _cache = new Map<string, any>();
 
   const _getKey = (params: T) => {
@@ -113,7 +118,14 @@ function stringSplitToArray(str: any, separator: string = ","): number[] {
   }
   return str.split(separator);
 }
-export { capitalizeFirstLetter, kebabToCamelCase, toCamelCase, toLowerCaseFirstLetter, stringSplitToNumber, stringSplitToArray };
+export {
+  capitalizeFirstLetter,
+  kebabToCamelCase,
+  toCamelCase,
+  toLowerCaseFirstLetter,
+  stringSplitToNumber,
+  stringSplitToArray,
+};
 /**
  * 生成UUID
  * @returns

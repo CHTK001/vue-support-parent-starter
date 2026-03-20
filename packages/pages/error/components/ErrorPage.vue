@@ -11,7 +11,9 @@ import NotFoundStyle from "./styles/NotFoundStyle.vue";
 import ServerErrorStyle from "./styles/ServerErrorStyle.vue";
 
 // 从配置获取是否显示风格切换器
-const showStyleSwitcher = computed(() => getConfig().ShowErrorPageStyleSwitcher ?? false);
+const showStyleSwitcher = computed(
+  () => getConfig().ShowErrorPageStyleSwitcher ?? false,
+);
 
 // 从配置获取默认错误页面风格（默认使用简约主题）
 const defaultStyle = computed(() => getConfig().ErrorPageStyle ?? "minimal");
@@ -20,7 +22,13 @@ defineOptions({
   name: "ErrorPage",
 });
 
-type StyleType = "pixel" | "space" | "minimal" | "forbidden" | "notfound" | "servererror";
+type StyleType =
+  | "pixel"
+  | "space"
+  | "minimal"
+  | "forbidden"
+  | "notfound"
+  | "servererror";
 
 const props = withDefaults(
   defineProps<{
@@ -29,7 +37,7 @@ const props = withDefaults(
   }>(),
   {
     style: "minimal",
-  }
+  },
 );
 
 const { t } = useI18n();
@@ -49,7 +57,9 @@ const styleOptions: { key: StyleType; label: string; icon: string }[] = [
 const STORAGE_KEY = "error-page-style";
 
 // 当前选中的风格（优先级：localStorage > 配置文件 > props > 默认pixel）
-const currentStyle = ref<StyleType>(props.style || (defaultStyle.value as StyleType));
+const currentStyle = ref<StyleType>(
+  props.style || (defaultStyle.value as StyleType),
+);
 
 // 风格选择器是否展开
 const showStylePicker = ref(false);
@@ -58,7 +68,7 @@ const showStylePicker = ref(false);
 onMounted(() => {
   if (showStyleSwitcher.value) {
     const savedStyle = localStorage.getItem(STORAGE_KEY);
-    if (savedStyle && styleOptions.some(s => s.key === savedStyle)) {
+    if (savedStyle && styleOptions.some((s) => s.key === savedStyle)) {
       currentStyle.value = savedStyle as StyleType;
       return;
     }
@@ -76,7 +86,9 @@ const switchStyle = (style: StyleType) => {
 
 // 切换到下一个风格
 const nextStyle = () => {
-  const currentIndex = styleOptions.findIndex(s => s.key === currentStyle.value);
+  const currentIndex = styleOptions.findIndex(
+    (s) => s.key === currentStyle.value,
+  );
   const nextIndex = (currentIndex + 1) % styleOptions.length;
   switchStyle(styleOptions[nextIndex].key);
 };
@@ -124,7 +136,9 @@ const styleComponent = computed(() => {
 
 // 当前风格信息
 const currentStyleInfo = computed(() => {
-  return styleOptions.find(s => s.key === currentStyle.value) || styleOptions[0];
+  return (
+    styleOptions.find((s) => s.key === currentStyle.value) || styleOptions[0]
+  );
 });
 </script>
 
@@ -138,32 +152,30 @@ const currentStyleInfo = computed(() => {
       @go-home="goHome"
       @go-back="goBack"
     />
-    
+
     <!-- 风格切换按钮 - 由配置控制是否显示 -->
     <div v-if="showStyleSwitcher" class="style-switcher">
-      <button 
-        class="style-toggle-btn" 
+      <button
+        class="style-toggle-btn"
         @click="showStylePicker = !showStylePicker"
         :title="'当前风格: ' + currentStyleInfo.label"
       >
         <span class="btn-icon">🎨</span>
       </button>
-      
+
       <!-- 快速切换按钮 -->
-      <button 
-        class="style-next-btn" 
-        @click="nextStyle"
-        title="切换下一个风格"
-      >
+      <button class="style-next-btn" @click="nextStyle" title="切换下一个风格">
         <span class="btn-icon">⏭️</span>
       </button>
-      
+
       <!-- 风格选择面板 -->
       <transition name="fade">
         <div v-if="showStylePicker" class="style-picker">
           <div class="picker-header">
             <span>选择错误页风格</span>
-            <button class="close-btn" @click="showStylePicker = false">✕</button>
+            <button class="close-btn" @click="showStylePicker = false">
+              ✕
+            </button>
           </div>
           <div class="picker-options">
             <button
@@ -218,16 +230,16 @@ const currentStyleInfo = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   .btn-icon {
     font-size: 1.5rem;
   }
-  
+
   &:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
   }
-  
+
   &:active {
     transform: scale(0.95);
   }
@@ -254,7 +266,7 @@ const currentStyleInfo = computed(() => {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   font-weight: 600;
   color: #333;
-  
+
   .close-btn {
     width: 24px;
     height: 24px;
@@ -264,7 +276,7 @@ const currentStyleInfo = computed(() => {
     font-size: 1rem;
     color: #999;
     border-radius: 50%;
-    
+
     &:hover {
       background: rgba(0, 0, 0, 0.1);
       color: #333;
@@ -290,26 +302,26 @@ const currentStyleInfo = computed(() => {
   background: rgba(0, 0, 0, 0.03);
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   .option-icon {
     font-size: 1.8rem;
   }
-  
+
   .option-label {
     font-size: 0.75rem;
     color: #666;
     white-space: nowrap;
   }
-  
+
   &:hover {
     background: rgba(64, 158, 255, 0.1);
     border-color: rgba(64, 158, 255, 0.3);
   }
-  
+
   &.active {
     background: rgba(64, 158, 255, 0.15);
     border-color: #409eff;
-    
+
     .option-label {
       color: #409eff;
       font-weight: 600;
@@ -335,38 +347,38 @@ const currentStyleInfo = computed(() => {
   .style-next-btn {
     background: rgba(30, 30, 30, 0.9);
   }
-  
+
   .style-picker {
     background: rgba(30, 30, 30, 0.95);
-    
+
     .picker-header {
       color: #eee;
       border-bottom-color: rgba(255, 255, 255, 0.1);
-      
+
       .close-btn {
         color: #888;
-        
+
         &:hover {
           background: rgba(255, 255, 255, 0.1);
           color: #eee;
         }
       }
     }
-    
+
     .style-option {
       background: rgba(255, 255, 255, 0.05);
-      
+
       .option-label {
         color: #aaa;
       }
-      
+
       &:hover {
         background: rgba(64, 158, 255, 0.2);
       }
-      
+
       &.active {
         background: rgba(64, 158, 255, 0.25);
-        
+
         .option-label {
           color: #409eff;
         }

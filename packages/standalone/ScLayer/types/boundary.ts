@@ -1,12 +1,12 @@
 import type { CoordSystem } from "./coordinate";
 import type { MapType } from "./map";
-import { ApiUrls } from './api';
+import { ApiUrls } from "./api";
 
 // 区划级别
 export enum BoundaryLevel {
-  PROVINCE = 'province',
-  CITY = 'city',
-  DISTRICT = 'district'
+  PROVINCE = "province",
+  CITY = "city",
+  DISTRICT = "district",
 }
 
 // 区划边界单项
@@ -31,12 +31,12 @@ export interface BoundaryData {
   code: string;
   name: string;
   level: BoundaryLevel;
-  coordinates: BoundaryCoordinate[][];  // 可能有多个闭环，每个闭环是一组坐标点
+  coordinates: BoundaryCoordinate[][]; // 可能有多个闭环，每个闭环是一组坐标点
 }
 
 // 区划边界配置选项
 export interface BoundaryOptions {
-  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'; // 区划边界位置
+  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right"; // 区划边界位置
   apiUrls?: ApiUrls;
   /** @deprecated 使用 apiUrls.boundary 代替 */
   url?: string;
@@ -50,10 +50,10 @@ export interface BoundaryOptions {
   fillBoundary?: boolean; // 是否填充区划
   strokeColor?: string; // 边框颜色
   strokeWidth?: number; // 边框宽度
-  strokeStyle?: 'solid' | 'dashed' | 'dotted'; // 边框样式
+  strokeStyle?: "solid" | "dashed" | "dotted"; // 边框样式
   strokeDashArray?: number[]; // 虚线样式
-  strokeLineCap?: 'butt' | 'round' | 'square'; // 线条端点样式
-  strokeLineJoin?: 'miter' | 'round' | 'bevel'; // 线条连接处样式
+  strokeLineCap?: "butt" | "round" | "square"; // 线条端点样式
+  strokeLineJoin?: "miter" | "round" | "bevel"; // 线条连接处样式
   fillColor?: string; // 填充颜色
   fillOpacity?: number; // 填充透明度
   fillPattern?: string; // 填充图案
@@ -69,8 +69,8 @@ export interface BoundaryOptions {
     padding?: number[];
     borderRadius?: number;
     offset?: [number, number]; // 标签偏移量 [x, y]
-    textAlign?: 'left' | 'center' | 'right';
-    textBaseline?: 'top' | 'middle' | 'bottom';
+    textAlign?: "left" | "center" | "right";
+    textBaseline?: "top" | "middle" | "bottom";
     rotation?: number;
     scale?: number;
   };
@@ -90,5 +90,5 @@ export interface BoundaryOptions {
 
 // 添加默认导出
 export default {
-  BoundaryLevel
+  BoundaryLevel,
 };

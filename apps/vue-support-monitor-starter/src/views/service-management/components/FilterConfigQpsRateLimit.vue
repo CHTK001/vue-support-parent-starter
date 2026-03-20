@@ -15,16 +15,16 @@
           基础配置
         </h4>
         <div class="config-grid">
-          <el-form-item label="启用状态">
-            <el-switch v-model="config.enabled" />
-          </el-form-item>
-          <el-form-item label="限流器类型">
-            <el-select v-model="config.limiterType" style="width: 150px">
-              <el-option label="令牌桶" value="token" />
-              <el-option label="滑动窗口" value="sliding" />
-              <el-option label="Guava限流" value="guava" />
-            </el-select>
-          </el-form-item>
+          <ScFormItem label="启用状态">
+            <ScSwitch v-model="config.enabled" />
+          </ScFormItem>
+          <ScFormItem label="限流器类型">
+            <ScSelect v-model="config.limiterType" style="width: 150px">
+              <ScOption label="令牌桶" value="token" />
+              <ScOption label="滑动窗口" value="sliding" />
+              <ScOption label="Guava限流" value="guava" />
+            </ScSelect>
+          </ScFormItem>
         </div>
       </div>
 
@@ -35,29 +35,29 @@
           限流阈值
         </h4>
         <div class="config-grid">
-          <el-form-item label="阈值">
-            <el-input-number
+          <ScFormItem label="阈值">
+            <ScInputNumber
               v-model="config.threshold"
               :min="1"
               :max="100000"
               style="width: 150px"
             />
-          </el-form-item>
-          <el-form-item label="时间单位">
-            <el-select v-model="config.timeUnit" style="width: 150px">
-              <el-option label="每秒 (QPS)" value="SECOND" />
-              <el-option label="每分钟 (QPM)" value="MINUTE" />
-              <el-option label="每小时 (QPH)" value="HOUR" />
-              <el-option label="每天 (QPD)" value="DAY" />
-            </el-select>
-          </el-form-item>
+          </ScFormItem>
+          <ScFormItem label="时间单位">
+            <ScSelect v-model="config.timeUnit" style="width: 150px">
+              <ScOption label="每秒 (QPS)" value="SECOND" />
+              <ScOption label="每分钟 (QPM)" value="MINUTE" />
+              <ScOption label="每小时 (QPH)" value="HOUR" />
+              <ScOption label="每天 (QPD)" value="DAY" />
+            </ScSelect>
+          </ScFormItem>
         </div>
         <div class="threshold-display">
-          <el-tag type="info">
+          <ScTag type="info">
             当前配置: {{ config.threshold }} 请求/{{
               getTimeUnitText(config.timeUnit)
             }}
-          </el-tag>
+          </ScTag>
         </div>
       </div>
 
@@ -68,40 +68,40 @@
           拒绝策略
         </h4>
         <div class="config-grid">
-          <el-form-item label="策略类型">
-            <el-radio-group v-model="config.rejectStrategy">
-              <el-radio value="LIMIT">限流惩罚</el-radio>
-              <el-radio value="BLACKLIST">加入黑名单</el-radio>
-            </el-radio-group>
-          </el-form-item>
+          <ScFormItem label="策略类型">
+            <ScRadioGroup v-model="config.rejectStrategy">
+              <ScRadio value="LIMIT">限流惩罚</ScRadio>
+              <ScRadio value="BLACKLIST">加入黑名单</ScRadio>
+            </ScRadioGroup>
+          </ScFormItem>
         </div>
 
         <!-- 惩罚配置 -->
         <div class="penalty-config">
           <div class="config-grid">
-            <el-form-item label="惩罚时长">
-              <el-input
+            <ScFormItem label="惩罚时长">
+              <ScInput
                 v-model="config.penaltyDuration"
                 placeholder="例如: 30S, 5MIN, 1H"
                 style="width: 150px"
               />
-            </el-form-item>
-            <el-form-item label="永久惩罚">
-              <el-switch v-model="config.penaltyPermanent" />
-            </el-form-item>
+            </ScFormItem>
+            <ScFormItem label="永久惩罚">
+              <ScSwitch v-model="config.penaltyPermanent" />
+            </ScFormItem>
           </div>
-          <el-form-item
+          <ScFormItem
             v-if="config.rejectStrategy === 'LIMIT'"
             label="惩罚阈值"
           >
-            <el-input-number
+            <ScInputNumber
               v-model="config.penaltyThreshold"
               :min="1"
               :max="100000"
               placeholder="留空则与阈值相同"
               style="width: 150px"
             />
-          </el-form-item>
+          </ScFormItem>
         </div>
       </div>
 
@@ -116,7 +116,7 @@
         <div class="ip-list-config">
           <h5>白名单 IP</h5>
           <div class="ip-tags">
-            <el-tag
+            <ScTag
               v-for="ip in config.whitelistIps"
               :key="ip"
               closable
@@ -124,19 +124,19 @@
               @close="removeFromWhitelist(ip)"
             >
               {{ ip }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="add-ip">
-            <el-input
+            <ScInput
               v-model="newWhitelistIp"
               placeholder="输入IP地址或CIDR"
               style="width: 200px"
               @keyup.enter="addToWhitelist"
             />
-            <el-button type="success" @click="addToWhitelist">
+            <ScButton type="success" @click="addToWhitelist">
               <IconifyIconOnline icon="ri:add-line" />
               添加
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -144,7 +144,7 @@
         <div class="ip-list-config">
           <h5>黑名单 IP</h5>
           <div class="ip-tags">
-            <el-tag
+            <ScTag
               v-for="ip in config.blacklistIps"
               :key="ip"
               closable
@@ -152,19 +152,19 @@
               @close="removeFromBlacklist(ip)"
             >
               {{ ip }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="add-ip">
-            <el-input
+            <ScInput
               v-model="newBlacklistIp"
               placeholder="输入IP地址或CIDR"
               style="width: 200px"
               @keyup.enter="addToBlacklist"
             />
-            <el-button type="danger" @click="addToBlacklist">
+            <ScButton type="danger" @click="addToBlacklist">
               <IconifyIconOnline icon="ri:add-line" />
               添加
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -175,18 +175,18 @@
           <IconifyIconOnline icon="ri:eye-line" />
           配置预览
         </h4>
-        <el-card class="config-preview thin-scrollbar">
+        <ScCard class="config-preview thin-scrollbar">
           <pre>{{ JSON.stringify(config, null, 2) }}</pre>
-        </el-card>
+        </ScCard>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave">
           保存配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

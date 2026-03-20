@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <el-form
+    <ScForm
       ref="formRef"
       :model="form"
       :rules="rules"
@@ -35,8 +35,8 @@
       class="cert-form"
     >
       <!-- ACME 账户 -->
-      <el-form-item label="ACME账户" prop="acmeAccountId">
-        <el-select
+      <ScFormItem label="ACME账户" prop="acmeAccountId">
+        <ScSelect
           v-model="form.acmeAccountId"
           placeholder="请选择ACME账户"
           style="width: 100%"
@@ -45,33 +45,33 @@
             accountList.length === 0 ? '暂无账户，请先创建' : '无数据'
           "
         >
-          <el-option
+          <ScOption
             v-for="item in accountList"
             :key="item.acmeAccountId"
             :label="item.acmeAccountEmail"
             :value="item.acmeAccountId"
           >
             <div class="account-option">
-              <el-tag size="small" type="primary" effect="plain">
+              <ScTag size="small" type="primary" effect="plain">
                 {{ getServerName(item.acmeAccountServer) }}
-              </el-tag>
+              </ScTag>
               <span class="account-email">{{ item.acmeAccountEmail }}</span>
             </div>
-          </el-option>
-        </el-select>
+          </ScOption>
+        </ScSelect>
         <div class="field-desc">
           <IconifyIconOnline icon="mdi:information-outline" />
           <span>ACME账户用于与证书颁发机构通信，如 Let's Encrypt</span>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 主域名 -->
-      <el-form-item label="主域名" prop="primaryDomain">
-        <el-input v-model="form.primaryDomain" placeholder="example.com">
+      <ScFormItem label="主域名" prop="primaryDomain">
+        <ScInput v-model="form.primaryDomain" placeholder="example.com">
           <template #prefix>
             <IconifyIconOnline icon="mdi:web" />
           </template>
-        </el-input>
+        </ScInput>
         <div class="field-desc">
           <IconifyIconOnline icon="mdi:information-outline" />
           <span>
@@ -80,11 +80,11 @@
             <code>*.example.com</code>（泛域名）
           </span>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 备用域名 -->
-      <el-form-item label="备用域名">
-        <el-select
+      <ScFormItem label="备用域名">
+        <ScSelect
           v-model="form.sanDomains"
           multiple
           filterable
@@ -101,10 +101,10 @@
             <code>api.example.com</code>
           </span>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 验证类型 -->
-      <el-form-item label="验证类型" prop="challengeType">
+      <ScFormItem label="验证类型" prop="challengeType">
         <ScSelect
           v-model="form.challengeType"
           layout="card"
@@ -130,19 +130,19 @@
             </div>
           </template>
         </ScSelect>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- 部署模式（仅 HTTP-01 时显示） -->
-      <el-form-item
+      <ScFormItem
         v-if="form.challengeType === 'HTTP-01'"
         label="部署模式"
         prop="deployMode"
       >
-        <el-radio-group v-model="form.deployMode">
-          <el-radio value="local">本机部署</el-radio>
-          <el-radio value="ssh">远程部署 (SSH)</el-radio>
-          <el-radio value="manual">手动部署</el-radio>
-        </el-radio-group>
+        <ScRadioGroup v-model="form.deployMode">
+          <ScRadio value="local">本机部署</ScRadio>
+          <ScRadio value="ssh">远程部署 (SSH)</ScRadio>
+          <ScRadio value="manual">手动部署</ScRadio>
+        </ScRadioGroup>
         <div class="field-desc">
           <IconifyIconOnline icon="mdi:information-outline" />
           <span v-if="form.deployMode === 'local'"
@@ -153,7 +153,7 @@
           >
           <span v-else>手动部署：查看验证信息后自行配置</span>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
       <!-- SSH 配置（仅 SSH 模式时显示） -->
       <div
@@ -164,43 +164,43 @@
           <IconifyIconOnline icon="mdi:server" />
           <span>SSH 连接配置</span>
         </div>
-        <el-row :gutter="12">
-          <el-col :span="16">
-            <el-form-item label="服务器地址" prop="sshHost">
-              <el-input
+        <ScRow :gutter="12">
+          <ScCol :span="16">
+            <ScFormItem label="服务器地址" prop="sshHost">
+              <ScInput
                 v-model="form.sshHost"
                 placeholder="域名指向的服务器 IP"
               >
                 <template #prefix>
                   <IconifyIconOnline icon="mdi:server" />
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="端口" prop="sshPort">
-              <el-input-number
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="8">
+            <ScFormItem label="端口" prop="sshPort">
+              <ScInputNumber
                 v-model="form.sshPort"
                 :min="1"
                 :max="65535"
                 style="width: 100%"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="用户名" prop="sshUsername">
-              <el-input v-model="form.sshUsername" placeholder="root">
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="12">
+          <ScCol :span="12">
+            <ScFormItem label="用户名" prop="sshUsername">
+              <ScInput v-model="form.sshUsername" placeholder="root">
                 <template #prefix>
                   <IconifyIconOnline icon="mdi:account" />
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="密码" prop="sshPassword">
-              <el-input
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="密码" prop="sshPassword">
+              <ScInput
                 v-model="form.sshPassword"
                 type="password"
                 show-password
@@ -209,16 +209,16 @@
                 <template #prefix>
                   <IconifyIconOnline icon="mdi:lock" />
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="Webroot 路径" prop="webrootPath">
-          <el-input v-model="form.webrootPath" placeholder="/var/www/html">
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScFormItem label="Webroot 路径" prop="webrootPath">
+          <ScInput v-model="form.webrootPath" placeholder="/var/www/html">
             <template #prefix>
               <IconifyIconOnline icon="mdi:folder" />
             </template>
-          </el-input>
+          </ScInput>
           <div class="field-desc">
             <IconifyIconOnline icon="mdi:information-outline" />
             <span
@@ -226,16 +226,16 @@
               <code>/.well-known/acme-challenge/</code> 文件</span
             >
           </div>
-        </el-form-item>
+        </ScFormItem>
         <!-- Nginx 配置参考 -->
         <div class="nginx-config-tip">
           <div class="tip-header">
             <IconifyIconOnline icon="mdi:lightbulb" />
             <span>Nginx 配置参考</span>
-            <el-button size="small" text @click="copyNginxConfig">
+            <ScButton size="small" text @click="copyNginxConfig">
               <IconifyIconOnline icon="mdi:content-copy" />
               复制
-            </el-button>
+            </ScButton>
           </div>
           <pre class="nginx-code">
 location /.well-known/acme-challenge/ {
@@ -333,22 +333,22 @@ location /.well-known/acme-challenge/ {
           </div>
         </template>
       </div>
-    </el-form>
+    </ScForm>
 
     <template #footer>
       <div v-if="!submitSuccess" class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+        <ScButton @click="dialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="submitting" @click="handleSubmit">
           <IconifyIconOnline icon="mdi:certificate" class="mr-1" />
           提交申请
-        </el-button>
+        </ScButton>
       </div>
       <div v-else class="dialog-footer success-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" @click="handleViewCert">
+        <ScButton @click="handleClose">关闭</ScButton>
+        <ScButton type="primary" @click="handleViewCert">
           <IconifyIconOnline icon="mdi:eye-outline" class="mr-1" />
           查看证书
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>
@@ -358,7 +358,7 @@ location /.well-known/acme-challenge/ {
 import { ref, reactive, computed, watch, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { type FormInstance, type FormRules } from "element-plus";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import { ScSelect } from "@repo/components"
 import {
   getAccountList,
   applyCert,

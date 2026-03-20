@@ -6,7 +6,17 @@ import { useMultiTagsStore } from "@repo/core";
 import type { StorageLayout } from "../types/theme";
 
 /** 布局类型 */
+<<<<<<< HEAD
 type LayoutType = "vertical" | "horizontal" | "mix" | "hover" | "double" | "drawer" | "mobile";
+=======
+type LayoutType =
+  | "vertical"
+  | "horizontal"
+  | "mix"
+  | "hover"
+  | "double"
+  | "mobile";
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
 export function useLayout() {
   const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
@@ -59,9 +69,22 @@ export function useLayout() {
   /** 清空缓存后从Platform-config.json读取默认配置并赋值到storage中 */
   const layout = computed<LayoutType>(() => {
     const fallbackLayout: LayoutType = "vertical";
+<<<<<<< HEAD
     const validLayouts: LayoutType[] = ["vertical", "horizontal", "mix", "hover", "double", "drawer", "mobile"];
+=======
+    const validLayouts: LayoutType[] = [
+      "vertical",
+      "horizontal",
+      "mix",
+      "hover",
+      "double",
+      "mobile",
+    ];
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
-    const rawLayout = ($storage?.layout?.layout || $config?.Layout) as string | undefined;
+    const rawLayout = ($storage?.layout?.layout || $config?.Layout) as
+      | string
+      | undefined;
     if (rawLayout && (validLayouts as string[]).includes(rawLayout)) {
       return rawLayout as LayoutType;
     }

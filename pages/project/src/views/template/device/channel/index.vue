@@ -128,7 +128,7 @@ const handleSaveIntoList = async () => {
     // 更新现有通道
     const index = form.channelList.findIndex(
       (item) =>
-        item.sysDeviceChannelId === selectedItem.value.sysDeviceChannelId
+        item.sysDeviceChannelId === selectedItem.value.sysDeviceChannelId,
     );
     if (index !== -1) {
       form.channelList[index] = _.cloneDeep(selectedItem.value);
@@ -204,7 +204,7 @@ defineExpose({
         >
           <div class="section-header">
             <h3 class="section-title">通道列表</h3>
-            <ScButton 
+            <ScButton
               type="primary"
               size="small"
               class="add-button"
@@ -222,7 +222,7 @@ defineExpose({
               class="channel-card-wrapper"
               @click="handleClickItem(item)"
             >
-              <ScCard 
+              <ScCard
                 :class="{
                   'is-selected':
                     selectedItem.sysDeviceChannelId === item.sysDeviceChannelId,
@@ -234,7 +234,7 @@ defineExpose({
                     {{ item.sysDeviceChannelName || "未命名通道" }}
                   </div>
                   <div class="channel-info">
-                    <ScTag 
+                    <ScTag
                       size="small"
                       :type="
                         item.sysDeviceChannelStatus === 1 ? 'success' : 'danger'
@@ -243,7 +243,7 @@ defineExpose({
                       {{
                         channelStatusList.find(
                           (status) =>
-                            status.value === item.sysDeviceChannelStatus
+                            status.value === item.sysDeviceChannelStatus,
                         )?.label || "未知"
                       }}
                     </ScTag>
@@ -252,7 +252,7 @@ defineExpose({
                     }}</span>
                   </div>
                 </div>
-                <ScButton 
+                <ScButton
                   class="delete-btn"
                   type="danger"
                   size="small"
@@ -290,13 +290,13 @@ defineExpose({
             </ScButton>
           </div>
 
-          <ScForm 
+          <ScForm
             :model="selectedItem"
             label-position="top"
             class="detail-form"
           >
             <ScFormItem label="通道编码">
-              <ScInput 
+              <ScInput
                 v-model="selectedItem.sysDeviceChannelId"
                 placeholder="系统自动生成"
                 disabled
@@ -304,33 +304,33 @@ defineExpose({
             </ScFormItem>
 
             <ScFormItem label="通道名称" required>
-              <ScInput 
+              <ScInput
                 v-model="selectedItem.sysDeviceChannelName"
                 placeholder="请输入通道名称"
               ></ScInput>
             </ScFormItem>
 
             <ScFormItem label="通道号">
-              <ScInput 
+              <ScInput
                 v-model="selectedItem.sysDeviceChannelNo"
                 placeholder="请输入通道号"
               ></ScInput>
             </ScFormItem>
 
             <ScFormItem label="通道类型">
-              <ScInput 
+              <ScInput
                 v-model="selectedItem.sysDeviceChannelType"
                 placeholder="请输入通道类型"
               ></ScInput>
             </ScFormItem>
 
             <ScFormItem label="通道状态">
-              <ScSelect 
+              <ScSelect
                 v-model="selectedItem.sysDeviceChannelStatus"
                 placeholder="请选择通道状态"
                 class="w-full"
               >
-                <ScOption 
+                <ScOption
                   v-for="item in channelStatusList"
                   :key="item.value"
                   :label="item.label"

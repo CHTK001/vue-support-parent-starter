@@ -7,7 +7,7 @@
     @close="handleClose"
   >
     <div class="form-container">
-      <el-form
+      <ScForm
         ref="formRef"
         :model="formData"
         :rules="formRules"
@@ -15,9 +15,9 @@
         label-position="right"
         class="server-form"
       >
-        <el-row :gutter="24">
+        <ScRow :gutter="24">
           <!-- 左列：基本信息 -->
-          <el-col :span="12">
+          <ScCol :span="12">
             <div class="form-section">
               <div class="section-header">
                 <IconifyIconOnline
@@ -27,8 +27,8 @@
                 <span class="section-title">基本信息</span>
               </div>
               <div class="section-content">
-                <el-form-item label="服务名称" prop="systemServerName">
-                  <el-input
+                <ScFormItem label="服务名称" prop="systemServerName">
+                  <ScInput
                     v-model="formData.systemServerName"
                     placeholder="请输入服务名称"
                     clearable
@@ -36,16 +36,16 @@
                     <template #prefix>
                       <IconifyIconOnline icon="ri:server-line" />
                     </template>
-                  </el-input>
-                </el-form-item>
+                  </ScInput>
+                </ScFormItem>
 
-                <el-form-item label="服务类型" prop="systemServerType">
-                  <el-select
+                <ScFormItem label="服务类型" prop="systemServerType">
+                  <ScSelect
                     v-model="formData.systemServerType"
                     placeholder="请选择服务类型"
                     style="width: 100%"
                   >
-                    <el-option
+                    <ScOption
                       v-for="item in serverTypes"
                       :key="item.name"
                       :label="
@@ -55,11 +55,11 @@
                       "
                       :value="item.name"
                     />
-                  </el-select>
-                </el-form-item>
+                  </ScSelect>
+                </ScFormItem>
 
-                <el-form-item label="服务主机">
-                  <el-input
+                <ScFormItem label="服务主机">
+                  <ScInput
                     v-model="formData.systemServerHost"
                     placeholder="请输入服务主机"
                     clearable
@@ -67,11 +67,11 @@
                     <template #prefix>
                       <IconifyIconOnline icon="ri:global-line" />
                     </template>
-                  </el-input>
-                </el-form-item>
+                  </ScInput>
+                </ScFormItem>
 
-                <el-form-item label="服务端口" prop="systemServerPort">
-                  <el-input-number
+                <ScFormItem label="服务端口" prop="systemServerPort">
+                  <ScInputNumber
                     v-model="formData.systemServerPort"
                     :min="1"
                     :max="65535"
@@ -85,10 +85,10 @@
                   >
                     {{ portCheckMessage }}
                   </div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="上下文路径" prop="systemServerContextPath">
-                  <el-input
+                <ScFormItem label="上下文路径" prop="systemServerContextPath">
+                  <ScInput
                     v-model="formData.systemServerContextPath"
                     placeholder="如: /api"
                     style="width: 100%"
@@ -96,14 +96,14 @@
                     <template #prefix>
                       <IconifyIconOnline icon="ri:link" />
                     </template>
-                  </el-input>
-                </el-form-item>
+                  </ScInput>
+                </ScFormItem>
               </div>
             </div>
-          </el-col>
+          </ScCol>
 
           <!-- 右列：高级配置 -->
-          <el-col :span="12">
+          <ScCol :span="12">
             <div class="form-section">
               <div class="section-header">
                 <IconifyIconOnline
@@ -113,11 +113,11 @@
                 <span class="section-title">高级配置</span>
               </div>
               <div class="section-content">
-                <el-form-item
+                <ScFormItem
                   label="最大连接数"
                   prop="systemServerMaxConnections"
                 >
-                  <el-input-number
+                  <ScInputNumber
                     v-model="formData.systemServerMaxConnections"
                     :min="1"
                     :max="10000"
@@ -125,10 +125,10 @@
                     style="width: 100%"
                   />
                   <div class="form-tip">最大并发连接数限制</div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="超时时间" prop="systemServerTimeout">
-                  <el-input-number
+                <ScFormItem label="超时时间" prop="systemServerTimeout">
+                  <ScInputNumber
                     v-model="formData.systemServerTimeout"
                     :min="1"
                     :max="3600"
@@ -136,11 +136,11 @@
                     style="width: 100%"
                   />
                   <div class="form-tip">连接超时时间（秒）</div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="自动启动">
+                <ScFormItem label="自动启动">
                   <div class="switch-wrapper">
-                    <el-switch
+                    <ScSwitch
                       v-model="formData.systemServerAutoStart"
                       inline-prompt
                       active-text="开"
@@ -148,30 +148,30 @@
                     />
                     <span class="switch-label">系统启动时自动启动服务</span>
                   </div>
-                </el-form-item>
+                </ScFormItem>
 
-                <el-form-item label="服务描述" prop="systemServerDescription">
-                  <el-input
+                <ScFormItem label="服务描述" prop="systemServerDescription">
+                  <ScInput
                     v-model="formData.systemServerDescription"
                     type="textarea"
                     :rows="4"
                     placeholder="请输入服务描述信息"
                   />
-                </el-form-item>
+                </ScFormItem>
               </div>
             </div>
-          </el-col>
-        </el-row>
-      </el-form>
+          </ScCol>
+        </ScRow>
+      </ScForm>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button class="cancel-btn" @click="handleClose">
+        <ScButton class="cancel-btn" @click="handleClose">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           取消
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="primary"
           :loading="loading"
           class="submit-btn"
@@ -182,7 +182,7 @@
             class="mr-1"
           />
           {{ isEdit ? "保存" : "创建" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

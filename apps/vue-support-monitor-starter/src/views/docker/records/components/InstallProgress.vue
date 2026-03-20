@@ -3,18 +3,18 @@
     <!-- 进度头部 -->
     <div class="progress-header">
       <div class="progress-title">
-        <el-icon :size="20" class="title-icon">
+        <ScIcon :size="20" class="title-icon">
           <Download v-if="status === 'downloading'" />
           <Loading v-else-if="status === 'installing'" />
           <SuccessFilled v-else-if="status === 'completed'" />
           <CircleCloseFilled v-else-if="status === 'failed'" />
           <Clock v-else />
-        </el-icon>
+        </ScIcon>
         <span class="title-text">{{ getStatusText() }}</span>
       </div>
 
       <div class="progress-actions">
-        <el-button
+        <ScButton
           v-if="canCancel"
           size="small"
           type="danger"
@@ -22,9 +22,9 @@
           @click="handleCancel"
         >
           取消
-        </el-button>
+        </ScButton>
 
-        <el-button
+        <ScButton
           v-if="canRetry"
           size="small"
           type="primary"
@@ -32,11 +32,11 @@
           @click="handleRetry"
         >
           重试
-        </el-button>
+        </ScButton>
 
-        <el-button v-if="canClose" size="small" text @click="handleClose">
+        <ScButton v-if="canClose" size="small" text @click="handleClose">
           关闭
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -49,17 +49,17 @@
 
       <div class="software-details">
         <span class="detail-item">
-          <el-icon><Files /></el-icon>
+          <ScIcon><Files /></ScIcon>
           {{ formatBytes(softwareInfo.size || 0) }}
         </span>
 
         <span v-if="softwareInfo.category" class="detail-item">
-          <el-icon><Collection /></el-icon>
+          <ScIcon><Collection /></ScIcon>
           {{ softwareInfo.category }}
         </span>
 
         <span v-if="estimatedTime" class="detail-item">
-          <el-icon><Timer /></el-icon>
+          <ScIcon><Timer /></ScIcon>
           预计 {{ estimatedTime }}
         </span>
       </div>
@@ -72,7 +72,7 @@
         <span class="progress-percentage">{{ Math.round(progress) }}%</span>
       </div>
 
-      <el-progress
+      <ScProgress
         :percentage="progress"
         :status="getProgressStatus()"
         :stroke-width="12"
@@ -94,15 +94,15 @@
         }"
       >
         <div class="step-icon">
-          <el-icon v-if="step.status === 'completed'">
+          <ScIcon v-if="step.status === 'completed'">
             <SuccessFilled />
-          </el-icon>
-          <el-icon v-else-if="step.status === 'failed'">
+          </ScIcon>
+          <ScIcon v-else-if="step.status === 'failed'">
             <CircleCloseFilled />
-          </el-icon>
-          <el-icon v-else-if="step.status === 'running'">
+          </ScIcon>
+          <ScIcon v-else-if="step.status === 'running'">
             <Loading />
-          </el-icon>
+          </ScIcon>
           <span v-else class="step-number">{{ index + 1 }}</span>
         </div>
 
@@ -113,7 +113,7 @@
           </div>
 
           <div v-if="step.progress !== undefined" class="step-progress">
-            <el-progress
+            <ScProgress
               :percentage="step.progress"
               :stroke-width="4"
               :show-text="false"
@@ -157,7 +157,7 @@
     <div v-if="showLogs && logs.length > 0" class="progress-logs">
       <div class="logs-header">
         <span class="logs-title">安装日志</span>
-        <el-button size="small" text @click="clearLogs"> 清空 </el-button>
+        <ScButton size="small" text @click="clearLogs"> 清空 </ScButton>
       </div>
 
       <div ref="logsContainer" class="logs-content">
@@ -176,7 +176,7 @@
 
     <!-- 错误信息 -->
     <div v-if="error" class="progress-error">
-      <el-alert
+      <ScAlert
         :title="error.title || '安装失败'"
         :description="error.message"
         type="error"
@@ -185,14 +185,14 @@
       >
         <template v-if="error.details" #default>
           <div class="error-details">
-            <el-collapse>
-              <el-collapse-item title="错误详情">
+            <ScCollapse>
+              <ScCollapseItem title="错误详情">
                 <pre class="error-stack">{{ error.details }}</pre>
-              </el-collapse-item>
-            </el-collapse>
+              </ScCollapseItem>
+            </ScCollapse>
           </div>
         </template>
-      </el-alert>
+      </ScAlert>
     </div>
   </div>
 </template>

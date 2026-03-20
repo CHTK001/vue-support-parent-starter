@@ -26,7 +26,12 @@ export const CATEGORY_TEMPLATE = [
   },
 ];
 
-export const DEFAULT_TEMPLATE_RESOLUTION = ["1024*1024", "1440*720", "1248*832", "1072*1424"];
+export const DEFAULT_TEMPLATE_RESOLUTION = [
+  "1024*1024",
+  "1440*720",
+  "1248*832",
+  "1072*1424",
+];
 export const DEFAULT_TEMPLATE_PROMPT = [
   "小男孩在树林里玩耍",
   "两只北极熊在冰川上温馨地交谈",
@@ -63,7 +68,13 @@ export const CREATIVE_TEMPLATE = [
     cover: "https://wanx.alicdn.com/model/sigemanhua.png",
     category: "combining_images",
     triggerWord: "",
-    recommendPrompt: ["小男孩在树林里玩耍", "两只北极熊在冰川上温馨地交谈", "猫咪试图偷吃鱼，却被主人及时抓住", "机器人好奇地涂上睫毛膏，结果短路烧焦。", "小狗追逐蝴蝶，结果一头撞上大树"],
+    recommendPrompt: [
+      "小男孩在树林里玩耍",
+      "两只北极熊在冰川上温馨地交谈",
+      "猫咪试图偷吃鱼，却被主人及时抓住",
+      "机器人好奇地涂上睫毛膏，结果短路烧焦。",
+      "小狗追逐蝴蝶，结果一头撞上大树",
+    ],
     trainModel: "wanx2.1-t2i-plus",
     sort: 1,
     template: "sigemanhua",
@@ -77,7 +88,13 @@ export const CREATIVE_TEMPLATE = [
     cover: "https://wanx.alicdn.com/model/qinglvtouxiang.png",
     category: "combining_images",
     triggerWord: "",
-    recommendPrompt: ["针织娃娃相对而望，甜蜜的情侣头像", "一对白色毛毡小鸟站在树枝上，轻声细语", "一对情侣戴动物帽子相互微笑，黄色卡通背景", "两只毛毡小狗在绿草地上欢快地追逐嬉戏", "一对白兔子耳朵缠绕在一起，构成情侣头像"],
+    recommendPrompt: [
+      "针织娃娃相对而望，甜蜜的情侣头像",
+      "一对白色毛毡小鸟站在树枝上，轻声细语",
+      "一对情侣戴动物帽子相互微笑，黄色卡通背景",
+      "两只毛毡小狗在绿草地上欢快地追逐嬉戏",
+      "一对白兔子耳朵缠绕在一起，构成情侣头像",
+    ],
     trainModel: "wanx2.1-t2i-plus",
     sort: 2,
     template: "qinglvtouxiang",
@@ -91,7 +108,13 @@ export const CREATIVE_TEMPLATE = [
     cover: "https://wanx.alicdn.com/model/tubiaoyinhua.png",
     category: "combining_images",
     triggerWord: "",
-    recommendPrompt: ["面包店的菱形logo应用在招牌上", "健身房的logo设计应用于健身T恤", "花店的logo展示在漂亮的橱窗中", "茶馆的logo应用在精美的茶杯上", "服装店的logo别致地印在衣物标签上"],
+    recommendPrompt: [
+      "面包店的菱形logo应用在招牌上",
+      "健身房的logo设计应用于健身T恤",
+      "花店的logo展示在漂亮的橱窗中",
+      "茶馆的logo应用在精美的茶杯上",
+      "服装店的logo别致地印在衣物标签上",
+    ],
     trainModel: "wanx2.1-t2i-plus",
     sort: 3,
     template: "tubiaoyinhua",
@@ -105,7 +128,13 @@ export const CREATIVE_TEMPLATE = [
     cover: "https://wanx.alicdn.com/model/dianyingfenjing.png",
     category: "combining_images",
     triggerWord: "",
-    recommendPrompt: ["两个人在雪地里一起堆雪人，欢乐无比。", "蒙古草原上的骏马飞驰，场景壮丽。", "圣诞老人点燃烟花，场面充满欢乐。", "火箭从发射升空，壮观地进入太空。", "两人在篝火旁载歌载舞，气氛热烈。"],
+    recommendPrompt: [
+      "两个人在雪地里一起堆雪人，欢乐无比。",
+      "蒙古草原上的骏马飞驰，场景壮丽。",
+      "圣诞老人点燃烟花，场面充满欢乐。",
+      "火箭从发射升空，壮观地进入太空。",
+      "两人在篝火旁载歌载舞，气氛热烈。",
+    ],
     trainModel: "wanx2.1-t2i-plus",
     sort: 4,
     template: "dianyingfenjing",
@@ -119,7 +148,13 @@ export const CREATIVE_TEMPLATE = [
     cover: "https://wanx.alicdn.com/model/qingshen.png",
     category: "style",
     triggerWord: "请神风格，汉服",
-    recommendPrompt: ["一个女人，双手托着笔记本电脑", "一个女孩捧着鲜花", "一个女孩拿着一杯珍珠奶茶", "一个女孩拿着红包", "一个女孩捧着榴莲，背景里飘着榴莲"],
+    recommendPrompt: [
+      "一个女人，双手托着笔记本电脑",
+      "一个女孩捧着鲜花",
+      "一个女孩拿着一杯珍珠奶茶",
+      "一个女孩拿着红包",
+      "一个女孩捧着榴莲，背景里飘着榴莲",
+    ],
     trainModel: "wanx2.1-t2i-plus",
     sort: 200,
     template: "qingshen",

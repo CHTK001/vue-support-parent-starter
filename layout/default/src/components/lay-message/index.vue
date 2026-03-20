@@ -379,7 +379,7 @@ onUnmounted(() => {
 
 <template>
   <div v-if="messageEnabled">
-    <el-dropdown
+    <ScDropdown
       ref="dropdownRef"
       trigger="click"
       :placement="dropdownPlacement"
@@ -413,7 +413,7 @@ onUnmounted(() => {
 
           <!-- 消息列表 -->
           <div class="panel-body">
-            <el-scrollbar max-height="320px">
+            <ScScrollbar max-height="320px">
               <div v-if="loading" class="loading-wrapper">
                 <ScIcon class="is-loading"
                   ><IconifyIconOnline icon="ri:loader-4-line"
@@ -446,7 +446,7 @@ onUnmounted(() => {
                   <span v-if="!msg.read" class="unread-dot"></span>
                 </div>
               </div>
-            </el-scrollbar>
+            </ScScrollbar>
           </div>
 
           <!-- 底部 -->
@@ -459,7 +459,7 @@ onUnmounted(() => {
           </div>
         </div>
       </template>
-    </el-dropdown>
+    </ScDropdown>
 
     <!-- 消息中心 Drawer - 使用 Teleport 避免父元素堆叠上下文限制 -->
     <Teleport to="body">
@@ -518,7 +518,7 @@ onUnmounted(() => {
         </div>
 
         <!-- 消息列表 -->
-        <el-scrollbar class="drawer-content">
+        <ScScrollbar class="drawer-content">
           <ScEmpty
             v-if="filteredMessages.length === 0"
             description="暂无消息"
@@ -566,7 +566,7 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-        </el-scrollbar>
+        </ScScrollbar>
       </sc-drawer>
     </Teleport>
 

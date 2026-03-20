@@ -64,13 +64,13 @@ function handleClick(event: Event) {
     }
     return;
   }
-  
+
   // 普通菜单点击：直接跳转路由，由路由守卫统一处理 tag 添加
   if (!isExternalLink.value && "meta" in props.to && "name" in props.to) {
     event.preventDefault();
-    
+
     const menuItem = props.to as MenuType;
-    
+
     // 直接跳转路由
     if (menuItem.name) {
       router.push({ name: menuItem.name });

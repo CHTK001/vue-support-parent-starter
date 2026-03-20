@@ -1,13 +1,13 @@
 ﻿<template>
   <div class="page-container">
     <!-- 容器 QPS 统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col v-for="container in containerStats" :key="container.type" :span="6">
-        <el-card class="stat-card" :class="{ 'current-container': container.type === currentContainer }" shadow="hover">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol v-for="container in containerStats" :key="container.type" :span="6">
+        <ScCard class="stat-card" :class="{ 'current-container': container.type === currentContainer }" shadow="hover">
           <div class="stat-header">
             <IconifyIconOnline :icon="container.icon" class="stat-icon" />
             <span class="stat-label">{{ container.label }}</span>
-            <el-tag v-if="container.type === currentContainer" type="success" size="small" effect="dark" class="current-tag">当前容器</el-tag>
+            <ScTag v-if="container.type === currentContainer" type="success" size="small" effect="dark" class="current-tag">当前容器</ScTag>
           </div>
           <div class="stat-content">
             <div class="stat-item">
@@ -25,38 +25,38 @@
               <span class="stat-unit">活跃连接</span>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 数据卡片 -->
-    <el-card class="modern-card table-card" shadow="hover">
+    <ScCard class="modern-card table-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
             <IconifyIconOnline icon="ri:git-branch-line" class="card-icon" />
             映射列表
-            <el-tag type="info" effect="plain" size="small" class="ml-2">{{ data.length }} 个路由</el-tag>
+            <ScTag type="info" effect="plain" size="small" class="ml-2">{{ data.length }} 个路由</ScTag>
           </span>
           <div class="header-actions">
-            <el-input v-model="searchKeyword" placeholder="搜索路由或类名..." clearable class="search-input">
+            <ScInput v-model="searchKeyword" placeholder="搜索路由或类名..." clearable class="search-input">
               <template #prefix>
                 <IconifyIconOnline icon="ep:search" />
               </template>
-            </el-input>
-            <el-button type="info" :loading="loading" @click="refreshData">
+            </ScInput>
+            <ScButton type="info" :loading="loading" @click="refreshData">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               刷新
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </template>
 
-      <el-table :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table" height="calc(100vh - 450px)">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="路由路径" min-width="220">
+      <ScTable :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table" height="calc(100vh - 450px)">
+        <ScTableColumn prop="id" label="ID" width="80" />
+        <ScTableColumn prop="name" label="路由路径" min-width="220">
           <template #default="{ row }">
-            <el-tooltip placement="top">
+            <ScTooltip placement="top">
               <template #content>
                 <div style="max-width: 400px">
                   <div>
@@ -77,12 +77,12 @@
                 <IconifyIconOnline icon="ri:link" class="route-icon" />
                 <span class="path-text">{{ row.name }}</span>
               </div>
-            </el-tooltip>
+            </ScTooltip>
           </template>
-        </el-table-column>
-        <el-table-column prop="className" label="处理类" min-width="300">
+        </ScTableColumn>
+        <ScTableColumn prop="className" label="处理类" min-width="300">
           <template #default="{ row }">
-            <el-tooltip placement="top" :show-after="300">
+            <ScTooltip placement="top" :show-after="300">
               <template #content>
                 <div style="max-width: 500px; word-break: break-all">
                   <div>
@@ -96,44 +96,44 @@
                 </div>
               </template>
               <span class="class-name">{{ row.className }}</span>
-            </el-tooltip>
+            </ScTooltip>
           </template>
-        </el-table-column>
-        <el-table-column prop="qps" label="QPS" width="100">
+        </ScTableColumn>
+        <ScTableColumn prop="qps" label="QPS" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.qps > 0 ? 'success' : 'info'" effect="plain" size="small">
+            <ScTag :type="row.qps > 0 ? 'success' : 'info'" effect="plain" size="small">
               {{ row.qps || 0 }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="totalRequests" label="总请求" width="120">
+        </ScTableColumn>
+        <ScTableColumn prop="totalRequests" label="总请求" width="120">
           <template #default="{ row }">
             {{ formatNumber(row.totalRequests || 0) }}
           </template>
-        </el-table-column>
-        <el-table-column prop="avgDuration" label="平均耗时(ms)" width="120">
+        </ScTableColumn>
+        <ScTableColumn prop="avgDuration" label="平均耗时(ms)" width="120">
           <template #default="{ row }">
             {{ row.avgDuration ? row.avgDuration.toFixed(2) : "-" }}
           </template>
-        </el-table-column>
-        <el-table-column prop="resource" label="资源" min-width="120">
+        </ScTableColumn>
+        <ScTableColumn prop="resource" label="资源" min-width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.resource" type="info" effect="plain" size="small">
+            <ScTag v-if="row.resource" type="info" effect="plain" size="small">
               {{ row.resource }}
-            </el-tag>
+            </ScTag>
             <span v-else class="text-placeholder">-</span>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link @click="handleInfo(row)">
+            <ScButton type="primary" link @click="handleInfo(row)">
               <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
               详情
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+        </ScTableColumn>
+      </ScTable>
+    </ScCard>
 
     <!-- 详情对话框 -->
     <sc-dialog v-model="infoVisible" title="映射详情" width="60%" destroy-on-close class="modern-dialog">

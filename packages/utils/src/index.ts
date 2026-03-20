@@ -50,6 +50,7 @@ export type {
 
 // 导出会话工具
 export * from "./session";
+<<<<<<< HEAD
 
 // 导出 HTTP 工具和类型
 export { http } from "./http";
@@ -58,3 +59,5 @@ export type { ReturnResult, PageResult } from "./http";
 // 导出热力图追踪工具
 export { initHeatmap, destroyHeatmap, getHeatmapEntries, flushHeatmap } from "./heatmap";
 export type { HeatmapEntry, HeatmapEventType } from "./heatmap";
+=======
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126

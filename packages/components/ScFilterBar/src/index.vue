@@ -11,7 +11,7 @@
     <div v-if="showQuickFilters && quickFilters?.length" class="sc-filter-bar__quick">
       <span class="sc-filter-bar__quick-label">快捷筛选：</span>
       <div class="sc-filter-bar__quick-list">
-        <el-tag
+        <ScTag
           v-for="item in quickFilters"
           :key="item.key"
           :type="item.active ? 'primary' : 'info'"
@@ -21,16 +21,16 @@
         >
           <IconifyIconOnline v-if="item.icon" :icon="item.icon" />
           {{ item.label }}
-        </el-tag>
+        </ScTag>
       </div>
     </div>
 
     <!-- 筛选表单 -->
-    <el-form ref="formRef" :model="formModel" :label-width="labelWidth" :label-position="labelPosition" :size="size" :inline="layout === 'inline'" :disabled="disabled" class="sc-filter-bar__form">
+    <ScForm ref="formRef" :model="formModel" :label-width="labelWidth" :label-position="labelPosition" :size="size" :inline="layout === 'inline'" :disabled="disabled" class="sc-filter-bar__form">
       <div class="sc-filter-bar__fields" :class="fieldsClass">
         <!-- 可见字段 -->
         <template v-for="(field, index) in visibleFields" :key="field.prop">
-          <el-form-item
+          <ScFormItem
             :label="showLabel ? field.label : ''"
             :prop="field.prop"
             :rules="field.rules"
@@ -43,7 +43,7 @@
             <slot v-if="field.slot" :name="field.slot" :field="field" :value="formModel[field.prop]" :change="(val: unknown) => handleChange(field, val)" />
 
             <!-- 输入框 -->
-            <el-input
+            <ScInput
               v-else-if="field.type === 'input' || !field.type"
               v-model="formModel[field.prop]"
               :placeholder="field.placeholder || `请输入${field.label}`"
@@ -54,7 +54,7 @@
             />
 
             <!-- 选择框 -->
-            <el-select
+            <ScSelect
               v-else-if="field.type === 'select'"
               v-model="formModel[field.prop]"
               :placeholder="field.placeholder || `请选择${field.label}`"
@@ -64,11 +64,11 @@
               v-bind="field.props"
               @change="handleChange(field, $event)"
             >
-              <el-option v-for="opt in getFieldOptions(field)" :key="opt.value" :label="opt.label" :value="opt.value" :disabled="opt.disabled" />
-            </el-select>
+              <ScOption v-for="opt in getFieldOptions(field)" :key="opt.value" :label="opt.label" :value="opt.value" :disabled="opt.disabled" />
+            </ScSelect>
 
             <!-- 日期选择 -->
-            <el-date-picker
+            <ScDatePicker
               v-else-if="field.type === 'date'"
               v-model="formModel[field.prop]"
               type="date"
@@ -80,7 +80,7 @@
             />
 
             <!-- 日期范围 -->
-            <el-date-picker
+            <ScDatePicker
               v-else-if="field.type === 'daterange'"
               v-model="formModel[field.prop]"
               type="daterange"
@@ -94,7 +94,7 @@
             />
 
             <!-- 日期时间 -->
-            <el-date-picker
+            <ScDatePicker
               v-else-if="field.type === 'datetime'"
               v-model="formModel[field.prop]"
               type="datetime"
@@ -106,7 +106,7 @@
             />
 
             <!-- 日期时间范围 -->
-            <el-date-picker
+            <ScDatePicker
               v-else-if="field.type === 'datetimerange'"
               v-model="formModel[field.prop]"
               type="datetimerange"
@@ -120,7 +120,7 @@
             />
 
             <!-- 数字输入 -->
-            <el-input-number
+            <ScInputNumber
               v-else-if="field.type === 'number'"
               v-model="formModel[field.prop]"
               :placeholder="field.placeholder"
@@ -130,7 +130,7 @@
             />
 
             <!-- 级联选择 -->
-            <el-cascader
+            <ScCascader
               v-else-if="field.type === 'cascader'"
               v-model="formModel[field.prop]"
               :options="getFieldOptions(field)"
@@ -154,60 +154,60 @@
             />
 
             <!-- 开关 -->
-            <el-switch v-else-if="field.type === 'switch'" v-model="formModel[field.prop]" :disabled="field.disabled" v-bind="field.props" @change="handleChange(field, $event)" />
+            <ScSwitch v-else-if="field.type === 'switch'" v-model="formModel[field.prop]" :disabled="field.disabled" v-bind="field.props" @change="handleChange(field, $event)" />
 
             <!-- 单选 -->
-            <el-radio-group v-else-if="field.type === 'radio'" v-model="formModel[field.prop]" :disabled="field.disabled" v-bind="field.props" @change="handleChange(field, $event)">
-              <el-radio v-for="opt in getFieldOptions(field)" :key="opt.value" :value="opt.value" :disabled="opt.disabled">
+            <ScRadioGroup v-else-if="field.type === 'radio'" v-model="formModel[field.prop]" :disabled="field.disabled" v-bind="field.props" @change="handleChange(field, $event)">
+              <ScRadio v-for="opt in getFieldOptions(field)" :key="opt.value" :value="opt.value" :disabled="opt.disabled">
                 {{ opt.label }}
-              </el-radio>
-            </el-radio-group>
+              </ScRadio>
+            </ScRadioGroup>
 
             <!-- 多选 -->
-            <el-checkbox-group v-else-if="field.type === 'checkbox'" v-model="formModel[field.prop]" :disabled="field.disabled" v-bind="field.props" @change="handleChange(field, $event)">
-              <el-checkbox v-for="opt in getFieldOptions(field)" :key="opt.value" :value="opt.value" :disabled="opt.disabled">
+            <ScCheckboxGroup v-else-if="field.type === 'checkbox'" v-model="formModel[field.prop]" :disabled="field.disabled" v-bind="field.props" @change="handleChange(field, $event)">
+              <ScCheckbox v-for="opt in getFieldOptions(field)" :key="opt.value" :value="opt.value" :disabled="opt.disabled">
                 {{ opt.label }}
-              </el-checkbox>
-            </el-checkbox-group>
-          </el-form-item>
+              </ScCheckbox>
+            </ScCheckboxGroup>
+          </ScFormItem>
         </template>
 
         <!-- 操作按钮 -->
-        <el-form-item class="sc-filter-bar__actions" :class="{ 'sc-filter-bar__actions--inline': layout === 'inline' }">
+        <ScFormItem class="sc-filter-bar__actions" :class="{ 'sc-filter-bar__actions--inline': layout === 'inline' }">
           <!-- 展开/收起按钮 -->
-          <el-button v-if="showExpand && collapsedFields.length > 0" link type="primary" @click="toggleExpand">
+          <ScButton v-if="showExpand && collapsedFields.length > 0" link type="primary" @click="toggleExpand">
             <template v-if="!iconOnly">{{ isExpanded ? collapseText : expandText }}</template>
             <IconifyIconOnline :icon="isExpanded ? 'ep:arrow-up' : 'ep:arrow-down'" />
-          </el-button>
+          </ScButton>
 
           <!-- 搜索按钮 -->
           <ScTooltip v-if="showSearch" :content="searchText" :disabled="!iconOnly" placement="top">
-            <el-button type="primary" :loading="loading" :circle="iconOnly" @click="handleSearch">
+            <ScButton type="primary" :loading="loading" :circle="iconOnly" @click="handleSearch">
               <IconifyIconOnline icon="ep:search" />
               <template v-if="!iconOnly">{{ searchText }}</template>
-            </el-button>
+            </ScButton>
           </ScTooltip>
 
           <!-- 重置按钮 -->
           <ScTooltip v-if="showReset" :content="resetText" :disabled="!iconOnly" placement="top">
-            <el-button :circle="iconOnly" @click="handleReset">
+            <ScButton :circle="iconOnly" @click="handleReset">
               <IconifyIconOnline icon="ep:refresh" />
               <template v-if="!iconOnly">{{ resetText }}</template>
-            </el-button>
+            </ScButton>
           </ScTooltip>
 
           <!-- 自定义操作插槽 -->
           <slot name="actions" :values="formModel" :search="handleSearch" :reset="handleReset" />
-        </el-form-item>
+        </ScFormItem>
       </div>
-    </el-form>
+    </ScForm>
 
     <!-- 已选筛选标签 -->
     <div v-if="hasActiveFilters" class="sc-filter-bar__tags">
       <span class="sc-filter-bar__tags-label">已选条件：</span>
       <div class="sc-filter-bar__tags-list">
-        <el-tag v-for="tag in activeTags" :key="tag.prop" closable type="info" @close="handleRemoveTag(tag)">{{ tag.label }}: {{ tag.displayValue }}</el-tag>
-        <el-button v-if="activeTags.length > 1" link type="primary" @click="handleReset">清空全部</el-button>
+        <ScTag v-for="tag in activeTags" :key="tag.prop" closable type="info" @close="handleRemoveTag(tag)">{{ tag.label }}: {{ tag.displayValue }}</ScTag>
+        <ScButton v-if="activeTags.length > 1" link type="primary" @click="handleReset">清空全部</ScButton>
       </div>
     </div>
   </div>

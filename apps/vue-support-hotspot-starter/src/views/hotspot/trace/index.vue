@@ -1,66 +1,66 @@
-ï»¿<template>
+<template>
   <div class="page flex flex-col h-full">
-    <!-- ç»Ÿè®¡å¡ç‰‡ -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <!-- Í³¼Æ¿¨Æ¬ -->
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper primary">
               <IconifyIconOnline icon="ri:route-line" class="stat-icon" />
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ dataList.length }}</div>
-              <div class="stat-label">è¿½è¸ªè®°å½•</div>
+              <div class="stat-label">×·×Ù¼ÇÂ¼</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div :class="['stat-icon-wrapper', wsConnected ? 'success' : 'danger']">
               <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ wsConnected ? "å·²è¿æ¥" : "æœªè¿æ¥" }}</div>
-              <div class="stat-label">WebSocket çŠ¶æ€</div>
+              <div class="stat-value">{{ wsConnected ? "ÒÑÁ¬½Ó" : "Î´Á¬½Ó" }}</div>
+              <div class="stat-label">WebSocket ×´Ì¬</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper warning">
               <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">å®æ—¶</div>
-              <div class="stat-label">æ•°æ®æ¨é€</div>
+              <div class="stat-value">ÊµÊ±</div>
+              <div class="stat-label">Êı¾İÍÆËÍ</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper danger">
               <IconifyIconOnline icon="ri:delete-bin-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <el-button type="danger" size="small" @click="clearData">æ¸…ç©ºæ•°æ®</el-button>
-              <div class="stat-label">æ“ä½œ</div>
+              <ScButton type="danger" size="small" @click="clearData">Çå¿ÕÊı¾İ</ScButton>
+              <div class="stat-label">²Ù×÷</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
-    <!-- å†…å®¹åŒºåŸŸ -->
+    <!-- ÄÚÈİÇøÓò -->
     <div class="flex-1 overflow-hidden">
-      <el-card shadow="never" class="h-full trace-card">
+      <ScCard shadow="never" class="h-full trace-card">
         <div ref="containerRef" class="h-full overflow-auto">
-          <el-tree
+          <ScTree
             :data="dataList"
             :style="{
               height: '100%',
@@ -80,8 +80,8 @@
                         <span v-if="data.id == data.linkId">
                           <span v-if="(data.description || '').indexOf('span') > -1" v-html="data.description || data.ex" />
                           <span v-else>
-                            <el-tag>Http</el-tag>
-                            <el-tag type="primary" class="ml-1">{{ data.description || data.ex }}</el-tag>
+                            <ScTag>Http</ScTag>
+                            <ScTag type="primary" class="ml-1">{{ data.description || data.ex }}</ScTag>
                           </span>
                         </span>
                         <span v-else>
@@ -95,57 +95,57 @@
                         <span v-if="data?.timestamp" style="height: 26px">
                           {{ dateFormat(data?.timestamp * 1) }}
                         </span>
-                        è€—æ—¶:
+                        ºÄÊ±:
                         <span style="height: 26px">{{ data?.costTime }} ms</span>
-                        <el-icon class="z-[10]" @click="handleShowTrack(data)">
+                        <ScIcon class="z-[10]" @click="handleShowTrack(data)">
                           <component :is="useRenderIcon('ri:information-2-line')" />
-                        </el-icon>
+                        </ScIcon>
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
             </template>
-          </el-tree>
+          </ScTree>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
-    <!-- è¯¦æƒ…æŠ½å±‰ -->
+    <!-- ÏêÇé³éÌë -->
     <sc-drawer ref="drawerRef" v-model="config.dialogVisible" :append-to-body="true" size="60%" direction="rtl" class="trace-drawer" :destroy-on-close="true">
       <template #title>
         <span v-html="config.dialogDetailData.description" />
       </template>
       <div class="demo-drawer__content bg-transparent">
-        <el-descriptions border :column="1">
-          <el-descriptions-item label="linkId">
+        <ScDescriptions border :column="1">
+          <ScDescriptionsItem label="linkId">
             {{ config.dialogDetailData.linkId }}
-          </el-descriptions-item>
-          <el-descriptions-item v-if="config.dialogDetailData.applicationName" label="åº”ç”¨åœ°å€">
-            <el-tag>{{ config.dialogDetailData.applicationName }}</el-tag>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem v-if="config.dialogDetailData.applicationName" label="Ó¦ÓÃµØÖ·">
+            <ScTag>{{ config.dialogDetailData.applicationName }}</ScTag>
             {{ config.dialogDetailData.applicationHost }}:{{ config.dialogDetailData.applicationPort }}
-          </el-descriptions-item>
-          <el-descriptions-item label="è¿›å…¥æ–¹æ³•æ—¶é—´">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</el-descriptions-item>
-          <el-descriptions-item label="è€—æ—¶">{{ config.dialogDetailData.costTime }} ms</el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="½øÈë·½·¨Ê±¼ä">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="ºÄÊ±">{{ config.dialogDetailData.costTime }} ms</ScDescriptionsItem>
+        </ScDescriptions>
         <div v-if="config.dialogDetailData.headers && config.dialogDetailData.headers.length > 0">
           <div>header</div>
           <pre><code class="language-http">{{ config.dialogDetailData.headers?.join("\n") }}</code></pre>
         </div>
         <div v-if="config.dialogDetailData.tips && config.dialogDetailData.tips.length > 0">
-          <el-divider />
+          <ScDivider />
           <div>tips</div>
           <pre><code class="language-http"><span v-html="config.dialogDetailData.tips.join('\n')"/></code></pre>
         </div>
         <div v-if="config.dialogDetailData.category == 'SQL'">
-          <el-divider />
+          <ScDivider />
           <div>sql</div>
           <pre><code class="language-sql">{{ format(config.dialogDetailData.description) }}</code></pre>
         </div>
 
         <div v-if="config.dialogDetailData.stackTrace && config.dialogDetailData.stackTrace.length > 0">
-          <el-divider />
-          <div>å †æ ˆ</div>
+          <ScDivider />
+          <div>¶ÑÕ»</div>
           <pre><code class="language-java">{{ config.dialogDetailData.stackTrace  instanceof Array ? config.dialogDetailData.stackTrace?.join('\r\n') : config.dialogDetailData.stackTrace}}</code></pre>
         </div>
       </div>
@@ -163,7 +163,7 @@ import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import { format } from "sql-formatter";
 import { dateFormat } from "@repo/utils";
 import { nextTick, onMounted, onUnmounted, reactive, ref, computed } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { wsService } from "@/utils/websocket";
 
 const config = reactive({
@@ -180,26 +180,26 @@ const defaultProps = {
 
 let unsubscribe = null;
 
-// WebSocket è¿æ¥çŠ¶æ€
+// WebSocket Á¬½Ó×´Ì¬
 const wsConnected = computed(() => wsService.connected.value);
 
-// æ¸…ç©ºæ•°æ®
+// Çå¿ÕÊı¾İ
 const clearData = () => {
   dataList.length = 0;
 };
 
-// å¤„ç† WebSocket æ¶ˆæ¯
+// ´¦Àí WebSocket ÏûÏ¢
 const handleWsMessage = message => {
   if (message.event === "AGENT_TRACE") {
     try {
       const traceData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
       dataList.unshift(traceData);
-      // é™åˆ¶æœ€å¤§è®°å½•æ•°
+      // ÏŞÖÆ×î´ó¼ÇÂ¼Êı
       while (dataList.length > 1000) {
         dataList.pop();
       }
     } catch (error) {
-      console.error("è§£æé“¾è·¯æ•°æ®å¤±è´¥:", error);
+      console.error("½âÎöÁ´Â·Êı¾İÊ§°Ü:", error);
     }
   }
 };
@@ -218,27 +218,27 @@ const handleShowTrack = async data => {
   }, 300);
 };
 
-// è·å–å†å²è¿½è¸ªè®°å½•
+// »ñÈ¡ÀúÊ·×·×Ù¼ÇÂ¼
 const fetchHistory = async () => {
   try {
     const response = await fetch("/agent/api/trace?action=list&limit=100");
     const data = await response.json();
     if (data.traces && Array.isArray(data.traces)) {
-      // æ¸…ç©ºå¹¶æ·»åŠ å†å²æ•°æ®
+      // Çå¿Õ²¢Ìí¼ÓÀúÊ·Êı¾İ
       dataList.length = 0;
       data.traces.forEach(trace => dataList.push(trace));
     }
   } catch (error) {
-    console.error("è·å–é“¾è·¯å†å²å¤±è´¥:", error);
+    console.error("»ñÈ¡Á´Â·ÀúÊ·Ê§°Ü:", error);
   }
 };
 
 onMounted(() => {
-  // è¿æ¥ WebSocket
+  // Á¬½Ó WebSocket
   wsService.connect();
-  // è®¢é˜…é“¾è·¯è¿½è¸ªæ¶ˆæ¯
+  // ¶©ÔÄÁ´Â·×·×ÙÏûÏ¢
   unsubscribe = wsService.subscribe("TRACE", "AGENT_TRACE", handleWsMessage);
-  // åŠ è½½å†å²æ•°æ®
+  // ¼ÓÔØÀúÊ·Êı¾İ
   fetchHistory();
 });
 

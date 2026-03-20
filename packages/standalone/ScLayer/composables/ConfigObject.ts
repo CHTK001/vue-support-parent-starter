@@ -22,7 +22,7 @@ const DEFAULT_OVERVIEW_CONFIG: OverviewMapConfig = {
   collapsedSize: 30,
   buttonSize: 30,
   buttonColor: "#fff",
-  buttonBgColor: "rgba(24, 144, 255, 0.9)"
+  buttonBgColor: "rgba(24, 144, 255, 0.9)",
 };
 
 export class ConfigObject {
@@ -46,13 +46,13 @@ export class ConfigObject {
       scrollWheelZoom: true,
       showToolbar: true,
       overviewMapConfig: DEFAULT_OVERVIEW_CONFIG,
-      showScaleLine: true // 默认显示比例尺
+      showScaleLine: true, // 默认显示比例尺
     };
 
     // 合并用户配置与默认配置
     this.config = {
       ...defaultConfig,
-      ...options
+      ...options,
     };
     if (Object.keys(this.config.map).length === 0) {
       this.config.map = DEFAULT_MAP_CONFIG;
@@ -62,7 +62,7 @@ export class ConfigObject {
     if (options.overviewMapConfig) {
       this.config.overviewMapConfig = {
         ...DEFAULT_OVERVIEW_CONFIG,
-        ...options.overviewMapConfig
+        ...options.overviewMapConfig,
       };
     }
   }
@@ -82,7 +82,7 @@ export class ConfigObject {
   public updateConfig(options: Partial<MapConfig>): void {
     this.config = {
       ...this.config,
-      ...options
+      ...options,
     };
     if (Object.keys(this.config.map).length === 0) {
       this.config.map = DEFAULT_MAP_CONFIG;

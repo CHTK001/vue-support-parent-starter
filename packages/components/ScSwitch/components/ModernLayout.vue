@@ -14,12 +14,12 @@
       <div class="sc-switch-modern__track">
         <div class="sc-switch-modern__button">
           <div class="sc-switch-modern__button-inner">
-            <el-icon v-if="loading" class="sc-switch-modern__loading">
+            <ScIcon v-if="loading" class="sc-switch-modern__loading">
               <Loading />
-            </el-icon>
-            <el-icon v-else-if="currentIcon" class="sc-switch-modern__icon">
+            </ScIcon>
+            <ScIcon v-else-if="currentIcon" class="sc-switch-modern__icon">
               <component :is="currentIcon" />
-            </el-icon>
+            </ScIcon>
             <div v-else class="sc-switch-modern__dot" />
           </div>
         </div>

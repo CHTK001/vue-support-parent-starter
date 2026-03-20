@@ -5,27 +5,27 @@
     width="560px"
     @open="onOpen"
   >
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <el-form-item label="软件名称">
-        <el-input :value="soft?.systemSoftName" disabled />
-      </el-form-item>
+    <ScForm ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <ScFormItem label="软件名称">
+        <ScInput :value="soft?.systemSoftName" disabled />
+      </ScFormItem>
 
-      <el-form-item label="镜像地址">
-        <el-input :value="soft?.systemSoftDockerImage" disabled />
-      </el-form-item>
+      <ScFormItem label="镜像地址">
+        <ScInput :value="soft?.systemSoftDockerImage" disabled />
+      </ScFormItem>
 
-      <el-form-item label="镜像标签" prop="imageTag">
-        <el-input v-model="form.imageTag" placeholder="latest" />
-      </el-form-item>
+      <ScFormItem label="镜像标签" prop="imageTag">
+        <ScInput v-model="form.imageTag" placeholder="latest" />
+      </ScFormItem>
 
-      <el-form-item label="目标服务器" prop="serverId">
-        <el-select
+      <ScFormItem label="目标服务器" prop="serverId">
+        <ScSelect
           v-model="form.serverId"
           placeholder="选择服务器"
           class="w-full"
           filterable
         >
-          <el-option
+          <ScOption
             v-for="server in serverList"
             :key="server.systemServerId"
             :label="`${server.systemServerName} (${server.systemServerHost})`"
@@ -34,24 +34,24 @@
             <div class="server-option">
               <span class="server-name">{{ server.systemServerName }}</span>
               <span class="server-host">{{ server.systemServerHost }}</span>
-              <el-tag
+              <ScTag
                 :type="server.systemServerStatus === 1 ? 'success' : 'danger'"
                 size="small"
               >
                 {{ server.systemServerStatus === 1 ? "在线" : "离线" }}
-              </el-tag>
+              </ScTag>
             </div>
-          </el-option>
-        </el-select>
-      </el-form-item>
-    </el-form>
+          </ScOption>
+        </ScSelect>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
-      <el-button @click="visibleProxy = false">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="handlePull">
+      <ScButton @click="visibleProxy = false">取消</ScButton>
+      <ScButton type="primary" :loading="loading" @click="handlePull">
         <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" />
         开始下载
-      </el-button>
+      </ScButton>
     </template>
   </sc-dialog>
 </template>

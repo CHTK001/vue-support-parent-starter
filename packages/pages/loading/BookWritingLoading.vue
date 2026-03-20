@@ -10,7 +10,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   loadingText: "正在书写配置...",
-  sentences: () => []
+  sentences: () => [],
 });
 
 const displayText = ref("");
@@ -18,7 +18,9 @@ const currentIndex = ref(0);
 let typingTimer: number | undefined;
 
 const sentenceList = computed(() => {
-  const custom = (props.sentences || []).map((it) => it.trim()).filter((it) => it.length > 0);
+  const custom = (props.sentences || [])
+    .map((it) => it.trim())
+    .filter((it) => it.length > 0);
   if (custom.length > 0) {
     return custom;
   }
@@ -27,7 +29,7 @@ const sentenceList = computed(() => {
     "正在整理接口文档草稿...",
     "正在记录本次操作日志...",
     "正在生成加载步骤笔记...",
-    "正在同步最新系统参数..."
+    "正在同步最新系统参数...",
   ];
 });
 
@@ -97,10 +99,7 @@ onBeforeUnmount(() => {
                     {{ displayText }}
                   </span>
                 </div>
-                <div
-                  class="pen-book-pen"
-                  :style="{ transform: penTransform }"
-                >
+                <div class="pen-book-pen" :style="{ transform: penTransform }">
                   <div class="pen-body" />
                   <div class="pen-tip" />
                 </div>
@@ -128,7 +127,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top, #e5e7eb 0%, #cbd5e1 50%, #9ca3af 100%);
+  background: radial-gradient(
+    circle at top,
+    #e5e7eb 0%,
+    #cbd5e1 50%,
+    #9ca3af 100%
+  );
   color: #020617;
   padding: 16px;
 }
@@ -145,7 +149,12 @@ onBeforeUnmount(() => {
   width: 260px;
   height: 140px;
   border-radius: 20px;
-  background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.25), transparent 60%),
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(148, 163, 184, 0.25),
+      transparent 60%
+    ),
     radial-gradient(circle at bottom right, rgba(209, 213, 219, 0.7), #f9fafb);
   box-shadow:
     0 20px 38px rgba(15, 23, 42, 0.22),
@@ -217,7 +226,11 @@ onBeforeUnmount(() => {
   position: relative;
   height: 18px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(209, 213, 219, 0.5), rgba(209, 213, 219, 0.12));
+  background: linear-gradient(
+    90deg,
+    rgba(209, 213, 219, 0.5),
+    rgba(209, 213, 219, 0.12)
+  );
   overflow: hidden;
 }
 
@@ -227,7 +240,11 @@ onBeforeUnmount(() => {
 
 .pen-book-line-active {
   opacity: 0.9;
-  background: linear-gradient(90deg, rgba(209, 213, 219, 0.7), rgba(209, 213, 219, 0.2));
+  background: linear-gradient(
+    90deg,
+    rgba(209, 213, 219, 0.7),
+    rgba(209, 213, 219, 0.2)
+  );
 }
 
 .pen-book-text {
@@ -315,5 +332,3 @@ onBeforeUnmount(() => {
   color: #6b7280;
 }
 </style>
-
-

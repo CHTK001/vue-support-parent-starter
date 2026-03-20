@@ -9,7 +9,9 @@
       @click="toggleValue"
     >
       <div class="toggle-icon">
-        <IconifyIconOnline :icon="innerValue === 'true' ? 'ep:check' : 'ep:close'" />
+        <IconifyIconOnline
+          :icon="innerValue === 'true' ? 'ep:check' : 'ep:close'"
+        />
       </div>
       <div class="toggle-text">{{ innerValue === "true" ? "是" : "否" }}</div>
     </div>

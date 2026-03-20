@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <section class="view">
     <div class="hero-grid">
       <article class="hero-card">
@@ -78,11 +79,55 @@
             <el-button v-if="row.status !== 1" link type="success" @click="handleActivate(row)">激活</el-button>
             <el-button v-else link type="warning" @click="handleDeactivate(row)">停用</el-button>
             <el-button link type="danger" @click="handleDeleteMerchant(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+=======
+  <div class="merchant-list">
+    <ScCard>
+      <template #header>
+        <div class="card-header">
+          <span>商户管理</span>
+          <ScButton type="primary" @click="showCreateDialog">添加商户</ScButton>
+        </div>
+      </template>
 
+      <!-- 商户列表 -->
+      <ScTable :data="merchantList" border stripe v-loading="loading">
+        <ScTableColumn prop="merchantName" label="商户名称" />
+        <ScTableColumn prop="provider" label="支付提供商" width="120">
+          <template #default="{ row }">
+            <ScTag>{{ getProviderLabel(row.provider) }}</ScTag>
+          </template>
+        </ScTableColumn>
+        <ScTableColumn prop="appId" label="AppID" width="200" />
+        <ScTableColumn prop="mchId" label="商户号" width="150" />
+        <ScTableColumn prop="enabled" label="状态" width="100">
+          <template #default="{ row }">
+            <ScSwitch v-model="row.enabled" @change="handleToggleStatus(row)" />
+          </template>
+        </ScTableColumn>
+        <ScTableColumn prop="sandbox" label="沙箱模式" width="100">
+          <template #default="{ row }">
+            <ScTag :type="row.sandbox ? 'warning' : 'success'">
+              {{ row.sandbox ? '是' : '否' }}
+            </ScTag>
+          </template>
+        </ScTableColumn>
+        <ScTableColumn prop="createTime" label="创建时间" width="180" />
+        <ScTableColumn label="操作" width="250" fixed="right">
+          <template #default="{ row }">
+            <ScButton size="small" @click="handleEdit(row)">编辑</ScButton>
+            <ScButton size="small" type="primary" @click="handleTest(row)">测试</ScButton>
+            <ScButton size="small" type="danger" @click="handleDelete(row)">删除</ScButton>
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
+          </template>
+        </ScTableColumn>
+      </ScTable>
+
+<<<<<<< HEAD
       <el-pagination
+=======
+      <!-- 分页 -->
+      <ScPagination
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.size"
         :total="pagination.total"
@@ -92,8 +137,9 @@
         @current-change="loadMerchants"
         @size-change="loadMerchants"
       />
-    </el-card>
+    </ScCard>
 
+<<<<<<< HEAD
     <el-dialog v-model="merchantDialogVisible" :title="editingMerchant ? '编辑商户' : '新增商户'" width="760px">
       <el-form ref="merchantFormRef" :model="merchantForm" label-width="110px">
         <div class="form-grid">
@@ -322,6 +368,55 @@
       </template>
     </el-drawer>
   </section>
+=======
+    <!-- 创建/编辑商户对话框 -->
+    <ScDialog v-model="dialogVisible" :title="isEdit ? '编辑商户' : '添加商户'" width="700px">
+      <ScForm :model="form" :rules="rules" ref="formRef" label-width="120px">
+        <ScFormItem label="商户名称" prop="merchantName">
+          <ScInput v-model="form.merchantName" placeholder="请输入商户名称" />
+        </ScFormItem>
+        <ScFormItem label="支付提供商" prop="provider">
+          <ScSelect v-model="form.provider" placeholder="请选择支付提供商">
+            <ScOption label="微信支付" value="wechat" />
+            <ScOption label="支付宝支付" value="alipay" />
+            <ScOption label="聚合支付" value="ijpay" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="AppID" prop="appId">
+          <ScInput v-model="form.appId" placeholder="请输入AppID" />
+        </ScFormItem>
+        <ScFormItem label="商户号" prop="mchId" v-if="form.provider === 'wechat'">
+          <ScInput v-model="form.mchId" placeholder="请输入商户号" />
+        </ScFormItem>
+        <ScFormItem label="API密钥" prop="apiKey">
+          <ScInput v-model="form.apiKey" type="password" placeholder="请输入API密钥" show-password />
+        </ScFormItem>
+        <ScFormItem label="证书路径" prop="certPath" v-if="form.provider === 'wechat'">
+          <ScInput v-model="form.certPath" placeholder="请输入证书路径（可选）" />
+        </ScFormItem>
+        <ScFormItem label="支付宝公钥" prop="alipayPublicKey" v-if="form.provider === 'alipay'">
+          <ScInput v-model="form.alipayPublicKey" type="textarea" :rows="3" placeholder="请输入支付宝公钥" />
+        </ScFormItem>
+        <ScFormItem label="回调地址" prop="notifyUrl">
+          <ScInput v-model="form.notifyUrl" placeholder="请输入回调地址" />
+        </ScFormItem>
+        <ScFormItem label="返回地址" prop="returnUrl">
+          <ScInput v-model="form.returnUrl" placeholder="请输入返回地址（可选）" />
+        </ScFormItem>
+        <ScFormItem label="沙箱模式" prop="sandbox">
+          <ScSwitch v-model="form.sandbox" />
+        </ScFormItem>
+        <ScFormItem label="启用状态" prop="enabled">
+          <ScSwitch v-model="form.enabled" />
+        </ScFormItem>
+      </ScForm>
+      <template #footer>
+        <ScButton @click="dialogVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="handleSubmit" :loading="submitting">确定</ScButton>
+      </template>
+    </ScDialog>
+  </div>
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 </template>
 
 <script setup lang="ts">

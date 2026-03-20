@@ -9,7 +9,14 @@
 import { ref } from "vue";
 import { io, type Socket } from "socket.io-client";
 import { getToken } from "../utils/auth";
+<<<<<<< HEAD
 import type { SocketTemplate, SocketTemplateListenOptions, WsMessage } from "./socketTemplate";
+=======
+import type {
+  SocketTemplate,
+  SocketTemplateListenOptions,
+} from "./socketTemplate";
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import { parseSocketMessage } from "./socketUtils";
 
 /**
@@ -91,7 +98,7 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
   const on = (
     event: string,
     callback: (data: unknown) => void,
-    options?: SocketTemplateListenOptions
+    options?: SocketTemplateListenOptions,
   ) => {
     if (!socketInstance) return;
 

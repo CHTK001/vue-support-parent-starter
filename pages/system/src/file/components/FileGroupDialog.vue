@@ -21,7 +21,7 @@
 
       <!-- 分组列表 -->
       <ScTable :data="localGroups" row-key="sysFileSystemGroupId" border>
-        <ScTableColumn 
+        <ScTableColumn
           prop="sysFileSystemGroupName"
           label="分组名称"
           width="180"
@@ -36,7 +36,7 @@
                 }"
               />
               <span>{{ row.sysFileSystemGroupName }}</span>
-              <ScTag 
+              <ScTag
                 v-if="row.sysFileSystemGroupIsDefault"
                 size="small"
                 type="success"
@@ -46,30 +46,26 @@
             </div>
           </template>
         </ScTableColumn>
-        <ScTableColumn 
-          prop="sysFileSystemGroupPath"
-          label="路径"
-          width="120"
-        />
-        <ScTableColumn 
+        <ScTableColumn prop="sysFileSystemGroupPath" label="路径" width="120" />
+        <ScTableColumn
           prop="sysFileSystemGroupDescription"
           label="描述"
           min-width="150"
         />
-        <ScTableColumn 
+        <ScTableColumn
           prop="sysFileSystemGroupSort"
           label="排序"
           width="80"
           align="center"
         />
-        <ScTableColumn 
+        <ScTableColumn
           prop="sysFileSystemGroupStatus"
           label="状态"
           width="80"
           align="center"
         >
           <template #default="{ row }">
-            <ScTag 
+            <ScTag
               :type="row.sysFileSystemGroupStatus === 1 ? 'success' : 'info'"
               size="small"
             >
@@ -79,8 +75,10 @@
         </ScTableColumn>
         <ScTableColumn label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <ScButton type="primary" link size="small" @click="handleEdit(row)">编辑</ScButton>
-            <ScButton 
+            <ScButton type="primary" link size="small" @click="handleEdit(row)"
+              >编辑</ScButton
+            >
+            <ScButton
               type="danger"
               link
               size="small"
@@ -101,33 +99,33 @@
       width="500px"
       append-to-body
     >
-      <ScForm 
+      <ScForm
         ref="formRef"
         :model="editForm"
         :rules="rules"
         label-width="100px"
       >
         <ScFormItem label="分组名称" prop="sysFileSystemGroupName">
-          <ScInput 
+          <ScInput
             v-model="editForm.sysFileSystemGroupName"
             placeholder="请输入分组名称"
           />
         </ScFormItem>
         <ScFormItem label="分组路径" prop="sysFileSystemGroupPath">
-          <ScInput 
+          <ScInput
             v-model="editForm.sysFileSystemGroupPath"
             placeholder="请输入分组路径，如 images"
           />
         </ScFormItem>
         <ScFormItem label="描述">
-          <ScInput 
+          <ScInput
             v-model="editForm.sysFileSystemGroupDescription"
             type="textarea"
             :rows="2"
           />
         </ScFormItem>
         <ScFormItem label="图标">
-          <ScInput 
+          <ScInput
             v-model="editForm.sysFileSystemGroupIcon"
             placeholder="ri:folder-line"
           />
@@ -136,7 +134,7 @@
           <ScColorPicker v-model="editForm.sysFileSystemGroupColor" />
         </ScFormItem>
         <ScFormItem label="排序">
-          <ScInputNumber 
+          <ScInputNumber
             v-model="editForm.sysFileSystemGroupSort"
             :min="0"
             :max="999"
@@ -151,7 +149,9 @@
       </ScForm>
       <template #footer>
         <ScButton @click="showEditDialog = false">取消</ScButton>
-        <ScButton type="primary" :loading="saving" @click="handleSave">保存</ScButton>
+        <ScButton type="primary" :loading="saving" @click="handleSave"
+          >保存</ScButton
+        >
       </template>
     </sc-dialog>
   </sc-dialog>
@@ -159,7 +159,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { message , ScMessageBox} from "@repo/utils";
+import { message, ScMessageBox } from "@repo/utils";
 
 import type { FormInstance, FormRules } from "element-plus";
 import {
@@ -208,7 +208,7 @@ watch(
   (val) => {
     localGroups.value = [...val];
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 新增
@@ -281,7 +281,7 @@ const handleInitDefault = async () => {
     await ScMessageBox.confirm(
       "确定要初始化默认分组吗？这将创建默认分组。",
       "确认",
-      { type: "info" }
+      { type: "info" },
     );
     const res = await initDefaultGroups();
     if (res.code === 200) {

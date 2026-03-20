@@ -14,7 +14,7 @@ export interface ColorRange {
 }
 
 // 半径单位
-export type RadiusUnit = 'pixel' | 'meter' | 'kilometer';
+export type RadiusUnit = "pixel" | "meter" | "kilometer";
 // 聚合配置选项
 export interface AggregationOptions {
   // 聚合最大半径

@@ -28,7 +28,12 @@ const env = reactive({
     { cidr: 24, mask: "255.255.255.0", hosts: "254", description: "C类网络" },
     { cidr: 27, mask: "255.255.255.224", hosts: "30", description: "小型子网" },
     { cidr: 29, mask: "255.255.255.248", hosts: "6", description: "极小子网" },
-    { cidr: 30, mask: "255.255.255.252", hosts: "2", description: "点对点链路" },
+    {
+      cidr: 30,
+      mask: "255.255.255.252",
+      hosts: "2",
+      description: "点对点链路",
+    },
     { cidr: 32, mask: "255.255.255.255", hosts: "1", description: "单主机" },
   ],
   // 常用私有IP范围
@@ -55,7 +60,8 @@ const env = reactive({
 const validateIP = (ip) => {
   // IPv4验证
   if (env.inputType === "ipv4") {
-    const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    const ipv4Regex =
+      /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     return ipv4Regex.test(ip);
   }
   // IPv6验证
@@ -66,7 +72,8 @@ const validateIP = (ip) => {
   }
   // 子网验证
   else if (env.inputType === "subnet") {
-    const subnetRegex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([0-9]|[1-2][0-9]|3[0-2]))$/;
+    const subnetRegex =
+      /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([0-9]|[1-2][0-9]|3[0-2]))$/;
     return subnetRegex.test(ip);
   }
   return false;
@@ -116,7 +123,9 @@ const parseIP = () => {
 
       // 转换为二进制
       const octets = ipAddress.split(".");
-      const binaryOctets = octets.map((octet) => parseInt(octet, 10).toString(2).padStart(8, "0"));
+      const binaryOctets = octets.map((octet) =>
+        parseInt(octet, 10).toString(2).padStart(8, "0"),
+      );
       const binaryIP = binaryOctets.join("");
 
       env.outputResults.push({
@@ -125,7 +134,9 @@ const parseIP = () => {
       });
 
       // 十六进制表示
-      const hexIP = octets.map((octet) => parseInt(octet, 10).toString(16).padStart(2, "0")).join(":");
+      const hexIP = octets
+        .map((octet) => parseInt(octet, 10).toString(16).padStart(2, "0"))
+        .join(":");
 
       env.outputResults.push({
         label: "十六进制表示",
@@ -134,7 +145,12 @@ const parseIP = () => {
 
       // 计算子网掩码
       const subnetMaskBinary = "1".repeat(cidr) + "0".repeat(32 - cidr);
-      const subnetMask = [parseInt(subnetMaskBinary.substring(0, 8), 2), parseInt(subnetMaskBinary.substring(8, 16), 2), parseInt(subnetMaskBinary.substring(16, 24), 2), parseInt(subnetMaskBinary.substring(24, 32), 2)].join(".");
+      const subnetMask = [
+        parseInt(subnetMaskBinary.substring(0, 8), 2),
+        parseInt(subnetMaskBinary.substring(8, 16), 2),
+        parseInt(subnetMaskBinary.substring(16, 24), 2),
+        parseInt(subnetMaskBinary.substring(24, 32), 2),
+      ].join(".");
 
       env.outputResults.push({
         label: "子网掩码",
@@ -149,7 +165,10 @@ const parseIP = () => {
       // 计算网络地址
       const networkOctets = octets.map((octet, index) => {
         const octetBinary = parseInt(octet, 10).toString(2).padStart(8, "0");
-        const maskBinary = subnetMaskBinary.substring(index * 8, (index + 1) * 8);
+        const maskBinary = subnetMaskBinary.substring(
+          index * 8,
+          (index + 1) * 8,
+        );
         const networkBinary = octetBinary
           .split("")
           .map((bit, i) => {
@@ -169,7 +188,10 @@ const parseIP = () => {
       // 计算广播地址
       const broadcastOctets = octets.map((octet, index) => {
         const octetBinary = parseInt(octet, 10).toString(2).padStart(8, "0");
-        const maskBinary = subnetMaskBinary.substring(index * 8, (index + 1) * 8);
+        const maskBinary = subnetMaskBinary.substring(
+          index * 8,
+          (index + 1) * 8,
+        );
         const broadcastBinary = octetBinary
           .split("")
           .map((bit, i) => {
@@ -225,7 +247,15 @@ const parseIP = () => {
 
       // 判断是否为私有IP
       let isPrivate = false;
-      if (firstOctet === 10 || (firstOctet === 172 && parseInt(octets[1], 10) >= 16 && parseInt(octets[1], 10) <= 31) || (firstOctet === 192 && parseInt(octets[1], 10) === 168) || (firstOctet === 169 && parseInt(octets[1], 10) === 254) || firstOctet === 127) {
+      if (
+        firstOctet === 10 ||
+        (firstOctet === 172 &&
+          parseInt(octets[1], 10) >= 16 &&
+          parseInt(octets[1], 10) <= 31) ||
+        (firstOctet === 192 && parseInt(octets[1], 10) === 168) ||
+        (firstOctet === 169 && parseInt(octets[1], 10) === 254) ||
+        firstOctet === 127
+      ) {
         isPrivate = true;
       }
 
@@ -339,8 +369,12 @@ const compressIPv6 = (expandedIPv6) => {
 
   // 压缩地址
   if (longestZeroLength > 1) {
-    const firstPart = segments.slice(0, longestZeroStart).map((s) => s.replace(/^0+/, "") || "0");
-    const lastPart = segments.slice(longestZeroStart + longestZeroLength).map((s) => s.replace(/^0+/, "") || "0");
+    const firstPart = segments
+      .slice(0, longestZeroStart)
+      .map((s) => s.replace(/^0+/, "") || "0");
+    const lastPart = segments
+      .slice(longestZeroStart + longestZeroLength)
+      .map((s) => s.replace(/^0+/, "") || "0");
 
     if (longestZeroStart === 0) {
       return "::" + lastPart.join(":");
@@ -397,18 +431,35 @@ const calculateSubnetDivision = (networkAddress, cidr) => {
   // 计算子网
   const subnets = [];
   const octets = networkAddress.split(".");
-  const networkBinary = octets.map((octet) => parseInt(octet, 10).toString(2).padStart(8, "0")).join("");
+  const networkBinary = octets
+    .map((octet) => parseInt(octet, 10).toString(2).padStart(8, "0"))
+    .join("");
 
   const subnetBits = Math.pow(2, bitsNeeded);
   for (let i = 0; i < Math.min(count, subnetBits); i++) {
-    const subnetBinary = networkBinary.substring(0, cidr) + i.toString(2).padStart(bitsNeeded, "0") + "0".repeat(32 - cidr - bitsNeeded);
+    const subnetBinary =
+      networkBinary.substring(0, cidr) +
+      i.toString(2).padStart(bitsNeeded, "0") +
+      "0".repeat(32 - cidr - bitsNeeded);
 
     // 转换回点分十进制
-    const subnetOctets = [parseInt(subnetBinary.substring(0, 8), 2), parseInt(subnetBinary.substring(8, 16), 2), parseInt(subnetBinary.substring(16, 24), 2), parseInt(subnetBinary.substring(24, 32), 2)];
+    const subnetOctets = [
+      parseInt(subnetBinary.substring(0, 8), 2),
+      parseInt(subnetBinary.substring(8, 16), 2),
+      parseInt(subnetBinary.substring(16, 24), 2),
+      parseInt(subnetBinary.substring(24, 32), 2),
+    ];
 
     // 计算广播地址
-    const broadcastBinary = subnetBinary.substring(0, cidr + bitsNeeded) + "1".repeat(32 - cidr - bitsNeeded);
-    const broadcastOctets = [parseInt(broadcastBinary.substring(0, 8), 2), parseInt(broadcastBinary.substring(8, 16), 2), parseInt(broadcastBinary.substring(16, 24), 2), parseInt(broadcastBinary.substring(24, 32), 2)];
+    const broadcastBinary =
+      subnetBinary.substring(0, cidr + bitsNeeded) +
+      "1".repeat(32 - cidr - bitsNeeded);
+    const broadcastOctets = [
+      parseInt(broadcastBinary.substring(0, 8), 2),
+      parseInt(broadcastBinary.substring(8, 16), 2),
+      parseInt(broadcastBinary.substring(16, 24), 2),
+      parseInt(broadcastBinary.substring(24, 32), 2),
+    ];
 
     // 计算可用IP范围
     const firstIP = [...subnetOctets];
@@ -442,7 +493,9 @@ const calculateSupernetting = () => {
     const parsedNetworks = networks.map((network) => {
       const [ip, cidr] = network.split("/");
       const octets = ip.split(".");
-      const binary = octets.map((octet) => parseInt(octet, 10).toString(2).padStart(8, "0")).join("");
+      const binary = octets
+        .map((octet) => parseInt(octet, 10).toString(2).padStart(8, "0"))
+        .join("");
       return { ip, cidr: parseInt(cidr, 10), binary };
     });
 
@@ -469,8 +522,14 @@ const calculateSupernetting = () => {
     const newCidr = commonPrefixLength;
 
     // 计算新的网络地址
-    const newNetworkBinary = firstBinary.substring(0, newCidr) + "0".repeat(32 - newCidr);
-    const newNetworkOctets = [parseInt(newNetworkBinary.substring(0, 8), 2), parseInt(newNetworkBinary.substring(8, 16), 2), parseInt(newNetworkBinary.substring(16, 24), 2), parseInt(newNetworkBinary.substring(24, 32), 2)];
+    const newNetworkBinary =
+      firstBinary.substring(0, newCidr) + "0".repeat(32 - newCidr);
+    const newNetworkOctets = [
+      parseInt(newNetworkBinary.substring(0, 8), 2),
+      parseInt(newNetworkBinary.substring(8, 16), 2),
+      parseInt(newNetworkBinary.substring(16, 24), 2),
+      parseInt(newNetworkBinary.substring(24, 32), 2),
+    ];
 
     const newNetwork = `${newNetworkOctets.join(".")}/${newCidr}`;
     env.supernetting.result = newNetwork;
@@ -517,7 +576,9 @@ const copyAllResults = () => {
     return;
   }
 
-  const text = env.outputResults.map((result) => `${result.label}: ${result.value}`).join("\n");
+  const text = env.outputResults
+    .map((result) => `${result.label}: ${result.value}`)
+    .join("\n");
   copyToClipboard(text);
 };
 
@@ -541,12 +602,20 @@ const applyPrivateRange = (range) => {
 const updateSubnetMask = () => {
   if (env.subnetFormat === "cidr") {
     // 从CIDR更新点分十进制掩码
-    const subnetMaskBinary = "1".repeat(env.cidrValue) + "0".repeat(32 - env.cidrValue);
-    env.subnetMask = [parseInt(subnetMaskBinary.substring(0, 8), 2), parseInt(subnetMaskBinary.substring(8, 16), 2), parseInt(subnetMaskBinary.substring(16, 24), 2), parseInt(subnetMaskBinary.substring(24, 32), 2)].join(".");
+    const subnetMaskBinary =
+      "1".repeat(env.cidrValue) + "0".repeat(32 - env.cidrValue);
+    env.subnetMask = [
+      parseInt(subnetMaskBinary.substring(0, 8), 2),
+      parseInt(subnetMaskBinary.substring(8, 16), 2),
+      parseInt(subnetMaskBinary.substring(16, 24), 2),
+      parseInt(subnetMaskBinary.substring(24, 32), 2),
+    ].join(".");
   } else {
     // 从点分十进制掩码更新CIDR
     const octets = env.subnetMask.split(".");
-    const binaryMask = octets.map((octet) => parseInt(octet, 10).toString(2).padStart(8, "0")).join("");
+    const binaryMask = octets
+      .map((octet) => parseInt(octet, 10).toString(2).padStart(8, "0"))
+      .join("");
     env.cidrValue = binaryMask.split("0")[0].length;
   }
 };
@@ -583,10 +652,15 @@ onMounted(() => {
       <!-- 头部信息 -->
       <div class="ip-calculator__header">
         <div class="ip-calculator__header-content">
-          <IconifyIconOnline icon="ri:calculator-line" class="ip-calculator__header-icon" />
+          <IconifyIconOnline
+            icon="ri:calculator-line"
+            class="ip-calculator__header-icon"
+          />
           <div>
             <h2 class="ip-calculator__header-title">IP网络计算器</h2>
-            <p class="ip-calculator__header-desc">计算IP地址、子网掩码、网络地址、广播地址和可用主机数</p>
+            <p class="ip-calculator__header-desc">
+              计算IP地址、子网掩码、网络地址、广播地址和可用主机数
+            </p>
           </div>
         </div>
       </div>
@@ -598,7 +672,10 @@ onMounted(() => {
           <ScCard class="ip-calculator__input-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
-                <IconifyIconOnline icon="ri:calculator-line" class="ip-calculator__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:calculator-line"
+                  class="ip-calculator__card-icon"
+                />
                 <span>IP网络计算器</span>
               </div>
             </template>
@@ -606,7 +683,10 @@ onMounted(() => {
             <ScForm label-position="top">
               <!-- IP类型选择 -->
               <ScFormItem label="IP类型">
-                <ScRadioGroup v-model="env.inputType" class="ip-calculator__radio-group">
+                <ScRadioGroup
+                  v-model="env.inputType"
+                  class="ip-calculator__radio-group"
+                >
                   <ScRadio label="ipv4">
                     <div class="ip-calculator__radio-content">
                       <IconifyIconOnline icon="ri:global-line" />
@@ -631,8 +711,22 @@ onMounted(() => {
               <!-- IP地址输入 -->
               <ScFormItem label="IP地址">
                 <div class="ip-calculator__input-group">
-                  <ScInput v-model="env.inputValue" :placeholder="env.inputType === 'ipv4' ? '例如: 192.168.1.1' : env.inputType === 'ipv6' ? '例如: 2001:db8::1' : '例如: 192.168.1.0/24'" clearable />
-                  <ScButton type="primary" @click="parseIP" :loading="env.loading">
+                  <ScInput
+                    v-model="env.inputValue"
+                    :placeholder="
+                      env.inputType === 'ipv4'
+                        ? '例如: 192.168.1.1'
+                        : env.inputType === 'ipv6'
+                          ? '例如: 2001:db8::1'
+                          : '例如: 192.168.1.0/24'
+                    "
+                    clearable
+                  />
+                  <ScButton
+                    type="primary"
+                    @click="parseIP"
+                    :loading="env.loading"
+                  >
                     <IconifyIconOnline icon="ri:search-line" />
                     <span>解析</span>
                   </ScButton>
@@ -642,7 +736,10 @@ onMounted(() => {
               <!-- 子网掩码设置 (仅IPv4) -->
               <ScFormItem v-if="env.inputType === 'ipv4'" label="子网掩码">
                 <div class="ip-calculator__subnet-mask">
-                  <ScRadioGroup v-model="env.subnetFormat" class="ip-calculator__subnet-format">
+                  <ScRadioGroup
+                    v-model="env.subnetFormat"
+                    class="ip-calculator__subnet-format"
+                  >
                     <ScRadio label="cidr">CIDR</ScRadio>
                     <ScRadio label="dotted">点分十进制</ScRadio>
                   </ScRadioGroup>
@@ -651,35 +748,75 @@ onMounted(() => {
                     <template v-if="env.subnetFormat === 'cidr'">
                       <div class="ip-calculator__cidr-input">
                         <span class="ip-calculator__cidr-prefix">/</span>
-                        <ScSlider v-model="env.cidrValue" :min="0" :max="32" :step="1" show-input @change="updateSubnetMask" />
+                        <ScSlider
+                          v-model="env.cidrValue"
+                          :min="0"
+                          :max="32"
+                          :step="1"
+                          show-input
+                          @change="updateSubnetMask"
+                        />
                       </div>
                     </template>
                     <template v-else>
-                      <ScInput v-model="env.subnetMask" placeholder="例如: 255.255.255.0" @change="updateSubnetMask" />
+                      <ScInput
+                        v-model="env.subnetMask"
+                        placeholder="例如: 255.255.255.0"
+                        @change="updateSubnetMask"
+                      />
                     </template>
                   </div>
                 </div>
               </ScFormItem>
 
               <!-- 常用子网掩码预设 -->
-              <ScFormItem v-if="env.inputType === 'ipv4' || env.inputType === 'subnet'" label="常用子网掩码">
+              <ScFormItem
+                v-if="env.inputType === 'ipv4' || env.inputType === 'subnet'"
+                label="常用子网掩码"
+              >
                 <div class="ip-calculator__presets">
-                  <ScButton v-for="preset in env.subnetPresets" :key="preset.cidr" size="small" @click="applySubnetPreset(preset)" class="ip-calculator__preset-btn">
+                  <ScButton
+                    v-for="preset in env.subnetPresets"
+                    :key="preset.cidr"
+                    size="small"
+                    @click="applySubnetPreset(preset)"
+                    class="ip-calculator__preset-btn"
+                  >
                     /{{ preset.cidr }} ({{ preset.mask }})
-                    <ScTooltip :content="preset.description + ' - 可用主机数: ' + preset.hosts" placement="top">
-                      <IconifyIconOnline icon="ri:information-line" class="ip-calculator__preset-info" />
+                    <ScTooltip
+                      :content="
+                        preset.description + ' - 可用主机数: ' + preset.hosts
+                      "
+                      placement="top"
+                    >
+                      <IconifyIconOnline
+                        icon="ri:information-line"
+                        class="ip-calculator__preset-info"
+                      />
                     </ScTooltip>
                   </ScButton>
                 </div>
               </ScFormItem>
 
               <!-- 常用私有IP范围 -->
-              <ScFormItem v-if="env.inputType === 'ipv4' || env.inputType === 'subnet'" label="常用私有IP范围">
+              <ScFormItem
+                v-if="env.inputType === 'ipv4' || env.inputType === 'subnet'"
+                label="常用私有IP范围"
+              >
                 <div class="ip-calculator__presets">
-                  <ScButton v-for="range in env.privateRanges" :key="range.range" size="small" @click="applyPrivateRange(range)" class="ip-calculator__preset-btn">
+                  <ScButton
+                    v-for="range in env.privateRanges"
+                    :key="range.range"
+                    size="small"
+                    @click="applyPrivateRange(range)"
+                    class="ip-calculator__preset-btn"
+                  >
                     {{ range.range }}
                     <ScTooltip :content="range.description" placement="top">
-                      <IconifyIconOnline icon="ri:information-line" class="ip-calculator__preset-info" />
+                      <IconifyIconOnline
+                        icon="ri:information-line"
+                        class="ip-calculator__preset-info"
+                      />
                     </ScTooltip>
                   </ScButton>
                 </div>
@@ -691,19 +828,34 @@ onMounted(() => {
           <ScCard class="ip-calculator__history-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
-                <IconifyIconOnline icon="ri:history-line" class="ip-calculator__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:history-line"
+                  class="ip-calculator__card-icon"
+                />
                 <span>历史记录</span>
               </div>
             </template>
 
-            <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="ip-calculator__empty">
+            <ScEmpty
+              v-if="!env.history.length"
+              description="暂无历史记录"
+              class="ip-calculator__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:history-line" class="ip-calculator__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:history-line"
+                  class="ip-calculator__empty-icon"
+                />
               </template>
             </ScEmpty>
 
             <div v-else class="ip-calculator__history">
-              <ScTag v-for="(ip, index) in env.history" :key="index" class="ip-calculator__history-item" @click="selectFromHistory(ip)">
+              <ScTag
+                v-for="(ip, index) in env.history"
+                :key="index"
+                class="ip-calculator__history-item"
+                @click="selectFromHistory(ip)"
+              >
                 {{ ip }}
               </ScTag>
             </div>
@@ -713,7 +865,10 @@ onMounted(() => {
           <ScCard class="ip-calculator__subnet-division-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
-                <IconifyIconOnline icon="ri:split-cells-horizontal" class="ip-calculator__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:split-cells-horizontal"
+                  class="ip-calculator__card-icon"
+                />
                 <span>子网划分</span>
               </div>
             </template>
@@ -721,17 +876,32 @@ onMounted(() => {
             <div class="ip-calculator__subnet-division">
               <ScForm label-position="top">
                 <ScFormItem label="子网数量">
-                  <ScInputNumber v-model="env.subnetDivision.count" :min="2" :max="256" />
+                  <ScInputNumber
+                    v-model="env.subnetDivision.count"
+                    :min="2"
+                    :max="256"
+                  />
                 </ScFormItem>
               </ScForm>
 
-              <div v-if="env.subnetDivision.results.length" class="ip-calculator__subnet-results">
+              <div
+                v-if="env.subnetDivision.results.length"
+                class="ip-calculator__subnet-results"
+              >
                 <div class="ip-calculator__subnet-results-header">
-                  <div class="ip-calculator__subnet-results-title">子网划分结果</div>
-                  <div class="ip-calculator__subnet-results-count">共 {{ env.subnetDivision.results.length }} 个子网</div>
+                  <div class="ip-calculator__subnet-results-title">
+                    子网划分结果
+                  </div>
+                  <div class="ip-calculator__subnet-results-count">
+                    共 {{ env.subnetDivision.results.length }} 个子网
+                  </div>
                 </div>
 
-                <ScTable :data="env.subnetDivision.results" stripe style="width: 100%">
+                <ScTable
+                  :data="env.subnetDivision.results"
+                  stripe
+                  style="width: 100%"
+                >
                   <ScTableColumn prop="network" label="网络地址" />
                   <ScTableColumn prop="broadcast" label="广播地址" />
                   <ScTableColumn prop="range" label="IP范围" />
@@ -745,7 +915,10 @@ onMounted(() => {
           <ScCard class="ip-calculator__supernetting-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
-                <IconifyIconOnline icon="ri:merge-cells-horizontal" class="ip-calculator__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:merge-cells-horizontal"
+                  class="ip-calculator__card-icon"
+                />
                 <span>超网合并</span>
               </div>
             </template>
@@ -753,9 +926,21 @@ onMounted(() => {
             <div class="ip-calculator__supernetting">
               <ScForm label-position="top">
                 <ScFormItem label="网络列表">
-                  <div v-for="(network, index) in env.supernetting.networks" :key="index" class="ip-calculator__supernet-item">
-                    <ScInput v-model="env.supernetting.networks[index]" placeholder="例如: 192.168.1.0/24" />
-                    <ScButton type="danger" icon="Delete" @click="removeSupernet(index)" v-if="env.supernetting.networks.length > 2" />
+                  <div
+                    v-for="(network, index) in env.supernetting.networks"
+                    :key="index"
+                    class="ip-calculator__supernet-item"
+                  >
+                    <ScInput
+                      v-model="env.supernetting.networks[index]"
+                      placeholder="例如: 192.168.1.0/24"
+                    />
+                    <ScButton
+                      type="danger"
+                      icon="Delete"
+                      @click="removeSupernet(index)"
+                      v-if="env.supernetting.networks.length > 2"
+                    />
                   </div>
                   <div class="ip-calculator__supernet-actions">
                     <ScButton type="primary" @click="addSupernet">
@@ -772,7 +957,9 @@ onMounted(() => {
                 <ScFormItem v-if="env.supernetting.result" label="超网结果">
                   <ScInput v-model="env.supernetting.result" readonly>
                     <template #append>
-                      <ScButton @click="copyToClipboard(env.supernetting.result)">
+                      <ScButton
+                        @click="copyToClipboard(env.supernetting.result)"
+                      >
                         <IconifyIconOnline icon="ri:file-copy-line" />
                       </ScButton>
                     </template>
@@ -788,10 +975,21 @@ onMounted(() => {
           <ScCard class="ip-calculator__result-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
-                <IconifyIconOnline icon="ri:file-list-line" class="ip-calculator__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:file-list-line"
+                  class="ip-calculator__card-icon"
+                />
                 <span>计算结果</span>
-                <div class="ip-calculator__header-actions" v-if="env.outputResults.length">
-                  <ScButton type="primary" link size="small" @click="copyAllResults">
+                <div
+                  class="ip-calculator__header-actions"
+                  v-if="env.outputResults.length"
+                >
+                  <ScButton
+                    type="primary"
+                    link
+                    size="small"
+                    @click="copyAllResults"
+                  >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                     <span>复制全部</span>
                   </ScButton>
@@ -799,21 +997,41 @@ onMounted(() => {
               </div>
             </template>
 
-            <ScEmpty v-if="!env.outputResults.length" description="请先输入IP地址并解析" class="ip-calculator__empty">
+            <ScEmpty
+              v-if="!env.outputResults.length"
+              description="请先输入IP地址并解析"
+              class="ip-calculator__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:calculator-line" class="ip-calculator__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:calculator-line"
+                  class="ip-calculator__empty-icon"
+                />
               </template>
             </ScEmpty>
 
             <div v-else class="ip-calculator__results">
-              <div v-for="(result, index) in env.outputResults" :key="index" class="ip-calculator__result-item">
+              <div
+                v-for="(result, index) in env.outputResults"
+                :key="index"
+                class="ip-calculator__result-item"
+              >
                 <div class="ip-calculator__result-label">
-                  <IconifyIconOnline :icon="getResultIcon(result.label)" class="ip-calculator__result-icon" />
+                  <IconifyIconOnline
+                    :icon="getResultIcon(result.label)"
+                    class="ip-calculator__result-icon"
+                  />
                   <span>{{ result.label }}</span>
                 </div>
                 <div class="ip-calculator__result-value">
                   <span>{{ result.value }}</span>
-                  <ScButton type="primary" link size="small" class="ip-calculator__copy-btn" @click="copyToClipboard(result.value)">
+                  <ScButton
+                    type="primary"
+                    link
+                    size="small"
+                    class="ip-calculator__copy-btn"
+                    @click="copyToClipboard(result.value)"
+                  >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
                 </div>
@@ -825,14 +1043,17 @@ onMounted(() => {
           <ScCard class="ip-calculator__reference-card" shadow="hover">
             <template #header>
               <div class="ip-calculator__card-header">
-                <IconifyIconOnline icon="ri:information-line" class="ip-calculator__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:information-line"
+                  class="ip-calculator__card-icon"
+                />
                 <span>IP网络参考</span>
               </div>
             </template>
 
             <div class="ip-calculator__reference">
-              <el-collapse accordion>
-                <el-collapse-item title="IP地址基础知识" name="basics">
+              <ScCollapse accordion>
+                <ScCollapseItem title="IP地址基础知识" name="basics">
                   <div class="ip-calculator__reference-content">
                     <p>IP地址是互联网协议使用的地址，用于标识网络中的设备。</p>
                     <h4>IPv4地址</h4>
@@ -849,14 +1070,16 @@ onMounted(() => {
                       <li>可以压缩：2001:db8:85a3::8a2e:370:7334</li>
                     </ul>
                   </div>
-                </el-collapse-item>
-                <el-collapse-item title="子网掩码和CIDR" name="subnet">
+                </ScCollapseItem>
+                <ScCollapseItem title="子网掩码和CIDR" name="subnet">
                   <div class="ip-calculator__reference-content">
                     <p>子网掩码用于确定IP地址的网络部分和主机部分。</p>
                     <h4>子网掩码表示法</h4>
                     <ul>
                       <li><strong>点分十进制</strong>：255.255.255.0</li>
-                      <li><strong>CIDR</strong>：/24（表示前24位是网络部分）</li>
+                      <li>
+                        <strong>CIDR</strong>：/24（表示前24位是网络部分）
+                      </li>
                     </ul>
                     <h4>常见子网掩码</h4>
                     <ul>
@@ -867,10 +1090,12 @@ onMounted(() => {
                       <li>/30 (255.255.255.252) - 点对点链路，2个主机</li>
                     </ul>
                   </div>
-                </el-collapse-item>
-                <el-collapse-item title="私有IP地址范围" name="private">
+                </ScCollapseItem>
+                <ScCollapseItem title="私有IP地址范围" name="private">
                   <div class="ip-calculator__reference-content">
-                    <p>私有IP地址是保留用于内部网络的地址范围，不会在公共互联网上路由。</p>
+                    <p>
+                      私有IP地址是保留用于内部网络的地址范围，不会在公共互联网上路由。
+                    </p>
                     <h4>IPv4私有地址范围</h4>
                     <ul>
                       <li>10.0.0.0/8 (10.0.0.0 - 10.255.255.255)</li>
@@ -886,8 +1111,8 @@ onMounted(() => {
                       <li>::1/128 - 回环地址</li>
                     </ul>
                   </div>
-                </el-collapse-item>
-                <el-collapse-item title="子网划分和超网合并" name="subnetting">
+                </ScCollapseItem>
+                <ScCollapseItem title="子网划分和超网合并" name="subnetting">
                   <div class="ip-calculator__reference-content">
                     <h4>子网划分</h4>
                     <p>将一个大网络分割成多个小网络的过程。</p>
@@ -904,8 +1129,8 @@ onMounted(() => {
                       <li>合并后的网络包含所有原始网络的地址</li>
                     </ul>
                   </div>
-                </el-collapse-item>
-              </el-collapse>
+                </ScCollapseItem>
+              </ScCollapse>
             </div>
           </ScCard>
         </ScCol>
@@ -926,7 +1151,11 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-3) 0%,
+      var(--el-color-primary) 100%
+    );
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 20px;

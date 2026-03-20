@@ -24,7 +24,7 @@
 
     <div class="restart-manager-content">
       <!-- 警告提示 -->
-      <el-alert
+      <ScAlert
         type="warning"
         :closable="false"
         show-icon
@@ -42,15 +42,15 @@
           </ul>
           <p>请确保已做好准备工作后再进行操作。</p>
         </div>
-      </el-alert>
+      </ScAlert>
 
       <!-- 节点状态 -->
       <div class="node-status-section">
         <div class="status-item">
           <span class="status-label">节点状态</span>
-          <el-tag :type="isOnline ? 'success' : 'danger'">
+          <ScTag :type="isOnline ? 'success' : 'danger'">
             {{ isOnline ? "在线" : "离线" }}
-          </el-tag>
+          </ScTag>
         </div>
         <div v-if="nodeInfo" class="status-item">
           <span class="status-label">应用名称</span>
@@ -66,7 +66,7 @@
 
       <!-- 操作按钮 -->
       <div class="action-section">
-        <el-button
+        <ScButton
           type="warning"
           size="large"
           :loading="loading.restart"
@@ -76,9 +76,9 @@
         >
           <IconifyIconOnline icon="ri:restart-line" />
           重启节点
-        </el-button>
+        </ScButton>
 
-        <el-button
+        <ScButton
           type="danger"
           size="large"
           :loading="loading.shutdown"
@@ -88,7 +88,7 @@
         >
           <IconifyIconOnline icon="ri:shut-down-line" />
           关闭节点
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 操作说明 -->
@@ -112,7 +112,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
+        <ScButton @click="handleClose">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

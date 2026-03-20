@@ -63,4 +63,4 @@ export interface VideoSyncQuery {
   syncStatus?: number;
   pageNum?: number;
   pageSize?: number;
-} 
+}

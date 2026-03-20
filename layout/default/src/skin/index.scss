@@ -1,0 +1,146 @@
+/**
+ * 主样式入口文件
+ * Main Style Entry File
+ * 
+ * 导入所有样式模块
+ * Imports all style modules
+ */
+
+// 基础系统 (Base Systems)
+@use './spacing.scss';
+@use './responsive.scss';
+@use './accessibility.scss';
+
+// 组件样式 (Component Styles)
+@use './forms.scss';
+@use './icons.scss';
+
+// 动画系统 (Animation System)
+@use './animations/micro-interactions.scss';
+
+// 主题系统 (Theme System)
+@use './dark-mode.scss';
+
+// 全局重置和基础样式 (Global Reset and Base Styles)
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// 全局链接样式 (Global Link Styles)
+a {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color var(--animation-duration-fast) var(--animation-easing);
+
+  &:hover {
+    color: var(--link-hover);
+  }
+
+  &:visited {
+    color: var(--link-visited);
+  }
+}
+
+// 全局按钮重置 (Global Button Reset)
+button {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+}
+
+// 全局输入框重置 (Global Input Reset)
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+// 图片响应式 (Responsive Images)
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+// 列表重置 (List Reset)
+ul,
+ol {
+  list-style: none;
+}
+
+// 表格重置 (Table Reset)
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+// 代码块样式 (Code Block Styles)
+code,
+pre {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.875em;
+}
+
+// 打印样式 (Print Styles)
+@media print {
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  a,
+  a:visited {
+    text-decoration: underline;
+  }
+
+  pre,
+  blockquote {
+    border: 1px solid #999;
+    page-break-inside: avoid;
+  }
+
+  img {
+    page-break-inside: avoid;
+  }
+
+  p,
+  h2,
+  h3 {
+    orphans: 3;
+    widows: 3;
+  }
+
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+}

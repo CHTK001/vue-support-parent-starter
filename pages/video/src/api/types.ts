@@ -18,7 +18,7 @@ export interface ApiResponse<T = any> {
 export interface VideoSource {
   // 视频资源ID
   videoSourceId: number;
-  //  连接超时时间 
+  //  连接超时时间
   videoSourceConnectTimeout: number;
   //平台
   videoSourcePlatform: string;

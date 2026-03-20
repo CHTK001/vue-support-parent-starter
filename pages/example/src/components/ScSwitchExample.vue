@@ -29,7 +29,7 @@
             />
           </ScFormItem>
 
-          <ScFormItem 
+          <ScFormItem
             label="label 标签文本"
             v-if="
               config.layout === 'compact-card' ||
@@ -40,14 +40,14 @@
           </ScFormItem>
 
           <ScFormItem label="activeText 开启文本">
-            <ScInput 
+            <ScInput
               v-model="config.activeText"
               placeholder="开启时显示的文本"
             />
           </ScFormItem>
 
           <ScFormItem label="inactiveText 关闭文本">
-            <ScInput 
+            <ScInput
               v-model="config.inactiveText"
               placeholder="关闭时显示的文本"
             />
@@ -148,9 +148,9 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScSwitch } from "@repo/components"
+import { ScSelect } from "@repo/components"
+import { IconifyIconOnline } from "@repo/components";
 
 // 布局选项
 const layoutOptions = [

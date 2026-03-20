@@ -5,26 +5,32 @@
       <span class="label">Mbps</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-bar-gauge">
-       <div class="gauge-fill" :style="{ width: `${Math.min(bandwidth.downlink / 20 * 100, 100)}%`, backgroundColor: '#00ccff' }"></div>
+      <div
+        class="gauge-fill"
+        :style="{
+          width: `${Math.min((bandwidth.downlink / 20) * 100, 100)}%`,
+          backgroundColor: '#00ccff',
+        }"
+      ></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from "vue";
 
 defineProps({
-  mode: { type: String, required: true }
+  mode: { type: String, required: true },
 });
 
-const bandwidth = ref<{ downlink: number, rtt: number } | null>(null);
+const bandwidth = ref<{ downlink: number; rtt: number } | null>(null);
 
 const updateBandwidth = () => {
   const conn = (navigator as any).connection;
   if (conn) {
     bandwidth.value = {
       downlink: conn.downlink,
-      rtt: conn.rtt
+      rtt: conn.rtt,
     };
   }
 };
@@ -32,13 +38,16 @@ const updateBandwidth = () => {
 onMounted(() => {
   if ((navigator as any).connection) {
     updateBandwidth();
-    (navigator as any).connection.addEventListener('change', updateBandwidth);
+    (navigator as any).connection.addEventListener("change", updateBandwidth);
   }
 });
 
 onBeforeUnmount(() => {
   if ((navigator as any).connection) {
-    (navigator as any).connection.removeEventListener('change', updateBandwidth);
+    (navigator as any).connection.removeEventListener(
+      "change",
+      updateBandwidth,
+    );
   }
 });
 </script>
@@ -75,7 +84,7 @@ onBeforeUnmount(() => {
 
 .mini-bar-gauge {
   height: 3px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   margin-top: 4px;
   border-radius: 2px;
   overflow: hidden;

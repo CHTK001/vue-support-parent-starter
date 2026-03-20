@@ -7,51 +7,51 @@
     @close="handleClose"
   >
     <div v-if="containerData" class="container-detail">
-      <el-tabs v-model="activeTab">
+      <ScTabs v-model="activeTab">
         <!-- 基本信息 -->
-        <el-tab-pane label="基本信息" name="basic">
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="容器名称">
+        <ScTabPane label="基本信息" name="basic">
+          <ScDescriptions :column="2" border>
+            <ScDescriptionsItem label="容器名称">
               {{ containerData.systemSoftContainerName }}
-            </el-descriptions-item>
-            <el-descriptions-item label="容器ID">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="容器ID">
               <span class="container-id">{{
                 containerData.systemSoftContainerId
               }}</span>
-            </el-descriptions-item>
-            <el-descriptions-item label="镜像名称">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="镜像名称">
               {{ containerData.systemSoftContainerImageName }}
-            </el-descriptions-item>
-            <el-descriptions-item label="镜像标签">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="镜像标签">
               {{ containerData.systemSoftContainerImageTag }}
-            </el-descriptions-item>
-            <el-descriptions-item label="运行状态">
-              <el-tag
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="运行状态">
+              <ScTag
                 :type="getStatusType(containerData.systemSoftContainerStatus)"
               >
                 {{ getStatusText(containerData.systemSoftContainerStatus) }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="服务器">
+              </ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="服务器">
               {{ containerData.systemSoftContainerServerName }}
-            </el-descriptions-item>
-            <el-descriptions-item label="创建时间">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="创建时间">
               {{ formatTime(containerData.systemSoftContainerCreatedTime) }}
-            </el-descriptions-item>
-            <el-descriptions-item label="启动时间">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="启动时间">
               {{ formatTime(containerData.systemSoftContainerStartedTime) }}
-            </el-descriptions-item>
-            <el-descriptions-item label="重启策略">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="重启策略">
               {{ containerData.systemSoftContainerRestartPolicy || "默认" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="自动删除">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="自动删除">
               {{ containerData.systemSoftContainerAutoRemove ? "是" : "否" }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </el-tab-pane>
+            </ScDescriptionsItem>
+          </ScDescriptions>
+        </ScTabPane>
 
         <!-- 网络配置 -->
-        <el-tab-pane label="网络配置" name="network">
+        <ScTabPane label="网络配置" name="network">
           <div class="network-section">
             <div class="section-title">端口映射</div>
             <div class="port-mappings">
@@ -62,7 +62,7 @@
                 :key="port"
                 class="port-mapping-item"
               >
-                <el-tag class="port-tag">{{ port }}</el-tag>
+                <ScTag class="port-tag">{{ port }}</ScTag>
               </div>
               <div
                 v-if="!containerData.systemSoftContainerPorts"
@@ -84,15 +84,15 @@
               {{ containerData.systemSoftContainerIpAddress || "未分配" }}
             </div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 资源使用 -->
-        <el-tab-pane label="资源监控" name="resources">
+        <ScTabPane label="资源监控" name="resources">
           <div class="resources-grid">
             <div class="resource-card">
               <div class="resource-title">CPU使用率</div>
               <div class="resource-chart">
-                <el-progress
+                <ScProgress
                   type="circle"
                   :percentage="
                     containerData.systemSoftContainerCpuPercent ||
@@ -123,7 +123,7 @@
             <div class="resource-card">
               <div class="resource-title">内存使用率</div>
               <div class="resource-chart">
-                <el-progress
+                <ScProgress
                   type="circle"
                   :percentage="
                     containerData.systemSoftContainerMemoryPercent ||
@@ -227,10 +227,10 @@
               </div>
             </div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 环境变量 -->
-        <el-tab-pane label="环境变量" name="environment">
+        <ScTabPane label="环境变量" name="environment">
           <div class="environment-section">
             <div
               v-if="containerData.systemSoftContainerEnvVars"
@@ -242,10 +242,10 @@
             </div>
             <div v-else class="no-data">暂无环境变量配置</div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 卷挂载 -->
-        <el-tab-pane label="存储挂载" name="volumes">
+        <ScTabPane label="存储挂载" name="volumes">
           <div class="volumes-section">
             <div
               v-if="containerData.systemSoftContainerVolumes"
@@ -258,56 +258,56 @@
                 :key="volume"
                 class="volume-item"
               >
-                <el-tag class="volume-tag">{{ volume }}</el-tag>
+                <ScTag class="volume-tag">{{ volume }}</ScTag>
               </div>
             </div>
             <div v-else class="no-data">暂无存储挂载配置</div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 启动配置 -->
-        <el-tab-pane label="启动配置" name="config">
+        <ScTabPane label="启动配置" name="config">
           <div class="config-section">
-            <el-descriptions :column="2" border>
-              <el-descriptions-item label="容器名称">
+            <ScDescriptions :column="2" border>
+              <ScDescriptionsItem label="容器名称">
                 {{ containerData.systemSoftContainerName }}
-              </el-descriptions-item>
-              <el-descriptions-item label="镜像">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="镜像">
                 {{ containerData.systemSoftContainerImage }}:{{
                   containerData.systemSoftContainerImageTag
                 }}
-              </el-descriptions-item>
-              <el-descriptions-item label="命令">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="命令">
                 {{ containerData.systemSoftContainerCommand || "默认" }}
-              </el-descriptions-item>
-              <el-descriptions-item label="参数">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="参数">
                 {{ containerData.systemSoftContainerArgs || "无" }}
-              </el-descriptions-item>
-              <el-descriptions-item label="网络模式">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="网络模式">
                 {{ containerData.systemSoftContainerNetworks || "默认桥接" }}
-              </el-descriptions-item>
-              <el-descriptions-item label="重启策略">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="重启策略">
                 {{
                   containerData.systemSoftContainerAutoRestart
                     ? "自动重启"
                     : "不重启"
                 }}
-              </el-descriptions-item>
-              <el-descriptions-item label="CPU限制">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="CPU限制">
                 {{
                   containerData.systemSoftContainerCpuLimit
                     ? `${containerData.systemSoftContainerCpuLimit} 核`
                     : "无限制"
                 }}
-              </el-descriptions-item>
-              <el-descriptions-item label="内存限制">
+              </ScDescriptionsItem>
+              <ScDescriptionsItem label="内存限制">
                 {{
                   containerData.systemSoftContainerMemoryLimit
                     ? formatBytes(containerData.systemSoftContainerMemoryLimit)
                     : "无限制"
                 }}
-              </el-descriptions-item>
-            </el-descriptions>
+              </ScDescriptionsItem>
+            </ScDescriptions>
 
             <div
               v-if="containerData.systemSoftContainerConfig"
@@ -319,10 +319,10 @@
               }}</pre>
             </div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 性能图表 -->
-        <el-tab-pane label="性能图表" name="charts">
+        <ScTabPane label="性能图表" name="charts">
           <div class="charts-section">
             <div class="chart-row">
               <div class="chart-item">
@@ -373,17 +373,17 @@
               </div>
             </div>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </div>
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" :loading="refreshing" @click="handleRefresh">
+        <ScButton @click="handleClose">关闭</ScButton>
+        <ScButton type="primary" :loading="refreshing" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新数据
-        </el-button>
+        </ScButton>
       </span>
     </template>
   </sc-dialog>

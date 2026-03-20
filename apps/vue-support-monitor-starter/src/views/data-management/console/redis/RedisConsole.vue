@@ -6,7 +6,7 @@
   >
     <!-- 左侧：搜索 + 树（与 JDBC 相同接口） -->
     <div class="left overflow-auto thin-scrollbar">
-      <el-input
+      <ScInput
         v-model="keyword"
         placeholder="搜索..."
         size="small"
@@ -16,8 +16,8 @@
         <template #append>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </el-input>
-      <el-tree
+      </ScInput>
+      <ScTree
         ref="treeRef"
         class="tree"
         :data="treeData"
@@ -42,7 +42,7 @@
             </span>
           </span>
         </template>
-      </el-tree>
+      </ScTree>
     </div>
 
     <!-- 分割条 -->
@@ -65,14 +65,14 @@
           <!-- <span>{{nodeValue}}</span> -->
         </div>
         <div class="toolbar">
-          <el-button
+          <ScButton
             size="small"
             :disabled="!currentPath"
             @click="refreshValue"
           >
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -81,22 +81,22 @@
           <template v-if="valueTypeText">
             <!-- valueType 分支：根据 properties.valueType 选择展示组件 -->
             <div v-if="valueTypeName === 'boolean'" class="result-wrap">
-              <el-switch v-model="vBoolean" disabled />
+              <ScSwitch v-model="vBoolean" disabled />
             </div>
             <div v-else-if="valueTypeName === 'number'" class="result-wrap">
-              <el-input :model-value="String(vNumber ?? '')" readonly />
+              <ScInput :model-value="String(vNumber ?? '')" readonly />
             </div>
-            <el-table
+            <ScTable
               v-else-if="valueTypeName === 'array'"
               :data="vArrayRows"
               size="small"
               border
               height="580px"
             >
-              <el-table-column prop="index" label="#" width="70" />
-              <el-table-column prop="value" label="值" :min-width="240" />
-            </el-table>
-            <el-table
+              <ScTableColumn prop="index" label="#" width="70" />
+              <ScTableColumn prop="value" label="值" :min-width="240" />
+            </ScTable>
+            <ScTable
               v-else-if="
                 valueTypeName === 'dict' ||
                 valueTypeName === 'map' ||
@@ -107,12 +107,12 @@
               border
               height="580px"
             >
-              <el-table-column prop="key" label="键" :min-width="160" />
-              <el-table-column prop="value" label="值" :min-width="240" />
-            </el-table>
+              <ScTableColumn prop="key" label="键" :min-width="160" />
+              <ScTableColumn prop="value" label="值" :min-width="240" />
+            </ScTable>
             <div v-else-if="valueTypeName === 'color'" class="result-wrap">
               <div style="display: flex; align-items: center; gap: 12px">
-                <el-color-picker v-model="vColor" disabled />
+                <ScColorPicker v-model="vColor" disabled />
                 <span>{{ vColor }}</span>
               </div>
             </div>
@@ -120,9 +120,9 @@
               v-else-if="valueTypeName === 'mail' || valueTypeName === 'email'"
               class="result-wrap"
             >
-              <el-link :href="`mailto:${vText}`" target="_blank">{{
+              <ScLink :href="`mailto:${vText}`" target="_blank">{{
                 vText
-              }}</el-link>
+              }}</ScLink>
             </div>
             <div
               v-else-if="
@@ -132,7 +132,7 @@
             >
               <div style="display: flex; align-items: center; gap: 12px">
                 <span>{{ secretVisible ? vText : maskedPassword }}</span>
-                <el-button
+                <ScButton
                   size="small"
                   @click="secretVisible = !secretVisible"
                   >{{ secretVisible ? "隐藏" : "显示" }}</el-button
@@ -147,7 +147,7 @@
               "
               class="result-wrap"
             >
-              <el-input v-model="vText" type="textarea" :rows="14" readonly />
+              <ScInput v-model="vText" type="textarea" :rows="14" readonly />
             </div>
             <div v-else class="result-wrap">
               <pre>{{ pretty(vRaw) }}</pre>
@@ -156,7 +156,7 @@
           <template v-else>
             <!-- STRING -->
             <div v-if="viewerType === 'string'" class="result-wrap">
-              <el-input
+              <ScInput
                 v-model="stringValue"
                 type="textarea"
                 :rows="14"
@@ -164,55 +164,55 @@
               />
             </div>
             <!-- HASH -->
-            <el-table
+            <ScTable
               v-else-if="viewerType === 'hash'"
               :data="hashRows"
               size="small"
               border
               height="580px"
             >
-              <el-table-column prop="field" label="字段" :min-width="160" />
-              <el-table-column prop="value" label="值" :min-width="240" />
-            </el-table>
+              <ScTableColumn prop="field" label="字段" :min-width="160" />
+              <ScTableColumn prop="value" label="值" :min-width="240" />
+            </ScTable>
             <!-- LIST -->
-            <el-table
+            <ScTable
               v-else-if="viewerType === 'list'"
               :data="listRows"
               size="small"
               border
               height="580px"
             >
-              <el-table-column prop="index" label="#" width="70" />
-              <el-table-column prop="value" label="值" :min-width="240" />
-            </el-table>
+              <ScTableColumn prop="index" label="#" width="70" />
+              <ScTableColumn prop="value" label="值" :min-width="240" />
+            </ScTable>
             <!-- SET -->
-            <el-table
+            <ScTable
               v-else-if="viewerType === 'set'"
               :data="setRows"
               size="small"
               border
               height="580px"
             >
-              <el-table-column prop="value" label="成员" :min-width="240" />
-            </el-table>
+              <ScTableColumn prop="value" label="成员" :min-width="240" />
+            </ScTable>
             <!-- ZSET -->
-            <el-table
+            <ScTable
               v-else-if="viewerType === 'zset'"
               :data="zsetRows"
               size="small"
               border
               height="580px"
             >
-              <el-table-column prop="member" label="成员" :min-width="200" />
-              <el-table-column prop="score" label="分数" width="120" />
-            </el-table>
+              <ScTableColumn prop="member" label="成员" :min-width="200" />
+              <ScTableColumn prop="score" label="分数" width="120" />
+            </ScTable>
             <!-- 其他类型：JSON 展示 -->
             <div v-else class="result-wrap">
               <pre>{{ pretty(nodeValue) }}</pre>
             </div>
           </template>
         </template>
-        <el-empty v-else description="请选择左侧 key" />
+        <ScEmpty v-else description="请选择左侧 key" />
       </div>
 
       <div class="right-status">

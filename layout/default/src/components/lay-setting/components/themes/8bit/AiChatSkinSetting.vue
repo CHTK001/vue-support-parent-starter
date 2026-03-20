@@ -12,4 +12,3 @@ import BaseComponent from "../../base/AiChatSkinSetting.vue";
 // 8-bit 主题专属 AI 聊天皮肤样式占位
 // 例如：html[data-skin="8bit"] { }
 </style>
-
