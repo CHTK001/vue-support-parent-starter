@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import {
   useDataThemeChange,
   useLayout,
@@ -231,15 +231,35 @@ const vcodeToptClose = () => {
   currentFormEl.value = null;
   scCodeRef.value.clear();
 };
+const navigateToTargetPath = async (targetPath: string) => {
+  const normalizedTargetPath = targetPath.startsWith("/")
+    ? targetPath
+    : `/${targetPath}`;
+  const navigationTask = router.replace(normalizedTargetPath).catch(() => undefined);
+
+  await Promise.race([
+    navigationTask,
+    new Promise((resolve) => window.setTimeout(resolve, 200)),
+  ]);
+
+  if (router.currentRoute.value.path !== normalizedTargetPath) {
+    const hashTarget = normalizedTargetPath.startsWith("#")
+      ? normalizedTargetPath
+      : `#${normalizedTargetPath}`;
+    if (window.location.hash !== hashTarget) {
+      window.location.hash = hashTarget;
+    }
+  }
+};
+
 const handleLoginSuccess = async (data, loginType) => {
   const userStore = useUserStoreHook();
   userStore.loginType = loginType;
   await userStore.load(data);
   return initRouter()
-    .then(() => {
-      router.push(getTopMenu(true).path).then(() => {
-        message(t("login.pureLoginSuccess"), { type: "success" });
-      });
+    .then(async () => {
+      await navigateToTargetPath(getTopMenu(true)?.path || "/home");
+      message(t("login.pureLoginSuccess"), { type: "success" });
     })
     .catch(() => {
       message("路由初始化失败，请重试", { type: "error" });
@@ -459,11 +479,10 @@ onMounted(() => {
         .then((res) => {
           // 获取后端路由
           return initRouter()
-            .then(() => {
-              const url = getTopMenu(true).path;
-              router.push(url, { query: {} }).then(() => {
-                message(t("login.pureLoginSuccess"), { type: "success" });
-              });
+            .then(async () => {
+              const url = getTopMenu(true)?.path || "/home";
+              await navigateToTargetPath(url);
+              message(t("login.pureLoginSuccess"), { type: "success" });
             })
             .catch((error) => {
               useUserStoreHook().logOut();
