@@ -3,12 +3,16 @@
  * @description 处理响应式断点、侧边栏自动折叠等逻辑
  */
 import { type Ref } from "vue";
-import { useResizeObserver, deviceDetection, useGlobal } from "@pureadmin/utils";
+import {
+  useResizeObserver,
+  deviceDetection,
+  useGlobal,
+} from "@pureadmin/utils";
 import { useAppStoreHook } from "@repo/core";
 
 export function useResponsiveLayout(
   appWrapperRef: Ref<HTMLElement | undefined>,
-  sidebarState: { isClickCollapse?: boolean }
+  sidebarState: { isClickCollapse?: boolean },
 ) {
   const isMobile = deviceDetection();
   const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -23,14 +27,25 @@ export function useResponsiveLayout(
    */
   function setTheme(layoutModel: string) {
     const fallbackLayout = "vertical";
+<<<<<<< HEAD
     const validLayouts = ["vertical", "horizontal", "mix", "hover", "double", "drawer", "mobile"];
+=======
+    const validLayouts = [
+      "vertical",
+      "horizontal",
+      "mix",
+      "hover",
+      "double",
+      "mobile",
+    ];
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
     const targetLayout =
       (layoutModel as string | undefined) && validLayouts.includes(layoutModel)
         ? layoutModel
-        : (validLayouts.includes(($storage.layout?.layout as string) || "")
-            ? ($storage.layout?.layout as string)
-            : fallbackLayout);
+        : validLayouts.includes(($storage.layout?.layout as string) || "")
+          ? ($storage.layout?.layout as string)
+          : fallbackLayout;
 
     window.document.body.setAttribute("layout", targetLayout);
     $storage.layout = {
@@ -58,13 +73,13 @@ export function useResponsiveLayout(
   function initResponsiveObserver() {
     useResizeObserver(appWrapperRef, (entries) => {
       if (isMobile) return;
-      
+
       const entry = entries[0];
       const [{ inlineSize: width, blockSize: height }] = entry.borderBoxSize;
-      
+
       appStore.setViewportSize({ width, height });
       width <= 760 ? setTheme("vertical") : setTheme(appStore.layout);
-      
+
       /**
        * width app-wrapper类容器宽度
        * 0 < width <= 760 隐藏侧边栏

@@ -7,7 +7,10 @@ import { getConfig } from "@repo/config";
 export const checkNetworkStatus = (): Promise<boolean> => {
   return new Promise((resolve) => {
     // 现代浏览器可以使用 navigator.onLine 属性来快速判断
-    if (typeof navigator !== "undefined" && typeof navigator.onLine === "boolean") {
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.onLine === "boolean"
+    ) {
       resolve(navigator.onLine);
     } else {
       // 对于不支持 navigator.onLine 的情况，可以通过发送一个简单的请求来检查
@@ -48,7 +51,7 @@ const IP_SERVICES = [
   {
     url: "https://api.ipify.org?format=json",
     parseIP: (data: any) => data.ip,
-    parseDetails: () => null
+    parseDetails: () => null,
   },
   {
     url: "https://ipinfo.io/json",
@@ -63,8 +66,8 @@ const IP_SERVICES = [
       asn: "",
       timezone: data.timezone || "",
       latitude: 0,
-      longitude: 0
-    })
+      longitude: 0,
+    }),
   },
   {
     url: "https://api.ip.sb/geoip",
@@ -79,11 +82,10 @@ const IP_SERVICES = [
       asn: data.asn?.toString() || "",
       timezone: data.timezone || "",
       latitude: data.latitude || 0,
-      longitude: data.longitude || 0
-    })
-  }
+      longitude: data.longitude || 0,
+    }),
+  },
 ];
-
 
 /**
  * 获取当前 IP 地址及相关信息
@@ -105,10 +107,10 @@ export const getCurrentIP = async (): Promise<{
     networkStatus: {
       isOnline: false,
       isPublic: false,
-      lastChecked: null
-    }
+      lastChecked: null,
+    },
   };
-  
+
   try {
     // 检查网络连接
     const isOnline = await checkPublicNetwork();
@@ -124,17 +126,17 @@ export const getCurrentIP = async (): Promise<{
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
-        
+
         const response = await fetch(service.url, {
           signal: controller.signal,
-          headers: { 'Accept': 'application/json' }
+          headers: { Accept: "application/json" },
         });
         clearTimeout(timeoutId);
-        
+
         if (response.ok) {
           const data = await response.json();
           result.ip = service.parseIP(data);
-          
+
           if (result.ip) {
             // 检查是否为公网IP
             result.networkStatus.isPublic = !isPrivateIP(result.ip);
@@ -150,7 +152,7 @@ export const getCurrentIP = async (): Promise<{
         continue;
       }
     }
-    
+
     // 所有服务都失败
     result.ip = "获取失败";
     return result;
@@ -166,34 +168,40 @@ export const getCurrentIP = async (): Promise<{
  */
 export const checkPublicNetwork = (): Promise<boolean> => {
   // 添加缓存机制，缓存结果10分钟
-  const cacheKey = 'network_status_cache';
-  const cacheExpiry = 'network_status_expiry';
-  
+  const cacheKey = "network_status_cache";
+  const cacheExpiry = "network_status_expiry";
+
   // 检查是否有有效的缓存结果
   const cachedStatus = localStorage.getItem(cacheKey);
   const expiryTime = localStorage.getItem(cacheExpiry);
-  
+
   if (cachedStatus && expiryTime) {
     // 检查缓存是否过期（10分钟）
     if (Date.now() < parseInt(expiryTime)) {
-      return Promise.resolve(cachedStatus === 'true');
+      return Promise.resolve(cachedStatus === "true");
     }
   }
-  
+
   return new Promise((resolve) => {
     const img = new Image();
     // 使用阿里云公共服务作为网络检测地址
     img.src = "https://www.aliyun.com/favicon.ico?" + Math.random();
     img.onload = () => {
       // 缓存结果，设置10分钟过期时间
-      localStorage.setItem(cacheKey, 'true');
-      localStorage.setItem(cacheExpiry, (Date.now() + 10 * 60 * 1000).toString());
+      localStorage.setItem(cacheKey, "true");
+      localStorage.setItem(
+        cacheExpiry,
+        (Date.now() + 10 * 60 * 1000).toString(),
+      );
       resolve(true);
     };
     img.onerror = () => {
       // 缓存结果，设置10分钟过期时间
-      localStorage.setItem(cacheKey, 'false');
-      localStorage.setItem(cacheExpiry, (Date.now() + 10 * 60 * 1000).toString());
+      localStorage.setItem(cacheKey, "false");
+      localStorage.setItem(
+        cacheExpiry,
+        (Date.now() + 10 * 60 * 1000).toString(),
+      );
       resolve(false);
     };
   });
@@ -289,7 +297,9 @@ export const getPhysicalAddressByIp = async (ip: string): Promise<string> => {
             throw new Error("Network response was not ok");
           }
           const data = await response.json();
-          const address = !data.city ? "未知位置" : `${data.city || ""}, ${data.region || ""}, ${data.country_name || ""}`;
+          const address = !data.city
+            ? "未知位置"
+            : `${data.city || ""}, ${data.region || ""}, ${data.country_name || ""}`;
           // 将查询结果存入本地存储
           localStorage.setItem(`physicalAddress_${ip}`, address);
           resolve(address);
@@ -314,7 +324,7 @@ export const getIpInfo = async (ip: string): Promise<IPDetails | null> => {
   if (isPrivateIP(ip)) {
     return null;
   }
-  
+
   const cacheKey = `ip_info_${ip}`;
   const cached = localStorage.getItem(cacheKey);
   if (cached) {
@@ -329,22 +339,22 @@ export const getIpInfo = async (ip: string): Promise<IPDetails | null> => {
   try {
     const response = await fetch(`https://api.ip.sb/geoip/${ip}`);
     if (response.ok) {
-        const data = await response.json();
-        const info: IPDetails = {
-            country: data.country || "",
-            country_code: data.country_code || "",
-            region: data.region || "",
-            region_code: data.region_code || "",
-            city: data.city || "",
-            isp: data.isp || "",
-            org: data.organization || "",
-            asn: data.asn?.toString() || "",
-            timezone: data.timezone || "",
-            latitude: data.latitude || 0,
-            longitude: data.longitude || 0
-        };
-        localStorage.setItem(cacheKey, JSON.stringify(info));
-        return info;
+      const data = await response.json();
+      const info: IPDetails = {
+        country: data.country || "",
+        country_code: data.country_code || "",
+        region: data.region || "",
+        region_code: data.region_code || "",
+        city: data.city || "",
+        isp: data.isp || "",
+        org: data.organization || "",
+        asn: data.asn?.toString() || "",
+        timezone: data.timezone || "",
+        latitude: data.latitude || 0,
+        longitude: data.longitude || 0,
+      };
+      localStorage.setItem(cacheKey, JSON.stringify(info));
+      return info;
     }
   } catch (e) {
     console.warn("ip.sb fetch failed", e);
@@ -354,30 +364,29 @@ export const getIpInfo = async (ip: string): Promise<IPDetails | null> => {
   try {
     const response = await fetch(`https://ipapi.co/${ip}/json/`);
     if (response.ok) {
-        const data = await response.json();
-        const info: IPDetails = {
-            country: data.country_name || "",
-            country_code: data.country_code || "",
-            region: data.region || "",
-            region_code: data.region_code || "",
-            city: data.city || "",
-            isp: data.org || "",
-            org: data.org || "",
-            asn: data.asn || "",
-            timezone: data.timezone || "",
-            latitude: data.latitude || 0,
-            longitude: data.longitude || 0
-        };
-        localStorage.setItem(cacheKey, JSON.stringify(info));
-        return info;
+      const data = await response.json();
+      const info: IPDetails = {
+        country: data.country_name || "",
+        country_code: data.country_code || "",
+        region: data.region || "",
+        region_code: data.region_code || "",
+        city: data.city || "",
+        isp: data.org || "",
+        org: data.org || "",
+        asn: data.asn || "",
+        timezone: data.timezone || "",
+        latitude: data.latitude || 0,
+        longitude: data.longitude || 0,
+      };
+      localStorage.setItem(cacheKey, JSON.stringify(info));
+      return info;
     }
   } catch (e) {
     console.warn("ipapi.co fetch failed", e);
   }
-  
+
   return null;
 };
-
 
 /**
  * 摄像头厂商RTSP地址接口
@@ -402,7 +411,8 @@ export const getCameraRtspTemplates = (): CameraRtspTemplate[] => {
     {
       manufacturer: "海康威视",
       version: "v1.0",
-      rtspTemplate: "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/h264/ch${channelNo}/${subtype}/av_stream",
+      rtspTemplate:
+        "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/h264/ch${channelNo}/${subtype}/av_stream",
       description: "海康威视通用RTSP地址",
       params: {
         sysDeviceAccount: "用户名",
@@ -416,7 +426,8 @@ export const getCameraRtspTemplates = (): CameraRtspTemplate[] => {
     {
       manufacturer: "大华",
       version: "v1.0",
-      rtspTemplate: "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/cam/realmonitor?channel=${channelNo}&subtype=${subtype}",
+      rtspTemplate:
+        "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/cam/realmonitor?channel=${channelNo}&subtype=${subtype}",
       description: "大华通用RTSP地址",
       params: {
         sysDeviceAccount: "用户名",
@@ -430,7 +441,8 @@ export const getCameraRtspTemplates = (): CameraRtspTemplate[] => {
     {
       manufacturer: "宇视",
       version: "v1.0",
-      rtspTemplate: "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/video${channelNo}/${subtype}",
+      rtspTemplate:
+        "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/video${channelNo}/${subtype}",
       description: "宇视通用RTSP地址",
       params: {
         sysDeviceAccount: "用户名",
@@ -444,7 +456,8 @@ export const getCameraRtspTemplates = (): CameraRtspTemplate[] => {
     {
       manufacturer: "华为",
       version: "v1.0",
-      rtspTemplate: "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/LiveMedia/ch${channelNo}/${subtype}",
+      rtspTemplate:
+        "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/LiveMedia/ch${channelNo}/${subtype}",
       description: "华为通用RTSP地址",
       params: {
         sysDeviceAccount: "用户名",
@@ -458,7 +471,8 @@ export const getCameraRtspTemplates = (): CameraRtspTemplate[] => {
     {
       manufacturer: "天地伟业",
       version: "v1.0",
-      rtspTemplate: "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/stream${channelNo}/${subtype}",
+      rtspTemplate:
+        "rtsp://${sysDeviceAccount}:${sysDevicePassword}@${sysDeviceNetAddress}/stream${channelNo}/${subtype}",
       description: "天地伟业通用RTSP地址",
       params: {
         sysDeviceAccount: "用户名",

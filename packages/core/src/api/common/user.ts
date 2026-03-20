@@ -121,21 +121,33 @@ export const fetchThirdUnbind = (data?: object) => {
 };
 /** 三方绑定情况 */
 export const fetchThirdBindInfo = (data?: object) => {
-  return http.request<ReturnResult<String>>("post", "/v2/user/third/bind/info", {
-    data,
-  });
+  return http.request<ReturnResult<String>>(
+    "post",
+    "/v2/user/third/bind/info",
+    {
+      data,
+    },
+  );
 };
 /** 三方绑定码 */
 export const fetchThirdBindCode = (data?: object) => {
-  return http.request<ReturnResult<String>>("post", "/v2/user/third/bind/code", {
-    data,
-  });
+  return http.request<ReturnResult<String>>(
+    "post",
+    "/v2/user/third/bind/code",
+    {
+      data,
+    },
+  );
 };
 /** 三方登录码 */
 export const fetchThirdLoginCode = (data?: object) => {
-  return http.request<ReturnResult<String>>("post", "/v2/user/third/login/code", {
-    data,
-  });
+  return http.request<ReturnResult<String>>(
+    "post",
+    "/v2/user/third/login/code",
+    {
+      data,
+    },
+  );
 };
 /** 登录 */
 export const getLogin = (data?: object) => {
@@ -164,9 +176,13 @@ export const getMineLogs = (params) => {
 
 /** 刷新`token` */
 export const refreshTokenApi = (data?: object) => {
-  return http.request<ReturnResult<RefreshTokenResult>>("post", "/v2/user/refresh-token", {
-    data,
-  });
+  return http.request<ReturnResult<RefreshTokenResult>>(
+    "post",
+    "/v2/user/refresh-token",
+    {
+      data,
+    },
+  );
 };
 
 /** 导出用户列表 */
@@ -205,13 +221,20 @@ export const fetchResetPassword = (userId: number | string) => {
 
 /** 批量删除用户 */
 export const fetchBatchDeleteUsers = (userIds: (number | string)[]) => {
-  return http.request<ReturnResult<boolean>>("delete", "/v2/user/batch/delete", {
-    data: { userIds },
-  });
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "/v2/user/batch/delete",
+    {
+      data: { userIds },
+    },
+  );
 };
 
 /** 批量更新用户状态 */
-export const fetchBatchUpdateUserStatus = (userIds: (number | string)[], status: number) => {
+export const fetchBatchUpdateUserStatus = (
+  userIds: (number | string)[],
+  status: number,
+) => {
   return http.request<ReturnResult<boolean>>("put", "/v2/user/batch/status", {
     data: { userIds, status },
   });

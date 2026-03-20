@@ -2,15 +2,15 @@
  * 网格管理器
  * @description 管理GeoHash和蜂窝网格对象
  */
-import { Map as OlMap } from 'ol';
-import logger from './LogObject';
-import { GeoHashGridObject, GeoHashGridConfig } from './GeoHashGridObject';
-import { HexagonGridObject, HexagonGridConfig } from './HexagonGridObject';
+import { Map as OlMap } from "ol";
+import logger from "./LogObject";
+import { GeoHashGridObject, GeoHashGridConfig } from "./GeoHashGridObject";
+import { HexagonGridObject, HexagonGridConfig } from "./HexagonGridObject";
 
 // 网格类型枚举
 export enum GridType {
-  GEOHASH = 'geohash',
-  HEXAGON = 'hexagon'
+  GEOHASH = "geohash",
+  HEXAGON = "hexagon",
 }
 
 // 网格配置接口
@@ -23,31 +23,31 @@ export interface GridConfig {
 const DEFAULT_GRID_CONFIG: GridConfig = {
   geohash: {
     precision: 6,
-    strokeColor: 'rgba(0, 60, 136, 0.8)',
+    strokeColor: "rgba(0, 60, 136, 0.8)",
     strokeWidth: 1,
-    fillColor: 'rgba(0, 60, 136, 0.2)',
+    fillColor: "rgba(0, 60, 136, 0.2)",
     showLabels: true,
-    labelColor: '#003c88',
+    labelColor: "#003c88",
     buffer: 4,
     cacheSize: 1000,
     targetSize: 100,
     zIndex: 100,
-    opacity: 1
+    opacity: 1,
   },
   hexagon: {
-    radius: 1000,  // 1公里半径
-    strokeColor: 'rgba(255, 99, 71, 0.8)',
+    radius: 1000, // 1公里半径
+    strokeColor: "rgba(255, 99, 71, 0.8)",
     strokeWidth: 1,
-    fillColor: 'rgba(255, 99, 71, 0.2)',
+    fillColor: "rgba(255, 99, 71, 0.2)",
     showLabels: true,
-    labelColor: '#ff6347',
+    labelColor: "#ff6347",
     zIndex: 101,
-    opacity: 1
-  }
+    opacity: 1,
+  },
 };
 
 // 网格模块的日志前缀
-const LOG_MODULE = 'GridManager';
+const LOG_MODULE = "GridManager";
 
 /**
  * 网格管理器类
@@ -63,7 +63,7 @@ export class GridManager {
   private hexagonGrid: HexagonGridObject | null = null;
   // 当前活动的网格类型
   private activeGridTypes: Set<GridType> = new Set();
-  
+
   /**
    * 构造函数
    * @param mapInstance 地图实例
@@ -71,17 +71,17 @@ export class GridManager {
    */
   constructor(mapInstance: OlMap | null = null, config?: Partial<GridConfig>) {
     if (mapInstance) {
-      this.log('info', '构造函数中设置地图实例...');
+      this.log("info", "构造函数中设置地图实例...");
       this.setMapInstance(mapInstance);
     } else {
-      this.log('warn', '构造函数中未提供地图实例！');
+      this.log("warn", "构造函数中未提供地图实例！");
     }
-    
+
     if (config) {
       this.setConfig(config);
     }
-    
-    this.log('debug', '网格管理器已创建');
+
+    this.log("debug", "网格管理器已创建");
   }
 
   /**
@@ -89,20 +89,20 @@ export class GridManager {
    * @param mapInstance 地图实例
    */
   public setMapInstance(mapInstance: OlMap): void {
-    this.log('info', '设置地图实例...');
-    
+    this.log("info", "设置地图实例...");
+
     // 检查地图实例是否有效
     if (!mapInstance) {
-      this.log('error', '提供的地图实例无效！');
+      this.log("error", "提供的地图实例无效！");
       return;
     }
-    
+
     this.mapInstance = mapInstance;
-    
+
     // 初始化网格对象
     this.initGridObjects();
-    
-    this.log('debug', '地图实例已设置');
+
+    this.log("debug", "地图实例已设置");
   }
 
   /**
@@ -113,24 +113,24 @@ export class GridManager {
     this.config = {
       geohash: {
         ...DEFAULT_GRID_CONFIG.geohash,
-        ...(config.geohash || {})
+        ...(config.geohash || {}),
       },
       hexagon: {
         ...DEFAULT_GRID_CONFIG.hexagon,
-        ...(config.hexagon || {})
-      }
+        ...(config.hexagon || {}),
+      },
     };
-    
+
     // 更新网格对象配置
     if (this.geoHashGrid) {
       this.geoHashGrid.setConfig(this.config.geohash);
     }
-    
+
     if (this.hexagonGrid) {
       this.hexagonGrid.setConfig(this.config.hexagon);
     }
-    
-    this.log('debug', '网格配置已更新');
+
+    this.log("debug", "网格配置已更新");
   }
 
   /**
@@ -139,17 +139,23 @@ export class GridManager {
    */
   private initGridObjects(): void {
     if (!this.mapInstance) {
-      this.log('error', '无法初始化网格对象：地图实例不可用');
+      this.log("error", "无法初始化网格对象：地图实例不可用");
       return;
     }
-    
+
     // 创建GeoHash网格对象
-    this.geoHashGrid = new GeoHashGridObject(this.mapInstance, this.config.geohash);
-    
+    this.geoHashGrid = new GeoHashGridObject(
+      this.mapInstance,
+      this.config.geohash,
+    );
+
     // 创建蜂窝网格对象
-    this.hexagonGrid = new HexagonGridObject(this.mapInstance, this.config.hexagon);
-    
-    this.log('info', '网格对象已初始化');
+    this.hexagonGrid = new HexagonGridObject(
+      this.mapInstance,
+      this.config.hexagon,
+    );
+
+    this.log("info", "网格对象已初始化");
   }
 
   /**
@@ -158,10 +164,10 @@ export class GridManager {
    */
   public enable(gridType: GridType): void {
     if (this.activeGridTypes.has(gridType)) {
-      this.log('debug', `${gridType}网格已经启用`);
+      this.log("debug", `${gridType}网格已经启用`);
       return;
     }
-    
+
     switch (gridType) {
       case GridType.GEOHASH:
         if (this.geoHashGrid) {
@@ -174,11 +180,11 @@ export class GridManager {
         }
         break;
     }
-    
+
     // 添加到活动集合
     this.activeGridTypes.add(gridType);
-    
-    this.log('info', `已启用${gridType}网格`);
+
+    this.log("info", `已启用${gridType}网格`);
   }
 
   /**
@@ -187,10 +193,10 @@ export class GridManager {
    */
   public disable(gridType: GridType): void {
     if (!this.activeGridTypes.has(gridType)) {
-      this.log('debug', `${gridType}网格已经禁用`);
+      this.log("debug", `${gridType}网格已经禁用`);
       return;
     }
-    
+
     switch (gridType) {
       case GridType.GEOHASH:
         if (this.geoHashGrid) {
@@ -203,28 +209,28 @@ export class GridManager {
         }
         break;
     }
-    
+
     // 从活动集合中移除
     this.activeGridTypes.delete(gridType);
-    
-    this.log('info', `已禁用${gridType}网格`);
+
+    this.log("info", `已禁用${gridType}网格`);
   }
 
   /**
    * 刷新所有活动的网格
    */
   public refresh(): void {
-    this.log('info', '开始刷新网格...');
-    
+    this.log("info", "开始刷新网格...");
+
     if (this.activeGridTypes.has(GridType.GEOHASH) && this.geoHashGrid) {
       this.geoHashGrid.refresh();
     }
-    
+
     if (this.activeGridTypes.has(GridType.HEXAGON) && this.hexagonGrid) {
       this.hexagonGrid.refresh();
     }
-    
-    this.log('info', '网格刷新完成');
+
+    this.log("info", "网格刷新完成");
   }
 
   /**
@@ -329,7 +335,9 @@ export class GridManager {
    * 设置GeoHash网格范围
    * @param extent 范围 [minX, minY, maxX, maxY]
    */
-  public setGeoHashExtent(extent: [number, number, number, number] | null): void {
+  public setGeoHashExtent(
+    extent: [number, number, number, number] | null,
+  ): void {
     if (this.geoHashGrid) {
       this.geoHashGrid.setExtent(extent);
       if (extent) {
@@ -344,24 +352,24 @@ export class GridManager {
    * 销毁对象
    */
   public destroy(): void {
-    this.log('info', '销毁网格管理器...');
-    
+    this.log("info", "销毁网格管理器...");
+
     // 销毁网格对象
     if (this.geoHashGrid) {
       this.geoHashGrid.destroy();
       this.geoHashGrid = null;
     }
-    
+
     if (this.hexagonGrid) {
       this.hexagonGrid.destroy();
       this.hexagonGrid = null;
     }
-    
+
     // 清除引用
     this.mapInstance = null;
     this.activeGridTypes.clear();
-    
-    this.log('info', '网格管理器已销毁');
+
+    this.log("info", "网格管理器已销毁");
   }
 
   /**
@@ -370,11 +378,15 @@ export class GridManager {
    * @param message 日志消息
    * @param data 附加数据
    */
-  private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: any): void {
+  private log(
+    level: "debug" | "info" | "warn" | "error",
+    message: string,
+    data?: any,
+  ): void {
     if (data) {
       logger[level](`[${LOG_MODULE}] ${message}`, data);
     } else {
       logger[level](`[${LOG_MODULE}] ${message}`);
     }
   }
-} 
+}

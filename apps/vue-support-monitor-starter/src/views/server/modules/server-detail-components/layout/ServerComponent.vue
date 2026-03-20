@@ -6,46 +6,46 @@
     <div v-if="showTitle" class="component-header">
       <div class="component-title">{{ title }}</div>
       <div class="component-actions">
-        <el-tooltip content="刷新" placement="top" :show-after="300">
-          <el-button link @click="fetchData">
+        <ScTooltip content="刷新" placement="top" :show-after="300">
+          <ScButton link @click="fetchData">
             <IconifyIconOnline icon="ep:refresh" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip
+          </ScButton>
+        </ScTooltip>
+        <ScTooltip
           v-if="editable"
           content="配置图表"
           placement="top"
           :show-after="300"
         >
-          <el-button link @click="$emit('editChartConfig', item)">
+          <ScButton link @click="$emit('editChartConfig', item)">
             <IconifyIconOnline icon="ep:setting" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip
+          </ScButton>
+        </ScTooltip>
+        <ScTooltip
           v-if="editable"
           content="编辑查询"
           placement="top"
           :show-after="300"
         >
-          <el-button link @click="$emit('editComponent', item)">
+          <ScButton link @click="$emit('editComponent', item)">
             <IconifyIconOnline icon="ep:edit" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip
+          </ScButton>
+        </ScTooltip>
+        <ScTooltip
           v-if="editable"
           content="移除"
           placement="top"
           :show-after="300"
         >
-          <el-button link @click="$emit('removeComponent', item)">
+          <ScButton link @click="$emit('removeComponent', item)">
             <IconifyIconOnline icon="ep:delete" />
-          </el-button>
-        </el-tooltip>
+          </ScButton>
+        </ScTooltip>
       </div>
     </div>
     <div class="component-content">
       <div v-if="error" class="component-error">
-        <el-alert :title="error" type="error" show-icon :closable="false" />
+        <ScAlert :title="error" type="error" show-icon :closable="false" />
       </div>
       <div v-else-if="loading" class="component-loading">
         <div class="loading-content">
@@ -108,30 +108,30 @@
         />
       </div>
       <div v-else-if="chartType === 'table'" class="table-wrapper">
-        <el-table
+        <ScTable
           :data="tableData"
           stripe
           style="width: 100%"
           :max-height="tableHeight"
           size="small"
         >
-          <el-table-column
+          <ScTableColumn
             v-for="(column, index) in tableColumns"
             :key="index"
             :prop="column.prop"
             :label="column.label"
             :width="column.width"
           />
-        </el-table>
+        </ScTable>
       </div>
     </div>
     <div v-if="showFooter" class="component-footer">
       <div class="query-info">
         <span class="query-time">{{ queryTime }}</span>
         <span v-if="valueUnit" class="value-unit">
-          <el-tag size="small" type="info">{{
+          <ScTag size="small" type="info">{{
             getValueUnitLabel(valueUnit)
-          }}</el-tag>
+          }}</ScTag>
         </span>
       </div>
       <div v-if="refreshInterval > 0" class="refresh-info">
@@ -149,7 +149,7 @@ import GaugeChart from "../charts/GaugeChart.vue";
 import CardChart from "../charts/CardChart.vue";
 import BarChart from "../charts/BarChart.vue";
 import PieChart from "../charts/PieChart.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 const props = defineProps({
   item: {

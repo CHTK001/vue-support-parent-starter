@@ -80,7 +80,7 @@ const visibleRows = computed(() => {
 const canUndo = computed(() => env.undoStack.length > 0);
 const canRedo = computed(() => env.redoStack.length > 0);
 const hasSelection = computed(
-  () => env.selection.active && env.selection.start !== env.selection.end
+  () => env.selection.active && env.selection.start !== env.selection.end,
 );
 const selectionSize = computed(() => {
   if (!hasSelection.value) return 0;
@@ -185,7 +185,7 @@ const updateByte = (index, value) => {
   message(
     t("message.byteUpdated") ||
       `字节已更新: 0x${oldValue.toString(16).padStart(2, "0")} → 0x${value.toString(16).padStart(2, "0")}`,
-    { type: "success" }
+    { type: "success" },
   );
 };
 
@@ -374,7 +374,7 @@ const search = () => {
     message(
       t("message.searchResultsFound") ||
         `找到 ${env.searchResults.length} 个匹配结果`,
-      { type: "success" }
+      { type: "success" },
     );
   } else {
     message(t("message.noSearchResults") || "未找到匹配结果", {
@@ -640,7 +640,7 @@ onBeforeUnmount(() => {
               <IconifyIconOnline icon="ri:folder-open-line" />
               <span>打开</span>
             </ScButton>
-            <ScButton 
+            <ScButton
               type="primary"
               @click="saveFile"
               :disabled="!env.hexData.length"
@@ -680,7 +680,7 @@ onBeforeUnmount(() => {
               <IconifyIconOnline icon="ri:scissors-cut-line" />
               <span>剪切</span>
             </ScButton>
-            <ScButton 
+            <ScButton
               @click="paste(env.selection.start)"
               :disabled="!env.clipboard"
             >
@@ -690,7 +690,7 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="hexedit-tool__toolbar-group">
-            <ScInput 
+            <ScInput
               v-model="env.searchQuery"
               placeholder="搜索十六进制或文本"
               class="hexedit-tool__search-input"
@@ -701,13 +701,13 @@ onBeforeUnmount(() => {
                 </ScButton>
               </template>
             </ScInput>
-            <ScButton 
+            <ScButton
               @click="findPrev"
               :disabled="env.searchResults.length === 0"
             >
               <IconifyIconOnline icon="ri:arrow-up-s-line" />
             </ScButton>
-            <ScButton 
+            <ScButton
               @click="findNext"
               :disabled="env.searchResults.length === 0"
             >
@@ -716,13 +716,13 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="hexedit-tool__toolbar-group">
-            <ScInput 
+            <ScInput
               placeholder="跳转到偏移量"
               class="hexedit-tool__goto-input"
             >
               <template #prepend>0x</template>
               <template #append>
-                <ScButton 
+                <ScButton
                   @click="goToOffset(parseInt($event.target.value, 16))"
                 >
                   <IconifyIconOnline icon="ri:arrow-right-line" />
@@ -746,7 +746,7 @@ onBeforeUnmount(() => {
       </ScCard>
 
       <!-- 编辑器区域 -->
-      <ScCard 
+      <ScCard
         class="hexedit-tool__editor-card"
         shadow="hover"
         v-loading="env.loading"

@@ -3,28 +3,28 @@
     <div class="compose-header">
       <h3>撰写邮件</h3>
       <div class="compose-actions">
-        <el-button size="small" @click="handleSaveDraft">保存草稿</el-button>
-        <el-button type="primary" size="small" @click="handleSend"
+        <ScButton size="small" @click="handleSaveDraft">保存草稿</ScButton>
+        <ScButton type="primary" size="small" @click="handleSend"
           >发送</el-button
         >
-        <el-button size="small" @click="handleClose">关闭</el-button>
+        <ScButton size="small" @click="handleClose">关闭</ScButton>
       </div>
     </div>
     <div class="compose-form">
       <div class="form-row">
         <label>收件人：</label>
-        <el-input
+        <ScInput
           v-model="form.to"
           placeholder="输入收件人邮箱地址，多个用逗号分隔"
         />
       </div>
       <div class="form-row">
         <label>抄送：</label>
-        <el-input v-model="form.cc" placeholder="抄送邮箱地址" />
+        <ScInput v-model="form.cc" placeholder="抄送邮箱地址" />
       </div>
       <div class="form-row">
         <label>主题：</label>
-        <el-input v-model="form.subject" placeholder="邮件主题" />
+        <ScInput v-model="form.subject" placeholder="邮件主题" />
       </div>
       <div class="form-row full">
         <label>内容：</label>

@@ -1,34 +1,34 @@
 <template>
   <div class="page flex flex-col h-full">
     <!-- 内容区域 -->
-    <el-card shadow="hover" class="content-card">
+    <ScCard shadow="hover" class="content-card">
       <template #header>
         <div class="card-header">
           <div class="header-left">
             <IconifyIconOnline icon="ri:database-2-line" class="header-icon" />
             <span>SQL 监控</span>
-            <el-tag type="info" size="small">{{ dataList.length }} 条记录</el-tag>
+            <ScTag type="info" size="small">{{ dataList.length }} 条记�?/ScTag>
           </div>
           <div class="header-actions">
-            <el-button v-if="config.lock" type="primary" size="small" @click="config.lock = false">
+            <ScButton v-if="config.lock" type="primary" size="small" @click="config.lock = false">
               <IconifyIconOnline icon="ri:lock-line" class="mr-1" />
               锁定滚动
-            </el-button>
-            <el-button v-else size="small" @click="config.lock = true">
+            </ScButton>
+            <ScButton v-else size="small" @click="config.lock = true">
               <IconifyIconOnline icon="ri:lock-unlock-line" class="mr-1" />
               解锁滚动
-            </el-button>
-            <el-button type="danger" size="small" @click="dataList.length = 0">
+            </ScButton>
+            <ScButton type="danger" size="small" @click="dataList.length = 0">
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               清空
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </template>
       <div class="sql-container">
-        <el-row :gutter="16" class="h-full">
+        <ScRow :gutter="16" class="h-full">
           <!-- SQL 列表 -->
-          <el-col :span="8" class="sql-list-col">
+          <ScCol :span="8" class="sql-list-col">
             <div class="section-header">
               <IconifyIconOnline icon="ri:list-check" class="section-icon" />
               <span>SQL 列表</span>
@@ -39,10 +39,10 @@
                 <span class="sql-content">{{ item?.data?.sql || "SQL" }}</span>
               </div>
             </div>
-          </el-col>
+          </ScCol>
 
           <!-- SQL 详情 -->
-          <el-col :span="16" class="sql-detail-col">
+          <ScCol :span="16" class="sql-detail-col">
             <div class="section-header">
               <IconifyIconOnline icon="ri:code-box-line" class="section-icon" />
               <span>SQL 详情</span>
@@ -51,16 +51,16 @@
               <div v-if="config.mainData" class="sql-detail">
                 <pre class="sql-code"><code class="language-sql">{{ format(config.mainData?.data?.sql || "SELECT 1") }}</code></pre>
               </div>
-              <el-empty v-else description="请选择 SQL 记录查看详情" />
+              <ScEmpty v-else description="请选择 SQL 记录查看详情" />
             </div>
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import Prism from "prismjs";
 import "prismjs/components/prism-http.min.js";
 import "prismjs/components/prism-sql.min.js";
@@ -92,7 +92,7 @@ const handleWsMessage = message => {
       while (dataList.length > 10000) {
         dataList.shift();
       }
-      // 自动滚动到底部
+      // 自动滚动到底�?
       if (config.lock) {
         nextTick(() => {
           const container = document.querySelector("#containerRef");

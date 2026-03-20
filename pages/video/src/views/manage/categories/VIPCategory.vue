@@ -3,15 +3,26 @@
     <div class="vip-category__container">
       <div class="vip-category__header">
         <h2 class="vip-category__title">视频解析</h2>
-        <ScButton type="primary" plain size="small" @click="navigateToHistory">查看历史记录</ScButton>
+        <ScButton type="primary" plain size="small" @click="navigateToHistory"
+          >查看历史记录</ScButton
+        >
       </div>
 
       <!-- 视频解析表单 -->
       <div class="vip-parser">
         <div class="vip-parser__form">
-          <ScForm :model="parseForm" :rules="parseRules" ref="parseFormRef" label-width="80px">
+          <ScForm
+            :model="parseForm"
+            :rules="parseRules"
+            ref="parseFormRef"
+            label-width="80px"
+          >
             <ScFormItem label="视频链接" prop="url">
-              <ScInput v-model="parseForm.url" placeholder="请输入需要解析的视频链接" clearable>
+              <ScInput
+                v-model="parseForm.url"
+                placeholder="请输入需要解析的视频链接"
+                clearable
+              >
                 <template #prefix>
                   <IconifyIconOnline icon="ri:link" />
                 </template>
@@ -21,17 +32,31 @@
               </ScInput>
             </ScFormItem>
             <ScFormItem label="解析接口">
-              <ScSelect v-model="parseForm.apiIndex" placeholder="请选择解析接口">
-                <ScOption v-for="(api, index) in parseApis" :key="index" :label="api.name" :value="index">
+              <ScSelect
+                v-model="parseForm.apiIndex"
+                placeholder="请选择解析接口"
+              >
+                <ScOption
+                  v-for="(api, index) in parseApis"
+                  :key="index"
+                  :label="api.name"
+                  :value="index"
+                >
                   <div class="vip-parser__api-option">
                     <span>{{ api.name }}</span>
-                    <ScTag size="small" :type="api.status === 'normal' ? 'success' : 'warning'">{{ api.status === "normal" ? "正常" : "异常" }}</ScTag>
+                    <ScTag
+                      size="small"
+                      :type="api.status === 'normal' ? 'success' : 'warning'"
+                      >{{ api.status === "normal" ? "正常" : "异常" }}</ScTag
+                    >
                   </div>
                 </ScOption>
               </ScSelect>
             </ScFormItem>
             <ScFormItem>
-              <ScButton type="primary" @click="handleParse" :loading="parsing">开始解析</ScButton>
+              <ScButton type="primary" @click="handleParse" :loading="parsing"
+                >开始解析</ScButton
+              >
               <ScButton @click="resetForm">重置</ScButton>
             </ScFormItem>
           </ScForm>
@@ -46,12 +71,22 @@
         </div>
         <div class="vip-result__content">
           <div class="vip-result__video">
-            <iframe :src="parseResult.playUrl" frameborder="0" allowfullscreen></iframe>
+            <iframe
+              :src="parseResult.playUrl"
+              frameborder="0"
+              allowfullscreen
+            ></iframe>
           </div>
           <div class="vip-result__info">
             <div class="vip-result__item">
               <span class="vip-result__label">原始链接：</span>
-              <ScLink :href="parseResult.originalUrl" target="_blank" type="primary" :underline="false">{{ parseResult.originalUrl }}</ScLink>
+              <ScLink
+                :href="parseResult.originalUrl"
+                target="_blank"
+                type="primary"
+                :underline="false"
+                >{{ parseResult.originalUrl }}</ScLink
+              >
             </div>
             <div class="vip-result__item">
               <span class="vip-result__label">解析接口：</span>
@@ -62,7 +97,9 @@
               <span>{{ parseResult.parseTime }}</span>
             </div>
             <div class="vip-result__actions">
-              <ScButton type="primary" @click="copyPlayUrl">复制播放链接</ScButton>
+              <ScButton type="primary" @click="copyPlayUrl"
+                >复制播放链接</ScButton
+              >
               <ScButton @click="openInNewTab">新窗口打开</ScButton>
               <ScButton @click="addToFavorites">添加到收藏</ScButton>
             </div>
@@ -76,7 +113,11 @@
           <h2 class="vip-category__title">支持平台</h2>
         </div>
         <div class="vip-platforms">
-          <div v-for="platform in supportedPlatforms" :key="platform.name" class="vip-platforms__item">
+          <div
+            v-for="platform in supportedPlatforms"
+            :key="platform.name"
+            class="vip-platforms__item"
+          >
             <div class="vip-platforms__icon">
               <IconifyIconOnline :icon="platform.icon" :size="32" />
             </div>
@@ -89,14 +130,22 @@
       <div class="vip-category__section">
         <div class="vip-category__header">
           <h2 class="vip-category__title">最近解析</h2>
-          <ScButton type="primary" plain size="small" @click="navigateToHistory">查看全部</ScButton>
+          <ScButton type="primary" plain size="small" @click="navigateToHistory"
+            >查看全部</ScButton
+          >
         </div>
 
         <div class="vip-history">
           <ScTable :data="parseHistory" style="width: 100%">
             <ScTableColumn prop="title" label="视频标题" min-width="200">
               <template #default="{ row }">
-                <ScLink :href="row.originalUrl" target="_blank" type="primary" :underline="false">{{ row.title || "未知标题" }}</ScLink>
+                <ScLink
+                  :href="row.originalUrl"
+                  target="_blank"
+                  type="primary"
+                  :underline="false"
+                  >{{ row.title || "未知标题" }}</ScLink
+                >
               </template>
             </ScTableColumn>
             <ScTableColumn prop="platform" label="平台" width="120">
@@ -108,9 +157,15 @@
             <ScTableColumn prop="parseTime" label="解析时间" width="180" />
             <ScTableColumn label="操作" width="200" fixed="right">
               <template #default="{ row }">
-                <ScButton type="primary" link @click="replayParse(row)">重新解析</ScButton>
-                <ScButton type="success" link @click="openParseResult(row)">播放</ScButton>
-                <ScButton type="danger" link @click="removeFromHistory(row)">删除</ScButton>
+                <ScButton type="primary" link @click="replayParse(row)"
+                  >重新解析</ScButton
+                >
+                <ScButton type="success" link @click="openParseResult(row)"
+                  >播放</ScButton
+                >
+                <ScButton type="danger" link @click="removeFromHistory(row)"
+                  >删除</ScButton
+                >
               </template>
             </ScTableColumn>
           </ScTable>
@@ -147,11 +202,10 @@
 </template>
 
 <script setup lang="ts">
-
 import ScStep from "@repo/components/ScSteps";
 import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { message , ScMessageBox} from "@repo/utils";
+import { message, ScMessageBox } from "@repo/utils";
 
 import type { FormInstance, FormRules } from "element-plus";
 
@@ -168,42 +222,118 @@ const parseForm = reactive({
 const parseRules = reactive<FormRules>({
   url: [
     { required: true, message: "请输入需要解析的视频链接", trigger: "blur" },
-    { pattern: /^https?:\/\/.+/, message: "请输入有效的URL地址", trigger: "blur" },
+    {
+      pattern: /^https?:\/\/.+/,
+      message: "请输入有效的URL地址",
+      trigger: "blur",
+    },
   ],
 });
 
 // 解析接口列表
 const parseApis = ref([
   // 通用解析接口
-  { name: "通用解析接口1", url: "https://jx.jsonplayer.com/player/?url=", status: "normal" },
-  { name: "通用解析接口2", url: "https://jx.aidouer.net/?url=", status: "normal" },
-  { name: "通用解析接口3", url: "https://jx.bozrc.com:4433/player/?url=", status: "normal" },
-  { name: "通用解析接口4", url: "https://jx.xmflv.com/?url=", status: "normal" },
-  { name: "通用解析接口5", url: "https://jx.parwix.com:4433/player/?url=", status: "normal" },
-  { name: "通用解析接口6", url: "https://www.yemu.xyz/?url=", status: "normal" },
-  { name: "通用解析接口7", url: "https://jx.iztyy.com/svip/?url=", status: "normal" },
-  { name: "通用解析接口8", url: "https://jx.yparse.com/index.php?url=", status: "normal" },
+  {
+    name: "通用解析接口1",
+    url: "https://jx.jsonplayer.com/player/?url=",
+    status: "normal",
+  },
+  {
+    name: "通用解析接口2",
+    url: "https://jx.aidouer.net/?url=",
+    status: "normal",
+  },
+  {
+    name: "通用解析接口3",
+    url: "https://jx.bozrc.com:4433/player/?url=",
+    status: "normal",
+  },
+  {
+    name: "通用解析接口4",
+    url: "https://jx.xmflv.com/?url=",
+    status: "normal",
+  },
+  {
+    name: "通用解析接口5",
+    url: "https://jx.parwix.com:4433/player/?url=",
+    status: "normal",
+  },
+  {
+    name: "通用解析接口6",
+    url: "https://www.yemu.xyz/?url=",
+    status: "normal",
+  },
+  {
+    name: "通用解析接口7",
+    url: "https://jx.iztyy.com/svip/?url=",
+    status: "normal",
+  },
+  {
+    name: "通用解析接口8",
+    url: "https://jx.yparse.com/index.php?url=",
+    status: "normal",
+  },
 
   // 平台专用接口
-  { name: "爱奇艺专用1", url: "https://jx.playerjy.com/?url=", status: "normal" },
+  {
+    name: "爱奇艺专用1",
+    url: "https://jx.playerjy.com/?url=",
+    status: "normal",
+  },
   { name: "爱奇艺专用2", url: "https://jx.rdhk.net/?v=", status: "normal" },
-  { name: "爱奇艺专用3", url: "https://api.leduotv.com/wp-api/ifr.php?isDp=1&vid=", status: "normal" },
+  {
+    name: "爱奇艺专用3",
+    url: "https://api.leduotv.com/wp-api/ifr.php?isDp=1&vid=",
+    status: "normal",
+  },
 
-  { name: "腾讯视频专用1", url: "https://jx.m3u8.tv/jiexi/?url=", status: "normal" },
-  { name: "腾讯视频专用2", url: "https://www.ckplayer.vip/jiexi/?url=", status: "normal" },
-  { name: "腾讯视频专用3", url: "https://jx.iztyy.com/svip/?url=", status: "normal" },
+  {
+    name: "腾讯视频专用1",
+    url: "https://jx.m3u8.tv/jiexi/?url=",
+    status: "normal",
+  },
+  {
+    name: "腾讯视频专用2",
+    url: "https://www.ckplayer.vip/jiexi/?url=",
+    status: "normal",
+  },
+  {
+    name: "腾讯视频专用3",
+    url: "https://jx.iztyy.com/svip/?url=",
+    status: "normal",
+  },
 
-  { name: "优酷专用1", url: "https://jx.jsonplayer.com/player/?url=", status: "normal" },
+  {
+    name: "优酷专用1",
+    url: "https://jx.jsonplayer.com/player/?url=",
+    status: "normal",
+  },
   { name: "优酷专用2", url: "https://jx.ppflv.com/?url=", status: "normal" },
   { name: "优酷专用3", url: "https://jx.aidouer.net/?url=", status: "normal" },
 
-  { name: "芒果TV专用1", url: "https://jx.aidouer.net/?url=", status: "normal" },
+  {
+    name: "芒果TV专用1",
+    url: "https://jx.aidouer.net/?url=",
+    status: "normal",
+  },
   { name: "芒果TV专用2", url: "https://jx.rdhk.net/?v=", status: "normal" },
 
-  { name: "哔哩哔哩专用1", url: "https://jx.bozrc.com:4433/player/?url=", status: "normal" },
-  { name: "哔哩哔哩专用2", url: "https://www.yemu.xyz/?url=", status: "normal" },
+  {
+    name: "哔哩哔哩专用1",
+    url: "https://jx.bozrc.com:4433/player/?url=",
+    status: "normal",
+  },
+  {
+    name: "哔哩哔哩专用2",
+    url: "https://www.yemu.xyz/?url=",
+    status: "normal",
+  },
 
-  { name: "搜狐视频专用", url: "https://jx.iztyy.com/svip/?url=", status: "normal" },
+  {
+    name: "搜狐视频专用",
+    url: "https://jx.iztyy.com/svip/?url=",
+    status: "normal",
+  },
 ]);
 
 // 支持的平台
@@ -211,9 +341,17 @@ const supportedPlatforms = ref([
   { name: "爱奇艺", icon: "ri:iqiyi-fill", url: "https://www.iqiyi.com" },
   { name: "腾讯视频", icon: "ri:qq-fill", url: "https://v.qq.com" },
   { name: "优酷", icon: "ri:youtube-fill", url: "https://www.youku.com" },
-  { name: "芒果TV", icon: "ri:netease-cloud-music-fill", url: "https://www.mgtv.com" },
+  {
+    name: "芒果TV",
+    icon: "ri:netease-cloud-music-fill",
+    url: "https://www.mgtv.com",
+  },
   { name: "搜狐视频", icon: "ri:tv-fill", url: "https://tv.sohu.com" },
-  { name: "哔哩哔哩", icon: "ri:bilibili-fill", url: "https://www.bilibili.com" },
+  {
+    name: "哔哩哔哩",
+    icon: "ri:bilibili-fill",
+    url: "https://www.bilibili.com",
+  },
 ]);
 
 // 解析状态
@@ -228,7 +366,8 @@ const parseHistory = ref([
     id: 1,
     title: "《长安三万里》独家纪录片",
     originalUrl: "https://www.iqiyi.com/v_ik3832z0go.html",
-    playUrl: "https://jx.jsonplayer.com/player/?url=https://www.iqiyi.com/v_ik3832z0go.html",
+    playUrl:
+      "https://jx.jsonplayer.com/player/?url=https://www.iqiyi.com/v_ik3832z0go.html",
     platform: "爱奇艺",
     apiName: "通用解析接口1",
     parseTime: "2023-12-01 15:30:22",
@@ -237,7 +376,8 @@ const parseHistory = ref([
     id: 2,
     title: "《封神第一部》独家纪录片",
     originalUrl: "https://v.qq.com/x/cover/mzc00200mp8vo9b/n0044td6lv1.html",
-    playUrl: "https://jx.aidouer.net/?url=https://v.qq.com/x/cover/mzc00200mp8vo9b/n0044td6lv1.html",
+    playUrl:
+      "https://jx.aidouer.net/?url=https://v.qq.com/x/cover/mzc00200mp8vo9b/n0044td6lv1.html",
     platform: "腾讯视频",
     apiName: "通用解析接口2",
     parseTime: "2023-11-28 20:15:36",
@@ -246,7 +386,8 @@ const parseHistory = ref([
     id: 3,
     title: "《孤注一掷》幕后花絮",
     originalUrl: "https://www.youku.com/v_show/id_XNTk2MjcxNjg2NA==.html",
-    playUrl: "https://jx.jsonplayer.com/player/?url=https://www.youku.com/v_show/id_XNTk2MjcxNjg2NA==.html",
+    playUrl:
+      "https://jx.jsonplayer.com/player/?url=https://www.youku.com/v_show/id_XNTk2MjcxNjg2NA==.html",
     platform: "优酷",
     apiName: "优酷专用",
     parseTime: "2023-11-25 13:42:18",
@@ -366,7 +507,9 @@ const addToFavorites = () => {
 const replayParse = (item) => {
   parseForm.url = item.originalUrl;
   // 查找对应的API索引
-  const apiIndex = parseApis.value.findIndex((api) => api.name === item.apiName);
+  const apiIndex = parseApis.value.findIndex(
+    (api) => api.name === item.apiName,
+  );
   parseForm.apiIndex = apiIndex >= 0 ? apiIndex : 0;
 
   // 滚动到表单位置
@@ -394,7 +537,9 @@ const removeFromHistory = (item) => {
     type: "warning",
   })
     .then(() => {
-      parseHistory.value = parseHistory.value.filter((record) => record.id !== item.id);
+      parseHistory.value = parseHistory.value.filter(
+        (record) => record.id !== item.id,
+      );
       saveHistoryToLocalStorage();
       message("已从历史记录中删除", { type: "success" });
     })
@@ -404,7 +549,10 @@ const removeFromHistory = (item) => {
 // 保存历史记录到本地存储
 const saveHistoryToLocalStorage = () => {
   try {
-    localStorage.setItem("vip-parse-history", JSON.stringify(parseHistory.value));
+    localStorage.setItem(
+      "vip-parse-history",
+      JSON.stringify(parseHistory.value),
+    );
   } catch (error) {
     console.error("保存历史记录失败:", error);
   }
@@ -441,7 +589,11 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .vip-category {
-  background: linear-gradient(135deg, rgba(240, 245, 255, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(240, 245, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
   padding: 20px;
   border-radius: 16px;
 
@@ -474,7 +626,11 @@ onMounted(() => {
       bottom: -8px;
       width: 50px;
       height: 4px;
-      background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3)
+      );
       border-radius: 4px;
       transition: width 0.3s ease;
     }
@@ -510,7 +666,11 @@ onMounted(() => {
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    background: linear-gradient(
+      90deg,
+      var(--el-color-primary),
+      var(--el-color-primary-light-3)
+    );
   }
 
   &:hover {
@@ -549,7 +709,11 @@ onMounted(() => {
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(90deg, var(--el-color-success), var(--el-color-success-light-3));
+    background: linear-gradient(
+      90deg,
+      var(--el-color-success),
+      var(--el-color-success-light-3)
+    );
   }
 
   &__header {
@@ -674,7 +838,11 @@ onMounted(() => {
       left: 0;
       width: 100%;
       height: 3px;
-      background: linear-gradient(90deg, var(--el-color-primary-light-5), var(--el-color-primary));
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary-light-5),
+        var(--el-color-primary)
+      );
       transform: scaleX(0);
       transform-origin: left;
       transition: transform 0.3s ease;
@@ -726,7 +894,11 @@ onMounted(() => {
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(90deg, var(--el-color-warning), var(--el-color-warning-light-3));
+    background: linear-gradient(
+      90deg,
+      var(--el-color-warning),
+      var(--el-color-warning-light-3)
+    );
   }
 
   :deep(.el-table) {
@@ -769,7 +941,11 @@ onMounted(() => {
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(90deg, var(--el-color-info), var(--el-color-info-light-3));
+    background: linear-gradient(
+      90deg,
+      var(--el-color-info),
+      var(--el-color-info-light-3)
+    );
   }
 
   :deep(.el-steps) {

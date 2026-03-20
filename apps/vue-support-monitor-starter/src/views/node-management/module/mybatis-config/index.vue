@@ -46,7 +46,7 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-input
+          <ScInput
             v-model="searchText"
             placeholder="搜索 Mapper..."
             clearable
@@ -55,27 +55,27 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
+          </ScInput>
           <span v-if="searchText" class="search-result">
             找到 <strong>{{ filteredMappers.length }}</strong> 个
           </span>
         </div>
         <div class="toolbar-right">
-          <el-tooltip content="刷新所有 XML" placement="top">
-            <el-button
+          <ScTooltip content="刷新所有 XML" placement="top">
+            <ScButton
               type="warning"
               :loading="refreshingAll"
               @click="handleRefreshAllXml"
             >
               <IconifyIconOnline v-if="!refreshingAll" icon="ri:refresh-fill" />
               刷新全部
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="刷新配置" placement="top">
-            <el-button type="primary" :loading="loading" @click="handleRefresh">
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip content="刷新配置" placement="top">
+            <ScButton type="primary" :loading="loading" @click="handleRefresh">
               <IconifyIconOnline v-if="!loading" icon="ri:refresh-line" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </div>
       </div>
 
@@ -91,7 +91,7 @@
           :loading="loading"
           @refresh="handleRefresh"
         >
-          <el-table-column type="expand">
+          <ScTableColumn type="expand">
             <template #default="{ row }">
               <div
                 v-if="row.statements && row.statements.length > 0"
@@ -99,12 +99,12 @@
               >
                 <div class="detail-header">
                   <span class="detail-title">SQL 语句列表</span>
-                  <el-tag size="small" type="info"
+                  <ScTag size="small" type="info"
                     >{{ row.statements.length }} 个</el-tag
                   >
                 </div>
-                <el-table :data="row.statements" size="small" border>
-                  <el-table-column
+                <ScTable :data="row.statements" size="small" border>
+                  <ScTableColumn
                     label="方法名"
                     prop="methodName"
                     min-width="180"
@@ -112,23 +112,23 @@
                     <template #default="{ row: stmt }">
                       <span class="method-name">{{ stmt.methodName }}</span>
                     </template>
-                  </el-table-column>
-                  <el-table-column
+                  </ScTableColumn>
+                  <ScTableColumn
                     label="类型"
                     prop="sqlCommandType"
                     width="100"
                     align="center"
                   >
                     <template #default="{ row: stmt }">
-                      <el-tag
+                      <ScTag
                         :type="getSqlTypeTagType(stmt.sqlCommandType)"
                         size="small"
                       >
                         {{ stmt.sqlCommandType }}
-                      </el-tag>
+                      </ScTag>
                     </template>
-                  </el-table-column>
-                  <el-table-column
+                  </ScTableColumn>
+                  <ScTableColumn
                     label="返回类型"
                     prop="resultType"
                     min-width="200"
@@ -138,8 +138,8 @@
                         {{ stmt.resultType || "-" }}
                       </span>
                     </template>
-                  </el-table-column>
-                  <el-table-column
+                  </ScTableColumn>
+                  <ScTableColumn
                     label="资源文件"
                     prop="resource"
                     min-width="200"
@@ -149,16 +149,16 @@
                         {{ getResourceFileName(stmt.resource) }}
                       </span>
                     </template>
-                  </el-table-column>
-                </el-table>
+                  </ScTableColumn>
+                </ScTable>
               </div>
               <div v-else class="mapper-detail-empty">
-                <el-empty description="暂无 SQL 语句" :image-size="60" />
+                <ScEmpty description="暂无 SQL 语句" :image-size="60" />
               </div>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="Mapper 名称" min-width="300">
+          <ScTableColumn label="Mapper 名称" min-width="300">
             <template #default="{ row }">
               <div class="mapper-name-cell">
                 <div class="mapper-icon-wrapper">
@@ -172,24 +172,24 @@
                 </div>
               </div>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column label="方法数" width="100" align="center">
+          <ScTableColumn label="方法数" width="100" align="center">
             <template #default="{ row }">
-              <el-tag type="primary" effect="plain" round>
+              <ScTag type="primary" effect="plain" round>
                 {{ row.methodCount || 0 }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
+          </ScTableColumn>
 
-          <el-table-column
+          <ScTableColumn
             label="操作"
             width="180"
             align="center"
             fixed="right"
           >
             <template #default="{ row }">
-              <el-button
+              <ScButton
                 type="primary"
                 size="small"
                 :loading="row.loadingDetail"
@@ -197,8 +197,8 @@
                 @click="loadMapperDetail(row)"
               >
                 查看详情
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 type="warning"
                 size="small"
                 :loading="row.refreshing"
@@ -206,16 +206,16 @@
                 @click="handleRefreshXml(row)"
               >
                 刷新
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
+          </ScTableColumn>
         </ScTable>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
+        <ScButton @click="handleClose">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

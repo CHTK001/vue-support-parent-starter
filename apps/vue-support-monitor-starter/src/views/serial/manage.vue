@@ -5,9 +5,9 @@
       '--layoutRadius': ($storage?.configure.layoutRadius || 10) + 'px',
     }"
   >
-    <el-container class="manage-layout rounded">
+    <ScContainer class="manage-layout rounded">
       <!-- 顶部导航栏 -->
-      <el-header class="manage-header rounded flex items-center">
+      <ScHeader class="manage-header rounded flex items-center">
         <div
           class="manage-header__back cursor-pointer flex items-center hover:!text-primary transition-all duration-300"
           @click="router.go(-1)"
@@ -18,9 +18,9 @@
 
         <!-- 串口信息 -->
         <div class="manage-header__info ml-4 flex items-center">
-          <el-avatar :size="28" class="mr-2 flex-shrink-0 bg-primary-light">
+          <ScAvatar :size="28" class="mr-2 flex-shrink-0 bg-primary-light">
             <IconifyIconOnline icon="mdi:serial-port" />
-          </el-avatar>
+          </ScAvatar>
           <span
             class="manage-header__title text-text_color_primary font-medium truncate"
           >
@@ -30,8 +30,8 @@
 
         <!-- 右侧工具栏 -->
         <div class="manage-header__tools ml-auto flex items-center gap-3">
-          <el-tooltip content="刷新数据" placement="bottom">
-            <el-button
+          <ScTooltip content="刷新数据" placement="bottom">
+            <ScButton
               type="primary"
               text
               circle
@@ -39,14 +39,14 @@
               @click="refreshData"
             >
               <IconifyIconOnline icon="ep:refresh" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
 
-          <el-tooltip
+          <ScTooltip
             :content="visible.sideShow ? '隐藏侧边栏' : '显示侧边栏'"
             placement="bottom"
           >
-            <el-button
+            <ScButton
               type="primary"
               text
               circle
@@ -58,11 +58,11 @@
                   visible.sideShow ? 'ep:d-arrow-left' : 'ep:d-arrow-right'
                 "
               />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
 
-          <el-tooltip content="设置" placement="bottom">
-            <el-button
+          <ScTooltip content="设置" placement="bottom">
+            <ScButton
               type="primary"
               text
               circle
@@ -70,13 +70,13 @@
               @click="openSettings"
             >
               <IconifyIconOnline icon="ep:setting" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </div>
-      </el-header>
+      </ScHeader>
 
       <!-- 主内容区域 -->
-      <el-main class="manage-main !p-[5px]">
+      <ScMain class="manage-main !p-[5px]">
         <div class="manage-split-pane relative">
           <splitpane :splitSet="settingLR">
             <!-- 左侧面板：串口列表 -->
@@ -117,7 +117,7 @@
                     class="manage-loading flex items-center justify-center h-full"
                   >
                     <div class="manage-loading__content text-center">
-                      <el-skeleton :rows="10" animated />
+                      <ScSkeleton :rows="10" animated />
                       <p
                         class="manage-loading__text mt-4 text-text_color_secondary"
                       >
@@ -130,8 +130,8 @@
             </template>
           </splitpane>
         </div>
-      </el-main>
-    </el-container>
+      </ScMain>
+    </ScContainer>
 
     <!-- 设置对话框 -->
     <sc-dialog
@@ -147,8 +147,8 @@
       />
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="settingsDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveSettings">确定</el-button>
+          <ScButton @click="settingsDialogVisible = false">取消</ScButton>
+          <ScButton type="primary" @click="saveSettings">确定</ScButton>
         </span>
       </template>
     </sc-dialog>
@@ -158,7 +158,7 @@
 <script setup>
 import { useGlobal } from "@pureadmin/utils";
 import splitpane from "@repo/components/ReSplitPane";
-import ScLazy from "@repo/components/ScLazy/index.vue";
+import { ScLazy } from "@repo/components"
 import { useConfigStore } from "@repo/core";
 import { message } from "@repo/utils";
 import {

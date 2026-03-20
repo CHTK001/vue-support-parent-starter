@@ -8,8 +8,8 @@
 import { reactive, onMounted, onUnmounted, ref } from "vue";
 import { message, dateFormat } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import ScDialog from "@repo/components/ScDialog/src/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScDialog } from "@repo/components"
+import { IconifyIconOnline } from "@repo/components";
 
 const { t } = useI18n();
 const dialogVisible = ref(false);
@@ -106,25 +106,25 @@ onUnmounted(() => {
     <sc-dialog v-model="dialogVisible" title="时间转换工具" width="600px" draggable append-to-body>
       <div class="tool-container">
         <div class="input-section">
-          <el-input v-model="env.inputValue" placeholder="输入时间或时间戳" class="input-with-select">
+          <ScInput v-model="env.inputValue" placeholder="输入时间或时间戳" class="input-with-select">
             <template #prepend>
-              <el-select v-model="env.inputType" style="width: 110px">
-                <el-option label="日期时间" value="datetime" />
-                <el-option label="时间戳(秒)" value="timestamp-s" />
-                <el-option label="时间戳(毫秒)" value="timestamp-ms" />
-              </el-select>
+              <ScSelect v-model="env.inputType" style="width: 110px">
+                <ScOption label="日期时间" value="datetime" />
+                <ScOption label="时间戳(秒)" value="timestamp-s" />
+                <ScOption label="时间戳(毫秒)" value="timestamp-ms" />
+              </ScSelect>
             </template>
             <template #append>
-              <el-button @click="parseTime">解析</el-button>
+              <ScButton @click="parseTime">解析</ScButton>
             </template>
-          </el-input>
+          </ScInput>
         </div>
         
         <div v-if="env.outputResults.length > 0" class="results-section">
           <div v-for="(item, index) in env.outputResults" :key="index" class="result-item" @click="copyToClipboard(item.value)">
             <span class="label">{{ item.label }}</span>
             <span class="value">{{ item.value }}</span>
-            <el-icon class="copy-icon"><component :is="useRenderIcon('ep:copy-document')" /></el-icon>
+            <ScIcon class="copy-icon"><component :is="useRenderIcon('ep:copy-document')" /></ScIcon>
           </div>
         </div>
       </div>

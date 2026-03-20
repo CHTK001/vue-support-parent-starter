@@ -2,11 +2,11 @@
  * 风场对象类
  * 用于管理风场图层和数据
  */
-import { Map as OlMap } from 'ol';
-import type { WindData, WindConfig } from '../types/wind';
-import { DEFAULT_WIND_CONFIG } from '../types/wind';
-import logger from './LogObject';
-import { WindLayer } from 'ol-wind';
+import { Map as OlMap } from "ol";
+import type { WindData, WindConfig } from "../types/wind";
+import { DEFAULT_WIND_CONFIG } from "../types/wind";
+import logger from "./LogObject";
+import { WindLayer } from "ol-wind";
 
 // 定义一个全局声明来扩展Window接口
 declare global {
@@ -17,10 +17,10 @@ declare global {
 }
 
 // 添加辅助函数，用于动态加载js脚本
-if (typeof window !== 'undefined' && !window.addScript) {
+if (typeof window !== "undefined" && !window.addScript) {
   window.addScript = (url: string, callback: () => void) => {
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
+    const script = document.createElement("script");
+    script.type = "text/javascript";
     script.src = url;
     script.onload = callback;
     document.head.appendChild(script);
@@ -42,7 +42,7 @@ export class WindObject {
   constructor(mapInstance: OlMap, config?: WindConfig) {
     this.mapInstance = mapInstance;
     this.config = { ...DEFAULT_WIND_CONFIG, ...(config || {}) };
-    logger.debug('[WindObject] 风场对象已初始化');
+    logger.debug("[WindObject] 风场对象已初始化");
   }
 
   /**
@@ -51,19 +51,19 @@ export class WindObject {
    */
   async enable(): Promise<boolean> {
     if (this.active) {
-      logger.debug('[WindObject] 风场图已经启用');
+      logger.debug("[WindObject] 风场图已经启用");
       return true;
     }
 
     if (!this.mapInstance) {
-      logger.warn('[WindObject] 地图实例未初始化，无法启用风场图');
+      logger.warn("[WindObject] 地图实例未初始化，无法启用风场图");
       return false;
     }
 
     try {
       // 如果没有数据，返回失败
       if (!this.windData) {
-        logger.warn('[WindObject] 风场数据未设置，请先设置数据');
+        logger.warn("[WindObject] 风场数据未设置，请先设置数据");
         return false;
       }
 
@@ -77,21 +77,21 @@ export class WindObject {
           generateParticleOption: this.config.generateParticleOption,
           particleMultiplier: this.config.particleMultiplier,
           particleAge: this.config.particleAge,
-          particleFadeoutTime: this.config.particleFadeoutTime
+          particleFadeoutTime: this.config.particleFadeoutTime,
         },
         fieldOptions: {
           wrapX: true, // 启用X轴循环，解决风场图缺失问题
-          projection: this.mapInstance.getView().getProjection().getCode()
-        }
+          projection: this.mapInstance.getView().getProjection().getCode(),
+        },
       });
 
       // 添加到地图
       this.windLayer.appendTo(this.mapInstance);
       this.active = true;
-      logger.info('[WindObject] 风场图已启用');
+      logger.info("[WindObject] 风场图已启用");
       return true;
     } catch (error) {
-      logger.error('[WindObject] 启用风场图时发生错误:', error);
+      logger.error("[WindObject] 启用风场图时发生错误:", error);
       return false;
     }
   }
@@ -102,7 +102,7 @@ export class WindObject {
    */
   disable(): boolean {
     if (!this.active || !this.windLayer) {
-      logger.debug('[WindObject] 风场图未启用，无需禁用');
+      logger.debug("[WindObject] 风场图未启用，无需禁用");
       return true;
     }
 
@@ -111,13 +111,13 @@ export class WindObject {
       if (this.mapInstance) {
         this.mapInstance.removeLayer(this.windLayer);
         this.active = false;
-        logger.info('[WindObject] 风场图已禁用');
+        logger.info("[WindObject] 风场图已禁用");
         return true;
       }
-      
+
       return false;
     } catch (error) {
-      logger.error('[WindObject] 禁用风场图时发生错误:', error);
+      logger.error("[WindObject] 禁用风场图时发生错误:", error);
       return false;
     }
   }
@@ -129,18 +129,18 @@ export class WindObject {
    */
   setData(data: WindData): boolean {
     if (!data) {
-      logger.warn('[WindObject] 风场数据为空');
+      logger.warn("[WindObject] 风场数据为空");
       return false;
     }
 
     this.windData = data;
-    
+
     // 如果风场图已启用，更新数据
     if (this.active && this.windLayer) {
       this.windLayer.setData(data);
-      logger.debug('[WindObject] 风场数据已更新');
+      logger.debug("[WindObject] 风场数据已更新");
     }
-    
+
     return true;
   }
 
@@ -150,7 +150,7 @@ export class WindObject {
    */
   setWindOptions(config: Partial<WindConfig>): void {
     this.config = { ...this.config, ...config };
-    
+
     // 如果风场图已启用，更新配置
     if (this.active && this.windLayer) {
       const windOptions = {
@@ -161,11 +161,11 @@ export class WindObject {
         generateParticleOption: this.config.generateParticleOption,
         particleMultiplier: this.config.particleMultiplier,
         particleAge: this.config.particleAge,
-        particleFadeoutTime: this.config.particleFadeoutTime
+        particleFadeoutTime: this.config.particleFadeoutTime,
       };
-      
+
       this.windLayer.setWindOptions(windOptions);
-      logger.debug('[WindObject] 风场配置已更新');
+      logger.debug("[WindObject] 风场配置已更新");
     }
   }
 
@@ -202,6 +202,6 @@ export class WindObject {
     this.windLayer = null;
     this.windData = null;
     this.active = false;
-    logger.debug('[WindObject] 风场对象已销毁');
+    logger.debug("[WindObject] 风场对象已销毁");
   }
-} 
+}

@@ -52,7 +52,9 @@ export const checkImageFormatSupport = async (format) => {
       const canvas = document.createElement("canvas");
       canvas.width = 1;
       canvas.height = 1;
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mimeType));
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, mimeType),
+      );
       if (!blob) return false;
 
       await createImageBitmap(blob as ImageBitmapSource);
@@ -73,9 +75,11 @@ export const checkImageFormatSupport = async (format) => {
       img.src =
         "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgANogQEAwgMg8f8D///8WfhwB8+ErK42A=";
     } else if (format === "webp") {
-      img.src = "data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA";
+      img.src =
+        "data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA";
     } else if (format === "jpeg2000") {
-      img.src = "data:image/jp2;base64,AAAADGpQICANCocKAAAAFGZ0eXBqcDIgAAAAAGpwMiAAAAAtanAyaAAAABZpaGRyAAAAAQAAAAEAAQAHAAAAAAAPY29scgEAAAAAABAAAABpanAyY/9P/1EALwAAAAAAAgAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAEAAAABAAAAAQAAAAEAAAB+Pg==";
+      img.src =
+        "data:image/jp2;base64,AAAADGpQICANCocKAAAAFGZ0eXBqcDIgAAAAAGpwMiAAAAAtanAyaAAAABZpaGRyAAAAAQAAAAEAAQAHAAAAAAAPY29scgEAAAAAABAAAABpanAyY/9P/1EALwAAAAAAAgAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAEAAAABAAAAAQAAAAEAAAB+Pg==";
     }
   });
 };
@@ -107,7 +111,10 @@ export const convertToSupportedFormat = async (url) => {
 };
 
 //创建兼容性图片
-export const createCompatibleImage = async (url: string, ossAddress: string) => {
+export const createCompatibleImage = async (
+  url: string,
+  ossAddress: string,
+) => {
   // 确保URL格式正确
   if (!url) return "";
 
@@ -143,13 +150,17 @@ export const createCompatibleImage = async (url: string, ossAddress: string) => 
 export const urlToBase64 = async (url) => {
   try {
     // 使用http替代fetch，并设置请求头
-    const response: any = await http.get(url, {}, {
-      responseType: "blob",
-      headers: {
-        // 删除origin和referer
-        "X-Requested-With": "XMLHttpRequest",
+    const response: any = await http.get(
+      url,
+      {},
+      {
+        responseType: "blob",
+        headers: {
+          // 删除origin和referer
+          "X-Requested-With": "XMLHttpRequest",
+        },
       },
-    });
+    );
 
     const blob = response.data as Blob;
     // 创建一个 FileReader 实例

@@ -90,7 +90,10 @@ const { onReset } = useDataThemeChange();
  * 处理滚动事件
  * @description 记录当前滚动位置，写入同一个记忆对象
  */
-function handleScroll(payload: { scrollTop: number; scrollLeft: number }): void {
+function handleScroll(payload: {
+  scrollTop: number;
+  scrollLeft: number;
+}): void {
   scrollTop.value = payload.scrollTop;
   panelMemory.value = {
     ...panelMemory.value,
@@ -156,11 +159,12 @@ onBeforeUnmount(() => {
             />
           </span>
         </div>
-        <el-scrollbar ref="scrollbarRef" @scroll="handleScroll">
+        <ScScrollbar ref="scrollbarRef" @scroll="handleScroll">
           <slot />
-        </el-scrollbar>
+        </ScScrollbar>
 
         <div class="panel-footer">
+<<<<<<< HEAD
           <slot name="footer">
             <ScButton 
               v-tippy="{
@@ -176,6 +180,21 @@ onBeforeUnmount(() => {
               {{ t("panel.pureClearCache") }}
             </ScButton>
           </slot>
+=======
+          <ScButton
+            v-tippy="{
+              content: t('panel.pureClearCacheAndToLogin'),
+              placement: 'left-start',
+              zIndex: 41000,
+            }"
+            type="danger"
+            text
+            bg
+            @click="onReset"
+          >
+            {{ t("panel.pureClearCache") }}
+          </ScButton>
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@
     <!-- 工具栏 -->
     <div class="desktop-toolbar">
       <div class="toolbar-left">
-        <el-button
+        <ScButton
           v-if="!isConnected"
           type="primary"
           size="small"
@@ -12,38 +12,38 @@
         >
           <IconifyIconOnline icon="ri:play-line" class="mr-1" />
           {{ isConnecting ? "连接中..." : "连接" }}
-        </el-button>
+        </ScButton>
 
-        <el-button v-else type="danger" size="small" @click="disconnect">
+        <ScButton v-else type="danger" size="small" @click="disconnect">
           <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
           断开连接
-        </el-button>
+        </ScButton>
 
-        <el-divider direction="vertical" />
+        <ScDivider direction="vertical" />
 
-        <el-button
+        <ScButton
           size="small"
           :disabled="!isConnected"
           @click="takeScreenshot"
         >
           <IconifyIconOnline icon="ri:camera-line" class="mr-1" />
           截图
-        </el-button>
+        </ScButton>
 
-        <el-button
+        <ScButton
           size="small"
           :disabled="!isConnected"
           @click="toggleFullscreen"
         >
           <IconifyIconOnline icon="ri:fullscreen-line" class="mr-1" />
           全屏
-        </el-button>
+        </ScButton>
       </div>
 
       <div class="toolbar-right">
-        <el-tag :type="connectionStatusType" size="small">
+        <ScTag :type="connectionStatusType" size="small">
           {{ connectionStatusText }}
-        </el-tag>
+        </ScTag>
       </div>
     </div>
 
@@ -88,7 +88,7 @@
       :close-on-click-modal="false"
     >
       <div class="error-content">
-        <el-alert
+        <ScAlert
           :title="errorMessage"
           type="error"
           :closable="false"
@@ -102,8 +102,8 @@
       </div>
 
       <template #footer>
-        <el-button @click="showErrorDialog = false">关闭</el-button>
-        <el-button type="primary" @click="retryConnection">重试连接</el-button>
+        <ScButton @click="showErrorDialog = false">关闭</ScButton>
+        <ScButton type="primary" @click="retryConnection">重试连接</ScButton>
       </template>
     </sc-dialog>
   </div>

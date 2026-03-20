@@ -8,7 +8,7 @@
       <div class="right">
         <ScForm :inline="true" :model="form">
           <ScFormItem label="商户名称">
-            <ScInput 
+            <ScInput
               v-model="form.payMerchantName"
               placeholder="请输入商户名称"
               clearable
@@ -61,10 +61,7 @@
                 <ScButton size="small" @click.stop="handleOpen('edit', row)">
                   <iconifyIconOnline icon="ep:edit" />编辑
                 </ScButton>
-                <ScPopconfirm 
-                  title="确认删除该商户？"
-                  @confirm="onDelete(row)"
-                >
+                <ScPopconfirm title="确认删除该商户？" @confirm="onDelete(row)">
                   <template #reference>
                     <ScButton size="small" type="danger">
                       <iconifyIconOnline icon="ep:delete" />删除
@@ -96,7 +93,7 @@
                   @change="() => onToggle(row)"
                 />
                 <template v-if="row.payMerchantOpenTimeout === 1">
-                  <ScInputNumber 
+                  <ScInputNumber
                     v-model="row.payMerchantOpenTimeoutTime"
                     :min="1"
                     :max="1440"
@@ -132,8 +129,7 @@ import {
   fetchDeleteMerchant,
   fetchUpdateMerchant,
 } from "../api/merchant";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
-
+import { ScSwitch } from "@repo/components"
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const SettingDialog = defineAsyncComponent(() => import("./setting.vue"));
 

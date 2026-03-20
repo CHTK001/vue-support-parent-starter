@@ -6,23 +6,23 @@
         <h2 class="page-title">
           <IconifyIconOnline icon="ri:server-line" class="mr-2" />
           服务器管理
-          <el-tooltip
+          <ScTooltip
             :content="`当前共有 ${totalCount} 台服务器`"
             placement="bottom"
             :show-after="500"
           >
-            <el-tag type="info" effect="plain" class="server-count">
+            <ScTag type="info" effect="plain" class="server-count">
               共
               <span class="count-num">{{ totalCount }}</span>
               台
-            </el-tag>
-          </el-tooltip>
-          <el-tooltip
+            </ScTag>
+          </ScTooltip>
+          <ScTooltip
             :content="`实时监控状态: ${getSocketStatusText}`"
             placement="bottom"
             :show-after="500"
           >
-            <el-tag
+            <ScTag
               :type="getSocketStatusType"
               effect="light"
               size="small"
@@ -32,8 +32,8 @@
                 <IconifyIconOnline :icon="getSocketStatusIcon()" class="mr-1" />
                 <span> {{ getSocketStatusText }}</span>
               </span>
-            </el-tag>
-          </el-tooltip>
+            </ScTag>
+          </ScTooltip>
 
           <!-- 调试信息 -->
           <!-- 调试信息已移除，避免响应式更新导致的无限递归 -->
@@ -41,7 +41,7 @@
 
         <!-- 组管理按钮 -->
         <div class="group-management">
-          <el-button
+          <ScButton
             type="primary"
             plain
             class="group-btn"
@@ -49,65 +49,65 @@
           >
             <IconifyIconOnline icon="ri:folder-open-line" class="mr-1" />
             组管理
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
       <div class="toolbar-right">
         <!-- 筛选器 -->
-        <el-tooltip content="按分组筛选" placement="bottom" :show-after="500">
-          <el-select
+        <ScTooltip content="按分组筛选" placement="bottom" :show-after="500">
+          <ScSelect
             v-model="filterGroup"
             placeholder="分组"
             clearable
             size="small"
             class="filter-select"
           >
-            <el-option label="全部" value="" />
-            <el-option
+            <ScOption label="全部" value="" />
+            <ScOption
               v-for="group in serverGroups"
               :key="group"
               :label="group"
               :value="group"
             />
-          </el-select>
-        </el-tooltip>
+          </ScSelect>
+        </ScTooltip>
 
-        <el-tooltip content="按协议筛选" placement="bottom" :show-after="500">
-          <el-select
+        <ScTooltip content="按协议筛选" placement="bottom" :show-after="500">
+          <ScSelect
             v-model="filterProtocol"
             placeholder="协议"
             clearable
             size="small"
             class="filter-select"
           >
-            <el-option label="SSH" value="SSH" />
-            <el-option label="RDP" value="RDP" />
-            <el-option label="VNC" value="VNC" />
-          </el-select>
-        </el-tooltip>
+            <ScOption label="SSH" value="SSH" />
+            <ScOption label="RDP" value="RDP" />
+            <ScOption label="VNC" value="VNC" />
+          </ScSelect>
+        </ScTooltip>
 
-        <el-tooltip content="按状态筛选" placement="bottom" :show-after="500">
-          <el-select
+        <ScTooltip content="按状态筛选" placement="bottom" :show-after="500">
+          <ScSelect
             v-model="filterStatus"
             placeholder="状态"
             clearable
             size="small"
             class="filter-select"
           >
-            <el-option label="在线" value="online" />
-            <el-option label="离线" value="offline" />
-            <el-option label="异常" value="error" />
-          </el-select>
-        </el-tooltip>
+            <ScOption label="在线" value="online" />
+            <ScOption label="离线" value="offline" />
+            <ScOption label="异常" value="error" />
+          </ScSelect>
+        </ScTooltip>
 
         <!-- 搜索 -->
-        <el-tooltip
+        <ScTooltip
           content="搜索服务器名称、地址或描述"
           placement="bottom"
           :show-after="500"
         >
-          <el-input
+          <ScInput
             v-model="searchKeyword"
             placeholder="搜索服务器..."
             size="small"
@@ -117,76 +117,76 @@
             <template #prefix>
               <IconifyIconOnline icon="ep:search" />
             </template>
-          </el-input>
-        </el-tooltip>
+          </ScInput>
+        </ScTooltip>
 
         <!-- 操作按钮组 -->
         <div class="action-buttons">
-          <el-tooltip
+          <ScTooltip
             content="重置筛选条件"
             placement="bottom"
             :show-after="500"
           >
-            <el-button size="small" @click="handleResetFilters">
+            <ScButton size="small" @click="handleResetFilters">
               <IconifyIconOnline icon="ep:refresh-left" class="mr-1" />
               重置
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
 
-          <el-tooltip
+          <ScTooltip
             content="刷新服务器列表"
             placement="bottom"
             :show-after="500"
           >
-            <el-button size="small" @click="handleRefreshServerList">
+            <ScButton size="small" @click="handleRefreshServerList">
               <IconifyIconOnline icon="ep:refresh" class="mr-1" />
               刷新
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
 
-          <el-tooltip content="新增服务器" placement="bottom" :show-after="500">
-            <el-button type="primary" size="small" @click="showAddDialog">
+          <ScTooltip content="新增服务器" placement="bottom" :show-after="500">
+            <ScButton type="primary" size="small" @click="showAddDialog">
               <IconifyIconOnline icon="ep:plus" class="mr-1" />
               新增
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
 
-          <el-tooltip content="更多操作" placement="bottom" :show-after="500">
-            <el-dropdown @command="handleToolbarAction">
-              <el-button size="small">
+          <ScTooltip content="更多操作" placement="bottom" :show-after="500">
+            <ScDropdown @command="handleToolbarAction">
+              <ScButton size="small">
                 更多
                 <IconifyIconOnline icon="ep:arrow-down" class="ml-1" />
-              </el-button>
+              </ScButton>
               <template #dropdown>
-                <el-dropdown-menu>
-                  <!-- <el-dropdown-item command="import" title="从文件导入服务器配置">
+                <ScDropdownMenu>
+                  <!-- <ScDropdownItem command="import" title="从文件导入服务器配置">
                     <IconifyIconOnline icon="ri:upload-line" class="mr-2" />
                     导入配置
-                  </el-dropdown-item>
-                  <el-dropdown-item command="export" title="导出服务器配置到文件">
+                  </ScDropdownItem>
+                  <ScDropdownItem command="export" title="导出服务器配置到文件">
                     <IconifyIconOnline icon="ri:download-line" class="mr-2" />
                     导出配置
-                  </el-dropdown-item>
-                  <el-dropdown-item command="batch" title="批量管理多台服务器">
+                  </ScDropdownItem>
+                  <ScDropdownItem command="batch" title="批量管理多台服务器">
                     <IconifyIconOnline icon="ri:checkbox-multiple-line" class="mr-2" />
                     批量操作
-                  </el-dropdown-item>
-                  <el-dropdown-item command="script" title="批量执行脚本">
+                  </ScDropdownItem>
+                  <ScDropdownItem command="script" title="批量执行脚本">
                     <IconifyIconOnline icon="ri:code-line" class="mr-2" />
                     脚本执行
-                  </el-dropdown-item>
-                  <el-dropdown-item command="alert" title="配置监控告警规则">
+                  </ScDropdownItem>
+                  <ScDropdownItem command="alert" title="配置监控告警规则">
                     <IconifyIconOnline icon="ri:alarm-line" class="mr-2" />
                     告警配置
-                  </el-dropdown-item>
-                  <el-dropdown-item command="log" title="查看系统操作日志">
+                  </ScDropdownItem>
+                  <ScDropdownItem command="log" title="查看系统操作日志">
                     <IconifyIconOnline icon="ri:history-line" class="mr-2" />
                     操作日志
-                  </el-dropdown-item> -->
-                </el-dropdown-menu>
+                  </ScDropdownItem> -->
+                </ScDropdownMenu>
               </template>
-            </el-dropdown>
-          </el-tooltip>
+            </ScDropdown>
+          </ScTooltip>
         </div>
       </div>
     </div>
@@ -204,19 +204,19 @@
           <div v-if="!leftPanelMinimized" class="panel-title">
             <IconifyIconOnline icon="ri:server-line" class="mr-2" />
             <span>服务器列表</span>
-            <el-badge
+            <ScBadge
               :value="filteredServers.length"
               class="ml-2"
               type="primary"
             />
           </div>
           <div class="panel-controls">
-            <el-tooltip
+            <ScTooltip
               :content="leftPanelMinimized ? '展开面板' : '最小化面板'"
               placement="right"
               :show-after="300"
             >
-              <el-button
+              <ScButton
                 size="small"
                 text
                 class="minimize-btn"
@@ -229,8 +229,8 @@
                       : 'ri:arrow-left-s-line'
                   "
                 />
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
           </div>
         </div>
 
@@ -239,21 +239,21 @@
           v-if="serverGroups.length > 0 && !leftPanelMinimized"
           class="group-tabs"
         >
-          <el-tooltip
+          <ScTooltip
             content="按分组查看服务器"
             placement="bottom"
             :show-after="500"
           >
-            <el-tabs v-model="activeGroup" @tab-click="handleGroupChange">
-              <el-tab-pane label="全部" name="all" />
-              <el-tab-pane
+            <ScTabs v-model="activeGroup" @tab-click="handleGroupChange">
+              <ScTabPane label="全部" name="all" />
+              <ScTabPane
                 v-for="group in serverGroups"
                 :key="group"
                 :label="group"
                 :name="group"
               />
-            </el-tabs>
-          </el-tooltip>
+            </ScTabs>
+          </ScTooltip>
         </div>
 
         <!-- 服务器卡片列表 -->
@@ -262,7 +262,7 @@
           <template v-if="leftPanelMinimized">
             <!-- 最小化状态下的空状态 -->
             <div v-if="filteredServers.length === 0" class="server-mini-empty">
-              <el-tooltip
+              <ScTooltip
                 content="暂无服务器，点击展开面板查看详情"
                 placement="right"
                 :show-after="300"
@@ -270,10 +270,10 @@
                 <div class="mini-empty-icon">
                   <IconifyIconOnline icon="ri:server-line" />
                 </div>
-              </el-tooltip>
+              </ScTooltip>
             </div>
             <!-- 最小化状态下的服务器列表 -->
-            <el-tooltip
+            <ScTooltip
               v-for="server in filteredServers"
               :key="server.id + '-mini'"
               :content="`${server.name} (${server.host}:${server.port}) - ${server.onlineStatus === ONLINE_STATUS.ONLINE ? '在线' : '离线'}`"
@@ -303,30 +303,30 @@
                   "
                 />
               </div>
-            </el-tooltip>
+            </ScTooltip>
           </template>
 
           <!-- 正常状态下的完整服务器列表 -->
           <template v-else>
             <!-- 正常状态下的空状态 -->
-            <el-empty
+            <ScEmpty
               v-if="filteredServers.length === 0"
               description="暂无服务器"
             >
-              <el-tooltip
+              <ScTooltip
                 content="点击新增第一台服务器"
                 placement="top"
                 :show-after="500"
               >
-                <el-button type="primary" @click="showAddDialog"
+                <ScButton type="primary" @click="showAddDialog"
                   >新增服务器</el-button
                 >
-              </el-tooltip>
-            </el-empty>
+              </ScTooltip>
+            </ScEmpty>
 
             <!-- 正常状态下的服务器列表 -->
             <template v-if="filteredServers.length > 0">
-              <el-tooltip
+              <ScTooltip
                 v-for="server in filteredServers"
                 :key="server.id"
                 :content="`${server.name} (${server.host}:${server.port}) - ${getOnlineStatusText(server.onlineStatus, server.isLocal)}`"
@@ -347,14 +347,14 @@
                   <!-- 服务器卡片头部 -->
                   <div class="card-header">
                     <div class="server-info">
-                      <el-tooltip
+                      <ScTooltip
                         :content="`服务器名称: ${server.name}`"
                         placement="top"
                         :show-after="300"
                       >
                         <div class="server-name">{{ server.name }}</div>
-                      </el-tooltip>
-                      <el-tooltip
+                      </ScTooltip>
+                      <ScTooltip
                         :content="`服务器地址: ${server.host}:${server.port} ${server.isLocal ? '(本机服务器)' : '(远程服务器)'}`"
                         placement="top"
                         :show-after="300"
@@ -362,7 +362,7 @@
                         <div
                           class="server-address !flex !flex-col justify-center !items-start"
                         >
-                          <el-tooltip
+                          <ScTooltip
                             :content="`连接协议: ${server.protocol}`"
                             placement="top"
                             :show-after="300"
@@ -371,9 +371,9 @@
                               :icon="getProtocolIcon(server.protocol)"
                               class="protocol-icon"
                             />
-                          </el-tooltip>
+                          </ScTooltip>
                           <span>{{ server.host }}:{{ server.port }}</span>
-                          <el-tag
+                          <ScTag
                             v-if="server.isLocal"
                             type="success"
                             size="small"
@@ -381,7 +381,7 @@
                             class="ml-1"
                             >本机</el-tag
                           >
-                          <el-tag
+                          <ScTag
                             v-else
                             type="primary"
                             size="small"
@@ -390,15 +390,15 @@
                             >远程</el-tag
                           >
                         </div>
-                      </el-tooltip>
+                      </ScTooltip>
                     </div>
                     <div class="server-status">
-                      <el-tooltip
+                      <ScTooltip
                         :content="`服务器状态: ${getOnlineStatusText(server.onlineStatus, server.isLocal)}`"
                         placement="top"
                         :show-after="300"
                       >
-                        <el-tag
+                        <ScTag
                           :type="
                             getOnlineStatusType(
                               server.onlineStatus,
@@ -414,8 +414,8 @@
                               server.isLocal,
                             )
                           }}
-                        </el-tag>
-                      </el-tooltip>
+                        </ScTag>
+                      </ScTooltip>
                       <!-- 延迟显示（仅在开启延迟检测时显示） -->
                       <ServerLatencyDisplay
                         v-if="server.latencyCheckEnabled"
@@ -425,7 +425,7 @@
                         class="server-latency"
                       />
                       <!-- 健康状态指示器 -->
-                      <el-tooltip
+                      <ScTooltip
                         v-if="
                           realTimeMetricsEnabled &&
                           getServerHealthStatus(server.id) !== 'unknown'
@@ -434,7 +434,7 @@
                         placement="top"
                         :show-after="300"
                       >
-                        <el-tag
+                        <ScTag
                           :type="
                             getHealthStatusType(
                               getServerHealthStatus(server.id),
@@ -457,8 +457,8 @@
                               getServerHealthStatus(server.id),
                             )
                           }}
-                        </el-tag>
-                      </el-tooltip>
+                        </ScTag>
+                      </ScTooltip>
                     </div>
                   </div>
 
@@ -497,72 +497,72 @@
                   <!-- 操作按钮 -->
                   <div class="card-actions" @click.stop>
                     <el-button-group>
-                      <el-tooltip
+                      <ScTooltip
                         content="连接服务器"
                         placement="top"
                         :show-after="500"
                       >
-                        <el-button
+                        <ScButton
                           size="small"
                           type="primary"
                           @click.stop.prevent="connectServer(server)"
                         >
                           <IconifyIconOnline icon="ri:play-line" />
-                        </el-button>
-                      </el-tooltip>
-                      <el-tooltip
+                        </ScButton>
+                      </ScTooltip>
+                      <ScTooltip
                         content="查看监控"
                         placement="top"
                         :show-after="500"
                       >
-                        <el-button
+                        <ScButton
                           size="small"
                           @click.stop.prevent="showServerInfo(server)"
                         >
                           <IconifyIconOnline icon="ri:information-line" />
-                        </el-button>
-                      </el-tooltip>
-                      <el-tooltip
+                        </ScButton>
+                      </ScTooltip>
+                      <ScTooltip
                         content="编辑服务器"
                         placement="top"
                         :show-after="500"
                       >
-                        <el-button
+                        <ScButton
                           size="small"
                           @click.stop.prevent="editServer(server)"
                         >
                           <IconifyIconOnline icon="ri:edit-line" />
-                        </el-button>
-                      </el-tooltip>
-                      <el-tooltip
+                        </ScButton>
+                      </ScTooltip>
+                      <ScTooltip
                         content="配置管理"
                         placement="top"
                         :show-after="500"
                       >
-                        <el-button
+                        <ScButton
                           size="small"
                           type="primary"
                           plain
                           @click.stop.prevent="openServerConfig(server)"
                         >
                           <IconifyIconOnline icon="ri:settings-3-line" />
-                        </el-button>
-                      </el-tooltip>
-                      <el-tooltip
+                        </ScButton>
+                      </ScTooltip>
+                      <ScTooltip
                         content="更多操作"
                         placement="top"
                         :show-after="500"
                       >
-                        <el-dropdown
+                        <ScDropdown
                           @command="(cmd) => handleServerAction(cmd, server)"
                           @click.stop.prevent
                         >
-                          <el-button size="small">
+                          <ScButton size="small">
                             <IconifyIconOnline icon="ri:more-line" />
-                          </el-button>
+                          </ScButton>
                           <template #dropdown>
-                            <el-dropdown-menu>
-                              <el-dropdown-item
+                            <ScDropdownMenu>
+                              <ScDropdownItem
                                 command="test"
                                 title="测试服务器连接状态"
                               >
@@ -571,8 +571,8 @@
                                   class="mr-2"
                                 />
                                 测试连接
-                              </el-dropdown-item>
-                              <el-dropdown-item
+                              </ScDropdownItem>
+                              <ScDropdownItem
                                 command="files"
                                 title="打开文件管理器"
                               >
@@ -581,8 +581,8 @@
                                   class="mr-2"
                                 />
                                 文件管理
-                              </el-dropdown-item>
-                              <el-dropdown-item
+                              </ScDropdownItem>
+                              <ScDropdownItem
                                 command="script"
                                 title="在服务器上执行脚本"
                               >
@@ -591,8 +591,8 @@
                                   class="mr-2"
                                 />
                                 执行脚本
-                              </el-dropdown-item>
-                              <el-dropdown-item
+                              </ScDropdownItem>
+                              <ScDropdownItem
                                 command="log"
                                 title="查看服务器操作日志"
                               >
@@ -601,8 +601,8 @@
                                   class="mr-2"
                                 />
                                 操作日志
-                              </el-dropdown-item>
-                              <el-dropdown-item
+                              </ScDropdownItem>
+                              <ScDropdownItem
                                 command="delete"
                                 divided
                                 title="删除此服务器配置"
@@ -612,44 +612,44 @@
                                   class="mr-2"
                                 />
                                 删除服务器
-                              </el-dropdown-item>
-                            </el-dropdown-menu>
+                              </ScDropdownItem>
+                            </ScDropdownMenu>
                           </template>
-                        </el-dropdown>
-                      </el-tooltip>
+                        </ScDropdown>
+                      </ScTooltip>
                     </el-button-group>
                   </div>
                 </div>
-              </el-tooltip>
+              </ScTooltip>
             </template>
           </template>
         </div>
       </div>
 
       <!-- 拖拽分割线 -->
-      <el-tooltip
+      <ScTooltip
         v-if="!leftPanelMinimized"
         content="拖拽调整面板宽度"
         placement="right"
         :show-after="500"
       >
         <div class="resize-handle" @mousedown="startResize" />
-      </el-tooltip>
+      </ScTooltip>
 
       <!-- 右侧内容区域 -->
       <div class="right-panel">
         <div v-if="!selectedServerId" class="welcome-panel">
-          <el-empty description="请选择一个服务器">
-            <el-tooltip
+          <ScEmpty description="请选择一个服务器">
+            <ScTooltip
               content="点击新增第一台服务器"
               placement="top"
               :show-after="500"
             >
-              <el-button type="primary" @click="showAddDialog"
+              <ScButton type="primary" @click="showAddDialog"
                 >新增服务器</el-button
               >
-            </el-tooltip>
-          </el-empty>
+            </ScTooltip>
+          </ScEmpty>
         </div>
 
         <!-- 动态组件区域 -->
@@ -724,7 +724,7 @@
             </template>
             <template #fallback>
               <div class="component-loading">
-                <el-skeleton :rows="8" animated />
+                <ScSkeleton :rows="8" animated />
                 <div class="loading-text">正在加载组件...</div>
               </div>
             </template>
@@ -760,7 +760,7 @@ import {
 } from "@/api/server";
 import { useGlobalServerLatency } from "@/composables/useServerLatency";
 import { useServerMetricsStore } from "@/stores/serverMetrics";
-import ScProgress from "@repo/components/ScProgress/index.vue";
+import { ScProgress } from "@repo/components"
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import {

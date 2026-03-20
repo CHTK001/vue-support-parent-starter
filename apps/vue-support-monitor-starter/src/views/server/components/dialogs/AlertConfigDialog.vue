@@ -7,23 +7,23 @@
     @close="handleClose"
   >
     <div class="alert-config">
-      <el-tabs v-model="activeTab" type="border-card">
+      <ScTabs v-model="activeTab" type="border-card">
         <!-- 告警规则 -->
-        <el-tab-pane label="告警规则" name="rules">
+        <ScTabPane label="告警规则" name="rules">
           <div class="rules-panel">
             <div class="rules-header">
-              <el-button type="primary" size="small" @click="addRule">
+              <ScButton type="primary" size="small" @click="addRule">
                 <IconifyIconOnline icon="ri:add-line" class="mr-1" />
                 新增规则
-              </el-button>
-              <el-button size="small" @click="importRules">
+              </ScButton>
+              <ScButton size="small" @click="importRules">
                 <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
                 导入规则
-              </el-button>
-              <el-button size="small" @click="exportRules">
+              </ScButton>
+              <ScButton size="small" @click="exportRules">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                 导出规则
-              </el-button>
+              </ScButton>
             </div>
 
             <div class="rules-list">
@@ -36,25 +36,25 @@
                 <div class="rule-header">
                   <div class="rule-info">
                     <span class="rule-name">{{ rule.name }}</span>
-                    <el-tag :type="getSeverityType(rule.severity)" size="small">
+                    <ScTag :type="getSeverityType(rule.severity)" size="small">
                       {{ getSeverityText(rule.severity) }}
-                    </el-tag>
-                    <el-tag v-if="!rule.enabled" type="info" size="small"
+                    </ScTag>
+                    <ScTag v-if="!rule.enabled" type="info" size="small"
                       >已禁用</el-tag
                     >
                   </div>
                   <div class="rule-actions">
-                    <el-switch
+                    <ScSwitch
                       v-model="rule.enabled"
                       size="small"
                       @change="updateRule(index)"
                     />
-                    <el-button size="small" text @click="editRule(index)">
+                    <ScButton size="small" text @click="editRule(index)">
                       <IconifyIconOnline icon="ri:edit-line" />
-                    </el-button>
-                    <el-button size="small" text @click="deleteRule(index)">
+                    </ScButton>
+                    <ScButton size="small" text @click="deleteRule(index)">
                       <IconifyIconOnline icon="ri:delete-bin-line" />
-                    </el-button>
+                    </ScButton>
                   </div>
                 </div>
                 <div class="rule-content">
@@ -71,18 +71,18 @@
                 </div>
               </div>
 
-              <el-empty
+              <ScEmpty
                 v-if="alertRules.length === 0"
                 description="暂无告警规则"
               />
             </div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 阈值设置 -->
-        <el-tab-pane label="阈值设置" name="thresholds">
+        <ScTabPane label="阈值设置" name="thresholds">
           <div class="thresholds-panel">
-            <el-alert
+            <ScAlert
               title="阈值配置说明"
               description="设置各项监控指标的告警阈值，当指标值超过设定阈值时将触发相应级别的告警。"
               type="info"
@@ -91,19 +91,19 @@
               style="margin-bottom: 20px"
             />
 
-            <el-form :model="thresholdConfig" label-width="120px">
+            <ScForm :model="thresholdConfig" label-width="120px">
               <!-- CPU阈值设置 -->
-              <el-card class="threshold-card" shadow="never">
+              <ScCard class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline icon="ri:cpu-line" class="metric-icon" />
                     <span>CPU使用率阈值</span>
                   </div>
                 </template>
-                <el-row :gutter="20">
-                  <el-col :span="8">
-                    <el-form-item label="正常阈值">
-                      <el-input-number
+                <ScRow :gutter="20">
+                  <ScCol :span="8">
+                    <ScFormItem label="正常阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.cpu.normal"
                         :min="0"
                         :max="100"
@@ -112,11 +112,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="警告阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="警告阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.cpu.warning"
                         :min="thresholdConfig.cpu.normal"
                         :max="100"
@@ -125,11 +125,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="危险阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="危险阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.cpu.critical"
                         :min="thresholdConfig.cpu.warning"
                         :max="100"
@@ -138,13 +138,13 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-              </el-card>
+                    </ScFormItem>
+                  </ScCol>
+                </ScRow>
+              </ScCard>
 
               <!-- 内存阈值设置 -->
-              <el-card class="threshold-card" shadow="never">
+              <ScCard class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline
@@ -154,10 +154,10 @@
                     <span>内存使用率阈值</span>
                   </div>
                 </template>
-                <el-row :gutter="20">
-                  <el-col :span="8">
-                    <el-form-item label="正常阈值">
-                      <el-input-number
+                <ScRow :gutter="20">
+                  <ScCol :span="8">
+                    <ScFormItem label="正常阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.memory.normal"
                         :min="0"
                         :max="100"
@@ -166,11 +166,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="警告阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="警告阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.memory.warning"
                         :min="thresholdConfig.memory.normal"
                         :max="100"
@@ -179,11 +179,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="危险阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="危险阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.memory.critical"
                         :min="thresholdConfig.memory.warning"
                         :max="100"
@@ -192,13 +192,13 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-              </el-card>
+                    </ScFormItem>
+                  </ScCol>
+                </ScRow>
+              </ScCard>
 
               <!-- 磁盘阈值设置 -->
-              <el-card class="threshold-card" shadow="never">
+              <ScCard class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline
@@ -208,10 +208,10 @@
                     <span>磁盘使用率阈值</span>
                   </div>
                 </template>
-                <el-row :gutter="20">
-                  <el-col :span="8">
-                    <el-form-item label="正常阈值">
-                      <el-input-number
+                <ScRow :gutter="20">
+                  <ScCol :span="8">
+                    <ScFormItem label="正常阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.disk.normal"
                         :min="0"
                         :max="100"
@@ -220,11 +220,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="警告阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="警告阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.disk.warning"
                         :min="thresholdConfig.disk.normal"
                         :max="100"
@@ -233,11 +233,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="危险阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="危险阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.disk.critical"
                         :min="thresholdConfig.disk.warning"
                         :max="100"
@@ -246,13 +246,13 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-              </el-card>
+                    </ScFormItem>
+                  </ScCol>
+                </ScRow>
+              </ScCard>
 
               <!-- 温度阈值设置 -->
-              <el-card class="threshold-card" shadow="never">
+              <ScCard class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline
@@ -262,10 +262,10 @@
                     <span>温度阈值</span>
                   </div>
                 </template>
-                <el-row :gutter="20">
-                  <el-col :span="8">
-                    <el-form-item label="正常阈值">
-                      <el-input-number
+                <ScRow :gutter="20">
+                  <ScCol :span="8">
+                    <ScFormItem label="正常阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.temperature.normal"
                         :min="0"
                         :max="100"
@@ -274,11 +274,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">°C</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="警告阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="警告阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.temperature.warning"
                         :min="thresholdConfig.temperature.normal"
                         :max="100"
@@ -287,11 +287,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">°C</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="危险阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="危险阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.temperature.critical"
                         :min="thresholdConfig.temperature.warning"
                         :max="100"
@@ -300,13 +300,13 @@
                         style="width: 100%"
                       />
                       <span class="unit">°C</span>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-              </el-card>
+                    </ScFormItem>
+                  </ScCol>
+                </ScRow>
+              </ScCard>
 
               <!-- 网络阈值设置 -->
-              <el-card class="threshold-card" shadow="never">
+              <ScCard class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline
@@ -316,10 +316,10 @@
                     <span>网络使用率阈值</span>
                   </div>
                 </template>
-                <el-row :gutter="20">
-                  <el-col :span="8">
-                    <el-form-item label="正常阈值">
-                      <el-input-number
+                <ScRow :gutter="20">
+                  <ScCol :span="8">
+                    <ScFormItem label="正常阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.network.normal"
                         :min="0"
                         :max="100"
@@ -328,11 +328,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="警告阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="警告阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.network.warning"
                         :min="thresholdConfig.network.normal"
                         :max="100"
@@ -341,11 +341,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="危险阈值">
-                      <el-input-number
+                    </ScFormItem>
+                  </ScCol>
+                  <ScCol :span="8">
+                    <ScFormItem label="危险阈值">
+                      <ScInputNumber
                         v-model="thresholdConfig.network.critical"
                         :min="thresholdConfig.network.warning"
                         :max="100"
@@ -354,99 +354,99 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-              </el-card>
+                    </ScFormItem>
+                  </ScCol>
+                </ScRow>
+              </ScCard>
 
               <div class="threshold-actions">
-                <el-button @click="resetThresholds">重置为默认值</el-button>
-                <el-button type="primary" @click="saveThresholds"
+                <ScButton @click="resetThresholds">重置为默认值</ScButton>
+                <ScButton type="primary" @click="saveThresholds"
                   >保存阈值配置</el-button
                 >
               </div>
-            </el-form>
+            </ScForm>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 通知设置 -->
-        <el-tab-pane label="通知设置" name="notifications">
+        <ScTabPane label="通知设置" name="notifications">
           <div class="notifications-panel">
-            <el-form :model="notificationConfig" label-width="100px">
-              <el-form-item label="启用通知">
-                <el-switch v-model="notificationConfig.enabled" />
-              </el-form-item>
+            <ScForm :model="notificationConfig" label-width="100px">
+              <ScFormItem label="启用通知">
+                <ScSwitch v-model="notificationConfig.enabled" />
+              </ScFormItem>
 
               <template v-if="notificationConfig.enabled">
-                <el-form-item label="通知方式">
-                  <el-checkbox-group v-model="notificationConfig.methods">
-                    <el-checkbox label="email">邮件通知</el-checkbox>
-                    <el-checkbox label="webhook">Webhook</el-checkbox>
-                    <el-checkbox label="dingtalk">钉钉</el-checkbox>
-                    <el-checkbox label="wechat">企业微信</el-checkbox>
-                  </el-checkbox-group>
-                </el-form-item>
+                <ScFormItem label="通知方式">
+                  <ScCheckboxGroup v-model="notificationConfig.methods">
+                    <ScCheckbox label="email">邮件通知</ScCheckbox>
+                    <ScCheckbox label="webhook">Webhook</ScCheckbox>
+                    <ScCheckbox label="dingtalk">钉钉</ScCheckbox>
+                    <ScCheckbox label="wechat">企业微信</ScCheckbox>
+                  </ScCheckboxGroup>
+                </ScFormItem>
 
                 <!-- 邮件配置 -->
                 <template v-if="notificationConfig.methods.includes('email')">
-                  <el-divider content-position="left">邮件配置</el-divider>
-                  <el-form-item label="收件人">
-                    <el-input
+                  <ScDivider content-position="left">邮件配置</ScDivider>
+                  <ScFormItem label="收件人">
+                    <ScInput
                       v-model="notificationConfig.email.recipients"
                       placeholder="多个邮箱用逗号分隔"
                     />
-                  </el-form-item>
-                  <el-form-item label="SMTP服务器">
-                    <el-input v-model="notificationConfig.email.smtpHost" />
-                  </el-form-item>
-                  <el-form-item label="SMTP端口">
-                    <el-input-number
+                  </ScFormItem>
+                  <ScFormItem label="SMTP服务器">
+                    <ScInput v-model="notificationConfig.email.smtpHost" />
+                  </ScFormItem>
+                  <ScFormItem label="SMTP端口">
+                    <ScInputNumber
                       v-model="notificationConfig.email.smtpPort"
                       :min="1"
                       :max="65535"
                     />
-                  </el-form-item>
+                  </ScFormItem>
                 </template>
 
                 <!-- Webhook配置 -->
                 <template v-if="notificationConfig.methods.includes('webhook')">
-                  <el-divider content-position="left">Webhook配置</el-divider>
-                  <el-form-item label="Webhook URL">
-                    <el-input
+                  <ScDivider content-position="left">Webhook配置</ScDivider>
+                  <ScFormItem label="Webhook URL">
+                    <ScInput
                       v-model="notificationConfig.webhook.url"
                       placeholder="https://..."
                     />
-                  </el-form-item>
-                  <el-form-item label="请求方法">
-                    <el-select v-model="notificationConfig.webhook.method">
-                      <el-option label="POST" value="POST" />
-                      <el-option label="PUT" value="PUT" />
-                    </el-select>
-                  </el-form-item>
+                  </ScFormItem>
+                  <ScFormItem label="请求方法">
+                    <ScSelect v-model="notificationConfig.webhook.method">
+                      <ScOption label="POST" value="POST" />
+                      <ScOption label="PUT" value="PUT" />
+                    </ScSelect>
+                  </ScFormItem>
                 </template>
 
                 <!-- 钉钉配置 -->
                 <template
                   v-if="notificationConfig.methods.includes('dingtalk')"
                 >
-                  <el-divider content-position="left">钉钉配置</el-divider>
-                  <el-form-item label="机器人Token">
-                    <el-input v-model="notificationConfig.dingtalk.token" />
-                  </el-form-item>
-                  <el-form-item label="加签密钥">
-                    <el-input v-model="notificationConfig.dingtalk.secret" />
-                  </el-form-item>
+                  <ScDivider content-position="left">钉钉配置</ScDivider>
+                  <ScFormItem label="机器人Token">
+                    <ScInput v-model="notificationConfig.dingtalk.token" />
+                  </ScFormItem>
+                  <ScFormItem label="加签密钥">
+                    <ScInput v-model="notificationConfig.dingtalk.secret" />
+                  </ScFormItem>
                 </template>
               </template>
-            </el-form>
+            </ScForm>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
         <!-- 告警历史 -->
-        <el-tab-pane label="告警历史" name="history">
+        <ScTabPane label="告警历史" name="history">
           <div class="history-panel">
             <div class="history-filters">
-              <el-date-picker
+              <ScDatePicker
                 v-model="historyFilters.dateRange"
                 type="datetimerange"
                 range-separator="至"
@@ -454,17 +454,17 @@
                 end-placeholder="结束时间"
                 size="small"
               />
-              <el-select
+              <ScSelect
                 v-model="historyFilters.severity"
                 placeholder="告警级别"
                 size="small"
                 clearable
               >
-                <el-option label="严重" value="critical" />
-                <el-option label="警告" value="warning" />
-                <el-option label="信息" value="info" />
-              </el-select>
-              <el-button size="small" @click="loadAlertHistory">查询</el-button>
+                <ScOption label="严重" value="critical" />
+                <ScOption label="警告" value="warning" />
+                <ScOption label="信息" value="info" />
+              </ScSelect>
+              <ScButton size="small" @click="loadAlertHistory">查询</ScButton>
             </div>
 
             <div class="history-list">
@@ -474,16 +474,16 @@
                 class="history-item"
               >
                 <div class="alert-header">
-                  <el-tag :type="getSeverityType(alert.severity)" size="small">
+                  <ScTag :type="getSeverityType(alert.severity)" size="small">
                     {{ getSeverityText(alert.severity) }}
-                  </el-tag>
+                  </ScTag>
                   <span class="alert-time">{{ formatTime(alert.time) }}</span>
-                  <el-tag
+                  <ScTag
                     :type="alert.resolved ? 'success' : 'danger'"
                     size="small"
                   >
                     {{ alert.resolved ? "已解决" : "未解决" }}
-                  </el-tag>
+                  </ScTag>
                 </div>
                 <div class="alert-content">
                   <div class="alert-title">{{ alert.title }}</div>
@@ -492,14 +492,14 @@
                 </div>
               </div>
 
-              <el-empty
+              <ScEmpty
                 v-if="alertHistory.length === 0"
                 description="暂无告警历史"
               />
             </div>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </div>
 
     <!-- 规则编辑对话框 -->
@@ -509,81 +509,81 @@
       width="500px"
       append-to-body
     >
-      <el-form
+      <ScForm
         ref="ruleFormRef"
         :model="currentRule"
         :rules="ruleRules"
         label-width="80px"
       >
-        <el-form-item label="规则名称" prop="name">
-          <el-input v-model="currentRule.name" placeholder="请输入规则名称" />
-        </el-form-item>
-        <el-form-item label="监控指标" prop="metric">
-          <el-select v-model="currentRule.metric" placeholder="选择监控指标">
-            <el-option label="CPU使用率" value="cpu_usage" />
-            <el-option label="内存使用率" value="memory_usage" />
-            <el-option label="磁盘使用率" value="disk_usage" />
-            <el-option label="网络延迟" value="network_latency" />
-            <el-option label="磁盘IO" value="disk_io" />
-            <el-option label="负载平均值" value="load_average" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="比较操作" prop="operator">
-          <el-select v-model="currentRule.operator" placeholder="选择比较操作">
-            <el-option label="大于" value="gt" />
-            <el-option label="大于等于" value="gte" />
-            <el-option label="小于" value="lt" />
-            <el-option label="小于等于" value="lte" />
-            <el-option label="等于" value="eq" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="阈值" prop="threshold">
-          <el-input-number
+        <ScFormItem label="规则名称" prop="name">
+          <ScInput v-model="currentRule.name" placeholder="请输入规则名称" />
+        </ScFormItem>
+        <ScFormItem label="监控指标" prop="metric">
+          <ScSelect v-model="currentRule.metric" placeholder="选择监控指标">
+            <ScOption label="CPU使用率" value="cpu_usage" />
+            <ScOption label="内存使用率" value="memory_usage" />
+            <ScOption label="磁盘使用率" value="disk_usage" />
+            <ScOption label="网络延迟" value="network_latency" />
+            <ScOption label="磁盘IO" value="disk_io" />
+            <ScOption label="负载平均值" value="load_average" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="比较操作" prop="operator">
+          <ScSelect v-model="currentRule.operator" placeholder="选择比较操作">
+            <ScOption label="大于" value="gt" />
+            <ScOption label="大于等于" value="gte" />
+            <ScOption label="小于" value="lt" />
+            <ScOption label="小于等于" value="lte" />
+            <ScOption label="等于" value="eq" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="阈值" prop="threshold">
+          <ScInputNumber
             v-model="currentRule.threshold"
             :min="0"
             :max="getMaxValue(currentRule.metric)"
             :step="getStepValue(currentRule.metric)"
             style="width: 100%"
           />
-        </el-form-item>
-        <el-form-item label="告警级别" prop="severity">
-          <el-select v-model="currentRule.severity" placeholder="选择告警级别">
-            <el-option label="严重" value="critical" />
-            <el-option label="警告" value="warning" />
-            <el-option label="信息" value="info" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="持续时间">
-          <el-input-number
+        </ScFormItem>
+        <ScFormItem label="告警级别" prop="severity">
+          <ScSelect v-model="currentRule.severity" placeholder="选择告警级别">
+            <ScOption label="严重" value="critical" />
+            <ScOption label="警告" value="warning" />
+            <ScOption label="信息" value="info" />
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="持续时间">
+          <ScInputNumber
             v-model="currentRule.duration"
             :min="1"
             :max="3600"
             style="width: 100%"
           />
           <span class="duration-unit">秒</span>
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="描述">
+          <ScInput
             v-model="currentRule.description"
             type="textarea"
             :rows="3"
             placeholder="请输入规则描述"
           />
-        </el-form-item>
-        <el-form-item label="启用规则">
-          <el-switch v-model="currentRule.enabled" />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+        <ScFormItem label="启用规则">
+          <ScSwitch v-model="currentRule.enabled" />
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="ruleDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveRule">保存</el-button>
+        <ScButton @click="ruleDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="saveRule">保存</ScButton>
       </template>
     </sc-dialog>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" @click="saveConfig">保存配置</el-button>
+        <ScButton @click="handleClose">关闭</ScButton>
+        <ScButton type="primary" @click="saveConfig">保存配置</ScButton>
       </div>
     </template>
   </sc-dialog>

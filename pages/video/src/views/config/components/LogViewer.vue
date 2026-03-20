@@ -1,8 +1,8 @@
 ﻿<template>
-  <sc-dialog 
-    :model-value="visible" 
+  <sc-dialog
+    :model-value="visible"
     @update:model-value="handleClose"
-    title="同步日志" 
+    title="同步日志"
     width="800px"
     @close="handleClose"
   >
@@ -25,19 +25,14 @@
       </div>
 
       <div class="logs-content">
-        <div 
-          v-for="log in logs" 
-          :key="log.id" 
-          class="log-line"
-        >
+        <div v-for="log in logs" :key="log.id" class="log-line">
           <span class="log-time">[{{ formatTime(log.createTime) }}]</span>
-          <span :class="['log-level', getLogLevelClass(log.level)]">{{ log.level }}</span>
+          <span :class="['log-level', getLogLevelClass(log.level)]">{{
+            log.level
+          }}</span>
           <span class="log-message">{{ log.message }}</span>
         </div>
-        <div 
-          v-if="logs.length === 0" 
-          class="logs-empty"
-        >
+        <div v-if="logs.length === 0" class="logs-empty">
           <IconifyIconOnline icon="ep:document-delete" class="empty-icon" />
           <p class="empty-text">暂无日志记录</p>
         </div>
@@ -47,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 
 /**
  * 日志查看组件
@@ -74,9 +69,9 @@ const props = defineProps<Props>();
 
 // 定义emits
 interface Emits {
-  'update:visible': [value: boolean];
-  'refresh': [];
-  'clear': [];
+  "update:visible": [value: boolean];
+  refresh: [];
+  clear: [];
 }
 
 const emit = defineEmits<Emits>();
@@ -87,16 +82,16 @@ const emit = defineEmits<Emits>();
  * @returns 格式化后的时间
  */
 const formatTime = (time: string): string => {
-  if (!time) return '';
+  if (!time) return "";
   try {
     const date = new Date(time);
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+    return date.toLocaleString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
   } catch (error) {
     return time;
@@ -110,34 +105,34 @@ const formatTime = (time: string): string => {
  */
 const getLogLevelClass = (level: string): string => {
   const levelMap: Record<string, string> = {
-    'ERROR': 'level-error',
-    'WARN': 'level-warn',
-    'INFO': 'level-info',
-    'DEBUG': 'level-debug',
-    'SUCCESS': 'level-success'
+    ERROR: "level-error",
+    WARN: "level-warn",
+    INFO: "level-info",
+    DEBUG: "level-debug",
+    SUCCESS: "level-success",
   };
-  return levelMap[level?.toUpperCase()] || 'level-info';
+  return levelMap[level?.toUpperCase()] || "level-info";
 };
 
 /**
  * 处理刷新
  */
 const handleRefresh = () => {
-  emit('refresh');
+  emit("refresh");
 };
 
 /**
  * 处理清空日志
  */
 const handleClear = () => {
-  emit('clear');
+  emit("clear");
 };
 
 /**
  * 处理关闭
  */
 const handleClose = () => {
-  emit('update:visible', false);
+  emit("update:visible", false);
 };
 </script>
 
@@ -153,7 +148,11 @@ const handleClose = () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-color-primary-light-7) 100%
+  );
   border-radius: 8px;
   margin-bottom: 16px;
   border-left: 4px solid var(--el-color-primary);
@@ -199,7 +198,7 @@ const handleClose = () => {
   background: #1e1e1e;
   border-radius: 12px;
   padding: 20px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 13px;
   line-height: 1.8;
   color: #d4d4d4;

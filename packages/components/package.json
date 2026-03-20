@@ -33,6 +33,20 @@
       "require": "./ReDialog/index.ts",
       "default": "./ReDialog/index.ts"
     },
+    "./MenuNewBadge": {
+      "types": "./MenuNewBadge/index.vue",
+      "development": "./MenuNewBadge/index.vue",
+      "import": "./MenuNewBadge/index.vue",
+      "require": "./MenuNewBadge/index.vue",
+      "default": "./MenuNewBadge/index.vue"
+    },
+    "./hooks": {
+      "types": "./hooks/index.ts",
+      "development": "./hooks/index.ts",
+      "import": "./hooks/index.ts",
+      "require": "./hooks/index.ts",
+      "default": "./hooks/index.ts"
+    },
     "./*": "./*"
   },
   "private": true,
@@ -43,8 +57,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+<<<<<<< HEAD
     "@element-plus/icons-vue": "catalog:",
     "@mmt817/pixel-ui": "^1.6.0",
+=======
+    "@pixelium/web-vue": "^0.1.1",
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     "@pureadmin/utils": "catalog:",
     "@vueuse/core": "catalog:",
     "@wangeditor/editor": "catalog:",

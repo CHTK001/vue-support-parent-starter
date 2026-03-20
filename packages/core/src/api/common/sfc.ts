@@ -5,7 +5,7 @@ import { http, type ReturnResult } from "@repo/utils";
  */
 export const fetchPageSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("get", "/v2/sfc/page", {
-    params
+    params,
   });
 };
 
@@ -14,7 +14,7 @@ export const fetchPageSfc = (params: any) => {
  */
 export const fetchSaveSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("post", "/v2/sfc/save", {
-    data: params
+    data: params,
   });
 };
 
@@ -23,7 +23,7 @@ export const fetchSaveSfc = (params: any) => {
  */
 export const fetchMineSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("get", "/v2/sfc/mine", {
-    params
+    params,
   });
 };
 /**
@@ -33,7 +33,7 @@ export const fetchMineSfc = (params: any) => {
  */
 export const fetchGetSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("get", "/v2/sfc/get", {
-    params
+    params,
   });
 };
 
@@ -44,8 +44,8 @@ export const fetchUpdateSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("put", "/v2/sfc/update", {
     data: params,
     headers: {
-      "x-remote-animation": false
-    }
+      "x-remote-animation": false,
+    },
   });
 };
 
@@ -54,7 +54,7 @@ export const fetchUpdateSfc = (params: any) => {
  */
 export const fetchDeleteSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("delete", "/v2/sfc/delete", {
-    params
+    params,
   });
 };
 
@@ -68,9 +68,9 @@ export const fetchUploadSfc = (file, params) => {
   }
   return http.request("post", "/v2/sfc/upload", {
     headers: {
-      "Content-Type": "multipart/form-data"
+      "Content-Type": "multipart/form-data",
     },
-    data: formData
+    data: formData,
   });
 };
 /**
@@ -78,7 +78,7 @@ export const fetchUploadSfc = (file, params) => {
  */
 export const fetchInstallSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("put", "/v2/sfc/install", {
-    data: params
+    data: params,
   });
 };
 /**
@@ -86,6 +86,6 @@ export const fetchInstallSfc = (params: any) => {
  */
 export const fetchUninstallSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("put", "/v2/sfc/uninstall", {
-    data: params
+    data: params,
   });
 };

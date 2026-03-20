@@ -8,59 +8,59 @@
         </div>
       </template>
       <div class="flex items-center gap-4">
-        <el-input
+        <ScInput
           v-model="nodeInfo.ipAddress"
           placeholder="节点IP地址"
           style="width: 200px"
         />
-        <el-input-number
+        <ScInputNumber
           v-model="nodeInfo.port"
           :min="1"
           :max="65535"
           placeholder="端口"
           style="width: 120px"
         />
-        <el-tooltip content="连接节点" placement="top">
-          <el-button type="primary" :icon="Connection" @click="connectNode" />
-        </el-tooltip>
+        <ScTooltip content="连接节点" placement="top">
+          <ScButton type="primary" :icon="Connection" @click="connectNode" />
+        </ScTooltip>
       </div>
       <div v-if="connected" class="mt-3">
-        <el-tag type="success">
+        <ScTag type="success">
           <IconifyIconOnline icon="ep:success-filled" class="mr-1" />
           已连接: {{ upgradeStatus?.applicationName }} ({{
             upgradeStatus?.currentVersion
           }})
-        </el-tag>
+        </ScTag>
       </div>
     </ScCard>
 
     <!-- 功能标签页 -->
-    <el-tabs v-model="activeTab" type="border-card">
+    <ScTabs v-model="activeTab" type="border-card">
       <!-- 备份管理 -->
-      <el-tab-pane label="备份管理" name="backup">
+      <ScTabPane label="备份管理" name="backup">
         <div class="mb-4 flex items-center gap-4">
-          <el-input
+          <ScInput
             v-model="backupDescription"
             placeholder="备份描述"
             style="width: 300px"
           />
-          <el-tooltip content="创建备份" placement="top">
-            <el-button
+          <ScTooltip content="创建备份" placement="top">
+            <ScButton
               type="primary"
               :icon="Plus"
               :loading="creating"
               :disabled="!connected"
               @click="createBackup"
             />
-          </el-tooltip>
-          <el-tooltip content="刷新列表" placement="top">
-            <el-button
+          </ScTooltip>
+          <ScTooltip content="刷新列表" placement="top">
+            <ScButton
               type="primary"
               :icon="Refresh"
               :disabled="!connected"
               @click="loadBackups"
             />
-          </el-tooltip>
+          </ScTooltip>
         </div>
 
         <ScTable
@@ -69,81 +69,81 @@
           :pagination="false"
         >
           <template #operation="{ row }">
-            <el-tooltip content="查看" placement="top">
-              <el-button
+            <ScTooltip content="查看" placement="top">
+              <ScButton
                 type="primary"
                 link
                 :icon="View"
                 @click="viewBackup(row)"
               />
-            </el-tooltip>
-            <el-tooltip content="还原" placement="top">
-              <el-button
+            </ScTooltip>
+            <ScTooltip content="还原" placement="top">
+              <ScButton
                 type="warning"
                 link
                 :icon="RefreshLeft"
                 @click="previewRestore(row)"
               />
-            </el-tooltip>
-            <el-tooltip content="删除" placement="top">
-              <el-button
+            </ScTooltip>
+            <ScTooltip content="删除" placement="top">
+              <ScButton
                 type="danger"
                 link
                 :icon="Delete"
                 @click="deleteBackup(row)"
               />
-            </el-tooltip>
+            </ScTooltip>
           </template>
         </ScTable>
-      </el-tab-pane>
+      </ScTabPane>
 
       <!-- 升级管理 -->
-      <el-tab-pane label="升级管理" name="upgrade">
+      <ScTabPane label="升级管理" name="upgrade">
         <div class="mb-4 flex items-center gap-4">
-          <el-upload
+          <ScUpload
             ref="uploadRef"
             :auto-upload="false"
             :show-file-list="false"
             accept=".jar,.zip"
             :on-change="handleFileChange"
           >
-            <el-button :icon="Upload" :disabled="!connected"
+            <ScButton :icon="Upload" :disabled="!connected"
               >选择升级包</el-button
             >
-          </el-upload>
+          </ScUpload>
           <span v-if="selectedFile" class="text-sm text-gray-500">
             {{ selectedFile.name }} ({{ formatSize(selectedFile.size) }})
           </span>
-          <el-button
+          <ScButton
             type="primary"
             :loading="uploading"
             :disabled="!selectedFile || !connected"
             @click="uploadPackage"
           >
             上传
-          </el-button>
-          <el-tooltip content="刷新列表" placement="top">
-            <el-button
+          </ScButton>
+          <ScTooltip content="刷新列表" placement="top">
+            <ScButton
               type="primary"
               :icon="Refresh"
               :disabled="!connected"
               @click="loadUpgradePackages"
             />
-          </el-tooltip>
+          </ScTooltip>
         </div>
 
         <!-- 当前版本信息 -->
-        <el-descriptions v-if="upgradeStatus" :column="3" border class="mb-4">
-          <el-descriptions-item label="应用名称">
+        <ScDescriptions v-if="upgradeStatus" :column="3" border class="mb-4">
+          <ScDescriptionsItem label="应用名称">
             {{ upgradeStatus.applicationName }}
-          </el-descriptions-item>
-          <el-descriptions-item label="当前版本">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="当前版本">
             {{ upgradeStatus.currentVersion }}
-          </el-descriptions-item>
-          <el-descriptions-item label="JAR大小">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="JAR大小">
             {{ formatSize(upgradeStatus.jarSize) }}
-          </el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+        </ScDescriptions>
 
         <ScTable
           :url="upgradeTableUrl"
@@ -151,92 +151,92 @@
           :pagination="false"
         >
           <template #operation="{ row }">
-            <el-popconfirm
+            <ScPopconfirm
               title="确定要执行升级吗？升级前会自动备份当前配置"
               @confirm="executeUpgrade(row)"
             >
               <template #reference>
-                <el-button type="primary" link :icon="Upload">
+                <ScButton type="primary" link :icon="Upload">
                   执行升级
-                </el-button>
+                </ScButton>
               </template>
-            </el-popconfirm>
+            </ScPopconfirm>
           </template>
         </ScTable>
-      </el-tab-pane>
+      </ScTabPane>
 
       <!-- 还原管理 -->
-      <el-tab-pane label="还原预览" name="restore">
+      <ScTabPane label="还原预览" name="restore">
         <div v-if="!restorePreview" class="text-center text-gray-500 py-10">
           请在备份管理中选择一个备份进行还原预览
         </div>
         <div v-else>
-          <el-descriptions :column="2" border class="mb-4">
-            <el-descriptions-item label="备份时间">
+          <ScDescriptions :column="2" border class="mb-4">
+            <ScDescriptionsItem label="备份时间">
               {{ formatTime(restorePreview.backupTime) }}
-            </el-descriptions-item>
-            <el-descriptions-item label="备份描述">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="备份描述">
               {{ restorePreview.description }}
-            </el-descriptions-item>
-            <el-descriptions-item label="差异项数">
-              <el-tag
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="差异项数">
+              <ScTag
                 :type="
                   restorePreview.differenceCount > 0 ? 'warning' : 'success'
                 "
               >
                 {{ restorePreview.differenceCount }}
-              </el-tag>
-            </el-descriptions-item>
-          </el-descriptions>
+              </ScTag>
+            </ScDescriptionsItem>
+          </ScDescriptions>
 
-          <el-table
+          <ScTable
             :data="restorePreview.differences"
             border
             stripe
             max-height="400"
           >
-            <el-table-column prop="key" label="配置项" min-width="200" />
-            <el-table-column
+            <ScTableColumn prop="key" label="配置项" min-width="200" />
+            <ScTableColumn
               prop="currentValue"
               label="当前值"
               min-width="150"
             />
-            <el-table-column
+            <ScTableColumn
               prop="backupValue"
               label="备份值"
               min-width="150"
             />
-            <el-table-column prop="status" label="状态" width="80">
+            <ScTableColumn prop="status" label="状态" width="80">
               <template #default="{ row }">
-                <el-tag
+                <ScTag
                   :type="row.status === '新增' ? 'success' : 'warning'"
                   size="small"
                 >
                   {{ row.status }}
-                </el-tag>
+                </ScTag>
               </template>
-            </el-table-column>
-          </el-table>
+            </ScTableColumn>
+          </ScTable>
 
           <div class="mt-4 text-right">
-            <el-popconfirm
+            <ScPopconfirm
               title="确定要还原配置吗？部分配置需要重启后生效"
               @confirm="executeRestore"
             >
               <template #reference>
-                <el-button type="primary" :loading="restoring">
+                <ScButton type="primary" :loading="restoring">
                   执行还原
-                </el-button>
+                </ScButton>
               </template>
-            </el-popconfirm>
+            </ScPopconfirm>
           </div>
         </div>
-      </el-tab-pane>
-    </el-tabs>
+      </ScTabPane>
+    </ScTabs>
 
     <!-- 备份内容查看对话框 -->
     <sc-dialog v-model="viewDialogVisible" title="备份内容" width="70%">
-      <el-input
+      <ScInput
         v-model="backupContentJson"
         type="textarea"
         :rows="20"

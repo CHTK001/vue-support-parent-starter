@@ -29,7 +29,7 @@
               {{ softwareData?.systemSoftDesc || "暂无描述" }}
             </div>
             <div class="software-tags">
-              <el-tag
+              <ScTag
                 v-for="tag in (softwareData?.systemSoftTags || '')
                   .split(',')
                   .filter(Boolean)"
@@ -38,26 +38,26 @@
                 class="tag-item"
               >
                 {{ tag }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 安装配置 -->
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
+      <ScForm ref="formRef" :model="form" :rules="rules" label-width="120px">
         <div class="form-section">
           <div class="section-title">安装配置</div>
 
-          <el-form-item label="软件版本" prop="version">
-            <el-select
+          <ScFormItem label="软件版本" prop="version">
+            <ScSelect
               v-model="form.version"
               placeholder="选择要安装的版本"
               style="width: 100%"
               :loading="versionsLoading"
               @change="handleVersionChange"
             >
-              <el-option
+              <ScOption
                 v-for="version in availableVersions"
                 :key="version.tag"
                 :label="`${version.tag} (${version.size || 'unknown size'})`"
@@ -74,17 +74,17 @@
                     {{ version.size ? ` - ${version.size}` : "" }}
                   </span>
                 </div>
-              </el-option>
-            </el-select>
-          </el-form-item>
+              </ScOption>
+            </ScSelect>
+          </ScFormItem>
 
-          <el-form-item label="目标服务器" prop="serverId">
-            <el-select
+          <ScFormItem label="目标服务器" prop="serverId">
+            <ScSelect
               v-model="form.serverId"
               placeholder="选择安装目标服务器"
               style="width: 100%"
             >
-              <el-option
+              <ScOption
                 v-for="server in serverOptions"
                 :key="server.id"
                 :label="server.name"
@@ -94,29 +94,29 @@
                   <span class="server-name">{{ server.name }}</span>
                   <span class="server-info">({{ server.ip }})</span>
                 </div>
-              </el-option>
-            </el-select>
-          </el-form-item>
+              </ScOption>
+            </ScSelect>
+          </ScFormItem>
 
-          <el-form-item label="镜像仓库" prop="registryId">
-            <el-select
+          <ScFormItem label="镜像仓库" prop="registryId">
+            <ScSelect
               v-model="form.registryId"
               placeholder="选择镜像仓库（可选）"
               clearable
               style="width: 100%"
             >
-              <el-option
+              <ScOption
                 v-for="registry in registryOptions"
                 :key="registry.id"
                 :label="registry.name"
                 :value="registry.id"
               />
-            </el-select>
+            </ScSelect>
             <div class="form-tip">如果不选择，将使用默认的Docker Hub</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="自定义镜像名">
-            <el-input
+          <ScFormItem label="自定义镜像名">
+            <ScInput
               v-model="form.customImageName"
               placeholder="自定义完整镜像名称（可选）"
               clearable
@@ -124,10 +124,10 @@
             <div class="form-tip">
               例如: registry.cn-hangzhou.aliyuncs.com/namespace/image:tag
             </div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="安装说明">
-            <el-input
+          <ScFormItem label="安装说明">
+            <ScInput
               v-model="form.installNote"
               type="textarea"
               :rows="3"
@@ -135,28 +135,28 @@
               maxlength="500"
               show-word-limit
             />
-          </el-form-item>
+          </ScFormItem>
         </div>
 
         <div class="form-section">
           <div class="section-title">高级选项</div>
 
-          <el-form-item label="自动启动">
-            <el-switch v-model="form.autoStart" />
+          <ScFormItem label="自动启动">
+            <ScSwitch v-model="form.autoStart" />
             <div class="form-tip">安装完成后自动启动容器</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="强制拉取">
-            <el-switch v-model="form.forcePull" />
+          <ScFormItem label="强制拉取">
+            <ScSwitch v-model="form.forcePull" />
             <div class="form-tip">即使本地已存在镜像也重新拉取</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="保留镜像">
-            <el-switch v-model="form.keepImage" />
+          <ScFormItem label="保留镜像">
+            <ScSwitch v-model="form.keepImage" />
             <div class="form-tip">容器删除后保留镜像文件</div>
-          </el-form-item>
+          </ScFormItem>
         </div>
-      </el-form>
+      </ScForm>
 
       <!-- 预览信息 -->
       <div v-if="form.version && form.serverId" class="preview-section">
@@ -180,10 +180,10 @@
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSubmit">
           开始安装
-        </el-button>
+        </ScButton>
       </span>
     </template>
   </sc-dialog>

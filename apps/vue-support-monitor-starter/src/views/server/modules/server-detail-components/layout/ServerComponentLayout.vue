@@ -6,26 +6,26 @@
     <div v-if="editable" class="layout-header">
       <!-- 左侧编辑操作区 -->
       <div class="layout-actions-left">
-        <el-button type="primary" @click="showAddComponentDrawer = true">
+        <ScButton type="primary" @click="showAddComponentDrawer = true">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加组件
-        </el-button>
-        <el-button type="primary" @click="showComponentSelector = true">
+        </ScButton>
+        <ScButton type="primary" @click="showComponentSelector = true">
           <IconifyIconOnline icon="ri:file-list-line" class="mr-1" />
           组件库
-        </el-button>
-        <el-button type="primary" @click="loadSharedComponents">
+        </ScButton>
+        <ScButton type="primary" @click="loadSharedComponents">
           <IconifyIconOnline icon="ri:share-line" class="mr-1" />
           共享组件
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 右侧保存操作区 -->
       <div v-if="editable && layoutChanged" class="layout-actions-right">
-        <el-button type="primary" @click="saveConfigToServer">
+        <ScButton type="primary" @click="saveConfigToServer">
           <IconifyIconOnline icon="ri:save-line" class="mr-1" />
           保存布局
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -54,36 +54,36 @@
         <div class="grid-item-content">
           <div v-if="editable" class="grid-item-overlay">
             <div class="grid-item-actions">
-              <el-tooltip content="编辑组件">
-                <el-button
+              <ScTooltip content="编辑组件">
+                <ScButton
                   type="primary"
                   circle
                   size="small"
                   @click="editComponent(item)"
                 >
                   <IconifyIconOnline icon="ri:edit-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="图表配置">
-                <el-button
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="图表配置">
+                <ScButton
                   type="warning"
                   circle
                   size="small"
                   @click="editChartConfig(item)"
                 >
                   <IconifyIconOnline icon="ri:settings-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="删除组件">
-                <el-button
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="删除组件">
+                <ScButton
                   type="danger"
                   circle
                   size="small"
                   @click="removeComponent(item)"
                 >
                   <IconifyIconOnline icon="ri:delete-bin-line" />
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </div>
           </div>
 
@@ -111,12 +111,12 @@
 
     <!-- 空状态 -->
     <div v-else class="empty-layout">
-      <el-empty description="暂无组件">
-        <el-button type="primary" @click="showAddComponentDrawer = true">
+      <ScEmpty description="暂无组件">
+        <ScButton type="primary" @click="showAddComponentDrawer = true">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加第一个组件
-        </el-button>
-      </el-empty>
+        </ScButton>
+      </ScEmpty>
     </div>
 
     <!-- 添加组件抽屉 -->
@@ -127,47 +127,47 @@
       direction="rtl"
     >
       <div class="add-component-form">
-        <el-form
+        <ScForm
           ref="addFormRef"
           :model="addForm"
           :rules="addFormRules"
           label-width="120px"
         >
-          <el-form-item label="组件名称" prop="title">
-            <el-input v-model="addForm.title" placeholder="请输入组件名称" />
-          </el-form-item>
+          <ScFormItem label="组件名称" prop="title">
+            <ScInput v-model="addForm.title" placeholder="请输入组件名称" />
+          </ScFormItem>
 
-          <el-form-item label="组件类型" prop="type">
-            <el-select
+          <ScFormItem label="组件类型" prop="type">
+            <ScSelect
               v-model="addForm.type"
               placeholder="请选择组件类型"
               style="width: 100%"
             >
-              <el-option
+              <ScOption
                 v-for="option in componentTypeOptions"
                 :key="option.value"
                 :label="option.label"
                 :value="option.value"
               />
-            </el-select>
-          </el-form-item>
+            </ScSelect>
+          </ScFormItem>
 
-          <el-form-item label="表达式类型" prop="expressionType">
-            <el-select
+          <ScFormItem label="表达式类型" prop="expressionType">
+            <ScSelect
               v-model="addForm.expressionType"
               placeholder="请选择表达式类型"
               style="width: 100%"
             >
-              <el-option
+              <ScOption
                 v-for="option in expressionTypeOptions"
                 :key="option.value"
                 :label="option.label"
                 :value="option.value"
               />
-            </el-select>
-          </el-form-item>
+            </ScSelect>
+          </ScFormItem>
 
-          <el-form-item
+          <ScFormItem
             :label="
               addForm.expressionType === 'PROMETHEUS'
                 ? 'PromQL表达式'
@@ -177,7 +177,7 @@
           >
             <!-- Prometheus 表达式输入 -->
             <template v-if="addForm.expressionType === 'PROMETHEUS'">
-              <el-input
+              <ScInput
                 v-model="addForm.expression"
                 type="textarea"
                 :rows="4"
@@ -186,7 +186,7 @@
               <div class="expression-examples">
                 <div class="examples-header">常用表达式示例：</div>
                 <div class="examples-list">
-                  <el-tag
+                  <ScTag
                     v-for="example in prometheusExamples"
                     :key="example.value"
                     size="small"
@@ -194,83 +194,83 @@
                     @click="addForm.expression = example.value"
                   >
                     {{ example.label }}
-                  </el-tag>
+                  </ScTag>
                 </div>
               </div>
             </template>
 
             <!-- 固定组件选择 -->
             <template v-else>
-              <el-select
+              <ScSelect
                 v-model="addForm.expression"
                 placeholder="请选择监控组件"
                 style="width: 100%"
                 filterable
               >
-                <el-option
+                <ScOption
                   v-for="option in componentOptions"
                   :key="option.value"
                   :label="option.label"
                   :value="option.value"
                 />
-              </el-select>
+              </ScSelect>
             </template>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="组件大小">
-            <el-row :gutter="10">
-              <el-col :span="12">
-                <el-input-number
+          <ScFormItem label="组件大小">
+            <ScRow :gutter="10">
+              <ScCol :span="12">
+                <ScInputNumber
                   v-model="addForm.w"
                   :min="1"
                   :max="24"
                   placeholder="宽度"
                   style="width: 100%"
                 />
-              </el-col>
-              <el-col :span="12">
-                <el-input-number
+              </ScCol>
+              <ScCol :span="12">
+                <ScInputNumber
                   v-model="addForm.h"
                   :min="1"
                   :max="20"
                   placeholder="高度"
                   style="width: 100%"
                 />
-              </el-col>
-            </el-row>
-          </el-form-item>
+              </ScCol>
+            </ScRow>
+          </ScFormItem>
 
-          <el-form-item label="数值单位" prop="valueUnit">
-            <el-select
+          <ScFormItem label="数值单位" prop="valueUnit">
+            <ScSelect
               v-model="addForm.valueUnit"
               placeholder="请选择数值单位"
               style="width: 100%"
               clearable
             >
-              <el-option
+              <ScOption
                 v-for="option in valueUnitOptions"
                 :key="option.value"
                 :label="option.label"
                 :value="option.value"
               />
-            </el-select>
-          </el-form-item>
+            </ScSelect>
+          </ScFormItem>
 
-          <el-form-item label="显示标题">
-            <el-switch
+          <ScFormItem label="显示标题">
+            <ScSwitch
               v-model="addForm.showTitle"
               active-text="显示"
               inactive-text="隐藏"
             />
-          </el-form-item>
-        </el-form>
+          </ScFormItem>
+        </ScForm>
 
         <div class="drawer-footer">
-          <el-button @click="showAddComponentDrawer = false">取消</el-button>
-          <el-button type="primary" :loading="addLoading" @click="addComponent">
+          <ScButton @click="showAddComponentDrawer = false">取消</ScButton>
+          <ScButton type="primary" :loading="addLoading" @click="addComponent">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加组件
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </sc-drawer>
@@ -283,10 +283,10 @@
       destroy-on-close
     >
       <div class="component-selector">
-        <el-tabs v-model="componentSelectorTab">
-          <el-tab-pane label="我的组件" name="my">
+        <ScTabs v-model="componentSelectorTab">
+          <ScTabPane label="我的组件" name="my">
             <div class="component-cards">
-              <el-empty
+              <ScEmpty
                 v-if="myComponents.length === 0"
                 description="暂无可用组件"
               />
@@ -306,7 +306,7 @@
                     <span class="component-card-title">{{
                       item.monitorSysGenServerComponentName
                     }}</span>
-                    <el-tag
+                    <ScTag
                       size="small"
                       :type="
                         getComponentTypeTag(
@@ -319,7 +319,7 @@
                           item.monitorSysGenServerComponentType,
                         )
                       }}
-                    </el-tag>
+                    </ScTag>
                   </div>
                   <div class="component-card-content">
                     <div class="component-expression">
@@ -332,11 +332,11 @@
                 </div>
               </div>
             </div>
-          </el-tab-pane>
+          </ScTabPane>
 
-          <el-tab-pane label="共享组件" name="shared">
+          <ScTabPane label="共享组件" name="shared">
             <div class="component-cards">
-              <el-empty
+              <ScEmpty
                 v-if="sharedComponents.length === 0"
                 description="暂无共享组件"
               />
@@ -356,7 +356,7 @@
                     <span class="component-card-title">{{
                       item.monitorSysGenServerComponentName
                     }}</span>
-                    <el-tag
+                    <ScTag
                       size="small"
                       :type="
                         getComponentTypeTag(
@@ -369,7 +369,7 @@
                           item.monitorSysGenServerComponentType,
                         )
                       }}
-                    </el-tag>
+                    </ScTag>
                   </div>
                   <div class="component-card-content">
                     <div class="component-expression">
@@ -382,23 +382,23 @@
                 </div>
               </div>
             </div>
-          </el-tab-pane>
-        </el-tabs>
+          </ScTabPane>
+        </ScTabs>
 
         <div class="selector-footer">
           <div class="selected-info">
             已选择 {{ selectedComponents.length }} 个组件
           </div>
           <div class="selector-actions">
-            <el-button @click="showComponentSelector = false">取消</el-button>
-            <el-button
+            <ScButton @click="showComponentSelector = false">取消</ScButton>
+            <ScButton
               type="primary"
               :disabled="selectedComponents.length === 0"
               @click="addSelectedComponents"
             >
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />
               添加选中组件
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -434,7 +434,7 @@ import {
   type ServerComponentLayout,
 } from "@/api/server";
 import { useServerMetrics } from "@/composables/useServerWebSocket";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { GridItem, GridLayout } from "grid-layout-plus";

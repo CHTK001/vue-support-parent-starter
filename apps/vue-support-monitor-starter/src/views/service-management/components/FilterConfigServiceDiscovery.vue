@@ -51,23 +51,23 @@
         <div class="basic-config-row">
           <div class="config-item">
             <label>负载均衡策略</label>
-            <el-select
+            <ScSelect
               v-model="config.serviceDiscoveryBalance"
               placeholder="请选择负载均衡策略"
               style="width: 100%"
             >
-              <el-option
+              <ScOption
                 v-for="opt in balanceOptions"
                 :key="opt.value"
                 :label="opt.label"
                 :value="opt.value"
               />
-            </el-select>
+            </ScSelect>
           </div>
           <div class="config-item status-item">
             <label>启用状态</label>
             <div class="status-switch">
-              <el-switch
+              <ScSwitch
                 v-model="config.serviceDiscoveryEnabled"
                 inline-prompt
                 active-text="启用"
@@ -132,20 +132,20 @@
         </div>
         <div class="config-field" style="max-width: 400px">
           <label>Bean 名称</label>
-          <el-select
+          <ScSelect
             v-model="config.serviceDiscoveryBeanName"
             placeholder="选择或输入 Bean 名称"
             filterable
             allow-create
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="opt in springBeanOptions"
               :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
-          </el-select>
+          </ScSelect>
         </div>
         <div class="config-tips info">
           <div class="tip-icon">
@@ -170,7 +170,7 @@
             <h4>服务映射配置</h4>
             <p>管理服务名称与地址的映射关系</p>
           </div>
-          <el-button
+          <ScButton
             type="primary"
             size="small"
             class="add-btn"
@@ -178,7 +178,7 @@
           >
             <IconifyIconOnline icon="ri:add-line" />
             新增映射
-          </el-button>
+          </ScButton>
         </div>
 
         <!-- 表头 -->
@@ -194,19 +194,19 @@
         <div class="mapping-list">
           <div v-for="(m, idx) in mappings" :key="idx" class="mapping-row">
             <div class="col-name">
-              <el-input
+              <ScInput
                 v-model="m.serviceDiscoveryName"
                 placeholder="user-service"
               />
             </div>
             <div class="col-address">
-              <el-input
+              <ScInput
                 v-model="m.serviceDiscoveryAddress"
                 placeholder="http://localhost:8080"
               />
             </div>
             <div class="col-weight">
-              <el-input-number
+              <ScInputNumber
                 v-model="m.serviceDiscoveryWeight"
                 :min="0"
                 :max="100"
@@ -214,7 +214,7 @@
               />
             </div>
             <div class="col-status">
-              <el-switch
+              <ScSwitch
                 v-model="m.serviceDiscoveryEnabled"
                 inline-prompt
                 active-text="开"
@@ -222,14 +222,14 @@
               />
             </div>
             <div class="col-action">
-              <el-button
+              <ScButton
                 type="danger"
                 size="small"
                 text
                 @click="mappings.splice(idx, 1)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
 
@@ -263,18 +263,18 @@
         <div class="detail-config-grid">
           <div class="config-field">
             <label>集群名称</label>
-            <el-input
+            <ScInput
               v-model="config.serviceDiscoveryHazelcastClusterName"
               placeholder="如: dev-cluster"
             >
               <template #prefix>
                 <IconifyIconOnline icon="ri:team-line" />
               </template>
-            </el-input>
+            </ScInput>
           </div>
           <div class="config-field">
             <label>端口</label>
-            <el-input-number
+            <ScInputNumber
               v-model="config.serviceDiscoveryHazelcastPort"
               :min="1"
               :max="65535"
@@ -284,18 +284,18 @@
           </div>
           <div class="config-field full-width">
             <label>成员地址</label>
-            <el-input
+            <ScInput
               v-model="config.serviceDiscoveryHazelcastMembers"
               placeholder="如: 192.168.1.100:5701,192.168.1.101:5701"
             >
               <template #prefix>
                 <IconifyIconOnline icon="ri:links-line" />
               </template>
-            </el-input>
+            </ScInput>
           </div>
           <div class="config-field">
             <label>连接超时 (秒)</label>
-            <el-input-number
+            <ScInputNumber
               v-model="config.serviceDiscoveryHazelcastTimeout"
               :min="1"
               :max="300"
@@ -318,8 +318,8 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave"
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave"
           >保存配置</el-button
         >
       </div>
@@ -338,7 +338,7 @@ import {
   type ServiceDiscoveryConfig,
   type ServiceDiscoveryMapping,
 } from "@/api/system-server-setting";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import { ScSelect } from "@repo/components"
 import { fetchOptionObjectsList } from "@/api/spi";
 
 interface Props {

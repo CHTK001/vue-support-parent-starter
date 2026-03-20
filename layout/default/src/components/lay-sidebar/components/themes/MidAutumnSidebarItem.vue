@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { provide } from 'vue';
+import { provide } from "vue";
 import type { MenuType } from "@repo/core";
 import type { PropType } from "vue";
-import BaseSidebarItem from '../BaseSidebarItem.vue';
+import BaseSidebarItem from "../BaseSidebarItem.vue";
 
 const props = defineProps({
   item: {
@@ -19,17 +19,13 @@ const props = defineProps({
 });
 
 // 提供自身作为主题 SidebarItem（用于子菜单递归）
-import MidAutumnSidebarItem from './MidAutumnSidebarItem.vue';
-provide('themeSidebarItem', MidAutumnSidebarItem);
+import MidAutumnSidebarItem from "./MidAutumnSidebarItem.vue";
+provide("themeSidebarItem", MidAutumnSidebarItem);
 </script>
 
 <template>
   <div class="mid-autumn-sidebar-item-wrapper">
-    <BaseSidebarItem
-      :item="item"
-      :is-nest="isNest"
-      :base-path="basePath"
-    />
+    <BaseSidebarItem :item="item" :is-nest="isNest" :base-path="basePath" />
   </div>
 </template>
 
@@ -39,13 +35,13 @@ provide('themeSidebarItem', MidAutumnSidebarItem);
 // 中秋主题 - CSS 变量提升可维护性
 $mid-autumn-navy: #1a237e;
 $mid-autumn-gold: #ffd54f;
-$moon-normal: url('./assets/mid-autumn-menu-normal.svg');
-$moon-active: url('./assets/mid-autumn-menu-active.svg');
+$moon-normal: url("./assets/mid-autumn-menu-normal.svg");
+$moon-active: url("./assets/mid-autumn-menu-active.svg");
 
 .mid-autumn-sidebar-item-wrapper {
   --mid-gold: #{$mid-autumn-gold};
   --mid-navy: #{$mid-autumn-navy};
-  
+
   :deep(.sidebar-menu-item),
   :deep(.el-sub-menu__title) {
     color: var(--hover-nav-menu-color);
@@ -58,48 +54,56 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
     font-weight: 600;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    
+
     &:hover {
       transform: translateX(2px);
       filter: brightness(1.1);
       box-shadow: 0 4px 12px rgba($mid-autumn-navy, 0.4);
       color: #fff;
-      
-      .el-icon, svg, span, div {
+
+      .el-icon,
+      svg,
+      span,
+      div {
         color: #fff;
       }
     }
-    
-    .el-icon, svg {
+
+    .el-icon,
+    svg {
       color: var(--hover-nav-menu-color);
       position: relative;
       z-index: 2;
     }
-    
-    span, div {
+
+    span,
+    div {
       color: inherit;
       position: relative;
       z-index: 2;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
-    
+
     &.is-active {
       background: $moon-active;
       background-size: 100% 100%;
       background-repeat: no-repeat;
       color: #fff;
       font-weight: 700;
-      box-shadow: 
+      box-shadow:
         0 4px 16px rgba($mid-autumn-gold, 0.5),
         0 0 20px rgba($mid-autumn-gold, 0.3);
-      
-      .el-icon, svg, span, div {
+
+      .el-icon,
+      svg,
+      span,
+      div {
         color: #fff;
         text-shadow: 0 1px 2px rgba($mid-autumn-gold, 0.5);
       }
     }
   }
-  
+
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
       color: var(--hover-nav-menu-color);
@@ -111,32 +115,34 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
       border: none;
       font-weight: 600;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      
+
       &:hover {
         transform: translateX(2px);
         filter: brightness(1.1);
       }
-      
-      .el-icon, svg {
+
+      .el-icon,
+      svg {
         color: var(--mid-gold);
       }
     }
-    
+
     &.is-active > .el-sub-menu__title {
       background: $moon-active;
       background-size: 100% 100%;
       background-repeat: no-repeat;
       color: var(--mid-navy);
       font-weight: 700;
-      
-      .el-icon, svg {
+
+      .el-icon,
+      svg {
         color: var(--mid-navy);
       }
     }
-    
+
     .el-menu {
       background: rgba(color.adjust($mid-autumn-navy, $lightness: -5%), 0.95);
-      
+
       .el-menu-item {
         color: var(--mid-gold);
         background: $moon-normal;
@@ -145,22 +151,23 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
         border: none;
         border-radius: 4px;
         margin: 4px 8px;
-        
+
         &:hover {
           filter: brightness(1.1);
         }
-        
+
         &.is-active {
           background: $moon-active;
           background-size: 100% 100%;
           background-repeat: no-repeat;
           color: var(--mid-navy);
         }
-        
-        .el-icon, svg {
+
+        .el-icon,
+        svg {
           color: var(--mid-gold);
         }
-        
+
         &.is-active .el-icon,
         &.is-active svg {
           color: var(--mid-navy);
@@ -185,14 +192,14 @@ html[data-skin="mid-autumn"] {
     border: 1px solid rgba($mid-gold, 0.3) !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
   }
-  
+
   .horizontal-popper,
   .el-menu--horizontal .el-menu--popup,
   .el-menu--horizontal .el-menu--popup-container {
     > .el-menu {
       background: transparent !important;
     }
-    
+
     .el-menu-item {
       height: 44px;
       line-height: 44px;
@@ -204,33 +211,42 @@ html[data-skin="mid-autumn"] {
       color: $mid-gold-light !important;
       font-size: 14px;
       transition: all 0.25s ease;
-      
-      .el-icon, svg {
+
+      .el-icon,
+      svg {
         color: $mid-gold !important;
       }
-      
-      span, div {
+
+      span,
+      div {
         color: inherit !important;
         font-size: 14px;
       }
-      
+
       &:hover {
         background: rgba($mid-gold, 0.1) !important;
         color: #fff !important;
         transform: translateX(4px);
       }
-      
+
       &.is-active {
-        background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+        background: linear-gradient(
+          135deg,
+          $mid-gold,
+          $mid-gold-light
+        ) !important;
         color: $mid-blue !important;
         box-shadow: 0 2px 8px rgba($mid-gold, 0.4);
-        
-        .el-icon, svg, span, div {
+
+        .el-icon,
+        svg,
+        span,
+        div {
           color: $mid-blue !important;
         }
       }
     }
-    
+
     .el-sub-menu__title {
       height: 44px;
       line-height: 44px;
@@ -239,31 +255,42 @@ html[data-skin="mid-autumn"] {
       border-radius: 6px;
       margin: 4px 0;
       padding: 0 16px;
-      
-      span, div {
+
+      span,
+      div {
         color: $mid-gold !important;
         font-size: 14px;
       }
-      
-      .el-icon, svg, .el-sub-menu__icon-arrow {
+
+      .el-icon,
+      svg,
+      .el-sub-menu__icon-arrow {
         color: $mid-gold !important;
       }
-      
+
       &:hover {
         background: rgba($mid-gold, 0.08) !important;
       }
     }
-    
+
     .el-sub-menu.is-active > .el-sub-menu__title {
-      background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+      background: linear-gradient(
+        135deg,
+        $mid-gold,
+        $mid-gold-light
+      ) !important;
       color: $mid-blue !important;
       box-shadow: 0 2px 8px rgba($mid-gold, 0.4);
-      
-      span, div, .el-icon, svg, .el-sub-menu__icon-arrow {
+
+      span,
+      div,
+      .el-icon,
+      svg,
+      .el-sub-menu__icon-arrow {
         color: $mid-blue !important;
       }
     }
-    
+
     .el-sub-menu > .el-menu {
       background: transparent !important;
       padding: 4px 0 4px 8px;

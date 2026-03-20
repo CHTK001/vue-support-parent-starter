@@ -1,7 +1,7 @@
 <template>
   <div v-if="!hidePagination || !hideDo" class="scTable-page">
     <div class="scTable-pagination">
-      <el-pagination
+      <ScPagination
         v-if="!hidePagination"
         v-model:currentPage="currentPage"
         background
@@ -15,7 +15,7 @@
       />
     </div>
     <div v-if="!hideDo" class="scTable-do">
-      <el-button v-if="!hideRefresh" icon="el-icon-refresh" circle style="margin-left: 15px" @click="refresh" />
+      <ScButton v-if="!hideRefresh" icon="el-icon-refresh" circle style="margin-left: 15px" @click="refresh" />
     </div>
   </div>
 </template>

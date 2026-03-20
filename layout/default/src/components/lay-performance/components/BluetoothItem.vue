@@ -5,16 +5,19 @@
       <span class="label">BLE</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-bar-gauge">
-       <div class="gauge-fill" style="width: 100%; background-color: #007bff"></div>
+      <div
+        class="gauge-fill"
+        style="width: 100%; background-color: #007bff"
+      ></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from "vue";
 
 defineProps({
-  mode: { type: String, required: true }
+  mode: { type: String, required: true },
 });
 
 const isAvailable = ref(false);
@@ -24,7 +27,7 @@ onMounted(async () => {
     try {
       isAvailable.value = await (navigator as any).bluetooth.getAvailability();
     } catch (e) {
-      console.error('Bluetooth availability check failed:', e);
+      console.error("Bluetooth availability check failed:", e);
       isAvailable.value = false;
     }
   }
@@ -63,7 +66,7 @@ onMounted(async () => {
 
 .mini-bar-gauge {
   height: 3px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   margin-top: 4px;
   border-radius: 2px;
   overflow: hidden;

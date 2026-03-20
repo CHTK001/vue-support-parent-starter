@@ -1,5 +1,5 @@
 <template>
-  <el-card
+  <ScCard
     class="container-card"
     :class="{ running: isRunning, stopped: isStopped }"
   >
@@ -18,12 +18,12 @@
             <div class="container-id">{{ dockerId }}</div>
           </div>
         </div>
-        <el-tag
+        <ScTag
           :type="getStatusType(container.systemSoftContainerStatus)"
           size="small"
         >
           {{ getStatusText(container.systemSoftContainerStatus) }}
-        </el-tag>
+        </ScTag>
       </div>
     </template>
 
@@ -58,17 +58,17 @@
           <span>端口</span>
         </div>
         <div class="ports-list">
-          <el-tag
+          <ScTag
             v-for="port in ports.slice(0, 3)"
             :key="port"
             size="small"
             class="port-tag"
           >
             {{ port }}
-          </el-tag>
-          <el-tag v-if="ports.length > 3" size="small" type="info">
+          </ScTag>
+          <ScTag v-if="ports.length > 3" size="small" type="info">
             +{{ ports.length - 3 }}
-          </el-tag>
+          </ScTag>
         </div>
       </div>
 
@@ -76,7 +76,7 @@
       <div class="resource-section">
         <div class="resource-item">
           <div class="resource-label">CPU</div>
-          <el-progress
+          <ScProgress
             :percentage="cpuUsage"
             :color="getUsageColor(cpuUsage)"
             :stroke-width="6"
@@ -86,7 +86,7 @@
         </div>
         <div class="resource-item">
           <div class="resource-label">内存</div>
-          <el-progress
+          <ScProgress
             :percentage="memoryUsage"
             :color="getUsageColor(memoryUsage)"
             :stroke-width="6"
@@ -112,59 +112,59 @@
     <template #footer>
       <div class="card-footer">
         <el-button-group class="action-group">
-          <el-button
+          <ScButton
             size="small"
             type="success"
             :disabled="isRunning"
             @click="$emit('start', container)"
           >
             <IconifyIconOnline icon="ri:play-line" />
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             type="warning"
             :disabled="!isRunning"
             @click="$emit('stop', container)"
           >
             <IconifyIconOnline icon="ri:stop-line" />
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             type="primary"
             @click="$emit('restart', container)"
           >
             <IconifyIconOnline icon="ri:restart-line" />
-          </el-button>
+          </ScButton>
         </el-button-group>
 
-        <el-dropdown trigger="click" @command="handleCommand">
-          <el-button size="small">
+        <ScDropdown trigger="click" @command="handleCommand">
+          <ScButton size="small">
             <IconifyIconOnline icon="ri:more-2-fill" />
-          </el-button>
+          </ScButton>
           <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="exec" :disabled="!isRunning">
+            <ScDropdownMenu>
+              <ScDropdownItem command="exec" :disabled="!isRunning">
                 <IconifyIconOnline icon="ri:terminal-box-line" class="mr-1" />
                 进入容器
-              </el-dropdown-item>
-              <el-dropdown-item command="logs">
+              </ScDropdownItem>
+              <ScDropdownItem command="logs">
                 <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
                 查看日志
-              </el-dropdown-item>
-              <el-dropdown-item command="detail">
+              </ScDropdownItem>
+              <ScDropdownItem command="detail">
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详细信息
-              </el-dropdown-item>
-              <el-dropdown-item command="delete" divided>
+              </ScDropdownItem>
+              <ScDropdownItem command="delete" divided>
                 <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
                 删除容器
-              </el-dropdown-item>
-            </el-dropdown-menu>
+              </ScDropdownItem>
+            </ScDropdownMenu>
           </template>
-        </el-dropdown>
+        </ScDropdown>
       </div>
     </template>
-  </el-card>
+  </ScCard>
 </template>
 
 <script setup lang="ts">

@@ -77,8 +77,6 @@ const currentValue = computed({
 
 const { currentComponent } = useThemeComponent("ElCheckbox");
 
-
-
 const handleChange = (val: any) => {
   emit("change", val);
 };

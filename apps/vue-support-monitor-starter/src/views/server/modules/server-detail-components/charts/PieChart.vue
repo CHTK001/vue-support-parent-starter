@@ -4,7 +4,7 @@
     :style="{ height: height - 10 + 'px' }"
   >
     <div v-if="loading" class="loading-container">
-      <el-skeleton :rows="2" animated />
+      <ScSkeleton :rows="2" animated />
     </div>
     <div v-else ref="chartRef" class="chart-container" />
   </div>

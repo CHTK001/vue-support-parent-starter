@@ -19,13 +19,13 @@
             <div class="info-address">
               <IconifyIconOnline icon="ri:global-line" />
               <span>{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
-              <el-tag
+              <ScTag
                 :type="getStatusType(nodeInfo.status)"
                 size="small"
                 class="ml-2"
               >
                 {{ getStatusText(nodeInfo.status) }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
         </div>
@@ -55,7 +55,7 @@
     </div>
 
     <template #footer>
-      <el-button @click="handleClose">关闭</el-button>
+      <ScButton @click="handleClose">关闭</ScButton>
     </template>
   </ScDialog>
 </template>
@@ -66,8 +66,7 @@ import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import type { OnlineNodeInfo } from "@/api/server/node-management";
 import { apiCheckNodeHealth } from "@/api/server/node-management";
-import ScDialog from "@repo/components/ScDialog/src/index.vue";
-
+import { ScDialog } from "@repo/components"
 /**
  * 节点详情组件
  * @author CH

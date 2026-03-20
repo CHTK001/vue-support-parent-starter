@@ -13,41 +13,41 @@
         <div class="tool-bar-end">
           <div class="tool-item">
             <span class="tool-label">{{ $t("i18n_08902526f1") }}</span>
-            <el-select
+            <ScSelect
               v-model="cmOptions.theme"
               filterable
               :placeholder="$t('i18n_37b30fc862')"
               style="width: 150px"
               @change="handleSelectTheme"
             >
-              <el-option
+              <ScOption
                 v-for="item in themeList"
                 :key="item.theme"
                 :label="item.name"
                 :value="item.theme"
               />
-            </el-select>
+            </ScSelect>
           </div>
           <div class="tool-item">
             <span class="tool-label">{{ $t("i18n_117a9cbc8d") }}</span>
-            <el-select
+            <ScSelect
               v-model="cmOptions.mode"
               filterable
               :placeholder="$t('i18n_773b1a5ef6')"
               style="width: 150px"
               @change="handleSelectMode"
             >
-              <el-option value="" :label="$t('i18n_773b1a5ef6')" />
-              <el-option
+              <ScOption value="" :label="$t('i18n_773b1a5ef6')" />
+              <ScOption
                 v-for="item in modeList"
                 :key="item.mode"
                 :label="item.name"
                 :value="item.mode"
               />
-            </el-select>
+            </ScSelect>
           </div>
 
-          <el-tooltip placement="bottom">
+          <ScTooltip placement="bottom">
             <template #content>
               <ul class="shortcut-list">
                 <li><b>Ctrl-F / Cmd-F</b>&nbsp;{{ $t("i18n_99d3e5c718") }}</li>
@@ -72,7 +72,7 @@
               </ul>
             </template>
             <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-          </el-tooltip>
+          </ScTooltip>
         </div>
       </div>
       <div :style="{ height: codeMirrorHeight }">

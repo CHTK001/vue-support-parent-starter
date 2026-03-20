@@ -191,9 +191,9 @@ onUnmounted(() => {
 <template>
   <div class="page-container">
     <!-- 关键指标卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper primary">
               <IconifyIconOnline icon="ri:stack-line" class="stat-icon" />
@@ -204,11 +204,11 @@ onUnmounted(() => {
               <div class="stat-detail">{{ formatBytes(jvmInfo.heapMemoryUsed) }} / {{ formatBytes(jvmInfo.heapMemoryMax) }}</div>
             </div>
           </div>
-          <el-progress :percentage="memoryPercent" :stroke-width="6" :show-text="false" :color="memoryPercent > 80 ? '#F56C6C' : memoryPercent > 60 ? '#E6A23C' : '#67C23A'" />
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+          <ScProgress :percentage="memoryPercent" :stroke-width="6" :show-text="false" :color="memoryPercent > 80 ? '#F56C6C' : memoryPercent > 60 ? '#E6A23C' : '#67C23A'" />
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper success">
               <IconifyIconOnline icon="ri:cpu-line" class="stat-icon" />
@@ -219,11 +219,11 @@ onUnmounted(() => {
               <div class="stat-detail">核心: {{ systemInfo.availableProcessors || 0 }}</div>
             </div>
           </div>
-          <el-progress :percentage="cpuPercent" :stroke-width="6" :show-text="false" :color="cpuPercent > 80 ? '#F56C6C' : cpuPercent > 60 ? '#E6A23C' : '#67C23A'" />
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+          <ScProgress :percentage="cpuPercent" :stroke-width="6" :show-text="false" :color="cpuPercent > 80 ? '#F56C6C' : cpuPercent > 60 ? '#E6A23C' : '#67C23A'" />
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper warning">
               <IconifyIconOnline icon="ri:hard-drive-2-line" class="stat-icon" />
@@ -234,11 +234,11 @@ onUnmounted(() => {
               <div class="stat-detail">{{ formatBytes(systemInfo.usedPhysicalMemory) }} / {{ formatBytes(systemInfo.totalPhysicalMemory) }}</div>
             </div>
           </div>
-          <el-progress :percentage="physicalMemoryPercent" :stroke-width="6" :show-text="false" :color="physicalMemoryPercent > 80 ? '#F56C6C' : physicalMemoryPercent > 60 ? '#E6A23C' : '#409EFF'" />
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+          <ScProgress :percentage="physicalMemoryPercent" :stroke-width="6" :show-text="false" :color="physicalMemoryPercent > 80 ? '#F56C6C' : physicalMemoryPercent > 60 ? '#E6A23C' : '#409EFF'" />
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper danger">
               <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
@@ -249,14 +249,14 @@ onUnmounted(() => {
               <div class="stat-detail">PID: {{ systemInfo.pid || "-" }}</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- JVM 指标卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper info">
               <IconifyIconOnline icon="ri:stack-overflow-line" class="stat-icon" />
@@ -267,10 +267,10 @@ onUnmounted(() => {
               <div class="stat-detail">峰值: {{ jvmInfo.peakThreadCount || 0 }}</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper success">
               <IconifyIconOnline icon="ri:code-box-line" class="stat-icon" />
@@ -281,10 +281,10 @@ onUnmounted(() => {
               <div class="stat-detail">卸载: {{ jvmInfo.unloadedClassCount || 0 }}</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper warning">
               <IconifyIconOnline icon="ri:recycle-line" class="stat-icon" />
@@ -295,10 +295,10 @@ onUnmounted(() => {
               <div class="stat-detail">Full GC: {{ jvmInfo.fullGcCount || 0 }}</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper primary">
               <IconifyIconOnline icon="ri:server-line" class="stat-icon" />
@@ -309,12 +309,12 @@ onUnmounted(() => {
               <div class="stat-detail">{{ systemInfo.hostAddress || "-" }}</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 快速导航 -->
-    <el-card class="modern-card quick-nav-card" shadow="hover">
+    <ScCard class="modern-card quick-nav-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -331,22 +331,22 @@ onUnmounted(() => {
           <span class="link-title">{{ link.title }}</span>
         </div>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 实时数据 -->
-    <el-row :gutter="20">
-      <el-col :span="12">
-        <el-card class="modern-card" shadow="hover">
+    <ScRow :gutter="20">
+      <ScCol :span="12">
+        <ScCard class="modern-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span class="card-title">
                 <IconifyIconOnline icon="ri:route-line" class="card-icon" />
                 最新链路
               </span>
-              <el-button link type="primary" @click="navigateTo('/hotspot/trace')">
+              <ScButton link type="primary" @click="navigateTo('/hotspot/trace')">
                 查看更多
                 <IconifyIconOnline icon="ri:arrow-right-s-line" />
-              </el-button>
+              </ScButton>
             </div>
           </template>
           <div class="recent-list">
@@ -357,22 +357,22 @@ onUnmounted(() => {
               </div>
               <span class="item-time">{{ trace.costTime || 0 }}ms</span>
             </div>
-            <el-empty v-if="recentTraces.length === 0" description="暂无链路数据" :image-size="60" />
+            <ScEmpty v-if="recentTraces.length === 0" description="暂无链路数据" :image-size="60" />
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card class="modern-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="12">
+        <ScCard class="modern-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span class="card-title">
                 <IconifyIconOnline icon="ri:bug-line" class="card-icon danger" />
                 最新异常
               </span>
-              <el-button link type="primary" @click="navigateTo('/hotspot/exceptions')">
+              <ScButton link type="primary" @click="navigateTo('/hotspot/exceptions')">
                 查看更多
                 <IconifyIconOnline icon="ri:arrow-right-s-line" />
-              </el-button>
+              </ScButton>
             </div>
           </template>
           <div class="recent-list">
@@ -383,11 +383,11 @@ onUnmounted(() => {
               </div>
               <span class="item-time">{{ formatTime(ex.timestamp) }}</span>
             </div>
-            <el-empty v-if="recentExceptions.length === 0" description="暂无异常数据" :image-size="60" />
+            <ScEmpty v-if="recentExceptions.length === 0" description="暂无异常数据" :image-size="60" />
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
   </div>
 </template>
 

@@ -38,7 +38,9 @@ const { onPanel } = useNav();
 const { t } = useTranslationLang();
 
 // 当前主题 - 用于节日主题按钮显示
-const storageTheme = computed(() => $storage?.configure?.systemTheme || "default");
+const storageTheme = computed(
+  () => $storage?.configure?.systemTheme || "default",
+);
 const currentTheme = ref<string>(storageTheme.value);
 
 const handleThemeChange = (themeKey: string) => {
@@ -76,9 +78,7 @@ const showSearch = ref(
   $storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true,
 );
 const showFullscreen = ref($storage.configure?.showFullscreen ?? true);
-const showHeaderClock = ref(
-  $storage.configure?.showHeaderClock ?? false,
-);
+const showHeaderClock = ref($storage.configure?.showHeaderClock ?? false);
 
 // 监听界面元素显示设置变化
 emitter.on("showSearchChange", (val: boolean) => {
@@ -95,17 +95,13 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 <template>
   <div :class="['tool-bar', themeClass]">
     <!-- 搜索 -->
-    <LaySearch
-      v-if="showSearch"
-      id="header-search"
-      class="tool-item"
-    />
+    <LaySearch v-if="showSearch" id="header-search" class="tool-item" />
 
     <!-- 全屏 -->
-    <LaySidebarFullScreen 
-      v-if="showFullscreen" 
-      id="full-screen" 
-      class="tool-item" 
+    <LaySidebarFullScreen
+      v-if="showFullscreen"
+      id="full-screen"
+      class="tool-item"
     />
 
     <!-- 消息 -->
@@ -166,8 +162,21 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
     <!-- 系统设置 -->
     <ToolItem
       v-if="getConfig().ShowBarSetting"
+<<<<<<< HEAD
       :tooltip="t('buttons.pureOpenSystemSet')"
       :class="['setting-btn', settingThemeClass]"
+=======
+      :class="[
+        'tool-item',
+        'setting-btn',
+        {
+          'fu-setting': isSpringFestival(),
+          'mooncake-setting': isMidAutumn(),
+          'pumpkin-setting': isHalloween(),
+        },
+      ]"
+      :title="t('buttons.pureOpenSystemSet')"
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       @click="onPanel"
     >
       <span class="setting-content">
@@ -313,17 +322,25 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 }
 
 .fu-setting {
-  font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
+  font-family: "STKaiti", "KaiTi", "SimKai", serif;
   font-size: 18px;
   font-weight: 900;
-  color: #DC143C;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(220, 20, 60, 0.1));
+  color: #dc143c;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.15),
+    rgba(220, 20, 60, 0.1)
+  );
   border: 1.5px solid rgba(220, 20, 60, 0.3);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: radial-gradient(circle, rgba(255, 215, 0, 0.3), rgba(220, 20, 60, 0.15));
-    color: #B22222;
+    background: radial-gradient(
+      circle,
+      rgba(255, 215, 0, 0.3),
+      rgba(220, 20, 60, 0.15)
+    );
+    color: #b22222;
     border-color: rgba(220, 20, 60, 0.5);
     animation: fu-glow 2s ease-in-out infinite;
   }
@@ -334,6 +351,7 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
   font-size: 20px;
   background: rgba(255, 117, 24, 0.15);
   border: 1px solid rgba(255, 117, 24, 0.3);
+<<<<<<< HEAD
   overflow: visible;
   
   &::before,
@@ -365,16 +383,19 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
     transform: translateY(-6px);
   }
   
+=======
+
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   &:hover {
     background: rgba(255, 117, 24, 0.25);
     border-color: rgba(255, 117, 24, 0.6);
     // 嘴巴发光效果 - 通过 drop-shadow 模拟
     filter: drop-shadow(0 0 2px #ffff00) drop-shadow(0 0 5px #ff7518);
     animation: pumpkin-bounce 0.6s ease infinite;
-    
+
     // 尝试增加内部亮度
     :deep(svg) {
-       filter: brightness(1.2);
+      filter: brightness(1.2);
     }
 
     &::before,
@@ -422,8 +443,13 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 }
 
 @keyframes pumpkin-bounce {
-  0%, 100% { transform: translateY(-2px) scale(1.1); }
-  50% { transform: translateY(-5px) scale(1.1); }
+  0%,
+  100% {
+    transform: translateY(-2px) scale(1.1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.1);
+  }
 }
 
 @keyframes spider-crawl {
@@ -439,15 +465,23 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 // 中秋主题 - 月饼设置按钮
 .mooncake-setting {
   font-size: 20px;
-  background: linear-gradient(135deg, rgba(255, 213, 79, 0.2), rgba(26, 35, 126, 0.15));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 213, 79, 0.2),
+    rgba(26, 35, 126, 0.15)
+  );
   border: 1.5px solid rgba(255, 213, 79, 0.4);
   box-shadow: 0 2px 8px rgba(26, 35, 126, 0.2);
 
   &:hover {
-    background: radial-gradient(circle, rgba(255, 213, 79, 0.35), rgba(26, 35, 126, 0.2));
+    background: radial-gradient(
+      circle,
+      rgba(255, 213, 79, 0.35),
+      rgba(26, 35, 126, 0.2)
+    );
     border-color: rgba(255, 213, 79, 0.6);
     transform: translateY(-2px) rotate(15deg);
-    box-shadow: 
+    box-shadow:
       0 4px 16px rgba(255, 213, 79, 0.4),
       0 0 20px rgba(255, 213, 79, 0.2);
     animation: mooncake-glow 2s ease-in-out infinite;
@@ -455,20 +489,28 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 }
 
 @keyframes mooncake-glow {
-  0%, 100% {
+  0%,
+  100% {
     filter: drop-shadow(0 0 4px rgba(255, 213, 79, 0.5));
   }
   50% {
-    filter: drop-shadow(0 0 12px rgba(255, 213, 79, 0.8)) drop-shadow(0 0 20px rgba(26, 35, 126, 0.4));
+    filter: drop-shadow(0 0 12px rgba(255, 213, 79, 0.8))
+      drop-shadow(0 0 20px rgba(26, 35, 126, 0.4));
   }
 }
 
 @keyframes fu-glow {
-  0%, 100% {
-    text-shadow: 0 0 8px rgba(220, 20, 60, 0.6), 0 1px 2px rgba(0, 0, 0, 0.2);
+  0%,
+  100% {
+    text-shadow:
+      0 0 8px rgba(220, 20, 60, 0.6),
+      0 1px 2px rgba(0, 0, 0, 0.2);
   }
   50% {
-    text-shadow: 0 0 16px rgba(220, 20, 60, 0.8), 0 0 24px rgba(255, 215, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.2);
+    text-shadow:
+      0 0 16px rgba(220, 20, 60, 0.8),
+      0 0 24px rgba(255, 215, 0, 0.6),
+      0 1px 2px rgba(0, 0, 0, 0.2);
   }
 }
 

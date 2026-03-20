@@ -135,20 +135,19 @@ onMounted(() => {
 
     <!-- 输入区域 -->
     <div class="input-section">
-
       <div class="input-box">
         <ScSelect v-model="env.selectedApi" class="api-select">
           <template #prefix>
             <IconifyIconOnline icon="ep:connection" />
           </template>
-          <ScOption 
+          <ScOption
             v-for="item in env.apis"
             :key="item.value"
             :label="item.label"
             :value="item.value"
           />
         </ScSelect>
-        <ScInput 
+        <ScInput
           v-model="env.inputValue"
           placeholder="请粘贴视频链接，如：https://v.qq.com/..."
           clearable
@@ -222,7 +221,11 @@ onMounted(() => {
 <style scoped lang="scss">
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-3) 0%,
+    var(--el-color-primary) 100%
+  );
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;

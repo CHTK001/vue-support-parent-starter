@@ -27,14 +27,14 @@
               <div class="server-name">
                 {{ server.monitorSysGenServerName }}
               </div>
-              <el-tag
+              <ScTag
                 :type="
                   getStatusType(server.monitorSysGenServerConnectionStatus)
                 "
                 size="small"
               >
                 {{ getStatusText(server.monitorSysGenServerConnectionStatus) }}
-              </el-tag>
+              </ScTag>
             </div>
             <div
               v-if="selectedServerIds.includes(server.monitorSysGenServerId)"
@@ -55,7 +55,7 @@
             <div v-if="server.monitorSysGenServerTags" class="server-info-row">
               <IconifyIconOnline icon="ri:price-tag-3-line" class="info-icon" />
               <div class="server-tags">
-                <el-tag
+                <ScTag
                   v-for="tag in server.monitorSysGenServerTags?.split(',')"
                   :key="tag"
                   size="small"
@@ -63,7 +63,7 @@
                   effect="plain"
                 >
                   {{ tag }}
-                </el-tag>
+                </ScTag>
               </div>
             </div>
           </div>
@@ -80,8 +80,8 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">取消</el-button>
-        <el-button
+        <ScButton @click="visibleProxy = false">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="syncing"
           :disabled="selectedServerCount === 0"
@@ -93,7 +93,7 @@
             class="mr-1"
           />
           {{ syncing ? "同步中..." : "开始同步" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

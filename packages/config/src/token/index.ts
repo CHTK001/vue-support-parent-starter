@@ -38,7 +38,7 @@ export function setToken(data: any, userSetting: any = {}) {
       ? {
           expires: loginDay,
         }
-      : {}
+      : {},
   );
 
   return {
@@ -50,7 +50,7 @@ export function setToken(data: any, userSetting: any = {}) {
 
 /** 格式化token（jwt格式） */
 export const formatToken = (token: string): string => {
-  if(!token) {
+  if (!token) {
     return null;
   }
   return "Bearer " + token;

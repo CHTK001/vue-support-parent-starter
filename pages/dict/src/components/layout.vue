@@ -8,7 +8,7 @@ import Minus from "@iconify-icons/line-md/minus";
 import Plus from "@iconify-icons/line-md/plus";
 import SaveDialog from "./save.vue";
 
-import { useRenderIcon as useRenderIconMethod } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon as useRenderIconMethod } from "@repo/components";
 import { transformI18n as useI18nMethod } from "@repo/config";
 import { fetchDeleteDict, fetchPageDict } from "@repo/core";
 import { message } from "@repo/utils";
@@ -186,17 +186,17 @@ export default defineComponent({
       @close="dialogClose"
     />
     <div class="main h-full">
-      <el-container>
-        <el-header class="header-height">
+      <ScContainer>
+        <ScHeader class="header-height">
           <ScInput 
             v-model="dicFilterText"
             :placeholder="useI18n('input.keywordSearch')"
             clearable
           />
-        </el-header>
-        <el-main class="nopadding">
+        </ScHeader>
+        <ScMain class="nopadding">
           <div class="h-full">
-            <el-skeleton v-if="loading.query" animated :count="6" />
+            <ScSkeleton v-if="loading.query" animated :count="6" />
             <ScTree 
               v-else
               ref="treeRef"
@@ -247,8 +247,8 @@ export default defineComponent({
               </template>
             </ScTree>
           </div>
-        </el-main>
-        <el-footer class="footer-height">
+        </ScMain>
+        <ScFooter class="footer-height">
           <ScButton 
             type="primary"
             size="small"
@@ -258,8 +258,8 @@ export default defineComponent({
           >
             {{ useI18n("buttons.addDict") }}
           </ScButton>
-        </el-footer>
-      </el-container>
+        </ScFooter>
+      </ScContainer>
     </div>
   </div>
 </template>

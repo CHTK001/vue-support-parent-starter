@@ -8,7 +8,7 @@
       :close-on-click-modal="false"
       class="org-dialog"
     >
-      <ScTable 
+      <ScTable
         :data="tableData"
         :tree-props="treeProps"
         row-key="sysDeviceOrgId"
@@ -39,7 +39,7 @@ const handleLoader = async () => {
     tableData.value = buildTree(
       res?.data || [],
       "sysDeviceOrgId",
-      "sysDeviceOrgPid"
+      "sysDeviceOrgPid",
     );
   });
 };

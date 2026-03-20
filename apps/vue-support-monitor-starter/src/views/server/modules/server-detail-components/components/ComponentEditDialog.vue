@@ -22,18 +22,18 @@
           </span>
         </div>
         <div class="header-right">
-          <el-tag
+          <ScTag
             v-if="serverReportType === 'prometheus'"
             type="success"
             size="small"
           >
             <IconifyIconOnline icon="logos:prometheus" class="mr-1" />
             Prometheus
-          </el-tag>
-          <el-tag v-else type="primary" size="small">
+          </ScTag>
+          <ScTag v-else type="primary" size="small">
             <IconifyIconOnline icon="ri:server-line" class="mr-1" />
             本地监控
-          </el-tag>
+          </ScTag>
         </div>
       </div>
     </template>
@@ -41,7 +41,7 @@
     <div class="dialog-content">
       <!-- 左侧：表单配置 -->
       <div class="form-section">
-        <el-form
+        <ScForm
           ref="formRef"
           v-loading="loading"
           :model="formData"
@@ -59,13 +59,13 @@
               <span class="group-title">基本信息</span>
             </div>
             <div class="group-content">
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item
+              <ScRow :gutter="20">
+                <ScCol :span="12">
+                  <ScFormItem
                     label="组件名称"
                     prop="monitorSysGenServerComponentName"
                   >
-                    <el-input
+                    <ScInput
                       v-model="formData.monitorSysGenServerComponentName"
                       placeholder="请输入组件名称"
                       clearable
@@ -73,15 +73,15 @@
                       <template #prefix>
                         <IconifyIconOnline icon="ri:file-text-line" />
                       </template>
-                    </el-input>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item
+                    </ScInput>
+                  </ScFormItem>
+                </ScCol>
+                <ScCol :span="12">
+                  <ScFormItem
                     label="组件描述"
                     prop="monitorSysGenServerComponentDescription"
                   >
-                    <el-input
+                    <ScInput
                       v-model="formData.monitorSysGenServerComponentDescription"
                       placeholder="请输入组件描述"
                       clearable
@@ -89,23 +89,23 @@
                       <template #prefix>
                         <IconifyIconOnline icon="ri:bookmark-line" />
                       </template>
-                    </el-input>
-                  </el-form-item>
-                </el-col>
-              </el-row>
+                    </ScInput>
+                  </ScFormItem>
+                </ScCol>
+              </ScRow>
 
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item
+              <ScRow :gutter="20">
+                <ScCol :span="12">
+                  <ScFormItem
                     label="组件类型"
                     prop="monitorSysGenServerComponentType"
                   >
-                    <el-select
+                    <ScSelect
                       v-model="formData.monitorSysGenServerComponentType"
                       placeholder="请选择组件类型"
                       style="width: 100%"
                     >
-                      <el-option
+                      <ScOption
                         v-for="option in componentTypeOptions"
                         :key="option.value"
                         :label="option.label"
@@ -118,16 +118,16 @@
                           />
                           <span>{{ option.label }}</span>
                         </div>
-                      </el-option>
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item
+                      </ScOption>
+                    </ScSelect>
+                  </ScFormItem>
+                </ScCol>
+                <ScCol :span="12">
+                  <ScFormItem
                     label="表达式类型"
                     prop="monitorSysGenServerComponentExpressionType"
                   >
-                    <el-select
+                    <ScSelect
                       v-model="
                         formData.monitorSysGenServerComponentExpressionType
                       "
@@ -135,16 +135,16 @@
                       style="width: 100%"
                       :disabled="serverReportType !== 'prometheus'"
                     >
-                      <el-option
+                      <ScOption
                         v-for="option in expressionTypeOptions"
                         :key="option.value"
                         :label="option.label"
                         :value="option.value"
                       />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-              </el-row>
+                    </ScSelect>
+                  </ScFormItem>
+                </ScCol>
+              </ScRow>
             </div>
           </div>
 
@@ -157,11 +157,11 @@
               }}</span>
             </div>
             <div class="group-content">
-              <el-form-item prop="monitorSysGenServerComponentExpression">
+              <ScFormItem prop="monitorSysGenServerComponentExpression">
                 <!-- Prometheus 表达式输入 -->
                 <template v-if="serverReportType === 'prometheus'">
                   <div class="expression-editor">
-                    <el-input
+                    <ScInput
                       v-model="formData.monitorSysGenServerComponentExpression"
                       type="textarea"
                       :rows="6"
@@ -173,7 +173,7 @@
                         <span>常用表达式示例：</span>
                       </div>
                       <div class="examples-list">
-                        <el-tag
+                        <ScTag
                           v-for="example in prometheusExamples"
                           :key="example.value"
                           size="small"
@@ -181,7 +181,7 @@
                           @click="handleExampleClick(example.value)"
                         >
                           {{ example.label }}
-                        </el-tag>
+                        </ScTag>
                       </div>
                     </div>
                   </div>
@@ -189,13 +189,13 @@
 
                 <!-- 固定组件选择 -->
                 <template v-else>
-                  <el-select
+                  <ScSelect
                     v-model="formData.monitorSysGenServerComponentExpression"
                     placeholder="请选择监控组件"
                     style="width: 100%"
                     filterable
                   >
-                    <el-option
+                    <ScOption
                       v-for="option in componentOptions"
                       :key="option.value"
                       :label="option.label"
@@ -208,20 +208,20 @@
                         />
                         <span>{{ option.label }}</span>
                       </div>
-                    </el-option>
-                  </el-select>
+                    </ScOption>
+                  </ScSelect>
                 </template>
 
                 <div class="form-actions">
-                  <el-button type="primary" text @click="handleExpressionHelp">
+                  <ScButton type="primary" text @click="handleExpressionHelp">
                     <IconifyIconOnline icon="ri:question-line" class="mr-1" />
                     {{
                       serverReportType === "prometheus"
                         ? "表达式帮助"
                         : "选择组件"
                     }}
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton
                     v-if="serverReportType === 'prometheus'"
                     type="success"
                     text
@@ -229,13 +229,13 @@
                   >
                     <IconifyIconOnline icon="ri:check-line" class="mr-1" />
                     验证表达式
-                  </el-button>
-                  <el-button type="info" text @click="handlePreview">
+                  </ScButton>
+                  <ScButton type="info" text @click="handlePreview">
                     <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                     预览效果
-                  </el-button>
+                  </ScButton>
                 </div>
-              </el-form-item>
+              </ScFormItem>
             </div>
           </div>
 
@@ -246,38 +246,38 @@
               <span class="group-title">高级配置</span>
             </div>
             <div class="group-content">
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item
+              <ScRow :gutter="20">
+                <ScCol :span="12">
+                  <ScFormItem
                     label="显示标题"
                     prop="monitorSysGenServerComponentShowTitle"
                   >
-                    <el-switch
+                    <ScSwitch
                       v-model="formData.monitorSysGenServerComponentShowTitle"
                       active-text="显示"
                       inactive-text="隐藏"
                       style="width: 100%"
                     />
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item
+                  </ScFormItem>
+                </ScCol>
+                <ScCol :span="12">
+                  <ScFormItem
                     label="排序序号"
                     prop="monitorSysGenServerComponentSort"
                   >
-                    <el-input-number
+                    <ScInputNumber
                       v-model="formData.monitorSysGenServerComponentSort"
                       :min="0"
                       style="width: 100%"
                     />
-                  </el-form-item>
-                </el-col>
-              </el-row>
+                  </ScFormItem>
+                </ScCol>
+              </ScRow>
 
               <!-- 组件描述已在上面处理，这里移除重复 -->
 
-              <el-form-item label="图表配置">
-                <el-input
+              <ScFormItem label="图表配置">
+                <ScInput
                   v-model="formData.monitorSysGenServerComponentConfig"
                   type="textarea"
                   :rows="4"
@@ -288,10 +288,10 @@
                     >JSON格式的图表配置，用于自定义图表样式和行为</span
                   >
                 </div>
-              </el-form-item>
+              </ScFormItem>
             </div>
           </div>
-        </el-form>
+        </ScForm>
       </div>
 
       <!-- 右侧：实时预览 -->
@@ -299,13 +299,13 @@
         <div class="preview-header">
           <IconifyIconOnline icon="ri:eye-line" class="preview-icon" />
           <span class="preview-title">实时预览</span>
-          <el-button
+          <ScButton
             size="small"
             :loading="previewLoading"
             @click="handleRefreshPreview"
           >
             <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
+          </ScButton>
         </div>
         <div v-loading="previewLoading" class="preview-content">
           <div class="preview-wrapper">
@@ -325,8 +325,8 @@
 
         <!-- 预览配置信息 -->
         <div class="preview-info">
-          <el-collapse v-model="activePreviewCollapse" size="small">
-            <el-collapse-item title="组件信息" name="info">
+          <ScCollapse v-model="activePreviewCollapse" size="small">
+            <ScCollapseItem title="组件信息" name="info">
               <div class="info-item">
                 <span class="info-label">组件类型：</span>
                 <span class="info-value">{{
@@ -347,23 +347,23 @@
                   formData.monitorSysGenServerComponentShowTitle ? "是" : "否"
                 }}</span>
               </div>
-            </el-collapse-item>
-          </el-collapse>
+            </ScCollapseItem>
+          </ScCollapse>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleCancel">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handlePreview">
+        <ScButton @click="handleCancel">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handlePreview">
           <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
           预览
-        </el-button>
-        <el-button type="success" :loading="loading" @click="handleSave">
+        </ScButton>
+        <ScButton type="success" :loading="loading" @click="handleSave">
           <IconifyIconOnline icon="ri:save-line" class="mr-1" />
           保存
-        </el-button>
+        </ScButton>
       </div>
     </template>
 

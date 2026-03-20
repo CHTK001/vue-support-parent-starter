@@ -1,7 +1,4 @@
-/**
- * 飞线图面板组件
- * @description 用于管理和显示地图上的飞线图
- */
+/** * 飞线图面板组件 * @description 用于管理和显示地图上的飞线图 */
 <template>
   <div class="flight-line-panel" :class="[positionClass, { active }]">
     <div class="panel-header">
@@ -28,69 +25,77 @@
             <div class="color-picker">
               <input type="color" v-model="lineColor" @change="updateConfig" />
               <span>{{ lineColor }}</span>
-      </div>
-      </div>
+            </div>
+          </div>
 
           <div class="form-group">
             <label>线条宽度</label>
             <div class="slider-with-value">
-              <input 
-                type="range" 
-                min="1" 
-                max="10" 
-                step="0.5" 
-                v-model="lineWidth" 
-                @change="updateConfig" 
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="0.5"
+                v-model="lineWidth"
+                @change="updateConfig"
               />
               <span>{{ lineWidth }}px</span>
-        </div>
-        </div>
+            </div>
+          </div>
 
           <div class="form-group">
             <label>弧线高度</label>
             <div class="slider-with-value">
-              <input 
-                type="range" 
-                min="0.1" 
-                max="2" 
-                step="0.1" 
-                v-model="arcHeight" 
-                @change="updateConfig" 
+              <input
+                type="range"
+                min="0.1"
+                max="2"
+                step="0.1"
+                v-model="arcHeight"
+                @change="updateConfig"
               />
               <span>{{ arcHeight }}</span>
-        </div>
-      </div>
+            </div>
+          </div>
 
           <div class="form-group">
-              <label>动画速度</label>
+            <label>动画速度</label>
             <div class="slider-with-value">
-              <input 
-                type="range" 
-                min="0.5" 
-                max="10" 
-                step="0.5" 
-                v-model="animationSpeed" 
-                @change="updateConfig" 
+              <input
+                type="range"
+                min="0.5"
+                max="10"
+                step="0.5"
+                v-model="animationSpeed"
+                @change="updateConfig"
               />
               <span>{{ animationSpeed }}x</span>
-              </div>
             </div>
+          </div>
 
           <div class="form-group">
             <div class="checkbox-group">
               <label>
-                <input type="checkbox" v-model="showAnimation" @change="updateConfig" />
+                <input
+                  type="checkbox"
+                  v-model="showAnimation"
+                  @change="updateConfig"
+                />
                 <span>显示动画</span>
               </label>
-              
+
               <label>
-                <input type="checkbox" v-model="showGradient" @change="updateConfig" />
+                <input
+                  type="checkbox"
+                  v-model="showGradient"
+                  @change="updateConfig"
+                />
                 <span>使用渐变色</span>
               </label>
-                </div>
-              </div>
-                </div>
-              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 飞线列表部分 -->
       <div class="flight-lines-section">
@@ -98,67 +103,94 @@
           <span>飞线列表</span>
           <div class="title-actions">
             <button class="action-btn" @click="handleSelectAll">全选</button>
-            <button class="action-btn" @click="handleDeselectAll">取消选择</button>
-                </div>
-              </div>
-        
-        <div class="flight-lines-list">
-          <div 
-            v-for="item in flightLines" 
-            :key="item.id"
-            :class="['flight-line-item', { selected: selectedIds.includes(item.id) }]"
-            @click="toggleSelection(item.id)"
-          >
-            <div class="flight-line-color" :style="{ backgroundColor: item.color || lineColor }"></div>
-            <div class="flight-line-info">
-              <div class="flight-line-name">{{ item.name || '未命名飞线' }}</div>
-              <div class="flight-line-details">
-                {{ item.from.name || '起点' }} → {{ item.to.name || '终点' }}
-                    </div>
-          </div>
-            <div class="flight-line-actions">
-              <button class="action-btn" @click.stop="toggleVisibility(item.id)">
-                <svg viewBox="0 0 1024 1024" width="14" height="14">
-                  <path v-if="item.visible !== false" d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3-7.7 16.2-7.7 35.2 0 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3 7.7-16.3 7.7-35 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z" fill="currentColor"></path>
-                  <path v-else d="M942.2 486.2Q889.47 375.11 816.7 305l-50.88 50.88C807.31 395.53 843.45 447.4 874.7 512 791.5 684.2 673.4 766 512 766q-72.67 0-133.87-22.38L323 798.75Q408 838 512 838q288.3 0 430.2-300.3a60.29 60.29 0 000-51.5zm-63.57-320.64L836 122.88a8 8 0 00-11.32 0L715.31 232.2Q624.86 186 512 186q-288.3 0-430.2 300.3a60.3 60.3 0 000 51.5q56.69 119.4 136.5 191.41L112.48 835a8 8 0 000 11.31L155.17 889a8 8 0 0011.31 0l712.15-712.12a8 8 0 000-11.32zM149.3 512C232.6 339.8 350.7 258 512 258c54.54 0 104.13 9.36 149.12 28.39l-70.3 70.3a176 176 0 00-238.13 238.13l-83.42 83.42C223.1 637.49 183.3 582.28 149.3 512zm246.7 0a112.11 112.11 0 01146.2-106.69L401.31 546.2A112 112 0 01396 512z" fill="currentColor"></path>
-                </svg>
-              </button>
-              <button class="action-btn delete-btn" @click.stop="handleDelete(item.id)">
-                <svg viewBox="0 0 1024 1024" width="14" height="14">
-                  <path d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v72h72v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80h72v-72zm504 72H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.4l24.7 523c1.6 34.1 29.8 61 63.9 61h454c34.2 0 62.3-26.8 63.9-61l24.7-523H200c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z" fill="currentColor"></path>
-                </svg>
-              </button>
+            <button class="action-btn" @click="handleDeselectAll">
+              取消选择
+            </button>
           </div>
         </div>
 
+        <div class="flight-lines-list">
+          <div
+            v-for="item in flightLines"
+            :key="item.id"
+            :class="[
+              'flight-line-item',
+              { selected: selectedIds.includes(item.id) },
+            ]"
+            @click="toggleSelection(item.id)"
+          >
+            <div
+              class="flight-line-color"
+              :style="{ backgroundColor: item.color || lineColor }"
+            ></div>
+            <div class="flight-line-info">
+              <div class="flight-line-name">
+                {{ item.name || "未命名飞线" }}
+              </div>
+              <div class="flight-line-details">
+                {{ item.from.name || "起点" }} → {{ item.to.name || "终点" }}
+              </div>
+            </div>
+            <div class="flight-line-actions">
+              <button
+                class="action-btn"
+                @click.stop="toggleVisibility(item.id)"
+              >
+                <svg viewBox="0 0 1024 1024" width="14" height="14">
+                  <path
+                    v-if="item.visible !== false"
+                    d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3-7.7 16.2-7.7 35.2 0 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3 7.7-16.3 7.7-35 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"
+                    fill="currentColor"
+                  ></path>
+                  <path
+                    v-else
+                    d="M942.2 486.2Q889.47 375.11 816.7 305l-50.88 50.88C807.31 395.53 843.45 447.4 874.7 512 791.5 684.2 673.4 766 512 766q-72.67 0-133.87-22.38L323 798.75Q408 838 512 838q288.3 0 430.2-300.3a60.29 60.29 0 000-51.5zm-63.57-320.64L836 122.88a8 8 0 00-11.32 0L715.31 232.2Q624.86 186 512 186q-288.3 0-430.2 300.3a60.3 60.3 0 000 51.5q56.69 119.4 136.5 191.41L112.48 835a8 8 0 000 11.31L155.17 889a8 8 0 0011.31 0l712.15-712.12a8 8 0 000-11.32zM149.3 512C232.6 339.8 350.7 258 512 258c54.54 0 104.13 9.36 149.12 28.39l-70.3 70.3a176 176 0 00-238.13 238.13l-83.42 83.42C223.1 637.49 183.3 582.28 149.3 512zm246.7 0a112.11 112.11 0 01146.2-106.69L401.31 546.2A112 112 0 01396 512z"
+                    fill="currentColor"
+                  ></path>
+                </svg>
+              </button>
+              <button
+                class="action-btn delete-btn"
+                @click.stop="handleDelete(item.id)"
+              >
+                <svg viewBox="0 0 1024 1024" width="14" height="14">
+                  <path
+                    d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v72h72v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80h72v-72zm504 72H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.4l24.7 523c1.6 34.1 29.8 61 63.9 61h454c34.2 0 62.3-26.8 63.9-61l24.7-523H200c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z"
+                    fill="currentColor"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
           <div v-if="flightLines.length === 0" class="empty-list">
             暂无飞线数据
-      </div>
-    </div>
           </div>
+        </div>
+      </div>
 
       <!-- 底部操作区域 -->
       <div class="panel-footer">
-        <button 
-          class="primary-btn" 
-          @click="handleAddFlightLine" 
+        <button
+          class="primary-btn"
+          @click="handleAddFlightLine"
           title="点击后在地图上选择两个点创建飞线"
         >
           添加飞线
         </button>
-            </div>
-            </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 export default {
-  name: 'FlightLinePanel'
+  name: "FlightLinePanel",
 };
 </script>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from "vue";
 
 // 飞线数据接口
 interface FlightLine {
@@ -204,19 +236,22 @@ interface FlightLineObject {
 const props = defineProps<{
   flightLineObj?: FlightLineObject;
   active: boolean;
-  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
 }>();
 
 // 组件事件
 const emit = defineEmits<{
-  (e: 'close'): void;
-  (e: 'selection-change', payload: { selectedIds: string[]; count: number }): void;
+  (e: "close"): void;
+  (
+    e: "selection-change",
+    payload: { selectedIds: string[]; count: number },
+  ): void;
 }>();
 
 // 组件状态
 const flightLines = ref<FlightLine[]>([]);
 const selectedIds = ref<string[]>([]);
-const lineColor = ref('#1890ff');
+const lineColor = ref("#1890ff");
 const lineWidth = ref(2);
 const arcHeight = ref(0.5);
 const animationSpeed = ref(3);
@@ -224,16 +259,18 @@ const showAnimation = ref(true);
 const showGradient = ref(true);
 
 // 计算位置样式类
-const positionClass = computed(() => props.position ? `position-${props.position}` : 'position-top-right');
-  
+const positionClass = computed(() =>
+  props.position ? `position-${props.position}` : "position-top-right",
+);
+
 // 刷新飞线列表
 const refreshFlightLines = () => {
   if (!props.flightLineObj) return;
-  
+
   try {
     flightLines.value = props.flightLineObj.getAllFlightLines();
-            } catch (error) {
-    console.error('获取飞线数据失败:', error);
+  } catch (error) {
+    console.error("获取飞线数据失败:", error);
     flightLines.value = [];
   }
 };
@@ -241,14 +278,14 @@ const refreshFlightLines = () => {
 // 更新配置
 const updateConfig = () => {
   if (!props.flightLineObj) return;
-  
+
   props.flightLineObj.updateFlightLineStyle({
     color: lineColor.value,
     width: Number(lineWidth.value),
     arcHeight: Number(arcHeight.value),
     animationSpeed: Number(animationSpeed.value),
     showAnimation: showAnimation.value,
-    showGradient: showGradient.value
+    showGradient: showGradient.value,
   });
 };
 
@@ -260,42 +297,42 @@ const toggleSelection = (id: string) => {
   } else {
     selectedIds.value.push(id);
   }
-  
+
   // 通知选择变化
-  emit('selection-change', {
+  emit("selection-change", {
     selectedIds: [...selectedIds.value],
-    count: selectedIds.value.length
+    count: selectedIds.value.length,
   });
 };
 
 // 全选
 const handleSelectAll = () => {
-  selectedIds.value = flightLines.value.map(item => item.id);
-      
+  selectedIds.value = flightLines.value.map((item) => item.id);
+
   // 通知选择变化
-  emit('selection-change', {
+  emit("selection-change", {
     selectedIds: [...selectedIds.value],
-    count: selectedIds.value.length
+    count: selectedIds.value.length,
   });
 };
 
 // 取消全选
 const handleDeselectAll = () => {
   selectedIds.value = [];
-  
+
   // 通知选择变化
-  emit('selection-change', {
+  emit("selection-change", {
     selectedIds: [],
-    count: 0
+    count: 0,
   });
 };
 
 // 切换可见性
 const toggleVisibility = (id: string) => {
   if (!props.flightLineObj) return;
-  
+
   props.flightLineObj.toggleFlightLineVisibility(id);
-  
+
   // 刷新列表
   refreshFlightLines();
 };
@@ -303,45 +340,49 @@ const toggleVisibility = (id: string) => {
 // 删除飞线
 const handleDelete = (id: string) => {
   if (!props.flightLineObj) return;
-  
+
   // 如果飞线在选中列表中，先移除
   const index = selectedIds.value.indexOf(id);
   if (index > -1) {
     selectedIds.value.splice(index, 1);
   }
-  
+
   // 删除飞线
   props.flightLineObj.removeFlightLine(id);
-  
+
   // 刷新列表
   refreshFlightLines();
-    
+
   // 通知选择变化
-  emit('selection-change', {
+  emit("selection-change", {
     selectedIds: [...selectedIds.value],
-    count: selectedIds.value.length
+    count: selectedIds.value.length,
   });
 };
 
 // 添加飞线
 const handleAddFlightLine = () => {
   if (!props.flightLineObj) return;
-  
+
   // 开始绘制模式
   props.flightLineObj.startDrawing();
 };
 
 // 关闭面板
 const handleClose = () => {
-  emit('close');
+  emit("close");
 };
 
 // 监听飞线对象变化
-watch(() => props.flightLineObj, (newObj) => {
-  if (newObj) {
-    refreshFlightLines();
+watch(
+  () => props.flightLineObj,
+  (newObj) => {
+    if (newObj) {
+      refreshFlightLines();
     }
-}, { immediate: true });
+  },
+  { immediate: true },
+);
 
 // 组件挂载
 onMounted(() => {
@@ -482,7 +523,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: none;
-    border-radius: 4px;
+  border-radius: 4px;
   cursor: pointer;
 }
 
@@ -665,4 +706,4 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   border: none;
 }
-</style> 
+</style>

@@ -1,47 +1,47 @@
 ﻿<template>
   <div class="server-proxy-connection system-container modern-bg">
-    <el-card>
+    <ScCard>
       <template #header>
         <div class="card-header">
           <span>代理连接</span>
-          <el-tag v-if="server?.monitorSysGenServerProxyType" type="success">
+          <ScTag v-if="server?.monitorSysGenServerProxyType" type="success">
             {{ server.monitorSysGenServerProxyType }}
-          </el-tag>
-          <el-tag v-else type="info">无代理</el-tag>
+          </ScTag>
+          <ScTag v-else type="info">无代理</ScTag>
         </div>
       </template>
 
       <div v-if="!server?.monitorSysGenServerProxyType" class="no-proxy">
-        <el-empty description="未配置代理服务器">
-          <el-button type="primary" @click="$emit('configure-proxy')">
+        <ScEmpty description="未配置代理服务器">
+          <ScButton type="primary" @click="$emit('configure-proxy')">
             配置代理
-          </el-button>
-        </el-empty>
+          </ScButton>
+        </ScEmpty>
       </div>
 
       <div v-else class="proxy-info">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="代理类型">
+        <ScDescriptions :column="2" border>
+          <ScDescriptionsItem label="代理类型">
             {{ server.monitorSysGenServerProxyType }}
-          </el-descriptions-item>
-          <el-descriptions-item label="代理地址">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="代理地址">
             {{ server.monitorSysGenServerProxyHost }}:{{
               server.monitorSysGenServerProxyPort
             }}
-          </el-descriptions-item>
-          <el-descriptions-item label="连接状态">
-            <el-tag :type="proxyStatus.type">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="连接状态">
+            <ScTag :type="proxyStatus.type">
               {{ proxyStatus.text }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="最后测试">
+            </ScTag>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="最后测试">
             {{ lastTestTime || "未测试" }}
-          </el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+        </ScDescriptions>
 
         <div class="proxy-actions">
           <el-button-group>
-            <el-button
+            <ScButton
               v-if="server.monitorSysGenServerProxyType === 'GUACAMOLE'"
               type="primary"
               :loading="connecting"
@@ -49,17 +49,17 @@
             >
               <IconifyIconOnline icon="ri:remote-control-line" />
               连接 Guacamole
-            </el-button>
+            </ScButton>
 
-            <el-button :loading="testing" @click="testProxyConnection">
+            <ScButton :loading="testing" @click="testProxyConnection">
               <IconifyIconOnline icon="ri:wifi-line" />
               测试连接
-            </el-button>
+            </ScButton>
 
-            <el-button @click="$emit('configure-proxy')">
+            <ScButton @click="$emit('configure-proxy')">
               <IconifyIconOnline icon="ri:settings-line" />
               配置代理
-            </el-button>
+            </ScButton>
           </el-button-group>
         </div>
 
@@ -68,121 +68,121 @@
           v-if="server.monitorSysGenServerProxyType === 'GUACAMOLE'"
           class="guacamole-options"
         >
-          <el-divider content-position="left">连接选项</el-divider>
+          <ScDivider content-position="left">连接选项</ScDivider>
 
-          <el-form :model="guacamoleOptions" label-width="120px" size="small">
-            <el-row :gutter="16">
-              <el-col :span="12">
-                <el-form-item label="连接协议">
-                  <el-select
+          <ScForm :model="guacamoleOptions" label-width="120px" size="small">
+            <ScRow :gutter="16">
+              <ScCol :span="12">
+                <ScFormItem label="连接协议">
+                  <ScSelect
                     v-model="guacamoleOptions.protocol"
                     style="width: 100%"
                   >
-                    <el-option label="SSH" value="ssh" />
-                    <el-option label="RDP" value="rdp" />
-                    <el-option label="VNC" value="vnc" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item :label="portLabel">
-                  <el-input-number
+                    <ScOption label="SSH" value="ssh" />
+                    <ScOption label="RDP" value="rdp" />
+                    <ScOption label="VNC" value="vnc" />
+                  </ScSelect>
+                </ScFormItem>
+              </ScCol>
+              <ScCol :span="12">
+                <ScFormItem :label="portLabel">
+                  <ScInputNumber
                     v-model="guacamoleOptions.port"
                     :min="1"
                     :max="65535"
                     style="width: 100%"
                   />
-                </el-form-item>
-              </el-col>
-            </el-row>
+                </ScFormItem>
+              </ScCol>
+            </ScRow>
 
-            <el-row :gutter="16">
-              <el-col :span="12">
-                <el-form-item
+            <ScRow :gutter="16">
+              <ScCol :span="12">
+                <ScFormItem
                   v-if="guacamoleOptions.protocol !== 'ssh'"
                   label="颜色深度"
                 >
-                  <el-select
+                  <ScSelect
                     v-model="guacamoleOptions.colorDepth"
                     style="width: 100%"
                   >
-                    <el-option label="256色" value="8" />
-                    <el-option label="高彩色(16位)" value="16" />
-                    <el-option label="真彩色(24位)" value="24" />
-                    <el-option label="真彩色(32位)" value="32" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item v-else label="字符编码">
-                  <el-select
+                    <ScOption label="256色" value="8" />
+                    <ScOption label="高彩色(16位)" value="16" />
+                    <ScOption label="真彩色(24位)" value="24" />
+                    <ScOption label="真彩色(32位)" value="32" />
+                  </ScSelect>
+                </ScFormItem>
+                <ScFormItem v-else label="字符编码">
+                  <ScSelect
                     v-model="guacamoleOptions.charset"
                     style="width: 100%"
                   >
-                    <el-option label="UTF-8" value="UTF-8" />
-                    <el-option label="GBK" value="GBK" />
-                    <el-option label="GB2312" value="GB2312" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col v-if="guacamoleOptions.protocol !== 'ssh'" :span="12">
+                    <ScOption label="UTF-8" value="UTF-8" />
+                    <ScOption label="GBK" value="GBK" />
+                    <ScOption label="GB2312" value="GB2312" />
+                  </ScSelect>
+                </ScFormItem>
+              </ScCol>
+              <ScCol v-if="guacamoleOptions.protocol !== 'ssh'" :span="12">
                 <!-- placeholder for layout balance -->
-              </el-col>
-            </el-row>
+              </ScCol>
+            </ScRow>
 
-            <el-row :gutter="16">
-              <el-col :span="12">
-                <el-form-item label="屏幕宽度">
-                  <el-input-number
+            <ScRow :gutter="16">
+              <ScCol :span="12">
+                <ScFormItem label="屏幕宽度">
+                  <ScInputNumber
                     v-model="guacamoleOptions.width"
                     :min="800"
                     :max="1920"
                     style="width: 100%"
                   />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="屏幕高度">
-                  <el-input-number
+                </ScFormItem>
+              </ScCol>
+              <ScCol :span="12">
+                <ScFormItem label="屏幕高度">
+                  <ScInputNumber
                     v-model="guacamoleOptions.height"
                     :min="600"
                     :max="1080"
                     style="width: 100%"
                   />
-                </el-form-item>
-              </el-col>
-            </el-row>
+                </ScFormItem>
+              </ScCol>
+            </ScRow>
 
-            <el-form-item label="启用音频">
-              <el-switch v-model="guacamoleOptions.enableAudio" />
-            </el-form-item>
+            <ScFormItem label="启用音频">
+              <ScSwitch v-model="guacamoleOptions.enableAudio" />
+            </ScFormItem>
 
-            <el-form-item label="启用剪贴板">
-              <el-switch v-model="guacamoleOptions.enableClipboard" />
-            </el-form-item>
-          </el-form>
+            <ScFormItem label="启用剪贴板">
+              <ScSwitch v-model="guacamoleOptions.enableClipboard" />
+            </ScFormItem>
+          </ScForm>
         </div>
 
         <!-- 连接历史 -->
         <div class="connection-history">
-          <el-divider content-position="left">连接历史</el-divider>
+          <ScDivider content-position="left">连接历史</ScDivider>
 
-          <el-table :data="connectionHistory" size="small" max-height="200">
-            <el-table-column prop="time" label="时间" width="160" />
-            <el-table-column prop="type" label="类型" width="80" />
-            <el-table-column prop="status" label="状态" width="80">
+          <ScTable :data="connectionHistory" size="small" max-height="200">
+            <ScTableColumn prop="time" label="时间" width="160" />
+            <ScTableColumn prop="type" label="类型" width="80" />
+            <ScTableColumn prop="status" label="状态" width="80">
               <template #default="{ row }">
-                <el-tag
+                <ScTag
                   :type="row.status === 'success' ? 'success' : 'danger'"
                   size="small"
                 >
                   {{ row.status === "success" ? "成功" : "失败" }}
-                </el-tag>
+                </ScTag>
               </template>
-            </el-table-column>
-            <el-table-column prop="message" label="消息" />
-          </el-table>
+            </ScTableColumn>
+            <ScTableColumn prop="message" label="消息" />
+          </ScTable>
         </div>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- Guacamole 连接对话框 -->
     <sc-dialog
@@ -208,10 +208,10 @@
       </div>
 
       <template #footer>
-        <el-button @click="disconnectGuacamole">断开连接</el-button>
-        <el-button v-if="guacamoleUrl" type="primary" @click="openInNewWindow">
+        <ScButton @click="disconnectGuacamole">断开连接</ScButton>
+        <ScButton v-if="guacamoleUrl" type="primary" @click="openInNewWindow">
           在新窗口打开
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>

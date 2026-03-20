@@ -1,63 +1,63 @@
-ï»¿<template>
+<template>
   <div class="page flex flex-col h-full">
-    <!-- é¡µé¢æ ‡é¢˜ -->
+    <!-- Ò³Ãæ±êÌâ -->
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
           <h1 class="page-title">
             <IconifyIconOnline icon="ri:box-3-line" class="title-icon" />
-            å¯¹è±¡ç›‘æ§
+            ¶ÔÏó¼à¿Ø
           </h1>
-          <p class="page-subtitle">æŸ¥çœ‹å’Œç®¡ç†ç³»ç»Ÿå¯¹è±¡ä¿¡æ¯</p>
+          <p class="page-subtitle">²é¿´ºÍ¹ÜÀíÏµÍ³¶ÔÏóĞÅÏ¢</p>
         </div>
       </div>
     </div>
 
-    <!-- æœç´¢æ  -->
+    <!-- ËÑË÷À¸ -->
     <div class="toolbar">
-      <el-input v-model="filterName" placeholder="æœç´¢ç±»å..." clearable class="search-input" @keyup.enter="handleQuery">
+      <ScInput v-model="filterName" placeholder="ËÑË÷ÀàÃû..." clearable class="search-input" @keyup.enter="handleQuery">
         <template #prefix>
           <IconifyIconOnline icon="ep:search" />
         </template>
-      </el-input>
-      <el-button type="primary" @click="handleQuery">
+      </ScInput>
+      <ScButton type="primary" @click="handleQuery">
         <IconifyIconOnline icon="ep:search" class="mr-1" />
-        æœç´¢
-      </el-button>
+        ËÑË÷
+      </ScButton>
     </div>
 
-    <!-- è¡¨æ ¼åŒºåŸŸ -->
+    <!-- ±í¸ñÇøÓò -->
     <div class="flex-1 overflow-hidden">
       <ScTable ref="tableRef" :url="fetchData" fixed :filter="filter" :page-size="10" height="100%">
-        <el-table-column type="index" label="#" width="60" align="center" />
-        <el-table-column label="ç±»å" prop="name" min-width="300">
+        <ScTableColumn type="index" label="#" width="60" align="center" />
+        <ScTableColumn label="ÀàÃû" prop="name" min-width="300">
           <template #default="{ row }">
             <div class="flex items-center gap-2">
               <IconifyIconOnline icon="ri:code-box-line" class="text-primary" />
               <span class="font-mono text-sm" v-html="row.name" />
             </div>
           </template>
-        </el-table-column>
-        <el-table-column label="å·²åŠ è½½æ•°" prop="count" width="120" align="center">
+        </ScTableColumn>
+        <ScTableColumn label="ÒÑ¼ÓÔØÊı" prop="count" width="120" align="center">
           <template #default="{ row }">
-            <el-tag type="info" size="small">{{ row.count }}</el-tag>
+            <ScTag type="info" size="small">{{ row.count }}</ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="æ“ä½œ" width="120" align="center" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="²Ù×÷" width="120" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleView(row)">
+            <ScButton link type="primary" @click="handleView(row)">
               <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
-              æŸ¥çœ‹
-            </el-button>
+              ²é¿´
+            </ScButton>
           </template>
-        </el-table-column>
+        </ScTableColumn>
       </ScTable>
     </div>
 
-    <sc-dialog v-model="config.visibleCfrVisible" title="è¯¦æƒ…" draggable :close-on-click-modal="false" @close="handleClose">
-      <el-skeleton animated :loading="config.visibleCfrLoading" />
+    <sc-dialog v-model="config.visibleCfrVisible" title="ÏêÇé" draggable :close-on-click-modal="false" @close="handleClose">
+      <ScSkeleton animated :loading="config.visibleCfrLoading" />
       <div v-if="!config.visibleCfrLoading">
-        <pre ref="code" data-prismjs-copy="å¤åˆ¶ä»£ç " data-prismjs-copy-success="å¤åˆ¶æˆåŠŸ" data-prismjs-copy-timeout="1000">
+        <pre ref="code" data-prismjs-copy="¸´ÖÆ´úÂë" data-prismjs-copy-success="¸´ÖÆ³É¹¦" data-prismjs-copy-timeout="1000">
           <code class="language-java highlight-keywords show-language">
             {{ viewContent }}
           </code>
@@ -67,7 +67,7 @@
   </div>
 </template>
 <script setup>
-// å¼•å…¥Prism.js
+// ÒıÈëPrism.js
 import Prism from "prismjs";
 import "prismjs/themes/prism-tomorrow.min.css";
 import "prismjs/components/prism-java.min.js";
@@ -76,7 +76,7 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { http } from "@repo/utils";
 import { onBeforeMount, reactive, ref, computed, onUnmounted } from "vue";
 import { wsService } from "@/utils/websocket";
@@ -92,10 +92,10 @@ const config = reactive({
 });
 let unsubscribe = null;
 
-// å¤„ç† WebSocket æ¶ˆæ¯
+// ´¦Àí WebSocket ÏûÏ¢
 const handleWsMessage = message => {
   if (message.event === "OBJECT_INFO") {
-    // åˆ·æ–°è¡¨æ ¼æ•°æ®
+    // Ë¢ĞÂ±í¸ñÊı¾İ
     tableRef.value?.refresh();
   }
 };
@@ -104,7 +104,7 @@ onBeforeMount(async () => {
   url.value = (window.agentPath || "/agent") + "/object_info";
   detailUrl.value = (window.agentPath || "/agent") + "/cfr";
   window.addEventListener("keydown", handleKeydown);
-  // è®¢é˜… WebSocket æ¶ˆæ¯
+  // ¶©ÔÄ WebSocket ÏûÏ¢
   wsService.connect();
   unsubscribe = wsService.subscribe("JVM", "OBJECT_INFO", handleWsMessage);
 });
@@ -132,7 +132,7 @@ const handleView = row => {
       viewContent.value = res.data;
       setTimeout(() => {
         Prism.highlightAll();
-        // ä½¿ç”¨Prism.highlightElementæ¥é«˜äº®ä»£ç 
+        // Ê¹ÓÃPrism.highlightElementÀ´¸ßÁÁ´úÂë
         try {
           Prism.highlightElement(code);
         } catch (error) {}

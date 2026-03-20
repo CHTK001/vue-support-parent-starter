@@ -67,4 +67,5 @@ export interface LayoutEmitterEvents {
  * 创建类型安全的事件发射器类型
  */
 export type EmitterEventName = keyof LayoutEmitterEvents;
-export type EmitterEventPayload<T extends EmitterEventName> = LayoutEmitterEvents[T];
+export type EmitterEventPayload<T extends EmitterEventName> =
+  LayoutEmitterEvents[T];

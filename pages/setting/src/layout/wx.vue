@@ -21,13 +21,10 @@
           </ScFormItem>
 
           <ScFormItem label="appId" prop="sysProjectAppId">
-            <ScInput 
-              v-model="form.sysProjectAppId"
-              placeholder="请输入appId"
-            />
+            <ScInput v-model="form.sysProjectAppId" placeholder="请输入appId" />
           </ScFormItem>
           <ScFormItem label="appSecret" prop="sysProjectAppSecret">
-            <ScInput 
+            <ScInput
               v-model="form.sysProjectAppSecret"
               placeholder="请输入appSecret"
               type="password"
@@ -35,7 +32,7 @@
             />
           </ScFormItem>
           <ScFormItem label="token" prop="sysProjectToken">
-            <ScInput 
+            <ScInput
               v-model="form.sysProjectToken"
               placeholder="请输入token"
               type="password"
@@ -43,7 +40,7 @@
             />
           </ScFormItem>
           <ScFormItem label="aesKey" prop="sysProjectAesKey">
-            <ScInput 
+            <ScInput
               v-model="form.sysProjectAesKey"
               placeholder="请输入aesKey"
               type="password"
@@ -52,7 +49,7 @@
           </ScFormItem>
 
           <ScFormItem class="justify-start custom-button">
-            <ScButton 
+            <ScButton
               class="ml-1"
               :icon="useRenderIcon('ri:save-2-fill')"
               type="primary"
@@ -68,7 +65,7 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   fetchDefaultNameProject,
   fetchDefaultProject,
@@ -86,7 +83,7 @@ import {
   watch,
 } from "vue"; // 添加nextTick和watch
 const ScTableSelect = defineAsyncComponent(
-  () => import("@repo/components/ScTableSelect/index.vue")
+  () => import("@repo/components"),
 );
 const form = reactive({});
 const hasAuth = shallowRef(true);
@@ -146,7 +143,7 @@ watch(
         }
       });
     }
-  }
+  },
 );
 
 const handleFailure = async (e) => {

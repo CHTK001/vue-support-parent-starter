@@ -19,7 +19,9 @@
             <ScCheckbox label="sport">运动</ScCheckbox>
           </ScCheckboxGroup>
         </div>
-        <div class="value-display">当前选择：{{ hobbies.join("，") || "无" }}</div>
+        <div class="value-display">
+          当前选择：{{ hobbies.join("，") || "无" }}
+        </div>
       </div>
     </DemoBlock>
   </div>
@@ -83,5 +85,3 @@ const codes = {
   }
 }
 </style>
-
-

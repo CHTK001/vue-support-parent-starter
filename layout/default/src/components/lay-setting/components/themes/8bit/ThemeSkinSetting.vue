@@ -12,5 +12,3 @@ import BaseComponent from "../../base/ThemeSkinSetting.vue";
 // 8-bit 主题专属皮肤样式占位
 // 例如：html[data-skin="8bit"] { }
 </style>
-
-

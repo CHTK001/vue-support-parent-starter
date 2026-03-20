@@ -11,10 +11,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from "vue";
 
 defineProps({
-  mode: { type: String, required: true }
+  mode: { type: String, required: true },
 });
 
 interface DeviceInfo {
@@ -26,29 +26,33 @@ const deviceInfo = ref<DeviceInfo | null>(null);
 
 const detectDevice = () => {
   const ua = navigator.userAgent;
-  let platform = 'Unknown';
-  let type = 'Desktop';
+  let platform = "Unknown";
+  let type = "Desktop";
 
   // 检测平台
-  if (ua.includes('Windows')) {
-    platform = 'Windows';
-  } else if (ua.includes('Mac')) {
-    platform = 'macOS';
-  } else if (ua.includes('Linux')) {
-    platform = 'Linux';
-  } else if (ua.includes('Android')) {
-    platform = 'Android';
-  } else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) {
-    platform = 'iOS';
+  if (ua.includes("Windows")) {
+    platform = "Windows";
+  } else if (ua.includes("Mac")) {
+    platform = "macOS";
+  } else if (ua.includes("Linux")) {
+    platform = "Linux";
+  } else if (ua.includes("Android")) {
+    platform = "Android";
+  } else if (
+    ua.includes("iOS") ||
+    ua.includes("iPhone") ||
+    ua.includes("iPad")
+  ) {
+    platform = "iOS";
   }
 
   // 检测设备类型
   if (/Mobile|Android|iPhone|iPad/.test(ua)) {
-    type = 'Mobile';
+    type = "Mobile";
   } else if (/Tablet|iPad/.test(ua)) {
-    type = 'Tablet';
+    type = "Tablet";
   } else {
-    type = 'Desktop';
+    type = "Desktop";
   }
 
   deviceInfo.value = { platform, type };
@@ -99,4 +103,3 @@ onMounted(() => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 </style>
-

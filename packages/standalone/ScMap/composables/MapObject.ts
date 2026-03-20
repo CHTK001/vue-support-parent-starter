@@ -2,16 +2,16 @@
  * 地图对象
  * @description 使用Leaflet实现的地图核心功能
  */
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { ConfigObject } from './ConfigObject';
-import { MapType, DEFAULT_MAP_CONFIG } from '../types/map';
-import { MapTile } from '../types';
-import logger from './LogObject';
-import { CoordinateObject } from './CoordinateObject';
-import { HeatmapObject } from './HeatmapObject';
-import { GcoordObject, CoordSystem } from './GcoordObject';
-import { getCoordSystemByMapType } from './MapUtils';
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { ConfigObject } from "./ConfigObject";
+import { MapType, DEFAULT_MAP_CONFIG } from "../types/map";
+import { MapTile } from "../types";
+import logger from "./LogObject";
+import { CoordinateObject } from "./CoordinateObject";
+import { HeatmapObject } from "./HeatmapObject";
+import { GcoordObject, CoordSystem } from "./GcoordObject";
+import { getCoordSystemByMapType } from "./MapUtils";
 
 // 地图事件回调类型
 export type MapEventCallback = (event: string, payload: any) => void;
@@ -33,7 +33,7 @@ export class MapObject {
    */
   constructor(configObject: ConfigObject) {
     this.configObject = configObject;
-    logger.debug('MapObject已创建');
+    logger.debug("MapObject已创建");
   }
 
   /**
@@ -45,62 +45,64 @@ export class MapObject {
   public init(container: HTMLElement, callback?: MapEventCallback): boolean {
     try {
       if (!container) {
-        logger.error('初始化地图失败：容器元素不存在');
+        logger.error("初始化地图失败：容器元素不存在");
         return false;
       }
 
       this.eventCallback = callback || null;
 
-      // 获取渲染模式      
+      // 获取渲染模式
       const renderMode = this.configObject.getRenderMode();
-      
+
       // 获取地图类型
       const mapType = this.configObject.getMapType();
-      
+
       // 初始化坐标转换对象
       this.gcoord = new GcoordObject({
         mapType: mapType,
-        sourceSystem: CoordSystem.WGS84,  // 默认使用WGS84作为源坐标系
-        targetSystem: getCoordSystemByMapType(mapType) // 根据地图类型设置目标坐标系
+        sourceSystem: CoordSystem.WGS84, // 默认使用WGS84作为源坐标系
+        targetSystem: getCoordSystemByMapType(mapType), // 根据地图类型设置目标坐标系
       });
-      
-      // 创建地图实例，根据渲染模式配置renderer选项     
+
+      // 创建地图实例，根据渲染模式配置renderer选项
       this.mapInstance = L.map(container, {
         center: this.configObject.getCenter(),
         zoom: this.configObject.getZoom(),
         dragging: this.configObject.getDragging(),
         scrollWheelZoom: this.configObject.getScrollWheelZoom(),
-        preferCanvas: renderMode === 'CANVAS',
-        renderer: renderMode === 'CANVAS' ? L.canvas() : L.svg(),
+        preferCanvas: renderMode === "CANVAS",
+        renderer: renderMode === "CANVAS" ? L.canvas() : L.svg(),
         doubleClickZoom: false,
-        zoomControl: false // 禁用默认缩放控件，稍后添加到右上角      
+        zoomControl: false, // 禁用默认缩放控件，稍后添加到右上角
       });
       logger.debug(`地图使用 ${renderMode} 渲染模式创建`);
 
       // 添加缩放控件到右上角
-     // L.control.zoom({ position: 'topright' }).addTo(this.mapInstance);
-      
+      // L.control.zoom({ position: 'topright' }).addTo(this.mapInstance);
+
       // 如果配置了比例尺，则添加比例尺控件
       if (this.configObject.getShowScaleLine()) {
-        this.scaleControl = L.control.scale({
-          imperial: false,
-          position: 'bottomleft'
-        }).addTo(this.mapInstance);
+        this.scaleControl = L.control
+          .scale({
+            imperial: false,
+            position: "bottomleft",
+          })
+          .addTo(this.mapInstance);
       }
 
       // 初始化图层
       this.initBaseLayers();
-      
+
       // 添加默认图层
       this.switchBaseLayer(
         this.configObject.getMapType(),
-        this.configObject.getMapTile()
+        this.configObject.getMapTile(),
       );
 
       // 创建坐标对象
       this.coordinateObject = new CoordinateObject(
         this.mapInstance,
-        this.configObject.getCoordinateOptions()
+        this.configObject.getCoordinateOptions(),
       );
 
       // 绑定地图事件
@@ -111,19 +113,19 @@ export class MapObject {
         if (this.mapInstance) {
           // 从地图元素中获取ToolbarObject引用
           const containerElement = this.mapInstance.getContainer();
-          if (containerElement && containerElement['toolbarObj']) {
-            this.toolbarObj = containerElement['toolbarObj'];
-            logger.debug('已获取ToolbarObject引用');
+          if (containerElement && containerElement["toolbarObj"]) {
+            this.toolbarObj = containerElement["toolbarObj"];
+            logger.debug("已获取ToolbarObject引用");
           } else {
-            logger.warn('无法获取ToolbarObject引用');
+            logger.warn("无法获取ToolbarObject引用");
           }
         }
       }, 300);
 
-      logger.info('地图初始化成功');
+      logger.info("地图初始化成功");
       return true;
     } catch (error) {
-      logger.error('初始化地图失败:', error);
+      logger.error("初始化地图失败:", error);
       return false;
     }
   }
@@ -135,20 +137,44 @@ export class MapObject {
     if (!this.mapInstance) return;
 
     // 高德地图图层
-    this.baseLayers.set(`${MapType.GAODE}_${MapTile.NORMAL}`, this.createGaodeTileLayer(MapTile.NORMAL));
-    this.baseLayers.set(`${MapType.GAODE}_${MapTile.SATELLITE}`, this.createGaodeTileLayer(MapTile.SATELLITE));
-    
+    this.baseLayers.set(
+      `${MapType.GAODE}_${MapTile.NORMAL}`,
+      this.createGaodeTileLayer(MapTile.NORMAL),
+    );
+    this.baseLayers.set(
+      `${MapType.GAODE}_${MapTile.SATELLITE}`,
+      this.createGaodeTileLayer(MapTile.SATELLITE),
+    );
+
     // OpenStreetMap图层
-    this.baseLayers.set(`${MapType.OSM}_${MapTile.NORMAL}`, this.createOsmTileLayer());
-    
+    this.baseLayers.set(
+      `${MapType.OSM}_${MapTile.NORMAL}`,
+      this.createOsmTileLayer(),
+    );
+
     // 百度地图图层
-    this.baseLayers.set(`${MapType.BAIDU}_${MapTile.NORMAL}`, this.createBaiduTileLayer(MapTile.NORMAL));
-    this.baseLayers.set(`${MapType.BAIDU}_${MapTile.SATELLITE}`, this.createBaiduTileLayer(MapTile.SATELLITE));
+    this.baseLayers.set(
+      `${MapType.BAIDU}_${MapTile.NORMAL}`,
+      this.createBaiduTileLayer(MapTile.NORMAL),
+    );
+    this.baseLayers.set(
+      `${MapType.BAIDU}_${MapTile.SATELLITE}`,
+      this.createBaiduTileLayer(MapTile.SATELLITE),
+    );
 
     // 谷歌地图图层
-    this.baseLayers.set(`${MapType.GOOGLE}_${MapTile.NORMAL}`, this.createGoogleTileLayer(MapTile.NORMAL));
-    this.baseLayers.set(`${MapType.GOOGLE}_${MapTile.SATELLITE}`, this.createGoogleTileLayer(MapTile.SATELLITE));
-    this.baseLayers.set(`${MapType.GOOGLE}_${MapTile.TERRAIN}`, this.createGoogleTileLayer(MapTile.TERRAIN));
+    this.baseLayers.set(
+      `${MapType.GOOGLE}_${MapTile.NORMAL}`,
+      this.createGoogleTileLayer(MapTile.NORMAL),
+    );
+    this.baseLayers.set(
+      `${MapType.GOOGLE}_${MapTile.SATELLITE}`,
+      this.createGoogleTileLayer(MapTile.SATELLITE),
+    );
+    this.baseLayers.set(
+      `${MapType.GOOGLE}_${MapTile.TERRAIN}`,
+      this.createGoogleTileLayer(MapTile.TERRAIN),
+    );
 
     logger.debug(`已初始化 ${this.baseLayers.size} 个基础图层`);
   }
@@ -159,24 +185,26 @@ export class MapObject {
    * @returns 图层对象
    */
   private createGaodeTileLayer(tile: MapTile): L.TileLayer {
-    let url = '';
-    
+    let url = "";
+
     switch (tile) {
       case MapTile.SATELLITE:
         // 高德卫星图
-        url = 'https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}';
+        url =
+          "https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}";
         break;
       case MapTile.NORMAL:
       default:
         // 高德标准图
-        url = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
+        url =
+          "https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}";
         break;
     }
-    
+
     return L.tileLayer(url, {
-      subdomains: ['1', '2', '3', '4'],
+      subdomains: ["1", "2", "3", "4"],
       maxZoom: 18,
-      attribution: '&copy; <a href="https://amap.com">高德地图</a>'
+      attribution: '&copy; <a href="https://amap.com">高德地图</a>',
     });
   }
 
@@ -185,9 +213,10 @@ export class MapObject {
    * @returns 图层对象
    */
   private createOsmTileLayer(): L.TileLayer {
-    return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    return L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     });
   }
 
@@ -199,11 +228,15 @@ export class MapObject {
   private createBaiduTileLayer(tile: MapTile): L.TileLayer {
     // 注意：百度地图需要特殊的坐标转换，这里仅作为示例
     // 实际使用时需要添加坐标转换逻辑或使用专门的百度地图Leaflet插件
-    return L.tileLayer('https://api.map.baidu.com/tile/?v=3.0&x={x}&y={y}&z={z}&udt=20220114&type=' + (tile === MapTile.SATELLITE ? 'web_sal' : 'webrd03'), {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://map.baidu.com">百度地图</a>',
-      subdomains: ['0', '1', '2']
-    });
+    return L.tileLayer(
+      "https://api.map.baidu.com/tile/?v=3.0&x={x}&y={y}&z={z}&udt=20220114&type=" +
+        (tile === MapTile.SATELLITE ? "web_sal" : "webrd03"),
+      {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://map.baidu.com">百度地图</a>',
+        subdomains: ["0", "1", "2"],
+      },
+    );
   }
 
   /**
@@ -212,25 +245,26 @@ export class MapObject {
    * @returns 图层对象
    */
   private createGoogleTileLayer(tile: MapTile): L.TileLayer {
-    let url = '';
-    
+    let url = "";
+
     switch (tile) {
       case MapTile.SATELLITE:
-        url = 'http://mt{s}.google.cn/vt/lyrs=s&x={x}&y={y}&z={z}';
+        url = "http://mt{s}.google.cn/vt/lyrs=s&x={x}&y={y}&z={z}";
         break;
       case MapTile.TERRAIN:
-        url = 'http://mt{s}.google.cn/vt/lyrs=p&x={x}&y={y}&z={z}';
+        url = "http://mt{s}.google.cn/vt/lyrs=p&x={x}&y={y}&z={z}";
         break;
       case MapTile.NORMAL:
       default:
-        url = 'http://mt{s}.google.cn/vt/lyrs=m&x={x}&y={y}&z={z}';
+        url = "http://mt{s}.google.cn/vt/lyrs=m&x={x}&y={y}&z={z}";
         break;
     }
-    
+
     return L.tileLayer(url, {
       maxZoom: 19,
-      subdomains: ['0', '1', '2', '3'],
-      attribution: '&copy; <a href="https://www.google.com/maps">Google Maps</a>'
+      subdomains: ["0", "1", "2", "3"],
+      attribution:
+        '&copy; <a href="https://www.google.com/maps">Google Maps</a>',
     });
   }
 
@@ -241,60 +275,60 @@ export class MapObject {
     if (!this.mapInstance) return;
 
     // 绑定移动结束事件
-    this.mapInstance.on('moveend', () => {
+    this.mapInstance.on("moveend", () => {
       if (!this.mapInstance) return;
-      
+
       const center = this.mapInstance.getCenter();
       const zoom = this.mapInstance.getZoom();
-      
+
       // 触发中心点更新事件
-      this.triggerEvent('update:center', [center.lat, center.lng]);
-      
+      this.triggerEvent("update:center", [center.lat, center.lng]);
+
       // 触发缩放级别更新事件
-      this.triggerEvent('update:zoom', zoom);
+      this.triggerEvent("update:zoom", zoom);
     });
 
     // 绑定缩放结束事件
-    this.mapInstance.on('zoomend', () => {
+    this.mapInstance.on("zoomend", () => {
       if (!this.mapInstance) return;
-      
+
       const zoom = this.mapInstance.getZoom();
-      
+
       // 触发缩放级别更新事件
-      this.triggerEvent('update:zoom', zoom);
+      this.triggerEvent("update:zoom", zoom);
     });
 
     // 绑定点击事件
-    this.mapInstance.on('click', (event) => {
+    this.mapInstance.on("click", (event) => {
       const latlng = event.latlng;
-      
+
       // 触发地图点击事件
-      this.triggerEvent('map-click', {
+      this.triggerEvent("map-click", {
         coordinates: [latlng.lat, latlng.lng],
-        originalEvent: event.originalEvent
+        originalEvent: event.originalEvent,
       });
     });
 
     // 绑定右键点击事件
-    this.mapInstance.on('contextmenu', (event) => {
+    this.mapInstance.on("contextmenu", (event) => {
       const latlng = event.latlng;
-      
+
       // 触发地图右键点击事件
-      this.triggerEvent('map-right-click', {
+      this.triggerEvent("map-right-click", {
         coordinates: [latlng.lat, latlng.lng],
-        originalEvent: event.originalEvent
+        originalEvent: event.originalEvent,
       });
     });
 
-    this.mapInstance.on('mousemove', (event) => {
+    this.mapInstance.on("mousemove", (event) => {
       const latlng = event.latlng;
-      this.triggerEvent('map-mousemove', {
+      this.triggerEvent("map-mousemove", {
         coordinates: [latlng.lat, latlng.lng],
-        originalEvent: event.originalEvent
+        originalEvent: event.originalEvent,
       });
     });
 
-    logger.debug('地图事件已绑定');
+    logger.debug("地图事件已绑定");
   }
 
   /**
@@ -319,10 +353,10 @@ export class MapObject {
 
     // 生成图层键
     const layerKey = `${mapType}_${mapTile}`;
-    
+
     // 获取图层
     const layer = this.baseLayers.get(layerKey);
-    
+
     if (!layer) {
       logger.error(`切换底图失败：找不到图层 ${layerKey}`);
       return false;
@@ -336,7 +370,7 @@ export class MapObject {
     // 添加新图层并设置为当前图层
     layer.addTo(this.mapInstance);
     this.currentBaseLayer = layer;
-    
+
     logger.info(`底图已切换为: ${layerKey}`);
     return true;
   }
@@ -355,7 +389,7 @@ export class MapObject {
    */
   public getCenter(): [number, number] {
     if (!this.mapInstance) return this.configObject.getCenter();
-    
+
     const center = this.mapInstance.getCenter();
     return [center.lat, center.lng];
   }
@@ -368,12 +402,12 @@ export class MapObject {
    */
   public setCenter(lat: number, lng: number): boolean {
     if (!this.mapInstance) return false;
-    
+
     try {
       this.mapInstance.setView([lat, lng], this.mapInstance.getZoom());
       return true;
     } catch (error) {
-      logger.error('设置中心点失败:', error);
+      logger.error("设置中心点失败:", error);
       return false;
     }
   }
@@ -384,7 +418,7 @@ export class MapObject {
    */
   public getZoom(): number {
     if (!this.mapInstance) return this.configObject.getZoom();
-    
+
     return this.mapInstance.getZoom();
   }
 
@@ -395,12 +429,12 @@ export class MapObject {
    */
   public setZoom(zoom: number): boolean {
     if (!this.mapInstance) return false;
-    
+
     try {
       this.mapInstance.setZoom(zoom);
       return true;
     } catch (error) {
-      logger.error('设置缩放级别失败:', error);
+      logger.error("设置缩放级别失败:", error);
       return false;
     }
   }
@@ -410,9 +444,12 @@ export class MapObject {
    * @param options 交互选项
    * @returns 是否设置成功
    */
-  public setInteractions(options: { dragging?: boolean; scrollWheelZoom?: boolean }): boolean {
+  public setInteractions(options: {
+    dragging?: boolean;
+    scrollWheelZoom?: boolean;
+  }): boolean {
     if (!this.mapInstance) return false;
-    
+
     try {
       // 设置拖拽
       if (options.dragging !== undefined) {
@@ -422,7 +459,7 @@ export class MapObject {
           this.mapInstance.dragging.disable();
         }
       }
-      
+
       // 设置滚轮缩放
       if (options.scrollWheelZoom !== undefined) {
         if (options.scrollWheelZoom) {
@@ -431,10 +468,10 @@ export class MapObject {
           this.mapInstance.scrollWheelZoom.disable();
         }
       }
-      
+
       return true;
     } catch (error) {
-      logger.error('设置交互选项失败:', error);
+      logger.error("设置交互选项失败:", error);
       return false;
     }
   }
@@ -447,12 +484,12 @@ export class MapObject {
    */
   public containerPointToLatLng(x: number, y: number): [number, number] | null {
     if (!this.mapInstance) return null;
-    
+
     try {
       const point = this.mapInstance.containerPointToLatLng([x, y]);
       return [point.lat, point.lng];
     } catch (error) {
-      logger.error('坐标转换失败:', error);
+      logger.error("坐标转换失败:", error);
       return null;
     }
   }
@@ -463,14 +500,17 @@ export class MapObject {
    * @param lng 经度
    * @returns 屏幕坐标 [x, y]
    */
-  public latLngToContainerPoint(lat: number, lng: number): [number, number] | null {
+  public latLngToContainerPoint(
+    lat: number,
+    lng: number,
+  ): [number, number] | null {
     if (!this.mapInstance) return null;
-    
+
     try {
       const point = this.mapInstance.latLngToContainerPoint([lat, lng]);
       return [point.x, point.y];
     } catch (error) {
-      logger.error('坐标转换失败:', error);
+      logger.error("坐标转换失败:", error);
       return null;
     }
   }
@@ -481,18 +521,18 @@ export class MapObject {
    */
   public getBounds(): [[number, number], [number, number]] | null {
     if (!this.mapInstance) return null;
-    
+
     try {
       const bounds = this.mapInstance.getBounds();
       const southWest = bounds.getSouthWest();
       const northEast = bounds.getNorthEast();
-      
+
       return [
         [southWest.lat, southWest.lng],
-        [northEast.lat, northEast.lng]
+        [northEast.lat, northEast.lng],
       ];
     } catch (error) {
-      logger.error('获取地图边界失败:', error);
+      logger.error("获取地图边界失败:", error);
       return null;
     }
   }
@@ -514,39 +554,45 @@ export class MapObject {
   public addControl(controlType: string, options?: any): boolean {
     try {
       if (!this.mapInstance) {
-        logger.error('添加控件失败：地图实例不存在');
+        logger.error("添加控件失败：地图实例不存在");
         return false;
       }
 
       switch (controlType.toLowerCase()) {
-        case 'scale':
+        case "scale":
           // 添加比例尺控件
-          this.scaleControl = L.control.scale({
-            imperial: false,
-            position: 'bottomleft',
-            ...options
-          }).addTo(this.mapInstance);
-          logger.debug('已添加比例尺控件');
+          this.scaleControl = L.control
+            .scale({
+              imperial: false,
+              position: "bottomleft",
+              ...options,
+            })
+            .addTo(this.mapInstance);
+          logger.debug("已添加比例尺控件");
           return true;
-        
-        case 'zoom':
+
+        case "zoom":
           // 添加缩放控件
-          L.control.zoom({
-            position: 'topright',
-            ...options
-          }).addTo(this.mapInstance);
-          logger.debug('已添加缩放控件');
+          L.control
+            .zoom({
+              position: "topright",
+              ...options,
+            })
+            .addTo(this.mapInstance);
+          logger.debug("已添加缩放控件");
           return true;
-        
-        case 'attribution':
+
+        case "attribution":
           // 添加归属控件
-          L.control.attribution({
-            position: 'bottomright',
-            ...options
-          }).addTo(this.mapInstance);
-          logger.debug('已添加归属控件');
+          L.control
+            .attribution({
+              position: "bottomright",
+              ...options,
+            })
+            .addTo(this.mapInstance);
+          logger.debug("已添加归属控件");
           return true;
-        
+
         default:
           logger.warn(`未知的控件类型: ${controlType}`);
           return false;
@@ -566,21 +612,21 @@ export class MapObject {
       this.coordinateObject.destroy();
       this.coordinateObject = null;
     }
-    
+
     // 移除所有图层
     if (this.mapInstance) {
       this.mapInstance.remove();
       this.mapInstance = null;
     }
-    
+
     // 清空图层集合
     this.baseLayers.clear();
     this.currentBaseLayer = null;
-    
+
     // 清空事件回调
     this.eventCallback = null;
-    
-    logger.debug('MapObject已销毁');
+
+    logger.debug("MapObject已销毁");
   }
 
   /**
@@ -600,8 +646,8 @@ export class MapObject {
       // 如果toolbarObj未初始化，尝试从地图元素中获取
       if (this.mapInstance) {
         const containerElement = this.mapInstance.getContainer();
-        if (containerElement && containerElement['toolbarObj']) {
-          this.toolbarObj = containerElement['toolbarObj'];
+        if (containerElement && containerElement["toolbarObj"]) {
+          this.toolbarObj = containerElement["toolbarObj"];
         }
       }
     }
@@ -617,7 +663,14 @@ export class MapObject {
    * @param showCode 显示编码
    * @param autoAdjustLevel 自动调整精度
    */
-  public showGeohashGrid(level = 5, weight = 1.5, opacity = 0.5, gridOpacity = 0.2, showCode = true, autoAdjustLevel = true): void {
+  public showGeohashGrid(
+    level = 5,
+    weight = 1.5,
+    opacity = 0.5,
+    gridOpacity = 0.2,
+    showCode = true,
+    autoAdjustLevel = true,
+  ): void {
     const geohashGridObj = this.getGeohashGridObject();
     if (!geohashGridObj) return;
 
@@ -627,7 +680,7 @@ export class MapObject {
       opacity,
       gridOpacity,
       showCode,
-      autoAdjustLevel
+      autoAdjustLevel,
     });
 
     geohashGridObj.show();
@@ -652,7 +705,14 @@ export class MapObject {
    * @param showCode 显示编码
    * @param autoAdjustLevel 自动调整精度
    */
-  public updateGeohashGrid(level = 5, weight = 1.5, opacity = 0.5, gridOpacity = 0.2, showCode = true, autoAdjustLevel = true): void {
+  public updateGeohashGrid(
+    level = 5,
+    weight = 1.5,
+    opacity = 0.5,
+    gridOpacity = 0.2,
+    showCode = true,
+    autoAdjustLevel = true,
+  ): void {
     const geohashGridObj = this.getGeohashGridObject();
     if (!geohashGridObj) return;
 
@@ -662,7 +722,7 @@ export class MapObject {
       opacity,
       gridOpacity,
       showCode,
-      autoAdjustLevel
+      autoAdjustLevel,
     });
   }
 
@@ -680,12 +740,15 @@ export class MapObject {
    * @param from 源坐标系
    * @returns 转换后的坐标
    */
-  public transformCoord(lnglat: [number, number], from: CoordSystem = CoordSystem.WGS84): [number, number] {
+  public transformCoord(
+    lnglat: [number, number],
+    from: CoordSystem = CoordSystem.WGS84,
+  ): [number, number] {
     if (!this.gcoord) {
-      logger.warn('坐标转换对象未初始化');
+      logger.warn("坐标转换对象未初始化");
       return lnglat;
     }
-    
+
     return this.gcoord.transform(lnglat, from) as [number, number];
   }
-} 
+}

@@ -1,21 +1,21 @@
 <template>
   <div class="console system-container modern-bg">
     <div class="toolbar">
-      <el-input v-model="topic" placeholder="主题" class="w-240" />
-      <el-input v-model="payload" placeholder="消息体" class="w-360 ml-2" />
-      <el-button type="primary" @click="publish">发布</el-button>
-      <el-input
+      <ScInput v-model="topic" placeholder="主题" class="w-240" />
+      <ScInput v-model="payload" placeholder="消息体" class="w-360 ml-2" />
+      <ScButton type="primary" @click="publish">发布</ScButton>
+      <ScInput
         v-model="subTopic"
         placeholder="订阅主题(支持通配)"
         class="w-240 ml-4"
       />
-      <el-button @click="subscribe">订阅</el-button>
+      <ScButton @click="subscribe">订阅</ScButton>
     </div>
-    <el-table :data="messages" height="70vh" size="small" border>
-      <el-table-column label="时间" prop="time" width="180" />
-      <el-table-column label="主题" prop="topic" width="260" />
-      <el-table-column label="消息" prop="payload" />
-    </el-table>
+    <ScTable :data="messages" height="70vh" size="small" border>
+      <ScTableColumn label="时间" prop="time" width="180" />
+      <ScTableColumn label="主题" prop="topic" width="260" />
+      <ScTableColumn label="消息" prop="payload" />
+    </ScTable>
   </div>
 </template>
 <script setup lang="ts">

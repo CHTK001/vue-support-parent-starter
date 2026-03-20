@@ -16,7 +16,7 @@ const Print = function (dom, options?: object): PrintFunction {
     // Callback before printing
     printBeforeFn: null,
     // Callback after printing
-    printDoneCallBack: null
+    printDoneCallBack: null,
   };
   for (const key in this.conf) {
     if (key && options.hasOwnProperty(key)) {
@@ -127,7 +127,10 @@ Print.prototype = {
     const iframe: HTMLIFrameElement = document.createElement("iframe");
     const f: HTMLIFrameElement = document.body.appendChild(iframe);
     iframe.id = "myIframe";
-    iframe.setAttribute("style", "position:absolute;width:0;height:0;top:-10px;left:-10px;");
+    iframe.setAttribute(
+      "style",
+      "position:absolute;width:0;height:0;top:-10px;left:-10px;",
+    );
 
     w = f.contentWindow || f.contentDocument;
 
@@ -184,7 +187,12 @@ Print.prototype = {
           return obj instanceof HTMLElement;
         }
       : function (obj) {
-          return obj && typeof obj === "object" && obj.nodeType === 1 && typeof obj.nodeName === "string";
+          return (
+            obj &&
+            typeof obj === "object" &&
+            obj.nodeType === 1 &&
+            typeof obj.nodeName === "string"
+          );
         },
   /**
    * Set the height of the specified dom element by getting the existing height of the dom element and setting
@@ -192,14 +200,14 @@ Print.prototype = {
    */
   setDomHeight(arr) {
     if (arr && arr.length) {
-      arr.forEach(name => {
+      arr.forEach((name) => {
         const domArr = document.querySelectorAll(name);
-        domArr.forEach(dom => {
+        domArr.forEach((dom) => {
           dom.style.height = dom.offsetHeight + "px";
         });
       });
     }
-  }
+  },
 };
 
 export default Print;

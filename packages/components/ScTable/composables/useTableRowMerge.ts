@@ -2,7 +2,7 @@
  * useTableRowMerge - 行合并 composable
  * 相同值的行自动合并
  */
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { ref, computed, type Ref, type ComputedRef } from "vue";
 
 /** 合并信息 */
 export interface MergeInfo {
@@ -23,7 +23,7 @@ export interface RowMergeOptions {
   /** 需要合并的列 */
   mergeColumns?: string[];
   /** 合并策略：'value'按值合并, 'custom'自定义 */
-  strategy?: 'value' | 'custom';
+  strategy?: "value" | "custom";
   /** 自定义合并判断函数 */
   customMerge?: (row1: any, row2: any, column: string) => boolean;
 }
@@ -56,12 +56,7 @@ export interface RowMergeReturn {
  * 行合并 composable
  */
 export function useTableRowMerge(options: RowMergeOptions = {}): RowMergeReturn {
-  const {
-    enabled = false,
-    mergeColumns: initialColumns = [],
-    strategy = 'value',
-    customMerge,
-  } = options;
+  const { enabled = false, mergeColumns: initialColumns = [], strategy = "value", customMerge } = options;
 
   const isEnabled = ref(enabled);
   const mergeColumns = ref<string[]>([...initialColumns]);
@@ -81,7 +76,7 @@ export function useTableRowMerge(options: RowMergeOptions = {}): RowMergeReturn 
    * 判断两行是否可以合并
    */
   const canMerge = (row1: any, row2: any, column: string): boolean => {
-    if (strategy === 'custom' && customMerge) {
+    if (strategy === "custom" && customMerge) {
       return customMerge(row1, row2, column);
     }
     // 默认按值合并
@@ -116,7 +111,7 @@ export function useTableRowMerge(options: RowMergeOptions = {}): RowMergeReturn 
               rowIndex: startIndex,
               column,
               rowspan: mergeCount,
-              colspan: 1,
+              colspan: 1
             });
 
             // 其他单元格隐藏
@@ -125,7 +120,7 @@ export function useTableRowMerge(options: RowMergeOptions = {}): RowMergeReturn 
                 rowIndex: j,
                 column,
                 rowspan: 0,
-                colspan: 0,
+                colspan: 0
               });
             }
           }
@@ -144,11 +139,11 @@ export function useTableRowMerge(options: RowMergeOptions = {}): RowMergeReturn 
   const getMergeInfo = (rowIndex: number, column: string): { rowspan: number; colspan: number } => {
     const key = getCacheKey(rowIndex, column);
     const info = mergeCache.value.get(key);
-    
+
     if (info) {
       return { rowspan: info.rowspan, colspan: info.colspan };
     }
-    
+
     return { rowspan: 1, colspan: 1 };
   };
 
@@ -198,12 +193,7 @@ export function useTableRowMerge(options: RowMergeOptions = {}): RowMergeReturn 
   /**
    * span-method 方法（用于 el-table）
    */
-  const spanMethod = (params: {
-    row: any;
-    column: any;
-    rowIndex: number;
-    columnIndex: number;
-  }): number[] | { rowspan: number; colspan: number } | void => {
+  const spanMethod = (params: { row: any; column: any; rowIndex: number; columnIndex: number }): number[] | { rowspan: number; colspan: number } | void => {
     if (!isEnabled.value) return;
 
     const { column, rowIndex } = params;
@@ -214,11 +204,11 @@ export function useTableRowMerge(options: RowMergeOptions = {}): RowMergeReturn 
     }
 
     const info = getMergeInfo(rowIndex, columnKey);
-    
+
     if (info.rowspan === 0) {
       return [0, 0];
     }
-    
+
     if (info.rowspan > 1) {
       return [info.rowspan, 1];
     }
@@ -234,7 +224,7 @@ export function useTableRowMerge(options: RowMergeOptions = {}): RowMergeReturn 
     addMergeColumn,
     removeMergeColumn,
     clearCache,
-    spanMethod,
+    spanMethod
   };
 }
 

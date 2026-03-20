@@ -121,7 +121,9 @@
             class="preview-card"
           >
             <!-- compact/default 布局的内容 -->
-            <template v-if="config.layout === 'compact' || config.layout === 'default'">
+            <template
+              v-if="config.layout === 'compact' || config.layout === 'default'"
+            >
               <div class="info-row">
                 <IconifyIconOnline icon="ri:time-line" class="info-icon" />
                 <span class="info-text">创建时间: 2025-12-07</span>
@@ -135,7 +137,7 @@
             <!-- compact 布局的状态和底部 -->
             <template v-if="config.layout === 'compact'" #status>
               <ScTag :type="config.active ? 'success' : 'info'" size="small">
-                {{ config.active ? '在线' : '离线' }}
+                {{ config.active ? "在线" : "离线" }}
               </ScTag>
             </template>
             <template v-if="config.layout === 'compact'" #footer>
@@ -171,9 +173,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import ScCard from "@repo/components/ScCard/index.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScCard } from "@repo/components"
+import { ScSelect } from "@repo/components"
+import { IconifyIconOnline } from "@repo/components";
 
 // 布局选项
 const layoutOptions = [
@@ -183,7 +185,7 @@ const layoutOptions = [
   { label: "媒体", value: "media", icon: "ri:image-line" },
   { label: "头部", value: "header-content", icon: "ri:layout-top-line" },
   { label: "3D", value: "panel-3d", icon: "ri:box-3-line" },
-  { label: "科技", value: "tech", icon: "ri:cpu-line" }
+  { label: "科技", value: "tech", icon: "ri:cpu-line" },
 ];
 
 // 主题选项
@@ -193,14 +195,14 @@ const themeOptions = [
   { label: "成功", value: "success", icon: "ri:checkbox-circle-fill" },
   { label: "警告", value: "warning", icon: "ri:error-warning-fill" },
   { label: "危险", value: "danger", icon: "ri:close-circle-fill" },
-  { label: "信息", value: "info", icon: "ri:information-fill" }
+  { label: "信息", value: "info", icon: "ri:information-fill" },
 ];
 
 // 阴影选项
 const shadowOptions = [
   { label: "始终", value: "always", icon: "ri:contrast-drop-line" },
   { label: "悬停", value: "hover", icon: "ri:cursor-line" },
-  { label: "无", value: "never", icon: "ri:subtract-line" }
+  { label: "无", value: "never", icon: "ri:subtract-line" },
 ];
 
 /**
@@ -209,8 +211,21 @@ const shadowOptions = [
 
 // 配置项
 const config = reactive({
-  layout: "compact" as "default" | "compact" | "stats" | "media" | "header-content" | "panel-3d" | "tech",
-  theme: "primary" as "default" | "primary" | "success" | "warning" | "danger" | "info",
+  layout: "compact" as
+    | "default"
+    | "compact"
+    | "stats"
+    | "media"
+    | "header-content"
+    | "panel-3d"
+    | "tech",
+  theme: "primary" as
+    | "default"
+    | "primary"
+    | "success"
+    | "warning"
+    | "danger"
+    | "info",
   title: "示例卡片",
   subtitle: "这是副标题描述",
   icon: "ri:folder-line",
@@ -222,7 +237,7 @@ const config = reactive({
   hoverable: true,
   active: false,
   counting: false,
-  showHeader: true
+  showHeader: true,
 });
 
 // 布局切换时重置相关配置
@@ -291,9 +306,10 @@ const generatedCode = computed(() => {
     props.push(`shadow="${config.shadow}"`);
   }
 
-  if (!config.hoverable) props.push(":hoverable=\"false\"");
+  if (!config.hoverable) props.push(':hoverable="false"');
   if (config.active) props.push("active");
-  if (showHeaderProp.value && !config.showHeader) props.push(":show-header=\"false\"");
+  if (showHeaderProp.value && !config.showHeader)
+    props.push(':show-header="false"');
 
   const propsStr = props.length > 0 ? "\n  " + props.join("\n  ") + "\n" : " ";
 

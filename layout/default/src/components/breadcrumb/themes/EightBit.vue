@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseBreadcrumb from './BaseBreadcrumb.vue';
+import BaseBreadcrumb from "./BaseBreadcrumb.vue";
 </script>
 
 <template>
@@ -9,18 +9,19 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 <style lang="scss">
 // 8-bit 主题面包屑样式
 .eight-bit-breadcrumb {
-  font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+  font-family:
+    "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
   background: #1a1a2e !important;
   border: 2px solid #4a4a6e !important;
   border-radius: 0 !important;
   padding: 0 8px !important;
-  box-shadow: 
+  box-shadow:
     0 0 0 2px #2a2a4e,
     4px 4px 0 0 #0a0a1e !important;
-  
+
   // 像素艺术风格的边框效果
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: -2px;
     left: -2px;
@@ -38,7 +39,8 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
     color: #e0e0e0 !important;
     box-shadow: 2px 2px 0 0 #0a0a1e !important;
     transition: all 0.1s linear !important;
-    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+    font-family:
+      "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
 
     &:hover {
       background: #3a3a5e !important;
@@ -56,7 +58,8 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 
   .breadcrumb-divider {
     color: #6a6a8e !important;
-    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+    font-family:
+      "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
   }
 
   .breadcrumb-link {
@@ -66,7 +69,8 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
     color: #e0e0e0 !important;
     box-shadow: 2px 2px 0 0 #0a0a1e !important;
     transition: all 0.1s linear !important;
-    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+    font-family:
+      "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
     padding: 4px 8px !important;
 
     &:hover {
@@ -89,7 +93,7 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
     &.is-current {
       background: #4a4a8e !important;
       border-color: #8a8aae !important;
-      box-shadow: 
+      box-shadow:
         2px 2px 0 0 #0a0a1e,
         inset 0 0 10px rgba(138, 138, 174, 0.3) !important;
       cursor: default;
@@ -110,20 +114,23 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 
   .breadcrumb-separator {
     color: #6a6a8e !important;
-    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+    font-family:
+      "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
     margin: 0 4px !important;
   }
 
   .breadcrumb-text {
     color: #e0e0e0 !important;
-    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+    font-family:
+      "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
     text-shadow: 1px 1px 0 #0a0a1e !important;
     font-size: 11px !important;
   }
 
   .breadcrumb-icon {
     color: #b0b0d0 !important;
-    font-family: "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
+    font-family:
+      "Fusion Pixel Zh_hans", "Courier New", Courier, monospace !important;
     filter: drop-shadow(1px 1px 0 #0a0a1e) !important;
   }
 }
@@ -132,7 +139,7 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 @media (max-width: 768px) {
   .eight-bit-breadcrumb {
     padding: 0 4px !important;
-    
+
     .home-icon {
       width: 24px !important;
       height: 24px !important;
@@ -141,7 +148,7 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 
     .breadcrumb-link {
       padding: 2px 6px !important;
-      
+
       .breadcrumb-text {
         font-size: 9px !important;
         max-width: 60px !important;
@@ -154,4 +161,3 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
   }
 }
 </style>
-

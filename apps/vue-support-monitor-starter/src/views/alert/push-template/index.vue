@@ -1,36 +1,36 @@
 ﻿<template>
   <div class="page-container system-container modern-bg">
     <div class="toolbar">
-      <el-input
+      <ScInput
         v-model="search.keyword"
         placeholder="模板名称/通道"
         clearable
         style="width: 240px"
       />
-      <el-select
+      <ScSelect
         v-model="search.channel"
         placeholder="通道"
         clearable
         style="width: 180px; margin-left: 12px"
       >
-        <el-option
+        <ScOption
           v-for="item in channels"
           :key="item.value"
           :label="item.label"
           :value="item.value"
         />
-      </el-select>
-      <el-switch
+      </ScSelect>
+      <ScSwitch
         v-model="search.enabled"
         active-text="启用"
         inactive-text="停用"
         style="margin-left: 12px"
       />
-      <el-button type="primary" style="margin-left: 12px" @click="handleSearch"
+      <ScButton type="primary" style="margin-left: 12px" @click="handleSearch"
         >查询</el-button
       >
-      <el-button @click="handleReset">重置</el-button>
-      <el-button type="success" @click="openEdit()">新增模板</el-button>
+      <ScButton @click="handleReset">重置</ScButton>
+      <ScButton type="success" @click="openEdit()">新增模板</ScButton>
     </div>
 
     <data-table
@@ -55,17 +55,17 @@
       "
     >
       <template #actions="{ row }">
-        <el-button type="primary" link @click="openEdit(row)">编辑</el-button>
-        <el-divider direction="vertical" />
-        <el-button type="warning" link @click="handleTest(row)"
+        <ScButton type="primary" link @click="openEdit(row)">编辑</ScButton>
+        <ScDivider direction="vertical" />
+        <ScButton type="warning" link @click="handleTest(row)"
           >测试发送</el-button
         >
-        <el-divider direction="vertical" />
-        <el-popconfirm title="确认删除该模板？" @confirm="handleDelete(row)">
+        <ScDivider direction="vertical" />
+        <ScPopconfirm title="确认删除该模板？" @confirm="handleDelete(row)">
           <template #reference>
-            <el-button type="danger" link>删除</el-button>
+            <ScButton type="danger" link>删除</ScButton>
           </template>
-        </el-popconfirm>
+        </ScPopconfirm>
       </template>
     </data-table>
 
@@ -76,87 +76,87 @@
       "
       width="680px"
     >
-      <el-form
+      <ScForm
         ref="formRef"
         :model="edit.form"
         :rules="rules"
         label-width="120px"
       >
-        <el-form-item
+        <ScFormItem
           label="模板名称"
           prop="monitorSysGenMessagePushTemplateName"
         >
-          <el-input
+          <ScInput
             v-model="edit.form.monitorSysGenMessagePushTemplateName"
             placeholder="请输入模板名称"
           />
-        </el-form-item>
-        <el-form-item
+        </ScFormItem>
+        <ScFormItem
           label="通道"
           prop="monitorSysGenMessagePushTemplateChannel"
         >
-          <el-select
+          <ScSelect
             v-model="edit.form.monitorSysGenMessagePushTemplateChannel"
             placeholder="请选择通道"
           >
-            <el-option
+            <ScOption
               v-for="item in channels"
               :key="item.value"
               :label="item.label"
               :value="item.value"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="启用">
-          <el-switch
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="启用">
+          <ScSwitch
             v-model="edit.form.monitorSysGenMessagePushTemplateEnabled"
           />
-        </el-form-item>
-        <el-form-item label="Endpoint/Webhook">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="Endpoint/Webhook">
+          <ScInput
             v-model="edit.form.monitorSysGenMessagePushTemplateEndpoint"
             placeholder="https://... 或 邮箱/手机号等"
           />
-        </el-form-item>
-        <el-form-item label="主账号">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="主账号">
+          <ScInput
             v-model="edit.form.monitorSysGenMessagePushTemplateMainAccount"
           />
-        </el-form-item>
-        <el-form-item label="用户名">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="用户名">
+          <ScInput
             v-model="edit.form.monitorSysGenMessagePushTemplateUsername"
           />
-        </el-form-item>
-        <el-form-item label="密码">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="密码">
+          <ScInput
             v-model="edit.form.monitorSysGenMessagePushTemplatePassword"
             type="password"
             show-password
           />
-        </el-form-item>
-        <el-form-item label="Token/密钥">
-          <el-input v-model="edit.form.monitorSysGenMessagePushTemplateToken" />
-        </el-form-item>
-        <el-form-item label="扩展参数(JSON)">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="Token/密钥">
+          <ScInput v-model="edit.form.monitorSysGenMessagePushTemplateToken" />
+        </ScFormItem>
+        <ScFormItem label="扩展参数(JSON)">
+          <ScInput
             v-model="edit.form.monitorSysGenMessagePushTemplateExtra"
             type="textarea"
             :rows="3"
             placeholder='{"key":"value"}'
           />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input
+        </ScFormItem>
+        <ScFormItem label="备注">
+          <ScInput
             v-model="edit.form.monitorSysGenMessagePushTemplateRemark"
             type="textarea"
             :rows="2"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="edit.visible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave">保存</el-button>
+        <ScButton @click="edit.visible = false">取消</ScButton>
+        <ScButton type="primary" @click="handleSave">保存</ScButton>
       </template>
     </sc-dialog>
   </div>

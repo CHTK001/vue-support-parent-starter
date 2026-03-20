@@ -22,12 +22,7 @@ export type {
 } from "./events";
 
 // 菜单类型
-export type {
-  MenuMeta,
-  MenuItem,
-  SidebarItemProps,
-  NavEmits,
-} from "./menu";
+export type { MenuMeta, MenuItem, SidebarItemProps, NavEmits } from "./menu";
 
 // AI 相关类型
 export type {

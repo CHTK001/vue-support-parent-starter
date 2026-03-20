@@ -1,10 +1,10 @@
 import type { MapType } from "./map";
 import type { CoordSystem } from "./coordinate";
-import { ApiUrls } from './api';
+import { ApiUrls } from "./api";
 
 /**
-* 搜索结果接口
-*/
+ * 搜索结果接口
+ */
 export interface SearchResult {
   id: string;
   name: string;
@@ -28,11 +28,11 @@ export interface SearchResult {
   photos?: string[];
   provider?: string;
   rawData?: any;
-  
+
   // 导航相关属性
   isOrigin?: boolean;
   isDestination?: boolean;
-  navigationRole?: 'origin' | 'destination';
+  navigationRole?: "origin" | "destination";
 }
 
 /**
@@ -44,7 +44,7 @@ export interface SearchOptions {
   radius?: number;
   page?: number;
   pageSize?: number;
-  extensions?: 'base' | 'all';
+  extensions?: "base" | "all";
   key?: string;
   url?: string;
   cityLimit?: boolean;
@@ -77,36 +77,39 @@ export interface PlaceDetailApiResponse {
  * 搜索类型枚举
  */
 export enum SearchType {
-  KEYWORD = 'keyword',    // 关键词搜索
-  POI = 'poi',            // 兴趣点搜索
-  ADDRESS = 'address',    // 地址搜索
-  COORDINATE = 'coordinate', // 坐标搜索
-  NEARBY = 'nearby',      // 附近搜索
-  DISTRICT = 'district',  // 行政区划搜索
-  NAVIGATION = 'navigation', // 导航搜索
-  CUSTOM = 'custom'       // 自定义搜索
+  KEYWORD = "keyword", // 关键词搜索
+  POI = "poi", // 兴趣点搜索
+  ADDRESS = "address", // 地址搜索
+  COORDINATE = "coordinate", // 坐标搜索
+  NEARBY = "nearby", // 附近搜索
+  DISTRICT = "district", // 行政区划搜索
+  NAVIGATION = "navigation", // 导航搜索
+  CUSTOM = "custom", // 自定义搜索
 }
 
 /**
  * 搜索类型配置接口
  */
 export interface SearchTypeConfig {
-  type: SearchType;     // 搜索类型
-  label: string;        // 显示标签
+  type: SearchType; // 搜索类型
+  label: string; // 显示标签
   placeholder?: string; // 占位文本
-  icon?: string;        // 图标
-  apiUrl?: string;      // 该类型的API URL
-  handler?: (keyword: string, options: SearchOptions) => Promise<SearchResult[]>; // 自定义处理函数
+  icon?: string; // 图标
+  apiUrl?: string; // 该类型的API URL
+  handler?: (
+    keyword: string,
+    options: SearchOptions,
+  ) => Promise<SearchResult[]>; // 自定义处理函数
 }
 
 /**
  * 搜索框配置接口
  */
 export interface SearchBoxConfig {
-  type: 'input' | 'select';
+  type: "input" | "select";
   placeholder: string;
   debounceTime: number;
-  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  position: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   projection: CoordSystem;
   key?: string;
   mapType: MapType;
@@ -118,12 +121,16 @@ export interface SearchBoxConfig {
   /** @deprecated 使用 apiUrls.navigation 代替 */
   navigationUrl?: string;
   markerIcon?: any;
-  
+
   // 新增字段
-  showTypeSelector?: boolean;                // 是否显示类型选择器
-  defaultSearchType?: SearchType;            // 默认搜索类型
-  searchTypes?: SearchTypeConfig[];          // 支持的搜索类型列表
-  customSearchHandler?: (type: SearchType, keyword: string, options: SearchOptions) => Promise<SearchResult[]>; // 自定义搜索处理函数
+  showTypeSelector?: boolean; // 是否显示类型选择器
+  defaultSearchType?: SearchType; // 默认搜索类型
+  searchTypes?: SearchTypeConfig[]; // 支持的搜索类型列表
+  customSearchHandler?: (
+    type: SearchType,
+    keyword: string,
+    options: SearchOptions,
+  ) => Promise<SearchResult[]>; // 自定义搜索处理函数
 }
 
 /**

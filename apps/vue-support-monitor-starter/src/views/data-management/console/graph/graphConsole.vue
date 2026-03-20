@@ -1,11 +1,11 @@
 <template>
   <div class="console system-container modern-bg">
     <div class="toolbar">
-      <el-select v-model="lang" style="width: 140px">
-        <el-option label="Cypher" value="cypher" />
-        <el-option label="Gremlin" value="gremlin" />
-      </el-select>
-      <el-button type="primary" @click="execute">执行</el-button>
+      <ScSelect v-model="lang" style="width: 140px">
+        <ScOption label="Cypher" value="cypher" />
+        <ScOption label="Gremlin" value="gremlin" />
+      </ScSelect>
+      <ScButton type="primary" @click="execute">执行</ScButton>
     </div>
     <CodeEditor
       v-model:content="text"
@@ -13,15 +13,15 @@
       :height="'220px'"
       :showTool="false"
     />
-    <el-table :data="rows" size="small" border height="60vh">
-      <el-table-column
+    <ScTable :data="rows" size="small" border height="60vh">
+      <ScTableColumn
         v-for="c in columns"
         :key="c"
         :prop="c"
         :label="c"
         :min-width="120"
       />
-    </el-table>
+    </ScTable>
   </div>
 </template>
 <script setup lang="ts">

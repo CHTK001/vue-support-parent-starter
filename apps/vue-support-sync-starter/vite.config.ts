@@ -1,12 +1,7 @@
-import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import dayjs from "dayjs";
-import vue from "@vitejs/plugin-vue";
-import vueJsx from "@vitejs/plugin-vue-jsx";
+import { createViteConfig } from "@repo/build-config";
 import pkg from "./package.json";
-import { createAlias as createBuildAlias } from "@repo/build-config";
 
+<<<<<<< HEAD
 const root: string = process.cwd();
 
 // 获取共享 public 目录
@@ -176,3 +171,15 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
   };
 };
+=======
+/**
+ * Vite 配置 - 同步系统
+ * 使用链式 API 简化配置
+ *
+ * 注意：本应用不依赖 @repo/font-encryption，已在 rollupOptions.external 中排除
+ */
+export default createViteConfig(import.meta.url, pkg)
+  .proxy("/api", "http://127.0.0.1:8080")
+  .target("es2015")
+  .build();
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126

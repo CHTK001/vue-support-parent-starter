@@ -3,7 +3,7 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-tag
+        <ScTag
           :type="
             connectionStatus === 'connected'
               ? 'success'
@@ -15,7 +15,7 @@
         >
           <IconifyIconOnline :icon="getStatusIcon()" class="mr-1" />
           {{ getStatusText() }}
-        </el-tag>
+        </ScTag>
         <span v-if="server" class="server-info">
           {{ server.monitorSysGenServerName }} ({{
             server.monitorSysGenServerHost
@@ -24,30 +24,30 @@
       </div>
       <div class="toolbar-right">
         <el-button-group>
-          <el-tooltip content="重新连接" placement="bottom">
-            <el-button
+          <ScTooltip content="重新连接" placement="bottom">
+            <ScButton
               size="small"
               :disabled="connectionStatus === 'connecting'"
               @click="reconnect"
             >
               <IconifyIconOnline icon="ri:refresh-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="全屏" placement="bottom">
-            <el-button size="small" @click="toggleFullscreen">
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip content="全屏" placement="bottom">
+            <ScButton size="small" @click="toggleFullscreen">
               <IconifyIconOnline icon="ri:fullscreen-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="截图" placement="bottom">
-            <el-button size="small" @click="takeScreenshot">
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip content="截图" placement="bottom">
+            <ScButton size="small" @click="takeScreenshot">
               <IconifyIconOnline icon="ri:camera-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="关闭" placement="bottom">
-            <el-button size="small" type="danger" @click="handleClose">
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip content="关闭" placement="bottom">
+            <ScButton size="small" type="danger" @click="handleClose">
               <IconifyIconOnline icon="ri:close-line" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </el-button-group>
       </div>
     </div>
@@ -68,7 +68,7 @@
 
       <!-- 加载中 -->
       <div v-if="connectionStatus === 'connecting'" class="loading-overlay">
-        <el-icon class="loading-icon" :size="48"><Loading /></el-icon>
+        <ScIcon class="loading-icon" :size="48"><Loading /></ScIcon>
         <p>正在连接远程桌面...</p>
       </div>
 
@@ -77,9 +77,9 @@
         v-if="connectionStatus === 'disconnected' && errorMessage"
         class="error-overlay"
       >
-        <el-icon :size="48"><CircleClose /></el-icon>
+        <ScIcon :size="48"><CircleClose /></ScIcon>
         <p>{{ errorMessage }}</p>
-        <el-button type="primary" @click="reconnect">重新连接</el-button>
+        <ScButton type="primary" @click="reconnect">重新连接</ScButton>
       </div>
     </div>
   </div>

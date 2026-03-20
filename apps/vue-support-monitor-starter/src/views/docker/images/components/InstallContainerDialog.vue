@@ -6,8 +6,8 @@
     :show-close="true"
     @close="handleClose"
   >
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
-      <el-form-item label="镜像">
+    <ScForm ref="formRef" :model="form" :rules="rules" label-width="120px">
+      <ScFormItem label="镜像">
         <div class="image-display">
           <IconifyIconOnline icon="ri:image-line" class="mr-2" />
           <span class="image-name"
@@ -15,211 +15,211 @@
               image?.systemSoftImageTag
             }}</span
           >
-          <el-tag size="small" type="info" class="ml-2">{{
+          <ScTag size="small" type="info" class="ml-2">{{
             image?.systemSoftImageServerName
-          }}</el-tag>
+          }}</ScTag>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="容器名称" prop="containerName">
-        <el-input
+      <ScFormItem label="容器名称" prop="containerName">
+        <ScInput
           v-model="form.containerName"
           placeholder="请输入容器名称（如：my-nginx）"
           clearable
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="主机名">
-        <el-input
+      <ScFormItem label="主机名">
+        <ScInput
           v-model="form.hostname"
           placeholder="容器主机名（可选）"
           clearable
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
         端口映射
-      </el-divider>
+      </ScDivider>
 
-      <el-form-item>
+      <ScFormItem>
         <div class="port-mappings">
           <div
             v-for="(port, index) in form.portMappings"
             :key="index"
             class="port-mapping-row"
           >
-            <el-input
+            <ScInput
               v-model="port.hostPort"
               placeholder="主机端口"
               style="width: 140px"
             >
               <template #prepend>Host</template>
-            </el-input>
+            </ScInput>
             <span class="port-arrow">→</span>
-            <el-input
+            <ScInput
               v-model="port.containerPort"
               placeholder="容器端口"
               style="width: 140px"
             >
               <template #prepend>Container</template>
-            </el-input>
-            <el-select
+            </ScInput>
+            <ScSelect
               v-model="port.protocol"
               placeholder="协议"
               style="width: 100px"
             >
-              <el-option label="TCP" value="tcp" />
-              <el-option label="UDP" value="udp" />
-            </el-select>
-            <el-button type="danger" text @click="removePortMapping(index)">
+              <ScOption label="TCP" value="tcp" />
+              <ScOption label="UDP" value="udp" />
+            </ScSelect>
+            <ScButton type="danger" text @click="removePortMapping(index)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
+            </ScButton>
           </div>
-          <el-button size="small" type="primary" text @click="addPortMapping">
+          <ScButton size="small" type="primary" text @click="addPortMapping">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加端口映射
-          </el-button>
+          </ScButton>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <IconifyIconOnline icon="ri:server-line" class="mr-1" />
         环境变量
-      </el-divider>
+      </ScDivider>
 
-      <el-form-item>
+      <ScFormItem>
         <div class="env-vars">
           <div
             v-for="(env, index) in form.envVars"
             :key="index"
             class="env-var-row"
           >
-            <el-input
+            <ScInput
               v-model="env.name"
               placeholder="变量名（如：MYSQL_ROOT_PASSWORD）"
               style="flex: 1"
             >
               <template #prepend>Key</template>
-            </el-input>
+            </ScInput>
             <span class="env-equal">=</span>
-            <el-input v-model="env.value" placeholder="变量值" style="flex: 1">
+            <ScInput v-model="env.value" placeholder="变量值" style="flex: 1">
               <template #prepend>Value</template>
-            </el-input>
-            <el-button type="danger" text @click="removeEnvVar(index)">
+            </ScInput>
+            <ScButton type="danger" text @click="removeEnvVar(index)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
+            </ScButton>
           </div>
-          <el-button size="small" type="primary" text @click="addEnvVar">
+          <ScButton size="small" type="primary" text @click="addEnvVar">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加环境变量
-          </el-button>
+          </ScButton>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <IconifyIconOnline icon="ri:folder-line" class="mr-1" />
         数据卷挂载
-      </el-divider>
+      </ScDivider>
 
-      <el-form-item>
+      <ScFormItem>
         <div class="volume-mounts">
           <div
             v-for="(volume, index) in form.volumeMounts"
             :key="index"
             class="volume-mount-row"
           >
-            <el-input
+            <ScInput
               v-model="volume.hostPath"
               placeholder="主机路径（如：/data/mysql）"
               style="flex: 1"
             >
               <template #prepend>Host</template>
-            </el-input>
+            </ScInput>
             <span class="volume-arrow">→</span>
-            <el-input
+            <ScInput
               v-model="volume.containerPath"
               placeholder="容器路径（如：/var/lib/mysql）"
               style="flex: 1"
             >
               <template #prepend>Container</template>
-            </el-input>
-            <el-checkbox v-model="volume.readOnly" class="ml-2"
+            </ScInput>
+            <ScCheckbox v-model="volume.readOnly" class="ml-2"
               >只读</el-checkbox
             >
-            <el-button type="danger" text @click="removeVolumeMount(index)">
+            <ScButton type="danger" text @click="removeVolumeMount(index)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
+            </ScButton>
           </div>
-          <el-button size="small" type="primary" text @click="addVolumeMount">
+          <ScButton size="small" type="primary" text @click="addVolumeMount">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加数据卷
-          </el-button>
+          </ScButton>
         </div>
-      </el-form-item>
+      </ScFormItem>
 
-      <el-divider content-position="left">
+      <ScDivider content-position="left">
         <IconifyIconOnline icon="ri:settings-4-line" class="mr-1" />
         高级选项
-      </el-divider>
+      </ScDivider>
 
-      <el-form-item label="重启策略">
-        <el-select
+      <ScFormItem label="重启策略">
+        <ScSelect
           v-model="form.restartPolicy"
           placeholder="选择重启策略"
           style="width: 100%"
         >
-          <el-option label="不重启" value="no" />
-          <el-option label="总是重启" value="always" />
-          <el-option label="失败时重启" value="on-failure" />
-          <el-option label="除非手动停止" value="unless-stopped" />
-        </el-select>
-      </el-form-item>
+          <ScOption label="不重启" value="no" />
+          <ScOption label="总是重启" value="always" />
+          <ScOption label="失败时重启" value="on-failure" />
+          <ScOption label="除非手动停止" value="unless-stopped" />
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="网络模式">
-        <el-select
+      <ScFormItem label="网络模式">
+        <ScSelect
           v-model="form.networkMode"
           placeholder="选择网络模式"
           style="width: 100%"
         >
-          <el-option label="桥接（bridge）" value="bridge" />
-          <el-option label="主机（host）" value="host" />
-          <el-option label="无网络（none）" value="none" />
-        </el-select>
-      </el-form-item>
+          <ScOption label="桥接（bridge）" value="bridge" />
+          <ScOption label="主机（host）" value="host" />
+          <ScOption label="无网络（none）" value="none" />
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="启动命令">
-        <el-input
+      <ScFormItem label="启动命令">
+        <ScInput
           v-model="form.command"
           placeholder="容器启动命令（可选）"
           clearable
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="工作目录">
-        <el-input
+      <ScFormItem label="工作目录">
+        <ScInput
           v-model="form.workDir"
           placeholder="容器工作目录（可选）"
           clearable
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="创建后启动">
-        <el-switch v-model="form.autoStart" />
-      </el-form-item>
-    </el-form>
+      <ScFormItem label="创建后启动">
+        <ScSwitch v-model="form.autoStart" />
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">取消</el-button>
-        <el-button type="primary" :loading="installing" @click="submit">
+        <ScButton @click="visibleProxy = false">取消</ScButton>
+        <ScButton type="primary" :loading="installing" @click="submit">
           <IconifyIconOnline
             v-if="!installing"
             icon="ri:play-circle-line"
             class="mr-1"
           />
           {{ installing ? "创建中..." : "创建容器" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

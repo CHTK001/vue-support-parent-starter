@@ -1,78 +1,78 @@
 ﻿<template>
   <div class="thread-viewer system-container modern-bg">
     <div class="toolbar">
-      <el-input
+      <ScInput
         v-model="keyword"
         placeholder="按线程名称过滤"
         clearable
         style="max-width: 200px"
       />
-      <el-select v-model="count" style="width: 120px">
-        <el-option :value="10" label="10条" />
-        <el-option :value="20" label="20条" />
-        <el-option :value="50" label="50条" />
-      </el-select>
-      <el-checkbox v-model="blocking">仅阻塞</el-checkbox>
-      <el-input
+      <ScSelect v-model="count" style="width: 120px">
+        <ScOption :value="10" label="10条" />
+        <ScOption :value="20" label="20条" />
+        <ScOption :value="50" label="50条" />
+      </ScSelect>
+      <ScCheckbox v-model="blocking">仅阻塞</ScCheckbox>
+      <ScInput
         v-model="threadId"
         placeholder="线程ID"
         style="max-width: 120px"
       />
-      <el-select
+      <ScSelect
         v-model="stateFilter"
         placeholder="状态筛选"
         style="width: 140px"
         clearable
       >
-        <el-option value="RUNNABLE" label="RUNNABLE" />
-        <el-option value="WAITING" label="WAITING" />
-        <el-option value="TIMED_WAITING" label="TIMED_WAITING" />
-        <el-option value="BLOCKED" label="BLOCKED" />
-        <el-option value="NEW" label="NEW" />
-        <el-option value="TERMINATED" label="TERMINATED" />
-      </el-select>
-      <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
-      <el-select
+        <ScOption value="RUNNABLE" label="RUNNABLE" />
+        <ScOption value="WAITING" label="WAITING" />
+        <ScOption value="TIMED_WAITING" label="TIMED_WAITING" />
+        <ScOption value="BLOCKED" label="BLOCKED" />
+        <ScOption value="NEW" label="NEW" />
+        <ScOption value="TERMINATED" label="TERMINATED" />
+      </ScSelect>
+      <ScCheckbox v-model="autoRefresh">自动刷新</ScCheckbox>
+      <ScSelect
         v-model="refreshInterval"
         style="width: 120px"
         :disabled="!autoRefresh"
         placeholder="刷新间隔"
       >
-        <el-option :value="5" label="5秒" />
-        <el-option :value="10" label="10秒" />
-        <el-option :value="30" label="30秒" />
-        <el-option :value="60" label="60秒" />
-      </el-select>
-      <el-button @click="clearData">清空</el-button>
-      <el-button
+        <ScOption :value="5" label="5秒" />
+        <ScOption :value="10" label="10秒" />
+        <ScOption :value="30" label="30秒" />
+        <ScOption :value="60" label="60秒" />
+      </ScSelect>
+      <ScButton @click="clearData">清空</ScButton>
+      <ScButton
         type="primary"
         :disabled="!nodeId"
         :loading="loading"
         @click="run"
       >
         {{ autoRefresh && countdown > 0 ? `刷新(${countdown}s)` : "刷新" }}
-      </el-button>
+      </ScButton>
     </div>
 
     <div class="content">
       <div v-if="error" class="error-message">
-        <el-alert type="error" :title="error" show-icon />
+        <ScAlert type="error" :title="error" show-icon />
       </div>
 
       <div v-else-if="threads.length === 0 && !loading" class="empty-state">
-        <el-empty description="暂无线程数据，请点击刷新获取" />
+        <ScEmpty description="暂无线程数据，请点击刷新获取" />
       </div>
 
       <div v-else class="thread-table-container">
-        <el-table
+        <ScTable
           :data="filteredThreads"
           height="100%"
           stripe
           row-class-name="thread-row"
           @row-click="handleRowClick"
         >
-          <el-table-column prop="id" label="ID" width="80" sortable />
-          <el-table-column
+          <ScTableColumn prop="id" label="ID" width="80" sortable />
+          <ScTableColumn
             prop="name"
             label="线程名称"
             min-width="200"
@@ -80,62 +80,62 @@
           >
             <template #default="{ row }">
               <div class="thread-name">
-                <el-tag v-if="row.daemon" size="small" type="info">守护</el-tag>
+                <ScTag v-if="row.daemon" size="small" type="info">守护</ScTag>
                 {{ row.name }}
               </div>
             </template>
-          </el-table-column>
-          <el-table-column prop="state" label="状态" width="120">
+          </ScTableColumn>
+          <ScTableColumn prop="state" label="状态" width="120">
             <template #default="{ row }">
-              <el-tag :type="getStateType(row.state)" size="small">
+              <ScTag :type="getStateType(row.state)" size="small">
                 {{ row.state }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="cpu" label="CPU%" width="100" sortable>
+          </ScTableColumn>
+          <ScTableColumn prop="cpu" label="CPU%" width="100" sortable>
             <template #default="{ row }">
               {{ (row.cpu || 0).toFixed(1) }}%
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn
             prop="priority"
             label="优先级"
             width="100"
             sortable
           />
-          <el-table-column
+          <ScTableColumn
             prop="group"
             label="线程组"
             width="120"
             show-overflow-tooltip
           />
-          <el-table-column prop="time" label="时间(ms)" width="120" sortable />
-          <el-table-column label="阻塞信息" width="120">
+          <ScTableColumn prop="time" label="时间(ms)" width="120" sortable />
+          <ScTableColumn label="阻塞信息" width="120">
             <template #default="{ row }">
               <div v-if="row.blockedCount > 0" class="blocked-info">
-                <el-tag type="warning" size="small">{{
+                <ScTag type="warning" size="small">{{
                   row.blockedCount
-                }}</el-tag>
+                }}</ScTag>
               </div>
               <span v-else class="blocked-info">无</span>
             </template>
-          </el-table-column>
-          <el-table-column label="等待信息" width="120">
+          </ScTableColumn>
+          <ScTableColumn label="等待信息" width="120">
             <template #default="{ row }">
               <div v-if="row.waitedCount > 0" class="waited-info">
-                <el-tag type="info" size="small">{{ row.waitedCount }}</el-tag>
+                <ScTag type="info" size="small">{{ row.waitedCount }}</ScTag>
               </div>
               <span v-else class="waited-info">-</span>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="100" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="100" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" @click.stop="viewStackTrace(row)">
+              <ScButton size="small" @click.stop="viewStackTrace(row)">
                 堆栈
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
       </div>
     </div>
 
@@ -148,53 +148,53 @@
     >
       <div v-if="selectedThread" class="stack-trace-content">
         <div class="thread-info">
-          <el-descriptions :column="3" border>
-            <el-descriptions-item label="线程ID">{{
+          <ScDescriptions :column="3" border>
+            <ScDescriptionsItem label="线程ID">{{
               selectedThread.id
-            }}</el-descriptions-item>
-            <el-descriptions-item label="线程名称">{{
+            }}</ScDescriptionsItem>
+            <ScDescriptionsItem label="线程名称">{{
               selectedThread.name
-            }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
-              <el-tag :type="getStateType(selectedThread.state)">{{
+            }}</ScDescriptionsItem>
+            <ScDescriptionsItem label="状态">
+              <ScTag :type="getStateType(selectedThread.state)">{{
                 selectedThread.state
-              }}</el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="优先级">{{
+              }}</ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="优先级">{{
               selectedThread.priority
-            }}</el-descriptions-item>
-            <el-descriptions-item label="线程组">{{
+            }}</ScDescriptionsItem>
+            <ScDescriptionsItem label="线程组">{{
               selectedThread.group
-            }}</el-descriptions-item>
-            <el-descriptions-item label="是否守护线程">
-              <el-tag :type="selectedThread.daemon ? 'info' : 'success'">
+            }}</ScDescriptionsItem>
+            <ScDescriptionsItem label="是否守护线程">
+              <ScTag :type="selectedThread.daemon ? 'info' : 'success'">
                 {{ selectedThread.daemon ? "是" : "否" }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="CPU使用率"
+              </ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="CPU使用率"
               >{{ (selectedThread.cpu || 0).toFixed(2) }}%</el-descriptions-item
             >
-            <el-descriptions-item label="运行时间"
+            <ScDescriptionsItem label="运行时间"
               >{{ selectedThread.time }}ms</el-descriptions-item
             >
-            <el-descriptions-item label="是否中断">
-              <el-tag :type="selectedThread.interrupted ? 'danger' : 'success'">
+            <ScDescriptionsItem label="是否中断">
+              <ScTag :type="selectedThread.interrupted ? 'danger' : 'success'">
                 {{ selectedThread.interrupted ? "是" : "否" }}
-              </el-tag>
-            </el-descriptions-item>
-          </el-descriptions>
+              </ScTag>
+            </ScDescriptionsItem>
+          </ScDescriptions>
         </div>
 
         <div v-if="selectedThread.lockInfo" class="lock-info">
           <h4>锁信息</h4>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="锁名称">{{
+          <ScDescriptions :column="2" border>
+            <ScDescriptionsItem label="锁名称">{{
               selectedThread.lockName
-            }}</el-descriptions-item>
-            <el-descriptions-item label="锁拥有者ID">{{
+            }}</ScDescriptionsItem>
+            <ScDescriptionsItem label="锁拥有者ID">{{
               selectedThread.lockOwnerId
-            }}</el-descriptions-item>
-          </el-descriptions>
+            }}</ScDescriptionsItem>
+          </ScDescriptions>
         </div>
 
         <div class="stack-trace">
@@ -222,7 +222,7 @@
             </div>
           </div>
           <div v-else class="no-stack">
-            <el-empty description="无堆栈信息" />
+            <ScEmpty description="无堆栈信息" />
           </div>
         </div>
       </div>

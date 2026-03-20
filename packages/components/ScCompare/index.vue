@@ -95,7 +95,10 @@ const { leftImage, rightImage, leftImageLabel, rightImageLabel, leftImageCss, ri
 
 :global(html[data-skin="8bit"]) .sc-compare-root :deep(.vci--root) {
   border-radius: 0;
-  box-shadow: 0 0 0 2px #000000, 0 0 0 4px #ffffff, 0 0 0 6px #00ff00;
+  box-shadow:
+    0 0 0 2px #000000,
+    0 0 0 4px #ffffff,
+    0 0 0 6px #00ff00;
 }
 
 :global(html[data-skin="8bit"]) .sc-compare-root :deep(.vci--left-label),
@@ -122,8 +125,8 @@ const { leftImage, rightImage, leftImageLabel, rightImageLabel, leftImageCss, ri
 :global(html[data-skin="8bit"]) .sc-compare-root :deep(.vci--controller) {
   border-radius: 0;
   background: #00ff00;
-  box-shadow: 0 0 0 2px #000000, 0 0 0 4px #ffffff;
+  box-shadow:
+    0 0 0 2px #000000,
+    0 0 0 4px #ffffff;
 }
 </style>
-
-

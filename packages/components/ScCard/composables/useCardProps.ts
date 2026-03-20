@@ -2,7 +2,7 @@
  * ScCard Props 计算 Composable
  * 根据不同布局类型生成对应的组件属性
  */
-import { computed, type ComputedRef } from 'vue';
+import { computed, type ComputedRef } from "vue";
 
 export interface ScCardBaseProps {
   title: string;
@@ -49,19 +49,19 @@ export interface ScCardProps extends ScCardBaseProps {
 
 // Tech 主题映射表（静态常量，避免每次重新创建）
 const TECH_THEME_MAP: Record<string, string> = {
-  default: 'cyan',
-  primary: 'blue',
-  success: 'green',
-  warning: 'orange',
-  danger: 'red',
-  info: 'blue',
-  blue: 'blue',
-  green: 'green',
-  purple: 'purple',
-  orange: 'orange',
-  cyan: 'cyan',
-  red: 'red',
-  custom: 'cyan',
+  default: "cyan",
+  primary: "blue",
+  success: "green",
+  warning: "orange",
+  danger: "red",
+  info: "blue",
+  blue: "blue",
+  green: "green",
+  purple: "purple",
+  orange: "orange",
+  cyan: "cyan",
+  red: "red",
+  custom: "cyan"
 };
 
 // 布局属性生成器映射
@@ -71,17 +71,17 @@ const layoutPropsGenerators: Record<string, (props: ScCardProps, baseProps: ScCa
     mediaPosition: props.mediaPosition,
     mediaWidth: props.mediaWidth,
     mediaHeight: props.mediaHeight,
-    mediaBgColor: props.mediaBgColor,
+    mediaBgColor: props.mediaBgColor
   }),
-  
-  'header-content': (props, baseProps) => ({
+
+  "header-content": (props, baseProps) => ({
     ...baseProps,
     headerHeight: props.headerHeight,
     headerBgColor: props.headerBgColor,
-    headerBgImage: props.headerBgImage,
+    headerBgImage: props.headerBgImage
   }),
-  
-  'panel-3d': (props, baseProps) => ({
+
+  "panel-3d": (props, baseProps) => ({
     ...baseProps,
     icon: props.icon,
     showHeader: props.showHeader,
@@ -91,18 +91,18 @@ const layoutPropsGenerators: Record<string, (props: ScCardProps, baseProps: ScCa
     backgroundColor: props.backgroundColor,
     borderColor: props.borderColor,
     activeBorderColor: props.activeBorderColor,
-    padding: props.padding,
+    padding: props.padding
   }),
-  
+
   compact: (props, baseProps) => ({
     ...baseProps,
     icon: props.icon,
     subtitle: props.subtitle,
     iconBgColor: props.iconBgColor,
     active: props.active,
-    theme: props.theme,
+    theme: props.theme
   }),
-  
+
   stats: (props, baseProps) => ({
     ...baseProps,
     icon: props.icon,
@@ -113,31 +113,31 @@ const layoutPropsGenerators: Record<string, (props: ScCardProps, baseProps: ScCa
     counting: props.counting,
     active: props.active,
     theme: props.theme,
-    size: props.size === 'normal' ? 'small' : props.size,
+    size: props.size === "normal" ? "small" : props.size
   }),
-  
-  'stats-simple': (props, baseProps) => ({
+
+  "stats-simple": (props, baseProps) => ({
     ...baseProps,
     icon: props.icon,
     value: props.value,
     label: props.label,
-    theme: props.theme,
+    theme: props.theme
   }),
-  
+
   tech: (props, baseProps) => ({
     ...baseProps,
     icon: props.icon,
     showHeader: props.showHeader,
     active: props.active,
-    theme: TECH_THEME_MAP[props.theme || 'default'] || 'cyan',
+    theme: TECH_THEME_MAP[props.theme || "default"] || "cyan",
     padding: props.padding,
-    showDataFlow: true,
+    showDataFlow: true
   }),
-  
+
   custom: (props, baseProps) => ({
     ...baseProps,
-    ...props,
-  }),
+    ...props
+  })
 };
 
 export function useCardProps(props: ScCardProps): ComputedRef<Record<string, any>> {
@@ -146,15 +146,15 @@ export function useCardProps(props: ScCardProps): ComputedRef<Record<string, any
       title: props.title,
       hoverable: props.hoverable,
       shadow: props.shadow,
-      borderPosition: props.borderPosition,
+      borderPosition: props.borderPosition
     };
 
     // el-card 特殊处理
-    if (props.renderAs === 'el-card') {
+    if (props.renderAs === "el-card") {
       return {
         header: props.title,
         shadow: props.shadow,
-        bodyStyle: props.padding ? { padding: props.padding } : {},
+        bodyStyle: props.padding ? { padding: props.padding } : {}
       };
     }
 

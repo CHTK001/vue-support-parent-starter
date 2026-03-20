@@ -1,6 +1,6 @@
 <template>
   <div class="process-layout">
-    <el-progress :percentage="percentage" :status="progressStatus" :stroke-width="strokeWidth" :format="percentageFormat" />
+    <ScProgress :percentage="percentage" :status="progressStatus" :stroke-width="strokeWidth" :format="percentageFormat" />
 
     <div v-if="message" class="process-message">
       <IconifyIconOnline :icon="messageIcon" class="message-icon" />
@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 interface Props {
   percentage: number;

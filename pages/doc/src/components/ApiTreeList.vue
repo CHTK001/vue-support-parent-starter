@@ -2,7 +2,7 @@
   <div class="api-tree-list">
     <!-- 搜索框 -->
     <div class="search-box" v-if="showSearch">
-      <ScInput 
+      <ScInput
         v-model="searchKeyword"
         placeholder="搜索接口..."
         size="small"
@@ -17,7 +17,7 @@
     <!-- API 树 -->
     <div class="api-tree">
       <div v-if="loading" class="loading-container">
-        <el-skeleton :rows="5" animated />
+        <ScSkeleton :rows="5" animated />
       </div>
       <div v-else-if="!filteredApiGroups.length" class="empty-container">
         <ScEmpty description="暂无API文档" :image-size="80" />
@@ -94,7 +94,7 @@ const props = withDefaults(
     loading: false,
     showSearch: true,
     defaultExpandedGroups: () => [],
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -121,7 +121,7 @@ const filteredApiGroups = computed(() => {
           api.summary
             ?.toLowerCase()
             .includes(searchKeyword.value.toLowerCase()) ||
-          api.method.toLowerCase().includes(searchKeyword.value.toLowerCase())
+          api.method.toLowerCase().includes(searchKeyword.value.toLowerCase()),
       ),
     }))
     .filter((group) => group.apis.length > 0);
@@ -158,7 +158,7 @@ watch(
       expandedGroups.value = [newGroups[0].name];
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>
 

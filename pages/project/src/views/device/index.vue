@@ -1,20 +1,20 @@
 ﻿<template>
   <div class="device-container system-container modern-bg">
     <div class="device-header-wrapper">
-      <el-header class="device-header">
+      <ScHeader class="device-header">
         <div class="device-left-panel">
-          <ScForm 
+          <ScForm
             ref="formRef"
             :inline="true"
             :model="deviceForm"
             class="device-search-form"
           >
-            <ScFormItem 
+            <ScFormItem
               label="序列号"
               prop="sysDeviceSerialNumber"
               class="device-form-item"
             >
-              <ScInput 
+              <ScInput
                 v-model="deviceForm.sysDeviceSerialNumber"
                 placeholder="请输入序列号"
                 clearable
@@ -22,19 +22,19 @@
               />
             </ScFormItem>
 
-            <ScFormItem 
+            <ScFormItem
               label="设备名称"
               prop="sysDeviceName"
               class="device-form-item"
             >
-              <ScInput 
+              <ScInput
                 v-model="deviceForm.sysDeviceName"
                 placeholder="请输入设备名称"
                 clearable
                 class="device-input"
               />
             </ScFormItem>
-            <ScFormItem 
+            <ScFormItem
               label="在线状态"
               prop="sysCameraTemplateOnline"
               class="device-form-item"
@@ -50,7 +50,7 @@
                 @change="onSearch"
               />
             </ScFormItem>
-            <ScFormItem 
+            <ScFormItem
               label="设备状态"
               prop="sysDeviceStatus"
               class="device-form-item"
@@ -71,7 +71,7 @@
         <div class="device-right-panel">
           <div class="device-right-panel-search">
             <!-- 添加批量播放按钮，仅在有选中项时显示 -->
-            <ScButton 
+            <ScButton
               v-if="selectedRows.length > 0"
               type="success"
               class="device-btn device-play-btn"
@@ -80,13 +80,13 @@
               <IconifyIconOnline icon="mdi:play-circle" />
               <span class="ml-1">批量播放 ({{ selectedRows.length }})</span>
             </ScButton>
-            <ScButton 
+            <ScButton
               type="primary"
               :icon="useRenderIcon('ri:search-line')"
               class="device-btn device-search-btn"
               @click="onSearch"
             />
-            <ScButton 
+            <ScButton
               title="新增"
               :icon="useRenderIcon('ep:plus')"
               class="device-btn device-add-btn"
@@ -94,7 +94,7 @@
             />
           </div>
         </div>
-      </el-header>
+      </ScHeader>
     </div>
     <ScTable
       ref="tableRef"
@@ -107,14 +107,14 @@
     >
       <!-- 添加多选列 -->
       <ScTableColumn type="selection" width="55" fixed="left" />
-      <ScTableColumn 
+      <ScTableColumn
         label="序号"
         type="index"
         align="center"
         fixed
         width="60px"
       />
-      <ScTableColumn 
+      <ScTableColumn
         prop="sysDeviceSerialNumber"
         label="设备序列号"
         align="left"
@@ -160,7 +160,7 @@
                           deviceInstance.handlePreviewUrl(
                             cameraPreviewDialogRef,
                             row,
-                            'view'
+                            'view',
                           )
                         "
                       />
@@ -281,7 +281,7 @@
         </template>
       </ScTableColumn>
 
-      <ScTableColumn 
+      <ScTableColumn
         prop="sysDeviceOrgCode"
         label="组织编码"
         align="left"
@@ -297,7 +297,7 @@
         </template>
       </ScTableColumn>
 
-      <ScTableColumn 
+      <ScTableColumn
         prop="sysDeviceNetAddress"
         label="网路地址"
         align="center"
@@ -313,7 +313,7 @@
         </template>
       </ScTableColumn>
 
-      <ScTableColumn 
+      <ScTableColumn
         prop="updateTime"
         label="最后一次更新时间"
         align="left"
@@ -332,7 +332,7 @@
         </template>
       </ScTableColumn>
 
-      <ScTableColumn 
+      <ScTableColumn
         prop="sysDevicePosition"
         label="位置"
         align="center"
@@ -346,7 +346,7 @@
         </template>
       </ScTableColumn>
 
-      <ScTableColumn 
+      <ScTableColumn
         label="是否禁用"
         prop="sysDeviceStatus"
         width="160px"
@@ -363,7 +363,7 @@
           />
         </template>
       </ScTableColumn>
-      <ScTableColumn 
+      <ScTableColumn
         label="设备状态"
         prop="sysDeviceOnline"
         width="240px"
@@ -382,7 +382,7 @@
         </template>
       </ScTableColumn>
 
-      <ScTableColumn 
+      <ScTableColumn
         label="操作"
         fixed="right"
         align="center"
@@ -390,7 +390,7 @@
       >
         <template #default="{ row }">
           <div class="flex justify-start">
-            <ScButton 
+            <ScButton
               class="btn-text"
               :icon="useRenderIcon('ep:edit')"
               @click.stop="
@@ -398,7 +398,7 @@
               "
             />
 
-            <ScButton 
+            <ScButton
               class="btn-text"
               title="历史在线"
               type="warning"
@@ -407,7 +407,7 @@
                 deviceInstance.handleTimeline(timelineDialogRef, row)
               "
             />
-            <ScButton 
+            <ScButton
               class="btn-text"
               title="管道管理"
               :icon="useRenderIcon('bi:pip')"
@@ -416,13 +416,13 @@
               "
             />
 
-            <ScPopconfirm 
+            <ScPopconfirm
               v-if="row.sysDeviceDisabled == 0"
               :title="$t('message.confimDelete')"
               @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)"
             >
               <template #reference>
-                <ScButton 
+                <ScButton
                   class="btn-text"
                   type="danger"
                   plain
@@ -450,22 +450,22 @@ import { createDevice, getResourceIcon } from "../template/device/hook/device";
 // 导入时间处理工具函数
 import { getTimeAgo, message } from "@repo/utils";
 const SaveDialog = defineAsyncComponent(
-  () => import("../template/device/save.vue")
+  () => import("../template/device/save.vue"),
 );
 const TimelineDialog = defineAsyncComponent(
-  () => import("../template/device/timeline.vue")
+  () => import("../template/device/timeline.vue"),
 );
 const CardHistory = defineAsyncComponent(
-  () => import("../template/device/card-history.vue")
+  () => import("../template/device/card-history.vue"),
 );
 const ChannelDialog = defineAsyncComponent(
-  () => import("../template/device/channel/index.vue")
+  () => import("../template/device/channel/index.vue"),
 );
 const ScIp = defineAsyncComponent(
-  () => import("@repo/components/ScIp/index.vue")
+  () => import("@repo/components"),
 );
 const DeviceDetailDialog = defineAsyncComponent(
-  () => import("./components/DeviceDetailDialog.vue")
+  () => import("./components/DeviceDetailDialog.vue"),
 );
 
 const deviceInstance = createDevice();
@@ -503,7 +503,7 @@ const handleSelectionChange = (selection) => {
 const handleBatchPreview = () => {
   // 过滤出摄像头类型的设备
   const cameraDevices = selectedRows.value.filter(
-    (row) => row.sysDeviceResourceType === "CAMERA"
+    (row) => row.sysDeviceResourceType === "CAMERA",
   );
   if (cameraDevices.length === 0) {
     message("请至少选择一个摄像头设备", { type: "warning" });
@@ -514,7 +514,7 @@ const handleBatchPreview = () => {
   deviceInstance.handlePreviewUrl(
     cameraPreviewDialogRef,
     cameraDevices,
-    "view"
+    "view",
   );
 };
 </script>

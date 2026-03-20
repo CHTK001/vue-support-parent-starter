@@ -1,41 +1,48 @@
-/**
- * 坐标面板组件
- * @description 显示地图上的坐标信息
- */
+/** * 坐标面板组件 * @description 显示地图上的坐标信息 */
 <template>
   <div class="coordinate-panel" :class="[positionClass, { active }]">
     <div class="coordinate-inner">
       <span class="coordinate-label">经度:</span>
-      <span class="coordinate-value">{{ formatCoordinate(coordinateInfo.lng || 0) }}</span>
+      <span class="coordinate-value">{{
+        formatCoordinate(coordinateInfo.lng || 0)
+      }}</span>
       <span class="coordinate-label">纬度:</span>
-      <span class="coordinate-value">{{ formatCoordinate(coordinateInfo.lat || 0) }}</span>
+      <span class="coordinate-value">{{
+        formatCoordinate(coordinateInfo.lat || 0)
+      }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { CoordinateInfo, CoordinatePosition } from '../composables/CoordinateObject';
+import { computed } from "vue";
+import {
+  CoordinateInfo,
+  CoordinatePosition,
+} from "../composables/CoordinateObject";
 
-const props = withDefaults(defineProps<{
-  active: boolean;
-  coordinateInfo: CoordinateInfo;
-  showProjected?: boolean;
-}>(), {
-  active: false,
-  showProjected: true
-});
+const props = withDefaults(
+  defineProps<{
+    active: boolean;
+    coordinateInfo: CoordinateInfo;
+    showProjected?: boolean;
+  }>(),
+  {
+    active: false,
+    showProjected: true,
+  },
+);
 
 // 计算位置类
 const positionClass = computed(() => {
-  const position = props.coordinateInfo.position || 'bottom-right';
+  const position = props.coordinateInfo.position || "bottom-right";
   return `position-${position}`;
 });
 
 // 格式化坐标值
 const formatCoordinate = (value: number): string => {
   if (value === undefined) {
-    return '未知';
+    return "未知";
   }
   const decimals = props.coordinateInfo.decimals || 6;
   return value.toFixed(decimals);
@@ -97,10 +104,10 @@ const formatCoordinate = (value: number): string => {
   bottom: 10px;
   right: 10px;
 }
-</style> 
+</style>
 
 <script lang="ts">
 export default {
-  name: 'CoordinatePanel'
+  name: "CoordinatePanel",
 };
-</script> 
+</script>

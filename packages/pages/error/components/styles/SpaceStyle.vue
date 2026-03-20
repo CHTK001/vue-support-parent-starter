@@ -87,7 +87,11 @@ const { t } = useI18n();
       <!-- 错误信息 -->
       <div class="error-content">
         <div class="error-code">
-          <span v-for="(digit, index) in String(code).split('')" :key="index" class="digit">
+          <span
+            v-for="(digit, index) in String(code).split('')"
+            :key="index"
+            class="digit"
+          >
             {{ digit }}
           </span>
         </div>

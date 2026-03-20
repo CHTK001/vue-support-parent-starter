@@ -9,12 +9,12 @@ export enum LogLevel {
   INFO = 1,
   WARN = 2,
   ERROR = 3,
-  NONE = 4
+  NONE = 4,
 }
 
 class LogObject {
   private level: LogLevel = LogLevel.INFO; // 默认日志级别
-  private prefix: string = '[ScMap]'; // 日志前缀
+  private prefix: string = "[ScMap]"; // 日志前缀
 
   /**
    * 设置日志级别
@@ -94,9 +94,12 @@ class LogObject {
     if (level < this.level) return;
 
     const timestamp = new Date().toISOString();
-    const levelStr = LogLevel[level] || 'UNKNOWN';
-    
-    console.log(`${this.prefix} [${timestamp}] [${levelStr}] ${message}`, ...params);
+    const levelStr = LogLevel[level] || "UNKNOWN";
+
+    console.log(
+      `${this.prefix} [${timestamp}] [${levelStr}] ${message}`,
+      ...params,
+    );
   }
 
   /**
@@ -150,4 +153,4 @@ class LogObject {
 const logger = new LogObject();
 
 // 导出日志对象
-export default logger; 
+export default logger;

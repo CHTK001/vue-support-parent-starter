@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <div class="header-icon">
-          <el-icon :size="28"><Connection /></el-icon>
+          <ScIcon :size="28"><Connection /></ScIcon>
         </div>
         <div class="header-text">
           <h2>链路追踪</h2>
@@ -12,40 +12,40 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-select
+        <ScSelect
           v-model="filterForm.configId"
           placeholder="选择配置"
           style="width: 160px"
           @change="handleConfigChange"
         >
-          <el-option
+          <ScOption
             v-for="item in configList"
             :key="item.skywalkingConfigId"
             :label="item.skywalkingConfigName"
             :value="item.skywalkingConfigId"
           />
-        </el-select>
-        <el-select
+        </ScSelect>
+        <ScSelect
           v-model="filterForm.serviceId"
           placeholder="选择服务"
           clearable
           filterable
           style="width: 160px"
         >
-          <el-option
+          <ScOption
             v-for="item in serviceList"
             :key="item.id"
             :label="item.name"
             :value="item.id"
           />
-        </el-select>
-        <el-input
+        </ScSelect>
+        <ScInput
           v-model="filterForm.traceId"
           placeholder="TraceID"
           clearable
           style="width: 200px"
         />
-        <el-date-picker
+        <ScDatePicker
           v-model="timeRange"
           type="datetimerange"
           range-separator="-"
@@ -56,61 +56,61 @@
           style="width: 260px"
           @change="handleTimeChange"
         />
-        <el-select
+        <ScSelect
           v-model="filterForm.traceState"
           placeholder="状态"
           style="width: 100px"
         >
-          <el-option label="全部" value="ALL" />
-          <el-option label="成功" value="SUCCESS" />
-          <el-option label="错误" value="ERROR" />
-        </el-select>
-        <el-button type="primary" :icon="Search" @click="handleSearch"
+          <ScOption label="全部" value="ALL" />
+          <ScOption label="成功" value="SUCCESS" />
+          <ScOption label="错误" value="ERROR" />
+        </ScSelect>
+        <ScButton type="primary" :icon="Search" @click="handleSearch"
           >查询</el-button
         >
-        <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
+        <ScButton :icon="RefreshRight" @click="handleReset">重置</ScButton>
       </div>
     </div>
 
     <!-- 表格区域 -->
-    <el-card class="table-card" shadow="never">
-      <el-table
+    <ScCard class="table-card" shadow="never">
+      <ScTable
         v-loading="loading"
         :data="tableData"
         border
         stripe
         @row-click="handleRowClick"
       >
-        <el-table-column label="状态" width="80" align="center">
+        <ScTableColumn label="状态" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.isError ? 'danger' : 'success'" size="small">
+            <ScTag :type="row.isError ? 'danger' : 'success'" size="small">
               {{ row.isError ? "错误" : "成功" }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="Trace ID" min-width="300">
+        </ScTableColumn>
+        <ScTableColumn label="Trace ID" min-width="300">
           <template #default="{ row }">
             <span class="trace-id">{{ row.traceIds?.[0] || "-" }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="端点" min-width="300" show-overflow-tooltip>
+        </ScTableColumn>
+        <ScTableColumn label="端点" min-width="300" show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.endpointNames?.join(", ") || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column prop="duration" label="耗时" width="120" align="right">
+        </ScTableColumn>
+        <ScTableColumn prop="duration" label="耗时" width="120" align="right">
           <template #default="{ row }">
             <span :class="{ 'slow-duration': row.duration > 1000 }">
               {{ formatDuration(row.duration) }}
             </span>
           </template>
-        </el-table-column>
-        <el-table-column prop="start" label="开始时间" width="180" />
-      </el-table>
+        </ScTableColumn>
+        <ScTableColumn prop="start" label="开始时间" width="180" />
+      </ScTable>
 
       <!-- 分页 -->
       <div class="pagination-container">
-        <el-pagination
+        <ScPagination
           v-model:current-page="pagination.pageNum"
           v-model:page-size="pagination.pageSize"
           :page-sizes="[10, 20, 50, 100]"
@@ -120,7 +120,7 @@
           @current-change="fetchData"
         />
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

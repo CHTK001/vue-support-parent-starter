@@ -25,21 +25,21 @@
     <div class="log-viewer-content">
       <!-- 工具栏 -->
       <div class="toolbar">
-        <el-select
+        <ScSelect
           v-model="selectedLogFile"
           placeholder="选择日志文件"
           style="width: 200px"
           @change="loadLogContent"
         >
-          <el-option
+          <ScOption
             v-for="file in logFiles"
             :key="file"
             :label="file"
             :value="file"
           />
-        </el-select>
+        </ScSelect>
 
-        <el-input-number
+        <ScInputNumber
           v-model="lines"
           :min="50"
           :max="1000"
@@ -48,49 +48,49 @@
           placeholder="行数"
         />
 
-        <el-button type="primary" :loading="loading" @click="loadLogContent">
+        <ScButton type="primary" :loading="loading" @click="loadLogContent">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
-        </el-button>
+        </ScButton>
 
-        <el-button @click="toggleAutoRefresh">
+        <ScButton @click="toggleAutoRefresh">
           <IconifyIconOnline
             :icon="autoRefresh ? 'ri:pause-circle-line' : 'ri:play-circle-line'"
           />
           {{ autoRefresh ? "停止自动刷新" : "自动刷新" }}
-        </el-button>
+        </ScButton>
 
-        <el-button @click="scrollToBottom">
+        <ScButton @click="scrollToBottom">
           <IconifyIconOnline icon="ri:arrow-down-line" />
           滚动到底部
-        </el-button>
+        </ScButton>
 
-        <el-button @click="copyLogContent">
+        <ScButton @click="copyLogContent">
           <IconifyIconOnline icon="ri:file-copy-line" />
           复制
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 日志内容 -->
       <div class="log-content-wrapper">
         <div v-if="loading" class="loading-mask">
-          <el-icon class="is-loading">
+          <ScIcon class="is-loading">
             <IconifyIconOnline icon="ri:loader-4-line" />
-          </el-icon>
+          </ScIcon>
           <span>加载中...</span>
         </div>
 
         <pre ref="logContentRef" class="log-content">{{ logContent }}</pre>
 
         <div v-if="!loading && !logContent" class="empty-content">
-          <el-empty description="暂无日志内容" />
+          <ScEmpty description="暂无日志内容" />
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
+        <ScButton @click="handleClose">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

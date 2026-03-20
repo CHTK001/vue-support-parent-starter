@@ -5,7 +5,10 @@
  * @date 2025-12-16
  */
 import { ref, computed, type Ref } from "vue";
-import { useFontEncryption, type FontEncryptionConfig } from "../utils/useFontEncryption";
+import {
+  useFontEncryption,
+  type FontEncryptionConfig,
+} from "../utils/useFontEncryption";
 
 /**
  * 字体加密控制选项
@@ -65,7 +68,7 @@ export interface FontEncryptionControlReturn {
  * @returns 控制对象
  */
 export function useFontEncryptionControl(
-  options: FontEncryptionControlOptions = {}
+  options: FontEncryptionControlOptions = {},
 ): FontEncryptionControlReturn {
   const {
     initialEnabled = false,
@@ -97,7 +100,7 @@ export function useFontEncryptionControl(
 
   // 使用字体加密 Hook
   const { updateConfig: updateFontConfig } = useFontEncryption(() =>
-    createConfig()
+    createConfig(),
   );
 
   // 切换加密开关
@@ -169,4 +172,3 @@ export function useFontEncryptionControl(
     updateConfig,
   };
 }
-

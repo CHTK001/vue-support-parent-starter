@@ -58,14 +58,14 @@ function ascending(arr: any[]) {
   return arr.sort(
     (a: { meta: { rank: number } }, b: { meta: { rank: number } }) => {
       return a?.meta.rank - b?.meta.rank;
-    }
+    },
   );
 }
 
 /** 过滤meta中showLink为false的菜单，并为缺省图标的菜单设置默认图标 */
 function filterTree(data: RouteComponent[]) {
   const newTree = cloneDeep(data).filter(
-    (v: any) => v.meta?.showLink !== false
+    (v: any) => v.meta?.showLink !== false,
   );
   newTree.forEach((v: any) => {
     v.meta = v.meta || {};
@@ -180,7 +180,7 @@ function handleAsyncRoutes(routeList) {
         // 防止重复添加路由
         if (
           router.options.routes[0].children.findIndex(
-            (value) => value.path === v.path
+            (value) => value.path === v.path,
           ) !== -1
         ) {
           return;
@@ -195,7 +195,7 @@ function handleAsyncRoutes(routeList) {
             .find((n) => n.path === "/");
           router.addRoute(flattenRouters);
         }
-      }
+      },
     );
     usePermissionStoreHook().handleWholeMenus(routeList);
   }
@@ -203,7 +203,7 @@ function handleAsyncRoutes(routeList) {
     useMultiTagsStoreHook().handleTags("equal", [
       ...defaultRouterArrays,
       ...usePermissionStoreHook().flatteningRoutes.filter(
-        (v) => v?.meta?.fixedTag
+        (v) => v?.meta?.fixedTag,
       ),
     ]);
   }
@@ -377,11 +377,9 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
       //@ts-ignore
       const index = v?.component
         ? modulesRoutesKeys.findIndex((ev) =>
-            include(ev, v?.component as string)
+            include(ev, v?.component as string),
           )
-        : modulesRoutesKeys.findIndex((ev) =>
-            include(ev, v.path as string)
-          );
+        : modulesRoutesKeys.findIndex((ev) => include(ev, v.path as string));
       v.component = modulesRoutes[modulesRoutesKeys[index]];
     }
     if (v?.children && v.children.length) {
@@ -472,7 +470,7 @@ function handleTopMenu(route) {
 /** 获取所有菜单中的第一个菜单（顶级菜单）*/
 function getTopMenu(tag = false): MenuType {
   const topMenu = handleTopMenu(
-    usePermissionStoreHook().wholeMenus[0]?.children[0]
+    usePermissionStoreHook().wholeMenus[0]?.children[0],
   );
   tag && useMultiTagsStoreHook().handleTags("push", topMenu);
   return topMenu;

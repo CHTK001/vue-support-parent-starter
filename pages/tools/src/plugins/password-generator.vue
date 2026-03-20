@@ -3,7 +3,12 @@
     <sc-panel class="generator-panel" title="密码生成器" theme="primary">
       <div class="password-display">
         <div class="password-field">
-          <ScInput v-model="generatedPassword" :disabled="true" size="large" class="password-input">
+          <ScInput
+            v-model="generatedPassword"
+            :disabled="true"
+            size="large"
+            class="password-input"
+          >
             <template #append>
               <ScButton @click="copyPassword">
                 <IconifyIconOnline icon="ep:document-copy" />
@@ -14,7 +19,10 @@
 
         <div class="password-strength" :class="passwordStrengthClass">
           <div class="strength-indicator">
-            <div class="strength-bar" :style="{ width: strengthPercentage + '%' }"></div>
+            <div
+              class="strength-bar"
+              :style="{ width: strengthPercentage + '%' }"
+            ></div>
           </div>
           <div class="strength-text">{{ passwordStrengthText }}</div>
         </div>
@@ -25,24 +33,42 @@
       <div class="password-options">
         <ScForm label-position="left" :label-width="120">
           <ScFormItem label="密码长度">
-            <ScSlider v-model="passwordLength" :min="4" :max="64" show-input @change="generatePassword" />
+            <ScSlider
+              v-model="passwordLength"
+              :min="4"
+              :max="64"
+              show-input
+              @change="generatePassword"
+            />
           </ScFormItem>
 
           <ScFormItem label="密码字符集">
             <div class="character-options">
-              <ScCheckbox v-model="includeUppercase" @change="generatePassword">大写字母 (A-Z)</ScCheckbox>
-              <ScCheckbox v-model="includeLowercase" @change="generatePassword">小写字母 (a-z)</ScCheckbox>
-              <ScCheckbox v-model="includeNumbers" @change="generatePassword">数字 (0-9)</ScCheckbox>
-              <ScCheckbox v-model="includeSymbols" @change="generatePassword">特殊符号 (!@#$%^&*)</ScCheckbox>
+              <ScCheckbox v-model="includeUppercase" @change="generatePassword"
+                >大写字母 (A-Z)</ScCheckbox
+              >
+              <ScCheckbox v-model="includeLowercase" @change="generatePassword"
+                >小写字母 (a-z)</ScCheckbox
+              >
+              <ScCheckbox v-model="includeNumbers" @change="generatePassword"
+                >数字 (0-9)</ScCheckbox
+              >
+              <ScCheckbox v-model="includeSymbols" @change="generatePassword"
+                >特殊符号 (!@#$%^&*)</ScCheckbox
+              >
             </div>
           </ScFormItem>
 
           <ScFormItem label="排除相似字符">
-            <ScCheckbox v-model="excludeSimilar" @change="generatePassword"> 排除容易混淆的字符 (1, l, I, 0, O, o) </ScCheckbox>
+            <ScCheckbox v-model="excludeSimilar" @change="generatePassword">
+              排除容易混淆的字符 (1, l, I, 0, O, o)
+            </ScCheckbox>
           </ScFormItem>
 
           <ScFormItem label="排除重复字符">
-            <ScCheckbox v-model="excludeDuplicates" @change="generatePassword">每个字符只出现一次</ScCheckbox>
+            <ScCheckbox v-model="excludeDuplicates" @change="generatePassword"
+              >每个字符只出现一次</ScCheckbox
+            >
           </ScFormItem>
 
           <ScFormItem>
@@ -59,19 +85,34 @@
           <div class="batch-header">
             <h3>批量生成</h3>
             <div class="batch-controls">
-              <ScInputNumber v-model="batchCount" :min="1" :max="100" :step="1" controls-position="right" size="small" />
+              <ScInputNumber
+                v-model="batchCount"
+                :min="1"
+                :max="100"
+                :step="1"
+                controls-position="right"
+                size="small"
+              />
               <ScButton type="success" size="small" @click="generateBatch">
                 <IconifyIconOnline icon="ep:plus" />
                 生成多个
               </ScButton>
-              <ScButton size="small" @click="copyAllPasswords" :disabled="batchPasswords.length === 0">
+              <ScButton
+                size="small"
+                @click="copyAllPasswords"
+                :disabled="batchPasswords.length === 0"
+              >
                 <IconifyIconOnline icon="ep:document-copy" />
                 复制全部
               </ScButton>
             </div>
           </div>
           <div v-if="batchPasswords.length > 0" class="batch-list">
-            <div v-for="(password, index) in batchPasswords" :key="index" class="batch-item">
+            <div
+              v-for="(password, index) in batchPasswords"
+              :key="index"
+              class="batch-item"
+            >
               <ScInput :value="password" readonly size="small" />
               <ScButton size="small" @click="copyBatchPassword(password)">
                 <IconifyIconOnline icon="ep:document-copy" />
@@ -169,7 +210,12 @@ const similarChars = "iIlL1oO0";
 // 生成密码
 const generatePassword = () => {
   // 至少要选择一种字符类型
-  if (!includeUppercase.value && !includeLowercase.value && !includeNumbers.value && !includeSymbols.value) {
+  if (
+    !includeUppercase.value &&
+    !includeLowercase.value &&
+    !includeNumbers.value &&
+    !includeSymbols.value
+  ) {
     message("请至少选择一种字符类型", { type: "warning" });
     includeUppercase.value = true;
     return;
@@ -190,7 +236,10 @@ const generatePassword = () => {
 
   // 如果排除重复字符，但字符集太小
   if (excludeDuplicates.value && charset.length < passwordLength.value) {
-    message(`无法生成 ${passwordLength.value} 个不重复字符的密码，可用字符集只有 ${charset.length} 个字符`, { type: "warning" });
+    message(
+      `无法生成 ${passwordLength.value} 个不重复字符的密码，可用字符集只有 ${charset.length} 个字符`,
+      { type: "warning" },
+    );
     excludeDuplicates.value = false;
     return;
   }
@@ -305,12 +354,19 @@ const calculatePasswordStrength = (password) => {
   const symbolCount = (password.match(/[^A-Za-z0-9]/g) || []).length;
 
   const total = password.length;
-  const distribution = [upperCount / total, lowerCount / total, numberCount / total, symbolCount / total].filter((ratio) => ratio > 0);
+  const distribution = [
+    upperCount / total,
+    lowerCount / total,
+    numberCount / total,
+    symbolCount / total,
+  ].filter((ratio) => ratio > 0);
 
   // 计算分布的方差 - 越小越均匀
   if (distribution.length > 1) {
     const avg = distribution.reduce((a, b) => a + b, 0) / distribution.length;
-    const variance = distribution.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / distribution.length;
+    const variance =
+      distribution.reduce((a, b) => a + Math.pow(b - avg, 2), 0) /
+      distribution.length;
 
     // 方差越小，分数越高
     const distributionScore = Math.max(0, 20 - variance * 100);
@@ -321,7 +377,9 @@ const calculatePasswordStrength = (password) => {
 };
 
 // 密码强度
-const passwordStrength = computed(() => calculatePasswordStrength(generatedPassword.value));
+const passwordStrength = computed(() =>
+  calculatePasswordStrength(generatedPassword.value),
+);
 
 // 强度百分比
 const strengthPercentage = computed(() => passwordStrength.value);
@@ -404,19 +462,35 @@ onMounted(() => {
 }
 
 .strength-poor .strength-bar {
-  background: linear-gradient(90deg, var(--el-color-danger), var(--el-color-danger-light-3));
+  background: linear-gradient(
+    90deg,
+    var(--el-color-danger),
+    var(--el-color-danger-light-3)
+  );
 }
 
 .strength-fair .strength-bar {
-  background: linear-gradient(90deg, var(--el-color-warning), var(--el-color-warning-light-3));
+  background: linear-gradient(
+    90deg,
+    var(--el-color-warning),
+    var(--el-color-warning-light-3)
+  );
 }
 
 .strength-good .strength-bar {
-  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  background: linear-gradient(
+    90deg,
+    var(--el-color-primary),
+    var(--el-color-primary-light-3)
+  );
 }
 
 .strength-strong .strength-bar {
-  background: linear-gradient(90deg, var(--el-color-success), var(--el-color-success-light-3));
+  background: linear-gradient(
+    90deg,
+    var(--el-color-success),
+    var(--el-color-success-light-3)
+  );
 }
 
 .strength-text {
@@ -485,15 +559,15 @@ onMounted(() => {
   border-radius: 8px;
   background: var(--el-bg-color-overlay);
   transition: all 0.3s ease;
-  
+
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: var(--el-border-color);
     border-radius: 3px;
-    
+
     &:hover {
       background: var(--el-border-color-darker);
     }
@@ -504,7 +578,7 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateX(4px);
   }
@@ -544,23 +618,43 @@ onMounted(() => {
 }
 
 .poor .level-indicator {
-  background: linear-gradient(90deg, var(--el-color-danger), var(--el-color-danger-light-3));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-danger) 30%, transparent);
+  background: linear-gradient(
+    90deg,
+    var(--el-color-danger),
+    var(--el-color-danger-light-3)
+  );
+  box-shadow: 0 2px 8px
+    color-mix(in srgb, var(--el-color-danger) 30%, transparent);
 }
 
 .fair .level-indicator {
-  background: linear-gradient(90deg, var(--el-color-warning), var(--el-color-warning-light-3));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-warning) 30%, transparent);
+  background: linear-gradient(
+    90deg,
+    var(--el-color-warning),
+    var(--el-color-warning-light-3)
+  );
+  box-shadow: 0 2px 8px
+    color-mix(in srgb, var(--el-color-warning) 30%, transparent);
 }
 
 .good .level-indicator {
-  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+  background: linear-gradient(
+    90deg,
+    var(--el-color-primary),
+    var(--el-color-primary-light-3)
+  );
+  box-shadow: 0 2px 8px
+    color-mix(in srgb, var(--el-color-primary) 30%, transparent);
 }
 
 .strong .level-indicator {
-  background: linear-gradient(90deg, var(--el-color-success), var(--el-color-success-light-3));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-success) 30%, transparent);
+  background: linear-gradient(
+    90deg,
+    var(--el-color-success),
+    var(--el-color-success-light-3)
+  );
+  box-shadow: 0 2px 8px
+    color-mix(in srgb, var(--el-color-success) 30%, transparent);
 }
 
 .poor h4 {

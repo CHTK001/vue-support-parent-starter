@@ -28,7 +28,11 @@
               draggable="true"
               @dragstart="handleDragStart($event, type)"
             >
-              <ScTooltip :content="type.label" :disabled="!config.iconOnly" placement="right">
+              <ScTooltip
+                :content="type.label"
+                :disabled="!config.iconOnly"
+                placement="right"
+              >
                 <div class="palette-item-content">
                   <IconifyIconOnline :icon="type.icon" />
                   <span v-if="!config.iconOnly">{{ type.label }}</span>
@@ -42,12 +46,18 @@
         <div class="builder-main">
           <div class="builder-header">
             <h4>已配置字段 ({{ builderFields.length }})</h4>
-            <ScButton type="danger" size="small" text @click="clearFields" :disabled="builderFields.length === 0">
+            <ScButton
+              type="danger"
+              size="small"
+              text
+              @click="clearFields"
+              :disabled="builderFields.length === 0"
+            >
               <IconifyIconOnline icon="ri:delete-bin-line" />
               清空
             </ScButton>
           </div>
-          
+
           <div
             class="drop-zone"
             :class="{ 'is-dragging': isDragging }"
@@ -77,13 +87,13 @@
                     <span>{{ getFieldLabel(field.type) }}</span>
                   </div>
                   <div class="field-info">
-                    <ScInput 
+                    <ScInput
                       v-model="field.label"
                       size="small"
                       placeholder="标签"
                       class="field-label-input"
                     />
-                    <ScInput 
+                    <ScInput
                       v-model="field.prop"
                       size="small"
                       placeholder="字段名"
@@ -91,7 +101,12 @@
                     />
                   </div>
                   <div class="field-actions">
-                    <ScButton type="danger" size="small" text @click="removeField(index)">
+                    <ScButton
+                      type="danger"
+                      size="small"
+                      text
+                      @click="removeField(index)"
+                    >
                       <IconifyIconOnline icon="ri:close-line" />
                     </ScButton>
                   </div>
@@ -115,7 +130,12 @@
               </ScRadioGroup>
             </ScFormItem>
             <ScFormItem label="显示数量">
-              <ScSlider v-model="config.visibleCount" :min="1" :max="10" show-input />
+              <ScSlider
+                v-model="config.visibleCount"
+                :min="1"
+                :max="10"
+                show-input
+              />
             </ScFormItem>
             <ScFormItem label="网格列数" v-if="config.layout === 'grid'">
               <ScSlider v-model="config.columns" :min="1" :max="6" show-input />
@@ -130,13 +150,24 @@
               <ScSwitch v-model="config.realtime" />
             </ScFormItem>
             <ScFormItem label="防抖时间(ms)" v-if="config.realtime">
-              <ScInputNumber v-model="config.debounceTime" :min="100" :max="2000" :step="100" />
+              <ScInputNumber
+                v-model="config.debounceTime"
+                :min="100"
+                :max="2000"
+                :step="100"
+              />
             </ScFormItem>
             <ScFormItem label="高级筛选">
               <ScSwitch v-model="config.showDrawer" />
             </ScFormItem>
             <ScFormItem label="输入框宽度">
-              <ScSlider v-model="config.inputWidth" :min="100" :max="300" :step="10" show-input />
+              <ScSlider
+                v-model="config.inputWidth"
+                :min="100"
+                :max="300"
+                :step="10"
+                show-input
+              />
             </ScFormItem>
           </ScForm>
         </div>
@@ -169,7 +200,11 @@
         </div>
         <div class="preview-result">
           <strong>筛选值：</strong>
-          <code>{{ typeof searchResult === 'string' ? searchResult : JSON.stringify(searchResult, null, 2) }}</code>
+          <code>{{
+            typeof searchResult === "string"
+              ? searchResult
+              : JSON.stringify(searchResult, null, 2)
+          }}</code>
         </div>
       </div>
     </DemoBlock>
@@ -178,8 +213,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import ScFilterBar from "@repo/components/ScFilterBar/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScFilterBar } from "@repo/components"
+import { IconifyIconOnline } from "@repo/components";
 import DemoBlock from "./DemoBlock.vue";
 import { message } from "@repo/utils";
 import { ScSlider } from "@repo/components";
@@ -237,15 +272,21 @@ const config = reactive({
 
 // ==================== ScFilterBar options 格式 ====================
 const previewOptions = computed(() => {
-  return builderFields.value.map(field => ({
+  return builderFields.value.map((field) => ({
     value: field.prop,
     label: field.label,
     type: field.type,
     placeholder: field.placeholder || `请输入${field.label}`,
-    extend: field.type === "select" ? {
-      data: [{ value: 1, label: "选项1" }, { value: 2, label: "选项2" }],
-      multiple: false,
-    } : undefined,
+    extend:
+      field.type === "select"
+        ? {
+            data: [
+              { value: 1, label: "选项1" },
+              { value: 2, label: "选项2" },
+            ],
+            multiple: false,
+          }
+        : undefined,
   }));
 });
 
@@ -254,16 +295,18 @@ const generatedCode = computed(() => {
   if (builderFields.value.length === 0) {
     return `<!-- 拖拽左侧字段类型到配置区域生成代码 -->`;
   }
-  
-  const fieldsCode = builderFields.value.map(f => {
-    let code = `  { prop: "${f.prop}", label: "${f.label}", type: "${f.type}"`;
-    if (["select", "radio", "checkbox"].includes(f.type)) {
-      code += `, options: [{ value: 1, label: "选项1" }, { value: 2, label: "选项2" }]`;
-    }
-    code += " }";
-    return code;
-  }).join(",\n");
-  
+
+  const fieldsCode = builderFields.value
+    .map((f) => {
+      let code = `  { prop: "${f.prop}", label: "${f.label}", type: "${f.type}"`;
+      if (["select", "radio", "checkbox"].includes(f.type)) {
+        code += `, options: [{ value: 1, label: "选项1" }, { value: 2, label: "选项2" }]`;
+      }
+      code += " }";
+      return code;
+    })
+    .join(",\n");
+
   const propsCode: string[] = [];
   propsCode.push(`v-model="filterValues"`);
   propsCode.push(`:fields="fields"`);
@@ -273,9 +316,10 @@ const generatedCode = computed(() => {
   if (config.border) propsCode.push("border");
   if (config.background) propsCode.push("background");
   if (config.realtime) propsCode.push("realtime");
-  if (config.realtime && config.debounceTime !== 300) propsCode.push(`:debounce-time="${config.debounceTime}"`);
+  if (config.realtime && config.debounceTime !== 300)
+    propsCode.push(`:debounce-time="${config.debounceTime}"`);
   propsCode.push(`@search="handleSearch"`);
-  
+
   return `<template>
   <ScFilterBar
     ${propsCode.join("\n    ")}
@@ -304,10 +348,12 @@ function handleDragStart(event: DragEvent, type: FieldType) {
 function handleDrop(event: DragEvent) {
   event.preventDefault();
   isDragging.value = false;
-  
+
   if (draggedType) {
     const id = `field_${Date.now()}`;
-    const count = builderFields.value.filter(f => f.type === draggedType!.value).length + 1;
+    const count =
+      builderFields.value.filter((f) => f.type === draggedType!.value).length +
+      1;
     builderFields.value.push({
       id,
       type: draggedType.value,
@@ -320,11 +366,11 @@ function handleDrop(event: DragEvent) {
 }
 
 function getFieldIcon(type: string): string {
-  return fieldTypes.find(t => t.value === type)?.icon || "ri:input-field";
+  return fieldTypes.find((t) => t.value === type)?.icon || "ri:input-field";
 }
 
 function getFieldLabel(type: string): string {
-  return fieldTypes.find(t => t.value === type)?.label || type;
+  return fieldTypes.find((t) => t.value === type)?.label || type;
 }
 
 function removeField(index: number) {
@@ -341,8 +387,8 @@ function editField(field: BuilderField) {
 }
 
 // ==================== 过滤结果 ====================
-const formData = ref<Record<string, unknown>>({});  // 表单数据
-const searchResult = ref<any>("");  // 搜索结果（可以是对象或字符串）
+const formData = ref<Record<string, unknown>>({}); // 表单数据
+const searchResult = ref<any>(""); // 搜索结果（可以是对象或字符串）
 
 // ==================== 事件处理 ====================
 function handleFilterChange(values: any) {
@@ -368,7 +414,7 @@ function handleReset() {
   display: flex;
   gap: 20px;
   min-height: 280px;
-  
+
   @media (max-width: 1200px) {
     flex-direction: column;
   }
@@ -383,14 +429,14 @@ function handleReset() {
   padding: 12px;
   max-height: 280px;
   overflow-y: auto;
-  
+
   .palette-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
   }
-  
+
   .palette-title {
     display: flex;
     align-items: center;
@@ -399,17 +445,17 @@ function handleReset() {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.9);
   }
-  
+
   .palette-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    
+
     &.icon-only {
       flex-direction: row;
       flex-wrap: wrap;
       gap: 4px;
-      
+
       .palette-item {
         padding: 6px;
         justify-content: center;
@@ -418,7 +464,7 @@ function handleReset() {
       }
     }
   }
-  
+
   .palette-item {
     display: flex;
     align-items: center;
@@ -431,17 +477,17 @@ function handleReset() {
     font-size: 13px;
     cursor: grab;
     transition: all 0.2s;
-    
+
     &:hover {
       background: rgba(0, 200, 255, 0.2);
       border-color: rgba(0, 200, 255, 0.5);
       transform: translateX(4px);
     }
-    
+
     &:active {
       cursor: grabbing;
     }
-    
+
     .palette-item-content {
       display: flex;
       align-items: center;
@@ -457,12 +503,12 @@ function handleReset() {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  
+
   .builder-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    
+
     h4 {
       margin: 0;
       font-size: 14px;
@@ -479,12 +525,12 @@ function handleReset() {
   border-radius: 8px;
   padding: 12px;
   transition: all 0.2s;
-  
+
   &.is-dragging {
     border-color: rgba(0, 200, 255, 0.8);
     background: rgba(0, 200, 255, 0.1);
   }
-  
+
   .drop-placeholder {
     display: flex;
     flex-direction: column;
@@ -493,7 +539,7 @@ function handleReset() {
     height: 90px;
     color: rgba(255, 255, 255, 0.5);
     gap: 8px;
-    
+
     .iconify {
       font-size: 32px;
     }
@@ -515,12 +561,12 @@ function handleReset() {
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(0, 200, 255, 0.2);
   border-radius: 6px;
-  
+
   .field-handle {
     color: rgba(255, 255, 255, 0.4);
     cursor: grab;
   }
-  
+
   .field-type-tag {
     display: flex;
     align-items: center;
@@ -532,29 +578,29 @@ function handleReset() {
     color: #00c8ff;
     white-space: nowrap;
   }
-  
+
   .field-info {
     flex: 1;
     display: flex;
     align-items: center;
     gap: 8px;
     color: rgba(0, 200, 255, 0.8);
-    
+
     .field-label-input,
     .field-prop-input {
       width: 120px;
-      
+
       :deep(.el-input__wrapper) {
         background: rgba(0, 0, 0, 0.3);
         border-color: rgba(0, 200, 255, 0.3);
       }
-      
+
       :deep(.el-input__inner) {
         color: #fff;
       }
     }
   }
-  
+
   .field-actions {
     display: flex;
     gap: 4px;
@@ -567,7 +613,7 @@ function handleReset() {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   padding: 16px;
-  
+
   .preview-title {
     display: flex;
     align-items: center;
@@ -576,13 +622,13 @@ function handleReset() {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.9);
   }
-  
+
   .preview-content {
     padding: 16px;
     background: var(--el-bg-color);
     border-radius: 6px;
   }
-  
+
   .preview-result {
     margin-top: 12px;
     padding: 12px;
@@ -590,7 +636,7 @@ function handleReset() {
     border-radius: 6px;
     font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
-    
+
     code {
       color: #00c8ff;
     }
@@ -604,7 +650,7 @@ function handleReset() {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   padding: 16px;
-  
+
   .panel-title {
     display: flex;
     align-items: center;
@@ -613,7 +659,7 @@ function handleReset() {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.9);
   }
-  
+
   :deep(.el-form-item__label) {
     color: rgba(255, 255, 255, 0.7);
   }
@@ -632,7 +678,7 @@ function handleReset() {
   background: var(--el-fill-color-lighter);
   border-radius: 6px;
   font-size: 13px;
-  
+
   code {
     color: var(--el-color-primary);
     word-break: break-all;

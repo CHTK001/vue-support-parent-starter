@@ -85,7 +85,7 @@ class PerformanceManager {
       {
         rootMargin: "50px 0px",
         threshold: 0.01,
-      }
+      },
     );
 
     // 观察所有带有data-src属性的图片
@@ -125,7 +125,7 @@ class PerformanceManager {
           this.prefetchRoute(link.href);
         }
       },
-      { passive: true }
+      { passive: true },
     );
   }
 
@@ -184,8 +184,8 @@ class PerformanceManager {
             img.onload = () => resolve();
             img.onerror = reject;
             img.src = url;
-          })
-      )
+          }),
+      ),
     );
   }
 

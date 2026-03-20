@@ -41,7 +41,7 @@
             </div>
 
             <div class="result-display mt-4">
-              <ScAlert 
+              <ScAlert
                 :title="`当前选择值: ${selectedValue}`"
                 type="success"
                 :closable="false"
@@ -125,7 +125,7 @@
           <h4>配置选项</h4>
           <ScForm label-position="top">
             <ScFormItem label="当前选项集">
-              <ScSelect 
+              <ScSelect
                 v-model="currentOptionSet"
                 placeholder="选择选项集"
                 class="w-100"
@@ -185,8 +185,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { message } from "@repo/utils";
-import ScInput from "@repo/components/ScInput/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScInput } from "@repo/components"
+import { IconifyIconOnline } from "@repo/components";
 import { InputType } from "@repo/components/ScInput/types";
 import CodePreview from "./CodePreview.vue";
 
@@ -305,7 +305,7 @@ const codeExample = computed(() => {
 
 <script setup>
 import { ref } from 'vue';
-import ScInput from '@repo/components/ScInput/index.vue';
+import ScInput from '@repo/components';
 
 const selectedValue = ref('${selectedValue.value}');
 
@@ -332,7 +332,7 @@ const handleChange = (value) => {
 
 <script setup>
 import { ref } from 'vue';
-import ScInput from '@repo/components/ScInput/index.vue';
+import ScInput from '@repo/components';
 
 const selectedValue = ref('${variantValues.value.remote}');
 

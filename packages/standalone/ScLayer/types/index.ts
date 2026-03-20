@@ -4,16 +4,19 @@
  */
 
 // 从 map.ts 导入地图相关类型
-import { MapType, DEFAULT_MAP_CONFIG } from './map';
-import type { MapTypeConfig, MapUrlConfig, MapKeyConfig } from './map';
+import { MapType, DEFAULT_MAP_CONFIG } from "./map";
+import type { MapTypeConfig, MapUrlConfig, MapKeyConfig } from "./map";
 
 // 从 coordinate.ts 导入坐标相关类型
-import type { GeoPoint } from './coordinate';
-import { CoordSystem } from './coordinate';
-import type { CoordinateInfo, CoordinatePosition } from '../composables/CoordinateObject';
+import type { GeoPoint } from "./coordinate";
+import { CoordSystem } from "./coordinate";
+import type {
+  CoordinateInfo,
+  CoordinatePosition,
+} from "../composables/CoordinateObject";
 
 // 从 marker.ts 导入标记点相关类型
-import { MarkerClusterMode as MarkerClusterModeFromMarker } from './marker';
+import { MarkerClusterMode as MarkerClusterModeFromMarker } from "./marker";
 import type {
   MarkerConfig,
   MarkerStyleOptions,
@@ -21,34 +24,38 @@ import type {
   MarkerOptions,
   MarkerAnimation,
   MarkerEventHandler,
-  NavigationOptions
-} from './marker';
+  NavigationOptions,
+} from "./marker";
 
 // 从 shape.ts 导入图形相关类型
-import { Shape, DEFAULT_SHAPE_STYLE } from './shape';
-import type { ShapeStyle, ShapePoint, ShapeOption } from './shape';
+import { Shape, DEFAULT_SHAPE_STYLE } from "./shape";
+import type { ShapeStyle, ShapePoint, ShapeOption } from "./shape";
 
 // 从 toolbar.ts 导入工具栏相关类型
-import { ToolbarPosition, ToolbarDirection, DEFAULT_TOOLBAR_CONFIG } from './toolbar';
-import type { 
-  ToolType, 
-  ToolItem, 
-  CoordinateToolConfig, 
-  MeasureToolConfig, 
-  ToolbarConfig, 
-  AddToolOptions as ToolbarAddToolOptions 
-} from './toolbar';
+import {
+  ToolbarPosition,
+  ToolbarDirection,
+  DEFAULT_TOOLBAR_CONFIG,
+} from "./toolbar";
+import type {
+  ToolType,
+  ToolItem,
+  CoordinateToolConfig,
+  MeasureToolConfig,
+  ToolbarConfig,
+  AddToolOptions as ToolbarAddToolOptions,
+} from "./toolbar";
 
 // 从 track.ts 导入轨迹相关类型
-import type { 
-  TrackPoint, 
-  IconSpeedGroup, 
-  TrackPlayer, 
-  TrackPlayerConfigOptions, 
-  Track, 
-  TrackConfig 
-} from './track';
-import { DEFAULT_TRACK_CONFIG } from './track';
+import type {
+  TrackPoint,
+  IconSpeedGroup,
+  TrackPlayer,
+  TrackPlayerConfigOptions,
+  Track,
+  TrackConfig,
+} from "./track";
+import { DEFAULT_TRACK_CONFIG } from "./track";
 
 // 从 boundary.ts 导入区域边界相关类型
 import type {
@@ -56,8 +63,8 @@ import type {
   BoundaryItem,
   BoundaryCoordinate,
   BoundaryData,
-  BoundaryOptions
-} from './boundary';
+  BoundaryOptions,
+} from "./boundary";
 
 // 从 search.ts 导入搜索相关类型
 import type {
@@ -66,29 +73,29 @@ import type {
   SearchApiResponse,
   PlaceDetailApiResponse,
   SearchBoxConfig,
-  NavigationApiResponse
-} from './search';
+  NavigationApiResponse,
+} from "./search";
 
 // 从 heatmap.ts 导入热力图相关类型
-import type { HeatmapPoint, HeatmapConfig } from './heatmap';
-import { DEFAULT_HEATMAP_CONFIG } from './heatmap';
+import type { HeatmapPoint, HeatmapConfig } from "./heatmap";
+import { DEFAULT_HEATMAP_CONFIG } from "./heatmap";
 
 // 从 flightline.ts 导入飞线图相关类型
-import type { 
-  FlightLinePoint, 
-  FlightLineStyle, 
-  FlightCoord, 
-  FlightLineData, 
-  FlightLineConfig 
-} from './flightline';
-import { DEFAULT_FLIGHTLINE_CONFIG } from './flightline';
+import type {
+  FlightLinePoint,
+  FlightLineStyle,
+  FlightCoord,
+  FlightLineData,
+  FlightLineConfig,
+} from "./flightline";
+import { DEFAULT_FLIGHTLINE_CONFIG } from "./flightline";
 
 // 从 wind.ts 导入风场相关类型
-import type { WindData, WindConfig } from './wind';
-import { DEFAULT_WIND_CONFIG } from './wind';
+import type { WindData, WindConfig } from "./wind";
+import { DEFAULT_WIND_CONFIG } from "./wind";
 
 // 从 cluster.ts 导入聚合相关类型
-import type { AggregationOptions } from './cluster';
+import type { AggregationOptions } from "./cluster";
 
 // 从 default.ts 导入默认配置
 import {
@@ -98,20 +105,20 @@ import {
   DEFAULT_CESIUM_BASE_URL,
   DEFAULT_TRACK_SPEED_GROUPS,
   DEFAULT_ICON,
-  DEFAULT_MARKER_ICON
-} from './default';
+  DEFAULT_MARKER_ICON,
+} from "./default";
 
 // 导入 API URL 接口
-import { DEFAULT_API_URLS, mergeApiUrls } from './api';
-import type { ApiUrls } from './api';
+import { DEFAULT_API_URLS, mergeApiUrls } from "./api";
+import type { ApiUrls } from "./api";
 
 // 图层类型枚举
 export enum MapTile {
-  NORMAL = 'normal',
-  SATELLITE = 'satellite',
-  HYBRID = 'hybrid',
-  AERIAL = 'aerial',
-  ROAD = 'road',
+  NORMAL = "normal",
+  SATELLITE = "satellite",
+  HYBRID = "hybrid",
+  AERIAL = "aerial",
+  ROAD = "road",
 }
 
 /**
@@ -119,24 +126,24 @@ export enum MapTile {
  */
 export enum DataType {
   /** 标记点 */
-  MARKER = 'marker',
+  MARKER = "marker",
   /** 图形 */
-  SHAPE = 'shape',
+  SHAPE = "shape",
   /** 轨迹 */
-  TRACK = 'track',
+  TRACK = "track",
   /** 轨迹点 */
-  TRACK_POINT = 'track_point',
+  TRACK_POINT = "track_point",
   /** 弹窗 */
-  POPOVER = 'popover',
+  POPOVER = "popover",
   /** 网格 */
-  GRID = 'grid'
+  GRID = "grid",
 }
 
 // 解决命名冲突
 export const MarkerClusterMode = MarkerClusterModeFromMarker;
 
 // 统一添加工具选项接口 (与 toolbar.ts 中的 AddToolOptions 相同)
-export interface AddToolOptions extends ToolbarAddToolOptions { }
+export interface AddToolOptions extends ToolbarAddToolOptions {}
 
 // 地图配置接口
 export interface MapConfig {
@@ -144,11 +151,11 @@ export interface MapConfig {
   mapTile: MapTile;
   map: {
     [key in MapType]: {
-      [key: string]: MapUrlConfig
-    }
+      [key: string]: MapUrlConfig;
+    };
   };
   mapKey: {
-    [key in MapType]?: string
+    [key in MapType]?: string;
   };
   height: number;
   center: [number, number];
@@ -182,71 +189,71 @@ export interface MapConfig {
     measure?: boolean;
     coordinate?: boolean;
     overview?: boolean;
-    'layer-switch'?: boolean;
-    'marker-toggle'?: boolean;
-    'label-toggle'?: boolean;
+    "layer-switch"?: boolean;
+    "marker-toggle"?: boolean;
+    "label-toggle"?: boolean;
     cluster?: boolean;
-    'draw-rectangle'?: boolean;
-    'draw-circle'?: boolean;
-    'draw-polygon'?: boolean;
-    'draw-line'?: boolean;
-    'draw-square'?: boolean;
-    'clear-shapes'?: boolean;
-    'edit-shape'?: boolean;
-    'flightLine'?: boolean;
-    'heatmap'?: boolean;
-    'track-player'?: boolean;
-    'boundary'?: boolean;
+    "draw-rectangle"?: boolean;
+    "draw-circle"?: boolean;
+    "draw-polygon"?: boolean;
+    "draw-line"?: boolean;
+    "draw-square"?: boolean;
+    "clear-shapes"?: boolean;
+    "edit-shape"?: boolean;
+    flightLine?: boolean;
+    heatmap?: boolean;
+    "track-player"?: boolean;
+    boundary?: boolean;
   };
   markerIcon?: string;
 }
 
 // 事件类型
 export type MapEventType =
-  | 'init'
-  | 'click'
-  | 'dblclick'
-  | 'rightclick'
-  | 'mousemove'
-  | 'mouseover'
-  | 'mouseout'
-  | 'mousedown'
-  | 'mouseup'
-  | 'dragstart'
-  | 'drag'
-  | 'dragend'
-  | 'zoomstart'
-  | 'zoomend'
-  | 'movestart'
-  | 'moveend'
-  | 'load'
-  | 'unload'
-  | 'viewreset'
-  | 'resize'
-  | 'autopanstart'
-  | 'layeradd'
-  | 'layerremove'
-  | 'baselayerchange'
-  | 'overlayadd'
-  | 'overlayremove'
-  | 'locationfound'
-  | 'locationerror'
-  | 'popupopen'
-  | 'popupclose'
-  | 'toolbar-tool-click'
-  | 'toolbar-tool-activated'
-  | 'toolbar-tool-deactivated'
-  | 'toolbar-submenu-item-click'
-  | 'map-initialized'
-  | 'marker-click'
-  | 'marker-create'
-  | 'marker-update'
-  | 'marker-delete'
-  | 'shape-create'
-  | 'shape-update'
-  | 'shape-delete'
-  | 'update:center'
-  | 'update:zoom';
+  | "init"
+  | "click"
+  | "dblclick"
+  | "rightclick"
+  | "mousemove"
+  | "mouseover"
+  | "mouseout"
+  | "mousedown"
+  | "mouseup"
+  | "dragstart"
+  | "drag"
+  | "dragend"
+  | "zoomstart"
+  | "zoomend"
+  | "movestart"
+  | "moveend"
+  | "load"
+  | "unload"
+  | "viewreset"
+  | "resize"
+  | "autopanstart"
+  | "layeradd"
+  | "layerremove"
+  | "baselayerchange"
+  | "overlayadd"
+  | "overlayremove"
+  | "locationfound"
+  | "locationerror"
+  | "popupopen"
+  | "popupclose"
+  | "toolbar-tool-click"
+  | "toolbar-tool-activated"
+  | "toolbar-tool-deactivated"
+  | "toolbar-submenu-item-click"
+  | "map-initialized"
+  | "marker-click"
+  | "marker-create"
+  | "marker-update"
+  | "marker-delete"
+  | "shape-create"
+  | "shape-update"
+  | "shape-delete"
+  | "update:center"
+  | "update:zoom";
 
 // 重新导出所有类型
 export {
@@ -272,7 +279,7 @@ export {
   // 添加 API URL 相关导出
   ApiUrls,
   DEFAULT_API_URLS,
-  mergeApiUrls
+  mergeApiUrls,
 };
 
 export type {
@@ -323,6 +330,5 @@ export type {
   FlightLineConfig,
   WindData,
   WindConfig,
-  AggregationOptions
+  AggregationOptions,
 };
-

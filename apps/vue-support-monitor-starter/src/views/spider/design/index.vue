@@ -3,28 +3,28 @@
     <!-- 工具栏 -->
     <div class="design-toolbar">
       <el-button-group>
-        <el-button type="primary" :loading="saving" @click="handleSave">
-          <el-icon><Check /></el-icon>
+        <ScButton type="primary" :loading="saving" @click="handleSave">
+          <ScIcon><Check /></ScIcon>
           保存设计
-        </el-button>
-        <el-button @click="handleValidate">
-          <el-icon><CircleCheck /></el-icon>
+        </ScButton>
+        <ScButton @click="handleValidate">
+          <ScIcon><CircleCheck /></ScIcon>
           验证设计
-        </el-button>
-        <el-button type="success" @click="handleRun">
-          <el-icon><VideoPlay /></el-icon>
+        </ScButton>
+        <ScButton type="success" @click="handleRun">
+          <ScIcon><VideoPlay /></ScIcon>
           运行任务
-        </el-button>
+        </ScButton>
       </el-button-group>
       <el-button-group style="margin-left: 10px">
-        <el-button @click="handleClear">
-          <el-icon><Delete /></el-icon>
+        <ScButton @click="handleClear">
+          <ScIcon><Delete /></ScIcon>
           清空
-        </el-button>
-        <el-button @click="handleBack">
-          <el-icon><Back /></el-icon>
+        </ScButton>
+        <ScButton @click="handleBack">
+          <ScIcon><Back /></ScIcon>
           返回
-        </el-button>
+        </ScButton>
       </el-button-group>
       <div v-if="taskInfo" class="task-info">
         <span>任务: {{ taskInfo.spiderTaskName }}</span>
@@ -34,17 +34,17 @@
     <div class="design-content">
       <!-- 左侧组件面板 -->
       <div class="component-panel">
-        <el-collapse v-model="activeCollapse">
-          <el-collapse-item
+        <ScCollapse v-model="activeCollapse">
+          <ScCollapseItem
             v-for="category in nodeCategories"
             :key="category.type"
             :name="category.type"
           >
             <template #title>
               <div class="category-title">
-                <el-icon :style="{ color: category.color }">
+                <ScIcon :style="{ color: category.color }">
                   <component :is="category.icon" />
-                </el-icon>
+                </ScIcon>
                 <span>{{ category.label }}</span>
               </div>
             </template>
@@ -60,9 +60,9 @@
                   class="component-icon"
                   :style="{ backgroundColor: category.color }"
                 >
-                  <el-icon
+                  <ScIcon
                     ><component :is="spi.icon || category.icon"
-                  /></el-icon>
+                  /></ScIcon>
                 </div>
                 <div class="component-info">
                   <div class="component-name">{{ spi.displayName }}</div>
@@ -70,8 +70,8 @@
                 </div>
               </div>
             </div>
-          </el-collapse-item>
-        </el-collapse>
+          </ScCollapseItem>
+        </ScCollapse>
       </div>
 
       <!-- 画布区域 -->
@@ -96,7 +96,7 @@
             class="node-header"
             :style="{ backgroundColor: getNodeColor(node.nodeType) }"
           >
-            <el-icon><component :is="getNodeIcon(node.nodeType)" /></el-icon>
+            <ScIcon><component :is="getNodeIcon(node.nodeType)" /></ScIcon>
             <span>{{ node.nodeName }}</span>
           </div>
           <div class="node-body">
@@ -117,15 +117,15 @@
               @click.stop="handlePortClick(node, 'output')"
             />
           </div>
-          <el-button
+          <ScButton
             class="node-delete"
             type="danger"
             circle
             size="small"
             @click.stop="handleDeleteNode(node)"
           >
-            <el-icon><Close /></el-icon>
-          </el-button>
+            <ScIcon><Close /></ScIcon>
+          </ScButton>
         </div>
 
         <!-- 连接线 -->
@@ -147,7 +147,7 @@
 
         <!-- 空状态提示 -->
         <div v-if="nodes.length === 0" class="empty-tip">
-          <el-icon :size="48"><Grid /></el-icon>
+          <ScIcon :size="48"><Grid /></ScIcon>
           <p>从左侧拖拽组件到画布开始设计</p>
         </div>
       </div>
@@ -156,61 +156,61 @@
       <div v-if="selectedNode" class="property-panel">
         <div class="panel-header">
           <span>节点属性</span>
-          <el-button text @click="selectedNode = null">
-            <el-icon><Close /></el-icon>
-          </el-button>
+          <ScButton text @click="selectedNode = null">
+            <ScIcon><Close /></ScIcon>
+          </ScButton>
         </div>
         <div class="panel-content">
-          <el-form label-position="top" size="small">
-            <el-form-item label="节点名称">
-              <el-input v-model="selectedNode.nodeName" />
-            </el-form-item>
-            <el-form-item label="节点类型">
-              <el-tag>{{ getNodeTypeLabel(selectedNode.nodeType) }}</el-tag>
-            </el-form-item>
-            <el-form-item label="组件">
-              <el-tag type="info">{{ selectedNode.spiName }}</el-tag>
-            </el-form-item>
-            <el-form-item label="描述">
-              <el-input
+          <ScForm label-position="top" size="small">
+            <ScFormItem label="节点名称">
+              <ScInput v-model="selectedNode.nodeName" />
+            </ScFormItem>
+            <ScFormItem label="节点类型">
+              <ScTag>{{ getNodeTypeLabel(selectedNode.nodeType) }}</ScTag>
+            </ScFormItem>
+            <ScFormItem label="组件">
+              <ScTag type="info">{{ selectedNode.spiName }}</ScTag>
+            </ScFormItem>
+            <ScFormItem label="描述">
+              <ScInput
                 v-model="selectedNode.nodeDescription"
                 type="textarea"
                 :rows="2"
               />
-            </el-form-item>
+            </ScFormItem>
 
             <!-- 参数配置 -->
-            <el-divider content-position="left">参数配置</el-divider>
+            <ScDivider content-position="left">参数配置</ScDivider>
             <template v-if="currentNodeParameters.length > 0">
-              <el-form-item
+              <ScFormItem
                 v-for="param in currentNodeParameters"
                 :key="param.name"
                 :label="param.label"
                 :required="param.required"
               >
                 <template v-if="param.type === 'boolean'">
-                  <el-switch v-model="nodeConfig[param.name]" />
+                  <ScSwitch v-model="nodeConfig[param.name]" />
                 </template>
                 <template v-else-if="param.type === 'number'">
-                  <el-input-number
+                  <ScInputNumber
                     v-model="nodeConfig[param.name]"
                     :placeholder="param.description"
                     style="width: 100%"
                   />
                 </template>
                 <template v-else-if="param.type === 'select'">
-                  <el-select
+                  <ScSelect
                     v-model="nodeConfig[param.name]"
                     :placeholder="param.description"
                     style="width: 100%"
                   >
-                    <el-option
+                    <ScOption
                       v-for="opt in param.options"
                       :key="opt.value"
                       :label="opt.label"
                       :value="opt.value"
                     />
-                  </el-select>
+                  </ScSelect>
                 </template>
                 <template
                   v-else-if="
@@ -219,7 +219,7 @@
                     param.type === 'json'
                   "
                 >
-                  <el-input
+                  <ScInput
                     v-model="nodeConfig[param.name]"
                     type="textarea"
                     :rows="3"
@@ -227,7 +227,7 @@
                   />
                 </template>
                 <template v-else-if="param.type === 'password'">
-                  <el-input
+                  <ScInput
                     v-model="nodeConfig[param.name]"
                     type="password"
                     :placeholder="param.description"
@@ -235,7 +235,7 @@
                   />
                 </template>
                 <template v-else>
-                  <el-input
+                  <ScInput
                     v-model="nodeConfig[param.name]"
                     :placeholder="param.description"
                   />
@@ -243,24 +243,24 @@
                 <div v-if="param.description" class="param-desc">
                   {{ param.description }}
                 </div>
-              </el-form-item>
+              </ScFormItem>
             </template>
-            <el-empty
+            <ScEmpty
               v-else
               description="该组件无需配置参数"
               :image-size="60"
             />
 
-            <el-form-item>
-              <el-button
+            <ScFormItem>
+              <ScButton
                 type="primary"
                 :loading="savingNode"
                 @click="handleSaveNodeConfig"
               >
                 保存配置
-              </el-button>
-            </el-form-item>
-          </el-form>
+              </ScButton>
+            </ScFormItem>
+          </ScForm>
         </div>
       </div>
     </div>
@@ -273,14 +273,14 @@
       append-to-body
     >
       <template v-if="validateErrors.length === 0">
-        <el-result
+        <ScResult
           icon="success"
           title="验证通过"
           sub-title="设计配置正确，可以运行任务"
         />
       </template>
       <template v-else>
-        <el-alert
+        <ScAlert
           v-for="(error, index) in validateErrors"
           :key="index"
           :title="error"

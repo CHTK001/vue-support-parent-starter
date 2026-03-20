@@ -54,7 +54,7 @@ const handleGenerate = async () => {
 
 <template>
   <div class="phantom-container system-container modern-bg">
-    <el-card class="phantom-card">
+    <ScCard class="phantom-card">
       <template #header>
         <div class="phantom-header">
           <h2 class="phantom-title">幻影图像生成工具</h2>
@@ -63,13 +63,13 @@ const handleGenerate = async () => {
       </template>
 
       <div class="phantom-content">
-        <el-row :gutter="24" class="phantom-row">
+        <ScRow :gutter="24" class="phantom-row">
           <!-- 上传区域 -->
-          <el-col :span="12" class="phantom-upload-col">
-            <el-row class="phantom-upload-row">
+          <ScCol :span="12" class="phantom-upload-col">
+            <ScRow class="phantom-upload-row">
               <!-- 左侧上传 -->
-              <el-col :span="10" class="phantom-upload-item">
-                <el-upload
+              <ScCol :span="10" class="phantom-upload-item">
+                <ScUpload
                   drag
                   class="phantom-upload"
                   :auto-upload="false"
@@ -83,12 +83,12 @@ const handleGenerate = async () => {
                   />
                   <div class="phantom-upload-text">上传亮色图片</div>
                   <div class="phantom-upload-tip">支持 JPG、PNG 格式</div>
-                </el-upload>
-              </el-col>
+                </ScUpload>
+              </ScCol>
 
               <!-- 生成按钮 -->
-              <el-col :span="4" class="phantom-generate-col">
-                <el-button
+              <ScCol :span="4" class="phantom-generate-col">
+                <ScButton
                   type="primary"
                   class="phantom-generate-btn"
                   :loading="loading"
@@ -96,12 +96,12 @@ const handleGenerate = async () => {
                 >
                   <IconifyIconOnline icon="ri:magic-line" />
                   <span>生成</span>
-                </el-button>
-              </el-col>
+                </ScButton>
+              </ScCol>
 
               <!-- 右侧上传 -->
-              <el-col :span="10" class="phantom-upload-item">
-                <el-upload
+              <ScCol :span="10" class="phantom-upload-item">
+                <ScUpload
                   drag
                   class="phantom-upload"
                   :auto-upload="false"
@@ -115,30 +115,30 @@ const handleGenerate = async () => {
                   />
                   <div class="phantom-upload-text">上传暗色图片</div>
                   <div class="phantom-upload-tip">支持 JPG、PNG 格式</div>
-                </el-upload>
-              </el-col>
-            </el-row>
-          </el-col>
+                </ScUpload>
+              </ScCol>
+            </ScRow>
+          </ScCol>
 
           <!-- 预览区域 -->
-          <el-col :span="12" class="phantom-preview-col">
+          <ScCol :span="12" class="phantom-preview-col">
             <div class="phantom-preview">
               <div class="phantom-preview-header">预览结果</div>
               <div class="phantom-preview-content">
-                <el-image
+                <ScImage
                   v-if="sourceImage"
                   :src="sourceImage"
                   class="phantom-result-image"
                   fit="contain"
                   :preview-src-list="sourceImage ? [sourceImage] : []"
                 />
-                <el-empty v-else description="请上传两张图片后点击生成" />
+                <ScEmpty v-else description="请上传两张图片后点击生成" />
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

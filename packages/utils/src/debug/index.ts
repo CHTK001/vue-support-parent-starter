@@ -181,7 +181,7 @@ export const loopDebugger = () => {
       setInterval(() => {
         // 清除控制台
         console.clear();
-        
+
         // 无限 debugger
         (function () {
           return false;

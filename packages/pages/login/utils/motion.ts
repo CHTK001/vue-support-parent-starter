@@ -6,8 +6,8 @@ export default defineComponent({
   props: {
     delay: {
       type: Number,
-      default: 50
-    }
+      default: 50,
+    },
   },
   render() {
     const { delay } = this;
@@ -17,8 +17,8 @@ export default defineComponent({
         "div",
         {},
         {
-          default: () => [this.$slots.default()]
-        }
+          default: () => [this.$slots.default()],
+        },
       ),
       [
         [
@@ -29,12 +29,12 @@ export default defineComponent({
               opacity: 1,
               y: 0,
               transition: {
-                delay
-              }
-            }
-          }
-        ]
-      ]
+                delay,
+              },
+            },
+          },
+        ],
+      ],
     );
-  }
+  },
 });

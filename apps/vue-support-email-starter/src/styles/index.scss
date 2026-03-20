@@ -1,0 +1,54 @@
+/**
+ * Email 邮箱管理系统样式
+ * @author CH
+ * @version 1.0.0
+ */
+
+// 全局样式
+.email-container {
+  height: 100vh;
+  background-color: #f5f7fa;
+}
+
+// 工具栏样式
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+// 邮件列表样式
+.email-list {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+// 邮件详情样式
+.email-detail {
+  padding: 20px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+// 表单样式
+.email-form {
+  .el-form-item {
+    margin-bottom: 20px;
+  }
+}
+
+// 响应式布局
+@media (max-width: 768px) {
+  .email-container {
+    .el-aside {
+      width: 100% !important;
+    }
+  }
+}

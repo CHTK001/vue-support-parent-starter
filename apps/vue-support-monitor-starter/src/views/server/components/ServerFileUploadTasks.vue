@@ -3,18 +3,18 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button type="primary" @click="handleCreateTask">
+        <ScButton type="primary" @click="handleCreateTask">
           <IconifyIconOnline icon="ep:plus" />
           新建上传任务
-        </el-button>
-        <el-button @click="handleRefresh">
+        </ScButton>
+        <ScButton @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" />
           刷新
-        </el-button>
+        </ScButton>
       </div>
 
       <div class="toolbar-right">
-        <el-input
+        <ScInput
           v-model="searchForm.taskName"
           placeholder="搜索任务名称"
           style="width: 200px"
@@ -23,46 +23,46 @@
           @keyup.enter="handleSearch"
         >
           <template #append>
-            <el-button @click="handleSearch">
+            <ScButton @click="handleSearch">
               <IconifyIconOnline icon="ep:search" />
-            </el-button>
+            </ScButton>
           </template>
-        </el-input>
+        </ScInput>
 
-        <el-select
+        <ScSelect
           v-model="searchForm.status"
           placeholder="任务状态"
           style="width: 120px; margin-left: 8px"
           clearable
           @change="handleSearch"
         >
-          <el-option
+          <ScOption
             v-for="status in statusOptions"
             :key="status.value"
             :label="status.label"
             :value="status.value"
           />
-        </el-select>
+        </ScSelect>
 
-        <el-select
+        <ScSelect
           v-model="searchForm.serverId"
           placeholder="选择服务器"
           style="width: 200px; margin-left: 8px"
           clearable
           @change="handleSearch"
         >
-          <el-option
+          <ScOption
             v-for="server in sshServers"
             :key="server.monitorSysGenServerId"
             :label="`${server.monitorSysGenServerName} (${server.monitorSysGenServerHost})`"
             :value="server.monitorSysGenServerId"
           />
-        </el-select>
+        </ScSelect>
       </div>
     </div>
 
     <!-- 任务列表 -->
-    <el-table
+    <ScTable
       v-loading="loading"
       :data="taskList"
       stripe
@@ -70,21 +70,21 @@
       style="width: 100%"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column type="selection" width="55" />
+      <ScTableColumn type="selection" width="55" />
 
-      <el-table-column
+      <ScTableColumn
         prop="monitorSysGenServerFileUploadTaskId"
         label="任务ID"
         width="80"
       />
 
-      <el-table-column
+      <ScTableColumn
         prop="monitorSysGenServerFileUploadTaskName"
         label="任务名称"
         min-width="150"
       />
 
-      <el-table-column label="服务器" width="200">
+      <ScTableColumn label="服务器" width="200">
         <template #default="{ row }">
           <div>
             <div class="font-medium">
@@ -95,29 +95,29 @@
             </div>
           </div>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column
+      <ScTableColumn
         prop="monitorSysGenServerFileUploadFileName"
         label="文件名"
         min-width="150"
       />
 
-      <el-table-column label="文件大小" width="100">
+      <ScTableColumn label="文件大小" width="100">
         <template #default="{ row }">
           {{ formatFileSize(row.monitorSysGenServerFileUploadFileSize) }}
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column
+      <ScTableColumn
         prop="monitorSysGenServerFileUploadTargetPath"
         label="目标路径"
         min-width="200"
       />
 
-      <el-table-column label="上传模式" width="100">
+      <ScTableColumn label="上传模式" width="100">
         <template #default="{ row }">
-          <el-tag
+          <ScTag
             :type="
               row.monitorSysGenServerFileUploadMode === 'REALTIME'
                 ? 'success'
@@ -125,49 +125,49 @@
             "
           >
             {{ getModeText(row.monitorSysGenServerFileUploadMode) }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="任务状态" width="100">
+      <ScTableColumn label="任务状态" width="100">
         <template #default="{ row }">
-          <el-tag
+          <ScTag
             :type="getStatusType(row.monitorSysGenServerFileUploadStatus)"
           >
             {{ getStatusText(row.monitorSysGenServerFileUploadStatus) }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="优先级" width="80">
+      <ScTableColumn label="优先级" width="80">
         <template #default="{ row }">
-          <el-tag
+          <ScTag
             :type="getPriorityType(row.monitorSysGenServerFileUploadPriority)"
             size="small"
           >
             {{ row.monitorSysGenServerFileUploadPriority }}
-          </el-tag>
+          </ScTag>
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="重试次数" width="80">
+      <ScTableColumn label="重试次数" width="80">
         <template #default="{ row }"
           >{{ row.monitorSysGenServerFileUploadRetryCount }}/{{
             row.monitorSysGenServerFileUploadMaxRetry
           }}</template
         >
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="创建时间" width="160">
+      <ScTableColumn label="创建时间" width="160">
         <template #default="{ row }">
           {{ formatDateTime(row.monitorSysGenServerFileUploadCreateTime) }}
         </template>
-      </el-table-column>
+      </ScTableColumn>
 
-      <el-table-column label="操作" width="200" fixed="right">
+      <ScTableColumn label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <div class="action-buttons">
-            <el-button
+            <ScButton
               v-if="row.monitorSysGenServerFileUploadStatus === 'PENDING'"
               type="primary"
               size="small"
@@ -175,7 +175,7 @@
               >启动</el-button
             >
 
-            <el-button
+            <ScButton
               v-if="
                 ['PENDING', 'PROCESSING'].includes(
                   row.monitorSysGenServerFileUploadStatus,
@@ -187,7 +187,7 @@
               >取消</el-button
             >
 
-            <el-button
+            <ScButton
               v-if="row.monitorSysGenServerFileUploadStatus === 'FAILED'"
               type="success"
               size="small"
@@ -195,11 +195,11 @@
               >重试</el-button
             >
 
-            <el-button type="info" size="small" @click="handleViewTask(row)"
+            <ScButton type="info" size="small" @click="handleViewTask(row)"
               >详情</el-button
             >
 
-            <el-button
+            <ScButton
               v-if="
                 ['COMPLETED', 'FAILED', 'CANCELLED'].includes(
                   row.monitorSysGenServerFileUploadStatus,
@@ -212,12 +212,12 @@
             >
           </div>
         </template>
-      </el-table-column>
-    </el-table>
+      </ScTableColumn>
+    </ScTable>
 
     <!-- 分页 -->
     <div class="pagination">
-      <el-pagination
+      <ScPagination
         v-model:current-page="pagination.current"
         v-model:page-size="pagination.size"
         :total="pagination.total"
@@ -230,22 +230,22 @@
 
     <!-- 批量操作 -->
     <div v-if="selectedTasks.length > 0" class="batch-actions">
-      <el-card>
+      <ScCard>
         <div class="batch-actions-content">
           <span>已选择 {{ selectedTasks.length }} 个任务</span>
           <div class="batch-buttons">
-            <el-button type="warning" @click="handleBatchCancel"
+            <ScButton type="warning" @click="handleBatchCancel"
               >批量取消</el-button
             >
-            <el-button type="success" @click="handleBatchRetry"
+            <ScButton type="success" @click="handleBatchRetry"
               >批量重试</el-button
             >
-            <el-button type="danger" @click="handleBatchDelete"
+            <ScButton type="danger" @click="handleBatchDelete"
               >批量删除</el-button
             >
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 上传对话框 -->

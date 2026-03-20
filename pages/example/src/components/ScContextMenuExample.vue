@@ -53,7 +53,7 @@
 
 <script setup>
 import { ref, reactive, computed } from "vue";
-import ScContextMenu from "@repo/components/ScContextMenu/index.vue";
+import { ScContextMenu } from "@repo/components"
 import CodePreview from "./CodePreview.vue";
 import { message } from "@repo/utils";
 
@@ -131,8 +131,7 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import ScContextMenu from "@repo/components/ScContextMenu/index.vue";
-
+import { ScContextMenu } from "@repo/components"
 const menuRef = ref();
 
 const menus = [

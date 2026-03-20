@@ -1,6 +1,12 @@
 ﻿<template>
   <div class="online-finder">
-    <ScPopover placement="bottom-start" :width="600" trigger="click" v-model:visible="popoverVisible" :popper-style="{ padding: '12px 0', maxHeight: '80vh', overflow: 'auto' }">
+    <ScPopover
+      placement="bottom-start"
+      :width="600"
+      trigger="click"
+      v-model:visible="popoverVisible"
+      :popper-style="{ padding: '12px 0', maxHeight: '80vh', overflow: 'auto' }"
+    >
       <template #reference>
         <ScButton type="primary" size="small" :loading="loading">
           <IconifyIconOnline icon="ep:search" />
@@ -10,7 +16,13 @@
 
       <!-- 搜索表单 -->
       <div class="search-form p-3">
-        <ScInput v-model="searchKeyword" placeholder="输入视频名称" clearable @keyup.enter="handleSearch" class="mb-3">
+        <ScInput
+          v-model="searchKeyword"
+          placeholder="输入视频名称"
+          clearable
+          @keyup.enter="handleSearch"
+          class="mb-3"
+        >
           <template #append>
             <ScButton @click="handleSearch" :loading="loading">
               <IconifyIconOnline icon="ep:search" />
@@ -25,7 +37,10 @@
           <div class="mt-2 text-gray-400">正在搜索资源...</div>
         </div>
 
-        <div v-else-if="!loading && searchResults.length === 0 && hasSearched" class="empty-result-container">
+        <div
+          v-else-if="!loading && searchResults.length === 0 && hasSearched"
+          class="empty-result-container"
+        >
           <div class="empty-result-content">
             <IconifyIconOnline icon="ep:video-camera" class="empty-icon" />
             <div class="empty-text">未找到相关视频资源</div>
@@ -35,9 +50,20 @@
         <!-- 搜索结果列表 -->
         <div v-else-if="!loading && searchResults.length > 0">
           <div class="search-results">
-            <div v-for="(item, index) in searchResults" :key="index" class="result-item" @click="handleSelectItem(item)">
+            <div
+              v-for="(item, index) in searchResults"
+              :key="index"
+              class="result-item"
+              @click="handleSelectItem(item)"
+            >
               <div class="result-cover">
-                <ScImage v-if="item.videoCover" referrerpolicy="no-referrer" :src="item.videoCover" fit="cover" class="w-full h-full">
+                <ScImage
+                  v-if="item.videoCover"
+                  referrerpolicy="no-referrer"
+                  :src="item.videoCover"
+                  fit="cover"
+                  class="w-full h-full"
+                >
                   <template #error>
                     <div class="image-placeholder">
                       <IconifyIconOnline icon="ep:picture" />
@@ -47,25 +73,52 @@
                 <div v-else class="image-placeholder">
                   <IconifyIconOnline icon="ep:picture" />
                 </div>
-                <div v-if="item.videoScore" class="score-badge">{{ item.videoScore }}分</div>
+                <div v-if="item.videoScore" class="score-badge">
+                  {{ item.videoScore }}分
+                </div>
               </div>
               <div class="result-info">
-                <div class="result-title">{{ item.videoTitle || item.videoName }}</div>
+                <div class="result-title">
+                  {{ item.videoTitle || item.videoName }}
+                </div>
                 <div class="result-meta">
                   <span v-if="item.videoYear">{{ item.videoYear }}年</span>
-                  <span v-if="item.videoDistrict">{{ item.videoDistrict }}</span>
-                  <span v-if="item.videoDirector">导演: {{ item.videoDirector }}</span>
+                  <span v-if="item.videoDistrict">{{
+                    item.videoDistrict
+                  }}</span>
+                  <span v-if="item.videoDirector"
+                    >导演: {{ item.videoDirector }}</span
+                  >
                 </div>
-                <div class="result-actors" v-if="item.videoActor">主演: {{ item.videoActor }}</div>
+                <div class="result-actors" v-if="item.videoActor">
+                  主演: {{ item.videoActor }}
+                </div>
                 <div class="flex items-center mt-1">
-                  <ScTag size="small" v-if="item.videoType">{{ item.videoType }}</ScTag>
-                  <ScTag size="small" type="success" v-if="item.videoQuality" class="ml-2">{{ item.videoQuality }}</ScTag>
+                  <ScTag size="small" v-if="item.videoType">{{
+                    item.videoType
+                  }}</ScTag>
+                  <ScTag
+                    size="small"
+                    type="success"
+                    v-if="item.videoQuality"
+                    class="ml-2"
+                    >{{ item.videoQuality }}</ScTag
+                  >
                 </div>
               </div>
             </div>
           </div>
           <div class="pagination-container text-center mt-3">
-            <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[5, 10, 20]" :background="true" layout="prev, pager, next, sizes, total" :total="totalResults" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+            <ScPagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[5, 10, 20]"
+              :background="true"
+              layout="prev, pager, next, sizes, total"
+              :total="totalResults"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
           </div>
         </div>
       </div>
@@ -107,7 +160,7 @@ watch(
       searchKeyword.value = newVal;
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 查找在线资源

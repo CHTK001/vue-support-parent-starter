@@ -1,12 +1,12 @@
 /**
  * 搜索处理器注册
  */
-import { SearchHandlerFactory } from '../SearchHandler';
-import { KeywordSearchHandler } from './KeywordSearchHandler';
-import { CoordinateSearchHandler } from './CoordinateSearchHandler';
-import { NearbySearchHandler } from './NearbySearchHandler';
-import { DistrictSearchHandler } from './DistrictSearchHandler';
-import { NavigationSearchHandler } from './NavigationSearchHandler';
+import { SearchHandlerFactory } from "../SearchHandler";
+import { KeywordSearchHandler } from "./KeywordSearchHandler";
+import { CoordinateSearchHandler } from "./CoordinateSearchHandler";
+import { NearbySearchHandler } from "./NearbySearchHandler";
+import { DistrictSearchHandler } from "./DistrictSearchHandler";
+import { NavigationSearchHandler } from "./NavigationSearchHandler";
 
 /**
  * 注册所有搜索处理器
@@ -14,16 +14,16 @@ import { NavigationSearchHandler } from './NavigationSearchHandler';
 export function registerAllSearchHandlers(): void {
   // 注册关键词搜索处理器
   SearchHandlerFactory.registerHandler(new KeywordSearchHandler());
-  
+
   // 注册坐标搜索处理器
   SearchHandlerFactory.registerHandler(new CoordinateSearchHandler());
-  
+
   // 注册附近搜索处理器
   SearchHandlerFactory.registerHandler(new NearbySearchHandler());
-  
+
   // 注册行政区搜索处理器
   SearchHandlerFactory.registerHandler(new DistrictSearchHandler());
-  
+
   // 注册导航搜索处理器
   SearchHandlerFactory.registerHandler(new NavigationSearchHandler());
 }
@@ -34,5 +34,5 @@ export default {
   CoordinateSearchHandler,
   NearbySearchHandler,
   DistrictSearchHandler,
-  NavigationSearchHandler
-}; 
+  NavigationSearchHandler,
+};

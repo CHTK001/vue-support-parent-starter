@@ -1,6 +1,20 @@
 <template>
-  <base-dialog v-model="dialogVisible" top="20px" draggable :title="title" width="50%" @confirm="submitForm" @cancel="closeDialog" ref="dialogRef">
-    <add-download-link ref="addLinkFormRef" :video-id="videoId" :show-video-id-select="false" @success="handleSuccess" />
+  <base-dialog
+    v-model="dialogVisible"
+    top="20px"
+    draggable
+    :title="title"
+    width="50%"
+    @confirm="submitForm"
+    @cancel="closeDialog"
+    ref="dialogRef"
+  >
+    <add-download-link
+      ref="addLinkFormRef"
+      :video-id="videoId"
+      :show-video-id-select="false"
+      @success="handleSuccess"
+    />
   </base-dialog>
 </template>
 

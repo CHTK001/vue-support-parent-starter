@@ -24,7 +24,10 @@
             <div class="tech-line" v-for="i in 5" :key="i"></div>
           </div>
           <div class="tech-logo-area">
-            <IconifyIconOnline icon="ri:shield-keyhole-line" class="tech-icon" />
+            <IconifyIconOnline
+              icon="ri:shield-keyhole-line"
+              class="tech-icon"
+            />
             <div class="tech-title">安全登录</div>
             <div class="tech-subtitle">SECURE ACCESS SYSTEM</div>
           </div>
@@ -154,10 +157,8 @@ const initTechBackground = () => {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: linear-gradient(
-        rgba(64, 158, 255, 0.1) 1px,
-        transparent 1px
-      ),
+    background-image:
+      linear-gradient(rgba(64, 158, 255, 0.1) 1px, transparent 1px),
       linear-gradient(90deg, rgba(64, 158, 255, 0.1) 1px, transparent 1px);
     background-size: 50px 50px;
     animation: gridMove 20s linear infinite;
@@ -194,7 +195,8 @@ const initTechBackground = () => {
   background: rgba(26, 31, 58, 0.8);
   border: 1px solid rgba(64, 158, 255, 0.3);
   border-radius: 16px;
-  box-shadow: 0 0 40px rgba(64, 158, 255, 0.2),
+  box-shadow:
+    0 0 40px rgba(64, 158, 255, 0.2),
     inset 0 0 40px rgba(64, 158, 255, 0.05);
   backdrop-filter: blur(10px);
   overflow: hidden;
@@ -202,7 +204,8 @@ const initTechBackground = () => {
   transition: all 0.3s ease;
 
   &:hover {
-    box-shadow: 0 0 60px rgba(64, 158, 255, 0.4),
+    box-shadow:
+      0 0 60px rgba(64, 158, 255, 0.4),
       inset 0 0 40px rgba(64, 158, 255, 0.1);
     border-color: rgba(64, 158, 255, 0.5);
   }

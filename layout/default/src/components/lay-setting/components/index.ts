@@ -207,5 +207,73 @@ const themeComponentMaps: Record<SupportedSettingTheme, ComponentMap> = {
 };
 
 export function getThemeComponents(theme: string): ComponentMap {
+<<<<<<< HEAD
   return themeComponentMaps[theme as SupportedSettingTheme] ?? defaultComponentMap;
+=======
+  // 主题组件映射表
+  const themeMap: Record<string, string> = {
+    "8bit": "8bit",
+    "spring-festival": "spring-festival",
+    halloween: "halloween",
+    "mid-autumn": "mid-autumn",
+    christmas: "christmas",
+    "new-year": "new-year",
+    "future-tech": "future-tech",
+  };
+
+  // 如果主题有特定的组件目录，使用主题组件
+  if (themeMap[theme]) {
+    const themePath = themeMap[theme];
+    return {
+      OverallStyleSetting: () =>
+        import(`./themes/${themePath}/OverallStyleSetting.vue`),
+      ThemeColorSetting: () =>
+        import(`./themes/${themePath}/ThemeColorSetting.vue`),
+      ThemeAnimationSetting: () =>
+        import(`./themes/${themePath}/ThemeAnimationSetting.vue`),
+      ThemeSkinSetting: () =>
+        import(`./themes/${themePath}/ThemeSkinSetting.vue`),
+      AiChatSkinSetting: () =>
+        import(`./themes/${themePath}/AiChatSkinSetting.vue`),
+      AiChatFunctionSetting: () =>
+        import(`./themes/${themePath}/AiChatFunctionSetting.vue`),
+      LayoutModeSetting: () =>
+        import(`./themes/${themePath}/LayoutModeSetting.vue`),
+      MobileNavSetting: () =>
+        import(`./themes/${themePath}/MobileNavSetting.vue`),
+      DoubleNavSetting: () =>
+        import(`./themes/${themePath}/DoubleNavSetting.vue`),
+      PageStretchSetting: () =>
+        import(`./themes/${themePath}/PageStretchSetting.vue`),
+      LayoutParamsSetting: () =>
+        import(`./themes/${themePath}/LayoutParamsSetting.vue`),
+      TagsStyleSetting: () =>
+        import(`./themes/${themePath}/TagsStyleSetting.vue`),
+      InterfaceDisplaySetting: () =>
+        import(`./themes/${themePath}/InterfaceDisplaySetting.vue`),
+      MenuSetting: () => import(`./themes/${themePath}/MenuSetting.vue`),
+      AdvancedSetting: () =>
+        import(`./themes/${themePath}/AdvancedSetting.vue`),
+    };
+  }
+
+  // 默认返回基础组件
+  return {
+    OverallStyleSetting: () => import("./base/OverallStyleSetting.vue"),
+    ThemeColorSetting: () => import("./base/ThemeColorSetting.vue"),
+    ThemeAnimationSetting: () => import("./base/ThemeAnimationSetting.vue"),
+    ThemeSkinSetting: () => import("./base/ThemeSkinSetting.vue"),
+    AiChatSkinSetting: () => import("./base/AiChatSkinSetting.vue"),
+    AiChatFunctionSetting: () => import("./base/AiChatFunctionSetting.vue"),
+    LayoutModeSetting: () => import("./base/LayoutModeSetting.vue"),
+    MobileNavSetting: () => import("./base/MobileNavSetting.vue"),
+    DoubleNavSetting: () => import("./base/DoubleNavSetting.vue"),
+    PageStretchSetting: () => import("./base/PageStretchSetting.vue"),
+    LayoutParamsSetting: () => import("./base/LayoutParamsSetting.vue"),
+    TagsStyleSetting: () => import("./base/TagsStyleSetting.vue"),
+    InterfaceDisplaySetting: () => import("./base/InterfaceDisplaySetting.vue"),
+    MenuSetting: () => import("./base/MenuSetting.vue"),
+    AdvancedSetting: () => import("./base/AdvancedSetting.vue"),
+  };
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 }

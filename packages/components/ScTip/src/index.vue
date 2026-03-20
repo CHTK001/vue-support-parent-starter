@@ -1,5 +1,5 @@
 <template>
-  <el-tooltip
+  <ScTooltip
     v-bind="$attrs"
     :content="computedContent"
     :effect="effect"
@@ -27,7 +27,7 @@
       <div v-if="typeit" ref="typeitRef" class="sc-tip-typeit"></div>
       <slot v-else name="content" />
     </template>
-  </el-tooltip>
+  </ScTooltip>
 </template>
 
 <script setup lang="ts">

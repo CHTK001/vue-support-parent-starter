@@ -34,7 +34,7 @@
       </div>
     </template>
 
-    <el-form
+    <ScForm
       ref="formRef"
       :model="form"
       :rules="rules"
@@ -43,7 +43,7 @@
     >
       <!-- 邮箱地址 -->
       <div class="form-section">
-        <el-form-item prop="acmeAccountEmail">
+        <ScFormItem prop="acmeAccountEmail">
           <template #label>
             <div class="form-label">
               <div class="label-icon-wrapper email">
@@ -55,19 +55,19 @@
               </div>
             </div>
           </template>
-          <el-input
+          <ScInput
             v-model="form.acmeAccountEmail"
             placeholder="example@domain.com"
             :disabled="isEdit"
             class="form-input"
             size="large"
           />
-        </el-form-item>
+        </ScFormItem>
       </div>
 
       <!-- ACME 服务器 -->
       <div class="form-section">
-        <el-form-item prop="acmeAccountServer">
+        <ScFormItem prop="acmeAccountServer">
           <template #label>
             <div class="form-label">
               <div class="label-icon-wrapper server">
@@ -79,7 +79,7 @@
               </div>
             </div>
           </template>
-          <el-select
+          <ScSelect
             v-model="form.acmeAccountServer"
             placeholder="请选择 ACME 服务器"
             class="form-select"
@@ -96,7 +96,7 @@
               :key="group.label"
               :label="group.label"
             >
-              <el-option
+              <ScOption
                 v-for="item in group.options"
                 :key="item.value"
                 :label="item.label"
@@ -112,10 +112,10 @@
                     >EAB</span
                   >
                 </div>
-              </el-option>
+              </ScOption>
             </el-option-group>
-          </el-select>
-        </el-form-item>
+          </ScSelect>
+        </ScFormItem>
       </div>
 
       <!-- EAB 凭证区域 -->
@@ -144,29 +144,29 @@
           </div>
 
           <div class="eab-fields">
-            <el-form-item prop="acmeAccountEabKid">
+            <ScFormItem prop="acmeAccountEabKid">
               <template #label>
                 <div class="eab-label">
                   <IconifyIconOnline icon="mdi:identifier" />
                   <span>EAB Key ID (KID)</span>
                 </div>
               </template>
-              <el-input
+              <ScInput
                 v-model="form.acmeAccountEabKid"
                 placeholder="请输入 EAB Key ID"
                 class="form-input"
                 size="large"
               />
-            </el-form-item>
+            </ScFormItem>
 
-            <el-form-item prop="acmeAccountEabHmacKey">
+            <ScFormItem prop="acmeAccountEabHmacKey">
               <template #label>
                 <div class="eab-label">
                   <IconifyIconOnline icon="mdi:shield-key" />
                   <span>EAB HMAC Key</span>
                 </div>
               </template>
-              <el-input
+              <ScInput
                 v-model="form.acmeAccountEabHmacKey"
                 placeholder="请输入 EAB HMAC Key (Base64)"
                 class="form-input"
@@ -174,14 +174,14 @@
                 show-password
                 size="large"
               />
-            </el-form-item>
+            </ScFormItem>
           </div>
         </div>
       </transition>
 
       <!-- 备注 -->
       <div class="form-section">
-        <el-form-item>
+        <ScFormItem>
           <template #label>
             <div class="form-label">
               <div class="label-icon-wrapper remark">
@@ -193,27 +193,27 @@
               </div>
             </div>
           </template>
-          <el-input
+          <ScInput
             v-model="form.acmeAccountRemark"
             type="textarea"
             :rows="3"
             placeholder="例如：生产环境主域名证书申请账户"
             class="form-textarea"
           />
-        </el-form-item>
+        </ScFormItem>
       </div>
-    </el-form>
+    </ScForm>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button
+        <ScButton
           class="cancel-btn"
           size="large"
           @click="dialogVisible = false"
         >
           取消
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="primary"
           :loading="submitting"
           class="submit-btn"
@@ -225,7 +225,7 @@
             :icon="isEdit ? 'mdi:content-save' : 'mdi:plus-circle'"
           />
           {{ isEdit ? "保存更改" : "创建账户" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>
