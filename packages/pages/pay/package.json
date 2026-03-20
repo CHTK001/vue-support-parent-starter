@@ -1,8 +1,8 @@
 {
-  "name": "@pages/pay",
+  "name": "@repo/pages-pay",
   "version": "1.0.0",
-  "description": "支付管理模块（商户管理）",
-  "private": true,
+  "description": "支付管理模块（商户管理）- 可复用的页面、API 和组件",
+  "private": false,
   "type": "module",
   "scripts": {
     "build": "pnpm unbuild",
