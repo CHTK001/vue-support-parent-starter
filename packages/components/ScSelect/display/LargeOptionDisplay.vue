@@ -11,9 +11,9 @@
       </slot>
       <div class="option-overlay">
         <div class="option-label">
-          <el-tooltip :content="option.label || option.describe || option.name">
+          <ScTooltip :content="option.label || option.describe || option.name">
             {{ option.label || option.describe || option.name }}
-          </el-tooltip>
+          </ScTooltip>
         </div>
       </div>
     </div>
@@ -171,7 +171,7 @@ defineEmits<{
 
     // 左侧装饰条
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       top: 50%;

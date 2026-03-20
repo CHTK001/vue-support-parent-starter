@@ -894,11 +894,15 @@ function renderComponent() {
   const rootProps: Record<string, unknown> = {
     class: containerClass.value,
     style: containerStyle.value,
+<<<<<<< HEAD
     onClick: handleClick,
     onMouseenter: handleMouseenter,
     onMouseleave: handleMouseleave,
     "data-theme-motion": resolvedThemeMotion.value,
     "data-skin": currentSkin.value,
+=======
+    onClick: handleClick
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   };
 
   if (props.href) {
@@ -1031,14 +1035,7 @@ defineExpose({
 </script>
 
 <template>
-  <ScTooltip
-    v-if="showTooltip"
-    :content="tooltipContent"
-    :placement="tooltipPlacement"
-    :effect="tooltipEffect"
-    :disabled="!shouldShowTooltip"
-    :raw-content="true"
-  >
+  <ScTooltip v-if="showTooltip" :content="tooltipContent" :placement="tooltipPlacement" :effect="tooltipEffect" :disabled="!shouldShowTooltip" :raw-content="true">
     <component :is="renderComponent" />
   </ScTooltip>
   <component v-else :is="renderComponent" />

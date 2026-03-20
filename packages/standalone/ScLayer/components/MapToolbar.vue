@@ -1,30 +1,70 @@
-/** * 地图工具栏 * 支持功能： * 1. 支持水平和垂直两种方向布局 * 2. 支持四个角落位置摆放 * 3. 支持收缩和展开 * 4. 支持子菜单和工具提示 * @author CH * @date 2025-05-12 */
+/** * 地图工具栏 * 支持功能： * 1. 支持水平和垂直两种方向布局 * 2.
+支持四个角落位置摆放 * 3. 支持收缩和展开 * 4. 支持子菜单和工具提示 * @author CH
+* @date 2025-05-12 */
 <template>
-  <div v-if="visible" :key="forceUpdateKey" :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" @dblclick.stop.prevent @click.stop>
+  <div
+    v-if="visible"
+    :key="forceUpdateKey"
+    :class="[toolbarClass, `size-${config.size}`]"
+    :style="toolbarStyle"
+    @dblclick.stop.prevent
+    @click.stop
+  >
     <div
       v-for="tool in visibleTools"
       :key="tool.id"
       class="toolbar-item"
-      :class="[{ active: isToolActive(tool.id) }, { 'has-submenu': (tool.type === 'menu' || tool.type === 'button') && tool.children?.length }, tool?.className || '']"
+      :class="[
+        { active: isToolActive(tool.id) },
+        {
+          'has-submenu':
+            (tool.type === 'menu' || tool.type === 'button') &&
+            tool.children?.length,
+        },
+        tool?.className || '',
+      ]"
       :data-tool-id="tool.id"
-      @click.stop="e => handleToolClick(tool, e)"
+      @click.stop="(e) => handleToolClick(tool, e)"
       @dblclick.stop.prevent
-      @mouseenter="e => handleToolHover(tool, e, true)"
-      @mouseleave="e => handleToolHover(tool, e, false)"
+      @mouseenter="(e) => handleToolHover(tool, e, true)"
+      @mouseleave="(e) => handleToolHover(tool, e, false)"
     >
       <span
-        v-if="isSvgString(isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon)"
+        v-if="
+          isSvgString(
+            isToolActive(tool.id) && tool.activeIcon
+              ? tool.activeIcon
+              : tool.icon,
+          )
+        "
         class="svg-icon"
-        v-html="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon"
+        v-html="
+          isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon
+        "
       />
       <IconifyIconOnline
-        v-else-if="typeof (isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon) === 'string'"
-        :icon="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon"
+        v-else-if="
+          typeof (isToolActive(tool.id) && tool.activeIcon
+            ? tool.activeIcon
+            : tool.icon) === 'string'
+        "
+        :icon="
+          isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon
+        "
         class="icon"
       />
-      <component :is="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon" v-else />
+      <component
+        :is="
+          isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon
+        "
+        v-else
+      />
     </div>
-    <div class="toolbar-collapse" :title="isCollapsed ? '展开' : '收缩'" @click.stop="toggleCollapse">
+    <div
+      class="toolbar-collapse"
+      :title="isCollapsed ? '展开' : '收缩'"
+      @click.stop="toggleCollapse"
+    >
       <!-- 水平方向工具栏 -->
       <template v-if="config.direction === 'horizontal'">
         <!-- 左侧工具栏 -->
@@ -63,7 +103,7 @@
       position: 'fixed',
       top: `${submenuState.top}px`,
       left: `${submenuState.left}px`,
-      zIndex: 999999
+      zIndex: 999999,
     }"
     @click.stop
   >
@@ -73,24 +113,52 @@
       class="submenu-item toolbar-item"
       :class="[{ active: isToolActive(subTool.id) }, subTool.className]"
       :data-tool-id="subTool.id"
-      @click.stop.prevent="e => handleSubmenuItemClick(submenuState.parentTool, subTool, e)"
-      @mouseenter="e => handleToolHover(subTool, e, true)"
-      @mouseleave="e => handleToolHover(subTool, e, false)"
+      @click.stop.prevent="
+        (e) => handleSubmenuItemClick(submenuState.parentTool, subTool, e)
+      "
+      @mouseenter="(e) => handleToolHover(subTool, e, true)"
+      @mouseleave="(e) => handleToolHover(subTool, e, false)"
     >
       <span
-        v-if="isSvgString(isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon)"
+        v-if="
+          isSvgString(
+            isToolActive(subTool.id) && subTool.activeIcon
+              ? subTool.activeIcon
+              : subTool.icon,
+          )
+        "
         class="svg-icon"
-        v-html="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon"
+        v-html="
+          isToolActive(subTool.id) && subTool.activeIcon
+            ? subTool.activeIcon
+            : subTool.icon
+        "
       />
       <IconifyIconOnline
-        v-else-if="typeof (isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon) === 'string'"
-        :icon="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon"
+        v-else-if="
+          typeof (isToolActive(subTool.id) && subTool.activeIcon
+            ? subTool.activeIcon
+            : subTool.icon) === 'string'
+        "
+        :icon="
+          isToolActive(subTool.id) && subTool.activeIcon
+            ? subTool.activeIcon
+            : subTool.icon
+        "
         class="icon"
       />
-      <component :is="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon" v-else-if="subTool.icon || (isToolActive(subTool.id) && subTool.activeIcon)" />
+      <component
+        :is="
+          isToolActive(subTool.id) && subTool.activeIcon
+            ? subTool.activeIcon
+            : subTool.icon
+        "
+        v-else-if="
+          subTool.icon || (isToolActive(subTool.id) && subTool.activeIcon)
+        "
+      />
     </div>
   </div>
-
 
   <!-- 使用固定定位的工具提示 -->
   <div
@@ -100,7 +168,7 @@
       position: 'fixed',
       top: `${tooltipState.top}px`,
       left: `${tooltipState.left}px`,
-      zIndex: 999999
+      zIndex: 999999,
     }"
   >
     {{ tooltipState.text }}
@@ -109,12 +177,19 @@
 
 <script lang="ts">
 export default {
-  name: "MapToolbar"
+  name: "MapToolbar",
 };
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { GridType } from "../composables/GridManager";
 import type { ToolbarObject } from "../composables/ToolbarObject";
@@ -143,11 +218,11 @@ const props = withDefaults(defineProps<Props>(), {
           type: "button",
           icon: '<svg viewBox="0 0 1024 1024" width="20" height="20"><path d="M128 128h768v768H128z" fill="var(--el-color-primary-light-9)"/><path d="M128 128h768v768H128z" fill="none" stroke="var(--el-color-primary)" stroke-width="48"/><path d="M128 384h768" stroke="var(--el-color-primary)" stroke-width="32"/><path d="M128 640h768" stroke="var(--el-color-primary)" stroke-width="32"/><path d="M384 128v768" stroke="var(--el-color-primary)" stroke-width="32"/><path d="M640 128v768" stroke="var(--el-color-primary)" stroke-width="32"/></svg>',
           title: "区划",
-          show: true
-        }
-      ]
+          show: true,
+        },
+      ],
     }) as ToolbarConfig,
-  toolbarObj: null
+  toolbarObj: null,
 });
 
 const configConfig = ref<ToolbarConfig>(props.toolbarConfig);
@@ -157,7 +232,7 @@ const config = computed(() => ({
   direction: configConfig.value.direction || "horizontal",
   itemsPerLine: configConfig.value.itemsPerLine || 8,
   size: configConfig.value.size || 36,
-  items: configConfig.value.items || []
+  items: configConfig.value.items || [],
 }));
 
 const toolbarObj = ref<ToolbarObject | null>(null);
@@ -165,7 +240,9 @@ const toolbarObj = ref<ToolbarObject | null>(null);
 // 这样可以保持与ToolbarObject的一致性
 const visibleTools = computed<ToolItem[]>(() => {
   const items = props.toolbarConfig.items || [];
-  return Array.isArray(items) ? items.filter(tool => tool.show !== false) : [];
+  return Array.isArray(items)
+    ? items.filter((tool) => tool.show !== false)
+    : [];
 });
 
 // 判断图标配置是否为 SVG 字符串
@@ -252,7 +329,7 @@ const updateActiveTools = () => {
 
   // 递归收集工具和子菜单中激活的工具
   const collectActiveTools = (toolItems: ToolItem[]) => {
-    toolItems.forEach(tool => {
+    toolItems.forEach((tool) => {
       // 检查工具激活状态
       if (tool.active) {
         activeToolsObj[tool.id] = true;
@@ -278,11 +355,13 @@ const updateActiveTools = () => {
 
   // 特殊处理子菜单项激活状态
   // 确保网格工具的子菜单项状态被正确捕获
-  const gridTool = tools.find(t => t.id === "grid");
+  const gridTool = tools.find((t) => t.id === "grid");
   if (gridTool && gridTool.children) {
-    gridTool.children.forEach(subTool => {
+    gridTool.children.forEach((subTool) => {
       if (subTool.active) {
-        console.debug(`子菜单项 ${subTool.id} 处于激活状态，设置父菜单 grid 也为激活状态`);
+        console.debug(
+          `子菜单项 ${subTool.id} 处于激活状态，设置父菜单 grid 也为激活状态`,
+        );
         activeToolsObj[subTool.id] = true;
         activeToolsObj["grid"] = true; // 如果子菜单项激活，父菜单也应该显示为激活
       }
@@ -336,11 +415,14 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
   emit("tool-click", {
     toolId: tool.id,
     tool,
-    event
+    event,
   });
 
   // 处理有子菜单的工具
-  if ((tool.type === "menu" || tool.type === "button") && tool.children?.length) {
+  if (
+    (tool.type === "menu" || tool.type === "button") &&
+    tool.children?.length
+  ) {
     const toolId = tool.id;
     const menuIndex = openSubMenus.value.indexOf(toolId);
 
@@ -357,7 +439,8 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
       const totalRows = Math.ceil(tool.children.length / itemsPerRow);
 
       // 计算子菜单的宽度和高度
-      const menuWidth = Math.min(tool.children.length, itemsPerRow) * (config.value.size + 8); // 按钮宽度+间距
+      const menuWidth =
+        Math.min(tool.children.length, itemsPerRow) * (config.value.size + 8); // 按钮宽度+间距
       const menuHeight = totalRows * (config.value.size + 8); // 按钮高度+间距
 
       // 检查右侧空间，防止菜单超出窗口
@@ -385,20 +468,26 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
         left: left,
         items: tool.children,
         parentTool: tool,
-        parentId: tool.id
+        parentId: tool.id,
       };
 
       // 添加全局点击事件，点击空白处关闭子菜单
       if (!globalClickListener) {
         globalClickListener = (e: MouseEvent) => {
           const target = e.target as HTMLElement;
-          if (!target.closest(".toolbar-submenu") && !target.closest(`[data-tool-id="${toolId}"]`)) {
+          if (
+            !target.closest(".toolbar-submenu") &&
+            !target.closest(`[data-tool-id="${toolId}"]`)
+          ) {
             closeAllSubMenus();
           }
         };
 
         nextTick(() => {
-          document.addEventListener("click", globalClickListener as EventListener);
+          document.addEventListener(
+            "click",
+            globalClickListener as EventListener,
+          );
         });
       }
     } else {
@@ -408,7 +497,9 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
   }
 
   // 所有工具类型都通过toolbarObj处理激活状态
-  console.debug(`点击工具 ${tool.id} (${tool.type}) 前状态: ${isToolActive(tool.id) ? "激活" : "未激活"}`);
+  console.debug(
+    `点击工具 ${tool.id} (${tool.type}) 前状态: ${isToolActive(tool.id) ? "激活" : "未激活"}`,
+  );
 
   if (toolbarObj.value) {
     try {
@@ -421,7 +512,9 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
 
         // 获取最新状态
         const isActive = isToolActive(tool.id);
-        console.debug(`点击工具 ${tool.id} 后状态: ${isActive ? "激活" : "未激活"}`);
+        console.debug(
+          `点击工具 ${tool.id} 后状态: ${isActive ? "激活" : "未激活"}`,
+        );
 
         // 发送相应事件
         if (isActive) {
@@ -463,7 +556,7 @@ const closeAllSubMenus = () => {
   openSubMenus.value = [];
 
   // 对每个子菜单发送关闭事件
-  submenusToClose.forEach(toolId => {
+  submenusToClose.forEach((toolId) => {
     emit("submenu-close", toolId);
   });
 
@@ -486,7 +579,10 @@ const toggleCollapse = () => {
 
   // 保存状态到localStorage
   try {
-    localStorage.setItem("map-toolbar-collapsed", JSON.stringify(isCollapsed.value));
+    localStorage.setItem(
+      "map-toolbar-collapsed",
+      JSON.stringify(isCollapsed.value),
+    );
   } catch (e) {
     console.error("保存工具栏状态失败:", e);
   }
@@ -508,7 +604,14 @@ onBeforeUnmount(() => {
 
 // 保持原有的样式计算属性
 const toolbarClass = computed(() => {
-  return ["map-toolbar", `position-${config.value.position}`, `direction-${config.value.direction}`, config.value.position.startsWith("top") ? "top-positioned" : "bottom-positioned"];
+  return [
+    "map-toolbar",
+    `position-${config.value.position}`,
+    `direction-${config.value.direction}`,
+    config.value.position.startsWith("top")
+      ? "top-positioned"
+      : "bottom-positioned",
+  ];
 });
 
 // 按钮尺寸
@@ -540,7 +643,7 @@ const toolbarStyle = computed(() => {
     "--buttonSize": config.value.size + "px",
     transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
     display: "flex",
-    gap: `${buttonMargin.value}px`
+    gap: `${buttonMargin.value}px`,
   };
 
   // 根据方向设置flex布局属性
@@ -580,9 +683,13 @@ const toolbarStyle = computed(() => {
   // 添加收缩状态样式
   if (isCollapsed.value) {
     if (config.value.direction === "horizontal") {
-      style.transform = config.value.position.endsWith("left") ? "translateX(-100%)" : "translateX(100%)";
+      style.transform = config.value.position.endsWith("left")
+        ? "translateX(-100%)"
+        : "translateX(100%)";
     } else {
-      style.transform = config.value.position.startsWith("top") ? "translateY(-100%)" : "translateY(100%)";
+      style.transform = config.value.position.startsWith("top")
+        ? "translateY(-100%)"
+        : "translateY(100%)";
     }
     style.opacity = "0.4"; // 完全隐藏工具栏
     // 注意：不设置 pointerEvents = "none"，以确保收缩按钮仍然可以点击
@@ -609,7 +716,7 @@ watch(
       }
     }
   },
-  { immediate: false }
+  { immediate: false },
 );
 
 // 添加一个直接刷新状态的方法
@@ -650,11 +757,15 @@ const submenuState = ref({
   left: 0,
   items: [] as ToolItem[],
   parentTool: null as ToolItem | null,
-  parentId: ""
+  parentId: "",
 });
 
 // 添加handleSubmenuItemClick函数的定义
-const handleSubmenuItemClick = (parentTool: ToolItem, subTool: ToolItem, event: MouseEvent) => {
+const handleSubmenuItemClick = (
+  parentTool: ToolItem,
+  subTool: ToolItem,
+  event: MouseEvent,
+) => {
   event.stopPropagation();
 
   // 发送点击事件
@@ -663,7 +774,7 @@ const handleSubmenuItemClick = (parentTool: ToolItem, subTool: ToolItem, event: 
     toolId: subTool.id,
     parentTool,
     tool: subTool,
-    event
+    event,
   });
 
   // 处理工具点击
@@ -716,7 +827,7 @@ const emit = defineEmits([
   "submenu-close",
   "submenu-item-click",
   "toggle-3d",
-  "toggle3d"
+  "toggle3d",
 ]);
 
 // 重新声明globalClickListener
@@ -725,7 +836,7 @@ let globalClickListener: ((e: MouseEvent) => void) | null = null;
 // 监听toolbarObj变化，确保在对象加载后立即更新状态
 watch(
   () => props.toolbarObj,
-  newValue => {
+  (newValue) => {
     if (newValue) {
       toolbarObj.value = newValue;
 
@@ -739,7 +850,10 @@ watch(
         if (gridObj) {
           const activeGridTypes = gridObj.getActiveGridTypes();
           if (activeGridTypes.size > 0) {
-            console.debug("检测到已启用的网格类型:", Array.from(activeGridTypes).join(", "));
+            console.debug(
+              "检测到已启用的网格类型:",
+              Array.from(activeGridTypes).join(", "),
+            );
             // 延迟再次更新状态，确保完全同步
             setTimeout(() => {
               updateActiveTools();
@@ -749,7 +863,7 @@ watch(
       });
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 工具提示状态
@@ -757,14 +871,22 @@ const tooltipState = ref({
   visible: false,
   top: 0,
   left: 0,
-  text: ""
+  text: "",
 });
 
 // 处理工具悬停
-const handleToolHover = (tool: ToolItem, event: MouseEvent, isEnter: boolean) => {
+const handleToolHover = (
+  tool: ToolItem,
+  event: MouseEvent,
+  isEnter: boolean,
+) => {
   if (isEnter) {
     // 如果工具有子菜单并且已经激活，不显示工具提示
-    if ((tool.type === "menu" || tool.type === "button") && tool.children?.length && isToolActive(tool.id)) {
+    if (
+      (tool.type === "menu" || tool.type === "button") &&
+      tool.children?.length &&
+      isToolActive(tool.id)
+    ) {
       tooltipState.value.visible = false;
       return;
     }
@@ -805,13 +927,17 @@ const handleToolHover = (tool: ToolItem, event: MouseEvent, isEnter: boolean) =>
     let mustAdjust = false;
 
     // 检查是否有其他按钮可能会遮挡提示框
-    allToolbarItems.forEach(item => {
+    allToolbarItems.forEach((item) => {
       if (item !== event.currentTarget) {
         const itemRect = item.getBoundingClientRect();
         // 如果水平工具栏
         if (config.value.direction === "horizontal") {
           // 检查提示框是否被下方的按钮遮挡
-          if (Math.abs(itemRect.left - rect.left) < rect.width && itemRect.top > rect.bottom && itemRect.top < tooltipTop + 30) {
+          if (
+            Math.abs(itemRect.left - rect.left) < rect.width &&
+            itemRect.top > rect.bottom &&
+            itemRect.top < tooltipTop + 30
+          ) {
             mustAdjust = true;
           }
         } else {
@@ -865,7 +991,7 @@ const handleToolHover = (tool: ToolItem, event: MouseEvent, isEnter: boolean) =>
       visible: true,
       top: tooltipTop,
       left: tooltipLeft,
-      text: tool.tooltip || tool.name || ""
+      text: tool.tooltip || tool.name || "",
     };
   } else {
     // 鼠标离开，隐藏提示
@@ -882,7 +1008,7 @@ defineExpose({
   getToolbarObj: () => toolbarObj.value,
   setToolbarObj: (obj: ToolbarObject) => {
     toolbarObj.value = obj;
-  }
+  },
 });
 </script>
 
@@ -966,7 +1092,8 @@ defineExpose({
 .map-toolbar[style*="translateY"] .toolbar-collapse {
   background-color: var(--el-color-primary) !important;
   /* 使用更醒目的蓝色背景 */
-  box-shadow: 0 2px 10px color-mix(in srgb, var(--el-color-primary), transparent 50%) !important;
+  box-shadow: 0 2px 10px
+    color-mix(in srgb, var(--el-color-primary), transparent 50%) !important;
   /* 增强阴影效果 */
   opacity: 1 !important;
   /* 完全不透明 */
@@ -1000,7 +1127,8 @@ defineExpose({
 .map-toolbar[style*="translateX"] .toolbar-collapse:hover {
   background-color: var(--el-color-primary-light-3) !important;
   /* hover时背景色更亮 */
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary), transparent 40%) !important;
+  box-shadow: 0 4px 12px
+    color-mix(in srgb, var(--el-color-primary), transparent 40%) !important;
   /* hover时阴影更突出 */
   transform: translateY(-50%) scale(1.05) !important;
   /* 保持垂直居中并略微放大 */
@@ -1010,7 +1138,8 @@ defineExpose({
 .map-toolbar[style*="translateY"] .toolbar-collapse:hover {
   background-color: var(--el-color-primary-light-3) !important;
   /* hover时背景色更亮 */
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary), transparent 40%) !important;
+  box-shadow: 0 4px 12px
+    color-mix(in srgb, var(--el-color-primary), transparent 40%) !important;
   /* hover时阴影更突出 */
   transform: translateX(-50%) scale(1.05) !important;
   /* 保持水平居中并略微放大 */
@@ -1022,13 +1151,15 @@ defineExpose({
 }
 
 .direction-horizontal.position-top-left[style*="translateX"] .toolbar-collapse,
-.direction-horizontal.position-bottom-left[style*="translateX"] .toolbar-collapse {
+.direction-horizontal.position-bottom-left[style*="translateX"]
+  .toolbar-collapse {
   right: -28px;
   left: auto;
 }
 
 .direction-horizontal.position-top-right[style*="translateX"] .toolbar-collapse,
-.direction-horizontal.position-bottom-right[style*="translateX"] .toolbar-collapse {
+.direction-horizontal.position-bottom-right[style*="translateX"]
+  .toolbar-collapse {
   left: -28px;
   right: auto;
 }
@@ -1046,7 +1177,8 @@ defineExpose({
 }
 
 .direction-vertical.position-bottom-left[style*="translateY"] .toolbar-collapse,
-.direction-vertical.position-bottom-right[style*="translateY"] .toolbar-collapse {
+.direction-vertical.position-bottom-right[style*="translateY"]
+  .toolbar-collapse {
   top: -40px;
   bottom: auto;
   left: 50%;
@@ -1108,7 +1240,8 @@ defineExpose({
     background-color: var(--el-color-primary);
     color: var(--el-color-white);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px color-mix(in srgb, var(--el-color-primary), transparent 70%);
+    box-shadow: 0 4px 8px
+      color-mix(in srgb, var(--el-color-primary), transparent 70%);
     animation: pulse-border 1.5s infinite;
     position: relative;
     z-index: 10;
@@ -1116,7 +1249,8 @@ defineExpose({
 
   &.active:hover {
     background-color: var(--el-color-primary-light-3);
-    box-shadow: 0 6px 12px color-mix(in srgb, var(--el-color-primary), transparent 60%);
+    box-shadow: 0 6px 12px
+      color-mix(in srgb, var(--el-color-primary), transparent 60%);
   }
 
   &.active:active {
@@ -1127,7 +1261,8 @@ defineExpose({
 
   @keyframes pulse-border {
     0% {
-      box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-primary), transparent 50%);
+      box-shadow: 0 0 0 0
+        color-mix(in srgb, var(--el-color-primary), transparent 50%);
     }
 
     70% {
@@ -1149,12 +1284,14 @@ defineExpose({
     &.active {
       background-color: var(--el-color-danger);
       color: var(--el-color-white);
-      box-shadow: 0 4px 8px color-mix(in srgb, var(--el-color-danger), transparent 70%);
+      box-shadow: 0 4px 8px
+        color-mix(in srgb, var(--el-color-danger), transparent 70%);
     }
 
     &.active:hover {
       background-color: var(--el-color-danger-light-3);
-      box-shadow: 0 6px 12px color-mix(in srgb, var(--el-color-danger), transparent 60%);
+      box-shadow: 0 6px 12px
+        color-mix(in srgb, var(--el-color-danger), transparent 60%);
     }
 
     &.active:active {
@@ -1243,7 +1380,12 @@ defineExpose({
 }
 
 /* 修复：子菜单项SVG图标颜色控制 */
-.toolbar-item.active .toolbar-submenu .submenu-item:not(.active) .svg-icon svg * {
+.toolbar-item.active
+  .toolbar-submenu
+  .submenu-item:not(.active)
+  .svg-icon
+  svg
+  * {
   fill: var(--el-text-color-regular) !important;
   stroke: var(--el-text-color-regular) !important;
   transition: all 0.3s ease;
@@ -1254,7 +1396,8 @@ defineExpose({
   background-color: var(--el-color-primary);
   color: var(--el-color-white);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px color-mix(in srgb, var(--el-color-primary), transparent 70%);
+  box-shadow: 0 4px 8px
+    color-mix(in srgb, var(--el-color-primary), transparent 70%);
   animation: pulse-border 1.5s infinite;
   position: relative;
   z-index: 10;
@@ -1288,10 +1431,15 @@ defineExpose({
 
 /* 激活状态工具的提示框样式 */
 .toolbar-item.active .toolbar-tooltip {
-  background-color: color-mix(in srgb, var(--el-color-primary), transparent 10%);
+  background-color: color-mix(
+    in srgb,
+    var(--el-color-primary),
+    transparent 10%
+  );
   font-weight: bold;
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary), transparent 70%);
+  box-shadow: 0 2px 8px
+    color-mix(in srgb, var(--el-color-primary), transparent 70%);
 }
 
 /* 子菜单相关样式 */
@@ -1455,7 +1603,8 @@ defineExpose({
     background-color: var(--el-color-primary);
     color: var(--el-color-white);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px color-mix(in srgb, var(--el-color-primary), transparent 70%);
+    box-shadow: 0 4px 8px
+      color-mix(in srgb, var(--el-color-primary), transparent 70%);
     animation: pulse-border 1.5s infinite;
     position: relative;
     z-index: 10;

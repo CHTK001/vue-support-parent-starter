@@ -8,8 +8,8 @@
     class="expression-help-dialog"
   >
     <div class="help-content">
-      <el-tabs v-model="activeTab" type="border-card">
-        <el-tab-pane
+      <ScTabs v-model="activeTab" type="border-card">
+        <ScTabPane
           v-if="expressionType === 'PROMETHEUS'"
           label="Prometheus"
           name="prometheus"
@@ -74,9 +74,9 @@ rate(http_requests_total[5m])</code></pre>
               </div>
             </div>
           </div>
-        </el-tab-pane>
+        </ScTabPane>
 
-        <el-tab-pane v-if="expressionType === 'SQL'" label="SQL" name="sql">
+        <ScTabPane v-if="expressionType === 'SQL'" label="SQL" name="sql">
           <div class="help-section">
             <h3>SQL 查询语法</h3>
             <p>使用标准 SQL 语法查询服务器监控数据。</p>
@@ -152,13 +152,13 @@ AND collect_time BETWEEN ? AND ?</code></pre>
               <li>时间范围查询建议使用索引字段</li>
             </ul>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
+        <ScButton @click="visible = false">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

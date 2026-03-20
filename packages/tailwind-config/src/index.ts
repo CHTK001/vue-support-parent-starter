@@ -119,9 +119,19 @@ const customColors = {
 };
 
 export default {
-  content: ["./index.html", ...tailwindPackages.map((item) => path.join(item, "src/**/*.{vue,js,ts,jsx,tsx,svelte,astro,html}"))],
+  content: [
+    "./index.html",
+    ...tailwindPackages.map((item) =>
+      path.join(item, "src/**/*.{vue,js,ts,jsx,tsx,svelte,astro,html}"),
+    ),
+  ],
   darkMode: "selector",
-  plugins: [animate, typographyPlugin, addDynamicIconSelectors(), enterAnimationPlugin],
+  plugins: [
+    animate,
+    typographyPlugin,
+    addDynamicIconSelectors(),
+    enterAnimationPlugin,
+  ],
   prefix: "",
   safelist: ["dark"],
   theme: {

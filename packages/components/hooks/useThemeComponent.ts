@@ -4,8 +4,13 @@
  * 支持多主题扩展，新增主题只需修改 themeConfig.ts
  */
 
+<<<<<<< HEAD
 import { computed, watch, onBeforeUnmount, onMounted, shallowRef, ref, getCurrentInstance, type Component, type Ref } from "vue";
 import { getThemeConfig, getThemeComponentName, getThemeLocalComponentConfig, THEME_CONFIGS, ensureThemePluginForCurrentSkin } from "./themeConfig";
+=======
+import { computed, watch, onBeforeUnmount, onMounted, shallowRef, ref, getCurrentInstance, type Component } from "vue";
+import { getThemeConfig, getThemeComponentName, THEME_CONFIGS, ensureThemePluginForCurrentSkin } from "./themeConfig";
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import * as ElementPlusModule from "element-plus";
 import { storageLocal } from "@pureadmin/utils";
 import { getLogger } from "@repo/utils";
@@ -21,7 +26,14 @@ const ELEMENT_PLUS_COMPONENTS: Record<string, Component> = ElementPlusModule as 
  * 主题预加载状态
  */
 const themePreloadStatus = new Map<string, boolean>();
-const logger = getLogger("[useThemeComponent]");
+let _logger: ReturnType<typeof getLogger> | null = null;
+const getL = () => (_logger ??= getLogger("[useThemeComponent]"));
+const logger = {
+  warn: (msg: string, ...args: unknown[]) => getL().warn(msg, ...args),
+  error: (msg: string, ...args: unknown[]) => getL().error(msg, ...args),
+  info: (msg: string, ...args: unknown[]) => getL().info(msg, ...args),
+  debug: (msg: string, ...args: unknown[]) => getL().debug(msg, ...args),
+};
 
 /**
  * 预加载指定主题的所有组件
@@ -156,6 +168,99 @@ const themeCssUrls = new Map<string, string>();
 const themeCssRefCounts = new Map<string, number>();
 
 /**
+<<<<<<< HEAD
+=======
+ * Pixelium 可选 CSS 样式链接引用（normalize.css）
+ */
+const pixeliumOptionalStyleLinks = new Map<string, HTMLLinkElement>();
+
+/**
+ * Pixelium 可选 CSS URL 缓存
+ */
+const pixeliumOptionalCssUrls = new Map<string, string>();
+
+/**
+ * Pixelium 可选 CSS 引用计数
+ */
+const pixeliumOptionalCssRefCounts = new Map<string, number>();
+
+/**
+ * 加载 Pixelium 可选 CSS（normalize.css）
+ * @param cssFileName CSS 文件名（normalize.css）
+ */
+const loadPixeliumOptionalCss = async (cssFileName: string): Promise<void> => {
+  const linkId = `pixelium-${cssFileName.replace(".css", "")}-style`;
+  const existingLink = document.getElementById(linkId) as HTMLLinkElement;
+
+  if (existingLink) {
+    pixeliumOptionalStyleLinks.set(cssFileName, existingLink);
+    pixeliumOptionalCssRefCounts.set(cssFileName, (pixeliumOptionalCssRefCounts.get(cssFileName) || 0) + 1);
+    return;
+  }
+
+  if (pixeliumOptionalStyleLinks.has(cssFileName)) {
+    pixeliumOptionalCssRefCounts.set(cssFileName, (pixeliumOptionalCssRefCounts.get(cssFileName) || 0) + 1);
+    return;
+  }
+
+  try {
+    // 动态导入 CSS 文件获取 URL（使用静态路径，Vite 需要静态分析）
+    if (!pixeliumOptionalCssUrls.has(cssFileName)) {
+      try {
+        let cssModule: any;
+        // 使用静态导入路径，Vite 需要静态分析才能正确处理 ?url 后缀
+        if (cssFileName === "normalize.css") {
+          // @ts-ignore - Vite 支持 ?url 后缀，但 TypeScript 可能不识别
+          cssModule = await import("@pixelium/web-vue/dist/normalize.css?url");
+        } else {
+          logger.warn(`[useThemeComponent] 不支持的 Pixelium CSS 文件: ${cssFileName}`);
+          return;
+        }
+        const cssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
+        pixeliumOptionalCssUrls.set(cssFileName, cssUrl);
+      } catch (error) {
+        // 可选样式加载失败不影响主题使用，静默跳过
+        return;
+      }
+    }
+
+    // 创建 link 标签
+    const styleLink = document.createElement("link");
+    styleLink.rel = "stylesheet";
+    styleLink.href = pixeliumOptionalCssUrls.get(cssFileName)!;
+    styleLink.id = linkId;
+    document.head.appendChild(styleLink);
+
+    pixeliumOptionalStyleLinks.set(cssFileName, styleLink);
+    pixeliumOptionalCssRefCounts.set(cssFileName, 1);
+  } catch (error) {
+    // 可选样式加载失败不影响主题使用，静默跳过
+  }
+};
+
+/**
+ * 移除 Pixelium 可选 CSS（引用计数管理）
+ * @param cssFileName CSS 文件名
+ */
+const removePixeliumOptionalCss = (cssFileName: string): void => {
+  const refCount = pixeliumOptionalCssRefCounts.get(cssFileName) || 0;
+  const newRefCount = refCount - 1;
+
+  pixeliumOptionalCssRefCounts.set(cssFileName, newRefCount);
+
+  if (newRefCount <= 0) {
+    const styleLink = pixeliumOptionalStyleLinks.get(cssFileName);
+    if (styleLink) {
+      styleLink.remove();
+      pixeliumOptionalStyleLinks.delete(cssFileName);
+      pixeliumOptionalCssRefCounts.delete(cssFileName);
+      pixeliumOptionalCssUrls.delete(cssFileName);
+    }
+  }
+};
+
+/**
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
  * 加载主题 CSS
  * @param themeName 主题名称
  */
@@ -803,6 +908,23 @@ export function useThemeComponent(elementComponentName: string) {
     { immediate: true }
   );
 
+<<<<<<< HEAD
+=======
+  /**
+   * 组件卸载时清理
+   */
+  onBeforeUnmount(() => {
+    // 减少引用计数
+    globalThemeState.refCount--;
+
+    // 当所有组件实例都卸载时才清理观察器
+    cleanupGlobalSkinObserver();
+
+    // 清理主题 CSS（注意：这里不清理，因为其他组件可能还在使用）
+    // 主题 CSS 的清理由 watch 中的逻辑处理
+  });
+
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   return {
     /**
      * 当前 data-skin 值

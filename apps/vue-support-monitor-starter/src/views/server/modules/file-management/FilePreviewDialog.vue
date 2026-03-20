@@ -35,27 +35,27 @@
         <div v-if="isTextFile && fileContent !== null" class="text-preview">
           <div class="preview-toolbar">
             <el-button-group size="small">
-              <el-button
+              <ScButton
                 :type="viewMode === 'text' ? 'primary' : ''"
                 @click="viewMode = 'text'"
               >
                 <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
                 文本
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 v-if="isCodeFile"
                 :type="viewMode === 'code' ? 'primary' : ''"
                 @click="viewMode = 'code'"
               >
                 <IconifyIconOnline icon="ri:code-line" class="mr-1" />
                 代码
-              </el-button>
+              </ScButton>
             </el-button-group>
             <div class="toolbar-right">
-              <el-button size="small" @click="downloadFile">
+              <ScButton size="small" @click="downloadFile">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                 下载
-              </el-button>
+              </ScButton>
             </div>
           </div>
 
@@ -75,10 +75,10 @@
           <div class="preview-toolbar">
             <span class="file-type-label">图片预览</span>
             <div class="toolbar-right">
-              <el-button size="small" @click="downloadFile">
+              <ScButton size="small" @click="downloadFile">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                 下载
-              </el-button>
+              </ScButton>
             </div>
           </div>
           <div class="image-container">
@@ -98,10 +98,10 @@
             <p>此文件类型暂不支持预览</p>
             <p class="file-type-hint">{{ getFileTypeHint() }}</p>
             <div class="unsupported-actions">
-              <el-button type="primary" @click="downloadFile">
+              <ScButton type="primary" @click="downloadFile">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                 下载文件
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -116,8 +116,8 @@
             <p>文件预览失败</p>
             <p class="error-message">{{ error }}</p>
             <div class="error-actions">
-              <el-button @click="loadFileContent">重试</el-button>
-              <el-button type="primary" @click="downloadFile"
+              <ScButton @click="loadFileContent">重试</ScButton>
+              <ScButton type="primary" @click="downloadFile"
                 >下载文件</el-button
               >
             </div>
@@ -128,15 +128,15 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="closeDialog">关闭</el-button>
-        <el-button
+        <ScButton @click="closeDialog">关闭</ScButton>
+        <ScButton
           v-if="isTextFile && fileContent"
           type="primary"
           @click="editFile"
         >
           <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
           编辑
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

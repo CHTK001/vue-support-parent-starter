@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
 import { localStorageProxy } from "@repo/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 
 const STORAGE_KEY = "widget-quick-todo";
 
@@ -27,7 +27,7 @@ const addTodo = () => {
   todos.value.unshift({
     id: Date.now(),
     text: newTodo.value.trim(),
-    done: false
+    done: false,
   });
   newTodo.value = "";
   saveTodos();
@@ -41,14 +41,14 @@ const toggleTodo = (todo) => {
 
 // 删除待办
 const removeTodo = (id) => {
-  todos.value = todos.value.filter(t => t.id !== id);
+  todos.value = todos.value.filter((t) => t.id !== id);
   saveTodos();
 };
 
 // 统计
 const stats = computed(() => {
   const total = todos.value.length;
-  const done = todos.value.filter(t => t.done).length;
+  const done = todos.value.filter((t) => t.done).length;
   return { total, done, pending: total - done };
 });
 </script>
@@ -57,33 +57,35 @@ const stats = computed(() => {
   <div class="quick-todo">
     <div class="todo-header">
       <div class="header-left">
-        <el-icon :size="18" class="mr-1"><component :is="useRenderIcon('ri:list-check')" /></el-icon>
+        <ScIcon :size="18" class="mr-1"
+          ><component :is="useRenderIcon('ri:list-check')"
+        /></ScIcon>
         <span class="header-title">待办清单</span>
       </div>
       <span class="header-stats" v-if="stats.total > 0">
         {{ stats.done }}/{{ stats.total }}
       </span>
     </div>
-    
+
     <div class="todo-input-wrapper">
-      <el-input
+      <ScInput
         v-model="newTodo"
         placeholder="添加新待办..."
         class="todo-input"
         @keyup.enter="addTodo"
       >
         <template #prefix>
-          <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+          <ScIcon><component :is="useRenderIcon('ep:plus')" /></ScIcon>
         </template>
-      </el-input>
+      </ScInput>
     </div>
-    
+
     <div class="todo-list">
       <div v-if="todos.length === 0" class="todo-empty">
         <div class="empty-icon-bg">
-          <el-icon :size="24" color="var(--el-color-primary)">
+          <ScIcon :size="24" color="var(--el-color-primary)">
             <component :is="useRenderIcon('ri:checkbox-circle-line')" />
-          </el-icon>
+          </ScIcon>
         </div>
         <span>暂无待办事项</span>
       </div>
@@ -96,13 +98,17 @@ const stats = computed(() => {
         >
           <div class="todo-checkbox" @click="toggleTodo(todo)">
             <div class="checkbox-inner">
-              <el-icon v-if="todo.done" :size="12"><component :is="useRenderIcon('ep:check')" /></el-icon>
+              <ScIcon v-if="todo.done" :size="12"
+                ><component :is="useRenderIcon('ep:check')"
+              /></ScIcon>
             </div>
           </div>
-          <span class="todo-text" @click="toggleTodo(todo)">{{ todo.text }}</span>
+          <span class="todo-text" @click="toggleTodo(todo)">{{
+            todo.text
+          }}</span>
           <div class="todo-actions">
             <div class="delete-btn" @click.stop="removeTodo(todo.id)">
-              <el-icon><component :is="useRenderIcon('ep:close')" /></el-icon>
+              <ScIcon><component :is="useRenderIcon('ep:close')" /></ScIcon>
             </div>
           </div>
         </div>
@@ -128,23 +134,23 @@ const stats = computed(() => {
   align-items: center;
   margin-bottom: 16px;
   flex-shrink: 0;
-  
+
   .header-left {
     display: flex;
     align-items: center;
     color: var(--el-color-primary);
-    
+
     .el-icon {
       filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
     }
   }
-  
+
   .header-title {
     font-size: 16px;
     font-weight: 600;
     color: var(--el-text-color-primary);
   }
-  
+
   .header-stats {
     font-size: 12px;
     padding: 2px 8px;
@@ -158,13 +164,13 @@ const stats = computed(() => {
 .todo-input-wrapper {
   margin-bottom: 16px;
   flex-shrink: 0;
-  
+
   :deep(.el-input__wrapper) {
     border-radius: 8px;
     box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
     background: var(--el-fill-color-lighter);
     transition: all 0.3s;
-    
+
     &.is-focus {
       background: var(--el-bg-color);
       box-shadow: 0 0 0 1px var(--el-color-primary) inset;
@@ -177,7 +183,7 @@ const stats = computed(() => {
   overflow-y: auto;
   min-height: 0;
   padding-right: 4px;
-  
+
   /* Custom Scrollbar */
   &::-webkit-scrollbar {
     width: 6px;
@@ -189,7 +195,7 @@ const stats = computed(() => {
     background-color: var(--el-border-color-lighter);
     border-radius: 3px;
     transition: background-color 0.3s;
-    
+
     &:hover {
       background-color: var(--el-border-color-darker);
     }
@@ -205,7 +211,7 @@ const stats = computed(() => {
   color: var(--el-text-color-placeholder);
   font-size: 13px;
   padding: 20px 0;
-  
+
   .empty-icon-bg {
     width: 48px;
     height: 48px;
@@ -233,23 +239,23 @@ const stats = computed(() => {
   transition: all 0.3s ease;
   cursor: pointer;
   border: 1px solid transparent;
-  
+
   &:hover {
     background: var(--el-bg-color);
     border-color: var(--el-border-color-lighter);
     transform: translateX(2px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    
+
     .delete-btn {
       opacity: 1;
       transform: scale(1);
     }
   }
-  
+
   &.is-done {
     opacity: 0.6;
     background: var(--el-fill-color-lighter);
-    
+
     .todo-text {
       text-decoration: line-through;
       color: var(--el-text-color-secondary);
@@ -260,7 +266,7 @@ const stats = computed(() => {
 .todo-checkbox {
   margin-right: 10px;
   flex-shrink: 0;
-  
+
   .checkbox-inner {
     width: 18px;
     height: 18px;
@@ -271,12 +277,12 @@ const stats = computed(() => {
     justify-content: center;
     transition: all 0.2s;
     color: white;
-    
+
     .el-icon {
       font-weight: bold;
     }
   }
-  
+
   .todo-item.is-done & .checkbox-inner {
     background: var(--el-color-primary);
     border-color: var(--el-color-primary);
@@ -294,7 +300,7 @@ const stats = computed(() => {
 
 .todo-actions {
   margin-left: 8px;
-  
+
   .delete-btn {
     width: 24px;
     height: 24px;
@@ -306,7 +312,7 @@ const stats = computed(() => {
     transition: all 0.2s;
     opacity: 0;
     transform: scale(0.8);
-    
+
     &:hover {
       background: var(--el-fill-color-darker);
       color: var(--el-color-danger);

@@ -1,7 +1,7 @@
 <script setup>
 // 引入 ReIcon 组件的钩子函数，用于渲染图标
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 // 引入 Vue 的响应式和生命周期相关函数
 import {
   computed,
@@ -18,7 +18,7 @@ import { transformI18n } from "@repo/config";
 // 引入计算时间差的工具函数
 import { getTimeAgo } from "@repo/utils";
 // 引入ScIp组件
-import ScIp from "@repo/components/ScIp/index.vue";
+import { ScIp } from "@repo/components"
 // 引入刷新图标
 import Refresh from "@iconify-icons/line-md/backup-restore";
 // 引入防抖函数
@@ -169,7 +169,7 @@ const onDataLoaded = (data, total) => {
       ref="detailRef"
       :moduleOptions="moduleOptions"
     />
-    <el-container class="log-container">
+    <ScContainer class="log-container">
       <!-- 统计面板 -->
       <div class="log-stats">
         <div class="stat-item">
@@ -210,10 +210,10 @@ const onDataLoaded = (data, total) => {
         </div>
       </div>
       <!-- 头部搜索区域 -->
-      <el-header class="toolbar-section log-header">
+      <ScHeader class="toolbar-section log-header">
         <div class="toolbar-left log-left-panel">
           <!-- 搜索表单 -->
-          <el-form
+          <ScForm
             ref="formRef"
             label-width="40px"
             :inline="true"
@@ -221,63 +221,63 @@ const onDataLoaded = (data, total) => {
             class="modern-form log-search-form"
           >
             <!-- 账号输入框 -->
-            <el-form-item
+            <ScFormItem
               label="账号"
               prop="sysLogUsername"
               class="log-form-item"
             >
-              <el-input
+              <ScInput
                 v-model="form.sysLogUsername"
                 placeholder="请输入账号名称"
                 clearable
                 class="log-input"
               />
-            </el-form-item>
+            </ScFormItem>
             <!-- 模块选择框 -->
-            <el-form-item label="模块" prop="sysLogFrom" class="log-form-item">
-              <el-select
+            <ScFormItem label="模块" prop="sysLogFrom" class="log-form-item">
+              <ScSelect
                 v-model="form.sysLogFrom"
                 placeholder="请选择模块"
                 clearable
                 class="log-select"
               >
-                <el-option
+                <ScOption
                   v-for="item in moduleOptions"
                   :key="item.value"
                   :value="item.value"
                   :label="item.label"
                 >
                   {{ item.label }}
-                </el-option>
-              </el-select>
-            </el-form-item>
+                </ScOption>
+              </ScSelect>
+            </ScFormItem>
             <!-- 状态选择框 -->
-            <el-form-item
+            <ScFormItem
               label="状态"
               prop="sysLogStatus"
               class="log-form-item"
             >
-              <el-select
+              <ScSelect
                 v-model="form.sysLogStatus"
                 class="log-select"
                 clearable
               >
-                <el-option :value="1" label="成功">成功</el-option>
-                <el-option :value="0" label="失败">失败</el-option>
-              </el-select>
-            </el-form-item>
+                <ScOption :value="1" label="成功">成功</ScOption>
+                <ScOption :value="0" label="失败">失败</ScOption>
+              </ScSelect>
+            </ScFormItem>
             <!-- IP 输入框 -->
-            <el-form-item label=" IP" prop="sysLogIp" class="log-form-item">
-              <el-input
+            <ScFormItem label=" IP" prop="sysLogIp" class="log-form-item">
+              <ScInput
                 v-model="form.sysLogIp"
                 placeholder="请输入IP"
                 clearable
                 class="log-input"
               />
-            </el-form-item>
+            </ScFormItem>
             <!-- 日期时间范围选择器 -->
-            <el-form-item label="时间" prop="sysLogTime" class="log-form-item">
-              <el-date-picker
+            <ScFormItem label="时间" prop="sysLogTime" class="log-form-item">
+              <ScDatePicker
                 v-model="sysLogTime"
                 type="datetimerange"
                 :start-placeholder="transformI18n('module.startDate')"
@@ -287,8 +287,8 @@ const onDataLoaded = (data, total) => {
                 time-format="A hh:mm:ss"
                 class="log-date-picker"
               />
-            </el-form-item>
-          </el-form>
+            </ScFormItem>
+          </ScForm>
         </div>
         <div class="toolbar-right log-right-panel">
           <div class="log-right-panel-search">
@@ -298,7 +298,7 @@ const onDataLoaded = (data, total) => {
                   <div class="log-flex-1" />
                   <div class="log-button-container">
                     <!-- 搜索按钮 -->
-                    <el-button
+                    <ScButton
                       type="primary"
                       :icon="useRenderIcon('ri:search-line')"
                       :loading="loading.query"
@@ -306,7 +306,7 @@ const onDataLoaded = (data, total) => {
                       @click="onSearch"
                     />
                     <!-- 重置按钮 -->
-                    <el-button
+                    <ScButton
                       :icon="useRenderIcon(Refresh)"
                       class="log-button log-reset-button"
                       @click="resetForm(formRef)"
@@ -317,9 +317,9 @@ const onDataLoaded = (data, total) => {
             </div>
           </div>
         </div>
-      </el-header>
+      </ScHeader>
       <!-- 主体表格区域 -->
-      <el-main class="log-main-content">
+      <ScMain class="log-main-content">
         <div ref="contentRef" class="log-content">
           <div
             :class="[
@@ -338,14 +338,14 @@ const onDataLoaded = (data, total) => {
               @data-loaded="onDataLoaded"
             >
               <!-- 表格列保持不变 -->
-              <el-table-column
+              <ScTableColumn
                 label="账号名称"
                 prop="sysLogUsername"
                 align="center"
                 show-overflow-tooltip
                 min-width="120px"
               />
-              <el-table-column
+              <ScTableColumn
                 label="模块"
                 prop="sysLogFrom"
                 align="center"
@@ -356,9 +356,9 @@ const onDataLoaded = (data, total) => {
                     transform(row.sysLogFrom)
                   }}</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 请求 IP 列，使用ScIp组件显示 -->
-              <el-table-column
+              <ScTableColumn
                 label="请求IP"
                 prop="sysLogIp"
                 align="left"
@@ -378,9 +378,9 @@ const onDataLoaded = (data, total) => {
                     {{ row.sysLogIsp }}
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 地址列 -->
-              <el-table-column
+              <ScTableColumn
                 label="地址"
                 prop="sysLogUrl"
                 align="center"
@@ -388,14 +388,14 @@ const onDataLoaded = (data, total) => {
                 width="180px"
               />
               <!-- 浏览器指纹列 -->
-              <el-table-column
+              <ScTableColumn
                 label="浏览器指纹"
                 prop="sysLogFingerprint"
                 align="center"
                 show-overflow-tooltip
               />
               <!-- 登录方式列，使用国际化转换显示值 -->
-              <el-table-column
+              <ScTableColumn
                 label="登录方式"
                 prop="sysLogLoginType"
                 align="center"
@@ -404,9 +404,9 @@ const onDataLoaded = (data, total) => {
                 <template #default="{ row }">
                   {{ transformI18n(row.sysLogLoginType) }}
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- userAgent 列 -->
-              <el-table-column
+              <ScTableColumn
                 label="userAgent"
                 prop="sysLogUa"
                 align="center"
@@ -414,7 +414,7 @@ const onDataLoaded = (data, total) => {
                 min-width="120px"
               />
               <!-- 请求时间列，显示时间差和具体时间 -->
-              <el-table-column
+              <ScTableColumn
                 label="请求时间"
                 prop="createTime"
                 align="left"
@@ -428,9 +428,9 @@ const onDataLoaded = (data, total) => {
                     <span class="text-gray-400">{{ row.createTime }}</span>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 状态列，根据状态显示不同标签 -->
-              <el-table-column
+              <ScTableColumn
                 label="状态"
                 prop="sysLogStatus"
                 align="center"
@@ -438,35 +438,35 @@ const onDataLoaded = (data, total) => {
                 show-overflow-tooltip
               >
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogStatus === 1" type="success"
+                  <ScTag v-if="row.sysLogStatus === 1" type="success"
                     >成功</el-tag
                   >
-                  <el-tag v-else-if="row.sysLogStatus === 0" type="danger"
+                  <ScTag v-else-if="row.sysLogStatus === 0" type="danger"
                     >失败</el-tag
                   >
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 耗时列，根据耗时显示不同标签 -->
-              <el-table-column label="耗时" prop="sysLogCost" align="center">
+              <ScTableColumn label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogCost <= 1000" type="success"
+                  <ScTag v-if="row.sysLogCost <= 1000" type="success"
                     >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
-                  <el-tag
+                  <ScTag
                     v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
                     type="warning"
                     >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
-                  <el-tag v-else type="danger"
+                  <ScTag v-else type="danger"
                     >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
                 </template>
-              </el-table-column>
+              </ScTableColumn>
             </ScTable>
           </div>
         </div>
-      </el-main>
-    </el-container>
+      </ScMain>
+    </ScContainer>
   </div>
 </template>
 

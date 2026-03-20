@@ -1,14 +1,14 @@
 <template>
   <div class="trace-viewer system-container modern-bg">
     <div class="toolbar">
-      <el-input
+      <ScInput
         v-model="classPattern"
         placeholder="类匹配（必填，如 com.example.service.UserService）"
         style="min-width: 300px"
         clearable
       >
         <template #suffix>
-          <el-tooltip placement="top">
+          <ScTooltip placement="top">
             <template #content>
               <div style="max-width: 300px">
                 <p><strong>输入要追踪的类名：</strong></p>
@@ -18,24 +18,24 @@
                 <p>• 如果提示匹配类过多，请使用更具体的类名</p>
               </div>
             </template>
-            <el-icon><QuestionFilled /></el-icon>
-          </el-tooltip>
+            <ScIcon><QuestionFilled /></ScIcon>
+          </ScTooltip>
         </template>
-      </el-input>
-      <el-input
+      </ScInput>
+      <ScInput
         v-model="methodPattern"
         placeholder="方法匹配（可选，默认 *）"
         style="min-width: 200px"
         clearable
       />
-      <el-input
+      <ScInput
         v-model="condition"
         placeholder="条件表达式（可选，如 #cost>10）"
         style="min-width: 220px"
         clearable
       />
-      <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
-      <el-input-number
+      <ScCheckbox v-model="useRegex">正则(-E)</ScCheckbox>
+      <ScInputNumber
         v-model="count"
         :min="1"
         :max="1000"
@@ -44,7 +44,7 @@
         style="width: 120px"
       />
       <span class="label">-n</span>
-      <el-input-number
+      <ScInputNumber
         v-model="expand"
         :min="0"
         :max="10"
@@ -53,49 +53,49 @@
         style="width: 100px"
       />
       <span class="label">-x</span>
-      <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
-      <el-select
+      <ScCheckbox v-model="autoRefresh">自动刷新</ScCheckbox>
+      <ScSelect
         v-model="refreshInterval"
         style="width: 120px"
         placeholder="拉取间隔"
         title="设置结果拉取间隔（同时用于自动刷新间隔）"
       >
-        <el-option :value="5" label="5秒" />
-        <el-option :value="10" label="10秒" />
-        <el-option :value="30" label="30秒" />
-        <el-option :value="60" label="60秒" />
-      </el-select>
-      <el-button @click="clearData">清空</el-button>
-      <el-button
+        <ScOption :value="5" label="5秒" />
+        <ScOption :value="10" label="10秒" />
+        <ScOption :value="30" label="30秒" />
+        <ScOption :value="60" label="60秒" />
+      </ScSelect>
+      <ScButton @click="clearData">清空</ScButton>
+      <ScButton
         type="primary"
         :disabled="!nodeId || !classPatternTrim || isRunning"
         :loading="loading"
         @click="run"
       >
         {{ autoRefresh && countdown > 0 ? `执行(${countdown}s)` : "执行" }}
-      </el-button>
-      <el-button
+      </ScButton>
+      <ScButton
         :disabled="!isRunning"
         :type="isRunning ? 'danger' : 'default'"
         @click="sendStop"
       >
         {{ isRunning ? "停止追踪" : "停止" }}
-      </el-button>
+      </ScButton>
       <div v-if="isRunning" class="status-indicator">
-        <el-tag type="success" effect="dark">
-          <el-icon class="rotating"><Loading /></el-icon>
+        <ScTag type="success" effect="dark">
+          <ScIcon class="rotating"><Loading /></ScIcon>
           正在追踪...
-        </el-tag>
+        </ScTag>
       </div>
     </div>
 
     <div class="content">
       <div v-if="error" class="error-message">
-        <el-alert type="error" :title="error" show-icon />
+        <ScAlert type="error" :title="error" show-icon />
       </div>
 
       <div v-else-if="traces.length === 0 && !loading" class="empty-state">
-        <el-empty>
+        <ScEmpty>
           <template #description>
             <div class="empty-description">
               <p>暂无链路追踪数据</p>
@@ -107,13 +107,13 @@
               </p>
             </div>
           </template>
-        </el-empty>
+        </ScEmpty>
       </div>
 
       <div v-else class="trace-content">
         <!-- 统计信息 -->
         <div v-if="traceStats" class="trace-stats">
-          <el-card shadow="never" class="stats-card">
+          <ScCard shadow="never" class="stats-card">
             <div class="stats-grid">
               <div class="stat-item">
                 <span class="stat-label">总调用次数</span>
@@ -142,12 +142,12 @@
                 <span class="stat-value">{{ traceStats.minCost }}ms</span>
               </div>
             </div>
-          </el-card>
+          </ScCard>
         </div>
 
         <!-- 链路追踪列表 -->
         <div class="trace-list">
-          <el-card
+          <ScCard
             v-for="(trace, index) in traces"
             :key="index"
             shadow="hover"
@@ -159,13 +159,13 @@
                 <span class="trace-method"
                   >{{ trace.className }}.{{ trace.methodName }}</span
                 >
-                <el-tag
+                <ScTag
                   :type="trace.success ? 'success' : 'danger'"
                   size="small"
                   class="trace-status"
                 >
                   {{ trace.success ? "成功" : "失败" }}
-                </el-tag>
+                </ScTag>
               </div>
               <div class="trace-metrics">
                 <span class="trace-cost">{{ trace.cost }}ms</span>
@@ -189,7 +189,7 @@
                     >
                     <span class="node-cost">{{ node.cost }}ms</span>
                     <span v-if="node.exception" class="node-exception">
-                      <el-tag type="danger" size="small">异常</el-tag>
+                      <ScTag type="danger" size="small">异常</ScTag>
                     </span>
                   </div>
                   <div v-if="node.exception" class="exception-detail">
@@ -198,7 +198,7 @@
                 </div>
               </div>
             </div>
-          </el-card>
+          </ScCard>
         </div>
       </div>
     </div>

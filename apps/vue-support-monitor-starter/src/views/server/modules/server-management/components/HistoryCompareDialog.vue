@@ -9,17 +9,17 @@
     <div class="history-compare">
       <!-- 选择对比的历史记录 -->
       <div class="compare-selector">
-        <el-row :gutter="16">
-          <el-col :span="12">
+        <ScRow :gutter="16">
+          <ScCol :span="12">
             <div class="selector-section">
               <h4 class="selector-title">选择基准配置</h4>
-              <el-select
+              <ScSelect
                 v-model="selectedHistory1"
                 placeholder="请选择基准配置"
                 filterable
                 style="width: 100%"
               >
-                <el-option
+                <ScOption
                   v-for="history in historyOptions"
                   :key="history.monitorSysGenServerSettingHistoryId"
                   :label="formatHistoryLabel(history)"
@@ -27,33 +27,33 @@
                 >
                   <div class="history-option">
                     <div class="option-main">
-                      <el-tag
+                      <ScTag
                         :type="ChangeTypeColors[history.changeType]"
                         size="small"
                         class="mr-2"
                       >
                         {{ ChangeTypeNames[history.changeType] }}
-                      </el-tag>
+                      </ScTag>
                       <span>{{ history.changeDescription }}</span>
                     </div>
                     <div class="option-time">
                       {{ formatTime(history.changeTime) }}
                     </div>
                   </div>
-                </el-option>
-              </el-select>
+                </ScOption>
+              </ScSelect>
             </div>
-          </el-col>
-          <el-col :span="12">
+          </ScCol>
+          <ScCol :span="12">
             <div class="selector-section">
               <h4 class="selector-title">选择对比配置</h4>
-              <el-select
+              <ScSelect
                 v-model="selectedHistory2"
                 placeholder="请选择对比配置"
                 filterable
                 style="width: 100%"
               >
-                <el-option
+                <ScOption
                   v-for="history in historyOptions"
                   :key="history.monitorSysGenServerSettingHistoryId"
                   :label="formatHistoryLabel(history)"
@@ -65,27 +65,27 @@
                 >
                   <div class="history-option">
                     <div class="option-main">
-                      <el-tag
+                      <ScTag
                         :type="ChangeTypeColors[history.changeType]"
                         size="small"
                         class="mr-2"
                       >
                         {{ ChangeTypeNames[history.changeType] }}
-                      </el-tag>
+                      </ScTag>
                       <span>{{ history.changeDescription }}</span>
                     </div>
                     <div class="option-time">
                       {{ formatTime(history.changeTime) }}
                     </div>
                   </div>
-                </el-option>
-              </el-select>
+                </ScOption>
+              </ScSelect>
             </div>
-          </el-col>
-        </el-row>
+          </ScCol>
+        </ScRow>
 
         <div class="compare-actions">
-          <el-button
+          <ScButton
             type="primary"
             :disabled="!canCompare"
             :loading="comparing"
@@ -93,7 +93,7 @@
           >
             <IconifyIconOnline icon="ri:git-compare-line" class="mr-1" />
             开始对比
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -105,53 +105,53 @@
             对比结果
           </h4>
           <div class="result-summary">
-            <el-tag type="info" size="small">
+            <ScTag type="info" size="small">
               共发现 {{ differences.length }} 处差异
-            </el-tag>
+            </ScTag>
           </div>
         </div>
 
         <!-- 差异列表 -->
         <div v-if="differences.length > 0" class="differences-list">
-          <el-table :data="differences" stripe>
-            <el-table-column prop="field" label="字段路径" width="200">
+          <ScTable :data="differences" stripe>
+            <ScTableColumn prop="field" label="字段路径" width="200">
               <template #default="{ row }">
                 <div class="field-path">
                   <IconifyIconOnline icon="ri:node-tree" class="mr-1" />
                   {{ row.field }}
                 </div>
               </template>
-            </el-table-column>
-            <el-table-column label="基准值">
+            </ScTableColumn>
+            <ScTableColumn label="基准值">
               <template #default="{ row }">
                 <div class="value-cell base-value">
                   {{ formatValue(row.baseValue) }}
                 </div>
               </template>
-            </el-table-column>
-            <el-table-column label="对比值">
+            </ScTableColumn>
+            <ScTableColumn label="对比值">
               <template #default="{ row }">
                 <div class="value-cell compare-value">
                   {{ formatValue(row.compareValue) }}
                 </div>
               </template>
-            </el-table-column>
-            <el-table-column prop="changeType" label="变更类型" width="100">
+            </ScTableColumn>
+            <ScTableColumn prop="changeType" label="变更类型" width="100">
               <template #default="{ row }">
-                <el-tag
+                <ScTag
                   :type="getDifferenceTypeColor(row.changeType)"
                   size="small"
                 >
                   {{ getDifferenceTypeName(row.changeType) }}
-                </el-tag>
+                </ScTag>
               </template>
-            </el-table-column>
-          </el-table>
+            </ScTableColumn>
+          </ScTable>
         </div>
 
         <!-- 无差异提示 -->
         <div v-else class="no-differences">
-          <el-empty
+          <ScEmpty
             description="两个配置完全相同，没有发现差异"
             :image-size="80"
           />
@@ -163,57 +163,57 @@
             <IconifyIconOnline icon="ri:layout-column-line" class="mr-2" />
             并排对比
           </h4>
-          <el-row :gutter="16">
-            <el-col :span="12">
+          <ScRow :gutter="16">
+            <ScCol :span="12">
               <div class="config-panel">
                 <div class="panel-header">
                   <h5>基准配置</h5>
-                  <el-tag type="info" size="small">
+                  <ScTag type="info" size="small">
                     {{ formatTime(baseHistory?.changeTime || "") }}
-                  </el-tag>
+                  </ScTag>
                 </div>
                 <div class="config-content">
                   <pre><code>{{ formatConfig(baseConfig) }}</code></pre>
                 </div>
               </div>
-            </el-col>
-            <el-col :span="12">
+            </ScCol>
+            <ScCol :span="12">
               <div class="config-panel">
                 <div class="panel-header">
                   <h5>对比配置</h5>
-                  <el-tag type="info" size="small">
+                  <ScTag type="info" size="small">
                     {{ formatTime(compareHistory?.changeTime || "") }}
-                  </el-tag>
+                  </ScTag>
                 </div>
                 <div class="config-content">
                   <pre><code>{{ formatConfig(compareConfig) }}</code></pre>
                 </div>
               </div>
-            </el-col>
-          </el-row>
+            </ScCol>
+          </ScRow>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button
+        <ScButton @click="handleClose">关闭</ScButton>
+        <ScButton
           v-if="compareResult && baseHistory"
           type="warning"
           @click="handleRestoreBase"
         >
           <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
           恢复基准配置
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           v-if="compareResult && compareHistory"
           type="warning"
           @click="handleRestoreCompare"
         >
           <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
           恢复对比配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

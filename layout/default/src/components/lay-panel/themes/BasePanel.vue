@@ -36,7 +36,20 @@ function closePanel(): void {
 }
 
 const iconClass = computed(() => {
-  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+  return [
+    "w-[22px]",
+    "h-[22px]",
+    "flex",
+    "justify-center",
+    "items-center",
+    "outline-none",
+    "rounded-[4px]",
+    "cursor-pointer",
+    "transition-colors",
+    "hover:bg-[#0000000f]",
+    "dark:hover:bg-[#ffffff1f]",
+    "dark:hover:text-[#ffffffd9]",
+  ];
 });
 
 const { t } = useI18n();
@@ -64,7 +77,9 @@ onBeforeUnmount(() => {
     <div :class="{ show }">
       <div class="right-panel-background" />
       <div ref="target" class="right-panel bg-bg_color">
-        <div class="project-configuration border-b-[1px] border-solid border-[var(--pure-border-color)]">
+        <div
+          class="project-configuration border-b-[1px] border-solid border-[var(--pure-border-color)]"
+        >
           <h4 class="dark:text-white">
             {{ t("panel.pureSystemSet") }}
           </h4>
@@ -85,10 +100,11 @@ onBeforeUnmount(() => {
             />
           </span>
         </div>
-        <el-scrollbar>
+        <ScScrollbar>
           <slot />
-        </el-scrollbar>
+        </ScScrollbar>
 
+<<<<<<< HEAD
         <div class="flex justify-end p-3 border-t-[1px] border-solid border-[var(--pure-border-color)]">
           <ScButton
             v-tippy="{
@@ -129,6 +145,12 @@ onBeforeUnmount(() => {
             {{ t("panel.importConfig") }}
           </ScButton>
           <ScButton 
+=======
+        <div
+          class="flex justify-end p-3 border-t-[1px] border-solid border-[var(--pure-border-color)]"
+        >
+          <ScButton
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
             v-tippy="{
               content: t('panel.pureClearCacheAndToLogin'),
               placement: 'left-start',

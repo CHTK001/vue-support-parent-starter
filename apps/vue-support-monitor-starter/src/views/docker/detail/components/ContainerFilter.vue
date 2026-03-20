@@ -5,79 +5,79 @@
     </div>
 
     <div class="filter-content">
-      <el-form :model="filterParams" label-position="top" @submit.prevent>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="容器名称">
-              <el-input
+      <ScForm :model="filterParams" label-position="top" @submit.prevent>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="容器名称">
+              <ScInput
                 v-model="filterParams.name"
                 placeholder="请输入容器名称"
                 clearable
                 @keyup.enter="applyFilter"
               />
-            </el-form-item>
-          </el-col>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="镜像名称">
-              <el-input
+          <ScCol :span="12">
+            <ScFormItem label="镜像名称">
+              <ScInput
                 v-model="filterParams.image"
                 placeholder="请输入镜像名称"
                 clearable
                 @keyup.enter="applyFilter"
               />
-            </el-form-item>
-          </el-col>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="运行状态">
-              <el-select
+          <ScCol :span="12">
+            <ScFormItem label="运行状态">
+              <ScSelect
                 v-model="filterParams.status"
                 placeholder="请选择运行状态"
                 clearable
                 style="width: 100%"
               >
-                <el-option label="全部" value="" />
-                <el-option label="运行中" value="running" />
-                <el-option label="已停止" value="stopped" />
-                <el-option label="暂停" value="paused" />
-                <el-option label="重启中" value="restarting" />
-                <el-option label="错误" value="error" />
-              </el-select>
-            </el-form-item>
-          </el-col>
+                <ScOption label="全部" value="" />
+                <ScOption label="运行中" value="running" />
+                <ScOption label="已停止" value="stopped" />
+                <ScOption label="暂停" value="paused" />
+                <ScOption label="重启中" value="restarting" />
+                <ScOption label="错误" value="error" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="服务器">
-              <el-select
+          <ScCol :span="12">
+            <ScFormItem label="服务器">
+              <ScSelect
                 v-model="filterParams.serverId"
                 placeholder="请选择服务器"
                 clearable
                 style="width: 100%"
               >
-                <el-option label="全部" value="" />
-                <el-option
+                <ScOption label="全部" value="" />
+                <ScOption
                   v-for="server in serverOptions"
                   :key="server.id"
                   :label="server.name"
                   :value="server.id"
                 />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
 
         <div class="filter-actions">
-          <el-button type="primary" @click="applyFilter">
+          <ScButton type="primary" @click="applyFilter">
             <IconifyIconOnline icon="ri:search-line" class="mr-1" />
             应用过滤
-          </el-button>
-          <el-button @click="resetFilter">
+          </ScButton>
+          <ScButton @click="resetFilter">
             <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
             重置
-          </el-button>
+          </ScButton>
         </div>
-      </el-form>
+      </ScForm>
     </div>
   </div>
 </template>

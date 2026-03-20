@@ -11,25 +11,49 @@
           <ScCol :span="6">
             <div class="config-item">
               <label>容器高度</label>
-              <ScSlider v-model="config.height" :min="200" :max="600" :step="10" show-input />
+              <ScSlider
+                v-model="config.height"
+                :min="200"
+                :max="600"
+                :step="10"
+                show-input
+              />
             </div>
           </ScCol>
           <ScCol :span="6">
             <div class="config-item">
               <label>侧边栏宽度</label>
-              <ScSlider v-model="config.asideWidth" :min="100" :max="300" :step="10" show-input />
+              <ScSlider
+                v-model="config.asideWidth"
+                :min="100"
+                :max="300"
+                :step="10"
+                show-input
+              />
             </div>
           </ScCol>
           <ScCol :span="6">
             <div class="config-item">
               <label>右侧栏宽度</label>
-              <ScSlider v-model="config.rightWidth" :min="100" :max="300" :step="10" show-input />
+              <ScSlider
+                v-model="config.rightWidth"
+                :min="100"
+                :max="300"
+                :step="10"
+                show-input
+              />
             </div>
           </ScCol>
           <ScCol :span="6">
             <div class="config-item">
               <label>头部高度</label>
-              <ScSlider v-model="config.headerHeight" :min="40" :max="100" :step="5" show-input />
+              <ScSlider
+                v-model="config.headerHeight"
+                :min="40"
+                :max="100"
+                :step="5"
+                show-input
+              />
             </div>
           </ScCol>
         </ScRow>
@@ -132,8 +156,8 @@
         预设布局模板
       </h4>
       <div class="preset-grid">
-        <div 
-          v-for="preset in presets" 
+        <div
+          v-for="preset in presets"
           :key="preset.name"
           class="preset-card"
           :class="{ active: currentPreset === preset.name }"
@@ -269,7 +293,7 @@ function onRightResize(width) {
   border-radius: 12px;
   margin-bottom: 24px;
   overflow: hidden;
-  
+
   .config-header {
     display: flex;
     align-items: center;
@@ -279,17 +303,17 @@ function onRightResize(width) {
     font-weight: 600;
     color: var(--el-text-color-primary);
     border-bottom: 1px solid var(--el-border-color-lighter);
-    
+
     svg {
       font-size: 18px;
       color: var(--el-color-primary);
     }
   }
-  
+
   .config-body {
     padding: 20px;
   }
-  
+
   .config-item {
     label {
       display: block;
@@ -302,7 +326,7 @@ function onRightResize(width) {
 
 .demo-section {
   margin-bottom: 32px;
-  
+
   h4 {
     display: flex;
     align-items: center;
@@ -311,11 +335,11 @@ function onRightResize(width) {
     font-size: 16px;
     font-weight: 600;
     color: var(--el-text-color-primary);
-    
+
     svg {
       color: var(--el-color-primary);
     }
-    
+
     .hint {
       margin-left: auto;
       font-size: 12px;
@@ -329,7 +353,7 @@ function onRightResize(width) {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  
+
   &.interactive {
     background: var(--el-fill-color-lighter);
   }
@@ -343,10 +367,14 @@ function onRightResize(width) {
   gap: 8px;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-8),
+    var(--el-color-primary-light-9)
+  );
   color: var(--el-color-primary);
   font-weight: 500;
-  
+
   svg {
     font-size: 18px;
   }
@@ -360,16 +388,20 @@ function onRightResize(width) {
   justify-content: center;
   gap: 4px;
   height: 100%;
-  background: linear-gradient(180deg, var(--el-fill-color), var(--el-fill-color-light));
+  background: linear-gradient(
+    180deg,
+    var(--el-fill-color),
+    var(--el-fill-color-light)
+  );
   color: var(--el-text-color-secondary);
   position: relative;
   transition: background 0.3s;
-  
+
   svg {
     font-size: 20px;
     color: var(--el-color-primary-light-3);
   }
-  
+
   .size-label {
     font-size: 11px;
     color: var(--el-text-color-placeholder);
@@ -383,23 +415,23 @@ function onRightResize(width) {
   justify-content: center;
   height: 100%;
   background: var(--el-bg-color);
-  
+
   .main-content {
     text-align: center;
   }
-  
+
   .main-icon {
     font-size: 48px;
     color: var(--el-color-primary-light-5);
     margin-bottom: 12px;
   }
-  
+
   .main-text {
     font-size: 16px;
     font-weight: 500;
     color: var(--el-text-color-primary);
   }
-  
+
   .main-hint {
     font-size: 12px;
     color: var(--el-text-color-placeholder);
@@ -421,18 +453,18 @@ function onRightResize(width) {
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s;
-  
+
   &:hover {
     border-color: var(--el-color-primary-light-5);
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   }
-  
+
   &.active {
     border-color: var(--el-color-primary);
     background: var(--el-color-primary-light-9);
   }
-  
+
   .preset-preview {
     height: 80px;
     border: 1px solid var(--el-border-color-lighter);
@@ -441,38 +473,38 @@ function onRightResize(width) {
     display: flex;
     flex-direction: column;
     background: var(--el-fill-color-lighter);
-    
+
     .p-header {
       height: 12px;
       background: var(--el-color-primary-light-7);
     }
-    
+
     .p-body {
       flex: 1;
       display: flex;
     }
-    
+
     .p-aside {
       width: 20px;
       background: var(--el-fill-color);
     }
-    
+
     .p-main {
       flex: 1;
       background: var(--el-bg-color);
     }
-    
+
     .p-right {
       width: 20px;
       background: var(--el-fill-color);
     }
-    
+
     .p-footer {
       height: 8px;
       background: var(--el-color-primary-light-8);
     }
   }
-  
+
   .preset-name {
     text-align: center;
     margin-top: 10px;

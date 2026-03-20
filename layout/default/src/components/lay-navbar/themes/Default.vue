@@ -1,4 +1,5 @@
 <script setup lang="ts">
+<<<<<<< HEAD
 import { ref, onBeforeUnmount } from "vue";
 import { useNav } from "../../../hooks/useNav";
 import { useGlobal } from "@pureadmin/utils";
@@ -32,6 +33,9 @@ onBeforeUnmount(() => {
   emitter.off("breadcrumbChange");
   emitter.off("drawerMenuClosed");
 });
+=======
+import BaseNavbar from "./BaseNavbar.vue";
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 </script>
 
 <template>
@@ -80,6 +84,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
+<<<<<<< HEAD
 .default-navbar {
   display: flex;
   align-items: center;
@@ -152,6 +157,25 @@ onBeforeUnmount(() => {
     align-items: center;
     padding: 0 var(--dt-space-5);
     z-index: 10;
+=======
+// 使用 CSS 变量管理主题样式，保留 :deep() 但通过变量提升可维护性
+.default-wrapper {
+  // Use semantic tokens from the new theme system
+  // The value of these variables is controlled by the global ThemeManager
+  --default-navbar-bg: var(--stitch-lay-bg-overlay, rgba(255, 255, 255, 0.8));
+  --default-navbar-border: var(--stitch-lay-border, rgba(0, 0, 0, 0.05));
+  --default-navbar-backdrop: blur(12px);
+
+  width: 100%;
+
+  :deep(.default-navbar) {
+    background: var(--default-navbar-bg);
+    color: var(--stitch-lay-text-main);
+    backdrop-filter: var(--default-navbar-backdrop);
+    -webkit-backdrop-filter: var(--default-navbar-backdrop);
+    border-bottom: 1px solid var(--default-navbar-border);
+    transition: var(--stitch-lay-transition, all 0.3s ease);
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   }
 }
 </style>

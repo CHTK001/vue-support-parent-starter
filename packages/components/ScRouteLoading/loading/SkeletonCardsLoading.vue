@@ -28,11 +28,7 @@ withDefaults(defineProps<Props>(), {
       </div>
       <div class="mario-ground">
         <div class="mario-brick-row">
-          <div
-            v-for="i in 6"
-            :key="'brick-' + i"
-            class="mario-brick"
-          />
+          <div v-for="i in 6" :key="'brick-' + i" class="mario-brick" />
         </div>
         <div class="mario-block-row">
           <div class="mario-block mario-block-empty" />
@@ -45,11 +41,7 @@ withDefaults(defineProps<Props>(), {
         <div class="mario-ground-strip" />
         <div class="mario-mario-wrapper">
           <div class="mario-character">
-            <img
-              :src="characterImage"
-              alt="马里奥加载中"
-              class="mario-sprite"
-            />
+            <img :src="characterImage" alt="马里奥加载中" class="mario-sprite" />
           </div>
         </div>
       </div>
@@ -98,11 +90,9 @@ withDefaults(defineProps<Props>(), {
   width: 36px;
   height: 16px;
   background:
-    radial-gradient(circle at 8px 8px, #f9fafb 0, #f9fafb 8px, transparent 9px),
-    radial-gradient(circle at 16px 6px, #f9fafb 0, #f9fafb 8px, transparent 9px),
+    radial-gradient(circle at 8px 8px, #f9fafb 0, #f9fafb 8px, transparent 9px), radial-gradient(circle at 16px 6px, #f9fafb 0, #f9fafb 8px, transparent 9px),
     radial-gradient(circle at 24px 8px, #f9fafb 0, #f9fafb 8px, transparent 9px);
-  box-shadow:
-    0 0 0 1px rgba(148, 163, 184, 0.8);
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.8);
 }
 
 .mario-cloud-left {
@@ -130,16 +120,8 @@ withDefaults(defineProps<Props>(), {
   width: 60px;
   height: 28px;
   border-radius: 60px 60px 0 0;
-  background:
-    repeating-linear-gradient(
-      to right,
-      #22c55e,
-      #22c55e 4px,
-      #16a34a 4px,
-      #16a34a 8px
-    );
-  box-shadow:
-    0 0 0 2px rgba(21, 128, 61, 0.9);
+  background: repeating-linear-gradient(to right, #22c55e, #22c55e 4px, #16a34a 4px, #16a34a 8px);
+  box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.9);
 }
 
 .mario-hill-small {
@@ -168,8 +150,7 @@ withDefaults(defineProps<Props>(), {
 
 .mario-brick {
   margin: 0 2px;
-  background:
-    linear-gradient(180deg, #b45309 0%, #78350f 100%);
+  background: linear-gradient(180deg, #b45309 0%, #78350f 100%);
   box-shadow:
     0 0 0 1px rgba(120, 53, 15, 0.9),
     inset 0 0 0 2px rgba(248, 250, 252, 0.06);
@@ -189,8 +170,7 @@ withDefaults(defineProps<Props>(), {
 .mario-block {
   width: 20px;
   height: 20px;
-  background:
-    linear-gradient(180deg, #facc15 0%, #f97316 100%);
+  background: linear-gradient(180deg, #facc15 0%, #f97316 100%);
   box-shadow:
     0 0 0 1px rgba(124, 45, 18, 0.9),
     inset 0 0 0 2px rgba(254, 249, 195, 0.8);
@@ -199,8 +179,7 @@ withDefaults(defineProps<Props>(), {
 }
 
 .mario-block-empty {
-  background:
-    linear-gradient(180deg, #e5e7eb 0%, #cbd5f5 100%);
+  background: linear-gradient(180deg, #e5e7eb 0%, #cbd5f5 100%);
   box-shadow:
     0 0 0 1px rgba(148, 163, 184, 0.9),
     inset 0 0 0 2px rgba(248, 250, 252, 0.8);
@@ -232,26 +211,17 @@ withDefaults(defineProps<Props>(), {
   width: 14px;
   height: 14px;
   background:
-    radial-gradient(circle at 7px 3px, #f97316 0, #f97316 6px, transparent 7px),
-    radial-gradient(circle at 4px 4px, #fed7aa 0, #fed7aa 2px, transparent 3px),
+    radial-gradient(circle at 7px 3px, #f97316 0, #f97316 6px, transparent 7px), radial-gradient(circle at 4px 4px, #fed7aa 0, #fed7aa 2px, transparent 3px),
     radial-gradient(circle at 10px 4px, #fed7aa 0, #fed7aa 2px, transparent 3px);
   border-radius: 4px 4px 0 0;
-  box-shadow:
-    0 0 0 1px rgba(124, 45, 18, 0.9);
+  box-shadow: 0 0 0 1px rgba(124, 45, 18, 0.9);
   animation: mushroom-move 1.8s linear infinite;
 }
 
 .mario-ground-strip {
   height: 18px;
   margin-top: 2px;
-  background:
-    repeating-linear-gradient(
-      to right,
-      #92400e,
-      #92400e 6px,
-      #b45309 6px,
-      #b45309 12px
-    );
+  background: repeating-linear-gradient(to right, #92400e, #92400e 6px, #b45309 6px, #b45309 12px);
   box-shadow:
     0 0 0 2px rgba(120, 53, 15, 0.95),
     inset 0 4px 0 rgba(248, 250, 252, 0.1);
@@ -355,5 +325,3 @@ withDefaults(defineProps<Props>(), {
   }
 }
 </style>
-
-

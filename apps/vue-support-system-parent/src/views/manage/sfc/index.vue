@@ -3,16 +3,16 @@
     <!-- 页面头部 -->
     <div class="sfc-header">
       <div class="header-title">
-        <el-icon class="title-icon">
+        <ScIcon class="title-icon">
           <component :is="useRenderIcon('ri:plug-line')" />
-        </el-icon>
+        </ScIcon>
         <span>动态插件管理</span>
-        <el-tag type="info" size="small" class="ml-2">SFC</el-tag>
+        <ScTag type="info" size="small" class="ml-2">SFC</ScTag>
       </div>
       <div class="toolbar-right header-actions">
-        <el-form :model="form" :inline="true" class="modern-form search-form">
-          <el-form-item>
-            <el-input
+        <ScForm :model="form" :inline="true" class="modern-form search-form">
+          <ScFormItem>
+            <ScInput
               v-model="form.sysSfcName"
               placeholder="搜索组件名称"
               clearable
@@ -20,87 +20,87 @@
               class="search-input"
               @keyup.enter="onSearch"
             />
-          </el-form-item>
-          <el-form-item>
-            <el-select
+          </ScFormItem>
+          <ScFormItem>
+            <ScSelect
               v-model="form.sysSfcType"
               placeholder="组件类型"
               clearable
               class="type-select"
             >
-              <el-option label="文件式" :value="0" />
-              <el-option label="代码式" :value="1" />
-              <el-option label="远程地址" :value="2" />
-              <el-option label="本地地址" :value="3" />
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-tooltip content="只显示已安装的组件" placement="top">
-              <el-checkbox
+              <ScOption label="文件式" :value="0" />
+              <ScOption label="代码式" :value="1" />
+              <ScOption label="远程地址" :value="2" />
+              <ScOption label="本地地址" :value="3" />
+            </ScSelect>
+          </ScFormItem>
+          <ScFormItem>
+            <ScTooltip content="只显示已安装的组件" placement="top">
+              <ScCheckbox
                 v-model="form.sysSfcInstall"
                 :true-value="1"
                 :false-value="0"
                 border
                 @change="onSearch"
               >
-                <el-icon class="mr-1"
+                <ScIcon class="mr-1"
                   ><component :is="useRenderIcon('ri:download-2-line')"
-                /></el-icon>
+                /></ScIcon>
                 已安装
-              </el-checkbox>
-            </el-tooltip>
-          </el-form-item>
-          <el-form-item>
-            <el-button
+              </ScCheckbox>
+            </ScTooltip>
+          </ScFormItem>
+          <ScFormItem>
+            <ScButton
               type="primary"
               :icon="useRenderIcon('ep:search')"
               @click="onSearch"
               >搜索</el-button
             >
-            <el-button
+            <ScButton
               type="success"
               :icon="useRenderIcon('ep:plus')"
               @click="doSave({}, 'save')"
               >新增插件</el-button
             >
-          </el-form-item>
-        </el-form>
+          </ScFormItem>
+        </ScForm>
       </div>
     </div>
 
     <!-- 统计信息 -->
     <div class="sfc-stats">
       <div class="stat-item">
-        <el-icon class="stat-icon total"
+        <ScIcon class="stat-icon total"
           ><component :is="useRenderIcon('ri:apps-line')"
-        /></el-icon>
+        /></ScIcon>
         <div class="stat-info">
           <span class="stat-value">{{ stats.total }}</span>
           <span class="stat-label">全部插件</span>
         </div>
       </div>
       <div class="stat-item">
-        <el-icon class="stat-icon active"
+        <ScIcon class="stat-icon active"
           ><component :is="useRenderIcon('ri:checkbox-circle-line')"
-        /></el-icon>
+        /></ScIcon>
         <div class="stat-info">
           <span class="stat-value">{{ stats.active }}</span>
           <span class="stat-label">已激活</span>
         </div>
       </div>
       <div class="stat-item">
-        <el-icon class="stat-icon installed"
+        <ScIcon class="stat-icon installed"
           ><component :is="useRenderIcon('ri:download-2-line')"
-        /></el-icon>
+        /></ScIcon>
         <div class="stat-info">
           <span class="stat-value">{{ stats.installed }}</span>
           <span class="stat-label">已安装</span>
         </div>
       </div>
       <div class="stat-item">
-        <el-icon class="stat-icon disabled"
+        <ScIcon class="stat-icon disabled"
           ><component :is="useRenderIcon('ri:close-circle-line')"
-        /></el-icon>
+        /></ScIcon>
         <div class="stat-info">
           <span class="stat-value">{{ stats.disabled }}</span>
           <span class="stat-label">已禁用</span>
@@ -134,32 +134,32 @@
               class="plugin-icon"
               :class="{ active: row.sysSfcStatus === 1 }"
             >
-              <el-icon :size="48">
+              <ScIcon :size="48">
                 <component
                   :is="useRenderIcon(row.sysSfcIcon || 'ri:puzzle-line')"
                 />
-              </el-icon>
+              </ScIcon>
             </div>
             <div class="plugin-badges">
-              <el-tag
+              <ScTag
                 v-if="row.sysSfcInstall === 1"
                 type="success"
                 size="small"
                 effect="dark"
                 class="badge"
               >
-                <el-icon class="mr-1"
+                <ScIcon class="mr-1"
                   ><component :is="useRenderIcon('ep:check')"
-                /></el-icon>
+                /></ScIcon>
                 已安装
-              </el-tag>
-              <el-tag
+              </ScTag>
+              <ScTag
                 :type="getTypeTagType(row.sysSfcType)"
                 size="small"
                 class="badge"
               >
                 {{ getTypeName(row.sysSfcType) }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
 
@@ -174,15 +174,15 @@
             </p>
             <div class="plugin-meta">
               <span v-if="row.sysSfcVersion" class="meta-item">
-                <el-icon
+                <ScIcon
                   ><component :is="useRenderIcon('ri:price-tag-3-line')"
-                /></el-icon>
+                /></ScIcon>
                 v{{ row.sysSfcVersion }}
               </span>
               <span v-if="row.sysSfcCategory" class="meta-item">
-                <el-icon
+                <ScIcon
                   ><component :is="useRenderIcon('ri:folder-line')"
-                /></el-icon>
+                /></ScIcon>
                 {{ row.sysSfcCategory }}
               </span>
             </div>
@@ -191,7 +191,7 @@
           <!-- 卡片底部 -->
           <div class="card-footer">
             <div class="status-switch">
-              <el-switch
+              <ScSwitch
                 v-model="row.sysSfcStatus"
                 :active-value="1"
                 :inactive-value="0"
@@ -203,11 +203,11 @@
             </div>
             <div class="action-buttons">
               <!-- 安装/卸载按钮 -->
-              <el-tooltip
+              <ScTooltip
                 :content="row.sysSfcInstall === 1 ? '卸载插件' : '安装插件'"
                 placement="top"
               >
-                <el-popconfirm
+                <ScPopconfirm
                   :title="
                     row.sysSfcInstall === 1
                       ? '确定要卸载此插件吗？'
@@ -218,7 +218,7 @@
                   "
                 >
                   <template #reference>
-                    <el-button
+                    <ScButton
                       :type="row.sysSfcInstall === 1 ? 'warning' : 'success'"
                       :icon="
                         useRenderIcon(
@@ -232,27 +232,27 @@
                       :loading="startDialogStatus"
                     />
                   </template>
-                </el-popconfirm>
-              </el-tooltip>
+                </ScPopconfirm>
+              </ScTooltip>
 
               <!-- 预览按钮 -->
-              <el-tooltip content="预览插件" placement="top">
-                <el-button
+              <ScTooltip content="预览插件" placement="top">
+                <ScButton
                   type="primary"
                   :icon="useRenderIcon('ri:eye-line')"
                   circle
                   size="small"
                   @click="doView(row)"
                 />
-              </el-tooltip>
+              </ScTooltip>
 
               <!-- 上传按钮（仅文件式） -->
-              <el-tooltip
+              <ScTooltip
                 v-if="row.sysSfcType === 0"
                 content="上传组件文件"
                 placement="top"
               >
-                <el-button
+                <ScButton
                   v-roles="['ADMIN', 'SUPER_ADMIN']"
                   type="info"
                   :icon="useRenderIcon('ep:upload')"
@@ -260,24 +260,24 @@
                   size="small"
                   @click="doUpload(row)"
                 />
-              </el-tooltip>
+              </ScTooltip>
 
               <!-- 删除按钮 -->
-              <el-tooltip content="删除插件" placement="top">
-                <el-popconfirm
+              <ScTooltip content="删除插件" placement="top">
+                <ScPopconfirm
                   :title="$t('message.confimDelete')"
                   @confirm="doDelete(row)"
                 >
                   <template #reference>
-                    <el-button
+                    <ScButton
                       type="danger"
                       :icon="useRenderIcon('ep:delete')"
                       circle
                       size="small"
                     />
                   </template>
-                </el-popconfirm>
-              </el-tooltip>
+                </ScPopconfirm>
+              </ScTooltip>
             </div>
           </div>
         </div>
@@ -303,7 +303,7 @@ import {
   fetchUpdateSfc,
   fetchUninstallSfc,
 } from "@repo/core";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import SaveLayout from "./save.vue";
 import ViewLayout from "./view.vue";
 import UploadLayout from "./upload.vue";

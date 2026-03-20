@@ -1,6 +1,6 @@
 <template>
   <div class="sc-upload-file">
-    <el-upload
+    <ScUpload
       v-model:file-list="defaultFileList"
       :disabled="disabled"
       :auto-upload="autoUpload"
@@ -20,14 +20,14 @@
       :on-exceed="handleExceed"
     >
       <slot>
-        <el-button type="primary" :disabled="disabled">Click to upload</el-button>
+        <ScButton type="primary" :disabled="disabled">Click to upload</ScButton>
       </slot>
       <template #tip>
         <div v-if="tip" class="el-upload__tip">{{ tip }}</div>
       </template>
-    </el-upload>
+    </ScUpload>
     <span style="display: none !important">
-      <el-input v-model="value" />
+      <ScInput v-model="value" />
     </span>
   </div>
 </template>

@@ -208,7 +208,7 @@ function handleButtonClick(card: any) {
     <!-- 可以在top插槽添加自定义内容 -->
     <template #top>
       <div class="custom-banner">
-        <el-alert title="双12特惠活动进行中，限时抢购低至1折！" type="warning" :closable="false" show-icon style="margin-bottom: 24px; border-radius: 12px" />
+        <ScAlert title="双12特惠活动进行中，限时抢购低至1折！" type="warning" :closable="false" show-icon style="margin-bottom: 24px; border-radius: 12px" />
       </div>
     </template>
   </AliyunBenefitLayout>

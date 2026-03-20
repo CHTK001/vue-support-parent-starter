@@ -2,12 +2,12 @@
   <div class="screen-share-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
-      <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/webrtc' }"
+      <ScBreadcrumb separator="/">
+        <ScBreadcrumbItem :to="{ path: '/webrtc' }"
           >WebRTC管理</el-breadcrumb-item
         >
-        <el-breadcrumb-item>屏幕共享</el-breadcrumb-item>
-      </el-breadcrumb>
+        <ScBreadcrumbItem>屏幕共享</ScBreadcrumbItem>
+      </ScBreadcrumb>
     </div>
 
     <!-- 共享界面 -->
@@ -15,28 +15,28 @@
       <!-- 共享信息栏 -->
       <div class="share-info-bar">
         <div class="share-status">
-          <el-icon class="sharing-icon"><Monitor /></el-icon>
+          <ScIcon class="sharing-icon"><Monitor /></ScIcon>
           <span class="status-text">正在共享屏幕</span>
-          <el-tag type="success" size="small">{{
+          <ScTag type="success" size="small">{{
             shareType === "screen" ? "整个屏幕" : "应用窗口"
-          }}</el-tag>
+          }}</ScTag>
         </div>
         <div class="share-time">
           <span>{{ formatDuration(shareDuration) }}</span>
         </div>
         <div class="share-actions">
-          <el-button type="info" size="small" @click="showViewers = true">
-            <el-icon><User /></el-icon>
+          <ScButton type="info" size="small" @click="showViewers = true">
+            <ScIcon><User /></ScIcon>
             观看者 ({{ viewers.length }})
-          </el-button>
-          <el-button type="warning" size="small" @click="pauseShare">
-            <el-icon><VideoPause /></el-icon>
+          </ScButton>
+          <ScButton type="warning" size="small" @click="pauseShare">
+            <ScIcon><VideoPause /></ScIcon>
             {{ isPaused ? "恢复" : "暂停" }}
-          </el-button>
-          <el-button type="danger" size="small" @click="stopShare">
-            <el-icon><VideoPlay /></el-icon>
+          </ScButton>
+          <ScButton type="danger" size="small" @click="stopShare">
+            <ScIcon><VideoPlay /></ScIcon>
             停止共享
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -53,9 +53,9 @@
           <div class="preview-overlay">
             <div class="preview-info">
               <span>预览窗口</span>
-              <el-button type="text" @click="togglePreview">
-                <el-icon><{{ showPreview ? "Hide" : "View" }} /></el-icon>
-              </el-button>
+              <ScButton type="text" @click="togglePreview">
+                <ScIcon><{{ showPreview ? "Hide" : "View" }} /></ScIcon>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -64,9 +64,9 @@
         <div v-if="showViewers" class="viewers-panel">
           <div class="panel-header">
             <span>观看者列表</span>
-            <el-button type="text" @click="showViewers = false">
-              <el-icon><Close /></el-icon>
-            </el-button>
+            <ScButton type="text" @click="showViewers = false">
+              <ScIcon><Close /></ScIcon>
+            </ScButton>
           </div>
           <div class="viewers-list">
             <div
@@ -74,17 +74,17 @@
               :key="viewer.userId"
               class="viewer-item"
             >
-              <el-avatar :size="32" :src="viewer.avatar">
+              <ScAvatar :size="32" :src="viewer.avatar">
                 {{ viewer.username.charAt(0) }}
-              </el-avatar>
+              </ScAvatar>
               <div class="viewer-info">
                 <span class="viewer-name">{{ viewer.username }}</span>
                 <span class="viewer-status">{{ viewer.status }}</span>
               </div>
               <div class="viewer-actions">
-                <el-button type="text" size="small" @click="kickViewer(viewer)">
-                  <el-icon><Close /></el-icon>
-                </el-button>
+                <ScButton type="text" size="small" @click="kickViewer(viewer)">
+                  <ScIcon><Close /></ScIcon>
+                </ScButton>
               </div>
             </div>
           </div>
@@ -94,38 +94,38 @@
       <!-- 控制栏 -->
       <div class="control-bar">
         <div class="control-group">
-          <el-button
+          <ScButton
             :type="audioEnabled ? 'primary' : 'danger'"
             size="large"
             circle
             @click="toggleAudio"
           >
-            <el-icon
+            <ScIcon
               ><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else
-            /></el-icon>
-          </el-button>
+            /></ScIcon>
+          </ScButton>
 
-          <el-button type="warning" size="large" circle @click="pauseShare">
-            <el-icon
+          <ScButton type="warning" size="large" circle @click="pauseShare">
+            <ScIcon
               ><VideoPause v-if="!isPaused" /><VideoPlay v-else
-            /></el-icon>
-          </el-button>
+            /></ScIcon>
+          </ScButton>
 
-          <el-button type="danger" size="large" circle @click="stopShare">
-            <el-icon><Close /></el-icon>
-          </el-button>
+          <ScButton type="danger" size="large" circle @click="stopShare">
+            <ScIcon><Close /></ScIcon>
+          </ScButton>
         </div>
 
         <div class="additional-controls">
-          <el-button type="info" size="small" @click="showSettings = true">
-            <el-icon><Setting /></el-icon>
+          <ScButton type="info" size="small" @click="showSettings = true">
+            <ScIcon><Setting /></ScIcon>
             设置
-          </el-button>
+          </ScButton>
 
-          <el-button type="success" size="small" @click="showInvite = true">
-            <el-icon><Share /></el-icon>
+          <ScButton type="success" size="small" @click="showInvite = true">
+            <ScIcon><Share /></ScIcon>
             邀请观看
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
@@ -133,7 +133,7 @@
     <!-- 主界面 -->
     <div v-else class="main-interface">
       <!-- 开始共享 -->
-      <el-card class="start-share-card" shadow="hover">
+      <ScCard class="start-share-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>开始屏幕共享</span>
@@ -143,276 +143,276 @@
         <div class="share-options">
           <div class="option-group">
             <h4>选择共享内容</h4>
-            <el-radio-group v-model="shareType" class="share-type-group">
-              <el-radio value="screen" class="share-option">
+            <ScRadioGroup v-model="shareType" class="share-type-group">
+              <ScRadio value="screen" class="share-option">
                 <div class="option-content">
-                  <el-icon class="option-icon"><Monitor /></el-icon>
+                  <ScIcon class="option-icon"><Monitor /></ScIcon>
                   <div class="option-text">
                     <span class="option-title">整个屏幕</span>
                     <span class="option-desc">共享您的整个屏幕内容</span>
                   </div>
                 </div>
-              </el-radio>
+              </ScRadio>
 
-              <el-radio value="window" class="share-option">
+              <ScRadio value="window" class="share-option">
                 <div class="option-content">
-                  <el-icon class="option-icon"><Crop /></el-icon>
+                  <ScIcon class="option-icon"><Crop /></ScIcon>
                   <div class="option-text">
                     <span class="option-title">应用窗口</span>
                     <span class="option-desc">共享特定的应用程序窗口</span>
                   </div>
                 </div>
-              </el-radio>
+              </ScRadio>
 
-              <el-radio value="tab" class="share-option">
+              <ScRadio value="tab" class="share-option">
                 <div class="option-content">
-                  <el-icon class="option-icon"><Document /></el-icon>
+                  <ScIcon class="option-icon"><Document /></ScIcon>
                   <div class="option-text">
                     <span class="option-title">浏览器标签页</span>
                     <span class="option-desc">共享当前浏览器标签页</span>
                   </div>
                 </div>
-              </el-radio>
-            </el-radio-group>
+              </ScRadio>
+            </ScRadioGroup>
           </div>
 
           <div class="option-group">
             <h4>共享设置</h4>
-            <el-form :model="shareSettings" label-width="120px">
-              <el-form-item label="共享质量">
-                <el-select v-model="shareSettings.quality" style="width: 100%">
-                  <el-option label="高清 (1080p)" value="high" />
-                  <el-option label="标清 (720p)" value="medium" />
-                  <el-option label="流畅 (480p)" value="low" />
-                </el-select>
-              </el-form-item>
+            <ScForm :model="shareSettings" label-width="120px">
+              <ScFormItem label="共享质量">
+                <ScSelect v-model="shareSettings.quality" style="width: 100%">
+                  <ScOption label="高清 (1080p)" value="high" />
+                  <ScOption label="标清 (720p)" value="medium" />
+                  <ScOption label="流畅 (480p)" value="low" />
+                </ScSelect>
+              </ScFormItem>
 
-              <el-form-item label="帧率">
-                <el-select
+              <ScFormItem label="帧率">
+                <ScSelect
                   v-model="shareSettings.frameRate"
                   style="width: 100%"
                 >
-                  <el-option label="60 FPS" :value="60" />
-                  <el-option label="30 FPS" :value="30" />
-                  <el-option label="15 FPS" :value="15" />
-                </el-select>
-              </el-form-item>
+                  <ScOption label="60 FPS" :value="60" />
+                  <ScOption label="30 FPS" :value="30" />
+                  <ScOption label="15 FPS" :value="15" />
+                </ScSelect>
+              </ScFormItem>
 
-              <el-form-item>
-                <el-checkbox v-model="shareSettings.includeAudio">
+              <ScFormItem>
+                <ScCheckbox v-model="shareSettings.includeAudio">
                   包含系统音频
-                </el-checkbox>
-              </el-form-item>
+                </ScCheckbox>
+              </ScFormItem>
 
-              <el-form-item>
-                <el-checkbox v-model="shareSettings.enablePointer">
+              <ScFormItem>
+                <ScCheckbox v-model="shareSettings.enablePointer">
                   显示鼠标指针
-                </el-checkbox>
-              </el-form-item>
-            </el-form>
+                </ScCheckbox>
+              </ScFormItem>
+            </ScForm>
           </div>
 
           <div class="start-actions">
-            <el-button
+            <ScButton
               type="primary"
               size="large"
               :loading="starting"
               @click="startShare"
             >
-              <el-icon><VideoPlay /></el-icon>
+              <ScIcon><VideoPlay /></ScIcon>
               开始共享
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 加入观看 -->
-      <el-card class="join-watch-card" shadow="hover">
+      <ScCard class="join-watch-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>加入观看</span>
           </div>
         </template>
 
-        <el-form :model="joinForm" label-width="100px">
-          <el-form-item label="共享ID">
-            <el-input v-model="joinForm.shareId" placeholder="请输入共享ID" />
-          </el-form-item>
+        <ScForm :model="joinForm" label-width="100px">
+          <ScFormItem label="共享ID">
+            <ScInput v-model="joinForm.shareId" placeholder="请输入共享ID" />
+          </ScFormItem>
 
-          <el-form-item label="访问密码">
-            <el-input
+          <ScFormItem label="访问密码">
+            <ScInput
               v-model="joinForm.password"
               type="password"
               placeholder="如果需要，请输入访问密码"
               show-password
             />
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item>
-            <el-button
+          <ScFormItem>
+            <ScButton
               type="success"
               size="large"
               :disabled="!joinForm.shareId"
               :loading="joining"
               @click="joinWatch"
             >
-              <el-icon><View /></el-icon>
+              <ScIcon><View /></ScIcon>
               加入观看
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
+            </ScButton>
+          </ScFormItem>
+        </ScForm>
+      </ScCard>
 
       <!-- 活跃共享列表 -->
-      <el-card class="active-shares-card" shadow="hover">
+      <ScCard class="active-shares-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>活跃的屏幕共享</span>
-            <el-button type="text" @click="loadActiveShares">
-              <el-icon><Refresh /></el-icon>
-            </el-button>
+            <ScButton type="text" @click="loadActiveShares">
+              <ScIcon><Refresh /></ScIcon>
+            </ScButton>
           </div>
         </template>
 
-        <el-table :data="activeShares" style="width: 100%">
-          <el-table-column prop="title" label="共享标题" min-width="150" />
-          <el-table-column prop="shareType" label="类型" width="100">
+        <ScTable :data="activeShares" style="width: 100%">
+          <ScTableColumn prop="title" label="共享标题" min-width="150" />
+          <ScTableColumn prop="shareType" label="类型" width="100">
             <template #default="{ row }">
-              <el-tag :type="getShareTypeTag(row.shareType)" size="small">
+              <ScTag :type="getShareTypeTag(row.shareType)" size="small">
                 {{ getShareTypeText(row.shareType) }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column prop="viewerCount" label="观看人数" width="100" />
-          <el-table-column prop="ownerName" label="共享者" width="120" />
-          <el-table-column prop="startTime" label="开始时间" width="150">
+          </ScTableColumn>
+          <ScTableColumn prop="viewerCount" label="观看人数" width="100" />
+          <ScTableColumn prop="ownerName" label="共享者" width="120" />
+          <ScTableColumn prop="startTime" label="开始时间" width="150">
             <template #default="{ row }">
               {{ formatTime(row.startTime) }}
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="100">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="100">
             <template #default="{ row }">
-              <el-button
+              <ScButton
                 type="primary"
                 size="small"
                 @click="quickJoinWatch(row)"
               >
                 观看
-              </el-button>
+              </ScButton>
             </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+          </ScTableColumn>
+        </ScTable>
+      </ScCard>
     </div>
 
     <!-- 观看者列表对话框 -->
     <sc-dialog v-model="showViewers" title="观看者列表" width="500px">
-      <el-table :data="viewers" style="width: 100%">
-        <el-table-column prop="username" label="用户名" />
-        <el-table-column prop="status" label="状态" width="100">
+      <ScTable :data="viewers" style="width: 100%">
+        <ScTableColumn prop="username" label="用户名" />
+        <ScTableColumn prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag
+            <ScTag
               :type="row.status === 'online' ? 'success' : 'info'"
               size="small"
             >
               {{ row.status === "online" ? "在线" : "离线" }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="joinTime" label="加入时间" width="150">
+        </ScTableColumn>
+        <ScTableColumn prop="joinTime" label="加入时间" width="150">
           <template #default="{ row }">
             {{ formatTime(row.joinTime) }}
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="100">
           <template #default="{ row }">
-            <el-button type="danger" size="small" @click="kickViewer(row)">
+            <ScButton type="danger" size="small" @click="kickViewer(row)">
               移除
-            </el-button>
+            </ScButton>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
     </sc-dialog>
 
     <!-- 邀请观看对话框 -->
     <sc-dialog v-model="showInvite" title="邀请观看" width="500px">
       <div class="invite-content">
-        <el-form-item label="共享链接">
-          <el-input v-model="shareLink" readonly>
+        <ScFormItem label="共享链接">
+          <ScInput v-model="shareLink" readonly>
             <template #append>
-              <el-button @click="copyShareLink">
-                <el-icon><CopyDocument /></el-icon>
-              </el-button>
+              <ScButton @click="copyShareLink">
+                <ScIcon><CopyDocument /></ScIcon>
+              </ScButton>
             </template>
-          </el-input>
-        </el-form-item>
+          </ScInput>
+        </ScFormItem>
 
-        <el-form-item label="邀请用户">
-          <el-select
+        <ScFormItem label="邀请用户">
+          <ScSelect
             v-model="selectedInviteUsers"
             multiple
             placeholder="选择要邀请的用户"
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="user in availableUsers"
               :key="user.userId"
               :label="user.username"
               :value="user.userId"
             />
-          </el-select>
-        </el-form-item>
+          </ScSelect>
+        </ScFormItem>
       </div>
 
       <template #footer>
-        <el-button @click="showInvite = false">取消</el-button>
-        <el-button type="primary" @click="sendInvitations">
+        <ScButton @click="showInvite = false">取消</ScButton>
+        <ScButton type="primary" @click="sendInvitations">
           发送邀请
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
     <!-- 设置对话框 -->
     <sc-dialog v-model="showSettings" title="共享设置" width="600px">
-      <el-form :model="shareSettings" label-width="120px">
-        <el-form-item label="共享质量">
-          <el-select v-model="shareSettings.quality" style="width: 100%">
-            <el-option label="高清 (1080p)" value="high" />
-            <el-option label="标清 (720p)" value="medium" />
-            <el-option label="流畅 (480p)" value="low" />
-          </el-select>
-        </el-form-item>
+      <ScForm :model="shareSettings" label-width="120px">
+        <ScFormItem label="共享质量">
+          <ScSelect v-model="shareSettings.quality" style="width: 100%">
+            <ScOption label="高清 (1080p)" value="high" />
+            <ScOption label="标清 (720p)" value="medium" />
+            <ScOption label="流畅 (480p)" value="low" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="帧率">
-          <el-select v-model="shareSettings.frameRate" style="width: 100%">
-            <el-option label="60 FPS" :value="60" />
-            <el-option label="30 FPS" :value="30" />
-            <el-option label="15 FPS" :value="15" />
-          </el-select>
-        </el-form-item>
+        <ScFormItem label="帧率">
+          <ScSelect v-model="shareSettings.frameRate" style="width: 100%">
+            <ScOption label="60 FPS" :value="60" />
+            <ScOption label="30 FPS" :value="30" />
+            <ScOption label="15 FPS" :value="15" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item>
-          <el-checkbox v-model="shareSettings.includeAudio">
+        <ScFormItem>
+          <ScCheckbox v-model="shareSettings.includeAudio">
             包含系统音频
-          </el-checkbox>
-        </el-form-item>
+          </ScCheckbox>
+        </ScFormItem>
 
-        <el-form-item>
-          <el-checkbox v-model="shareSettings.enablePointer">
+        <ScFormItem>
+          <ScCheckbox v-model="shareSettings.enablePointer">
             显示鼠标指针
-          </el-checkbox>
-        </el-form-item>
+          </ScCheckbox>
+        </ScFormItem>
 
-        <el-form-item>
-          <el-checkbox v-model="shareSettings.allowControl">
+        <ScFormItem>
+          <ScCheckbox v-model="shareSettings.allowControl">
             允许远程控制
-          </el-checkbox>
-        </el-form-item>
-      </el-form>
+          </ScCheckbox>
+        </ScFormItem>
+      </ScForm>
 
       <template #footer>
-        <el-button @click="showSettings = false">取消</el-button>
-        <el-button type="primary" @click="applySettings"> 应用设置 </el-button>
+        <ScButton @click="showSettings = false">取消</ScButton>
+        <ScButton type="primary" @click="applySettings"> 应用设置 </ScButton>
       </template>
     </sc-dialog>
   </div>

@@ -7,14 +7,14 @@
 <template>
   <div class="theme-switcher">
     <!-- 下拉菜单触发器 -->
-    <el-dropdown trigger="click" popper-class="theme-dropdown-popper">
+    <ScDropdown trigger="click" popper-class="theme-dropdown-popper">
       <div class="switcher-trigger">
         <IconifyIconOnline :icon="currentThemeIcon" class="theme-icon" />
         <span class="theme-text">{{ currentThemeName }}</span>
         <IconifyIconOnline icon="ri:arrow-down-s-line" class="arrow-icon" />
       </div>
       <template #dropdown>
-        <el-dropdown-menu class="theme-menu">
+        <ScDropdownMenu class="theme-menu">
           <!-- 菜单头部 -->
           <div class="menu-header">
             <IconifyIconOnline icon="ri:palette-line" />
@@ -25,7 +25,7 @@
           <div class="theme-group">
             <div class="group-title">{{ t("theme.regularThemes") }}</div>
             <div class="theme-items">
-              <el-dropdown-item
+              <ScDropdownItem
                 v-for="theme in regularThemes"
                 :key="theme.key"
                 class="theme-item"
@@ -44,7 +44,7 @@
                   icon="ep:check"
                   class="item-check"
                 />
-              </el-dropdown-item>
+              </ScDropdownItem>
             </div>
           </div>
 
@@ -52,12 +52,12 @@
           <div class="theme-group">
             <div class="group-title">
               <span>{{ t("theme.festivalThemes") }}</span>
-              <el-tag size="small" type="warning">{{
+              <ScTag size="small" type="warning">{{
                 t("theme.festivalTag")
-              }}</el-tag>
+              }}</ScTag>
             </div>
             <div class="theme-items">
-              <el-dropdown-item
+              <ScDropdownItem
                 v-for="theme in festivalThemes"
                 :key="theme.key"
                 class="theme-item festival"
@@ -76,12 +76,12 @@
                   icon="ep:check"
                   class="item-check"
                 />
-              </el-dropdown-item>
+              </ScDropdownItem>
             </div>
           </div>
-        </el-dropdown-menu>
+        </ScDropdownMenu>
       </template>
-    </el-dropdown>
+    </ScDropdown>
   </div>
 </template>
 

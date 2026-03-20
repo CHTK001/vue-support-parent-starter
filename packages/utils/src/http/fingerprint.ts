@@ -13,8 +13,7 @@ let fingerprintInitStarted = false;
  */
 export const getOrCreateFingerprint = (): string => {
   const rawFingerprint = localStorageProxy().getItem<unknown>(VISIT_ID_KEY);
-  const normalized = !rawFingerprint? ""
-    : String(rawFingerprint).trim();
+  const normalized = !rawFingerprint ? "" : String(rawFingerprint).trim();
 
   // 如果存储里不是 string（例如被写成 number），这里统一规范化并回写，避免 header 变成数字
   if (normalized) {
@@ -38,5 +37,3 @@ export const getOrCreateFingerprint = (): string => {
   }
   return "";
 };
-
-

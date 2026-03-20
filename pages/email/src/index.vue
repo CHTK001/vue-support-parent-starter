@@ -1,24 +1,24 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
-import { message } from '@repo/utils';
+import { computed, onMounted, ref } from "vue";
+import { message } from "@repo/utils";
 import {
-    deleteEmail,
-    fetchEmailAccounts,
-    fetchEmailDetail,
-    fetchEmailFolders,
-    fetchEmailLabels,
-    markEmailStatus,
-    moveEmailToFolder,
-    saveDraft,
-    searchEmails,
-    sendEmail,
-    updateEmailLabels
-} from './api';
+  deleteEmail,
+  fetchEmailAccounts,
+  fetchEmailDetail,
+  fetchEmailFolders,
+  fetchEmailLabels,
+  markEmailStatus,
+  moveEmailToFolder,
+  saveDraft,
+  searchEmails,
+  sendEmail,
+  updateEmailLabels,
+} from "./api";
 
-import EmailComposer from './components/EmailComposer.vue';
-import EmailDetail from './components/EmailDetail.vue';
-import EmailList from './components/EmailList.vue';
-import EmailSidebar from './components/EmailSidebar.vue';
+import EmailComposer from "./components/EmailComposer.vue";
+import EmailDetail from "./components/EmailDetail.vue";
+import EmailList from "./components/EmailList.vue";
+import EmailSidebar from "./components/EmailSidebar.vue";
 
 // 状态管理
 const accounts = ref([]);
@@ -31,9 +31,9 @@ const currentPage = ref(1);
 const pageSize = ref(20);
 
 // 选中的过滤条件
-const selectedAccountId = ref('');
-const selectedFolderId = ref('');
-const selectedLabelId = ref('');
+const selectedAccountId = ref("");
+const selectedFolderId = ref("");
+const selectedLabelId = ref("");
 
 // 加载状态
 const loadingAccounts = ref(false);
@@ -44,7 +44,7 @@ const loadingEmailDetail = ref(false);
 
 // 视图状态
 const showComposer = ref(false);
-const composerMode = ref('compose');
+const composerMode = ref("compose");
 const originalEmail = ref(null);
 const isMobileView = ref(false);
 const showEmailDetail = ref(false);
@@ -56,22 +56,18 @@ const handleResize = () => {
 
 // 初始化
 onMounted(async () => {
-  window.addEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
   handleResize();
-  
-  await Promise.all([
-    loadAccounts(),
-    loadFolders(),
-    loadLabels()
-  ]);
-  
+
+  await Promise.all([loadAccounts(), loadFolders(), loadLabels()]);
+
   // 默认选择第一个账户和收件箱
   if (accounts.value.length > 0) {
     selectedAccountId.value = accounts.value[0].emailAccountId;
   }
-  
-  selectedFolderId.value = 'inbox';
-  
+
+  selectedFolderId.value = "inbox";
+
   // 加载邮件列表
   await loadEmails();
 });
@@ -84,11 +80,11 @@ const loadAccounts = async () => {
     if (response.success) {
       accounts.value = response.data;
     } else {
-      message(response.message || '获取邮箱账户失败', { type: "error" });
+      message(response.message || "获取邮箱账户失败", { type: "error" });
     }
   } catch (error) {
-    console.error('加载邮箱账户出错:', error);
-    message('获取邮箱账户失败', { type: "error" });
+    console.error("加载邮箱账户出错:", error);
+    message("获取邮箱账户失败", { type: "error" });
   } finally {
     loadingAccounts.value = false;
   }
@@ -102,11 +98,11 @@ const loadFolders = async () => {
     if (response.success) {
       folders.value = response.data;
     } else {
-      message(response.message || '获取邮件文件夹失败', { type: "error" });
+      message(response.message || "获取邮件文件夹失败", { type: "error" });
     }
   } catch (error) {
-    console.error('加载邮件文件夹出错:', error);
-    message('获取邮件文件夹失败', { type: "error" });
+    console.error("加载邮件文件夹出错:", error);
+    message("获取邮件文件夹失败", { type: "error" });
   } finally {
     loadingFolders.value = false;
   }
@@ -120,11 +116,11 @@ const loadLabels = async () => {
     if (response.success) {
       labels.value = response.data;
     } else {
-      message(response.message || '获取邮件标签失败', { type: "error" });
+      message(response.message || "获取邮件标签失败", { type: "error" });
     }
   } catch (error) {
-    console.error('加载邮件标签出错:', error);
-    message('获取邮件标签失败', { type: "error" });
+    console.error("加载邮件标签出错:", error);
+    message("获取邮件标签失败", { type: "error" });
   } finally {
     loadingLabels.value = false;
   }
@@ -135,26 +131,26 @@ const loadEmails = async () => {
   loadingEmails.value = true;
   selectedEmail.value = null;
   showEmailDetail.value = false;
-  
+
   try {
     const params = {
       accountId: selectedAccountId.value,
       folderId: selectedFolderId.value,
       labelId: selectedLabelId.value,
       page: currentPage.value,
-      pageSize: pageSize.value
+      pageSize: pageSize.value,
     };
-    
+
     const response = await searchEmails(params);
     if (response.success) {
       emails.value = response.data.data;
       totalEmails.value = response.data.total;
     } else {
-      message(response.message || '获取邮件列表失败', { type: "error" });
+      message(response.message || "获取邮件列表失败", { type: "error" });
     }
   } catch (error) {
-    console.error('加载邮件列表出错:', error);
-    message('获取邮件列表失败', { type: "error" });
+    console.error("加载邮件列表出错:", error);
+    message("获取邮件列表失败", { type: "error" });
   } finally {
     loadingEmails.value = false;
   }
@@ -163,29 +159,31 @@ const loadEmails = async () => {
 // 加载邮件详情
 const loadEmailDetail = async (emailId) => {
   if (!emailId) return;
-  
+
   loadingEmailDetail.value = true;
-  
+
   try {
     const response = await fetchEmailDetail(emailId);
     if (response.success) {
       selectedEmail.value = response.data;
       showEmailDetail.value = true;
-      
+
       // 更新邮件列表中的已读状态
-      const emailIndex = emails.value.findIndex(email => email.emailId === emailId);
+      const emailIndex = emails.value.findIndex(
+        (email) => email.emailId === emailId,
+      );
       if (emailIndex !== -1) {
         emails.value[emailIndex].emailIsRead = true;
       }
-      
+
       // 更新文件夹未读计数
       updateFolderUnreadCount(selectedFolderId.value, -1);
     } else {
-      message(response.message || '获取邮件详情失败', { type: "error" });
+      message(response.message || "获取邮件详情失败", { type: "error" });
     }
   } catch (error) {
-    console.error('加载邮件详情出错:', error);
-    message('获取邮件详情失败', { type: "error" });
+    console.error("加载邮件详情出错:", error);
+    message("获取邮件详情失败", { type: "error" });
   } finally {
     loadingEmailDetail.value = false;
   }
@@ -193,7 +191,9 @@ const loadEmailDetail = async (emailId) => {
 
 // 更新文件夹未读计数
 const updateFolderUnreadCount = (folderId, delta) => {
-  const folderIndex = folders.value.findIndex(folder => folder.emailFolderId === folderId);
+  const folderIndex = folders.value.findIndex(
+    (folder) => folder.emailFolderId === folderId,
+  );
   if (folderIndex !== -1 && folders.value[folderIndex].emailFolderCount > 0) {
     folders.value[folderIndex].emailFolderCount += delta;
   }
@@ -209,7 +209,7 @@ const handleSelectAccount = (accountId) => {
 // 处理选择文件夹
 const handleSelectFolder = (folderId) => {
   selectedFolderId.value = folderId;
-  selectedLabelId.value = '';
+  selectedLabelId.value = "";
   currentPage.value = 1;
   loadEmails();
 };
@@ -217,7 +217,7 @@ const handleSelectFolder = (folderId) => {
 // 处理选择标签
 const handleSelectLabel = (labelId) => {
   selectedLabelId.value = labelId;
-  selectedFolderId.value = '';
+  selectedFolderId.value = "";
   currentPage.value = 1;
   loadEmails();
 };
@@ -233,23 +233,25 @@ const handleStarEmail = async (emailId, isStarred) => {
     const response = await markEmailStatus(emailId, { isStarred });
     if (response.success) {
       // 更新邮件列表中的星标状态
-      const emailIndex = emails.value.findIndex(email => email.emailId === emailId);
+      const emailIndex = emails.value.findIndex(
+        (email) => email.emailId === emailId,
+      );
       if (emailIndex !== -1) {
         emails.value[emailIndex].emailIsStarred = isStarred;
       }
-      
+
       // 更新选中邮件的星标状态
       if (selectedEmail.value && selectedEmail.value.emailId === emailId) {
         selectedEmail.value.emailIsStarred = isStarred;
       }
-      
-      message(isStarred ? '已添加星标' : '已取消星标', { type: "success" });
+
+      message(isStarred ? "已添加星标" : "已取消星标", { type: "success" });
     } else {
-      message(response.message || '操作失败', { type: "error" });
+      message(response.message || "操作失败", { type: "error" });
     }
   } catch (error) {
-    console.error('标记星标出错:', error);
-    message('操作失败', { type: "error" });
+    console.error("标记星标出错:", error);
+    message("操作失败", { type: "error" });
   }
 };
 
@@ -259,23 +261,27 @@ const handleMarkImportant = async (emailId, isImportant) => {
     const response = await markEmailStatus(emailId, { isImportant });
     if (response.success) {
       // 更新邮件列表中的重要状态
-      const emailIndex = emails.value.findIndex(email => email.emailId === emailId);
+      const emailIndex = emails.value.findIndex(
+        (email) => email.emailId === emailId,
+      );
       if (emailIndex !== -1) {
         emails.value[emailIndex].emailIsImportant = isImportant;
       }
-      
+
       // 更新选中邮件的重要状态
       if (selectedEmail.value && selectedEmail.value.emailId === emailId) {
         selectedEmail.value.emailIsImportant = isImportant;
       }
-      
-      message(isImportant ? '已标记为重要' : '已取消重要标记', { type: "success" });
+
+      message(isImportant ? "已标记为重要" : "已取消重要标记", {
+        type: "success",
+      });
     } else {
-      message(response.message || '操作失败', { type: "error" });
+      message(response.message || "操作失败", { type: "error" });
     }
   } catch (error) {
-    console.error('标记重要出错:', error);
-    message('操作失败', { type: "error" });
+    console.error("标记重要出错:", error);
+    message("操作失败", { type: "error" });
   }
 };
 
@@ -285,26 +291,28 @@ const handleMarkRead = async (emailId, isRead) => {
     const response = await markEmailStatus(emailId, { isRead });
     if (response.success) {
       // 更新邮件列表中的已读状态
-      const emailIndex = emails.value.findIndex(email => email.emailId === emailId);
+      const emailIndex = emails.value.findIndex(
+        (email) => email.emailId === emailId,
+      );
       if (emailIndex !== -1) {
         emails.value[emailIndex].emailIsRead = isRead;
       }
-      
+
       // 更新选中邮件的已读状态
       if (selectedEmail.value && selectedEmail.value.emailId === emailId) {
         selectedEmail.value.emailIsRead = isRead;
       }
-      
+
       // 更新文件夹未读计数
       updateFolderUnreadCount(selectedFolderId.value, isRead ? -1 : 1);
-      
-      message(isRead ? '已标记为已读' : '已标记为未读', { type: "success" });
+
+      message(isRead ? "已标记为已读" : "已标记为未读", { type: "success" });
     } else {
-      message(response.message || '操作失败', { type: "error" });
+      message(response.message || "操作失败", { type: "error" });
     }
   } catch (error) {
-    console.error('标记已读/未读出错:', error);
-    message('操作失败', { type: "error" });
+    console.error("标记已读/未读出错:", error);
+    message("操作失败", { type: "error" });
   }
 };
 
@@ -328,21 +336,21 @@ const handleCloseEmailDetail = () => {
 // 处理回复邮件
 const handleReplyEmail = (email) => {
   originalEmail.value = email;
-  composerMode.value = 'reply';
+  composerMode.value = "reply";
   showComposer.value = true;
 };
 
 // 处理回复全部
 const handleReplyAllEmail = (email) => {
   originalEmail.value = email;
-  composerMode.value = 'replyAll';
+  composerMode.value = "replyAll";
   showComposer.value = true;
 };
 
 // 处理转发邮件
 const handleForwardEmail = (email) => {
   originalEmail.value = email;
-  composerMode.value = 'forward';
+  composerMode.value = "forward";
   showComposer.value = true;
 };
 
@@ -352,28 +360,28 @@ const handleDeleteEmail = async (emailId) => {
     const response = await deleteEmail(emailId);
     if (response.success) {
       // 从邮件列表中移除
-      emails.value = emails.value.filter(email => email.emailId !== emailId);
-      
+      emails.value = emails.value.filter((email) => email.emailId !== emailId);
+
       // 如果是当前选中的邮件，清除选中状态
       if (selectedEmail.value && selectedEmail.value.emailId === emailId) {
         selectedEmail.value = null;
         showEmailDetail.value = false;
       }
-      
-      message('邮件已删除', { type: "success" });
+
+      message("邮件已删除", { type: "success" });
     } else {
-      message(response.message || '删除失败', { type: "error" });
+      message(response.message || "删除失败", { type: "error" });
     }
   } catch (error) {
-    console.error('删除邮件出错:', error);
-    message('删除失败', { type: "error" });
+    console.error("删除邮件出错:", error);
+    message("删除失败", { type: "error" });
   }
 };
 
 // 处理添加标签
 const handleAddLabel = async (emailId, labelId) => {
   try {
-    const response = await updateEmailLabels(emailId, labelId, 'add');
+    const response = await updateEmailLabels(emailId, labelId, "add");
     if (response.success) {
       // 更新选中邮件的标签
       if (selectedEmail.value && selectedEmail.value.emailId === emailId) {
@@ -384,9 +392,11 @@ const handleAddLabel = async (emailId, labelId) => {
           selectedEmail.value.emailLabels.push(labelId);
         }
       }
-      
+
       // 更新邮件列表中的标签
-      const emailIndex = emails.value.findIndex(email => email.emailId === emailId);
+      const emailIndex = emails.value.findIndex(
+        (email) => email.emailId === emailId,
+      );
       if (emailIndex !== -1) {
         if (!emails.value[emailIndex].emailLabels) {
           emails.value[emailIndex].emailLabels = [];
@@ -395,52 +405,65 @@ const handleAddLabel = async (emailId, labelId) => {
           emails.value[emailIndex].emailLabels.push(labelId);
         }
       }
-      
+
       // 更新标签计数
-      const labelIndex = labels.value.findIndex(label => label.emailLabelId === labelId);
+      const labelIndex = labels.value.findIndex(
+        (label) => label.emailLabelId === labelId,
+      );
       if (labelIndex !== -1) {
         labels.value[labelIndex].emailLabelCount++;
       }
-      
-      message('已添加标签', { type: "success" });
+
+      message("已添加标签", { type: "success" });
     } else {
-      message(response.message || '添加标签失败', { type: "error" });
+      message(response.message || "添加标签失败", { type: "error" });
     }
   } catch (error) {
-    console.error('添加标签出错:', error);
-    message('添加标签失败', { type: "error" });
+    console.error("添加标签出错:", error);
+    message("添加标签失败", { type: "error" });
   }
 };
 
 // 处理移除标签
 const handleRemoveLabel = async (emailId, labelId) => {
   try {
-    const response = await updateEmailLabels(emailId, labelId, 'remove');
+    const response = await updateEmailLabels(emailId, labelId, "remove");
     if (response.success) {
       // 更新选中邮件的标签
-      if (selectedEmail.value && selectedEmail.value.emailId === emailId && selectedEmail.value.emailLabels) {
-        selectedEmail.value.emailLabels = selectedEmail.value.emailLabels.filter(id => id !== labelId);
+      if (
+        selectedEmail.value &&
+        selectedEmail.value.emailId === emailId &&
+        selectedEmail.value.emailLabels
+      ) {
+        selectedEmail.value.emailLabels =
+          selectedEmail.value.emailLabels.filter((id) => id !== labelId);
       }
-      
+
       // 更新邮件列表中的标签
-      const emailIndex = emails.value.findIndex(email => email.emailId === emailId);
+      const emailIndex = emails.value.findIndex(
+        (email) => email.emailId === emailId,
+      );
       if (emailIndex !== -1 && emails.value[emailIndex].emailLabels) {
-        emails.value[emailIndex].emailLabels = emails.value[emailIndex].emailLabels.filter(id => id !== labelId);
+        emails.value[emailIndex].emailLabels = emails.value[
+          emailIndex
+        ].emailLabels.filter((id) => id !== labelId);
       }
-      
+
       // 更新标签计数
-      const labelIndex = labels.value.findIndex(label => label.emailLabelId === labelId);
+      const labelIndex = labels.value.findIndex(
+        (label) => label.emailLabelId === labelId,
+      );
       if (labelIndex !== -1 && labels.value[labelIndex].emailLabelCount > 0) {
         labels.value[labelIndex].emailLabelCount--;
       }
-      
-      message('已移除标签', { type: "success" });
+
+      message("已移除标签", { type: "success" });
     } else {
-      message(response.message || '移除标签失败', { type: "error" });
+      message(response.message || "移除标签失败", { type: "error" });
     }
   } catch (error) {
-    console.error('移除标签出错:', error);
-    message('移除标签失败', { type: "error" });
+    console.error("移除标签出错:", error);
+    message("移除标签失败", { type: "error" });
   }
 };
 
@@ -451,40 +474,49 @@ const handleMoveToFolder = async (emailId, folderId) => {
     if (response.success) {
       // 如果不是当前文件夹，从列表中移除
       if (selectedFolderId.value !== folderId) {
-        emails.value = emails.value.filter(email => email.emailId !== emailId);
-        
+        emails.value = emails.value.filter(
+          (email) => email.emailId !== emailId,
+        );
+
         // 如果是当前选中的邮件，清除选中状态
         if (selectedEmail.value && selectedEmail.value.emailId === emailId) {
           selectedEmail.value = null;
           showEmailDetail.value = false;
         }
       }
-      
+
       // 更新文件夹计数
-      const oldFolderIndex = folders.value.findIndex(folder => folder.emailFolderId === selectedFolderId.value);
-      if (oldFolderIndex !== -1 && folders.value[oldFolderIndex].emailFolderCount > 0) {
+      const oldFolderIndex = folders.value.findIndex(
+        (folder) => folder.emailFolderId === selectedFolderId.value,
+      );
+      if (
+        oldFolderIndex !== -1 &&
+        folders.value[oldFolderIndex].emailFolderCount > 0
+      ) {
         folders.value[oldFolderIndex].emailFolderCount--;
       }
-      
-      const newFolderIndex = folders.value.findIndex(folder => folder.emailFolderId === folderId);
+
+      const newFolderIndex = folders.value.findIndex(
+        (folder) => folder.emailFolderId === folderId,
+      );
       if (newFolderIndex !== -1) {
         folders.value[newFolderIndex].emailFolderCount++;
       }
-      
-      message('邮件已移动', { type: "success" });
+
+      message("邮件已移动", { type: "success" });
     } else {
-      message(response.message || '移动失败', { type: "error" });
+      message(response.message || "移动失败", { type: "error" });
     }
   } catch (error) {
-    console.error('移动邮件出错:', error);
-    message('移动失败', { type: "error" });
+    console.error("移动邮件出错:", error);
+    message("移动失败", { type: "error" });
   }
 };
 
 // 处理写邮件
 const handleComposeEmail = () => {
   originalEmail.value = null;
-  composerMode.value = 'compose';
+  composerMode.value = "compose";
   showComposer.value = true;
 };
 
@@ -494,18 +526,18 @@ const handleSendEmail = async (emailData) => {
     const response = await sendEmail(emailData);
     if (response.success) {
       showComposer.value = false;
-      message('邮件已发送', { type: "success" });
-      
+      message("邮件已发送", { type: "success" });
+
       // 如果当前在已发送文件夹，刷新列表
-      if (selectedFolderId.value === 'sent') {
+      if (selectedFolderId.value === "sent") {
         loadEmails();
       }
     } else {
-      message(response.message || '发送失败', { type: "error" });
+      message(response.message || "发送失败", { type: "error" });
     }
   } catch (error) {
-    console.error('发送邮件出错:', error);
-    message('发送失败', { type: "error" });
+    console.error("发送邮件出错:", error);
+    message("发送失败", { type: "error" });
   }
 };
 
@@ -515,18 +547,18 @@ const handleSaveDraft = async (emailData) => {
     const response = await saveDraft(emailData);
     if (response.success) {
       showComposer.value = false;
-      message('草稿已保存', { type: "success" });
-      
+      message("草稿已保存", { type: "success" });
+
       // 如果当前在草稿箱，刷新列表
-      if (selectedFolderId.value === 'drafts') {
+      if (selectedFolderId.value === "drafts") {
         loadEmails();
       }
     } else {
-      message(response.message || '保存失败', { type: "error" });
+      message(response.message || "保存失败", { type: "error" });
     }
   } catch (error) {
-    console.error('保存草稿出错:', error);
-    message('保存失败', { type: "error" });
+    console.error("保存草稿出错:", error);
+    message("保存失败", { type: "error" });
   }
 };
 
@@ -538,8 +570,8 @@ const handleCloseComposer = () => {
 // 计算布局类
 const layoutClass = computed(() => {
   return {
-    'email-app--mobile': isMobileView.value,
-    'email-app--detail-open': showEmailDetail.value && isMobileView.value
+    "email-app--mobile": isMobileView.value,
+    "email-app--detail-open": showEmailDetail.value && isMobileView.value,
   };
 });
 </script>
@@ -547,7 +579,10 @@ const layoutClass = computed(() => {
 <template>
   <div class="email-app system-container modern-bg" :class="layoutClass">
     <!-- 侧边栏 -->
-    <div class="email-app__sidebar" v-show="!isMobileView || (!showEmailDetail && !showComposer)">
+    <div
+      class="email-app__sidebar"
+      v-show="!isMobileView || (!showEmailDetail && !showComposer)"
+    >
       <EmailSidebar
         :accounts="accounts"
         :folders="folders"
@@ -561,9 +596,12 @@ const layoutClass = computed(() => {
         @compose-email="handleComposeEmail"
       />
     </div>
-    
+
     <!-- 邮件列表 -->
-    <div class="email-app__list" v-show="!showComposer && (!isMobileView || !showEmailDetail)">
+    <div
+      class="email-app__list"
+      v-show="!showComposer && (!isMobileView || !showEmailDetail)"
+    >
       <EmailList
         :emails="emails"
         :labels="labels"
@@ -580,9 +618,12 @@ const layoutClass = computed(() => {
         @refresh="handleRefreshEmails"
       />
     </div>
-    
+
     <!-- 邮件详情 -->
-    <div class="email-app__detail" v-show="!showComposer && (showEmailDetail || !isMobileView)">
+    <div
+      class="email-app__detail"
+      v-show="!showComposer && (showEmailDetail || !isMobileView)"
+    >
       <EmailDetail
         :email="selectedEmail"
         :labels="labels"
@@ -599,7 +640,7 @@ const layoutClass = computed(() => {
         @move-to-folder="handleMoveToFolder"
       />
     </div>
-    
+
     <!-- 邮件编辑器 -->
     <div class="email-app__composer" v-if="showComposer">
       <EmailComposer
@@ -630,7 +671,7 @@ const layoutClass = computed(() => {
   padding: 12px;
   overflow: hidden;
   transition: var(--transition-normal);
-  
+
   &__sidebar {
     grid-column: 1;
     grid-row: 1;
@@ -639,7 +680,7 @@ const layoutClass = computed(() => {
     background-color: var(--el-bg-color-overlay);
     border-right: 1px solid var(--el-border-color-lighter);
   }
-  
+
   &__list {
     grid-column: 2;
     grid-row: 1;
@@ -648,7 +689,7 @@ const layoutClass = computed(() => {
     background-color: var(--el-bg-color);
     border-right: 1px solid var(--el-border-color-lighter);
   }
-  
+
   &__detail {
     grid-column: 3;
     grid-row: 1;
@@ -656,7 +697,7 @@ const layoutClass = computed(() => {
     overflow: hidden;
     background-color: var(--el-bg-color);
   }
-  
+
   &__composer {
     position: fixed;
     top: 0;
@@ -667,11 +708,11 @@ const layoutClass = computed(() => {
     z-index: 100;
     overflow: hidden;
   }
-  
+
   // 移动端布局
   &--mobile {
     grid-template-columns: 1fr;
-    
+
     .email-app__sidebar,
     .email-app__list,
     .email-app__detail {
@@ -679,7 +720,7 @@ const layoutClass = computed(() => {
       grid-row: 1;
     }
   }
-  
+
   // 移动端详情页打开时
   &--detail-open {
     .email-app__list,

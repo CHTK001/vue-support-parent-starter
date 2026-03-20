@@ -3,8 +3,21 @@ import FooterContent from "./components/FooterContent.vue";
 </script>
 
 <template>
+<<<<<<< HEAD
   <footer class="layout-footer">
     <FooterContent />
+=======
+  <footer
+    class="layout-footer text-[rgba(0,0,0,0.6)] dark:text-[rgba(220,220,242,0.8)]"
+  >
+    Copyright © 2020-present
+    <a
+      class="hover:text-primary"
+      href="https://github.com/pure-admin"
+      target="_blank"
+      >&nbsp;{{ TITLE }}</a
+    >
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   </footer>
 </template>
 
@@ -33,7 +46,11 @@ import FooterContent from "./components/FooterContent.vue";
   }
 }
 
+<<<<<<< HEAD
 // 春节 / 新年主题
+=======
+// 春节主题
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 :global(html[data-skin="spring-festival"]),
 :global(html[data-skin="new-year"]) {
   .layout-footer {
@@ -63,6 +80,7 @@ import FooterContent from "./components/FooterContent.vue";
   border-top: 1px solid rgba(255, 117, 24, 0.3) !important;
   color: rgba(255, 117, 24, 0.8) !important;
 }
+<<<<<<< HEAD
 
 // 未来科技主题
 :global(html[data-skin="future-tech"]) .layout-footer {
@@ -70,4 +88,6 @@ import FooterContent from "./components/FooterContent.vue";
   border-top: 1px solid rgba(0, 255, 255, 0.3) !important;
   color: rgba(0, 255, 255, 0.7) !important;
 }
+=======
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 </style>

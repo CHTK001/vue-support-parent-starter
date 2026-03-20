@@ -274,7 +274,7 @@
           </div>
           <div class="config-item">
             <label class="config-label">超时时间</label>
-            <ScInput 
+            <ScInput
               v-model="config.timeout"
               placeholder="请输入超时时间(秒)"
             />
@@ -352,9 +352,9 @@
  */
 import { ref } from "vue";
 import { message } from "@repo/utils";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
-import ScButton from "@repo/components/ScButton/index.vue";
-import ScCard from "@repo/components/ScCard/index.vue";
+import { IconifyIconOnline } from "@repo/components";
+import { ScButton } from "@repo/components"
+import { ScCard } from "@repo/components"
 import { ScDialog } from "@repo/components/ScDialog";
 
 const showTechDialog = ref(false);

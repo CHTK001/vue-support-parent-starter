@@ -8,6 +8,7 @@ export function setupStore(app: App<Element>) {
 
 export { store };
 
+<<<<<<< HEAD
 // Socket 服务
 export * from "./config/socket";
 export * from "./config/socketService";
@@ -63,3 +64,8 @@ export type * from "./store/types";
 export type * from "./api/common/user";
 export type * from "./api/common/user-log";
 export type * from "./api/common/sfc";
+=======
+// 应用启动器 & 标准应用工厂
+export { AppBootstrap, createStandardApp } from "./app-bootstrap";
+export type { StandardAppOptions, FontEncryptionOptions } from "./app-bootstrap";
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126

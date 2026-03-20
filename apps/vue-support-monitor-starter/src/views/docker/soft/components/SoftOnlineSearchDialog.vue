@@ -10,7 +10,7 @@
     <!-- 搜索栏 -->
     <div class="search-header">
       <div class="search-box">
-        <el-input
+        <ScInput
           v-model="keyword"
           placeholder="搜索 Docker 镜像..."
           size="large"
@@ -22,7 +22,7 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" class="search-icon" />
           </template>
-        </el-input>
+        </ScInput>
       </div>
       <div class="search-tip">
         <IconifyIconOnline icon="ri:information-line" />
@@ -63,7 +63,7 @@
               <h3 class="name">{{ row.systemSoftName }}</h3>
               <span class="code">{{ row.systemSoftCode }}</span>
             </div>
-            <el-tag
+            <ScTag
               v-if="row.systemSoftIsOfficial === 1"
               type="warning"
               size="small"
@@ -97,13 +97,13 @@
 
           <!-- 操作按钮 -->
           <div class="card-actions">
-            <el-button
+            <ScButton
               type="primary"
               size="small"
               @click="handleImportSingle(row)"
             >
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />添加到软件库
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </template>
@@ -111,7 +111,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visibleProxy = false">关闭</el-button>
+        <ScButton @click="visibleProxy = false">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>
@@ -119,7 +119,7 @@
 
 <script setup lang="ts">
 import { softwareApi } from "@/api/docker";
-import ScTable from "@repo/components/ScTable/index.vue";
+import { ScTable } from "@repo/components"
 import { message } from "@repo/utils";
 import { computed, reactive, ref } from "vue";
 

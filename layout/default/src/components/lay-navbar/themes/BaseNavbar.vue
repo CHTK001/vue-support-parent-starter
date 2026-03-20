@@ -13,12 +13,7 @@ const props = defineProps<{
   themeClass?: string;
 }>();
 
-const {
-  layout,
-  device,
-  pureApp,
-  toggleSideBar,
-} = useNav();
+const { layout, device, pureApp, toggleSideBar } = useNav();
 
 const { $storage } = useGlobal<any>();
 const showBreadcrumb = ref($storage?.configure?.showBreadcrumb ?? true);
@@ -51,7 +46,7 @@ onBeforeUnmount(() => {
   <div :class="['base-navbar', themeClass]">
     <!-- 装饰元素 -->
     <div class="decor-pattern"></div>
-    
+
     <LaySidebarTopCollapse
       v-if="device === 'mobile'"
       class="hamburger-container"
@@ -113,7 +108,7 @@ onBeforeUnmount(() => {
   position: relative;
   // height: 48px; // Removed, used in mixin
   @include lay-header-style;
-  
+
   .decor-pattern {
     position: absolute;
     top: 0;
@@ -122,11 +117,11 @@ onBeforeUnmount(() => {
     bottom: 0;
     pointer-events: none;
   }
-  
+
   .hamburger-container {
     z-index: 10;
   }
-  
+
   .vertical-header-right {
     display: flex;
     align-items: center;
@@ -135,7 +130,7 @@ onBeforeUnmount(() => {
     padding-right: 16px; // 调整为 16px
     gap: 16px; // 调整间距
     margin-left: auto;
-    
+
     // 24px 分隔线
     &::before {
       content: "";
@@ -143,7 +138,7 @@ onBeforeUnmount(() => {
       height: 24px;
       background: #e5e7eb;
       margin-right: 8px;
-      
+
       :global(.dark) & {
         background: #4c4d4f;
       }

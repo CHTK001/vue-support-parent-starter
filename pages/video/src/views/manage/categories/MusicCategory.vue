@@ -3,7 +3,9 @@
     <div class="music-category__container">
       <div class="music-category__header">
         <h2 class="music-category__title">音乐播放器</h2>
-        <ScButton type="primary" plain size="small" @click="navigateToAll">查看全部</ScButton>
+        <ScButton type="primary" plain size="small" @click="navigateToAll"
+          >查看全部</ScButton
+        >
       </div>
 
       <!-- 音乐播放器控制面板 -->
@@ -12,53 +14,129 @@
         <div class="music-player__content">
           <div class="music-player__now-playing">
             <div class="music-player__now-playing-cover">
-              <img :src="currentMusic.musicCover" :alt="currentMusic.musicTitle" />
-              <div class="music-player__now-playing-disc" :class="{ 'is-playing': isPlaying }"></div>
+              <img
+                :src="currentMusic.musicCover"
+                :alt="currentMusic.musicTitle"
+              />
+              <div
+                class="music-player__now-playing-disc"
+                :class="{ 'is-playing': isPlaying }"
+              ></div>
             </div>
             <div class="music-player__now-playing-info">
-              <div class="music-player__now-playing-title">{{ currentMusic.musicTitle }}</div>
-              <div class="music-player__now-playing-artist">{{ currentMusic.musicArtist }}</div>
+              <div class="music-player__now-playing-title">
+                {{ currentMusic.musicTitle }}
+              </div>
+              <div class="music-player__now-playing-artist">
+                {{ currentMusic.musicArtist }}
+              </div>
             </div>
           </div>
 
           <div class="music-player__control-center">
             <div class="music-player__progress-container">
               <span class="music-player__time">{{ formattedCurrentTime }}</span>
-              <div class="music-player__progress-bar" ref="progressBarRef" @click="seekTo">
-                <div class="music-player__progress-current" :style="{ width: `${progress}%` }"></div>
-                <div class="music-player__progress-handle" :style="{ left: `${progress}%` }"></div>
+              <div
+                class="music-player__progress-bar"
+                ref="progressBarRef"
+                @click="seekTo"
+              >
+                <div
+                  class="music-player__progress-current"
+                  :style="{ width: `${progress}%` }"
+                ></div>
+                <div
+                  class="music-player__progress-handle"
+                  :style="{ left: `${progress}%` }"
+                ></div>
               </div>
               <span class="music-player__time">{{ formattedDuration }}</span>
             </div>
 
             <div class="music-player__control-buttons">
-              <ScButton circle @click="toggleRandom" class="music-player__control-btn">
-                <IconifyIconOnline :icon="isRandom ? 'ri:shuffle-fill' : 'ri:shuffle-line'" :style="{ color: isRandom ? 'var(--el-color-primary)' : '' }" />
+              <ScButton
+                circle
+                @click="toggleRandom"
+                class="music-player__control-btn"
+              >
+                <IconifyIconOnline
+                  :icon="isRandom ? 'ri:shuffle-fill' : 'ri:shuffle-line'"
+                  :style="{ color: isRandom ? 'var(--el-color-primary)' : '' }"
+                />
               </ScButton>
-              <ScButton circle @click="playPrev" class="music-player__control-btn">
+              <ScButton
+                circle
+                @click="playPrev"
+                class="music-player__control-btn"
+              >
                 <IconifyIconOnline icon="ri:skip-back-fill" />
               </ScButton>
-              <ScButton circle size="large" @click="togglePlay" class="music-player__control-btn music-player__control-btn--play">
-                <IconifyIconOnline :icon="isPlaying ? 'ri:pause-fill' : 'ri:play-fill'" />
+              <ScButton
+                circle
+                size="large"
+                @click="togglePlay"
+                class="music-player__control-btn music-player__control-btn--play"
+              >
+                <IconifyIconOnline
+                  :icon="isPlaying ? 'ri:pause-fill' : 'ri:play-fill'"
+                />
               </ScButton>
-              <ScButton circle @click="playNext" class="music-player__control-btn">
+              <ScButton
+                circle
+                @click="playNext"
+                class="music-player__control-btn"
+              >
                 <IconifyIconOnline icon="ri:skip-forward-fill" />
               </ScButton>
-              <ScButton circle @click="toggleLoop" class="music-player__control-btn">
-                <IconifyIconOnline :icon="isLoop ? 'ri:repeat-one-fill' : 'ri:repeat-line'" :style="{ color: isLoop ? 'var(--el-color-primary)' : '' }" />
+              <ScButton
+                circle
+                @click="toggleLoop"
+                class="music-player__control-btn"
+              >
+                <IconifyIconOnline
+                  :icon="isLoop ? 'ri:repeat-one-fill' : 'ri:repeat-line'"
+                  :style="{ color: isLoop ? 'var(--el-color-primary)' : '' }"
+                />
               </ScButton>
             </div>
           </div>
 
           <div class="music-player__control-right">
-            <ScButton circle @click="toggleMute" class="music-player__control-btn">
-              <IconifyIconOnline :icon="isMuted ? 'ri:volume-mute-fill' : volume > 50 ? 'ri:volume-up-fill' : 'ri:volume-down-fill'" />
+            <ScButton
+              circle
+              @click="toggleMute"
+              class="music-player__control-btn"
+            >
+              <IconifyIconOnline
+                :icon="
+                  isMuted
+                    ? 'ri:volume-mute-fill'
+                    : volume > 50
+                      ? 'ri:volume-up-fill'
+                      : 'ri:volume-down-fill'
+                "
+              />
             </ScButton>
-            <ScSlider v-model="volume" :disabled="isMuted" @input="adjustVolume" class="music-player__volume-slider" />
-            <ScButton circle @click="showLyrics = !showLyrics" class="music-player__control-btn" :class="{ 'is-active': showLyrics }">
+            <ScSlider
+              v-model="volume"
+              :disabled="isMuted"
+              @input="adjustVolume"
+              class="music-player__volume-slider"
+            />
+            <ScButton
+              circle
+              @click="showLyrics = !showLyrics"
+              class="music-player__control-btn"
+              :class="{ 'is-active': showLyrics }"
+            >
               <IconifyIconOnline icon="ri:file-list-line" />
             </ScButton>
-            <ScButton circle @click="showPlaylistDrawer = !showPlaylistDrawer" class="music-player__control-btn" :class="{ 'is-active': showPlaylistDrawer }">
+            <ScButton
+              circle
+              @click="showPlaylistDrawer = !showPlaylistDrawer"
+              class="music-player__control-btn"
+              :class="{ 'is-active': showPlaylistDrawer }"
+            >
               <IconifyIconOnline icon="ri:list-check" />
             </ScButton>
           </div>
@@ -66,16 +144,27 @@
       </div>
 
       <!-- 歌词显示区域 -->
-      <div class="music-lyrics" v-if="showLyrics && currentMusic && currentMusic.musicLyrics">
+      <div
+        class="music-lyrics"
+        v-if="showLyrics && currentMusic && currentMusic.musicLyrics"
+      >
         <div class="music-lyrics__container">
           <div class="music-lyrics__header">
             <div class="music-lyrics__title">歌词</div>
-            <ScButton type="text" @click="showLyrics = false" class="music-lyrics__close">
+            <ScButton
+              type="text"
+              @click="showLyrics = false"
+              class="music-lyrics__close"
+            >
               <IconifyIconOnline icon="ri:close-line" />
             </ScButton>
           </div>
           <div class="music-lyrics__content">
-            <p v-for="(line, index) in parsedLyrics" :key="index" :class="{ active: currentLyricIndex === index }">
+            <p
+              v-for="(line, index) in parsedLyrics"
+              :key="index"
+              :class="{ active: currentLyricIndex === index }"
+            >
               {{ line.text }}
             </p>
           </div>
@@ -86,31 +175,82 @@
       <div class="music-category__section">
         <div class="music-category__header">
           <h2 class="music-category__title">热门歌曲</h2>
-          <ScButton type="primary" plain size="small" @click="navigateToPopular">查看全部</ScButton>
+          <ScButton type="primary" plain size="small" @click="navigateToPopular"
+            >查看全部</ScButton
+          >
         </div>
 
         <div class="music-category__list">
-          <div v-for="(music, index) in musicList" :key="music.musicId" class="music-category__item" :class="{ active: currentMusic && currentMusic.musicId === music.musicId }" @click="playMusic(index)">
-            <div class="music-category__item-index" :class="{ 'is-playing': currentMusic && currentMusic.musicId === music.musicId && isPlaying }">
+          <div
+            v-for="(music, index) in musicList"
+            :key="music.musicId"
+            class="music-category__item"
+            :class="{
+              active: currentMusic && currentMusic.musicId === music.musicId,
+            }"
+            @click="playMusic(index)"
+          >
+            <div
+              class="music-category__item-index"
+              :class="{
+                'is-playing':
+                  currentMusic &&
+                  currentMusic.musicId === music.musicId &&
+                  isPlaying,
+              }"
+            >
               <span class="music-category__item-number">{{ index + 1 }}</span>
-              <IconifyIconOnline icon="ri:volume-up-fill" class="music-category__item-playing-icon" />
+              <IconifyIconOnline
+                icon="ri:volume-up-fill"
+                class="music-category__item-playing-icon"
+              />
             </div>
             <div class="music-category__item-cover">
               <img :src="music.musicCover" :alt="music.musicTitle" />
-              <div class="music-category__item-play-icon" :class="{ 'is-playing': currentMusic && currentMusic.musicId === music.musicId && isPlaying }">
-                <IconifyIconOnline :icon="currentMusic && currentMusic.musicId === music.musicId && isPlaying ? 'ri:pause-fill' : 'ri:play-fill'" />
+              <div
+                class="music-category__item-play-icon"
+                :class="{
+                  'is-playing':
+                    currentMusic &&
+                    currentMusic.musicId === music.musicId &&
+                    isPlaying,
+                }"
+              >
+                <IconifyIconOnline
+                  :icon="
+                    currentMusic &&
+                    currentMusic.musicId === music.musicId &&
+                    isPlaying
+                      ? 'ri:pause-fill'
+                      : 'ri:play-fill'
+                  "
+                />
               </div>
             </div>
             <div class="music-category__item-info">
-              <div class="music-category__item-title">{{ music.musicTitle }}</div>
-              <div class="music-category__item-artist">{{ music.musicArtist }}</div>
+              <div class="music-category__item-title">
+                {{ music.musicTitle }}
+              </div>
+              <div class="music-category__item-artist">
+                {{ music.musicArtist }}
+              </div>
             </div>
-            <div class="music-category__item-duration">{{ formatDuration(music.musicDuration) }}</div>
+            <div class="music-category__item-duration">
+              {{ formatDuration(music.musicDuration) }}
+            </div>
             <div class="music-category__item-actions">
-              <ScButton circle size="small" class="music-category__item-action-btn">
+              <ScButton
+                circle
+                size="small"
+                class="music-category__item-action-btn"
+              >
                 <IconifyIconOnline icon="ri:heart-line" />
               </ScButton>
-              <ScButton circle size="small" class="music-category__item-action-btn">
+              <ScButton
+                circle
+                size="small"
+                class="music-category__item-action-btn"
+              >
                 <IconifyIconOnline icon="ri:download-line" />
               </ScButton>
             </div>
@@ -119,29 +259,70 @@
       </div>
 
       <!-- 播放列表抽屉 -->
-      <sc-drawer v-model="showPlaylistDrawer" title="播放列表" direction="rtl" size="350px" custom-class="music-playlist-drawer">
+      <sc-drawer
+        v-model="showPlaylistDrawer"
+        title="播放列表"
+        direction="rtl"
+        size="350px"
+        custom-class="music-playlist-drawer"
+      >
         <template #header>
           <div class="music-playlist__header">
-            <div class="music-playlist__title">播放列表 ({{ musicList.length }})</div>
+            <div class="music-playlist__title">
+              播放列表 ({{ musicList.length }})
+            </div>
             <div class="music-playlist__actions">
-              <ScButton type="text" size="small"> <IconifyIconOnline icon="ri:add-line" /> 添加歌曲 </ScButton>
-              <ScButton type="text" size="small"> <IconifyIconOnline icon="ri:delete-bin-line" /> 清空 </ScButton>
+              <ScButton type="text" size="small">
+                <IconifyIconOnline icon="ri:add-line" /> 添加歌曲
+              </ScButton>
+              <ScButton type="text" size="small">
+                <IconifyIconOnline icon="ri:delete-bin-line" /> 清空
+              </ScButton>
             </div>
           </div>
         </template>
         <div class="music-playlist">
-          <div v-for="(music, index) in musicList" :key="music.musicId" class="music-playlist__item" :class="{ active: currentMusic && currentMusic.musicId === music.musicId }" @click="playMusic(index)">
-            <div class="music-playlist__item-index" :class="{ 'is-playing': currentMusic && currentMusic.musicId === music.musicId && isPlaying }">
+          <div
+            v-for="(music, index) in musicList"
+            :key="music.musicId"
+            class="music-playlist__item"
+            :class="{
+              active: currentMusic && currentMusic.musicId === music.musicId,
+            }"
+            @click="playMusic(index)"
+          >
+            <div
+              class="music-playlist__item-index"
+              :class="{
+                'is-playing':
+                  currentMusic &&
+                  currentMusic.musicId === music.musicId &&
+                  isPlaying,
+              }"
+            >
               <span class="music-playlist__item-number">{{ index + 1 }}</span>
-              <IconifyIconOnline icon="ri:volume-up-fill" class="music-playlist__item-playing-icon" />
+              <IconifyIconOnline
+                icon="ri:volume-up-fill"
+                class="music-playlist__item-playing-icon"
+              />
             </div>
             <div class="music-playlist__item-info">
-              <div class="music-playlist__item-title">{{ music.musicTitle }}</div>
-              <div class="music-playlist__item-artist">{{ music.musicArtist }}</div>
+              <div class="music-playlist__item-title">
+                {{ music.musicTitle }}
+              </div>
+              <div class="music-playlist__item-artist">
+                {{ music.musicArtist }}
+              </div>
             </div>
-            <div class="music-playlist__item-duration">{{ formatDuration(music.musicDuration) }}</div>
+            <div class="music-playlist__item-duration">
+              {{ formatDuration(music.musicDuration) }}
+            </div>
             <div class="music-playlist__item-actions">
-              <ScButton circle size="small" class="music-playlist__item-action-btn">
+              <ScButton
+                circle
+                size="small"
+                class="music-playlist__item-action-btn"
+              >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
               </ScButton>
             </div>
@@ -202,7 +383,8 @@ const mockMusicList: MusicInfo[] = [
     musicTitle: "稻香",
     musicArtist: "周杰伦",
     musicAlbum: "魔杰座",
-    musicCover: "https://p2.music.126.net/hhM1n_dLTErQ5G5lWv4rZQ==/109951167805892228.jpg",
+    musicCover:
+      "https://p2.music.126.net/hhM1n_dLTErQ5G5lWv4rZQ==/109951167805892228.jpg",
     musicUrl: "https://music.163.com/song/media/outer/url?id=185809.mp3",
     musicLyrics:
       "[00:00.000] 作词 : 周杰伦\n[00:01.000] 作曲 : 周杰伦\n[00:02.000] 编曲 : 黄雨勋\n[00:03.000] 制作人 : 周杰伦\n[00:27.410]对这个世界如果你有太多的抱怨\n[00:30.380]跌倒了就不敢继续往前走\n[00:33.670]为什么人要这么的脆弱堕落\n[00:39.660]请你打开电视看看\n[00:42.660]多少人为生命在努力勇敢的走下去\n[00:46.360]我们是不是该知足\n[00:49.660]珍惜一切就算没有拥有\n[00:54.880]还记得你说家是唯一的城堡\n[00:58.650]随着稻香河流继续奔跑\n[01:01.880]微微笑小时候的梦我知道\n[01:08.150]不要哭让萤火虫带着你逃跑\n[01:11.880]乡间的歌谣永远的依靠\n[01:15.150]回家吧回到最初的美好",
@@ -215,7 +397,8 @@ const mockMusicList: MusicInfo[] = [
     musicTitle: "晴天",
     musicArtist: "周杰伦",
     musicAlbum: "叶惠美",
-    musicCover: "https://p1.music.126.net/cUTk0ewrQtYGP2YpPZoUng==/3265549553028224.jpg",
+    musicCover:
+      "https://p1.music.126.net/cUTk0ewrQtYGP2YpPZoUng==/3265549553028224.jpg",
     musicUrl: "https://music.163.com/song/media/outer/url?id=186016.mp3",
     musicLyrics:
       "[00:00.000] 作词 : 周杰伦\n[00:01.000] 作曲 : 周杰伦\n[00:28.636]故事的小黄花\n[00:32.380]从出生那年就飘着\n[00:35.897]童年的荡秋千\n[00:39.380]随记忆一直晃到现在\n[00:42.897]ㄖㄨㄟ ㄙㄡ ㄙㄡ ㄒ一 ㄉㄡ ㄒ一ㄌㄚ\n[00:46.880]ㄙㄡ ㄌㄚ ㄒ一 ㄒ一 ㄒ一 ㄒ一 ㄌㄚ ㄒ一 ㄌㄚ ㄙㄡ\n[00:50.397]吹着前奏望着天空\n[00:53.880]我想起花瓣试着掉落\n[00:57.397]为你翘课的那一天\n[01:00.880]花落的那一天\n[01:04.397]教室的那一间\n[01:07.880]我怎么看不见\n[01:11.397]消失的下雨天\n[01:14.880]我好想再淋一遍",
@@ -228,7 +411,8 @@ const mockMusicList: MusicInfo[] = [
     musicTitle: "七里香",
     musicArtist: "周杰伦",
     musicAlbum: "七里香",
-    musicCover: "https://p1.music.126.net/9ajCyv1uxj_C3Yyv7eC39g==/109951167533469373.jpg",
+    musicCover:
+      "https://p1.music.126.net/9ajCyv1uxj_C3Yyv7eC39g==/109951167533469373.jpg",
     musicUrl: "https://music.163.com/song/media/outer/url?id=186001.mp3",
     musicDuration: 210,
     musicType: "pop",
@@ -239,7 +423,8 @@ const mockMusicList: MusicInfo[] = [
     musicTitle: "可惜没如果",
     musicArtist: "林俊杰",
     musicAlbum: "新地球",
-    musicCover: "https://p2.music.126.net/X0EDfXzxMQJiQ-71JFGdZw==/3238061746556733.jpg",
+    musicCover:
+      "https://p2.music.126.net/X0EDfXzxMQJiQ-71JFGdZw==/3238061746556733.jpg",
     musicUrl: "https://music.163.com/song/media/outer/url?id=29814898.mp3",
     musicDuration: 261,
     musicType: "pop",
@@ -250,7 +435,8 @@ const mockMusicList: MusicInfo[] = [
     musicTitle: "那些你很冒险的梦",
     musicArtist: "林俊杰",
     musicAlbum: "学不会",
-    musicCover: "https://p1.music.126.net/qkbZpB3-d1SkQEfbV1TV5g==/109951163187405670.jpg",
+    musicCover:
+      "https://p1.music.126.net/qkbZpB3-d1SkQEfbV1TV5g==/109951163187405670.jpg",
     musicUrl: "https://music.163.com/song/media/outer/url?id=108478.mp3",
     musicDuration: 249,
     musicType: "pop",
@@ -261,7 +447,8 @@ const mockMusicList: MusicInfo[] = [
     musicTitle: "不能说的秘密",
     musicArtist: "周杰伦",
     musicAlbum: "不能说的秘密 电影原声带",
-    musicCover: "https://p1.music.126.net/R6pCjd9qmH4LQm1idWOZig==/109951163168782834.jpg",
+    musicCover:
+      "https://p1.music.126.net/R6pCjd9qmH4LQm1idWOZig==/109951163168782834.jpg",
     musicUrl: "https://music.163.com/song/media/outer/url?id=185815.mp3",
     musicDuration: 301,
     musicType: "pop",
@@ -436,7 +623,9 @@ const playPrev = () => {
     prevIndex = Math.floor(Math.random() * musicList.value.length);
   } else {
     // 顺序播放
-    prevIndex = (currentIndex.value - 1 + musicList.value.length) % musicList.value.length;
+    prevIndex =
+      (currentIndex.value - 1 + musicList.value.length) %
+      musicList.value.length;
   }
 
   playMusic(prevIndex);
@@ -612,7 +801,7 @@ onBeforeUnmount(() => {
     width: 30px;
     text-align: center;
     font-size: 14px;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     position: relative;
 
     .music-category__item-number {
@@ -713,7 +902,7 @@ onBeforeUnmount(() => {
 
   &__item-duration {
     font-size: 14px;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     margin-left: 16px;
     margin-right: 16px;
   }
@@ -729,7 +918,7 @@ onBeforeUnmount(() => {
     padding: 6px;
     height: auto;
     width: auto;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
 
     &:hover {
       color: var(--el-color-primary);
@@ -752,7 +941,11 @@ onBeforeUnmount(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(66, 99, 235, 0.05) 0%, rgba(147, 77, 255, 0.05) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(66, 99, 235, 0.05) 0%,
+      rgba(147, 77, 255, 0.05) 100%
+    );
     z-index: 0;
   }
 
@@ -875,7 +1068,11 @@ onBeforeUnmount(() => {
     left: 0;
     top: 0;
     height: 100%;
-    background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    background: linear-gradient(
+      90deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
     border-radius: 2px;
   }
 
@@ -910,7 +1107,11 @@ onBeforeUnmount(() => {
     }
 
     &--play {
-      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
       color: var(--el-text-color-primary);
       transform: scale(1.2);
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -1040,7 +1241,7 @@ onBeforeUnmount(() => {
     width: 30px;
     text-align: center;
     font-size: 14px;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     position: relative;
 
     .music-playlist__item-number {
@@ -1096,7 +1297,7 @@ onBeforeUnmount(() => {
 
   &__item-duration {
     font-size: 12px;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     margin-left: 16px;
     margin-right: 8px;
   }
@@ -1110,7 +1311,7 @@ onBeforeUnmount(() => {
     padding: 6px;
     height: auto;
     width: auto;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
 
     &:hover {
       color: var(--el-color-primary);

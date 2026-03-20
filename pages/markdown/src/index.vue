@@ -11,7 +11,14 @@ import "prismjs/components/prism-typescript";
 import "prismjs/plugins/line-numbers/prism-line-numbers";
 import "prismjs/plugins/line-numbers/prism-line-numbers.css";
 import "prismjs/themes/prism-tomorrow.css";
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import useMarkdownIt from "./hook/useMarkdownIt";
 
 // 创建markdown-it实例
@@ -296,7 +303,7 @@ watch(
         saveToLocalStorage();
       }, 2000);
     }
-  }
+  },
 );
 
 // 保存到本地存储
@@ -304,7 +311,10 @@ const saveToLocalStorage = () => {
   try {
     localStorage.setItem("markdown-editor-content", env.markdownText);
     localStorage.setItem("markdown-editor-filename", env.currentFileName);
-    localStorage.setItem("markdown-editor-settings", JSON.stringify(env.settings));
+    localStorage.setItem(
+      "markdown-editor-settings",
+      JSON.stringify(env.settings),
+    );
     env.unsavedChanges = false;
     message("已自动保存", { type: "success" });
   } catch (e) {
@@ -345,7 +355,9 @@ const addToHistory = () => {
     date: now.toLocaleString(),
     filename: env.currentFileName,
     content: env.markdownText,
-    preview: env.markdownText.substring(0, 100) + (env.markdownText.length > 100 ? "..." : ""),
+    preview:
+      env.markdownText.substring(0, 100) +
+      (env.markdownText.length > 100 ? "..." : ""),
   };
 
   env.history.unshift(historyItem);
@@ -357,7 +369,10 @@ const addToHistory = () => {
 
   // 保存到本地存储
   try {
-    localStorage.setItem("markdown-editor-history", JSON.stringify(env.history));
+    localStorage.setItem(
+      "markdown-editor-history",
+      JSON.stringify(env.history),
+    );
   } catch (e) {
     console.error("保存历史记录失败:", e);
   }
@@ -526,13 +541,17 @@ const insertToolbarItem = (item) => {
       insertText = selectedText ? `~~${selectedText}~~` : "~~删除线文本~~";
       break;
     case "quote":
-      insertText = selectedText ? `> ${selectedText.split("\n").join("\n> ")}` : "> 引用文本";
+      insertText = selectedText
+        ? `> ${selectedText.split("\n").join("\n> ")}`
+        : "> 引用文本";
       break;
     case "code":
       insertText = selectedText ? `\`${selectedText}\`` : "`代码`";
       break;
     case "codeblock":
-      insertText = selectedText ? "```\n" + selectedText + "\n```" : "```\n代码块\n```";
+      insertText = selectedText
+        ? "```\n" + selectedText + "\n```"
+        : "```\n代码块\n```";
       break;
     case "ul":
       insertText = selectedText
@@ -559,13 +578,16 @@ const insertToolbarItem = (item) => {
         : "- [ ] 任务\n- [ ] 任务\n- [x] 已完成任务";
       break;
     case "link":
-      insertText = selectedText ? `[${selectedText}](链接URL)` : "[链接文本](链接URL)";
+      insertText = selectedText
+        ? `[${selectedText}](链接URL)`
+        : "[链接文本](链接URL)";
       break;
     case "image":
       insertText = "![图片描述](图片URL)";
       break;
     case "table":
-      insertText = "| 标题1 | 标题2 | 标题3 |\n| --- | --- | --- |\n| 单元格1 | 单元格2 | 单元格3 |\n| 单元格4 | 单元格5 | 单元格6 |";
+      insertText =
+        "| 标题1 | 标题2 | 标题3 |\n| --- | --- | --- |\n| 单元格1 | 单元格2 | 单元格3 |\n| 单元格4 | 单元格5 | 单元格6 |";
       break;
     case "hr":
       insertText = "\n---\n";
@@ -573,7 +595,10 @@ const insertToolbarItem = (item) => {
   }
 
   if (insertText) {
-    const newText = env.markdownText.substring(0, selectionStart) + insertText + env.markdownText.substring(selectionEnd);
+    const newText =
+      env.markdownText.substring(0, selectionStart) +
+      insertText +
+      env.markdownText.substring(selectionEnd);
     env.markdownText = newText;
 
     // 设置光标位置
@@ -590,7 +615,10 @@ const toggleSetting = (setting) => {
   env.settings[setting] = !env.settings[setting];
 
   // 保存设置到本地存储
-  localStorage.setItem("markdown-editor-settings", JSON.stringify(env.settings));
+  localStorage.setItem(
+    "markdown-editor-settings",
+    JSON.stringify(env.settings),
+  );
 
   // 如果切换了自动预览，需要更新预览
   if (setting === "autoPreview" && env.settings.autoPreview) {
@@ -642,7 +670,9 @@ onBeforeUnmount(() => {
         <div class="markdown-tool__header">
           <div class="markdown-tool__header-inner">
             <h1 class="markdown-tool__header-title">Markdown编辑器</h1>
-            <p class="markdown-tool__header-subtitle">实时编辑与预览Markdown文档</p>
+            <p class="markdown-tool__header-subtitle">
+              实时编辑与预览Markdown文档
+            </p>
           </div>
           <div class="markdown-tool__header-decoration">
             <div class="markdown-tool__header-circle"></div>
@@ -655,91 +685,158 @@ onBeforeUnmount(() => {
       <!-- 工具栏 -->
       <div class="markdown-tool__toolbar">
         <div class="markdown-tool__toolbar-group">
-          <div v-for="item in env.toolbarOptions" :key="item.name" :class="['markdown-tool__toolbar-item', { 'markdown-tool__toolbar-divider': item.type === 'divider' }]" v-tooltip="item.tooltip" @click="item.type !== 'divider' && insertToolbarItem(item)">
-            <IconifyIconOnline v-if="item.type !== 'divider'" :icon="item.icon" />
+          <div
+            v-for="item in env.toolbarOptions"
+            :key="item.name"
+            :class="[
+              'markdown-tool__toolbar-item',
+              { 'markdown-tool__toolbar-divider': item.type === 'divider' },
+            ]"
+            v-tooltip="item.tooltip"
+            @click="item.type !== 'divider' && insertToolbarItem(item)"
+          >
+            <IconifyIconOnline
+              v-if="item.type !== 'divider'"
+              :icon="item.icon"
+            />
           </div>
         </div>
 
         <div class="markdown-tool__toolbar-actions">
           <!-- 文件名输入 -->
-          <ScInput v-model="env.currentFileName" placeholder="文件名" size="small" class="markdown-tool__filename-input" />
+          <ScInput
+            v-model="env.currentFileName"
+            placeholder="文件名"
+            size="small"
+            class="markdown-tool__filename-input"
+          />
 
           <!-- 导入按钮 -->
           <ScTooltip content="导入Markdown文件" placement="top">
-            <ScButton type="primary" size="small" @click="$refs.fileInput.click()">
+            <ScButton
+              type="primary"
+              size="small"
+              @click="$refs.fileInput.click()"
+            >
               <IconifyIconOnline icon="ri:file-upload-line" />
             </ScButton>
           </ScTooltip>
-          <input ref="fileInput" type="file" accept=".md,.markdown,.txt" style="display: none" @change="importMarkdown" />
+          <input
+            ref="fileInput"
+            type="file"
+            accept=".md,.markdown,.txt"
+            style="display: none"
+            @change="importMarkdown"
+          />
 
           <!-- 导出下拉菜单 -->
-          <el-dropdown trigger="click">
+          <ScDropdown trigger="click">
             <ScButton type="primary" size="small">
               <IconifyIconOnline icon="ri:file-download-line" />
             </ScButton>
             <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item @click="exportMarkdown">
+              <ScDropdownMenu>
+                <ScDropdownItem @click="exportMarkdown">
                   <IconifyIconOnline icon="ri:markdown-line" />
                   <span>导出为Markdown</span>
-                </el-dropdown-item>
-                <el-dropdown-item @click="exportHtml">
+                </ScDropdownItem>
+                <ScDropdownItem @click="exportHtml">
                   <IconifyIconOnline icon="ri:html5-line" />
                   <span>导出为HTML</span>
-                </el-dropdown-item>
-              </el-dropdown-menu>
+                </ScDropdownItem>
+              </ScDropdownMenu>
             </template>
-          </el-dropdown>
+          </ScDropdown>
 
           <!-- 设置下拉菜单 -->
-          <el-dropdown trigger="click">
+          <ScDropdown trigger="click">
             <ScButton size="small">
               <IconifyIconOnline icon="ri:settings-line" />
             </ScButton>
             <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item @click="toggleSetting('autoSave')">
-                  <IconifyIconOnline :icon="env.settings.autoSave ? 'ri:checkbox-circle-fill' : 'ri:checkbox-blank-circle-line'" />
+              <ScDropdownMenu>
+                <ScDropdownItem @click="toggleSetting('autoSave')">
+                  <IconifyIconOnline
+                    :icon="
+                      env.settings.autoSave
+                        ? 'ri:checkbox-circle-fill'
+                        : 'ri:checkbox-blank-circle-line'
+                    "
+                  />
                   <span>自动保存</span>
-                </el-dropdown-item>
-                <el-dropdown-item @click="toggleSetting('autoPreview')">
-                  <IconifyIconOnline :icon="env.settings.autoPreview ? 'ri:checkbox-circle-fill' : 'ri:checkbox-blank-circle-line'" />
+                </ScDropdownItem>
+                <ScDropdownItem @click="toggleSetting('autoPreview')">
+                  <IconifyIconOnline
+                    :icon="
+                      env.settings.autoPreview
+                        ? 'ri:checkbox-circle-fill'
+                        : 'ri:checkbox-blank-circle-line'
+                    "
+                  />
                   <span>实时预览</span>
-                </el-dropdown-item>
-                <el-dropdown-item @click="toggleSetting('lineNumbers')">
-                  <IconifyIconOnline :icon="env.settings.lineNumbers ? 'ri:checkbox-circle-fill' : 'ri:checkbox-blank-circle-line'" />
+                </ScDropdownItem>
+                <ScDropdownItem @click="toggleSetting('lineNumbers')">
+                  <IconifyIconOnline
+                    :icon="
+                      env.settings.lineNumbers
+                        ? 'ri:checkbox-circle-fill'
+                        : 'ri:checkbox-blank-circle-line'
+                    "
+                  />
                   <span>显示行号</span>
-                </el-dropdown-item>
-                <el-dropdown-item @click="toggleSetting('wordWrap')">
-                  <IconifyIconOnline :icon="env.settings.wordWrap ? 'ri:checkbox-circle-fill' : 'ri:checkbox-blank-circle-line'" />
+                </ScDropdownItem>
+                <ScDropdownItem @click="toggleSetting('wordWrap')">
+                  <IconifyIconOnline
+                    :icon="
+                      env.settings.wordWrap
+                        ? 'ri:checkbox-circle-fill'
+                        : 'ri:checkbox-blank-circle-line'
+                    "
+                  />
                   <span>自动换行</span>
-                </el-dropdown-item>
-                <el-dropdown-item @click="toggleSetting('darkMode')">
-                  <IconifyIconOnline :icon="env.settings.darkMode ? 'ri:checkbox-circle-fill' : 'ri:checkbox-blank-circle-line'" />
+                </ScDropdownItem>
+                <ScDropdownItem @click="toggleSetting('darkMode')">
+                  <IconifyIconOnline
+                    :icon="
+                      env.settings.darkMode
+                        ? 'ri:checkbox-circle-fill'
+                        : 'ri:checkbox-blank-circle-line'
+                    "
+                  />
                   <span>暗色模式</span>
-                </el-dropdown-item>
-                <el-dropdown-item divided>
+                </ScDropdownItem>
+                <ScDropdownItem divided>
                   <span>字体大小</span>
-                  <ScSlider v-model="env.settings.fontSize" :min="12" :max="20" :step="1" style="width: 120px; margin-left: 10px" />
-                </el-dropdown-item>
-              </el-dropdown-menu>
+                  <ScSlider
+                    v-model="env.settings.fontSize"
+                    :min="12"
+                    :max="20"
+                    :step="1"
+                    style="width: 120px; margin-left: 10px"
+                  />
+                </ScDropdownItem>
+              </ScDropdownMenu>
             </template>
-          </el-dropdown>
+          </ScDropdown>
 
           <!-- 模板下拉菜单 -->
-          <el-dropdown trigger="click">
+          <ScDropdown trigger="click">
             <ScButton size="small">
               <IconifyIconOnline icon="ri:file-list-line" />
             </ScButton>
             <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item v-for="template in env.templates" :key="template.name" @click="applyTemplate(template)">
+              <ScDropdownMenu>
+                <ScDropdownItem
+                  v-for="template in env.templates"
+                  :key="template.name"
+                  @click="applyTemplate(template)"
+                >
                   <IconifyIconOnline icon="ri:file-text-line" />
                   <span>{{ template.name }}</span>
-                </el-dropdown-item>
-              </el-dropdown-menu>
+                </ScDropdownItem>
+              </ScDropdownMenu>
             </template>
-          </el-dropdown>
+          </ScDropdown>
 
           <!-- 清空按钮 -->
           <ScTooltip content="清空编辑器" placement="top">
@@ -777,7 +874,11 @@ onBeforeUnmount(() => {
                 <span>{{ wordCount.lines }} 行</span>
               </div>
               <div class="markdown-tool__status">
-                <span v-if="env.unsavedChanges" class="markdown-tool__status-unsaved">未保存</span>
+                <span
+                  v-if="env.unsavedChanges"
+                  class="markdown-tool__status-unsaved"
+                  >未保存</span
+                >
                 <span v-else class="markdown-tool__status-saved">已保存</span>
               </div>
             </div>
@@ -792,13 +893,24 @@ onBeforeUnmount(() => {
               <span>预览</span>
               <div class="markdown-tool__preview-actions">
                 <ScTooltip content="复制HTML" placement="top">
-                  <ScButton type="primary" link size="small" @click="copyToClipboard(env.previewHtml)">
+                  <ScButton
+                    type="primary"
+                    link
+                    size="small"
+                    @click="copyToClipboard(env.previewHtml)"
+                  >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
                 </ScTooltip>
               </div>
             </div>
-            <div ref="previewRef" class="markdown-tool__preview markdown-body" :class="{ 'word-wrap': env.settings.wordWrap }" :style="{ fontSize: `${env.settings.fontSize}px` }" v-html="env.previewHtml"></div>
+            <div
+              ref="previewRef"
+              class="markdown-tool__preview markdown-body"
+              :class="{ 'word-wrap': env.settings.wordWrap }"
+              :style="{ fontSize: `${env.settings.fontSize}px` }"
+              v-html="env.previewHtml"
+            ></div>
             <div class="markdown-tool__preview-footer">
               <span>预览模式</span>
             </div>
@@ -810,14 +922,24 @@ onBeforeUnmount(() => {
       <ScCard class="markdown-tool__history-card" shadow="hover">
         <template #header>
           <div class="markdown-tool__card-header">
-            <IconifyIconOnline icon="ri:history-line" class="markdown-tool__card-icon" />
+            <IconifyIconOnline
+              icon="ri:history-line"
+              class="markdown-tool__card-icon"
+            />
             <span>历史记录</span>
           </div>
         </template>
 
-        <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="markdown-tool__empty">
+        <ScEmpty
+          v-if="!env.history.length"
+          description="暂无历史记录"
+          class="markdown-tool__empty"
+        >
           <template #image>
-            <IconifyIconOnline icon="ri:history-line" class="markdown-tool__empty-icon" />
+            <IconifyIconOnline
+              icon="ri:history-line"
+              class="markdown-tool__empty-icon"
+            />
           </template>
         </ScEmpty>
 
@@ -827,8 +949,16 @@ onBeforeUnmount(() => {
           <ScTableColumn prop="preview" label="预览" show-overflow-tooltip />
           <ScTableColumn label="操作" width="120">
             <template #default="scope">
-              <ScButton type="primary" link @click="loadFromHistory(scope.row)"> 加载 </ScButton>
-              <ScButton type="danger" link @click="env.history.splice(env.history.indexOf(scope.row), 1)"> 删除 </ScButton>
+              <ScButton type="primary" link @click="loadFromHistory(scope.row)">
+                加载
+              </ScButton>
+              <ScButton
+                type="danger"
+                link
+                @click="env.history.splice(env.history.indexOf(scope.row), 1)"
+              >
+                删除
+              </ScButton>
             </template>
           </ScTableColumn>
         </ScTable>
@@ -853,7 +983,11 @@ onBeforeUnmount(() => {
 }
 
 .markdown-tool__header {
-  background: linear-gradient(135deg, var(--app-primary) 0%, var(--app-primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--app-primary) 0%,
+    var(--app-primary-dark) 100%
+  );
   border-radius: 8px;
   padding: 24px;
   color: var(--app-text-primary);
@@ -1130,4 +1264,5 @@ onBeforeUnmount(() => {
     margin-bottom: 16px;
   }
 }
-</style>.../hook/useMarkdownIt/useMarkdownIt
+</style>
+.../hook/useMarkdownIt/useMarkdownIt

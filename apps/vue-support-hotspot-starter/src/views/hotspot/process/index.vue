@@ -1,9 +1,9 @@
 <template>
   <div class="page-container">
     <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper primary">
               <IconifyIconOnline icon="ri:node-tree" class="stat-icon" />
@@ -13,10 +13,10 @@
               <div class="stat-label">节点数</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper success">
               <IconifyIconOnline icon="ri:links-line" class="stat-icon" />
@@ -26,10 +26,10 @@
               <div class="stat-label">连接数</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div :class="['stat-icon-wrapper', wsConnected ? 'success' : 'danger']">
               <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
@@ -39,25 +39,25 @@
               <div class="stat-label">WebSocket 状态</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper info">
               <IconifyIconOnline icon="ri:refresh-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <el-button type="primary" size="small" @click="refreshGraph">
+              <ScButton type="primary" size="small" @click="refreshGraph">
                 <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
                 刷新拓扑图
-              </el-button>
+              </ScButton>
               <div class="stat-label">操作</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
     <!-- 图形容器 -->
     <div class="graph-wrapper">
       <div id="container" key="node" ref="echartsRef" class="graph-container" />

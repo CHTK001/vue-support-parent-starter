@@ -10,15 +10,15 @@
     >
       <template #header="{ titleId, titleClass }">
         <div class="dialog-header">
-          <el-icon class="header-icon" :size="22">
+          <ScIcon class="header-icon" :size="22">
             <component :is="useRenderIcon('ep:upload-filled')" />
-          </el-icon>
+          </ScIcon>
           <span :id="titleId" :class="titleClass">{{ title }}</span>
         </div>
       </template>
 
       <div class="upload-container">
-        <el-upload
+        <ScUpload
           class="upload-area"
           drag
           action="#"
@@ -29,7 +29,7 @@
           @change="handleChange"
         >
           <div class="upload-content">
-            <el-icon class="upload-icon" :class="{ uploading }">
+            <ScIcon class="upload-icon" :class="{ uploading }">
               <component
                 :is="
                   useRenderIcon(
@@ -37,7 +37,7 @@
                   )
                 "
               />
-            </el-icon>
+            </ScIcon>
             <div class="upload-text">
               <p class="primary-text">
                 {{ uploading ? "上传中..." : "将文件拖到此处" }}
@@ -45,37 +45,37 @@
               <p class="secondary-text">或 <em>点击选择文件</em></p>
             </div>
           </div>
-        </el-upload>
+        </ScUpload>
 
         <div class="upload-tips">
           <div class="tip-item">
-            <el-icon
+            <ScIcon
               ><component :is="useRenderIcon('ri:file-code-line')"
-            /></el-icon>
+            /></ScIcon>
             <span>支持 <strong>.vue</strong> 格式文件</span>
           </div>
           <div class="tip-item">
-            <el-icon
+            <ScIcon
               ><component :is="useRenderIcon('ri:hard-drive-2-line')"
-            /></el-icon>
+            /></ScIcon>
             <span>文件大小不超过 <strong>500KB</strong></span>
           </div>
           <div class="tip-item">
-            <el-icon
+            <ScIcon
               ><component :is="useRenderIcon('ri:information-line')"
-            /></el-icon>
+            /></ScIcon>
             <span>上传后将替换现有组件文件</span>
           </div>
         </div>
       </div>
 
       <template #footer>
-        <el-button @click="onClose">
-          <el-icon class="mr-1"
+        <ScButton @click="onClose">
+          <ScIcon class="mr-1"
             ><component :is="useRenderIcon('ep:close')"
-          /></el-icon>
+          /></ScIcon>
           关闭
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>
@@ -84,7 +84,7 @@
 <script setup>
 import { fetchUploadSfc } from "@repo/core";
 import { ref, defineExpose, reactive } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks.ts";
+import { useRenderIcon } from "@repo/components.ts";
 import { message } from "@repo/utils";
 
 const emit = defineEmits(["close", "success"]);

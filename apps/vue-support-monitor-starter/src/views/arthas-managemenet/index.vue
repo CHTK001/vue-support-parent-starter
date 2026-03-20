@@ -21,12 +21,12 @@
           @change="handleSelectNode"
         />
         <div class="ops">
-          <el-tooltip
+          <ScTooltip
             content="刷新节点列表"
             placement="bottom"
             :show-after="500"
           >
-            <el-button
+            <ScButton
               type="primary"
               :disabled="!selectedNode"
               size="small"
@@ -34,14 +34,14 @@
             >
               <IconifyIconOnline icon="ep:refresh" class="mr-1" />
               刷新
-            </el-button>
-          </el-tooltip>
-          <el-tooltip
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip
             content="连接到选中的节点"
             placement="bottom"
             :show-after="500"
           >
-            <el-button
+            <ScButton
               type="primary"
               :disabled="!selectedNode || connected"
               size="small"
@@ -49,32 +49,32 @@
             >
               <IconifyIconOnline icon="ep:connection" class="mr-1" />
               连接
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="断开连接" placement="bottom" :show-after="500">
-            <el-button
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip content="断开连接" placement="bottom" :show-after="500">
+            <ScButton
               :disabled="!connected"
               size="small"
               @click="disconnectNode"
             >
               <IconifyIconOnline icon="ep:close" class="mr-1" />
               断开
-            </el-button>
-          </el-tooltip>
-          <el-tooltip
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip
             content="配置 Arthas"
             placement="bottom"
             :show-after="500"
           >
-            <el-button
+            <ScButton
               :disabled="!selectedNode"
               size="small"
               @click="configVisible = true"
             >
               <IconifyIconOnline icon="ep:setting" class="mr-1" />
               配置
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </div>
       </div>
     </div>
@@ -100,7 +100,7 @@
         <div v-if="!connected" class="empty-state">
           <div class="empty-card">
             <IconifyIconOnline icon="ri:terminal-box-line" class="empty-icon" />
-            <el-empty
+            <ScEmpty
               description="请选择包含 Arthas 客户端的在线节点并点击连接"
             />
           </div>
@@ -127,7 +127,7 @@
             :node-id="selectedNodeId"
           />
           <div v-else class="console-wrap">
-            <el-alert
+            <ScAlert
               type="info"
               :closable="false"
               show-icon
@@ -151,7 +151,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { message } from "@repo/utils";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import NodeSelector from "@/views/arthas-managemenet/components/NodeSelector.vue";
 import FeatureMenu from "@/views/arthas-managemenet/components/FeatureMenu.vue";
 import TerminalConsole from "@/views/arthas-managemenet/components/TerminalConsole.vue";

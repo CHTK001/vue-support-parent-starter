@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseTool from './BaseTool.vue';
+import BaseTool from "./BaseTool.vue";
 </script>
 
 <template>
@@ -19,6 +19,7 @@ $ft-green-line: rgba(102, 171, 119, 0.42);
 .future-tech-tool-wrapper {
   :deep(.future-tech-tool) {
     .tool-item {
+<<<<<<< HEAD
       color: $ft-gold !important;
       background:
         linear-gradient(135deg, rgba(15, 36, 24, 0.96), rgba(8, 24, 16, 0.92)) !important;
@@ -31,12 +32,21 @@ $ft-green-line: rgba(102, 171, 119, 0.42);
       &::before {
         opacity: 0;
       }
+=======
+      color: $ft-cyan !important;
+      background: rgba(5, 10, 31, 0.8) !important;
+      border: 2px solid rgba(0, 255, 255, 0.4) !important;
+      box-shadow:
+        0 2px 8px rgba(0, 255, 255, 0.2),
+        inset 0 1px 2px rgba(0, 255, 255, 0.1) !important;
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
       svg {
         color: $ft-gold !important;
       }
 
       &:hover {
+<<<<<<< HEAD
         background:
           linear-gradient(135deg, rgba(19, 50, 33, 0.98), rgba(11, 30, 20, 0.96)) !important;
         color: $ft-gold-bright !important;
@@ -45,6 +55,15 @@ $ft-green-line: rgba(102, 171, 119, 0.42);
         box-shadow:
           0 14px 32px -24px rgba(0, 0, 0, 0.72),
           inset 0 0 0 1px rgba(243, 210, 122, 0.08) !important;
+=======
+        background: rgba(0, 255, 255, 0.2) !important;
+        color: $ft-cyan-light !important;
+        border-color: $ft-cyan !important;
+        transform: translateY(-2px) !important;
+        box-shadow:
+          0 4px 16px rgba(0, 255, 255, 0.4),
+          inset 0 1px 2px rgba(0, 255, 255, 0.2) !important;
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
         svg {
           color: $ft-gold-bright !important;
@@ -112,8 +131,15 @@ $ft-green-line: rgba(102, 171, 119, 0.42);
 
     .lang-style {
       .lang-icon-wrapper {
+<<<<<<< HEAD
         background: rgba(15, 36, 24, 0.9) !important;
         box-shadow: 0 8px 18px -16px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(102, 171, 119, 0.28) !important;
+=======
+        background: rgba(5, 10, 31, 0.8) !important;
+        box-shadow:
+          0 2px 8px rgba(0, 255, 255, 0.2),
+          0 0 0 2px rgba(0, 255, 255, 0.2) !important;
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
         .lang-main-icon {
           color: $ft-gold !important;
@@ -146,8 +172,17 @@ $ft-green-line: rgba(102, 171, 119, 0.42);
       }
 
       .status-dot {
+<<<<<<< HEAD
         background: linear-gradient(135deg, #5f9b67, #8ebf79) !important;
         border-color: rgba(243, 210, 122, 0.78) !important;
+=======
+        background: linear-gradient(
+          135deg,
+          $ft-cyan,
+          $ft-cyan-light
+        ) !important;
+        border-color: rgba(0, 255, 255, 0.9) !important;
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       }
 
       .dropdown-arrow-wrapper {
@@ -169,4 +204,3 @@ $ft-green-line: rgba(102, 171, 119, 0.42);
   }
 }
 </style>
-

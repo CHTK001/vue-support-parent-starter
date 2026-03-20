@@ -24,7 +24,7 @@
 </pre>
         </li>
       </ul>
-      <el-empty v-else />
+      <ScEmpty v-else />
     </sc-dialog>
   </div>
 </template>

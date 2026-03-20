@@ -10,8 +10,8 @@
       @close="onClose"
     >
       <div class="container">
-        <el-skeleton :animated="true" :loading="loadingStatus">
-          <el-empty
+        <ScSkeleton :animated="true" :loading="loadingStatus">
+          <ScEmpty
             v-if="!returnResult || !returnResult.logContent"
             description="暂无日志"
           />
@@ -20,7 +20,7 @@
               <pre>{{ returnResult.logContent?.replaceAll('<br>', '\r\n') }}</pre>
             </code>
           </div>
-        </el-skeleton>
+        </ScSkeleton>
       </div>
     </sc-dialog>
   </div>

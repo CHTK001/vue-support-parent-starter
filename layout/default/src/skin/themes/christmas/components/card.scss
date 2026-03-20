@@ -1,0 +1,22 @@
+// 圣诞节主题卡片样式
+
+[data-theme="christmas"] {
+  .el-card,
+  .sc-card {
+    background: var(--gradient-bg);
+    border: 2px solid var(--christmas-gold);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    
+    &__header {
+      border-bottom: 2px solid var(--christmas-gold);
+      color: var(--christmas-red);
+      font-weight: 600;
+    }
+    
+    &:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-4px);
+    }
+  }
+}

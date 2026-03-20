@@ -20,15 +20,15 @@
       </div>
     </template>
 
-    <el-form
+    <ScForm
       ref="formRef"
       :model="form"
       :rules="rules"
       label-width="90px"
       class="config-form"
     >
-      <el-form-item label="配置键" prop="monitorSysGenConfigKey">
-        <el-input
+      <ScFormItem label="配置键" prop="monitorSysGenConfigKey">
+        <ScInput
           v-model="form.monitorSysGenConfigKey"
           placeholder="如: app.name、server.port"
           :disabled="isEdit"
@@ -36,29 +36,29 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:key-line" />
           </template>
-        </el-input>
-      </el-form-item>
+        </ScInput>
+      </ScFormItem>
 
-      <el-form-item label="配置值" prop="monitorSysGenConfigValue">
-        <el-input
+      <ScFormItem label="配置值" prop="monitorSysGenConfigValue">
+        <ScInput
           v-model="form.monitorSysGenConfigValue"
           type="textarea"
           :rows="3"
           placeholder="输入配置值"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="描述" prop="monitorSysGenConfigDescription">
-        <el-input
+      <ScFormItem label="描述" prop="monitorSysGenConfigDescription">
+        <ScInput
           v-model="form.monitorSysGenConfigDescription"
           type="textarea"
           :rows="2"
           placeholder="配置项的说明描述"
         />
-      </el-form-item>
+      </ScFormItem>
 
-      <el-form-item label="环境" prop="monitorSysGenConfigEnv">
-        <el-select
+      <ScFormItem label="环境" prop="monitorSysGenConfigEnv">
+        <ScSelect
           v-model="form.monitorSysGenConfigEnv"
           placeholder="选择环境"
           clearable
@@ -66,48 +66,48 @@
           allow-create
           style="width: 100%"
         >
-          <el-option
+          <ScOption
             v-for="env in envList"
             :key="env"
             :label="env"
             :value="env"
           />
-        </el-select>
-      </el-form-item>
+        </ScSelect>
+      </ScFormItem>
 
-      <el-form-item label="应用" prop="monitorSysGenConfigApp">
-        <el-input
+      <ScFormItem label="应用" prop="monitorSysGenConfigApp">
+        <ScInput
           v-model="form.monitorSysGenConfigApp"
           placeholder="配置所属应用名称（可选）"
         >
           <template #prefix>
             <IconifyIconOnline icon="ri:apps-line" />
           </template>
-        </el-input>
-      </el-form-item>
+        </ScInput>
+      </ScFormItem>
 
-      <el-form-item label="状态" prop="monitorSysGenConfigStatus">
-        <el-switch
+      <ScFormItem label="状态" prop="monitorSysGenConfigStatus">
+        <ScSwitch
           v-model="form.monitorSysGenConfigStatus"
           :active-value="1"
           :inactive-value="0"
           active-text="启用"
           inactive-text="禁用"
         />
-      </el-form-item>
-    </el-form>
+      </ScFormItem>
+    </ScForm>
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <ScButton @click="visibleProxy = false">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSubmit">
           <IconifyIconOnline
             v-if="!loading"
             icon="ri:check-line"
             class="mr-1"
           />
           {{ loading ? "提交中..." : "确定" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

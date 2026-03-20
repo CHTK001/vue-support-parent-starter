@@ -23,11 +23,11 @@
           </div>
         </div>
         <div v-if="activeSection !== 'history'" class="header-right">
-          <el-button size="small" @click="handleReset">
+          <ScButton size="small" @click="handleReset">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             重置
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             type="danger"
             plain
@@ -35,7 +35,7 @@
           >
             <IconifyIconOnline icon="ri:toggle-line" class="mr-1" />
             一键关闭
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>
@@ -43,45 +43,45 @@
       <div class="config-container">
         <!-- 左侧导航 -->
         <div class="config-nav">
-          <el-menu
+          <ScMenu
             v-model="activeSection"
             mode="vertical"
             class="config-menu"
             @select="handleSectionChange"
           >
-            <el-menu-item index="connection">
+            <ScMenuItem index="connection">
               <IconifyIconOnline icon="ri:link" />
               <span>连接配置</span>
-            </el-menu-item>
-            <el-menu-item index="monitor">
+            </ScMenuItem>
+            <ScMenuItem index="monitor">
               <IconifyIconOnline icon="ri:eye-line" />
               <span>监控配置</span>
-            </el-menu-item>
-            <el-menu-item index="alert">
+            </ScMenuItem>
+            <ScMenuItem index="alert">
               <IconifyIconOnline icon="ri:alarm-warning-line" />
               <span>告警配置</span>
-            </el-menu-item>
-            <el-menu-item index="docker">
+            </ScMenuItem>
+            <ScMenuItem index="docker">
               <IconifyIconOnline icon="simple-icons:docker" />
               <span>Docker</span>
-            </el-menu-item>
-            <el-menu-item index="filemanagement">
+            </ScMenuItem>
+            <ScMenuItem index="filemanagement">
               <IconifyIconOnline icon="ri:folder-line" />
               <span>文件管理</span>
-            </el-menu-item>
-            <el-menu-item index="advanced">
+            </ScMenuItem>
+            <ScMenuItem index="advanced">
               <IconifyIconOnline icon="ri:tools-line" />
               <span>高级配置</span>
-            </el-menu-item>
-            <el-menu-item index="tasks">
+            </ScMenuItem>
+            <ScMenuItem index="tasks">
               <IconifyIconOnline icon="ri:plug-line" />
               <span>端口配置</span>
-            </el-menu-item>
-            <el-menu-item index="history">
+            </ScMenuItem>
+            <ScMenuItem index="history">
               <IconifyIconOnline icon="ri:history-line" />
               <span>配置历史</span>
-            </el-menu-item>
-          </el-menu>
+            </ScMenuItem>
+          </ScMenu>
         </div>
 
         <!-- 右侧配置内容 -->
@@ -103,7 +103,7 @@
             element-loading-text="加载配置中..."
             class="form-container"
           >
-            <el-form
+            <ScForm
               ref="formRef"
               :model="settingData"
               label-width="140px"
@@ -116,16 +116,16 @@
                 v-show="activeSection === 'connection'"
                 class="config-section"
               >
-                <el-form-item label="连接模式">
-                  <el-radio-group v-model="connectionMode">
+                <ScFormItem label="连接模式">
+                  <ScRadioGroup v-model="connectionMode">
                     <el-radio-button label="SSH">SSH</el-radio-button>
                     <el-radio-button label="REMOTE">远程桌面</el-radio-button>
                     <el-radio-button label="GUACAMOLE"
                       >Guacamole</el-radio-button
                     >
                     <el-radio-button label="VNC">VNC</el-radio-button>
-                  </el-radio-group>
-                </el-form-item>
+                  </ScRadioGroup>
+                </ScFormItem>
 
                 <div
                   v-show="
@@ -144,10 +144,10 @@
                   v-show="connectionMode === 'SSH'"
                   class="sub-config-section"
                 >
-                  <el-row :gutter="20">
-                    <el-col :span="10">
-                      <el-form-item label="SSH 端口">
-                        <el-input-number
+                  <ScRow :gutter="20">
+                    <ScCol :span="10">
+                      <ScFormItem label="SSH 端口">
+                        <ScInputNumber
                           v-model="
                             settingData.monitorSysGenServerSettingSshPort
                           "
@@ -158,9 +158,9 @@
                           style="width: 100%"
                           @change="handleSettingChange"
                         />
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
+                      </ScFormItem>
+                    </ScCol>
+                  </ScRow>
                 </div>
 
                 <!-- 远程桌面配置（REMOTE 模式） -->
@@ -175,10 +175,10 @@
                       Agent（默认端口 8899）。</span
                     >
                   </div>
-                  <el-row :gutter="20">
-                    <el-col :span="10">
-                      <el-form-item label="Agent 端口">
-                        <el-input-number
+                  <ScRow :gutter="20">
+                    <ScCol :span="10">
+                      <ScFormItem label="Agent 端口">
+                        <ScInputNumber
                           v-model="
                             settingData.monitorSysGenServerSettingRemotePort
                           "
@@ -189,9 +189,9 @@
                           style="width: 100%"
                           @change="handleSettingChange"
                         />
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
+                      </ScFormItem>
+                    </ScCol>
+                  </ScRow>
                 </div>
 
                 <!-- Guacamole 代理配置（GUACAMOLE/VNC 时需要） -->
@@ -199,14 +199,14 @@
                   v-show="['GUACAMOLE', 'VNC'].includes(connectionMode)"
                   class="sub-config-section"
                 >
-                  <el-row :gutter="20">
-                    <el-col :span="10">
-                      <el-form-item
+                  <ScRow :gutter="20">
+                    <ScCol :span="10">
+                      <ScFormItem
                         :label="
                           connectionMode === 'VNC' ? 'VNC 端口' : '连接端口'
                         "
                       >
-                        <el-input-number
+                        <ScInputNumber
                           v-model="
                             settingData.monitorSysGenServerSettingVncPort
                           "
@@ -219,24 +219,24 @@
                           style="width: 100%"
                           @change="handleSettingChange"
                         />
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
-                  <el-row :gutter="20">
-                    <el-col :span="14">
-                      <el-form-item label="Guacd 地址">
-                        <el-input
+                      </ScFormItem>
+                    </ScCol>
+                  </ScRow>
+                  <ScRow :gutter="20">
+                    <ScCol :span="14">
+                      <ScFormItem label="Guacd 地址">
+                        <ScInput
                           v-model="
                             settingData.monitorSysGenServerSettingProxyHost
                           "
                           placeholder="guacd 主机名或IP"
                           @change="handleSettingChange"
                         />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="10">
-                      <el-form-item label="Guacd 端口">
-                        <el-input-number
+                      </ScFormItem>
+                    </ScCol>
+                    <ScCol :span="10">
+                      <ScFormItem label="Guacd 端口">
+                        <ScInputNumber
                           v-model="
                             settingData.monitorSysGenServerSettingProxyPort
                           "
@@ -247,9 +247,9 @@
                           style="width: 100%"
                           @change="handleSettingChange"
                         />
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
+                      </ScFormItem>
+                    </ScCol>
+                  </ScRow>
                 </div>
               </div>
 
@@ -339,7 +339,7 @@
                   @restored="handleHistoryRestored"
                 />
               </div>
-            </el-form>
+            </ScForm>
           </div>
         </div>
       </div>
@@ -347,15 +347,15 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
-        <el-button
+        <ScButton @click="visible = false">关闭</ScButton>
+        <ScButton
           v-if="activeSection !== 'history'"
           type="primary"
           :loading="saving"
           @click="handleSave"
         >
           保存配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

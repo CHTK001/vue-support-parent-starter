@@ -27,21 +27,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { PropType } from 'vue'
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { computed } from "vue";
+import type { PropType } from "vue";
+import { IconifyIconOnline } from "@repo/components";
 
 export interface CardOption {
-  label: string
-  value: string | number
-  icon?: string
-  disabled?: boolean
+  label: string;
+  value: string | number;
+  icon?: string;
+  disabled?: boolean;
 }
 
 const props = defineProps({
   modelValue: {
     type: [String, Number],
-    default: ''
+    default: ""
   },
   disabled: {
     type: Boolean,
@@ -49,8 +49,8 @@ const props = defineProps({
   },
   size: {
     type: String,
-    default: 'default',
-    validator: (val: string) => ['small', 'default', 'large'].includes(val)
+    default: "default",
+    validator: (val: string) => ["small", "default", "large"].includes(val)
   },
   options: {
     type: Array as PropType<CardOption[]>,
@@ -58,21 +58,21 @@ const props = defineProps({
   },
   activeColor: {
     type: String,
-    default: ''
+    default: ""
   },
   inactiveColor: {
     type: String,
-    default: ''
+    default: ""
   }
-})
+});
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits(["update:modelValue", "change"]);
 
 const handleSelect = (option: CardOption) => {
-  if (option.disabled || props.disabled) return
-  emit('update:modelValue', option.value)
-  emit('change', option.value)
-}
+  if (option.disabled || props.disabled) return;
+  emit("update:modelValue", option.value);
+  emit("change", option.value);
+};
 </script>
 
 <style lang="scss" scoped>
@@ -161,4 +161,4 @@ const handleSelect = (option: CardOption) => {
     }
   }
 }
-</style> 
+</style>

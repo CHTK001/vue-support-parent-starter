@@ -17,7 +17,10 @@ const themeComponents = {
   "future-tech": defineAsyncComponent(() => import("./themes/FutureTech.vue")),
 };
 
-const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultSidebar);
+const { CurrentComponent, currentTheme } = useThemeComponent(
+  themeComponents,
+  DefaultSidebar,
+);
 </script>
 
 <template>

@@ -11,9 +11,9 @@
     >
       <template #header="{ titleId, titleClass }">
         <div class="dialog-header">
-          <el-icon class="header-icon" :size="22">
+          <ScIcon class="header-icon" :size="22">
             <component :is="useRenderIcon('ri:code-s-slash-line')" />
-          </el-icon>
+          </ScIcon>
           <span :id="titleId" :class="titleClass">编码编辑</span>
         </div>
       </template>
@@ -33,7 +33,7 @@
 <script setup>
 import "codemirror/mode/vue/vue";
 import { reactive, defineAsyncComponent, defineExpose, ref } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 const ScCodeEditor = defineAsyncComponent(() => import("@repo/scCodeEditor"));
 const form = reactive({ sysSfcContent: "" });
 const visible = ref(false);

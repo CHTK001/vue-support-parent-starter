@@ -98,30 +98,30 @@ defineExpose({
           <span>{{ env.title }}</span>
         </div>
       </template>
-      <el-form :model="env.form" :rules="rules">
-        <el-form-item label="机构名称" prop="sysDeptName">
+      <ScForm :model="env.form" :rules="rules">
+        <ScFormItem label="机构名称" prop="sysDeptName">
           <el-text> {{ env.form.sysDeptName }}</el-text>
-        </el-form-item>
-        <el-form-item label="数据权限" prop="sysDeptDataPermission">
-          <el-select
+        </ScFormItem>
+        <ScFormItem label="数据权限" prop="sysDeptDataPermission">
+          <ScSelect
             v-model="env.form.sysDeptDataPermission"
             placeholder="请选择数据权限"
             clearable
           >
-            <el-option
+            <ScOption
               v-for="item in PermissionList"
               :key="item.value"
               :label="item.label"
               :value="item.value"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem
           v-if="env.form.sysDeptDataPermission === 5"
           label="选择部门"
           prop="sysDeptDataPermissionDeptId"
         >
-          <el-cascader
+          <ScCascader
             v-model="env.form.sysDeptDataPermissionDeptIds"
             class="w-full"
             :options="env.deptList"
@@ -139,23 +139,23 @@ defineExpose({
                 <span v-if="!node.isLeaf">({{ data.children.length }})</span>
               </div>
             </template>
-          </el-cascader>
-        </el-form-item>
-      </el-form>
+          </ScCascader>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleClose">
+          <ScButton @click="handleClose">
             <IconifyIconOnline icon="ep:close" class="mr-1" />
             {{ t("buttons.cancel") }}
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             type="primary"
             :loading="env.loading"
             @click="handleUpdate"
           >
             <IconifyIconOnline icon="ep:check" class="mr-1" />
             {{ t("buttons.confirm") }}
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

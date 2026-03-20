@@ -61,9 +61,17 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { IconifyIconOnline } from "@repo/components";
+<<<<<<< HEAD
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
 import { switchTheme as switchThemeUtil } from "@repo/components/hooks";
 import { getAvailableThemes, type LayoutTheme } from "../../themes/index";
+=======
+import { ScRibbon } from "@repo/components"
+import {
+  getThemesByGroup,
+  switchTheme as switchThemeUtil,
+} from "@repo/components";
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import { useThemeStore } from "../../stores/themeStore";
 import { useGlobal } from "@pureadmin/utils";
 import { message } from "@repo/utils";

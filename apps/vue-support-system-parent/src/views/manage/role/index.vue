@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 import { defineAsyncComponent, nextTick, reactive, ref, computed } from "vue";
 
 import {
@@ -108,7 +108,7 @@ const contentRef = ref();
     />
     <RoleDialog ref="roleDialogRef" />
     <div class="role-wrapper">
-      <el-container>
+      <ScContainer>
         <!-- 统计面板 -->
         <div class="role-stats">
           <div class="stat-item">
@@ -148,52 +148,52 @@ const contentRef = ref();
             </div>
           </div>
         </div>
-        <el-header class="toolbar-section role-header">
+        <ScHeader class="toolbar-section role-header">
           <div class="toolbar-left left-panel">
-            <el-form
+            <ScForm
               ref="formRef"
               :inline="true"
               :model="form"
               class="modern-form search-form bg-bg_color pl-6 pt-[10px] overflow-auto"
             >
-              <el-form-item label="角色名称" prop="sysRoleName">
-                <el-input
+              <ScFormItem label="角色名称" prop="sysRoleName">
+                <ScInput
                   v-model="form.sysRoleName"
                   placeholder="请输入角色名称"
                   clearable
                   class="!w-[180px]"
                 />
-              </el-form-item>
-              <el-form-item label="角色编码" prop="SysRoleCode">
-                <el-input
+              </ScFormItem>
+              <ScFormItem label="角色编码" prop="SysRoleCode">
+                <ScInput
                   v-model="form.SysRoleCode"
                   placeholder="请输入角色编码"
                   clearable
                   class="!w-[180px]"
                 />
-              </el-form-item>
-            </el-form>
+              </ScFormItem>
+            </ScForm>
           </div>
           <div class="toolbar-right right-panel">
             <div class="right-panel-search">
-              <el-button
+              <ScButton
                 type="primary"
                 :icon="useRenderIcon('ri:search-line')"
                 :loading="loading.query"
                 @click="onSearch"
               />
-              <el-button
+              <ScButton
                 :icon="useRenderIcon('ep:refresh')"
                 @click="resetForm(formRef)"
               />
-              <el-button
+              <ScButton
                 :icon="useRenderIcon('ep:plus')"
                 @click="dialogOpen({}, 'save')"
               />
             </div>
           </div>
-        </el-header>
-        <el-main class="role-main">
+        </ScHeader>
+        <ScMain class="role-main">
           <div ref="contentRef" class="table-wrapper">
             <div :class="visible.role ? 'h-full !w-[380vw]' : 'h-full w-full'">
               <ScTable
@@ -203,14 +203,14 @@ const contentRef = ref();
                 class="modern-table"
                 @data-loaded="onDataLoaded"
               >
-                <el-table-column type="index" label="序号" width="120px">
+                <ScTableColumn type="index" label="序号" width="120px">
                   <template #default="scope">
-                    <el-tag type="primary" size="small">{{
+                    <ScTag type="primary" size="small">{{
                       scope.$index + 1
-                    }}</el-tag>
+                    }}</ScTag>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="角色信息"
                   prop="sysRoleName"
                   min-width="200"
@@ -233,7 +233,7 @@ const contentRef = ref();
                       <div class="role-details">
                         <div class="role-name">
                           <span>{{ row.sysRoleName }}</span>
-                          <el-tag
+                          <ScTag
                             v-if="row.sysRoleInSystem"
                             type="warning"
                             size="small"
@@ -245,31 +245,31 @@ const contentRef = ref();
                       </div>
                     </div>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="可看面板类型"
                   min-width="120"
                   align="center"
                 >
                   <template #default="{ row }">
-                    <el-tag type="info" effect="light">
+                    <ScTag type="info" effect="light">
                       {{ getBoardCardLabel(row.sysRoleBoardCard || 1) }}
-                    </el-tag>
+                    </ScTag>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="优先级"
                   prop="sysRoleSort"
                   width="80"
                   align="center"
                 >
                   <template #default="{ row }">
-                    <el-tag type="primary" effect="light" size="small">{{
+                    <ScTag type="primary" effect="light" size="small">{{
                       row.sysRoleSort
-                    }}</el-tag>
+                    }}</ScTag>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="备注"
                   prop="sysRoleRemark"
                   min-width="150"
@@ -281,15 +281,15 @@ const contentRef = ref();
                     }}</span>
                     <span v-else class="text-gray">-</span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="状态"
                   prop="sysRoleStatus"
                   width="100"
                   align="center"
                 >
                   <template #default="{ row }">
-                    <el-switch
+                    <ScSwitch
                       v-model="row.sysRoleStatus"
                       class="h-fit"
                       :active-value="1"
@@ -297,52 +297,52 @@ const contentRef = ref();
                       @change="fetchUpdateRole(row)"
                     />
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="操作"
                   fixed="right"
                   width="160"
                   align="center"
                 >
                   <template #default="{ row, $index }">
-                    <el-tooltip content="编辑" placement="top">
-                      <el-button
+                    <ScTooltip content="编辑" placement="top">
+                      <ScButton
                         class="btn-text"
                         type="primary"
                         link
                         @click="dialogOpen(row, 'edit')"
                       >
                         <IconifyIconOnline icon="ri:edit-line" />
-                      </el-button>
-                    </el-tooltip>
-                    <el-tooltip content="权限配置" placement="top">
-                      <el-button
+                      </ScButton>
+                    </ScTooltip>
+                    <ScTooltip content="权限配置" placement="top">
+                      <ScButton
                         class="btn-text"
                         type="success"
                         link
                         @click="handleOpenRole(row)"
                       >
                         <IconifyIconOnline icon="ri:settings-3-line" />
-                      </el-button>
-                    </el-tooltip>
-                    <el-popconfirm
+                      </ScButton>
+                    </ScTooltip>
+                    <ScPopconfirm
                       :title="$t('message.confimDelete')"
                       @confirm="onDelete(row, $index)"
                     >
                       <template #reference>
-                        <el-tooltip
+                        <ScTooltip
                           v-if="!row.sysRoleInSystem"
                           content="删除"
                           placement="top"
                         >
-                          <el-button class="btn-text" type="danger" link>
+                          <ScButton class="btn-text" type="danger" link>
                             <IconifyIconOnline icon="ri:delete-bin-line" />
-                          </el-button>
-                        </el-tooltip>
+                          </ScButton>
+                        </ScTooltip>
                       </template>
-                    </el-popconfirm>
+                    </ScPopconfirm>
                   </template>
-                </el-table-column>
+                </ScTableColumn>
               </ScTable>
             </div>
             <div
@@ -351,8 +351,8 @@ const contentRef = ref();
               style="margin: 0; margin-left: 10px; border: 1px solid #eee"
             />
           </div>
-        </el-main>
-      </el-container>
+        </ScMain>
+      </ScContainer>
     </div>
   </div>
 </template>

@@ -12,12 +12,12 @@
       <div class="overall-progress">
         <div class="progress-header">
           <h4>{{ progress.title || "正在同步仓库数据" }}</h4>
-          <el-tag :type="getStatusType(progress.status)" size="small">
+          <ScTag :type="getStatusType(progress.status)" size="small">
             {{ getStatusText(progress.status) }}
-          </el-tag>
+          </ScTag>
         </div>
 
-        <el-progress
+        <ScProgress
           :percentage="progress.percentage || 0"
           :status="getProgressStatus(progress.status)"
           :stroke-width="20"
@@ -43,8 +43,8 @@
         class="step-details"
       >
         <h5>同步步骤</h5>
-        <el-timeline>
-          <el-timeline-item
+        <ScTimeline>
+          <ScTimelineItem
             v-for="(step, index) in progress.steps"
             :key="index"
             :type="getStepType(step.status)"
@@ -58,7 +58,7 @@
                 {{ step.description }}
               </div>
               <div v-if="step.progress !== undefined" class="step-progress">
-                <el-progress
+                <ScProgress
                   :percentage="step.progress"
                   :show-text="false"
                   :stroke-width="6"
@@ -70,8 +70,8 @@
                 {{ step.error }}
               </div>
             </div>
-          </el-timeline-item>
-        </el-timeline>
+          </ScTimelineItem>
+        </ScTimeline>
       </div>
 
       <!-- 同步统计 -->
@@ -114,10 +114,10 @@
         <div class="logs-header">
           <h5>同步日志</h5>
           <div class="logs-actions">
-            <el-button size="small" @click="toggleLogDetails">
+            <ScButton size="small" @click="toggleLogDetails">
               {{ showLogDetails ? "隐藏" : "显示" }}详细日志
-            </el-button>
-            <el-button size="small" @click="clearLogs"> 清空日志 </el-button>
+            </ScButton>
+            <ScButton size="small" @click="clearLogs"> 清空日志 </ScButton>
           </div>
         </div>
 
@@ -137,13 +137,13 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button v-if="canCancel" @click="handleCancel"> 取消同步 </el-button>
-        <el-button v-if="isCompleted" type="primary" @click="handleClose">
+        <ScButton v-if="canCancel" @click="handleCancel"> 取消同步 </ScButton>
+        <ScButton v-if="isCompleted" type="primary" @click="handleClose">
           确定
-        </el-button>
-        <el-button v-if="isFailed" type="warning" @click="handleRetry">
+        </ScButton>
+        <ScButton v-if="isFailed" type="warning" @click="handleRetry">
           重试
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

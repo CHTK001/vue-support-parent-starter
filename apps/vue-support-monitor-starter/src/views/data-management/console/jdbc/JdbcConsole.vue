@@ -7,7 +7,7 @@
           <span>数据库结构</span>
         </div>
       </div>
-      <el-input
+      <ScInput
         v-model="keyword"
         placeholder="搜索表名、字段名..."
         size="default"
@@ -18,8 +18,8 @@
         <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </el-input>
-      <el-tree
+      </ScInput>
+      <ScTree
         ref="treeRef"
         :key="treeVersion"
         class="tree"
@@ -51,7 +51,7 @@
             }}</span>
           </span>
         </template>
-      </el-tree>
+      </ScTree>
     </div>
     <div
       class="splitter cursor-col-resize"
@@ -68,7 +68,7 @@
           >
         </div>
         <div class="toolbar">
-          <el-button
+          <ScButton
             v-if="showEditor"
             type="primary"
             size="small"
@@ -76,31 +76,31 @@
           >
             <IconifyIconOnline :icon="icons.execute" class="mr-1" />
             执行
-          </el-button>
-          <el-button v-if="showEditor" size="small" @click="formatSql">
+          </ScButton>
+          <ScButton v-if="showEditor" size="small" @click="formatSql">
             <IconifyIconOnline :icon="formatIcon" class="mr-1" />
             格式化
-          </el-button>
-          <el-button size="small" @click="onRefreshTree">
+          </ScButton>
+          <ScButton size="small" @click="onRefreshTree">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             :disabled="!currentPath"
             @click="openStructureTab"
           >
             <IconifyIconOnline :icon="icons.structure" class="mr-1" />
             结构
-          </el-button>
+          </ScButton>
           <el-button-group>
-            <el-button
+            <ScButton
               size="small"
               :type="showTableComment ? 'primary' : 'default'"
               :disabled="!searched"
               @click="showTableComment = !showTableComment"
               >表头注释</el-button
             >
-            <el-button
+            <ScButton
               size="small"
               :type="showFieldComments ? 'primary' : 'default'"
               :disabled="!searched"
@@ -108,7 +108,7 @@
               >字段注释</el-button
             >
           </el-button-group>
-          <el-button
+          <ScButton
             size="small"
             :disabled="!currentPath || !columns.length"
             @click="toggleAnalyze"
@@ -118,8 +118,8 @@
               class="mr-1"
             />
             {{ analyzing ? "退出分析" : "分析" }}
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             :type="paginationEnabled ? 'primary' : 'default'"
             @click="togglePagination"
@@ -131,7 +131,7 @@
               class="mr-1"
             />
             {{ paginationEnabled ? "分页" : "不分页" }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
       <div class="right-body">
@@ -143,22 +143,22 @@
           :options="{ mode: 'sql' }"
           :sqlHintTables="sqlHintTables"
         />
-        <el-tabs
+        <ScTabs
           v-model="activeTab"
           class="result-tabs"
           type="border-card"
           tab-position="top"
         >
-          <el-tab-pane name="result" class="!h-full" label="结果">
+          <ScTabPane name="result" class="!h-full" label="结果">
             <div v-if="columns.length" class="result">
-              <el-popover
+              <ScPopover
                 v-model:visible="columnFilterVisible"
                 trigger="click"
                 placement="bottom-end"
                 width="260"
               >
                 <template #reference>
-                  <el-button
+                  <ScButton
                     size="small"
                     text
                     @click.stop="columnFilterVisible = !columnFilterVisible"
@@ -168,37 +168,37 @@
                       class="mr-1"
                     />
                     筛选列
-                  </el-button>
+                  </ScButton>
                 </template>
                 <div class="col-filter">
                   <div class="ops">
-                    <el-link
+                    <ScLink
                       type="primary"
                       :underline="false"
                       @click="selectedColumnNames = [...columns]"
                       >全选</el-link
                     >
-                    <el-link
+                    <ScLink
                       type="danger"
                       :underline="false"
                       @click="selectedColumnNames = []"
                       >清空</el-link
                     >
                   </div>
-                  <el-scrollbar height="220px">
-                    <el-checkbox-group v-model="selectedColumnNames">
-                      <el-checkbox
+                  <ScScrollbar height="220px">
+                    <ScCheckboxGroup v-model="selectedColumnNames">
+                      <ScCheckbox
                         v-for="col in columns"
                         :key="col.name"
                         :label="col.name"
                         >{{ col.name }}</el-checkbox
                       >
-                    </el-checkbox-group>
-                  </el-scrollbar>
+                    </ScCheckboxGroup>
+                  </ScScrollbar>
                 </div>
-              </el-popover>
+              </ScPopover>
             </div>
-            <el-table
+            <ScTable
               v-if="columns.length"
               border
               :data="rows"
@@ -206,7 +206,7 @@
               height="580px"
               :row-class-name="rowClassName"
             >
-              <el-table-column
+              <ScTableColumn
                 v-for="col in visibleColumns"
                 :key="col"
                 :prop="col.name"
@@ -237,7 +237,7 @@
                         :key="b.value"
                         class="bar-wrap"
                       >
-                        <el-tooltip
+                        <ScTooltip
                           :content="barTooltip(col.name, b)"
                           placement="top"
                           :show-after="200"
@@ -247,7 +247,7 @@
                             :style="barStyle(col.name, b)"
                             @click.stop="toggleFilter(col.name, b.value)"
                           />
-                        </el-tooltip>
+                        </ScTooltip>
                       </div>
                     </div>
                   </div>
@@ -264,15 +264,15 @@
                     <div>{{ row[col.name] }}</div>
                   </div>
                 </template>
-              </el-table-column>
-            </el-table>
-            <el-empty v-else description="无结果" />
+              </ScTableColumn>
+            </ScTable>
+            <ScEmpty v-else description="无结果" />
             <!-- 分页组件 -->
             <div
               v-if="paginationEnabled && columns.length"
               class="pagination-wrapper"
             >
-              <el-pagination
+              <ScPagination
                 v-model:current-page="currentPage"
                 v-model:page-size="pageSize"
                 :page-sizes="[50, 100, 200, 500]"
@@ -282,8 +282,8 @@
                 @size-change="handleSizeChange"
               />
             </div>
-          </el-tab-pane>
-        </el-tabs>
+          </ScTabPane>
+        </ScTabs>
       </div>
       <div class="right-status">
         <span v-if="statusText">{{ statusText }}</span>

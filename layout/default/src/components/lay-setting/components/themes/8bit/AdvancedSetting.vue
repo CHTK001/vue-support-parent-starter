@@ -12,4 +12,3 @@ import BaseComponent from "../../base/AdvancedSetting.vue";
 // 8-bit 主题专属高级设置样式占位
 // 例如：html[data-skin="8bit"] { }
 </style>
-

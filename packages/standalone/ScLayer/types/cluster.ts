@@ -3,7 +3,7 @@ export interface AggregationOptions {
   // 聚合距离半径
   maxClusterRadius?: number;
   // 聚合半径单位: 'pixel' | 'kilometer'
-  radiusUnit?: 'pixel' | 'kilometer';
+  radiusUnit?: "pixel" | "kilometer";
   // 聚合点基本颜色
   color?: string;
   // 聚合点边框颜色

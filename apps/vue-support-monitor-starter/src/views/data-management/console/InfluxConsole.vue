@@ -2,7 +2,7 @@
   <div class="console system-container modern-bg" :style="gridStyle">
     <!-- 左侧：树 + 搜索 -->
     <div class="left overflow-auto thin-scrollbar" @contextmenu.prevent>
-      <el-input
+      <ScInput
         v-model="keyword"
         placeholder="搜索..."
         size="small"
@@ -12,8 +12,8 @@
         <template #append>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </el-input>
-      <el-tree
+      </ScInput>
+      <ScTree
         ref="treeRef"
         class="tree"
         :data="treeData"
@@ -32,7 +32,7 @@
             </span>
           </span>
         </template>
-      </el-tree>
+      </ScTree>
     </div>
 
     <!-- 中间：分隔条 -->
@@ -50,12 +50,12 @@
           <span class="ellipsis">{{ currentPath || "未选择" }}</span>
         </div>
         <div class="toolbar">
-          <el-button type="primary" size="small" @click="execute">
+          <ScButton type="primary" size="small" @click="execute">
             <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" /> 执行
-          </el-button>
-          <el-button size="small" @click="onRefreshTree">
+          </ScButton>
+          <ScButton size="small" @click="onRefreshTree">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -67,21 +67,21 @@
           :options="{ mode: 'flux' }"
         />
 
-        <el-table
+        <ScTable
           v-if="columns.length"
           border
           :data="rows"
           size="small"
           height="580px"
         >
-          <el-table-column
+          <ScTableColumn
             v-for="col in columns"
             :key="col"
             :prop="col"
             :label="col"
             :min-width="120"
           />
-        </el-table>
+        </ScTable>
         <div v-else class="empty-tip">无数据</div>
       </div>
 

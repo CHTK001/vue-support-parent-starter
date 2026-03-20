@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import ScEcharts from "@repo/components/ScEcharts/index.vue";
+import { ScEcharts } from "@repo/components"
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -126,7 +126,7 @@ const codeTabs = computed(() => [
     label: "脚本",
     icon: "ri:javascript-line",
     language: "ts",
-    code: `import ScEcharts from "@repo/components/ScEcharts/index.vue";
+    code: `import ScEcharts from "@repo/components";
 
 const chartOption = {
   xAxis: { type: "category", data: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"] },
@@ -144,7 +144,7 @@ function changeChartType(type: "line" | "bar") {
 function refreshData() {
   config.data = Array.from(
     { length: 7 },
-    () => Math.floor(Math.random() * 300) + 50
+    () => Math.floor(Math.random() * 300) + 50,
   );
 }
 </script>

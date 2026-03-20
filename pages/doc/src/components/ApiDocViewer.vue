@@ -3,7 +3,7 @@
     <!-- 顶部导航栏 -->
     <div class="doc-header" v-if="showHeader">
       <div class="header-left">
-        <ScButton 
+        <ScButton
           v-if="config.showBackButton"
           @click="$emit('back')"
           size="small"
@@ -38,7 +38,7 @@
           :base-url="baseUrl"
         />
         <!-- 历史记录 -->
-        <ScButton 
+        <ScButton
           v-if="config.showHistory"
           @click="historyDrawerVisible = true"
           size="small"
@@ -47,7 +47,7 @@
           历史
         </ScButton>
         <!-- Mock 配置 -->
-        <ScButton 
+        <ScButton
           v-if="config.showMock"
           @click="mockDrawerVisible = true"
           size="small"
@@ -56,7 +56,7 @@
           <i class="ri-database-2-line"></i>
           Mock
         </ScButton>
-        <ScButton 
+        <ScButton
           v-if="config.showRefreshButton"
           @click="$emit('refresh')"
           :loading="loading"
@@ -133,7 +133,7 @@
                 </span>
               </template>
             </ScTabPane>
-            <ScTabPane 
+            <ScTabPane
               v-if="config.showCodeExamples"
               label="代码示例"
               name="examples"
@@ -147,7 +147,7 @@
             </ScTabPane>
           </ScTabs>
           <div class="result-actions">
-            <ScButton 
+            <ScButton
               v-if="activeResultTab === 'result' && lastResponse"
               @click="handleCopyResponse"
               size="small"
@@ -222,7 +222,6 @@
 </template>
 
 <script setup lang="ts">
-
 import ScTabPane from "@repo/components/ScTabs";
 import { ref, reactive, watch, computed } from "vue";
 import type {
@@ -284,7 +283,7 @@ const props = withDefaults(
     }),
     headersStorageKey: "apiDocGlobalHeaders",
     nodes: () => [],
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -344,7 +343,7 @@ watch(
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 方法
@@ -371,13 +370,13 @@ const handleExecute = (options?: { timeout: number; retryCount: number }) => {
 // 节点切换
 const handleNodeChange = async (node: NodeInfo) => {
   currentNodeId.value = node.id;
-  
+
   // 加载节点特定的配置
   const nodeHeaders = await DocStorage.getNodeHeaders(node.id);
   if (nodeHeaders && Object.keys(nodeHeaders).length > 0) {
     internalGlobalHeaders.value = nodeHeaders;
   }
-  
+
   emit("node-change", node);
 };
 
@@ -432,7 +431,7 @@ const clearResponse = () => {
 // 设置响应数据（供外部调用）
 const setResponse = async (response: ApiResponse) => {
   lastResponse.value = response;
-  
+
   // 保存到历史记录
   if (selectedApi.value) {
     try {
@@ -631,7 +630,11 @@ $transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
       .sidebar-header {
         padding: 20px;
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+        background: linear-gradient(
+          135deg,
+          rgba(102, 126, 234, 0.08) 0%,
+          rgba(118, 75, 162, 0.08) 100%
+        );
         border-bottom: 1px solid rgba(102, 126, 234, 0.1);
       }
 
@@ -704,7 +707,11 @@ $transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         justify-content: space-between;
         align-items: center;
         padding: 12px 20px;
-        background: linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.9) 100%);
+        background: linear-gradient(
+          135deg,
+          rgba(248, 250, 252, 0.9) 0%,
+          rgba(241, 245, 249, 0.9) 100%
+        );
         border-bottom: 1px solid #e2e8f0;
 
         .result-tabs {

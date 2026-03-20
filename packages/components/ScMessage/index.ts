@@ -5,4 +5,3 @@ export const ScMessageComponent = withInstall(ScMessage);
 
 export { ScMessage };
 export default ScMessageComponent;
-

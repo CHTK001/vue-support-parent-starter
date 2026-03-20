@@ -12,7 +12,11 @@ import type { StorageConfig } from "../../../types/theme";
  * 设置状态类型
  */
 /** 可用的动画类型 */
-export type TransitionType = 'fade-slide' | 'fade-scale' | 'fade-only' | 'slide-right';
+export type TransitionType =
+  | "fade-slide"
+  | "fade-scale"
+  | "fade-only"
+  | "slide-right";
 
 export interface SettingsState {
   // 过渡动画
@@ -83,8 +87,17 @@ export interface SettingsState {
   fontEncryptionGlobal: boolean;
   fontEncryptionOcrNoise: boolean;
   // 主题切换动画配置
-  themeAnimationMode: 'random' | 'fixed' | 'disabled';
-  themeAnimationDirection: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center' | 'left' | 'right' | 'top' | 'bottom';
+  themeAnimationMode: "random" | "fixed" | "disabled";
+  themeAnimationDirection:
+    | "top-right"
+    | "top-left"
+    | "bottom-right"
+    | "bottom-left"
+    | "center"
+    | "left"
+    | "right"
+    | "top"
+    | "bottom";
 }
 
 /**
@@ -97,15 +110,14 @@ export function useSettings() {
   const settings = reactive<SettingsState>({
     // 菜单过渡动画优先从本地存储读取，其次从全局配置，最后默认关闭
     menuTransition:
-      $storage.configure?.menuTransition ??
-      getConfig().MenuTransition ??
-      false,
-    transitionType: $storage.configure?.transitionType ?? 'fade-slide',
+      $storage.configure?.menuTransition ?? getConfig().MenuTransition ?? false,
+    transitionType: $storage.configure?.transitionType ?? "fade-slide",
     // ... 其他默认值保持不变
     // 新增动画配置默认值
-    themeAnimationMode: $storage.configure?.themeAnimationMode ?? 'fixed',
-    themeAnimationDirection: $storage.configure?.themeAnimationDirection ?? 'top-right',
-    
+    themeAnimationMode: $storage.configure?.themeAnimationMode ?? "fixed",
+    themeAnimationDirection:
+      $storage.configure?.themeAnimationDirection ?? "top-right",
+
     contentMargin: $storage.configure?.contentMargin ?? 16,
     layoutRadius: $storage.configure?.layoutRadius ?? 10,
     layoutBlur: $storage.configure?.layoutBlur ?? 4,
@@ -135,14 +147,24 @@ export function useSettings() {
     doubleNavExpandMode: $storage.configure?.doubleNavExpandMode ?? "auto",
     doubleNavAutoExpandAll: $storage.configure?.doubleNavAutoExpandAll ?? true,
     aiChatTheme: $storage.configure?.aiChatTheme ?? "default",
-    aiChatEnabled: $storage.configure?.aiChatEnabled ?? getConfig().ShowAiChat ?? false,
+    aiChatEnabled:
+      $storage.configure?.aiChatEnabled ?? getConfig().ShowAiChat ?? false,
     aiChatPosition: $storage.configure?.aiChatPosition ?? "bottom-right",
     aiChatApiKey: $storage.configure?.aiChatApiKey ?? "",
-    enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? getConfig().EnableFestivalTheme ?? true,
-    showMessage: $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
-    messageDropdownPosition: $storage.configure?.messageDropdownPosition ?? "bottom-right",
-    messagePopupEnabled: $storage.configure?.messagePopupEnabled ?? getConfig().MessagePopupEnabled ?? true,
-    messagePopupPosition: $storage.configure?.messagePopupPosition ?? "top-right",
+    enableFestivalTheme:
+      $storage.configure?.enableFestivalTheme ??
+      getConfig().EnableFestivalTheme ??
+      true,
+    showMessage:
+      $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
+    messageDropdownPosition:
+      $storage.configure?.messageDropdownPosition ?? "bottom-right",
+    messagePopupEnabled:
+      $storage.configure?.messagePopupEnabled ??
+      getConfig().MessagePopupEnabled ??
+      true,
+    messagePopupPosition:
+      $storage.configure?.messagePopupPosition ?? "top-right",
     messagePopupDuration: $storage.configure?.messagePopupDuration ?? 5,
     // 字体加密默认开启，子项也默认开启，保证初始环境具有安全防护
     fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? true,
@@ -153,7 +175,7 @@ export function useSettings() {
   });
 
   // ===== 通用方法 =====
-  
+
   /**
    * 持久化配置到 storage
    */
@@ -183,7 +205,7 @@ export function useSettings() {
   }
 
   // ===== 布局参数设置 =====
-  
+
   function setContentMargin(value: number): void {
     settings.contentMargin = value;
     saveToStorage("contentMargin", value);
@@ -203,7 +225,7 @@ export function useSettings() {
   }
 
   // ===== 视觉效果设置 =====
-  
+
   function setGreyMode(value: boolean): void {
     settings.greyVal = value;
     toggleHtmlClass(value, "html-grey");
@@ -229,7 +251,7 @@ export function useSettings() {
   }
 
   // ===== 界面元素设置 =====
-  
+
   function setHideTabs(value: boolean): void {
     settings.tabsVal = value;
     saveToStorage("hideTabs", value);
@@ -273,7 +295,7 @@ export function useSettings() {
   }
 
   // ===== 高级功能设置 =====
-  
+
   function setKeepAlive(value: boolean): void {
     settings.keepAlive = value;
     saveToStorage("keepAlive", value);
@@ -299,7 +321,7 @@ export function useSettings() {
   }
 
   // ===== 菜单设置 =====
-  
+
   function setShowNewMenu(value: boolean): void {
     settings.showNewMenu = value;
     saveToStorage("showNewMenu", value);
@@ -331,7 +353,7 @@ export function useSettings() {
   }
 
   // ===== 消息弹窗设置 =====
-  
+
   function setMessagePopupEnabled(value: boolean): void {
     settings.messagePopupEnabled = value;
     saveToStorage("messagePopupEnabled", value);
@@ -351,7 +373,7 @@ export function useSettings() {
   }
 
   // ===== 字体加密设置 =====
-  
+
   function setFontEncryptionEnabled(value: boolean): void {
     settings.fontEncryptionEnabled = value;
     saveToStorage("fontEncryptionEnabled", value);
@@ -409,7 +431,7 @@ export function useSettings() {
   }
 
   // ===== 重置功能 =====
-  
+
   function resetToDefault(): void {
     // 重置所有设置到默认值
     setContentMargin(16);

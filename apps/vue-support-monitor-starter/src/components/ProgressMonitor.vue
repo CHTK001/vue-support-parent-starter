@@ -24,14 +24,14 @@
               <div class="operation-header">
                 <div class="operation-title">{{ operation.title }}</div>
                 <div class="operation-status">
-                  <el-tag :type="getStatusType(operation.status)" size="small">
+                  <ScTag :type="getStatusType(operation.status)" size="small">
                     {{ getStatusText(operation.status) }}
-                  </el-tag>
+                  </ScTag>
                 </div>
               </div>
 
               <div class="operation-progress">
-                <el-progress
+                <ScProgress
                   :percentage="operation.progress"
                   :status="getProgressStatus(operation.status)"
                   :stroke-width="6"
@@ -58,9 +58,9 @@
           <div class="section-title">
             <IconifyIconOnline icon="ri:notification-line" class="title-icon" />
             通知历史
-            <el-button size="small" text @click="clearAllNotifications">
+            <ScButton size="small" text @click="clearAllNotifications">
               清空
-            </el-button>
+            </ScButton>
           </div>
           <div v-if="notifications.length > 0" class="notifications-list">
             <div
@@ -129,7 +129,7 @@
             >{{ operation.progress.toFixed(0) }}%</span
           >
         </div>
-        <el-progress
+        <ScProgress
           :percentage="operation.progress"
           :status="getProgressStatus(operation.status)"
           :stroke-width="3"

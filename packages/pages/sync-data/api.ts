@@ -76,53 +76,80 @@ export const fetchUpdateSyncTask = (params: SyncTask) => {
  * 删除任务
  */
 export const fetchDeleteSyncTask = (taskId: number) => {
-  return http.request<ReturnResult<boolean>>("delete", `/v1/sync/task/delete/${taskId}`);
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    `/v1/sync/task/delete/${taskId}`,
+  );
 };
 
 /**
  * 启动任务
  */
 export const fetchStartSyncTask = (taskId: number) => {
-  return http.request<ReturnResult<boolean>>("post", `/v1/sync/task/start/${taskId}`);
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    `/v1/sync/task/start/${taskId}`,
+  );
 };
 
 /**
  * 停止任务
  */
 export const fetchStopSyncTask = (taskId: number) => {
-  return http.request<ReturnResult<boolean>>("post", `/v1/sync/task/stop/${taskId}`);
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    `/v1/sync/task/stop/${taskId}`,
+  );
 };
 
 /**
  * 手动执行一次
  */
 export const fetchExecuteSyncTask = (taskId: number) => {
-  return http.request<ReturnResult<number>>("post", `/v1/sync/task/execute/${taskId}`);
+  return http.request<ReturnResult<number>>(
+    "post",
+    `/v1/sync/task/execute/${taskId}`,
+  );
 };
 
 /**
  * 获取任务执行日志
  */
-export const fetchSyncTaskLogs = (taskId: number, page: number = 1, size: number = 10) => {
-  return http.request<ReturnResult<any>>("get", `/v1/sync/task/logs/${taskId}`, {
-    params: { page, size },
-  });
+export const fetchSyncTaskLogs = (
+  taskId: number,
+  page: number = 1,
+  size: number = 10,
+) => {
+  return http.request<ReturnResult<any>>(
+    "get",
+    `/v1/sync/task/logs/${taskId}`,
+    {
+      params: { page, size },
+    },
+  );
 };
 
 /**
  * 获取日志详情
  */
 export const fetchSyncTaskLogDetail = (logId: number) => {
-  return http.request<ReturnResult<SyncTaskLog>>("get", `/v1/sync/task/log/${logId}`);
+  return http.request<ReturnResult<SyncTaskLog>>(
+    "get",
+    `/v1/sync/task/log/${logId}`,
+  );
 };
 
 /**
  * 复制任务
  */
 export const fetchCopySyncTask = (taskId: number, newName: string) => {
-  return http.request<ReturnResult<SyncTask>>("post", `/v1/sync/task/copy/${taskId}`, {
-    params: { newName },
-  });
+  return http.request<ReturnResult<SyncTask>>(
+    "post",
+    `/v1/sync/task/copy/${taskId}`,
+    {
+      params: { newName },
+    },
+  );
 };
 
 /**
@@ -147,11 +174,15 @@ export const fetchSyncTaskStatisticsById = (
     startTime?: string;
     endTime?: string;
     granularity?: string;
-  }
+  },
 ) => {
-  return http.request<ReturnResult<any>>("get", `/v1/sync/task/statistics/${taskId}`, {
-    params,
-  });
+  return http.request<ReturnResult<any>>(
+    "get",
+    `/v1/sync/task/statistics/${taskId}`,
+    {
+      params,
+    },
+  );
 };
 
 /**
@@ -204,16 +235,23 @@ export interface SyncTaskDesign {
  * 获取任务设计数据
  */
 export const fetchGetTaskDesign = (taskId: number) => {
-  return http.request<ReturnResult<SyncTaskDesign>>("get", `/v1/sync/task/design/${taskId}`);
+  return http.request<ReturnResult<SyncTaskDesign>>(
+    "get",
+    `/v1/sync/task/design/${taskId}`,
+  );
 };
 
 /**
  * 保存任务设计数据
  */
 export const fetchSaveTaskDesign = (taskId: number, design: SyncTaskDesign) => {
-  return http.request<ReturnResult<boolean>>("post", `/v1/sync/task/design/${taskId}`, {
-    data: design,
-  });
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    `/v1/sync/task/design/${taskId}`,
+    {
+      data: design,
+    },
+  );
 };
 
 /**
@@ -224,4 +262,3 @@ export const fetchValidateTaskDesign = (design: SyncTaskDesign) => {
     data: design,
   });
 };
-

@@ -17,25 +17,25 @@
     @copy-code="handleCopyCode"
   >
     <template #title-extra>
-      <el-tag
+      <ScTag
         size="small"
         :type="nodeInfo.status === 'ONLINE' ? 'success' : 'danger'"
       >
         {{ nodeInfo.status === "ONLINE" ? "在线" : "离线" }}
-      </el-tag>
+      </ScTag>
     </template>
 
     <template #sidebar-header>
       <!-- 节点地址切换 -->
       <div v-if="sameNameNodes.length > 1" class="node-selector">
         <label class="selector-label">节点地址:</label>
-        <el-select
+        <ScSelect
           v-model="currentNodeAddress"
           size="small"
           style="width: 100%"
           @change="switchNode"
         >
-          <el-option
+          <ScOption
             v-for="node in sameNameNodes"
             :key="node.address"
             :label="`${node.address} (${node.status})`"
@@ -43,15 +43,15 @@
           >
             <div class="node-option">
               <span class="node-address">{{ node.address }}</span>
-              <el-tag
+              <ScTag
                 :type="node.status === 'ONLINE' ? 'success' : 'danger'"
                 size="small"
               >
                 {{ node.status === "ONLINE" ? "在线" : "离线" }}
-              </el-tag>
+              </ScTag>
             </div>
-          </el-option>
-        </el-select>
+          </ScOption>
+        </ScSelect>
       </div>
     </template>
   </ApiDocViewer>

@@ -11,7 +11,7 @@
     <!-- 空状态 -->
     <template v-if="!currentDataList || currentDataList.length === 0">
       <slot name="empty">
-        <el-empty :description="emptyText" :image-size="100" />
+        <ScEmpty :description="emptyText" :image-size="100" />
       </slot>
     </template>
 
@@ -19,14 +19,7 @@
     <template v-else>
       <!-- 经典瀑布流/虚拟滚动模式 -->
       <div v-if="layoutMode === 'waterfall'" class="waterfall-scroll-container" :style="{ height: `${totalHeight}px`, position: 'relative' }">
-        <div
-          v-for="item in visibleItems"
-          :key="item.key"
-          class="waterfall-item"
-          :style="item.style"
-          @contextmenu="handleContextMenu($event, item.data)"
-          @click="onRowClick(item.data)"
-        >
+        <div v-for="item in visibleItems" :key="item.key" class="waterfall-item" :style="item.style" @contextmenu="handleContextMenu($event, item.data)" @click="onRowClick(item.data)">
           <div v-if="showIndex" class="waterfall-index-badge">{{ item.index + 1 }}</div>
           <slot :row="item.data" :index="item.index" />
         </div>
@@ -49,13 +42,7 @@
 
       <!-- CSS Masonry 模式 -->
       <div v-else class="waterfall-masonry-container" :style="masonryContainerStyle">
-        <div
-          v-for="(row, index) in currentDataList"
-          :key="rowKey ? row[rowKey] : index"
-          class="waterfall-masonry-item"
-          @contextmenu="handleContextMenu($event, row)"
-          @click="onRowClick(row)"
-        >
+        <div v-for="(row, index) in currentDataList" :key="rowKey ? row[rowKey] : index" class="waterfall-masonry-item" @contextmenu="handleContextMenu($event, row)" @click="onRowClick(row)">
           <div v-if="showIndex" class="waterfall-index-badge">{{ index + 1 }}</div>
           <slot :row="row" :index="index" />
         </div>
@@ -64,14 +51,14 @@
 
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-overlay">
-      <el-icon class="is-loading">
+      <ScIcon class="is-loading">
         <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
           <path
             fill="currentColor"
             d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z"
           />
         </svg>
-      </el-icon>
+      </ScIcon>
       <span>加载中...</span>
     </div>
 
@@ -86,13 +73,7 @@
     </div>
 
     <!-- 右键菜单 -->
-    <ContextMenu
-      ref="contextMenuRef"
-      :menu-items="menuItems"
-      :row-data="currentRowData"
-      :class-name="config.contextmenuClass"
-      @menu-action="handleMenuAction"
-    />
+    <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
   </div>
 </template>
 
@@ -236,7 +217,7 @@ const props = defineProps({
   theme: {
     type: String,
     default: "default",
-    validator: (val) => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
+    validator: val => ["default", "primary", "success", "warning", "danger", "info"].includes(val)
   }
 });
 
@@ -316,11 +297,11 @@ const hasMoreData = computed(() => {
  * Flex 布局容器样式
  */
 const flexContainerStyle = computed(() => ({
-  display: 'flex',
-  flexWrap: 'wrap',
+  display: "flex",
+  flexWrap: "wrap",
   gap: `${props.gap}px`,
-  alignItems: 'flex-start',
-  alignContent: 'flex-start'
+  alignItems: "flex-start",
+  alignContent: "flex-start"
 }));
 
 /**
@@ -328,7 +309,7 @@ const flexContainerStyle = computed(() => ({
  */
 const flexItemStyle = computed(() => ({
   flex: `1 1 ${props.cardMinWidth}px`,
-  maxWidth: `calc(${100 / props.colSize}% - ${props.gap * (props.colSize - 1) / props.colSize}px)`,
+  maxWidth: `calc(${100 / props.colSize}% - ${(props.gap * (props.colSize - 1)) / props.colSize}px)`,
   minWidth: `${props.cardMinWidth}px`
 }));
 
@@ -349,7 +330,7 @@ const visibleItems = computed(() => {
 
   const viewportTop = scrollTop.value;
   const viewportBottom = viewportTop + containerHeight.value;
-  
+
   // 缓冲区高度
   const bufferHeight = props.estimatedItemHeight * props.bufferSize;
   const renderTop = Math.max(0, viewportTop - bufferHeight);
@@ -397,14 +378,14 @@ const initColumnHeights = () => {
 const getShortestColumnIndex = () => {
   let minHeight = Infinity;
   let minIndex = 0;
-  
+
   for (let i = 0; i < columnHeights.value.length; i++) {
     if (columnHeights.value[i] < minHeight) {
       minHeight = columnHeights.value[i];
       minIndex = i;
     }
   }
-  
+
   return minIndex;
 };
 
@@ -420,14 +401,14 @@ const calculatePositions = () => {
   for (let i = 0; i < currentDataList.value.length; i++) {
     // 找到最短的列
     const columnIndex = getShortestColumnIndex();
-    
+
     // 计算位置
     const left = props.gap + columnIndex * (columnWidth.value + props.gap);
     const top = columnHeights.value[columnIndex] + props.gap;
-    
+
     // 使用预估高度（实际高度会在渲染后更新）
     const height = props.estimatedItemHeight;
-    
+
     itemPositions.value.push({
       left,
       top,
@@ -446,7 +427,7 @@ const calculatePositions = () => {
  */
 const updateItemHeight = (index, actualHeight) => {
   if (!itemPositions.value[index]) return;
-  
+
   const oldHeight = itemPositions.value[index].height;
   if (oldHeight === actualHeight) return;
 
@@ -480,10 +461,10 @@ const handleScroll = throttle(() => {
  */
 const updateContainerSize = () => {
   if (!waterfallContainer.value) return;
-  
+
   containerWidth.value = waterfallContainer.value.clientWidth;
   containerHeight.value = waterfallContainer.value.clientHeight;
-  
+
   // 重新计算位置
   nextTick(() => {
     calculatePositions();
@@ -566,7 +547,7 @@ const scrollToTop = () => {
  */
 const scrollToItem = index => {
   if (!itemPositions.value[index] || !waterfallContainer.value) return;
-  
+
   const pos = itemPositions.value[index];
   waterfallContainer.value.scrollTop = pos.top - props.gap;
 };
@@ -617,7 +598,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", updateContainerSize);
-  
+
   if (loadMoreObserver) {
     loadMoreObserver.disconnect();
   }

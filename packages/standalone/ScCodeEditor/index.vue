@@ -21,36 +21,36 @@ export default {
   props: {
     modelValue: {
       type: String,
-      default: ""
+      default: "",
     },
     mode: {
       type: String,
-      default: "sql"
+      default: "sql",
     },
     onInput: {
       type: Function,
-      default: () => {}
+      default: () => {},
     },
     onCursorActivity: {
       type: Function,
-      default: () => {}
+      default: () => {},
     },
     height: {
       type: [String, Number],
-      default: 300
+      default: 300,
     },
     options: {
       type: Object,
-      default: () => ({})
+      default: () => ({}),
     },
     theme: {
       type: String,
-      default: "idea"
+      default: "idea",
     },
     readOnly: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   data() {
     return {
@@ -69,14 +69,14 @@ export default {
         indentWithTabs: true,
         mode: this.mode,
         readOnly: this.readOnly,
-        ...this.options
-      }
+        ...this.options,
+      },
     };
   },
   computed: {
     _height() {
       return Number(this.height) ? `${Number(this.height)}px` : this.height;
-    }
+    },
   },
   watch: {
     modelValue(val) {
@@ -84,7 +84,7 @@ export default {
       if (this.coder && val !== this.coder.getValue()) {
         this.coder.setValue(val);
       }
-    }
+    },
   },
   mounted() {
     this.init();
@@ -100,12 +100,14 @@ export default {
     upgradeHits(hits) {
       if (!this.coder) return;
       this.coder.setOption("hintOptions", {
-        tables: hits
+        tables: hits,
       });
     },
     init() {
-      this.coder = markRaw(CodeMirror.fromTextArea(this.$refs.textarea, this.opt));
-      this.coder.on("change", coder => {
+      this.coder = markRaw(
+        CodeMirror.fromTextArea(this.$refs.textarea, this.opt),
+      );
+      this.coder.on("change", (coder) => {
         this.contentValue = coder.getValue();
         this.$emit("update:modelValue", this.contentValue);
         this.$emit("updateValue", this.contentValue);
@@ -129,13 +131,13 @@ export default {
 
       this.coder.setOption("hintOptions", {
         completeSingle: this.options?.completeSingle,
-        tables: this.options?.tables
+        tables: this.options?.tables,
       });
     },
     formatStrInJson(strValue) {
       return JSON.stringify(JSON.parse(strValue), null, 4);
-    }
-  }
+    },
+  },
 };
 </script>
 

@@ -13,31 +13,31 @@
           <IconifyIconOnline icon="ri:information-line" class="mr-2" />
           基本信息
         </h4>
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="变更时间">
+        <ScDescriptions :column="2" border>
+          <ScDescriptionsItem label="变更时间">
             <div class="time-info">
               <IconifyIconOnline icon="ri:time-line" class="mr-1" />
               {{ formatTime(historyData.changeTime) }}
             </div>
-          </el-descriptions-item>
-          <el-descriptions-item label="变更类型">
-            <el-tag
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="变更类型">
+            <ScTag
               :type="ChangeTypeColors[historyData.changeType]"
               size="small"
             >
               {{ ChangeTypeNames[historyData.changeType] }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="变更用户">
+            </ScTag>
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="变更用户">
             <div class="user-info">
               <IconifyIconOnline icon="ri:user-line" class="mr-1" />
               {{ historyData.changeUser || "系统" }}
             </div>
-          </el-descriptions-item>
-          <el-descriptions-item label="变更描述">
+          </ScDescriptionsItem>
+          <ScDescriptionsItem label="变更描述">
             {{ historyData.changeDescription }}
-          </el-descriptions-item>
-        </el-descriptions>
+          </ScDescriptionsItem>
+        </ScDescriptions>
       </div>
 
       <!-- 配置快照 -->
@@ -45,7 +45,7 @@
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:camera-line" class="mr-2" />
           配置快照
-          <el-button
+          <ScButton
             type="primary"
             text
             size="small"
@@ -54,13 +54,13 @@
           >
             <IconifyIconOnline icon="ri:file-copy-line" class="mr-1" />
             复制
-          </el-button>
+          </ScButton>
         </h4>
         <div class="config-snapshot">
-          <el-tabs v-model="activeTab" type="card">
-            <el-tab-pane label="格式化视图" name="formatted">
+          <ScTabs v-model="activeTab" type="card">
+            <ScTabPane label="格式化视图" name="formatted">
               <div class="formatted-config">
-                <el-tree
+                <ScTree
                   :data="formattedConfig"
                   :props="treeProps"
                   default-expand-all
@@ -74,15 +74,15 @@
                       </span>
                     </div>
                   </template>
-                </el-tree>
+                </ScTree>
               </div>
-            </el-tab-pane>
-            <el-tab-pane label="JSON视图" name="json">
+            </ScTabPane>
+            <ScTabPane label="JSON视图" name="json">
               <div class="json-config">
                 <pre><code>{{ formattedJson }}</code></pre>
               </div>
-            </el-tab-pane>
-          </el-tabs>
+            </ScTabPane>
+          </ScTabs>
         </div>
       </div>
 
@@ -96,38 +96,38 @@
           变更字段
         </h4>
         <div class="changed-fields">
-          <el-table :data="changedFields" stripe>
-            <el-table-column prop="field" label="字段名" width="200" />
-            <el-table-column prop="oldValue" label="原值">
+          <ScTable :data="changedFields" stripe>
+            <ScTableColumn prop="field" label="字段名" width="200" />
+            <ScTableColumn prop="oldValue" label="原值">
               <template #default="{ row }">
                 <div class="value-cell old-value">
                   {{ formatValue(row.oldValue) }}
                 </div>
               </template>
-            </el-table-column>
-            <el-table-column prop="newValue" label="新值">
+            </ScTableColumn>
+            <ScTableColumn prop="newValue" label="新值">
               <template #default="{ row }">
                 <div class="value-cell new-value">
                   {{ formatValue(row.newValue) }}
                 </div>
               </template>
-            </el-table-column>
-          </el-table>
+            </ScTableColumn>
+          </ScTable>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button
+        <ScButton @click="handleClose">关闭</ScButton>
+        <ScButton
           v-if="historyData?.settingSnapshot"
           type="warning"
           @click="handleRestore"
         >
           <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
           恢复此配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

@@ -43,7 +43,7 @@
           </ScCol>
           <ScCol :span="8">
             <ScFormItem label="滚动速度">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.step"
                 :min="1"
                 :max="10"

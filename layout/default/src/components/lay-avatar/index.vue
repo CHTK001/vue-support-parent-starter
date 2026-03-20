@@ -21,6 +21,7 @@ const themeClass = computed(() => {
   <div class="lay-avatar" :class="themeClass">
     <img :src="src" :alt="alt" :style="style" class="lay-avatar-img" />
     <!-- 节日装饰层 -->
+<<<<<<< HEAD
     <div v-if="themeClass === 'halloween'" class="avatar-decoration halloween-decoration">
       <!-- 南瓜帽 -->
       <div class="pumpkin-hat"></div>
@@ -45,6 +46,16 @@ const themeClass = computed(() => {
       <!-- 雪花边框 -->
       <div class="snowflake-border"></div>
     </div>
+=======
+    <div
+      v-if="themeClass === 'halloween'"
+      class="avatar-decoration halloween-decoration"
+    ></div>
+    <div
+      v-else-if="themeClass === 'spring-festival'"
+      class="avatar-decoration spring-decoration"
+    ></div>
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   </div>
 </template>
 
@@ -54,7 +65,7 @@ const themeClass = computed(() => {
   display: inline-block;
   width: 100%;
   height: 100%;
-  
+
   .lay-avatar-img {
     width: 100%;
     height: 100%;
@@ -153,6 +164,7 @@ const themeClass = computed(() => {
   }
 }
 
+<<<<<<< HEAD
 @keyframes bat-fly {
   0%, 100% {
     transform: translateY(0) rotate(0deg);
@@ -478,6 +490,14 @@ const themeClass = computed(() => {
   }
   50% {
     opacity: 1;
+=======
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   }
 }
 </style>

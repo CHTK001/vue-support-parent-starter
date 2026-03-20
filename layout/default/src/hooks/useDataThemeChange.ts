@@ -1,7 +1,14 @@
 import { darken, lighten } from "@pureadmin/theme/dist/browser-utils";
 import { useGlobal } from "@pureadmin/utils";
 import { defaultRouterArrays, getConfig } from "@repo/config";
-import { removeToken, resetRouter, router, useAppStoreHook, useEpThemeStoreHook, useMultiTagsStoreHook } from "@repo/core";
+import {
+  removeToken,
+  resetRouter,
+  router,
+  useAppStoreHook,
+  useEpThemeStoreHook,
+  useMultiTagsStoreHook,
+} from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
 import { ref } from "vue";
 import type { themeColorsType } from "../types";
@@ -10,30 +17,64 @@ import { useLayout } from "./useLayout";
 
 export function useDataThemeChange() {
   const { layoutTheme, layout } = useLayout();
-  
+
   // 提取 store 到函数顶层避免重复调用
   const epThemeStore = useEpThemeStoreHook();
   const multiTagsStore = useMultiTagsStoreHook();
-  
+
   const themeColors = ref<Array<themeColorsType>>([
     /* 亮白色 */
+<<<<<<< HEAD
     { color: "#ffffff", themeColor: "light", description: "清新明亮的白色主题" },
     /* 蓝色 */
     { color: "#1677ff", themeColor: "default", description: "经典蓝色主题" },
+=======
+    {
+      color: "#ffffff",
+      themeColor: "light",
+      description: "清新明亮的白色主题",
+    },
+    /* 道奇蓝 */
+    {
+      color: "#1b2a47",
+      themeColor: "default",
+      description: "专业稳重的深蓝主题",
+    },
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     /* 深紫罗兰色 */
-    { color: "#722ed1", themeColor: "saucePurple", description: "神秘优雅的紫色主题" },
+    {
+      color: "#722ed1",
+      themeColor: "saucePurple",
+      description: "神秘优雅的紫色主题",
+    },
     /* 深粉色 */
     { color: "#eb2f96", themeColor: "pink", description: "活力四射的粉色主题" },
     /* 猩红色 */
     { color: "#f5222d", themeColor: "dusk", description: "热情洋溢的红色主题" },
     /* 橙红色 */
-    { color: "#fa541c", themeColor: "volcano", description: "温暖活力的橙色主题" },
+    {
+      color: "#fa541c",
+      themeColor: "volcano",
+      description: "温暖活力的橙色主题",
+    },
     /* 绿宝石 */
-    { color: "#13c2c2", themeColor: "mingQing", description: "清新自然的青色主题" },
+    {
+      color: "#13c2c2",
+      themeColor: "mingQing",
+      description: "清新自然的青色主题",
+    },
     /* 酸橙绿 */
-    { color: "#52c41a", themeColor: "auroraGreen", description: "生机勃勃的绿色主题" },
+    {
+      color: "#52c41a",
+      themeColor: "auroraGreen",
+      description: "生机勃勃的绿色主题",
+    },
     /**紫色 */
-    { color: "#4e69fd", themeColor: "#4e69fd", description: "梦幻迷人的紫色主题" },
+    {
+      color: "#4e69fd",
+      themeColor: "#4e69fd",
+      description: "梦幻迷人的紫色主题",
+    },
   ]);
   const { $storage } = useGlobal<GlobalPropertiesApi>();
 
@@ -41,7 +82,9 @@ export function useDataThemeChange() {
   let initialDarkMode: boolean | undefined;
   let initialOverallStyle: string | undefined;
   try {
-    const layoutConfig = JSON.parse(localStorage.getItem("layout") || "{}") as Partial<StorageLayout>;
+    const layoutConfig = JSON.parse(
+      localStorage.getItem("layout") || "{}",
+    ) as Partial<StorageLayout>;
     initialDarkMode = layoutConfig.darkMode;
     initialOverallStyle = layoutConfig.overallStyle as string | undefined;
   } catch {
@@ -49,10 +92,13 @@ export function useDataThemeChange() {
   }
 
   const dataTheme = ref<boolean>(
-    typeof initialDarkMode === "boolean" ? initialDarkMode : $storage?.layout?.darkMode,
+    typeof initialDarkMode === "boolean"
+      ? initialDarkMode
+      : $storage?.layout?.darkMode,
   );
   const overallStyle = ref<string>(
-    initialOverallStyle ?? ($storage?.layout?.overallStyle as string | undefined),
+    initialOverallStyle ??
+      ($storage?.layout?.overallStyle as string | undefined),
   );
 
   const body = document.documentElement as HTMLElement;
@@ -65,7 +111,10 @@ export function useDataThemeChange() {
   }
 
   /** 设置导航主题色 */
-  async function setLayoutThemeColor(theme = getConfig().Theme ?? "light", isClick = true) {
+  async function setLayoutThemeColor(
+    theme = getConfig().Theme ?? "light",
+    isClick = true,
+  ) {
     layoutTheme.value.theme = theme;
     document.documentElement.setAttribute("data-theme", theme);
 
@@ -112,7 +161,10 @@ export function useDataThemeChange() {
   }
 
   function setPropertyPrimary(mode: string, i: number, color: string) {
-    document.documentElement.style.setProperty(`--el-color-primary-${mode}-${i}`, dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10));
+    document.documentElement.style.setProperty(
+      `--el-color-primary-${mode}-${i}`,
+      dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10),
+    );
   }
 
   /** 设置 `element-plus` 主题色 - 优化性能 */
@@ -130,10 +182,16 @@ export function useDataThemeChange() {
 
     // 预计算dark和light变体
     for (let i = 1; i <= 2; i++) {
-      cssProperties.set(`--el-color-primary-dark-${i}`, dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10));
+      cssProperties.set(
+        `--el-color-primary-dark-${i}`,
+        dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10),
+      );
     }
     for (let i = 1; i <= 9; i++) {
-      cssProperties.set(`--el-color-primary-light-${i}`, dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10));
+      cssProperties.set(
+        `--el-color-primary-light-${i}`,
+        dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10),
+      );
     }
 
     // 批量设置所有CSS变量，减少DOM操作
@@ -198,7 +256,15 @@ export function useDataThemeChange() {
   function onReset() {
     removeToken();
     localStorageProxy().clear();
-    const { Grey, Weak, Invert, Monochrome, MultiTagsCache, EpThemeColor, Layout } = getConfig();
+    const {
+      Grey,
+      Weak,
+      Invert,
+      Monochrome,
+      MultiTagsCache,
+      EpThemeColor,
+      Layout,
+    } = getConfig();
     useAppStoreHook().setLayout(Layout);
     setEpThemeColor(EpThemeColor);
     multiTagsStore.multiTagsCacheChange(MultiTagsCache);

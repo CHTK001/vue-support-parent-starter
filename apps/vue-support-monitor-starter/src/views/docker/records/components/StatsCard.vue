@@ -8,20 +8,20 @@
         :class="stat.type"
       >
         <div class="stat-icon">
-          <el-icon :size="24">
+          <ScIcon :size="24">
             <component :is="stat.icon" />
-          </el-icon>
+          </ScIcon>
         </div>
 
         <div class="stat-content">
           <div class="stat-value">
             {{ formatValue(stat.value, stat.format) }}
             <span v-if="stat.trend" class="stat-trend" :class="stat.trend.type">
-              <el-icon :size="12">
+              <ScIcon :size="12">
                 <component
                   :is="stat.trend.type === 'up' ? 'ArrowUp' : 'ArrowDown'"
                 />
-              </el-icon>
+              </ScIcon>
               {{ stat.trend.value }}
             </span>
           </div>
@@ -44,8 +44,8 @@
 
     <!-- 详细统计信息 -->
     <div v-if="showDetails" class="stats-details">
-      <el-collapse v-model="activeCollapse">
-        <el-collapse-item title="软件分布" name="software">
+      <ScCollapse v-model="activeCollapse">
+        <ScCollapseItem title="软件分布" name="software">
           <div class="detail-section">
             <div class="detail-grid">
               <div class="detail-item">
@@ -72,9 +72,9 @@
               </div>
             </div>
           </div>
-        </el-collapse-item>
+        </ScCollapseItem>
 
-        <el-collapse-item title="容器状态" name="containers">
+        <ScCollapseItem title="容器状态" name="containers">
           <div class="detail-section">
             <div class="detail-grid">
               <div class="detail-item">
@@ -103,9 +103,9 @@
               </div>
             </div>
           </div>
-        </el-collapse-item>
+        </ScCollapseItem>
 
-        <el-collapse-item title="资源使用" name="resources">
+        <ScCollapseItem title="资源使用" name="resources">
           <div class="detail-section">
             <div class="resource-item">
               <div class="resource-header">
@@ -114,7 +114,7 @@
                   >{{ (details.avgCpuUsage || 0).toFixed(1) }}%</span
                 >
               </div>
-              <el-progress
+              <ScProgress
                 :percentage="details.avgCpuUsage || 0"
                 :stroke-width="8"
                 :show-text="false"
@@ -128,7 +128,7 @@
                   >{{ (details.avgMemoryUsage || 0).toFixed(1) }}%</span
                 >
               </div>
-              <el-progress
+              <ScProgress
                 :percentage="details.avgMemoryUsage || 0"
                 :stroke-width="8"
                 :show-text="false"
@@ -143,7 +143,7 @@
                   >{{ (details.avgDiskUsage || 0).toFixed(1) }}%</span
                 >
               </div>
-              <el-progress
+              <ScProgress
                 :percentage="details.avgDiskUsage || 0"
                 :stroke-width="8"
                 :show-text="false"
@@ -151,17 +151,17 @@
               />
             </div>
           </div>
-        </el-collapse-item>
-      </el-collapse>
+        </ScCollapseItem>
+      </ScCollapse>
     </div>
 
     <div v-if="showToggle" class="stats-footer">
-      <el-button size="small" text @click="showDetails = !showDetails">
+      <ScButton size="small" text @click="showDetails = !showDetails">
         {{ showDetails ? "收起详情" : "查看详情" }}
-        <el-icon>
+        <ScIcon>
           <component :is="showDetails ? 'ArrowUp' : 'ArrowDown'" />
-        </el-icon>
-      </el-button>
+        </ScIcon>
+      </ScButton>
     </div>
   </div>
 </template>

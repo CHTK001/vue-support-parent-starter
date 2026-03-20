@@ -15,7 +15,7 @@ import type { Component } from "vue";
  * @param themeComponents 主题组件映射表
  * @param defaultComponent 默认组件
  * @returns 当前主题和对应组件
- * 
+ *
  * @example
  * ```ts
  * const themeComponents = {
@@ -27,7 +27,7 @@ import type { Component } from "vue";
  */
 export function useThemeComponent<T extends Component>(
   themeComponents: ThemeComponentMap<T>,
-  defaultComponent: T
+  defaultComponent: T,
 ) {
   const themeStore = useThemeStore();
   const { currentTheme } = storeToRefs(themeStore);

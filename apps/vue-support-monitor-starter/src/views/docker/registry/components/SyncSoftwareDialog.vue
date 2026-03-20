@@ -8,18 +8,18 @@
   >
     <div class="sync-content">
       <!-- 同步配置 -->
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
+      <ScForm ref="formRef" :model="form" :rules="rules" label-width="120px">
         <div class="form-section">
           <div class="section-title">同步配置</div>
 
-          <el-form-item label="镜像仓库" prop="registryIds">
-            <el-select
+          <ScFormItem label="镜像仓库" prop="registryIds">
+            <ScSelect
               v-model="form.registryIds"
               placeholder="选择要同步的镜像仓库"
               multiple
               style="width: 100%"
             >
-              <el-option
+              <ScOption
                 v-for="registry in registryOptions"
                 :key="registry.systemSoftRegistryId"
                 :label="registry.systemSoftRegistryName"
@@ -35,33 +35,33 @@
                     }})</span
                   >
                 </div>
-              </el-option>
-            </el-select>
+              </ScOption>
+            </ScSelect>
             <div class="form-tip">
               选择要同步软件信息的镜像仓库，可以选择多个
             </div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="同步类型">
-            <el-radio-group v-model="form.syncType">
-              <el-radio label="popular">热门软件</el-radio>
-              <el-radio label="official">官方镜像</el-radio>
-              <el-radio label="custom">自定义搜索</el-radio>
-            </el-radio-group>
-          </el-form-item>
+          <ScFormItem label="同步类型">
+            <ScRadioGroup v-model="form.syncType">
+              <ScRadio label="popular">热门软件</ScRadio>
+              <ScRadio label="official">官方镜像</ScRadio>
+              <ScRadio label="custom">自定义搜索</ScRadio>
+            </ScRadioGroup>
+          </ScFormItem>
 
-          <el-form-item v-if="form.syncType === 'custom'" label="搜索关键词">
-            <el-input
+          <ScFormItem v-if="form.syncType === 'custom'" label="搜索关键词">
+            <ScInput
               v-model="form.searchKeywords"
               placeholder="输入要搜索的软件关键词，多个关键词用逗号分隔"
               type="textarea"
               :rows="3"
             />
             <div class="form-tip">例如: nginx,mysql,redis,mongodb</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="同步数量限制">
-            <el-input-number
+          <ScFormItem label="同步数量限制">
+            <ScInputNumber
               v-model="form.limitCount"
               :min="10"
               :max="500"
@@ -69,42 +69,42 @@
               style="width: 200px"
             />
             <div class="form-tip">每个仓库最多同步的软件数量</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="版本信息">
-            <el-checkbox v-model="form.includeVersions"
+          <ScFormItem label="版本信息">
+            <ScCheckbox v-model="form.includeVersions"
               >同步版本标签信息</el-checkbox
             >
             <div class="form-tip">
               是否同步每个软件的版本标签列表（会增加同步时间）
             </div>
-          </el-form-item>
+          </ScFormItem>
         </div>
 
         <div class="form-section">
           <div class="section-title">高级选项</div>
 
-          <el-form-item label="覆盖策略">
-            <el-radio-group v-model="form.overwritePolicy">
-              <el-radio label="skip">跳过已存在</el-radio>
-              <el-radio label="update">更新已存在</el-radio>
-              <el-radio label="merge">合并信息</el-radio>
-            </el-radio-group>
+          <ScFormItem label="覆盖策略">
+            <ScRadioGroup v-model="form.overwritePolicy">
+              <ScRadio label="skip">跳过已存在</ScRadio>
+              <ScRadio label="update">更新已存在</ScRadio>
+              <ScRadio label="merge">合并信息</ScRadio>
+            </ScRadioGroup>
             <div class="form-tip">当软件已存在时的处理策略</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="并发数量">
-            <el-input-number
+          <ScFormItem label="并发数量">
+            <ScInputNumber
               v-model="form.concurrency"
               :min="1"
               :max="10"
               style="width: 200px"
             />
             <div class="form-tip">同时同步的软件数量，建议不超过5个</div>
-          </el-form-item>
+          </ScFormItem>
 
-          <el-form-item label="超时时间">
-            <el-input-number
+          <ScFormItem label="超时时间">
+            <ScInputNumber
               v-model="form.timeout"
               :min="30"
               :max="300"
@@ -113,9 +113,9 @@
             />
             <span style="margin-left: 8px">秒</span>
             <div class="form-tip">单个软件信息同步的超时时间</div>
-          </el-form-item>
+          </ScFormItem>
         </div>
-      </el-form>
+      </ScForm>
 
       <!-- 预览信息 -->
       <div class="preview-section">
@@ -139,10 +139,10 @@
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSubmit">
           开始同步
-        </el-button>
+        </ScButton>
       </span>
     </template>
   </sc-dialog>

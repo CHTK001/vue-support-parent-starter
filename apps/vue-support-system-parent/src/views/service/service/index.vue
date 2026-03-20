@@ -8,8 +8,8 @@ import {
   type ServiceStats,
 } from "@/api/service/service";
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 import { message } from "@repo/utils";
 import {
   defineAsyncComponent,
@@ -146,7 +146,7 @@ onMounted(async () => {
   <div class="system-container service-container">
     <SaveDialog ref="saveDialogRef" @success="loadData" />
     <div class="service-wrapper">
-      <el-container>
+      <ScContainer>
         <!-- 统计面板 -->
         <div class="service-stats">
           <div class="stat-item">
@@ -179,65 +179,65 @@ onMounted(async () => {
         </div>
 
         <!-- 搜索栏 -->
-        <el-header class="service-header">
+        <ScHeader class="service-header">
           <div class="toolbar-left left-panel">
-            <el-form
+            <ScForm
               ref="formRef"
               :inline="true"
               :model="env.params"
               class="modern-form search-form"
             >
-              <el-form-item label="服务名称" prop="sysServiceName">
-                <el-input
+              <ScFormItem label="服务名称" prop="sysServiceName">
+                <ScInput
                   v-model="env.params.sysServiceName"
                   placeholder="请输入服务名称"
                   clearable
                   class="!w-[180px]"
                   @keyup.enter="onSearch"
                 />
-              </el-form-item>
-              <el-form-item label="状态" prop="sysServiceStatus">
-                <el-select
+              </ScFormItem>
+              <ScFormItem label="状态" prop="sysServiceStatus">
+                <ScSelect
                   v-model="env.params.sysServiceStatus"
                   placeholder="全部"
                   clearable
                   class="!w-[120px]"
                 >
-                  <el-option
+                  <ScOption
                     v-for="item in statusOptions"
                     :key="item.value"
                     :label="item.label"
                     :value="item.value"
                   />
-                </el-select>
-              </el-form-item>
-            </el-form>
+                </ScSelect>
+              </ScFormItem>
+            </ScForm>
           </div>
           <div class="toolbar-right right-panel">
             <div class="right-panel-search">
-              <el-button
+              <ScButton
                 type="primary"
                 :icon="useRenderIcon('ri:search-line')"
                 @click="onSearch"
               >
                 搜索
-              </el-button>
-              <el-button :icon="useRenderIcon('ep:refresh')" @click="resetForm">
+              </ScButton>
+              <ScButton :icon="useRenderIcon('ep:refresh')" @click="resetForm">
                 重置
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 type="success"
                 :icon="useRenderIcon('ep:plus')"
                 @click="handleEdit({}, 'save')"
               >
                 新增
-              </el-button>
+              </ScButton>
             </div>
           </div>
-        </el-header>
+        </ScHeader>
 
         <!-- 服务卡片列表 -->
-        <el-main class="service-main">
+        <ScMain class="service-main">
           <div class="cards-wrapper">
             <ScTable
               ref="tableRef"
@@ -253,7 +253,7 @@ onMounted(async () => {
                 >
                   <!-- 卡片图片 -->
                   <div class="card-image">
-                    <el-image
+                    <ScImage
                       :src="row.sysServiceImage"
                       fit="cover"
                       lazy
@@ -267,10 +267,10 @@ onMounted(async () => {
                           />
                         </div>
                       </template>
-                    </el-image>
+                    </ScImage>
                     <!-- 状态标签 -->
                     <div class="status-badge">
-                      <el-tag
+                      <ScTag
                         :type="row.sysServiceStatus === 0 ? 'success' : 'info'"
                         effect="dark"
                         size="small"
@@ -289,7 +289,7 @@ onMounted(async () => {
                             ? t("message.open")
                             : t("message.close")
                         }}
-                      </el-tag>
+                      </ScTag>
                     </div>
                   </div>
 
@@ -306,7 +306,7 @@ onMounted(async () => {
 
                     <!-- 模块标签 -->
                     <div v-if="row.sysServiceTags?.length" class="card-tags">
-                      <el-tag
+                      <ScTag
                         v-for="item in row.sysServiceTags"
                         :key="item"
                         size="small"
@@ -314,7 +314,7 @@ onMounted(async () => {
                         class="module-tag"
                       >
                         {{ getTagName(item) || "未知模块" }}
-                      </el-tag>
+                      </ScTag>
                     </div>
                     <div v-else class="card-tags">
                       <span class="no-tags">暂无关联模块</span>
@@ -333,11 +333,11 @@ onMounted(async () => {
 
                   <!-- 卡片操作 -->
                   <div class="card-actions">
-                    <el-tooltip
+                    <ScTooltip
                       :content="row.sysServiceStatus === 0 ? '禁用' : '启用'"
                       placement="top"
                     >
-                      <el-button
+                      <ScButton
                         :type="
                           row.sysServiceStatus === 0 ? 'warning' : 'success'
                         "
@@ -353,26 +353,26 @@ onMounted(async () => {
                           "
                           :size="18"
                         />
-                      </el-button>
-                    </el-tooltip>
-                    <el-tooltip content="编辑" placement="top">
-                      <el-button
+                      </ScButton>
+                    </ScTooltip>
+                    <ScTooltip content="编辑" placement="top">
+                      <ScButton
                         type="primary"
                         link
                         class="action-btn"
                         @click.stop="handleEdit(row, 'edit')"
                       >
                         <IconifyIconOnline icon="ri:edit-line" :size="18" />
-                      </el-button>
-                    </el-tooltip>
-                    <el-popconfirm
+                      </ScButton>
+                    </ScTooltip>
+                    <ScPopconfirm
                       :title="$t('message.confimDelete')"
                       width="200"
                       @confirm="handleDelete(row)"
                     >
                       <template #reference>
-                        <el-tooltip content="删除" placement="top">
-                          <el-button
+                        <ScTooltip content="删除" placement="top">
+                          <ScButton
                             type="danger"
                             link
                             class="action-btn"
@@ -383,17 +383,17 @@ onMounted(async () => {
                               icon="ri:delete-bin-line"
                               :size="18"
                             />
-                          </el-button>
-                        </el-tooltip>
+                          </ScButton>
+                        </ScTooltip>
                       </template>
-                    </el-popconfirm>
+                    </ScPopconfirm>
                   </div>
                 </div>
               </template>
             </ScTable>
           </div>
-        </el-main>
-      </el-container>
+        </ScMain>
+      </ScContainer>
     </div>
   </div>
 </template>

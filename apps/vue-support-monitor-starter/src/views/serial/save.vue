@@ -9,150 +9,150 @@
         <h3 class="text-lg font-medium">串口配置</h3>
       </div>
       <div class="flex items-center gap-2">
-        <el-button type="primary" @click="saveConfig">
+        <ScButton type="primary" @click="saveConfig">
           <IconifyIconOnline icon="ep:check" class="mr-1" />
           保存配置
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
-    <el-card class="config-content">
-      <el-form :model="serialConfig" label-width="120px" label-position="right">
+    <ScCard class="config-content">
+      <ScForm :model="serialConfig" label-width="120px" label-position="right">
         <h4 class="mb-4 font-medium">基本配置</h4>
 
-        <el-form-item label="配置名称" prop="monitorSerialName">
-          <el-input
+        <ScFormItem label="配置名称" prop="monitorSerialName">
+          <ScInput
             v-model="serialConfig.monitorSerialName"
             placeholder="请输入配置名称"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="描述" prop="monitorSerialDescription">
-          <el-input
+        <ScFormItem label="描述" prop="monitorSerialDescription">
+          <ScInput
             v-model="serialConfig.monitorSerialDescription"
             type="textarea"
             :rows="2"
             placeholder="请输入配置描述"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-divider />
+        <ScDivider />
         <h4 class="mb-4 font-medium">串口参数</h4>
 
-        <el-form-item label="默认串口" prop="monitorSerialDefaultPort">
-          <el-input
+        <ScFormItem label="默认串口" prop="monitorSerialDefaultPort">
+          <ScInput
             v-model="serialConfig.monitorSerialDefaultPort"
             placeholder="请输入默认串口，如COM1、/dev/ttyUSB0"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="默认波特率" prop="monitorSerialDefaultBaudRate">
-          <el-select
+        <ScFormItem label="默认波特率" prop="monitorSerialDefaultBaudRate">
+          <ScSelect
             v-model="serialConfig.monitorSerialDefaultBaudRate"
             placeholder="选择默认波特率"
             class="w-full"
           >
-            <el-option :value="110" label="110" />
-            <el-option :value="300" label="300" />
-            <el-option :value="1200" label="1200" />
-            <el-option :value="2400" label="2400" />
-            <el-option :value="4800" label="4800" />
-            <el-option :value="9600" label="9600" />
-            <el-option :value="14400" label="14400" />
-            <el-option :value="19200" label="19200" />
-            <el-option :value="38400" label="38400" />
-            <el-option :value="57600" label="57600" />
-            <el-option :value="115200" label="115200" />
-            <el-option :value="230400" label="230400" />
-            <el-option :value="460800" label="460800" />
-            <el-option :value="921600" label="921600" />
-          </el-select>
-        </el-form-item>
+            <ScOption :value="110" label="110" />
+            <ScOption :value="300" label="300" />
+            <ScOption :value="1200" label="1200" />
+            <ScOption :value="2400" label="2400" />
+            <ScOption :value="4800" label="4800" />
+            <ScOption :value="9600" label="9600" />
+            <ScOption :value="14400" label="14400" />
+            <ScOption :value="19200" label="19200" />
+            <ScOption :value="38400" label="38400" />
+            <ScOption :value="57600" label="57600" />
+            <ScOption :value="115200" label="115200" />
+            <ScOption :value="230400" label="230400" />
+            <ScOption :value="460800" label="460800" />
+            <ScOption :value="921600" label="921600" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="默认数据位" prop="monitorSerialDefaultDataBits">
-          <el-select
+        <ScFormItem label="默认数据位" prop="monitorSerialDefaultDataBits">
+          <ScSelect
             v-model="serialConfig.monitorSerialDefaultDataBits"
             placeholder="选择默认数据位"
             class="w-full"
           >
-            <el-option :value="5" label="5" />
-            <el-option :value="6" label="6" />
-            <el-option :value="7" label="7" />
-            <el-option :value="8" label="8" />
-          </el-select>
-        </el-form-item>
+            <ScOption :value="5" label="5" />
+            <ScOption :value="6" label="6" />
+            <ScOption :value="7" label="7" />
+            <ScOption :value="8" label="8" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="默认停止位" prop="monitorSerialDefaultStopBits">
-          <el-select
+        <ScFormItem label="默认停止位" prop="monitorSerialDefaultStopBits">
+          <ScSelect
             v-model="serialConfig.monitorSerialDefaultStopBits"
             placeholder="选择默认停止位"
             class="w-full"
           >
-            <el-option :value="1" label="1" />
-            <el-option :value="1.5" label="1.5" />
-            <el-option :value="2" label="2" />
-          </el-select>
-        </el-form-item>
+            <ScOption :value="1" label="1" />
+            <ScOption :value="1.5" label="1.5" />
+            <ScOption :value="2" label="2" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="默认校验位" prop="monitorSerialDefaultParity">
-          <el-select
+        <ScFormItem label="默认校验位" prop="monitorSerialDefaultParity">
+          <ScSelect
             v-model="serialConfig.monitorSerialDefaultParity"
             placeholder="选择默认校验位"
             class="w-full"
           >
-            <el-option value="none" label="无校验" />
-            <el-option value="even" label="偶校验" />
-            <el-option value="odd" label="奇校验" />
-            <el-option value="mark" label="标记校验" />
-            <el-option value="space" label="空格校验" />
-          </el-select>
-        </el-form-item>
+            <ScOption value="none" label="无校验" />
+            <ScOption value="even" label="偶校验" />
+            <ScOption value="odd" label="奇校验" />
+            <ScOption value="mark" label="标记校验" />
+            <ScOption value="space" label="空格校验" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="默认流控制" prop="monitorSerialDefaultFlowControl">
-          <el-select
+        <ScFormItem label="默认流控制" prop="monitorSerialDefaultFlowControl">
+          <ScSelect
             v-model="serialConfig.monitorSerialDefaultFlowControl"
             placeholder="选择默认流控制"
             class="w-full"
           >
-            <el-option value="none" label="无" />
-            <el-option value="hardware" label="硬件流控" />
-            <el-option value="software" label="软件流控" />
-          </el-select>
-        </el-form-item>
+            <ScOption value="none" label="无" />
+            <ScOption value="hardware" label="硬件流控" />
+            <ScOption value="software" label="软件流控" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-divider />
+        <ScDivider />
         <h4 class="mb-4 font-medium">显示设置</h4>
 
-        <el-form-item
+        <ScFormItem
           label="默认接收格式"
           prop="monitorSerialDefaultReceiveFormat"
         >
-          <el-select
+          <ScSelect
             v-model="serialConfig.monitorSerialDefaultReceiveFormat"
             placeholder="选择默认接收格式"
             class="w-full"
           >
-            <el-option value="text" label="文本" />
-            <el-option value="hex" label="HEX" />
-          </el-select>
-        </el-form-item>
+            <ScOption value="text" label="文本" />
+            <ScOption value="hex" label="HEX" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="自动滚动" prop="monitorSerialAutoScroll">
-          <el-switch v-model="serialConfig.monitorSerialAutoScroll" />
-        </el-form-item>
+        <ScFormItem label="自动滚动" prop="monitorSerialAutoScroll">
+          <ScSwitch v-model="serialConfig.monitorSerialAutoScroll" />
+        </ScFormItem>
 
-        <el-form-item label="添加时间戳" prop="monitorSerialAddTimestamp">
-          <el-switch v-model="serialConfig.monitorSerialAddTimestamp" />
-        </el-form-item>
+        <ScFormItem label="添加时间戳" prop="monitorSerialAddTimestamp">
+          <ScSwitch v-model="serialConfig.monitorSerialAddTimestamp" />
+        </ScFormItem>
 
-        <el-form-item label="发送后换行" prop="monitorSerialAddNewline">
-          <el-switch v-model="serialConfig.monitorSerialAddNewline" />
-        </el-form-item>
+        <ScFormItem label="发送后换行" prop="monitorSerialAddNewline">
+          <ScSwitch v-model="serialConfig.monitorSerialAddNewline" />
+        </ScFormItem>
 
-        <el-divider />
+        <ScDivider />
         <h4 class="mb-4 font-medium">命令预设</h4>
 
-        <el-form-item>
+        <ScFormItem>
           <div class="command-presets">
             <div
               v-for="(
@@ -163,43 +163,43 @@
             >
               <div class="flex items-center justify-between mb-2">
                 <h5 class="font-medium">预设命令 {{ index + 1 }}</h5>
-                <el-button
+                <ScButton
                   type="danger"
                   size="small"
                   @click="removeCommandPreset(index)"
                 >
                   <IconifyIconOnline icon="ep:delete" />
-                </el-button>
+                </ScButton>
               </div>
-              <el-input
+              <ScInput
                 v-model="preset.name"
                 placeholder="命令名称"
                 class="mb-2"
               />
-              <el-input
+              <ScInput
                 v-model="preset.command"
                 placeholder="命令内容"
                 class="mb-2"
               />
               <div class="flex items-center">
-                <el-checkbox v-model="preset.addNewline"
+                <ScCheckbox v-model="preset.addNewline"
                   >发送后添加换行</el-checkbox
                 >
-                <el-radio-group v-model="preset.type" class="ml-4">
-                  <el-radio label="text">文本</el-radio>
-                  <el-radio label="hex">HEX</el-radio>
-                </el-radio-group>
+                <ScRadioGroup v-model="preset.type" class="ml-4">
+                  <ScRadio label="text">文本</ScRadio>
+                  <ScRadio label="hex">HEX</ScRadio>
+                </ScRadioGroup>
               </div>
             </div>
 
-            <el-button type="primary" plain @click="addCommandPreset">
+            <ScButton type="primary" plain @click="addCommandPreset">
               <IconifyIconOnline icon="ep:plus" class="mr-1" />
               添加命令预设
-            </el-button>
+            </ScButton>
           </div>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        </ScFormItem>
+      </ScForm>
+    </ScCard>
   </div>
 </template>
 

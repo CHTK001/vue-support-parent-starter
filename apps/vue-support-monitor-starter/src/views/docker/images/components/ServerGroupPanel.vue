@@ -7,26 +7,26 @@
           <IconifyIconOnline icon="ri:server-line" class="mr-2" />
           服务器列表
         </h3>
-        <el-tooltip content="上一个">
-          <el-button
+        <ScTooltip content="上一个">
+          <ScButton
             size="small"
             circle
             :disabled="!canScrollUp"
             @click="scrollUp"
           >
             <IconifyIconOnline icon="ri:arrow-up-s-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="下一个">
-          <el-button
+          </ScButton>
+        </ScTooltip>
+        <ScTooltip content="下一个">
+          <ScButton
             size="small"
             circle
             :disabled="!canScrollDown"
             @click="scrollDown"
           >
             <IconifyIconOnline icon="ri:arrow-down-s-line" />
-          </el-button>
-        </el-tooltip>
+          </ScButton>
+        </ScTooltip>
       </div>
 
       <div ref="serverListRef" class="server-list" @scroll="handleScroll">
@@ -45,15 +45,15 @@
             </div>
           </div>
           <div class="server-card-footer">
-            <el-tag size="small" type="info">
+            <ScTag size="small" type="info">
               {{ server.imageCount || 0 }} 个镜像
-            </el-tag>
-            <el-tag
+            </ScTag>
+            <ScTag
               size="small"
               :type="server.status === 'online' ? 'success' : 'danger'"
             >
               {{ server.status === "online" ? "在线" : "离线" }}
-            </el-tag>
+            </ScTag>
           </div>
         </div>
       </div>
@@ -67,12 +67,12 @@
             <IconifyIconOnline icon="ri:image-line" class="mr-2" />
             {{ currentServer?.name || "选择服务器" }}
           </h3>
-          <el-tag v-if="currentServer" size="small" type="info" class="ml-2">
+          <ScTag v-if="currentServer" size="small" type="info" class="ml-2">
             {{ filteredImages.length }} 个镜像
-          </el-tag>
+          </ScTag>
         </div>
         <div class="header-right">
-          <el-input
+          <ScInput
             v-model="filterKeyword"
             placeholder="搜索镜像..."
             clearable
@@ -82,23 +82,23 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
-          <el-select
+          </ScInput>
+          <ScSelect
             v-model="filterStatus"
             placeholder="状态"
             clearable
             class="filter-select"
             @change="handleFilter"
           >
-            <el-option label="全部" :value="undefined" />
-            <el-option label="可用" value="AVAILABLE" />
-            <el-option label="拉取中" value="PULLING" />
-            <el-option label="错误" value="PULL_FAILED" />
-          </el-select>
+            <ScOption label="全部" :value="undefined" />
+            <ScOption label="可用" value="AVAILABLE" />
+            <ScOption label="拉取中" value="PULLING" />
+            <ScOption label="错误" value="PULL_FAILED" />
+          </ScSelect>
         </div>
       </div>
 
-      <el-scrollbar class="image-scroll">
+      <ScScrollbar class="image-scroll">
         <div v-if="!selectedServerId" class="empty-state">
           <IconifyIconOnline icon="ri:server-line" class="empty-icon" />
           <p class="empty-text">请选择一个服务器查看镜像</p>
@@ -124,16 +124,16 @@
             <div class="image-card-header">
               <div class="image-name-tag">
                 <div class="image-name">{{ image.systemSoftImageName }}</div>
-                <el-tag size="small" type="primary" effect="plain">
+                <ScTag size="small" type="primary" effect="plain">
                   {{ image.systemSoftImageTag }}
-                </el-tag>
+                </ScTag>
               </div>
-              <el-tag
+              <ScTag
                 :type="getStatusTagType(image.systemSoftImageStatus)"
                 size="small"
               >
                 {{ getStatusText(image.systemSoftImageStatus) }}
-              </el-tag>
+              </ScTag>
             </div>
 
             <div class="image-card-body">
@@ -154,48 +154,48 @@
             </div>
 
             <div class="image-card-footer">
-              <el-button
+              <ScButton
                 size="small"
                 type="primary"
                 @click="emit('install', image)"
               >
                 <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" />
                 安装容器
-              </el-button>
-              <el-button size="small" @click="emit('viewHistory', image)">
+              </ScButton>
+              <ScButton size="small" @click="emit('viewHistory', image)">
                 <IconifyIconOnline icon="ri:history-line" class="mr-1" />
                 历史记录
-              </el-button>
-              <el-dropdown
+              </ScButton>
+              <ScDropdown
                 trigger="click"
                 @command="(cmd) => handleAction(cmd, image)"
               >
-                <el-button size="small">
+                <ScButton size="small">
                   <IconifyIconOnline icon="ri:more-2-fill" />
-                </el-button>
+                </ScButton>
                 <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="export">
+                  <ScDropdownMenu>
+                    <ScDropdownItem command="export">
                       <IconifyIconOnline
                         icon="ri:download-2-line"
                         class="mr-1"
                       />
                       导出镜像
-                    </el-dropdown-item>
-                    <el-dropdown-item command="delete" divided>
+                    </ScDropdownItem>
+                    <ScDropdownItem command="delete" divided>
                       <IconifyIconOnline
                         icon="ri:delete-bin-line"
                         class="mr-1"
                       />
                       删除镜像
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
+                    </ScDropdownItem>
+                  </ScDropdownMenu>
                 </template>
-              </el-dropdown>
+              </ScDropdown>
             </div>
           </div>
         </div>
-      </el-scrollbar>
+      </ScScrollbar>
     </div>
   </div>
 </template>

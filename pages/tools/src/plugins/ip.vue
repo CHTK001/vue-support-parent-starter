@@ -1,5 +1,4 @@
 ﻿<script setup>
-
 import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed } from "vue";
 import { getCurrentIP, message } from "@repo/utils";
@@ -36,7 +35,11 @@ const env = reactive({
   outputResults: [],
   ipTypes: [
     { label: "IPv4", value: "ipv4", example: "192.168.1.1" },
-    { label: "IPv6", value: "ipv6", example: "2001:0db8:85a3:0000:0000:8a2e:0370:7334" },
+    {
+      label: "IPv6",
+      value: "ipv6",
+      example: "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+    },
     { label: "CIDR", value: "cidr", example: "192.168.1.0/24" },
   ],
   ipType: "ipv4",
@@ -139,13 +142,19 @@ const fetchCurrentIP = async () => {
       }
       // 自动解析获取到的 IP
       parseIP();
-      message(t("message.getCurrentIPSuccess") || "获取当前 IP 成功", { type: "success" });
+      message(t("message.getCurrentIPSuccess") || "获取当前 IP 成功", {
+        type: "success",
+      });
     } else {
-      message(t("message.getCurrentIPError") || "获取当前 IP 失败", { type: "error" });
+      message(t("message.getCurrentIPError") || "获取当前 IP 失败", {
+        type: "error",
+      });
     }
   } catch (error) {
     console.error("获取当前 IP 失败:", error);
-    message(t("message.getCurrentIPError") || "获取当前 IP 失败", { type: "error" });
+    message(t("message.getCurrentIPError") || "获取当前 IP 失败", {
+      type: "error",
+    });
   } finally {
     env.loading = false;
   }
@@ -192,7 +201,12 @@ const parseIP = () => {
       ipVersion = 4;
     }
     // 检查是否为 IPv6
-    else if (/^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/.test(ipAddress) || /^([0-9a-fA-F]{1,4}:){1,7}:$/.test(ipAddress) || /^::[0-9a-fA-F]{1,4}(:([0-9a-fA-F]{1,4})?){0,6}$/.test(ipAddress) || /^([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$/.test(ipAddress)) {
+    else if (
+      /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/.test(ipAddress) ||
+      /^([0-9a-fA-F]{1,4}:){1,7}:$/.test(ipAddress) ||
+      /^::[0-9a-fA-F]{1,4}(:([0-9a-fA-F]{1,4})?){0,6}$/.test(ipAddress) ||
+      /^([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$/.test(ipAddress)
+    ) {
       validIP = true;
       ipVersion = 6;
     }
@@ -253,7 +267,12 @@ const parseIP = () => {
 
         // 计算子网掩码
         const subnetMaskBinary = "1".repeat(cidr) + "0".repeat(32 - cidr);
-        const subnetMask = [parseInt(subnetMaskBinary.substring(0, 8), 2), parseInt(subnetMaskBinary.substring(8, 16), 2), parseInt(subnetMaskBinary.substring(16, 24), 2), parseInt(subnetMaskBinary.substring(24, 32), 2)].join(".");
+        const subnetMask = [
+          parseInt(subnetMaskBinary.substring(0, 8), 2),
+          parseInt(subnetMaskBinary.substring(8, 16), 2),
+          parseInt(subnetMaskBinary.substring(16, 24), 2),
+          parseInt(subnetMaskBinary.substring(24, 32), 2),
+        ].join(".");
 
         env.outputResults.push({
           label: "子网掩码",
@@ -263,7 +282,10 @@ const parseIP = () => {
         // 计算网络地址
         const networkOctets = octets.map((octet, index) => {
           const octetBinary = parseInt(octet, 10).toString(2).padStart(8, "0");
-          const maskBinary = subnetMaskBinary.substring(index * 8, (index + 1) * 8);
+          const maskBinary = subnetMaskBinary.substring(
+            index * 8,
+            (index + 1) * 8,
+          );
           const networkBinary = octetBinary
             .split("")
             .map((bit, i) => {
@@ -283,7 +305,10 @@ const parseIP = () => {
         // 计算广播地址
         const broadcastOctets = octets.map((octet, index) => {
           const octetBinary = parseInt(octet, 10).toString(2).padStart(8, "0");
-          const maskBinary = subnetMaskBinary.substring(index * 8, (index + 1) * 8);
+          const maskBinary = subnetMaskBinary.substring(
+            index * 8,
+            (index + 1) * 8,
+          );
           const broadcastBinary = octetBinary
             .split("")
             .map((bit, i) => {
@@ -336,7 +361,11 @@ const parseIP = () => {
         const rightParts = parts[1] ? parts[1].split(":") : [];
         const missingGroups = 8 - leftParts.length - rightParts.length;
 
-        fullIPv6 = [...leftParts, ...Array(missingGroups).fill("0000"), ...rightParts].join(":");
+        fullIPv6 = [
+          ...leftParts,
+          ...Array(missingGroups).fill("0000"),
+          ...rightParts,
+        ].join(":");
       }
 
       // 确保每个段都是 4 位十六进制
@@ -401,7 +430,9 @@ const parseIP = () => {
     message(t("message.parseSuccess") || "解析成功", { type: "success" });
   } catch (error) {
     console.error("IP 解析错误:", error);
-    message(t("message.parseError") || "解析失败: " + error.message, { type: "error" });
+    message(t("message.parseError") || "解析失败: " + error.message, {
+      type: "error",
+    });
   } finally {
     env.loading = false;
   }
@@ -488,13 +519,19 @@ const tracerouteIP = () => {
 
     // 模拟随机延迟和 IP
     const delay = Math.floor(Math.random() * 100) + 20;
-    const hopIP = completedHops === hops ? env.inputValue : `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+    const hopIP =
+      completedHops === hops
+        ? env.inputValue
+        : `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
 
     env.tracerouteResults.push({
       hop: completedHops,
       ip: hopIP,
       time: `${delay}ms`,
-      location: completedHops === hops ? `${env.ipDetails.country} ${env.ipDetails.region}` : "局域网",
+      location:
+        completedHops === hops
+          ? `${env.ipDetails.country} ${env.ipDetails.region}`
+          : "局域网",
     });
 
     if (completedHops >= hops) {
@@ -557,7 +594,8 @@ const scanPorts = () => {
 
   const scanInterval = setInterval(() => {
     const port = env.selectedPorts[scannedPorts];
-    const service = env.commonPorts.find((p) => p.port === port)?.service || "未知";
+    const service =
+      env.commonPorts.find((p) => p.port === port)?.service || "未知";
     const isOpen = Math.random() > 0.7; // 30% 开放率
 
     env.portScanResults.push({
@@ -607,22 +645,46 @@ onMounted(async () => {
         <div class="ip-tool__header-info" v-if="env.currentIP">
           <!-- IP 地址显示 -->
           <div class="ip-tool__header-info-item ip-tool__header-info-ip">
-            <IconifyIconOnline icon="ri:ip-line" class="ip-tool__header-info-icon" />
+            <IconifyIconOnline
+              icon="ri:ip-line"
+              class="ip-tool__header-info-icon"
+            />
             <span>{{ env.currentIP }}</span>
-            <ScButton type="primary" link size="small" @click="copyToClipboard(env.currentIP)" class="ip-tool__copy-ip-btn">
+            <ScButton
+              type="primary"
+              link
+              size="small"
+              @click="copyToClipboard(env.currentIP)"
+              class="ip-tool__copy-ip-btn"
+            >
               <IconifyIconOnline icon="ri:file-copy-line" />
             </ScButton>
           </div>
 
           <!-- 位置信息显示 -->
-          <div class="ip-tool__header-info-item" v-if="env.currentIP !== '离线状态' && env.currentIP !== '获取失败'">
-            <IconifyIconOnline icon="ri:map-pin-line" class="ip-tool__header-info-icon" />
-            <span>{{ env.ipDetails.country }} {{ env.ipDetails.region }} {{ env.ipDetails.city }}</span>
+          <div
+            class="ip-tool__header-info-item"
+            v-if="env.currentIP !== '离线状态' && env.currentIP !== '获取失败'"
+          >
+            <IconifyIconOnline
+              icon="ri:map-pin-line"
+              class="ip-tool__header-info-icon"
+            />
+            <span
+              >{{ env.ipDetails.country }} {{ env.ipDetails.region }}
+              {{ env.ipDetails.city }}</span
+            >
           </div>
 
           <!-- ISP 信息显示 -->
-          <div class="ip-tool__header-info-item" v-if="env.currentIP !== '离线状态' && env.currentIP !== '获取失败'">
-            <IconifyIconOnline icon="ri:global-line" class="ip-tool__header-info-icon" />
+          <div
+            class="ip-tool__header-info-item"
+            v-if="env.currentIP !== '离线状态' && env.currentIP !== '获取失败'"
+          >
+            <IconifyIconOnline
+              icon="ri:global-line"
+              class="ip-tool__header-info-icon"
+            />
             <span>{{ env.ipDetails.isp }} {{ env.ipDetails.asn }}</span>
           </div>
         </div>
@@ -634,7 +696,10 @@ onMounted(async () => {
           <ScCard class="ip-tool__input-card" shadow="hover">
             <template #header>
               <div class="ip-tool__card-header">
-                <IconifyIconOnline icon="ri:input-method-line" class="ip-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:input-method-line"
+                  class="ip-tool__card-icon"
+                />
                 <span>输入 IP 地址</span>
               </div>
             </template>
@@ -643,7 +708,11 @@ onMounted(async () => {
               <!-- IP 类型选择 -->
               <ScFormItem label="IP 类型">
                 <ScRadioGroup v-model="env.ipType" class="ip-tool__radio-group">
-                  <ScRadio v-for="item in env.ipTypes" :key="item.value" :label="item.value">
+                  <ScRadio
+                    v-for="item in env.ipTypes"
+                    :key="item.value"
+                    :label="item.value"
+                  >
                     <div class="ip-tool__radio-content">
                       <IconifyIconOnline :icon="ipTypeIcon" />
                       <span>{{ item.label }}</span>
@@ -654,7 +723,13 @@ onMounted(async () => {
 
               <!-- IP 输入框 -->
               <ScFormItem label="输入值">
-                <ScInput v-model="env.inputValue" :placeholder="`请输入 ${env.ipTypes.find((t) => t.value === env.ipType)?.label} 地址，如：${env.ipTypes.find((t) => t.value === env.ipType)?.example}`" clearable class="ip-tool__input" @input="debounceParseIP">
+                <ScInput
+                  v-model="env.inputValue"
+                  :placeholder="`请输入 ${env.ipTypes.find((t) => t.value === env.ipType)?.label} 地址，如：${env.ipTypes.find((t) => t.value === env.ipType)?.example}`"
+                  clearable
+                  class="ip-tool__input"
+                  @input="debounceParseIP"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="ri:global-line" />
                   </template>
@@ -664,11 +739,21 @@ onMounted(async () => {
               <!-- 历史记录区域 -->
               <div class="ip-tool__history" v-if="env.ipHistory.length > 0">
                 <div class="ip-tool__history-label">
-                  <IconifyIconOnline icon="ri:history-line" class="ip-tool__history-icon" />
+                  <IconifyIconOnline
+                    icon="ri:history-line"
+                    class="ip-tool__history-icon"
+                  />
                   <span>历史记录:</span>
                 </div>
                 <div class="ip-tool__history-tags">
-                  <ScTag v-for="(ip, index) in env.ipHistory" :key="index" class="ip-tool__history-tag" @click="selectFromHistory(ip)" :effect="env.inputValue === ip ? 'dark' : 'plain'" size="small">
+                  <ScTag
+                    v-for="(ip, index) in env.ipHistory"
+                    :key="index"
+                    class="ip-tool__history-tag"
+                    @click="selectFromHistory(ip)"
+                    :effect="env.inputValue === ip ? 'dark' : 'plain'"
+                    size="small"
+                  >
                     {{ ip }}
                   </ScTag>
                 </div>
@@ -676,12 +761,22 @@ onMounted(async () => {
 
               <!-- 操作按钮区域 -->
               <div class="ip-tool__actions flex">
-                <ScButton type="primary" :loading="env.loading" class="ip-tool__parse-btn" @click="parseIP">
+                <ScButton
+                  type="primary"
+                  :loading="env.loading"
+                  class="ip-tool__parse-btn"
+                  @click="parseIP"
+                >
                   <IconifyIconOnline icon="ri:search-line" />
                   <span>解析 IP</span>
                 </ScButton>
 
-                <ScButton type="success" class="ip-tool__now-btn" @click="fetchCurrentIP" :loading="env.isLoading">
+                <ScButton
+                  type="success"
+                  class="ip-tool__now-btn"
+                  @click="fetchCurrentIP"
+                  :loading="env.isLoading"
+                >
                   <IconifyIconOnline icon="ri:radar-line" />
                   <span>获取当前 IP</span>
                 </ScButton>
@@ -698,7 +793,10 @@ onMounted(async () => {
           <ScCard class="ip-tool__advanced-card" shadow="hover">
             <template #header>
               <div class="ip-tool__card-header">
-                <IconifyIconOnline icon="ri:tools-line" class="ip-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:tools-line"
+                  class="ip-tool__card-icon"
+                />
                 <span>高级功能</span>
               </div>
             </template>
@@ -709,21 +807,57 @@ onMounted(async () => {
                 <div class="ip-tool__tab-content">
                   <div class="ip-tool__tab-header">
                     <span class="ip-tool__tab-title">
-                      <IconifyIconOnline icon="ri:radar-line" class="ip-tool__tab-icon" />
+                      <IconifyIconOnline
+                        icon="ri:radar-line"
+                        class="ip-tool__tab-icon"
+                      />
                       Ping 测试
                     </span>
-                    <ScButton type="primary" size="small" @click="pingIP" :loading="env.pingStatus === 'running'" :disabled="!env.inputValue"> 开始测试 </ScButton>
+                    <ScButton
+                      type="primary"
+                      size="small"
+                      @click="pingIP"
+                      :loading="env.pingStatus === 'running'"
+                      :disabled="!env.inputValue"
+                    >
+                      开始测试
+                    </ScButton>
                   </div>
 
-                  <div class="ip-tool__ping-results" v-if="env.pingResults.length > 0">
-                    <div v-for="(result, index) in env.pingResults" :key="index" class="ip-tool__ping-item" :class="{ 'ip-tool__ping-item--success': result.status === 'success', 'ip-tool__ping-item--timeout': result.status === 'timeout' }">
-                      <span class="ip-tool__ping-seq">序列 {{ result.seq }}</span>
+                  <div
+                    class="ip-tool__ping-results"
+                    v-if="env.pingResults.length > 0"
+                  >
+                    <div
+                      v-for="(result, index) in env.pingResults"
+                      :key="index"
+                      class="ip-tool__ping-item"
+                      :class="{
+                        'ip-tool__ping-item--success':
+                          result.status === 'success',
+                        'ip-tool__ping-item--timeout':
+                          result.status === 'timeout',
+                      }"
+                    >
+                      <span class="ip-tool__ping-seq"
+                        >序列 {{ result.seq }}</span
+                      >
                       <span class="ip-tool__ping-time">{{ result.time }}</span>
-                      <IconifyIconOnline :icon="result.status === 'success' ? 'ri:check-line' : 'ri:close-line'" class="ip-tool__ping-status-icon" />
+                      <IconifyIconOnline
+                        :icon="
+                          result.status === 'success'
+                            ? 'ri:check-line'
+                            : 'ri:close-line'
+                        "
+                        class="ip-tool__ping-status-icon"
+                      />
                     </div>
                   </div>
 
-                  <ScEmpty v-else description="点击开始测试按钮进行 Ping 测试" />
+                  <ScEmpty
+                    v-else
+                    description="点击开始测试按钮进行 Ping 测试"
+                  />
                 </div>
               </ScTabPane>
 
@@ -732,20 +866,46 @@ onMounted(async () => {
                 <div class="ip-tool__tab-content">
                   <div class="ip-tool__tab-header">
                     <span class="ip-tool__tab-title">
-                      <IconifyIconOnline icon="ri:route-line" class="ip-tool__tab-icon" />
+                      <IconifyIconOnline
+                        icon="ri:route-line"
+                        class="ip-tool__tab-icon"
+                      />
                       路由追踪
                     </span>
-                    <ScButton type="primary" size="small" @click="tracerouteIP" :loading="env.tracerouteStatus === 'running'" :disabled="!env.inputValue"> 开始追踪 </ScButton>
+                    <ScButton
+                      type="primary"
+                      size="small"
+                      @click="tracerouteIP"
+                      :loading="env.tracerouteStatus === 'running'"
+                      :disabled="!env.inputValue"
+                    >
+                      开始追踪
+                    </ScButton>
                   </div>
 
-                  <div class="ip-tool__traceroute-results" v-if="env.tracerouteResults.length > 0">
-                    <div v-for="(result, index) in env.tracerouteResults" :key="index" class="ip-tool__traceroute-item">
-                      <div class="ip-tool__traceroute-hop">{{ result.hop }}</div>
+                  <div
+                    class="ip-tool__traceroute-results"
+                    v-if="env.tracerouteResults.length > 0"
+                  >
+                    <div
+                      v-for="(result, index) in env.tracerouteResults"
+                      :key="index"
+                      class="ip-tool__traceroute-item"
+                    >
+                      <div class="ip-tool__traceroute-hop">
+                        {{ result.hop }}
+                      </div>
                       <div class="ip-tool__traceroute-info">
-                        <div class="ip-tool__traceroute-ip">{{ result.ip }}</div>
+                        <div class="ip-tool__traceroute-ip">
+                          {{ result.ip }}
+                        </div>
                         <div class="ip-tool__traceroute-details">
-                          <span class="ip-tool__traceroute-time">{{ result.time }}</span>
-                          <span class="ip-tool__traceroute-location">{{ result.location }}</span>
+                          <span class="ip-tool__traceroute-time">{{
+                            result.time
+                          }}</span>
+                          <span class="ip-tool__traceroute-location">{{
+                            result.location
+                          }}</span>
                         </div>
                       </div>
                     </div>
@@ -760,24 +920,50 @@ onMounted(async () => {
                 <div class="ip-tool__tab-content">
                   <div class="ip-tool__tab-header">
                     <span class="ip-tool__tab-title">
-                      <IconifyIconOnline icon="ri:information-line" class="ip-tool__tab-icon" />
+                      <IconifyIconOnline
+                        icon="ri:information-line"
+                        class="ip-tool__tab-icon"
+                      />
                       WHOIS 查询
                     </span>
-                    <ScButton type="primary" size="small" @click="queryWhois" :loading="env.whoisLoading" :disabled="!env.inputValue"> 查询信息 </ScButton>
+                    <ScButton
+                      type="primary"
+                      size="small"
+                      @click="queryWhois"
+                      :loading="env.whoisLoading"
+                      :disabled="!env.inputValue"
+                    >
+                      查询信息
+                    </ScButton>
                   </div>
 
                   <div class="ip-tool__whois-results" v-if="env.whoisData">
-                    <el-descriptions border :column="1" size="small">
-                      <el-descriptions-item label="IP 范围">{{ env.whoisData.netRange }}</el-descriptions-item>
-                      <el-descriptions-item label="组织">{{ env.whoisData.organization }}</el-descriptions-item>
-                      <el-descriptions-item label="注册日期">{{ env.whoisData.registeredDate }}</el-descriptions-item>
-                      <el-descriptions-item label="更新日期">{{ env.whoisData.updatedDate }}</el-descriptions-item>
-                      <el-descriptions-item label="状态">{{ env.whoisData.status }}</el-descriptions-item>
-                      <el-descriptions-item label="国家/地区">{{ env.whoisData.country }}</el-descriptions-item>
-                    </el-descriptions>
+                    <ScDescriptions border :column="1" size="small">
+                      <ScDescriptionsItem label="IP 范围">{{
+                        env.whoisData.netRange
+                      }}</ScDescriptionsItem>
+                      <ScDescriptionsItem label="组织">{{
+                        env.whoisData.organization
+                      }}</ScDescriptionsItem>
+                      <ScDescriptionsItem label="注册日期">{{
+                        env.whoisData.registeredDate
+                      }}</ScDescriptionsItem>
+                      <ScDescriptionsItem label="更新日期">{{
+                        env.whoisData.updatedDate
+                      }}</ScDescriptionsItem>
+                      <ScDescriptionsItem label="状态">{{
+                        env.whoisData.status
+                      }}</ScDescriptionsItem>
+                      <ScDescriptionsItem label="国家/地区">{{
+                        env.whoisData.country
+                      }}</ScDescriptionsItem>
+                    </ScDescriptions>
                   </div>
 
-                  <ScEmpty v-else description="点击查询信息按钮获取 WHOIS 数据" />
+                  <ScEmpty
+                    v-else
+                    description="点击查询信息按钮获取 WHOIS 数据"
+                  />
                 </div>
               </ScTabPane>
             </ScTabs>
@@ -789,28 +975,52 @@ onMounted(async () => {
           <ScCard class="ip-tool__result-card" shadow="hover">
             <template #header>
               <div class="ip-tool__card-header">
-                <IconifyIconOnline icon="ri:file-list-line" class="ip-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:file-list-line"
+                  class="ip-tool__card-icon"
+                />
                 <span>解析结果</span>
               </div>
             </template>
 
             <!-- 空状态提示 -->
-            <ScEmpty v-if="!env.outputResults.length" description="请先输入并解析 IP 地址" class="ip-tool__empty">
+            <ScEmpty
+              v-if="!env.outputResults.length"
+              description="请先输入并解析 IP 地址"
+              class="ip-tool__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:global-line" class="ip-tool__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:global-line"
+                  class="ip-tool__empty-icon"
+                />
               </template>
             </ScEmpty>
 
             <!-- 结果列表 -->
             <div v-else class="ip-tool__results">
-              <div v-for="(result, index) in env.outputResults" :key="index" class="ip-tool__result-item" :class="{ 'ip-tool__result-item--highlight': index < 3 }">
+              <div
+                v-for="(result, index) in env.outputResults"
+                :key="index"
+                class="ip-tool__result-item"
+                :class="{ 'ip-tool__result-item--highlight': index < 3 }"
+              >
                 <div class="ip-tool__result-label">
-                  <IconifyIconOnline :icon="getResultIcon(result.label)" class="ip-tool__result-icon" />
+                  <IconifyIconOnline
+                    :icon="getResultIcon(result.label)"
+                    class="ip-tool__result-icon"
+                  />
                   <span>{{ result.label }}</span>
                 </div>
                 <div class="ip-tool__result-value">
                   <span>{{ result.value }}</span>
-                  <ScButton type="primary" link size="small" class="ip-tool__copy-btn" @click="copyToClipboard(result.value)">
+                  <ScButton
+                    type="primary"
+                    link
+                    size="small"
+                    class="ip-tool__copy-btn"
+                    @click="copyToClipboard(result.value)"
+                  >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
                 </div>
@@ -820,26 +1030,45 @@ onMounted(async () => {
             <!-- IP 安全信息卡片 -->
             <div class="ip-tool__security-card" v-if="env.outputResults.length">
               <div class="ip-tool__security-header">
-                <IconifyIconOnline icon="ri:shield-check-line" class="ip-tool__security-icon" />
+                <IconifyIconOnline
+                  icon="ri:shield-check-line"
+                  class="ip-tool__security-icon"
+                />
                 <span>IP 安全评估</span>
               </div>
 
               <div class="ip-tool__security-content">
                 <div class="ip-tool__security-score">
-                  <div class="ip-tool__security-score-circle" :style="`--score: ${env.securityInfo.score}%`">
+                  <div
+                    class="ip-tool__security-score-circle"
+                    :style="`--score: ${env.securityInfo.score}%`"
+                  >
                     <span>{{ env.securityInfo.score }}</span>
                   </div>
                   <div class="ip-tool__security-score-text">
                     <div class="ip-tool__security-score-label">安全评分</div>
-                    <div class="ip-tool__security-score-risk">风险等级: {{ env.securityInfo.risk }}</div>
+                    <div class="ip-tool__security-score-risk">
+                      风险等级: {{ env.securityInfo.risk }}
+                    </div>
                   </div>
                 </div>
 
                 <div class="ip-tool__security-details">
-                  <div v-for="(detail, index) in env.securityInfo.details" :key="index" class="ip-tool__security-detail-item">
-                    <IconifyIconOnline :icon="detail.icon" class="ip-tool__security-detail-icon" />
-                    <span class="ip-tool__security-detail-label">{{ detail.item }}</span>
-                    <span class="ip-tool__security-detail-status">{{ detail.status }}</span>
+                  <div
+                    v-for="(detail, index) in env.securityInfo.details"
+                    :key="index"
+                    class="ip-tool__security-detail-item"
+                  >
+                    <IconifyIconOnline
+                      :icon="detail.icon"
+                      class="ip-tool__security-detail-icon"
+                    />
+                    <span class="ip-tool__security-detail-label">{{
+                      detail.item
+                    }}</span>
+                    <span class="ip-tool__security-detail-status">{{
+                      detail.status
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -847,10 +1076,17 @@ onMounted(async () => {
           </ScCard>
 
           <!-- IP 地理位置卡片 -->
-          <ScCard class="ip-tool__map-card" shadow="hover" v-if="env.outputResults.length">
+          <ScCard
+            class="ip-tool__map-card"
+            shadow="hover"
+            v-if="env.outputResults.length"
+          >
             <template #header>
               <div class="ip-tool__card-header">
-                <IconifyIconOnline icon="ri:map-pin-line" class="ip-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:map-pin-line"
+                  class="ip-tool__card-icon"
+                />
                 <span>地理位置</span>
               </div>
             </template>
@@ -859,42 +1095,67 @@ onMounted(async () => {
               <div class="ip-tool__map-details">
                 <div class="ip-tool__map-detail-item">
                   <div class="ip-tool__map-detail-icon-wrapper">
-                    <IconifyIconOnline icon="ri:global-line" class="ip-tool__map-detail-icon" />
+                    <IconifyIconOnline
+                      icon="ri:global-line"
+                      class="ip-tool__map-detail-icon"
+                    />
                   </div>
                   <span class="ip-tool__map-detail-label">国家/地区:</span>
-                  <span class="ip-tool__map-detail-value">{{ env.ipDetails.country }}</span>
+                  <span class="ip-tool__map-detail-value">{{
+                    env.ipDetails.country
+                  }}</span>
                 </div>
 
                 <div class="ip-tool__map-detail-item">
                   <div class="ip-tool__map-detail-icon-wrapper">
-                    <IconifyIconOnline icon="ri:map-pin-line" class="ip-tool__map-detail-icon" />
+                    <IconifyIconOnline
+                      icon="ri:map-pin-line"
+                      class="ip-tool__map-detail-icon"
+                    />
                   </div>
                   <span class="ip-tool__map-detail-label">城市:</span>
-                  <span class="ip-tool__map-detail-value">{{ env.ipDetails.region }} {{ env.ipDetails.city }}</span>
+                  <span class="ip-tool__map-detail-value"
+                    >{{ env.ipDetails.region }} {{ env.ipDetails.city }}</span
+                  >
                 </div>
 
                 <div class="ip-tool__map-detail-item">
                   <div class="ip-tool__map-detail-icon-wrapper">
-                    <IconifyIconOnline icon="ri:building-line" class="ip-tool__map-detail-icon" />
+                    <IconifyIconOnline
+                      icon="ri:building-line"
+                      class="ip-tool__map-detail-icon"
+                    />
                   </div>
                   <span class="ip-tool__map-detail-label">ISP:</span>
-                  <span class="ip-tool__map-detail-value">{{ env.ipDetails.isp }}</span>
+                  <span class="ip-tool__map-detail-value">{{
+                    env.ipDetails.isp
+                  }}</span>
                 </div>
 
                 <div class="ip-tool__map-detail-item">
                   <div class="ip-tool__map-detail-icon-wrapper">
-                    <IconifyIconOnline icon="ri:organization-chart" class="ip-tool__map-detail-icon" />
+                    <IconifyIconOnline
+                      icon="ri:organization-chart"
+                      class="ip-tool__map-detail-icon"
+                    />
                   </div>
                   <span class="ip-tool__map-detail-label">组织:</span>
-                  <span class="ip-tool__map-detail-value">{{ env.ipDetails.org }}</span>
+                  <span class="ip-tool__map-detail-value">{{
+                    env.ipDetails.org
+                  }}</span>
                 </div>
 
                 <div class="ip-tool__map-detail-item">
                   <div class="ip-tool__map-detail-icon-wrapper">
-                    <IconifyIconOnline icon="ri:time-line" class="ip-tool__map-detail-icon" />
+                    <IconifyIconOnline
+                      icon="ri:time-line"
+                      class="ip-tool__map-detail-icon"
+                    />
                   </div>
                   <span class="ip-tool__map-detail-label">时区:</span>
-                  <span class="ip-tool__map-detail-value">{{ env.ipDetails.timezone }}</span>
+                  <span class="ip-tool__map-detail-value">{{
+                    env.ipDetails.timezone
+                  }}</span>
                 </div>
               </div>
 
@@ -902,8 +1163,13 @@ onMounted(async () => {
               <div class="ip-tool__map-container">
                 <div class="ip-tool__map-placeholder">
                   <div class="ip-tool__map-placeholder-bg"></div>
-                  <IconifyIconOnline icon="ri:map-2-line" class="ip-tool__map-placeholder-icon" />
-                  <span class="ip-tool__map-placeholder-text">地图加载中...</span>
+                  <IconifyIconOnline
+                    icon="ri:map-2-line"
+                    class="ip-tool__map-placeholder-icon"
+                  />
+                  <span class="ip-tool__map-placeholder-text"
+                    >地图加载中...</span
+                  >
                   <div class="ip-tool__map-coordinates">
                     <span>经度: {{ env.ipDetails.longitude }}</span>
                     <span>纬度: {{ env.ipDetails.latitude }}</span>
@@ -1021,7 +1287,16 @@ onMounted(async () => {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: linear-gradient(45deg, var(--el-fill-color) 25%, transparent 25%, transparent 50%, var(--el-fill-color) 50%, var(--el-fill-color) 75%, transparent 75%, transparent);
+    background-image: linear-gradient(
+      45deg,
+      var(--el-fill-color) 25%,
+      transparent 25%,
+      transparent 50%,
+      var(--el-fill-color) 50%,
+      var(--el-fill-color) 75%,
+      transparent 75%,
+      transparent
+    );
     background-size: 20px 20px;
     opacity: 0.3;
     animation: ip-tool-map-bg-move 30s linear infinite;
@@ -1128,7 +1403,10 @@ onMounted(async () => {
     width: 100px;
     height: 100px;
     border-radius: 50%;
-    background: conic-gradient(var(--el-color-success) calc(var(--score) * 1%), var(--el-fill-color) 0%);
+    background: conic-gradient(
+      var(--el-color-success) calc(var(--score) * 1%),
+      var(--el-fill-color) 0%
+    );
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1217,7 +1495,11 @@ onMounted(async () => {
 
   /* 头部样式 */
   &__header {
-    background: linear-gradient(135deg, var(--el-color-success-light-3) 0%, var(--el-color-success) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-success-light-3) 0%,
+      var(--el-color-success) 100%
+    );
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 20px;

@@ -22,7 +22,7 @@
     position: absolute;
     z-index: 1000;
     pointer-events: none;
-    
+
     // 让工具栏内部的按钮可以点击
     :deep(*) {
       pointer-events: auto;

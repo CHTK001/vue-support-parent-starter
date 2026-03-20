@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { ReMenuNewBadge } from "@repo/components";
+import { useRenderIcon } from "@repo/components";
 import {
   resolvePath as configResolvePath,
   getConfig,
@@ -16,16 +16,21 @@ import {
   toRaw,
   useAttrs,
   inject,
+  isRef,
+  type Ref,
   type Component,
   onMounted,
-  watchEffect
+  watchEffect,
 } from "vue";
 import { ScText } from "@repo/components";
 import { useNav } from "../../../hooks/useNav";
 import { emitter } from "@repo/core";
 
 // 注入主题化的 SidebarItem 组件（用于递归渲染子菜单）
-const ThemeSidebarItem = inject<Component>('themeSidebarItem');
+const _injectedSidebarItem = inject<Component | Ref<Component>>("themeSidebarItem");
+const ThemeSidebarItem = computed(() =>
+  isRef(_injectedSidebarItem) ? _injectedSidebarItem.value : _injectedSidebarItem
+);
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
 import EpArrowDown from "@iconify-icons/ep/arrow-down-bold";
@@ -34,14 +39,19 @@ import ArrowRight from "@iconify-icons/ep/arrow-right-bold";
 import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 
 const attrs = useAttrs();
-const { layout, isCollapse: navCollapse, tooltipEffect, getDivStyle } = useNav();
+const {
+  layout,
+  isCollapse: navCollapse,
+  tooltipEffect,
+  getDivStyle,
+} = useNav();
 
 const route = useRoute();
 
 const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
 const forceNewMenu = ref(false); // 强制显示所有新菜单 (测试用)
 const menuAnimation = ref(getConfig().MenuAnimation ?? false);
-const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || "bounce");
 
 onMounted(() => {
   emitter.on("showNewMenuChange", (val) => {
@@ -89,8 +99,8 @@ defineSlots<{
 // 计算当前菜单项是否激活
 const isMenuActive = computed(() => {
   const currentPath = route.path;
-  const itemPath = resolvePath(props.item?.path || '');
-  return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
+  const itemPath = resolvePath(props.item?.path || "");
+  return currentPath === itemPath || currentPath.startsWith(itemPath + "/");
 });
 
 // 暴露给父组件
@@ -103,7 +113,10 @@ const getNoDropdownStyle = computed((): CSSProperties => {
     width: "100%",
     display: "flex",
     alignItems: "center",
-    justifyContent: isCollapse.value && layout.value !== "horizontal" ? "center" : "flex-start",
+    justifyContent:
+      isCollapse.value && layout.value !== "horizontal"
+        ? "center"
+        : "flex-start",
   };
 });
 
@@ -168,12 +181,20 @@ onMounted(() => {
 
 <template>
   <SidebarLinkItem
-    v-if="onlyOneChild && (!onlyOneChild.children || onlyOneChild.noShowingChildren)"
+    v-if="
+      onlyOneChild && (!onlyOneChild.children || onlyOneChild.noShowingChildren)
+    "
     :to="onlyOneChild"
   >
-    <el-menu-item
+    <ScMenuItem
       :index="resolvePath(onlyOneChild.path)"
-      :class="['sidebar-menu-item', { 'submenu-title-noDropdown': !isNest, 'menu-animation': menuAnimation }]"
+      :class="[
+        'sidebar-menu-item',
+        {
+          'submenu-title-noDropdown': !isNest,
+          'menu-animation': menuAnimation,
+        },
+      ]"
       :style="getNoDropdownStyle"
       v-bind="attrs"
     >
@@ -183,7 +204,7 @@ onMounted(() => {
             useRenderIcon(
               toRaw(onlyOneChild?.meta?.icon) ||
                 (item?.meta && toRaw(item?.meta?.icon)) ||
-                'ep:menu'
+                'ep:menu',
             )
           "
         />
@@ -202,24 +223,37 @@ onMounted(() => {
             item?.pathList?.length === 2)
         "
         class="flex-1 !pl-4 menu-text"
-        :text="transformI18n(
-          onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title || item?.meta?.title
-        )"
+        :text="
+          transformI18n(
+            onlyOneChild?.meta?.i18nKey ||
+              onlyOneChild?.meta?.title ||
+              item?.meta?.title,
+          )
+        "
       />
       <ReMenuNewBadge
         v-if="!isCollapse && showNewMenu"
         :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime"
-        :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'"
+        :type="
+          onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'
+        "
         :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText"
-        :forceShow="forceNewMenu || onlyOneChild?.meta?.permanentNew || item?.meta?.permanentNew"
+        :forceShow="
+          forceNewMenu ||
+          onlyOneChild?.meta?.permanentNew ||
+          item?.meta?.permanentNew
+        "
         :animation="newMenuAnimation"
-        style="margin-top: 0; align-self: center;"
+        style="margin-top: 0; align-self: center"
       />
 
-      
       <!-- 主题装饰插槽 -->
-      <slot name="activeDecoration" :is-active="isMenuActive" :item-path="resolvePath(onlyOneChild.path)" />
-    </el-menu-item>
+      <slot
+        name="activeDecoration"
+        :is-active="isMenuActive"
+        :item-path="resolvePath(onlyOneChild.path)"
+      />
+    </ScMenuItem>
   </SidebarLinkItem>
   <el-sub-menu
     v-else
@@ -271,7 +305,11 @@ onMounted(() => {
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>
 
-    <div v-for="(child, index) in item.children" :key="child.path" class="submenu-item-wrapper">
+    <div
+      v-for="(child, index) in item.children"
+      :key="child.path"
+      class="submenu-item-wrapper"
+    >
       <component
         :is="ThemeSidebarItem"
         :key="child.path"
@@ -328,10 +366,20 @@ onMounted(() => {
 }
 
 @keyframes menu-bounce {
-  0% { transform: scale(1); }
-  30% { transform: scale(0.92); }
-  60% { transform: scale(1.03); }
-  80% { transform: scale(0.98); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(0.92);
+  }
+  60% {
+    transform: scale(1.03);
+  }
+  80% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style>

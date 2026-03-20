@@ -9,7 +9,14 @@
 
 import { ref } from "vue";
 import { getToken } from "../utils/auth";
+<<<<<<< HEAD
 import type { SocketTemplate, SocketTemplateListenOptions, WsMessage } from "./socketTemplate";
+=======
+import type {
+  SocketTemplate,
+  SocketTemplateListenOptions,
+} from "./socketTemplate";
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import { parseSocketMessage, toWebSocketUrl } from "./socketUtils";
 
 /**
@@ -40,7 +47,9 @@ export interface WebSocketConfig {
  * @param config 配置
  * @returns SocketTemplate 实例
  */
-export function createWebSocketService(config: WebSocketConfig): SocketTemplate {
+export function createWebSocketService(
+  config: WebSocketConfig,
+): SocketTemplate {
   const isConnected = ref(false);
   let wsInstance: WebSocket | null = null;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -64,7 +73,9 @@ export function createWebSocketService(config: WebSocketConfig): SocketTemplate 
     if (config.heartbeatInterval && config.heartbeatInterval > 0) {
       heartbeatTimer = setInterval(() => {
         if (wsInstance?.readyState === WebSocket.OPEN) {
-          wsInstance.send(JSON.stringify({ event: "ping", timestamp: Date.now() }));
+          wsInstance.send(
+            JSON.stringify({ event: "ping", timestamp: Date.now() }),
+          );
         }
       }, config.heartbeatInterval);
     }
@@ -86,10 +97,10 @@ export function createWebSocketService(config: WebSocketConfig): SocketTemplate 
     try {
       const token = getToken();
       let baseUrl = config.urls[Math.floor(Math.random() * config.urls.length)];
-      
+
       // 转换为 WebSocket URL
       baseUrl = toWebSocketUrl(baseUrl);
-      
+
       // 添加路径
       if (config.path) {
         baseUrl = baseUrl.replace(/\/$/, "") + config.path;
@@ -121,14 +132,20 @@ export function createWebSocketService(config: WebSocketConfig): SocketTemplate 
         isConnected.value = false;
         stopHeartbeat();
         console.log("[WebSocket] 断开连接", event.code, event.reason);
-        triggerEvent("disconnect", { connected: false, code: event.code, reason: event.reason });
+        triggerEvent("disconnect", {
+          connected: false,
+          code: event.code,
+          reason: event.reason,
+        });
 
         // 自动重连
         const maxAttempts = config.reconnectionAttempts ?? 3;
         if (config.reconnection !== false && reconnectAttempts < maxAttempts) {
           reconnectAttempts++;
           const delay = config.reconnectionDelay || 1000;
-          console.log(`[WebSocket] 尝试重连 (${reconnectAttempts}/${maxAttempts})...`);
+          console.log(
+            `[WebSocket] 尝试重连 (${reconnectAttempts}/${maxAttempts})...`,
+          );
           setTimeout(() => {
             if (!isConnected.value) {
               connect();
@@ -145,7 +162,7 @@ export function createWebSocketService(config: WebSocketConfig): SocketTemplate 
       wsInstance.onmessage = (event) => {
         try {
           let message: { event?: string; data?: unknown };
-          
+
           // 尝试解析JSON
           if (typeof event.data === "string") {
             try {
@@ -167,7 +184,9 @@ export function createWebSocketService(config: WebSocketConfig): SocketTemplate 
           }
 
           const eventName = message.event || "message";
-          const data = parseSocketMessage(message.data !== undefined ? message.data : message);
+          const data = parseSocketMessage(
+            message.data !== undefined ? message.data : message,
+          );
           triggerEvent(eventName, data);
         } catch (error) {
           console.error("[WebSocket] 消息解析错误:", error);
@@ -190,7 +209,7 @@ export function createWebSocketService(config: WebSocketConfig): SocketTemplate 
   const on = (
     event: string,
     callback: (data: unknown) => void,
-    options?: SocketTemplateListenOptions
+    options?: SocketTemplateListenOptions,
   ) => {
     const wrappedCallback = (data: unknown) => {
       if (options?.dataId !== undefined) {
@@ -219,7 +238,7 @@ export function createWebSocketService(config: WebSocketConfig): SocketTemplate 
           event,
           data,
           timestamp: new Date().toISOString(),
-        })
+        }),
       );
     } else {
       console.warn("[WebSocket] 未连接，无法发送消息");

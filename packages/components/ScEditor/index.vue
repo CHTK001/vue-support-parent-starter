@@ -105,8 +105,8 @@ watch(disabled, val => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/styles/mixins.scss" as *;
-@use "@/styles/variables.scss" as *;
+// @use "@/styles/mixins.scss" as *;
+// @use "@/styles/variables.scss" as *;
 
 .sc-editor-container {
   border: 1px solid $border-light;

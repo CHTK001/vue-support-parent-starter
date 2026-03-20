@@ -25,7 +25,11 @@ export const getRandomSignedInt = (n: number): number => {
  * @param {number} max
  * @return {number[]}
  */
-export const getRandomIntArray = (length: number, min: number, max: number): number[] => {
+export const getRandomIntArray = (
+  length: number,
+  min: number,
+  max: number,
+): number[] => {
   return Array.from({ length }, () => getRandomInt(min, max));
 };
 /**

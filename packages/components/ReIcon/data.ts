@@ -2840,7 +2840,7 @@ export const IconJson = {
     "zzz-fill",
     "zzz-line"
   ],
-  "pixelarticons:":[
+  "pixelarticons:": [
     "4g",
     "4k",
     "4k-box",
@@ -3327,7 +3327,7 @@ export const IconJson = {
     "zap",
     "zoom-in",
     "zoom-out"
-],
+  ],
   "humbleicons:": [
     "activity",
     "adjustments",
@@ -9131,7 +9131,7 @@ export const IconJson = {
     "zig",
     "zig-wordmark"
   ],
-  "bi:":[
+  "bi:": [
     "123",
     "0-circle",
     "0-circle-fill",
@@ -14288,5 +14288,5 @@ export const IconJson = {
     "zoom-in-line",
     "zoom-out-fill",
     "zoom-out-line"
-]
+  ]
 };

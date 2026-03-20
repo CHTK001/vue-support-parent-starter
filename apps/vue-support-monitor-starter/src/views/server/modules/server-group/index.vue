@@ -6,33 +6,33 @@
         <h2 class="page-title">
           <IconifyIconOnline icon="ri:folder-line" class="mr-2" />
           服务器组管理
-          <el-tooltip
+          <ScTooltip
             :content="`当前共有 ${totalCount} 个分组`"
             placement="bottom"
             :show-after="500"
           >
-            <el-tag type="info" effect="plain" class="group-count">
+            <ScTag type="info" effect="plain" class="group-count">
               共
               <span class="count-num">{{ totalCount }}</span>
               个
-            </el-tag>
-          </el-tooltip>
+            </ScTag>
+          </ScTooltip>
         </h2>
       </div>
       <div class="header-right">
-        <el-button type="primary" :icon="Plus" @click="handleAdd">
+        <ScButton type="primary" :icon="Plus" @click="handleAdd">
           新增分组
-        </el-button>
-        <el-button :icon="Refresh" :loading="loading" @click="handleRefresh">
+        </ScButton>
+        <ScButton :icon="Refresh" :loading="loading" @click="handleRefresh">
           刷新
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 搜索和筛选 -->
     <div class="filter-bar">
       <div class="filter-left">
-        <el-input
+        <ScInput
           v-model="searchKeyword"
           placeholder="搜索分组名称"
           clearable
@@ -42,22 +42,22 @@
         />
       </div>
       <div class="filter-right">
-        <el-select
+        <ScSelect
           v-model="filterStatus"
           placeholder="状态筛选"
           clearable
           style="width: 120px"
           @change="handleFilter"
         >
-          <el-option label="启用" :value="1" />
-          <el-option label="禁用" :value="0" />
-        </el-select>
+          <ScOption label="启用" :value="1" />
+          <ScOption label="禁用" :value="0" />
+        </ScSelect>
       </div>
     </div>
 
     <!-- 分组列表 -->
     <div v-loading="loading" class="group-content">
-      <el-empty v-if="filteredGroups.length === 0" description="暂无分组数据" />
+      <ScEmpty v-if="filteredGroups.length === 0" description="暂无分组数据" />
       <div v-else class="group-grid">
         <div
           v-for="group in filteredGroups"
@@ -86,7 +86,7 @@
               </div>
             </div>
             <div class="group-badges">
-              <el-tag
+              <ScTag
                 v-if="group.monitorSysGenServerGroupIsDefault === 1"
                 type="primary"
                 size="small"
@@ -95,8 +95,8 @@
               >
                 <IconifyIconOnline icon="ri:star-fill" class="mr-1" />
                 默认
-              </el-tag>
-              <el-tag
+              </ScTag>
+              <ScTag
                 :type="
                   group.monitorSysGenServerGroupStatus === 1
                     ? 'success'
@@ -108,7 +108,7 @@
                 {{
                   group.monitorSysGenServerGroupStatus === 1 ? "启用" : "禁用"
                 }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
 
@@ -138,10 +138,10 @@
 
           <div class="card-footer">
             <el-button-group class="action-group">
-              <el-button size="small" :icon="Edit" @click="handleEdit(group)">
+              <ScButton size="small" :icon="Edit" @click="handleEdit(group)">
                 编辑
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 v-if="group.monitorSysGenServerGroupIsDefault !== 1"
                 size="small"
                 type="primary"
@@ -149,8 +149,8 @@
                 @click="handleSetDefault(group)"
               >
                 设为默认
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 size="small"
                 :type="
                   group.monitorSysGenServerGroupStatus === 1
@@ -170,8 +170,8 @@
                 {{
                   group.monitorSysGenServerGroupStatus === 1 ? "禁用" : "启用"
                 }}
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 v-if="
                   group.monitorSysGenServerGroupIsDefault !== 1 &&
                   (group.serverCount || 0) === 0
@@ -182,7 +182,7 @@
                 @click="handleDelete(group)"
               >
                 删除
-              </el-button>
+              </ScButton>
             </el-button-group>
           </div>
         </div>

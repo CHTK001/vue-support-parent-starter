@@ -1,17 +1,35 @@
 ﻿<template>
   <div class="ai-generator-layout system-container modern-bg">
     <!-- 对话框组件 -->
-    <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
-    <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment" @handleRefreshEnvironmentTemplate="handleRefreshEnvironmentTemplate"></ModuleDialog>
+    <ModuleUpdateDialog
+      ref="moduleUpdateDialogRef"
+      @success="handleRefreshEnvironment"
+    ></ModuleUpdateDialog>
+    <ModuleDialog
+      ref="moduleDialogRef"
+      @success="handleRefreshEnvironment"
+      @handleRefreshEnvironmentTemplate="handleRefreshEnvironmentTemplate"
+    ></ModuleDialog>
 
     <!-- 模型配置管理面板 -->
-    <ModuleDialog ref="modelConfigDialogRef" @success="handleRefreshEnvironment" @handleRefreshEnvironmentTemplate="handleRefreshEnvironmentTemplate" />
+    <ModuleDialog
+      ref="modelConfigDialogRef"
+      @success="handleRefreshEnvironment"
+      @handleRefreshEnvironmentTemplate="handleRefreshEnvironmentTemplate"
+    />
 
     <!-- 主要内容区域 -->
     <div class="main-content">
       <!-- 历史记录区域（包含新生成的内容） -->
       <div class="history-section">
-        <HistoryLayout ref="historyLayoutRef" :form="form" :full="true" :env="env" :new-generated-data="generatedResults" @redrawer="handleReDraw"></HistoryLayout>
+        <HistoryLayout
+          ref="historyLayoutRef"
+          :form="form"
+          :full="true"
+          :env="env"
+          :new-generated-data="generatedResults"
+          @redrawer="handleReDraw"
+        ></HistoryLayout>
       </div>
     </div>
 
@@ -19,13 +37,24 @@
     <div class="bottom-input-area">
       <!-- 设置选项栏 -->
       <div class="settings-bar" v-if="showSettings">
-        <el-scrollbar class="settings-scroll">
+        <ScScrollbar class="settings-scroll">
           <div class="settings-content">
             <!-- 模型选择 -->
             <div class="setting-item">
               <label class="setting-label">模型</label>
-              <ScSelect v-model="form.model" placeholder="选择模型" size="small" @change="handleChangeModule" class="compact-select">
-                <ScOption v-for="item in modelList" :key="item.sysAiModuleCode" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+              <ScSelect
+                v-model="form.model"
+                placeholder="选择模型"
+                size="small"
+                @change="handleChangeModule"
+                class="compact-select"
+              >
+                <ScOption
+                  v-for="item in modelList"
+                  :key="item.sysAiModuleCode"
+                  :label="item.sysAiModuleName"
+                  :value="item.sysAiModuleCode"
+                >
                   <div class="model-option">
                     <ScImage :src="item.sysProjectIcon" class="model-icon" />
                     <span>{{ item.sysAiModuleName }}</span>
@@ -37,10 +66,24 @@
             <!-- 比例选择 -->
             <div class="setting-item">
               <label class="setting-label">比例</label>
-              <ScRadioGroup v-model="form.parameters.size" size="small" class="compact-radio-group">
-                <el-radio-button v-for="size in formSetting.sysAiVincentSupportedSize?.split(',') || []" :key="size" :value="size" class="ratio-button">
+              <ScRadioGroup
+                v-model="form.parameters.size"
+                size="small"
+                class="compact-radio-group"
+              >
+                <el-radio-button
+                  v-for="size in formSetting.sysAiVincentSupportedSize?.split(
+                    ',',
+                  ) || []"
+                  :key="size"
+                  :value="size"
+                  class="ratio-button"
+                >
                   <div class="ratio-content">
-                    <i :style="{ 'aspect-ratio': getRatio(size) }" class="ratio-visual"></i>
+                    <i
+                      :style="{ 'aspect-ratio': getRatio(size) }"
+                      class="ratio-visual"
+                    ></i>
                     <span class="ratio-text">{{ size }}</span>
                   </div>
                 </el-radio-button>
@@ -48,12 +91,28 @@
             </div>
 
             <!-- 风格选择 -->
-            <div class="setting-item" v-if="form.sysAiModuleType == 'VINCENT' && styleData.length > 0">
+            <div
+              class="setting-item"
+              v-if="form.sysAiModuleType == 'VINCENT' && styleData.length > 0"
+            >
               <label class="setting-label">风格</label>
-              <ScSelect v-model="form.parameters.style" placeholder="选择风格" size="small" class="compact-select">
-                <ScOption v-for="item in styleData" :key="item.sysAiVincentStyleCode" :label="item.sysAiVincentStyleName" :value="item.sysAiVincentStyleCode">
+              <ScSelect
+                v-model="form.parameters.style"
+                placeholder="选择风格"
+                size="small"
+                class="compact-select"
+              >
+                <ScOption
+                  v-for="item in styleData"
+                  :key="item.sysAiVincentStyleCode"
+                  :label="item.sysAiVincentStyleName"
+                  :value="item.sysAiVincentStyleCode"
+                >
                   <div class="style-option">
-                    <ScImage :src="item.sysAiVincentStyleImage" class="style-icon" />
+                    <ScImage
+                      :src="item.sysAiVincentStyleImage"
+                      class="style-icon"
+                    />
                     <span>{{ item.sysAiVincentStyleName }}</span>
                   </div>
                 </ScOption>
@@ -63,34 +122,88 @@
             <!-- 输出数量 -->
             <div class="setting-item">
               <label class="setting-label">数量</label>
-              <ScInputNumber v-model="form.parameters.number" :min="1" :max="formSetting.sysAiVincentSupportedNumber || 4" size="small" class="compact-number" controls-position="right" />
+              <ScInputNumber
+                v-model="form.parameters.number"
+                :min="1"
+                :max="formSetting.sysAiVincentSupportedNumber || 4"
+                size="small"
+                class="compact-number"
+                controls-position="right"
+              />
             </div>
 
             <!-- 质量选择（视频模式） -->
-            <div class="setting-item" v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportedQuality">
+            <div
+              class="setting-item"
+              v-if="
+                form.sysAiModuleType == 'VIDEO' &&
+                formSetting.sysAiVincentSupportedQuality
+              "
+            >
               <label class="setting-label">质量</label>
-              <ScRadioGroup v-model="form.parameters.quality" size="small" class="compact-radio-group">
-                <el-radio-button v-for="item in formSetting.sysAiVincentSupportedQuality?.split(',') || []" :key="item" :value="item">
+              <ScRadioGroup
+                v-model="form.parameters.quality"
+                size="small"
+                class="compact-radio-group"
+              >
+                <el-radio-button
+                  v-for="item in formSetting.sysAiVincentSupportedQuality?.split(
+                    ',',
+                  ) || []"
+                  :key="item"
+                  :value="item"
+                >
                   {{ getQuality(item)?.name || item }}
                 </el-radio-button>
               </ScRadioGroup>
             </div>
 
             <!-- 帧率选择（视频模式） -->
-            <div class="setting-item" v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportedFps">
+            <div
+              class="setting-item"
+              v-if="
+                form.sysAiModuleType == 'VIDEO' &&
+                formSetting.sysAiVincentSupportedFps
+              "
+            >
               <label class="setting-label">帧率</label>
-              <ScSelect v-model="form.parameters.fps" placeholder="选择帧率" size="small" class="compact-select">
-                <ScOption v-for="fps in formSetting.sysAiVincentSupportedFps?.split(',') || []" :key="fps" :label="fps + ' FPS'" :value="fps" />
+              <ScSelect
+                v-model="form.parameters.fps"
+                placeholder="选择帧率"
+                size="small"
+                class="compact-select"
+              >
+                <ScOption
+                  v-for="fps in formSetting.sysAiVincentSupportedFps?.split(
+                    ',',
+                  ) || []"
+                  :key="fps"
+                  :label="fps + ' FPS'"
+                  :value="fps"
+                />
               </ScSelect>
             </div>
 
             <!-- AI音效（视频模式） -->
-            <div class="setting-item" v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportAudio">
+            <div
+              class="setting-item"
+              v-if="
+                form.sysAiModuleType == 'VIDEO' &&
+                formSetting.sysAiVincentSupportAudio
+              "
+            >
               <label class="setting-label">音效</label>
-              <ScSwitch v-model="form.parameters.withAudio" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" size="small" />
+              <ScSwitch
+                v-model="form.parameters.withAudio"
+                :active-value="1"
+                :inactive-value="0"
+                active-text="开启"
+                inactive-text="关闭"
+                size="small"
+              />
             </div>
           </div>
-        </el-scrollbar>
+        </ScScrollbar>
       </div>
 
       <!-- 主输入框 -->
@@ -121,7 +234,11 @@
               <template #prefix>
                 <div class="input-prefix">
                   <ScTooltip content="高级设置" placement="top">
-                    <ScButton circle @click="toggleAdvanced" :type="showAdvanced ? 'primary' : 'default'">
+                    <ScButton
+                      circle
+                      @click="toggleAdvanced"
+                      :type="showAdvanced ? 'primary' : 'default'"
+                    >
                       <IconifyIconOnline icon="mdi:tune-variant" />
                     </ScButton>
                   </ScTooltip>
@@ -133,7 +250,11 @@
                   </ScTooltip>
 
                   <ScTooltip content="模型配置" placement="top">
-                    <ScButton circle @click="toggleModelConfig" :type="showModelConfig ? 'primary' : 'default'">
+                    <ScButton
+                      circle
+                      @click="toggleModelConfig"
+                      :type="showModelConfig ? 'primary' : 'default'"
+                    >
                       <IconifyIconOnline icon="ri:settings-4-line" />
                     </ScButton>
                   </ScTooltip>
@@ -144,15 +265,38 @@
               <template #action-list>
                 <div class="action-buttons">
                   <!-- 模型选择按钮 -->
-                  <ScSelect v-model="form.model" class="min-w-[200px]" :options="modelOptions" layout="dropdown" dropdown-icon="ri:cpu-line" dropdown-title="模型选择" dropdown-placeholder="选择模型" @change="handleModelSelect" height="600px"> </ScSelect>
+                  <ScSelect
+                    v-model="form.model"
+                    class="min-w-[200px]"
+                    :options="modelOptions"
+                    layout="dropdown"
+                    dropdown-icon="ri:cpu-line"
+                    dropdown-title="模型选择"
+                    dropdown-placeholder="选择模型"
+                    @change="handleModelSelect"
+                    height="600px"
+                  >
+                  </ScSelect>
 
                   <!-- 分辨率选择按钮 -->
-                  <ScSelect v-model="form.parameters.size" :options="sizeOptions" layout="dropdown" dropdown-icon="ri:aspect-ratio-line" dropdown-title="比例" dropdown-placeholder="选择分辨率" @change="handleSizeSelect" v-if="sizeOptions && sizeOptions.length > 0" />
+                  <ScSelect
+                    v-model="form.parameters.size"
+                    :options="sizeOptions"
+                    layout="dropdown"
+                    dropdown-icon="ri:aspect-ratio-line"
+                    dropdown-title="比例"
+                    dropdown-placeholder="选择分辨率"
+                    @change="handleSizeSelect"
+                    v-if="sizeOptions && sizeOptions.length > 0"
+                  />
 
                   <!-- 风格选择按钮 (仅VINCENT类型显示) -->
                   <ScSelect
                     displayMode="large"
-                    v-if="form.sysAiModuleType === 'VINCENT' && styleOptions.length > 0"
+                    v-if="
+                      form.sysAiModuleType === 'VINCENT' &&
+                      styleOptions.length > 0
+                    "
                     v-model="form.parameters.style"
                     :options="styleOptions"
                     layout="dropdown"
@@ -172,26 +316,56 @@
                   </ScSelect>
 
                   <!-- 数量选择按钮 -->
-                  <ScSelect v-model="form.parameters.number" :options="numberOptions" layout="dropdown" class="min-w-[150px]" dropdown-icon="ri:hashtag" dropdown-title="数量" dropdown-placeholder="选择数量" @change="handleNumberSelect" />
+                  <ScSelect
+                    v-model="form.parameters.number"
+                    :options="numberOptions"
+                    layout="dropdown"
+                    class="min-w-[150px]"
+                    dropdown-icon="ri:hashtag"
+                    dropdown-title="数量"
+                    dropdown-placeholder="选择数量"
+                    @change="handleNumberSelect"
+                  />
 
                   <!-- 生成/停止按钮 -->
-                  <ScButton v-if="loadingConfig.export" circle @click="stopGeneration" class="stop-btn">
+                  <ScButton
+                    v-if="loadingConfig.export"
+                    circle
+                    @click="stopGeneration"
+                    class="stop-btn"
+                  >
                     <IconifyIconOnline icon="ri:stop-circle-line" />
                   </ScButton>
-                  <ScButton v-else circle @click="handleGenerate" :disabled="!canGenerate" class="generate-btn" type="primary">
+                  <ScButton
+                    v-else
+                    circle
+                    @click="handleGenerate"
+                    :disabled="!canGenerate"
+                    class="generate-btn"
+                    type="primary"
+                  >
                     <IconifyIconOnline icon="ri:magic-line" />
                   </ScButton>
                 </div>
               </template>
 
               <!-- 自定义底部 - 反向提示词 -->
-              <template #footer v-if="form.sysAiModuleType == 'VINCENT' && showAdvanced">
+              <template
+                #footer
+                v-if="form.sysAiModuleType == 'VINCENT' && showAdvanced"
+              >
                 <div class="negative-prompt-section">
                   <div class="negative-prompt-label">
                     <IconifyIconOnline icon="ri:subtract-line" />
                     <span>反向提示词</span>
                   </div>
-                  <ScInput v-model="form.input.negativePrompt" type="textarea" :rows="1" placeholder="不希望出现的内容..." class="negative-prompt-input"></ScInput>
+                  <ScInput
+                    v-model="form.input.negativePrompt"
+                    type="textarea"
+                    :rows="1"
+                    placeholder="不希望出现的内容..."
+                    class="negative-prompt-input"
+                  ></ScInput>
                 </div>
               </template>
             </EditorSender>
@@ -202,21 +376,42 @@
   </div>
 </template>
 <script setup>
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { useUserStoreHook } from "@repo/core";
-import { clearObject, getRandomInt, localStorageProxy, message } from "@repo/utils";
+import {
+  clearObject,
+  getRandomInt,
+  localStorageProxy,
+  message,
+} from "@repo/utils";
 
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import { computed, defineAsyncComponent, onMounted, reactive, ref, shallowRef } from "vue";
+import { ScSelect } from "@repo/components"
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  reactive,
+  ref,
+  shallowRef,
+} from "vue";
 import { useRoute } from "vue-router";
-import { fetchGetTaskForVincent, fetchSaveTaskForVincent } from "../../../api/ai/text-generations";
+import {
+  fetchGetTaskForVincent,
+  fetchSaveTaskForVincent,
+} from "../../../api/ai/text-generations";
 import { fetchListForModelStyle } from "../../../api/ai/vincent-style";
 import { fetchListForModelTemplate } from "../../../api/ai/vincent-template";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 import { RANDOM_DATA } from "./hook";
-const HistoryLayout = defineAsyncComponent(() => import("./module/HistoryLayout.vue"));
-const ModuleUpdateDialog = defineAsyncComponent(() => import("./module/ModuleUpdateDialog.vue"));
-const ModuleDialog = defineAsyncComponent(() => import("./module/ModuleDialog.vue"));
+const HistoryLayout = defineAsyncComponent(
+  () => import("./module/HistoryLayout.vue"),
+);
+const ModuleUpdateDialog = defineAsyncComponent(
+  () => import("./module/ModuleUpdateDialog.vue"),
+);
+const ModuleDialog = defineAsyncComponent(
+  () => import("./module/ModuleDialog.vue"),
+);
 const historyLayoutRef = shallowRef();
 const styleData = shallowRef([]);
 const loadingConfig = reactive({
@@ -287,10 +482,18 @@ const rules = {
   model: [{ required: true, message: "请选择模型", trigger: "change" }],
   tokens: [{ required: true, message: "请输入tokens", trigger: "change" }],
   topK: [{ required: true, message: "请输入topK", trigger: "change" }],
-  temperature: [{ required: true, message: "请输入temperature", trigger: "change" }],
-  "parameters.size": [{ required: true, message: "请输入比例", trigger: "change" }],
-  "parameters.style": [{ required: true, message: "请输入风格", trigger: "change" }],
-  "parameters.number": [{ required: true, message: "请输入输出图片张数", trigger: "change" }],
+  temperature: [
+    { required: true, message: "请输入temperature", trigger: "change" },
+  ],
+  "parameters.size": [
+    { required: true, message: "请输入比例", trigger: "change" },
+  ],
+  "parameters.style": [
+    { required: true, message: "请输入风格", trigger: "change" },
+  ],
+  "parameters.number": [
+    { required: true, message: "请输入输出图片张数", trigger: "change" },
+  ],
 };
 const route = useRoute();
 
@@ -373,7 +576,9 @@ const handleStyleTagSelect = (tagData) => {
     form.parameters.style = tagData.selectedId;
 
     // 找到对应的风格名称
-    const selectedStyle = styleData.value.find((style) => style.sysAiVincentStyleCode === tagData.selectedId);
+    const selectedStyle = styleData.value.find(
+      (style) => style.sysAiVincentStyleCode === tagData.selectedId,
+    );
     if (selectedStyle) {
       console.log("选择了风格标签:", selectedStyle.sysAiVincentStyleName);
       // 可以在这里添加一些用户反馈，比如消息提示
@@ -386,7 +591,8 @@ const handleStyleTagSelect = (tagData) => {
 const openStyleTagDialog = () => {
   if (editorSenderRef.value && styleData.value.length > 0) {
     // 获取当前光标位置的元素
-    const editorElement = editorSenderRef.value.$el?.querySelector(".editor-content");
+    const editorElement =
+      editorSenderRef.value.$el?.querySelector(".editor-content");
     if (editorElement) {
       editorSenderRef.value.openSelectDialog({
         key: "style",
@@ -500,7 +706,9 @@ const handleGenerateSeed = () => {
 // 历史记录相关方法已移除，现在HistoryLayout始终显示
 
 const modelSelectStyle = computed(() => {
-  return styleData.value.find((it) => it.sysAiVincentStyleCode === form.parameters.style)?.sysAiVincentStyleImage;
+  return styleData.value.find(
+    (it) => it.sysAiVincentStyleCode === form.parameters.style,
+  )?.sysAiVincentStyleImage;
 });
 
 // 当前选择的模型名称
@@ -516,7 +724,9 @@ const currentSizeName = computed(() => {
 
 // 当前选择的风格名称
 const currentStyleName = computed(() => {
-  const style = styleData.value.find((it) => it.sysAiVincentStyleCode === form.parameters.style);
+  const style = styleData.value.find(
+    (it) => it.sysAiVincentStyleCode === form.parameters.style,
+  );
   return style?.sysAiVincentStyleName || "选择风格";
 });
 /**
@@ -526,7 +736,9 @@ const handleRefreshRandom = async () => {
   randomPrompt.value = RANDOM_DATA[getRandomInt(0, RANDOM_DATA.length - 1)];
 };
 const showRoleSetting = computed(() => {
-  const item = modelList.value.filter((it) => (it.sysAiModuleCode = form.model));
+  const item = modelList.value.filter(
+    (it) => (it.sysAiModuleCode = form.model),
+  );
   return item ? item?.[0]?.sysAiModuleRoleSetting : 0;
 });
 
@@ -584,7 +796,9 @@ const getQuality = (quality) => {
  * 获取key
  */
 const requestId = () => {
-  const _requestId = localStorageProxy().getItem("vincent-request-id:" + getKey());
+  const _requestId = localStorageProxy().getItem(
+    "vincent-request-id:" + getKey(),
+  );
   return _requestId;
 };
 
@@ -597,7 +811,10 @@ const handleReDraw = async (value, type) => {
   form.input.prompt = value;
 };
 const loadedRequestId = async (row) => {
-  localStorageProxy().setItem("vincent-request-id:" + getKey(), row.data?.output?.taskId);
+  localStorageProxy().setItem(
+    "vincent-request-id:" + getKey(),
+    row.data?.output?.taskId,
+  );
 };
 const loadInterval = () => {
   if (intervalId) {
@@ -681,9 +898,15 @@ const createInterval = () => {
     return;
   }
   intervalId = setInterval(() => {
-    fetchGetTaskForVincent({ taskId: requestId(), sysProjectId: form.sysProjectId, sysAiModuleType: form.sysAiModuleType, model: form.model })
+    fetchGetTaskForVincent({
+      taskId: requestId(),
+      sysProjectId: form.sysProjectId,
+      sysAiModuleType: form.sysAiModuleType,
+      model: form.model,
+    })
       .then((res) => {
-        const _status = res.data?.output?.taskStatus || res.data?.output?.task_status;
+        const _status =
+          res.data?.output?.taskStatus || res.data?.output?.task_status;
         if (_status === "SUCCESS") {
           clearTask();
           updateImage(res.data?.output?.results?.map((it) => it.url));
@@ -727,7 +950,9 @@ const handleExport = async () => {
       }
 
       // 获取当前选中模型的异步支持配置
-      const currentModel = modelList.value.find((it) => it.sysAiModuleCode === form.model);
+      const currentModel = modelList.value.find(
+        (it) => it.sysAiModuleCode === form.model,
+      );
       const supportAsync = currentModel?.sysAiVincentSupportAsync || 0;
 
       loadedRequestId(res);
@@ -866,7 +1091,10 @@ const loadStyle = async (row) => {
       sysAiModuleId: form.sysAiModuleId,
     });
     styleData.value = data;
-    form.parameters.style = styleData.value.length > 0 ? styleData.value[0]?.sysAiVincentStyleCode : "";
+    form.parameters.style =
+      styleData.value.length > 0
+        ? styleData.value[0]?.sysAiVincentStyleCode
+        : "";
   } catch (error) {}
   loadingConfig.loading = false;
 };

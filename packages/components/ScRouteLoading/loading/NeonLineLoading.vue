@@ -68,9 +68,7 @@ onUnmounted(() => {
   max-width: 340px;
   padding: 24px 28px;
   border-radius: 16px;
-  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent),
-    radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.16), transparent),
-    rgba(15, 23, 42, 0.96);
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent), radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.16), transparent), rgba(15, 23, 42, 0.96);
   box-shadow:
     0 0 0 1px rgba(148, 163, 184, 0.3),
     0 16px 40px rgba(15, 23, 42, 0.9),
@@ -117,12 +115,7 @@ onUnmounted(() => {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    120deg,
-    transparent 0%,
-    rgba(248, 250, 252, 0.9) 40%,
-    transparent 60%
-  );
+  background: linear-gradient(120deg, transparent 0%, rgba(248, 250, 252, 0.9) 40%, transparent 60%);
   mix-blend-mode: screen;
   animation: light-sweep 1.6s linear infinite;
 }
@@ -199,5 +192,3 @@ onUnmounted(() => {
   }
 }
 </style>
-
-

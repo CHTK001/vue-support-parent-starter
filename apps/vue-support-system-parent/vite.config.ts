@@ -1,19 +1,7 @@
-import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
-import {
-  root,
-  wrapperEnv,
-  pathResolve,
-  createAlias,
-  createAppInfo,
-  getPluginsList,
-  include,
-  exclude,
-  getSharedPublicConfig,
-} from "../../packages/build-config/dist/index.mjs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { createViteConfig } from "@repo/build-config";
 import pkg from "./package.json";
 
+<<<<<<< HEAD
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
   // const env = loadEnv(newMode, root);
@@ -77,79 +65,61 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       i18nPaths: [
         pathResolve("../locales/**", import.meta.url),
         pathResolve("@repo/config/locales/**", import.meta.url),
+=======
+/**
+ * Vite 配置 - 系统管理
+ * 使用链式 API 简化配置
+ */
+export default createViteConfig(import.meta.url, pkg)
+  .proxies({
+    "/system/api": { target: "http://127.0.0.1:18170", changeOrigin: true },
+    "/tenant/api": { target: "http://127.0.0.1:18171", changeOrigin: true },
+  })
+  .include(
+    "rete",
+    "rete-vue-plugin",
+    "rete-connection-plugin",
+    "rete-area-plugin",
+    "rete-context-menu-plugin",
+    "rete-render-utils",
+    "rete-auto-arrange-plugin",
+    "rete-connection-reroute-plugin",
+    "rete-minimap-plugin",
+    "@babel/runtime/regenerator",
+    "@pixelium/web-vue",
+    "three",
+  )
+  .mock(["mock"])
+  .terser({
+    compress: {
+      drop_console: true,
+      drop_debugger: true,
+      pure_funcs: [
+        "console.log",
+        "console.info",
+        "console.debug",
+        "console.warn",
+        "console.error",
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       ],
-      mockPath: ["mock"],
-    }),
-    // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
-    optimizeDeps: {
-      include: [
-        ...include,
-        "rete",
-        "rete-vue-plugin",
-        "rete-connection-plugin",
-        "rete-area-plugin",
-        "rete-context-menu-plugin",
-        "rete-render-utils",
-        "rete-auto-arrange-plugin",
-        "rete-connection-reroute-plugin",
-        "rete-minimap-plugin",
-        "@babel/runtime/regenerator",
-        // 像素主题组件库，提前加入预构建，避免首次动态导入时出现 Outdated Optimize Dep
-        "@pixelium/web-vue",
-        // 强制使用同一个 three.js 实例，避免 vue-3d-loader 和直接导入的 three 产生多实例警告
-        "three",
-      ],
-      exclude,
+      passes: 3,
+      dead_code: true,
+      unused: true,
+      collapse_vars: true,
+      reduce_vars: true,
+      reduce_funcs: true,
+      inline: 2,
+      keep_fargs: false,
+      keep_fnames: false,
     },
-    build: {
-      // https://cn.vitejs.dev/guide/build.html#browser-compatibility
-      target: "es2020",
-      sourcemap: false,
-      minify: "terser",
-      // 消除打包大小超过500kb警告
-      chunkSizeWarningLimit: 4000,
-      terserOptions: {
-        compress: {
-          drop_console: true,
-          drop_debugger: true,
-          pure_funcs: [
-            "console.log",
-            "console.info",
-            "console.debug",
-            "console.warn",
-            "console.error",
-          ],
-          passes: 3,
-          dead_code: true,
-          unused: true,
-          collapse_vars: true,
-          reduce_vars: true,
-          reduce_funcs: true,
-          inline: 2,
-          keep_fargs: false,
-          keep_fnames: false,
-        },
-        mangle: {
-          properties: {
-            regex: /^_/,
-          },
-          toplevel: true,
-        },
-        format: {
-          comments: false,
-        },
+    mangle: {
+      properties: {
+        regex: /^_/,
       },
-      rollupOptions: {
-        output: {
-          // 静态资源分类打包
-          chunkFileNames: "static/js/[name]-[hash].js",
-          entryFileNames: "static/js/[name]-[hash].js",
-          assetFileNames: "static/[ext]/[name]-[hash].[ext]",
-        },
-      },
+      toplevel: true,
     },
-    define: {
-      __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
+    format: {
+      comments: false,
     },
-  };
-};
+  })
+  .build();

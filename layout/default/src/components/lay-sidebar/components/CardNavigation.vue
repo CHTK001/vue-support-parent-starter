@@ -71,7 +71,7 @@ function getRandomHue() {
 // 获取主菜单项（一级菜单）
 const mainMenuItems = computed(() => {
   const items = usePermissionStoreHook().wholeMenus.filter(
-    (menu) => menu.meta?.showLink !== false && menu.path !== "/"
+    (menu) => menu.meta?.showLink !== false && menu.path !== "/",
   );
   // 为每个菜单项添加随机颜色
   return items.map((menu) => ({
@@ -140,7 +140,7 @@ function handleCardClick(menu: MenuItem) {
   currentUrl.searchParams.delete("nav");
   currentUrl.pathname = menu.path;
   window.history.pushState({}, "", currentUrl.toString());
-  
+
   // 直接跳转路由，由路由守卫统一处理 tag 添加
   router.push(menu.path);
 }
@@ -404,7 +404,7 @@ watch(
   () => {
     getRouteComponent();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听URL参数变化
@@ -413,7 +413,7 @@ watch(
   () => {
     getRouteComponent();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 组件挂载时检查当前路由
@@ -508,7 +508,11 @@ onUnmounted(() => {
             />
             <IconifyIconOnline v-else icon="ep:menu" />
           </div>
-          <ScText v-if="props.showTitle" class="card-title" :text="menu.meta?.title || ''" />
+          <ScText
+            v-if="props.showTitle"
+            class="card-title"
+            :text="menu.meta?.title || ''"
+          />
         </div>
       </div>
 

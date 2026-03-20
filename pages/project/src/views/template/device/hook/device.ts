@@ -4,7 +4,13 @@ import { Base64 } from "js-base64";
 import { nextTick, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 import { fetchSyncMessageForDevice } from "../../../../api/manage/device-message";
-import { fetchCheckProjectForDevice, fetchDeleteProjectForDevice, fetchSyncProjectForDevice, fetchSyncProjectForDeviceOrg, fetchUpdateProjectForDevice } from "../../../../api/manage/project-device";
+import {
+  fetchCheckProjectForDevice,
+  fetchDeleteProjectForDevice,
+  fetchSyncProjectForDevice,
+  fetchSyncProjectForDeviceOrg,
+  fetchUpdateProjectForDevice,
+} from "../../../../api/manage/project-device";
 /**
  * 创建一个新的 Device 实例。
  *
@@ -69,7 +75,9 @@ export class Device {
     channelDialogRef.handleOpen(row, mode);
   }
   async syncMessageEvent(row, mode) {
-    message("同步时间较长请耐心等待, 请勿重复/点击其它设备", { type: "success" });
+    message("同步时间较长请耐心等待, 请勿重复/点击其它设备", {
+      type: "success",
+    });
     fetchSyncMessageForDevice(row).then((res) => {
       if (res.code == "00000") {
         message(this._t("message.syncSuccess"), { type: "success" });

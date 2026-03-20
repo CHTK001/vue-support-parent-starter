@@ -36,7 +36,7 @@ export default {
         observer = new MutationObserver(updateIsDark);
         observer.observe(document.documentElement, {
           attributes: true,
-          attributeFilter: ["class"],
+          attributeFilter: ["class"]
         });
       }
     });
@@ -63,8 +63,8 @@ export default {
       const dark = this.isDark;
       const option = this.option || {};
       const colors = this.getGlobalColors();
-      
-      const textColor = dark ? '#E5EAF3' : '#606266';
+
+      const textColor = dark ? "#E5EAF3" : "#606266";
 
       return {
         color: colors.length ? colors : undefined,
@@ -127,21 +127,21 @@ export default {
     },
     getGlobalColors() {
       const style = getComputedStyle(document.documentElement);
-      const primary = style.getPropertyValue('--el-color-primary');
-      const success = style.getPropertyValue('--el-color-success');
-      const warning = style.getPropertyValue('--el-color-warning');
-      const danger = style.getPropertyValue('--el-color-danger');
-      const info = style.getPropertyValue('--el-color-info');
-      
+      const primary = style.getPropertyValue("--el-color-primary");
+      const success = style.getPropertyValue("--el-color-success");
+      const warning = style.getPropertyValue("--el-color-warning");
+      const danger = style.getPropertyValue("--el-color-danger");
+      const info = style.getPropertyValue("--el-color-info");
+
       if (!primary) return [];
-      
+
       return [
         primary.trim(),
         success.trim(),
         warning.trim(),
         danger.trim(),
         info.trim(),
-        '#909399' // fallback/extra
+        "#909399" // fallback/extra
       ];
     }
   }

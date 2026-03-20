@@ -11,16 +11,16 @@
     >
       <template #header="{ titleId, titleClass }">
         <div class="dialog-header">
-          <el-icon class="header-icon" :size="22">
+          <ScIcon class="header-icon" :size="22">
             <component :is="useRenderIcon('ri:shield-user-line')" />
-          </el-icon>
+          </ScIcon>
           <span :id="titleId" :class="titleClass">{{ env.title }}</span>
         </div>
       </template>
-      <el-tabs v-model="env.tab" class="role-tabs">
-        <el-tab-pane name="role" :label="$t('buttons.role-perm')">
+      <ScTabs v-model="env.tab" class="role-tabs">
+        <ScTabPane name="role" :label="$t('buttons.role-perm')">
           <div class="tab-content">
-            <el-skeleton :loading="loading.menu" animated>
+            <ScSkeleton :loading="loading.menu" animated>
               <template #default>
                 <el-tree-v2
                   ref="treeRef"
@@ -38,32 +38,32 @@
                   </template>
                 </el-tree-v2>
               </template>
-            </el-skeleton>
+            </ScSkeleton>
           </div>
-        </el-tab-pane>
-        <el-tab-pane name="boardCard" :label="$t('buttons.board-card')">
+        </ScTabPane>
+        <ScTabPane name="boardCard" :label="$t('buttons.board-card')">
           <div class="tab-content">
-            <el-form class="modern-form">
-              <el-form-item
+            <ScForm class="modern-form">
+              <ScFormItem
                 :label="$t('message.board-card-type')"
                 prop="sysRoleBoardCard"
               >
-                <el-select v-model="env.data.sysRoleBoardCard">
-                  <el-option
+                <ScSelect v-model="env.data.sysRoleBoardCard">
+                  <ScOption
                     v-for="item in BoardCardList"
                     :key="item.value"
                     :label="item.label"
                     :value="item.value"
                   />
-                </el-select>
-              </el-form-item>
-            </el-form>
+                </ScSelect>
+              </ScFormItem>
+            </ScForm>
           </div>
-        </el-tab-pane>
-        <el-tab-pane name="permission" :label="$t('buttons.permission')">
+        </ScTabPane>
+        <ScTabPane name="permission" :label="$t('buttons.permission')">
           <div class="tab-content">
-            <el-form label-width="120px" class="modern-form">
-              <el-form-item
+            <ScForm label-width="120px" class="modern-form">
+              <ScFormItem
                 :label="$t('message.readable')"
                 prop="sysRoleReadable"
               >
@@ -71,8 +71,8 @@
                   v-model="env.data.sysRoleReadable"
                   :options="readableOptions"
                 />
-              </el-form-item>
-              <el-form-item
+              </ScFormItem>
+              <ScFormItem
                 :label="$t('message.writeable')"
                 prop="sysRoleWriteable"
               >
@@ -80,8 +80,8 @@
                   v-model="env.data.sysRoleWriteable"
                   :options="writeableOptions"
                 />
-              </el-form-item>
-              <el-form-item
+              </ScFormItem>
+              <ScFormItem
                 :label="$t('message.executable')"
                 prop="sysRoleExecutable"
               >
@@ -89,17 +89,17 @@
                   v-model="env.data.sysRoleExecutable"
                   :options="executableOptions"
                 />
-              </el-form-item>
-            </el-form>
+              </ScFormItem>
+            </ScForm>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </ScTabPane>
+      </ScTabs>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
-          <el-button type="primary" @click="handleTabEvent">{{
+          <ScButton @click="handleClose">{{ $t("buttons.cancel") }}</ScButton>
+          <ScButton type="primary" @click="handleTabEvent">{{
             $t("buttons.confirm")
-          }}</el-button>
+          }}</ScButton>
         </div>
       </template>
     </sc-dialog>
@@ -120,7 +120,7 @@ import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { BoardCardList } from "./hook";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 const { t } = useI18n();
 
 const env = reactive({

@@ -36,7 +36,7 @@ import { getThemeConfig } from "./utils/themeConfig";
 import darkIcon from "@repo/assets/svg/dark.svg?component";
 import dayIcon from "@repo/assets/svg/day.svg?component";
 import globalization from "@repo/assets/svg/globalization.svg?component";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 
 defineOptions({
   name: "Login",
@@ -415,7 +415,11 @@ watch(
             <span>{{ envBadgeText }}</span>
           </div>
 
+<<<<<<< HEAD
           <div class="toolbar-spacer" />
+=======
+          <div class="toolbar-spacer"></div>
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
           <!-- 主题切换器 -->
           <ThemeSwitcher
@@ -425,18 +429,31 @@ watch(
 
           <!-- 主题切换 -->
           <div class="theme-switch-container">
+<<<<<<< HEAD
             <el-switch
+=======
+            <ScSwitch
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
               v-model="dataTheme"
               inline-prompt
               :active-icon="dayIcon"
               :inactive-icon="darkIcon"
+<<<<<<< HEAD
               class="modern-theme-switch"
               @change="dataThemeChange"
+=======
+              @change="dataThemeChange"
+              class="modern-theme-switch"
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
             />
           </div>
 
           <!-- 语言切换 -->
+<<<<<<< HEAD
           <el-dropdown trigger="click" popper-class="lang-dropdown-popper">
+=======
+          <ScDropdown trigger="click" popper-class="lang-dropdown-popper">
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
             <div class="lang-trigger">
               <div class="lang-icon-wrapper">
                 <IconifyIconOnline
@@ -460,12 +477,20 @@ watch(
               </span>
             </div>
             <template #dropdown>
+<<<<<<< HEAD
               <el-dropdown-menu class="lang-menu">
+=======
+              <ScDropdownMenu class="lang-menu">
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
                 <div class="lang-header">
                   <IconifyIconOnline icon="ri:global-line" />
                   <span>选择语言</span>
                 </div>
+<<<<<<< HEAD
                 <el-dropdown-item
+=======
+                <ScDropdownItem
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
                   v-for="langConfig in languageConfigs"
                   :key="langConfig.code"
                   :class="[
@@ -497,10 +522,17 @@ watch(
                     class="lang-check"
                     icon="ep:check"
                   />
+<<<<<<< HEAD
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+=======
+                </ScDropdownItem>
+              </ScDropdownMenu>
+            </template>
+          </ScDropdown>
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
         </div>
       </div>
     </template>
@@ -518,6 +550,7 @@ watch(
       />
 
       <!-- 登录类型选择 -->
+<<<<<<< HEAD
       <div v-if="showLoginSelector" class="login-type-selector">
         <div class="selector-title">{{ t("login.pureLoginMethod") }}</div>
         <div class="selector-options">
@@ -544,6 +577,42 @@ watch(
                 }}</span>
               </div>
               <div class="option-desc">{{ option.description }}</div>
+=======
+      <div v-if="openSwitchLoginType" class="login-type-selector">
+        <div class="selector-title">选择登录方式</div>
+        <div class="selector-options">
+          <div
+            v-if="defaultSetting.OpenBaseLogin"
+            class="option-card"
+            :class="{ active: loginType == 1 }"
+            @click="handleChangeLoginType(1)"
+          >
+            <div class="option-icon-wrapper">
+              <ScIcon class="option-icon">
+                <component :is="useRenderIcon('ep:user')" />
+              </ScIcon>
+            </div>
+            <div class="option-content">
+              <div class="option-title">普通登录</div>
+              <div class="option-desc">账号/手机号登录</div>
+            </div>
+          </div>
+
+          <div
+            v-if="defaultSetting.OpenTenantLogin"
+            class="option-card"
+            :class="{ active: loginType == 2 }"
+            @click="handleChangeLoginType(2)"
+          >
+            <div class="option-icon-wrapper">
+              <ScIcon class="option-icon">
+                <component :is="useRenderIcon('ep:office-building')" />
+              </ScIcon>
+            </div>
+            <div class="option-content">
+              <div class="option-title">租户登录</div>
+              <div class="option-desc">租户账号/手机号登录</div>
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
             </div>
           </div>
         </div>

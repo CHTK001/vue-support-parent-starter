@@ -24,7 +24,7 @@
         </div>
       </div>
 
-      <el-form
+      <ScForm
         ref="formRef"
         :model="formData"
         :rules="formRules"
@@ -37,10 +37,10 @@
             <IconifyIconOnline icon="ri:information-line" />
             基本信息
           </div>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="仓库名称" prop="systemSoftRegistryName">
-                <el-input
+          <ScRow :gutter="16">
+            <ScCol :span="12">
+              <ScFormItem label="仓库名称" prop="systemSoftRegistryName">
+                <ScInput
                   v-model="formData.systemSoftRegistryName"
                   placeholder="输入仓库名称"
                   clearable
@@ -48,13 +48,13 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:bookmark-line" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="仓库状态">
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="仓库状态">
                 <div class="status-switch">
-                  <el-switch
+                  <ScSwitch
                     v-model="formData.systemSoftRegistryStatus"
                     :active-value="1"
                     :inactive-value="0"
@@ -62,12 +62,12 @@
                     inactive-text="禁用"
                   />
                 </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
 
-          <el-form-item label="仓库地址" prop="systemSoftRegistryUrl">
-            <el-input
+          <ScFormItem label="仓库地址" prop="systemSoftRegistryUrl">
+            <ScInput
               v-model="formData.systemSoftRegistryUrl"
               placeholder="输入仓库地址"
               clearable
@@ -76,21 +76,21 @@
                 <IconifyIconOnline icon="ri:global-line" />
               </template>
               <template #append>
-                <el-button
+                <ScButton
                   v-if="showTestButton"
                   :loading="testLoading"
                   @click="testConnection"
                 >
                   <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
                   测试连接
-                </el-button>
+                </ScButton>
               </template>
-            </el-input>
+            </ScInput>
             <div class="url-hint">
               <IconifyIconOnline icon="ri:lightbulb-line" />
               {{ getUrlHint(formData.systemSoftRegistryType) }}
             </div>
-          </el-form-item>
+          </ScFormItem>
         </div>
 
         <!-- 认证信息 -->
@@ -100,10 +100,10 @@
             认证信息
             <span class="optional">（可选）</span>
           </div>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="用户名" prop="systemSoftRegistryUsername">
-                <el-input
+          <ScRow :gutter="16">
+            <ScCol :span="12">
+              <ScFormItem label="用户名" prop="systemSoftRegistryUsername">
+                <ScInput
                   v-model="formData.systemSoftRegistryUsername"
                   placeholder="输入用户名"
                   clearable
@@ -111,12 +111,12 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:user-line" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="密码" prop="systemSoftRegistryPassword">
-                <el-input
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
+            <ScCol :span="12">
+              <ScFormItem label="密码" prop="systemSoftRegistryPassword">
+                <ScInput
                   v-model="formData.systemSoftRegistryPassword"
                   type="password"
                   placeholder="输入密码"
@@ -126,16 +126,16 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:lock-line" />
                   </template>
-                </el-input>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-form-item
+                </ScInput>
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
+          <ScFormItem
             label="邮箱"
             v-if="showEmail"
             prop="systemSoftRegistryEmail"
           >
-            <el-input
+            <ScInput
               v-model="formData.systemSoftRegistryEmail"
               placeholder="输入邮箱"
               clearable
@@ -143,8 +143,8 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:mail-line" />
               </template>
-            </el-input>
-          </el-form-item>
+            </ScInput>
+          </ScFormItem>
         </div>
 
         <!-- 高级设置 -->
@@ -153,11 +153,11 @@
             <IconifyIconOnline icon="ri:settings-3-line" />
             高级设置
           </div>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="支持同步">
+          <ScRow :gutter="16">
+            <ScCol :span="12">
+              <ScFormItem label="支持同步">
                 <div class="feature-toggle">
-                  <el-switch
+                  <ScSwitch
                     v-model="formData.systemSoftRegistrySupportSync"
                     :active-value="1"
                     :inactive-value="0"
@@ -168,11 +168,11 @@
                       : "已禁用"
                   }}</span>
                 </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-form-item label="仓库描述" prop="systemSoftRegistryDescription">
-            <el-input
+              </ScFormItem>
+            </ScCol>
+          </ScRow>
+          <ScFormItem label="仓库描述" prop="systemSoftRegistryDescription">
+            <ScInput
               v-model="formData.systemSoftRegistryDescription"
               type="textarea"
               :rows="2"
@@ -180,12 +180,12 @@
               maxlength="200"
               show-word-limit
             />
-          </el-form-item>
+          </ScFormItem>
         </div>
-      </el-form>
+      </ScForm>
 
       <!-- 连接测试结果 -->
-      <el-alert
+      <ScAlert
         v-if="testResult"
         :type="testResult.success ? 'success' : 'error'"
         :title="testResult.message"
@@ -197,8 +197,8 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="large" @click="handleCancel">取消</el-button>
-        <el-button
+        <ScButton size="large" @click="handleCancel">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="confirmLoading"
           @click="handleConfirm"
@@ -209,7 +209,7 @@
             class="mr-1"
           />
           {{ isEdit ? "保存更改" : "创建仓库" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

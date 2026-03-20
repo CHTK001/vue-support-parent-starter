@@ -2,12 +2,12 @@
   <div class="server-latency-display system-container modern-bg">
     <!-- 延迟指示器 -->
     <div class="latency-indicator" :class="latencyClass">
-      <el-tooltip :content="latencyTooltip" placement="top" :show-after="300">
+      <ScTooltip :content="latencyTooltip" placement="top" :show-after="300">
         <div class="latency-content">
           <div class="latency-dot" :class="latencyClass" />
           <span class="latency-text">{{ latencyText }}</span>
         </div>
-      </el-tooltip>
+      </ScTooltip>
     </div>
   </div>
 </template>

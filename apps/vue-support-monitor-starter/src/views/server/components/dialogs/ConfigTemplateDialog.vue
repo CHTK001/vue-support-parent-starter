@@ -20,7 +20,7 @@
               <IconifyIconOnline :icon="template.icon" class="template-icon" />
               <span>{{ template.name }}</span>
             </div>
-            <el-button type="primary" text size="small"> 选择 </el-button>
+            <ScButton type="primary" text size="small"> 选择 </ScButton>
           </div>
           <div class="template-description">
             {{ template.description }}
@@ -34,7 +34,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
+        <ScButton @click="visible = false">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import ScPromQL from "@repo/components/ScPromQL/index.vue";
+import { ScPromQL } from "@repo/components"
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -92,8 +92,7 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import ScPromQL from "@repo/components/ScPromQL/index.vue";
-
+import { ScPromQL } from "@repo/components"
 const expr = ref("${config.expr}");`,
   },
 ]);

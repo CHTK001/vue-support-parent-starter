@@ -3,19 +3,43 @@
     <div class="layer-panel-arrow" :class="getArrowPositionClass()"></div>
     <div class="layer-panel-content">
       <div class="layer-list">
-        <div v-for="(layer, key) in availableLayers" :key="key" class="layer-item"
-          :class="{ active: currentMapType === mapType && currentMapTile === key }" :data-key="key"
-          @click="selectLayer(key)">
+        <div
+          v-for="(layer, key) in availableLayers"
+          :key="key"
+          class="layer-item"
+          :class="{
+            active: currentMapType === mapType && currentMapTile === key,
+          }"
+          :data-key="key"
+          @click="selectLayer(key)"
+        >
           <div class="layer-preview">
             <img v-if="layer?.image" :src="layer.image" alt="图层图标" />
             <div v-else class="layer-preview-placeholder"></div>
-            <div v-if="currentMapType === mapType && currentMapTile === key" class="layer-selected-indicator">
-              <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M7 10L9 12L13 8" stroke="white" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
+            <div
+              v-if="currentMapType === mapType && currentMapTile === key"
+              class="layer-selected-indicator"
+            >
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M7 10L9 12L13 8"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
-            <div class="layer-name" :class="{ active: currentMapType === mapType && currentMapTile === key }">
+            <div
+              class="layer-name"
+              :class="{
+                active: currentMapType === mapType && currentMapTile === key,
+              }"
+            >
               {{ getLayerDisplayName(key) }}
             </div>
           </div>
@@ -27,26 +51,26 @@
 
 <script lang="ts">
 export default {
-  name: 'LayerPanel'
+  name: "LayerPanel",
 };
 </script>
 
 <script setup lang="ts">
-import { MapTile, MapType } from '../types';
-import { computed } from 'vue';
-import { DEFAULT_MAP_CONFIG, MapUrlConfig } from '../types/map';
+import { MapTile, MapType } from "../types";
+import { computed } from "vue";
+import { DEFAULT_MAP_CONFIG, MapUrlConfig } from "../types/map";
 
 // 定义组件属性
 const props = defineProps<{
   active: boolean;
-  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  position: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   mapType: MapType;
   mapTile: MapTile;
   mapConfig: Record<MapType, Record<string, MapUrlConfig>>;
 }>();
 
 // 定义事件
-const emit = defineEmits(['close', 'layer-change']);
+const emit = defineEmits(["close", "layer-change"]);
 
 // 当前地图类型和图层
 const currentMapType = computed(() => props.mapType);
@@ -55,11 +79,16 @@ const currentMapTile = computed(() => props.mapTile);
 // 根据面板位置确定箭头位置类名
 const getArrowPositionClass = () => {
   switch (props.position) {
-    case 'top-left': return 'arrow-top-left';
-    case 'top-right': return 'arrow-top-right';
-    case 'bottom-left': return 'arrow-bottom-left';
-    case 'bottom-right': return 'arrow-bottom-right';
-    default: return 'arrow-top-left';
+    case "top-left":
+      return "arrow-top-left";
+    case "top-right":
+      return "arrow-top-right";
+    case "bottom-left":
+      return "arrow-bottom-left";
+    case "bottom-right":
+      return "arrow-bottom-right";
+    default:
+      return "arrow-top-left";
   }
 };
 
@@ -70,11 +99,11 @@ const availableLayers = computed(() => {
   // 为每个图层添加预览图和描述信息
   const layersWithMetadata: Record<string, any> = {};
 
-  Object.keys(mapConfig).forEach(key => {
+  Object.keys(mapConfig).forEach((key) => {
     layersWithMetadata[key] = {
       ...mapConfig[key],
       image: getLayerPreviewImage(key),
-      description: getLayerDescription(key)
+      description: getLayerDescription(key),
     };
   });
 
@@ -85,7 +114,7 @@ const availableLayers = computed(() => {
 const selectLayer = (layerKey: string) => {
   // 如果点击的是当前激活的图层，不做任何操作
   if (layerKey === props.mapTile) {
-    console.log('已选择当前图层，无需切换');
+    console.log("已选择当前图层，无需切换");
     return;
   }
 
@@ -94,21 +123,23 @@ const selectLayer = (layerKey: string) => {
 
   // 记录已选择的图层，用于UI反馈
   const selectedElement = document.querySelector(`.layer-item.active`);
-  const newElement = document.querySelector(`.layer-item[data-key="${layerKey}"]`);
+  const newElement = document.querySelector(
+    `.layer-item[data-key="${layerKey}"]`,
+  );
 
   // 移除旧选择的激活样式，添加到新选择的元素
   if (selectedElement) {
-    selectedElement.classList.remove('active');
+    selectedElement.classList.remove("active");
   }
 
   if (newElement) {
-    newElement.classList.add('active');
+    newElement.classList.add("active");
   }
 
   // 发出图层变更事件
-  emit('layer-change', {
+  emit("layer-change", {
     mapType: props.mapType,
-    mapTile: mapTile
+    mapTile: mapTile,
   });
 };
 
@@ -116,41 +147,51 @@ const selectLayer = (layerKey: string) => {
 const getLayerPreviewImage = (layerKey: string): string => {
   // 根据不同类型返回相应地图类型的预览图
   // 使用占位图像，实际项目中应替换为真实的预览图
-  const baseUrl = 'data:image/svg+xml;base64,';
+  const baseUrl = "data:image/svg+xml;base64,";
   const previewImages = {
-    'normal': 'http://myui.vtj.pro/my/assets/img/ChinaOnlineCommunity.df7d8c00.png',
-    'satellite': 'https://ts1.tc.mm.bing.net/th/id/OIP-C.RrTFSOvnk9EVe1k7zxzSbAHaGQ?rs=1&pid=ImgDetMain',
-    'grey': baseUrl + 'PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiNlMWUxZTEiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iI2UxZTFlMSIvPjxwYXRoIGQ9Ik01MCAzMEgxMDBWNjBINTBWMzBaIiBmaWxsPSIjZDBkMGQwIi8+PHBhdGggZD0iTTEyMCA0MEgxNjBWOTBIMTIwVjQwWiIgZmlsbD0iI2QwZDBkMCIvPjxwYXRoIGQ9Ik0yMCA3MEg3MFYxMDBIMjBWNzBaIiBmaWxsPSIjZDBkMGQwIi8+PC9zdmc+',
-    'dark': baseUrl + 'PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiMyYTJhMmEiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iIzJhMmEyYSIvPjxwYXRoIGQ9Ik01MCAzMEgxMDBWNjBINTBWMzBaIiBmaWxsPSIjM2EzYTNhIi8+PHBhdGggZD0iTTEyMCA0MEgxNjBWOTBIMTIwVjQwWiIgZmlsbD0iIzNhM2EzYSIvPjxwYXRoIGQ9Ik0yMCA3MEg3MFYxMDBIMjBWNzBaIiBmaWxsPSIjM2EzYTNhIi8+PC9zdmc+',
-    'blue': baseUrl + 'PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiMxMjIwMzUiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iIzEyMjAzNSIvPjxwYXRoIGQ9Ik01MCAzMEgxMDBWNjBINTBWMzBaIiBmaWxsPSIjMWQzMjUwIi8+PHBhdGggZD0iTTEyMCA0MEgxNjBWOTBIMTIwVjQwWiIgZmlsbD0iIzFkMzI1MCIvPjxwYXRoIGQ9Ik0yMCA3MEg3MFYxMDBIMjBWNzBaIiBmaWxsPSIjMWQzMjUwIi8+PC9zdmc+',
-    'hybrid': baseUrl + 'PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiMzMDQ0MzAiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iIzMwNDQzMCIvPjxwYXRoIGQ9Ik0yMCAyMEg4MFY2MEgyMFYyMFoiIGZpbGw9IiMxZDMyMWQiLz48cGF0aCBkPSJNMTIwIDMwSDE4MFY4MEgxMjBWMzBaIiBmaWxsPSIjMWQzMjFkIi8+PHBhdGggZD0iTTUwIDcwSDEyMFYxMjBINTBWNzBaIiBmaWxsPSIjMWQzMjFkIi8+PHBhdGggZD0iTTAgMEgyMDdWNTBIMFYwWiIgZmlsbD0iIzMwNDQzMCIgZmlsbC1vcGFjaXR5PSIwLjMiLz48cGF0aCBkPSJNNjAgMEgxNDBWMTM3SDYwVjBaIiBmaWxsPSIjZTZlNmU2IiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg=='
+    normal:
+      "http://myui.vtj.pro/my/assets/img/ChinaOnlineCommunity.df7d8c00.png",
+    satellite:
+      "https://ts1.tc.mm.bing.net/th/id/OIP-C.RrTFSOvnk9EVe1k7zxzSbAHaGQ?rs=1&pid=ImgDetMain",
+    grey:
+      baseUrl +
+      "PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiNlMWUxZTEiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iI2UxZTFlMSIvPjxwYXRoIGQ9Ik01MCAzMEgxMDBWNjBINTBWMzBaIiBmaWxsPSIjZDBkMGQwIi8+PHBhdGggZD0iTTEyMCA0MEgxNjBWOTBIMTIwVjQwWiIgZmlsbD0iI2QwZDBkMCIvPjxwYXRoIGQ9Ik0yMCA3MEg3MFYxMDBIMjBWNzBaIiBmaWxsPSIjZDBkMGQwIi8+PC9zdmc+",
+    dark:
+      baseUrl +
+      "PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiMyYTJhMmEiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iIzJhMmEyYSIvPjxwYXRoIGQ9Ik01MCAzMEgxMDBWNjBINTBWMzBaIiBmaWxsPSIjM2EzYTNhIi8+PHBhdGggZD0iTTEyMCA0MEgxNjBWOTBIMTIwVjQwWiIgZmlsbD0iIzNhM2EzYSIvPjxwYXRoIGQ9Ik0yMCA3MEg3MFYxMDBIMjBWNzBaIiBmaWxsPSIjM2EzYTNhIi8+PC9zdmc+",
+    blue:
+      baseUrl +
+      "PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiMxMjIwMzUiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iIzEyMjAzNSIvPjxwYXRoIGQ9Ik01MCAzMEgxMDBWNjBINTBWMzBaIiBmaWxsPSIjMWQzMjUwIi8+PHBhdGggZD0iTTEyMCA0MEgxNjBWOTBIMTIwVjQwWiIgZmlsbD0iIzFkMzI1MCIvPjxwYXRoIGQ9Ik0yMCA3MEg3MFYxMDBIMjBWNzBaIiBmaWxsPSIjMWQzMjUwIi8+PC9zdmc+",
+    hybrid:
+      baseUrl +
+      "PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiMzMDQ0MzAiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iIzMwNDQzMCIvPjxwYXRoIGQ9Ik0yMCAyMEg4MFY2MEgyMFYyMFoiIGZpbGw9IiMxZDMyMWQiLz48cGF0aCBkPSJNMTIwIDMwSDE4MFY4MEgxMjBWMzBaIiBmaWxsPSIjMWQzMjFkIi8+PHBhdGggZD0iTTUwIDcwSDEyMFYxMjBINTBWNzBaIiBmaWxsPSIjMWQzMjFkIi8+PHBhdGggZD0iTTAgMEgyMDdWNTBIMFYwWiIgZmlsbD0iIzMwNDQzMCIgZmlsbC1vcGFjaXR5PSIwLjMiLz48cGF0aCBkPSJNNjAgMEgxNDBWMTM3SDYwVjBaIiBmaWxsPSIjZTZlNmU2IiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==",
   };
 
-  return previewImages[layerKey] || '';
+  return previewImages[layerKey] || "";
 };
 
 // 获取图层描述
 const getLayerDescription = (layerKey: string): string => {
   const descriptions = {
-    'normal': '标准地图，显示街道和基础地理信息',
-    'satellite': '卫星影像图，显示真实地貌',
-    'hybrid': '混合地图，卫星影像与标注结合'
+    normal: "标准地图，显示街道和基础地理信息",
+    satellite: "卫星影像图，显示真实地貌",
+    hybrid: "混合地图，卫星影像与标注结合",
   };
 
-  return descriptions[layerKey] || '';
+  return descriptions[layerKey] || "";
 };
 
 // 获取图层显示名称
 const getLayerDisplayName = (layerKey: string): string => {
   const nameMap = {
-    'normal': '彩色版',
-    'satellite': '卫星版',
-    'hybrid': '混合版',
-    'en': '彩色英文版',
-    'dark': '暗色版',
-    'light': '亮色版',
-    'grey': '灰色版',
-    'blue': '蓝黑版'
+    normal: "彩色版",
+    satellite: "卫星版",
+    hybrid: "混合版",
+    en: "彩色英文版",
+    dark: "暗色版",
+    light: "亮色版",
+    grey: "灰色版",
+    blue: "蓝黑版",
   };
 
   return nameMap[layerKey] || layerKey;

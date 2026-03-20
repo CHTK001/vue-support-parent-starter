@@ -143,11 +143,28 @@ function toggleFullscreen(): void {
   max-height: 580px;
   display: flex;
   flex-direction: column;
+<<<<<<< HEAD
   border-radius: var(--stitch-radius-xl, 20px);
   background: radial-gradient(circle at top left, rgba(116, 127, 255, 0.12), transparent 60%),
     radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.14), transparent 55%),
     rgba(17, 24, 39, 0.92);
   border: 1px solid rgba(148, 163, 184, 0.3);
+=======
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(116, 127, 255, 0.14),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(56, 189, 248, 0.16),
+      transparent 50%
+    ),
+    rgba(17, 24, 39, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   box-shadow:
     0 20px 70px rgba(15, 23, 42, 0.7),
     0 8px 32px rgba(15, 23, 42, 0.5),
@@ -416,7 +433,11 @@ function toggleFullscreen(): void {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  background: linear-gradient(to top, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
+  background: linear-gradient(
+    to top,
+    rgba(15, 23, 42, 0.96),
+    rgba(15, 23, 42, 0.9)
+  );
 
   input {
     flex: 1;

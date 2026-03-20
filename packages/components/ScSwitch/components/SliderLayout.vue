@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { computed } from "vue";
 
 const props = defineProps({

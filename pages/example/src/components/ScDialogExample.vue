@@ -6,14 +6,14 @@
           <h3>配置面板</h3>
           <ScForm label-position="top" :model="config">
             <ScFormItem label="标题">
-              <ScInput 
+              <ScInput
                 v-model="config.title"
                 placeholder="请输入对话框标题"
               ></ScInput>
             </ScFormItem>
 
             <ScFormItem label="宽度">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.width"
                 :min="300"
                 :max="1200"
@@ -23,7 +23,7 @@
             </ScFormItem>
 
             <ScFormItem label="位置(top)">
-              <ScInput 
+              <ScInput
                 v-model="config.top"
                 placeholder="请输入对话框距顶部位置"
               ></ScInput>
@@ -50,7 +50,7 @@
             </ScFormItem>
 
             <ScFormItem label="缩放" v-if="config.mode === 'custom'">
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.resizable"
                 active-text="允许缩放"
                 class="mb-2 block"
@@ -58,12 +58,12 @@
             </ScFormItem>
 
             <ScFormItem label="边缘吸附" v-if="config.mode === 'custom'">
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.edgeDock"
                 active-text="启用边缘吸附"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScInputNumber 
+              <ScInputNumber
                 v-if="config.edgeDock"
                 v-model="config.edgeThreshold"
                 :min="20"
@@ -75,18 +75,18 @@
             </ScFormItem>
 
             <ScFormItem label="任务栏模式" v-if="config.mode === 'custom'">
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.useTaskbar"
                 active-text="启用任务栏"
                 class="mb-2 block"
               ></ScSwitch>
               <template v-if="config.useTaskbar">
-                <ScInput 
+                <ScInput
                   v-model="config.group"
                   placeholder="分组标识（可选）"
                   class="mb-2"
                 ></ScInput>
-                <ScSelect 
+                <ScSelect
                   v-model="taskbarConfig.position"
                   placeholder="任务栏位置"
                   style="width: 100%"
@@ -97,12 +97,12 @@
                   <ScOption label="左侧" value="left"></ScOption>
                   <ScOption label="右侧" value="right"></ScOption>
                 </ScSelect>
-                <ScSwitch 
+                <ScSwitch
                   v-model="taskbarConfig.alwaysVisible"
                   active-text="永久显示"
                   class="mb-2 block"
                 ></ScSwitch>
-                <ScSwitch 
+                <ScSwitch
                   v-model="taskbarConfig.groupCollapse"
                   active-text="分组合并"
                   class="mb-2 block"
@@ -111,12 +111,12 @@
             </ScFormItem>
 
             <ScFormItem label="图标设置" v-if="config.mode === 'custom'">
-              <ScInput 
+              <ScInput
                 v-model="config.icon"
                 placeholder="图标名称，如 ep:info-filled"
                 class="mb-2"
               ></ScInput>
-              <ScRadioGroup 
+              <ScRadioGroup
                 v-model="config.iconMode"
                 class="mb-2 block"
                 v-if="config.icon"
@@ -124,7 +124,7 @@
                 <ScRadio label="inline">标题左侧</ScRadio>
                 <ScRadio label="float">顶部浮动</ScRadio>
               </ScRadioGroup>
-              <ScInputNumber 
+              <ScInputNumber
                 v-if="config.icon"
                 v-model="config.iconSize"
                 :min="16"
@@ -146,52 +146,52 @@
             </ScFormItem>
 
             <ScFormItem label="功能设置">
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.fullscreen"
                 active-text="全屏显示"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.modal"
                 active-text="显示遮罩层"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.draggable"
                 active-text="允许拖拽"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.showClose"
                 active-text="显示关闭按钮"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.closeOnClickModal"
                 active-text="点击遮罩关闭"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.closeOnPressEscape"
                 active-text="ESC键关闭"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.lockScroll"
                 active-text="锁定滚动"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.appendToBody"
                 active-text="插入到body"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.destroyOnClose"
                 active-text="关闭销毁内容"
                 class="mb-2 block"
               ></ScSwitch>
-              <ScSwitch 
+              <ScSwitch
                 v-model="config.customHeader"
                 active-text="自定义头部"
                 class="mb-2 block"
@@ -209,7 +209,7 @@
               />
 
               <template v-if="config.contentType === 'text'">
-                <ScInput 
+                <ScInput
                   v-model="config.textContent"
                   type="textarea"
                   :rows="3"
@@ -218,7 +218,7 @@
               </template>
             </ScFormItem>
 
-            <ScButton 
+            <ScButton
               type="primary"
               @click="dialogVisible = true"
               style="width: 100%"
@@ -362,7 +362,7 @@
                     config.title || "自定义头部"
                   }}</span>
                 </div>
-                <ScButton 
+                <ScButton
                   type="primary"
                   text
                   circle
@@ -383,19 +383,19 @@
             <template v-else-if="config.contentType === 'form'">
               <ScForm :model="formData" label-width="80px">
                 <ScFormItem label="用户名">
-                  <ScInput 
+                  <ScInput
                     v-model="formData.username"
                     placeholder="请输入用户名"
                   ></ScInput>
                 </ScFormItem>
                 <ScFormItem label="邮箱">
-                  <ScInput 
+                  <ScInput
                     v-model="formData.email"
                     placeholder="请输入邮箱"
                   ></ScInput>
                 </ScFormItem>
                 <ScFormItem label="部门">
-                  <ScSelect 
+                  <ScSelect
                     v-model="formData.department"
                     placeholder="请选择部门"
                     style="width: 100%"
@@ -508,9 +508,9 @@
 
 <script setup>
 import { ref, reactive, computed } from "vue";
-import ScDialog from "@repo/components/ScDialog/src/index.vue";
+import { ScDialog } from "@repo/components"
 import ScDialogTaskbar from "@repo/components/ScDialog/src/ScDialogTaskbar.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
+import { ScSelect } from "@repo/components"
 import { message } from "@repo/utils";
 import CodePreview from "./CodePreview.vue";
 
@@ -518,14 +518,18 @@ import CodePreview from "./CodePreview.vue";
 const styleOptions = [
   { label: "默认", value: "", icon: "ri:palette-line" },
   { label: "主题色", value: "primary-border", icon: "ri:shape-line" },
-  { label: "圆角", value: "rounded-dialog", icon: "ri:checkbox-blank-circle-line" },
-  { label: "简约", value: "minimal-dialog", icon: "ri:subtract-line" }
+  {
+    label: "圆角",
+    value: "rounded-dialog",
+    icon: "ri:checkbox-blank-circle-line",
+  },
+  { label: "简约", value: "minimal-dialog", icon: "ri:subtract-line" },
 ];
 
 // 模式选项
 const modeOptions = [
   { label: "Element", value: "element", icon: "ri:layout-line" },
-  { label: "自定义", value: "custom", icon: "ri:drag-move-line" }
+  { label: "自定义", value: "custom", icon: "ri:drag-move-line" },
 ];
 
 // 类型选项
@@ -534,14 +538,14 @@ const typeOptions = [
   { label: "信息", value: "info", icon: "ri:information-line" },
   { label: "成功", value: "success", icon: "ri:checkbox-circle-line" },
   { label: "警告", value: "warning", icon: "ri:error-warning-line" },
-  { label: "错误", value: "error", icon: "ri:close-circle-line" }
+  { label: "错误", value: "error", icon: "ri:close-circle-line" },
 ];
 
 // 内容选项
 const contentOptions = [
   { label: "文本", value: "text", icon: "ri:text" },
   { label: "表单", value: "form", icon: "ri:file-list-line" },
-  { label: "确认", value: "confirm", icon: "ri:question-line" }
+  { label: "确认", value: "confirm", icon: "ri:question-line" },
 ];
 
 // 对话框配置

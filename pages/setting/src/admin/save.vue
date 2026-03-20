@@ -3,10 +3,9 @@ import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
 import { fetchUpdateSetting, fetchSaveSetting } from "../api";
 import { $t } from "@repo/config";
 import { message } from "@repo/utils";
-import ScDialog from "@repo/components/ScDialog/src/index.vue";
-
+import { ScDialog } from "@repo/components"
 const ConfigValueInput = defineAsyncComponent(
-  () => import("./ConfigValueInput.vue")
+  () => import("./ConfigValueInput.vue"),
 );
 
 // 配置对象，包含所有状态和数据
@@ -275,7 +274,7 @@ defineExpose({
       :destroy-on-close="true"
       @close="handleClose"
     >
-      <ScForm 
+      <ScForm
         v-if="config.mode == 'edit'"
         ref="itemSaveRef"
         :rules="config.rules"
@@ -284,7 +283,7 @@ defineExpose({
         label-width="120px"
       >
         <ScFormItem label="数据分组" prop="sysSettingGroup">
-          <ScInput 
+          <ScInput
             v-model="config.data.sysSettingGroup"
             placeholder="请输入配置所属分组"
           >
@@ -296,7 +295,7 @@ defineExpose({
         </ScFormItem>
 
         <ScFormItem label="名称" prop="sysSettingName">
-          <ScInput 
+          <ScInput
             v-model="config.data.sysSettingName"
             placeholder="请输入配置名称"
           >
@@ -308,11 +307,11 @@ defineExpose({
         </ScFormItem>
 
         <ScFormItem label="数据类型" prop="sysSettingValueType">
-          <ScSelect 
+          <ScSelect
             v-model="config.data.sysSettingValueType"
             placeholder="请选择"
           >
-            <ScOption 
+            <ScOption
               v-for="item in config.valueType"
               :key="item.value"
               :label="item.label"
@@ -343,7 +342,7 @@ defineExpose({
         </ScFormItem>
 
         <ScFormItem label="描述" prop="sysSettingRemark">
-          <ScInput 
+          <ScInput
             v-model="config.data.sysSettingRemark"
             placeholder="请输入描述"
             type="textarea"
@@ -355,7 +354,7 @@ defineExpose({
         </ScFormItem>
 
         <ScFormItem label="数据优先级" prop="sysSettingSort">
-          <ScInput 
+          <ScInput
             v-model="config.data.sysSettingSort"
             placeholder="请输入数据优先级"
             type="number"
@@ -369,7 +368,7 @@ defineExpose({
       </ScForm>
 
       <!-- 新增表单 - 先选择类型 -->
-      <ScForm 
+      <ScForm
         v-else-if="config.mode == 'add'"
         ref="itemSaveRef"
         :rules="config.rules"
@@ -417,7 +416,7 @@ defineExpose({
           </div>
 
           <ScFormItem label="数据分组" prop="sysSettingGroup">
-            <ScInput 
+            <ScInput
               v-model="config.data.sysSettingGroup"
               placeholder="请输入配置所属分组"
             >
@@ -429,7 +428,7 @@ defineExpose({
           </ScFormItem>
 
           <ScFormItem label="名称" prop="sysSettingName">
-            <ScInput 
+            <ScInput
               v-model="config.data.sysSettingName"
               placeholder="请输入配置名称"
             >
@@ -451,7 +450,7 @@ defineExpose({
           </ScFormItem>
 
           <ScFormItem label="描述" prop="sysSettingRemark">
-            <ScInput 
+            <ScInput
               v-model="config.data.sysSettingRemark"
               placeholder="请输入描述"
               type="textarea"
@@ -463,7 +462,7 @@ defineExpose({
           </ScFormItem>
 
           <ScFormItem label="数据优先级" prop="sysSettingSort">
-            <ScInput 
+            <ScInput
               v-model="config.data.sysSettingSort"
               placeholder="请输入数据优先级"
               type="number"
@@ -483,7 +482,7 @@ defineExpose({
             <IconifyIconOnline icon="ep:close" />
             取 消
           </ScButton>
-          <ScButton 
+          <ScButton
             v-if="config.mode == 'edit'"
             type="primary"
             @click="handleUpdate"
@@ -491,7 +490,7 @@ defineExpose({
             <IconifyIconOnline icon="ep:check" />
             更 新
           </ScButton>
-          <ScButton 
+          <ScButton
             v-if="config.mode == 'add' && config.data.sysSettingValueType"
             type="primary"
             @click="handleSave"

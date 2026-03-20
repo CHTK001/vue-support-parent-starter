@@ -21,7 +21,7 @@
 
     <!-- 快速导航 -->
     <div class="quick-nav">
-      <el-card shadow="hover">
+      <ScCard shadow="hover">
         <div class="nav-header">
           <IconifyIconOnline icon="ri:list-check" />
           <span>快速导航</span>
@@ -32,20 +32,20 @@
             <span class="truncate" v-html="it.title" />
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 信息卡片 -->
     <div class="info-card">
-      <el-card shadow="never">
+      <ScCard shadow="never">
         <div class="info-content" v-html="data.title" />
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 句柄列表 -->
     <div class="flex-1 overflow-auto">
       <div v-for="it in data.data" :id="'element' + it.index" :key="it.index" class="handle-item">
-        <el-card shadow="hover" class="mb-4">
+        <ScCard shadow="hover" class="mb-4">
           <template #header>
             <div class="card-header">
               <span class="item-number">{{ it.index + 1 }}</span>
@@ -53,7 +53,7 @@
             </div>
           </template>
           <pre class="code-block"><code v-html="it.code" /></pre>
-        </el-card>
+        </ScCard>
       </div>
     </div>
   </div>

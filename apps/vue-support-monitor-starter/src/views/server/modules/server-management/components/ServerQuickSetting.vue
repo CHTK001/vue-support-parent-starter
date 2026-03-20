@@ -1,6 +1,6 @@
 <template>
   <div class="server-quick-setting system-container modern-bg">
-    <el-popover
+    <ScPopover
       placement="bottom-start"
       :width="300"
       trigger="click"
@@ -8,7 +8,7 @@
       @update:visible="handleVisibleChange"
     >
       <template #reference>
-        <el-button
+        <ScButton
           :type="isMonitorEnabled ? 'success' : 'info'"
           size="small"
           :loading="loading"
@@ -19,7 +19,7 @@
             class="mr-1"
           />
           {{ isMonitorEnabled ? "监控中" : "未监控" }}
-        </el-button>
+        </ScButton>
       </template>
 
       <div class="quick-setting-content">
@@ -31,14 +31,14 @@
         <div class="setting-item">
           <div class="setting-label">
             <span>启用监控</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后将定期收集服务器指标数据"
               placement="top"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
-          <el-switch
+          <ScSwitch
             v-model="localSettings.monitorEnabled"
             :active-value="1"
             :inactive-value="0"
@@ -49,11 +49,11 @@
         <div class="setting-item">
           <div class="setting-label">
             <span>启用上报</span>
-            <el-tooltip content="开启后将向监控中心上报数据" placement="top">
+            <ScTooltip content="开启后将向监控中心上报数据" placement="top">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
-          <el-switch
+          <ScSwitch
             v-model="localSettings.reportEnabled"
             :active-value="1"
             :inactive-value="0"
@@ -64,14 +64,14 @@
         <div class="setting-item">
           <div class="setting-label">
             <span>启用告警</span>
-            <el-tooltip
+            <ScTooltip
               content="开启后将在指标异常时发送告警通知"
               placement="top"
             >
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+            </ScTooltip>
           </div>
-          <el-switch
+          <ScSwitch
             v-model="localSettings.alertEnabled"
             :active-value="1"
             :inactive-value="0"
@@ -80,21 +80,21 @@
         </div>
 
         <div class="setting-actions">
-          <el-button size="small" @click="handleOpenFullSetting">
+          <ScButton size="small" @click="handleOpenFullSetting">
             <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
             完整设置
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             type="primary"
             size="small"
             :loading="saveLoading"
             @click="handleSave"
           >
             保存
-          </el-button>
+          </ScButton>
         </div>
       </div>
-    </el-popover>
+    </ScPopover>
   </div>
 </template>
 

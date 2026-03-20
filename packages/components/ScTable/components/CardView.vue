@@ -13,11 +13,14 @@
   >
     <!-- 顶部加载状态 -->
     <div v-if="isScrollPagination && loadingPrev && hasMorePrevData" class="loading-more">
-      <el-icon class="is-loading">
+      <ScIcon class="is-loading">
         <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-          <path fill="currentColor" d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z" />
+          <path
+            fill="currentColor"
+            d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z"
+          />
         </svg>
-      </el-icon>
+      </ScIcon>
       <span>加载上一页...</span>
     </div>
 
@@ -29,26 +32,21 @@
     <!-- 卡片为空时显示空状态 -->
     <template v-if="!currentDataList || currentDataList.length === 0">
       <slot name="empty">
-        <el-empty :description="emptyText" :image-size="100" />
+        <ScEmpty :description="emptyText" :image-size="100" />
       </slot>
     </template>
 
     <!-- 卡片网格布局 - 使用 CSS Grid -->
-    <div 
-      v-else 
-      ref="cardGridRef"
-      class="card-grid"
-      :style="gridStyle"
-    >
+    <div v-else ref="cardGridRef" class="card-grid" :style="gridStyle">
       <div
         v-for="(row, index) in currentDataList"
         :key="rowKey ? row[rowKey] : index"
         class="card-item-wrapper"
         :class="[
-          { 
-          'is-selected': isSelected(row),
-          'is-dragging': draggingIndex === index,
-          'has-border': border
+          {
+            'is-selected': isSelected(row),
+            'is-dragging': draggingIndex === index,
+            'has-border': border
           },
           `theme--${theme}`
         ]"
@@ -60,19 +58,19 @@
         <div v-if="showIndex" class="card-index-badge">
           <span>{{ (currentPage - 1) * pageSize + index + 1 }}</span>
         </div>
-        
+
         <!-- 拖拽手柄 -->
         <div v-if="draggable" class="card-drag-handle">
-          <el-icon :size="16">
+          <ScIcon :size="16">
             <component :is="useRenderIcon('ri:drag-move-2-line')" />
-          </el-icon>
+          </ScIcon>
         </div>
-        
+
         <!-- 选择框 -->
         <div v-if="selectable" class="card-checkbox" @click.stop="toggleSelection(row)">
-          <el-checkbox :model-value="isSelected(row)" @change="toggleSelection(row)" />
+          <ScCheckbox :model-value="isSelected(row)" @change="toggleSelection(row)" />
         </div>
-        
+
         <!-- 卡片内容 -->
         <div class="card-content-wrapper">
           <template v-if="layout === 'card'">
@@ -96,19 +94,22 @@
 
     <!-- 底部加载状态 -->
     <div v-if="isScrollPagination && loadingNext && hasMoreNextData" class="loading-more flex justify-center items-center py-4">
-      <el-icon class="is-loading mr-2">
+      <ScIcon class="is-loading mr-2">
         <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
           <path
             fill="currentColor"
             d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z"
           />
         </svg>
-      </el-icon>
+      </ScIcon>
       <span>加载下一页...</span>
     </div>
 
     <!-- 没有更多数据提示 -->
-    <div v-if="isScrollPagination && !loadingNext && !hasMoreNextData && currentDataList.length > 0" class="no-more flex justify-center items-center py-2 text-[var(--el-text-color-placeholder)] text-sm">
+    <div
+      v-if="isScrollPagination && !loadingNext && !hasMoreNextData && currentDataList.length > 0"
+      class="no-more flex justify-center items-center py-2 text-[var(--el-text-color-placeholder)] text-sm"
+    >
       <span>没有更多数据了</span>
     </div>
 
@@ -118,13 +119,13 @@
 </template>
 
 <script setup>
-import ScCard from "@repo/components/ScCard/index.vue";
+import { ScCard } from "@repo/components"
 import { debounce } from "lodash-es";
 import { computed, nextTick, onMounted, onUnmounted, ref, useSlots, watch } from "vue";
 import Sortable from "sortablejs";
 import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 
 const logger = getLogger("[ScTable][CardView]");
 
@@ -294,28 +295,28 @@ const isScrollPagination = computed(() => {
 
 // Grid/Flex 布局样式
 const gridStyle = computed(() => {
-  if (props.layoutMode === 'flex') {
+  if (props.layoutMode === "flex") {
     // Flex 布局：自动换行，自适应宽度
     return {
-      display: 'flex',
-      flexWrap: 'wrap',
+      display: "flex",
+      flexWrap: "wrap",
       gap: `${props.cardGap}px`,
-      justifyContent: props.center ? 'center' : 'flex-start',
-      alignItems: 'stretch'
+      justifyContent: props.center ? "center" : "flex-start",
+      alignItems: "stretch"
     };
   }
   // Grid 布局：固定列数
   return {
-    display: 'grid',
+    display: "grid",
     gridTemplateColumns: `repeat(${props.colSize}, 1fr)`,
     gap: `${props.cardGap}px`,
-    justifyItems: props.center ? 'center' : 'stretch'
+    justifyItems: props.center ? "center" : "stretch"
   };
 });
 
 // 卡片项样式 (flex 模式)
 const cardItemStyle = computed(() => {
-  if (props.layoutMode === 'flex') {
+  if (props.layoutMode === "flex") {
     return {
       flex: `1 1 ${props.cardMinWidth}px`,
       maxWidth: `calc(${100 / Math.min(props.colSize, 4)}% - ${props.cardGap}px)`,
@@ -392,7 +393,7 @@ watch(
 // 监听 draggable 变化
 watch(
   () => props.draggable,
-  (newVal) => {
+  newVal => {
     if (newVal) {
       nextTick(() => {
         initDragSort();
@@ -432,10 +433,10 @@ const initDragSort = () => {
       ghostClass: "sortable-ghost",
       chosenClass: "sortable-chosen",
       dragClass: "sortable-drag",
-      onStart: (evt) => {
+      onStart: evt => {
         draggingIndex.value = evt.oldIndex;
       },
-      onEnd: (evt) => {
+      onEnd: evt => {
         draggingIndex.value = -1;
         const { oldIndex, newIndex } = evt;
         if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
@@ -759,12 +760,12 @@ const handleMenuAction = action => {
         flex: 1 1 280px;
         max-width: calc(33.333% - 12px);
         min-width: 280px;
-        
+
         @media (max-width: 768px) {
           max-width: calc(50% - 8px);
           min-width: 240px;
         }
-        
+
         @media (max-width: 480px) {
           max-width: 100%;
           min-width: 100%;
@@ -836,14 +837,24 @@ const handleMenuAction = action => {
       }
     }
 
-    &.theme--primary { @include theme-variant('primary'); }
-    &.theme--success { @include theme-variant('success'); }
-    &.theme--warning { @include theme-variant('warning'); }
-    &.theme--danger { @include theme-variant('danger'); }
-    &.theme--info { @include theme-variant('info'); }
+    &.theme--primary {
+      @include theme-variant("primary");
+    }
+    &.theme--success {
+      @include theme-variant("success");
+    }
+    &.theme--warning {
+      @include theme-variant("warning");
+    }
+    &.theme--danger {
+      @include theme-variant("danger");
+    }
+    &.theme--info {
+      @include theme-variant("info");
+    }
 
     &.is-dragging {
-        background: var(--stitch-lay-primary);
+      background: var(--stitch-lay-primary);
     }
 
     &.is-dragging {
@@ -947,7 +958,7 @@ const handleMenuAction = action => {
 
     // 底部装饰条
     &::after {
-      content: '';
+      content: "";
       position: absolute;
       bottom: 0;
       left: 50%;
@@ -1075,8 +1086,6 @@ const handleMenuAction = action => {
     }
   }
 }
-
-
 
 @keyframes rotating {
   0% {

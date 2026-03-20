@@ -2,11 +2,11 @@
 import Sortable from "sortablejs";
 import { defineComponent } from "vue";
 import Caret from "@iconify-icons/ep/d-caret";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 
 export default defineComponent({
   props: {
-    column: { type: Object, default: () => { } },
+    column: { type: Object, default: () => {} },
     layout: { type: String, default: "table" }, // 添加 layout 属性
     liveUpdate: { type: Boolean, default: false }, // 是否实时更新（不等待保存按钮）
     theme: { type: String, default: "" } // 主题
@@ -130,46 +130,44 @@ export default defineComponent({
       <ul>
         <li v-for="item in usercolumn" :key="item.prop" class="column-item">
           <span class="move_b">
-            <el-tag class="move" size="small" type="info" effect="plain">
-              <el-icon style="width: 1em; height: 1em">
+            <ScTag class="move" size="small" type="info" effect="plain">
+              <ScIcon style="width: 1em; height: 1em">
                 <component :is="icon.Caret" />
-              </el-icon>
-            </el-tag>
+              </ScIcon>
+            </ScTag>
           </span>
           <span class="show_b">
-            <el-switch v-model="item.hide" :active-value="false" :inactive-value="true"
-              @change="() => handleVisibilityChange(item)" class="visibility-switch" />
+            <ScSwitch v-model="item.hide" :active-value="false" :inactive-value="true" @change="() => handleVisibilityChange(item)" class="visibility-switch" />
           </span>
           <span class="name_b" :title="item.label">{{ item.label }}</span>
           <span class="width_b" v-if="layout === 'table'">
-            <el-input-number v-model="item.width" :min="50" :max="1000" :step="10" controls-position="right"
-              size="small" class="width-control" @change="() => handleWidthChange(item)" />
+            <ScInputNumber v-model="item.width" :min="50" :max="1000" :step="10" controls-position="right" size="small" class="width-control" @change="() => handleWidthChange(item)" />
           </span>
           <span class="sortable_b" v-if="layout === 'table'">
-            <el-switch v-model="item.sortable" @change="() => handleSortableChange(item)" class="feature-switch" />
+            <ScSwitch v-model="item.sortable" @change="() => handleSortableChange(item)" class="feature-switch" />
           </span>
           <span class="fixed_b" v-if="layout === 'table'">
-            <el-switch v-model="item.fixed" @change="() => handleFixedChange(item)" class="feature-switch" />
+            <ScSwitch v-model="item.fixed" @change="() => handleFixedChange(item)" class="feature-switch" />
           </span>
         </li>
       </ul>
     </div>
 
     <div class="setting-column__bottom">
-      <el-button :disabled="isSave" @click="backDefaul" size="small">
-        <el-icon><i class="el-icon-refresh-right"></i></el-icon>
+      <ScButton :disabled="isSave" @click="backDefaul" size="small">
+        <ScIcon><i class="el-icon-refresh-right"></i></ScIcon>
         重置
-      </el-button>
-      <el-button type="primary" @click="save" size="small">
-        <el-icon><i class="el-icon-check"></i></el-icon>
+      </ScButton>
+      <ScButton type="primary" @click="save" size="small">
+        <ScIcon><i class="el-icon-check"></i></ScIcon>
         保存
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-@use "@/styles/mixins.scss" as *;
+// @use "@/styles/mixins.scss" as *;
 
 .column-setting-container {
   border-radius: 8px;
@@ -184,7 +182,7 @@ export default defineComponent({
     .ghost {
       background: var(--stitch-lay-#{$type}-bg);
     }
-    
+
     .setting-column__bottom .el-button--primary {
       --el-button-bg-color: var(--stitch-lay-#{$type});
       --el-button-border-color: var(--stitch-lay-#{$type});
@@ -194,7 +192,8 @@ export default defineComponent({
       --el-button-active-border-color: var(--stitch-lay-#{$type});
     }
 
-    .feature-switch, .visibility-switch {
+    .feature-switch,
+    .visibility-switch {
       :deep(.el-switch.is-checked .el-switch__core) {
         background-color: var(--stitch-lay-#{$type});
         border-color: var(--stitch-lay-#{$type});
@@ -202,11 +201,21 @@ export default defineComponent({
     }
   }
 
-  &.theme--primary { @include theme-variant('primary'); }
-  &.theme--success { @include theme-variant('success'); }
-  &.theme--warning { @include theme-variant('warning'); }
-  &.theme--danger { @include theme-variant('error'); }
-  &.theme--info { @include theme-variant('info'); }
+  &.theme--primary {
+    @include theme-variant("primary");
+  }
+  &.theme--success {
+    @include theme-variant("success");
+  }
+  &.theme--warning {
+    @include theme-variant("warning");
+  }
+  &.theme--danger {
+    @include theme-variant("error");
+  }
+  &.theme--info {
+    @include theme-variant("info");
+  }
 }
 
 .setting-column__header {
@@ -380,4 +389,4 @@ export default defineComponent({
   opacity: 0.5;
   background: var(--stitch-lay-primary-alpha);
 }
-</style> 
+</style>

@@ -73,9 +73,18 @@ class WebSocketService {
 
 export const wsService = new WebSocketService();
 
+<<<<<<< HEAD
+=======
+// Vue 插件（install 时自动建立连接，并监听 fullScreen 路由）
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 export const WebSocketPlugin = {
   install(app: any) {
     app.config.globalProperties.$ws = wsService;
     app.provide("wsService", wsService);
+<<<<<<< HEAD
   },
+=======
+    wsService.connect();
+  }
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 };

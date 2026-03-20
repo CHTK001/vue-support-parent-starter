@@ -10,8 +10,8 @@ import { debounce } from "@pureadmin/utils";
 // 导入时间处理工具函数
 import { getTimeAgo } from "@repo/utils";
 // 导入渲染图标的钩子函数
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 // 导入路由实例
 import { router } from "@repo/core";
 // 导入Base64编码库
@@ -212,7 +212,7 @@ onMounted(async () => {
     <!-- 权限对话框组件 -->
     <PermissionDialog ref="permissionDialogRef" />
     <!-- 骨架屏组件，在数据加载时显示 -->
-    <el-skeleton :loading="env.loading" animated>
+    <ScSkeleton :loading="env.loading" animated>
       <template #default>
         <div class="dept-wrapper">
           <!-- 统计面板 -->
@@ -255,43 +255,43 @@ onMounted(async () => {
             </div>
           </div>
           <!-- 页面头部 -->
-          <el-header class="toolbar-section dept-header">
+          <ScHeader class="toolbar-section dept-header">
             <div class="toolbar-left left-panel">
-              <el-form
+              <ScForm
                 :model="form"
                 :inline="true"
                 class="modern-form search-form"
               >
-                <el-form-item label="机构名称">
-                  <el-input
+                <ScFormItem label="机构名称">
+                  <ScInput
                     v-model="form.sysDeptName"
                     placeholder="机构名称"
                     clearable
                     class="!w-[180px]"
                   />
-                </el-form-item>
-              </el-form>
+                </ScFormItem>
+              </ScForm>
             </div>
             <div class="toolbar-right right-panel">
               <div class="right-panel-search">
                 <!-- 搜索按钮，点击后调用加载数据函数，并进行防抖处理 -->
-                <el-button
+                <ScButton
                   type="primary"
                   :icon="useRenderIcon('ri:search-line')"
                   @click="debounce(loadData, 1000, true)"
                 />
-                <el-button
+                <ScButton
                   :icon="useRenderIcon('ep:refresh')"
                   @click="loadData"
                 />
                 <!-- 新增部门按钮，点击后打开保存对话框 -->
-                <el-button
+                <ScButton
                   :icon="useRenderIcon('ep:plus')"
                   @click="handleEdit({}, 'save')"
                 />
               </div>
             </div>
-          </el-header>
+          </ScHeader>
           <!-- 表格组件，显示部门列表数据 -->
           <div class="table-container">
             <ScTable
@@ -303,9 +303,9 @@ onMounted(async () => {
               @row-click="handleOpenDetail"
             >
               <!-- 表格列，显示部门ID -->
-              <el-table-column label="" prop="sysDeptIds" width="60" />
+              <ScTableColumn label="" prop="sysDeptIds" width="60" />
               <!-- 表格列，显示部门名称 -->
-              <el-table-column
+              <ScTableColumn
                 label="机构名称"
                 prop="sysDeptName"
                 min-width="280"
@@ -330,7 +330,7 @@ onMounted(async () => {
                     <div class="dept-info">
                       <div class="dept-title">
                         <span class="dept-name">{{ row.sysDeptName }}</span>
-                        <el-tag
+                        <ScTag
                           v-if="row.sysDeptSort"
                           size="small"
                           type="info"
@@ -343,16 +343,16 @@ onMounted(async () => {
                     </div>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 表格列，显示部门权限 -->
-              <el-table-column
+              <ScTableColumn
                 label="数据权限"
                 prop="sysDeptPermission"
                 width="150"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-tag
+                  <ScTag
                     :type="row.sysDeptDataPermission ? 'success' : 'info'"
                     effect="light"
                   >
@@ -361,25 +361,25 @@ onMounted(async () => {
                         ? "未设置"
                         : getPermissionLabel(row.sysDeptDataPermission)
                     }}
-                  </el-tag>
+                  </ScTag>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 表格列，显示部门路径 -->
-              <el-table-column
+              <ScTableColumn
                 label="路径"
                 prop="sysDeptTreeId"
                 min-width="120"
                 show-overflow-tooltip
               />
               <!-- 表格列，显示部门状态 -->
-              <el-table-column
+              <ScTableColumn
                 label="状态"
                 prop="sysDeptStatus"
                 width="100"
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-switch
+                  <ScSwitch
                     v-model="row.sysDeptStatus"
                     :active-value="0"
                     :inactive-value="1"
@@ -391,9 +391,9 @@ onMounted(async () => {
                     @change="handleUpdate(row)"
                   />
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 表格列，显示部门创建时间 -->
-              <el-table-column label="创建时间" prop="createTime" width="180">
+              <ScTableColumn label="创建时间" prop="createTime" width="180">
                 <template #default="{ row }">
                   <div class="time-cell">
                     <span class="time-ago">{{
@@ -402,9 +402,9 @@ onMounted(async () => {
                     <span class="time-exact">{{ row.createTime }}</span>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 表格列，显示部门备注 -->
-              <el-table-column
+              <ScTableColumn
                 label="备注"
                 prop="sysDeptRemark"
                 min-width="120"
@@ -414,9 +414,9 @@ onMounted(async () => {
                   <span v-if="row.sysDeptRemark">{{ row.sysDeptRemark }}</span>
                   <span v-else class="text-placeholder">-</span>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
               <!-- 表格列，显示操作按钮 -->
-              <el-table-column
+              <ScTableColumn
                 label="操作"
                 width="200"
                 fixed="right"
@@ -425,18 +425,18 @@ onMounted(async () => {
                 <template #default="{ row }">
                   <div class="action-buttons">
                     <!-- 编辑按钮 -->
-                    <el-tooltip content="编辑" placement="top">
-                      <el-button
+                    <ScTooltip content="编辑" placement="top">
+                      <ScButton
                         type="primary"
                         link
                         @click.stop="handleEdit(row, 'edit')"
                       >
                         <IconifyIconOnline icon="ri:edit-line" />
-                      </el-button>
-                    </el-tooltip>
+                      </ScButton>
+                    </ScTooltip>
                     <!-- 新增子部门按钮 -->
-                    <el-tooltip content="添加子部门" placement="top">
-                      <el-button
+                    <ScTooltip content="添加子部门" placement="top">
+                      <ScButton
                         type="success"
                         link
                         @click.stop="
@@ -444,49 +444,49 @@ onMounted(async () => {
                         "
                       >
                         <IconifyIconOnline icon="ri:add-line" />
-                      </el-button>
-                    </el-tooltip>
+                      </ScButton>
+                    </ScTooltip>
                     <!-- 查看用户按钮 -->
-                    <el-tooltip content="查看部门用户" placement="top">
-                      <el-button
+                    <ScTooltip content="查看部门用户" placement="top">
+                      <ScButton
                         type="warning"
                         link
                         @click.stop="handleSearchUser(row)"
                       >
                         <IconifyIconOnline icon="ri:user-line" />
-                      </el-button>
-                    </el-tooltip>
+                      </ScButton>
+                    </ScTooltip>
                     <!-- 权限设置按钮 -->
-                    <el-tooltip content="数据权限" placement="top">
-                      <el-button
+                    <ScTooltip content="数据权限" placement="top">
+                      <ScButton
                         type="info"
                         link
                         @click.stop="handleOpenPermission(row)"
                       >
                         <IconifyIconOnline icon="ri:shield-user-line" />
-                      </el-button>
-                    </el-tooltip>
+                      </ScButton>
+                    </ScTooltip>
                     <!-- 删除确认弹窗 -->
-                    <el-popconfirm
+                    <ScPopconfirm
                       :title="$t('message.confimDelete')"
                       @confirm="handleDelete(row)"
                     >
                       <template #reference>
-                        <el-tooltip content="删除" placement="top">
-                          <el-button type="danger" link @click.stop>
+                        <ScTooltip content="删除" placement="top">
+                          <ScButton type="danger" link @click.stop>
                             <IconifyIconOnline icon="ri:delete-bin-line" />
-                          </el-button>
-                        </el-tooltip>
+                          </ScButton>
+                        </ScTooltip>
                       </template>
-                    </el-popconfirm>
+                    </ScPopconfirm>
                   </div>
                 </template>
-              </el-table-column>
+              </ScTableColumn>
             </ScTable>
           </div>
         </div>
       </template>
-    </el-skeleton>
+    </ScSkeleton>
     <!-- 保存对话框组件 -->
     <SaveDialog ref="saveDialogRef" @success="loadData" />
   </div>

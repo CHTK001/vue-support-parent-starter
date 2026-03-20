@@ -1,6 +1,6 @@
 <template>
   <div class="sc-select-tree-layout">
-    <el-select v-model="searchValue" :placeholder="searchPlaceholder" clearable @input="handleSearch">
+    <ScSelect v-model="searchValue" :placeholder="searchPlaceholder" clearable @input="handleSearch">
       <template #empty>
         <!-- 树形组件 -->
         <div class="tree-container" :style="{ height: containerHeight }">
@@ -22,9 +22,9 @@
             <template #default="{ node, data }">
               <div class="tree-node-content">
                 <!-- 节点图标 -->
-                <el-icon v-if="data[iconProp]" class="node-icon">
+                <ScIcon v-if="data[iconProp]" class="node-icon">
                   <component :is="data[iconProp]" />
-                </el-icon>
+                </ScIcon>
 
                 <!-- 节点标签 -->
                 <span class="node-label">{{ node.label }}</span>
@@ -38,13 +38,13 @@
 
         <!-- 底部操作栏 -->
         <div v-if="showActions && multiple" class="tree-actions">
-          <el-button size="small" @click="expandAll">展开全部</el-button>
-          <el-button size="small" @click="collapseAll">收起全部</el-button>
-          <el-button size="small" @click="clearSelection">清空选择</el-button>
+          <ScButton size="small" @click="expandAll">展开全部</ScButton>
+          <ScButton size="small" @click="collapseAll">收起全部</ScButton>
+          <ScButton size="small" @click="clearSelection">清空选择</ScButton>
           <div class="selected-count">已选择: {{ selectedCount }} 项</div>
         </div>
       </template>
-    </el-select>
+    </ScSelect>
   </div>
 </template>
 

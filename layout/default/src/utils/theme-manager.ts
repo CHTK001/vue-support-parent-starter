@@ -2,8 +2,8 @@ import type { ThemeStyleDefinition, ThemeTokens } from "../types/theme-schema";
 
 class ThemeManager {
   private styles: Map<string, ThemeStyleDefinition> = new Map();
-  private activeStyleId: string = 'default-light';
-  private storageKey = 'stitch-theme-style';
+  private activeStyleId: string = "default-light";
+  private storageKey = "stitch-theme-style";
 
   constructor() {
     this.initDefaultStyles();
@@ -21,7 +21,7 @@ class ThemeManager {
         this.setStyle(this.activeStyleId);
       }
     } catch (e) {
-      console.warn('Failed to load theme style from storage', e);
+      console.warn("Failed to load theme style from storage", e);
       this.setStyle(this.activeStyleId);
     }
   }
@@ -29,74 +29,74 @@ class ThemeManager {
   private initDefaultStyles() {
     // Register Default Light
     this.registerStyle({
-      id: 'default-light',
-      name: 'Default Light',
-      type: 'light',
+      id: "default-light",
+      name: "Default Light",
+      type: "light",
       tokens: {
         colors: {
           palette: {
-            primary: '#409EFF',
-            secondary: '#64748B',
-            success: '#67C23A',
-            warning: '#E6A23C',
-            danger: '#F56C6C',
-            info: '#909399'
+            primary: "#409EFF",
+            secondary: "#64748B",
+            success: "#67C23A",
+            warning: "#E6A23C",
+            danger: "#F56C6C",
+            info: "#909399",
           },
           surface: {
-            primary: '#ffffff',
-            secondary: '#f8fafc',
-            tertiary: '#f1f5f9',
-            navbar: 'rgba(255, 255, 255, 0.8)'
+            primary: "#ffffff",
+            secondary: "#f8fafc",
+            tertiary: "#f1f5f9",
+            navbar: "rgba(255, 255, 255, 0.8)",
           },
           text: {
-            primary: '#1e293b',
-            secondary: '#64748b',
-            disabled: '#cbd5e1',
-            inverse: '#ffffff'
+            primary: "#1e293b",
+            secondary: "#64748b",
+            disabled: "#cbd5e1",
+            inverse: "#ffffff",
           },
           border: {
-            base: '#e2e8f0',
-            light: '#f1f5f9',
-            lighter: '#f8fafc'
-          }
-        }
-      }
+            base: "#e2e8f0",
+            light: "#f1f5f9",
+            lighter: "#f8fafc",
+          },
+        },
+      },
     });
 
     // Register Default Dark
     this.registerStyle({
-      id: 'default-dark',
-      name: 'Default Dark',
-      type: 'dark',
+      id: "default-dark",
+      name: "Default Dark",
+      type: "dark",
       tokens: {
         colors: {
           palette: {
-            primary: '#409EFF',
-            secondary: '#94a3b8',
-            success: '#67C23A',
-            warning: '#E6A23C',
-            danger: '#F56C6C',
-            info: '#909399'
+            primary: "#409EFF",
+            secondary: "#94a3b8",
+            success: "#67C23A",
+            warning: "#E6A23C",
+            danger: "#F56C6C",
+            info: "#909399",
           },
           surface: {
-            primary: '#0f172a',
-            secondary: '#1e293b',
-            tertiary: '#334155',
-            navbar: 'rgba(15, 23, 42, 0.8)'
+            primary: "#0f172a",
+            secondary: "#1e293b",
+            tertiary: "#334155",
+            navbar: "rgba(15, 23, 42, 0.8)",
           },
           text: {
-            primary: '#f8fafc',
-            secondary: '#cbd5e1',
-            disabled: '#475569',
-            inverse: '#0f172a'
+            primary: "#f8fafc",
+            secondary: "#cbd5e1",
+            disabled: "#475569",
+            inverse: "#0f172a",
           },
           border: {
-            base: '#334155',
-            light: '#1e293b',
-            lighter: '#0f172a'
-          }
-        }
-      }
+            base: "#334155",
+            light: "#1e293b",
+            lighter: "#0f172a",
+          },
+        },
+      },
     });
   }
 
@@ -107,18 +107,20 @@ class ThemeManager {
   public setStyle(styleId: string) {
     const style = this.styles.get(styleId);
     if (!style) {
-      console.warn(`Theme style '${styleId}' not found, falling back to default.`);
+      console.warn(
+        `Theme style '${styleId}' not found, falling back to default.`,
+      );
       return;
     }
-    
+
     this.activeStyleId = styleId;
     this.applyTokens(style);
     this.updateDocumentClass(style.type);
-    
+
     try {
       localStorage.setItem(this.storageKey, styleId);
     } catch (e) {
-      console.warn('Failed to save theme style to storage', e);
+      console.warn("Failed to save theme style to storage", e);
     }
   }
 
@@ -131,7 +133,7 @@ class ThemeManager {
     Object.entries(tokens.colors.palette).forEach(([key, value]) => {
       root.style.setProperty(`--theme-palette-${key}`, value);
     });
-    
+
     // Surface
     Object.entries(tokens.colors.surface).forEach(([key, value]) => {
       root.style.setProperty(`--theme-surface-${key}`, value);
@@ -148,11 +150,11 @@ class ThemeManager {
     });
   }
 
-  private updateDocumentClass(type: 'light' | 'dark') {
-    if (type === 'dark') {
-      document.documentElement.classList.add('dark');
+  private updateDocumentClass(type: "light" | "dark") {
+    if (type === "dark") {
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
   }
 

@@ -51,7 +51,7 @@
           </ScCol>
           <ScCol :span="8">
             <ScFormItem label="高度">
-              <ScInputNumber 
+              <ScInputNumber
                 v-model="config.height"
                 :min="100"
                 :max="600"

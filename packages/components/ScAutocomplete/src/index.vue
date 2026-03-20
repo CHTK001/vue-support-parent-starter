@@ -145,8 +145,6 @@ const currentValue = computed({
 
 const { currentComponent } = useThemeComponent("ElAutocomplete");
 
-
-
 const handleSelect = (item: SuggestionItem) => {
   emit("select", item);
 };

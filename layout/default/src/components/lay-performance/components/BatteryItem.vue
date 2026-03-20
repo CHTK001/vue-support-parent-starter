@@ -5,31 +5,41 @@
         <div v-if="mode === 'detailed'" class="battery-gauge">
           <div class="battery-tip"></div>
           <div class="battery-body">
-            <div class="battery-fill" :style="{ height: `${battery.level}%`, backgroundColor: batteryColor }"></div>
+            <div
+              class="battery-fill"
+              :style="{
+                height: `${battery.level}%`,
+                backgroundColor: batteryColor,
+              }"
+            ></div>
           </div>
         </div>
-        <div v-else class="battery-icon-wrapper" :style="{ color: batteryColor }">
+        <div
+          v-else
+          class="battery-icon-wrapper"
+          :style="{ color: batteryColor }"
+        >
           <IconifyIconOnline :icon="batteryIcon" class="battery-icon" />
           <div v-if="battery.charging" class="charging-indicator"></div>
         </div>
       </div>
       <div class="text-info">
-      <span class="value">{{ battery.level }}%</span>
-      <span class="label">{{ battery.charging ? 'CHG' : 'BAT' }}</span>
-    </div>
+        <span class="value">{{ battery.level }}%</span>
+        <span class="label">{{ battery.charging ? "CHG" : "BAT" }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ref, onMounted, computed } from "vue";
+import { IconifyIconOnline } from "@repo/components";
 
 defineProps({
-  mode: { type: String, required: true }
+  mode: { type: String, required: true },
 });
 
-const battery = ref<{ level: number, charging: boolean } | null>(null);
+const battery = ref<{ level: number; charging: boolean } | null>(null);
 
 const updateBattery = async () => {
   if ((navigator as any).getBattery) {
@@ -37,9 +47,9 @@ const updateBattery = async () => {
       const bat = await (navigator as any).getBattery();
       battery.value = {
         level: Math.round(bat.level * 100),
-        charging: bat.charging
+        charging: bat.charging,
       };
-      
+
       bat.onlevelchange = () => {
         if (battery.value) battery.value.level = Math.round(bat.level * 100);
       };
@@ -123,8 +133,15 @@ onMounted(() => {
 }
 
 @keyframes pulse-charge {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
 }
 
 .text-info {
@@ -178,7 +195,9 @@ onMounted(() => {
 .battery-fill {
   width: 100%;
   border-radius: 2px;
-  transition: height 0.3s ease, background-color 0.3s ease;
+  transition:
+    height 0.3s ease,
+    background-color 0.3s ease;
   position: absolute;
   bottom: 0;
   left: 0;

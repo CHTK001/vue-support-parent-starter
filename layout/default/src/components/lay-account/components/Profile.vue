@@ -5,7 +5,7 @@ import { fetchUpdateUser, getMine } from "@repo/core";
 import type { FormInstance, FormRules } from "element-plus";
 import { deviceDetection } from "@pureadmin/utils";
 import uploadLine from "@iconify-icons/ri/upload-line";
-import ScCropper from "@repo/components/ScCropper/index.vue";
+import { ScCropper } from "@repo/components"
 import {
   ScAvatar,
   ScForm,
@@ -13,18 +13,18 @@ import {
   ScInput,
   ScAutocomplete,
   ScButton,
-  ScDialog
+  ScDialog,
 } from "@repo/components";
 
 defineOptions({
-  name: "Profile"
+  name: "Profile",
 });
 
 const props = defineProps({
   showTitle: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
 const imgSrc = ref("");
 const cropperBlob = ref();
@@ -45,24 +45,37 @@ const userInfos = reactive({
   sysUserEmail: "",
   sysUserPhone: "",
   description: "",
-  updateRole: false
+  updateRole: false,
 });
 const emit = defineEmits<Emits>();
 
 const rules = reactive<FormRules>({});
 
 function queryEmail(queryString, callback) {
-  const emailList = [{ value: "@qq.com" }, { value: "@gmail.com" }, { value: "@yahoo.com" }, { value: "@126.com" }, { value: "@163.com" }];
+  const emailList = [
+    { value: "@qq.com" },
+    { value: "@gmail.com" },
+    { value: "@yahoo.com" },
+    { value: "@126.com" },
+    { value: "@163.com" },
+  ];
   let results = [];
   let queryList = [];
-  emailList.map(item => queryList.push({ value: queryString.split("@")[0] + item.value }));
-  results = queryString ? queryList.filter(item => item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0) : queryList;
+  emailList.map((item) =>
+    queryList.push({ value: queryString.split("@")[0] + item.value }),
+  );
+  results = queryString
+    ? queryList.filter(
+        (item) =>
+          item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0,
+      )
+    : queryList;
   callback(results);
 }
 
-const onChange = uploadFile => {
+const onChange = (uploadFile) => {
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = (e) => {
     imgSrc.value = e.target.result as string;
     isShow.value = true;
   };
@@ -77,10 +90,10 @@ const handleClose = () => {
 const cropper = ref(null);
 const handleSubmitImage = () => {
   cropper.value.getCropData(
-    data => {
+    (data) => {
       userInfos.sysUserAvatar = data;
       userInfos.avatar = data;
-      fetchUpdateUser(userInfos).then(res => {
+      fetchUpdateUser(userInfos).then((res) => {
         message("更新信息成功", { type: "success" });
         isShow.value = false;
       });
@@ -89,14 +102,14 @@ const handleSubmitImage = () => {
     "image/jpeg",
     {
       maxWidth: 100,
-      maxHeight: 100
-    }
+      maxHeight: 100,
+    },
   );
 };
 
 // 更新信息
 const onSubmit = async (formEl: FormInstance) => {
-  await formEl.validate(valid => {
+  await formEl.validate((valid) => {
     if (valid) {
       fetchUpdateUser(userInfos).then(() => {
         message("更新信息成功", { type: "success" });
@@ -105,18 +118,40 @@ const onSubmit = async (formEl: FormInstance) => {
   });
 };
 
-getMine().then(res => {
+getMine().then((res) => {
   Object.assign(userInfos, res.data);
 });
 </script>
 
 <template>
-  <div :class="['min-w-[180px]', showTitle ? (deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]') : 'max-w-[100%]']">
+  <div
+    :class="[
+      'min-w-[180px]',
+      showTitle
+        ? deviceDetection()
+          ? 'max-w-[100%]'
+          : 'max-w-[70%]'
+        : 'max-w-[100%]',
+    ]"
+  >
     <h3 v-if="showTitle" class="my-8">{{ $t("buttons.profile") }}</h3>
-    <ScForm ref="userInfoFormRef" label-position="top" :rules="rules" :model="userInfos">
+    <ScForm
+      ref="userInfoFormRef"
+      label-position="top"
+      :rules="rules"
+      :model="userInfos"
+    >
       <ScFormItem :label="$t('field.avatar')">
         <ScAvatar :size="80" :src="userInfos.avatar" />
-        <ScUpload ref="uploadRef" accept="image/*" action="#" :limit="1" :auto-upload="false" :show-file-list="false" :on-change="onChange">
+        <ScUpload
+          ref="uploadRef"
+          accept="image/*"
+          action="#"
+          :limit="1"
+          :auto-upload="false"
+          :show-file-list="false"
+          :on-change="onChange"
+        >
           <ScButton plain class="ml-4">
             <IconifyIconOffline :icon="uploadLine" />
             <span class="ml-2">{{ $t("buttons.updateAvatar") }}</span>
@@ -127,19 +162,45 @@ getMine().then(res => {
         <ScInput v-model="userInfos.sysUserNickname" placeholder="请输入昵称" />
       </ScFormItem>
       <ScFormItem :label="$t('field.email')" prop="sysUserEmail">
-        <ScAutocomplete v-model="userInfos.sysUserEmail" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入邮箱" clearable class="w-full" />
+        <ScAutocomplete
+          v-model="userInfos.sysUserEmail"
+          :fetch-suggestions="queryEmail"
+          :trigger-on-focus="false"
+          placeholder="请输入邮箱"
+          clearable
+          class="w-full"
+        />
       </ScFormItem>
       <ScFormItem :label="$t('field.phone')">
-        <ScInput v-model="userInfos.sysUserPhone" placeholder="请输入联系电话" clearable />
+        <ScInput
+          v-model="userInfos.sysUserPhone"
+          placeholder="请输入联系电话"
+          clearable
+        />
       </ScFormItem>
       <ScFormItem :label="$t('field.description')">
-        <ScInput v-model="userInfos.description" placeholder="请输入简介" type="textarea" :autosize="{ minRows: 6, maxRows: 8 }" maxlength="56" show-word-limit />
+        <ScInput
+          v-model="userInfos.description"
+          placeholder="请输入简介"
+          type="textarea"
+          :autosize="{ minRows: 6, maxRows: 8 }"
+          maxlength="56"
+          show-word-limit
+        />
       </ScFormItem>
       <ScButton type="primary" @click="onSubmit(userInfoFormRef)">
         {{ $t("buttons.updateInfo") }}
       </ScButton>
     </ScForm>
-    <sc-dialog v-model="isShow" width="40%" :title="$t('buttons.updateAvatar')" destroy-on-close :closeOnClickModal="false" :before-close="handleClose" :fullscreen="deviceDetection()">
+    <sc-dialog
+      v-model="isShow"
+      width="40%"
+      :title="$t('buttons.updateAvatar')"
+      destroy-on-close
+      :closeOnClickModal="false"
+      :before-close="handleClose"
+      :fullscreen="deviceDetection()"
+    >
       <sc-cropper ref="cropper" :src="imgSrc" />
       <template #footer>
         <div class="dialog-footer">

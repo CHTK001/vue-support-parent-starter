@@ -14,12 +14,12 @@
           <div class="tree-header-left">
             <IconifyIconOnline icon="ri:folder-line" class="mr-2" />
             <span class="tree-title">目录结构</span>
-            <el-tag v-if="serverInfo" size="small" class="ml-2">
+            <ScTag v-if="serverInfo" size="small" class="ml-2">
               {{ getFileManagementModeText(serverInfo.fileManagementMode) }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="tree-header-right">
-            <el-button
+            <ScButton
               size="small"
               type="danger"
               :icon="useRenderIcon('ri:close-line')"
@@ -60,14 +60,14 @@
             gap: 8px;
           "
         >
-          <el-button
+          <ScButton
             type="primary"
             size="small"
             @click="showUploadDialog = true"
           >
             <IconifyIconOnline icon="ri:upload-cloud-2-line" class="mr-1" />
             上传文件
-          </el-button>
+          </ScButton>
         </div>
         <!-- 文件列表区域 -->
         <div class="file-list-container">
@@ -104,14 +104,14 @@
               <IconifyIconOnline icon="ri:file-info-line" class="mr-2" />
               <span>文件属性</span>
             </div>
-            <el-button
+            <ScButton
               size="small"
               text
               class="close-detail-btn"
               @click="detailVisible = false"
             >
               <IconifyIconOnline icon="ri:close-line" />
-            </el-button>
+            </ScButton>
           </div>
           <div class="detail-content">
             <!-- 上传对话框 -->

@@ -1,6 +1,6 @@
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 import { deepCopy, localStorageProxy, paginate, getLogger } from "@repo/utils";
 
 const logger = getLogger("[ScTable]");
@@ -1998,14 +1998,14 @@ defineExpose({
           <span>已拖拽 {{ dragChangeCount }} 次，排序已变更</span>
         </div>
         <div class="drag-action-buttons">
-          <el-button size="small" @click="cancelDragSort">
+          <ScButton size="small" @click="cancelDragSort">
             <IconifyIconOnline icon="ep:refresh-left" />
             取消
-          </el-button>
-          <el-button type="primary" size="small" :loading="dragSortLoading" @click="saveDragSort">
+          </ScButton>
+          <ScButton type="primary" size="small" :loading="dragSortLoading" @click="saveDragSort">
             <IconifyIconOnline icon="ep:check" />
             保存排序
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -2016,14 +2016,14 @@ defineExpose({
           <span>已编辑 {{ editChangeCount }} 处，数据已变更</span>
         </div>
         <div class="edit-action-buttons">
-          <el-button size="small" @click="cancelEditChanges">
+          <ScButton size="small" @click="cancelEditChanges">
             <IconifyIconOnline icon="ep:refresh-left" />
             取消
-          </el-button>
-          <el-button type="primary" size="small" :loading="editSaveLoading" @click="saveEditChanges">
+          </ScButton>
+          <ScButton type="primary" size="small" :loading="editSaveLoading" @click="saveEditChanges">
             <IconifyIconOnline icon="ep:check" />
             保存编辑
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -2033,9 +2033,9 @@ defineExpose({
           <IconifyIconOnline icon="ep:warning-filled" />
           <span>检测到大数据量 ({{ performanceMetrics.rowCount }} 行)，建议切换到虚拟滚动模式以获得更好的性能</span>
         </div>
-        <el-button size="small" text @click="dismissLargeDataTip">
+        <ScButton size="small" text @click="dismissLargeDataTip">
           <IconifyIconOnline icon="ep:close" />
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 表格内容区域 -->
@@ -2093,7 +2093,7 @@ defineExpose({
           <!-- 添加empty插槽，用于自定义无数据展示 -->
           <template #empty>
             <slot name="empty">
-              <el-empty :description="emptyText" :image-size="100" />
+              <ScEmpty :description="emptyText" :image-size="100" />
             </slot>
           </template>
         </component>

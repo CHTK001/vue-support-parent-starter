@@ -45,7 +45,7 @@
     <div class="toolbar-section">
       <div class="toolbar modern-toolbar">
         <div class="left">
-          <el-input
+          <ScInput
             v-model="searchKey"
             placeholder="搜索名称/类型"
             clearable
@@ -54,28 +54,28 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
-          <el-select
+          </ScInput>
+          <ScSelect
             v-model="typeFilter"
             placeholder="全部类型"
             class="w-200 ml-8"
             clearable
           >
-            <el-option label="全部类型" value="" />
-            <el-option
+            <ScOption label="全部类型" value="" />
+            <ScOption
               v-for="t in typeOptions"
               :key="t"
               :label="t"
               :value="t"
             />
-          </el-select>
-          <el-select v-model="sortKey" class="w-160 ml-8">
-            <el-option label="按名称排序" value="name" />
-            <el-option label="按类型排序" value="type" />
-          </el-select>
+          </ScSelect>
+          <ScSelect v-model="sortKey" class="w-160 ml-8">
+            <ScOption label="按名称排序" value="name" />
+            <ScOption label="按类型排序" value="type" />
+          </ScSelect>
         </div>
         <div class="right">
-          <el-button
+          <ScButton
             type="primary"
             size="large"
             class="create-btn"
@@ -83,7 +83,7 @@
           >
             <IconifyIconOnline icon="ri:add-line" />
             新建数据源
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
@@ -100,14 +100,14 @@
         layout="card"
       >
         <template #empty>
-          <el-empty description="暂无数据源配置">
-            <el-button type="primary" @click="openEdit()">新建配置</el-button>
-          </el-empty>
+          <ScEmpty description="暂无数据源配置">
+            <ScButton type="primary" @click="openEdit()">新建配置</ScButton>
+          </ScEmpty>
         </template>
 
         <template #default="{ row: item }">
           <div class="enhanced-card-wrapper">
-            <el-card
+            <ScCard
               :class="[
                 'enhanced-data-card',
                 getTypeClass(item.systemDataSettingType),
@@ -144,33 +144,33 @@
                       {{ item.systemDataSettingName }}
                     </h3>
                     <div class="type-badge">
-                      <el-tag
+                      <ScTag
                         :type="getTypeTag(item.systemDataSettingType)"
                         size="small"
                         effect="light"
                       >
                         {{ item.systemDataSettingType }}
-                      </el-tag>
+                      </ScTag>
                     </div>
                   </div>
                 </div>
                 <div class="header-actions">
                   <div class="quick-actions">
-                    <el-tooltip
+                    <ScTooltip
                       v-if="capOf(item)?.document"
                       content="查看文档"
                       placement="top"
                     >
-                      <el-button
+                      <ScButton
                         class="quick-action-btn"
                         size="small"
                         text
                         @click.stop="viewDocument(item)"
                       >
                         <IconifyIconOnline icon="ri:file-text-line" />
-                      </el-button>
-                    </el-tooltip>
-                    <el-tooltip
+                      </ScButton>
+                    </ScTooltip>
+                    <ScTooltip
                       v-if="capOf(item)?.backup"
                       :content="
                         backupOn[item.systemDataSettingId!]
@@ -179,7 +179,7 @@
                       "
                       placement="top"
                     >
-                      <el-button
+                      <ScButton
                         class="quick-action-btn"
                         :class="{
                           'backup-active': backupOn[item.systemDataSettingId!],
@@ -195,44 +195,44 @@
                               : 'ri:play-line'
                           "
                         />
-                      </el-button>
-                    </el-tooltip>
-                    <el-tooltip
+                      </ScButton>
+                    </ScTooltip>
+                    <ScTooltip
                       v-if="isJdbcItem(item)"
                       content="上传驱动"
                       placement="top"
                     >
-                      <el-upload
+                      <ScUpload
                         :auto-upload="false"
                         :show-file-list="false"
                         :on-change="(f) => onUploadDriver(item, f)"
                         class="upload-action"
                       >
-                        <el-button class="quick-action-btn" size="small" text>
+                        <ScButton class="quick-action-btn" size="small" text>
                           <IconifyIconOnline icon="ri:upload-2-line" />
-                        </el-button>
-                      </el-upload>
-                    </el-tooltip>
-                    <el-tooltip content="编辑配置" placement="top">
-                      <el-button
+                        </ScButton>
+                      </ScUpload>
+                    </ScTooltip>
+                    <ScTooltip content="编辑配置" placement="top">
+                      <ScButton
                         class="quick-action-btn"
                         size="small"
                         text
                         @click.stop="openEdit(item)"
                       >
                         <IconifyIconOnline icon="ri:edit-line" />
-                      </el-button>
-                    </el-tooltip>
-                    <el-tooltip content="删除数据源" placement="top">
-                      <el-button
+                      </ScButton>
+                    </ScTooltip>
+                    <ScTooltip content="删除数据源" placement="top">
+                      <ScButton
                         class="quick-action-btn danger"
                         size="small"
                         text
                         @click.stop="remove(item)"
                       >
                         <IconifyIconOnline icon="ri:delete-bin-line" />
-                      </el-button>
-                    </el-tooltip>
+                      </ScButton>
+                    </ScTooltip>
                   </div>
                 </div>
               </div>
@@ -284,19 +284,19 @@
               <!-- 操作按钮 -->
               <div class="enhanced-card-actions" @click.stop>
                 <div class="action-buttons">
-                  <el-tooltip content="打开控制台" placement="top">
-                    <el-button
+                  <ScTooltip content="打开控制台" placement="top">
+                    <ScButton
                       size="small"
                       type="primary"
                       class="action-btn primary-action"
                       @click.stop.prevent="openConsole(item)"
                     >
                       <IconifyIconOnline icon="ri:login-circle-line" />
-                    </el-button>
-                  </el-tooltip>
+                    </ScButton>
+                  </ScTooltip>
                 </div>
               </div>
-            </el-card>
+            </ScCard>
           </div>
         </template>
       </ScTable>

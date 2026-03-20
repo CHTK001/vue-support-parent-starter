@@ -1,6 +1,10 @@
 <script setup>
+<<<<<<< HEAD
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ScButton } from "@repo/components";
+=======
+import { useRenderIcon } from "@repo/components";
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import { getConfig } from "@repo/config";
 import { useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
 import {
@@ -330,9 +334,9 @@ onUnmounted(() => {
         <div class="widgets-wrapper">
           <div v-if="!customizing.hasLayout" class="empty-state">
             <div class="empty-icon">
-              <el-icon :size="64">
+              <ScIcon :size="64">
                 <component :is="useRenderIcon('ri:dashboard-3-line')" />
-              </el-icon>
+              </ScIcon>
             </div>
             <div class="empty-title">暂无可用部件</div>
             <div class="empty-desc">{{ $t("message.noPlugin") }}</div>
@@ -343,9 +347,9 @@ onUnmounted(() => {
               class="empty-state"
             >
               <div class="empty-icon">
-                <el-icon :size="64">
+                <ScIcon :size="64">
                   <component :is="useRenderIcon('ri:apps-2-add-line')" />
-                </el-icon>
+                </ScIcon>
               </div>
               <div class="empty-title">开始自定义您的仪表板</div>
               <div class="empty-desc">点击右上角「自定义」按钮添加部件</div>
@@ -355,9 +359,9 @@ onUnmounted(() => {
                 @click="handeCustom"
                 class="empty-action"
               >
-                <el-icon class="mr-1">
+                <ScIcon class="mr-1">
                   <component :is="useRenderIcon('ep:plus')" />
-                </el-icon>
+                </ScIcon>
                 添加部件
               </ScButton>
             </div>
@@ -374,9 +378,9 @@ onUnmounted(() => {
     <div v-if="customizing.customizing" class="widgets-aside">
       <div class="aside-header">
         <div class="aside-title">
-          <el-icon :size="20">
+          <ScIcon :size="20">
             <component :is="useRenderIcon('ri:apps-2-add-line')" />
-          </el-icon>
+          </ScIcon>
           <div class="aside-title-text">
             <span>添加部件</span>
             <span class="aside-subtitle">
@@ -385,15 +389,15 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="aside-close" @click="handleClose()">
-          <el-icon :size="18">
+          <ScIcon :size="18">
             <component :is="useRenderIcon('ep:close')" />
-          </el-icon>
+          </ScIcon>
         </div>
       </div>
 
       <!-- 搜索栏 -->
       <div class="aside-search">
-        <el-input
+        <ScInput
           v-model="searchKeyword"
           placeholder="搜索部件（名称或描述）..."
           clearable
@@ -403,7 +407,7 @@ onUnmounted(() => {
 
       <!-- 分类筛选 -->
       <div class="aside-categories">
-        <el-radio-group v-model="selectedCategory" size="small">
+        <ScRadioGroup v-model="selectedCategory" size="small">
           <el-radio-button
             v-for="cat in categories"
             :key="cat.value"
@@ -411,7 +415,7 @@ onUnmounted(() => {
           >
             {{ cat.label }} ({{ cat.count }})
           </el-radio-button>
-        </el-radio-group>
+        </ScRadioGroup>
       </div>
 
       <!-- 部件列表 -->
@@ -422,9 +426,9 @@ onUnmounted(() => {
           个部件
         </div>
         <div v-if="filteredWidgetList.length === 0" class="list-empty">
-          <el-icon :size="40" color="var(--el-text-color-placeholder)">
+          <ScIcon :size="40" color="var(--el-text-color-placeholder)">
             <component :is="useRenderIcon('ri:inbox-line')" />
-          </el-icon>
+          </ScIcon>
           <p>没有找到匹配的部件，请尝试调整搜索或筛选条件</p>
         </div>
         <div
@@ -434,9 +438,9 @@ onUnmounted(() => {
           @click="push(item)"
         >
           <div class="widget-card-icon">
-            <el-icon :size="24">
+            <ScIcon :size="24">
               <component :is="useRenderIcon(item.icon || 'ri:apps-line')" />
-            </el-icon>
+            </ScIcon>
           </div>
           <div class="widget-card-content">
             <div class="widget-card-title">{{ item.title }}</div>
@@ -444,17 +448,21 @@ onUnmounted(() => {
               {{ item.description || "暂无描述" }}
             </div>
             <div class="widget-card-meta">
-              <el-tag
+              <ScTag
                 size="small"
                 :type="item.type === 1 ? 'success' : 'primary'"
               >
                 {{ item.type === 1 ? "本地" : "远程" }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
           <div class="widget-card-action">
             <ScButton type="primary" circle size="small">
+<<<<<<< HEAD
               <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+=======
+              <ScIcon><component :is="useRenderIcon('ep:plus')" /></ScIcon>
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
             </ScButton>
           </div>
         </div>
@@ -463,19 +471,23 @@ onUnmounted(() => {
       <!-- 底部操作 -->
       <div class="aside-footer">
         <div class="footer-settings">
-          <el-checkbox v-model="showHeader" size="small">显示头部</el-checkbox>
-          <el-checkbox
+          <ScCheckbox v-model="showHeader" size="small">显示头部</ScCheckbox>
+          <ScCheckbox
             v-if="showHeader"
             v-model="showHeaderInfo"
             size="small"
           >
             显示头部信息
-          </el-checkbox>
+          </ScCheckbox>
         </div>
         <ScButton size="small" @click="backDefault()">
+<<<<<<< HEAD
           <el-icon class="mr-1"
+=======
+          <ScIcon class="mr-1"
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
             ><component :is="useRenderIcon('ep:refresh')"
-          /></el-icon>
+          /></ScIcon>
           {{ $t("buttons.default") }}
         </ScButton>
       </div>

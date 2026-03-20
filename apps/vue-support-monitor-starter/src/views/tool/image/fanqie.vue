@@ -202,9 +202,9 @@ const resetProcess = () => {
     </div>
 
     <div class="fanqie__content">
-      <el-row :gutter="20">
+      <ScRow :gutter="20">
         <!-- 上传区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
           <div class="fanqie__result-title">
             <IconifyIconOnline
               icon="ri:image-2-line"
@@ -227,7 +227,7 @@ const resetProcess = () => {
               <div class="fanqie__upload-tip">
                 支持 JPG、PNG 格式，最大 10MB
               </div>
-              <el-button type="primary" class="fanqie__upload-btn">
+              <ScButton type="primary" class="fanqie__upload-btn">
                 <IconifyIconOnline icon="ri:image-add-line" />
                 <span>选择图片</span>
                 <input
@@ -236,7 +236,7 @@ const resetProcess = () => {
                   accept=".jpg,.jpeg,.png"
                   @change="handleImageUpload"
                 />
-              </el-button>
+              </ScButton>
             </div>
 
             <div v-else class="fanqie__image-preview">
@@ -251,7 +251,7 @@ const resetProcess = () => {
           </div>
 
           <div class="fanqie__actions">
-            <el-button
+            <ScButton
               type="primary"
               :loading="env.loading"
               :disabled="!env.sourceImage"
@@ -260,21 +260,21 @@ const resetProcess = () => {
             >
               <IconifyIconOnline icon="ri:magic-line" />
               <span>解析图片</span>
-            </el-button>
+            </ScButton>
 
-            <el-button
+            <ScButton
               :disabled="!env.sourceImage"
               class="fanqie__reset-btn"
               @click="resetProcess"
             >
               <IconifyIconOnline icon="ri:refresh-line" />
               <span>重置</span>
-            </el-button>
+            </ScButton>
           </div>
-        </el-col>
+        </ScCol>
 
         <!-- 结果区域 -->
-        <el-col :xs="24" :sm="24" :md="12" :lg="12">
+        <ScCol :xs="24" :sm="24" :md="12" :lg="12">
           <div class="fanqie__result-area">
             <div class="fanqie__result-title">
               <IconifyIconOnline
@@ -285,7 +285,7 @@ const resetProcess = () => {
             </div>
 
             <div class="fanqie__result-content">
-              <el-empty
+              <ScEmpty
                 v-if="!env.resultImage"
                 description="请先上传并解析图片"
                 class="fanqie__empty"
@@ -299,20 +299,20 @@ const resetProcess = () => {
                 />
 
                 <div class="fanqie__result-actions">
-                  <el-button
+                  <ScButton
                     type="success"
                     class="fanqie__download-btn"
                     @click="downloadResult"
                   >
                     <IconifyIconOnline icon="ri:download-line" />
                     <span>下载结果</span>
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
           </div>
-        </el-col>
-      </el-row>
+        </ScCol>
+      </ScRow>
     </div>
 
     <!-- 隐藏的Canvas用于图像处理 -->

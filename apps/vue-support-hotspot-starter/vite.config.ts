@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,24 +23,50 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       alias,
       dedupe: ["vue", "vue-router", "vue-i18n"],
       preserveSymlinks: false
+=======
+import { createViteConfig } from "@repo/build-config";
+import pkg from "./package.json";
+
+/**
+ * Vite 配置 - 热点系统
+ * 使用链式 API 简化配置
+ */
+export default createViteConfig(import.meta.url, pkg)
+  .proxy("/agent", "http://127.0.0.1:18954")
+  .cssPreprocessor("scss", {
+    api: "modern-compiler",
+    additionalData: `
+      @use "@layout/default/styles/layout/variables.scss" as *;
+      @use "@layout/default/styles/layout/mixin.scss";
+    `,
+    silenceDeprecations: ["color-functions", "global-builtin", "import"]
+  })
+  .terser({
+    compress: {
+      drop_console: true,
+      drop_debugger: true,
+      pure_funcs: ["console.log", "console.info", "console.debug", "console.warn", "console.error"],
+      passes: 3,
+      dead_code: true,
+      unused: true,
+      collapse_vars: true,
+      reduce_vars: true,
+      reduce_funcs: true,
+      inline: 2,
+      keep_fargs: false,
+      keep_fnames: false
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     },
-    // 服务端渲染
-    server: {
-      // 端口号
-      port: VITE_PORT,
-      host: "0.0.0.0",
-      // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
-      proxy: {
-        "/agent": {
-          target: "http://127.0.0.1:18954",
-          changeOrigin: true
-        }
+    mangle: {
+      properties: {
+        regex: /^_/
       },
-      // 预热文件以提前转换和缓存结果，降低启动期间的初始页面加载时长并防止转换瀑布
-      warmup: {
-        clientFiles: ["./index.html", "./src/{views,components}/*"]
-      }
+      toplevel: true,
+      reserved: [],
+      keep_classnames: false,
+      keep_fnames: false
     },
+<<<<<<< HEAD
     css: {
       preprocessorOptions: {
         scss: {
@@ -122,6 +149,12 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       __APP_CONFIG__: JSON.stringify(env),
       __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
       __APP_ENV__: JSON.stringify(newMode)
+=======
+    format: {
+      comments: false,
+      beautify: false,
+      ascii_only: false
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     }
-  };
-};
+  })
+  .build();

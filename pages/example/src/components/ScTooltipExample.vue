@@ -51,7 +51,7 @@
           <template #content>
             <div>
               <strong>自定义内容</strong>
-              <p style="margin: 4px 0 0 0; font-size: 12px;">支持 HTML 和插槽</p>
+              <p style="margin: 4px 0 0 0; font-size: 12px">支持 HTML 和插槽</p>
             </div>
           </template>
           <ScButton>自定义内容</ScButton>
@@ -88,7 +88,11 @@
           <IconifyIconOnline icon="ri:information-line" class="demo-icon" />
         </ScTooltip>
         <ScTooltip content="图片提示">
-          <img src="https://via.placeholder.com/60" alt="示例" class="demo-image" />
+          <img
+            src="https://via.placeholder.com/60"
+            alt="示例"
+            class="demo-image"
+          />
         </ScTooltip>
       </div>
     </DemoBlock>
@@ -97,7 +101,7 @@
 
 <script setup lang="ts">
 import { ScTooltip, ScButton, ScInput } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import DemoBlock from "./DemoBlock.vue";
 
 const codes = {
@@ -163,7 +167,7 @@ const codes = {
 </ScTooltip>
 <ScTooltip content="图片提示">
   <img src="https://via.placeholder.com/60" alt="示例" />
-</ScTooltip>`
+</ScTooltip>`,
 };
 </script>
 
@@ -201,4 +205,3 @@ const codes = {
   }
 }
 </style>
-

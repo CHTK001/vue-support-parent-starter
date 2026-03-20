@@ -2,7 +2,7 @@
 import { reactive, ref } from "vue";
 import { fetchSaveDept, fetchUpdateDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
-import { IconSelect, IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconSelect, IconifyIconOnline } from "@repo/components";
 import { transformI18n } from "@repo/config";
 
 // Emits
@@ -164,7 +164,7 @@ defineExpose({
           <span>{{ title }}部门</span>
         </div>
       </template>
-      <el-form
+      <ScForm
         ref="dialogFormRef"
         :model="form"
         :rules="rules"
@@ -172,10 +172,10 @@ defineExpose({
         label-width="100px"
         class="modern-form dept-form"
       >
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="父级机构" prop="sysDeptPid">
-              <el-cascader
+        <ScRow :gutter="20">
+          <ScCol :span="24">
+            <ScFormItem label="父级机构" prop="sysDeptPid">
+              <ScCascader
                 v-model="form.sysDeptPid"
                 class="w-full"
                 :options="treeData"
@@ -199,12 +199,12 @@ defineExpose({
                     >
                   </div>
                 </template>
-              </el-cascader>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="机构名称" prop="sysDeptName">
-              <el-input
+              </ScCascader>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="机构名称" prop="sysDeptName">
+              <ScInput
                 v-model="form.sysDeptName"
                 placeholder="请输入机构名称"
                 :maxlength="20"
@@ -213,13 +213,13 @@ defineExpose({
                 <template #prefix>
                   <IconifyIconOnline icon="ri:building-line" />
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="机构编码" prop="sysDeptCode">
-              <el-input
+          <ScCol :span="12">
+            <ScFormItem label="机构编码" prop="sysDeptCode">
+              <ScInput
                 v-model="form.sysDeptCode"
                 placeholder="请输入机构编码"
                 :maxlength="20"
@@ -228,19 +228,19 @@ defineExpose({
                 <template #prefix>
                   <IconifyIconOnline icon="ri:barcode-line" />
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="机构图标" prop="sysDeptIcon">
+          <ScCol :span="12">
+            <ScFormItem label="机构图标" prop="sysDeptIcon">
               <IconSelect v-model="form.sysDeptIcon" />
-            </el-form-item>
-          </el-col>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="负责人" prop="sysDeptPrincipal">
-              <el-input
+          <ScCol :span="12">
+            <ScFormItem label="负责人" prop="sysDeptPrincipal">
+              <ScInput
                 v-model="form.sysDeptPrincipal"
                 placeholder="请输入负责人"
                 :maxlength="20"
@@ -249,13 +249,13 @@ defineExpose({
                 <template #prefix>
                   <IconifyIconOnline icon="ri:user-line" />
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="联系方式" prop="sysDeptContact">
-              <el-input
+          <ScCol :span="12">
+            <ScFormItem label="联系方式" prop="sysDeptContact">
+              <ScInput
                 v-model="form.sysDeptContact"
                 placeholder="请输入联系方式"
                 :maxlength="20"
@@ -264,24 +264,24 @@ defineExpose({
                 <template #prefix>
                   <IconifyIconOnline icon="ri:phone-line" />
                 </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
+              </ScInput>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="排序" prop="sysDeptSort">
-              <el-input-number
+          <ScCol :span="12">
+            <ScFormItem label="排序" prop="sysDeptSort">
+              <ScInputNumber
                 v-model="form.sysDeptSort"
                 placeholder="排序"
                 :min="0"
                 :max="9999"
                 class="w-full"
               />
-            </el-form-item>
-          </el-col>
+            </ScFormItem>
+          </ScCol>
 
-          <el-col :span="12">
-            <el-form-item label="状态" prop="sysDeptStatus">
+          <ScCol :span="12">
+            <ScFormItem label="状态" prop="sysDeptStatus">
               <el-segmented
                 v-model="form.sysDeptStatus"
                 :options="[
@@ -290,11 +290,11 @@ defineExpose({
                 ]"
                 class="status-segmented"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="备注" prop="sysDeptRemark">
-              <el-input
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="24">
+            <ScFormItem label="备注" prop="sysDeptRemark">
+              <ScInput
                 v-model="form.sysDeptRemark"
                 placeholder="请输入备注信息"
                 :maxlength="240"
@@ -302,18 +302,18 @@ defineExpose({
                 type="textarea"
                 :rows="3"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+      </ScForm>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="visible = false">
+          <ScButton @click="visible = false">
             <IconifyIconOnline icon="ep:close" class="mr-1" />
             取消
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"
@@ -321,7 +321,7 @@ defineExpose({
           >
             <IconifyIconOnline icon="ep:check" class="mr-1" />
             保存
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </sc-dialog>

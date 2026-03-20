@@ -13,15 +13,15 @@
           </div>
         </div>
         <div class="header-actions">
-          <el-button
+          <ScButton
             :loading="loading"
             class="action-btn"
             @click="handleRefresh"
           >
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             type="success"
             class="action-btn"
             @click="handleAutoRefresh"
@@ -31,7 +31,7 @@
               class="mr-1"
             />
             {{ autoRefresh ? "暂停" : "自动刷新" }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
@@ -39,7 +39,7 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <el-input
+        <ScInput
           v-model="searchParams.keyword"
           placeholder="搜索容器名称或镜像"
           class="search-input"
@@ -49,60 +49,60 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </el-input>
-        <el-select
+        </ScInput>
+        <ScSelect
           v-model="searchParams.status"
           placeholder="运行状态"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <el-option label="全部" value="" />
-          <el-option label="运行中" value="running" />
-          <el-option label="已停止" value="stopped" />
-          <el-option label="暂停" value="paused" />
-          <el-option label="重启中" value="restarting" />
-          <el-option label="错误" value="error" />
-        </el-select>
-        <el-select
+          <ScOption label="全部" value="" />
+          <ScOption label="运行中" value="running" />
+          <ScOption label="已停止" value="stopped" />
+          <ScOption label="暂停" value="paused" />
+          <ScOption label="重启中" value="restarting" />
+          <ScOption label="错误" value="error" />
+        </ScSelect>
+        <ScSelect
           v-model="searchParams.serverId"
           placeholder="服务器"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <el-option label="全部" value="" />
-          <el-option
+          <ScOption label="全部" value="" />
+          <ScOption
             v-for="server in serverOptions"
             :key="server.id"
             :label="server.name"
             :value="server.id"
           />
-        </el-select>
-        <el-button type="primary" @click="handleSearch">
+        </ScSelect>
+        <ScButton type="primary" @click="handleSearch">
           <IconifyIconOnline icon="ri:search-line" class="mr-1" />
           搜索
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 容器状态统计 -->
-    <el-card>
+    <ScCard>
       <ContainerStatusStatsComponent :stats="containerStats" />
-    </el-card>
+    </ScCard>
 
     <!-- 监控概览 -->
-    <el-card>
+    <ScCard>
       <MonitoringOverview
         :avg-cpu-usage="overviewStats.avgCpuUsage"
         :avg-memory-usage="overviewStats.avgMemoryUsage"
         :total-containers="overviewStats.totalContainers"
         :running-containers="overviewStats.runningContainers"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 容器监控列表 -->
-    <el-card class="monitoring-table-card">
+    <ScCard class="monitoring-table-card">
       <ContainerMonitoringList
         :url="containerApi.getContainerPageList"
         :params="{
@@ -117,7 +117,7 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 容器详情对话框 -->
     <ContainerDetailDialog

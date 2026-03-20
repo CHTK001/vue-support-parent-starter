@@ -2,19 +2,23 @@
  * 热力图对象
  * @description 管理地图热力图显示
  */
-import { Map as OlMap } from 'ol';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
-import Heatmap from 'ol/layer/Heatmap';
-import Feature from 'ol/Feature';
-import Point from 'ol/geom/Point';
-import { fromLonLat } from 'ol/proj';
-import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
-import { EventsKey } from 'ol/events';
-import logger from './LogObject';
-import { HeatmapPoint, HeatmapConfig, DEFAULT_HEATMAP_CONFIG } from '../types/heatmap';
-import { GcoordUtils } from '../utils/GcoordUtils';
-import { CoordSystem } from '../types/coordinate';
+import { Map as OlMap } from "ol";
+import VectorLayer from "ol/layer/Vector";
+import VectorSource from "ol/source/Vector";
+import Heatmap from "ol/layer/Heatmap";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
+import { fromLonLat } from "ol/proj";
+import { Style, Circle as CircleStyle, Fill, Stroke } from "ol/style";
+import { EventsKey } from "ol/events";
+import logger from "./LogObject";
+import {
+  HeatmapPoint,
+  HeatmapConfig,
+  DEFAULT_HEATMAP_CONFIG,
+} from "../types/heatmap";
+import { GcoordUtils } from "../utils/GcoordUtils";
+import { CoordSystem } from "../types/coordinate";
 
 // 热力图数据点接口和配置接口已移至 ../types/heatmap 文件
 
@@ -44,7 +48,10 @@ export class HeatmapObject {
    * @param mapInstance 地图实例
    * @param config 配置参数
    */
-  constructor(mapInstance: OlMap | null = null, config?: Partial<HeatmapConfig>) {
+  constructor(
+    mapInstance: OlMap | null = null,
+    config?: Partial<HeatmapConfig>,
+  ) {
     if (mapInstance) {
       this.setMapInstance(mapInstance);
     }
@@ -53,7 +60,7 @@ export class HeatmapObject {
       this.setConfig(config);
     }
 
-    logger.debug('[Heatmap] 热力图对象已创建');
+    logger.debug("[Heatmap] 热力图对象已创建");
   }
 
   /**
@@ -62,14 +69,14 @@ export class HeatmapObject {
    */
   public setMapInstance(mapInstance: OlMap): void {
     if (!mapInstance) {
-      logger.error('[Heatmap] 无效的地图实例');
+      logger.error("[Heatmap] 无效的地图实例");
       return;
     }
 
     this.mapInstance = mapInstance;
     this.initLayers();
     this.setupMapListeners();
-    logger.debug('[Heatmap] 地图实例已设置');
+    logger.debug("[Heatmap] 地图实例已设置");
   }
 
   /**
@@ -78,7 +85,7 @@ export class HeatmapObject {
    */
   private initLayers(): void {
     if (!this.mapInstance) {
-      logger.error('[Heatmap] 无法初始化图层：地图实例不可用');
+      logger.error("[Heatmap] 无法初始化图层：地图实例不可用");
       return;
     }
 
@@ -93,7 +100,7 @@ export class HeatmapObject {
       opacity: this.config.opacity,
       gradient: this.config.gradient,
       zIndex: 100,
-      visible: false
+      visible: false,
     });
 
     // 创建点图层
@@ -104,24 +111,24 @@ export class HeatmapObject {
           image: new CircleStyle({
             radius: this.config.pointRadius,
             fill: new Fill({
-              color: this.config.pointColor
+              color: this.config.pointColor,
             }),
             stroke: new Stroke({
               color: this.config.pointStrokeColor,
-              width: this.config.pointStrokeWidth
-            })
-          })
+              width: this.config.pointStrokeWidth,
+            }),
+          }),
         });
       },
       visible: false,
-      zIndex: this.config.zIndex + 1000
+      zIndex: this.config.zIndex + 1000,
     });
 
     // 添加图层到地图
     this.mapInstance.addLayer(this.heatmapLayer);
     this.mapInstance.addLayer(this.pointsLayer);
 
-    logger.debug('[Heatmap] 热力图图层已初始化');
+    logger.debug("[Heatmap] 热力图图层已初始化");
   }
 
   /**
@@ -130,24 +137,26 @@ export class HeatmapObject {
    */
   private setupMapListeners(): void {
     if (!this.mapInstance) return;
-    
+
     try {
       // 监听视图变化事件（缩放）
-      const viewChangeKey = this.mapInstance.getView().on('change:resolution', () => {
-        if (this.heatmapLayer && this.active) {
-          // 如果配置为缩放时隐藏，则隐藏热力图层
-          if (this.config.hideOnZooming) {
-            this.heatmapLayer.setVisible(false);
-            if (this.pointsLayer && this.config.showPoints) {
-              this.pointsLayer.setVisible(false);
+      const viewChangeKey = this.mapInstance
+        .getView()
+        .on("change:resolution", () => {
+          if (this.heatmapLayer && this.active) {
+            // 如果配置为缩放时隐藏，则隐藏热力图层
+            if (this.config.hideOnZooming) {
+              this.heatmapLayer.setVisible(false);
+              if (this.pointsLayer && this.config.showPoints) {
+                this.pointsLayer.setVisible(false);
+              }
+              logger.debug("[Heatmap] 视图分辨率变化，隐藏热力图");
             }
-            logger.debug('[Heatmap] 视图分辨率变化，隐藏热力图');
           }
-        }
-      });
-      
+        });
+
       // 监听地图移动开始事件
-      const moveStartKey = this.mapInstance.on('movestart', () => {
+      const moveStartKey = this.mapInstance.on("movestart", () => {
         if (this.heatmapLayer && this.active) {
           // 如果配置为移动时隐藏，则隐藏热力图层
           if (this.config.hideOnMoving) {
@@ -155,13 +164,13 @@ export class HeatmapObject {
             if (this.pointsLayer && this.config.showPoints) {
               this.pointsLayer.setVisible(false);
             }
-            logger.debug('[Heatmap] 地图移动开始，隐藏热力图');
+            logger.debug("[Heatmap] 地图移动开始，隐藏热力图");
           }
         }
       });
-      
+
       // 监听地图移动结束事件
-      const moveEndKey = this.mapInstance.on('moveend', () => {
+      const moveEndKey = this.mapInstance.on("moveend", () => {
         if (this.heatmapLayer && this.active) {
           // 如果配置为移动时隐藏，则移动结束后显示热力图层
           if (this.config.hideOnMoving) {
@@ -169,13 +178,13 @@ export class HeatmapObject {
             if (this.pointsLayer && this.config.showPoints) {
               this.pointsLayer.setVisible(true);
             }
-            logger.debug('[Heatmap] 地图移动结束，显示热力图');
+            logger.debug("[Heatmap] 地图移动结束，显示热力图");
           }
         }
       });
-      
+
       // 缩放结束事件
-      const zoomEndKey = this.mapInstance.on('rendercomplete', () => {
+      const zoomEndKey = this.mapInstance.on("rendercomplete", () => {
         if (this.heatmapLayer && this.active) {
           // 如果配置为缩放时隐藏，则缩放结束后显示热力图层
           if (this.config.hideOnZooming && !this.heatmapLayer.getVisible()) {
@@ -183,17 +192,22 @@ export class HeatmapObject {
             if (this.pointsLayer && this.config.showPoints) {
               this.pointsLayer.setVisible(true);
             }
-            logger.debug('[Heatmap] 渲染完成，显示热力图');
+            logger.debug("[Heatmap] 渲染完成，显示热力图");
           }
         }
       });
-      
+
       // 存储事件监听器，以便后续移除
-      this.eventListeners.push(viewChangeKey, moveStartKey, moveEndKey, zoomEndKey);
-      
-      logger.debug('[Heatmap] 已设置地图事件监听器');
+      this.eventListeners.push(
+        viewChangeKey,
+        moveStartKey,
+        moveEndKey,
+        zoomEndKey,
+      );
+
+      logger.debug("[Heatmap] 已设置地图事件监听器");
     } catch (error) {
-      logger.error('[Heatmap] 设置地图事件监听器失败:', error);
+      logger.error("[Heatmap] 设置地图事件监听器失败:", error);
     }
   }
 
@@ -206,44 +220,49 @@ export class HeatmapObject {
       try {
         // 解除所有事件监听
         // 先导入unByKey方法，避免在循环中多次导入
-        import('ol/Observable').then(({ unByKey }) => {
-          // 使用导入的unByKey方法移除所有监听器
-          this.eventListeners.forEach(key => {
-            try {
-              if (key) {
-                unByKey(key);
-              }
-            } catch (error) {
-              logger.error('[Heatmap] 移除事件监听器失败:', error);
-            }
-          });
-          
-          this.eventListeners = [];
-          logger.debug('[Heatmap] 已移除所有地图事件监听器');
-        }).catch(error => {
-          logger.error('[Heatmap] 导入unByKey方法失败:', error);
-          
-          // 备选方案：尝试直接使用unByKey函数
-          try {
-            const { unByKey } = require('ol/Observable');
-            this.eventListeners.forEach(key => {
+        import("ol/Observable")
+          .then(({ unByKey }) => {
+            // 使用导入的unByKey方法移除所有监听器
+            this.eventListeners.forEach((key) => {
               try {
                 if (key) {
                   unByKey(key);
                 }
               } catch (error) {
-                logger.error('[Heatmap] 移除事件监听器失败(备选方案):', error);
+                logger.error("[Heatmap] 移除事件监听器失败:", error);
               }
             });
-            
+
             this.eventListeners = [];
-            logger.debug('[Heatmap] 已移除所有地图事件监听器(使用备选方案)');
-          } catch (fallbackError) {
-            logger.error('[Heatmap] 备选方案也失败:', fallbackError);
-          }
-        });
+            logger.debug("[Heatmap] 已移除所有地图事件监听器");
+          })
+          .catch((error) => {
+            logger.error("[Heatmap] 导入unByKey方法失败:", error);
+
+            // 备选方案：尝试直接使用unByKey函数
+            try {
+              const { unByKey } = require("ol/Observable");
+              this.eventListeners.forEach((key) => {
+                try {
+                  if (key) {
+                    unByKey(key);
+                  }
+                } catch (error) {
+                  logger.error(
+                    "[Heatmap] 移除事件监听器失败(备选方案):",
+                    error,
+                  );
+                }
+              });
+
+              this.eventListeners = [];
+              logger.debug("[Heatmap] 已移除所有地图事件监听器(使用备选方案)");
+            } catch (fallbackError) {
+              logger.error("[Heatmap] 备选方案也失败:", fallbackError);
+            }
+          });
       } catch (error) {
-        logger.error('[Heatmap] 移除事件监听器失败:', error);
+        logger.error("[Heatmap] 移除事件监听器失败:", error);
       }
     }
   }
@@ -255,7 +274,7 @@ export class HeatmapObject {
   public setConfig(config: Partial<HeatmapConfig>): void {
     this.config = {
       ...this.config,
-      ...config
+      ...config,
     };
 
     // 更新热力图层设置
@@ -273,7 +292,7 @@ export class HeatmapObject {
       this.pointsLayer.setVisible(this.active && this.config.showPoints);
     }
 
-    logger.debug('[Heatmap] 热力图配置已更新', this.config);
+    logger.debug("[Heatmap] 热力图配置已更新", this.config);
   }
 
   /**
@@ -283,29 +302,34 @@ export class HeatmapObject {
    */
   public addPoint(point: HeatmapPoint): string {
     if (!this.source) {
-      logger.error('[Heatmap] 无法添加点：数据源不可用');
-      return '';
+      logger.error("[Heatmap] 无法添加点：数据源不可用");
+      return "";
     }
 
     if (point.longitude === undefined || point.latitude === undefined) {
-      logger.error('[Heatmap] 无法添加点：缺少经纬度信息', point);
-      return '';
+      logger.error("[Heatmap] 无法添加点：缺少经纬度信息", point);
+      return "";
     }
 
     // 生成唯一ID
-    const id = point.id || `heatmap-point-${Date.now()}-${Math.round(Math.random() * 10000)}`;
+    const id =
+      point.id ||
+      `heatmap-point-${Date.now()}-${Math.round(Math.random() * 10000)}`;
     point.id = id;
 
     // 创建要素
     try {
       // 使用GcoordUtils转换坐标为OpenLayers兼容格式
-      const coordinates = GcoordUtils.convertToOlCoordinate([point.longitude, point.latitude], point.coordSystem || CoordSystem.WGS84);
-      
+      const coordinates = GcoordUtils.convertToOlCoordinate(
+        [point.longitude, point.latitude],
+        point.coordSystem || CoordSystem.WGS84,
+      );
+
       const feature = new Feature({
         geometry: new Point(coordinates),
         weight: point.weight || 1,
         name: point.name || id,
-        properties: point.properties || {}
+        properties: point.properties || {},
       });
 
       feature.setId(id);
@@ -315,8 +339,8 @@ export class HeatmapObject {
       logger.debug(`[Heatmap] 添加热力点: ${id}`, point);
       return id;
     } catch (error) {
-      logger.error('[Heatmap] 添加点失败:', error);
-      return '';
+      logger.error("[Heatmap] 添加点失败:", error);
+      return "";
     }
   }
 
@@ -327,7 +351,7 @@ export class HeatmapObject {
    */
   public addPoints(points: HeatmapPoint[]): string[] {
     if (!Array.isArray(points) || points.length === 0) {
-      logger.warn('[Heatmap] 添加点失败：无效的数据数组');
+      logger.warn("[Heatmap] 添加点失败：无效的数据数组");
       return [];
     }
 
@@ -351,7 +375,7 @@ export class HeatmapObject {
    */
   public updatePoint(id: string, point: Partial<HeatmapPoint>): boolean {
     if (!this.source) {
-      logger.error('[Heatmap] 无法更新点：数据源不可用');
+      logger.error("[Heatmap] 无法更新点：数据源不可用");
       return false;
     }
 
@@ -371,9 +395,13 @@ export class HeatmapObject {
     if (point.longitude !== undefined && point.latitude !== undefined) {
       try {
         // 使用GcoordUtils转换坐标为OpenLayers兼容格式
-        const coordSystem = point.coordSystem || existingPoint.coordSystem || CoordSystem.WGS84;
-        const coordinates = GcoordUtils.convertToOlCoordinate([point.longitude, point.latitude], coordSystem);
-        
+        const coordSystem =
+          point.coordSystem || existingPoint.coordSystem || CoordSystem.WGS84;
+        const coordinates = GcoordUtils.convertToOlCoordinate(
+          [point.longitude, point.latitude],
+          coordSystem,
+        );
+
         const geometry = feature.getGeometry();
         if (geometry && geometry instanceof Point) {
           geometry.setCoordinates(coordinates);
@@ -386,17 +414,20 @@ export class HeatmapObject {
 
     // 更新权重
     if (point.weight !== undefined) {
-      feature.set('weight', point.weight);
+      feature.set("weight", point.weight);
     }
 
     // 更新名称
     if (point.name !== undefined) {
-      feature.set('name', point.name);
+      feature.set("name", point.name);
     }
 
     // 更新属性
     if (point.properties !== undefined) {
-      feature.set('properties', { ...existingPoint.properties, ...point.properties });
+      feature.set("properties", {
+        ...existingPoint.properties,
+        ...point.properties,
+      });
     }
 
     // 更新点数据
@@ -440,7 +471,7 @@ export class HeatmapObject {
     if (this.source) {
       this.source.clear();
     }
-    logger.debug('[Heatmap] 清空所有热力点');
+    logger.debug("[Heatmap] 清空所有热力点");
   }
 
   /**
@@ -476,7 +507,7 @@ export class HeatmapObject {
     }
 
     this.active = true;
-    logger.debug('[Heatmap] 热力图已激活');
+    logger.debug("[Heatmap] 热力图已激活");
   }
 
   /**
@@ -496,7 +527,7 @@ export class HeatmapObject {
     }
 
     this.active = false;
-    logger.debug('[Heatmap] 热力图已禁用');
+    logger.debug("[Heatmap] 热力图已禁用");
   }
 
   /**
@@ -508,7 +539,7 @@ export class HeatmapObject {
     if (this.pointsLayer) {
       this.pointsLayer.setVisible(this.active && show);
     }
-    logger.debug(`[Heatmap] ${show ? '显示' : '隐藏'}数据点`);
+    logger.debug(`[Heatmap] ${show ? "显示" : "隐藏"}数据点`);
   }
 
   /**
@@ -526,10 +557,10 @@ export class HeatmapObject {
   public setPerformanceMode(enable: boolean): void {
     this.setConfig({
       hideOnMoving: enable,
-      hideOnZooming: enable
+      hideOnZooming: enable,
     });
-    
-    logger.debug(`[Heatmap] 性能模式已${enable ? '启用' : '禁用'}`);
+
+    logger.debug(`[Heatmap] 性能模式已${enable ? "启用" : "禁用"}`);
   }
 
   /**
@@ -554,6 +585,6 @@ export class HeatmapObject {
     this.points.clear();
     this.active = false;
 
-    logger.debug('[Heatmap] 热力图对象已销毁');
+    logger.debug("[Heatmap] 热力图对象已销毁");
   }
-} 
+}

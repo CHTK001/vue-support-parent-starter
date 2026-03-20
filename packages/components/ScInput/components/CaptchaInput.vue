@@ -1,7 +1,7 @@
 <template>
   <div class="sc-captcha-input-wrapper" :class="{ 'is-invalid': !validationResult.valid }">
     <div class="sc-captcha-container">
-      <el-input
+      <ScInput
         v-model="currentValue"
         class="sc-captcha-input"
         v-bind="$attrs"
@@ -23,7 +23,7 @@
         <template v-if="$slots.prefix" #prefix>
           <slot name="prefix" />
         </template>
-      </el-input>
+      </ScInput>
 
       <div class="sc-captcha-image" @click="refreshCaptcha">
         <img v-if="captchaImage" :src="captchaImage" alt="验证码" :class="{ 'is-loading': loading }" />
@@ -47,7 +47,7 @@
 import { ref, computed, onMounted } from "vue";
 import { validate } from "../validation";
 import { getDefaultIcon } from "../defaultIcons";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 interface Props {
   /**

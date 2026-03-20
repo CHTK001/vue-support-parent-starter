@@ -2,8 +2,8 @@
  * ScTable 拖拽排序 Composable
  * 处理表格行拖拽排序、列拖拽排序等
  */
-import { ref, onUnmounted, nextTick } from 'vue';
-import Sortable from 'sortablejs';
+import { ref, onUnmounted, nextTick } from "vue";
+import Sortable from "sortablejs";
 
 export interface UseTableDragSortOptions {
   /** 是否启用行拖拽 */
@@ -21,60 +21,49 @@ export interface UseTableDragSortOptions {
 }
 
 export function useTableDragSort(options: UseTableDragSortOptions = {}) {
-  const {
-    rowDraggable = false,
-    columnDraggable = false,
-    handleSelector = '.drag-handle',
-    animationDuration = 150,
-    onRowDragEnd,
-    onColumnDragEnd,
-  } = options;
-  
+  const { rowDraggable = false, columnDraggable = false, handleSelector = ".drag-handle", animationDuration = 150, onRowDragEnd, onColumnDragEnd } = options;
+
   // Sortable 实例
   const rowSortable = ref<Sortable | null>(null);
   const columnSortable = ref<Sortable | null>(null);
-  
+
   // 拖拽状态
   const isDragging = ref(false);
-  const dragType = ref<'row' | 'column' | null>(null);
-  
+  const dragType = ref<"row" | "column" | null>(null);
+
   /**
    * 初始化行拖拽
    */
-  const initRowDrag = (
-    tableEl: HTMLElement | null,
-    data: any[],
-    callback?: (oldIndex: number, newIndex: number, data: any[]) => void
-  ) => {
+  const initRowDrag = (tableEl: HTMLElement | null, data: any[], callback?: (oldIndex: number, newIndex: number, data: any[]) => void) => {
     if (!rowDraggable || !tableEl) return;
-    
+
     destroyRowDrag();
-    
+
     nextTick(() => {
-      const tbody = tableEl.querySelector('.el-table__body-wrapper tbody');
+      const tbody = tableEl.querySelector(".el-table__body-wrapper tbody");
       if (!tbody) return;
-      
+
       rowSortable.value = Sortable.create(tbody as HTMLElement, {
         animation: animationDuration,
         handle: handleSelector,
-        ghostClass: 'sc-table-drag-ghost',
-        chosenClass: 'sc-table-drag-chosen',
-        dragClass: 'sc-table-drag-active',
+        ghostClass: "sc-table-drag-ghost",
+        chosenClass: "sc-table-drag-chosen",
+        dragClass: "sc-table-drag-active",
         onStart: () => {
           isDragging.value = true;
-          dragType.value = 'row';
+          dragType.value = "row";
         },
-        onEnd: (evt) => {
+        onEnd: evt => {
           isDragging.value = false;
           dragType.value = null;
-          
+
           const { oldIndex, newIndex } = evt;
           if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
-          
+
           // 更新数据顺序
           const movedItem = data.splice(oldIndex, 1)[0];
           data.splice(newIndex, 0, movedItem);
-          
+
           // 触发回调
           if (callback) {
             callback(oldIndex, newIndex, [...data]);
@@ -82,47 +71,43 @@ export function useTableDragSort(options: UseTableDragSortOptions = {}) {
           if (onRowDragEnd) {
             onRowDragEnd(oldIndex, newIndex, [...data]);
           }
-        },
+        }
       });
     });
   };
-  
+
   /**
    * 初始化列拖拽
    */
-  const initColumnDrag = (
-    tableEl: HTMLElement | null,
-    columns: any[],
-    callback?: (oldIndex: number, newIndex: number, columns: any[]) => void
-  ) => {
+  const initColumnDrag = (tableEl: HTMLElement | null, columns: any[], callback?: (oldIndex: number, newIndex: number, columns: any[]) => void) => {
     if (!columnDraggable || !tableEl) return;
-    
+
     destroyColumnDrag();
-    
+
     nextTick(() => {
-      const headerRow = tableEl.querySelector('.el-table__header-wrapper tr');
+      const headerRow = tableEl.querySelector(".el-table__header-wrapper tr");
       if (!headerRow) return;
-      
+
       columnSortable.value = Sortable.create(headerRow as HTMLElement, {
         animation: animationDuration,
-        ghostClass: 'sc-table-column-ghost',
-        chosenClass: 'sc-table-column-chosen',
-        filter: '.el-table__expand-column, .el-table__selection-column',
+        ghostClass: "sc-table-column-ghost",
+        chosenClass: "sc-table-column-chosen",
+        filter: ".el-table__expand-column, .el-table__selection-column",
         onStart: () => {
           isDragging.value = true;
-          dragType.value = 'column';
+          dragType.value = "column";
         },
-        onEnd: (evt) => {
+        onEnd: evt => {
           isDragging.value = false;
           dragType.value = null;
-          
+
           const { oldIndex, newIndex } = evt;
           if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
-          
+
           // 更新列顺序
           const movedColumn = columns.splice(oldIndex, 1)[0];
           columns.splice(newIndex, 0, movedColumn);
-          
+
           // 触发回调
           if (callback) {
             callback(oldIndex, newIndex, [...columns]);
@@ -130,11 +115,11 @@ export function useTableDragSort(options: UseTableDragSortOptions = {}) {
           if (onColumnDragEnd) {
             onColumnDragEnd(oldIndex, newIndex, [...columns]);
           }
-        },
+        }
       });
     });
   };
-  
+
   /**
    * 销毁行拖拽
    */
@@ -144,7 +129,7 @@ export function useTableDragSort(options: UseTableDragSortOptions = {}) {
       rowSortable.value = null;
     }
   };
-  
+
   /**
    * 销毁列拖拽
    */
@@ -154,7 +139,7 @@ export function useTableDragSort(options: UseTableDragSortOptions = {}) {
       columnSortable.value = null;
     }
   };
-  
+
   /**
    * 销毁所有拖拽
    */
@@ -164,7 +149,7 @@ export function useTableDragSort(options: UseTableDragSortOptions = {}) {
     isDragging.value = false;
     dragType.value = null;
   };
-  
+
   /**
    * 手动触发拖拽重新初始化
    */
@@ -184,12 +169,12 @@ export function useTableDragSort(options: UseTableDragSortOptions = {}) {
       initColumnDrag(tableEl, columns, callbacks?.onColumnDrag);
     }
   };
-  
+
   // 组件卸载时清理
   onUnmounted(() => {
     destroyAll();
   });
-  
+
   return {
     // 状态
     isDragging,
@@ -200,6 +185,6 @@ export function useTableDragSort(options: UseTableDragSortOptions = {}) {
     destroyRowDrag,
     destroyColumnDrag,
     destroyAll,
-    refresh,
+    refresh
   };
 }

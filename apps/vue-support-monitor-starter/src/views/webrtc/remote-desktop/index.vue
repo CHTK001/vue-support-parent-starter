@@ -2,89 +2,89 @@
   <div class="webrtc-remote-desktop system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
-      <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/webrtc' }"
+      <ScBreadcrumb separator="/">
+        <ScBreadcrumbItem :to="{ path: '/webrtc' }"
           >WebRTC管理</el-breadcrumb-item
         >
-        <el-breadcrumb-item>远程桌面</el-breadcrumb-item>
-      </el-breadcrumb>
+        <ScBreadcrumbItem>远程桌面</ScBreadcrumbItem>
+      </ScBreadcrumb>
       <h1 class="page-title">WebRTC远程桌面</h1>
     </div>
 
     <!-- 连接配置面板 -->
-    <el-card v-if="!isConnected" class="config-card" shadow="hover">
+    <ScCard v-if="!isConnected" class="config-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <el-icon><Setting /></el-icon>
+          <ScIcon><Setting /></ScIcon>
           <span>连接配置</span>
         </div>
       </template>
 
-      <el-form :model="config" label-width="120px" class="config-form">
-        <el-form-item label="服务器ID">
-          <el-input-number
+      <ScForm :model="config" label-width="120px" class="config-form">
+        <ScFormItem label="服务器ID">
+          <ScInputNumber
             v-model="config.serverId"
             :min="1"
             placeholder="可选，服务器ID"
             style="width: 100%"
           />
-        </el-form-item>
-        <el-form-item label="服务器地址">
-          <el-input v-model="config.host" placeholder="localhost" clearable />
-        </el-form-item>
-        <el-form-item label="服务器端口">
-          <el-input-number
+        </ScFormItem>
+        <ScFormItem label="服务器地址">
+          <ScInput v-model="config.host" placeholder="localhost" clearable />
+        </ScFormItem>
+        <ScFormItem label="服务器端口">
+          <ScInputNumber
             v-model="config.port"
             :min="1"
             :max="65535"
             placeholder="21116"
             style="width: 100%"
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button
+        </ScFormItem>
+        <ScFormItem>
+          <ScButton
             type="primary"
             size="large"
             :loading="connecting"
             @click="connect"
           >
-            <el-icon><Connection /></el-icon>
+            <ScIcon><Connection /></ScIcon>
             连接
-          </el-button>
-          <el-button @click="loadDefaultConfig">加载默认配置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+          </ScButton>
+          <ScButton @click="loadDefaultConfig">加载默认配置</ScButton>
+        </ScFormItem>
+      </ScForm>
+    </ScCard>
 
     <!-- 远程桌面显示区域 -->
     <div v-if="isConnected" class="desktop-container">
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-tag type="success" effect="light">
-            <el-icon><CircleCheck /></el-icon>
+          <ScTag type="success" effect="light">
+            <ScIcon><CircleCheck /></ScIcon>
             已连接
-          </el-tag>
+          </ScTag>
           <span class="server-info"> {{ config.host }}:{{ config.port }} </span>
         </div>
         <div class="toolbar-right">
           <el-button-group>
-            <el-tooltip content="全屏" placement="bottom">
-              <el-button size="small" @click="toggleFullscreen">
-                <el-icon><FullScreen /></el-icon>
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="截图" placement="bottom">
-              <el-button size="small" @click="takeScreenshot">
-                <el-icon><Camera /></el-icon>
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="断开连接" placement="bottom">
-              <el-button size="small" type="danger" @click="disconnect">
-                <el-icon><Close /></el-icon>
+            <ScTooltip content="全屏" placement="bottom">
+              <ScButton size="small" @click="toggleFullscreen">
+                <ScIcon><FullScreen /></ScIcon>
+              </ScButton>
+            </ScTooltip>
+            <ScTooltip content="截图" placement="bottom">
+              <ScButton size="small" @click="takeScreenshot">
+                <ScIcon><Camera /></ScIcon>
+              </ScButton>
+            </ScTooltip>
+            <ScTooltip content="断开连接" placement="bottom">
+              <ScButton size="small" type="danger" @click="disconnect">
+                <ScIcon><Close /></ScIcon>
                 断开
-              </el-button>
-            </el-tooltip>
+              </ScButton>
+            </ScTooltip>
           </el-button-group>
         </div>
       </div>
@@ -102,26 +102,26 @@
 
         <!-- 加载中 -->
         <div v-if="connecting" class="loading-overlay">
-          <el-icon class="loading-icon" :size="48"><Loading /></el-icon>
+          <ScIcon class="loading-icon" :size="48"><Loading /></ScIcon>
           <p>正在连接远程桌面...</p>
         </div>
 
         <!-- 连接失败 -->
         <div v-if="errorMessage" class="error-overlay">
-          <el-icon :size="48"><CircleClose /></el-icon>
+          <ScIcon :size="48"><CircleClose /></ScIcon>
           <p>{{ errorMessage }}</p>
-          <el-button type="primary" @click="reconnect">重新连接</el-button>
+          <ScButton type="primary" @click="reconnect">重新连接</ScButton>
         </div>
       </div>
     </div>
 
     <!-- 日志面板 -->
-    <el-card v-if="logs.length > 0" class="log-card" shadow="hover">
+    <ScCard v-if="logs.length > 0" class="log-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <el-icon><Document /></el-icon>
+          <ScIcon><Document /></ScIcon>
           <span>连接日志</span>
-          <el-button type="text" size="small" @click="clearLogs"
+          <ScButton type="text" size="small" @click="clearLogs"
             >清空</el-button
           >
         </div>
@@ -135,7 +135,7 @@
           [{{ log.time }}] {{ log.message }}
         </div>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

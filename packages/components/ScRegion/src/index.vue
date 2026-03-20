@@ -1,6 +1,6 @@
 <template>
   <div class="sc-region" :class="{ 'sc-region--disabled': disabled }">
-    <el-cascader
+    <ScCascader
       v-model="selectedValue"
       :options="filteredRegionData"
       :props="cascaderProps"
@@ -36,7 +36,7 @@
           </div>
         </div>
       </template>
-    </el-cascader>
+    </ScCascader>
   </div>
 </template>
 
@@ -49,7 +49,7 @@
  * @since 2025-12-04
  */
 import { ref, computed, watch, onMounted } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import type { RegionData, RegionProps, RegionEmits } from "./types";
 import { regionData as defaultRegionData } from "./data";
 import { getRegionDataBySource, getRegionDataBySourceSync } from "./dataSource";
@@ -101,7 +101,7 @@ watch(
 watch(
   () => props.data,
   () => {
-    if (props.dataSource === 'custom') {
+    if (props.dataSource === "custom") {
       loadedData.value = props.data;
     }
   }
@@ -404,7 +404,7 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
           z-index: 1;
           opacity: 0;
           cursor: pointer;
-          
+
           .el-radio__input {
             position: absolute;
             left: 12px;
@@ -412,7 +412,7 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
             transform: translateY(-50%);
             opacity: 0;
           }
-          
+
           .el-radio__label {
             display: none;
           }
@@ -422,7 +422,7 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
         .el-checkbox {
           margin-right: 8px;
           flex-shrink: 0;
-          
+
           .el-checkbox__label {
             display: none;
           }

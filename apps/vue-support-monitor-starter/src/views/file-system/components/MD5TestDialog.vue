@@ -6,7 +6,7 @@
     :close-on-click-modal="false"
   >
     <div class="md5-test">
-      <el-upload
+      <ScUpload
         ref="uploadRef"
         :auto-upload="false"
         :show-file-list="false"
@@ -22,7 +22,7 @@
             </p>
           </div>
         </div>
-      </el-upload>
+      </ScUpload>
 
       <div v-if="selectedFile" class="file-info">
         <h4>文件信息</h4>
@@ -38,7 +38,7 @@
       </div>
 
       <div v-if="isCalculating" class="calculating">
-        <el-progress :percentage="progress" :stroke-width="8" />
+        <ScProgress :percentage="progress" :stroke-width="8" />
         <p class="mt-2">正在计算MD5哈希值...</p>
       </div>
 
@@ -54,27 +54,27 @@
             <span class="time">{{ result.time }}ms</span>
           </div>
           <div class="result-hash">
-            <el-input :value="result.hash" readonly size="small">
+            <ScInput :value="result.hash" readonly size="small">
               <template #append>
-                <el-button @click="copyToClipboard(result.hash)">
+                <ScButton @click="copyToClipboard(result.hash)">
                   <IconifyIconOnline icon="ri:file-copy-line" />
-                </el-button>
+                </ScButton>
               </template>
-            </el-input>
+            </ScInput>
           </div>
         </div>
       </div>
 
       <div class="actions">
-        <el-button
+        <ScButton
           v-if="selectedFile"
           type="primary"
           :loading="isCalculating"
           @click="calculateMD5"
         >
           计算MD5
-        </el-button>
-        <el-button @click="clearResults">清空结果</el-button>
+        </ScButton>
+        <ScButton @click="clearResults">清空结果</ScButton>
       </div>
     </div>
   </sc-dialog>

@@ -1,18 +1,18 @@
 <template>
   <div class="boundary-breadcrumb" v-if="showBreadcrumb">
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item v-for="(item, index) in breadcrumbItems" :key="item.code" :class="{ 'is-last': index === breadcrumbItems.length - 1 }">
+    <ScBreadcrumb separator="/">
+      <ScBreadcrumbItem v-for="(item, index) in breadcrumbItems" :key="item.code" :class="{ 'is-last': index === breadcrumbItems.length - 1 }">
         <span v-if="index === breadcrumbItems.length - 1">{{ item.name }}</span>
         <a v-else @click="handleBreadcrumbClick(item)">{{ item.name }}</a>
-      </el-breadcrumb-item>
-    </el-breadcrumb>
+      </ScBreadcrumbItem>
+    </ScBreadcrumb>
     <div class="drill-buttons" v-if="showBackButton">
-      <el-button size="small" @click="handleDrillUp">
+      <ScButton size="small" @click="handleDrillUp">
         <template #icon>
           <IconifyIconOnline icon="ep:back" />
         </template>
         返回上级
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

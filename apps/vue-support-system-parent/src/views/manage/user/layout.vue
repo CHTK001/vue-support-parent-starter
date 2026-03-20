@@ -1,5 +1,5 @@
 <script>
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   defineAsyncComponent,
   defineComponent,
@@ -30,13 +30,13 @@ import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { Base64 } from "js-base64";
 import { rand } from "@vueuse/core";
-import { IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOffline, IconifyIconOnline } from "@repo/components";
 
 const ScIp = defineAsyncComponent(
-  () => import("@repo/components/ScIp/index.vue"),
+  () => import("@repo/components"),
 );
 const ScFilterBar = defineAsyncComponent(
-  () => import("@repo/components/ScFilterBar/index.vue"),
+  () => import("@repo/components"),
 );
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 export default defineComponent({
@@ -457,7 +457,7 @@ export default defineComponent({
       @close="dialogClose"
     />
     <div class="main">
-      <el-container>
+      <ScContainer>
         <!-- 统计面板 -->
         <div v-if="showQuery" class="user-stats">
           <div class="stat-item">
@@ -498,7 +498,7 @@ export default defineComponent({
           </div>
         </div>
 
-        <el-header v-if="showQuery">
+        <ScHeader v-if="showQuery">
           <div class="flex items-center justify-between">
             <ScFilterBar
               :options="filterOptions"
@@ -507,7 +507,7 @@ export default defineComponent({
               @search="onSearch"
             />
             <div v-if="showTool" class="flex items-center gap-2 ml-4">
-              <el-button
+              <ScButton
                 type="primary"
                 :icon="Edit"
                 @click="dialogOpen({}, 'save')"
@@ -515,71 +515,71 @@ export default defineComponent({
               >
 
               <!-- 批量操作下拉菜单 -->
-              <el-dropdown trigger="click" :disabled="!hasSelected">
-                <el-button :disabled="!hasSelected" :loading="batchLoading">
+              <ScDropdown trigger="click" :disabled="!hasSelected">
+                <ScButton :disabled="!hasSelected" :loading="batchLoading">
                   <IconifyIconOnline
                     icon="ri:checkbox-multiple-line"
                     class="mr-1"
                   />
                   批量操作
-                  <el-badge
+                  <ScBadge
                     v-if="hasSelected"
                     :value="selectedCount"
                     class="ml-1"
                   />
-                </el-button>
+                </ScButton>
                 <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item @click="handleBatchStatus(1)">
+                  <ScDropdownMenu>
+                    <ScDropdownItem @click="handleBatchStatus(1)">
                       <IconifyIconOnline
                         icon="ri:check-line"
                         class="mr-1 text-green-500"
                       />批量启用
-                    </el-dropdown-item>
-                    <el-dropdown-item @click="handleBatchStatus(0)">
+                    </ScDropdownItem>
+                    <ScDropdownItem @click="handleBatchStatus(0)">
                       <IconifyIconOnline
                         icon="ri:close-line"
                         class="mr-1 text-orange-500"
                       />批量禁用
-                    </el-dropdown-item>
-                    <el-dropdown-item divided @click="handleBatchDelete">
+                    </ScDropdownItem>
+                    <ScDropdownItem divided @click="handleBatchDelete">
                       <IconifyIconOnline
                         icon="ri:delete-bin-line"
                         class="mr-1 text-red-500"
                       />批量删除
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
+                    </ScDropdownItem>
+                  </ScDropdownMenu>
                 </template>
-              </el-dropdown>
+              </ScDropdown>
 
               <!-- 导入导出下拉菜单 -->
-              <el-dropdown trigger="click">
-                <el-button>
+              <ScDropdown trigger="click">
+                <ScButton>
                   <IconifyIconOnline icon="ep:download" class="mr-1" />导入导出
-                </el-button>
+                </ScButton>
                 <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item @click="handleExportUsers">
+                  <ScDropdownMenu>
+                    <ScDropdownItem @click="handleExportUsers">
                       <IconifyIconOnline
                         icon="ep:download"
                         class="mr-1"
                       />导出用户
-                    </el-dropdown-item>
-                    <el-dropdown-item @click="handleDownloadTemplate">
+                    </ScDropdownItem>
+                    <ScDropdownItem @click="handleDownloadTemplate">
                       <IconifyIconOnline
                         icon="ep:document"
                         class="mr-1"
                       />下载模板
-                    </el-dropdown-item>
-                    <el-dropdown-item @click="triggerImport">
+                    </ScDropdownItem>
+                    <ScDropdownItem @click="triggerImport">
                       <IconifyIconOnline
                         icon="ep:upload"
                         class="mr-1"
                       />导入用户
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
+                    </ScDropdownItem>
+                  </ScDropdownMenu>
                 </template>
-              </el-dropdown>
+              </ScDropdown>
               <input
                 ref="importInput"
                 type="file"
@@ -589,8 +589,8 @@ export default defineComponent({
               />
             </div>
           </div>
-        </el-header>
-        <el-main class="nopadding">
+        </ScHeader>
+        <ScMain class="nopadding">
           <div ref="contentRef" class="h-full flex">
             <div
               :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
@@ -604,15 +604,15 @@ export default defineComponent({
                 @data-loaded="onDataLoaded"
                 @selection-change="handleSelectionChange"
               >
-                <el-table-column type="selection" width="55" />
-                <el-table-column type="index" label="序号" width="80px">
+                <ScTableColumn type="selection" width="55" />
+                <ScTableColumn type="index" label="序号" width="80px">
                   <template #default="scope">
-                    <el-tag type="primary" size="small">{{
+                    <ScTag type="primary" size="small">{{
                       scope.$index + 1
-                    }}</el-tag>
+                    }}</ScTag>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="用户信息"
                   prop="sysUserUsername"
                   align="left"
@@ -624,7 +624,7 @@ export default defineComponent({
                         class="user-avatar"
                         :class="randomColor(row.sysUserSex)"
                       >
-                        <el-avatar
+                        <ScAvatar
                           v-if="row.sysUserAvatar"
                           :size="44"
                           :src="row.sysUserAvatar"
@@ -638,7 +638,7 @@ export default defineComponent({
                       <div class="user-details">
                         <div class="user-name">
                           <span>{{ row.sysUserNickname }}</span>
-                          <el-tag
+                          <ScTag
                             v-if="row.sysUserInSystem"
                             type="warning"
                             size="small"
@@ -650,8 +650,8 @@ export default defineComponent({
                       </div>
                     </div>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="联系方式"
                   prop="sysUserNickname"
                   align="left"
@@ -691,8 +691,8 @@ export default defineComponent({
                       </div>
                     </div>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="备注"
                   prop="sysUserRemark"
                   align="center"
@@ -705,8 +705,8 @@ export default defineComponent({
                     }}</span>
                     <span v-else class="no-data">-</span>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="最后登录地址"
                   prop="sysUserLastIp"
                   align="left"
@@ -719,8 +719,8 @@ export default defineComponent({
                       :physical-address="row.sysUserLastAddress"
                     />
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="注册地址"
                   prop="sysUserRegisterIp"
                   align="left"
@@ -733,19 +733,19 @@ export default defineComponent({
                       :physical-address="row.sysUserRegisterAddress"
                     />
                   </template>
-                </el-table-column>
+                </ScTableColumn>
 
-                <el-table-column label="角色" align="center">
+                <ScTableColumn label="角色" align="center">
                   <template #default="{ row }">
-                    <el-tag v-if="row.userRoles.length > 0">
+                    <ScTag v-if="row.userRoles.length > 0">
                       {{ row.userRoles[0].sysRoleName }}
-                    </el-tag>
+                    </ScTag>
                     <span v-else>-</span>
                   </template>
-                </el-table-column>
-                <el-table-column label="状态" align="center">
+                </ScTableColumn>
+                <ScTableColumn label="状态" align="center">
                   <template #default="{ row }">
-                    <el-switch
+                    <ScSwitch
                       v-if="mode != 'view'"
                       v-model="row.sysUserStatus"
                       style="
@@ -757,16 +757,16 @@ export default defineComponent({
                       :inactive-value="0"
                       @change="fetchUpdateUserValue(row)"
                     />
-                    <el-tag
+                    <ScTag
                       v-else
                       :type="row.sysUserStatus == 1 ? 'success' : 'danger'"
                     >
                       {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
-                    </el-tag>
+                    </ScTag>
                   </template>
-                </el-table-column>
+                </ScTableColumn>
 
-                <el-table-column
+                <ScTableColumn
                   label="最后登录"
                   prop="sysUserLastLoginTime"
                   align="left"
@@ -801,10 +801,10 @@ export default defineComponent({
                         >
                       </div>
                     </div>
-                    <el-tag v-else type="info" size="small">从未登录</el-tag>
+                    <ScTag v-else type="info" size="small">从未登录</ScTag>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   label="注册时间"
                   prop="createTime"
                   align="left"
@@ -818,47 +818,47 @@ export default defineComponent({
                       <span class="time-detail">{{ row.createTime }}</span>
                     </div>
                   </template>
-                </el-table-column>
-                <el-table-column
+                </ScTableColumn>
+                <ScTableColumn
                   v-if="showTool"
                   label="操作"
                   fixed="right"
                   min-width="180px"
                 >
                   <template #default="{ row }">
-                    <el-tooltip content="编辑" placement="top">
-                      <el-button
+                    <ScTooltip content="编辑" placement="top">
+                      <ScButton
                         v-auth="'sys:user:update'"
                         v-roles="['ADMIN', 'SUPER_ADMIN']"
                         class="btn-text"
                         :icon="EditPen"
                         @click="dialogOpen(row, 'edit')"
                       />
-                    </el-tooltip>
-                    <el-tooltip content="重置密码" placement="top">
-                      <el-popconfirm
+                    </ScTooltip>
+                    <ScTooltip content="重置密码" placement="top">
+                      <ScPopconfirm
                         title="确定要重置此用户的密码吗？"
                         @confirm="handleResetPassword(row)"
                       >
                         <template #reference>
-                          <el-button
+                          <ScButton
                             v-auth="'sys:user:reset'"
                             v-roles="['ADMIN', 'SUPER_ADMIN']"
                             class="btn-text"
                             type="warning"
                           >
                             <IconifyIconOnline icon="ri:lock-password-line" />
-                          </el-button>
+                          </ScButton>
                         </template>
-                      </el-popconfirm>
-                    </el-tooltip>
-                    <el-tooltip content="删除" placement="top">
-                      <el-popconfirm
+                      </ScPopconfirm>
+                    </ScTooltip>
+                    <ScTooltip content="删除" placement="top">
+                      <ScPopconfirm
                         :title="$t('message.confimDelete')"
                         @confirm="onDelete(row)"
                       >
                         <template #reference>
-                          <el-button
+                          <ScButton
                             v-if="!row.sysUserInSystem"
                             v-auth="'sys:user:delete'"
                             v-roles="['ADMIN', 'SUPER_ADMIN']"
@@ -867,15 +867,15 @@ export default defineComponent({
                             :icon="Delete"
                           />
                         </template>
-                      </el-popconfirm>
-                    </el-tooltip>
+                      </ScPopconfirm>
+                    </ScTooltip>
                   </template>
-                </el-table-column>
+                </ScTableColumn>
               </ScTable>
             </div>
           </div>
-        </el-main>
-      </el-container>
+        </ScMain>
+      </ScContainer>
     </div>
   </div>
 </template>

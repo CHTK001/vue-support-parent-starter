@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <div class="header-icon">
-          <el-icon :size="28"><Setting /></el-icon>
+          <ScIcon :size="28"><Setting /></ScIcon>
         </div>
         <div class="header-text">
           <h2>配置管理</h2>
@@ -12,33 +12,33 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-input
+        <ScInput
           v-model="searchForm.name"
           placeholder="配置名称"
           clearable
           style="width: 160px"
         />
-        <el-select
+        <ScSelect
           v-model="searchForm.status"
           placeholder="状态"
           clearable
           style="width: 100px"
         >
-          <el-option label="启用" :value="1" />
-          <el-option label="禁用" :value="0" />
-        </el-select>
-        <el-button type="primary" :icon="Search" @click="handleSearch"
+          <ScOption label="启用" :value="1" />
+          <ScOption label="禁用" :value="0" />
+        </ScSelect>
+        <ScButton type="primary" :icon="Search" @click="handleSearch"
           >查询</el-button
         >
-        <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
-        <el-button type="success" :icon="Plus" @click="handleAdd"
+        <ScButton :icon="RefreshRight" @click="handleReset">重置</ScButton>
+        <ScButton type="success" :icon="Plus" @click="handleAdd"
           >新增配置</el-button
         >
       </div>
     </div>
 
     <!-- 表格区域 -->
-    <el-card class="table-card" shadow="never">
+    <ScCard class="table-card" shadow="never">
       <ScTable
         ref="tableRef"
         :url="getSkywalkingConfigPage"
@@ -48,64 +48,64 @@
         stripe
         height="100%"
       >
-        <el-table-column
+        <ScTableColumn
           prop="skywalkingConfigName"
           label="配置名称"
           min-width="150"
         />
-        <el-table-column
+        <ScTableColumn
           prop="skywalkingConfigHost"
           label="服务地址"
           min-width="150"
         />
-        <el-table-column prop="skywalkingConfigPort" label="端口" width="100" />
-        <el-table-column label="HTTPS" width="80" align="center">
+        <ScTableColumn prop="skywalkingConfigPort" label="端口" width="100" />
+        <ScTableColumn label="HTTPS" width="80" align="center">
           <template #default="{ row }">
-            <el-tag
+            <ScTag
               :type="row.skywalkingConfigUseHttps === 1 ? 'success' : 'info'"
               size="small"
             >
               {{ row.skywalkingConfigUseHttps === 1 ? "是" : "否" }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
+        </ScTableColumn>
+        <ScTableColumn label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-switch
+            <ScSwitch
               v-model="row.skywalkingConfigStatus"
               :active-value="1"
               :inactive-value="0"
               @change="handleToggleStatus(row)"
             />
           </template>
-        </el-table-column>
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn
           prop="skywalkingConfigDesc"
           label="描述"
           min-width="200"
           show-overflow-tooltip
         />
-        <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <ScTableColumn prop="createTime" label="创建时间" width="180" />
+        <ScTableColumn label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleTest(row)"
+            <ScButton type="primary" link size="small" @click="handleTest(row)"
               >测试</el-button
             >
-            <el-button type="primary" link size="small" @click="handleEdit(row)"
+            <ScButton type="primary" link size="small" @click="handleEdit(row)"
               >编辑</el-button
             >
-            <el-popconfirm
+            <ScPopconfirm
               title="确定删除该配置吗？"
               @confirm="handleDelete(row)"
             >
               <template #reference>
-                <el-button type="danger" link size="small">删除</el-button>
+                <ScButton type="danger" link size="small">删除</ScButton>
               </template>
-            </el-popconfirm>
+            </ScPopconfirm>
           </template>
-        </el-table-column>
+        </ScTableColumn>
       </ScTable>
-    </el-card>
+    </ScCard>
 
     <!-- 新增/编辑弹窗 -->
     <sc-dialog
@@ -118,7 +118,7 @@
       :show-footer="false"
     >
       <div class="config-form-wrapper">
-        <el-form
+        <ScForm
           ref="formRef"
           :model="formData"
           :rules="rules"
@@ -135,21 +135,21 @@
               <span>基本信息</span>
             </div>
             <div class="section-content">
-              <el-form-item label="配置名称" prop="skywalkingConfigName">
-                <el-input
+              <ScFormItem label="配置名称" prop="skywalkingConfigName">
+                <ScInput
                   v-model="formData.skywalkingConfigName"
                   placeholder="请输入配置名称"
                   :prefix-icon="useRenderIcon('ri:bookmark-line')"
                 />
-              </el-form-item>
-              <el-form-item label="描述">
-                <el-input
+              </ScFormItem>
+              <ScFormItem label="描述">
+                <ScInput
                   v-model="formData.skywalkingConfigDesc"
                   type="textarea"
                   :rows="2"
                   placeholder="请输入配置描述（可选）"
                 />
-              </el-form-item>
+              </ScFormItem>
             </div>
           </div>
 
@@ -160,31 +160,31 @@
               <span>连接配置</span>
             </div>
             <div class="section-content">
-              <el-row :gutter="16">
-                <el-col :span="16">
-                  <el-form-item label="服务地址" prop="skywalkingConfigHost">
-                    <el-input
+              <ScRow :gutter="16">
+                <ScCol :span="16">
+                  <ScFormItem label="服务地址" prop="skywalkingConfigHost">
+                    <ScInput
                       v-model="formData.skywalkingConfigHost"
                       placeholder="如: localhost 或 192.168.1.100"
                       :prefix-icon="useRenderIcon('ri:server-line')"
                     />
-                  </el-form-item>
-                </el-col>
-                <el-col :span="8">
-                  <el-form-item label="端口" prop="skywalkingConfigPort">
-                    <el-input-number
+                  </ScFormItem>
+                </ScCol>
+                <ScCol :span="8">
+                  <ScFormItem label="端口" prop="skywalkingConfigPort">
+                    <ScInputNumber
                       v-model="formData.skywalkingConfigPort"
                       :min="1"
                       :max="65535"
                       controls-position="right"
                       style="width: 100%"
                     />
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-form-item label="启用 HTTPS">
+                  </ScFormItem>
+                </ScCol>
+              </ScRow>
+              <ScFormItem label="启用 HTTPS">
                 <div class="switch-wrapper">
-                  <el-switch
+                  <ScSwitch
                     v-model="formData.skywalkingConfigUseHttps"
                     :active-value="1"
                     :inactive-value="0"
@@ -195,7 +195,7 @@
                     >如果 SkyWalking 服务启用了 HTTPS，请开启此选项</span
                   >
                 </div>
-              </el-form-item>
+              </ScFormItem>
             </div>
           </div>
 
@@ -207,33 +207,33 @@
                 class="section-icon"
               />
               <span>认证配置</span>
-              <el-tag type="info" size="small" class="optional-tag"
+              <ScTag type="info" size="small" class="optional-tag"
                 >可选</el-tag
               >
             </div>
             <div class="section-content">
-              <el-row :gutter="16">
-                <el-col :span="12">
-                  <el-form-item label="用户名">
-                    <el-input
+              <ScRow :gutter="16">
+                <ScCol :span="12">
+                  <ScFormItem label="用户名">
+                    <ScInput
                       v-model="formData.skywalkingConfigUsername"
                       placeholder="请输入用户名"
                       :prefix-icon="useRenderIcon('ri:user-line')"
                     />
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="密码">
-                    <el-input
+                  </ScFormItem>
+                </ScCol>
+                <ScCol :span="12">
+                  <ScFormItem label="密码">
+                    <ScInput
                       v-model="formData.skywalkingConfigPassword"
                       type="password"
                       placeholder="请输入密码"
                       show-password
                       :prefix-icon="useRenderIcon('ri:lock-line')"
                     />
-                  </el-form-item>
-                </el-col>
-              </el-row>
+                  </ScFormItem>
+                </ScCol>
+              </ScRow>
             </div>
           </div>
 
@@ -244,9 +244,9 @@
               <span>状态配置</span>
             </div>
             <div class="section-content">
-              <el-form-item label="启用状态">
+              <ScFormItem label="启用状态">
                 <div class="switch-wrapper">
-                  <el-switch
+                  <ScSwitch
                     v-model="formData.skywalkingConfigStatus"
                     :active-value="1"
                     :inactive-value="0"
@@ -260,25 +260,25 @@
                   />
                   <span class="switch-hint">禁用后该配置将不会被使用</span>
                 </div>
-              </el-form-item>
+              </ScFormItem>
             </div>
           </div>
-        </el-form>
+        </ScForm>
 
         <!-- 底部操作按钮 -->
         <div class="form-actions">
-          <el-button @click="dialogVisible = false">
+          <ScButton @click="dialogVisible = false">
             <IconifyIconOnline icon="ri:close-line" />
             取消
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             type="primary"
             :loading="submitLoading"
             @click="handleSubmit"
           >
             <IconifyIconOnline icon="ri:check-line" />
             {{ formData.skywalkingConfigId ? "更新配置" : "创建配置" }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </sc-dialog>
@@ -289,7 +289,7 @@
 import { ref, reactive, computed } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
 import { Search, RefreshRight, Plus, Setting } from "@element-plus/icons-vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import {
   getSkywalkingConfigPage,
   saveSkywalkingConfig,

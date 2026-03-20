@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BasePanel from './BasePanel.vue';
+import BasePanel from "./BasePanel.vue";
 </script>
 
 <template>

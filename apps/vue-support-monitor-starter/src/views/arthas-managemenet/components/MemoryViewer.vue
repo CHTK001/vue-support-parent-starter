@@ -3,32 +3,32 @@
     <!-- 控制面板 -->
     <div class="control-panel">
       <div class="control-row">
-        <el-button
+        <ScButton
           type="primary"
           :disabled="!nodeId"
           :loading="loading"
           @click="run"
         >
           {{ autoRefresh && countdown > 0 ? `刷新(${countdown}s)` : "刷新" }}
-        </el-button>
-        <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
-        <el-select
+        </ScButton>
+        <ScCheckbox v-model="autoRefresh">自动刷新</ScCheckbox>
+        <ScSelect
           v-model="refreshInterval"
           style="width: 120px"
           placeholder="刷新间隔"
           title="设置内存数据刷新间隔"
         >
-          <el-option :value="5" label="5秒" />
-          <el-option :value="10" label="10秒" />
-          <el-option :value="30" label="30秒" />
-          <el-option :value="60" label="60秒" />
-        </el-select>
-        <el-button @click="clearData">清空</el-button>
+          <ScOption :value="5" label="5秒" />
+          <ScOption :value="10" label="10秒" />
+          <ScOption :value="30" label="30秒" />
+          <ScOption :value="60" label="60秒" />
+        </ScSelect>
+        <ScButton @click="clearData">清空</ScButton>
       </div>
     </div>
 
     <!-- 错误提示 -->
-    <el-alert
+    <ScAlert
       v-if="error"
       type="error"
       :title="error"
@@ -40,16 +40,16 @@
     <!-- 内存概览卡片 -->
     <div v-if="memoryData" class="memory-overview">
       <div class="memory-cards">
-        <el-card class="memory-card">
+        <ScCard class="memory-card">
           <div class="card-header">
             <span class="card-title">堆内存</span>
-            <el-tag :type="getUsageType(memoryData.heap.usage)">
+            <ScTag :type="getUsageType(memoryData.heap.usage)">
               {{ formatPercent(memoryData.heap.usage) }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="memory-info">
             <div class="memory-bar">
-              <el-progress
+              <ScProgress
                 :percentage="memoryData.heap.usage"
                 :color="getProgressColor(memoryData.heap.usage)"
                 :show-text="false"
@@ -67,18 +67,18 @@
               >
             </div>
           </div>
-        </el-card>
+        </ScCard>
 
-        <el-card class="memory-card">
+        <ScCard class="memory-card">
           <div class="card-header">
             <span class="card-title">非堆内存</span>
-            <el-tag :type="getUsageType(memoryData.nonHeap.usage)">
+            <ScTag :type="getUsageType(memoryData.nonHeap.usage)">
               {{ formatPercent(memoryData.nonHeap.usage) }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="memory-info">
             <div class="memory-bar">
-              <el-progress
+              <ScProgress
                 :percentage="memoryData.nonHeap.usage"
                 :color="getProgressColor(memoryData.nonHeap.usage)"
                 :show-text="false"
@@ -89,18 +89,18 @@
               <span>最大: {{ formatBytes(memoryData.nonHeap.max) }}</span>
             </div>
           </div>
-        </el-card>
+        </ScCard>
 
-        <el-card class="memory-card">
+        <ScCard class="memory-card">
           <div class="card-header">
             <span class="card-title">直接内存</span>
-            <el-tag :type="getUsageType(memoryData.direct.usage)">
+            <ScTag :type="getUsageType(memoryData.direct.usage)">
               {{ formatPercent(memoryData.direct.usage) }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="memory-info">
             <div class="memory-bar">
-              <el-progress
+              <ScProgress
                 :percentage="memoryData.direct.usage"
                 :color="getProgressColor(memoryData.direct.usage)"
                 :show-text="false"
@@ -111,53 +111,53 @@
               <span>最大: {{ formatBytes(memoryData.direct.max) }}</span>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </div>
     </div>
 
     <!-- 内存池详情表格 -->
     <div v-if="memoryPools.length > 0" class="memory-pools">
       <h3>内存池详情</h3>
-      <el-table :data="memoryPools" stripe>
-        <el-table-column prop="name" label="内存池名称" min-width="200" />
-        <el-table-column prop="type" label="类型" width="100">
+      <ScTable :data="memoryPools" stripe>
+        <ScTableColumn prop="name" label="内存池名称" min-width="200" />
+        <ScTableColumn prop="type" label="类型" width="100">
           <template #default="{ row }">
-            <el-tag
+            <ScTag
               :type="row.type === 'HEAP' ? 'primary' : 'info'"
               size="small"
             >
               {{ row.type }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="usage" label="使用率" width="120">
+        </ScTableColumn>
+        <ScTableColumn prop="usage" label="使用率" width="120">
           <template #default="{ row }">
-            <el-tag :type="getUsageType(row.usage)" size="small">
+            <ScTag :type="getUsageType(row.usage)" size="small">
               {{ formatPercent(row.usage) }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="used" label="已用内存" width="120">
+        </ScTableColumn>
+        <ScTableColumn prop="used" label="已用内存" width="120">
           <template #default="{ row }">
             {{ formatBytes(row.used) }}
           </template>
-        </el-table-column>
-        <el-table-column prop="committed" label="已提交" width="120">
+        </ScTableColumn>
+        <ScTableColumn prop="committed" label="已提交" width="120">
           <template #default="{ row }">
             {{ formatBytes(row.committed) }}
           </template>
-        </el-table-column>
-        <el-table-column prop="max" label="最大内存" width="120">
+        </ScTableColumn>
+        <ScTableColumn prop="max" label="最大内存" width="120">
           <template #default="{ row }">
             {{ formatBytes(row.max) }}
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
     </div>
 
     <!-- 空状态 -->
     <div v-if="!loading && !error && !memoryData" class="empty-state">
-      <el-empty description="暂无内存数据，请点击刷新获取" />
+      <ScEmpty description="暂无内存数据，请点击刷新获取" />
     </div>
   </div>
 </template>

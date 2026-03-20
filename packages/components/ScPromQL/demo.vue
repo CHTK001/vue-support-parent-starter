@@ -18,28 +18,28 @@
 
     <div class="demo-section">
       <h3>选中的查询</h3>
-      <el-card v-if="selectedQuery" class="selected-query">
+      <ScCard v-if="selectedQuery" class="selected-query">
         <template #header>
           <div class="card-header">
             <span>已选择的 PromQL 查询</span>
-            <el-button type="primary" size="small" @click="executeQuery">执行查询</el-button>
+            <ScButton type="primary" size="small" @click="executeQuery">执行查询</ScButton>
           </div>
         </template>
         <pre>{{ selectedQuery }}</pre>
-      </el-card>
-      <el-empty v-else description="尚未选择查询" />
+      </ScCard>
+      <ScEmpty v-else description="尚未选择查询" />
     </div>
 
     <div class="demo-section">
       <h3>查询示例分类</h3>
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="系统监控">CPU、内存、磁盘、网络、系统</el-descriptions-item>
-        <el-descriptions-item label="容器与编排">容器、Kubernetes</el-descriptions-item>
-        <el-descriptions-item label="应用监控">HTTP、JVM</el-descriptions-item>
-        <el-descriptions-item label="数据库监控">MySQL、PostgreSQL、Redis、MongoDB</el-descriptions-item>
-        <el-descriptions-item label="告警规则">高 CPU/内存使用率、磁盘空间不足、实例宕机等</el-descriptions-item>
-        <el-descriptions-item label="自定义查询">用户自定义的查询示例</el-descriptions-item>
-      </el-descriptions>
+      <ScDescriptions :column="2" border>
+        <ScDescriptionsItem label="系统监控">CPU、内存、磁盘、网络、系统</ScDescriptionsItem>
+        <ScDescriptionsItem label="容器与编排">容器、Kubernetes</ScDescriptionsItem>
+        <ScDescriptionsItem label="应用监控">HTTP、JVM</ScDescriptionsItem>
+        <ScDescriptionsItem label="数据库监控">MySQL、PostgreSQL、Redis、MongoDB</ScDescriptionsItem>
+        <ScDescriptionsItem label="告警规则">高 CPU/内存使用率、磁盘空间不足、实例宕机等</ScDescriptionsItem>
+        <ScDescriptionsItem label="自定义查询">用户自定义的查询示例</ScDescriptionsItem>
+      </ScDescriptions>
     </div>
   </div>
 </template>

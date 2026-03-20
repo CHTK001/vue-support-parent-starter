@@ -6,10 +6,10 @@ import { useI18n } from "vue-i18n";
 const { t } = useI18n();
 const emit = defineEmits(["close", "open"]);
 const ScInput = defineAsyncComponent(
-  () => import("@repo/components/ScInput/index.vue")
+  () => import("@repo/components"),
 );
 const ScFormTable = defineAsyncComponent(
-  () => import("@repo/components/ScFormTable/index.vue")
+  () => import("@repo/components"),
 );
 const env = reactive({
   groupCache: "dict_item_propery_group_cache",
@@ -130,14 +130,14 @@ defineExpose({
           class="property-table"
           :class="{ 'empty-table': !form.property?.length }"
         >
-          <ScTableColumn 
+          <ScTableColumn
             fixed
             prop="sysDictItemPropertyGroup"
             label="配置分组"
             width="200"
           >
             <template #default="{ row }">
-              <ScSelect 
+              <ScSelect
                 filterable
                 allow-create
                 clearable
@@ -145,7 +145,7 @@ defineExpose({
                 placeholder="选择或创建分组"
                 class="group-select"
               >
-                <ScOption 
+                <ScOption
                   v-for="item in env._groupCacheList"
                   :key="item"
                   :value="item"
@@ -159,14 +159,14 @@ defineExpose({
             </template>
           </ScTableColumn>
 
-          <ScTableColumn 
+          <ScTableColumn
             fixed
             prop="sysDictItemPropertyName"
             label="配置名称"
             min-width="180"
           >
             <template #default="{ row }">
-              <ScInput 
+              <ScInput
                 v-model="row.sysDictItemPropertyName"
                 placeholder="输入配置名称"
                 clearable
@@ -178,7 +178,7 @@ defineExpose({
             </template>
           </ScTableColumn>
 
-          <ScTableColumn 
+          <ScTableColumn
             fixed
             prop="sysDictItemPropertyValue"
             label="配置值"
@@ -192,11 +192,11 @@ defineExpose({
                 placeholder="输入配置值"
               >
                 <template #prepend>
-                  <ScSelect 
+                  <ScSelect
                     v-model="row.sysDictItemPropertySelectedType"
                     class="type-select"
                   >
-                    <ScOption 
+                    <ScOption
                       v-for="item in env.selectTypeList"
                       :key="item.value"
                       :value="item.value"
@@ -221,7 +221,7 @@ defineExpose({
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
             {{ t("buttons.close") }}
           </ScButton>
-          <ScButton 
+          <ScButton
             type="primary"
             :loading="env.loading"
             @click="handleUpdate"

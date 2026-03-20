@@ -1,5 +1,4 @@
 ﻿<script setup>
-
 import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
@@ -69,10 +68,26 @@ const env = reactive({
   ],
   customStyle: "standard",
   presetTemplates: [
-    { label: "商务黑", colors: { dark: "#000000", light: "#FFFFFF" }, style: "standard" },
-    { label: "科技蓝", colors: { dark: "#0078D7", light: "#F0F8FF" }, style: "rounded" },
-    { label: "活力橙", colors: { dark: "#FF6600", light: "#FFF5E6" }, style: "dots" },
-    { label: "自然绿", colors: { dark: "#2E8B57", light: "#F0FFF0" }, style: "rounded" },
+    {
+      label: "商务黑",
+      colors: { dark: "#000000", light: "#FFFFFF" },
+      style: "standard",
+    },
+    {
+      label: "科技蓝",
+      colors: { dark: "#0078D7", light: "#F0F8FF" },
+      style: "rounded",
+    },
+    {
+      label: "活力橙",
+      colors: { dark: "#FF6600", light: "#FFF5E6" },
+      style: "dots",
+    },
+    {
+      label: "自然绿",
+      colors: { dark: "#2E8B57", light: "#F0FFF0" },
+      style: "rounded",
+    },
   ],
 });
 
@@ -134,7 +149,9 @@ const generateQRCode = async () => {
     }
 
     // 转换为数据URL
-    env.qrCodeDataUrl = canvas.toDataURL(`image/${env.outputFormat === "svg" ? "png" : env.outputFormat}`);
+    env.qrCodeDataUrl = canvas.toDataURL(
+      `image/${env.outputFormat === "svg" ? "png" : env.outputFormat}`,
+    );
 
     // 添加到历史记录
     if (!env.qrCodeHistory.some((item) => item.text === env.inputValue)) {
@@ -150,10 +167,14 @@ const generateQRCode = async () => {
       }
     }
 
-    message(t("message.generateSuccess") || "二维码生成成功", { type: "success" });
+    message(t("message.generateSuccess") || "二维码生成成功", {
+      type: "success",
+    });
   } catch (error) {
     console.error("二维码生成错误:", error);
-    message(t("message.generateError") || "二维码生成失败: " + error.message, { type: "error" });
+    message(t("message.generateError") || "二维码生成失败: " + error.message, {
+      type: "error",
+    });
   } finally {
     env.loading = false;
   }
@@ -200,7 +221,7 @@ const applyCustomStyle = (canvas, style) => {
             y + pixelSize / 2,
             (pixelSize / 2) * 0.8, // 稍微小一点的圆
             0,
-            Math.PI * 2
+            Math.PI * 2,
           );
           ctx.fill();
         }
@@ -227,7 +248,13 @@ const applyCustomStyle = (canvas, style) => {
     ctx.fillStyle = env.darkColor;
     for (const module of modules) {
       ctx.beginPath();
-      ctx.roundRect(module.x + pixelSize * 0.1, module.y + pixelSize * 0.1, pixelSize * 0.8, pixelSize * 0.8, pixelSize * 0.3);
+      ctx.roundRect(
+        module.x + pixelSize * 0.1,
+        module.y + pixelSize * 0.1,
+        pixelSize * 0.8,
+        pixelSize * 0.8,
+        pixelSize * 0.3,
+      );
       ctx.fill();
     }
   }
@@ -257,11 +284,21 @@ const drawPositionPatterns = (ctx, size, pixelSize) => {
 
     // 中间白色部分
     ctx.fillStyle = env.lightColor;
-    ctx.fillRect(pos.x + pixelSize, pos.y + pixelSize, patternSize - 2 * pixelSize, patternSize - 2 * pixelSize);
+    ctx.fillRect(
+      pos.x + pixelSize,
+      pos.y + pixelSize,
+      patternSize - 2 * pixelSize,
+      patternSize - 2 * pixelSize,
+    );
 
     // 内部黑色方块
     ctx.fillStyle = env.darkColor;
-    ctx.fillRect(pos.x + 2 * pixelSize, pos.y + 2 * pixelSize, patternSize - 4 * pixelSize, patternSize - 4 * pixelSize);
+    ctx.fillRect(
+      pos.x + 2 * pixelSize,
+      pos.y + 2 * pixelSize,
+      patternSize - 4 * pixelSize,
+      patternSize - 4 * pixelSize,
+    );
   }
 };
 
@@ -371,7 +408,9 @@ const downloadQRCode = () => {
     message(t("message.downloadSuccess") || "下载成功", { type: "success" });
   } catch (error) {
     console.error("下载错误:", error);
-    message(t("message.downloadError") || "下载失败: " + error.message, { type: "error" });
+    message(t("message.downloadError") || "下载失败: " + error.message, {
+      type: "error",
+    });
   }
 };
 
@@ -405,15 +444,21 @@ const copyQRCodeToClipboard = async () => {
         // 创建ClipboardItem
         const item = new ClipboardItem({ "image/png": blob });
         await navigator.clipboard.write([item]);
-        message(t("message.copySuccess") || "已复制到剪贴板", { type: "success" });
+        message(t("message.copySuccess") || "已复制到剪贴板", {
+          type: "success",
+        });
       } catch (error) {
         console.error("复制错误:", error);
-        message(t("message.copyError") || "复制失败: " + error.message, { type: "error" });
+        message(t("message.copyError") || "复制失败: " + error.message, {
+          type: "error",
+        });
       }
     });
   } catch (error) {
     console.error("复制错误:", error);
-    message(t("message.copyError") || "复制失败: " + error.message, { type: "error" });
+    message(t("message.copyError") || "复制失败: " + error.message, {
+      type: "error",
+    });
   }
 };
 
@@ -502,14 +547,20 @@ const parseQRCodeImage = (event) => {
               }
             }
 
-            message(t("message.scanSuccess") || "解析成功", { type: "success" });
+            message(t("message.scanSuccess") || "解析成功", {
+              type: "success",
+            });
           } else {
-            message(t("message.scanNoQRCode") || "未检测到二维码", { type: "error" });
+            message(t("message.scanNoQRCode") || "未检测到二维码", {
+              type: "error",
+            });
           }
         })
         .catch((error) => {
           console.error("解析错误:", error);
-          message(t("message.scanError") || "解析失败: " + error.message, { type: "error" });
+          message(t("message.scanError") || "解析失败: " + error.message, {
+            type: "error",
+          });
         });
     };
     img.src = e.target.result;
@@ -529,11 +580,15 @@ const copyResultToClipboard = () => {
   navigator.clipboard
     .writeText(env.scanResult)
     .then(() => {
-      message(t("message.copySuccess") || "已复制到剪贴板", { type: "success" });
+      message(t("message.copySuccess") || "已复制到剪贴板", {
+        type: "success",
+      });
     })
     .catch((error) => {
       console.error("复制错误:", error);
-      message(t("message.copyError") || "复制失败: " + error.message, { type: "error" });
+      message(t("message.copyError") || "复制失败: " + error.message, {
+        type: "error",
+      });
     });
 };
 
@@ -569,7 +624,9 @@ onMounted(() => {
         <div class="qrcode-tool__header">
           <div class="qrcode-tool__header-inner">
             <div class="qrcode-tool__header-title">二维码工具</div>
-            <div class="qrcode-tool__header-subtitle">生成、解析和自定义二维码</div>
+            <div class="qrcode-tool__header-subtitle">
+              生成、解析和自定义二维码
+            </div>
           </div>
         </div>
       </div>
@@ -583,7 +640,10 @@ onMounted(() => {
               <ScCard class="qrcode-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
-                    <IconifyIconOnline icon="ri:qr-code-line" class="qrcode-tool__card-icon" />
+                    <IconifyIconOnline
+                      icon="ri:qr-code-line"
+                      class="qrcode-tool__card-icon"
+                    />
                     <span>输入内容</span>
                   </div>
                 </template>
@@ -591,22 +651,45 @@ onMounted(() => {
                 <ScForm label-position="top">
                   <!-- 内容输入框 -->
                   <ScFormItem label="输入文本、网址或其他内容">
-                    <ScInput v-model="env.inputValue" type="textarea" :rows="4" placeholder="请输入要生成二维码的内容" clearable class="qrcode-tool__input" @input="debounceGenerateQR" />
+                    <ScInput
+                      v-model="env.inputValue"
+                      type="textarea"
+                      :rows="4"
+                      placeholder="请输入要生成二维码的内容"
+                      clearable
+                      class="qrcode-tool__input"
+                      @input="debounceGenerateQR"
+                    />
                   </ScFormItem>
 
                   <!-- 历史记录区域 -->
-                  <div class="qrcode-tool__history" v-if="env.qrCodeHistory.length > 0">
+                  <div
+                    class="qrcode-tool__history"
+                    v-if="env.qrCodeHistory.length > 0"
+                  >
                     <div class="qrcode-tool__history-label">
-                      <IconifyIconOnline icon="ri:history-line" class="qrcode-tool__history-icon" />
+                      <IconifyIconOnline
+                        icon="ri:history-line"
+                        class="qrcode-tool__history-icon"
+                      />
                       <span>历史记录:</span>
                     </div>
                     <div class="qrcode-tool__history-items">
-                      <div v-for="(item, index) in env.qrCodeHistory" :key="index" class="qrcode-tool__history-item" @click="selectFromHistory(item)">
+                      <div
+                        v-for="(item, index) in env.qrCodeHistory"
+                        :key="index"
+                        class="qrcode-tool__history-item"
+                        @click="selectFromHistory(item)"
+                      >
                         <div class="qrcode-tool__history-preview">
                           <img :src="item.dataUrl" alt="QR Code" />
                         </div>
                         <div class="qrcode-tool__history-text">
-                          {{ item.text.length > 20 ? item.text.substring(0, 20) + "..." : item.text }}
+                          {{
+                            item.text.length > 20
+                              ? item.text.substring(0, 20) + "..."
+                              : item.text
+                          }}
                         </div>
                       </div>
                     </div>
@@ -614,7 +697,12 @@ onMounted(() => {
 
                   <!-- 操作按钮区域 -->
                   <div class="qrcode-tool__actions">
-                    <ScButton type="primary" :loading="env.loading" class="qrcode-tool__generate-btn" @click="generateQRCode">
+                    <ScButton
+                      type="primary"
+                      :loading="env.loading"
+                      class="qrcode-tool__generate-btn"
+                      @click="generateQRCode"
+                    >
                       <IconifyIconOnline icon="ri:qr-code-line" />
                       <span>生成二维码</span>
                     </ScButton>
@@ -631,7 +719,10 @@ onMounted(() => {
               <ScCard class="qrcode-tool__options-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
-                    <IconifyIconOnline icon="ri:settings-line" class="qrcode-tool__card-icon" />
+                    <IconifyIconOnline
+                      icon="ri:settings-line"
+                      class="qrcode-tool__card-icon"
+                    />
                     <span>自定义选项</span>
                   </div>
                 </template>
@@ -641,22 +732,50 @@ onMounted(() => {
                   <div class="qrcode-tool__templates">
                     <div class="qrcode-tool__templates-label">预设模板:</div>
                     <div class="qrcode-tool__templates-items">
-                      <div v-for="(template, index) in env.presetTemplates" :key="index" class="qrcode-tool__template-item" @click="applyTemplate(template)">
-                        <div class="qrcode-tool__template-color" :style="`background-color: ${template.colors.dark}; color: ${template.colors.light}`">
-                          <IconifyIconOnline :icon="template.style === 'standard' ? 'ri:qr-code-line' : template.style === 'dots' ? 'ri:bubble-chart-line' : 'ri:shape-line'" />
+                      <div
+                        v-for="(template, index) in env.presetTemplates"
+                        :key="index"
+                        class="qrcode-tool__template-item"
+                        @click="applyTemplate(template)"
+                      >
+                        <div
+                          class="qrcode-tool__template-color"
+                          :style="`background-color: ${template.colors.dark}; color: ${template.colors.light}`"
+                        >
+                          <IconifyIconOnline
+                            :icon="
+                              template.style === 'standard'
+                                ? 'ri:qr-code-line'
+                                : template.style === 'dots'
+                                  ? 'ri:bubble-chart-line'
+                                  : 'ri:shape-line'
+                            "
+                          />
                         </div>
-                        <div class="qrcode-tool__template-name">{{ template.label }}</div>
+                        <div class="qrcode-tool__template-name">
+                          {{ template.label }}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   <!-- 错误纠正级别 -->
                   <ScFormItem label="错误纠正级别">
-                    <ScSelect v-model="env.errorCorrectionLevel" class="qrcode-tool__select">
-                      <ScOption v-for="item in env.errorCorrectionLevels" :key="item.value" :label="item.label" :value="item.value">
+                    <ScSelect
+                      v-model="env.errorCorrectionLevel"
+                      class="qrcode-tool__select"
+                    >
+                      <ScOption
+                        v-for="item in env.errorCorrectionLevels"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      >
                         <div class="qrcode-tool__option-content">
                           <span>{{ item.label }}</span>
-                          <span class="qrcode-tool__option-description">{{ item.description }}</span>
+                          <span class="qrcode-tool__option-description">{{
+                            item.description
+                          }}</span>
                         </div>
                       </ScOption>
                     </ScSelect>
@@ -664,7 +783,14 @@ onMounted(() => {
 
                   <!-- 二维码大小 -->
                   <ScFormItem label="二维码大小">
-                    <ScSlider v-model="env.qrSize" :min="128" :max="512" :step="8" show-input :format-tooltip="(value) => `${value}px`" />
+                    <ScSlider
+                      v-model="env.qrSize"
+                      :min="128"
+                      :max="512"
+                      :step="8"
+                      show-input
+                      :format-tooltip="(value) => `${value}px`"
+                    />
                   </ScFormItem>
 
                   <!-- 颜色选择 -->
@@ -683,8 +809,15 @@ onMounted(() => {
 
                   <!-- 样式选择 -->
                   <ScFormItem label="二维码样式">
-                    <ScRadioGroup v-model="env.customStyle" class="qrcode-tool__style-group">
-                      <ScRadio v-for="style in env.customStyles" :key="style.value" :label="style.value">
+                    <ScRadioGroup
+                      v-model="env.customStyle"
+                      class="qrcode-tool__style-group"
+                    >
+                      <ScRadio
+                        v-for="style in env.customStyles"
+                        :key="style.value"
+                        :label="style.value"
+                      >
                         <div class="qrcode-tool__style-option">
                           <IconifyIconOnline :icon="style.icon" />
                           <span>{{ style.label }}</span>
@@ -696,16 +829,30 @@ onMounted(() => {
                   <!-- Logo设置 -->
                   <ScFormItem label="添加Logo">
                     <div class="qrcode-tool__logo-container">
-                      <div class="qrcode-tool__logo-preview" v-if="env.logoPreview">
+                      <div
+                        class="qrcode-tool__logo-preview"
+                        v-if="env.logoPreview"
+                      >
                         <img :src="env.logoPreview" alt="Logo" />
                         <div class="qrcode-tool__logo-actions">
-                          <ScButton type="danger" size="small" circle @click="removeLogo">
+                          <ScButton
+                            type="danger"
+                            size="small"
+                            circle
+                            @click="removeLogo"
+                          >
                             <IconifyIconOnline icon="ri:delete-bin-line" />
                           </ScButton>
                         </div>
                       </div>
                       <div class="qrcode-tool__logo-upload" v-else>
-                        <ScUpload action="" :auto-upload="false" :show-file-list="false" accept="image/*" @change="uploadLogo">
+                        <ScUpload
+                          action=""
+                          :auto-upload="false"
+                          :show-file-list="false"
+                          accept="image/*"
+                          @change="uploadLogo"
+                        >
                           <ScButton type="primary">
                             <IconifyIconOnline icon="ri:image-add-line" />
                             <span>上传Logo</span>
@@ -713,24 +860,56 @@ onMounted(() => {
                         </ScUpload>
                       </div>
 
-                      <ScSlider v-if="env.logoPreview" v-model="env.logoSize" :min="20" :max="120" :step="5" :format-tooltip="(value) => `${value}px`" @change="generateQRCode" />
+                      <ScSlider
+                        v-if="env.logoPreview"
+                        v-model="env.logoSize"
+                        :min="20"
+                        :max="120"
+                        :step="5"
+                        :format-tooltip="(value) => `${value}px`"
+                        @change="generateQRCode"
+                      />
                     </div>
                   </ScFormItem>
                   <!-- 输出格式 -->
                   <ScFormItem label="输出格式">
                     <div class="qrcode-tool__format-cards">
-                      <div v-for="item in env.outputFormats" :key="item.value" class="qrcode-tool__format-card" :class="{ 'is-active': env.outputFormat === item.value }" @click="env.outputFormat = item.value">
+                      <div
+                        v-for="item in env.outputFormats"
+                        :key="item.value"
+                        class="qrcode-tool__format-card"
+                        :class="{
+                          'is-active': env.outputFormat === item.value,
+                        }"
+                        @click="env.outputFormat = item.value"
+                      >
                         <div class="qrcode-tool__format-icon">
-                          <IconifyIconOnline :icon="item.value === 'png' ? 'ri:progress-6-line' : item.value === 'jpeg' ? 'ri:file-jpg-line' : 'ri:file-code-line'" />
+                          <IconifyIconOnline
+                            :icon="
+                              item.value === 'png'
+                                ? 'ri:progress-6-line'
+                                : item.value === 'jpeg'
+                                  ? 'ri:file-jpg-line'
+                                  : 'ri:file-code-line'
+                            "
+                          />
                         </div>
-                        <div class="qrcode-tool__format-label">{{ item.label }}</div>
+                        <div class="qrcode-tool__format-label">
+                          {{ item.label }}
+                        </div>
                       </div>
                     </div>
                   </ScFormItem>
 
                   <!-- 边距设置 -->
                   <ScFormItem label="边距">
-                    <ScSlider v-model="env.margin" :min="0" :max="10" :step="1" show-input />
+                    <ScSlider
+                      v-model="env.margin"
+                      :min="0"
+                      :max="10"
+                      :step="1"
+                      show-input
+                    />
                   </ScFormItem>
                 </ScForm>
               </ScCard>
@@ -741,15 +920,25 @@ onMounted(() => {
               <ScCard class="qrcode-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
-                    <IconifyIconOnline icon="ri:qr-scan-line" class="qrcode-tool__card-icon" />
+                    <IconifyIconOnline
+                      icon="ri:qr-scan-line"
+                      class="qrcode-tool__card-icon"
+                    />
                     <span>二维码预览</span>
                   </div>
                 </template>
 
                 <!-- 空状态提示 -->
-                <ScEmpty v-if="!env.qrCodeDataUrl" description="请先输入内容并生成二维码" class="qrcode-tool__empty">
+                <ScEmpty
+                  v-if="!env.qrCodeDataUrl"
+                  description="请先输入内容并生成二维码"
+                  class="qrcode-tool__empty"
+                >
                   <template #image>
-                    <IconifyIconOnline icon="ri:qr-code-line" class="qrcode-tool__empty-icon" />
+                    <IconifyIconOnline
+                      icon="ri:qr-code-line"
+                      class="qrcode-tool__empty-icon"
+                    />
                   </template>
                 </ScEmpty>
 
@@ -774,15 +963,25 @@ onMounted(() => {
                   <div class="qrcode-tool__preview-info">
                     <div class="qrcode-tool__preview-info-item">
                       <span class="qrcode-tool__preview-info-label">尺寸:</span>
-                      <span class="qrcode-tool__preview-info-value">{{ env.qrSize }}px × {{ env.qrSize }}px</span>
+                      <span class="qrcode-tool__preview-info-value"
+                        >{{ env.qrSize }}px × {{ env.qrSize }}px</span
+                      >
                     </div>
                     <div class="qrcode-tool__preview-info-item">
-                      <span class="qrcode-tool__preview-info-label">纠错级别:</span>
-                      <span class="qrcode-tool__preview-info-value">{{ env.errorCorrectionLevel }}</span>
+                      <span class="qrcode-tool__preview-info-label"
+                        >纠错级别:</span
+                      >
+                      <span class="qrcode-tool__preview-info-value">{{
+                        env.errorCorrectionLevel
+                      }}</span>
                     </div>
                     <div class="qrcode-tool__preview-info-item">
-                      <span class="qrcode-tool__preview-info-label">内容长度:</span>
-                      <span class="qrcode-tool__preview-info-value">{{ env.inputValue.length }} 字符</span>
+                      <span class="qrcode-tool__preview-info-label"
+                        >内容长度:</span
+                      >
+                      <span class="qrcode-tool__preview-info-value"
+                        >{{ env.inputValue.length }} 字符</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -799,34 +998,66 @@ onMounted(() => {
               <ScCard class="qrcode-tool__scan-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
-                    <IconifyIconOnline icon="ri:qr-scan-line" class="qrcode-tool__card-icon" />
+                    <IconifyIconOnline
+                      icon="ri:qr-scan-line"
+                      class="qrcode-tool__card-icon"
+                    />
                     <span>上传二维码图片</span>
                   </div>
                 </template>
 
                 <div class="qrcode-tool__scan-upload">
-                  <ScUpload action="" :auto-upload="false" :show-file-list="false" accept="image/*" drag @change="parseQRCodeImage">
+                  <ScUpload
+                    action=""
+                    :auto-upload="false"
+                    :show-file-list="false"
+                    accept="image/*"
+                    drag
+                    @change="parseQRCodeImage"
+                  >
                     <div class="qrcode-tool__upload-content">
-                      <IconifyIconOnline icon="ri:upload-cloud-line" class="qrcode-tool__upload-icon" />
+                      <IconifyIconOnline
+                        icon="ri:upload-cloud-line"
+                        class="qrcode-tool__upload-icon"
+                      />
                       <div class="qrcode-tool__upload-text">
                         <span>拖拽二维码图片到此处，或</span>
-                        <ScButton type="primary" size="small">点击上传</ScButton>
+                        <ScButton type="primary" size="small"
+                          >点击上传</ScButton
+                        >
                       </div>
-                      <div class="qrcode-tool__upload-tip">支持 JPG、PNG、GIF 等常见图片格式</div>
+                      <div class="qrcode-tool__upload-tip">
+                        支持 JPG、PNG、GIF 等常见图片格式
+                      </div>
                     </div>
                   </ScUpload>
                 </div>
 
                 <!-- 历史记录区域 -->
-                <div class="qrcode-tool__scan-history" v-if="env.scanHistory.length > 0">
+                <div
+                  class="qrcode-tool__scan-history"
+                  v-if="env.scanHistory.length > 0"
+                >
                   <div class="qrcode-tool__history-label">
-                    <IconifyIconOnline icon="ri:history-line" class="qrcode-tool__history-icon" />
+                    <IconifyIconOnline
+                      icon="ri:history-line"
+                      class="qrcode-tool__history-icon"
+                    />
                     <span>解析历史:</span>
                   </div>
                   <div class="qrcode-tool__scan-history-items">
-                    <div v-for="(item, index) in env.scanHistory" :key="index" class="qrcode-tool__scan-history-item" @click="env.scanResult = item.text">
+                    <div
+                      v-for="(item, index) in env.scanHistory"
+                      :key="index"
+                      class="qrcode-tool__scan-history-item"
+                      @click="env.scanResult = item.text"
+                    >
                       <div class="qrcode-tool__scan-history-text">
-                        {{ item.text.length > 30 ? item.text.substring(0, 30) + "..." : item.text }}
+                        {{
+                          item.text.length > 30
+                            ? item.text.substring(0, 30) + "..."
+                            : item.text
+                        }}
                       </div>
                       <div class="qrcode-tool__scan-history-time">
                         {{ new Date(item.timestamp).toLocaleString() }}
@@ -842,22 +1073,38 @@ onMounted(() => {
               <ScCard class="qrcode-tool__scan-result-card" shadow="hover">
                 <template #header>
                   <div class="qrcode-tool__card-header">
-                    <IconifyIconOnline icon="ri:file-list-line" class="qrcode-tool__card-icon" />
+                    <IconifyIconOnline
+                      icon="ri:file-list-line"
+                      class="qrcode-tool__card-icon"
+                    />
                     <span>解析结果</span>
                   </div>
                 </template>
 
                 <!-- 空状态提示 -->
-                <ScEmpty v-if="!env.scanResult" description="请先上传二维码图片" class="qrcode-tool__empty">
+                <ScEmpty
+                  v-if="!env.scanResult"
+                  description="请先上传二维码图片"
+                  class="qrcode-tool__empty"
+                >
                   <template #image>
-                    <IconifyIconOnline icon="ri:qr-scan-line" class="qrcode-tool__empty-icon" />
+                    <IconifyIconOnline
+                      icon="ri:qr-scan-line"
+                      class="qrcode-tool__empty-icon"
+                    />
                   </template>
                 </ScEmpty>
 
                 <!-- 结果显示 -->
                 <div v-else class="qrcode-tool__scan-result">
                   <div class="qrcode-tool__scan-result-content">
-                    <ScInput v-model="env.scanResult" type="textarea" :rows="6" readonly class="qrcode-tool__scan-result-text" />
+                    <ScInput
+                      v-model="env.scanResult"
+                      type="textarea"
+                      :rows="6"
+                      readonly
+                      class="qrcode-tool__scan-result-text"
+                    />
                   </div>
 
                   <div class="qrcode-tool__scan-result-actions">
@@ -866,7 +1113,11 @@ onMounted(() => {
                       <span>复制结果</span>
                     </ScButton>
 
-                    <ScButton type="success" @click="openUrl" v-if="env.scanResult.startsWith('http')">
+                    <ScButton
+                      type="success"
+                      @click="openUrl"
+                      v-if="env.scanResult.startsWith('http')"
+                    >
                       <IconifyIconOnline icon="ri:external-link-line" />
                       <span>打开链接</span>
                     </ScButton>
@@ -875,13 +1126,19 @@ onMounted(() => {
                   <!-- 智能识别区域 -->
                   <div class="qrcode-tool__scan-detect" v-if="env.scanResult">
                     <div class="qrcode-tool__scan-detect-title">
-                      <IconifyIconOnline icon="ri:radar-line" class="qrcode-tool__scan-detect-icon" />
+                      <IconifyIconOnline
+                        icon="ri:radar-line"
+                        class="qrcode-tool__scan-detect-icon"
+                      />
                       <span>智能识别</span>
                     </div>
 
                     <div class="qrcode-tool__scan-detect-content">
                       <!-- URL 识别 -->
-                      <div class="qrcode-tool__scan-detect-item" v-if="env.scanResult.startsWith('http')">
+                      <div
+                        class="qrcode-tool__scan-detect-item"
+                        v-if="env.scanResult.startsWith('http')"
+                      >
                         <div class="qrcode-tool__scan-detect-type">
                           <IconifyIconOnline icon="ri:links-line" />
                           <span>网址链接</span>
@@ -893,37 +1150,66 @@ onMounted(() => {
                       </div>
 
                       <!-- 电话号码识别 -->
-                      <div class="qrcode-tool__scan-detect-item" v-if="/^tel:|\+?\d{11}$/.test(env.scanResult)">
+                      <div
+                        class="qrcode-tool__scan-detect-item"
+                        v-if="/^tel:|\+?\d{11}$/.test(env.scanResult)"
+                      >
                         <div class="qrcode-tool__scan-detect-type">
                           <IconifyIconOnline icon="ri:phone-line" />
                           <span>电话号码</span>
                         </div>
-                        <ScButton type="primary" size="small" @click="window.location.href = `tel:${env.scanResult.replace('tel:', '')}`">
+                        <ScButton
+                          type="primary"
+                          size="small"
+                          @click="
+                            window.location.href = `tel:${env.scanResult.replace('tel:', '')}`
+                          "
+                        >
                           <IconifyIconOnline icon="ri:phone-line" />
                           <span>拨打电话</span>
                         </ScButton>
                       </div>
 
                       <!-- 邮箱识别 -->
-                      <div class="qrcode-tool__scan-detect-item" v-if="/^mailto:|[\w.-]+@[\w.-]+\.\w+$/.test(env.scanResult)">
+                      <div
+                        class="qrcode-tool__scan-detect-item"
+                        v-if="
+                          /^mailto:|[\w.-]+@[\w.-]+\.\w+$/.test(env.scanResult)
+                        "
+                      >
                         <div class="qrcode-tool__scan-detect-type">
                           <IconifyIconOnline icon="ri:mail-line" />
                           <span>电子邮箱</span>
                         </div>
-                        <ScButton type="primary" size="small" @click="window.location.href = `mailto:${env.scanResult.replace('mailto:', '')}`">
+                        <ScButton
+                          type="primary"
+                          size="small"
+                          @click="
+                            window.location.href = `mailto:${env.scanResult.replace('mailto:', '')}`
+                          "
+                        >
                           <IconifyIconOnline icon="ri:mail-send-line" />
                           <span>发送邮件</span>
                         </ScButton>
                       </div>
 
                       <!-- WiFi 识别 -->
-                      <div class="qrcode-tool__scan-detect-item" v-if="env.scanResult.startsWith('WIFI:')">
+                      <div
+                        class="qrcode-tool__scan-detect-item"
+                        v-if="env.scanResult.startsWith('WIFI:')"
+                      >
                         <div class="qrcode-tool__scan-detect-type">
                           <IconifyIconOnline icon="ri:wifi-line" />
                           <span>WiFi 配置</span>
                         </div>
                         <div class="qrcode-tool__scan-detect-details">
-                          <div v-for="(part, index) in env.scanResult.replace('WIFI:', '').split(';')" :key="index" class="qrcode-tool__scan-detect-detail">
+                          <div
+                            v-for="(part, index) in env.scanResult
+                              .replace('WIFI:', '')
+                              .split(';')"
+                            :key="index"
+                            class="qrcode-tool__scan-detect-detail"
+                          >
                             {{ part }}
                           </div>
                         </div>
@@ -991,13 +1277,17 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-3) 0%,
+      var(--el-color-primary) 100%
+    );
     border-radius: 12px;
     padding: 30px;
     color: #fff;
     box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     &:hover {
       box-shadow: 0 6px 24px rgba(var(--el-color-primary-rgb), 0.4);
       transform: translateY(-2px);

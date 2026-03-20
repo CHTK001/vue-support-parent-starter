@@ -1,0 +1,42 @@
+// 万圣节主题 CSS 变量定义
+
+:root[data-theme="halloween"] {
+  // 主色调
+  --halloween-primary: #ff6b35;
+  --halloween-dark: #1a1a2e;
+  --halloween-purple: #8b5cf6;
+  --halloween-light: #f8f9fa;
+
+  // 辅助色
+  --halloween-orange-dark: #e85d04;
+  --halloween-purple-dark: #6d28d9;
+  --halloween-gray: #4a4a5e;
+
+  // 应用到全局变量
+  --primary-color: var(--halloween-primary);
+  --bg-color: var(--halloween-dark);
+  --text-color: var(--halloween-light);
+  --border-color: var(--halloween-purple);
+  --hover-color: var(--halloween-orange-dark);
+
+  // 阴影
+  --shadow-sm: 0 2px 8px rgba(255, 107, 53, 0.2);
+  --shadow-md: 0 4px 12px rgba(255, 107, 53, 0.3);
+  --shadow-lg: 0 8px 24px rgba(139, 92, 246, 0.4);
+
+  // 渐变
+  --gradient-primary: linear-gradient(135deg, var(--halloween-primary) 0%, var(--halloween-purple) 100%);
+  --gradient-dark: linear-gradient(180deg, var(--halloween-dark) 0%, #0f0f1e 100%);
+
+  // 动画时长
+  --transition-fast: 0.2s;
+  --transition-normal: 0.3s;
+  --transition-slow: 0.5s;
+}
+
+// 暗黑模式适配
+:root[data-theme="halloween"][data-mode="dark"] {
+  --halloween-light: #e0e0e0;
+  --halloween-dark: #0a0a14;
+  --shadow-md: 0 4px 12px rgba(255, 107, 53, 0.4);
+}

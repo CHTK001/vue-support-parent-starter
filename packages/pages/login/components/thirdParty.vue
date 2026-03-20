@@ -1,11 +1,20 @@
 <template>
   <div class="third-party-login">
     <div class="third-party-icons">
-      <el-tooltip v-for="(item, index) in enabledThirdParty" :key="index" :content="item.displayName" placement="top">
-        <div class="third-party-item" :class="item.className" @click="handleLoginCode(item)">
+      <ScTooltip
+        v-for="(item, index) in enabledThirdParty"
+        :key="index"
+        :content="item.displayName"
+        placement="top"
+      >
+        <div
+          class="third-party-item"
+          :class="item.className"
+          @click="handleLoginCode(item)"
+        >
           <IconifyIconOnline :icon="item.icon" width="22" />
         </div>
-      </el-tooltip>
+      </ScTooltip>
     </div>
   </div>
 </template>
@@ -73,12 +82,12 @@ export default defineComponent({
 <style lang="scss" scoped>
 .third-party-login {
   width: 100%;
-  
+
   .third-party-icons {
     display: flex;
     justify-content: center;
     gap: 16px;
-    
+
     .third-party-item {
       display: flex;
       align-items: center;
@@ -91,12 +100,12 @@ export default defineComponent({
       background: var(--el-fill-color-light);
       border: 1px solid var(--el-border-color-lighter);
       color: var(--el-text-color-regular);
-      
+
       &:hover {
         transform: translateY(-3px);
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
       }
-      
+
       &.gitee {
         &:hover {
           background: linear-gradient(135deg, #c71d23 0%, #d64a4a 100%);
@@ -105,7 +114,7 @@ export default defineComponent({
           box-shadow: 0 6px 16px rgba(199, 29, 35, 0.3);
         }
       }
-      
+
       &.github {
         &:hover {
           background: linear-gradient(135deg, #24292e 0%, #404448 100%);
@@ -114,7 +123,7 @@ export default defineComponent({
           box-shadow: 0 6px 16px rgba(36, 41, 46, 0.3);
         }
       }
-      
+
       &.wechat {
         &:hover {
           background: linear-gradient(135deg, #07c160 0%, #2aae67 100%);

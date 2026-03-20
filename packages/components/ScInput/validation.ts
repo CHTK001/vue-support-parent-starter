@@ -61,23 +61,23 @@ export const validateNumber = (
   }
 ): boolean => {
   const num = Number(value);
-  
+
   if (isNaN(num)) {
     return false;
   }
-  
+
   if (options?.integer && !Number.isInteger(num)) {
     return false;
   }
-  
+
   if (options?.min !== undefined && num < options.min) {
     return false;
   }
-  
+
   if (options?.max !== undefined && num > options.max) {
     return false;
   }
-  
+
   return true;
 };
 
@@ -88,22 +88,22 @@ export const validateNumber = (
  * @returns {boolean} 是否通过验证
  */
 export const validateByType = (value: string | number, type: string): boolean => {
-  if (value === undefined || value === null || value === '') {
+  if (value === undefined || value === null || value === "") {
     return true; // 空值默认通过验证，由必填项单独控制
   }
-  
+
   const valueStr = String(value);
-  
+
   switch (type) {
-    case 'email':
+    case "email":
       return validateEmail(valueStr);
-    case 'tel':
+    case "tel":
       return validatePhone(valueStr);
-    case 'url':
+    case "url":
       return validateUrl(valueStr);
-    case 'number':
+    case "number":
       return validateNumber(valueStr);
-    case 'ip':
+    case "ip":
       return validateIp(valueStr);
     default:
       return true;
@@ -129,34 +129,34 @@ export const validate = (
   }
 ): { valid: boolean; message: string } => {
   // 必填项验证
-  if (rules.required && (value === undefined || value === null || value === '')) {
-    return { valid: false, message: rules.message || '该字段为必填项' };
+  if (rules.required && (value === undefined || value === null || value === "")) {
+    return { valid: false, message: rules.message || "该字段为必填项" };
   }
-  
+
   // 为空且非必填，则验证通过
-  if (value === undefined || value === null || value === '') {
-    return { valid: true, message: '' };
+  if (value === undefined || value === null || value === "") {
+    return { valid: true, message: "" };
   }
-  
+
   // 类型验证
   if (rules.type && !validateByType(value, rules.type)) {
     return { valid: false, message: rules.message || `请输入有效的${rules.type}格式` };
   }
-  
+
   // 正则验证
   if (rules.pattern && !rules.pattern.test(String(value))) {
-    return { valid: false, message: rules.message || '输入格式不正确' };
+    return { valid: false, message: rules.message || "输入格式不正确" };
   }
-  
+
   // 自定义验证函数
   if (rules.validator) {
     const result = rules.validator(value);
-    if (typeof result === 'boolean') {
-      return { valid: result, message: result ? '' : (rules.message || '验证失败') };
+    if (typeof result === "boolean") {
+      return { valid: result, message: result ? "" : rules.message || "验证失败" };
     } else {
       return result;
     }
   }
-  
-  return { valid: true, message: '' };
-}; 
+
+  return { valid: true, message: "" };
+};

@@ -37,5 +37,3 @@ declare module "@repo/components/ReSegmented/index" {
   const component: DefineComponent<Record<string, any>, any, any>;
   export default component;
 }
-
-

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseBreadcrumb from './BaseBreadcrumb.vue';
+import BaseBreadcrumb from "./BaseBreadcrumb.vue";
 </script>
 
 <template>
@@ -12,7 +12,7 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
   // 确保基础样式继承
   .home-icon {
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     &:hover {
       transform: translateY(-1px) scale(1.05);
     }
@@ -20,11 +20,11 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 
   .breadcrumb-link {
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     &:hover {
       transform: translateY(-1px);
     }
-    
+
     &.is-current {
       animation: currentPulse 2s ease-in-out infinite;
     }
@@ -33,7 +33,8 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 
 // 当前项脉冲动画
 @keyframes currentPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
   }
   50% {
@@ -46,7 +47,7 @@ html.dark {
   .default-breadcrumb {
     .home-icon {
       background: var(--el-fill-color-dark);
-      
+
       &:hover {
         background: var(--el-color-primary-light-8);
       }
@@ -54,11 +55,11 @@ html.dark {
 
     .breadcrumb-link {
       background: var(--el-fill-color-dark);
-      
+
       &:hover {
         background: var(--el-color-primary-light-8);
       }
-      
+
       &.is-current {
         background: linear-gradient(
           135deg,
@@ -81,7 +82,7 @@ html.dark {
 
     .breadcrumb-link {
       padding: 4px 8px;
-      
+
       .breadcrumb-text {
         font-size: 12px;
         max-width: 70px;

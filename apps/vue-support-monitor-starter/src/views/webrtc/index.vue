@@ -2,56 +2,56 @@
   <div class="webrtc-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
-      <el-breadcrumb separator="/">
-        <el-breadcrumb-item>首页</el-breadcrumb-item>
-        <el-breadcrumb-item>WebRTC管理</el-breadcrumb-item>
-      </el-breadcrumb>
+      <ScBreadcrumb separator="/">
+        <ScBreadcrumbItem>首页</ScBreadcrumbItem>
+        <ScBreadcrumbItem>WebRTC管理</ScBreadcrumbItem>
+      </ScBreadcrumb>
       <h1 class="page-title">WebRTC管理中心</h1>
       <p class="page-description">管理WebRTC房间、用户和系统配置</p>
     </div>
 
     <!-- 统计卡片 -->
     <div class="stats-grid">
-      <el-card class="stat-card" shadow="hover">
+      <ScCard class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon room-icon">
-            <el-icon><VideoCamera /></el-icon>
+            <ScIcon><VideoCamera /></ScIcon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ systemStats.activeRooms }}</div>
             <div class="stat-label">活跃房间</div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
-      <el-card class="stat-card" shadow="hover">
+      <ScCard class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon user-icon">
-            <el-icon><User /></el-icon>
+            <ScIcon><User /></ScIcon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ systemStats.onlineUsers }}</div>
             <div class="stat-label">在线用户</div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
-      <el-card class="stat-card" shadow="hover">
+      <ScCard class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon total-icon">
-            <el-icon><DataBoard /></el-icon>
+            <ScIcon><DataBoard /></ScIcon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ systemStats.totalRooms }}</div>
             <div class="stat-label">总房间数</div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
-      <el-card class="stat-card" shadow="hover">
+      <ScCard class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon performance-icon">
-            <el-icon><Monitor /></el-icon>
+            <ScIcon><Monitor /></ScIcon>
           </div>
           <div class="stat-info">
             <div class="stat-value">
@@ -60,12 +60,12 @@
             <div class="stat-label">CPU使用率</div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 功能导航 -->
     <div class="feature-grid">
-      <el-card
+      <ScCard
         v-for="feature in features"
         :key="feature.key"
         class="feature-card"
@@ -74,28 +74,28 @@
       >
         <div class="feature-content">
           <div class="feature-icon" :class="feature.iconClass">
-            <el-icon><component :is="feature.icon" /></el-icon>
+            <ScIcon><component :is="feature.icon" /></ScIcon>
           </div>
           <div class="feature-info">
             <h3 class="feature-title">{{ feature.title }}</h3>
             <p class="feature-description">{{ feature.description }}</p>
           </div>
           <div class="feature-arrow">
-            <el-icon><ArrowRight /></el-icon>
+            <ScIcon><ArrowRight /></ScIcon>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 实时监控 -->
-    <el-card class="monitoring-card" shadow="hover">
+    <ScCard class="monitoring-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span>实时监控</span>
-          <el-button type="primary" size="small" @click="refreshMonitoring">
-            <el-icon><Refresh /></el-icon>
+          <ScButton type="primary" size="small" @click="refreshMonitoring">
+            <ScIcon><Refresh /></ScIcon>
             刷新
-          </el-button>
+          </ScButton>
         </div>
       </template>
 
@@ -125,7 +125,7 @@
           }}</span>
         </div>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

@@ -6,7 +6,7 @@ import {
   resolveBeaverState,
   resolveCrackLevel,
   type BeaverState,
-  type CrackLevel
+  type CrackLevel,
 } from "./beaverClamLogic";
 
 // 游戏常量
@@ -31,7 +31,7 @@ const beaver = reactive({
   y: 300,
   direction: 1,
   state: "idle" as BeaverState,
-  frame: 0
+  frame: 0,
 });
 
 const clam = reactive({
@@ -39,7 +39,7 @@ const clam = reactive({
   y: 300,
   isOpen: false,
   isShake: false,
-  crackLevel: "intact" as CrackLevel
+  crackLevel: "intact" as CrackLevel,
 });
 
 // 基于血量的裂纹等级
@@ -60,7 +60,7 @@ const clamCrackClass = computed(() => {
 const audioMap: Record<string, HTMLAudioElement | null> = {
   hit: null,
   break: null,
-  success: null
+  success: null,
 };
 
 const initAudio = () => {
@@ -160,7 +160,10 @@ const performHit = () => {
         playSound("success");
       }
 
-      const shakeDuration = hitResult.crackLevel === "heavy" || hitResult.crackLevel === "broken" ? 260 : 180;
+      const shakeDuration =
+        hitResult.crackLevel === "heavy" || hitResult.crackLevel === "broken"
+          ? 260
+          : 180;
       setTimeout(() => {
         clam.isShake = false;
       }, shakeDuration);
@@ -181,7 +184,7 @@ const spawnParticles = (x: number, y: number, level: CrackLevel) => {
       y: y - 20,
       vx: (Math.random() - 0.5) * 10,
       vy: (Math.random() - 1) * 10,
-      color: Math.random() > 0.5 ? "#fff" : "#ccc"
+      color: Math.random() > 0.5 ? "#fff" : "#ccc",
     });
   }
 };
@@ -253,7 +256,7 @@ onUnmounted(() => {
           <div class="hp-fill" :style="{ width: clamHp + '%' }"></div>
         </div>
       </div>
-      
+
       <!-- Clam -->
       <div
         class="clam"
@@ -264,11 +267,15 @@ onUnmounted(() => {
         <div class="clam-pearl" v-if="clam.isOpen"></div>
         <div class="clam-shell-top"></div>
       </div>
-      
+
       <!-- Beaver -->
-      <div class="beaver" 
-           :class="beaver.state"
-           :style="{ transform: `translate(${beaver.x}px, ${beaver.y}px) scaleX(${beaver.direction})` }">
+      <div
+        class="beaver"
+        :class="beaver.state"
+        :style="{
+          transform: `translate(${beaver.x}px, ${beaver.y}px) scaleX(${beaver.direction})`,
+        }"
+      >
         <div class="beaver-tail"></div>
         <div class="beaver-body"></div>
         <div class="beaver-head">
@@ -277,17 +284,23 @@ onUnmounted(() => {
           <div class="beaver-tooth"></div>
         </div>
         <div class="beaver-arm">
-           <div class="stone"></div>
+          <div class="stone"></div>
         </div>
         <div class="beaver-leg"></div>
       </div>
-      
+
       <!-- Particles -->
-      <div v-for="(p, i) in particles" :key="i" class="particle" 
-           :style="{ transform: `translate(${p.x}px, ${p.y}px)`, backgroundColor: p.color }">
-      </div>
+      <div
+        v-for="(p, i) in particles"
+        :key="i"
+        class="particle"
+        :style="{
+          transform: `translate(${p.x}px, ${p.y}px)`,
+          backgroundColor: p.color,
+        }"
+      ></div>
     </div>
-    
+
     <div class="controls">
       <button class="btn" @click="startGame">开始游戏</button>
       <button class="btn" @click="resetGame">重置</button>
@@ -312,15 +325,15 @@ onUnmounted(() => {
   position: relative;
   width: 800px;
   height: 600px;
-  background: #87CEEB; /* Sky/Water */
+  background: #87ceeb; /* Sky/Water */
   border: 4px solid #333;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-  
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+
   /* Ground */
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: 0;
     width: 100%;
@@ -334,7 +347,7 @@ onUnmounted(() => {
   top: 20px;
   left: 20px;
   z-index: 10;
-  background: rgba(255,255,255,0.8);
+  background: rgba(255, 255, 255, 0.8);
   padding: 10px;
   border-radius: 8px;
   font-weight: bold;
@@ -348,7 +361,7 @@ onUnmounted(() => {
   margin-top: 5px;
   border-radius: 4px;
   overflow: hidden;
-  
+
   .hp-fill {
     height: 100%;
     background: #ff4757;
@@ -367,11 +380,11 @@ onUnmounted(() => {
   transition: transform 0.1s;
   left: 0;
   top: 0;
-  
+
   &.shake {
     animation: shake 0.1s infinite;
   }
-  
+
   .clam-shell-bottom {
     position: absolute;
     bottom: 0;
@@ -381,7 +394,7 @@ onUnmounted(() => {
     border-radius: 0 0 30px 30px;
     border: 2px solid #333;
   }
-  
+
   .clam-shell-top {
     position: absolute;
     bottom: 28px; /* Overlap */
@@ -424,11 +437,11 @@ onUnmounted(() => {
   &.crack-broken .clam-shell-top {
     box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
   }
-  
+
   &.open .clam-shell-top {
     transform: rotate(-60deg);
   }
-  
+
   .clam-pearl {
     position: absolute;
     bottom: 15px;
@@ -452,26 +465,26 @@ onUnmounted(() => {
   transition: transform 0.1s;
   left: 0;
   top: 0;
-  
+
   .beaver-body {
     position: absolute;
     bottom: 0;
     width: 60px;
     height: 70px;
-    background: #8B4513;
+    background: #8b4513;
     border-radius: 30px 30px 10px 10px;
     left: 10px;
   }
-  
+
   .beaver-head {
     position: absolute;
     top: -10px;
     left: 15px;
     width: 50px;
     height: 50px;
-    background: #8B4513;
+    background: #8b4513;
     border-radius: 50%;
-    
+
     .beaver-eye {
       position: absolute;
       top: 15px;
@@ -481,7 +494,7 @@ onUnmounted(() => {
       background: #000;
       border-radius: 50%;
     }
-    
+
     .beaver-ear {
       position: absolute;
       top: 0;
@@ -491,7 +504,7 @@ onUnmounted(() => {
       background: #654321;
       border-radius: 50%;
     }
-    
+
     .beaver-tooth {
       position: absolute;
       bottom: 5px;
@@ -502,7 +515,7 @@ onUnmounted(() => {
       border: 1px solid #ccc;
     }
   }
-  
+
   .beaver-tail {
     position: absolute;
     bottom: 5px;
@@ -513,18 +526,18 @@ onUnmounted(() => {
     border-radius: 20px;
     transform: rotate(-20deg);
   }
-  
+
   .beaver-arm {
     position: absolute;
     top: 30px;
     right: 5px;
     width: 20px;
     height: 30px;
-    background: #8B4513;
+    background: #8b4513;
     border-radius: 10px;
     transform-origin: top center;
     transform: rotate(20deg);
-    
+
     .stone {
       position: absolute;
       bottom: -5px;
@@ -535,14 +548,14 @@ onUnmounted(() => {
       border-radius: 50%;
     }
   }
-  
+
   /* Animations */
   &.walk {
     .beaver-body {
       animation: bounce 0.3s infinite alternate;
     }
   }
-  
+
   &.hit {
     .beaver-arm {
       animation: smash 0.4s ease-in-out;
@@ -551,23 +564,45 @@ onUnmounted(() => {
 }
 
 @keyframes bounce {
-  from { transform: translateY(0); }
-  to { transform: translateY(-5px); }
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-5px);
+  }
 }
 
 @keyframes smash {
-  0% { transform: rotate(20deg); }
-  40% { transform: rotate(-60deg); } /* Lift */
-  60% { transform: rotate(80deg); }  /* Hit */
-  100% { transform: rotate(20deg); }
+  0% {
+    transform: rotate(20deg);
+  }
+  40% {
+    transform: rotate(-60deg);
+  } /* Lift */
+  60% {
+    transform: rotate(80deg);
+  } /* Hit */
+  100% {
+    transform: rotate(20deg);
+  }
 }
 
 @keyframes shake {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(2px, 2px); }
-  50% { transform: translate(-2px, -2px); }
-  75% { transform: translate(2px, -2px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(2px, 2px);
+  }
+  50% {
+    transform: translate(-2px, -2px);
+  }
+  75% {
+    transform: translate(2px, -2px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 .particle {
@@ -585,7 +620,7 @@ onUnmounted(() => {
   display: flex;
   gap: 20px;
   align-items: flex-start;
-  
+
   .btn {
     padding: 10px 20px;
     background: #409eff;
@@ -593,12 +628,12 @@ onUnmounted(() => {
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    
+
     &:hover {
       background: #66b1ff;
     }
   }
-  
+
   .logs {
     width: 300px;
     height: 100px;

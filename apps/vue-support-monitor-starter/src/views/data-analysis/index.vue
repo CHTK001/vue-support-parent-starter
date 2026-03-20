@@ -16,13 +16,13 @@
     <!-- 内容区域 -->
     <div class="content-area">
       <div class="content-card">
-        <el-empty description="数据分析功能开发中...">
+        <ScEmpty description="数据分析功能开发中...">
           <template #image>
             <div class="empty-icon">
               <IconifyIconOnline icon="ri:bar-chart-box-line" />
             </div>
           </template>
-        </el-empty>
+        </ScEmpty>
       </div>
     </div>
   </div>

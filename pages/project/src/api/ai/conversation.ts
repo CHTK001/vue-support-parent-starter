@@ -29,9 +29,13 @@ export const getConversationList = (sysProjectId: number) => {
 
 // 创建新会话
 export const createConversation = (data: ConversationCreateRequest) => {
-  return http.request<Conversation>("post", "/v2/project/ai/group/saveOrUpdate", {
-    data,
-  });
+  return http.request<Conversation>(
+    "post",
+    "/v2/project/ai/group/saveOrUpdate",
+    {
+      data,
+    },
+  );
 };
 
 // 删除会话
@@ -43,20 +47,31 @@ export const deleteConversation = (sysAiGroupId: number) => {
 
 // 重命名会话
 export const renameConversation = (data: ConversationRenameRequest) => {
-  return http.request<Conversation>("post", "/v2/project/ai/group/saveOrUpdate", {
-    data,
-  });
+  return http.request<Conversation>(
+    "post",
+    "/v2/project/ai/group/saveOrUpdate",
+    {
+      data,
+    },
+  );
 };
 
 // 保存聊天消息（批量）
-export const saveMessages = async (messages: MessageData[]): Promise<boolean> => {
+export const saveMessages = async (
+  messages: MessageData[],
+): Promise<boolean> => {
   return http.request("post", "/v2/project/ai/group/message/saveOrUpdate", {
     data: messages,
   });
 };
 
 // 保存单个聊天消息（兼容性保留）
-export const saveMessage = async (groupId: number, role: string, content: string, type: string = "text"): Promise<boolean> => {
+export const saveMessage = async (
+  groupId: number,
+  role: string,
+  content: string,
+  type: string = "text",
+): Promise<boolean> => {
   return saveMessages([
     {
       sysAiGroupId: groupId,
@@ -85,8 +100,16 @@ export interface PageResult<T> {
 }
 
 // 获取会话历史消息（支持分页）
-export const getConversationMessages = (sysAiGroupId: number, current: number = 1, size: number = 20) => {
-  return http.request<PageResult<MessageData>>("get", "/v2/project/ai/group/message/list", {
-    params: { sysAiGroupId, current, size },
-  });
+export const getConversationMessages = (
+  sysAiGroupId: number,
+  current: number = 1,
+  size: number = 20,
+) => {
+  return http.request<PageResult<MessageData>>(
+    "get",
+    "/v2/project/ai/group/message/list",
+    {
+      params: { sysAiGroupId, current, size },
+    },
+  );
 };

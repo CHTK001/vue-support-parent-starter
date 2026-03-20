@@ -10,11 +10,11 @@ import { CoordSystem } from "./coordinate";
  */
 export enum MarkerClusterMode {
   /** 不参与聚合，仅在普通图层显示 */
-  NONE = 'none',
+  NONE = "none",
   /** 参与聚合，在聚合模式下聚合显示 */
-  CLUSTER = 'cluster',
+  CLUSTER = "cluster",
   /** 同时在普通图层和聚合图层显示 */
-  BOTH = 'both'
+  BOTH = "both",
 }
 
 /**
@@ -38,23 +38,23 @@ export interface MarkerConfig {
  */
 export interface MarkerStyleOptions {
   /** 图标缩放比例 */
-    scale?: number;
+  scale?: number;
   /** 图标锚点 [x, y] 范围0-1 */
-    anchor?: [number, number];
+  anchor?: [number, number];
   /** 图标偏移 [x, y] 像素 */
-    offset?: [number, number];
+  offset?: [number, number];
   /** 图标旋转角度（弧度） */
-    rotation?: number;
+  rotation?: number;
   /** 文字颜色 */
-    textColor?: string;
+  textColor?: string;
   /** 文字外边框颜色 */
-    textOutlineColor?: string;
+  textOutlineColor?: string;
   /** 文字外边框宽度 */
-    textOutlineWidth?: number;
+  textOutlineWidth?: number;
   /** 文字字体 */
-    textFont?: string;
+  textFont?: string;
   /** 文字Y轴偏移 */
-    textOffsetY?: number;
+  textOffsetY?: number;
 }
 
 /**
@@ -81,7 +81,7 @@ export interface MarkerOptions {
   /** 标记点图标URL或Data URL */
   icon?: string;
   /** 图标类型: url, svg, base64, default, photo */
-  iconType?: 'url' | 'svg' | 'base64' | 'default' | 'photo';
+  iconType?: "url" | "svg" | "base64" | "default" | "photo";
   /** 标记点样式配置 */
   style?: MarkerStyleOptions;
   /** 标记点标题 */
@@ -119,7 +119,7 @@ export interface MarkerOptions {
 }
 
 export interface MarkerAnimation {
-  type: 'pulse' | 'drop' | 'bounce' | 'flash';
+  type: "pulse" | "drop" | "bounce" | "flash";
   options?: {
     duration?: number;
     easing?: string;
@@ -150,5 +150,5 @@ export interface NavigationOptions {
 
 // 添加默认导出
 export default {
-  MarkerClusterMode
+  MarkerClusterMode,
 };

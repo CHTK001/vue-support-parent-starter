@@ -11,7 +11,9 @@ import type { VideoItem, VideoSyncItem, VideoSyncQuery } from "../types/video";
  * @returns 视频列表数据
  */
 export const getVideoList = (params: any) => {
-  return http.request<ReturnResult<VideoItem[]>>("post", "/v1/video/page", { data: params });
+  return http.request<ReturnResult<VideoItem[]>>("post", "/v1/video/page", {
+    data: params,
+  });
 };
 
 /**
@@ -37,7 +39,9 @@ export const getVideoHotKeywords = () => {
  * @returns 创建结果
  */
 export const createVideo = (data: VideoItem) => {
-  return http.request<ReturnResult<any>>("post", "/v1/video/save", { data: data });
+  return http.request<ReturnResult<any>>("post", "/v1/video/save", {
+    data: data,
+  });
 };
 
 /**
@@ -46,7 +50,9 @@ export const createVideo = (data: VideoItem) => {
  * @returns 更新结果
  */
 export const updateVideo = (data: VideoItem) => {
-  return http.request<ReturnResult<any>>("put", "/v1/video/update", { data: data });
+  return http.request<ReturnResult<any>>("put", "/v1/video/update", {
+    data: data,
+  });
 };
 
 /**
@@ -68,7 +74,11 @@ export const deleteVideo = (videoId: number | string) => {
  * @returns 视频同步列表数据
  */
 export const getVideoSyncList = (params: VideoSyncQuery) => {
-  return http.request<ReturnResult<VideoSyncItem[]>>("get", "/v1/video/sync/page", { params });
+  return http.request<ReturnResult<VideoSyncItem[]>>(
+    "get",
+    "/v1/video/sync/page",
+    { params },
+  );
 };
 
 /**
@@ -77,7 +87,10 @@ export const getVideoSyncList = (params: VideoSyncQuery) => {
  * @returns 同步详细信息
  */
 export const getVideoSyncDetail = (syncId: number | string) => {
-  return http.request<ReturnResult<VideoSyncItem>>("get", `/v1/video/sync/${syncId}`);
+  return http.request<ReturnResult<VideoSyncItem>>(
+    "get",
+    `/v1/video/sync/${syncId}`,
+  );
 };
 
 /**
@@ -86,7 +99,9 @@ export const getVideoSyncDetail = (syncId: number | string) => {
  * @returns 创建结果
  */
 export const createVideoSync = (data: VideoSyncItem) => {
-  return http.request<ReturnResult<any>>("post", "/v1/video/sync/save", { data: data });
+  return http.request<ReturnResult<any>>("post", "/v1/video/sync/save", {
+    data: data,
+  });
 };
 
 /**
@@ -95,7 +110,9 @@ export const createVideoSync = (data: VideoSyncItem) => {
  * @returns 更新结果
  */
 export const updateVideoSync = (data: VideoSyncItem) => {
-  return http.request<ReturnResult<any>>("put", "/v1/video/sync/update", { data: data });
+  return http.request<ReturnResult<any>>("put", "/v1/video/sync/update", {
+    data: data,
+  });
 };
 
 /**
@@ -113,5 +130,8 @@ export const deleteVideoSync = (syncId: number | string) => {
  * @returns 执行结果
  */
 export const executeSyncTask = (syncId: number | string) => {
-  return http.request<ReturnResult<any>>("post", `/v1/video/sync/${syncId}/execute`);
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/video/sync/${syncId}/execute`,
+  );
 };

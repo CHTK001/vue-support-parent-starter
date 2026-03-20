@@ -14,8 +14,8 @@
           <ScEcharts :option="barOption" height="400px" />
         </div>
         <div class="chart-controls">
-          <el-button @click="updateBarData">更新数据</el-button>
-          <el-button @click="toggleBarAnimation">{{ barOption.animation ? '关闭' : '开启' }}动画</el-button>
+          <ScButton @click="updateBarData">更新数据</ScButton>
+          <ScButton @click="toggleBarAnimation">{{ barOption.animation ? '关闭' : '开启' }}动画</ScButton>
         </div>
       </div>
     </div>
@@ -29,9 +29,9 @@
           <ScEcharts :option="lineOption" height="400px" />
         </div>
         <div class="chart-controls">
-          <el-button @click="addLineSeries">添加系列</el-button>
-          <el-button @click="removeLineSeries">移除系列</el-button>
-          <el-button @click="toggleLineSmooth">{{ lineOption.series[0].smooth ? '关闭' : '开启' }}平滑</el-button>
+          <ScButton @click="addLineSeries">添加系列</ScButton>
+          <ScButton @click="removeLineSeries">移除系列</ScButton>
+          <ScButton @click="toggleLineSmooth">{{ lineOption.series[0].smooth ? '关闭' : '开启' }}平滑</ScButton>
         </div>
       </div>
     </div>
@@ -45,8 +45,8 @@
           <ScEcharts :option="pieOption" height="400px" />
         </div>
         <div class="chart-controls">
-          <el-button @click="updatePieData">更新数据</el-button>
-          <el-button @click="togglePieRose">{{ pieOption.series[0].roseType ? '关闭' : '开启' }}玫瑰图</el-button>
+          <ScButton @click="updatePieData">更新数据</ScButton>
+          <ScButton @click="togglePieRose">{{ pieOption.series[0].roseType ? '关闭' : '开启' }}玫瑰图</ScButton>
         </div>
       </div>
     </div>
@@ -60,8 +60,8 @@
           <ScEcharts :option="scatterOption" height="400px" />
         </div>
         <div class="chart-controls">
-          <el-button @click="generateScatterData">生成新数据</el-button>
-          <el-button @click="toggleScatterSymbol">切换符号</el-button>
+          <ScButton @click="generateScatterData">生成新数据</ScButton>
+          <ScButton @click="toggleScatterSymbol">切换符号</ScButton>
         </div>
       </div>
     </div>
@@ -75,8 +75,8 @@
           <ScEcharts :option="radarOption" height="400px" />
         </div>
         <div class="chart-controls">
-          <el-button @click="updateRadarData">更新数据</el-button>
-          <el-button @click="toggleRadarArea">{{ radarOption.series[0].areaStyle ? '关闭' : '开启' }}区域填充</el-button>
+          <ScButton @click="updateRadarData">更新数据</ScButton>
+          <ScButton @click="toggleRadarArea">{{ radarOption.series[0].areaStyle ? '关闭' : '开启' }}区域填充</ScButton>
         </div>
       </div>
     </div>
@@ -90,8 +90,8 @@
           <ScEcharts :option="gaugeOption" height="400px" />
         </div>
         <div class="chart-controls">
-          <el-button @click="startGaugeAnimation">{{ gaugeAnimating ? '停止' : '开始' }}动画</el-button>
-          <el-button @click="setGaugeValue">设置随机值</el-button>
+          <ScButton @click="startGaugeAnimation">{{ gaugeAnimating ? '停止' : '开始' }}动画</ScButton>
+          <ScButton @click="setGaugeValue">设置随机值</ScButton>
         </div>
       </div>
     </div>
@@ -105,8 +105,8 @@
           <ScEcharts :option="heatmapOption" height="400px" />
         </div>
         <div class="chart-controls">
-          <el-button @click="generateHeatmapData">生成新数据</el-button>
-          <el-button @click="changeHeatmapYear">切换年份</el-button>
+          <ScButton @click="generateHeatmapData">生成新数据</ScButton>
+          <ScButton @click="changeHeatmapYear">切换年份</ScButton>
         </div>
       </div>
     </div>
@@ -120,8 +120,8 @@
           <ScEcharts :option="mixedOption" height="400px" />
         </div>
         <div class="chart-controls">
-          <el-button @click="updateMixedData">更新数据</el-button>
-          <el-button @click="toggleMixedDataZoom">{{ mixedOption.dataZoom ? '关闭' : '开启' }}数据缩放</el-button>
+          <ScButton @click="updateMixedData">更新数据</ScButton>
+          <ScButton @click="toggleMixedDataZoom">{{ mixedOption.dataZoom ? '关闭' : '开启' }}数据缩放</ScButton>
         </div>
       </div>
     </div>
@@ -137,10 +137,10 @@
         <div class="chart-controls">
           <ScSlider v-model="containerWidth" :min="300" :max="800" show-input style="margin-bottom: 20px;">
             <template #prepend>宽度:</template>
-          </el-slider>
+          </ScSlider>
           <ScSlider v-model="containerHeight" :min="200" :max="500" show-input>
             <template #prepend>高度:</template>
-          </el-slider>
+          </ScSlider>
         </div>
       </div>
     </div>

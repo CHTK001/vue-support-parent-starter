@@ -8,24 +8,24 @@
           <span class="server-address"
             >{{ server?.host }}:{{ server?.port }}</span
           >
-          <el-tag
+          <ScTag
             :type="getOnlineStatusType(server?.onlineStatus)"
             size="small"
           >
             {{ getOnlineStatusText(server?.onlineStatus) }}
-          </el-tag>
-          <el-tag type="info" size="small">{{ server?.protocol }}</el-tag>
+          </ScTag>
+          <ScTag type="info" size="small">{{ server?.protocol }}</ScTag>
         </div>
       </div>
       <div class="monitor-actions">
-        <el-button size="small" @click="refreshMetrics">
+        <ScButton size="small" @click="refreshMetrics">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
-        <el-button size="small" @click="$emit('close')">
+        </ScButton>
+        <ScButton size="small" @click="$emit('close')">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           关闭
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -44,7 +44,7 @@
           >
             {{ cpuAnimation.formattedValue.value }}
           </div>
-          <el-progress
+          <ScProgress
             :percentage="cpuAnimation.displayValue.value"
             :color="getProgressColor(cpuAnimation.displayValue.value, 'cpu')"
             :show-text="false"
@@ -69,7 +69,7 @@
           >
             {{ memoryAnimation.formattedValue.value }}
           </div>
-          <el-progress
+          <ScProgress
             :percentage="memoryAnimation.displayValue.value"
             :color="
               getProgressColor(memoryAnimation.displayValue.value, 'memory')
@@ -113,9 +113,9 @@
                     <span class="partition-name">{{
                       partition.name || partition.mount
                     }}</span>
-                    <el-tag size="small" type="info" class="partition-type">
+                    <ScTag size="small" type="info" class="partition-type">
                       {{ partition.type }}
-                    </el-tag>
+                    </ScTag>
                   </div>
                   <div
                     class="partition-usage"
@@ -215,7 +215,7 @@
           <div class="metric-value">
             {{ Math.round(metrics?.temperature || 0) }}°C
           </div>
-          <el-progress
+          <ScProgress
             :percentage="
               Math.min(
                 Math.round(((metrics?.temperature || 0) / 100) * 100),

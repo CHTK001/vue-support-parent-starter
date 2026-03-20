@@ -310,9 +310,9 @@ onUnmounted(() => {
 <template>
   <div class="page-container">
     <!-- 关键指标卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+    <ScRow :gutter="20" class="stats-row">
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper success">
               <IconifyIconOnline icon="ri:record-circle-fill" class="stat-icon" />
@@ -323,10 +323,10 @@ onUnmounted(() => {
               <div class="stat-detail">活跃录制数量</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper info">
               <IconifyIconOnline icon="ri:stop-circle-line" class="stat-icon" />
@@ -337,10 +337,10 @@ onUnmounted(() => {
               <div class="stat-detail">可导出录制</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper primary">
               <IconifyIconOnline icon="ri:list-check-2" class="stat-icon" />
@@ -351,10 +351,10 @@ onUnmounted(() => {
               <div class="stat-detail">所有录制任务</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        </ScCard>
+      </ScCol>
+      <ScCol :span="6">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon-wrapper" :class="status.available ? 'success' : 'danger'">
               <IconifyIconOnline icon="ri:checkbox-circle-line" class="stat-icon" />
@@ -365,12 +365,12 @@ onUnmounted(() => {
               <div class="stat-detail">Java 11+</div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </ScCard>
+      </ScCol>
+    </ScRow>
 
     <!-- 录制列表卡片 -->
-    <el-card class="modern-card recordings-card" shadow="hover">
+    <ScCard class="modern-card recordings-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -379,69 +379,69 @@ onUnmounted(() => {
           </span>
         </div>
       </template>
-      <el-table v-loading="loading" :data="recordings" stripe class="modern-table" max-height="400">
-        <el-table-column prop="recordingId" label="ID" width="80" align="center" />
-        <el-table-column prop="name" label="名称" min-width="200">
+      <ScTable v-loading="loading" :data="recordings" stripe class="modern-table" max-height="400">
+        <ScTableColumn prop="recordingId" label="ID" width="80" align="center" />
+        <ScTableColumn prop="name" label="名称" min-width="200">
           <template #default="{ row }">
             <div class="flex items-center gap-2">
               <IconifyIconOnline :icon="row.state === 'RUNNING' ? 'ri:record-circle-fill' : 'ri:file-chart-line'" :class="row.state === 'RUNNING' ? 'recording-icon' : 'text-primary'" />
               <span>{{ row.name }}</span>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="state" label="状态" width="100" align="center">
+        </ScTableColumn>
+        <ScTableColumn prop="state" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStateType(row.state)" effect="light">
+            <ScTag :type="getStateType(row.state)" effect="light">
               {{ getStateText(row.state) }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
-        <el-table-column prop="duration" label="时长" width="100" align="center">
+        </ScTableColumn>
+        <ScTableColumn prop="duration" label="时长" width="100" align="center">
           <template #default="{ row }">
             {{ formatDuration(row.duration) }}
           </template>
-        </el-table-column>
-        <el-table-column prop="maxSize" label="最大大小" width="100" align="center">
+        </ScTableColumn>
+        <ScTableColumn prop="maxSize" label="最大大小" width="100" align="center">
           <template #default="{ row }">
             <span v-if="row.maxSize">{{ formatSize(row.maxSize) }}</span>
             <span v-else class="text-placeholder">无限制</span>
           </template>
-        </el-table-column>
-        <el-table-column prop="size" label="当前大小" width="100" align="center">
+        </ScTableColumn>
+        <ScTableColumn prop="size" label="当前大小" width="100" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.size" type="info" effect="plain" size="small">
+            <ScTag v-if="row.size" type="info" effect="plain" size="small">
               {{ formatSize(row.size) }}
-            </el-tag>
+            </ScTag>
             <span v-else class="text-placeholder">-</span>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="240" align="center" fixed="right">
+        </ScTableColumn>
+        <ScTableColumn label="操作" width="240" align="center" fixed="right">
           <template #default="{ row }">
             <el-button-group>
-              <el-button v-if="row.state === 'RUNNING'" type="warning" size="small" @click="stopRecording(row.recordingId)">
+              <ScButton v-if="row.state === 'RUNNING'" type="warning" size="small" @click="stopRecording(row.recordingId)">
                 <IconifyIconOnline icon="ri:stop-circle-line" />
                 停止
-              </el-button>
-              <el-button v-if="row.state === 'STOPPED'" type="primary" size="small" @click="quickExport(row)">
+              </ScButton>
+              <ScButton v-if="row.state === 'STOPPED'" type="primary" size="small" @click="quickExport(row)">
                 <IconifyIconOnline icon="ri:download-line" />
                 快速导出
-              </el-button>
-              <el-button v-if="row.state === 'STOPPED'" type="success" size="small" @click="openExportDialog(row)">
+              </ScButton>
+              <ScButton v-if="row.state === 'STOPPED'" type="success" size="small" @click="openExportDialog(row)">
                 <IconifyIconOnline icon="ri:save-line" />
                 自定义导出
-              </el-button>
-              <el-button type="danger" size="small" @click="deleteRecording(row)">
+              </ScButton>
+              <ScButton type="danger" size="small" @click="deleteRecording(row)">
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </el-button-group>
           </template>
-        </el-table-column>
-      </el-table>
-      <el-empty v-if="recordings.length === 0" description="暂无录制记录，点击【新建录制】开始" />
-    </el-card>
+        </ScTableColumn>
+      </ScTable>
+      <ScEmpty v-if="recordings.length === 0" description="暂无录制记录，点击【新建录制】开始" />
+    </ScCard>
 
     <!-- 使用说明卡片 -->
-    <el-card class="modern-card info-card" shadow="hover">
+    <ScCard class="modern-card info-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -450,100 +450,100 @@ onUnmounted(() => {
           </span>
         </div>
       </template>
-      <el-row :gutter="20">
-        <el-col :span="8">
-          <el-alert type="info" :closable="false" show-icon>
+      <ScRow :gutter="20">
+        <ScCol :span="8">
+          <ScAlert type="info" :closable="false" show-icon>
             <template #title><span class="alert-title">1. 创建录制</span></template>
             <template #default>
               <p class="alert-content">点击【新建录制】，选择预设配置或自定义参数，开始性能数据采集</p>
             </template>
-          </el-alert>
-        </el-col>
-        <el-col :span="8">
-          <el-alert type="success" :closable="false" show-icon>
+          </ScAlert>
+        </ScCol>
+        <ScCol :span="8">
+          <ScAlert type="success" :closable="false" show-icon>
             <template #title><span class="alert-title">2. 导出文件</span></template>
             <template #default>
               <p class="alert-content">录制完成后点击【导出】，将 .jfr 文件保存到服务器指定位置</p>
             </template>
-          </el-alert>
-        </el-col>
-        <el-col :span="8">
-          <el-alert type="warning" :closable="false" show-icon>
+          </ScAlert>
+        </ScCol>
+        <ScCol :span="8">
+          <ScAlert type="warning" :closable="false" show-icon>
             <template #title><span class="alert-title">3. 分析数据</span></template>
             <template #default>
               <p class="alert-content">使用 JDK Mission Control 或 VisualVM 打开 .jfr 文件进行分析</p>
             </template>
-          </el-alert>
-        </el-col>
-      </el-row>
-    </el-card>
+          </ScAlert>
+        </ScCol>
+      </ScRow>
+    </ScCard>
 
     <!-- 新建录制对话框 -->
     <sc-dialog v-model="showNewRecordingDialog" title="新建 JFR 录制" width="520px">
-      <el-form :model="newRecordingForm" label-width="100px">
-        <el-form-item label="录制名称">
-          <el-input v-model="newRecordingForm.name" placeholder="请输入录制名称" />
-        </el-form-item>
-        <el-form-item label="预设配置">
-          <el-select v-model="newRecordingForm.preset" style="width: 100%" @change="onPresetChange">
-            <el-option v-for="p in presets" :key="p.value" :value="p.value" :label="p.label">
+      <ScForm :model="newRecordingForm" label-width="100px">
+        <ScFormItem label="录制名称">
+          <ScInput v-model="newRecordingForm.name" placeholder="请输入录制名称" />
+        </ScFormItem>
+        <ScFormItem label="预设配置">
+          <ScSelect v-model="newRecordingForm.preset" style="width: 100%" @change="onPresetChange">
+            <ScOption v-for="p in presets" :key="p.value" :value="p.value" :label="p.label">
               <div class="preset-option">
                 <span class="preset-name">{{ p.label }}</span>
                 <span class="preset-desc">{{ p.desc }}</span>
               </div>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="录制时长">
-          <el-input-number v-model="newRecordingForm.duration" :min="0" :max="3600" :step="10" style="width: 200px" />
+            </ScOption>
+          </ScSelect>
+        </ScFormItem>
+        <ScFormItem label="录制时长">
+          <ScInputNumber v-model="newRecordingForm.duration" :min="0" :max="3600" :step="10" style="width: 200px" />
           <span class="form-hint">秒（0 表示无限制，需手动停止）</span>
-        </el-form-item>
-        <el-form-item label="最大文件">
-          <el-input-number v-model="newRecordingForm.maxSize" :min="0" :max="1024" :step="50" style="width: 200px" />
+        </ScFormItem>
+        <ScFormItem label="最大文件">
+          <ScInputNumber v-model="newRecordingForm.maxSize" :min="0" :max="1024" :step="50" style="width: 200px" />
           <span class="form-hint">MB（0 表示无限制）</span>
-        </el-form-item>
-        <el-form-item>
-          <el-alert type="info" :closable="false" show-icon>
+        </ScFormItem>
+        <ScFormItem>
+          <ScAlert type="info" :closable="false" show-icon>
             <template #default>
               <p class="alert-content-small">将采集: CPU负载、GC事件、线程分配、对象分配、锁竞争等性能数据</p>
             </template>
-          </el-alert>
-        </el-form-item>
-      </el-form>
+          </ScAlert>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="showNewRecordingDialog = false">取消</el-button>
-        <el-button type="primary" @click="startRecording">
+        <ScButton @click="showNewRecordingDialog = false">取消</ScButton>
+        <ScButton type="primary" @click="startRecording">
           <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" />
           开始录制
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
     <!-- 导出对话框 -->
     <sc-dialog v-model="showExportDialog" title="导出 JFR 文件" width="480px">
-      <el-form :model="exportForm" label-width="100px">
-        <el-form-item label="录制名称">
-          <el-input :model-value="exportForm.recordingName" disabled />
-        </el-form-item>
-        <el-form-item label="文件名">
-          <el-input v-model="exportForm.filename" placeholder="请输入导出文件名">
+      <ScForm :model="exportForm" label-width="100px">
+        <ScFormItem label="录制名称">
+          <ScInput :model-value="exportForm.recordingName" disabled />
+        </ScFormItem>
+        <ScFormItem label="文件名">
+          <ScInput v-model="exportForm.filename" placeholder="请输入导出文件名">
             <template #append>.jfr</template>
-          </el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-alert type="warning" :closable="false" show-icon>
+          </ScInput>
+        </ScFormItem>
+        <ScFormItem>
+          <ScAlert type="warning" :closable="false" show-icon>
             <template #default>
               <p class="alert-content-small">文件将保存到服务器当前工作目录</p>
             </template>
-          </el-alert>
-        </el-form-item>
-      </el-form>
+          </ScAlert>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="showExportDialog = false">取消</el-button>
-        <el-button type="primary" @click="exportRecording">
+        <ScButton @click="showExportDialog = false">取消</ScButton>
+        <ScButton type="primary" @click="exportRecording">
           <IconifyIconOnline icon="ri:save-line" class="mr-1" />
           导出
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>

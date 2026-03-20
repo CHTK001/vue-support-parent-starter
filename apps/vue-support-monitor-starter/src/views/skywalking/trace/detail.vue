@@ -1,88 +1,88 @@
 ﻿<template>
   <div class="trace-detail system-container modern-bg">
     <!-- 头部信息 -->
-    <el-card class="header-card" shadow="never">
+    <ScCard class="header-card" shadow="never">
       <div class="header-content">
         <div class="trace-info">
           <div class="trace-id">
             <span class="label">Trace ID:</span>
             <span class="value">{{ traceId }}</span>
-            <el-button type="primary" link size="small" @click="copyTraceId">
+            <ScButton type="primary" link size="small" @click="copyTraceId">
               <template #icon
-                ><el-icon><CopyDocument /></el-icon
+                ><ScIcon><CopyDocument /></el-icon
               ></template>
               复制
-            </el-button>
+            </ScButton>
           </div>
           <div class="trace-stats">
-            <el-tag type="info" size="small"
+            <ScTag type="info" size="small"
               >Span 数量: {{ traceData?.spans?.length || 0 }}</el-tag
             >
-            <el-tag :type="hasError ? 'danger' : 'success'" size="small">
+            <ScTag :type="hasError ? 'danger' : 'success'" size="small">
               {{ hasError ? "包含错误" : "正常" }}
-            </el-tag>
-            <el-tag type="info" size="small"
+            </ScTag>
+            <ScTag type="info" size="small"
               >总耗时: {{ totalDuration }}</el-tag
             >
           </div>
         </div>
         <div class="header-actions">
-          <el-button @click="router.back()">返回列表</el-button>
-          <el-button type="primary" @click="fetchData">刷新</el-button>
+          <ScButton @click="router.back()">返回列表</ScButton>
+          <ScButton type="primary" @click="fetchData">刷新</ScButton>
         </div>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- Span 列表 -->
-    <el-card v-loading="loading" class="span-card" shadow="never">
+    <ScCard v-loading="loading" class="span-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>Span 列表</span>
-          <el-radio-group v-model="viewMode" size="small">
+          <ScRadioGroup v-model="viewMode" size="small">
             <el-radio-button value="list">列表</el-radio-button>
             <el-radio-button value="timeline">时间线</el-radio-button>
-          </el-radio-group>
+          </ScRadioGroup>
         </div>
       </template>
 
       <!-- 列表视图 -->
       <div v-if="viewMode === 'list'" class="span-list">
-        <el-table
+        <ScTable
           :data="traceData?.spans || []"
           border
           stripe
           row-key="spanId"
           default-expand-all
         >
-          <el-table-column label="状态" width="80" align="center">
+          <ScTableColumn label="状态" width="80" align="center">
             <template #default="{ row }">
-              <el-tag :type="row.isError ? 'danger' : 'success'" size="small">
+              <ScTag :type="row.isError ? 'danger' : 'success'" size="small">
                 {{ row.isError ? "错误" : "正常" }}
-              </el-tag>
+              </ScTag>
             </template>
-          </el-table-column>
-          <el-table-column
+          </ScTableColumn>
+          <ScTableColumn
             prop="endpointName"
             label="端点"
             min-width="250"
             show-overflow-tooltip
           />
-          <el-table-column
+          <ScTableColumn
             prop="serviceCode"
             label="服务"
             min-width="150"
             show-overflow-tooltip
           />
-          <el-table-column prop="component" label="组件" width="120" />
-          <el-table-column prop="type" label="类型" width="100" />
-          <el-table-column label="耗时" width="120" align="right">
+          <ScTableColumn prop="component" label="组件" width="120" />
+          <ScTableColumn prop="type" label="类型" width="100" />
+          <ScTableColumn label="耗时" width="120" align="right">
             <template #default="{ row }">
               {{ formatDuration(row.endTime - row.startTime) }}
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="100" fixed="right">
+          </ScTableColumn>
+          <ScTableColumn label="操作" width="100" fixed="right">
             <template #default="{ row }">
-              <el-button
+              <ScButton
                 type="primary"
                 link
                 size="small"
@@ -90,8 +90,8 @@
                 >详情</el-button
               >
             </template>
-          </el-table-column>
-        </el-table>
+          </ScTableColumn>
+        </ScTable>
       </div>
 
       <!-- 时间线视图 -->
@@ -109,70 +109,70 @@
             <span class="duration">{{
               formatDuration(span.endTime - span.startTime)
             }}</span>
-            <el-tag v-if="span.isError" type="danger" size="small">错误</el-tag>
+            <ScTag v-if="span.isError" type="danger" size="small">错误</ScTag>
           </div>
         </div>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- Span 详情抽屉 -->
     <sc-drawer v-model="drawerVisible" title="Span 详情" size="600px">
       <template v-if="selectedSpan">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="Span ID">{{
+        <ScDescriptions :column="1" border>
+          <ScDescriptionsItem label="Span ID">{{
             selectedSpan.spanId
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Segment ID">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="Segment ID">{{
             selectedSpan.segmentId
-          }}</el-descriptions-item>
-          <el-descriptions-item label="端点名称">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="端点名称">{{
             selectedSpan.endpointName
-          }}</el-descriptions-item>
-          <el-descriptions-item label="服务">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="服务">{{
             selectedSpan.serviceCode
-          }}</el-descriptions-item>
-          <el-descriptions-item label="服务实例">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="服务实例">{{
             selectedSpan.serviceInstanceName
-          }}</el-descriptions-item>
-          <el-descriptions-item label="类型">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="类型">{{
             selectedSpan.type
-          }}</el-descriptions-item>
-          <el-descriptions-item label="组件">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="组件">{{
             selectedSpan.component
-          }}</el-descriptions-item>
-          <el-descriptions-item label="层">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="层">{{
             selectedSpan.layer
-          }}</el-descriptions-item>
-          <el-descriptions-item label="对端地址">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="对端地址">{{
             selectedSpan.peer || "-"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="开始时间">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="开始时间">{{
             formatTimestamp(selectedSpan.startTime)
-          }}</el-descriptions-item>
-          <el-descriptions-item label="结束时间">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="结束时间">{{
             formatTimestamp(selectedSpan.endTime)
-          }}</el-descriptions-item>
-          <el-descriptions-item label="耗时">{{
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="耗时">{{
             formatDuration(selectedSpan.endTime - selectedSpan.startTime)
-          }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="selectedSpan.isError ? 'danger' : 'success'">
+          }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="状态">
+            <ScTag :type="selectedSpan.isError ? 'danger' : 'success'">
               {{ selectedSpan.isError ? "错误" : "正常" }}
-            </el-tag>
-          </el-descriptions-item>
-        </el-descriptions>
+            </ScTag>
+          </ScDescriptionsItem>
+        </ScDescriptions>
 
         <!-- Tags -->
         <div class="section-title">标签</div>
-        <el-table
+        <ScTable
           :data="selectedSpan.tags || []"
           border
           size="small"
           max-height="200"
         >
-          <el-table-column prop="key" label="Key" width="200" />
-          <el-table-column prop="value" label="Value" show-overflow-tooltip />
-        </el-table>
+          <ScTableColumn prop="key" label="Key" width="200" />
+          <ScTableColumn prop="value" label="Value" show-overflow-tooltip />
+        </ScTable>
 
         <!-- Logs -->
         <div class="section-title">日志</div>
@@ -183,17 +183,17 @@
             class="log-item"
           >
             <div class="log-time">{{ formatTimestamp(log.time) }}</div>
-            <el-table :data="log.data || []" border size="small">
-              <el-table-column prop="key" label="Key" width="150" />
-              <el-table-column
+            <ScTable :data="log.data || []" border size="small">
+              <ScTableColumn prop="key" label="Key" width="150" />
+              <ScTableColumn
                 prop="value"
                 label="Value"
                 show-overflow-tooltip
               />
-            </el-table>
+            </ScTable>
           </div>
         </div>
-        <el-empty v-else description="无日志" :image-size="60" />
+        <ScEmpty v-else description="无日志" :image-size="60" />
       </template>
     </sc-drawer>
   </div>

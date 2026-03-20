@@ -118,11 +118,7 @@ const currentComponent = computed(() => loadingMap[currentKey.value] || DefaultL
 
 <template>
   <div class="cool-loading">
-    <component
-      :is="currentComponent"
-      :loading-text="loadingText"
-      :show-progress="showProgress"
-    />
+    <component :is="currentComponent" :loading-text="loadingText" :show-progress="showProgress" />
   </div>
 </template>
 
@@ -133,5 +129,3 @@ const currentComponent = computed(() => loadingMap[currentKey.value] || DefaultL
   z-index: 9999;
 }
 </style>
-
- 

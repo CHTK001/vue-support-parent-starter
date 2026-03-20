@@ -2,21 +2,21 @@
   <div class="email-list system-container modern-bg">
     <div class="list-header">
       <div class="list-controls">
-        <el-checkbox v-model="selectAll" @change="handleSelectAll" />
+        <ScCheckbox v-model="selectAll" @change="handleSelectAll" />
         <el-button-group class="action-buttons">
-          <el-button
+          <ScButton
             size="small"
             :icon="useRenderIcon('ri:delete-bin-line')"
             @click="handleDeleteSelected"
             >删除</el-button
           >
-          <el-button
+          <ScButton
             size="small"
             :icon="useRenderIcon('ri:star-line')"
             @click="handleStarSelected"
             >标星</el-button
           >
-          <el-button
+          <ScButton
             size="small"
             :icon="useRenderIcon('ri:mail-check-line')"
             @click="handleMarkAsRead"
@@ -25,7 +25,7 @@
         </el-button-group>
       </div>
       <div class="list-search">
-        <el-input
+        <ScInput
           v-model="searchQuery"
           placeholder="搜索邮件..."
           :prefix-icon="useRenderIcon('ri:search-line')"
@@ -42,7 +42,7 @@
     >
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-state">
-        <el-skeleton :rows="5" animated />
+        <ScSkeleton :rows="5" animated />
       </div>
 
       <!-- 邮件列表 -->
@@ -61,7 +61,7 @@
         @click="selectEmail(email)"
       >
         <div class="email-checkbox">
-          <el-checkbox v-model="email.selected" @click.stop />
+          <ScCheckbox v-model="email.selected" @click.stop />
         </div>
         <div class="email-star" @click.stop="toggleStar(email)">
           <IconifyIconOnline
@@ -91,7 +91,7 @@
 
       <!-- 加载更多状态 -->
       <div v-if="loadingMore" class="loading-more">
-        <el-skeleton :rows="2" animated />
+        <ScSkeleton :rows="2" animated />
         <div class="loading-more-text">
           <IconifyIconOnline icon="ri:loader-4-line" class="loading-icon" />
           正在加载更多邮件...
@@ -105,7 +105,7 @@
         "
         class="load-more-button"
       >
-        <el-button
+        <ScButton
           type="primary"
           :loading="loadingMore"
           class="load-more-btn"
@@ -115,7 +115,7 @@
             <IconifyIconOnline icon="ri:loader-4-line" class="loading-icon" />
           </template>
           {{ loadingMore ? "加载中..." : "加载更多" }}
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 没有更多数据提示 -->
@@ -138,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { ElMessage } from "element-plus";
 import { ref, watch } from "vue";
 

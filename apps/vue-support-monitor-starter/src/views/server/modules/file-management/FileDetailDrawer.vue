@@ -50,20 +50,20 @@
       <div class="detail-section">
         <h4 class="section-title">操作</h4>
         <div class="action-buttons">
-          <el-button size="small" disabled>
+          <ScButton size="small" disabled>
             <IconifyIconOnline icon="ri:download-line" class="mr-1" />
             下载 (开发中)
-          </el-button>
+          </ScButton>
 
-          <el-button size="small" disabled>
+          <ScButton size="small" disabled>
             <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
             重命名 (开发中)
-          </el-button>
+          </ScButton>
 
-          <el-button size="small" type="danger" disabled>
+          <ScButton size="small" type="danger" disabled>
             <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
             删除 (开发中)
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>

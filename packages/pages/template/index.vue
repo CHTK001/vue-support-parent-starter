@@ -1,6 +1,6 @@
 <script setup>
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components";
 import { message } from "@repo/utils";
 import { defineAsyncComponent, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
@@ -33,27 +33,27 @@ const handleDelete = async (row) => {
 <template>
   <div class="fullscreen p-2">
     <SaveDialog ref="saveDialogRef" @success="loadData" />
-    <el-header>
+    <ScHeader>
       <div class="left-panel">
-        <el-form :inline="true">
-          <el-form-item label="模块名称">
-            <el-input clearable v-model="env.params.sysServiceModuleName" placeholder="请输入模块名称"></el-input>
-          </el-form-item>
-        </el-form>
+        <ScForm :inline="true">
+          <ScFormItem label="模块名称">
+            <ScInput clearable v-model="env.params.sysServiceModuleName" placeholder="请输入模块名称"></ScInput>
+          </ScFormItem>
+        </ScForm>
       </div>
       <div class="right-panel">
-        <el-button :icon="useRenderIcon('ep:search')" @click="debounce(loadData(), 0, 1000)" type="primary" />
-        <el-button :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
+        <ScButton :icon="useRenderIcon('ep:search')" @click="debounce(loadData(), 0, 1000)" type="primary" />
+        <ScButton :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
       </div>
-    </el-header>
+    </ScHeader>
     <ScTable ref="tableRef" :url="fetchPageServiceModule" :params="env.params">
-      <el-table-column type="index" label="序号" width="120px" />
-      <el-table-column label="操作">
+      <ScTableColumn type="index" label="序号" width="120px" />
+      <ScTableColumn label="操作">
         <template #default="{ row }">
-          <el-button :icon="useRenderIcon('ep:edit-pen')" class="btn-text" @click="handleEdit(row, 'edit')"></el-button>
-          <el-button :icon="useRenderIcon('ep:delete')" type="danger" class="btn-text" @click="handleDelete(row)"></el-button>
+          <ScButton :icon="useRenderIcon('ep:edit-pen')" class="btn-text" @click="handleEdit(row, 'edit')"></ScButton>
+          <ScButton :icon="useRenderIcon('ep:delete')" type="danger" class="btn-text" @click="handleDelete(row)"></ScButton>
         </template>
-      </el-table-column>
+      </ScTableColumn>
     </ScTable>
   </div>
 </template>

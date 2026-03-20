@@ -5,29 +5,29 @@
     >
       <h3 class="text-lg font-medium">串口列表</h3>
       <div class="flex gap-2">
-        <el-button type="primary" size="small" @click="handleRefresh">
+        <ScButton type="primary" size="small" @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
-        </el-button>
-        <el-button type="primary" size="small" @click="handleAddSerial">
+        </ScButton>
+        <ScButton type="primary" size="small" @click="handleAddSerial">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
           添加
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <div v-if="loading" class="serial-list-loading p-4 flex justify-center">
-      <el-skeleton :rows="5" animated />
+      <ScSkeleton :rows="5" animated />
     </div>
 
-    <el-empty
+    <ScEmpty
       v-else-if="!serialList || serialList.length === 0"
       description="暂无串口配置"
       class="mt-8"
     />
 
     <div v-else class="serial-list-content p-2">
-      <el-card
+      <ScCard
         v-for="item in serialList"
         :key="item.monitorSerialId"
         class="serial-item mb-3 cursor-pointer"
@@ -50,26 +50,26 @@
             </div>
           </div>
           <div class="serial-actions">
-            <el-dropdown trigger="click" @command="handleCommand($event, item)">
-              <el-button type="primary" text>
+            <ScDropdown trigger="click" @command="handleCommand($event, item)">
+              <ScButton type="primary" text>
                 <IconifyIconOnline icon="ep:more-filled" />
-              </el-button>
+              </ScButton>
               <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit">
+                <ScDropdownMenu>
+                  <ScDropdownItem command="edit">
                     <IconifyIconOnline icon="ep:edit" class="mr-1" />
                     编辑
-                  </el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>
+                  </ScDropdownItem>
+                  <ScDropdownItem command="delete" divided>
                     <IconifyIconOnline icon="ep:delete" class="mr-1" />
                     删除
-                  </el-dropdown-item>
-                </el-dropdown-menu>
+                  </ScDropdownItem>
+                </ScDropdownMenu>
               </template>
-            </el-dropdown>
+            </ScDropdown>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 添加/编辑串口对话框 -->
@@ -79,17 +79,17 @@
       width="500px"
       destroy-on-close
     >
-      <el-form ref="formRef" :model="form" label-width="100px" :rules="rules">
-        <el-form-item label="串口名称" prop="monitorSerialName">
-          <el-input
+      <ScForm ref="formRef" :model="form" label-width="100px" :rules="rules">
+        <ScFormItem label="串口名称" prop="monitorSerialName">
+          <ScInput
             v-model="form.monitorSerialName"
             placeholder="请输入串口名称"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="串口" prop="monitorSerialPort">
+        <ScFormItem label="串口" prop="monitorSerialPort">
           <div class="flex gap-2 w-full">
-            <el-select
+            <ScSelect
               v-model="form.monitorSerialPort"
               placeholder="选择串口端口"
               class="flex-1"
@@ -98,111 +98,111 @@
               :loading="loadingPorts"
               @focus="handleRefreshPorts"
             >
-              <el-option
+              <ScOption
                 v-for="port in availablePorts"
                 :key="port"
                 :label="port"
                 :value="port"
               />
-            </el-select>
-            <el-button
+            </ScSelect>
+            <ScButton
               size="default"
               :loading="loadingPorts"
               title="刷新可用串口"
               @click="handleRefreshPorts"
             >
               <IconifyIconOnline icon="ep:refresh" />
-            </el-button>
+            </ScButton>
           </div>
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="波特率" prop="monitorSerialBaudRate">
-          <el-select
+        <ScFormItem label="波特率" prop="monitorSerialBaudRate">
+          <ScSelect
             v-model="form.monitorSerialBaudRate"
             placeholder="请选择波特率"
             class="w-full"
           >
-            <el-option :value="110" label="110" />
-            <el-option :value="300" label="300" />
-            <el-option :value="1200" label="1200" />
-            <el-option :value="2400" label="2400" />
-            <el-option :value="4800" label="4800" />
-            <el-option :value="9600" label="9600" />
-            <el-option :value="14400" label="14400" />
-            <el-option :value="19200" label="19200" />
-            <el-option :value="38400" label="38400" />
-            <el-option :value="57600" label="57600" />
-            <el-option :value="115200" label="115200" />
-            <el-option :value="230400" label="230400" />
-            <el-option :value="460800" label="460800" />
-            <el-option :value="921600" label="921600" />
-          </el-select>
-        </el-form-item>
+            <ScOption :value="110" label="110" />
+            <ScOption :value="300" label="300" />
+            <ScOption :value="1200" label="1200" />
+            <ScOption :value="2400" label="2400" />
+            <ScOption :value="4800" label="4800" />
+            <ScOption :value="9600" label="9600" />
+            <ScOption :value="14400" label="14400" />
+            <ScOption :value="19200" label="19200" />
+            <ScOption :value="38400" label="38400" />
+            <ScOption :value="57600" label="57600" />
+            <ScOption :value="115200" label="115200" />
+            <ScOption :value="230400" label="230400" />
+            <ScOption :value="460800" label="460800" />
+            <ScOption :value="921600" label="921600" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="数据位" prop="monitorSerialDataBits">
-          <el-select
+        <ScFormItem label="数据位" prop="monitorSerialDataBits">
+          <ScSelect
             v-model="form.monitorSerialDataBits"
             placeholder="请选择数据位"
             class="w-full"
           >
-            <el-option :value="5" label="5" />
-            <el-option :value="6" label="6" />
-            <el-option :value="7" label="7" />
-            <el-option :value="8" label="8" />
-          </el-select>
-        </el-form-item>
+            <ScOption :value="5" label="5" />
+            <ScOption :value="6" label="6" />
+            <ScOption :value="7" label="7" />
+            <ScOption :value="8" label="8" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="停止位" prop="monitorSerialStopBits">
-          <el-select
+        <ScFormItem label="停止位" prop="monitorSerialStopBits">
+          <ScSelect
             v-model="form.monitorSerialStopBits"
             placeholder="请选择停止位"
             class="w-full"
           >
-            <el-option :value="1" label="1" />
-            <el-option :value="1.5" label="1.5" />
-            <el-option :value="2" label="2" />
-          </el-select>
-        </el-form-item>
+            <ScOption :value="1" label="1" />
+            <ScOption :value="1.5" label="1.5" />
+            <ScOption :value="2" label="2" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="校验位" prop="monitorSerialParity">
-          <el-select
+        <ScFormItem label="校验位" prop="monitorSerialParity">
+          <ScSelect
             v-model="form.monitorSerialParity"
             placeholder="请选择校验位"
             class="w-full"
           >
-            <el-option value="none" label="无校验" />
-            <el-option value="even" label="偶校验" />
-            <el-option value="odd" label="奇校验" />
-            <el-option value="mark" label="标记校验" />
-            <el-option value="space" label="空格校验" />
-          </el-select>
-        </el-form-item>
+            <ScOption value="none" label="无校验" />
+            <ScOption value="even" label="偶校验" />
+            <ScOption value="odd" label="奇校验" />
+            <ScOption value="mark" label="标记校验" />
+            <ScOption value="space" label="空格校验" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="流控制" prop="monitorSerialFlowControl">
-          <el-select
+        <ScFormItem label="流控制" prop="monitorSerialFlowControl">
+          <ScSelect
             v-model="form.monitorSerialFlowControl"
             placeholder="请选择流控制"
             class="w-full"
           >
-            <el-option value="none" label="无" />
-            <el-option value="hardware" label="硬件流控" />
-            <el-option value="software" label="软件流控" />
-          </el-select>
-        </el-form-item>
+            <ScOption value="none" label="无" />
+            <ScOption value="hardware" label="硬件流控" />
+            <ScOption value="software" label="软件流控" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item label="描述">
-          <el-input
+        <ScFormItem label="描述">
+          <ScInput
             v-model="form.monitorSerialDescription"
             type="textarea"
             :rows="3"
             placeholder="请输入串口描述（可选）"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="submitting" @click="submitForm"
+          <ScButton @click="dialogVisible = false">取消</ScButton>
+          <ScButton type="primary" :loading="submitting" @click="submitForm"
             >确定</el-button
           >
         </span>
@@ -220,8 +220,8 @@
       </div>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="deleteDialogVisible = false">取消</el-button>
-          <el-button type="danger" :loading="deleting" @click="confirmDelete"
+          <ScButton @click="deleteDialogVisible = false">取消</ScButton>
+          <ScButton type="danger" :loading="deleting" @click="confirmDelete"
             >确定</el-button
           >
         </span>

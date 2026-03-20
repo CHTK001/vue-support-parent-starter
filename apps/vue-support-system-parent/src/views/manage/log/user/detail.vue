@@ -1,8 +1,8 @@
 ﻿<script>
 import { defineComponent } from "vue";
 import EyeClose from "@iconify-icons/ri/eye-close-line";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
 import { getTimeAgo } from "@repo/utils";
@@ -89,12 +89,12 @@ export default defineComponent({
               <span class="header-subtitle">{{ row.sysLogUsername }}</span>
             </div>
           </div>
-          <el-tag
+          <ScTag
             :type="row.sysLogStatus === 1 ? 'success' : 'danger'"
             size="large"
           >
             {{ row.sysLogStatus === 1 ? "登录成功" : "登录失败" }}
-          </el-tag>
+          </ScTag>
         </div>
       </template>
       <div class="drawer-content">
@@ -123,19 +123,19 @@ export default defineComponent({
               <div class="info-item">
                 <span class="info-label">响应耗时</span>
                 <span class="info-value">
-                  <el-tag
+                  <ScTag
                     v-if="row.sysLogCost <= 1000"
                     type="success"
                     size="small"
                     >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
-                  <el-tag
+                  <ScTag
                     v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
                     type="warning"
                     size="small"
                     >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
-                  <el-tag v-else type="danger" size="small"
+                  <ScTag v-else type="danger" size="small"
                     >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
                 </span>
@@ -159,7 +159,7 @@ export default defineComponent({
               <div v-if="row.sysLogAddress" class="info-item">
                 <span class="info-label">地理位置</span>
                 <span class="info-value">
-                  <el-tag type="info">{{ row.sysLogAddress }}</el-tag>
+                  <ScTag type="info">{{ row.sysLogAddress }}</ScTag>
                 </span>
               </div>
               <div v-if="row.sysLogIsp" class="info-item">

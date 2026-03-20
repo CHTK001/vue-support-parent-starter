@@ -2,10 +2,10 @@
   <div class="remote-desktop system-container modern-bg">
     <!-- 协议选择面板 -->
     <div v-if="!selectedProtocol" class="protocol-selection">
-      <el-card shadow="hover" class="protocol-card">
+      <ScCard shadow="hover" class="protocol-card">
         <template #header>
           <div class="card-header">
-            <el-icon><Monitor /></el-icon>
+            <ScIcon><Monitor /></ScIcon>
             <span>选择远程桌面协议</span>
           </div>
         </template>
@@ -13,7 +13,7 @@
         <div class="protocol-options">
           <div class="protocol-option" @click="selectProtocol('rdp')">
             <div class="protocol-icon">
-              <el-icon size="48"><Monitor /></el-icon>
+              <ScIcon size="48"><Monitor /></ScIcon>
             </div>
             <h3>RDP 远程桌面</h3>
             <p>Microsoft Remote Desktop Protocol</p>
@@ -23,12 +23,12 @@
               <li>文件传输支持</li>
               <li>多显示器支持</li>
             </ul>
-            <el-button type="primary" size="large">选择 RDP</el-button>
+            <ScButton type="primary" size="large">选择 RDP</ScButton>
           </div>
 
           <div class="protocol-option" @click="selectProtocol('vnc')">
             <div class="protocol-icon">
-              <el-icon size="48"><Monitor /></el-icon>
+              <ScIcon size="48"><Monitor /></ScIcon>
             </div>
             <h3>VNC 远程桌面</h3>
             <p>Virtual Network Computing</p>
@@ -38,12 +38,12 @@
               <li>多种编码方式</li>
               <li>只读模式支持</li>
             </ul>
-            <el-button type="success" size="large">选择 VNC</el-button>
+            <ScButton type="success" size="large">选择 VNC</ScButton>
           </div>
         </div>
 
         <div class="protocol-info">
-          <el-alert title="提示" type="info" :closable="false" show-icon>
+          <ScAlert title="提示" type="info" :closable="false" show-icon>
             <template #default>
               <p>请根据目标服务器的操作系统和配置选择合适的远程桌面协议：</p>
               <ul>
@@ -57,9 +57,9 @@
                 </li>
               </ul>
             </template>
-          </el-alert>
+          </ScAlert>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- RDP 桌面组件 -->
@@ -70,10 +70,10 @@
 
     <!-- 返回按钮 -->
     <div v-if="selectedProtocol" class="back-button">
-      <el-button size="small" @click="goBack">
+      <ScButton size="small" @click="goBack">
         <IconifyIconOnline icon="ep:arrow-left" class="mr-1" />
         返回协议选择
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

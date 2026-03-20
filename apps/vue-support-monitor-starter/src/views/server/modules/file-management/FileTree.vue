@@ -7,32 +7,32 @@
         <span>目录结构</span>
       </div>
       <div class="tree-actions">
-        <el-tooltip content="刷新目录树" placement="top">
-          <el-button size="small" text @click="refreshTree">
+        <ScTooltip content="刷新目录树" placement="top">
+          <ScButton size="small" text @click="refreshTree">
             <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="展开所有" placement="top">
-          <el-button size="small" text @click="expandAll">
+          </ScButton>
+        </ScTooltip>
+        <ScTooltip content="展开所有" placement="top">
+          <ScButton size="small" text @click="expandAll">
             <IconifyIconOnline icon="ri:add-box-line" />
-          </el-button>
-        </el-tooltip>
-        <!-- <el-tooltip content="折叠所有" placement="top">
-          <el-button size="small" text @click="collapseAll">
+          </ScButton>
+        </ScTooltip>
+        <!-- <ScTooltip content="折叠所有" placement="top">
+          <ScButton size="small" text @click="collapseAll">
             <IconifyIconOnline icon="ri:subtract-box-line" />
-          </el-button>
-        </el-tooltip> -->
-        <el-tooltip content="关闭" placement="top">
-          <el-button size="small" text @click="$emit('close')">
+          </ScButton>
+        </ScTooltip> -->
+        <ScTooltip content="关闭" placement="top">
+          <ScButton size="small" text @click="$emit('close')">
             <IconifyIconOnline icon="ep:close" />
-          </el-button>
-        </el-tooltip>
+          </ScButton>
+        </ScTooltip>
       </div>
     </div>
 
     <!-- 文件树 -->
     <div v-loading="loading" class="tree-content">
-      <el-tree
+      <ScTree
         ref="treeRef"
         :data="treeData"
         :props="treeProps"
@@ -68,25 +68,25 @@
             />
 
             <div v-if="data.isDirectory" class="node-actions" @click.stop>
-              <el-tooltip content="新建文件夹" placement="top">
-                <el-button size="small" text @click="createFolder(data)">
+              <ScTooltip content="新建文件夹" placement="top">
+                <ScButton size="small" text @click="createFolder(data)">
                   <IconifyIconOnline icon="ri:folder-add-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="刷新" placement="top">
-                <el-button
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="刷新" placement="top">
+                <ScButton
                   size="small"
                   text
                   :loading="loadingNodes.has(data.path)"
                   @click="refreshNode(node, data)"
                 >
                   <IconifyIconOnline icon="ri:refresh-line" />
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </div>
           </div>
         </template>
-      </el-tree>
+      </ScTree>
     </div>
 
     <!-- 新建文件夹对话框 -->
@@ -96,18 +96,18 @@
       width="400px"
       :close-on-click-modal="false"
     >
-      <el-form :model="createFolderForm" label-width="80px">
-        <el-form-item label="文件夹名">
-          <el-input
+      <ScForm :model="createFolderForm" label-width="80px">
+        <ScFormItem label="文件夹名">
+          <ScInput
             v-model="createFolderForm.name"
             placeholder="请输入文件夹名称"
             @keyup.enter="confirmCreateFolder"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="createFolderVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmCreateFolder">确定</el-button>
+        <ScButton @click="createFolderVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="confirmCreateFolder">确定</ScButton>
       </template>
     </sc-dialog>
   </div>

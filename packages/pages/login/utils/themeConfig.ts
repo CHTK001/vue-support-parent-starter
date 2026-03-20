@@ -51,7 +51,10 @@ export function getThemeConfig(): ThemeConfig {
       };
     }
   } catch (error) {
-    console.warn("[ThemeConfig] Failed to parse theme config from storage:", error);
+    console.warn(
+      "[ThemeConfig] Failed to parse theme config from storage:",
+      error,
+    );
   }
   return getDefaultConfig();
 }

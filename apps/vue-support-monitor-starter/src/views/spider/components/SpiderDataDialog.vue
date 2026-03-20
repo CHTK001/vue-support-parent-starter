@@ -9,7 +9,7 @@
   >
     <div class="data-toolbar">
       <div class="toolbar-left">
-        <el-date-picker
+        <ScDatePicker
           v-model="dateRange"
           type="datetimerange"
           range-separator="至"
@@ -19,7 +19,7 @@
           size="small"
           @change="handleSearch"
         />
-        <el-input
+        <ScInput
           v-model="keyword"
           placeholder="关键字搜索"
           clearable
@@ -30,34 +30,34 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </el-input>
-        <el-button type="primary" size="small" @click="handleSearch">
+        </ScInput>
+        <ScButton type="primary" size="small" @click="handleSearch">
           <IconifyIconOnline icon="ri:search-line" class="mr-1" />
           搜索
-        </el-button>
+        </ScButton>
       </div>
       <div class="toolbar-right">
-        <el-button size="small" @click="handleRefresh">
+        <ScButton size="small" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
-        <el-button type="success" size="small" @click="handleExport">
+        </ScButton>
+        <ScButton type="success" size="small" @click="handleExport">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           导出数据
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
-    <el-table
+    <ScTable
       v-loading="loading"
       :data="dataList"
       border
       stripe
       max-height="500"
     >
-      <el-table-column type="index" label="#" width="60" align="center" />
+      <ScTableColumn type="index" label="#" width="60" align="center" />
       <template v-for="col in columns" :key="col.prop">
-        <el-table-column
+        <ScTableColumn
           :prop="col.prop"
           :label="col.label"
           :min-width="col.minWidth || 150"
@@ -65,12 +65,12 @@
         >
           <template #default="{ row }">
             <template v-if="isUrl(row[col.prop])">
-              <el-link type="primary" :href="row[col.prop]" target="_blank">
+              <ScLink type="primary" :href="row[col.prop]" target="_blank">
                 {{ truncateText(row[col.prop], 50) }}
-              </el-link>
+              </ScLink>
             </template>
             <template v-else-if="isImageUrl(row[col.prop])">
-              <el-image
+              <ScImage
                 :src="row[col.prop]"
                 :preview-src-list="[row[col.prop]]"
                 fit="cover"
@@ -81,33 +81,33 @@
               {{ row[col.prop] }}
             </template>
           </template>
-        </el-table-column>
+        </ScTableColumn>
       </template>
-      <el-table-column prop="crawlTime" label="爬取时间" width="180" />
-      <el-table-column label="操作" width="100" align="center" fixed="right">
+      <ScTableColumn prop="crawlTime" label="爬取时间" width="180" />
+      <ScTableColumn label="操作" width="100" align="center" fixed="right">
         <template #default="{ row }">
-          <el-button
+          <ScButton
             type="primary"
             link
             size="small"
             @click="handleViewDetail(row)"
           >
             <IconifyIconOnline icon="ri:eye-line" />
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             type="danger"
             link
             size="small"
             @click="handleDeleteRow(row)"
           >
             <IconifyIconOnline icon="ri:delete-bin-line" />
-          </el-button>
+          </ScButton>
         </template>
-      </el-table-column>
-    </el-table>
+      </ScTableColumn>
+    </ScTable>
 
     <div class="pagination-container">
-      <el-pagination
+      <ScPagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.size"
         :page-sizes="[10, 20, 50, 100]"
@@ -125,19 +125,19 @@
       width="600px"
       append-to-body
     >
-      <el-descriptions :column="1" border>
-        <el-descriptions-item
+      <ScDescriptions :column="1" border>
+        <ScDescriptionsItem
           v-for="(value, key) in detailData"
           :key="key"
           :label="String(key)"
         >
           <template v-if="isUrl(value)">
-            <el-link type="primary" :href="String(value)" target="_blank">{{
+            <ScLink type="primary" :href="String(value)" target="_blank">{{
               value
-            }}</el-link>
+            }}</ScLink>
           </template>
           <template v-else-if="isImageUrl(String(value))">
-            <el-image
+            <ScImage
               :src="String(value)"
               fit="contain"
               style="max-width: 200px; max-height: 200px"
@@ -146,8 +146,8 @@
           <template v-else>
             {{ value }}
           </template>
-        </el-descriptions-item>
-      </el-descriptions>
+        </ScDescriptionsItem>
+      </ScDescriptions>
     </sc-dialog>
   </sc-dialog>
 </template>

@@ -26,7 +26,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 100,
     step: 1,
-    formatValue: (v) => `${v}%`
+    formatValue: v => `${v}%`
   },
   // 电量显示
   battery: {
@@ -37,7 +37,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 100,
     step: 1,
-    formatValue: (v) => `${v}%`
+    formatValue: v => `${v}%`
   },
   // 温度控制
   temperature: {
@@ -48,7 +48,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 16,
     max: 32,
     step: 0.5,
-    formatValue: (v) => `${v}°C`
+    formatValue: v => `${v}°C`
   },
   // 湿度显示
   humidity: {
@@ -59,7 +59,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 100,
     step: 1,
-    formatValue: (v) => `${v}%`
+    formatValue: v => `${v}%`
   },
   // 亮度调节
   brightness: {
@@ -70,7 +70,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 100,
     step: 1,
-    formatValue: (v) => `${v}%`
+    formatValue: v => `${v}%`
   },
   // 信号强度
   signal: {
@@ -81,7 +81,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: -100,
     max: 0,
     step: 1,
-    formatValue: (v) => `${v}dBm`
+    formatValue: v => `${v}dBm`
   },
   // 风速控制
   fanSpeed: {
@@ -92,7 +92,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 5,
     step: 1,
-    formatValue: (v) => v === 0 ? "关闭" : `${v}档`
+    formatValue: v => (v === 0 ? "关闭" : `${v}档`)
   },
   // 定时器
   timer: {
@@ -103,7 +103,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 120,
     step: 5,
-    formatValue: (v) => v === 0 ? "关闭" : `${v}分钟`
+    formatValue: v => (v === 0 ? "关闭" : `${v}分钟`)
   },
   // 功率显示
   power: {
@@ -114,7 +114,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 3000,
     step: 1,
-    formatValue: (v) => `${v}W`
+    formatValue: v => `${v}W`
   },
   // 电流显示
   current: {
@@ -125,7 +125,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 20,
     step: 0.1,
-    formatValue: (v) => `${v.toFixed(1)}A`
+    formatValue: v => `${v.toFixed(1)}A`
   },
   // 电压显示
   voltage: {
@@ -136,7 +136,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 250,
     step: 1,
-    formatValue: (v) => `${v}V`
+    formatValue: v => `${v}V`
   },
   // PM2.5
   pm25: {
@@ -147,7 +147,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 500,
     step: 1,
-    formatValue: (v) => `${v}μg/m³`
+    formatValue: v => `${v}μg/m³`
   },
   // CO2
   co2: {
@@ -158,7 +158,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 5000,
     step: 1,
-    formatValue: (v) => `${v}ppm`
+    formatValue: v => `${v}ppm`
   },
   // 噪音
   noise: {
@@ -169,7 +169,7 @@ export const iotThemes: Record<string, NumberThemeConfig> = {
     min: 0,
     max: 120,
     step: 1,
-    formatValue: (v) => `${v}dB`
+    formatValue: v => `${v}dB`
   }
 };
 

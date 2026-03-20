@@ -228,7 +228,7 @@ onUnmounted(() => {
           <div class="widgets-item">
             <!-- 部件内容 -->
             <div class="widget-content h-full">
-              <el-skeleton
+              <ScSkeleton
                 class="h-full"
                 :loading="userLayoutObject.isLoaded(item.id, loadingCollection)"
                 animated
@@ -262,7 +262,7 @@ onUnmounted(() => {
                     </div>
                   </div>
                 </template>
-              </el-skeleton>
+              </ScSkeleton>
             </div>
 
             <!-- 编辑模式遮罩层 -->
@@ -276,8 +276,8 @@ onUnmounted(() => {
             >
               <!-- 操作按钮组 -->
               <div class="overlay-actions">
-                <el-tooltip content="预览/隐藏" placement="top" v-if="item.type != 1">
-                  <el-button
+                <ScTooltip content="预览/隐藏" placement="top" v-if="item.type != 1">
+                  <ScButton
                     :type="
                       userLayoutObject.loadRemoteComponent(item.id)
                         ? 'primary'
@@ -292,30 +292,30 @@ onUnmounted(() => {
                     "
                   >
                     {{ userLayoutObject.loadRemoteComponent(item.id) ? "隐藏" : "预览" }}
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="移除部件" placement="top">
-                  <el-button
+                  </ScButton>
+                </ScTooltip>
+                <ScTooltip content="移除部件" placement="top">
+                  <ScButton
                     type="danger"
                     size="small"
                     @click.stop="handleRemove(item.id)"
                   >
                     移除
-                  </el-button>
-                </el-tooltip>
+                  </ScButton>
+                </ScTooltip>
               </div>
 
               <!-- 信息展示区域 -->
               <div v-if="!isEditingContentVisible(item)" class="drag-area">
                 <div class="drag-info">
                   <span class="drag-title">{{ getWidgetTitle(item.id) }}</span>
-                  <el-tag
+                  <ScTag
                     size="small"
                     :type="item.type === 1 ? 'success' : 'primary'"
                     class="drag-type"
                   >
                     {{ getTypeLabel(item) }}
-                  </el-tag>
+                  </ScTag>
                 </div>
                 <div class="drag-hint">
                   <span>拖拽移动</span>

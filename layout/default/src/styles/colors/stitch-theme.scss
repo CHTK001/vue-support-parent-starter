@@ -1,0 +1,237 @@
+/**
+ * Stitch Theme (Cyber/Glass)
+ * Comprehensive Theme System (Light & Dark)
+ */
+
+@use "sass:color";
+
+/* =========================================
+   LIGHT MODE (Default) - "Cyber Day"
+   Clean, Airy, with Cyan accents
+   ========================================= */
+html {
+  /* ===== Theme Colors (Cyan & Indigo) ===== */
+  --app-primary: #0891b2; /* cyan-600 (Darker for light bg visibility) */
+  --app-primary-rgb: 8, 145, 178;
+  --app-primary-light: #06b6d4; /* cyan-500 */
+  --app-primary-lighter: #22d3ee; /* cyan-400 */
+  --app-primary-lightest: #ecfeff; /* cyan-50 */
+  --app-primary-dark: #0e7490; /* cyan-700 */
+  --app-primary-darker: #155e75; /* cyan-800 */
+  
+  --app-info: #4f46e5; /* indigo-600 */
+  --app-info-light: #6366f1;
+  --app-info-dark: #4338ca;
+
+  /* ===== Backgrounds (Slate/White) ===== */
+  --app-bg-primary: #f8fafc; /* slate-50 */
+  --app-bg-secondary: #ffffff; /* white */
+  --app-bg-tertiary: #f1f5f9; /* slate-100 */
+  --app-bg-quaternary: #e2e8f0; /* slate-200 */
+  --app-bg-overlay: rgba(255, 255, 255, 0.85); /* White with opacity */
+  --app-bg-page: #f8fafc;
+  
+  --app-bg-card: rgba(255, 255, 255, 0.7);
+  --app-bg-card-hover: rgba(255, 255, 255, 0.9);
+
+  /* ===== Borders ===== */
+  --app-border-primary: #cbd5e1; /* slate-300 */
+  --app-border-secondary: #e2e8f0; /* slate-200 */
+  --app-border-focus: #0891b2;
+
+  /* ===== Text ===== */
+  --app-text-primary: #0f172a; /* slate-900 */
+  --app-text-secondary: #475569; /* slate-600 */
+  --app-text-tertiary: #94a3b8; /* slate-400 */
+  --app-text-disabled: #cbd5e1; /* slate-300 */
+
+  /* ===== Glass & Effects ===== */
+  --app-glass-bg: rgba(255, 255, 255, 0.7);
+  --app-glass-border: rgba(255, 255, 255, 0.5);
+  --app-backdrop-blur: 12px;
+  
+  --app-shadow-glow: 0 4px 20px rgba(8, 145, 178, 0.15);
+  --app-shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  /* ===== Element Plus Overrides (Light) ===== */
+  --el-color-primary: var(--app-primary);
+  --el-bg-color: var(--app-bg-secondary);
+  --el-bg-color-page: var(--app-bg-primary);
+  --el-bg-color-overlay: var(--app-bg-secondary);
+  --el-border-color: var(--app-border-primary);
+  --el-border-color-light: var(--app-border-secondary);
+  
+  --el-card-bg-color: var(--app-bg-card);
+  --el-card-border-color: var(--app-border-secondary);
+  
+  /* Button overrides */
+  --el-button-bg-color: #ffffff;
+  --el-button-border-color: var(--app-border-primary);
+  --el-button-hover-bg-color: var(--app-primary-lightest);
+  --el-button-hover-border-color: var(--app-primary);
+  --el-button-active-bg-color: var(--app-primary-lighter);
+
+  /* ===== Framework/Layout Overrides ===== */
+  --pure-theme-menu-bg: rgba(255, 255, 255, 0.9);
+  --pure-theme-sidebar-logo: rgba(255, 255, 255, 0.95);
+  --pure-theme-sub-menu-bg: rgba(255, 255, 255, 0.9);
+  --pure-theme-menu-text: var(--app-text-primary);
+  --pure-theme-menu-active-text: var(--app-primary);
+}
+
+/* Global Component Styles for Stitch Look (Light) */
+html {
+    .el-card {
+        backdrop-filter: blur(var(--app-backdrop-blur));
+        border: 1px solid var(--app-border-secondary);
+        box-shadow: var(--app-shadow-card);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        
+        &:hover {
+            box-shadow: var(--app-shadow-glow);
+            transform: translateY(-2px);
+        }
+    }
+
+    .el-button--primary {
+        --el-button-bg-color: var(--app-primary);
+        --el-button-border-color: var(--app-primary);
+        --el-button-hover-bg-color: var(--app-primary-light);
+        --el-button-text-color: #ffffff;
+        font-weight: 600;
+        box-shadow: 0 4px 6px rgba(8, 145, 178, 0.2);
+        
+        &:hover {
+            box-shadow: 0 6px 10px rgba(8, 145, 178, 0.3);
+        }
+    }
+}
+
+/* =========================================
+   DARK MODE - "Cyber Night"
+   Deep, Neon, Glassy
+   ========================================= */
+html.dark {
+  /* ===== Theme Colors (Cyan & Indigo) ===== */
+  --app-primary: #06b6d4; /* cyan-500 */
+  --app-primary-rgb: 6, 182, 212;
+  --app-primary-light: #22d3ee; /* cyan-400 */
+  --app-primary-lighter: #67e8f9; /* cyan-300 */
+  --app-primary-lightest: #cffafe; /* cyan-100 */
+  --app-primary-dark: #0891b2; /* cyan-600 */
+  --app-primary-darker: #0e7490; /* cyan-700 */
+  
+  --app-info: #6366f1; /* indigo-500 */
+  --app-info-light: #818cf8;
+  --app-info-dark: #4f46e5;
+
+  /* ===== Backgrounds (Slate) ===== */
+  --app-bg-primary: #020617; /* slate-950 */
+  --app-bg-secondary: #0f172a; /* slate-900 */
+  --app-bg-tertiary: #1e293b; /* slate-800 */
+  --app-bg-quaternary: #334155; /* slate-700 */
+  --app-bg-overlay: rgba(15, 23, 42, 0.8); /* slate-900 with opacity */
+  --app-bg-page: #020617;
+  
+  --app-bg-card: rgba(30, 41, 59, 0.4); /* slate-800/40 */
+  --app-bg-card-hover: rgba(30, 41, 59, 0.6);
+
+  /* ===== Borders ===== */
+  --app-border-primary: rgba(255, 255, 255, 0.08);
+  --app-border-secondary: rgba(255, 255, 255, 0.05);
+  --app-border-focus: #06b6d4;
+
+  /* ===== Text ===== */
+  --app-text-primary: #f8fafc; /* slate-50 */
+  --app-text-secondary: #cbd5e1; /* slate-300 */
+  --app-text-tertiary: #94a3b8; /* slate-400 */
+  --app-text-disabled: #64748b; /* slate-500 */
+
+  /* ===== Glass & Effects ===== */
+  --app-glass-bg: rgba(15, 23, 42, 0.6);
+  --app-glass-border: rgba(255, 255, 255, 0.08);
+  --app-backdrop-blur: 12px;
+  
+  --app-shadow-glow: 0 0 15px rgba(6, 182, 212, 0.15);
+  --app-shadow-card: none;
+  
+  /* ===== Element Plus Overrides (Dark) ===== */
+  --el-color-primary: var(--app-primary);
+  --el-bg-color: var(--app-bg-secondary);
+  --el-bg-color-page: var(--app-bg-primary);
+  --el-bg-color-overlay: var(--app-bg-tertiary);
+  --el-border-color: var(--app-border-primary);
+  --el-border-color-light: var(--app-border-secondary);
+  
+  --el-card-bg-color: var(--app-bg-card);
+  --el-card-border-color: var(--app-border-primary);
+  
+  /* Button overrides for that "Cyber" feel */
+  --el-button-bg-color: rgba(255, 255, 255, 0.05);
+  --el-button-border-color: rgba(255, 255, 255, 0.1);
+  --el-button-hover-bg-color: rgba(6, 182, 212, 0.1);
+  --el-button-hover-border-color: var(--app-primary);
+  --el-button-active-bg-color: rgba(6, 182, 212, 0.2);
+
+  /* ===== Framework/Layout Overrides ===== */
+  /* Force sidebar to use translucent overlay color instead of solid bg */
+  --pure-theme-menu-bg: var(--app-bg-overlay);
+  --pure-theme-sidebar-logo: var(--app-bg-overlay);
+  --pure-theme-sub-menu-bg: var(--app-bg-overlay);
+  
+  /* Ensure text colors are correct in dark mode */
+  --pure-theme-menu-text: var(--app-text-secondary);
+  --pure-theme-menu-active-text: #ffffff;
+}
+
+/* Global Component Styles for Stitch Look (Dark Overrides) */
+html.dark {
+    .el-card {
+        border: 1px solid var(--app-border-primary);
+        
+        &:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+    }
+
+    .el-button--primary {
+        --el-button-text-color: #000; /* Black text on Cyan for contrast */
+        box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+        
+        &:hover {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+    }
+    
+    .el-input__wrapper {
+        background-color: rgba(15, 23, 42, 0.5) !important;
+        box-shadow: none !important;
+        border: 1px solid var(--app-border-primary);
+        
+        &.is-focus {
+            border-color: var(--app-primary);
+            box-shadow: 0 0 0 1px var(--app-primary) !important;
+        }
+    }
+    
+    .el-menu {
+        --el-menu-bg-color: transparent;
+        border-right: none;
+    }
+    
+    .el-table {
+        --el-table-bg-color: transparent;
+        --el-table-tr-bg-color: transparent;
+        --el-table-header-bg-color: rgba(30, 41, 59, 0.5);
+        --el-table-row-hover-bg-color: rgba(6, 182, 212, 0.05);
+        background: transparent !important;
+        
+        th.el-table__cell {
+            background: transparent !important;
+        }
+        
+        tr {
+            background: transparent !important;
+        }
+    }
+}

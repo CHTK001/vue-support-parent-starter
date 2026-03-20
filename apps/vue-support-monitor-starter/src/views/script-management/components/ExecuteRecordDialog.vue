@@ -13,7 +13,7 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-input
+          <ScInput
             v-model="queryParams.scriptName"
             placeholder="搜索脚本名称..."
             clearable
@@ -23,30 +23,30 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </el-input>
-          <el-select
+          </ScInput>
+          <ScSelect
             v-model="queryParams.executeMethod"
             placeholder="执行方式"
             clearable
             class="filter-select"
             @change="handleFilter"
           >
-            <el-option label="SSH" value="SSH" />
-            <el-option label="NODE" value="NODE" />
-          </el-select>
-          <el-select
+            <ScOption label="SSH" value="SSH" />
+            <ScOption label="NODE" value="NODE" />
+          </ScSelect>
+          <ScSelect
             v-model="queryParams.executeResult"
             placeholder="执行结果"
             clearable
             class="filter-select"
             @change="handleFilter"
           >
-            <el-option label="成功" value="SUCCESS" />
-            <el-option label="失败" value="FAILED" />
-            <el-option label="运行中" value="RUNNING" />
-            <el-option label="超时" value="TIMEOUT" />
-          </el-select>
-          <el-date-picker
+            <ScOption label="成功" value="SUCCESS" />
+            <ScOption label="失败" value="FAILED" />
+            <ScOption label="运行中" value="RUNNING" />
+            <ScOption label="超时" value="TIMEOUT" />
+          </ScSelect>
+          <ScDatePicker
             v-model="dateRange"
             type="daterange"
             range-separator="至"
@@ -59,21 +59,21 @@
           />
         </div>
         <div class="toolbar-right">
-          <el-tooltip content="刷新" placement="top">
-            <el-button type="primary" circle @click="loadRecords">
+          <ScTooltip content="刷新" placement="top">
+            <ScButton type="primary" circle @click="loadRecords">
               <IconifyIconOnline icon="ri:refresh-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="清空记录" placement="top">
-            <el-button type="danger" circle @click="handleClearAll">
+            </ScButton>
+          </ScTooltip>
+          <ScTooltip content="清空记录" placement="top">
+            <ScButton type="danger" circle @click="handleClearAll">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
-          </el-tooltip>
+            </ScButton>
+          </ScTooltip>
         </div>
       </div>
 
       <!-- 记录表格 -->
-      <el-table
+      <ScTable
         v-loading="loading"
         :data="records"
         stripe
@@ -81,23 +81,23 @@
         class="record-table"
         @row-click="handleRowClick"
       >
-        <el-table-column label="脚本信息" min-width="180">
+        <ScTableColumn label="脚本信息" min-width="180">
           <template #default="{ row }">
             <div class="script-info">
               <div class="script-name">{{ row.monitorSysGenScriptName }}</div>
-              <el-tag
+              <ScTag
                 size="small"
                 :type="getTypeTagType(row.monitorSysGenScriptType)"
               >
                 {{ row.monitorSysGenScriptType }}
-              </el-tag>
+              </ScTag>
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="执行方式" width="100" align="center">
+        <ScTableColumn label="执行方式" width="100" align="center">
           <template #default="{ row }">
-            <el-tag
+            <ScTag
               :type="
                 row.monitorSysGenScriptExecuteMethod === 'SSH'
                   ? 'success'
@@ -106,14 +106,14 @@
               size="small"
             >
               {{ row.monitorSysGenScriptExecuteMethod }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="目标服务器" min-width="200">
+        <ScTableColumn label="目标服务器" min-width="200">
           <template #default="{ row }">
             <div class="server-list">
-              <el-tag
+              <ScTag
                 v-for="server in getServerList(
                   row.monitorSysGenScriptExecuteServerNames,
                 )"
@@ -123,74 +123,74 @@
                 class="server-tag"
               >
                 {{ server }}
-              </el-tag>
+              </ScTag>
             </div>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="执行结果" width="100" align="center">
+        <ScTableColumn label="执行结果" width="100" align="center">
           <template #default="{ row }">
-            <el-tag
+            <ScTag
               :type="getResultTagType(row.monitorSysGenScriptExecuteResult)"
               size="small"
             >
               {{ getResultText(row.monitorSysGenScriptExecuteResult) }}
-            </el-tag>
+            </ScTag>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="耗时" width="100" align="center">
+        <ScTableColumn label="耗时" width="100" align="center">
           <template #default="{ row }">
             <span class="duration">{{
               formatDuration(row.monitorSysGenScriptExecuteDuration)
             }}</span>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="执行时间" width="160" align="center">
+        <ScTableColumn label="执行时间" width="160" align="center">
           <template #default="{ row }">
             <span class="execute-time">{{
               formatTime(row.monitorSysGenScriptExecuteTime)
             }}</span>
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="执行人" width="100" align="center">
+        <ScTableColumn label="执行人" width="100" align="center">
           <template #default="{ row }">
             {{ row.monitorSysGenScriptExecuteUser || "-" }}
           </template>
-        </el-table-column>
+        </ScTableColumn>
 
-        <el-table-column label="操作" width="120" align="center" fixed="right">
+        <ScTableColumn label="操作" width="120" align="center" fixed="right">
           <template #default="{ row }">
             <el-button-group>
-              <el-tooltip content="查看详情" placement="top">
-                <el-button
+              <ScTooltip content="查看详情" placement="top">
+                <ScButton
                   text
                   size="small"
                   @click.stop="handleViewDetail(row)"
                 >
                   <IconifyIconOnline icon="ri:eye-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="删除" placement="top">
-                <el-button
+                </ScButton>
+              </ScTooltip>
+              <ScTooltip content="删除" placement="top">
+                <ScButton
                   text
                   size="small"
                   type="danger"
                   @click.stop="handleDelete(row)"
                 >
                   <IconifyIconOnline icon="ri:delete-bin-line" />
-                </el-button>
-              </el-tooltip>
+                </ScButton>
+              </ScTooltip>
             </el-button-group>
           </template>
-        </el-table-column>
-      </el-table>
+        </ScTableColumn>
+      </ScTable>
 
       <!-- 分页 -->
       <div class="pagination-wrapper">
-        <el-pagination
+        <ScPagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
           :total="pagination.total"
@@ -213,20 +213,20 @@
         <!-- 基本信息 -->
         <div class="detail-section">
           <h4>基本信息</h4>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="脚本名称">
+          <ScDescriptions :column="2" border>
+            <ScDescriptionsItem label="脚本名称">
               {{ selectedRecord.monitorSysGenScriptName }}
-            </el-descriptions-item>
-            <el-descriptions-item label="脚本类型">
-              <el-tag
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="脚本类型">
+              <ScTag
                 size="small"
                 :type="getTypeTagType(selectedRecord.monitorSysGenScriptType)"
               >
                 {{ selectedRecord.monitorSysGenScriptType }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="执行方式">
-              <el-tag
+              </ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="执行方式">
+              <ScTag
                 :type="
                   selectedRecord.monitorSysGenScriptExecuteMethod === 'SSH'
                     ? 'success'
@@ -235,10 +235,10 @@
                 size="small"
               >
                 {{ selectedRecord.monitorSysGenScriptExecuteMethod }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="执行结果">
-              <el-tag
+              </ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="执行结果">
+              <ScTag
                 :type="
                   getResultTagType(
                     selectedRecord.monitorSysGenScriptExecuteResult,
@@ -249,32 +249,32 @@
                 {{
                   getResultText(selectedRecord.monitorSysGenScriptExecuteResult)
                 }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="执行时间">
+              </ScTag>
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="执行时间">
               {{ formatTime(selectedRecord.monitorSysGenScriptExecuteTime) }}
-            </el-descriptions-item>
-            <el-descriptions-item label="耗时">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="耗时">
               {{
                 formatDuration(
                   selectedRecord.monitorSysGenScriptExecuteDuration,
                 )
               }}
-            </el-descriptions-item>
-            <el-descriptions-item label="退出码">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="退出码">
               {{ selectedRecord.monitorSysGenScriptExecuteExitCode ?? "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="执行人">
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="执行人">
               {{ selectedRecord.monitorSysGenScriptExecuteUser || "-" }}
-            </el-descriptions-item>
-          </el-descriptions>
+            </ScDescriptionsItem>
+          </ScDescriptions>
         </div>
 
         <!-- 目标服务器 -->
         <div class="detail-section">
           <h4>目标服务器</h4>
           <div class="server-tags">
-            <el-tag
+            <ScTag
               v-for="server in getServerList(
                 selectedRecord.monitorSysGenScriptExecuteServerNames,
               )"
@@ -283,7 +283,7 @@
               type="info"
             >
               {{ server }}
-            </el-tag>
+            </ScTag>
           </div>
         </div>
 

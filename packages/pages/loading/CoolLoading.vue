@@ -37,7 +37,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   loadingText: "组件加载中...",
   showProgress: true,
-  type: ""
+  type: "",
 });
 
 // 使用 ref 来存储当前动画类型，以便响应 localStorage 变化
@@ -110,10 +110,12 @@ const loadingMap: Record<string, unknown> = {
   mario: MarioLoading,
   book: BookFlipLoading,
   bookWrite: BookWritingLoading,
-  beaver: BeaverClamLoading
+  beaver: BeaverClamLoading,
 };
 
-const currentComponent = computed(() => loadingMap[currentKey.value] || DefaultLoading);
+const currentComponent = computed(
+  () => loadingMap[currentKey.value] || DefaultLoading,
+);
 </script>
 
 <template>
@@ -133,5 +135,3 @@ const currentComponent = computed(() => loadingMap[currentKey.value] || DefaultL
   z-index: 9999;
 }
 </style>
-
- 

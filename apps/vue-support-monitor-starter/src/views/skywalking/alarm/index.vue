@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <div class="header-icon">
-          <el-icon :size="28"><Bell /></el-icon>
+          <ScIcon :size="28"><Bell /></ScIcon>
         </div>
         <div class="header-text">
           <h2>告警中心</h2>
@@ -12,20 +12,20 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-select
+        <ScSelect
           v-model="filterForm.configId"
           placeholder="选择配置"
           style="width: 180px"
           @change="fetchData"
         >
-          <el-option
+          <ScOption
             v-for="item in configList"
             :key="item.skywalkingConfigId"
             :label="item.skywalkingConfigName"
             :value="item.skywalkingConfigId"
           />
-        </el-select>
-        <el-date-picker
+        </ScSelect>
+        <ScDatePicker
           v-model="timeRange"
           type="datetimerange"
           range-separator="-"
@@ -36,21 +36,21 @@
           style="width: 280px"
           @change="handleTimeChange"
         />
-        <el-input
+        <ScInput
           v-model="filterForm.keyword"
           placeholder="关键字搜索"
           clearable
           style="width: 180px"
         />
-        <el-button type="primary" :icon="Search" @click="fetchData"
+        <ScButton type="primary" :icon="Search" @click="fetchData"
           >查询</el-button
         >
-        <el-button :icon="RefreshRight" @click="resetFilter">重置</el-button>
+        <ScButton :icon="RefreshRight" @click="resetFilter">重置</ScButton>
       </div>
     </div>
 
     <!-- 告警列表 -->
-    <el-card v-loading="loading" class="table-card" shadow="never">
+    <ScCard v-loading="loading" class="table-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>告警列表</span>
@@ -58,41 +58,41 @@
         </div>
       </template>
 
-      <el-table
+      <ScTable
         :data="filteredList"
         stripe
         border
         style="width: 100%"
         max-height="calc(100vh - 340px)"
       >
-        <el-table-column label="时间" width="180">
+        <ScTableColumn label="时间" width="180">
           <template #default="{ row }">
             {{ formatTs(row.startTime) }}
           </template>
-        </el-table-column>
-        <el-table-column prop="scope" label="范围" width="120" />
-        <el-table-column
+        </ScTableColumn>
+        <ScTableColumn prop="scope" label="范围" width="120" />
+        <ScTableColumn
           prop="message"
           label="信息"
           min-width="360"
           show-overflow-tooltip
         />
-        <el-table-column label="标签" min-width="200">
+        <ScTableColumn label="标签" min-width="200">
           <template #default="{ row }">
             <el-space wrap>
-              <el-tag
+              <ScTag
                 v-for="(t, idx) in row.tags || []"
                 :key="idx"
                 size="small"
                 effect="plain"
               >
                 {{ t.key }}: {{ t.value }}
-              </el-tag>
+              </ScTag>
             </el-space>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+        </ScTableColumn>
+      </ScTable>
+    </ScCard>
   </div>
 </template>
 

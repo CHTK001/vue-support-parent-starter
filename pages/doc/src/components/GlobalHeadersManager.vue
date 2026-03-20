@@ -10,11 +10,7 @@
         </ScButton>
       </div>
       <div class="preview-content" v-if="headerCount > 0">
-        <div
-          v-for="(value, key) in headers"
-          :key="key"
-          class="header-item"
-        >
+        <div v-for="(value, key) in headers" :key="key" class="header-item">
           <span class="header-key">{{ key }}:</span>
           <span class="header-value">{{ maskValue(String(value)) }}</span>
         </div>
@@ -42,19 +38,19 @@
             :key="index"
             class="header-row"
           >
-            <ScInput 
+            <ScInput
               v-model="header.key"
               placeholder="请求头名称"
               size="small"
               style="flex: 1"
             />
-            <ScInput 
+            <ScInput
               v-model="header.value"
               placeholder="请求头值"
               size="small"
               style="flex: 2; margin-left: 8px"
             />
-            <ScButton 
+            <ScButton
               @click="removeHeader(index)"
               size="small"
               type="danger"
@@ -78,8 +74,8 @@
         </div>
 
         <div class="common-headers-tips">
-          <el-collapse>
-            <el-collapse-item title="常用请求头示例" name="examples">
+          <ScCollapse>
+            <ScCollapseItem title="常用请求头示例" name="examples">
               <div class="examples-list">
                 <div class="example-item">
                   <strong>Authorization:</strong> Bearer your-token-here
@@ -97,8 +93,8 @@
                   <strong>User-Agent:</strong> ApiDocumentation/1.0
                 </div>
               </div>
-            </el-collapse-item>
-          </el-collapse>
+            </ScCollapseItem>
+          </ScCollapse>
         </div>
       </div>
 
@@ -137,7 +133,7 @@ const props = withDefaults(
     headers: () => ({}),
     storageKey: "apiDocGlobalHeaders",
     maskSensitiveValues: true,
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -157,7 +153,7 @@ const headerCount = computed(() => {
 // 敏感值掩码
 const maskValue = (value: string): string => {
   if (!props.maskSensitiveValues) return value;
-  
+
   // 对可能包含敏感信息的值进行掩码处理
   if (value.length > 8) {
     return value.substring(0, 4) + "****" + value.substring(value.length - 4);

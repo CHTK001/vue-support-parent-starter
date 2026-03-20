@@ -1,6 +1,6 @@
 <template>
-  <component 
-    :is="panelTitleComponent" 
+  <component
+    :is="panelTitleComponent"
     v-bind="$attrs"
     :title="title"
     :glow="glow"
@@ -30,33 +30,36 @@ import { computed, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechPanelTitle",
-  inheritAttrs: false
+  inheritAttrs: false,
 });
 
 // 面板标题变体类型 (实际可用: A1-A3)
 type PanelTitleVariant = "A1" | "A2" | "A3";
 
-const props = withDefaults(defineProps<{
-  /** 标题变体 */
-  variant?: PanelTitleVariant;
-  /** 标题文本 */
-  title?: string;
-  /** 是否显示发光效果 */
-  glow?: boolean;
-  /** 发光透明度 */
-  glowOpacity?: number;
-  /** 装饰颜色替换 */
-  decorationColorAlt?: boolean;
-  /** 自定义类名 */
-  className?: string;
-}>(), {
-  variant: "A1",
-  title: "",
-  glow: true,
-  glowOpacity: 0.5,
-  decorationColorAlt: false,
-  className: ""
-});
+const props = withDefaults(
+  defineProps<{
+    /** 标题变体 */
+    variant?: PanelTitleVariant;
+    /** 标题文本 */
+    title?: string;
+    /** 是否显示发光效果 */
+    glow?: boolean;
+    /** 发光透明度 */
+    glowOpacity?: number;
+    /** 装饰颜色替换 */
+    decorationColorAlt?: boolean;
+    /** 自定义类名 */
+    className?: string;
+  }>(),
+  {
+    variant: "A1",
+    title: "",
+    glow: true,
+    glowOpacity: 0.5,
+    decorationColorAlt: false,
+    className: "",
+  },
+);
 
 // 根据 variant 动态选择组件
 const panelTitleComponent = computed(() => {

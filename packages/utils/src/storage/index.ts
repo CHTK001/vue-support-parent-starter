@@ -1,4 +1,8 @@
-import { storageLocal, storageSession, type ProxyStorage } from "@pureadmin/utils";
+import {
+  storageLocal,
+  storageSession,
+  type ProxyStorage,
+} from "@pureadmin/utils";
 import { responsiveStorageNameSpace } from "@repo/config";
 import { getConfig } from "@repo/config";
 // 导入WASM版本存储加密函数（禁止降级到JS实现）
@@ -34,7 +38,7 @@ class SyncSessionStorageProxy {
       const value = storageSession().getItem(key);
       return value as T;
     }
-    
+
     const config = getConfig();
     const value = storageSession().getItem(key);
     if (config.StorageEncode) {
@@ -66,13 +70,13 @@ class SyncLocalStorageProxy {
     if (!key) {
       return;
     }
-    
+
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       storageLocal().setItem(key, value);
       return;
     }
-    
+
     // 同步方式处理存储
     let storageValue: any = value;
     if (config.StorageEncode && !key.startsWith(responsiveStorageNameSpace())) {
@@ -90,14 +94,14 @@ class SyncLocalStorageProxy {
     if (!key) {
       return null as T;
     }
-    
+
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       return storageLocal().getItem(key) as T;
     }
 
     const value = storageLocal().getItem(key);
-    if(!value) {
+    if (!value) {
       return null as T;
     }
     if (config.StorageEncode) {
@@ -130,13 +134,13 @@ class CustomSessionStorageProxy {
     if (!key) {
       return;
     }
-    
+
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       storageSession().setItem(key, value);
       return;
     }
-    
+
     // 使用WASM处理存储加密
     let storageValue: any = value;
     if (config.StorageEncode && !key.startsWith(responsiveStorageNameSpace())) {
@@ -165,10 +169,10 @@ class CustomSessionStorageProxy {
       const value = storageSession().getItem(key);
       return value as T;
     }
-    
+
     const config = getConfig();
     const value = storageSession().getItem(key);
-    if(!value) {
+    if (!value) {
       return null as T;
     }
 
@@ -213,16 +217,16 @@ class CustomLocalStorageProxy {
     if (!key) {
       return;
     }
-    
+
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       storageLocal().setItem(key, value);
       return;
     }
-    
+
     // 使用同步方式处理存储key加密
     const newKey = encryptStorageKey(key, config.SystemCode);
-    
+
     let storageValue: any = value;
     if (config.StorageEncode) {
       try {
@@ -251,7 +255,7 @@ class CustomLocalStorageProxy {
     if (!key) {
       return null as T;
     }
-    
+
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       return storageLocal().getItem(key) as T;
@@ -265,9 +269,9 @@ class CustomLocalStorageProxy {
       console.error("存储key加密失败:", error);
       newKey = key;
     }
-    
+
     const value = storageLocal().getItem(newKey);
-    if(!value) {
+    if (!value) {
       return null as T;
     }
     if (config.StorageEncode) {
@@ -301,13 +305,13 @@ class CustomLocalStorageProxy {
     if (!key) {
       return;
     }
-    
+
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       storageLocal().removeItem(key);
       return;
     }
-    
+
     // 使用同步方式处理存储key加密
     const newKey = encryptStorageKey(key, config.SystemCode);
     storageLocal().removeItem(newKey);

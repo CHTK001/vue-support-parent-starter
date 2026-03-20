@@ -12,7 +12,7 @@ export interface RegionData {
 }
 
 /** 数据源类型 */
-export type DataSourceType = 'custom' | 'element-china-area-data';
+export type DataSourceType = "custom" | "element-china-area-data";
 
 export interface RegionProps {
   modelValue?: string | string[] | string[][];
@@ -22,7 +22,7 @@ export interface RegionProps {
   disabled?: boolean;
   clearable?: boolean;
   filterable?: boolean;
-  size?: 'large' | 'default' | 'small';
+  size?: "large" | "default" | "small";
   showAllLevels?: boolean;
   separator?: string;
   data?: RegionData[];
@@ -45,6 +45,6 @@ export interface RegionProps {
 }
 
 export interface RegionEmits {
-  (e: 'update:modelValue', value: string | string[] | string[][]): void;
-  (e: 'change', value: string | string[] | string[][]): void;
+  (e: "update:modelValue", value: string | string[] | string[][]): void;
+  (e: "change", value: string | string[] | string[][]): void;
 }

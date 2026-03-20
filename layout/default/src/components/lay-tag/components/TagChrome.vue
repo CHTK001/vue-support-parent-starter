@@ -2,7 +2,10 @@
   <svg class="w-full h-full">
     <defs>
       <symbol id="geometry-left" viewBox="0 0 214 36">
-        <path d="M17 0h197v36H0v-2c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z" fill="currentColor" />
+        <path
+          d="M17 0h197v36H0v-2c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z"
+          fill="currentColor"
+        />
       </symbol>
       <symbol id="geometry-right" viewBox="0 0 214 36">
         <use xlink:href="#geometry-left" />
@@ -33,7 +36,7 @@
   padding: 6px 24px;
   white-space: nowrap;
   cursor: pointer;
-  
+
   .tag-title {
     padding: 0;
     color: var(--cb-color-text-primary);
@@ -80,23 +83,23 @@
       background-color: var(--cb-color-bg-chrome-close-hover);
     }
   }
-  
+
   // 激活状态的Chrome标签页
   &.is-active {
     .tag-title {
       color: #fff !important;
     }
-    
+
     .chrome-tab__bg {
       color: var(--el-color-primary) !important;
     }
-    
+
     // 激活状态悬停时不改变背景色
     &:hover {
       .chrome-tab__bg {
         color: var(--el-color-primary) !important;
       }
-      
+
       .tag-title {
         color: #fff !important;
       }
@@ -110,12 +113,12 @@
     fill: currentColor;
     color: currentColor;
   }
-  
+
   path {
     fill: currentColor;
     color: currentColor;
   }
-  
+
   use {
     color: currentColor;
     fill: currentColor;
@@ -129,12 +132,12 @@ html.dark {
       color: currentColor;
       fill: currentColor;
     }
-    
+
     path {
       color: currentColor;
       fill: currentColor;
     }
-    
+
     use {
       color: currentColor;
       fill: currentColor;

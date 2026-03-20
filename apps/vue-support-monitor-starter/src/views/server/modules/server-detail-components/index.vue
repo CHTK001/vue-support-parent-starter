@@ -12,13 +12,13 @@
             <span class="server-name">{{
               serverInfo?.name || "服务器详情"
             }}</span>
-            <el-tag
+            <ScTag
               :type="getStatusType(serverInfo?.status)"
               size="small"
               class="status-tag"
             >
               {{ getStatusText(serverInfo?.status) }}
-            </el-tag>
+            </ScTag>
           </div>
           <div class="server-subtitle">
             {{ serverInfo?.host }}:{{ serverInfo?.port }} |
@@ -27,7 +27,7 @@
         </div>
       </div>
       <div class="header-right">
-        <el-button
+        <ScButton
           type="success"
           :loading="refreshLoading"
           plain
@@ -36,8 +36,8 @@
         >
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="primary"
           :loading="loading"
           plain
@@ -46,8 +46,8 @@
         >
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           初始化组件
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="info"
           plain
           size="small"
@@ -55,8 +55,8 @@
         >
           <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
           管理组件
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           :type="editMode ? 'success' : 'warning'"
           plain
           size="small"
@@ -67,18 +67,18 @@
             class="mr-1"
           />
           {{ editMode ? "保存布局" : "编辑布局" }}
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 组件网格布局 -->
     <div v-loading="loading" class="components-container">
       <div v-if="components.length === 0" class="empty-state">
-        <el-empty description="暂无组件">
-          <el-button type="primary" @click="handleInitDefaultComponents">
+        <ScEmpty description="暂无组件">
+          <ScButton type="primary" @click="handleInitDefaultComponents">
             初始化默认组件
-          </el-button>
-        </el-empty>
+          </ScButton>
+        </ScEmpty>
       </div>
 
       <GridLayoutEditor

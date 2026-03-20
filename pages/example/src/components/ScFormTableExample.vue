@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import ScFormTable from "@repo/components/ScFormTable/index.vue";
+import { ScFormTable } from "@repo/components"
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -130,8 +130,7 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import ScFormTable from "@repo/components/ScFormTable/index.vue";
-
+import { ScFormTable } from "@repo/components"
 const rows = ref([{ key: "name", value: "demo" }]);`,
   },
 ]);

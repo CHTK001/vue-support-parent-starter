@@ -4,7 +4,7 @@
     :style="{ height: height + 'px' }"
   >
     <div v-if="loading" class="loading-container">
-      <el-skeleton :rows="2" animated />
+      <ScSkeleton :rows="2" animated />
     </div>
     <div v-else class="card-content">
       <div class="card-main">
@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 const props = defineProps({
   chartData: {

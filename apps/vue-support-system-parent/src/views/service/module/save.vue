@@ -144,38 +144,38 @@ defineExpose({
       draggable
       :close-on-click-modal="false"
     >
-      <el-form
+      <ScForm
         ref="formRef"
         :model="env.form"
         :rules="rules"
         label-width="120px"
         class="modern-form"
       >
-        <el-form-item label="名称" prop="sysServiceModuleName">
-          <el-input
+        <ScFormItem label="名称" prop="sysServiceModuleName">
+          <ScInput
             v-model="env.form.sysServiceModuleName"
             placeholder="请输入名称"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="编码" prop="sysServiceModuleCode">
-          <el-input
+        <ScFormItem label="编码" prop="sysServiceModuleCode">
+          <ScInput
             v-model="env.form.sysServiceModuleCode"
             placeholder="请输入编码"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="类型" prop="sysServiceModuleType">
-          <el-select
+        <ScFormItem label="类型" prop="sysServiceModuleType">
+          <ScSelect
             v-model="env.form.sysServiceModuleType"
             placeholder="请选择类型"
           >
-            <el-option label="接口" value="API" />
-            <el-option label="服务" value="SERVICE" />
-          </el-select>
-        </el-form-item>
+            <ScOption label="接口" value="API" />
+            <ScOption label="服务" value="SERVICE" />
+          </ScSelect>
+        </ScFormItem>
 
-        <el-form-item
+        <ScFormItem
           v-if="env.form.sysServiceModuleType == 'SERVICE'"
           label="选中菜单"
           prop="sysServiceModuleMenuTagsList"
@@ -191,32 +191,32 @@ defineExpose({
             :render-after-expand="false"
             @check="handleSelect"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="优先级" prop="sysServiceModuleSort">
-          <el-input-number
+        <ScFormItem label="优先级" prop="sysServiceModuleSort">
+          <ScInputNumber
             v-model="env.form.sysServiceModuleSort"
             placeholder="请输入编码"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="版本" prop="sysServiceModuleVersion">
-          <el-input
+        <ScFormItem label="版本" prop="sysServiceModuleVersion">
+          <ScInput
             v-model="env.form.sysServiceModuleVersion"
             placeholder="请输入描述"
           />
-        </el-form-item>
+        </ScFormItem>
 
-        <el-form-item label="描述" prop="sysServiceModuleRemark">
-          <el-input
+        <ScFormItem label="描述" prop="sysServiceModuleRemark">
+          <ScInput
             v-model="env.form.sysServiceModuleRemark"
             placeholder="请输入描述"
           />
-        </el-form-item>
-      </el-form>
+        </ScFormItem>
+      </ScForm>
       <template #footer>
-        <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
-        <el-button
+        <ScButton @click="handleClose">{{ $t("buttons.cancel") }}</ScButton>
+        <ScButton
           type="primary"
           :loading="env.loading"
           @click="handleUpdate"

@@ -2,7 +2,7 @@
  * useTableExpand - 表格行展开 composable
  * 管理行展开状态
  */
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { ref, computed, type Ref, type ComputedRef } from "vue";
 
 /** 展开选项 */
 export interface ExpandOptions {
@@ -50,12 +50,7 @@ export interface ExpandReturn {
  * 表格行展开 composable
  */
 export function useTableExpand(options: ExpandOptions = {}): ExpandReturn {
-  const {
-    enabled = false,
-    accordion = false,
-    defaultExpandKeys = [],
-    rowKey = 'id',
-  } = options;
+  const { enabled = false, accordion = false, defaultExpandKeys = [], rowKey = "id" } = options;
 
   const isEnabled = ref(enabled);
   const isAccordion = ref(accordion);
@@ -163,7 +158,7 @@ export function useTableExpand(options: ExpandOptions = {}): ExpandReturn {
     collapseAll,
     isExpanded,
     setExpandedKeys,
-    getRowKey,
+    getRowKey
   };
 }
 

@@ -39,7 +39,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { validate } from "../validation";
 import { getDefaultIcon } from "../defaultIcons";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 interface IpSegment {
   value: string;
@@ -439,24 +439,24 @@ function handleClear() {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   // 已填充状态
-    &.is-filled {
-      .sc-ip-input-class {
-        background: var(--el-fill-color-light);
-        border-radius: 4px;
-      }
+  &.is-filled {
+    .sc-ip-input-class {
+      background: var(--el-fill-color-light);
+      border-radius: 4px;
     }
+  }
 
-    // 激活状态
-    &.is-active {
-      transform: scale(1.05);
-      z-index: 1;
+  // 激活状态
+  &.is-active {
+    transform: scale(1.05);
+    z-index: 1;
 
-      .sc-ip-input-class {
-        background: var(--el-fill-color);
-        border-radius: 4px;
-        box-shadow: 0 0 0 1px var(--el-color-primary) inset;
-      }
+    .sc-ip-input-class {
+      background: var(--el-fill-color);
+      border-radius: 4px;
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset;
     }
+  }
 }
 
 .sc-ip-input-class {
@@ -517,11 +517,11 @@ function handleClear() {
 }
 
 .sc-ip-input__error {
-color: var(--el-color-danger);
-font-size: 12px;
-line-height: 1;
-padding-top: 4px;
-margin-left: 1px;
+  color: var(--el-color-danger);
+  font-size: 12px;
+  line-height: 1;
+  padding-top: 4px;
+  margin-left: 1px;
 }
 
 // 移动端适配

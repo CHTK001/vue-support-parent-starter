@@ -23,7 +23,7 @@
           </span>
         </div>
         <div class="header-right">
-          <el-tag
+          <ScTag
             :type="
               getComponentTypeColor(
                 componentData?.monitorSysGenServerDetailComponentType,
@@ -44,11 +44,11 @@
                 componentData?.monitorSysGenServerDetailComponentType,
               )
             }}
-          </el-tag>
-          <el-button size="small" :loading="loading" @click="handleRefresh">
+          </ScTag>
+          <ScButton size="small" :loading="loading" @click="handleRefresh">
             <IconifyIconOnline icon="ri:refresh-line" />
             刷新
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>
@@ -106,27 +106,27 @@
           </h4>
           <div class="preview-actions">
             <el-button-group>
-              <el-button
+              <ScButton
                 size="small"
                 :type="previewSize === 'small' ? 'primary' : ''"
                 @click="previewSize = 'small'"
               >
                 小
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 size="small"
                 :type="previewSize === 'medium' ? 'primary' : ''"
                 @click="previewSize = 'medium'"
               >
                 中
-              </el-button>
-              <el-button
+              </ScButton>
+              <ScButton
                 size="small"
                 :type="previewSize === 'large' ? 'primary' : ''"
                 @click="previewSize = 'large'"
               >
                 大
-              </el-button>
+              </ScButton>
             </el-button-group>
           </div>
         </div>
@@ -243,14 +243,14 @@
                       <td>{{ item.metric }}</td>
                       <td>{{ item.value }}</td>
                       <td>
-                        <el-tag
+                        <ScTag
                           :type="
                             item.status === 'normal' ? 'success' : 'warning'
                           "
                           size="small"
                         >
                           {{ item.status === "normal" ? "正常" : "警告" }}
-                        </el-tag>
+                        </ScTag>
                       </td>
                     </tr>
                   </tbody>
@@ -276,11 +276,11 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
-        <el-button type="primary" :loading="loading" @click="handleRefresh">
+        <ScButton @click="visible = false">关闭</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新预览
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>
@@ -288,7 +288,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import type { ServerDetailComponent } from "@/api/server";
 
 // 定义属性

@@ -1,9 +1,5 @@
 <template>
-  <component
-    :is="currentComponent"
-    class="sc-animation-frame"
-    v-bind="componentProps"
-  />
+  <component :is="currentComponent" class="sc-animation-frame" v-bind="componentProps" />
 </template>
 
 <script setup lang="ts">
@@ -119,5 +115,3 @@ const componentProps = computed(() => {
   display: inline-block;
 }
 </style>
-
-

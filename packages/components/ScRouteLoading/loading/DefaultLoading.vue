@@ -59,12 +59,7 @@ onMounted(() => {
       </div>
 
       <div class="particles">
-        <div
-          v-for="i in 20"
-          :key="i"
-          class="particle"
-          :style="getParticleStyle(i)"
-        />
+        <div v-for="i in 20" :key="i" class="particle" :style="getParticleStyle(i)" />
       </div>
     </div>
   </div>
@@ -191,12 +186,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   animation: shimmer 1.5s infinite;
 }
 
@@ -231,13 +221,11 @@ onMounted(() => {
 @keyframes float {
   0%,
   100% {
-    transform: translate(-50%, -50%) rotate(var(--angle))
-      translateX(var(--radius)) scale(0);
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--radius)) scale(0);
     opacity: 0;
   }
   50% {
-    transform: translate(-50%, -50%) rotate(var(--angle))
-      translateX(var(--radius)) scale(1);
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--radius)) scale(1);
     opacity: 1;
   }
 }
@@ -262,5 +250,3 @@ onMounted(() => {
   }
 }
 </style>
-
-

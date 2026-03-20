@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { isAllEmpty } from "@pureadmin/utils";
 import { emitter, usePermissionStoreHook } from "@repo/core";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, type Component, provide } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  type Component,
+  provide,
+} from "vue";
 import { useNav } from "../../../../hooks/useNav";
 import { useTranslationLang } from "../../../../hooks/useTranslationLang";
 import DefaultSidebarItem from "../../components/themes/DefaultSidebarItem.vue";
@@ -17,10 +25,12 @@ const props = defineProps<{
 }>();
 
 // 计算实际使用的 SidebarItem 组件
-const ThemeSidebarItem = computed(() => props.sidebarItemComponent || DefaultSidebarItem);
+const ThemeSidebarItem = computed(
+  () => props.sidebarItemComponent || DefaultSidebarItem,
+);
 
-// 提供给子组件（用于递归渲染）
-provide('themeSidebarItem', ThemeSidebarItem);
+// 提供给子组件（用于递归渲染）- 传 computed ref，inject 端用 isRef 解包
+provide("themeSidebarItem", ThemeSidebarItem);
 
 const menuRef = ref();
 
@@ -49,7 +59,7 @@ const {
 } = useNav();
 
 const defaultActive = computed(() =>
-  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
+  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path,
 );
 
 // 控制 logo 显示，从本地存储读取初始值
@@ -83,7 +93,7 @@ nextTick(() => {
       <img :src="getLogo()" alt="logo" />
       <span>{{ getConfig().Title }}</span>
     </div>
-    <el-menu
+    <ScMenu
       ref="menuRef"
       router
       mode="horizontal"
@@ -98,7 +108,7 @@ nextTick(() => {
         :item="route"
         :base-path="route.path"
       />
-    </el-menu>
+    </ScMenu>
     <div class="horizontal-header-right">
       <LayTool />
     </div>

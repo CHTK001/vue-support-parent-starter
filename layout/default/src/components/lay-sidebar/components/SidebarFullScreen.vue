@@ -20,13 +20,13 @@ const toggle = async (event?: Event) => {
     console.error("全屏切换错误:", err);
     message(
       `全屏切换失败: ${err?.message || "浏览器不支持或被拦截，可尝试按键盘 F11 进入全屏"}`,
-      { type: "error" }
+      { type: "error" },
     );
   }
 };
 
 const screenIcon = computed(() =>
-  isFullscreen.value ? ExitFullscreenIcon : FullscreenIcon
+  isFullscreen.value ? ExitFullscreenIcon : FullscreenIcon,
 );
 </script>
 
@@ -49,7 +49,7 @@ const screenIcon = computed(() =>
   z-index: 100;
   user-select: none;
   -webkit-user-select: none;
-  
+
   :deep(svg) {
     pointer-events: none;
     width: 16px;

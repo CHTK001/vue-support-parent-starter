@@ -44,7 +44,7 @@ export interface GlobalSocketService {
   on: (
     event: string,
     callback: Function,
-    options?: SocketListenOptions
+    options?: SocketListenOptions,
   ) => void;
   off: (event: string) => void;
   emit: (event: string, data?: any) => void;
@@ -75,7 +75,7 @@ export function createGlobalSocketService(
     reconnection: true,
     reconnectionAttempts: 3,
     reconnectionDelay: 1000,
-  }
+  },
 ): GlobalSocketService {
   let socketInstance: any = null;
   const isConnected = ref(false);
@@ -125,7 +125,7 @@ export function createGlobalSocketService(
   const on = (
     event: string,
     callback: Function,
-    options?: SocketListenOptions
+    options?: SocketListenOptions,
   ) => {
     if (socketInstance) {
       socketInstance.on(event, (rawData: any) => {
@@ -198,13 +198,13 @@ export function provideGlobalSocket(
   urls: string[],
   context?: string,
   query?: any,
-  options?: any
+  options?: any,
 ) {
   const socketService = createGlobalSocketService(
     urls,
     context,
     query,
-    options
+    options,
   );
   provide(GlobalSocketKey, socketService);
   return socketService;
@@ -217,7 +217,7 @@ export function useGlobalSocket(): GlobalSocketService {
   const socketService = inject(GlobalSocketKey);
   if (!socketService) {
     console.log(
-      "Global Socket服务未提供，请确保在父组件中调用了provideGlobalSocket()"
+      "Global Socket服务未提供，请确保在父组件中调用了provideGlobalSocket()",
     );
     return null;
   }
@@ -230,7 +230,7 @@ export function useGlobalSocket(): GlobalSocketService {
  * @returns InjectionKey<GlobalSocketService>
  */
 export function createSocketKey(
-  keyName: string
+  keyName: string,
 ): InjectionKey<GlobalSocketService> {
   if (!socketKeyMap.has(keyName)) {
     socketKeyMap.set(keyName, Symbol(`Socket_${keyName}`));
@@ -251,14 +251,14 @@ export function provideSocket(
   urls: string[],
   context?: string,
   query?: any,
-  options?: any
+  options?: any,
 ): GlobalSocketService {
   const socketKey = createSocketKey(keyName);
   const socketService = createGlobalSocketService(
     urls,
     context,
     query,
-    options
+    options,
   );
   provide(socketKey, socketService);
   return socketService;
@@ -278,7 +278,7 @@ export function useSocket(keyName?: string): GlobalSocketService | null {
 
   if (!socketService) {
     console.warn(
-      `Socket服务"${keyName}"未提供，请确保在父组件中调用了provideSocket("${keyName}", ...)`
+      `Socket服务"${keyName}"未提供，请确保在父组件中调用了provideSocket("${keyName}", ...)`,
     );
     return null;
   }
@@ -296,7 +296,7 @@ export const socket = (
     reconnection: true, // 是否自动重新连接
     reconnectionAttempts: 3, // 重新连接尝试次数
     reconnectionDelay: 1000, // 重新连接延迟时间（毫秒）
-  }
+  },
 ) => {
   const newOptions = {
     query: null,

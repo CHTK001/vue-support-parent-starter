@@ -6,19 +6,19 @@
         <span class="header-title">容器告警</span>
       </div>
       <div class="header-right">
-        <el-button
+        <ScButton
           :loading="loading"
           size="small"
           circle
           @click="handleRefresh"
         >
           <IconifyIconOnline icon="ri:refresh-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <div class="alerts-content">
-      <el-empty v-if="alerts.length === 0" description="暂无告警信息" />
+      <ScEmpty v-if="alerts.length === 0" description="暂无告警信息" />
 
       <div v-else class="alerts-list">
         <div
@@ -37,7 +37,7 @@
           <div class="alert-content">
             <div class="alert-message">{{ alert.message }}</div>
             <div class="alert-container">
-              <el-tag size="small">{{ alert.containerName }}</el-tag>
+              <ScTag size="small">{{ alert.containerName }}</ScTag>
             </div>
           </div>
         </div>

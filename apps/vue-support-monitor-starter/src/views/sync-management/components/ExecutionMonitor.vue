@@ -10,53 +10,53 @@
       <!-- 执行状态头部 -->
       <div class="status-header">
         <div class="status-info">
-          <el-tag :type="statusTagType" size="large" effect="dark">
-            <el-icon v-if="executing" class="is-loading"><Loading /></el-icon>
+          <ScTag :type="statusTagType" size="large" effect="dark">
+            <ScIcon v-if="executing" class="is-loading"><Loading /></ScIcon>
             {{ statusText }}
-          </el-tag>
+          </ScTag>
           <span class="duration">
-            <el-icon><Timer /></el-icon>
+            <ScIcon><Timer /></ScIcon>
             执行时长: {{ formatDuration(executionDuration) }}
           </span>
         </div>
         <div class="status-actions">
-          <el-button
+          <ScButton
             v-if="canStart"
             type="primary"
             :loading="starting"
             @click="handleStart"
           >
-            <el-icon><VideoPlay /></el-icon>
+            <ScIcon><VideoPlay /></ScIcon>
             开始执行
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             v-if="canStop"
             type="danger"
             :loading="stopping"
             @click="handleStop"
           >
-            <el-icon><VideoPause /></el-icon>
+            <ScIcon><VideoPause /></ScIcon>
             停止执行
-          </el-button>
-          <el-button :loading="refreshing" @click="handleRefresh">
-            <el-icon><Refresh /></el-icon>
+          </ScButton>
+          <ScButton :loading="refreshing" @click="handleRefresh">
+            <ScIcon><Refresh /></ScIcon>
             刷新
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
       <!-- 执行进度 -->
-      <el-card shadow="never" class="progress-card">
+      <ScCard shadow="never" class="progress-card">
         <template #header>
           <div class="card-header">
-            <el-icon><TrendCharts /></el-icon>
+            <ScIcon><TrendCharts /></ScIcon>
             <span>执行进度</span>
           </div>
         </template>
 
         <div class="progress-content">
           <div class="progress-bar">
-            <el-progress
+            <ScProgress
               :percentage="progress"
               :status="progressStatus"
               :stroke-width="20"
@@ -64,48 +64,48 @@
             />
           </div>
 
-          <el-row :gutter="24" class="progress-stats">
-            <el-col :span="6">
+          <ScRow :gutter="24" class="progress-stats">
+            <ScCol :span="6">
               <div class="stat-item">
                 <span class="stat-label">总记录数</span>
                 <span class="stat-value">{{
                   formatNumber(stats.totalRecords)
                 }}</span>
               </div>
-            </el-col>
-            <el-col :span="6">
+            </ScCol>
+            <ScCol :span="6">
               <div class="stat-item success">
                 <span class="stat-label">成功处理</span>
                 <span class="stat-value">{{
                   formatNumber(stats.successRecords)
                 }}</span>
               </div>
-            </el-col>
-            <el-col :span="6">
+            </ScCol>
+            <ScCol :span="6">
               <div class="stat-item error">
                 <span class="stat-label">处理失败</span>
                 <span class="stat-value">{{
                   formatNumber(stats.failedRecords)
                 }}</span>
               </div>
-            </el-col>
-            <el-col :span="6">
+            </ScCol>
+            <ScCol :span="6">
               <div class="stat-item">
                 <span class="stat-label">处理速度</span>
                 <span class="stat-value"
                   >{{ formatNumber(stats.recordsPerSecond) }} /s</span
                 >
               </div>
-            </el-col>
-          </el-row>
+            </ScCol>
+          </ScRow>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 数据流动可视化 -->
-      <el-card shadow="never" class="flow-card">
+      <ScCard shadow="never" class="flow-card">
         <template #header>
           <div class="card-header">
-            <el-icon><Connection /></el-icon>
+            <ScIcon><Connection /></ScIcon>
             <span>数据流动</span>
           </div>
         </template>
@@ -122,10 +122,10 @@
               ]"
             >
               <div class="node-icon">
-                <el-icon v-if="node.type === 'INPUT'"><Download /></el-icon>
-                <el-icon v-else-if="node.type === 'OUTPUT'"><Upload /></el-icon>
-                <el-icon v-else-if="node.type === 'FILTER'"><Filter /></el-icon>
-                <el-icon v-else><Connection /></el-icon>
+                <ScIcon v-if="node.type === 'INPUT'"><Download /></ScIcon>
+                <ScIcon v-else-if="node.type === 'OUTPUT'"><Upload /></ScIcon>
+                <ScIcon v-else-if="node.type === 'FILTER'"><Filter /></ScIcon>
+                <ScIcon v-else><Connection /></ScIcon>
               </div>
               <div class="node-info">
                 <span class="node-name">{{ node.name }}</span>
@@ -166,21 +166,21 @@
             </svg>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 执行日志 -->
-      <el-card shadow="never" class="logs-card">
+      <ScCard shadow="never" class="logs-card">
         <template #header>
           <div class="card-header">
-            <el-icon><Document /></el-icon>
+            <ScIcon><Document /></ScIcon>
             <span>执行日志</span>
-            <el-tag size="small" type="info">{{ logs.length }} 条</el-tag>
+            <ScTag size="small" type="info">{{ logs.length }} 条</ScTag>
             <div class="log-actions">
-              <el-checkbox v-model="autoScroll" label="自动滚动" />
-              <el-button size="small" text @click="clearLogs">
-                <el-icon><Delete /></el-icon>
+              <ScCheckbox v-model="autoScroll" label="自动滚动" />
+              <ScButton size="small" text @click="clearLogs">
+                <ScIcon><Delete /></ScIcon>
                 清空
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </template>
@@ -193,37 +193,37 @@
             :class="log.level.toLowerCase()"
           >
             <span class="log-time">{{ log.time }}</span>
-            <el-tag :type="getLogLevelType(log.level)" size="small">
+            <ScTag :type="getLogLevelType(log.level)" size="small">
               {{ log.level }}
-            </el-tag>
+            </ScTag>
             <span class="log-message">{{ log.message }}</span>
           </div>
-          <el-empty
+          <ScEmpty
             v-if="logs.length === 0"
             description="暂无日志"
             :image-size="60"
           />
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 性能指标 -->
-      <el-card shadow="never" class="metrics-card">
+      <ScCard shadow="never" class="metrics-card">
         <template #header>
           <div class="card-header">
-            <el-icon><Odometer /></el-icon>
+            <ScIcon><Odometer /></ScIcon>
             <span>性能指标</span>
           </div>
         </template>
 
-        <el-row :gutter="16">
-          <el-col :span="6">
+        <ScRow :gutter="16">
+          <ScCol :span="6">
             <div class="metric-item">
               <div class="metric-icon cpu">
-                <el-icon><Cpu /></el-icon>
+                <ScIcon><Cpu /></ScIcon>
               </div>
               <div class="metric-content">
                 <span class="metric-label">CPU 使用</span>
-                <el-progress
+                <ScProgress
                   :percentage="metrics.cpuUsage"
                   :stroke-width="6"
                   :show-text="false"
@@ -231,15 +231,15 @@
                 <span class="metric-value">{{ metrics.cpuUsage }}%</span>
               </div>
             </div>
-          </el-col>
-          <el-col :span="6">
+          </ScCol>
+          <ScCol :span="6">
             <div class="metric-item">
               <div class="metric-icon memory">
-                <el-icon><Coin /></el-icon>
+                <ScIcon><Coin /></ScIcon>
               </div>
               <div class="metric-content">
                 <span class="metric-label">内存使用</span>
-                <el-progress
+                <ScProgress
                   :percentage="metrics.memoryUsage"
                   :stroke-width="6"
                   :show-text="false"
@@ -251,11 +251,11 @@
                 >
               </div>
             </div>
-          </el-col>
-          <el-col :span="6">
+          </ScCol>
+          <ScCol :span="6">
             <div class="metric-item">
               <div class="metric-icon io">
-                <el-icon><DataLine /></el-icon>
+                <ScIcon><DataLine /></ScIcon>
               </div>
               <div class="metric-content">
                 <span class="metric-label">I/O 吞吐</span>
@@ -264,11 +264,11 @@
                 >
               </div>
             </div>
-          </el-col>
-          <el-col :span="6">
+          </ScCol>
+          <ScCol :span="6">
             <div class="metric-item">
               <div class="metric-icon latency">
-                <el-icon><Timer /></el-icon>
+                <ScIcon><Timer /></ScIcon>
               </div>
               <div class="metric-content">
                 <span class="metric-label">平均延迟</span>
@@ -277,9 +277,9 @@
                 >
               </div>
             </div>
-          </el-col>
-        </el-row>
-      </el-card>
+          </ScCol>
+        </ScRow>
+      </ScCard>
     </div>
   </sc-dialog>
 </template>

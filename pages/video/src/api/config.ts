@@ -18,7 +18,11 @@ const API_BASE = "v1/video/sync";
  * @param keyword 搜索关键词
  * @returns 分页配置列表
  */
-export const getSyncConfigs = (page: number = 1, size: number = 10, keyword?: string): Promise<PageResponse<VideoSyncConfig>> => {
+export const getSyncConfigs = (
+  page: number = 1,
+  size: number = 10,
+  keyword?: string,
+): Promise<PageResponse<VideoSyncConfig>> => {
   return http.get(`${API_BASE}/page`, {
     params: { page, size, keyword },
   });
@@ -29,7 +33,9 @@ export const getSyncConfigs = (page: number = 1, size: number = 10, keyword?: st
  * @param configId 配置ID
  * @returns 配置详情
  */
-export const getSyncConfigDetail = (configId: string): Promise<ApiResponse<VideoSyncConfig>> => {
+export const getSyncConfigDetail = (
+  configId: string,
+): Promise<ApiResponse<VideoSyncConfig>> => {
   return http.get(`${API_BASE}/detail/${configId}`);
 };
 
@@ -38,7 +44,9 @@ export const getSyncConfigDetail = (configId: string): Promise<ApiResponse<Video
  * @param config 配置信息
  * @returns 操作结果
  */
-export const addSyncConfig = (config: VideoSyncConfig): Promise<ApiResponse<string>> => {
+export const addSyncConfig = (
+  config: VideoSyncConfig,
+): Promise<ApiResponse<string>> => {
   return http.post(`${API_BASE}/save`, config);
 };
 
@@ -47,7 +55,9 @@ export const addSyncConfig = (config: VideoSyncConfig): Promise<ApiResponse<stri
  * @param config 配置信息
  * @returns 操作结果
  */
-export const updateSyncConfig = (config: VideoSyncConfig): Promise<ApiResponse<boolean>> => {
+export const updateSyncConfig = (
+  config: VideoSyncConfig,
+): Promise<ApiResponse<boolean>> => {
   return http.put(`${API_BASE}/update`, config);
 };
 
@@ -56,7 +66,9 @@ export const updateSyncConfig = (config: VideoSyncConfig): Promise<ApiResponse<b
  * @param configId 配置ID
  * @returns 操作结果
  */
-export const deleteSyncConfig = (configId: string): Promise<ApiResponse<boolean>> => {
+export const deleteSyncConfig = (
+  configId: string,
+): Promise<ApiResponse<boolean>> => {
   return http.delete(`${API_BASE}/delete/${configId}`);
 };
 
@@ -66,7 +78,10 @@ export const deleteSyncConfig = (configId: string): Promise<ApiResponse<boolean>
  * @param status 状态 (1: 启用, 0: 禁用)
  * @returns 操作结果
  */
-export const toggleSyncConfigStatus = (configId: string, status: number): Promise<ApiResponse<boolean>> => {
+export const toggleSyncConfigStatus = (
+  configId: string,
+  status: number,
+): Promise<ApiResponse<boolean>> => {
   return http.put(`${API_BASE}/toggle-status/${configId}`, { status });
 };
 
@@ -75,7 +90,9 @@ export const toggleSyncConfigStatus = (configId: string, status: number): Promis
  * @param configId 配置ID
  * @returns 操作结果
  */
-export const executeSyncConfig = (configId: string): Promise<ApiResponse<boolean>> => {
+export const executeSyncConfig = (
+  configId: string,
+): Promise<ApiResponse<boolean>> => {
   return http.post(`${API_BASE}/execute/${configId}`);
 };
 
@@ -84,7 +101,9 @@ export const executeSyncConfig = (configId: string): Promise<ApiResponse<boolean
  * @param configIds 配置ID列表
  * @returns 操作结果
  */
-export const batchExecuteSyncConfigs = (configIds: string[]): Promise<ApiResponse<boolean>> => {
+export const batchExecuteSyncConfigs = (
+  configIds: string[],
+): Promise<ApiResponse<boolean>> => {
   return http.post(`${API_BASE}/batch-execute`, { configIds });
 };
 
@@ -95,7 +114,11 @@ export const batchExecuteSyncConfigs = (configIds: string[]): Promise<ApiRespons
  * @param size 每页大小
  * @returns 同步历史列表
  */
-export const getSyncHistory = (configId: string, page: number = 1, size: number = 10): Promise<PageResponse<any>> => {
+export const getSyncHistory = (
+  configId: string,
+  page: number = 1,
+  size: number = 10,
+): Promise<PageResponse<any>> => {
   return http.get(`${API_BASE}/history/${configId}`, {
     params: { page, size },
   });
@@ -115,7 +138,9 @@ export const getSyncStatus = (configId: string): Promise<ApiResponse<any>> => {
  * @param configId 配置ID
  * @returns 操作结果
  */
-export const stopSyncTask = (configId: string): Promise<ApiResponse<boolean>> => {
+export const stopSyncTask = (
+  configId: string,
+): Promise<ApiResponse<boolean>> => {
   return http.post(`${API_BASE}/stop/${configId}`);
 };
 
@@ -124,7 +149,9 @@ export const stopSyncTask = (configId: string): Promise<ApiResponse<boolean>> =>
  * @param config 配置信息
  * @returns 测试结果
  */
-export const testSyncConfig = (config: Partial<VideoSyncConfig>): Promise<ApiResponse<boolean>> => {
+export const testSyncConfig = (
+  config: Partial<VideoSyncConfig>,
+): Promise<ApiResponse<boolean>> => {
   return http.post(`${API_BASE}/test`, config);
 };
 
@@ -141,6 +168,8 @@ export const getSupportedSources = (): Promise<ApiResponse<string[]>> => {
  * @param cronExpression Cron表达式
  * @returns 验证结果
  */
-export const validateCronExpression = (cronExpression: string): Promise<ApiResponse<boolean>> => {
+export const validateCronExpression = (
+  cronExpression: string,
+): Promise<ApiResponse<boolean>> => {
   return http.post(`${API_BASE}/validate-cron`, { cronExpression });
 };

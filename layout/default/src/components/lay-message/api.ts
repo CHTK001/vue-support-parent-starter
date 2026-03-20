@@ -49,7 +49,7 @@ export const fetchUnreadCount = () => {
 export const fetchMarkAsRead = (messageId: number) => {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/v2/message/read/${messageId}`
+    `/v2/message/read/${messageId}`,
   );
 };
 
@@ -77,6 +77,6 @@ export const fetchMarkAllAsRead = () => {
 export const fetchDeleteMessage = (messageId: number) => {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    `/v2/message/${messageId}`
+    `/v2/message/${messageId}`,
   );
 };

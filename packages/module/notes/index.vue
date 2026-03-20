@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import { localStorageProxy, message } from "@repo/utils";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 const STORAGE_KEY = "widget-quick-notes";
 
@@ -19,18 +19,22 @@ onMounted(() => {
 });
 
 // 自动保存
-watch(noteContent, (val) => {
-  isSaving.value = true;
-  const now = new Date().toLocaleString();
-  localStorageProxy().setItem(STORAGE_KEY, {
-    content: val,
-    time: now
-  });
-  lastSaved.value = now;
-  setTimeout(() => {
-    isSaving.value = false;
-  }, 1000);
-}, { debounce: 1000 });
+watch(
+  noteContent,
+  (val) => {
+    isSaving.value = true;
+    const now = new Date().toLocaleString();
+    localStorageProxy().setItem(STORAGE_KEY, {
+      content: val,
+      time: now,
+    });
+    lastSaved.value = now;
+    setTimeout(() => {
+      isSaving.value = false;
+    }, 1000);
+  },
+  { debounce: 1000 },
+);
 
 const clearNotes = () => {
   noteContent.value = "";
@@ -48,14 +52,14 @@ const clearNotes = () => {
       <div class="header-right">
         <span v-if="isSaving" class="status-text saving">保存中...</span>
         <span v-else-if="lastSaved" class="status-text saved">已保存</span>
-        <el-tooltip content="清空便签" placement="top">
+        <ScTooltip content="清空便签" placement="top">
           <div class="action-btn delete" @click="clearNotes">
             <IconifyIconOnline icon="ri:delete-bin-line" />
           </div>
-        </el-tooltip>
+        </ScTooltip>
       </div>
     </div>
-    
+
     <div class="card-content">
       <textarea
         v-model="noteContent"
@@ -97,12 +101,12 @@ const clearNotes = () => {
     display: flex;
     align-items: center;
     gap: 8px;
-    
+
     .header-icon {
       font-size: 18px;
       color: var(--el-color-warning);
     }
-    
+
     .title {
       font-size: 14px;
       font-weight: 600;
@@ -114,16 +118,16 @@ const clearNotes = () => {
     display: flex;
     align-items: center;
     gap: 12px;
-    
+
     .status-text {
       font-size: 12px;
       color: var(--el-text-color-secondary);
-      
+
       &.saving {
         color: var(--el-color-primary);
       }
     }
-    
+
     .action-btn {
       width: 24px;
       height: 24px;
@@ -134,10 +138,10 @@ const clearNotes = () => {
       cursor: pointer;
       color: var(--el-text-color-secondary);
       transition: all 0.2s;
-      
+
       &:hover {
         background: var(--el-fill-color);
-        
+
         &.delete {
           color: var(--el-color-danger);
           background: var(--el-color-danger-light-9);
@@ -151,12 +155,15 @@ const clearNotes = () => {
   flex: 1;
   position: relative;
   background-color: var(--el-bg-color);
-  
+
   /* Lined paper effect */
-  background-image: linear-gradient(var(--el-border-color-lighter) 1px, transparent 1px);
+  background-image: linear-gradient(
+    var(--el-border-color-lighter) 1px,
+    transparent 1px
+  );
   background-size: 100% 32px;
   background-position: 0 8px; /* Offset to align with text */
-  
+
   .custom-textarea {
     width: 100%;
     height: 100%;
@@ -169,11 +176,11 @@ const clearNotes = () => {
     line-height: 32px; /* Match background size */
     color: var(--el-text-color-regular);
     font-family: inherit;
-    
+
     &::placeholder {
       color: var(--el-text-color-placeholder);
     }
-    
+
     /* Custom scrollbar */
     &::-webkit-scrollbar {
       width: 6px;

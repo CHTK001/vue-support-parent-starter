@@ -46,7 +46,7 @@ import { useThemeComponent } from "../../hooks/useThemeComponent";
 
 // 禁用属性自动继承，手动控制属性传递以避免 Element Plus Popup 组件的警告
 defineOptions({
-  inheritAttrs: false,
+  inheritAttrs: false
 });
 
 defineProps({
@@ -167,7 +167,7 @@ const filteredAttrs = computed(() => {
 // 确保始终返回一个对象，避免 v-on 警告
 const filteredListeners = computed(() => {
   const listeners: Record<string, any> = {};
-  
+
   // 只在有外部监听器时才绑定，避免传递给 Popup 组件
   if (attrs.onBeforeShow) {
     listeners["before-show"] = handleBeforeShow;
@@ -181,7 +181,7 @@ const filteredListeners = computed(() => {
   if (attrs.onHide) {
     listeners["hide"] = handleHide;
   }
-  
+
   // 确保始终返回一个对象
   return listeners;
 });

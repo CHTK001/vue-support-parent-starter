@@ -10,5 +10,3 @@ import MenuNewBadge from "./src/index.vue";
 
 export const ReMenuNewBadge = withInstall(MenuNewBadge);
 export default ReMenuNewBadge;
-
-export * from "./src/index.vue";

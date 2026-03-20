@@ -6,29 +6,29 @@
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
       <div v-if="editMode" class="table-actions">
-        <el-button type="primary" text size="small" @click="handleEdit">
+        <ScButton type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
-        </el-button>
-        <el-button type="danger" text size="small" @click="handleDelete">
+        </ScButton>
+        <ScButton type="danger" text size="small" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <div v-loading="loading" class="table-content">
-      <el-table :data="tableData" style="width: 100%" size="small" stripe>
-        <el-table-column
+      <ScTable :data="tableData" style="width: 100%" size="small" stripe>
+        <ScTableColumn
           v-for="column in columns"
           :key="column.prop"
           :prop="column.prop"
           :label="column.label"
           :width="column.width"
         />
-      </el-table>
+      </ScTable>
     </div>
 
     <div v-if="!editMode" class="table-footer">
-      <el-button
+      <ScButton
         type="primary"
         text
         size="small"
@@ -37,7 +37,7 @@
       >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

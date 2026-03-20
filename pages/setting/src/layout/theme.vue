@@ -6,14 +6,16 @@
  -->
 <template>
   <div class="theme-management system-container modern-bg">
-    <ScAlert 
+    <ScAlert
       title="登录主题管理"
       type="info"
       :closable="false"
       style="margin-bottom: 20px"
     >
       <template #default>
-        <p>在这里可以预览和切换登录页面主题，更改后需要重新登录才能看到效果。</p>
+        <p>
+          在这里可以预览和切换登录页面主题，更改后需要重新登录才能看到效果。
+        </p>
       </template>
     </ScAlert>
 
@@ -28,21 +30,29 @@
 
       <ScForm :model="themeConfig" label-width="140px">
         <ScFormItem label="当前主题">
-          <ScSelect 
+          <ScSelect
             v-model="themeConfig.LoginTheme"
             placeholder="请选择主题"
             style="width: 300px"
             @change="handleThemeChange"
           >
-            <ScOption 
+            <ScOption
               v-for="theme in allThemes"
               :key="theme.key"
               :label="theme.name"
               :value="theme.key"
             >
-              <div style="display: flex; align-items: center; justify-content: space-between">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                "
+              >
                 <span>{{ theme.name }}</span>
-                <ScTag v-if="theme.isFestival" size="small" type="warning">节日</ScTag>
+                <ScTag v-if="theme.isFestival" size="small" type="warning"
+                  >节日</ScTag
+                >
               </div>
             </ScOption>
           </ScSelect>
@@ -52,7 +62,7 @@
         </ScFormItem>
 
         <ScFormItem label="启用节日主题">
-          <ScSwitch 
+          <ScSwitch
             v-model="themeConfig.EnableFestivalTheme"
             @change="handleFestivalToggle"
           />
@@ -106,7 +116,12 @@
         <div class="card-header">
           <IconifyIconOnline icon="ri:gift-line" />
           <span>节日主题</span>
-          <ScTag v-if="!themeConfig.EnableFestivalTheme" type="info" size="small" style="margin-left: 10px">
+          <ScTag
+            v-if="!themeConfig.EnableFestivalTheme"
+            type="info"
+            size="small"
+            style="margin-left: 10px"
+          >
             已禁用
           </ScTag>
         </div>
@@ -117,9 +132,9 @@
           v-for="theme in festivalThemes"
           :key="theme.key"
           class="theme-card"
-          :class="{ 
+          :class="{
             active: themeConfig.LoginTheme === theme.key,
-            disabled: !themeConfig.EnableFestivalTheme 
+            disabled: !themeConfig.EnableFestivalTheme,
           }"
           @click="selectTheme(theme.key)"
         >
@@ -308,7 +323,9 @@ const handleThemeChange = (value: string) => {
 const handleFestivalToggle = (value: boolean) => {
   if (!value) {
     // 如果关闭节日主题，且当前选择的是节日主题，则切换回默认主题
-    const currentTheme = allThemes.find((t) => t.key === themeConfig.LoginTheme);
+    const currentTheme = allThemes.find(
+      (t) => t.key === themeConfig.LoginTheme,
+    );
     if (currentTheme && currentTheme.isFestival) {
       themeConfig.LoginTheme = "modern";
       message("已切换回默认主题", { type: "info" });
@@ -335,11 +352,11 @@ const handleSave = () => {
       LoginTheme: themeConfig.LoginTheme,
       EnableFestivalTheme: themeConfig.EnableFestivalTheme,
     });
-    
+
     // 更新原始配置
     originalConfig.LoginTheme = themeConfig.LoginTheme;
     originalConfig.EnableFestivalTheme = themeConfig.EnableFestivalTheme;
-    
+
     message("保存成功", { type: "success" });
   } catch (error) {
     message("保存失败", { type: "error" });
@@ -490,7 +507,12 @@ onMounted(() => {
 
   // 中秋主题预览
   .preview-mid-autumn {
-    background: linear-gradient(to bottom, #0a1128 0%, #1a2a4a 50%, #2a3a5a 100%);
+    background: linear-gradient(
+      to bottom,
+      #0a1128 0%,
+      #1a2a4a 50%,
+      #2a3a5a 100%
+    );
     color: #ffe4b3;
   }
 
@@ -502,7 +524,12 @@ onMounted(() => {
 
   // 圣诞主题预览
   .preview-christmas {
-    background: linear-gradient(to bottom, #1a472a 0%, #2d5a3d 50%, #3d6a4d 100%);
+    background: linear-gradient(
+      to bottom,
+      #1a472a 0%,
+      #2d5a3d 50%,
+      #3d6a4d 100%
+    );
     color: #c41e3a;
   }
 }

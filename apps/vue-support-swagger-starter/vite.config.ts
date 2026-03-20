@@ -1,18 +1,7 @@
-import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import {
-  wrapperEnv,
-  pathResolve,
-  createAlias,
-  createAppInfo,
-  getPluginsList,
-  include,
-  exclude,
-  getSharedPublicConfig,
-} from "@repo/build-config";
+import { createViteConfig } from "@repo/build-config";
 import pkg from "./package.json";
 
+<<<<<<< HEAD
 // 当前应用的根目录（vite.config.ts 所在目录）
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), ".");
 
@@ -101,3 +90,15 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
   };
 };
+=======
+/**
+ * Vite 配置 - Swagger 系统
+ * 使用链式 API 简化配置
+ */
+export default createViteConfig(import.meta.url, pkg)
+  .proxies({
+    "/system/api": { target: "http://127.0.0.1:18170", changeOrigin: true },
+    "/tenant/api": { target: "http://127.0.0.1:18171", changeOrigin: true },
+  })
+  .build();
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126

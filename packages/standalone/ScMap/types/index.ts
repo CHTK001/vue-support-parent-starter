@@ -6,39 +6,39 @@ import { MapType, RenderMode } from "./map";
 import type { ToolbarConfig, ToolItem } from "./toolbar";
 import type { CoordinateOptions } from "../composables/CoordinateObject";
 import { OverviewMapConfig } from "../components/OverviewMap.vue";
-import { AggregationOptions } from './cluster';
-import { MarkerConfig } from './marker';
+import { AggregationOptions } from "./cluster";
+import { MarkerConfig } from "./marker";
 
 /**
  * 类型定义索引文件
  */
 
 // 地图类型相关定义
-export * from './map';
+export * from "./map";
 
 // 工具栏相关定义
-export * from './toolbar';
+export * from "./toolbar";
 
 // 标记点相关定义
-export * from './marker';
+export * from "./marker";
 
 // 聚合相关定义
-export * from './cluster';
+export * from "./cluster";
 
 // 图形相关定义
-export * from './shape';
+export * from "./shape";
 
 // 轨迹相关定义
-export * from './track';
+export * from "./track";
 
 // 热力图相关定义
-export * from './heatmap';
+export * from "./heatmap";
 
 // 轨迹播放器相关定义
-export * from './trackplayer';
+export * from "./trackplayer";
 
 // 飞行线相关定义
-export * from './flightline';
+export * from "./flightline";
 
 /**
  * 图层类型枚举
@@ -47,18 +47,18 @@ export enum MapTile {
   /**
    * 普通地图
    */
-  NORMAL = 'normal',
+  NORMAL = "normal",
   /**
    * 卫星图
    */
-  SATELLITE = 'satellite',
+  SATELLITE = "satellite",
   /**
    * 混合图（卫星+标注）
    */
-  HYBRID = 'hybrid',
-  TERRAIN = 'terrain',
-  DARK = 'dark',
-  LIGHT = 'light'
+  HYBRID = "hybrid",
+  TERRAIN = "terrain",
+  DARK = "dark",
+  LIGHT = "light",
 }
 
 /**
@@ -66,17 +66,17 @@ export enum MapTile {
  */
 export enum DataType {
   /** 标记点 */
-  MARKER = 'marker',
+  MARKER = "marker",
   /** 图形 */
-  SHAPE = 'shape',
+  SHAPE = "shape",
   /** 轨迹 */
-  TRACK = 'track',
+  TRACK = "track",
   /** 轨迹点 */
-  TRACK_POINT = 'track_point',
+  TRACK_POINT = "track_point",
   /** 弹窗 */
-  POPOVER = 'popover',
+  POPOVER = "popover",
   /** 网格 */
-  GRID = 'grid'
+  GRID = "grid",
 }
 
 // 地图类型配置
@@ -85,11 +85,11 @@ export interface MapConfig {
   mapTile: MapTile;
   map: {
     [key in MapType]: {
-      [key: string]: MapUrlConfig
-    }
+      [key: string]: MapUrlConfig;
+    };
   };
   mapKey: {
-    [key in MapType]?: string
+    [key in MapType]?: string;
   };
   height: number;
   center: [number, number];
@@ -223,31 +223,26 @@ export interface TrackPlayer {
 }
 
 // 事件类型
-export type MapEventType = 
-  | 'map-click'
-  | 'map-right-click'
-  | 'marker-click'
-  | 'marker-create'
-  | 'marker-update'
-  | 'marker-delete'
-  | 'shape-click'
-  | 'shape-create'
-  | 'shape-update'
-  | 'shape-delete'
-  | 'update:center'
-  | 'update:zoom'
-  | 'map-initialized'
-  | 'toolbar-tool-activated'
-  | 'toolbar-tool-deactivated'
-  | 'toolbar-state-change'
-  | 'layer-change'
-  | 'grid-enabled'
-  | 'grid-disabled'
-  | 'flight-line-selection-change';
+export type MapEventType =
+  | "map-click"
+  | "map-right-click"
+  | "marker-click"
+  | "marker-create"
+  | "marker-update"
+  | "marker-delete"
+  | "shape-click"
+  | "shape-create"
+  | "shape-update"
+  | "shape-delete"
+  | "update:center"
+  | "update:zoom"
+  | "map-initialized"
+  | "toolbar-tool-activated"
+  | "toolbar-tool-deactivated"
+  | "toolbar-state-change"
+  | "layer-change"
+  | "grid-enabled"
+  | "grid-disabled"
+  | "flight-line-selection-change";
 
-export {
-  MapType,
-  CoordinateOptions,
-  ToolbarConfig,
-  ToolItem
-};
+export { MapType, CoordinateOptions, ToolbarConfig, ToolItem };

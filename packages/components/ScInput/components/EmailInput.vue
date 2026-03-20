@@ -1,5 +1,5 @@
 <template>
-  <el-autocomplete
+  <ScAutocomplete
     v-model="currentValue"
     class="sc-email-input"
     type="email"
@@ -20,13 +20,13 @@
     <template v-for="(_, name) in $slots" v-if="name !== 'prefix'" #[name]="slotData" :key="name">
       <slot :name="name" v-bind="slotData || {}" />
     </template>
-  </el-autocomplete>
+  </ScAutocomplete>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { queryEmail } from "@repo/utils";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 import { getDefaultIcon } from "../defaultIcons";
 
 interface Props {

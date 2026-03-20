@@ -242,8 +242,11 @@ const plugins = [
  */
 const existingScComponentNames = new Set<string>([
   "ScAlert",
+  "ScAnimationFrame",
+  "ScAside",
   "ScAutocomplete",
   "ScAvatar",
+  "ScBacktop",
   "ScBadge",
   "ScBreadcrumb",
   "ScButton",
@@ -267,6 +270,9 @@ const existingScComponentNames = new Set<string>([
   "ScDivider",
   "ScDrag",
   "ScDrawer",
+  "ScDropdown",
+  "ScDropdownItem",
+  "ScDropdownMenu",
   "ScDymaicTable",
   "ScEcharts",
   "ScEditor",
@@ -288,12 +294,15 @@ const existingScComponentNames = new Set<string>([
   "ScLink",
   "ScLoadCompent",
   "ScLoading",
+  "ScMain",
   "ScMap",
   "ScMenu",
+  "ScMenuItem",
   "ScMessageDialog",
   "ScMini",
   "ScNumber",
   "ScOption",
+  "ScPagination",
   "ScPagintion",
   "ScPanel",
   "ScPanelTitle",
@@ -308,13 +317,17 @@ const existingScComponentNames = new Set<string>([
   "ScRegion",
   "ScReteEditor",
   "ScRibbon",
+  "ScRouteLoading",
   "ScRow",
+  "ScScrollbar",
   "ScSelect",
   "ScSelectFilter",
   "ScSlider",
   "ScSocketMessageDialog",
   "ScSteps",
+  "ScSubMenu",
   "ScSwitch",
+  "ScTabPane",
   "ScTable",
   "ScTableColumn",
   "ScTableSelect",
@@ -361,7 +374,10 @@ export function useElementPlus(app: App) {
     if (existingScComponentNames.has(scName)) {
       return;
     }
-
+    // 运行时也检查是否已注册，避免覆盖
+    if (app.component(scName)) {
+      return;
+    }
     // 复制组件配置并使用 markRaw 标记为非响应式，避免 Vue 将组件对象转为响应式导致性能告警
     const alias = markRaw({
       ...component,

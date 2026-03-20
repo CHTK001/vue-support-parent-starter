@@ -10,24 +10,24 @@
         <div class="page-subtitle">配置Docker镜像仓库用于检索软件</div>
       </div>
       <div class="header-right">
-        <el-tooltip content="刷新" placement="top">
-          <el-button circle @click="loadRegistries">
+        <ScTooltip content="刷新" placement="top">
+          <ScButton circle @click="loadRegistries">
             <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip
+          </ScButton>
+        </ScTooltip>
+        <ScTooltip
           :content="canCreate ? '添加仓库' : '仅支持一个仓库'"
           placement="top"
         >
-          <el-button
+          <ScButton
             type="primary"
             circle
             :disabled="!canCreate"
             @click="openCreateDialog"
           >
             <IconifyIconOnline icon="ri:add-line" />
-          </el-button>
-        </el-tooltip>
+          </ScButton>
+        </ScTooltip>
       </div>
     </div>
 
@@ -46,7 +46,7 @@
     >
       <template #default="{ row }">
         <div class="card-wrapper">
-          <el-card
+          <ScCard
             class="registry-card"
             :class="{ 'is-disabled': row.systemSoftRegistryStatus !== 1 }"
             shadow="never"
@@ -73,15 +73,15 @@
               </div>
               <div class="title-section">
                 <h3 class="name">{{ row.systemSoftRegistryName }}</h3>
-                <el-tag
+                <ScTag
                   :type="getRegistryTypeTag(row.systemSoftRegistryType)"
                   size="small"
                   effect="light"
                 >
                   {{ getRegistryTypeText(row.systemSoftRegistryType) }}
-                </el-tag>
+                </ScTag>
               </div>
-              <el-switch
+              <ScSwitch
                 :model-value="row.systemSoftRegistryStatus === 1"
                 size="small"
                 @change="(val: boolean) => handleToggleStatus(row, val)"
@@ -92,7 +92,7 @@
             <div class="card-body">
               <div class="info-row">
                 <IconifyIconOnline icon="ri:global-line" class="info-icon" />
-                <el-link
+                <ScLink
                   :href="row.systemSoftRegistryUrl"
                   target="_blank"
                   type="primary"
@@ -113,23 +113,23 @@
 
             <!-- 操作按钮 -->
             <div class="card-actions">
-              <el-tooltip content="编辑" placement="top">
-                <el-button size="small" circle @click="openEditDialog(row)"
+              <ScTooltip content="编辑" placement="top">
+                <ScButton size="small" circle @click="openEditDialog(row)"
                   ><IconifyIconOnline icon="ri:edit-line"
-                /></el-button>
-              </el-tooltip>
-              <el-tooltip content="删除" placement="top">
-                <el-button
+                /></ScButton>
+              </ScTooltip>
+              <ScTooltip content="删除" placement="top">
+                <ScButton
                   size="small"
                   circle
                   type="danger"
                   plain
                   @click="handleDelete(row.systemSoftRegistryId)"
                   ><IconifyIconOnline icon="ri:delete-bin-line"
-                /></el-button>
-              </el-tooltip>
+                /></ScButton>
+              </ScTooltip>
             </div>
-          </el-card>
+          </ScCard>
         </div>
       </template>
     </ScTable>
@@ -151,7 +151,7 @@
 
 <script setup lang="ts">
 import { registryApi, type SystemSoftRegistry } from "@/api/docker";
-import ScTable from "@repo/components/ScTable/index.vue";
+import { ScTable } from "@repo/components"
 import { message, messageBox } from "@repo/utils";
 import { onMounted, reactive, ref } from "vue";
 import RegistryDialog from "./components/RegistryDialog.vue";

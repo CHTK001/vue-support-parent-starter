@@ -2,10 +2,10 @@
  * 配置对象
  * @description 管理地图的配置信息
  */
-import { MapType, DEFAULT_MAP_CONFIG, RenderMode } from '../types/map';
-import { MapTile, MapConfig } from '../types';
-import { OverviewMapConfig } from '../components/OverviewMap.vue';
-import logger from './LogObject';
+import { MapType, DEFAULT_MAP_CONFIG, RenderMode } from "../types/map";
+import { MapTile, MapConfig } from "../types";
+import { OverviewMapConfig } from "../components/OverviewMap.vue";
+import logger from "./LogObject";
 
 export class ConfigObject {
   private config: MapConfig;
@@ -22,27 +22,29 @@ export class ConfigObject {
       center: config.center || [39.90923, 116.397428],
       mapType: config.mapType || MapType.GAODE,
       mapTile: config.mapTile || MapTile.NORMAL,
-      map: config.map || DEFAULT_MAP_CONFIG as any,
+      map: config.map || (DEFAULT_MAP_CONFIG as any),
       mapKey: config.mapKey || {},
       zoom: config.zoom !== undefined ? config.zoom : 10,
       dragging: config.dragging !== undefined ? config.dragging : true,
-      scrollWheelZoom: config.scrollWheelZoom !== undefined ? config.scrollWheelZoom : true,
+      scrollWheelZoom:
+        config.scrollWheelZoom !== undefined ? config.scrollWheelZoom : true,
       renderMode: config.renderMode || RenderMode.CANVAS, // 默认使用Canvas渲染
       showToolbar: config.showToolbar !== undefined ? config.showToolbar : true,
-      showScaleLine: config.showScaleLine !== undefined ? config.showScaleLine : true,
+      showScaleLine:
+        config.showScaleLine !== undefined ? config.showScaleLine : true,
       coordinateOptions: config.coordinateOptions || {
         decimals: 8,
-        position: 'bottom-right',
-        showProjected: false
-      }
+        position: "bottom-right",
+        showProjected: false,
+      },
     };
 
     // 鹰眼地图配置
     this.overviewMapConfig = {
-      ...overviewMapConfig
+      ...overviewMapConfig,
     };
-    
-    logger.debug('ConfigObject已初始化', this.config);
+
+    logger.debug("ConfigObject已初始化", this.config);
   }
 
   /**
@@ -172,4 +174,4 @@ export class ConfigObject {
   public getOverviewMapConfig(): OverviewMapConfig {
     return { ...this.overviewMapConfig };
   }
-} 
+}

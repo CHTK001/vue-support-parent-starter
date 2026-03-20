@@ -11,7 +11,12 @@ export interface HitResult {
 /**
  * 计算河狸与蛤蜊之间的距离
  */
-export function calcDistance(x1: number, y1: number, x2: number, y2: number): number {
+export function calcDistance(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): number {
   const dx = x2 - x1;
   const dy = y2 - y1;
   return Math.hypot(dx, dy);
@@ -20,7 +25,11 @@ export function calcDistance(x1: number, y1: number, x2: number, y2: number): nu
 /**
  * 根据距离和当前状态，计算河狸的下一个状态
  */
-export function resolveBeaverState(current: BeaverState, distance: number, attackRange: number): BeaverState {
+export function resolveBeaverState(
+  current: BeaverState,
+  distance: number,
+  attackRange: number,
+): BeaverState {
   if (distance > attackRange) {
     return "walk";
   }
@@ -36,7 +45,7 @@ export function resolveBeaverState(current: BeaverState, distance: number, attac
 export function applyHit(
   currentHp: number,
   baseDamage: number,
-  powerMultiplier: number
+  powerMultiplier: number,
 ): HitResult {
   const effectivePower = Math.max(0.5, powerMultiplier);
   const rawDamage = baseDamage * effectivePower;
@@ -47,7 +56,7 @@ export function applyHit(
   return {
     nextHp,
     crackLevel,
-    isBroken: nextHp === 0
+    isBroken: nextHp === 0,
   };
 }
 
@@ -66,5 +75,3 @@ export function resolveCrackLevel(hp: number): CrackLevel {
   }
   return "intact";
 }
-
-

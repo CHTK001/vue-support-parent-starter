@@ -30,7 +30,10 @@
           </ScFormItem>
 
           <ScFormItem label="placeholder 占位文本">
-            <ScInput v-model="config.placeholder" placeholder="请输入占位文本" />
+            <ScInput
+              v-model="config.placeholder"
+              placeholder="请输入占位文本"
+            />
           </ScFormItem>
 
           <!-- TOTP特定配置 -->
@@ -46,14 +49,21 @@
             </ScFormItem>
 
             <ScFormItem label="length 长度">
-              <ScSlider v-model="config.totpLength" :min="4" :max="8" :show-stops="true" />
+              <ScSlider
+                v-model="config.totpLength"
+                :min="4"
+                :max="8"
+                :show-stops="true"
+              />
             </ScFormItem>
           </template>
 
           <!-- Select特定配置 -->
           <template v-if="config.type === 'select'">
             <ScFormItem label="options 选项">
-              <ScTag type="info" size="small">已配置 {{ mockOptions.length }} 个选项</ScTag>
+              <ScTag type="info" size="small"
+                >已配置 {{ mockOptions.length }} 个选项</ScTag
+              >
             </ScFormItem>
           </template>
 
@@ -124,7 +134,9 @@
             <IconifyIconOnline icon="ri:terminal-box-line" />
             当前值
           </h4>
-          <pre class="result-content">{{ JSON.stringify(inputValue, null, 2) }}</pre>
+          <pre class="result-content">{{
+            JSON.stringify(inputValue, null, 2)
+          }}</pre>
         </div>
 
         <div class="code-area">
@@ -142,7 +154,11 @@
             所有输入类型
           </h4>
           <div class="types-grid">
-            <div v-for="item in typeExamples" :key="item.type" class="type-card">
+            <div
+              v-for="item in typeExamples"
+              :key="item.type"
+              class="type-card"
+            >
               <div class="type-label">{{ item.label }}</div>
               <ScInput
                 v-model="item.value"
@@ -163,9 +179,9 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
-import ScInput from "@repo/components/ScInput/index.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScInput } from "@repo/components"
+import { ScSelect } from "@repo/components"
+import { IconifyIconOnline } from "@repo/components";
 import { ScSlider } from "@repo/components";
 
 // 类型选项
@@ -185,21 +201,21 @@ const typeOptions = [
   { label: "时间", value: "time", icon: "ri:time-line" },
   { label: "日期时间", value: "datetime", icon: "ri:calendar-check-line" },
   { label: "年份", value: "year", icon: "ri:calendar-2-line" },
-  { label: "月份", value: "month", icon: "ri:calendar-event-line" }
+  { label: "月份", value: "month", icon: "ri:calendar-event-line" },
 ];
 
 // 尺寸选项
 const sizeOptions = [
   { label: "small", value: "small", icon: "ri:subtract-line" },
   { label: "default", value: "default", icon: "ri:checkbox-blank-line" },
-  { label: "large", value: "large", icon: "ri:add-line" }
+  { label: "large", value: "large", icon: "ri:add-line" },
 ];
 
 // TOTP类型选项
 const totpTypeOptions = [
   { label: "数字", value: "number", icon: "ri:hashtag" },
   { label: "字母", value: "letter", icon: "ri:font-size" },
-  { label: "任意", value: "any", icon: "ri:text" }
+  { label: "任意", value: "any", icon: "ri:text" },
 ];
 
 // 模拟选项数据
@@ -208,7 +224,7 @@ const mockOptions = [
   { label: "选项二", value: "2", icon: "ep:shopping-cart" },
   { label: "选项三", value: "3", icon: "ep:present" },
   { label: "选项四", value: "4", icon: "ep:sell" },
-  { label: "选项五", value: "5", icon: "ep:money" }
+  { label: "选项五", value: "5", icon: "ep:money" },
 ];
 
 // 配置项
@@ -222,7 +238,7 @@ const config = reactive({
   totpValueType: "number" as "number" | "letter" | "any",
   totpLength: 6,
   showCount: true,
-  multiple: false
+  multiple: false,
 });
 
 // 输入值
@@ -231,7 +247,12 @@ const inputValue = ref<any>("");
 // 类型示例
 const typeExamples = reactive([
   { type: "text", label: "文本输入", value: "", placeholder: "请输入文本" },
-  { type: "textarea", label: "文本域", value: "", placeholder: "请输入多行文本" },
+  {
+    type: "textarea",
+    label: "文本域",
+    value: "",
+    placeholder: "请输入多行文本",
+  },
   { type: "number", label: "数字输入", value: 0, placeholder: "请输入数字" },
   { type: "password", label: "密码输入", value: "", placeholder: "请输入密码" },
   { type: "search", label: "搜索输入", value: "", placeholder: "请搜索" },
@@ -239,13 +260,31 @@ const typeExamples = reactive([
   { type: "color", label: "颜色选择", value: "#409EFF", placeholder: "" },
   { type: "boolean", label: "布尔选择", value: true, placeholder: "" },
   { type: "ip", label: "IP地址", value: "192.168.1.1", placeholder: "0.0.0.0" },
-  { type: "totp", label: "TOTP验证码", value: "", totpValueType: "number", count: true, placeholder: "" },
-  { type: "select", label: "选择器", value: "", options: mockOptions, placeholder: "请选择" },
+  {
+    type: "totp",
+    label: "TOTP验证码",
+    value: "",
+    totpValueType: "number",
+    count: true,
+    placeholder: "",
+  },
+  {
+    type: "select",
+    label: "选择器",
+    value: "",
+    options: mockOptions,
+    placeholder: "请选择",
+  },
   { type: "date", label: "日期选择", value: "", placeholder: "选择日期" },
   { type: "time", label: "时间选择", value: "", placeholder: "选择时间" },
-  { type: "datetime", label: "日期时间", value: "", placeholder: "选择日期时间" },
+  {
+    type: "datetime",
+    label: "日期时间",
+    value: "",
+    placeholder: "选择日期时间",
+  },
   { type: "year", label: "年份选择", value: "", placeholder: "选择年份" },
-  { type: "month", label: "月份选择", value: "", placeholder: "选择月份" }
+  { type: "month", label: "月份选择", value: "", placeholder: "选择月份" },
 ]);
 
 // 处理变化
@@ -271,7 +310,7 @@ const generatedCode = computed(() => {
   }
 
   if (config.type === "select") {
-    props.push(":options=\"options\"");
+    props.push(':options="options"');
     if (config.multiple) props.push(':multiple="true"');
   }
 

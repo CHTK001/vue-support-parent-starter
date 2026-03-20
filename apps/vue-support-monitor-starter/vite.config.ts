@@ -1,113 +1,12 @@
-import {
-  type ConfigEnv,
-  loadEnv,
-  type UserConfigExport,
-  type PluginOption,
-  createLogger,
-} from "vite";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import dayjs from "dayjs";
-import vue from "@vitejs/plugin-vue";
-import vueJsx from "@vitejs/plugin-vue-jsx";
-import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
-import { vitePluginFakeServer } from "vite-plugin-fake-server";
+import { createViteConfig } from "@repo/build-config";
+import { createLogger } from "vite";
 import { prismjsPlugin } from "vite-plugin-prismjs";
 import { codeInspectorPlugin } from "code-inspector-plugin";
 import svgLoader from "vite-svg-loader";
 import removeNoMatch from "vite-plugin-router-warn";
-import {
-  createAlias as createBuildAlias,
-  getSharedPublicConfig,
-} from "@repo/build-config";
 import pkg from "./package.json";
 
-const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
-  const currentFileDir = dirname(fileURLToPath(metaUrl));
-  return resolve(currentFileDir, dir);
-};
-
-// 当前应用的根目录（vite.config.ts 所在目录）
-const root = pathResolve(".", import.meta.url);
-
-const createAlias = (metaUrl: string): Record<string, string> => {
-  const buildAlias = createBuildAlias(metaUrl);
-  // monorepo 根目录（apps/vue-support-monitor-starter 的上上级目录）
-  const repoRoot = pathResolve("../..", metaUrl);
-  return {
-    ...buildAlias,
-    "@": pathResolve("./src", metaUrl),
-  };
-};
-
-const createAppInfo = (packageJson: {
-  name: string;
-  version: string;
-  engines?: Record<string, string>;
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-}) => ({
-  pkg: packageJson,
-  lastBuildTime: dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
-});
-
-const wrapperEnv = (envConf: Record<string, string>): any => {
-  const ret: Record<string, any> = {
-    VITE_PORT: 8848,
-    VITE_PUBLIC_PATH: "",
-    VITE_ROUTER_HISTORY: "",
-    VITE_CDN: false,
-    NODE_ENV: "",
-    VITE_HIDE_HOME: "false",
-    VITE_COMPRESSION: "none",
-    VITE_API_PREFIX: "",
-    VITE_API_URL: "",
-  };
-
-  for (const envName of Object.keys(envConf)) {
-    let realName = envConf[envName].replace(/\\n/g, "\n");
-    realName =
-      realName === "true" ? true : realName === "false" ? false : realName;
-    if (envName === "VITE_PORT") {
-      realName = Number(realName);
-    }
-    ret[envName] = realName;
-    if (typeof realName === "string") {
-      process.env[envName] = realName;
-    } else if (typeof realName === "object") {
-      process.env[envName] = JSON.stringify(realName);
-    }
-  }
-  return ret;
-};
-
-const include = [
-  "qs",
-  "dayjs",
-  "axios",
-  "pinia",
-  "vue-i18n",
-  "@vueuse/core",
-  "@pureadmin/utils",
-  "responsive-storage",
-];
-
-const exclude = [
-  "@iconify-icons/ep",
-  "@iconify-icons/ri",
-  "@iconify-icons/bi",
-  "@iconify-icons/simple-icons",
-  "@iconify-icons/meteocons",
-  "@iconify-icons/line-md",
-  "@iconify-icons/humbleicons",
-  "@iconify-icons/mingcute",
-  "@iconify-icons/devicon",
-  "@iconify-icons/pixelarticons",
-  "@pureadmin/theme/dist/browser-utils",
-  "@techui/scifi",
-];
-
-// 创建自定义logger过滤color-adjust警告
+// 创建自定义 logger 过滤 color-adjust 警告
 const logger = createLogger();
 const originalWarn = logger.warn;
 logger.warn = (msg, options) => {
@@ -115,17 +14,26 @@ logger.warn = (msg, options) => {
   originalWarn(msg, options);
 };
 
-export default ({ mode }: ConfigEnv): UserConfigExport => {
-  const newMode = mode;
-  const env = loadEnv(newMode, root);
-  console.log("当前启动模式:" + newMode);
-  const { VITE_PORT, VITE_PUBLIC_PATH } = wrapperEnv(env);
-
-  const lifecycle = process.env.npm_lifecycle_event;
-  const plugins: PluginOption[] = [
-    vue(),
-    // jsx、tsx语法支持
-    vueJsx(),
+/**
+ * Vite 配置 - 监控系统
+ * 使用链式 API 简化配置，包含特殊插件和配置
+ */
+export default createViteConfig(import.meta.url, pkg)
+  .proxy("/monitor/api", "http://172.16.2.226:19170")
+  .include(
+    "rete",
+    "rete-vue-plugin",
+    "rete-connection-plugin",
+    "rete-area-plugin",
+    "rete-context-menu-plugin",
+    "rete-render-utils",
+    "rete-auto-arrange-plugin",
+    "rete-connection-reroute-plugin",
+    "rete-minimap-plugin",
+  )
+  .target("esnext")
+  .logger(logger)
+  .plugins(
     prismjsPlugin({
       languages: "all",
       plugins: [
@@ -141,54 +49,32 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       theme: "okaidia",
       css: true,
     }),
-    VueI18nPlugin({
-      include: [
-        pathResolve("../locales/**", import.meta.url),
-        pathResolve("@repo/config/locales/**", import.meta.url),
-      ],
-    }),
-    /**
-     * 在页面上按住组合键时，鼠标在页面移动即会在 DOM 上出现遮罩层并显示相关信息，点击一下将自动打开 IDE 并将光标定位到元素对应的代码位置
-     * Mac 默认组合键 Option + Shift
-     * Windows 默认组合键 Alt + Shift
-     * 更多用法看 https://inspector.fe-dev.cn/guide/start.html
-     */
     codeInspectorPlugin({
       bundler: "vite",
       hideConsole: true,
     }),
-    /**
-     * 开发环境下移除非必要的 vue-router 动态路由警告
-     */
     removeNoMatch(),
-    // svg 组件化支持
     svgLoader(),
-  ];
-
-  if (env.VITE_USE_MOCK === "true") {
-    plugins.push(
-      vitePluginFakeServer({
-        logger: false,
-        include: [pathResolve("./mock", import.meta.url)],
-        infixName: false,
-        enableProd: true,
-      }),
-    );
-  }
-
-  return {
-    base: VITE_PUBLIC_PATH,
-    ...getSharedPublicConfig(),
-    define: {
-      // 把源码里所有 `process.env` 替换成对象字面量
-      "process.env": {},
-      // 若还读 global
-      global: "globalThis",
-      __INTLIFY_PROD_DEVTOOLS__: false,
-      __APP_CONFIG__: JSON.stringify(env),
-      __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
-      __APP_ENV__: JSON.stringify(newMode),
+  )
+  .cssPreprocessor("less", {
+    javascriptEnabled: true,
+  })
+  .cssPreprocessor("scss", {
+    additionalData: `
+      @use "@layout/default/styles/layout/variables.scss" as *;
+      @use "@layout/default/styles/layout/mixin.scss";
+    `,
+    silenceDeprecations: ["color-functions", "global-builtin", "import"],
+  })
+  .defines({
+    "process.env": {},
+    global: "globalThis",
+  })
+  .rollup({
+    input: {
+      index: "./index.html",
     },
+<<<<<<< HEAD
     root,
     resolve: {
       alias: {
@@ -308,3 +194,27 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
   };
 };
+=======
+    external: ["@element-plus/icons-vue"],
+    output: {
+      chunkFileNames: "static/js/[name]-[hash].js",
+      entryFileNames: "static/js/[name]-[hash].js",
+      assetFileNames: "static/[ext]/[name]-[hash].[ext]",
+      manualChunks(id) {
+        if (id.includes("node_modules")) {
+          if (id.includes("mermaid")) return "vendor-mermaid";
+          if (id.includes("codemirror")) return "vendor-codemirror";
+          if (id.includes("xterm")) return "vendor-xterm";
+          if (id.includes("cytoscape")) return "vendor-cytoscape";
+          if (id.includes("echarts") || id.includes("zrender"))
+            return "vendor-echarts";
+          if (id.includes("element-plus")) return "vendor-element-plus";
+          if (id.includes("vue") && !id.includes("node_modules/@vue"))
+            return "vendor-vue";
+          return "vendor";
+        }
+      },
+    },
+  })
+  .build();
+>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126

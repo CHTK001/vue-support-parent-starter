@@ -1,10 +1,7 @@
 <template>
-  <div 
+  <div
     class="custom-node"
-    :class="[
-      `node-type-${nodeType}`,
-      { 'is-selected': selected }
-    ]"
+    :class="[`node-type-${nodeType}`, { 'is-selected': selected }]"
     :style="nodeStyle"
   >
     <!-- 节点头部 -->
@@ -14,23 +11,23 @@
       </div>
       <div class="node-title">{{ label }}</div>
       <div class="node-actions">
-        <el-dropdown trigger="click" @command="handleCommand">
+        <ScDropdown trigger="click" @command="handleCommand">
           <span class="action-btn">
             <IconifyIconOnline icon="ri:more-2-fill" />
           </span>
           <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="delete">
+            <ScDropdownMenu>
+              <ScDropdownItem command="delete">
                 <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
                 删除
-              </el-dropdown-item>
-              <el-dropdown-item command="duplicate">
+              </ScDropdownItem>
+              <ScDropdownItem command="duplicate">
                 <IconifyIconOnline icon="ri:file-copy-line" class="mr-1" />
                 复制
-              </el-dropdown-item>
-            </el-dropdown-menu>
+              </ScDropdownItem>
+            </ScDropdownMenu>
           </template>
-        </el-dropdown>
+        </ScDropdown>
       </div>
     </div>
 
@@ -38,19 +35,15 @@
     <div class="node-body">
       <!-- 输入端口 -->
       <div class="node-inputs">
-        <div 
-          v-for="[key, input] in inputs" 
-          :key="key"
-          class="input-item"
-        >
-          <div 
+        <div v-for="[key, input] in inputs" :key="key" class="input-item">
+          <div
             class="socket input-socket"
             :ref="(el: HTMLElement | null) => setInputSocket(key, el)"
           />
           <span class="socket-label">{{ input.label }}</span>
           <!-- 输入控件 -->
-          <div 
-            v-if="input.control && !input.showControl" 
+          <div
+            v-if="input.control && !input.showControl"
             class="input-control"
             :ref="(el: HTMLElement | null) => setInputControl(key, el)"
           />
@@ -59,8 +52,8 @@
 
       <!-- 节点控件 -->
       <div class="node-controls" v-if="controls.size > 0">
-        <div 
-          v-for="[key, control] in controls" 
+        <div
+          v-for="[key, control] in controls"
           :key="key"
           class="control-item"
           :ref="(el: HTMLElement | null) => setControl(key, el)"
@@ -69,13 +62,9 @@
 
       <!-- 输出端口 -->
       <div class="node-outputs">
-        <div 
-          v-for="[key, output] in outputs" 
-          :key="key"
-          class="output-item"
-        >
+        <div v-for="[key, output] in outputs" :key="key" class="output-item">
           <span class="socket-label">{{ output.label }}</span>
-          <div 
+          <div
             class="socket output-socket"
             :ref="(el: HTMLElement | null) => setOutputSocket(key, el)"
           />
@@ -131,10 +120,14 @@ const showFooter = ref(false);
 const status = ref<"idle" | "running" | "success" | "error">("idle");
 const statusText = computed(() => {
   switch (status.value) {
-    case "running": return "运行中...";
-    case "success": return "完成";
-    case "error": return "错误";
-    default: return "";
+    case "running":
+      return "运行中...";
+    case "success":
+      return "完成";
+    case "error":
+      return "错误";
+    default:
+      return "";
   }
 });
 
@@ -151,9 +144,18 @@ const headerStyle = computed(() => ({
 // 辅助函数：调整颜色亮度
 function adjustColor(color: string, amount: number): string {
   const hex = color.replace("#", "");
-  const r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + amount));
-  const g = Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16) + amount));
-  const b = Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16) + amount));
+  const r = Math.max(
+    0,
+    Math.min(255, parseInt(hex.substring(0, 2), 16) + amount),
+  );
+  const g = Math.max(
+    0,
+    Math.min(255, parseInt(hex.substring(2, 4), 16) + amount),
+  );
+  const b = Math.max(
+    0,
+    Math.min(255, parseInt(hex.substring(4, 6), 16) + amount),
+  );
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
 
@@ -226,7 +228,7 @@ function handleCommand(command: string) {
 <style scoped lang="scss">
 .custom-node {
   --node-color: #6366f1;
-  
+
   background: var(--el-bg-color);
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -404,7 +406,8 @@ function handleCommand(command: string) {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

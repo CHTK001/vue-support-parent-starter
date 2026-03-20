@@ -17,7 +17,7 @@
         <div class="list-header-content">
           <div class="list-actions">
             <div class="search-input">
-              <ScInput 
+              <ScInput
                 v-model="searchKeyword"
                 placeholder="搜索视频源平台或URL"
                 @input="handleSearch"
@@ -31,7 +31,7 @@
             </div>
 
             <div class="filter-select">
-              <ScSelect 
+              <ScSelect
                 v-model="statusFilter"
                 placeholder="状态筛选"
                 @change="handleFilter"
@@ -43,7 +43,7 @@
             </div>
 
             <div class="header-actions">
-              <ScButton 
+              <ScButton
                 type="primary"
                 @click="showAddDialog = true"
                 class="action-btn primary-action"
@@ -51,7 +51,7 @@
                 <IconifyIconOnline icon="ep:plus" />
                 新增视频源
               </ScButton>
-              <ScButton 
+              <ScButton
                 @click="refreshSources"
                 class="action-btn secondary-action"
               >
@@ -89,7 +89,7 @@
               <div class="empty-description">
                 还没有添加任何视频源，点击上方按钮开始添加
               </div>
-              <ScButton 
+              <ScButton
                 type="primary"
                 @click="showAddDialog = true"
                 class="empty-action"

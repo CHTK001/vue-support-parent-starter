@@ -1,6 +1,6 @@
 <template>
-  <component 
-    :is="headerComponent" 
+  <component
+    :is="headerComponent"
     v-bind="$attrs"
     :title="title"
     :sub-title="subTitle"
@@ -35,39 +35,42 @@ import { computed, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechHeader",
-  inheritAttrs: false
+  inheritAttrs: false,
 });
 
 // 头部变体类型 (实际可用: A1-A4)
 type HeaderVariant = "A1" | "A2" | "A3" | "A4";
 
-const props = withDefaults(defineProps<{
-  /** 头部变体 */
-  variant?: HeaderVariant;
-  /** 主标题 */
-  title?: string;
-  /** 副标题 */
-  subTitle?: string;
-  /** 是否显示发光效果 */
-  glow?: boolean;
-  /** 发光透明度 */
-  glowOpacity?: number;
-  /** 背景透明度 */
-  backgroundOpacity?: number;
-  /** 装饰颜色替换 */
-  decorationColorAlt?: boolean;
-  /** 自定义类名 */
-  className?: string;
-}>(), {
-  variant: "A1",
-  title: "",
-  subTitle: "",
-  glow: true,
-  glowOpacity: 0.5,
-  backgroundOpacity: 0.5,
-  decorationColorAlt: false,
-  className: ""
-});
+const props = withDefaults(
+  defineProps<{
+    /** 头部变体 */
+    variant?: HeaderVariant;
+    /** 主标题 */
+    title?: string;
+    /** 副标题 */
+    subTitle?: string;
+    /** 是否显示发光效果 */
+    glow?: boolean;
+    /** 发光透明度 */
+    glowOpacity?: number;
+    /** 背景透明度 */
+    backgroundOpacity?: number;
+    /** 装饰颜色替换 */
+    decorationColorAlt?: boolean;
+    /** 自定义类名 */
+    className?: string;
+  }>(),
+  {
+    variant: "A1",
+    title: "",
+    subTitle: "",
+    glow: true,
+    glowOpacity: 0.5,
+    backgroundOpacity: 0.5,
+    decorationColorAlt: false,
+    className: "",
+  },
+);
 
 // 根据 variant 动态选择组件
 const headerComponent = computed(() => {

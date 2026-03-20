@@ -85,7 +85,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
 import { message } from "@repo/utils";
-import ScMessageDialog from "@repo/components/ScMessageDialog/index.vue";
+import { ScMessageDialog } from "@repo/components"
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -157,7 +157,7 @@ const propsData = [
 ];
 
 const hasRunningOp = computed(() =>
-  operations.value.some((op) => op.status === "running")
+  operations.value.some((op) => op.status === "running"),
 );
 
 // 代码示例标签页
@@ -184,8 +184,7 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import ScMessageDialog from "@repo/components/ScMessageDialog/index.vue";
-
+import { ScMessageDialog } from "@repo/components"
 const dialogRef = ref();
 const operations = ref([]);
 
@@ -279,7 +278,7 @@ function clearOperations() {
 
 function handleClear() {
   operations.value = operations.value.filter(
-    (op) => op.status === "pending" || op.status === "running"
+    (op) => op.status === "pending" || op.status === "running",
   );
   message("已清除已完成的操作", { type: "success" });
 }

@@ -197,7 +197,7 @@ import interact from "interactjs";
 import { localStorageProxy } from "@repo/utils";
 import { useTaskbar, type TaskbarItem } from "./useTaskbar";
 import { useDialogInteract, useDialogMinimize, useDialogZIndex, type DockPosition } from "../composables";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components";
 
 /** 对话框模式 */
 type DialogMode = "element" | "custom";
@@ -555,7 +555,7 @@ watch(
 </script>
 
 <style lang="scss">
-@use "@/styles/mixins.scss" as *;
+// @use "@/styles/mixins.scss" as *;
 
 .sc-dialog {
   &.has-float-icon {

@@ -2,25 +2,25 @@
   <div class="branch-wrap">
     <div class="branch-box-wrap">
       <div class="branch-box">
-        <el-button class="add-branch" type="success" plain round @click="addTerm">添加条件</el-button>
+        <ScButton class="add-branch" type="success" plain round @click="addTerm">添加条件</ScButton>
         <div v-for="(item, index) in nodeConfig.conditionNodes" :key="index" class="col-box">
           <div class="condition-node">
             <div class="condition-node-box">
               <div class="auto-judge" @click="show(index)">
                 <div v-if="index != 0" class="sort-left" @click.stop="arrTransfer(index, -1)">
-                  <el-icon><el-icon-arrow-left /></el-icon>
+                  <ScIcon><el-icon-arrow-left /></ScIcon>
                 </div>
                 <div class="title">
                   <span class="node-title">{{ item.nodeName }}</span>
                   <span class="priority-title">优先级{{ item.priorityLevel }}</span>
-                  <el-icon class="close" @click.stop="delTerm(index)"><el-icon-close /></el-icon>
+                  <ScIcon class="close" @click.stop="delTerm(index)"><el-icon-close /></ScIcon>
                 </div>
                 <div class="content">
                   <span v-if="toText(nodeConfig, index)">{{ toText(nodeConfig, index) }}</span>
                   <span v-else class="placeholder">请设置条件</span>
                 </div>
                 <div v-if="index != nodeConfig.conditionNodes.length - 1" class="sort-right" @click.stop="arrTransfer(index)">
-                  <el-icon><el-icon-arrow-right /></el-icon>
+                  <ScIcon><el-icon-arrow-right /></ScIcon>
                 </div>
               </div>
               <add-node v-model="item.childNode" />
@@ -40,67 +40,67 @@
         <div class="node-wrap-drawer__title">
           <label v-if="!isEditTitle" @click="editTitle">
             {{ form.nodeName }}
-            <el-icon class="node-wrap-drawer__title-edit"><el-icon-edit /></el-icon>
+            <ScIcon class="node-wrap-drawer__title-edit"><el-icon-edit /></ScIcon>
           </label>
-          <el-input v-if="isEditTitle" ref="nodeTitle" v-model="form.nodeName" clearable @blur="saveTitle" @keyup.enter="saveTitle" />
+          <ScInput v-if="isEditTitle" ref="nodeTitle" v-model="form.nodeName" clearable @blur="saveTitle" @keyup.enter="saveTitle" />
         </div>
       </template>
-      <el-container>
-        <el-main style="padding: 0 20px 20px 20px">
-          <el-form label-position="top">
-            <el-form-item label="条件关系">
-              <el-radio-group v-model="form.conditionMode">
-                <el-radio :label="1">且</el-radio>
-                <el-radio :label="2">或</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-divider />
-            <el-form-item>
-              <el-table :data="form.conditionList">
-                <el-table-column prop="label" label="描述">
+      <ScContainer>
+        <ScMain style="padding: 0 20px 20px 20px">
+          <ScForm label-position="top">
+            <ScFormItem label="条件关系">
+              <ScRadioGroup v-model="form.conditionMode">
+                <ScRadio :label="1">且</ScRadio>
+                <ScRadio :label="2">或</ScRadio>
+              </ScRadioGroup>
+            </ScFormItem>
+            <ScDivider />
+            <ScFormItem>
+              <ScTable :data="form.conditionList">
+                <ScTableColumn prop="label" label="描述">
                   <template #default="scope">
-                    <el-input v-model="scope.row.label" placeholder="描述" />
+                    <ScInput v-model="scope.row.label" placeholder="描述" />
                   </template>
-                </el-table-column>
-                <el-table-column prop="field" label="条件字段" width="130">
+                </ScTableColumn>
+                <ScTableColumn prop="field" label="条件字段" width="130">
                   <template #default="scope">
-                    <el-input v-model="scope.row.field" placeholder="条件字段" />
+                    <ScInput v-model="scope.row.field" placeholder="条件字段" />
                   </template>
-                </el-table-column>
-                <el-table-column prop="operator" label="运算符" width="130">
+                </ScTableColumn>
+                <ScTableColumn prop="operator" label="运算符" width="130">
                   <template #default="scope">
-                    <el-select v-model="scope.row.operator" placeholder="Select">
-                      <el-option label="等于" value="=" />
-                      <el-option label="不等于" value="!=" />
-                      <el-option label="大于" value=">" />
-                      <el-option label="大于等于" value=">=" />
-                      <el-option label="小于" value="<" />
-                      <el-option label="小于等于" value="<=" />
-                      <el-option label="包含" value="include" />
-                      <el-option label="不包含" value="notinclude" />
-                    </el-select>
+                    <ScSelect v-model="scope.row.operator" placeholder="Select">
+                      <ScOption label="等于" value="=" />
+                      <ScOption label="不等于" value="!=" />
+                      <ScOption label="大于" value=">" />
+                      <ScOption label="大于等于" value=">=" />
+                      <ScOption label="小于" value="<" />
+                      <ScOption label="小于等于" value="<=" />
+                      <ScOption label="包含" value="include" />
+                      <ScOption label="不包含" value="notinclude" />
+                    </ScSelect>
                   </template>
-                </el-table-column>
-                <el-table-column prop="value" label="值" width="100">
+                </ScTableColumn>
+                <ScTableColumn prop="value" label="值" width="100">
                   <template #default="scope">
-                    <el-input v-model="scope.row.value" placeholder="值" />
+                    <ScInput v-model="scope.row.value" placeholder="值" />
                   </template>
-                </el-table-column>
-                <el-table-column prop="value" label="移除" width="55">
+                </ScTableColumn>
+                <ScTableColumn prop="value" label="移除" width="55">
                   <template #default="scope">
-                    <el-link type="danger" :underline="false" @click="deleteConditionList(scope.$index)">移除</el-link>
+                    <ScLink type="danger" :underline="false" @click="deleteConditionList(scope.$index)">移除</ScLink>
                   </template>
-                </el-table-column>
-              </el-table>
-            </el-form-item>
-            <p><el-button type="primary" icon="el-icon-plus" round @click="addConditionList">增加条件</el-button></p>
-          </el-form>
-        </el-main>
-        <el-footer>
-          <el-button type="primary" @click="save">保存</el-button>
-          <el-button @click="drawer = false">取消</el-button>
-        </el-footer>
-      </el-container>
+                </ScTableColumn>
+              </ScTable>
+            </ScFormItem>
+            <p><ScButton type="primary" icon="el-icon-plus" round @click="addConditionList">增加条件</ScButton></p>
+          </ScForm>
+        </ScMain>
+        <ScFooter>
+          <ScButton type="primary" @click="save">保存</ScButton>
+          <ScButton @click="drawer = false">取消</ScButton>
+        </ScFooter>
+      </ScContainer>
     </sc-drawer>
   </div>
 </template>

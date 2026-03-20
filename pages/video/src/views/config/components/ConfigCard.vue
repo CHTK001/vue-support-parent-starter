@@ -1,7 +1,10 @@
 ﻿<template>
   <div class="config-card">
     <!-- 状态指示器 -->
-    <div class="status-indicator" :class="getStatusClass(config.videoSyncConfigStatus)"></div>
+    <div
+      class="status-indicator"
+      :class="getStatusClass(config.videoSyncConfigStatus)"
+    ></div>
 
     <!-- 卡片头部 -->
     <div class="config-card-header">
@@ -16,18 +19,56 @@
 
       <!-- 快速操作 -->
       <div class="quick-actions">
-        <ScButton v-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
+        <ScButton
+          v-if="
+            config.videoSyncConfigStatus !== 'START' &&
+            config.videoSyncConfigStatus !== 'PROGRESS'
+          "
+          type="success"
+          size="small"
+          circle
+          @click="handleAction('enable')"
+          title="启用配置"
+        >
           <IconifyIconOnline icon="ep:video-play" />
         </ScButton>
-        <ScButton v-else-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
+        <ScButton
+          v-else-if="
+            config.videoSyncConfigStatus !== 'START' &&
+            config.videoSyncConfigStatus !== 'PROGRESS'
+          "
+          type="warning"
+          size="small"
+          circle
+          @click="handleAction('disable')"
+          title="禁用配置"
+        >
           <IconifyIconOnline icon="ep:video-pause" />
         </ScButton>
 
-        <ScButton v-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
+        <ScButton
+          v-if="
+            config.videoSyncConfigStatus !== 'START' &&
+            config.videoSyncConfigStatus !== 'PROGRESS'
+          "
+          type="primary"
+          size="small"
+          circle
+          :loading="(config as any).syncing"
+          @click="handleAction('sync')"
+          title="执行同步"
+        >
           <IconifyIconOnline icon="ep:refresh" />
         </ScButton>
 
-        <ScButton v-else type="danger" size="small" circle @click="handleAction('stop')" title="停止同步">
+        <ScButton
+          v-else
+          type="danger"
+          size="small"
+          circle
+          @click="handleAction('stop')"
+          title="停止同步"
+        >
           <IconifyIconOnline icon="ep:close" />
         </ScButton>
       </div>
@@ -47,7 +88,9 @@
         </div>
         <div class="stat-item">
           <div class="stat-label">最后同步</div>
-          <div class="stat-value">{{ formatTime(config.videoSyncConfigLastSyncTime) || "未同步" }}</div>
+          <div class="stat-value">
+            {{ formatTime(config.videoSyncConfigLastSyncTime) || "未同步" }}
+          </div>
         </div>
       </div>
     </div>
@@ -61,7 +104,12 @@
         </ScButton>
       </div>
       <div class="secondary-actions">
-        <ScButton type="danger" size="small" text @click="handleAction('delete')">
+        <ScButton
+          type="danger"
+          size="small"
+          text
+          @click="handleAction('delete')"
+        >
           <IconifyIconOnline icon="ep:delete" class="mr-1" />
           删除
         </ScButton>
@@ -257,7 +305,8 @@ const handleCopyUrl = (url: string) => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -286,7 +335,11 @@ const handleCopyUrl = (url: string) => {
 .config-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-color-primary-light-7) 100%
+  );
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -349,7 +402,7 @@ const handleCopyUrl = (url: string) => {
 
 .url-label {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -375,7 +428,11 @@ const handleCopyUrl = (url: string) => {
   display: flex;
   gap: 32px;
   padding: 20px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-color-primary-light-7) 100%
+  );
   border-radius: 12px;
   border: 1px solid var(--el-border-color-lighter);
 }
@@ -396,7 +453,7 @@ const handleCopyUrl = (url: string) => {
   font-size: 20px;
   font-weight: 700;
   color: var(--el-color-primary);
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .config-card-actions {
@@ -440,7 +497,11 @@ const handleCopyUrl = (url: string) => {
   right: -60px;
   width: 120px;
   height: 120px;
-  background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08) 0%, rgba(var(--el-color-primary-rgb), 0.03) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.08) 0%,
+    rgba(var(--el-color-primary-rgb), 0.03) 100%
+  );
   border-radius: 50%;
   pointer-events: none;
   transition: all 0.3s ease;
