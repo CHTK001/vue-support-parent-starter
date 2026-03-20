@@ -1,29 +1,10 @@
 /**
-<<<<<<< HEAD
  * 应用启动器 - 统一的应用初始化注册器
  * 提供链式调用 API，灵活注册各种核心功能；
  * 同时包含 createStandardApp 完整实现（原 standard-app.ts 已合并至此）。
  */
 
 import type { App, Directive, DirectiveBinding } from "vue";
-=======
- * 应用启动器
- * - AppBootstrap: 通用注册器，提供链式 API
- * - createStandardApp: 预设工厂，自动注册项目所需的全部依赖
- */
-
-// 公共样式（所有标准应用共享）
-import "element-plus/dist/index.css";
-import "@repo/assets/fonts/iconfont.css";
-import "@layout/default/styles/layout/index.scss";
-import "@layout/default/styles/layout/reset.scss";
-import "@layout/default/styles/layout/tailwind.css";
-import "@layout/default/styles/font-encryption.scss";
-import "tippy.js/dist/tippy.css";
-import "tippy.js/themes/light.css";
-
-import type { App, Directive } from "vue";
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import type { Router } from "vue-router";
 import type { SocketServiceConfig } from "./config/socketService";
 
@@ -31,7 +12,6 @@ import type { SocketServiceConfig } from "./config/socketService";
 // 类型定义
 // ─────────────────────────────────────────────
 
-<<<<<<< HEAD
 export interface BootstrapOptions {
   app: App;
   router?: Router;
@@ -108,9 +88,6 @@ export interface StandardAppOptions {
   /** 自定义初始化函数 */
   setup?: (app: App, config?: any) => void | Promise<void>;
 }
-=======
-// ─── AppBootstrap ────────────────────────────────────────────────────────────
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
 // ─────────────────────────────────────────────
 // AppBootstrap 类
@@ -126,13 +103,10 @@ export class AppBootstrap {
     this.app = app;
   }
 
-<<<<<<< HEAD
   registerCoreStyles(): this {
     return this;
   }
 
-=======
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   registerDirectives(directives?: Record<string, Directive>): this {
     if (!directives) return this;
     Object.keys(directives).forEach((key) => {
@@ -153,11 +127,7 @@ export class AppBootstrap {
     Object.keys(components).forEach((key) => {
       const component = components[key];
       const existing = this.app.component(key);
-<<<<<<< HEAD
       if (existing && existing === component) return;
-=======
-      if (existing) return; // already registered, don't overwrite
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       this.app.component(key, component);
     });
     return this;
@@ -165,11 +135,7 @@ export class AppBootstrap {
 
   registerComponent(name: string, component: any): this {
     const existing = this.app.component(name);
-<<<<<<< HEAD
     if (existing && existing === component) return this;
-=======
-    if (existing) return this; // already registered, don't overwrite
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     this.app.component(name, component);
     return this;
   }
@@ -194,7 +160,6 @@ export class AppBootstrap {
     return this;
   }
 
-<<<<<<< HEAD
   registerIconify(components?: Record<string, any>): this {
     if (!components) return this;
     Object.keys(components).forEach((key) => {
@@ -203,8 +168,6 @@ export class AppBootstrap {
     return this;
   }
 
-=======
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   registerPlugins(plugins?: any[] | (() => Promise<any[]>)): this {
     if (!plugins) return this;
     const promise = (async () => {
@@ -226,7 +189,6 @@ export class AppBootstrap {
     return this;
   }
 
-<<<<<<< HEAD
   async registerConfig(config: any | (() => Promise<any>)): Promise<this> {
     try {
       this.config = typeof config === "function" ? await config() : config;
@@ -245,8 +207,6 @@ export class AppBootstrap {
     return this;
   }
 
-=======
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   use(fn: (app: App, config?: any) => void | Promise<void>): this {
     this.initPromises.push(Promise.resolve(fn(this.app, this.config)));
     return this;
@@ -257,25 +217,10 @@ export class AppBootstrap {
     return this;
   }
 
-<<<<<<< HEAD
   getApp(): App { return this.app; }
   getRouter(): Router | undefined { return this.router; }
   getConfig(): any { return this.config; }
 
-=======
-  getApp(): App {
-    return this.app;
-  }
-
-  getRouter(): Router | undefined {
-    return this.router;
-  }
-
-  getConfig(): any {
-    return this.config;
-  }
-
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   async mount(selector: string): Promise<void> {
     try {
       await Promise.all(this.initPromises);
@@ -292,7 +237,6 @@ export class AppBootstrap {
   }
 }
 
-<<<<<<< HEAD
 // ─────────────────────────────────────────────
 // 工厂函数
 // ─────────────────────────────────────────────
@@ -332,40 +276,6 @@ function resolveWasmEnabled(mode: WasmMode): boolean {
   return true; // 'WASM' | true
 }
 
-=======
-// ─── createStandardApp ───────────────────────────────────────────────────────
-
-export interface FontEncryptionOptions {
-  enabled: boolean;
-  applyGlobal?: boolean;
-  ocrNoise?: boolean | { level?: "low" | "medium" | "high" };
-  selectors?: string[];
-}
-
-export interface StandardAppOptions {
-  /** 是否注册 VueTippy */
-  enableTippy?: boolean;
-  /** 是否注册 ElementPlusX */
-  enableElementPlusX?: boolean;
-  /** 是否启用 WASM */
-  enableWasm?: boolean;
-  /** 字体加密配置，设置后自动初始化 */
-  fontEncryption?: FontEncryptionOptions;
-  /** 是否启用 fullScreen 路由自动连接 GlobalSocket（默认 false） */
-  enableFullscreenSocket?: boolean;
-  /** 自定义路由（不传则使用 @repo/core 默认路由） */
-  router?: Router;
-  /** 自定义组件 */
-  components?: Record<string, any>;
-  /** 自定义指令 */
-  directives?: Record<string, Directive>;
-  /** 自定义插件 */
-  plugins?: any[];
-  /** 自定义初始化函数 */
-  setup?: (app: App, config?: any) => void | Promise<void>;
-}
-
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 export async function createStandardApp(
   options: StandardAppOptions = {},
 ): Promise<AppBootstrap> {
@@ -373,19 +283,12 @@ export async function createStandardApp(
     enableWasm = "AUTO",
     enableTippy = true,
     enableElementPlusX = false,
-<<<<<<< HEAD
     enableMotion = true,
     enableTable = true,
     enableI18n = true,
     enableFontEncryption = true,
     enableTheme = true,
     enableCoreDirectives = true,
-=======
-    enableWasm = true,
-    fontEncryption,
-    enableFullscreenSocket = false,
-    router: customRouter,
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     components = {},
     directives = {},
     plugins = [],
@@ -396,7 +299,6 @@ export async function createStandardApp(
     setup,
   } = options;
 
-<<<<<<< HEAD
   // 1. 异步初始化 WASM（不阻塞 app 启动，后台加载）
   if (resolveWasmEnabled(enableWasm)) {
     import("@repo/codec-wasm")
@@ -407,64 +309,17 @@ export async function createStandardApp(
   // 2. 导入必要依赖
   const { createApp } = await import("vue");
   // @ts-ignore - app-root 无类型声明
-=======
-  // 1. 初始化 WASM（必须第一个执行）
-  if (enableWasm) {
-    try {
-      const { initializeWasmModule } = await import("@repo/codec-wasm");
-      await initializeWasmModule();
-    } catch (error) {
-      console.warn("[createStandardApp] WASM 模块加载失败:", error);
-    }
-  }
-
-  // 2. 导入依赖
-  const { createApp } = await import("vue");
-  // @ts-ignore - @repo/app-root exists at runtime
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   const AppRoot = (await import("@repo/app-root")).default;
   const { getPlatformConfig, injectResponsiveStorage, useI18n } = await import("@repo/config");
   const { router, setupStore, menu, Ripple } = await import("@repo/core");
   const { useElementPlus } = await import("@repo/plugins");
   const { MotionPlugin } = await import("@vueuse/motion");
   const Table = (await import("@pureadmin/table")).default;
-<<<<<<< HEAD
   const { FontIcon, IconifyIconOffline, IconifyIconOnline } = await import("@repo/components/ReIcon");
   const { Auth } = await import("@repo/components/ReAuth");
   const {
     ScTable, ScTableColumn, ScButton, ScSelect, ScSwitch,
     ScText, ScDrawer, ScDialog, ScTooltip,
-=======
-  const { auth, auths, authsAll, copy, longpress, optimize, admin, role, roles, fullscreen } = await import("@repo/core");
-  const coreDirectives: Record<string, any> = { auth, auths, authsAll, copy, longpress, optimize, admin, role, roles, fullscreen };
-  const { vFontEncryption } = await import("@layout/default");
-  const { FontIcon, IconifyIconOffline, IconifyIconOnline } = await import("@repo/components/ReIcon");
-  const { Auth } = await import("@repo/components/ReAuth");
-  const {
-    ScTable, ScTableColumn, ScCard,
-    ScButton, ScSelect, ScSwitch, ScText,
-    ScDrawer, ScDialog, ScTooltip,
-    ScMenu, ScMenuItem, ScSubMenu,
-    ScScrollbar, ScBreadcrumb,
-    ScIcon, ScEmpty, ScPagination,
-    ScBacktop, ScAside, ScMain,
-    ScDropdown, ScDropdownMenu, ScDropdownItem,
-    ScTag, ScBadge, ScAlert, ScLink,
-    ScDivider, ScAvatar,
-    ScInput, ScInputNumber, ScRate, ScColorPicker,
-    ScRadio, ScRadioGroup,
-    ScCheckbox, ScCheckboxGroup,
-    ScTimePicker, ScDatePicker, ScCascader, ScAutocomplete,
-    ScPopover, ScPopconfirm,
-    ScForm, ScFormItem, ScRow, ScCol,
-    ScTabs, ScTabPane,
-    ScSteps, ScOption,
-    ScSlider, ScProgress, ScRibbon,
-    ScImage, ScNumber, ScDictSelect,
-    ScPanel, ScContainer, ScFilterBar,
-    ScMessageDialog, ScMessageComponent,
-    ScRouteLoading, ScAnimationFrame, ScDebugConsole,
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   } = await import("@repo/components");
 
   // 3. 创建应用实例
@@ -473,35 +328,21 @@ export async function createStandardApp(
   // 4. 获取平台配置
   const config = await getPlatformConfig(app);
 
-<<<<<<< HEAD
   // 4.1 初始化加载动画样式
   try {
     const loaderStyleFromConfig = config?.LoadingPageStyle;
     if (loaderStyleFromConfig && !localStorage.getItem("sys-loader-style")) {
-=======
-  // 根据全局配置初始化加载动画样式
-  try {
-    const loaderStyleFromConfig = config?.LoadingPageStyle;
-    const _localStorage = typeof globalThis !== "undefined" && (globalThis as any).localStorage
-      ? (globalThis as any).localStorage : null;
-    if (loaderStyleFromConfig && _localStorage && !_localStorage.getItem("sys-loader-style")) {
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       const mapping: Record<string, string> = {
         spinner: "simple", clock: "default", pixel: "dinoGame",
         cube: "blocks", dots: "default", pulse: "pulse",
         minimal: "simple", space: "rings", servererror: "book",
       };
-<<<<<<< HEAD
       localStorage.setItem("sys-loader-style", mapping[String(loaderStyleFromConfig)] || "default");
-=======
-      _localStorage.setItem("sys-loader-style", mapping[String(loaderStyleFromConfig)] || "default");
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     }
   } catch (error) {
     console.warn("[createStandardApp] 初始化加载动画样式失败:", error);
   }
 
-<<<<<<< HEAD
   // 5. 创建 bootstrap
   const bootstrap = new AppBootstrap(app);
 
@@ -560,115 +401,25 @@ export async function createStandardApp(
   }
 
   // 5.3 注册核心组件
-=======
-  // 5. 创建 bootstrap 并注册所有功能
-  const bootstrap = new AppBootstrap(app);
-
-  // 指令
-  bootstrap
-    .registerDirectives(coreDirectives)
-    .registerDirective("menu", menu)
-    .registerDirective("ripple", Ripple)
-    .registerDirective("font-encryption", vFontEncryption);
-
-  if (Object.keys(directives).length > 0) {
-    bootstrap.registerDirectives(directives);
-  }
-
-  // 核心组件
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   bootstrap
     .registerComponent("IconifyIconOffline", IconifyIconOffline)
     .registerComponent("IconifyIconOnline", IconifyIconOnline)
     .registerComponent("FontIcon", FontIcon)
-<<<<<<< HEAD
     .registerComponent("Auth", Auth)
     .registerComponent("ScTable", ScTable)
     .registerComponent("ScTableColumn", ScTableColumn)
-=======
-    .registerComponent("Auth", Auth);
-
-  // 所有 Sc 组件
-  bootstrap
-    .registerComponent("ScTable", ScTable)
-    .registerComponent("ScTableColumn", ScTableColumn)
-    .registerComponent("ScCard", ScCard)
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     .registerComponent("ScButton", ScButton)
     .registerComponent("ScSelect", ScSelect)
     .registerComponent("ScSwitch", ScSwitch)
     .registerComponent("ScDrawer", ScDrawer)
     .registerComponent("ScDialog", ScDialog)
     .registerComponent("ScTooltip", ScTooltip)
-<<<<<<< HEAD
     .registerComponent("ScText", ScText);
 
-=======
-    .registerComponent("ScText", ScText)
-    .registerComponent("ScMenu", ScMenu)
-    .registerComponent("ScMenuItem", ScMenuItem)
-    .registerComponent("ScSubMenu", ScSubMenu)
-    .registerComponent("ScScrollbar", ScScrollbar)
-    .registerComponent("ScBreadcrumb", ScBreadcrumb)
-    .registerComponent("ScIcon", ScIcon)
-    .registerComponent("ScEmpty", ScEmpty)
-    .registerComponent("ScPagination", ScPagination)
-    .registerComponent("ScBacktop", ScBacktop)
-    .registerComponent("ScAside", ScAside)
-    .registerComponent("ScMain", ScMain)
-    .registerComponent("ScDropdown", ScDropdown)
-    .registerComponent("ScDropdownMenu", ScDropdownMenu)
-    .registerComponent("ScDropdownItem", ScDropdownItem)
-    .registerComponent("ScTag", ScTag)
-    .registerComponent("ScBadge", ScBadge)
-    .registerComponent("ScAlert", ScAlert)
-    .registerComponent("ScLink", ScLink)
-    .registerComponent("ScDivider", ScDivider)
-    .registerComponent("ScAvatar", ScAvatar)
-    .registerComponent("ScInput", ScInput)
-    .registerComponent("ScInputNumber", ScInputNumber)
-    .registerComponent("ScRate", ScRate)
-    .registerComponent("ScColorPicker", ScColorPicker)
-    .registerComponent("ScRadio", ScRadio)
-    .registerComponent("ScRadioGroup", ScRadioGroup)
-    .registerComponent("ScCheckbox", ScCheckbox)
-    .registerComponent("ScCheckboxGroup", ScCheckboxGroup)
-    .registerComponent("ScTimePicker", ScTimePicker)
-    .registerComponent("ScDatePicker", ScDatePicker)
-    .registerComponent("ScCascader", ScCascader)
-    .registerComponent("ScAutocomplete", ScAutocomplete)
-    .registerComponent("ScPopover", ScPopover)
-    .registerComponent("ScPopconfirm", ScPopconfirm)
-    .registerComponent("ScForm", ScForm)
-    .registerComponent("ScFormItem", ScFormItem)
-    .registerComponent("ScRow", ScRow)
-    .registerComponent("ScCol", ScCol)
-    .registerComponent("ScTabs", ScTabs)
-    .registerComponent("ScTabPane", ScTabPane)
-    .registerComponent("ScSteps", ScSteps)
-    .registerComponent("ScOption", ScOption)
-    .registerComponent("ScSlider", ScSlider)
-    .registerComponent("ScProgress", ScProgress)
-    .registerComponent("ScRibbon", ScRibbon)
-    .registerComponent("ScImage", ScImage)
-    .registerComponent("ScNumber", ScNumber)
-    .registerComponent("ScDictSelect", ScDictSelect)
-    .registerComponent("ScPanel", ScPanel)
-    .registerComponent("ScContainer", ScContainer)
-    .registerComponent("ScFilterBar", ScFilterBar)
-    .registerComponent("ScMessageDialog", ScMessageDialog)
-    .registerComponent("ScMessageComponent", ScMessageComponent)
-    .registerComponent("ScRouteLoading", ScRouteLoading)
-    .registerComponent("ScAnimationFrame", ScAnimationFrame)
-    .registerComponent("ScDebugConsole", ScDebugConsole);
-
-  // 自定义组件
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   if (Object.keys(components).length > 0) {
     bootstrap.registerGlobalComponents(components);
   }
 
-<<<<<<< HEAD
   // 5.4 注册第三方插件
   if (enableTippy) {
     const VueTippy = (await import("vue-tippy")).default;
@@ -687,20 +438,6 @@ export async function createStandardApp(
   corePlugins.push(useElementPlus);
   if (enableTable) corePlugins.push(Table);
 
-=======
-  // 第三方插件
-  if (enableTippy) {
-    const VueTippy = (await import("vue-tippy")).default;
-    bootstrap.use(() => { app.use(VueTippy); });
-  }
-  if (enableElementPlusX) {
-    const ElementPlusX = (await import("vue-element-plus-x")).default;
-    bootstrap.use(() => { app.use(ElementPlusX); });
-  }
-
-  // 核心功能
-  const activeRouter = customRouter ?? router;
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   bootstrap
     .registerStore(setupStore)
     .registerRouter(activeRouter)
@@ -708,7 +445,6 @@ export async function createStandardApp(
     .registerPlugins([...corePlugins, ...plugins, ...socketPlugins])
     .registerEncryptedFonts();
 
-<<<<<<< HEAD
   // 5.6 全局 Socket 服务初始化
   if (socket) {
     bootstrap.use(async () => {
@@ -717,56 +453,6 @@ export async function createStandardApp(
         initGlobalSocketService(socket);
       } catch (error) {
         console.warn("[createStandardApp] 全局 Socket 服务初始化失败:", error);
-=======
-  // fullScreen socket
-  if (enableFullscreenSocket) {
-    bootstrap.use(async () => {
-      const { getGlobalSocket } = await import("./global-socket");
-      activeRouter.afterEach(async (to) => {
-        if (to?.meta && (to.meta as any).fullScreen) {
-          await getGlobalSocket().connect();
-        }
-      });
-    });
-  }
-
-  // 主题系统
-  bootstrap.use(async () => {
-    try {
-      const { autoRegisterThemePlugins, initThemeSystem } = await import("@repo/components");
-      await autoRegisterThemePlugins(app);
-      await initThemeSystem();
-    } catch (error) {
-      console.warn("[createStandardApp] 主题系统初始化失败:", error);
-    }
-  });
-
-  // 字体加密
-  if (fontEncryption?.enabled) {
-    bootstrap.use(async () => {
-      try {
-        const { initFontEncryption } = await import("@layout/default");
-        initFontEncryption({
-          enabled: true,
-          applyGlobal: fontEncryption.applyGlobal ?? true,
-          ocrNoise: fontEncryption.ocrNoise,
-          selectors: fontEncryption.selectors,
-        });
-      } catch (error) {
-        console.warn("[createStandardApp] 字体加密初始化失败:", error);
-      }
-    });
-  }
-
-  // 自定义初始化
-  if (setup) {
-    (app.config.globalProperties as any).__proxyIdCheat__ = 0;
-    app.config.warnHandler = (msg, _instance, trace) => {
-      if (typeof msg === "string") {
-        if (msg.includes("__proxyIdCheat__") && msg.includes("was accessed during render but is not defined on instance")) return;
-        if (msg.includes('Slot "default" invoked outside of the render function')) return;
-        if (msg.includes("Runtime directive used on component with non-element root node")) return;
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       }
     });
   }
