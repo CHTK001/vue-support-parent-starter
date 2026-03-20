@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-<script setup lang="ts">
-import {
-  useDataThemeChange,
-  useLayout,
-  useNav,
-  useTranslationLang,
-} from "@layout/default";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-=======
-<script setup>
-import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layout/default";
-import { useRenderIcon } from "@repo/components";
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import TypeIt from "@repo/components/ReTypeit";
 import { ScCode } from "@repo/components"
 import { $t, getConfig, transformI18n } from "@repo/config";
@@ -892,17 +878,6 @@ onBeforeUnmount(() => {
 
         <!-- 表单区域 -->
         <div class="form-section">
-<<<<<<< HEAD
-          <el-form
-            ref="ruleFormRef"
-            :model="ruleForm"
-            :rules="formRules"
-            size="large"
-            class="modern-form"
-          >
-=======
-          <ScForm ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large" class="modern-form">
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
             <!-- 租户编码字段（非必填） -->
             <Motion
               :delay="150"
@@ -913,26 +888,6 @@ onBeforeUnmount(() => {
               "
             >
               <div class="form-field-wrapper">
-<<<<<<< HEAD
-                <label class="field-label"
-                  >租户编码 <span class="optional-hint">(选填)</span></label
-                >
-                <el-form-item prop="tenantCode" class="modern-form-item">
-                  <el-input
-                    v-model="ruleForm.tenantCode"
-                    clearable
-                    :disabled="loading"
-                    :placeholder="t('login.pureTenantCode')"
-                    :prefix-icon="useRenderIcon('ri:building-fill')"
-                    class="modern-input"
-                  />
-                </el-form-item>
-=======
-                <label class="field-label">租户编码 <span class="optional-hint">(选填)</span></label>
-                <ScFormItem prop="tenantCode" class="modern-form-item">
-                  <ScInput v-model="ruleForm.tenantCode" clearable :disabled="loading" :placeholder="t('login.pureTenantCode')" :prefix-icon="useRenderIcon('ri:building-fill')" class="modern-input" />
-                </ScFormItem>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
               </div>
             </Motion>
 
@@ -951,45 +906,12 @@ onBeforeUnmount(() => {
                   prop="username"
                   class="modern-form-item"
                 >
-<<<<<<< HEAD
-                  <el-input
-                    v-model="ruleForm.username"
-                    clearable
-                    :disabled="loading"
-                    :placeholder="t('login.pureUsername')"
-                    :prefix-icon="useRenderIcon('ri:user-3-fill')"
-                    class="modern-input"
-                  />
-                </el-form-item>
-=======
-                  <ScInput v-model="ruleForm.username" clearable :disabled="loading" :placeholder="t('login.pureUsername')" :prefix-icon="useRenderIcon('ri:user-3-fill')" class="modern-input font-encryption-enabled" />
-                </ScFormItem>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
               </div>
             </Motion>
 
             <!-- 密码字段 -->
             <Motion v-if="showCredentialLogin" :delay="150">
               <div class="form-field-wrapper">
-<<<<<<< HEAD
-                <label class="field-label">密码</label>
-                <el-form-item prop="password" class="modern-form-item">
-                  <el-input
-                    v-model="ruleForm.password"
-                    clearable
-                    show-password
-                    :disabled="loading"
-                    :placeholder="t('login.purePassword')"
-                    :prefix-icon="useRenderIcon('ri:lock-fill')"
-                    class="modern-input"
-                  />
-                </el-form-item>
-=======
-                <label class="field-label font-encryption-enabled">密码</label>
-                <ScFormItem prop="password" class="modern-form-item">
-                  <ScInput v-model="ruleForm.password" clearable show-password :disabled="loading" :placeholder="t('login.purePassword')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input font-encryption-enabled" />
-                </ScFormItem>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
               </div>
             </Motion>
 
@@ -1054,42 +976,6 @@ onBeforeUnmount(() => {
               <div class="form-field-wrapper">
                 <label class="field-label">验证码</label>
                 <div class="verify-code-wrapper">
-<<<<<<< HEAD
-                  <el-form-item
-                    prop="verifyCode"
-                    class="modern-form-item verify-code-input"
-                  >
-                    <el-input
-                      v-model="ruleForm.verifyCode"
-                      clearable
-                      :disabled="loading"
-                      :placeholder="t('login.verifyCode')"
-                      :prefix-icon="useRenderIcon('ri:lock-fill')"
-                      class="modern-input"
-                    />
-                  </el-form-item>
-                  <div
-                    class="verify-code-image"
-                    :class="{ disabled: loading }"
-                    @click="!loading && getVerifyCode()"
-                  >
-                    <el-image
-                      :src="defaultVerifyCode.verifyCodeBase64"
-                      fit="fill"
-                      :lazy="true"
-                      class="code-image"
-                    />
-                    <div class="refresh-hint">
-                      {{ loading ? "登录中..." : "点击刷新" }}
-                    </div>
-=======
-                  <ScFormItem prop="verifyCode" class="modern-form-item verify-code-input">
-                    <ScInput v-model="ruleForm.verifyCode" clearable :disabled="loading" :placeholder="t('login.verifyCode')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input" />
-                  </ScFormItem>
-                  <div class="verify-code-image" :class="{ disabled: loading }" @click="!loading && getVerifyCode()">
-                    <ScImage :src="defaultVerifyCode.verifyCodeBase64" fit="fill" :lazy="true" class="code-image" />
-                    <div class="refresh-hint">{{ loading ? "登录中..." : "点击刷新" }}</div>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
                   </div>
                 </div>
               </div>
@@ -1098,74 +984,6 @@ onBeforeUnmount(() => {
             <!-- 登录按钮 -->
             <Motion :delay="250">
               <div class="login-button-wrapper">
-<<<<<<< HEAD
-                <el-button
-                  v-if="
-                    showCredentialLogin && props.defaultSetting.CheckCodeOpen
-                  "
-                  class="modern-login-button"
-                  size="large"
-                  type="primary"
-                  :loading="loading"
-                  @click="submitCurrentLogin(ruleFormRef)"
-                >
-                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
-                  <span v-else>登录中...</span>
-                </el-button>
-                <el-button
-                  v-else-if="
-                    showCredentialLogin && props.defaultSetting.SlidingBlockOpen
-                  "
-                  class="modern-login-button"
-                  size="large"
-                  type="primary"
-                  :loading="loading"
-                  @click="onLoginCode(ruleFormRef)"
-                >
-                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
-                  <span v-else>验证中...</span>
-                </el-button>
-                <el-button
-                  v-else-if="
-                    showCredentialLogin &&
-                    props.defaultSetting.CheckTotpCodeOpen
-                  "
-                  class="modern-login-button"
-                  size="large"
-                  type="primary"
-                  :loading="loading"
-                  @click="onLoginToptCode(ruleFormRef)"
-                >
-                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
-                  <span v-else>验证中...</span>
-                </el-button>
-                <el-button
-                  v-else
-                  class="modern-login-button"
-                  size="large"
-                  type="primary"
-                  :loading="loading"
-                  @click="submitCurrentLogin(ruleFormRef)"
-                >
-                  <span v-if="!loading">{{
-                    isSmsMode ? t("login.pureSmsLogin") : t("login.pureLogin")
-                  }}</span>
-=======
-                <ScButton v-if="props.defaultSetting.OpenVerifyCode" class="modern-login-button" size="large" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
-                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
-                  <span v-else>登录中...</span>
-                </ScButton>
-                <ScButton v-else-if="props.defaultSetting.OpenVcode" class="modern-login-button" size="large" type="primary" :loading="loading" @click="onLoginCode(ruleFormRef)">
-                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
-                  <span v-else>验证中...</span>
-                </ScButton>
-                <ScButton v-else-if="props.defaultSetting.CheckToptOpen" class="modern-login-button" size="large" type="primary" :loading="loading" @click="onLoginToptCode(ruleFormRef)">
-                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
-                  <span v-else>验证中...</span>
-                </ScButton>
-                <ScButton v-else class="modern-login-button" size="large" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
-                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
                   <span v-else>登录中...</span>
                 </ScButton>
               </div>

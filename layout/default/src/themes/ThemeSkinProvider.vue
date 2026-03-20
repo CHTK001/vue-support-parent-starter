@@ -89,19 +89,6 @@ const applyThemeSkin = (themeKey: string): void => {
   });
 
   // 添加新主题类
-<<<<<<< HEAD
-  htmlEl.classList.add(`theme-${themeKey}`);
-
-  // 主题皮肤统一使用 data-skin，避免与明暗模式 data-theme 冲突
-  htmlEl.setAttribute("data-skin", themeKey);
-=======
-  if (themeKey !== "default") {
-    htmlEl.classList.add(`theme-${themeKey}`);
-  }
-
-  // 设置 data-theme 属性，便于 CSS 选择器使用
-  htmlEl.setAttribute("data-theme", themeKey);
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 };
 
 /**

@@ -107,15 +107,6 @@ export async function registerEncryptedFonts(): Promise<void> {
       },
     );
 
-<<<<<<< HEAD
-    // 单独加载，避免一个失败导致另一个也跳过
-    const results = await Promise.allSettled([
-      primaryFace.load(),
-      secondaryFace.load(),
-    ]);
-=======
-    await Promise.all([primaryFace.load(), secondaryFace.load()]);
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
     // 只将加载成功的字体添加到文档
     if (results[0].status === "fulfilled") {

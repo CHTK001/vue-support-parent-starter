@@ -162,21 +162,6 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
     <!-- 系统设置 -->
     <ToolItem
       v-if="getConfig().ShowBarSetting"
-<<<<<<< HEAD
-      :tooltip="t('buttons.pureOpenSystemSet')"
-      :class="['setting-btn', settingThemeClass]"
-=======
-      :class="[
-        'tool-item',
-        'setting-btn',
-        {
-          'fu-setting': isSpringFestival(),
-          'mooncake-setting': isMidAutumn(),
-          'pumpkin-setting': isHalloween(),
-        },
-      ]"
-      :title="t('buttons.pureOpenSystemSet')"
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       @click="onPanel"
     >
       <span class="setting-content">
@@ -351,41 +336,6 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
   font-size: 20px;
   background: rgba(255, 117, 24, 0.15);
   border: 1px solid rgba(255, 117, 24, 0.3);
-<<<<<<< HEAD
-  overflow: visible;
-  
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-  }
-
-  &::before {
-    inset: -10px;
-    border-radius: 18px;
-    background:
-      linear-gradient(135deg, transparent 48%, rgba(255, 214, 176, 0.42) 49%, transparent 51%) top right / 18px 18px no-repeat,
-      linear-gradient(90deg, transparent 50%, rgba(255, 214, 176, 0.32) 50%, transparent 52%) top right / 32px 1px no-repeat,
-      linear-gradient(180deg, transparent 50%, rgba(255, 214, 176, 0.32) 50%, transparent 52%) top right / 1px 32px no-repeat;
-    filter: drop-shadow(0 0 8px rgba(255, 117, 24, 0.32));
-    transform: scale(0.92);
-  }
-
-  &::after {
-    content: "🕷";
-    top: -12px;
-    right: -4px;
-    font-size: 13px;
-    text-shadow: 0 0 8px rgba(255, 117, 24, 0.6);
-    transform: translateY(-6px);
-  }
-  
-=======
-
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   &:hover {
     background: rgba(255, 117, 24, 0.25);
     border-color: rgba(255, 117, 24, 0.6);

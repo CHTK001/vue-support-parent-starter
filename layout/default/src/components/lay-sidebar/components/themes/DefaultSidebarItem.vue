@@ -94,18 +94,6 @@ const props = defineProps({
         top: 50%;
         transform: translateY(-50%);
         width: 3px;
-<<<<<<< HEAD
-        height: 20px;
-        background-color: #fff;
-        border-radius: 0 3px 3px 0;
-        opacity: 0.6;
-=======
-        height: 24px;
-        background-color: var(--el-color-primary);
-        border-radius: 0 4px 4px 0;
-        opacity: 0;
-        // 默认主题使用背景色区分，这里隐藏左侧条，如果需要可以改为1
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       }
     }
   }

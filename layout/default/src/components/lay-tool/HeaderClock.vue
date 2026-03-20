@@ -258,15 +258,3 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-disabled);
 }
 </style>
-<<<<<<< HEAD
-
-<!-- 全局样式：确保 tooltip 层级高于 lay-tag -->
-<style lang="scss">
-.header-clock-tooltip {
-  z-index: 9999 !important;
-}
-</style>
-
-
-=======
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126

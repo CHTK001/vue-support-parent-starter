@@ -675,38 +675,6 @@ const deferTag = useDefer(tagsViews?.length);
     >
       <IconifyIconOnline icon="ri:arrow-right-s-line" />
     </span>
-<<<<<<< HEAD
-    
-    <Teleport to="body">
-      <TagContextMenu
-        :visible="visible"
-        :style="contextMenuStyle"
-        :items="tagsViews"
-        :transform-i18n="transformI18n"
-        @select="selectTag"
-      />
-    </Teleport>
-=======
-
-    <!-- 右键菜单 -->
-    <ul
-      v-show="visible"
-      ref="contextmenuRef"
-      :key="Math.random()"
-      :style="getContextMenuStyle"
-      class="contextmenu"
-    >
-      <li
-        v-for="(item, key) in tagsViews.slice(0, 6)"
-        :key="key"
-        v-show="item.show"
-        @click="selectTag(key, item)"
-      >
-        <IconifyIconOffline :icon="item.icon" />
-        {{ transformI18n(item.text) }}
-      </li>
-    </ul>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
     <!-- 右侧功能按钮 -->
     <ScDropdown

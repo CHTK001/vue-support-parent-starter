@@ -4,13 +4,8 @@
  * 支持多主题扩展，新增主题只需修改 themeConfig.ts
  */
 
-<<<<<<< HEAD
 import { computed, watch, onBeforeUnmount, onMounted, shallowRef, ref, getCurrentInstance, type Component, type Ref } from "vue";
 import { getThemeConfig, getThemeComponentName, getThemeLocalComponentConfig, THEME_CONFIGS, ensureThemePluginForCurrentSkin } from "./themeConfig";
-=======
-import { computed, watch, onBeforeUnmount, onMounted, shallowRef, ref, getCurrentInstance, type Component } from "vue";
-import { getThemeConfig, getThemeComponentName, THEME_CONFIGS, ensureThemePluginForCurrentSkin } from "./themeConfig";
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import * as ElementPlusModule from "element-plus";
 import { storageLocal } from "@pureadmin/utils";
 import { getLogger } from "@repo/utils";
@@ -168,7 +163,6 @@ const themeCssUrls = new Map<string, string>();
 const themeCssRefCounts = new Map<string, number>();
 
 /**
-<<<<<<< HEAD
 =======
  * Pixelium 可选 CSS 样式链接引用（normalize.css）
  */
@@ -908,69 +902,3 @@ export function useThemeComponent(elementComponentName: string) {
     { immediate: true }
   );
 
-<<<<<<< HEAD
-=======
-  /**
-   * 组件卸载时清理
-   */
-  onBeforeUnmount(() => {
-    // 减少引用计数
-    globalThemeState.refCount--;
-
-    // 当所有组件实例都卸载时才清理观察器
-    cleanupGlobalSkinObserver();
-
-    // 清理主题 CSS（注意：这里不清理，因为其他组件可能还在使用）
-    // 主题 CSS 的清理由 watch 中的逻辑处理
-  });
-
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
-  return {
-    /**
-     * 当前 data-skin 值
-     */
-    currentSkin,
-
-    /**
-     * 是否启用了主题
-     */
-    hasTheme,
-
-    /**
-     * 当前主题配置
-     */
-    themeConfig,
-
-    /**
-     * 主题组件名称
-     */
-    themeComponentName,
-
-    /**
-     * 当前实际使用的组件（始终有值）
-     * - default: Element Plus 组件
-     * - 8bit: Pixel UI 组件
-     * - 其他: 对应主题组件
-     */
-    currentComponent,
-
-    /**
-     * 手动重新加载组件
-     */
-    reload: loadComponent
-  };
-}
-
-export default useThemeComponent;
-
-/**
- * 初始化主题系统
- * 在应用启动时调用，预加载当前主题
- */
-export async function initThemeSystem(): Promise<void> {
-  const currentSkin = getCurrentSkin();
-  if (currentSkin) {
-    logger.info(`[useThemeComponent] 初始化主题系统，当前主题: ${currentSkin}`);
-    await preloadTheme(currentSkin);
-  }
-}
