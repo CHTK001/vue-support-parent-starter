@@ -1,399 +1,896 @@
 <template>
-  <div class="design-container">
-    <el-card>
-      <template #header>
-        <div class="header-actions">
-          <h3>任务设计器</h3>
-          <div>
-            <el-button @click="handleSave">保存</el-button>
-            <el-button @click="handleBack">返回</el-button>
-          </div>
-        </div>
-      </template>
-
-      <div class="design-content">
-        <!-- 左侧节点面板 -->
-        <div class="node-panel">
-          <h4>组件面板</h4>
-          <div class="node-list">
-            <div
-              v-for="node in nodeTypes"
-              :key="node.type"
-              class="node-item"
-              draggable="true"
-              @dragstart="handleDragStart($event, node)"
-            >
-              <el-icon><component :is="node.icon" /></el-icon>
-              <span>{{ node.label }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 中间画布 -->
-        <div class="canvas-container">
-          <div ref="canvasRef" class="canvas"></div>
-        </div>
-
-        <!-- 右侧属性面板 -->
-        <div class="property-panel">
-          <h4>属性配置</h4>
-          <el-form v-if="selectedNode" label-width="100px">
-            <el-form-item label="节点名称">
-              <el-input v-model="selectedNode.text" />
-            </el-form-item>
-            <el-form-item label="节点类型">
-              <el-input v-model="selectedNode.type" disabled />
-            </el-form-item>
-            <el-form-item v-if="selectedNode.type === 'datasource'" label="数据源类型">
-              <el-select v-model="selectedNode.properties.dsType">
-                <el-option label="MySQL" value="mysql" />
-                <el-option label="PostgreSQL" value="postgresql" />
-                <el-option label="MongoDB" value="mongodb" />
-                <el-option label="Kafka" value="kafka" />
-              </el-select>
-            </el-form-item>
-            <el-form-item v-if="selectedNode.type === 'transform'" label="转换类型">
-              <el-select v-model="selectedNode.properties.transformType">
-                <el-option label="字段映射" value="mapping" />
-                <el-option label="数据过滤" value="filter" />
-                <el-option label="数据脱敏" value="masking" />
-                <el-option label="脚本转换" value="script" />
-              </el-select>
-            </el-form-item>
-          </el-form>
-          <el-empty v-else description="请选择一个节点" />
-        </div>
+  <div class="sync-task-design system-container modern-bg">
+    <!-- 顶部工具栏 -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <el-button @click="handleBack">
+          <el-icon><ArrowLeft /></el-icon>
+          返回
+        </el-button>
+        <span class="task-name">{{
+          taskData?.syncTaskName || "加载中..."
+        }}</span>
+        <el-tag v-if="taskData" :type="getStatusType(taskData.syncTaskStatus)">
+          {{ getStatusText(taskData.syncTaskStatus) }}
+        </el-tag>
       </div>
-    </el-card>
+      <div class="toolbar-right">
+        <el-button type="primary" :loading="saving" @click="handleSave">
+          <el-icon><DocumentChecked /></el-icon>
+          保存
+        </el-button>
+        <el-button @click="handleValidate">
+          <el-icon><CircleCheck /></el-icon>
+          验证
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 编辑器主体 -->
+    <div class="editor-wrapper">
+      <!-- 左侧节点面板 -->
+      <div class="node-panel">
+        <el-collapse v-model="activeCollapse">
+          <el-collapse-item title="输入节点" name="INPUT">
+            <div class="node-list">
+              <div
+                v-for="spi in spiMap.INPUT"
+                :key="spi.name"
+                class="node-item input"
+                draggable="true"
+                @dragstart="handleDragStart($event, 'INPUT', spi)"
+              >
+                <el-icon><Download /></el-icon>
+                <span>{{ spi.displayName }}</span>
+              </div>
+            </div>
+          </el-collapse-item>
+          <el-collapse-item title="输出节点" name="OUTPUT">
+            <div class="node-list">
+              <div
+                v-for="spi in spiMap.OUTPUT"
+                :key="spi.name"
+                class="node-item output"
+                draggable="true"
+                @dragstart="handleDragStart($event, 'OUTPUT', spi)"
+              >
+                <el-icon><Upload /></el-icon>
+                <span>{{ spi.displayName }}</span>
+              </div>
+            </div>
+          </el-collapse-item>
+          <el-collapse-item title="数据中心" name="DATA_CENTER">
+            <div class="node-list">
+              <div
+                v-for="spi in spiMap.DATA_CENTER"
+                :key="spi.name"
+                class="node-item datacenter"
+                draggable="true"
+                @dragstart="handleDragStart($event, 'DATA_CENTER', spi)"
+              >
+                <el-icon><Connection /></el-icon>
+                <span>{{ spi.displayName }}</span>
+              </div>
+            </div>
+          </el-collapse-item>
+          <el-collapse-item title="过滤器" name="FILTER">
+            <div class="node-list">
+              <div
+                v-for="spi in spiMap.FILTER"
+                :key="spi.name"
+                class="node-item filter"
+                draggable="true"
+                @dragstart="handleDragStart($event, 'FILTER', spi)"
+              >
+                <el-icon><Filter /></el-icon>
+                <span>{{ spi.displayName }}</span>
+              </div>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+      </div>
+
+      <!-- ScReteEditor 组件 -->
+      <div
+        class="editor-container"
+        @dragover="handleDragOver"
+        @drop="handleDrop"
+      >
+        <ScReteEditor
+          ref="editorRef"
+          v-model="editorData"
+          :show-toolbar="true"
+          :show-node-panel="false"
+          :show-property-panel="false"
+          :show-statusbar="true"
+          :minimap="true"
+          :context-menu="false"
+          :auto-arrange="true"
+          background="dots"
+          :zoom="{ min: 0.2, max: 2 }"
+          :node-menu-items="[]"
+          @node-selected="handleNodeSelected"
+          @data-changed="handleDataChanged"
+        >
+          <template #toolbar-center>
+            <span class="toolbar-title">同步任务设计器</span>
+          </template>
+        </ScReteEditor>
+      </div>
+
+      <!-- 右侧属性面板 -->
+      <div class="property-panel" :class="{ open: selectedSyncNode }">
+        <template v-if="selectedSyncNode">
+          <div class="panel-header">
+            <span>节点配置</span>
+            <el-button text size="small" @click="selectedSyncNode = null">
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </div>
+          <div class="panel-content">
+            <el-form label-position="top" size="small">
+              <el-form-item label="节点名称">
+                <el-input
+                  v-model="selectedSyncNode.syncNodeName"
+                  placeholder="请输入节点名称"
+                />
+              </el-form-item>
+              <el-form-item label="节点类型">
+                <el-input
+                  :value="getNodeTypeText(selectedSyncNode.syncNodeType)"
+                  disabled
+                />
+              </el-form-item>
+              <el-form-item label="SPI类型">
+                <el-input :value="selectedSyncNode.syncNodeSpiName" disabled />
+              </el-form-item>
+
+              <!-- 动态参数配置 -->
+              <template v-if="selectedNodeParams.length > 0">
+                <el-divider>参数配置</el-divider>
+                <el-form-item
+                  v-for="param in selectedNodeParams"
+                  :key="param.name"
+                  :label="param.label"
+                >
+                  <el-input
+                    v-if="param.type === 'string'"
+                    v-model="nodeConfig[param.name]"
+                    :placeholder="param.placeholder || param.description"
+                  />
+                  <el-input
+                    v-else-if="param.type === 'password'"
+                    v-model="nodeConfig[param.name]"
+                    type="password"
+                    show-password
+                    :placeholder="param.placeholder || param.description"
+                  />
+                  <el-input
+                    v-else-if="param.type === 'textarea'"
+                    v-model="nodeConfig[param.name]"
+                    type="textarea"
+                    :rows="3"
+                    :placeholder="param.placeholder || param.description"
+                  />
+                  <el-input-number
+                    v-else-if="param.type === 'number'"
+                    v-model="nodeConfig[param.name]"
+                    :min="param.min"
+                    :max="param.max"
+                  />
+                  <el-switch
+                    v-else-if="param.type === 'boolean'"
+                    v-model="nodeConfig[param.name]"
+                  />
+                  <el-select
+                    v-else-if="param.type === 'select'"
+                    v-model="nodeConfig[param.name]"
+                    :placeholder="param.placeholder"
+                  >
+                    <el-option
+                      v-for="opt in param.options"
+                      :key="opt.value"
+                      :label="opt.label"
+                      :value="opt.value"
+                    />
+                  </el-select>
+                </el-form-item>
+              </template>
+
+              <el-form-item>
+                <el-button type="primary" @click="handleSaveNodeConfig">
+                  保存配置
+                </el-button>
+                <el-button
+                  v-if="
+                    selectedSyncNode.syncNodeType === 'INPUT' ||
+                    selectedSyncNode.syncNodeType === 'OUTPUT'
+                  "
+                  @click="handleTestConnection"
+                >
+                  测试连接
+                </el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+        </template>
+        <el-empty v-else description="请选择节点" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import { Database, Refresh, Upload } from '@element-plus/icons-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
+import {
+  ArrowLeft,
+  DocumentChecked,
+  CircleCheck,
+  Close,
+  Download,
+  Upload,
+  Connection,
+  Filter,
+} from "@element-plus/icons-vue";
+import {
+  ScReteEditor,
+  type EditorData,
+  type NodeTypeName,
+  type BaseNode,
+} from "@repo/scReteEditor";
+import {
+  getSyncTaskDesign,
+  saveSyncTaskDesign,
+  validateSyncTaskDesign,
+  getAllSpiTypes,
+  getSpiParameters,
+  testSpiConnection,
+  type SyncTask,
+  type SyncNode,
+  type SyncConnection,
+  type SpiInfo,
+  type SpiParameter,
+} from "../../api/sync";
+
+const route = useRoute();
+const router = useRouter();
+
+const taskId = computed(() => Number(route.params.taskId));
+
+// 编辑器引用
+const editorRef = ref<InstanceType<typeof ScReteEditor>>();
+
+// 任务数据
+const taskData = ref<SyncTask | null>(null);
+const saving = ref(false);
+
+// 编辑器数据 (ScReteEditor 格式)
+const editorData = ref<EditorData>({
+  nodes: [],
+  connections: [],
+});
+
+// 同步节点数据（原始格式，用于属性面板和保存）
+const syncNodes = ref<SyncNode[]>([]);
+const syncConnections = ref<SyncConnection[]>([]);
+
+// SPI 数据
+const spiMap = reactive<{
+  INPUT: SpiInfo[];
+  OUTPUT: SpiInfo[];
+  DATA_CENTER: SpiInfo[];
+  FILTER: SpiInfo[];
+}>({
+  INPUT: [],
+  OUTPUT: [],
+  DATA_CENTER: [],
+  FILTER: [],
+});
+const activeCollapse = ref(["INPUT", "OUTPUT", "DATA_CENTER", "FILTER"]);
+
+// 选中状态
+const selectedSyncNode = ref<SyncNode | null>(null);
+const selectedNodeParams = ref<SpiParameter[]>([]);
+const nodeConfig = reactive<Record<string, any>>({});
+
+// 拖拽数据
+let draggedSpi: {
+  nodeType: string;
+  spiName: string;
+  displayName: string;
+} | null = null;
+
+// 生成唯一ID
+const generateNodeKey = () =>
+  `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+// 节点类型映射
+const syncTypeToEditorType: Record<string, NodeTypeName> = {
+  INPUT: "input",
+  OUTPUT: "output",
+  DATA_CENTER: "process",
+  FILTER: "condition",
+};
+
+const editorTypeToSyncType: Record<string, string> = {
+  input: "INPUT",
+  output: "OUTPUT",
+  process: "DATA_CENTER",
+  condition: "FILTER",
+};
+
+// ============== 数据转换函数 ==============
 
 /**
- * TODO: 集成LogicFlow流程图库
- * 
- * 安装步骤：
- * 1. 安装依赖：pnpm add @logicflow/core @logicflow/extension
- * 2. 导入样式：import '@logicflow/core/dist/style/index.css'
- * 3. 导入LogicFlow：import LogicFlow from '@logicflow/core'
- * 4. 初始化实例：
- *    lf = new LogicFlow({
- *      container: canvasRef.value!,
- *      grid: { size: 10, visible: true },
- *      background: { color: '#f7f9ff' },
- *      keyboard: { enabled: true },
- *    })
- * 5. 注册自定义节点类型
- * 6. 监听节点选中事件：lf.on('node:click', handleNodeClick)
- * 7. 实现保存/加载功能：lf.getGraphData() / lf.render(data)
+ * 将 SyncNode/SyncConnection 转换为 EditorData
  */
+function convertToEditorData(
+  nodes: SyncNode[],
+  connections: SyncConnection[],
+): EditorData {
+  return {
+    nodes: nodes.map((node) => {
+      let position = { x: 100, y: 100 };
+      if (node.syncNodePosition) {
+        try {
+          position = JSON.parse(node.syncNodePosition);
+        } catch (e) {}
+      }
 
-const router = useRouter();
-const canvasRef = ref<HTMLElement>();
-const selectedNode = ref<any>(null);
-const nodes = ref<any[]>([]);
-const edges = ref<any[]>([]);
-
-const nodeTypes = [
-  { type: 'datasource', label: '数据源', icon: Database },
-  { type: 'transform', label: '数据转换', icon: Refresh },
-  { type: 'target', label: '目标源', icon: Upload },
-];
-
-let graph: any = null;
-let nodeIdCounter = 1;
-
-const initCanvas = () => {
-  if (!canvasRef.value) return;
-  
-  // 简化实现：使用原生Canvas绘制基础流程图
-  // 生产环境应该使用LogicFlow或X6
-  const canvas = document.createElement('canvas');
-  canvas.width = canvasRef.value.clientWidth;
-  canvas.height = canvasRef.value.clientHeight;
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-  canvasRef.value.appendChild(canvas);
-  
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    // 绘制网格
-    drawGrid(ctx, canvas.width, canvas.height);
-    
-    // 添加提示文字
-    ctx.fillStyle = '#909399';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('拖拽左侧节点到此处创建流程图', canvas.width / 2, canvas.height / 2);
-    ctx.fillText('(生产环境需要集成LogicFlow或X6)', canvas.width / 2, canvas.height / 2 + 25);
-  }
-  
-  // 监听拖放事件
-  canvas.addEventListener('dragover', handleDragOver);
-  canvas.addEventListener('drop', handleDrop);
-  canvas.addEventListener('click', handleCanvasClick);
-  
-  graph = { canvas, ctx };
-};
-
-const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-  const gridSize = 20;
-  ctx.strokeStyle = '#e4e7ed';
-  ctx.lineWidth = 0.5;
-  
-  for (let x = 0; x <= width; x += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
-  }
-  
-  for (let y = 0; y <= height; y += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-  }
-};
-
-const redrawCanvas = () => {
-  if (!graph || !graph.ctx || !graph.canvas) return;
-  
-  const { ctx, canvas } = graph;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawGrid(ctx, canvas.width, canvas.height);
-  
-  // 绘制所有节点
-  nodes.value.forEach(node => {
-    drawNode(ctx, node);
-  });
-  
-  // 绘制所有连线
-  edges.value.forEach(edge => {
-    drawEdge(ctx, edge);
-  });
-};
-
-const drawNode = (ctx: CanvasRenderingContext2D, node: any) => {
-  const { x, y, width, height, text, type } = node;
-  
-  // 绘制节点矩形
-  ctx.fillStyle = node.selected ? '#ecf5ff' : '#ffffff';
-  ctx.strokeStyle = node.selected ? '#409eff' : '#dcdfe6';
-  ctx.lineWidth = 2;
-  ctx.fillRect(x, y, width, height);
-  ctx.strokeRect(x, y, width, height);
-  
-  // 绘制节点文字
-  ctx.fillStyle = '#303133';
-  ctx.font = '14px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x + width / 2, y + height / 2);
-};
-
-const drawEdge = (ctx: CanvasRenderingContext2D, edge: any) => {
-  const { fromX, fromY, toX, toY } = edge;
-  
-  ctx.strokeStyle = '#909399';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(fromX, fromY);
-  ctx.lineTo(toX, toY);
-  ctx.stroke();
-  
-  // 绘制箭头
-  const angle = Math.atan2(toY - fromY, toX - fromX);
-  const arrowSize = 10;
-  ctx.beginPath();
-  ctx.moveTo(toX, toY);
-  ctx.lineTo(
-    toX - arrowSize * Math.cos(angle - Math.PI / 6),
-    toY - arrowSize * Math.sin(angle - Math.PI / 6)
-  );
-  ctx.lineTo(
-    toX - arrowSize * Math.cos(angle + Math.PI / 6),
-    toY - arrowSize * Math.sin(angle + Math.PI / 6)
-  );
-  ctx.closePath();
-  ctx.fillStyle = '#909399';
-  ctx.fill();
-};
-
-const handleDragStart = (event: DragEvent, node: any) => {
-  event.dataTransfer!.effectAllowed = 'copy';
-  event.dataTransfer!.setData('nodeType', node.type);
-  event.dataTransfer!.setData('nodeLabel', node.label);
-};
-
-const handleDragOver = (event: DragEvent) => {
-  event.preventDefault();
-  event.dataTransfer!.dropEffect = 'copy';
-};
-
-const handleDrop = (event: DragEvent) => {
-  event.preventDefault();
-  
-  const nodeType = event.dataTransfer!.getData('nodeType');
-  const nodeLabel = event.dataTransfer!.getData('nodeLabel');
-  
-  if (!nodeType || !graph) return;
-  
-  const rect = graph.canvas.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-  
-  const newNode = {
-    id: `node_${nodeIdCounter++}`,
-    type: nodeType,
-    text: nodeLabel,
-    x: x - 60,
-    y: y - 30,
-    width: 120,
-    height: 60,
-    selected: false,
-    properties: {
-      dsType: nodeType === 'datasource' ? 'mysql' : undefined,
-      transformType: nodeType === 'transform' ? 'mapping' : undefined,
-    },
+      return {
+        id: node.syncNodeKey || `node_${node.syncNodeId || Date.now()}`,
+        type: syncTypeToEditorType[node.syncNodeType] || "process",
+        label: node.syncNodeName || node.syncNodeSpiName || "未命名节点",
+        position,
+        controls: {},
+      };
+    }),
+    connections: connections.map((conn) => ({
+      sourceId: conn.sourceNodeKey || "",
+      sourceOutput: conn.sourceHandle || "output",
+      targetId: conn.targetNodeKey || "",
+      targetInput: conn.targetHandle || "input",
+    })),
   };
-  
-  nodes.value.push(newNode);
-  redrawCanvas();
-  ElMessage.success('节点已添加');
-};
+}
 
-const handleCanvasClick = (event: MouseEvent) => {
-  if (!graph) return;
-  
-  const rect = graph.canvas.getBoundingClientRect();
+/**
+ * 将 EditorData 转换回 SyncNode/SyncConnection
+ */
+function convertFromEditorData(data: EditorData): {
+  nodes: SyncNode[];
+  connections: SyncConnection[];
+} {
+  const nodeMap = new Map(syncNodes.value.map((n) => [n.syncNodeKey, n]));
+
+  const nodes: SyncNode[] = data.nodes.map((editorNode) => {
+    const existing = nodeMap.get(editorNode.id);
+    return {
+      ...existing,
+      syncNodeKey: editorNode.id,
+      syncNodeType: (editorTypeToSyncType[editorNode.type] ||
+        "DATA_CENTER") as any,
+      syncNodeName: editorNode.label,
+      syncNodePosition: JSON.stringify(editorNode.position),
+      syncNodeSpiName: existing?.syncNodeSpiName || "Unknown",
+      syncNodeEnabled: 1,
+    };
+  });
+
+  const connections: SyncConnection[] = data.connections.map((conn) => ({
+    sourceNodeKey: conn.sourceId,
+    sourceHandle: conn.sourceOutput,
+    targetNodeKey: conn.targetId,
+    targetHandle: conn.targetInput,
+    connectionType: "DATA",
+  }));
+
+  return { nodes, connections };
+}
+
+// ============== 事件处理 ==============
+
+// 拖拽开始
+function handleDragStart(event: DragEvent, nodeType: string, spi: SpiInfo) {
+  draggedSpi = { nodeType, spiName: spi.name, displayName: spi.displayName };
+  event.dataTransfer?.setData("text/plain", JSON.stringify(draggedSpi));
+}
+
+// 拖拽悬停
+function handleDragOver(event: DragEvent) {
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "copy";
+  }
+}
+
+// 拖拽放下 - 创建新节点
+function handleDrop(event: DragEvent) {
+  event.preventDefault();
+
+  if (!draggedSpi) return;
+
+  // 获取放下位置相对于编辑器的坐标
+  const editorContainer = event.currentTarget as HTMLElement;
+  const rect = editorContainer.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
-  
-  // 检查是否点击了某个节点
-  let clickedNode = null;
-  for (const node of nodes.value) {
-    if (x >= node.x && x <= node.x + node.width && y >= node.y && y <= node.y + node.height) {
-      clickedNode = node;
-      break;
+
+  // 创建新的 SyncNode
+  const newNodeKey = generateNodeKey();
+  const newSyncNode: SyncNode = {
+    syncNodeKey: newNodeKey,
+    syncNodeType: draggedSpi.nodeType as any,
+    syncNodeSpiName: draggedSpi.spiName,
+    syncNodeName: draggedSpi.displayName,
+    syncNodePosition: JSON.stringify({ x, y }),
+    syncNodeEnabled: 1,
+    syncNodeConfig: "{}",
+  };
+
+  // 添加到 syncNodes
+  syncNodes.value.push(newSyncNode);
+
+  // 创建对应的编辑器节点
+  const newEditorNode = {
+    id: newNodeKey,
+    type: syncTypeToEditorType[draggedSpi.nodeType] || "process",
+    label: draggedSpi.displayName,
+    position: { x, y },
+    controls: {},
+  };
+
+  // 更新编辑器数据
+  editorData.value = {
+    ...editorData.value,
+    nodes: [...editorData.value.nodes, newEditorNode],
+  };
+
+  // 清除拖拽数据
+  draggedSpi = null;
+
+  ElMessage.success(`已添加节点: ${newSyncNode.syncNodeName}`);
+}
+
+// 节点选中
+async function handleNodeSelected(node: BaseNode | null) {
+  if (!node) {
+    selectedSyncNode.value = null;
+    return;
+  }
+
+  const syncNode = syncNodes.value.find((n) => n.syncNodeKey === node.id);
+  if (syncNode) {
+    selectedSyncNode.value = syncNode;
+
+    // 加载参数配置
+    if (syncNode.syncNodeType && syncNode.syncNodeSpiName) {
+      try {
+        const res = await getSpiParameters(
+          syncNode.syncNodeType,
+          syncNode.syncNodeSpiName,
+        );
+        if (res.data?.success) {
+          selectedNodeParams.value = res.data.data || [];
+        }
+      } catch (e) {
+        selectedNodeParams.value = [];
+      }
     }
+
+    // 解析现有配置
+    Object.keys(nodeConfig).forEach((key) => delete nodeConfig[key]);
+    if (syncNode.syncNodeConfig) {
+      try {
+        Object.assign(nodeConfig, JSON.parse(syncNode.syncNodeConfig));
+      } catch (e) {}
+    }
+
+    // 设置默认值
+    selectedNodeParams.value.forEach((param) => {
+      if (
+        nodeConfig[param.name] === undefined &&
+        param.defaultValue !== undefined
+      ) {
+        nodeConfig[param.name] = param.defaultValue;
+      }
+    });
   }
-  
-  // 更新选中状态
-  nodes.value.forEach(node => {
-    node.selected = node === clickedNode;
+}
+
+// 数据变化
+function handleDataChanged(data: EditorData) {
+  // 更新连接
+  const { connections } = convertFromEditorData(data);
+  syncConnections.value = connections;
+
+  // 更新节点位置和名称
+  data.nodes.forEach((editorNode) => {
+    const syncNode = syncNodes.value.find(
+      (n) => n.syncNodeKey === editorNode.id,
+    );
+    if (syncNode) {
+      syncNode.syncNodePosition = JSON.stringify(editorNode.position);
+      syncNode.syncNodeName = editorNode.label;
+    }
   });
-  
-  selectedNode.value = clickedNode;
-  redrawCanvas();
+
+  // 删除不存在的节点
+  const editorNodeIds = new Set(data.nodes.map((n) => n.id));
+  syncNodes.value = syncNodes.value.filter((n) =>
+    editorNodeIds.has(n.syncNodeKey || ""),
+  );
+}
+
+// ============== 业务操作 ==============
+
+// 加载 SPI 列表
+const loadSpiList = async () => {
+  try {
+    const res = await getAllSpiTypes();
+    if (res.data?.success && res.data.data) {
+      const data = res.data.data;
+      spiMap.INPUT = data.input || [];
+      spiMap.OUTPUT = data.output || [];
+      spiMap.DATA_CENTER = data.dataCenter || [];
+      spiMap.FILTER = data.filter || [];
+    }
+  } catch (e) {
+    console.error(e);
+  }
 };
 
-const handleSave = () => {
-  const graphData = {
-    nodes: nodes.value,
-    edges: edges.value,
-  };
-  
-  console.log('保存流程图数据:', graphData);
-  // TODO: 调用API保存到后端
-  ElMessage.success('保存成功');
+// 加载任务设计数据
+const loadTaskDesign = async () => {
+  try {
+    const res = await getSyncTaskDesign(taskId.value);
+    if (res.data?.success && res.data.data) {
+      const design = res.data.data;
+      taskData.value = design.task;
+      syncNodes.value = design.nodes || [];
+      syncConnections.value = design.connections || [];
+
+      // 转换为编辑器数据
+      editorData.value = convertToEditorData(
+        syncNodes.value,
+        syncConnections.value,
+      );
+    }
+  } catch (e) {
+    console.error(e);
+    ElMessage.error("加载任务设计失败");
+  }
 };
 
+// 保存任务设计
+const handleSave = async () => {
+  saving.value = true;
+  try {
+    const data = editorRef.value?.getData() || editorData.value;
+    const { nodes, connections } = convertFromEditorData(data);
+
+    // 保留原有的配置信息
+    nodes.forEach((node) => {
+      const original = syncNodes.value.find(
+        (n) => n.syncNodeKey === node.syncNodeKey,
+      );
+      if (original) {
+        node.syncNodeConfig = original.syncNodeConfig;
+        node.syncNodeSpiName = original.syncNodeSpiName;
+      }
+    });
+
+    const res = await saveSyncTaskDesign(taskId.value, {
+      task: taskData.value || undefined,
+      nodes,
+      connections,
+    });
+    if (res.data?.success) {
+      ElMessage.success("保存成功");
+    } else {
+      ElMessage.error(res.data?.msg || "保存失败");
+    }
+  } catch (e) {
+    console.error(e);
+    ElMessage.error("保存失败");
+  } finally {
+    saving.value = false;
+  }
+};
+
+// 验证设计
+const handleValidate = async () => {
+  try {
+    const data = editorRef.value?.getData() || editorData.value;
+    const { nodes, connections } = convertFromEditorData(data);
+
+    const res = await validateSyncTaskDesign({
+      task: taskData.value || undefined,
+      nodes,
+      connections,
+    });
+    if (res.data?.success && res.data.data) {
+      ElMessage.success("验证通过");
+    } else {
+      ElMessage.error(res.data?.msg || "验证失败");
+    }
+  } catch (e) {
+    console.error(e);
+    ElMessage.error("验证失败");
+  }
+};
+
+// 返回
 const handleBack = () => {
-  router.push('/sync/tasks');
+  router.push({ name: "SyncManagement" });
+};
+
+// 状态显示
+const getStatusType = (status?: string) => {
+  const map: Record<string, string> = {
+    STOPPED: "info",
+    RUNNING: "success",
+    ERROR: "danger",
+  };
+  return map[status || ""] || "info";
+};
+
+const getStatusText = (status?: string) => {
+  const map: Record<string, string> = {
+    STOPPED: "已停止",
+    RUNNING: "运行中",
+    ERROR: "异常",
+  };
+  return map[status || ""] || status || "";
+};
+
+const getNodeTypeText = (type?: string) => {
+  const map: Record<string, string> = {
+    INPUT: "输入",
+    OUTPUT: "输出",
+    DATA_CENTER: "数据中心",
+    FILTER: "过滤器",
+  };
+  return map[type || ""] || type || "";
+};
+
+// 保存节点配置
+const handleSaveNodeConfig = () => {
+  if (!selectedSyncNode.value) return;
+  selectedSyncNode.value.syncNodeConfig = JSON.stringify(nodeConfig);
+  ElMessage.success("配置已保存");
+};
+
+// 测试连接
+const handleTestConnection = async () => {
+  if (!selectedSyncNode.value) return;
+  try {
+    const res = await testSpiConnection(
+      selectedSyncNode.value.syncNodeType!,
+      selectedSyncNode.value.syncNodeSpiName!,
+      nodeConfig,
+    );
+    if (res.data?.success) {
+      ElMessage.success(res.data.data || "连接成功");
+    } else {
+      ElMessage.error(res.data?.msg || "连接失败");
+    }
+  } catch (e) {
+    console.error(e);
+    ElMessage.error("测试失败");
+  }
 };
 
 onMounted(() => {
-  initCanvas();
-});
-
-onUnmounted(() => {
-  // 清理资源
-  if (graph && graph.canvas) {
-    graph.canvas.removeEventListener('dragover', handleDragOver);
-    graph.canvas.removeEventListener('drop', handleDrop);
-    graph.canvas.removeEventListener('click', handleCanvasClick);
+  loadSpiList();
+  if (taskId.value) {
+    loadTaskDesign();
   }
 });
 </script>
 
 <style scoped lang="scss">
-.design-container {
-  padding: 20px;
-  height: calc(100vh - 40px);
-}
+.modern-bg {
+  position: relative;
+  overflow: hidden;
 
-.header-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
 
-.design-content {
-  display: flex;
-  height: calc(100vh - 180px);
-  gap: 10px;
-}
-
-.node-panel {
-  width: 200px;
-  border-right: 1px solid #dcdfe6;
-  padding-right: 10px;
-  overflow-y: auto;
-
-  h4 {
-    margin-bottom: 10px;
+  > * {
+    position: relative;
+    z-index: 1;
   }
 }
 
-.node-list {
+.sync-task-design {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
+  background: var(--el-bg-color);
 
-.node-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  cursor: move;
-  background: #fff;
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--el-bg-color);
+    border-bottom: 1px solid var(--el-border-color-lighter);
 
-  &:hover {
-    background: #f5f7fa;
-    border-color: #409eff;
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .task-name {
+        font-size: 16px;
+        font-weight: 500;
+      }
+    }
+
+    .toolbar-right {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  .editor-wrapper {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+
+    // 左侧节点面板
+    .node-panel {
+      width: 220px;
+      background: var(--el-fill-color-lighter);
+      border-right: 1px solid var(--el-border-color-lighter);
+      overflow-y: auto;
+      flex-shrink: 0;
+
+      .node-list {
+        padding: 8px;
+      }
+
+      .node-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        cursor: grab;
+        transition: all 0.2s;
+
+        &.input {
+          background: rgba(16, 185, 129, 0.1);
+          border: 1px solid #10b981;
+          color: #10b981;
+        }
+        &.output {
+          background: rgba(245, 158, 11, 0.1);
+          border: 1px solid #f59e0b;
+          color: #f59e0b;
+        }
+        &.datacenter {
+          background: rgba(99, 102, 241, 0.1);
+          border: 1px solid #6366f1;
+          color: #6366f1;
+        }
+        &.filter {
+          background: rgba(139, 92, 246, 0.1);
+          border: 1px solid #8b5cf6;
+          color: #8b5cf6;
+        }
+
+        &:hover {
+          transform: translateX(4px);
+        }
+
+        &:active {
+          cursor: grabbing;
+        }
+
+        span {
+          font-size: 13px;
+          color: var(--el-text-color-primary);
+        }
+      }
+    }
+
+    // 编辑器容器
+    .editor-container {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    // ScReteEditor 样式覆盖
+    :deep(.sc-rete-editor) {
+      flex: 1;
+      border-radius: 0;
+      border: none;
+      min-height: auto;
+    }
+
+    .toolbar-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    // 右侧属性面板
+    .property-panel {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      background: var(--el-bg-color);
+      border-left: 1px solid var(--el-border-color-lighter);
+      overflow: hidden;
+      transition: width 0.3s ease;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+
+      &.open {
+        width: 320px;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--el-text-color-primary);
+        border-bottom: 1px solid var(--el-border-color-lighter);
+        flex-shrink: 0;
+      }
+
+      .panel-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+      }
+
+      .el-empty {
+        margin-top: 100px;
+      }
+    }
   }
 }
 
-.canvas-container {
-  flex: 1;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  background: #fafafa;
-  position: relative;
-}
-
-.canvas {
-  width: 100%;
-  height: 100%;
-}
-
-.property-panel {
-  width: 300px;
-  border-left: 1px solid #dcdfe6;
-  padding-left: 10px;
-  overflow-y: auto;
-
-  h4 {
-    margin-bottom: 10px;
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
   }
 }
 </style>

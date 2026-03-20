@@ -2,28 +2,50 @@
   <div class="monitor-container">
     <el-card>
       <template #header>
-        <h3>监控仪表板</h3>
+        <div class="header-actions">
+          <div class="title-group">
+            <h3>{{ taskId ? "任务监控" : "监控仪表板" }}</h3>
+            <el-tag v-if="taskId" type="info">任务 #{{ taskId }}</el-tag>
+          </div>
+          <div class="toolbar-actions">
+            <el-select
+              v-model="granularity"
+              style="width: 120px"
+              @change="loadDashboard"
+            >
+              <el-option label="按小时" value="hour" />
+              <el-option label="按天" value="day" />
+            </el-select>
+            <el-button :loading="loading" @click="handleRefresh">刷新</el-button>
+            <el-button @click="handleBack">返回</el-button>
+          </div>
+        </div>
       </template>
 
       <el-row :gutter="20">
         <el-col :span="6">
           <el-card shadow="hover">
-            <el-statistic title="运行中任务" :value="stats.running" />
+            <el-statistic title="运行中任务" :value="summary.runningCount" />
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card shadow="hover">
-            <el-statistic title="今日同步" :value="stats.todaySync" suffix="条" />
+            <el-statistic title="总执行次数" :value="summary.totalExecutions" />
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card shadow="hover">
-            <el-statistic title="成功率" :value="stats.successRate" suffix="%" :precision="2" />
+            <el-statistic
+              title="成功率"
+              :value="summary.successRate"
+              suffix="%"
+              :precision="2"
+            />
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card shadow="hover">
-            <el-statistic title="活跃告警" :value="stats.activeAlerts" />
+            <el-statistic title="活跃告警" :value="activeAlertCount" />
           </el-card>
         </el-col>
       </el-row>
@@ -32,40 +54,68 @@
         <el-col :span="12">
           <el-card>
             <template #header>
-              <span>同步趋势</span>
+              <span>执行趋势</span>
             </template>
-            <div ref="trendChartRef" style="height: 300px"></div>
+            <div ref="trendChartRef" style="height: 320px"></div>
           </el-card>
         </el-col>
         <el-col :span="12">
           <el-card>
             <template #header>
-              <span>任务状态分布</span>
+              <span>状态分布</span>
             </template>
-            <div ref="statusChartRef" style="height: 300px"></div>
+            <div ref="statusChartRef" style="height: 320px"></div>
+          </el-card>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20" style="margin-top: 20px">
+        <el-col :span="12">
+          <el-card>
+            <template #header>
+              <span>触发类型分布</span>
+            </template>
+            <div ref="triggerChartRef" style="height: 320px"></div>
+          </el-card>
+        </el-col>
+        <el-col :span="12">
+          <el-card>
+            <template #header>
+              <span>数据量与平均耗时</span>
+            </template>
+            <div ref="dataChartRef" style="height: 320px"></div>
           </el-card>
         </el-col>
       </el-row>
 
       <el-card style="margin-top: 20px">
         <template #header>
-          <span>实时任务列表</span>
+          <span>实时任务状态</span>
         </template>
-        <el-table :data="realtimeTasks" max-height="300">
-          <el-table-column prop="syncTaskName" label="任务名称" />
-          <el-table-column prop="syncTaskStatus" label="状态">
+        <el-table :data="realtimeTasks" max-height="320" v-loading="loadingRealtime">
+          <el-table-column prop="syncTaskName" label="任务名称" min-width="180" />
+          <el-table-column prop="syncTaskStatus" label="状态" width="120">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.syncTaskStatus)">
-                {{ row.syncTaskStatus }}
+                {{ getStatusText(row.syncTaskStatus) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="progress" label="进度">
+          <el-table-column label="进度" min-width="220">
             <template #default="{ row }">
-              <el-progress :percentage="row.progress || 0" />
+              <el-progress :percentage="Number(row.progress || 0)" />
             </template>
           </el-table-column>
-          <el-table-column prop="throughput" label="吞吐量" />
+          <el-table-column label="吞吐量" min-width="140">
+            <template #default="{ row }">
+              {{ formatThroughput(row.throughput) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="最近执行时间" min-width="180">
+            <template #default="{ row }">
+              {{ formatDateTime(row.syncTaskLastRunTime) }}
+            </template>
+          </el-table-column>
         </el-table>
       </el-card>
 
@@ -77,262 +127,441 @@
           <el-timeline-item
             v-for="alert in alerts"
             :key="alert.alertId"
-            :timestamp="alert.alertTime"
+            :timestamp="formatDateTime(alert.alertTime)"
             :type="getAlertType(alert.alertLevel)"
           >
-            <p>{{ alert.alertMessage }}</p>
-            <el-button
-              v-if="!alert.isResolved"
-              size="small"
-              @click="handleResolveAlert(alert.alertId)"
-            >
-              确认
-            </el-button>
+            <div class="alert-item">
+              <div class="alert-content">
+                <div class="alert-title">
+                  <el-tag size="small" :type="getAlertType(alert.alertLevel)">
+                    {{ alert.alertLevel || "INFO" }}
+                  </el-tag>
+                  <span>{{ alert.alertType || "告警" }}</span>
+                </div>
+                <p>{{ alert.alertMessage }}</p>
+              </div>
+              <el-button
+                v-if="alert.isResolved !== 1"
+                size="small"
+                @click="handleResolveAlert(alert.alertId)"
+              >
+                确认
+              </el-button>
+              <el-tag v-else size="small" type="success">已确认</el-tag>
+            </div>
           </el-timeline-item>
         </el-timeline>
+        <el-empty v-if="alerts.length === 0" description="暂无告警" />
       </el-card>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue';
-import { ElMessage } from 'element-plus';
-import { useMonitorStore } from '../../stores/monitor';
-import * as echarts from 'echarts';
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
+import * as echarts from "echarts";
+import { useMonitorStore } from "../../stores/monitor";
+import {
+  getStatistics,
+  getSyncTaskDesign,
+  getTaskStatistics,
+  listSyncTasks,
+  type SyncTask,
+  type SyncTaskStatistics,
+} from "../../api/sync";
 
+const route = useRoute();
+const router = useRouter();
 const monitorStore = useMonitorStore();
-const trendChartRef = ref<HTMLElement>();
-const statusChartRef = ref<HTMLElement>();
 
-const stats = reactive({
-  running: 0,
-  todaySync: 0,
-  successRate: 0,
-  activeAlerts: 0,
+const taskId = computed(() => {
+  const value = Number(route.query.taskId || route.params.taskId);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
 });
 
-const realtimeTasks = ref<any[]>([]);
+const trendChartRef = ref<HTMLElement>();
+const statusChartRef = ref<HTMLElement>();
+const triggerChartRef = ref<HTMLElement>();
+const dataChartRef = ref<HTMLElement>();
+
+const loading = ref(false);
+const loadingRealtime = ref(false);
+const granularity = ref<"hour" | "day">("day");
+const statistics = ref<SyncTaskStatistics | null>(null);
+const realtimeTasks = ref<Array<SyncTask & { progress?: number; throughput?: number }>>([]);
 const alerts = ref<any[]>([]);
 
-let trendChart: echarts.ECharts;
-let statusChart: echarts.ECharts;
+const summary = reactive({
+  runningCount: 0,
+  totalExecutions: 0,
+  successRate: 0,
+  totalReadCount: 0,
+});
+
+const activeAlertCount = computed(
+  () => alerts.value.filter((item) => item.isResolved !== 1).length,
+);
+
+let trendChart: echarts.ECharts | null = null;
+let statusChart: echarts.ECharts | null = null;
+let triggerChart: echarts.ECharts | null = null;
+let dataChart: echarts.ECharts | null = null;
+let refreshInterval: number | null = null;
+
+const formatDateTime = (value?: string) => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString();
+};
+
+const formatThroughput = (value?: number) => {
+  if (value === undefined || value === null) {
+    return "-";
+  }
+  return `${Number(value).toFixed(2)} 条/秒`;
+};
+
+const getStatusType = (status?: string) => {
+  const map: Record<string, string> = {
+    RUNNING: "success",
+    STOPPED: "info",
+    ERROR: "danger",
+  };
+  return status ? map[status] || "info" : "info";
+};
+
+const getStatusText = (status?: string) => {
+  const map: Record<string, string> = {
+    RUNNING: "运行中",
+    STOPPED: "已停止",
+    ERROR: "异常",
+  };
+  return status ? map[status] || status : "未知";
+};
+
+const getAlertType = (level?: string) => {
+  const map: Record<string, string> = {
+    INFO: "primary",
+    WARNING: "warning",
+    ERROR: "danger",
+    CRITICAL: "danger",
+  };
+  return level ? map[level] || "info" : "info";
+};
 
 const initCharts = () => {
-  if (trendChartRef.value) {
+  if (trendChartRef.value && !trendChart) {
     trendChart = echarts.init(trendChartRef.value);
-    trendChart.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['同步数量', '成功数量', '失败数量'] },
-      xAxis: { type: 'category', data: [] },
-      yAxis: { type: 'value' },
-      series: [
-        { name: '同步数量', type: 'line', data: [], smooth: true, itemStyle: { color: '#409EFF' } },
-        { name: '成功数量', type: 'line', data: [], smooth: true, itemStyle: { color: '#67C23A' } },
-        { name: '失败数量', type: 'line', data: [], smooth: true, itemStyle: { color: '#F56C6C' } },
-      ],
-    });
   }
-
-  if (statusChartRef.value) {
+  if (statusChartRef.value && !statusChart) {
     statusChart = echarts.init(statusChartRef.value);
-    statusChart.setOption({
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-      legend: { orient: 'vertical', left: 'left' },
-      series: [
-        {
-          type: 'pie',
-          radius: '50%',
-          data: [],
-          emphasis: {
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.5)',
-            },
-          },
-        },
-      ],
-    });
+  }
+  if (triggerChartRef.value && !triggerChart) {
+    triggerChart = echarts.init(triggerChartRef.value);
+  }
+  if (dataChartRef.value && !dataChart) {
+    dataChart = echarts.init(dataChartRef.value);
   }
 };
 
-const loadData = async () => {
-  try {
-    // 加载告警数据
-    await monitorStore.fetchAlerts();
-    alerts.value = monitorStore.alerts;
-    stats.activeAlerts = alerts.value.filter(a => !a.isResolved).length;
+const renderCharts = () => {
+  const stats = statistics.value;
+  if (!stats) {
+    return;
+  }
 
-    // 加载统计数据
-    const endTime = new Date().toISOString();
-    const startTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    
-    // 模拟加载趋势数据
-    const trendData = await loadTrendData(startTime, endTime);
-    updateTrendChart(trendData);
+  trendChart?.setOption({
+    tooltip: { trigger: "axis" },
+    legend: { data: ["执行次数", "成功", "失败"], bottom: 0 },
+    grid: { left: "3%", right: "4%", bottom: "15%", containLabel: true },
+    xAxis: { type: "category", data: stats.trend.labels, axisLabel: { rotate: 30 } },
+    yAxis: { type: "value" },
+    series: [
+      { name: "执行次数", type: "line", smooth: true, data: stats.trend.executions },
+      { name: "成功", type: "line", smooth: true, data: stats.trend.successCounts },
+      { name: "失败", type: "line", smooth: true, data: stats.trend.failCounts },
+    ],
+  });
 
-    // 模拟加载状态分布数据
-    const statusData = await loadStatusData();
-    updateStatusChart(statusData);
+  statusChart?.setOption({
+    tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+    legend: { orient: "vertical", left: "left" },
+    series: [
+      {
+        type: "pie",
+        radius: "60%",
+        data: stats.statusDistribution.map((item) => ({
+          value: item.count,
+          name: item.statusName,
+        })),
+      },
+    ],
+  });
 
-    // 加载实时任务列表
-    await loadRealtimeTasks();
+  triggerChart?.setOption({
+    tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+    legend: { orient: "vertical", left: "left" },
+    series: [
+      {
+        type: "pie",
+        radius: ["40%", "70%"],
+        data: stats.triggerTypeDistribution.map((item) => ({
+          value: item.count,
+          name: item.triggerTypeName,
+        })),
+      },
+    ],
+  });
 
-    // 更新统计卡片
-    updateStats();
-  } catch (error: any) {
-    ElMessage.error(error.message || '加载数据失败');
+  dataChart?.setOption({
+    tooltip: { trigger: "axis" },
+    legend: { data: ["数据量", "平均耗时(ms)"], bottom: 0 },
+    grid: { left: "3%", right: "4%", bottom: "15%", containLabel: true },
+    xAxis: { type: "category", data: stats.trend.labels, axisLabel: { rotate: 30 } },
+    yAxis: [
+      { type: "value", name: "数据量" },
+      { type: "value", name: "平均耗时(ms)" },
+    ],
+    series: [
+      { name: "数据量", type: "bar", data: stats.trend.dataCounts },
+      {
+        name: "平均耗时(ms)",
+        type: "line",
+        yAxisIndex: 1,
+        smooth: true,
+        data: stats.trend.avgCosts,
+      },
+    ],
+  });
+};
+
+const applyRealtimePatch = (data: any) => {
+  if (!taskId.value || data.taskId !== taskId.value) {
+    return;
+  }
+
+  const target = realtimeTasks.value.find((item) => item.syncTaskId === taskId.value);
+  if (!target) {
+    return;
+  }
+
+  if (data.progress !== undefined) {
+    target.progress = Number(data.progress);
+  }
+  if (data.throughput !== undefined) {
+    target.throughput = Number(data.throughput);
+  }
+  if (data.status) {
+    target.syncTaskStatus = data.status;
+  }
+  if (data.readCount !== undefined) {
+    target.syncTaskReadCount = Number(data.readCount);
+  }
+  if (data.writeCount !== undefined) {
+    target.syncTaskWriteCount = Number(data.writeCount);
+  }
+  if (data.successCount !== undefined) {
+    target.syncTaskSuccessCount = Number(data.successCount);
+  }
+  if (data.failCount !== undefined) {
+    target.syncTaskFailCount = Number(data.failCount);
   }
 };
 
-const loadTrendData = async (startTime: string, endTime: string) => {
-  // 这里应该调用真实的API获取趋势数据
-  // 暂时返回模拟数据
-  const days = 7;
-  const dates = [];
-  const syncCounts = [];
-  const successCounts = [];
-  const failCounts = [];
-  
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-    dates.push(`${date.getMonth() + 1}/${date.getDate()}`);
-    syncCounts.push(Math.floor(Math.random() * 10000) + 5000);
-    successCounts.push(Math.floor(Math.random() * 9000) + 4500);
-    failCounts.push(Math.floor(Math.random() * 500));
-  }
-  
-  return { dates, syncCounts, successCounts, failCounts };
-};
+const loadStatistics = async () => {
+  const params = { granularity: granularity.value };
+  const payload = taskId.value
+    ? await getTaskStatistics(taskId.value, params)
+    : await getStatistics(params);
 
-const updateTrendChart = (data: any) => {
-  if (trendChart) {
-    trendChart.setOption({
-      xAxis: { data: data.dates },
-      series: [
-        { data: data.syncCounts },
-        { data: data.successCounts },
-        { data: data.failCounts },
-      ],
-    });
-  }
-};
+  statistics.value = payload.data ?? null;
 
-const loadStatusData = async () => {
-  // 这里应该调用真实的API获取状态分布数据
-  // 暂时返回模拟数据
-  return [
-    { value: 5, name: '运行中', itemStyle: { color: '#409EFF' } },
-    { value: 12, name: '已停止', itemStyle: { color: '#909399' } },
-    { value: 2, name: '失败', itemStyle: { color: '#F56C6C' } },
-    { value: 8, name: '等待中', itemStyle: { color: '#E6A23C' } },
-  ];
-};
-
-const updateStatusChart = (data: any[]) => {
-  if (statusChart) {
-    statusChart.setOption({
-      series: [{ data }],
-    });
-  }
+  summary.runningCount = statistics.value?.summary?.runningCount || 0;
+  summary.totalExecutions = statistics.value?.summary?.totalExecutions || 0;
+  summary.successRate = statistics.value?.summary?.successRate || 0;
+  summary.totalReadCount = statistics.value?.summary?.totalReadCount || 0;
 };
 
 const loadRealtimeTasks = async () => {
-  // 这里应该调用真实的API获取实时任务列表
-  // 暂时返回模拟数据
-  realtimeTasks.value = [
-    {
-      syncTaskName: '用户数据同步',
-      syncTaskStatus: 'RUNNING',
-      progress: 75,
-      throughput: '1200条/秒',
-    },
-    {
-      syncTaskName: '订单数据同步',
-      syncTaskStatus: 'RUNNING',
-      progress: 45,
-      throughput: '800条/秒',
-    },
-  ];
+  loadingRealtime.value = true;
+  try {
+    if (taskId.value) {
+      const [designPayload, realtimePayload] = await Promise.all([
+        getSyncTaskDesign(taskId.value),
+        monitorStore.fetchRealtimeData(taskId.value),
+      ]);
+
+      const matchedTask = designPayload.data?.task;
+
+      realtimeTasks.value = matchedTask
+        ? [
+            {
+              ...matchedTask,
+              progress: Number(realtimePayload?.progress || 0),
+              throughput: realtimePayload?.throughput,
+            },
+          ]
+        : [];
+      return;
+    }
+
+    const taskListPayload = await listSyncTasks({
+      page: 1,
+      size: 100,
+      taskStatus: "RUNNING",
+    });
+
+    const tasks = taskListPayload.data?.records ?? [];
+    const realtimeList = await Promise.all(
+      tasks.map((item) =>
+        item.syncTaskId
+          ? monitorStore.fetchRealtimeData(item.syncTaskId).catch(() => null)
+          : Promise.resolve(null),
+      ),
+    );
+
+    realtimeTasks.value = tasks.map((item, index) => ({
+      ...item,
+      progress: Number(realtimeList[index]?.progress || 0),
+      throughput: realtimeList[index]?.throughput,
+    }));
+  } finally {
+    loadingRealtime.value = false;
+  }
 };
 
-const updateStats = () => {
-  stats.running = realtimeTasks.value.filter(t => t.syncTaskStatus === 'RUNNING').length;
-  stats.todaySync = 125000;
-  stats.successRate = 98.5;
+const loadAlerts = async () => {
+  alerts.value = await monitorStore.fetchAlerts(taskId.value);
+};
+
+const loadDashboard = async () => {
+  loading.value = true;
+  try {
+    await Promise.all([loadStatistics(), loadRealtimeTasks(), loadAlerts()]);
+    renderCharts();
+  } catch (error: any) {
+    ElMessage.error(error?.message || "加载监控数据失败");
+  } finally {
+    loading.value = false;
+  }
 };
 
 const handleResolveAlert = async (alertId: number) => {
   try {
     await monitorStore.resolveAlert(alertId);
-    ElMessage.success('告警已确认');
-    loadData();
+    ElMessage.success("告警已确认");
+    await loadAlerts();
   } catch (error: any) {
-    ElMessage.error(error.message || '操作失败');
+    ElMessage.error(error?.message || "操作失败");
   }
 };
 
-const getStatusType = (status: string) => {
-  const map: Record<string, any> = {
-    RUNNING: 'success',
-    STOPPED: 'info',
-    FAILED: 'danger',
-  };
-  return map[status] || 'info';
+const handleRefresh = async () => {
+  await loadDashboard();
 };
 
-const getAlertType = (level: string) => {
-  const map: Record<string, any> = {
-    INFO: 'primary',
-    WARNING: 'warning',
-    ERROR: 'danger',
-    CRITICAL: 'danger',
-  };
-  return map[level] || 'primary';
+const handleBack = () => {
+  router.push("/sync/tasks");
 };
 
-onMounted(() => {
+const handleResize = () => {
+  trendChart?.resize();
+  statusChart?.resize();
+  triggerChart?.resize();
+  dataChart?.resize();
+};
+
+onMounted(async () => {
   initCharts();
-  loadData();
-  
-  // 连接WebSocket接收实时更新
-  monitorStore.connectWebSocket(0, (data) => {
-    // 更新实时任务数据
-    if (data.taskId && data.progress !== undefined) {
-      const task = realtimeTasks.value.find(t => t.syncTaskId === data.taskId);
-      if (task) {
-        task.progress = data.progress;
-        task.throughput = data.throughput || task.throughput;
-      }
-    }
-    
-    // 更新统计数据
-    if (data.stats) {
-      Object.assign(stats, data.stats);
-    }
-  });
-  
-  // 定时刷新数据
-  const refreshInterval = setInterval(() => {
-    loadData();
-  }, 30000); // 每30秒刷新一次
-  
-  // 清理定时器
-  onUnmounted(() => {
-    clearInterval(refreshInterval);
-  });
+  await loadDashboard();
+
+  if (taskId.value) {
+    monitorStore.connectWebSocket(taskId.value, (data) => {
+      applyRealtimePatch(data);
+    });
+  }
+
+  refreshInterval = window.setInterval(() => {
+    loadDashboard();
+  }, 30000);
+
+  window.addEventListener("resize", handleResize);
 });
 
 onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+
   trendChart?.dispose();
   statusChart?.dispose();
+  triggerChart?.dispose();
+  dataChart?.dispose();
   monitorStore.disconnectWebSocket();
+  window.removeEventListener("resize", handleResize);
 });
 </script>
 
 <style scoped lang="scss">
 .monitor-container {
   padding: 20px;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.alert-content p {
+  margin: 0;
+  color: #606266;
 }
 </style>

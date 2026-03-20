@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 *.local
+*.py
+*.ps1
+test-*
 # config
 !apps/**/.prettierrc.js
 !apps/**/.eslintrc.js
@@ -50,3 +53,8 @@ tsconfig.tsbuildinfo
 target/*
 **/target/*
 .turbo/
+
+# Local temporary artifacts
+apps/vue-support-sync-starter/.codex/
+apps/vue-support-sync-starter/test-results/
+apps/vue-support-system-parent/.tmp-home.png
