@@ -24,23 +24,6 @@ export function useDataThemeChange() {
 
   const themeColors = ref<Array<themeColorsType>>([
     /* 亮白色 */
-<<<<<<< HEAD
-    { color: "#ffffff", themeColor: "light", description: "清新明亮的白色主题" },
-    /* 蓝色 */
-    { color: "#1677ff", themeColor: "default", description: "经典蓝色主题" },
-=======
-    {
-      color: "#ffffff",
-      themeColor: "light",
-      description: "清新明亮的白色主题",
-    },
-    /* 道奇蓝 */
-    {
-      color: "#1b2a47",
-      themeColor: "default",
-      description: "专业稳重的深蓝主题",
-    },
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     /* 深紫罗兰色 */
     {
       color: "#722ed1",

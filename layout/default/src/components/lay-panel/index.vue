@@ -164,37 +164,6 @@ onBeforeUnmount(() => {
         </ScScrollbar>
 
         <div class="panel-footer">
-<<<<<<< HEAD
-          <slot name="footer">
-            <ScButton 
-              v-tippy="{
-                content: t('panel.pureClearCacheAndToLogin'),
-                placement: 'left-start',
-                zIndex: 41000,
-              }"
-              type="danger"
-              text
-              bg
-              @click="onReset"
-            >
-              {{ t("panel.pureClearCache") }}
-            </ScButton>
-          </slot>
-=======
-          <ScButton
-            v-tippy="{
-              content: t('panel.pureClearCacheAndToLogin'),
-              placement: 'left-start',
-              zIndex: 41000,
-            }"
-            type="danger"
-            text
-            bg
-            @click="onReset"
-          >
-            {{ t("panel.pureClearCache") }}
-          </ScButton>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
         </div>
       </div>
     </div>

@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-import { ReMenuNewBadge } from "./MenuNewBadge";
-=======
-import { ReMenuNewBadge } from "./MenuNewBadge/index.ts";
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import { useRenderIcon } from "./ReIcon/src/hooks";
 import { ReSplitPane } from "./ReSplitPane/index.ts";
 import ScCard from "./ScCard/index.vue";

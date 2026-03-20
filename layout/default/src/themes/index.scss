@@ -13,17 +13,3 @@
 // 注意：Sass 命名空间不能以数字开头，这里显式命名为 theme8bit
 @use './8bit.scss' as theme8bit;
 
-<<<<<<<< HEAD:layout/default/src/themes/index.scss
-// 未来科技主题
-@use './future-tech.scss' as futureTech;
-
-// Stitch Layout Tokens
-@use './stitch-layout-tokens.scss';
-========
-// 节日主题
-@use './halloween.scss';
-@use './christmas.scss';
-// @use './spring-festival.scss';
-// @use './mid-autumn.scss';
-// @use './new-year.scss';
->>>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126:layout/default/src/skin/themes/index.scss

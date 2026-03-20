@@ -46,12 +46,6 @@ const currentTheme = ref<string>(
 const themeClassMap: Record<string, string> = {
   christmas: "theme-christmas",
   "spring-festival": "theme-spring-festival",
-<<<<<<< HEAD
-  halloween: "theme-halloween",
-  "future-tech": "theme-future-tech",
-  "8bit": "theme-8bit",
-=======
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   "mid-autumn": "theme-mid-autumn",
   default: "theme-default",
   "default-light": "theme-default",

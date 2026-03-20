@@ -10,18 +10,6 @@ import DefaultTool from "./themes/Default.vue";
 
 // 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
-<<<<<<< HEAD
-  'default': DefaultTool,
-  '8bit': DefaultTool,
-  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
-  'halloween': defineAsyncComponent(() => import("./themes/Halloween.vue")),
-  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
-  'future-tech': defineAsyncComponent(() => import("./themes/FutureTech.vue")),
-=======
-  default: DefaultTool,
-
-  "future-tech": defineAsyncComponent(() => import("./themes/FutureTech.vue")),
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 };
 
 // 使用统一的主题切换 Hook

@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-=======
-<template>
-  <div class="header-container" :class="{ 'fixed-header': set.fixedHeader }">
-    <LayNav />
-
-    <!-- 标签页：在非移动模式下显示，且未隐藏标签页 -->
-    <div v-if="layout !== 'mobile' && !set.hideTabs" class="header-tags">
-      <LayTag v-if="defer(2)" />
-    </div>
-  </div>
-</template>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 <script setup lang="ts">
 /**
  * lay-header 组件
@@ -40,27 +27,3 @@ const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, De
 </template>
 
 <script lang="ts">
-<<<<<<< HEAD
-import '@repo/skin';
-</script>
-=======
-// 导入集中的主题皮肤样式
-import "@layout/default/src/skin/index.scss";
-</script>
-
-<style lang="scss" scoped>
-// 基础容器样式
-.header-container {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  background: var(--el-bg-color);
-}
-
-// 头部容器样式优化
-.header-only-tags {
-  position: relative;
-  min-height: 48px;
-  background: transparent;
-}
-</style>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126

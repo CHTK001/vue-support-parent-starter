@@ -301,21 +301,6 @@ const defer = useDefer(firstLevelMenus.value.length);
                 class="absolute right-0 top-0 scale-75 origin-top-right"
               />
             </div>
-<<<<<<< HEAD
-
-          </el-menu-item>
-        </el-menu>
-      </el-scrollbar>
-=======
-            <ScText
-              v-if="!isCollapse"
-              class="menu-label"
-              :text="menu.meta?.title || menu.name || ''"
-            />
-          </ScMenuItem>
-        </ScMenu>
-      </ScScrollbar>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       <!-- 折叠按钮 - 移入左栏内部 -->
       <LaySidebarLeftCollapse
         v-if="device !== 'mobile'"

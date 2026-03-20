@@ -1,10 +1,4 @@
 <script setup>
-<<<<<<< HEAD
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { ScButton } from "@repo/components";
-=======
-import { useRenderIcon } from "@repo/components";
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import { getConfig } from "@repo/config";
 import { useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
 import {
@@ -458,11 +452,6 @@ onUnmounted(() => {
           </div>
           <div class="widget-card-action">
             <ScButton type="primary" circle size="small">
-<<<<<<< HEAD
-              <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
-=======
-              <ScIcon><component :is="useRenderIcon('ep:plus')" /></ScIcon>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
             </ScButton>
           </div>
         </div>
@@ -481,11 +470,6 @@ onUnmounted(() => {
           </ScCheckbox>
         </div>
         <ScButton size="small" @click="backDefault()">
-<<<<<<< HEAD
-          <el-icon class="mr-1"
-=======
-          <ScIcon class="mr-1"
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
             ><component :is="useRenderIcon('ep:refresh')"
           /></ScIcon>
           {{ $t("buttons.default") }}
