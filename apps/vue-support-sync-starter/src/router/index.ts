@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
-import { syncRoutes } from "@repo/pages-sync";
+import { syncRoutes } from "@pages/sync";
 
 const routes: RouteRecordRaw[] = [
   {
