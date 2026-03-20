@@ -341,7 +341,9 @@ async function registerThemePluginForSkin(app: App, skinValue: string): Promise<
       const importer = PLUGIN_IMPORTERS[packageName];
       if (!importer) {
         // eslint-disable-next-line no-console
-        console.warn(`[ThemePlugin] 主题 ${theme.name} 的插件包 ${packageName} 未在 PLUGIN_IMPORTERS 中注册`);
+        console.warn(
+          `[ThemePlugin] 主题 ${theme.name} 的插件包 ${packageName} 未在 PLUGIN_IMPORTERS 中注册`,
+        );
         theme.enabled = false;
         return;
       }
@@ -357,12 +359,22 @@ async function registerThemePluginForSkin(app: App, skinValue: string): Promise<
       const context = (app as any)._context;
       const plugins = context?.plugins;
 
-=======
-      // 检查是否已注册：通过比较插件对象引用或 install 方法
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       let alreadyRegisteredInApp = false;
       if (Array.isArray(plugins) && plugins.length > 0) {
         const pluginInstall = typeof plugin === "function" ? plugin : plugin.install;
+
+        alreadyRegisteredInApp = plugins.some((registeredPlugin: any) => {
+          if (registeredPlugin === plugin) {
+            return true;
+          }
+
+          const registeredInstall = typeof registeredPlugin === "function"
+            ? registeredPlugin
+            : registeredPlugin?.install;
+
+          if (pluginInstall && registeredInstall && pluginInstall === registeredInstall) {
+            return true;
+          }
 
           const pluginName = pluginInstall?.name || plugin.name;
           const registeredName = registeredInstall?.name || registeredPlugin?.name;
@@ -380,6 +392,15 @@ async function registerThemePluginForSkin(app: App, skinValue: string): Promise<
       }
 
       registeredPlugins.add(packageName);
+      app.use(plugin);
+      // eslint-disable-next-line no-console
+      console.log(`[ThemePlugin] 已注册主题 ${theme.name} 的插件 ${packageName}`);
+    } catch (error) {
+      const registeredPlugins = REGISTERED_THEME_PLUGINS_BY_APP.get(app);
+      if (registeredPlugins) {
+        registeredPlugins.delete(packageName);
+      }
+
       // eslint-disable-next-line no-console
       console.warn(`[ThemePlugin] 主题 ${theme.name} 插件加载失败，已禁用该主题:`, error);
       theme.enabled = false;
@@ -404,6 +425,11 @@ export async function autoRegisterThemePlugins(app: App): Promise<void> {
 
 export async function ensureThemePluginForCurrentSkin(): Promise<void> {
   if (!themePluginApp) {
+    return;
+  }
+
+  if (ensuringPromise) {
+    await ensuringPromise;
     return;
   }
 
