@@ -54,14 +54,10 @@ export interface PlatformConfigs {
   StaticLoginPath?: string;
   /** 开发态静态登录用户名 */
   StaticLoginUsername?: string;
+  /** 开发态静态登录密码 */
+  StaticLoginPassword?: string;
   /** 开发态静态登录昵称 */
   StaticLoginNickname?: string;
-  /** 开发态静态登录角色 */
-  StaticLoginRoles?: string[] | string;
-  /** 开发态静态登录权限 */
-  StaticLoginPerms?: string[] | string;
-  /** 开发态静态登录 accessToken */
-  StaticLoginAccessToken?: string;
   /** 配置加载失败时是否保持加载页面（默认false，失败后继续进入应用） */
   BlockOnConfigLoadFail?: boolean;
   /** 是否显示错误页面风格切换按钮（默认false） */
@@ -85,6 +81,8 @@ export interface PlatformConfigs {
   // ===========================================
   /** 是否自动远程菜单 */
   RemoteMenu?: boolean;
+  /** 是否在远程菜单基础上合并本地菜单（仅当RemoteMenu为true时生效） */
+  MergeLocalMenu?: boolean;
   /** 是否自动远程布局 */
   RemoteLayout?: boolean;
   /** 是否开启布局远程保存 */
@@ -118,7 +116,7 @@ export interface PlatformConfigs {
   /** 是否显示卡片边框 */
   CardBody?: boolean;
   /** 内容区边距 */
-  contentMargin?: Number;
+  contentMargin?: number;
   /** 是否显示FPS监控 */
   ShowFpsMonitor?: boolean;
   /** 消息弹窗默认开关 */

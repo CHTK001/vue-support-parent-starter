@@ -8,8 +8,13 @@ import {
 import { fetchDefaultSetting } from "@pages/setting";
 import { getConfig, setConfig } from "@repo/config";
 import { getAllLanguageConfigs, getLanguageConfig } from "@repo/config";
-import { fetchVerifyCode } from "@repo/core";
-import { getParameter } from "@repo/utils";
+import {
+  fetchVerifyCode,
+  getTopMenu,
+  initRouter,
+  useUserStoreHook,
+} from "@repo/core";
+import { message } from "@repo/utils";
 import {
   computed,
   defineAsyncComponent,
@@ -19,6 +24,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { Md5 } from "ts-md5";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import ThirdParty from "./components/thirdParty.vue";
@@ -66,12 +72,10 @@ type LoginOption = {
 };
 
 const BaseLayout = defineAsyncComponent(() => import("./layout/base.vue"));
-const redirectParam = getParameter("redirectParam");
 const ThirdPartyLayout = markRaw(ThirdParty);
 const router = useRouter();
-const loading = ref(false);
 const activeLoginMode = ref<LoginMode>("base");
-const ruleFormRef = ref();
+const staticLoginLoading = ref(false);
 const { initStorage } = useLayout();
 initStorage();
 
@@ -117,21 +121,6 @@ const parseBooleanLike = (value: unknown) => {
     return false;
   }
   return value;
-};
-
-const normalizeArrayConfig = (value: unknown): string[] => {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item).trim()).filter(Boolean);
-  }
-
-  if (typeof value !== "string") {
-    return [];
-  }
-
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
 };
 
 const loginHeadingTitle = computed(() => {
@@ -238,46 +227,98 @@ const envBadgeClass = computed(() => {
 });
 
 const showStaticLoginEntry = computed(() => {
-  return (
-    showEnvBadge.value &&
-    getConfig("ShowStaticLoginEntry") !== false &&
-    Boolean(getConfig("StaticLoginAccessToken"))
-  );
+  return showEnvBadge.value && getConfig("ShowStaticLoginEntry") !== false;
 });
 
 const staticLoginEntry = computed(() => {
-  const staticLoginPath = String(getConfig("StaticLoginPath") || "/home");
-  const routePath = staticLoginPath.startsWith("/")
-    ? staticLoginPath
-    : `/${staticLoginPath}`;
-  const roles = normalizeArrayConfig(getConfig("StaticLoginRoles"));
-  const perms = normalizeArrayConfig(getConfig("StaticLoginPerms"));
-  const params = new URLSearchParams({
-    username: String(getConfig("StaticLoginUsername") || "sso"),
-    nickname: String(getConfig("StaticLoginNickname") || "开发测试账号"),
-    accessToken: String(getConfig("StaticLoginAccessToken") || ""),
-  });
-
-  if (roles.length > 0) {
-    params.set("roles", roles.join(","));
-  }
-  if (perms.length > 0) {
-    params.set("perms", perms.join(","));
-  }
-
   return {
     visible: showStaticLoginEntry.value,
-    href: `${location.origin}${location.pathname}?${params.toString()}#${routePath}`,
     title: t("login.pureStaticLogin"),
     description: `${t("login.pureStaticLoginDesc")}，${t("login.pureStaticLoginHint")}`,
   };
 });
 
-const openStaticLogin = () => {
-  if (!staticLoginEntry.value.href) {
+const resolveStaticLoginTargetPath = () => {
+  const staticLoginPath = String(getConfig("StaticLoginPath") || "/home");
+  return staticLoginPath.startsWith("/")
+    ? staticLoginPath
+    : `/${staticLoginPath}`;
+};
+
+const navigateToTargetPath = async (targetPath: string) => {
+  const normalizedTargetPath = targetPath.startsWith("/")
+    ? targetPath
+    : `/${targetPath}`;
+  const navigationTask = router.replace(normalizedTargetPath).catch(() => undefined);
+
+  await Promise.race([
+    navigationTask,
+    new Promise((resolve) => window.setTimeout(resolve, 200)),
+  ]);
+
+  if (router.currentRoute.value.path !== normalizedTargetPath) {
+    const hashTarget = normalizedTargetPath.startsWith("#")
+      ? normalizedTargetPath
+      : `#${normalizedTargetPath}`;
+    if (window.location.hash !== hashTarget) {
+      window.location.hash = hashTarget;
+    }
+  }
+};
+
+const handleStaticLoginSuccess = async (data: any) => {
+  const userStore = useUserStoreHook();
+  userStore.loginType = "WEB";
+  await userStore.load(data);
+
+  return initRouter()
+    .then(async () => {
+      const targetPath =
+        resolveStaticLoginTargetPath() || getTopMenu(true)?.path || "/home";
+      await navigateToTargetPath(targetPath);
+      message(t("login.pureLoginSuccess"), { type: "success" });
+    })
+    .catch(() => {
+      message("路由初始化失败，请重试", { type: "error" });
+      useUserStoreHook().logOut();
+    });
+};
+
+const openStaticLogin = async () => {
+  if (staticLoginLoading.value) {
     return;
   }
-  window.location.assign(staticLoginEntry.value.href);
+
+  const username = String(getConfig("StaticLoginUsername") || "admin").trim();
+  const password = String(
+    getConfig("StaticLoginPassword") ||
+      getConfig("defaultPassword") ||
+      "admin@123!456",
+  ).trim();
+
+  if (!username || !password) {
+    message("未配置静态登录账号或密码", { type: "error" });
+    return;
+  }
+
+  staticLoginLoading.value = true;
+  try {
+    const result = await useUserStoreHook().loginByUsername({
+      username,
+      password: Md5.hashStr(password),
+      loginType: "WEB",
+      accountType: null,
+      tenantCode: "",
+    });
+    await handleStaticLoginSuccess(result);
+  } catch (error: any) {
+    console.error("静态登录失败", error);
+    message(error?.message || "静态登录失败，请检查后端 static 配置", {
+      type: "error",
+    });
+  } finally {
+    staticLoginLoading.value = false;
+  }
 };
 
 const handleSelectLoginOption = (optionKey: LoginMode | "static") => {
@@ -374,7 +415,7 @@ watch(
             <span>{{ envBadgeText }}</span>
           </div>
 
-          <div class="toolbar-spacer"></div>
+          <div class="toolbar-spacer" />
 
           <!-- 主题切换器 -->
           <ThemeSwitcher
@@ -389,8 +430,8 @@ watch(
               inline-prompt
               :active-icon="dayIcon"
               :inactive-icon="darkIcon"
-              @change="dataThemeChange"
               class="modern-theme-switch"
+              @change="dataThemeChange"
             />
           </div>
 

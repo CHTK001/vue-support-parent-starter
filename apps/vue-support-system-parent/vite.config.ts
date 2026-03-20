@@ -48,7 +48,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
         "/system/api": {
-          target: "http://127.0.0.1:18170",
+          target: "http://127.0.0.1:18175",
           changeOrigin: true,
         },
         "/tenant/api": {

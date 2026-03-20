@@ -10,7 +10,12 @@ const __dirname = path.dirname(__filename);
  */
 function copyDistToBackend() {
   const distDir = path.resolve(__dirname, "dist");
-  const targetDir = path.resolve(__dirname, "../../../spring-sync-app/src/main/resources/static");
+  const targetDir = process.env.SYNC_STATIC_TARGET_DIR
+    ? path.resolve(process.env.SYNC_STATIC_TARGET_DIR)
+    : path.resolve(
+        __dirname,
+        "../../../spring-support-parent-starter/spring-support-sync-data-starter/src/main/resources/static"
+      );
 
   if (!fs.existsSync(distDir)) {
     console.error("构建目录不存在:", distDir);

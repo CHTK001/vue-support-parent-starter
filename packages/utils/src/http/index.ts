@@ -136,6 +136,9 @@ class PureHttp {
         if (authorization) {
           config.headers["Authorization"] = authorization;
         }
+        if (token) {
+          config.headers["x-oauth-token"] = token;
+        }
         // 确保 x-sign 一定存在
         PureHttp.ensureXSign(config);
         resolve(config);
@@ -222,6 +225,9 @@ class PureHttp {
                     if (authorization) {
                       config.headers["Authorization"] = authorization;
                     }
+                    if (token) {
+                      config.headers["x-oauth-token"] = token;
+                    }
                     PureHttp.requests.forEach((cb) => cb(token));
                     PureHttp.requests = [];
                   })
@@ -234,6 +240,9 @@ class PureHttp {
               const authorization = formatToken(data.accessToken);
               if (authorization) {
                 config.headers["Authorization"] = authorization;
+              }
+              if (data.accessToken) {
+                config.headers["x-oauth-token"] = data.accessToken;
               }
               // 在所有处理完成后，最后统一生成 sign
               PureHttp.ensureXSign(config);

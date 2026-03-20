@@ -47,6 +47,8 @@ export const globalSetting: PlatformConfigs = {
   // ===========================================
   /** 是否开启远程菜单 */
   RemoteMenu: false,
+  /** 是否在远程菜单基础上合并本地菜单（仅当RemoteMenu为true时生效，默认false） */
+  MergeLocalMenu: false,
   /** 是否开启远程布局 */
   RemoteLayout: false,
   /** 是否开启远程布局保存 */

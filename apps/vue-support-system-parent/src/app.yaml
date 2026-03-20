@@ -46,15 +46,12 @@ OpenShowRefreshToken: true
 ShowStaticLoginEntry: true
 # 开发态静态登录默认跳转路由
 StaticLoginPath: /home
-# 开发态静态登录默认用户名
-StaticLoginUsername: sso
+# 开发态静态登录默认用户名（需与后端 static 协议临时账号一致）
+StaticLoginUsername: admin
+# 开发态静态登录默认密码（前端会自动做 MD5 后调用真实登录接口）
+StaticLoginPassword: admin@123!456
 # 开发态静态登录默认昵称
 StaticLoginNickname: 开发测试账号
-# 开发态静态登录默认角色
-StaticLoginRoles:
-  - ADMIN
-# 开发态静态登录默认 accessToken
-StaticLoginAccessToken: eyJhbGciOiJIUzUxMiJ9.admin
 # 配置加载失败时是否保持加载页面（默认: false，失败后继续进入应用）
 # BlockOnConfigLoadFail: false
 # 是否显示错误页面风格切换按钮（默认: false）
@@ -83,6 +80,10 @@ OpenSettingLlm: true
 # ===========================================
 # 是否自动远程菜单-从后端获取菜单（默认: false）
 RemoteMenu: true
+# 是否在远程菜单基础上合并本地菜单（默认: false，仅当RemoteMenu为true时生效）
+# - true: 远程菜单 + 本地菜单（合并模式）
+# - false: 仅使用远程菜单
+MergeLocalMenu: false
 # 是否自动远程布局-从后端获取布局配置（默认: false）
 RemoteLayout: false
 # 是否开启布局远程保存（默认: false）

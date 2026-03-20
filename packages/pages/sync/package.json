@@ -1,0 +1,40 @@
+{
+  "name": "@repo/pages-sync",
+  "version": "1.0.0",
+  "description": "数据同步管理页面模块",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./routes": {
+      "types": "./routes.ts",
+      "default": "./routes.ts"
+    },
+    "./api": {
+      "types": "./api/index.ts",
+      "default": "./api/index.ts"
+    },
+    "./stores": {
+      "types": "./stores/index.ts",
+      "default": "./stores/index.ts"
+    },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    }
+  },
+  "dependencies": {
+    "@repo/scReteEditor": "workspace:^",
+    "@element-plus/icons-vue": "catalog:",
+    "axios": "catalog:",
+    "element-plus": "catalog:",
+    "pinia": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
+  },
+  "license": "ISC"
+}

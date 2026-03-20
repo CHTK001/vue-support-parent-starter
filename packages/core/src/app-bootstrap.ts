@@ -475,17 +475,19 @@ export async function createStandardApp(
     });
   }
 
-  // 5.9 自定义初始化
+  // 5.9 设置全局属性和警告处理器（修复 __proxyIdCheat__ 警告）
+  (app.config.globalProperties as any).__proxyIdCheat__ = 0;
+  app.config.warnHandler = (msg, _instance, trace) => {
+    if (typeof msg === "string") {
+      if (msg.includes("__proxyIdCheat__") && msg.includes("was accessed during render but is not defined on instance")) return;
+      if (msg.includes('Slot "default" invoked outside of the render function')) return;
+      if (msg.includes("Runtime directive used on component with non-element root node")) return;
+    }
+    console.warn(msg, trace);
+  };
+
+  // 5.10 自定义初始化
   if (setup) {
-    (app.config.globalProperties as any).__proxyIdCheat__ = 0;
-    app.config.warnHandler = (msg, _instance, trace) => {
-      if (typeof msg === "string") {
-        if (msg.includes("__proxyIdCheat__") && msg.includes("was accessed during render but is not defined on instance")) return;
-        if (msg.includes('Slot "default" invoked outside of the render function')) return;
-        if (msg.includes("Runtime directive used on component with non-element root node")) return;
-      }
-      console.warn(msg, trace);
-    };
     await bootstrap.useAsync(async (app) => { await setup(app, config); });
   }
 
