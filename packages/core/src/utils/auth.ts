@@ -53,20 +53,6 @@ export function setToken(
     roles,
     perms,
   }: UserInfoVO) {
-<<<<<<< HEAD
-    const userStore = useUserStoreHook();
-    userStore.SET_AVATAR(avatar);
-    userStore.SET_USERNAME(sysUserUsername);
-    userStore.SET_NICKNAME(sysUserNickname);
-    userStore.SET_ROLES(roles);
-    userStore.SET_PERMS(perms);
-=======
-    useUserStoreHook().SET_AVATAR(avatar);
-    useUserStoreHook().SET_USERNAME(sysUserUsername);
-    useUserStoreHook().SET_NICKNAME(sysUserNickname);
-    useUserStoreHook().SET_ROLES(roles);
-    useUserStoreHook().SET_PERMS(perms);
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     localStorageProxy().setItem(userKey, {
       refreshToken,
       expires,

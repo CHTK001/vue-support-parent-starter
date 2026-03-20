@@ -71,14 +71,6 @@ class FontEncryptionManager {
         // 监听 DOM 变化
         this.startObserving();
       })
-<<<<<<< HEAD
-      .catch(() => {});
-=======
-      .catch((err) => {
-        // 字体加载失败时，仅记录日志，不中断应用
-        console.warn("FontEncryption font failed to load:", err);
-      });
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   }
 
   /**
@@ -136,14 +128,6 @@ class FontEncryptionManager {
         try {
           const elements = document.querySelectorAll(selector);
           elements.forEach((el) => this.applyEncryptionToElement(el));
-<<<<<<< HEAD
-        } catch {
-          // ignore invalid selectors
-=======
-        } catch (error) {
-          // 非法选择器直接跳过
-          console.warn("[字体加密] 选择器无效:", selector, error);
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
         }
       });
     } else if (this.config.applyGlobal) {

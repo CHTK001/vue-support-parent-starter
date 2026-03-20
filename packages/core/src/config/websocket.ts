@@ -9,14 +9,6 @@
 
 import { ref } from "vue";
 import { getToken } from "../utils/auth";
-<<<<<<< HEAD
-import type { SocketTemplate, SocketTemplateListenOptions, WsMessage } from "./socketTemplate";
-=======
-import type {
-  SocketTemplate,
-  SocketTemplateListenOptions,
-} from "./socketTemplate";
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import { parseSocketMessage, toWebSocketUrl } from "./socketUtils";
 
 /**

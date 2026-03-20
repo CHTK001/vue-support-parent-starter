@@ -38,27 +38,6 @@ export function useTags() {
     ) || ({} as StorageConfigs);
 
   /** 显示模式，默认灵动模式 */
-<<<<<<< HEAD
-  const showModel = ref(configure?.showModel || "smart");
-  /** 是否隐藏标签页，默认显示 */
-  const hideTabsValue = configure?.hideTabs;
-  const showTags = ref(
-    hideTabsValue === true || hideTabsValue === "true",
-  );
-=======
-  const showModel = ref(
-    localStorageProxy().getItem<StorageConfigs>(
-      `${responsiveStorageNameSpace()}configure`,
-    )?.showModel || "smart",
-  );
-  /** 是否隐藏标签页，默认显示 */
-  const showTags =
-    ref(
-      localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}configure`,
-      ).hideTabs,
-    ) ?? ref("false");
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   const multiTags: any = computed(() => {
     return multiTagsStore.multiTags || [];
   });
@@ -197,24 +176,6 @@ export function useTags() {
 
   onMounted(() => {
     if (!showModel.value) {
-<<<<<<< HEAD
-      const latestConfigure =
-        localStorageProxy().getItem<StorageConfigs>(
-          `${responsiveStorageNameSpace()}configure`,
-        ) || ({} as StorageConfigs);
-      latestConfigure.showModel = "chrome";
-      localStorageProxy().setItem(
-        `${responsiveStorageNameSpace()}configure`,
-        latestConfigure,
-=======
-      const configure = localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}configure`,
-      );
-      configure.showModel = "chrome";
-      localStorageProxy().setItem(
-        `${responsiveStorageNameSpace()}configure`,
-        configure,
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       );
     }
   });

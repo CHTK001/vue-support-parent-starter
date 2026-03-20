@@ -14,32 +14,6 @@ html.theme-future-tech {
   .right-panel {
     background: linear-gradient(180deg, #050a1f 0%, #0a1a3a 100%) !important;
     border-left: 2px solid rgba(0, 255, 255, 0.4) !important;
-<<<<<<< HEAD
-    box-shadow: -2px 0 20px rgba(0, 255, 255, 0.15) !important;
-
-    // 添加科技网格背景
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 20px 20px;
-      opacity: 0.5;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .project-configuration {
-      border-bottom: 1px solid rgba(0, 255, 255, 0.2) !important;
-      position: relative;
-      z-index: 1;
-=======
-
-    .project-configuration {
-      border-bottom: 1px solid rgba(0, 255, 255, 0.2) !important;
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
       h4 {
         color: #00ffff !important;
@@ -163,10 +137,6 @@ html.theme-future-tech {
     .el-button {
       border-color: rgba(0, 255, 255, 0.4) !important;
       color: rgba(0, 255, 255, 0.7) !important;
-<<<<<<< HEAD
-      background: rgba(0, 0, 0, 0.3) !important;
-=======
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 
       &:hover {
         border-color: #00ffff !important;

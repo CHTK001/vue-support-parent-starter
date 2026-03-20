@@ -894,15 +894,6 @@ function renderComponent() {
   const rootProps: Record<string, unknown> = {
     class: containerClass.value,
     style: containerStyle.value,
-<<<<<<< HEAD
-    onClick: handleClick,
-    onMouseenter: handleMouseenter,
-    onMouseleave: handleMouseleave,
-    "data-theme-motion": resolvedThemeMotion.value,
-    "data-skin": currentSkin.value,
-=======
-    onClick: handleClick
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   };
 
   if (props.href) {

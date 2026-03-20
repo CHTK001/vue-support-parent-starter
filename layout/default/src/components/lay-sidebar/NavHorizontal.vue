@@ -9,20 +9,6 @@ import ChristmasHorizontal from "./themes/horizontal/Christmas.vue";
 
 // 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
-<<<<<<< HEAD
-  'default': DefaultHorizontal,
-  '8bit': EightBitHorizontal,
-  'spring-festival': SpringFestivalHorizontal,
-  'halloween': HalloweenHorizontal,
-  'christmas': ChristmasHorizontal,
-  'future-tech': defineAsyncComponent(() => import("./themes/horizontal/FutureTech.vue")),
-=======
-  default: DefaultHorizontal,
-
-  "future-tech": defineAsyncComponent(
-    () => import("./themes/horizontal/FutureTech.vue"),
-  ),
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(

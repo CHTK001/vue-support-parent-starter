@@ -20,22 +20,6 @@ import { debounce, isNumber, storageLocal, useGlobal } from "@pureadmin/utils";
 import Segmented, {
   type OptionsType,
 } from "@repo/components/ReSegmented/index";
-<<<<<<< HEAD
-=======
-import { ScSelect } from "@repo/components"
-import AiChatAppearanceSetting from "./components/AiChatAppearanceSetting.vue";
-import { AI_APPEARANCE_OPTIONS } from "../../lay-ai/appearance";
-import { ScSlider } from "@repo/components"
-import { ScSwitch } from "@repo/components"
-import {
-  ScButton,
-  ScInput,
-  ScInputNumber,
-  ScRadio,
-  ScRadioGroup,
-  ScTooltip,
-} from "@repo/components";
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 import { http, message, type ReturnResult } from "@repo/utils";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useTheme } from "../../../hooks/useThemeComponent";

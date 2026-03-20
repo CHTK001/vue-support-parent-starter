@@ -93,18 +93,6 @@ export function useNav() {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
   const layout = computed(() => {
     const fallbackLayout = "vertical";
-<<<<<<< HEAD
-    const validLayouts = ["vertical", "horizontal", "mix", "hover", "double", "drawer", "mobile"];
-=======
-    const validLayouts = [
-      "vertical",
-      "horizontal",
-      "mix",
-      "hover",
-      "double",
-      "mobile",
-    ];
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
     const rawLayout = $storage?.layout?.layout as string | undefined;
 
     if (rawLayout && validLayouts.includes(rawLayout)) {

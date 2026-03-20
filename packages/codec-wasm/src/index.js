@@ -57,34 +57,6 @@ const call = (fn, ...args) => {
 // ============ 初始化 ============
 
 /**
-<<<<<<< HEAD
- * 检查是否启用 WASM（从配置读取，支持枚举模式）
- * - 'WASM' | true：启用
- * - 'JS' | false：禁用
- * - 'AUTO'：自动检测浏览器支持
- * @returns {boolean}
- */
-const checkWasmEnabled = () => {
-  try {
-    if (typeof window !== "undefined" && window.__APP_CONFIG__) {
-      const val = window.__APP_CONFIG__?.wasmEnable;
-      if (val === 'JS' || val === false) return false;
-      if (val === 'AUTO') return typeof WebAssembly !== 'undefined';
-      // 'WASM' | true | undefined（默认启用）
-      return true;
-    }
-    return true;
-  } catch {
-    return true;
-=======
- * 检查是否应该尝试加载 WASM
- * @returns {boolean}
- */
-const shouldLoadWasm = () => {
-  // js 模式下不加载 WASM
-  if (currentMode === CodecMode.JS) {
-    return false;
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
   }
   // wasm 和 auto 模式都尝试加载
   return true;
