@@ -39,7 +39,7 @@ async function testSystemInBrowser() {
 
   try {
     console.log('📍 步骤1: 访问系统首页');
-    await page.goto('http://localhost:8848', {
+    await page.goto('http://localhost:8857', {
       waitUntil: 'domcontentloaded',
       timeout: 30000
     });

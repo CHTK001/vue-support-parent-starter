@@ -902,3 +902,39 @@ export function useThemeComponent(elementComponentName: string) {
     { immediate: true }
   );
 
+  /**
+   * 返回组合式函数的公共 API
+   */
+  return {
+    /**
+     * 当前主题组件实例
+     */
+    themeComponent,
+    /**
+     * 组件是否正在加载
+     */
+    loading,
+    /**
+     * 加载过程中的错误信息
+     */
+    error,
+    /**
+     * 手动重新加载组件
+     */
+    reload: loadComponent
+  };
+}
+
+export default useThemeComponent;
+
+/**
+ * 初始化主题系统
+ * 在应用启动时调用，预加载当前主题
+ */
+export async function initThemeSystem(): Promise<void> {
+  const currentSkin = getCurrentSkin();
+  if (currentSkin) {
+    logger.info(`[useThemeComponent] 初始化主题系统，当前主题: ${currentSkin}`);
+    await preloadTheme(currentSkin);
+  }
+}
