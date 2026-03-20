@@ -129,7 +129,7 @@ watch(disabled, val => {
 }
 
 .sc-editor-toolbar {
-  border-bottom: 1px solid $border-light;
-  background-color: $bg-glass-toolbar;
+  border-bottom: 1px solid var(--el-border-color-light);
+  background-color: var(--el-bg-color);
 }
 </style>
