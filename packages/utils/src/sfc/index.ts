@@ -258,9 +258,7 @@ const _loadLocationModule = () => {
   }
 };
 const loadRemoteAddressModule = (name, sysSfcId, sysSfc) => {
-  return defineAsyncComponent(
-    () => import("@repo/common-pages/layout/simpleFrame.vue"),
-  );
+  return defineAsyncComponent(() => import("@pages/common/layout/simpleFrame.vue"));
 };
 
 const _cacheLoadedModule = {};
