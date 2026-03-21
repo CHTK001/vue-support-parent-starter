@@ -10,6 +10,7 @@ import {
   type AsyncComponentLoader,
   type Component,
 } from "vue";
+import { ElIcon, ElButton } from "element-plus";
 
 
 /**

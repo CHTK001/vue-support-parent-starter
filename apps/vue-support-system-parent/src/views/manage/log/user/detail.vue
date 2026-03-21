@@ -127,16 +127,16 @@ export default defineComponent({
                     v-if="row.sysLogCost <= 1000"
                     type="success"
                     size="small"
-                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                    >{{ row.sysLogCost || 0 }} ms</ScTag
                   >
                   <ScTag
                     v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
                     type="warning"
                     size="small"
-                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                    >{{ row.sysLogCost || 0 }} ms</ScTag
                   >
                   <ScTag v-else type="danger" size="small"
-                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                    >{{ row.sysLogCost || 0 }} ms</ScTag
                   >
                 </span>
               </div>

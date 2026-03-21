@@ -426,8 +426,12 @@ export async function createStandardApp(
     bootstrap.use(() => { void app.use(VueTippy); });
   }
   if (enableElementPlusX) {
-    const ElementPlusX = (await import("vue-element-plus-x")).default;
-    bootstrap.use(() => { void app.use(ElementPlusX); });
+    try {
+      const ElementPlusX = (await import("vue-element-plus-x")).default;
+      bootstrap.use(() => { void app.use(ElementPlusX); });
+    } catch (error) {
+      console.warn("[createStandardApp] ElementPlusX 加载失败，跳过注册:", error);
+    }
   }
 
   // 5.5 注册核心功能

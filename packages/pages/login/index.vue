@@ -424,6 +424,7 @@ watch(
 
           <!-- 主题切换 -->
           <div class="theme-switch-container">
+            <ScSwitch
               v-model="dataTheme"
               inline-prompt
               :active-icon="dayIcon"
@@ -432,6 +433,7 @@ watch(
           </div>
 
           <!-- 语言切换 -->
+          <ScDropdown>
             <div class="lang-trigger">
               <div class="lang-icon-wrapper">
                 <IconifyIconOnline
@@ -459,6 +461,7 @@ watch(
                   <IconifyIconOnline icon="ri:global-line" />
                   <span>选择语言</span>
                 </div>
+                <div
                   v-for="langConfig in languageConfigs"
                   :key="langConfig.code"
                   :class="[
@@ -490,6 +493,9 @@ watch(
                     class="lang-check"
                     icon="ep:check"
                   />
+                </div>
+            </template>
+          </ScDropdown>
         </div>
       </div>
     </template>
@@ -505,12 +511,6 @@ watch(
         :ssoSetting="ssoSetting"
         class="login-form-component"
       />
-
-      <!-- 登录类型选择 -->
-            </div>
-          </div>
-        </div>
-      </div>
     </template>
   </component>
 </template>

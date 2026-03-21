@@ -292,8 +292,6 @@ export const ChannelSubTypeOptions: Record<string, Array<{ label: string; value:
     { label: "电脑网站", value: "WEB" },
     { label: "手机网站", value: "WAP" },
     { label: "APP", value: "APP" },
-    { label: "当面付", value: "FACE_TO_FACE" },
-    { label: "沙箱", value: "SANDBOX" },
   ],
   COMPOSITE: [
     { label: "聚合路由", value: "AGGREGATE_ROUTE" },
@@ -302,3 +300,24 @@ export const ChannelSubTypeOptions: Record<string, Array<{ label: string; value:
     { label: "余额钱包", value: "BALANCE" },
   ],
 };
+
+const ExecutableChannelKeys = new Set([
+  "WECHAT:JSAPI",
+  "WECHAT:H5",
+  "WECHAT:APP",
+  "WECHAT:MINI_PROGRAM",
+  "WECHAT:MINIPROGRAM",
+  "WECHAT:NATIVE",
+  "ALIPAY:WEB",
+  "ALIPAY:WAP",
+  "ALIPAY:APP",
+  "COMPOSITE:AGGREGATE_ROUTE",
+  "WALLET:BALANCE",
+]);
+
+export function isExecutableChannel(channelType?: string, channelSubType?: string) {
+  if (!channelType || !channelSubType) {
+    return false;
+  }
+  return ExecutableChannelKeys.has(`${channelType.toUpperCase()}:${channelSubType.toUpperCase()}`);
+}

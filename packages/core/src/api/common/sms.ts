@@ -18,3 +18,21 @@ export const fetchSmsSync = (params: any) => {
     data: params,
   });
 };
+
+/**
+ * 发送登录验证码
+ */
+export const fetchSendSmsCode = (params: { phone: string; bizType?: string }) => {
+  return http.request<ReturnResult<boolean>>("post", "/v2/sms/sendCode", {
+    data: params,
+  });
+};
+
+/**
+ * 短信验证码登录
+ */
+export const fetchSmsLogin = (params: { phone: string; code: string }) => {
+  return http.request<ReturnResult<UserResult>>("post", "/v2/login/sms", {
+    data: params,
+  });
+};

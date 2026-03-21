@@ -3,11 +3,40 @@ import {
   generateNonce as generateNonceWasm,
   md5Hash as md5HashWasm,
 } from "@repo/codec-wasm";
+import CryptoJS from "crypto-js";
 import type { PureHttpRequestConfig } from "../http/types";
+
+const jsMd5Hash = (value: string): string => CryptoJS.MD5(value).toString();
+
+const jsGenerateNonce = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID().replace(/-/g, "");
+  }
+
+  let nonce = "";
+  while (nonce.length < 32) {
+    nonce += Math.random().toString(36).slice(2);
+  }
+  return nonce.slice(0, 32);
+};
+
+const safeMd5Hash = (value: string): string => {
+  try {
+    return md5HashWasm(value);
+  } catch (error) {
+    console.warn("[http-sign] md5HashWasm failed, fallback to JS md5:", error);
+    return jsMd5Hash(value);
+  }
+};
 
 /** 生成随机 nonce（必须由 WASM 生成） */
 export const generateNonce = (): string => {
-  return generateNonceWasm();
+  try {
+    return generateNonceWasm();
+  } catch (error) {
+    console.warn("[http-sign] generateNonceWasm failed, fallback to JS nonce:", error);
+    return jsGenerateNonce();
+  }
 };
 
 /** 需排除的请求参数字段（如 file 等二进制） */
@@ -117,8 +146,8 @@ export const generateSign = (
     .sort()
     .map((k) => `${k}=${filteredParams[k]}`);
   const paramsString = paramPairs.join("&");
-  const paramsMd5 = md5HashWasm(paramsString);
+  const paramsMd5 = safeMd5Hash(paramsString);
   const secretKey = resolveSecretKey();
   const signInput = nonce + fingerprint + timestamp + paramsMd5 + secretKey;
-  return md5HashWasm(signInput);
+  return safeMd5Hash(signInput);
 };

@@ -135,7 +135,7 @@ export default defineComponent({
           type="primary"
           :loading="loading"
           @click="submit()"
-          >保 存</el-button
+          >保 存</ScButton
         >
       </template>
     </sc-dialog>

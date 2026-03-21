@@ -11,6 +11,7 @@ export const include = [
   "dayjs",
   "axios",
   "pinia",
+  "@vue/shared",
   // "vditor",
   // "typeit",
   // "swiper",

@@ -786,6 +786,12 @@ export function useThemeComponent(elementComponentName: string) {
   const themeComponent = shallowRef<Component | null>(initThemeComponent());
 
   /**
+   * 加载状态和错误信息
+   */
+  const loading = ref(false);
+  const error = ref<string | null>(null);
+
+  /**
    * 当前实际使用的组件（始终有值）
    * - default 主题：同步返回 Element Plus 组件
    * - 8bit 主题特殊处理：ElTable 和 ElTableColumn 始终使用 Element Plus 组件

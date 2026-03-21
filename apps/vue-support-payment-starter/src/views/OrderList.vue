@@ -1,5 +1,4 @@
 <template>
-<<<<<<< HEAD
   <section class="view">
     <div class="hero-grid">
       <article class="hero-card">
@@ -56,61 +55,9 @@
         <el-table-column prop="merchantName" label="商户" width="160" />
         <el-table-column prop="channelName" label="支付方式" width="180" />
         <el-table-column label="金额" width="140">
-=======
-  <div class="order-list">
-    <ScCard>
-      <template #header>
-        <div class="card-header">
-          <span>订单管理</span>
-          <ScButton type="primary" @click="showCreateDialog">创建订单</ScButton>
-        </div>
-      </template>
-
-      <!-- 搜索表单 -->
-      <ScForm :inline="true" :model="searchForm" class="search-form">
-        <ScFormItem label="用户ID">
-          <ScInput v-model="searchForm.userId" placeholder="请输入用户ID" clearable />
-        </ScFormItem>
-        <ScFormItem label="订单状态">
-          <ScSelect v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <ScOption
-              v-for="(label, value) in OrderStatusMap"
-              :key="value"
-              :label="label"
-              :value="Number(value)"
-            />
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem>
-          <ScButton type="primary" @click="handleSearch">查询</ScButton>
-          <ScButton @click="handleReset">重置</ScButton>
-        </ScFormItem>
-      </ScForm>
-
-      <!-- 统计信息 -->
-      <ScRow :gutter="20" class="statistics">
-        <ScCol :span="8">
-          <el-statistic title="订单总数" :value="statistics.totalCount" />
-        </ScCol>
-        <ScCol :span="8">
-          <el-statistic title="已支付订单" :value="statistics.paidCount" />
-        </ScCol>
-        <ScCol :span="8">
-          <el-statistic title="订单总金额" :value="statistics.totalAmount / 100" :precision="2" prefix="¥" />
-        </ScCol>
-      </ScRow>
-
-      <!-- 订单列表 -->
-      <ScTable :data="orderList" border stripe v-loading="loading">
-        <ScTableColumn prop="orderNo" label="订单号" width="200" />
-        <ScTableColumn prop="userId" label="用户ID" width="150" />
-        <ScTableColumn prop="subject" label="订单标题" />
-        <ScTableColumn prop="amount" label="订单金额" width="120">
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
           <template #default="{ row }">
             <strong>{{ formatCurrency(row.orderAmount) }}</strong>
           </template>
-<<<<<<< HEAD
         </el-table-column>
         <el-table-column label="状态" width="130">
           <template #default="{ row }">
@@ -140,39 +87,11 @@
             <el-button v-if="canRefundConfirm(row.status)" link type="success" @click="handleRefundSuccess(row)">退款成功</el-button>
             <el-button v-if="canRefundConfirm(row.status)" link type="danger" @click="handleRefundFail(row)">退款失败</el-button>
             <el-button v-if="canDelete(row.status)" link type="danger" @click="handleDelete(row)">删除</el-button>
-=======
-        </ScTableColumn>
-        <ScTableColumn prop="status" label="订单状态" width="120">
-          <template #default="{ row }">
-            <ScTag :type="getStatusType(row.status)">
-              {{ OrderStatusMap[row.status] }}
-            </ScTag>
           </template>
-        </ScTableColumn>
-        <ScTableColumn prop="createTime" label="创建时间" width="180" />
-        <ScTableColumn label="操作" width="300" fixed="right">
-          <template #default="{ row }">
-            <ScButton size="small" @click="handleView(row)">查看</ScButton>
-            <ScButton size="small" type="primary" @click="handlePay(row)" v-if="canPay(row.status)">
-              支付
-            </ScButton>
-            <ScButton size="small" type="warning" @click="handleRefund(row)" v-if="canRefund(row.status)">
-              退款
-            </ScButton>
-            <ScButton size="small" type="danger" @click="handleCancel(row)" v-if="canCancel(row.status)">
-              取消
-            </ScButton>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
-          </template>
-        </ScTableColumn>
-      </ScTable>
+        </el-table-column>
+      </el-table>
 
-<<<<<<< HEAD
       <el-pagination
-=======
-      <!-- 分页 -->
-      <ScPagination
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.size"
         :total="pagination.total"
@@ -182,9 +101,8 @@
         @current-change="loadOrders"
         @size-change="loadOrders"
       />
-    </ScCard>
+    </el-card>
 
-<<<<<<< HEAD
     <el-dialog v-model="createDialogVisible" title="创建订单" width="760px">
       <el-form :model="createForm" label-width="110px">
         <div class="form-grid">
@@ -241,40 +159,9 @@
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="creating" @click="submitCreate">创建</el-button>
-=======
-    <!-- 创建订单对话框 -->
-    <ScDialog v-model="createDialogVisible" title="创建订单" width="600px">
-      <ScForm :model="createForm" :rules="createRules" ref="createFormRef" label-width="100px">
-        <ScFormItem label="用户ID" prop="userId">
-          <ScInput v-model="createForm.userId" placeholder="请输入用户ID" />
-        </ScFormItem>
-        <ScFormItem label="订单标题" prop="subject">
-          <ScInput v-model="createForm.subject" placeholder="请输入订单标题" />
-        </ScFormItem>
-        <ScFormItem label="订单金额" prop="amount">
-          <ScInputNumber v-model="createForm.amount" :min="0.01" :step="0.01" :precision="2" />
-          <span class="ml-2">元</span>
-        </ScFormItem>
-        <ScFormItem label="支付方式" prop="tradeType">
-          <ScSelect v-model="createForm.tradeType" placeholder="请选择支付方式">
-            <ScOption label="扫码支付" value="NATIVE" />
-            <ScOption label="公众号支付" value="JSAPI" />
-            <ScOption label="APP支付" value="APP" />
-            <ScOption label="H5支付" value="H5" />
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem label="OpenID" prop="openid" v-if="createForm.tradeType === 'JSAPI'">
-          <ScInput v-model="createForm.openid" placeholder="请输入OpenID（JSAPI支付必填）" />
-        </ScFormItem>
-      </ScForm>
-      <template #footer>
-        <ScButton @click="createDialogVisible = false">取消</ScButton>
-        <ScButton type="primary" @click="handleCreate" :loading="creating">创建并支付</ScButton>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
       </template>
-    </ScDialog>
+    </el-dialog>
 
-<<<<<<< HEAD
     <el-drawer v-model="logDrawerVisible" size="520px" :title="currentOrder ? `${currentOrder.orderNo} - 流转日志` : '流转日志'">
       <el-timeline v-if="orderLogs.length">
         <el-timeline-item
@@ -294,45 +181,6 @@
       <el-empty v-else description="暂无状态流转记录" />
     </el-drawer>
   </section>
-=======
-    <!-- 订单详情对话框 -->
-    <ScDialog v-model="detailDialogVisible" title="订单详情" width="800px">
-      <ScDescriptions :column="2" border v-if="currentOrder">
-        <ScDescriptionsItem label="订单号">{{ currentOrder.orderNo }}</ScDescriptionsItem>
-        <ScDescriptionsItem label="用户ID">{{ currentOrder.userId }}</ScDescriptionsItem>
-        <ScDescriptionsItem label="订单标题">{{ currentOrder.subject }}</ScDescriptionsItem>
-        <ScDescriptionsItem label="订单金额">
-          ¥{{ (currentOrder.amount / 100).toFixed(2) }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="实付金额">
-          ¥{{ ((currentOrder.paidAmount || 0) / 100).toFixed(2) }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="退款金额">
-          ¥{{ ((currentOrder.refundAmount || 0) / 100).toFixed(2) }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="订单状态">
-          <ScTag :type="getStatusType(currentOrder.status)">
-            {{ OrderStatusMap[currentOrder.status] }}
-          </ScTag>
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="第三方订单号">
-          {{ currentOrder.thirdOrderNo || '-' }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="创建时间">{{ currentOrder.createTime }}</ScDescriptionsItem>
-        <ScDescriptionsItem label="支付时间">{{ currentOrder.payTime || '-' }}</ScDescriptionsItem>
-        <ScDescriptionsItem label="退款时间">{{ currentOrder.refundTime || '-' }}</ScDescriptionsItem>
-      </ScDescriptions>
-    </ScDialog>
-
-    <!-- 支付二维码对话框 -->
-    <ScDialog v-model="qrcodeDialogVisible" title="扫码支付" width="400px" align-center>
-      <div class="qrcode-container">
-        <div id="qrcode" ref="qrcodeRef"></div>
-        <p class="qrcode-tip">请使用微信/支付宝扫码支付</p>
-      </div>
-    </ScDialog>
-  </div>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 </template>
 
 <script setup lang="ts">
@@ -364,7 +212,7 @@ import type {
   OrderStateLog,
   PaymentOrder,
 } from "../types/payment";
-import { OrderStatusMap } from "../types/payment";
+import { OrderStatusMap, isExecutableChannel } from "../types/payment";
 
 const loading = ref(false);
 const creating = ref(false);
@@ -443,7 +291,7 @@ function openCreateDialog() {
 
 async function handleMerchantChange(merchantId: number) {
   const res = await getMerchantChannels(merchantId, { status: 1 });
-  createChannelOptions.value = res.data;
+  createChannelOptions.value = res.data.filter((item) => isExecutableChannel(item.channelType, item.channelSubType));
   if (!createChannelOptions.value.find((item) => item.id === createForm.channelId)) {
     createForm.channelId = createChannelOptions.value[0]?.id || 0;
   }
@@ -478,8 +326,9 @@ async function handleRealPay(order: PaymentOrder) {
     clientIp: "127.0.0.1",
     userAgent: navigator.userAgent,
   };
-  if (order.channelType === "WECHAT" && order.channelSubType === "JSAPI") {
-    const { value } = await ElMessageBox.prompt("请输入 payerOpenId", "微信 JSAPI 支付", {
+  if (order.channelType === "WECHAT" && ["JSAPI", "MINI_PROGRAM", "MINIPROGRAM"].includes(order.channelSubType || "")) {
+    const title = order.channelSubType === "JSAPI" ? "微信 JSAPI 支付" : "微信小程序支付";
+    const { value } = await ElMessageBox.prompt("请输入 payerOpenId", title, {
       inputPlaceholder: "例如：oUpF8uMuAJO_M2pxb1Q9zNjWeS6o",
     });
     payload.payerOpenId = value;
@@ -645,8 +494,18 @@ async function presentPayLaunch(order: PaymentOrder, launch: PaymentLaunchResult
     ElMessage.success("支付链接已在新窗口打开");
     return;
   }
-  if (launch.launchType === "JSAPI" && launch.sdkParams) {
-    await ElMessageBox.alert(JSON.stringify(launch.sdkParams, null, 2), `${order.orderNo} - JSAPI 参数`, {
+  if ((launch.launchType === "JSAPI" || launch.launchType === "MINI_PROGRAM" || launch.launchType === "APP") && launch.sdkParams) {
+    const payload = typeof launch.sdkParams.orderString === "string"
+      ? launch.sdkParams.orderString
+      : JSON.stringify(launch.sdkParams, null, 2);
+    await ElMessageBox.alert(payload, `${order.orderNo} - ${launch.launchType} 参数`, {
+      confirmButtonText: "关闭",
+    });
+    return;
+  }
+  if (launch.launchType === "NATIVE") {
+    const codeUrl = launch.payUrl || String(launch.sdkParams?.codeUrl || "");
+    await ElMessageBox.alert(codeUrl || "渠道已返回 Native 拉起结果", `${order.orderNo} - Native 参数`, {
       confirmButtonText: "关闭",
     });
     return;

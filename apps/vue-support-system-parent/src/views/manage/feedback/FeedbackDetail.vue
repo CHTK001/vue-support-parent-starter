@@ -99,7 +99,7 @@ defineExpose({
           </ScDescriptionsItem>
           <ScDescriptionsItem label="反馈状态">
             <ScTag v-if="feedbackData.sysFeedbackStatus === 1" type="success"
-              >已处理</el-tag
+              >已处理</ScTag
             >
             <ScTag v-else type="warning">待处理</ScTag>
           </ScDescriptionsItem>

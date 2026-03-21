@@ -328,10 +328,10 @@ onMounted(async () => {
                           type="success"
                           size="small"
                           class="ml-2"
-                          >启用</el-tag
+                          >启用</ScTag
                         >
                         <ScTag v-else type="info" size="small" class="ml-2"
-                          >禁用</el-tag
+                          >禁用</ScTag
                         >
                       </div>
                       <div class="tenant-account">

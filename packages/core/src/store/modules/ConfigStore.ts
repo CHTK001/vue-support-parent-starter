@@ -210,6 +210,30 @@ export const useConfigStore = defineStore({
       }
     },
     async doRegister(data) {
+      if (data instanceof Blob) {
+        try {
+          const text = await data.text();
+          const parsed = text ? JSON.parse(text) : [];
+          data = parsed?.data?.data ?? parsed?.data ?? parsed;
+        } catch (error) {
+          console.warn("ConfigStore.doRegister: failed to parse blob data", error);
+          return;
+        }
+      }
+
+      if (data?.data && Array.isArray(data.data)) {
+        data = data.data;
+      }
+
+      if (
+        data &&
+        typeof data === "object" &&
+        !Array.isArray(data) &&
+        Object.keys(data).length === 0
+      ) {
+        return;
+      }
+
       // 确保data是数组格式
       if (data && !Array.isArray(data)) {
         console.error("ConfigStore.doRegister: data is not an array", data);

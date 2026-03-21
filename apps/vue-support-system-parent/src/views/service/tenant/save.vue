@@ -360,7 +360,7 @@ defineExpose({
           type="primary"
           :loading="env.loading"
           @click="handleUpdate"
-          >{{ $t("buttons.confirm") }}</el-button
+          >{{ $t("buttons.confirm") }}</ScButton
         >
       </template>
     </sc-dialog>

@@ -1,13 +1,14 @@
 import { createViteConfig } from "@repo/build-config";
 import pkg from "./package.json";
+import { defineConfig, mergeConfig } from "vite";
+import { resolve } from "node:path";
 
-/**
- * Vite 配置 - 系统管理
- * 使用链式 API 简化配置
- */
-export default createViteConfig(import.meta.url, pkg)
+// 工作区根目录
+const workspaceRoot = resolve(__dirname, "../../");
+
+const baseConfig = createViteConfig(import.meta.url, pkg)
   .proxies({
-    "/system/api": { target: "http://127.0.0.1:18175", changeOrigin: true },
+    "/system/api": { target: "http://127.0.0.1:18170", changeOrigin: true },
     "/tenant/api": { target: "http://127.0.0.1:18171", changeOrigin: true },
   })
   .include(
@@ -57,3 +58,14 @@ export default createViteConfig(import.meta.url, pkg)
     },
   })
   .build();
+
+export default defineConfig((env) => {
+  const resolved = typeof baseConfig === "function" ? baseConfig(env) : baseConfig;
+  return mergeConfig(resolved, {
+    server: {
+      fs: {
+        allow: [workspaceRoot],
+      },
+    },
+  });
+});

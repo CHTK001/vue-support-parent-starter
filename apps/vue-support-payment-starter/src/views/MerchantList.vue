@@ -1,5 +1,4 @@
 <template>
-<<<<<<< HEAD
   <section class="view">
     <div class="hero-grid">
       <article class="hero-card">
@@ -79,55 +78,11 @@
             <el-button v-if="row.status !== 1" link type="success" @click="handleActivate(row)">激活</el-button>
             <el-button v-else link type="warning" @click="handleDeactivate(row)">停用</el-button>
             <el-button link type="danger" @click="handleDeleteMerchant(row)">删除</el-button>
-=======
-  <div class="merchant-list">
-    <ScCard>
-      <template #header>
-        <div class="card-header">
-          <span>商户管理</span>
-          <ScButton type="primary" @click="showCreateDialog">添加商户</ScButton>
-        </div>
-      </template>
+          </template>
+        </el-table-column>
+      </el-table>
 
-      <!-- 商户列表 -->
-      <ScTable :data="merchantList" border stripe v-loading="loading">
-        <ScTableColumn prop="merchantName" label="商户名称" />
-        <ScTableColumn prop="provider" label="支付提供商" width="120">
-          <template #default="{ row }">
-            <ScTag>{{ getProviderLabel(row.provider) }}</ScTag>
-          </template>
-        </ScTableColumn>
-        <ScTableColumn prop="appId" label="AppID" width="200" />
-        <ScTableColumn prop="mchId" label="商户号" width="150" />
-        <ScTableColumn prop="enabled" label="状态" width="100">
-          <template #default="{ row }">
-            <ScSwitch v-model="row.enabled" @change="handleToggleStatus(row)" />
-          </template>
-        </ScTableColumn>
-        <ScTableColumn prop="sandbox" label="沙箱模式" width="100">
-          <template #default="{ row }">
-            <ScTag :type="row.sandbox ? 'warning' : 'success'">
-              {{ row.sandbox ? '是' : '否' }}
-            </ScTag>
-          </template>
-        </ScTableColumn>
-        <ScTableColumn prop="createTime" label="创建时间" width="180" />
-        <ScTableColumn label="操作" width="250" fixed="right">
-          <template #default="{ row }">
-            <ScButton size="small" @click="handleEdit(row)">编辑</ScButton>
-            <ScButton size="small" type="primary" @click="handleTest(row)">测试</ScButton>
-            <ScButton size="small" type="danger" @click="handleDelete(row)">删除</ScButton>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
-          </template>
-        </ScTableColumn>
-      </ScTable>
-
-<<<<<<< HEAD
       <el-pagination
-=======
-      <!-- 分页 -->
-      <ScPagination
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.size"
         :total="pagination.total"
@@ -137,9 +92,8 @@
         @current-change="loadMerchants"
         @size-change="loadMerchants"
       />
-    </ScCard>
+    </el-card>
 
-<<<<<<< HEAD
     <el-dialog v-model="merchantDialogVisible" :title="editingMerchant ? '编辑商户' : '新增商户'" width="760px">
       <el-form ref="merchantFormRef" :model="merchantForm" label-width="110px">
         <div class="form-grid">
@@ -234,6 +188,13 @@
             <el-tag type="warning">{{ row.onboardingStatusDesc || OnboardingStatusMap[row.onboardingStatus] }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="能力状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="isExecutableChannel(row.channelType, row.channelSubType) ? 'success' : 'warning'">
+              {{ isExecutableChannel(row.channelType, row.channelSubType) ? "可执行" : "仅指引" }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="启用状态" width="120">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.statusDesc || ChannelStatusMap[row.status] }}</el-tag>
@@ -248,8 +209,8 @@
           <template #default="{ row }">
             <el-button link type="primary" @click="openChannelDialog(row)">编辑</el-button>
             <el-button link type="primary" @click="openGuideDrawerByChannel(row)">开通指引</el-button>
-            <el-button v-if="row.status !== 1" link type="success" @click="handleEnableChannel(row)">启用</el-button>
-            <el-button v-else link type="warning" @click="handleDisableChannel(row)">禁用</el-button>
+            <el-button v-if="row.status !== 1 && isExecutableChannel(row.channelType, row.channelSubType)" link type="success" @click="handleEnableChannel(row)">启用</el-button>
+            <el-button v-if="row.status === 1" link type="warning" @click="handleDisableChannel(row)">禁用</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -276,6 +237,24 @@
               />
             </el-select>
           </el-form-item>
+          <el-form-item class="span-2">
+            <el-alert
+              title="FACE_TO_FACE 和 SANDBOX 仅保留在开通指引目录中，本轮不作为可创建/可启用支付子渠道。"
+              type="info"
+              :closable="false"
+              show-icon
+            />
+          </el-form-item>
+          <el-form-item v-if="providerOptions.length" label="Provider SPI">
+            <el-select v-model="channelForm.providerSpi" clearable placeholder="默认使用后端全局配置">
+              <el-option
+                v-for="item in providerOptions"
+                :key="item.extensionName"
+                :label="item.description ? `${item.extensionName} - ${item.description}` : item.extensionName"
+                :value="item.extensionName"
+              />
+            </el-select>
+          </el-form-item>
           <el-form-item label="展示名称">
             <el-input v-model="channelForm.channelName" placeholder="例如：微信小程序支付" />
           </el-form-item>
@@ -285,22 +264,22 @@
               <el-option label="启用" :value="1" />
             </el-select>
           </el-form-item>
-          <el-form-item label="AppID / 应用ID">
+          <el-form-item v-if="usesThirdPartyCredentials" label="AppID / 应用ID">
             <el-input v-model="channelForm.appId" placeholder="微信 AppID 或支付宝应用 ID" />
           </el-form-item>
-          <el-form-item label="商户号 / PID">
-            <el-input v-model="channelForm.merchantNo" placeholder="商户号、PID 或路由标识" />
+          <el-form-item :label="isCompositeChannel ? '路由标识' : '商户号 / PID'">
+            <el-input v-model="channelForm.merchantNo" :placeholder="isCompositeChannel ? '可选：内部路由标识' : '商户号、PID 或路由标识'" />
           </el-form-item>
-          <el-form-item label="API Key">
+          <el-form-item v-if="usesThirdPartyCredentials" label="API Key">
             <el-input v-model="channelForm.apiKey" type="password" show-password placeholder="留空表示不改动现有密钥" />
           </el-form-item>
-          <el-form-item label="私钥">
+          <el-form-item v-if="usesThirdPartyCredentials" label="私钥">
             <el-input v-model="channelForm.privateKey" type="textarea" :rows="3" placeholder="留空表示不改动现有私钥" />
           </el-form-item>
-          <el-form-item label="公钥">
+          <el-form-item v-if="channelForm.channelType === 'ALIPAY'" label="公钥">
             <el-input v-model="channelForm.publicKey" type="textarea" :rows="3" placeholder="支付宝公钥或平台公钥" />
           </el-form-item>
-          <el-form-item label="证书路径">
+          <el-form-item v-if="channelForm.channelType === 'WECHAT'" label="证书路径">
             <el-input v-model="channelForm.certPath" placeholder="例如：/data/cert/apiclient_key.pem" />
           </el-form-item>
           <el-form-item label="支付回调地址" class="span-2">
@@ -323,7 +302,7 @@
             <el-input v-model="channelForm.onboardingLink" placeholder="可覆盖默认官方开通链接" />
           </el-form-item>
           <el-form-item label="扩展配置" class="span-2">
-            <el-input v-model="channelForm.extConfig" type="textarea" :rows="4" placeholder='可填写 JSON，如 {"appSecret":"***"}' />
+            <el-input v-model="channelForm.extConfig" type="textarea" :rows="4" :placeholder="extConfigPlaceholder" />
           </el-form-item>
         </div>
       </el-form>
@@ -368,55 +347,6 @@
       </template>
     </el-drawer>
   </section>
-=======
-    <!-- 创建/编辑商户对话框 -->
-    <ScDialog v-model="dialogVisible" :title="isEdit ? '编辑商户' : '添加商户'" width="700px">
-      <ScForm :model="form" :rules="rules" ref="formRef" label-width="120px">
-        <ScFormItem label="商户名称" prop="merchantName">
-          <ScInput v-model="form.merchantName" placeholder="请输入商户名称" />
-        </ScFormItem>
-        <ScFormItem label="支付提供商" prop="provider">
-          <ScSelect v-model="form.provider" placeholder="请选择支付提供商">
-            <ScOption label="微信支付" value="wechat" />
-            <ScOption label="支付宝支付" value="alipay" />
-            <ScOption label="聚合支付" value="ijpay" />
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem label="AppID" prop="appId">
-          <ScInput v-model="form.appId" placeholder="请输入AppID" />
-        </ScFormItem>
-        <ScFormItem label="商户号" prop="mchId" v-if="form.provider === 'wechat'">
-          <ScInput v-model="form.mchId" placeholder="请输入商户号" />
-        </ScFormItem>
-        <ScFormItem label="API密钥" prop="apiKey">
-          <ScInput v-model="form.apiKey" type="password" placeholder="请输入API密钥" show-password />
-        </ScFormItem>
-        <ScFormItem label="证书路径" prop="certPath" v-if="form.provider === 'wechat'">
-          <ScInput v-model="form.certPath" placeholder="请输入证书路径（可选）" />
-        </ScFormItem>
-        <ScFormItem label="支付宝公钥" prop="alipayPublicKey" v-if="form.provider === 'alipay'">
-          <ScInput v-model="form.alipayPublicKey" type="textarea" :rows="3" placeholder="请输入支付宝公钥" />
-        </ScFormItem>
-        <ScFormItem label="回调地址" prop="notifyUrl">
-          <ScInput v-model="form.notifyUrl" placeholder="请输入回调地址" />
-        </ScFormItem>
-        <ScFormItem label="返回地址" prop="returnUrl">
-          <ScInput v-model="form.returnUrl" placeholder="请输入返回地址（可选）" />
-        </ScFormItem>
-        <ScFormItem label="沙箱模式" prop="sandbox">
-          <ScSwitch v-model="form.sandbox" />
-        </ScFormItem>
-        <ScFormItem label="启用状态" prop="enabled">
-          <ScSwitch v-model="form.enabled" />
-        </ScFormItem>
-      </ScForm>
-      <template #footer>
-        <ScButton @click="dialogVisible = false">取消</ScButton>
-        <ScButton type="primary" @click="handleSubmit" :loading="submitting">确定</ScButton>
-      </template>
-    </ScDialog>
-  </div>
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
 </template>
 
 <script setup lang="ts">
@@ -433,6 +363,7 @@ import {
   getChannelCatalog,
   getMerchantChannels,
   getMerchantList,
+  getProviderOptions,
   updateChannel,
   updateMerchant,
 } from "../api/payment";
@@ -449,6 +380,7 @@ import {
   ChannelTypeMap,
   MerchantStatusMap,
   OnboardingStatusMap,
+  isExecutableChannel,
 } from "../types/payment";
 
 const loading = ref(false);
@@ -459,6 +391,7 @@ const submittingChannel = ref(false);
 const merchantList = ref<Merchant[]>([]);
 const channelList = ref<MerchantChannel[]>([]);
 const catalog = ref<PaymentMethodGuide[]>([]);
+const providerOptions = ref<Array<{ extensionName: string; description?: string }>>([]);
 
 const pagination = reactive({
   page: 1,
@@ -489,6 +422,17 @@ const merchantFormRef = ref();
 const activeMerchantCount = computed(() => merchantList.value.filter((item) => item.status === 1).length);
 const totalChannelCount = computed(() => merchantList.value.reduce((sum, item) => sum + (item.channelCount || 0), 0));
 const availableSubTypes = computed(() => ChannelSubTypeOptions[channelForm.channelType] || []);
+const usesThirdPartyCredentials = computed(() => ["WECHAT", "ALIPAY"].includes(channelForm.channelType));
+const isCompositeChannel = computed(() => channelForm.channelType === "COMPOSITE");
+const extConfigPlaceholder = computed(() => {
+  if (channelForm.channelType === "COMPOSITE") {
+    return '{"targetChannelId":123,"defaultChannelId":123}';
+  }
+  if (channelForm.channelType === "WECHAT") {
+    return '{"merchantSerialNumber":"微信商户证书序列号"}';
+  }
+  return '{"serverUrl":"https://openapi.alipay.com/gateway.do"}';
+});
 const sandboxEnabled = computed({
   get: () => channelForm.sandboxMode === 1,
   set: (value: boolean) => {
@@ -515,6 +459,19 @@ async function loadMerchants() {
 async function loadCatalog() {
   const res = await getChannelCatalog();
   catalog.value = res.data;
+}
+
+async function loadProviderSpiOptions(channelType?: string) {
+  if (!channelType || !["WECHAT", "ALIPAY"].includes(channelType)) {
+    providerOptions.value = [];
+    channelForm.providerSpi = "";
+    return;
+  }
+  const res = await getProviderOptions(channelType);
+  providerOptions.value = res.data;
+  if (channelForm.providerSpi && !providerOptions.value.find((item) => item.extensionName === channelForm.providerSpi)) {
+    channelForm.providerSpi = "";
+  }
 }
 
 async function loadChannels() {
@@ -593,7 +550,7 @@ async function openChannelDrawer(merchant: Merchant) {
   await loadChannels();
 }
 
-function openChannelDialog(channel?: MerchantChannel) {
+async function openChannelDialog(channel?: MerchantChannel) {
   if (!selectedMerchant.value) {
     return;
   }
@@ -607,15 +564,17 @@ function openChannelDialog(channel?: MerchantChannel) {
           merchantId: selectedMerchant.value.id,
         }
   );
+  await loadProviderSpiOptions(channelForm.channelType);
   if (!channelForm.channelSubType && availableSubTypes.value.length > 0) {
     channelForm.channelSubType = availableSubTypes.value[0].value;
   }
   channelDialogVisible.value = true;
 }
 
-function handleChannelTypeChange(type: string) {
+async function handleChannelTypeChange(type: string) {
   const options = ChannelSubTypeOptions[type] || [];
   channelForm.channelSubType = options[0]?.value || "";
+  await loadProviderSpiOptions(type);
 }
 
 async function submitChannel() {
@@ -645,6 +604,10 @@ async function submitChannel() {
 }
 
 async function handleEnableChannel(row: MerchantChannel) {
+  if (!isExecutableChannel(row.channelType, row.channelSubType)) {
+    ElMessage.warning("当前渠道为仅指引能力，不能启用执行");
+    return;
+  }
   await enableChannel(row.id);
   ElMessage.success("支付方式已启用");
   await loadChannels();
@@ -734,6 +697,7 @@ function createDefaultChannelForm(): ChannelForm {
     onboardingStatus: "NOT_STARTED",
     onboardingLink: "",
     status: 0,
+    providerSpi: "",
     extConfig: "",
   };
 }
@@ -774,6 +738,7 @@ function toChannelForm(channel: MerchantChannel): ChannelForm {
     onboardingStatus: channel.onboardingStatus,
     onboardingLink: channel.onboardingLink || "",
     status: channel.status,
+    providerSpi: channel.providerSpi || "",
     extConfig: channel.extConfig || "",
   };
 }

@@ -511,7 +511,7 @@ export default defineComponent({
                 type="primary"
                 :icon="Edit"
                 @click="dialogOpen({}, 'save')"
-                >{{ $t("buttons.add") }}</el-button
+                >{{ $t("buttons.add") }}</ScButton
               >
 
               <!-- 批量操作下拉菜单 -->
@@ -643,7 +643,7 @@ export default defineComponent({
                             type="warning"
                             size="small"
                             class="ml-1"
-                            >系统</el-tag
+                            >系统</ScTag
                           >
                         </div>
                         <div class="user-id">ID: {{ row.sysUserId }}</div>

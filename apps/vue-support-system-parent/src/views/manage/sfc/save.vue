@@ -198,7 +198,7 @@ export default {
             <span :id="titleId" :class="titleClass">{{ title }}</span>
           </div>
           <ScTag v-if="form.sysSfcId" type="info" size="small"
-            >ID: {{ form.sysSfcId }}</el-tag
+            >ID: {{ form.sysSfcId }}</ScTag
           >
         </div>
       </template>

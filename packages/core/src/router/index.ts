@@ -366,9 +366,13 @@ router.beforeEach((to: ToRouteType, _from, next) => {
           .then((router: Router) => {
             if (!useMultiTagsStoreHook().getMultiTagsCache) {
               const { path } = to;
+              const routeSearchSpace =
+                router.options.routes.find(
+                  route => route.path === "/" && Array.isArray(route.children),
+                )?.children || router.options.routes;
               const route = findRouteByPath(
                 path,
-                router.options.routes[0].children,
+                routeSearchSpace,
               );
               getTopMenu(true);
               // query、params模式路由传参数的标签页不在此处处理

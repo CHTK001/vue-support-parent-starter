@@ -176,7 +176,7 @@ export function useTags() {
 
   onMounted(() => {
     if (!showModel.value) {
-      );
+      // TODO: add logic here
     }
   });
 

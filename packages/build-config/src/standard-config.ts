@@ -8,7 +8,7 @@
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { wrapperEnv, pathResolve, createAlias, createAppInfo } from "./utils";
+import { wrapperEnv, pathResolve, createAlias, createAppInfo, root } from "./utils";
 import { getPluginsList } from "./plugins";
 import { include, exclude } from "./optimize";
 import { getSharedPublicConfig } from "./shared-public";
@@ -177,6 +177,9 @@ export function createStandardViteConfig(
         port: options.port || VITE_PORT || 8848,
         host: "0.0.0.0",
         proxy: options.proxy || {},
+        fs: {
+          allow: [root, pathResolve("./", metaUrl)],
+        },
         warmup: {
           clientFiles: ["./index.html", "./src/{views,components}/*"],
         },

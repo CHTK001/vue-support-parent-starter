@@ -70,6 +70,7 @@
     "@types/nprogress": "catalog:",
     "@types/qs": "catalog:",
     "@types/sortablejs": "catalog:",
+    "@vue/shared": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitejs/plugin-vue": "catalog:",

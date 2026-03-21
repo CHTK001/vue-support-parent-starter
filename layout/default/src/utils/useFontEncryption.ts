@@ -128,6 +128,8 @@ class FontEncryptionManager {
         try {
           const elements = document.querySelectorAll(selector);
           elements.forEach((el) => this.applyEncryptionToElement(el));
+        } catch {
+          // ignore selector errors
         }
       });
     } else if (this.config.applyGlobal) {

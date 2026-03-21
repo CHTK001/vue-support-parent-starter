@@ -439,10 +439,10 @@ const onDataLoaded = (data, total) => {
               >
                 <template #default="{ row }">
                   <ScTag v-if="row.sysLogStatus === 1" type="success"
-                    >成功</el-tag
+                    >成功</ScTag
                   >
                   <ScTag v-else-if="row.sysLogStatus === 0" type="danger"
-                    >失败</el-tag
+                    >失败</ScTag
                   >
                 </template>
               </ScTableColumn>
@@ -450,15 +450,15 @@ const onDataLoaded = (data, total) => {
               <ScTableColumn label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
                   <ScTag v-if="row.sysLogCost <= 1000" type="success"
-                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                    >{{ row.sysLogCost || 0 }} ms</ScTag
                   >
                   <ScTag
                     v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
                     type="warning"
-                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                    >{{ row.sysLogCost || 0 }} ms</ScTag
                   >
                   <ScTag v-else type="danger"
-                    >{{ row.sysLogCost || 0 }} ms</el-tag
+                    >{{ row.sysLogCost || 0 }} ms</ScTag
                   >
                 </template>
               </ScTableColumn>

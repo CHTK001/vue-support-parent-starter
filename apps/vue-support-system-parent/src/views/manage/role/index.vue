@@ -238,7 +238,7 @@ const contentRef = ref();
                             type="warning"
                             size="small"
                             class="ml-1"
-                            >系统</el-tag
+                            >系统</ScTag
                           >
                         </div>
                         <div class="role-code">{{ row.sysRoleCode }}</div>

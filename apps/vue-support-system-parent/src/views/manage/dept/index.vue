@@ -336,7 +336,7 @@ onMounted(async () => {
                           type="info"
                           effect="light"
                           class="ml-2"
-                          >排序: {{ row.sysDeptSort }}</el-tag
+                          >排序: {{ row.sysDeptSort }}</ScTag
                         >
                       </div>
                       <div class="dept-code">{{ row.sysDeptCode }}</div>

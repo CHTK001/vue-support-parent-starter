@@ -278,6 +278,16 @@ const tableData = shallowRef<OnlineUser[]>([]);
 const selectedUsers = ref<OnlineUser[]>([]);
 const onlineCount = ref(0);
 
+const normalizeOnlineUsers = (value: unknown): OnlineUser[] =>
+  Array.isArray(value) ? (value as OnlineUser[]) : [];
+
+const normalizeOnlineCount = (value: unknown): number =>
+  typeof value === "number"
+    ? value
+    : Number.isFinite(Number(value))
+      ? Number(value)
+      : 0;
+
 /**
  * 加载在线用户数据
  */
@@ -291,8 +301,9 @@ const loadData = async () => {
       }),
       fetchOnlineCount(),
     ]);
-    tableData.value = usersRes.data || [];
-    onlineCount.value = countRes.data || 0;
+    tableData.value = normalizeOnlineUsers(usersRes?.data);
+    selectedUsers.value = [];
+    onlineCount.value = normalizeOnlineCount(countRes?.data);
   } catch (error) {
     console.error("获取在线用户失败:", error);
     message("获取在线用户失败", { type: "error" });

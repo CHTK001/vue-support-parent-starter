@@ -1,9 +1,25 @@
-import { getConfig } from "@repo/config";
+import { formatToken, getConfig, getToken } from "@repo/config";
 import { http, type ReturnResult } from "@repo/utils";
 
 type Result = {
   success: boolean;
   data: Array<any>;
+};
+
+const extractRouteArray = (payload: any): any[] => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+  if (Array.isArray(payload?.records)) {
+    return payload.records;
+  }
+  if (Array.isArray(payload?.result)) {
+    return payload.result;
+  }
+  return [];
 };
 
 /**
@@ -49,16 +65,53 @@ export const getAsyncRoutes = async () => {
 
   // 模式2和3: 使用远程菜单
   try {
-    const remoteResult = await http.request<ReturnResult<Result>>("get", "/v2/user/menu");
+    const baseUrl = config.ApiAddress || config.BaseUrl || "";
+    const apiVersion = config.apiVersion;
+    const tokenInfo = getToken();
+    const accessToken = tokenInfo?.accessToken;
+    const remoteResponse = await fetch(
+      `${baseUrl}/v2/user/menu${apiVersion ? `?version=${encodeURIComponent(apiVersion)}` : ""}`,
+      {
+        headers: {
+          ...(accessToken
+            ? {
+                Authorization: formatToken(accessToken),
+                "x-oauth-token": accessToken,
+              }
+            : {}),
+        },
+      },
+    );
+    const remotePayload = await remoteResponse.json();
+    const remoteRoutes = extractRouteArray(remotePayload?.data ?? remotePayload);
+    const remoteResult = {
+      data: remoteRoutes,
+      success: remoteResponse.ok,
+      code: remotePayload?.code ?? remoteResponse.status,
+      msg: remotePayload?.msg ?? "",
+    } as any;
+
+    if (!remoteRoutes.length) {
+      const httpFallbackResult = await http.request<ReturnResult<Result>>(
+        "get",
+        "/v2/user/menu",
+      );
+      remoteResult.data = extractRouteArray(
+        httpFallbackResult?.data ?? httpFallbackResult,
+      );
+    }
 
     // 模式2: 仅使用远程菜单
     if (!config.MergeLocalMenu) {
-      return remoteResult;
+      return {
+        ...(remoteResult as any),
+        data: remoteRoutes,
+        success: true
+      } as any;
     }
 
     // 模式3: 合并远程菜单和本地菜单
     const localRoutes = await getLocalRoutes();
-    const remoteRoutes = remoteResult.data || [];
 
     // 合并路由：远程路由优先，本地路由作为补充
     const mergedRoutes = [...remoteRoutes, ...localRoutes];

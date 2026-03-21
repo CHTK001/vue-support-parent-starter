@@ -55,13 +55,13 @@
               type="primary"
               :icon="useRenderIcon('ep:search')"
               @click="onSearch"
-              >搜索</el-button
+              >搜索</ScButton
             >
             <ScButton
               type="success"
               :icon="useRenderIcon('ep:plus')"
               @click="doSave({}, 'save')"
-              >新增插件</el-button
+              >新增插件</ScButton
             >
           </ScFormItem>
         </ScForm>

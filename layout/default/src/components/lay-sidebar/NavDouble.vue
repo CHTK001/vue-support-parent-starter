@@ -301,6 +301,9 @@ const defer = useDefer(firstLevelMenus.value.length);
                 class="absolute right-0 top-0 scale-75 origin-top-right"
               />
             </div>
+          </ScMenuItem>
+        </ScMenu>
+      </ScScrollbar>
       <!-- 折叠按钮 - 移入左栏内部 -->
       <LaySidebarLeftCollapse
         v-if="device !== 'mobile'"
