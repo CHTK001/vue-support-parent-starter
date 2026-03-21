@@ -160,8 +160,13 @@ const isWasmEnabled = (): boolean => {
 export const uu2 = async (
   request: PureHttpRequestConfig,
 ): Promise<PureHttpRequestConfig> => {
-  const result = await uu2_wasm(request);
-  return result as PureHttpRequestConfig;
+  try {
+    const result = await uu2_wasm(request);
+    return result as PureHttpRequestConfig;
+  } catch (error) {
+    console.warn("[codec] uu2_wasm failed, fallback to raw request:", error);
+    return request;
+  }
 };
 
 /**
@@ -170,7 +175,12 @@ export const uu2 = async (
  * 如果启用 WASM 但执行错误，将抛出错误
  */
 export const uu1 = (response: PureHttpResponse) => {
-  return uu1Unified(response);
+  try {
+    return uu1Unified(response);
+  } catch (error) {
+    console.warn("[codec] uu1 failed, fallback to original response:", error);
+    return response;
+  }
 };
 
 /**
@@ -179,7 +189,12 @@ export const uu1 = (response: PureHttpResponse) => {
  * 如果启用 WASM 但执行错误，将抛出错误
  */
 export const uu3Wrapper = async (value: string) => {
-  return uu3Unified(value);
+  try {
+    return uu3Unified(value);
+  } catch (error) {
+    console.warn("[codec] uu3 failed, fallback to original value:", error);
+    return value;
+  }
 };
 
 /**
@@ -188,7 +203,13 @@ export const uu3Wrapper = async (value: string) => {
  * 如果启用 WASM 但执行错误，将抛出错误
  */
 export const uu4Wrapper = async (response: any) => {
-  const result = uu4_wasm(response);
+  let result: any;
+  try {
+    result = uu4_wasm(response);
+  } catch (error) {
+    console.warn("[codec] uu4 failed, fallback to raw response data:", error);
+    return response?.data || response;
+  }
 
   // 如果结果是 JSON 字符串，尝试解析它
   if (typeof result === "string" && result.length > 0) {

@@ -1,4 +1,5 @@
 packages:
+  - apps/vue-support-payment-starter
   - apps/vue-support-hotspot-starter
   - apps/vue-support-mock-server-starter
   - apps/vue-support-monitor-starter

@@ -57,6 +57,11 @@ const call = (fn, ...args) => {
 // ============ 初始化 ============
 
 /**
+ * 判断是否应该加载 WASM
+ */
+const shouldLoadWasm = () => {
+  if (currentMode === CodecMode.JS) {
+    return false;
   }
   // wasm 和 auto 模式都尝试加载
   return true;

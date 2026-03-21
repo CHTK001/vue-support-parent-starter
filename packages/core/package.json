@@ -28,6 +28,7 @@
   "license": "ISC",
   "dependencies": {
     "@pureadmin/utils": "catalog:",
+    "@vueuse/motion": "catalog:",
     "@vueuse/core": "catalog:",
     "click-outside-vue3": "catalog:",
     "echarts": "catalog:",

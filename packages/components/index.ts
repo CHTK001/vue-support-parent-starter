@@ -1,5 +1,6 @@
 import { useRenderIcon } from "./ReIcon/src/hooks";
 import { ReSplitPane } from "./ReSplitPane/index.ts";
+import { ReMenuNewBadge } from "./MenuNewBadge/index.ts";
 import ScCard from "./ScCard/index.vue";
 import ScTable from "./ScTable/index.vue";
 import { ScRibbon } from "./ScRibbon/index.ts";

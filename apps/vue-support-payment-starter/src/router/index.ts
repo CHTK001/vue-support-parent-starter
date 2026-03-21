@@ -1,7 +1,4 @@
 import { createRouter, createWebHistory } from "vue-router";
-import MerchantList from "../views/MerchantList.vue";
-import OrderList from "../views/OrderList.vue";
-import TransactionList from "../views/TransactionList.vue";
 
 const routes = [
   {
@@ -11,17 +8,17 @@ const routes = [
   {
     path: "/merchants",
     name: "MerchantList",
-    component: MerchantList,
+    component: () => import("../views/MerchantList.vue"),
   },
   {
     path: "/orders",
     name: "OrderList",
-    component: OrderList,
+    component: () => import("../views/OrderList.vue"),
   },
   {
     path: "/transactions",
     name: "TransactionList",
-    component: TransactionList,
+    component: () => import("../views/TransactionList.vue"),
   },
 ];
 
