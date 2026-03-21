@@ -14,7 +14,8 @@ export default [
         path: "/pay/merchant",
         name: "PayMerchant",
         component: async () => {
-          const { PayMerchantPage } = await import("@repo/pages-pay");
+          const { default: PayMerchantPage } =
+            await import("@pages/pay/src/merchant/MerchantList.vue");
           return PayMerchantPage;
         },
         meta: {
@@ -27,7 +28,8 @@ export default [
         path: "/pay/order",
         name: "PayOrder",
         component: async () => {
-          const { PayOrderPage } = await import("@repo/pages-pay");
+          const { default: PayOrderPage } =
+            await import("@pages/pay/src/order/OrderList.vue");
           return PayOrderPage;
         },
         meta: {
