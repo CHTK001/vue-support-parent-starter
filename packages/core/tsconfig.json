@@ -6,7 +6,16 @@
     "paths": {
       "@repo/font-encryption": ["../font-encryption/src/index.ts"],
       "@pages/common": ["../../pages/common"],
-      "@pages/common/*": ["../../pages/common/*"]
+      "@pages/common/*": ["../../pages/common/*"],
+      "@pages/common/login/index.vue": ["../../pages/common/login/index.vue"],
+      "@pages/common/page/bindSuccess.vue": ["../../pages/common/page/bindSuccess.vue"],
+      "@pages/common/page/remaining/RemainingComponentPage.vue": ["../../pages/common/page/remaining/RemainingComponentPage.vue"],
+      "@pages/common/page/message/MessageCenter.vue": ["../../pages/common/page/message/MessageCenter.vue"],
+      "@pages/common/layout/redirect.vue": ["../../pages/common/layout/redirect.vue"],
+      "@pages/common/layout/frame.vue": ["../../pages/common/layout/frame.vue"],
+      "@pages/common/error/403.vue": ["../../pages/common/error/403.vue"],
+      "@pages/common/error/404.vue": ["../../pages/common/error/404.vue"],
+      "@pages/common/error/500.vue": ["../../pages/common/error/500.vue"]
     }
   },
   "include": ["src/types/*.d.ts", "types/*.d.ts", "mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts", "src/store/modules/LayoutStore.ts"],
